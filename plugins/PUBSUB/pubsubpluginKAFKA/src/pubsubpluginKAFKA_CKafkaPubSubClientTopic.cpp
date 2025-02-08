@@ -278,6 +278,17 @@ CKafkaPubSubClientTopic::Publish( CORE::UInt64& publishActionId, const PUBSUB::C
         if ( GUCEF_NULL == headers )
             headers = RdKafka::Headers::create();
 
+        if ( m_config.addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader )
+        {
+            CORE::CDateTime nowDt = CORE::CDateTime::NowUTCDateTime();
+            retCode = headers->add( m_config.prefixToAddForMetaDataKvPairs + m_config.readyToTransmitTimeStampMetaDataKey, CORE::ToString( nowDt.ToUnixEpochBasedTicksInMillisecs() ) );
+            if ( retCode != RdKafka::ERR_NO_ERROR )
+            {
+                GUCEF_ERROR_LOG(CORE::LOGLEVEL_NORMAL, "KafkaPubSubClientTopic:Publish: Failed to add auto generated ReadyToTransmitTimeStamp Kafka Msg header: " + CORE::CString( RdKafka::err2str( retCode ) ) +
+                    ". publishActionId=" + CORE::ToString( publishActionId ) + ". receiveActionId=" + CORE::ToString( msg.GetReceiveActionId() ) );
+            }
+        }
+
         PUBSUB::CIPubSubMsg::TKeyValuePairs::const_iterator k = metaDataKvPairs.begin();
         while ( k != metaDataKvPairs.end() )
         {

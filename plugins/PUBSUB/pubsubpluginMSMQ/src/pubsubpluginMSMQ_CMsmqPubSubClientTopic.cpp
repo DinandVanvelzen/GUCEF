@@ -2308,7 +2308,7 @@ CMsmqPubSubClientTopic::OnMsmqMsgReceived( const MQMSGPROPS& msg, CORE::UInt32 m
                 }
                 else
                 {
-                    // PROPID_M_SENTTIME should always be available since its MSMQ generated
+                    // PROPID_M_ARRIVEDTIME should always be available since its MSMQ generated
                     GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "MsmqPubSubClientTopic:OnMsmqMsgReceived: Unable to translate MSMQ PROPID_M_ARRIVEDTIME" );
                 }
                 break;
@@ -2454,12 +2454,19 @@ CMsmqPubSubClientTopic::OnSyncReadTimerCycle( CORE::CNotifier* notifier    ,
         {
             case (CORE::UInt64) MQ_OK:
             {
+                // Earliest point we can claim we successfully received this message
+                CORE::CDateTime msgReadFromMsmqDateTime = CORE::CDateTime::NowUTCDateTime();
+                
                 // We will consider the ability to receive and process messages as healthy
                 UpdateIsHealthyStatus( true );
                 
                 // Successfully received a message
                 // Since we are doing a sync cycle we can use linking
                 OnMsmqMsgReceived( m_msmqReceiveMsgs[ i ].msgprops, i, true );
+
+                // Stamp the time the message was received on the object properties
+                if ( m_config.addMsgReadFromMsmqTimeAsMetaData )
+                    m_pubsubMsgs[ i ].AddMetaDataKeyValuePair( m_config.metadataKeyForMsgReadFromMsmqTime, msgReadFromMsmqDateTime.ToUnixEpochBasedTicksInMillisecs() );
                 
                 ++msgsRead;
                 m_pubsubMsgsRefs.push_back( TPubSubMsgRef( &m_pubsubMsgs[ i ] ) );
@@ -2766,14 +2773,16 @@ CMsmqPubSubClientTopic::GetMsmqErrorsOnAckCounter( bool resetCounter )
 
 CMsmqPubSubClientTopic::TopicMetrics::TopicMetrics( void )
     : msmqMsgsInQueue( 0 )
-    , msmqMessagesPublished( 0 )
     , msmqMsgsInJournal( 0 )
     , msmqMsgBytesInQueue( 0 )
-    , msmqMsgBytesInJournal( 0 )
+    , msmqMsgBytesInJournal( 0 )    
+    , msmqMessagesPublished( 0 )
     , msmqErrorsOnPublish( 0 )
-    , msmqMessagesReceived( 0 )
-    , msmqErrorsOnReceive( 0 )
     , msmqErrorsOnAck( 0 )
+    , msmqMessagesReceived( 0 )
+    , msmqErrorsOnReceive( 0 )    
+    , msmqGlobalMsgBytes( 0 )
+    , msmqMsgSentToArriveLatencies()
 {GUCEF_TRACE;
 
 }
@@ -3081,7 +3090,7 @@ CMsmqPubSubClientTopic::GetMsmqQueueProperties( const std::wstring& queueFormatN
     // actually dealing with. As such we best effort try to obtain properties, getting whatever we can get
     bool totalSuccess = true;
     totalSuccess = GetMsmqQueueLabel( queueFormatName, queueProperties.queueLabel ) && totalSuccess;
-    totalSuccess = GetMsmqQueueType( queueFormatName, queueProperties.typeId ) && totalSuccess;
+    //totalSuccess = GetMsmqQueueType( queueFormatName, queueProperties.typeId ) && totalSuccess;
     totalSuccess = GetMsmqQueueQuota( queueFormatName, queueProperties.quota ) && totalSuccess;
     totalSuccess = GetMsmqQueuePathName( queueFormatName, queueProperties.pathName ) && totalSuccess;
     totalSuccess = GetMsmqQueuePathNameDNS( queueFormatName, queueProperties.pathNameDNS ) && totalSuccess;

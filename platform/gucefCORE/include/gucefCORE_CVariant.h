@@ -169,6 +169,11 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     CVariant( const CDynamicBuffer& data, UInt8 varType = GUCEF_DATATYPE_BINARY_BLOB );
 
     /**
+     *  Creates a variant holding the datetime value
+     */
+    CVariant( const CDateTime& datetime );
+
+    /**
      *  Interprets the string form data per the type ID given
      *  Creates a private copy
      */

@@ -69,13 +69,15 @@ class PUBSUBPLUGIN_KAFKA_PLUGIN_PRIVATE_CPP CKafkaPubSubClientTopicConfig : publ
     CORE::CString consumerModeStartOffset;
     bool useKafkaMsgHeadersForConsumerFiltering;
     std::string kafkaMsgHeaderUsedForFiltering;
-    CORE::CString::StringVector kafkaMsgValuesUsedForFiltering;
-    bool addProducerHostnameAsKafkaMsgHeader;
+    CORE::CString::StringVector kafkaMsgValuesUsedForFiltering;    /**< The values that are used for filtering out messages received from Kafka. They will right away count as successfully handled */
+    bool addProducerHostnameAsKafkaMsgHeader;                      /**< If enabled the hostname of the producer will be added as a kafka message header */
     CORE::CString prefixToAddForMetaDataKvPairs;
     CORE::CString prefixToAddForKvPairs;
-    bool stripPrefixForMetaDataKvPairs;
-    bool stripPrefixForKvPairs;
-    CORE::Int32 maxKafkaErrorsToBeHealthy;
+    bool stripPrefixForMetaDataKvPairs;                            /**< If enabled the prefix will be stripped from the meta-data key value pairs before they are added to the message */
+    bool stripPrefixForKvPairs;                                    /**< If enabled the prefix will be stripped from the key value pairs before they are added to the message */
+    CORE::Int32 maxKafkaErrorsToBeHealthy;                         /**< The maximum number of errors that can occur before the client is considered unhealthy */
+    bool addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader;      /**< If enabled the time at which the message was ready to be transmitted will be added as metadata to the message */
+    std::string readyToTransmitTimeStampMetaDataKey;               /**< The key to use for the ready to transmit timestamp metadata if enabled via addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader */
     
     CKafkaPubSubClientTopicConfig( void );
     

@@ -58,6 +58,15 @@ namespace MSMQ {
 
 #define DEFAULT_MINIMAL_BUFFER_GROWTH_ON_PAYLOAD_BUFFER_TOO_SMALL       50
 
+// MSMQ uses ULONG as the type for the PROPID_M_MSGID property
+// Looking at the docs there are only a few properties relative to the range of ULONG
+// that are reserved by MSMQ. We will use the range 10000 and up for custom properties as needed (defaults)
+// This is a bit of a hack but it should be safe enough. At least the type will match the other ids and as such be a more natural fit downstream
+#define DEFAULT_METADATA_KEY_OFFSET_FOR_CUSTOM_FAKE_MSMQ_PROPIDS        10000
+
+// The default fake MSQM prop id used as a metadata key for the timestamp of when the message was read from MSMQ
+#define DEFAULT_METADATA_KEY_FOR_MSG_READ_FROM_MSMQ_TIME                ( (CORE::UInt64) (DEFAULT_METADATA_KEY_OFFSET_FOR_CUSTOM_FAKE_MSMQ_PROPIDS + 1) )
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      IMPLEMENTATION                                                     //
@@ -80,7 +89,9 @@ CMsmqPubSubClientTopicConfig::CMsmqPubSubClientTopicConfig( void )
     , defaultMsmqBodyBufferSizeInBytes( DEFAULT_MSMQ_BODY_BUFFER_SIZE_IN_BYTES )
     , defaultMsmqMiscBufferSizeInBytes( DEFAULT_MSMQ_MISC_BUFFER_SIZE_IN_BYTES )
     , minPayloadFieldGrowthPercOnBufferTooSmall( DEFAULT_MINIMAL_BUFFER_GROWTH_ON_PAYLOAD_BUFFER_TOO_SMALL )
-    , retainMsmqSentTimeAsMetaData( false )
+    , retainMsmqSentTimeAsMetaData( true )
+    , addMsgReadFromMsmqTimeAsMetaData( true )
+    , metadataKeyForMsgReadFromMsmqTime( DEFAULT_METADATA_KEY_FOR_MSG_READ_FROM_MSMQ_TIME )
     , maxMsmqErrorsOnAckToBeHealthy( 0 )
     , maxMsmqErrorsOnReceiveToBeHealthy( 0 )
 {GUCEF_TRACE;
@@ -108,7 +119,9 @@ CMsmqPubSubClientTopicConfig::CMsmqPubSubClientTopicConfig( const PUBSUB::CPubSu
     , defaultMsmqBodyBufferSizeInBytes( DEFAULT_MSMQ_BODY_BUFFER_SIZE_IN_BYTES )
     , defaultMsmqMiscBufferSizeInBytes( DEFAULT_MSMQ_MISC_BUFFER_SIZE_IN_BYTES )
     , minPayloadFieldGrowthPercOnBufferTooSmall( DEFAULT_MINIMAL_BUFFER_GROWTH_ON_PAYLOAD_BUFFER_TOO_SMALL )
-    , retainMsmqSentTimeAsMetaData( false )
+    , retainMsmqSentTimeAsMetaData( true )
+    , addMsgReadFromMsmqTimeAsMetaData( true )
+    , metadataKeyForMsgReadFromMsmqTime( DEFAULT_METADATA_KEY_FOR_MSG_READ_FROM_MSMQ_TIME )
     , maxMsmqErrorsOnAckToBeHealthy( 0 )
     , maxMsmqErrorsOnReceiveToBeHealthy( 0 )
 {GUCEF_TRACE;
@@ -152,6 +165,8 @@ CMsmqPubSubClientTopicConfig::LoadCustomConfig( const CORE::CDataNode& config )
     msmqMsgPropIdToMapToMsgIdOnReceive = config.GetAttributeValueOrChildValueByName( "msmqMsgPropIdToMapToMsgIdOnReceive" ).AsUInt64( msmqMsgPropIdToMapToMsgIdOnReceive, true );
     minPayloadFieldGrowthPercOnBufferTooSmall = config.GetAttributeValueOrChildValueByName( "minPayloadFieldGrowthPercOnBufferTooSmall" ).AsUInt16( minPayloadFieldGrowthPercOnBufferTooSmall, true );
     retainMsmqSentTimeAsMetaData = config.GetAttributeValueOrChildValueByName( "retainMsmqSentTimeAsMetaData" ).AsBool( retainMsmqSentTimeAsMetaData, true );
+    addMsgReadFromMsmqTimeAsMetaData = config.GetAttributeValueOrChildValueByName( "addMsgReadFromMsmqTimeAsMetaData" ).AsBool( addMsgReadFromMsmqTimeAsMetaData, true );
+    metadataKeyForMsgReadFromMsmqTime = config.GetAttributeValueOrChildValueByName( "metadataKeyForMsgReadFromMsmqTime", metadataKeyForMsgReadFromMsmqTime );
     maxMsmqErrorsOnAckToBeHealthy = config.GetAttributeValueOrChildValueByName( "maxMsmqErrorsOnAckToBeHealthy" ).AsInt32( maxMsmqErrorsOnAckToBeHealthy, true );
     maxMsmqErrorsOnReceiveToBeHealthy = config.GetAttributeValueOrChildValueByName( "maxMsmqErrorsOnReceiveToBeHealthy" ).AsInt32( maxMsmqErrorsOnReceiveToBeHealthy, true );
     
@@ -232,6 +247,8 @@ CMsmqPubSubClientTopicConfig::operator=( const CMsmqPubSubClientTopicConfig& src
         defaultMsmqMiscBufferSizeInBytes = src.defaultMsmqMiscBufferSizeInBytes;
         minPayloadFieldGrowthPercOnBufferTooSmall = src.minPayloadFieldGrowthPercOnBufferTooSmall;
         retainMsmqSentTimeAsMetaData = src.retainMsmqSentTimeAsMetaData;
+        addMsgReadFromMsmqTimeAsMetaData = src.addMsgReadFromMsmqTimeAsMetaData;
+        metadataKeyForMsgReadFromMsmqTime = src.metadataKeyForMsgReadFromMsmqTime;
         maxMsmqErrorsOnAckToBeHealthy = src.maxMsmqErrorsOnAckToBeHealthy;
         maxMsmqErrorsOnReceiveToBeHealthy = src.maxMsmqErrorsOnReceiveToBeHealthy;
     }

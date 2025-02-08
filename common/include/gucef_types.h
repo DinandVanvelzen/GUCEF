@@ -131,27 +131,51 @@ typedef double          Float64;  /* 8 bytes, signed, decimal */
 #else
   #define GUCEF_NS_FOR_BUILDINS
 #endif
+
 /*
  *      Maximum and minimal values for the build-in types
  */
-#define GUCEF_INT8MAX     ( (GUCEF_NS_FOR_BUILDINS Int8) 127 )
-#define GUCEF_INT8MIN     ( (GUCEF_NS_FOR_BUILDINS Int8) (-128) )
-#define GUCEF_UINT8MAX    ( (GUCEF_NS_FOR_BUILDINS UInt8) 256 )
-#define GUCEF_UINT8MIN    ( (GUCEF_NS_FOR_BUILDINS UInt8) 0 )
-#define GUCEF_INT16MAX    ( (GUCEF_NS_FOR_BUILDINS Int16) 32767 )
-#define GUCEF_INT16MIN    ( (GUCEF_NS_FOR_BUILDINS Int16) (-32767-1) )
-#define GUCEF_UINT16MAX   ( (GUCEF_NS_FOR_BUILDINS UInt16) 65535 )
-#define GUCEF_UINT16MIN   ( (GUCEF_NS_FOR_BUILDINS UInt16) 0 )
-#define GUCEF_INT32MAX    ( (GUCEF_NS_FOR_BUILDINS Int32) 2147483647 )
-#define GUCEF_INT32MIN    ( (GUCEF_NS_FOR_BUILDINS Int32) (-2147483647-1) )
-#define GUCEF_UINT32MAX   ( (GUCEF_NS_FOR_BUILDINS UInt32) 4294967295 )
-#define GUCEF_UINT32MIN   ( (GUCEF_NS_FOR_BUILDINS UInt32) 0 )
-#define GUCEF_INT64MIN    ( (GUCEF_NS_FOR_BUILDINS Int64) -9223372036854775808 )
-#define GUCEF_INT64MAX    ( (GUCEF_NS_FOR_BUILDINS Int64) 9223372036854775807 )
-#define GUCEF_UINT64MIN   ( (GUCEF_NS_FOR_BUILDINS UInt64) 0 )
-#define GUCEF_UINT64MAX   ( (GUCEF_NS_FOR_BUILDINS UInt64) 18446744073709551615 )
-#define GUCEF_FLOAT32MAX  ( (GUCEF_NS_FOR_BUILDINS Float32) (3.40282347E+38F) )
-#define GUCEF_FLOAT32MIN  ( (GUCEF_NS_FOR_BUILDINS Float32) (-3.40282347E+38F-1) )
+#ifdef __cplusplus
+    #define GUCEF_INT8MAX     ( ( static_cast< GUCEF_NS_FOR_BUILDINS Int8 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Int8 >::max() ) ) )
+    #define GUCEF_INT8MIN     ( ( static_cast< GUCEF_NS_FOR_BUILDINS Int8 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Int8 >::min() ) ) )
+    #define GUCEF_UINT8MAX    ( ( static_cast< GUCEF_NS_FOR_BUILDINS UInt8 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS UInt8 >::max() ) ) )
+    #define GUCEF_UINT8MIN    ( ( static_cast< GUCEF_NS_FOR_BUILDINS UInt8 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS UInt8 >::min() ) ) )
+    #define GUCEF_INT16MAX    ( ( static_cast< GUCEF_NS_FOR_BUILDINS Int16 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Int16 >::max() ) ) )
+    #define GUCEF_INT16MIN    ( ( static_cast< GUCEF_NS_FOR_BUILDINS Int16 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Int16 >::min() ) ) )
+    #define GUCEF_UINT16MAX   ( ( static_cast< GUCEF_NS_FOR_BUILDINS UInt16 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS UInt16 >::max() ) ) )
+    #define GUCEF_UINT16MIN   ( ( static_cast< GUCEF_NS_FOR_BUILDINS UInt16 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS UInt16 >::min() ) ) )
+    #define GUCEF_INT32MAX    ( ( static_cast< GUCEF_NS_FOR_BUILDINS Int32 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Int32 >::max() ) ) )
+    #define GUCEF_INT32MIN    ( ( static_cast< GUCEF_NS_FOR_BUILDINS Int32 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Int32 >::min() ) ) )
+    #define GUCEF_UINT32MAX   ( ( static_cast< GUCEF_NS_FOR_BUILDINS UInt32 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS UInt32 >::max() ) ) )
+    #define GUCEF_UINT32MIN   ( ( static_cast< GUCEF_NS_FOR_BUILDINS UInt32 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS UInt32 >::min() ) ) )
+    #define GUCEF_INT64MAX    ( ( static_cast< GUCEF_NS_FOR_BUILDINS Int64 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Int64 >::max() ) ) )
+    #define GUCEF_INT64MIN    ( ( static_cast< GUCEF_NS_FOR_BUILDINS Int64 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Int64 >::min() ) ) )    
+    #define GUCEF_UINT64MAX   ( ( static_cast< GUCEF_NS_FOR_BUILDINS UInt64 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS UInt64 >::max() ) ) )
+    #define GUCEF_UINT64MIN   ( ( static_cast< GUCEF_NS_FOR_BUILDINS UInt64 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS UInt64 >::min() ) ) )
+    #define GUCEF_FLOAT32MAX  ( ( static_cast< GUCEF_NS_FOR_BUILDINS Float32 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Float32 >::max() ) ) )
+    #define GUCEF_FLOAT32MIN  ( ( static_cast< GUCEF_NS_FOR_BUILDINS Float32 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Float32 >::min() ) ) )
+    #define GUCEF_FLOAT64MAX  ( ( static_cast< GUCEF_NS_FOR_BUILDINS Float64 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Float64 >::max() ) ) )
+    #define GUCEF_FLOAT64MIN  ( ( static_cast< GUCEF_NS_FOR_BUILDINS Float64 >( std::numeric_limits< GUCEF_NS_FOR_BUILDINS Float64 >::min() ) ) )
+#else
+    #define GUCEF_INT8MAX     ( (GUCEF_NS_FOR_BUILDINS Int8) 127 )
+    #define GUCEF_INT8MIN     ( (GUCEF_NS_FOR_BUILDINS Int8) (-128) )
+    #define GUCEF_UINT8MAX    ( (GUCEF_NS_FOR_BUILDINS UInt8) 256 )
+    #define GUCEF_UINT8MIN    ( (GUCEF_NS_FOR_BUILDINS UInt8) 0 )
+    #define GUCEF_INT16MAX    ( (GUCEF_NS_FOR_BUILDINS Int16) 32767 )
+    #define GUCEF_INT16MIN    ( (GUCEF_NS_FOR_BUILDINS Int16) (-32767-1) )
+    #define GUCEF_UINT16MAX   ( (GUCEF_NS_FOR_BUILDINS UInt16) 65535 )
+    #define GUCEF_UINT16MIN   ( (GUCEF_NS_FOR_BUILDINS UInt16) 0 )
+    #define GUCEF_INT32MAX    ( (GUCEF_NS_FOR_BUILDINS Int32) 2147483647 )
+    #define GUCEF_INT32MIN    ( (GUCEF_NS_FOR_BUILDINS Int32) (-2147483647-1) )
+    #define GUCEF_UINT32MAX   ( (GUCEF_NS_FOR_BUILDINS UInt32) 4294967295 )
+    #define GUCEF_UINT32MIN   ( (GUCEF_NS_FOR_BUILDINS UInt32) 0 )
+    #define GUCEF_INT64MAX    ( (GUCEF_NS_FOR_BUILDINS Int64) 9223372036854775807 )
+    #define GUCEF_INT64MIN    ( (GUCEF_NS_FOR_BUILDINS Int64) -9223372036854775808 )    
+    #define GUCEF_UINT64MAX   ( (GUCEF_NS_FOR_BUILDINS UInt64) 18446744073709551615 )
+    #define GUCEF_UINT64MIN   ( (GUCEF_NS_FOR_BUILDINS UInt64) 0 )    
+    #define GUCEF_FLOAT32MAX  ( (GUCEF_NS_FOR_BUILDINS Float32) (3.40282347E+38F) )
+    #define GUCEF_FLOAT32MIN  ( (GUCEF_NS_FOR_BUILDINS Float32) (-3.40282347E+38F-1) )
+#endif
 
 /*--------------------------------------------------------------------------*/
 
@@ -502,8 +526,13 @@ typedef enum EBoundaryType TBoundaryType;
 
 /*--------------------------------------------------------------------------*/
 
-#define GUCEF_FLOAT32_COMPARISON_EPSILON   ( (Float32) 0.00001f )
-#define GUCEF_FLOAT64_COMPARISON_EPSILON   ( (Float64) 0.00001 )
+#ifdef __cplusplus
+  #define GUCEF_FLOAT32_COMPARISON_EPSILON   ( static_cast< Float32 >( std::numeric_limits< Float32 >::epsilon() ) )
+  #define GUCEF_FLOAT64_COMPARISON_EPSILON   ( static_cast< Float64 >( std::numeric_limits< Float64 >::epsilon() ) )
+#else 
+  #define GUCEF_FLOAT32_COMPARISON_EPSILON   ( (Float32) 0.00001f )
+  #define GUCEF_FLOAT64_COMPARISON_EPSILON   ( (Float64) 0.00001 )
+#endif
 
 #define GUCEF_FLOAT64_PI    3.1415926535897931
 

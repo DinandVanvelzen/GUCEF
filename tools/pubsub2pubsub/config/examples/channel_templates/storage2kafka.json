@@ -160,6 +160,8 @@
 						"stripPrefixForMetaDataKvPairs": false,
 						"useKafkaMsgHeadersForConsumerFiltering": false,
 						"maxKafkaErrorsToBeHealthy": 0,
+						"addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader": false,
+						"readyToTransmitTimeStampMetaDataKey": "readyForKafkaTransmitTimestamp",
 						"KafkaProducerGlobalConfig": {
 							"auto.offset.reset": "largest",
 							"compression.codec": "inherit",

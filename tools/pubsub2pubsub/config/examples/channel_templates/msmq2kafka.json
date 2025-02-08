@@ -27,25 +27,29 @@
 				},
                 "Topics": [],
                 "defaultTopicConfig": {
-					"isOptional": false,
-					"needPublishSupport": false,
-					"needSubscribeSupport": true,
-					"preferDedicatedConnection": false,
-					"topicName": ".\\PRIVATE$\\test",
-					"CustomConfig": {
-						"convertMsmqClsIdToString": true,
-						"convertMsmqMsgIdToString": true,
-						"defaultMsmqBodyBufferSizeInBytes": 4096,
-						"gatherMsmqTransitTimeOnReceiveMetric": true,
-						"maxMsmqMsgsToReadPerSyncCycle": 500,
-						"minPayloadFieldGrowthPercOnBufferTooSmall": 50,
-						"msmqMsgPropIdToMapToMsgIdOnReceive": 30,
-						"msmqPropIdsToReceive": "2,8,9,20,21,22,30,31,32,33,34,35,36",
-						"msmqPropIdsToSend": "",
-						"retainMsmqSentTimeAsMetaData": true,
-						"topicNameIsMsmqFormatName": false,
-						"maxMsmqErrorsOnAckToBeHealthy": 0,
-						"maxMsmqErrorsOnReceiveToBeHealthy": 0
+					"PubSubClientTopicConfig": {
+						"isOptional": false,
+						"needPublishSupport": false,
+						"needSubscribeSupport": true,
+						"preferDedicatedConnection": false,
+						"topicName": ".\\PRIVATE$\\test",
+						"CustomConfig": {
+							"convertMsmqClsIdToString": true,
+							"convertMsmqMsgIdToString": true,
+							"defaultMsmqBodyBufferSizeInBytes": 4096,
+							"gatherMsmqTransitTimeOnReceiveMetric": true,
+							"maxMsmqMsgsToReadPerSyncCycle": 500,
+							"minPayloadFieldGrowthPercOnBufferTooSmall": 50,
+							"msmqMsgPropIdToMapToMsgIdOnReceive": 30,
+							"msmqPropIdsToReceive": "2,8,9,20,21,22,30,31,32,33,34,35,36",
+							"msmqPropIdsToSend": "",
+							"retainMsmqSentTimeAsMetaData": true,
+							"addMsgReadFromMsmqTimeAsMetaData": true,
+							"metadataKeyForMsgReadFromMsmqTime": 10001,
+							"topicNameIsMsmqFormatName": false,
+							"maxMsmqErrorsOnAckToBeHealthy": 0,
+							"maxMsmqErrorsOnReceiveToBeHealthy": 0
+						}
 					}
 				},
 				"DesiredFeatures": {
@@ -123,7 +127,7 @@
 					"needPublishSupport": true,
 					"needSubscribeSupport": false,
 					"preferDedicatedConnection": false,
-					"topicName": "pubsub2pubsub-test-side-B",
+					"topicName": "pubsub2pubsub-msmq2kafka-example-topic",
                     "consumerGroupName": "msmq",
                     "consumerName": "$HOSTNAME$",							
 					"CustomConfig": {
@@ -137,6 +141,8 @@
 						"stripPrefixForMetaDataKvPairs": false,
 						"useKafkaMsgHeadersForConsumerFiltering": false,
 						"maxKafkaErrorsToBeHealthy": 0,
+						"addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader": false,
+						"readyToTransmitTimeStampMetaDataKey": "readyForKafkaTransmitTimestamp",
 						"KafkaProducerGlobalConfig": {
 							"auto.offset.reset": "largest",
 							"compression.codec": "inherit",

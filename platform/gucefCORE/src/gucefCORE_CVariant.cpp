@@ -269,6 +269,16 @@ CVariant::CVariant( const std::string& utf8Str )
 
 /*-------------------------------------------------------------------------*/
 
+CVariant::CVariant( const CDateTime& datetime )
+    : m_variantData()
+{GUCEF_TRACE;
+
+    memset( &m_variantData, 0, sizeof( m_variantData ) );
+    *this = datetime;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CVariant::CVariant( const void* data, UInt32 dataSize, UInt8 varType )
     : m_variantData()
 {GUCEF_TRACE;

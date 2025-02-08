@@ -41,6 +41,17 @@ namespace KAFKA {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      CONSTANTS                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+#define DEFAULT_MAX_KAFKA_ERRORS_TO_BE_HEALTHY              1
+#define DEFAULT_CONSUMER_MODE_START_OFFSET                  "stored"
+#define DEFAULT_CONSUMER_GROUP_NAME                         "0"
+#define DEFAULT_READY_TO_TRANSMIT_TIMESTAMP_METADATA_KEY    "readyForKafkaTransmitTimestamp"
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -59,10 +70,12 @@ CKafkaPubSubClientTopicConfig::CKafkaPubSubClientTopicConfig( void )
     , prefixToAddForKvPairs()
     , stripPrefixForMetaDataKvPairs( true )
     , stripPrefixForKvPairs( true )
-    , maxKafkaErrorsToBeHealthy( 1 )
+    , maxKafkaErrorsToBeHealthy( DEFAULT_MAX_KAFKA_ERRORS_TO_BE_HEALTHY )
+    , addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader( false )
+    , readyToTransmitTimeStampMetaDataKey( DEFAULT_READY_TO_TRANSMIT_TIMESTAMP_METADATA_KEY )
 {GUCEF_TRACE;
 
-    consumerGroupName = "0";
+    consumerGroupName = DEFAULT_CONSUMER_GROUP_NAME;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -82,6 +95,8 @@ CKafkaPubSubClientTopicConfig::CKafkaPubSubClientTopicConfig( const CKafkaPubSub
     , stripPrefixForMetaDataKvPairs( src.stripPrefixForMetaDataKvPairs )
     , stripPrefixForKvPairs( src.stripPrefixForKvPairs )
     , maxKafkaErrorsToBeHealthy( src.maxKafkaErrorsToBeHealthy )
+    , addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader( src.addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader )
+    , readyToTransmitTimeStampMetaDataKey( src.readyToTransmitTimeStampMetaDataKey )
 {GUCEF_TRACE;
  
 }
@@ -103,9 +118,11 @@ CKafkaPubSubClientTopicConfig::CKafkaPubSubClientTopicConfig( const PUBSUB::CPub
     , stripPrefixForMetaDataKvPairs( true )
     , stripPrefixForKvPairs( true )
     , maxKafkaErrorsToBeHealthy( 1 )
+    , addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader( false )
+    , readyToTransmitTimeStampMetaDataKey( DEFAULT_READY_TO_TRANSMIT_TIMESTAMP_METADATA_KEY )
 {GUCEF_TRACE;
 
-    consumerGroupName = "0";
+    consumerGroupName = DEFAULT_CONSUMER_GROUP_NAME;
     LoadCustomConfig( genericConfig.customConfig );  
 }
 
@@ -196,6 +213,8 @@ CKafkaPubSubClientTopicConfig::LoadCustomConfig( const CORE::CDataNode& config )
     stripPrefixForMetaDataKvPairs = config.GetAttributeValueOrChildValueByName( "stripPrefixForMetaDataKvPairs" ).AsBool( stripPrefixForMetaDataKvPairs, true ); 
     stripPrefixForKvPairs = config.GetAttributeValueOrChildValueByName( "stripPrefixForKvPairs" ).AsBool( stripPrefixForKvPairs, true ); 
     maxKafkaErrorsToBeHealthy = config.GetAttributeValueOrChildValueByName( "maxKafkaErrorsToBeHealthy" ).AsInt32( maxKafkaErrorsToBeHealthy, true ); 
+    addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader = config.GetAttributeValueOrChildValueByName( "addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader" ).AsBool( addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader, true );
+    readyToTransmitTimeStampMetaDataKey = config.GetAttributeValueOrChildValueByName( "readyToTransmitTimeStampMetaDataKey" ).AsString( readyToTransmitTimeStampMetaDataKey, true );
     return true;
 }
 
@@ -249,6 +268,8 @@ CKafkaPubSubClientTopicConfig::operator=( const CKafkaPubSubClientTopicConfig& s
         stripPrefixForMetaDataKvPairs = src.stripPrefixForMetaDataKvPairs;
         stripPrefixForKvPairs = src.stripPrefixForKvPairs;
         maxKafkaErrorsToBeHealthy = src.maxKafkaErrorsToBeHealthy;
+        addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader = src.addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader;
+        readyToTransmitTimeStampMetaDataKey = src.readyToTransmitTimeStampMetaDataKey;
     }
     return *this;
 }
