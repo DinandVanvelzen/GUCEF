@@ -52,11 +52,12 @@ class CDynamicBuffer;
 
 /*-------------------------------------------------------------------------*/
 
-class GUCEF_CORE_PUBLIC_CPP CDynamicBufferAccess : public CIOAccess
+class GUCEF_CORE_PUBLIC_CPP CDynamicBufferAccess : public CIOAccess ,
+                                                   public CTSharedObjCreator< CDynamicBufferAccess, MT::CMutex >
 {
     public:
 
-    typedef CTSharedPtr< CDynamicBufferAccess, MT::CMutex >         DynamicBufferAccessPtr;
+    typedef typename CTSharedObjCreator< CDynamicBufferAccess, MT::CMutex >::TSharedPtrType   DynamicBufferAccessPtr;
 
     CDynamicBufferAccess( void );
     

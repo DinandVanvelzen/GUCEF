@@ -42,6 +42,11 @@
 #define GUCEF_CORE_CDATANODE_H
 #endif /* GUCEF_CORE_CDATANODE_H ? */
 
+#ifndef GUCEF_CORE_CDYNAMICBUFFERACCESS_H
+#include "CDynamicBufferAccess.h"
+#define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
+#endif /* GUCEF_CORE_CDYNAMICBUFFERACCESS_H ? */
+
 #ifndef GUCEF_CORE_CVARIANT_H
 #include "gucefCORE_CVariant.h"
 #define GUCEF_CORE_CVARIANT_H
@@ -259,6 +264,18 @@ CKaitaiSchema::Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDat
         return totalSuccess;
     }
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CKaitaiSchema::LoadSchemaFromString( const CORE::CString& schemaContent )
+{GUCEF_TRACE;
+    
+    CORE::CDynamicBuffer buffer;
+    buffer.LinkTo( schemaContent );
+    CORE::DynamicBufferAccessPtr bufferAccess = CORE::CDynamicBufferAccess::CreateSharedObjWithParam( buffer );
+    return LoadSchema( bufferAccess );
 }
 
 /*-------------------------------------------------------------------------*/

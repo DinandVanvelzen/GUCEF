@@ -53,7 +53,8 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 CDynamicBufferAccess::CDynamicBufferAccess( void )
-    : CIOAccess()      
+    : CIOAccess()  
+    , CTSharedObjCreator< CDynamicBufferAccess, MT::CMutex >( this )
     , m_buffer( GUCEF_NULL ) 
     , m_carat( 0 )     
     , m_deleteBufferUponDestruction( false )
@@ -66,7 +67,8 @@ CDynamicBufferAccess::CDynamicBufferAccess( void )
 
 CDynamicBufferAccess::CDynamicBufferAccess( CDynamicBuffer* buffer                               ,
                                             const bool deleteBufferUponDestruction /* = false */ )
-    : CIOAccess()                                                  
+    : CIOAccess()  
+    , CTSharedObjCreator< CDynamicBufferAccess, MT::CMutex >( this )
     , m_buffer( buffer )                                          
     , m_carat( 0 )                                                 
     , m_deleteBufferUponDestruction( deleteBufferUponDestruction )
@@ -79,7 +81,8 @@ CDynamicBufferAccess::CDynamicBufferAccess( CDynamicBuffer* buffer              
 /*-------------------------------------------------------------------------*/
 
 CDynamicBufferAccess::CDynamicBufferAccess( CDynamicBuffer& buffer )
-    : CIOAccess()                                                  
+    : CIOAccess()  
+    , CTSharedObjCreator< CDynamicBufferAccess, MT::CMutex >( this )
     , m_buffer( &buffer )
     , m_carat( 0 )                                                 
     , m_deleteBufferUponDestruction( false )
@@ -92,7 +95,8 @@ CDynamicBufferAccess::CDynamicBufferAccess( CDynamicBuffer& buffer )
 /*-------------------------------------------------------------------------*/
 
 CDynamicBufferAccess::CDynamicBufferAccess( const CDynamicBuffer& buffer )
-    : CIOAccess()                                                  
+    : CIOAccess()
+    , CTSharedObjCreator< CDynamicBufferAccess, MT::CMutex >( this )
     , m_buffer( const_cast< CDynamicBuffer* >( &buffer ) )
     , m_carat( 0 )                                                 
     , m_deleteBufferUponDestruction( false )

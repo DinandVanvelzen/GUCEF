@@ -263,7 +263,7 @@ GUCEF_OSMAIN_BEGIN
         consoleWindow.CreateConsole();
 
         // Now actually run the tests...
-        //PerformKaitaiSchemaLoadTest();
+        PerformKaitaiSchemaLoadTest();
 
         auto& app = CORE::CCoreGlobal::Instance()->GetApplication();
         app.GetPulseGenerator()->RequestPulseInterval( 10 );

@@ -81,6 +81,9 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaRegistry : public CORE::CTONRegistry<
     bool RegisterSchema( TSchemaPtr schema                 ,
                          const CORE::CString& schemaFamily );
     
+    bool LoadSchemaFromString( const CORE::CString& schemaContent ,
+                               const CORE::CString& schemaFamily  );
+
     bool LoadSchema( const CORE::CUri& schemaResource  ,
                      const CORE::CString& schemaFamily );
 

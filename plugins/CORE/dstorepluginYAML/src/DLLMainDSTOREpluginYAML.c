@@ -936,7 +936,7 @@ DSTOREPLUG_Start_Reading( void** plugdata ,
             {
                 if (  0 == yaml_parser_parse( &sd->parser, &yamlEvent ) ) 
                 {
-                    //printf("Parser error %d\n", parser.error);
+                    (*sd->handlers.OnError)( sd->privdata, sd->parser.error, GUCEF_NULL );
                     return 0;
                 }
 

@@ -174,6 +174,38 @@ CKaitaiSchemaRegistry::RegisterSchema( TSchemaPtr schema                 ,
 /*-------------------------------------------------------------------------*/
 
 bool 
+CKaitaiSchemaRegistry::LoadSchemaFromString( const CORE::CString& schemaContent ,
+                                             const CORE::CString& schemaFamily  )
+{GUCEF_TRACE;
+
+    TSchemaPtr schema = CKaitaiSchema::CreateSharedObj();
+    if ( !schema.IsNULL() )
+    {
+        if ( schema->LoadSchemaFromString( schemaContent ) )
+        {
+            if ( RegisterSchema( schema, schemaFamily ) )
+            {
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchemaFromString: Successfully registered schema into family " + 
+                    schemaFamily + " using string: " + CORE::ToString( schemaContent ) );
+                return true;
+            }
+            else
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchemaFromString: Failed to register schema into family " + 
+                    schemaFamily + " using string: " + CORE::ToString( schemaContent ) );
+                return false;
+            }
+        }
+        return false;
+    }
+
+    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaRegistry:LoadSchemaFromString: Failed to create schema object" );
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
 CKaitaiSchemaRegistry::LoadSchema( const CORE::CUri& schemaResource  ,
                                    const CORE::CString& schemaFamily )
 {GUCEF_TRACE;

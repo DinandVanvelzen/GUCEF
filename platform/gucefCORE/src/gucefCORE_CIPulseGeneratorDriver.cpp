@@ -81,15 +81,19 @@ CIPulseGeneratorDriver::SendDriverPulse( CPulseGenerator& pulseGenerator )
 
     // disable Clang warining: reference cannot be bound to dereferenced null pointer in well-defined C++ code; comparison may be assumed to always evaluate to true [-Wtautological-undefined-compare]
     // while technically the null reference should never occur this is intended to catch bad memory access a bit earlier in the call stack
+    #ifdef __clang__
     #pragma clang diagnostic push
     #pragma clang diagnostic ignored "-Wtautological-undefined-compare"
+    #endif
     if ( GUCEF_NULL != &pulseGenerator )
         pulseGenerator.OnDriverPulse();
     else
     {
         GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "CIPulseGeneratorDriver:SendDriverPulse: Attempt to access NULL pulseGenerator" );
     }
+    #ifdef __clang__
     #pragma clang diagnostic pop
+    #endif
 }
 
 /*-------------------------------------------------------------------------//

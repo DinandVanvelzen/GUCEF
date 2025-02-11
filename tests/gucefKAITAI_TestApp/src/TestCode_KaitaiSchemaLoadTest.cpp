@@ -67,6 +67,35 @@ using namespace GUCEF;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      CONSTANTS                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+const char* kaitaiSchema_core_dynamic =
+"meta:\n"
+"  id: gucef_core_dynamic\n"
+"  endian: le\n"
+"seq:\n"
+"  - id: len_data\n"
+"    type: u4\n"
+"  - id: data\n"
+"    size: len_data\n";
+
+
+const char* kaitaiSchema_pubsub_msgcontainer_header =
+"meta:\n"
+"  id: gucef_pubsub_msgcontainer_header\n"
+"  endian: le\n"
+"seq:\n"
+"  - id: magic_text\n"
+"    contents: PUBSUBMSGS\n"
+"  - id: version\n"
+"    type: u1\n"
+"  - id: options\n"
+"    type: u4\n";
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -81,7 +110,12 @@ PerformKaitaiSchemaLoadTest( void )
     
     try
     {
+        KAITAI::CKaitaiGlobal* kaitai = KAITAI::CKaitaiGlobal::Instance();
 
+        KAITAI::CKaitaiSchemaRegistry& schemaRegistry = kaitai->GetKaitaiSchemaRegistry();
+
+        schemaRegistry.LoadSchemaFromString( kaitaiSchema_core_dynamic, "gucef" );
+        schemaRegistry.LoadSchemaFromString( kaitaiSchema_pubsub_msgcontainer_header, "gucef" );
         
         GUCEF_LOG( GUCEF::CORE::LOGLEVEL_NORMAL, "Finished all load unload tests" );
         

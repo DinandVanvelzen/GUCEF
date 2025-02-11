@@ -274,14 +274,18 @@ OnNodeChildrenEndHandler( void* privdata       ,
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 OnParserErrorHandler( void* privdata          ,
-                      Int32 errorcode         ,
+                      Int32 errorCode         ,
                       const char* description ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-        TParserData* pd = static_cast<TParserData*>(privdata);
-        pd->error = description;
-        pd->errorcode = errorcode;
 
-        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "DStore Codec error: " + CString( description ) );
+    if ( GUCEF_NULL == privdata )
+        return;
+
+    TParserData* pd = static_cast<TParserData*>(privdata);
+    pd->error = description;
+    pd->errorcode = errorCode;
+
+    GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "DStore Codec error with code " + ToString( errorCode ) + " and description : " + pd->error );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -687,14 +691,14 @@ CDStoreCodecPlugin::BuildDataTree( CDataNode* treeroot ,
          *      needed and they in turn construct our tree based on the events.
          */
         treeroot->DelSubTree();
-        ((TDSTOREPLUGFPTR_Start_Reading)_fptable[ DSTOREPLUG_START_READING ])( &_plugdata, &filedata );
+        UInt32 readResult = ((TDSTOREPLUGFPTR_Start_Reading)_fptable[ DSTOREPLUG_START_READING ])( &_plugdata, &filedata );
         GUCEF_DELETE static_cast<TParserData*>(privdata);
 
         /*
          *      We are finished,.. close the file
          */
         ((TDSTOREPLUGFPTR_Src_File_Close)_fptable[ DSTOREPLUG_SRC_FILE_CLOSE ])( &_plugdata, &filedata );
-        return true;
+        return readResult > 0;
 }
 
 /*-------------------------------------------------------------------------*/

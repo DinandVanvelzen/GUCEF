@@ -59,6 +59,16 @@
 #define GUCEF_KAITAI_CKAITAISCHEMA_H
 #endif /* GUCEF_KAITAI_CKAITAISCHEMA_H ? */
 
+#ifndef GUCEF_KAITAI_CKAITAISCHEMAREGISTRY_H
+#include "gucefKAITAI_CKaitaiSchemaRegistry.h"
+#define GUCEF_KAITAI_CKAITAISCHEMAREGISTRY_H
+#endif /* GUCEF_KAITAI_CKAITAISCHEMAREGISTRY_H ? */
+
+#ifndef GUCEF_KAITAI_CKAITAIGLOBAL_H
+#include "gucefKAITAI_CKaitaiGlobal.h"
+#define GUCEF_KAITAI_CKAITAIGLOBAL_H
+#endif /* GUCEF_KAITAI_CKAITAIGLOBAL_H ? */
+
 
 #endif /* __cplusplus ? */
 /*--------------------------------------------------------------------------*/

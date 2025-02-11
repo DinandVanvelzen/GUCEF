@@ -94,6 +94,11 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchema : public CORE::CIDataNodeSerializabl
     /*
      *  Utility function for loading a Kaitai schema
      */
+    bool LoadSchemaFromString( const CORE::CString& schemaContent );
+
+    /*
+     *  Utility function for loading a Kaitai schema
+     */
     bool LoadSchema( CORE::IOAccessPtr schemaResource );
 
     /*
