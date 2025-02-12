@@ -545,7 +545,7 @@ CKafkaPubSubClientTopic::SetupBasedOnConfig( void )
         if ( m_maxTotalMsgsInFlight > 0 )
         {
             std::string maxTotalMsgsInFlightStr = CORE::ToString( m_maxTotalMsgsInFlight );
-            m_kafkaConsumerConf->set( "max.in.flight", maxTotalMsgsInFlightStr, errStr );
+            kafkaConf->set( "max.in.flight", maxTotalMsgsInFlightStr, errStr );
         }
         if ( GUCEF_NULL != m_client )
         {
@@ -572,7 +572,7 @@ CKafkaPubSubClientTopic::SetupBasedOnConfig( void )
         m = m_config.kafkaProducerTopicConfigSettings.begin();
         while ( m != m_config.kafkaProducerTopicConfigSettings.end() )
         {
-            if ( RdKafka::Conf::CONF_OK != m_kafkaProducerTopicConf->set( (*m).first, (*m).second, errStr ) )
+            if ( RdKafka::Conf::CONF_OK != kafkaProducerTopicConfig->set( (*m).first, (*m).second, errStr ) )
             {
 		        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "KafkaPubSubClientTopic:LoadConfig: Failed to set Kafka Producer topic config entry \"" +
                         (*m).first + "\"=\"" + (*m).second + "\" for topic \"" + m_config.topicName + "\", error message: " + errStr );
@@ -634,26 +634,27 @@ CKafkaPubSubClientTopic::SetupBasedOnConfig( void )
             }
             ++m;
         }
-        GUCEF_DELETE m_kafkaConsumerConf;
-        m_kafkaConsumerConf = kafkaConf;
 
         #ifdef GUCEF_DEBUG_MODE
         bool tracePartitionEof = true;
         #else
         bool tracePartitionEof = clientConfig.desiredFeatures.supportsSubscriptionEndOfDataEvent;
         #endif
-        m_kafkaConsumerConf->set( "enable.partition.eof", tracePartitionEof ? "true" : "false", errStr );
+        kafkaConf->set( "enable.partition.eof", tracePartitionEof ? "true" : "false", errStr );
 
         if ( m_maxTotalMsgsInFlight > 0 )
         {
             std::string maxTotalMsgsInFlightStr = CORE::ToString( m_maxTotalMsgsInFlight );
-            m_kafkaConsumerConf->set( "max.in.flight", maxTotalMsgsInFlightStr, errStr );
+            kafkaConf->set( "max.in.flight", maxTotalMsgsInFlightStr, errStr );
         }
         if ( GUCEF_NULL != m_client )
         {
             std::string reconnectBackoffMsStr = CORE::ToString( m_client->GetConfig().reconnectDelayInMs );
             kafkaConf->set( "reconnect.backoff.ms", reconnectBackoffMsStr, errStr );
         }
+
+        GUCEF_DELETE m_kafkaConsumerConf;
+        m_kafkaConsumerConf = kafkaConf;
 
         // Apply default client level topic config as an overlay
         RdKafka::Conf* kafkaConsumerTopicConfig = RdKafka::Conf::create( RdKafka::Conf::CONF_TOPIC );
