@@ -2248,6 +2248,7 @@ CVFS::AddMountAliases( const CString& mountPath                   ,
             {
                 const CString& alias = (*n);
                 aliases.insert( alias );
+                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "VFS:AddMountAliases: Path alias \"" + alias + "\" added for existing mount path \"" + mountPath + "\"" );
                 ++n;
             }
             addedAliases = true;

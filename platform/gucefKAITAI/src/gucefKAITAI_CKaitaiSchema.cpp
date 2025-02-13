@@ -273,7 +273,7 @@ CKaitaiSchema::LoadSchemaFromString( const CORE::CString& schemaContent )
 {GUCEF_TRACE;
     
     CORE::CDynamicBuffer buffer;
-    buffer.LinkTo( schemaContent );
+    buffer.LinkTo( schemaContent, false );
     CORE::DynamicBufferAccessPtr bufferAccess = CORE::CDynamicBufferAccess::CreateSharedObjWithParam( buffer );
     return LoadSchema( bufferAccess );
 }

@@ -231,9 +231,9 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
                             UInt32 bufferSize          );
 
     CDynamicBuffer& LinkTo( const CVariant& src );
-    CDynamicBuffer& LinkTo( const CAsciiString& src );
-    CDynamicBuffer& LinkTo( const CUtf8String& src );
-    CDynamicBuffer& LinkTo( const std::string& src ); 
+    CDynamicBuffer& LinkTo( const CAsciiString& src, bool includeNullTerm = true );
+    CDynamicBuffer& LinkTo( const CUtf8String& src, bool includeNullTerm = true );
+    CDynamicBuffer& LinkTo( const std::string& src, bool includeNullTerm = true ); 
     CDynamicBuffer& LinkTo( const CDynamicBuffer& src );
 
     /**

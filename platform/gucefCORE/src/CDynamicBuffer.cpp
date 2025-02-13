@@ -1155,28 +1155,73 @@ CDynamicBuffer::LinkTo( const CVariant& src )
 /*-------------------------------------------------------------------------*/
 
 CDynamicBuffer& 
-CDynamicBuffer::LinkTo( const CAsciiString& src )
+CDynamicBuffer::LinkTo( const CAsciiString& src, bool includeNullTerm )
 {GUCEF_TRACE;
 
-    return LinkTo( src.C_String(), src.ByteSize() );
+    if ( src.IsNULLOrEmpty() )
+    {
+        Clear( true );
+        return *this;
+    }
+    else
+    {
+        if ( includeNullTerm )
+        {
+            return LinkTo( src.C_String(), src.ByteSize() );
+        }
+        else
+        {
+            return LinkTo( src.C_String(), src.ByteSize()-1 );
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------*/
 
 CDynamicBuffer& 
-CDynamicBuffer::LinkTo( const CUtf8String& src )
+CDynamicBuffer::LinkTo( const CUtf8String& src, bool includeNullTerm )
 {GUCEF_TRACE;
 
-    return LinkTo( src.C_String(), src.ByteSize() );
+    if ( src.IsNULLOrEmpty() )
+    {
+        Clear( true );
+        return *this;
+    }
+    else
+    {
+        if ( includeNullTerm )
+        {
+            return LinkTo( src.C_String(), src.ByteSize() );
+        }
+        else
+        {
+            return LinkTo( src.C_String(), src.ByteSize()-1 );
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------*/
 
 CDynamicBuffer& 
-CDynamicBuffer::LinkTo( const std::string& src )
+CDynamicBuffer::LinkTo( const std::string& src, bool includeNullTerm )
 {GUCEF_TRACE;
 
-    return LinkTo( src.c_str(), (UInt32) src.size() );
+    if ( src.empty() )
+    {
+        Clear( true );
+        return *this;
+    }
+    else
+    {
+        if ( includeNullTerm )
+        {
+            return LinkTo( src.c_str(), (UInt32) src.size() );
+        }
+        else
+        {
+            return LinkTo( src.c_str(), (UInt32) src.size() - 1 );
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------*/

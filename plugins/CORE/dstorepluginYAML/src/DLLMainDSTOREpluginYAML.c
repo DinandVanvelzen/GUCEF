@@ -936,7 +936,14 @@ DSTOREPLUG_Start_Reading( void** plugdata ,
             {
                 if (  0 == yaml_parser_parse( &sd->parser, &yamlEvent ) ) 
                 {
-                    (*sd->handlers.OnError)( sd->privdata, (Int32) sd->parser.error, GUCEF_NULL );
+                    size_t problemStrSize = strlen( sd->parser.problem );
+                    char* problemStr = calloc( 1, 1024);
+                    if ( NULL != problemStr )
+                    {
+                        sprintf( problemStr, "problem:\"%s\" offset=%zu", sd->parser.problem, sd->parser.problem_offset );   
+                    }
+                    (*sd->handlers.OnError)( sd->privdata, (Int32) sd->parser.error, problemStr );
+                    free( problemStr );
                     return (UInt32) sd->parser.error;
                 }
 
