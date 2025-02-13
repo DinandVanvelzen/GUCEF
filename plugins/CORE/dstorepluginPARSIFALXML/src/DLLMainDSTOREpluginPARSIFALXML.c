@@ -922,18 +922,22 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Start_Reading( void** plugdata ,
                           void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-        if ( *filedata )
+    if ( GUCEF_NULL != filedata )
+    {
+        TSrcFileData* sd = (TSrcFileData*) *filedata;
+        if ( GUCEF_NULL != sd )
         {
-                TSrcFileData* sd = (TSrcFileData*) *filedata;
-                if ( sd )
-                {
-                        XMLParser_Parse( sd->parser      ,
-                                         &ParsifalReader ,
-                                         sd->access      ,
-                                         NULL            );
-                }
+            int result = XMLParser_Parse( sd->parser      ,
+                                          &ParsifalReader ,
+                                          sd->access      ,
+                                          NULL            );
+            if ( XML_OK == result )
+                return 0; /* no errorcode == ok for our API */
+
+            return (UInt32) sd->parser->ErrorCode;
         }
-        return 0;
+    }
+    return 1;
 }
 
 /*---------------------------------------------------------------------------*/

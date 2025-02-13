@@ -922,7 +922,7 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Start_Reading( void** plugdata ,
                           void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    if ( GUCEF_NULL != *filedata )
+    if ( GUCEF_NULL != filedata )
     {
         TSrcFileData* sd = (TSrcFileData*) *filedata;
         if ( GUCEF_NULL != sd )
@@ -936,8 +936,8 @@ DSTOREPLUG_Start_Reading( void** plugdata ,
             {
                 if (  0 == yaml_parser_parse( &sd->parser, &yamlEvent ) ) 
                 {
-                    (*sd->handlers.OnError)( sd->privdata, sd->parser.error, GUCEF_NULL );
-                    return 0;
+                    (*sd->handlers.OnError)( sd->privdata, (Int32) sd->parser.error, GUCEF_NULL );
+                    return (UInt32) sd->parser.error;
                 }
 
                 switch ( yamlEvent.type )
@@ -1096,10 +1096,10 @@ DSTOREPLUG_Start_Reading( void** plugdata ,
             while( yamlEvent.type != YAML_STREAM_END_EVENT );
             yaml_event_delete( &yamlEvent );
 
-            return 1;
+            return 0; /* error code of 0 means no error */
         }
     }
-    return 0;
+    return 1;
 }
 
 /*---------------------------------------------------------------------------*/

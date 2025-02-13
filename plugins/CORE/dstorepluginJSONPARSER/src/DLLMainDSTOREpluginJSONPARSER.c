@@ -808,7 +808,7 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Start_Reading( void** plugdata ,
                           void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    if ( GUCEF_NULL != *filedata )
+    if ( GUCEF_NULL != filedata )
     {
         TSrcFileData* sd = (TSrcFileData*) *filedata;
         if ( GUCEF_NULL != sd )
@@ -828,10 +828,17 @@ DSTOREPLUG_Start_Reading( void** plugdata ,
                 if ( bytesRead != fileSize )
                 {
                     free( fileBuffer );
-                    return 1;
+                    sd->handlers.OnError( sd->privdata, 2, "DSTOREPLUG_Start_Reading: Incorrect nr of bytes read" );
+                    return 2;
                 }
 
                 jsonDoc = json_parse( fileBuffer, bytesRead );
+                if ( GUCEF_NULL == jsonDoc )
+                {
+                    sd->handlers.OnError( sd->privdata, 3, "DSTOREPLUG_Start_Reading: Unable to create json document object from data" );
+                    free( fileBuffer );
+                    return 3;
+                }
                 free( fileBuffer );
 
                 json_builder_free( sd->jsonDoc );
@@ -842,10 +849,16 @@ DSTOREPLUG_Start_Reading( void** plugdata ,
                 (*sd->handlers.OnTreeBegin)( sd->privdata );
                 process_value( sd, "", "", jsonDoc );
                 (*sd->handlers.OnTreeEnd)( sd->privdata );
+
+                return 0;
+            }
+            else
+            {
+                sd->handlers.OnError( sd->privdata, 0, "DSTOREPLUG_Start_Reading: Unable to allocate memory for file buffer" );
             }
         }
     }
-    return 0;
+    return 1;
 }
 
 /*---------------------------------------------------------------------------*/

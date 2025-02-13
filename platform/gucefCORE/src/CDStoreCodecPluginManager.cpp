@@ -139,18 +139,16 @@ CDStoreCodecPluginManager::RegisterPlugin( void* modulePtr                   ,
                                            TPluginMetaDataPtr pluginMetaData )
 {GUCEF_TRACE;
 
-    CDStoreCodecPlugin* plugin = GUCEF_NEW CDStoreCodecPlugin();
+    TDStoreCodecPluginPtr plugin( GUCEF_NEW CDStoreCodecPlugin() );
     if ( plugin->Link( modulePtr      ,
                        pluginMetaData ) )
     {
-        TDStoreCodecPluginPtr pointerToPlugin( plugin );
-        if ( CCoreGlobal::Instance()->GetDStoreCodecRegistry().TryRegister( plugin->GetTypeName(), pointerToPlugin ) )
+        if ( CCoreGlobal::Instance()->GetDStoreCodecRegistry().TryRegister( plugin->GetTypeName(), plugin ) )
         {
-            return pointerToPlugin;
+            return plugin.StaticCast< CIPlugin >();
         }
     }
 
-    GUCEF_DELETE plugin;
     return TPluginPtr();
 }
 

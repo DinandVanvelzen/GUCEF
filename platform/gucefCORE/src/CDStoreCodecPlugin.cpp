@@ -691,14 +691,14 @@ CDStoreCodecPlugin::BuildDataTree( CDataNode* treeroot ,
          *      needed and they in turn construct our tree based on the events.
          */
         treeroot->DelSubTree();
-        UInt32 readResult = ((TDSTOREPLUGFPTR_Start_Reading)_fptable[ DSTOREPLUG_START_READING ])( &_plugdata, &filedata );
+        UInt32 errorCode = ((TDSTOREPLUGFPTR_Start_Reading)_fptable[ DSTOREPLUG_START_READING ])( &_plugdata, &filedata );
         GUCEF_DELETE static_cast<TParserData*>(privdata);
 
         /*
          *      We are finished,.. close the file
          */
         ((TDSTOREPLUGFPTR_Src_File_Close)_fptable[ DSTOREPLUG_SRC_FILE_CLOSE ])( &_plugdata, &filedata );
-        return readResult > 0;
+        return 0 == errorCode;
 }
 
 /*-------------------------------------------------------------------------*/
