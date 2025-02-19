@@ -1501,6 +1501,54 @@ CVFS::LoadFile( CORE::CDataNode& destination    ,
 /*-------------------------------------------------------------------------*/
 
 bool
+CVFS::StoreAsFile( const CORE::CString& filepath   ,
+                   const CORE::CDataNode& data     ,
+                   const CORE::CString& codecToUse ,
+                   const bool overwrite            )
+{GUCEF_TRACE;
+
+    // input sanity check. we have have a codec type name or file extension
+    CORE::CString actualCodecToUse = codecToUse;
+    if ( actualCodecToUse.IsNULLOrEmpty() )
+        actualCodecToUse = CORE::ExtractFileExtention( filepath );
+    if ( actualCodecToUse.IsNULLOrEmpty() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Vfs:StoreAsFile: No codec type name or file extension provided for file: " + filepath );
+        return false;
+    }
+
+    // First asccess the file location as a VFS reference as usual to get IO access
+    TBasicVfsResourcePtr fileReference = GetFile( filepath, "wb", overwrite );
+    if ( fileReference.IsNULL() || fileReference->GetAccess().IsNULL() )
+        return false;
+
+    // Now obtain the codec
+    CORE::CDStoreCodecRegistry& codecRegistry = CORE::CCoreGlobal::Instance()->GetDStoreCodecRegistry();
+    CORE::CDStoreCodecRegistry::TDStoreCodecPtr codec;
+    if ( codecRegistry.TryLookup( actualCodecToUse, codec, false ) && !codec.IsNULL() )
+    {
+        // Now pass the I/O access to the codec
+        CORE::IOAccessPtr accessPtr = fileReference->GetAccess();
+        if ( codec->StoreDataTree( &data, accessPtr.GetPointerAlways() ) )
+        {
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "Vfs:StoreAsFile: Successfully stored DataNode document using codec for type \"" + actualCodecToUse + "\" to : " + filepath );
+            return true;
+        }
+        else
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Vfs:StoreAsFile: Could not serialize using a DataNode codec for type \"" + actualCodecToUse + "\"" );
+        }
+    }
+    else
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Vfs:StoreAsFile: Could not obtain a DataNode codec for type \"" + actualCodecToUse + "\"" );
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CVFS::MountArchive( const CString& archiveName  ,
                     const CString& archivePath  ,
                     const bool writeableRequest )

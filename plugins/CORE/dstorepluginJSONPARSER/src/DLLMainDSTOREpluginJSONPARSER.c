@@ -80,8 +80,8 @@ struct SDestFileData
     json_value* jsonDoc;
     json_value* currentJsonNode;
     char activeNodeIsValueNode;
-    char* base64EncodeBuffer;
-    UInt32 base64EncodeBufferSize;
+    char* processingBuffer;
+    size_t processingBufferSize;
 };
 typedef struct SDestFileData TDestFileData;
 
@@ -117,19 +117,42 @@ typedef struct SSrcFileData TSrcFileData;
 //-------------------------------------------------------------------------*/
 
 char*
-GetBase64EncodeBuffer( TDestFileData* fd, UInt32 spaceNeeded )
+GetProcessingBuffer( TDestFileData* fd, size_t spaceNeeded )
 {    
-    if ( fd->base64EncodeBufferSize < spaceNeeded )
+    if ( fd->processingBufferSize < spaceNeeded )
     {
-        char* newBuffer = (char*) realloc( fd->base64EncodeBuffer, spaceNeeded );
+        char* newBuffer = (char*) realloc( fd->processingBuffer, spaceNeeded );
         if ( NULL != newBuffer )
         {
-            fd->base64EncodeBuffer = newBuffer;
-            fd->base64EncodeBufferSize = spaceNeeded;
+            fd->processingBuffer = newBuffer;
+            fd->processingBufferSize = spaceNeeded;
         }
         return newBuffer;
     }
-    return fd->base64EncodeBuffer;
+    return fd->processingBuffer;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+GarantueeStringNullTerm( TDestFileData* fd, const char* str, size_t strLen ) 
+{    
+    if ( GUCEF_NULL != str && strLen > 0 )
+    {
+        char* tempStr = GUCEF_NULL;
+
+        if ( '\0' == str[ strLen-1 ] )
+            return str;
+
+        tempStr = GetProcessingBuffer( fd, strLen+1 );
+        if ( GUCEF_NULL != tempStr )
+        {
+            memcpy( tempStr, str, strLen );
+            tempStr[ strLen ] = '\0';
+            return tempStr;
+        }
+    }
+    return "";
 }
 
 /*-------------------------------------------------------------------------*/
@@ -142,7 +165,7 @@ Base64Encode( const void* inByteBuffer ,
     GUCEF_BEGIN;
 
     UInt32 base64StrLength = ( ( inBufferSize + 2 ) / 3 ) * 4;
-    char* str = GetBase64EncodeBuffer( fd, base64StrLength+1 );         
+    char* str = GetProcessingBuffer( fd, base64StrLength+1 );         
     char* p = (char*) inByteBuffer;
     UInt32 j = 0, pad = inBufferSize % 3;
     const UInt32 last = inBufferSize - pad;
@@ -215,8 +238,8 @@ DSTOREPLUG_Dest_File_Open( void** plugdata    ,
             memset( fd, 0, sizeof( TDestFileData ) );
             fd->fptr = outFile;
             fd->activeNodeIsValueNode = 0;
-            fd->base64EncodeBuffer = NULL;
-            fd->base64EncodeBufferSize = 0;
+            fd->processingBuffer = GUCEF_NULL;
+            fd->processingBufferSize = 0;
             *filedata = fd;
             return 1;
         }
@@ -267,10 +290,10 @@ DSTOREPLUG_Dest_File_Close( void** plugdata ,
         }
     }
 
-    if ( GUCEF_NULL != fd->base64EncodeBuffer )
+    if ( GUCEF_NULL != fd->processingBuffer )
     {
-        free( fd->base64EncodeBuffer );
-        fd->base64EncodeBuffer = GUCEF_NULL;
+        free( fd->processingBuffer );
+        fd->processingBuffer = GUCEF_NULL;
     }
     free( *filedata );
     *filedata = GUCEF_NULL;
@@ -507,9 +530,9 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
                                     attvalue->union_data.heap_data.heap_data_size            ,
                                     fd                                                       ) )
             {
-                if ( GUCEF_NULL != fd->base64EncodeBuffer )
+                if ( GUCEF_NULL != fd->processingBuffer )
                 {
-                    json_value* att = json_string_new( fd->base64EncodeBuffer );
+                    json_value* att = json_string_new( fd->processingBuffer );
                     if ( fd->currentJsonNode->type == json_array )
                         json_array_push( fd->currentJsonNode, att );
                     else
@@ -529,9 +552,9 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
                                     sizeof attvalue->union_data.bsob_data ,
                                     fd                                    ) )
             {
-                if ( GUCEF_NULL != fd->base64EncodeBuffer )
+                if ( GUCEF_NULL != fd->processingBuffer )
                 {
-                    json_value* att = json_string_new( fd->base64EncodeBuffer );
+                    json_value* att = json_string_new( fd->processingBuffer );
                     if ( fd->currentJsonNode->type == json_array )
                         json_array_push( fd->currentJsonNode, att );
                     else
@@ -549,7 +572,9 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
         case GUCEF_DATATYPE_ASCII_STRING:
         default:
         {
-            const char* attValue = attvalue->union_data.heap_data.union_data.char_heap_data;
+            const char* attValue = GarantueeStringNullTerm( fd                                                       , 
+                                                            attvalue->union_data.heap_data.union_data.char_heap_data ,
+                                                            attvalue->union_data.heap_data.heap_data_size            );
             if ( GUCEF_NULL == attValue )
                 attValue = "";
             json_value* att = json_string_new( attValue );

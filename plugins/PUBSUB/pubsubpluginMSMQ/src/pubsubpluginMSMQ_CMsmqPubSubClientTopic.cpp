@@ -210,6 +210,7 @@ CMsmqPubSubClientTopic::MsmqQueue::MsmqQueue( void )
     , msmqQueueFormatName()
     , queueNameIsMsmqFormatName( false )
     , metricFriendlyQueueName()
+    , isPrivateQueue( false )
 {GUCEF_TRACE;
 
 }
@@ -450,9 +451,7 @@ CMsmqPubSubClientTopic::LoadConfig( const PUBSUB::CPubSubClientTopicConfig& conf
     MT::CScopeMutex lock( m_lock );
     
     m_config = config;
-    InitQueueInfo( m_queue, config );
-
-    return true;
+    return InitQueueInfo( m_queue, config );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3113,8 +3112,14 @@ CMsmqPubSubClientTopic::InitQueueInfo( MsmqQueue& q, const CMsmqPubSubClientTopi
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "MsmqPubSubClientTopic:InitQueueInfo: Obtained properties of MSMQ queue with name \"" + q.queueName + 
             "\" as follows: " + q.queueProperties.ToString() );
 
-        if ( !q.queueProperties.pathName.IsNULLOrEmpty() && "private" != q.queueProperties.pathName )
+        if ( !q.queueProperties.pathName.IsNULLOrEmpty() && "private" != q.queueProperties.pathName && "private" != q.queueProperties.queueLabel )
             q.metricFriendlyQueueName = GenerateMetricsFriendlyTopicName( q.queueProperties.pathName );
+    
+        if ( ( q.queueProperties.pathName.Lowercase().HasSubstr( "private" ) >= 0 ) ||
+             ( q.queueProperties.queueLabel.Lowercase().HasSubstr( "private" ) >= 0 ) )
+            q.isPrivateQueue = true;
+        else
+            q.isPrivateQueue = false;
     }
 
     return true; // best effort is fine

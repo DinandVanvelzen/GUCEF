@@ -31,7 +31,7 @@
                         "needPublishSupport": false,
                         "needSubscribeSupport": true,
                         "preferDedicatedConnection": false,
-                        "topicName": ".\\PRIVATE$\test",
+                        "topicName": ".\\PRIVATE$\\test",
                         "CustomConfig": {
                             "convertMsmqClsIdToString": true,
                             "convertMsmqMsgIdToString": true,

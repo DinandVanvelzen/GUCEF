@@ -244,7 +244,7 @@ CMsmqPubSubClient::CreateTopicAccess( PUBSUB::CPubSubClientTopicConfigPtr topicC
     {
         MT::CScopeMutex lock( m_lock );
 
-        topicAccess = ( GUCEF_NEW CMsmqPubSubClientTopic( this ) )->CreateSharedPtr();
+        topicAccess = CMsmqPubSubClientTopic::CreateSharedObjWithParam( this );
         if ( topicAccess->LoadConfig( *topicConfig ) )
         {
             m_topicMap[ topicConfig->topicName ] = topicAccess;            

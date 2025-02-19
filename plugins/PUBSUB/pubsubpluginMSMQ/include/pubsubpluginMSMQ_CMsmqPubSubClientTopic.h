@@ -372,6 +372,7 @@ class PUBSUBPLUGIN_MSMQ_PLUGIN_PRIVATE_CPP CMsmqPubSubClientTopic : public PUBSU
         bool queueNameIsMsmqFormatName;
         CORE::CString metricFriendlyQueueName;
         MsmqQueueProperties queueProperties;
+        bool isPrivateQueue;
 
         MsmqQueue( void );
     };

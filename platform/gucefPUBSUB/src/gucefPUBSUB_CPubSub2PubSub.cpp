@@ -983,6 +983,7 @@ PubSub2PubSubConfig::LoadConfig( const CORE::CDataNode& cfg )
     }
     
     // try to parse each child in the explicit channels section
+    bool hasChannelOverlays = false;
     i = explicitChannelOverlaysNode->ConstBegin();
     while ( i != explicitChannelOverlaysNode->ConstEnd() )
     {        
@@ -990,6 +991,7 @@ PubSub2PubSubConfig::LoadConfig( const CORE::CDataNode& cfg )
         if ( explicitChannelOverlayConfig.LoadConfig( *(*i) ) )
         {            
             explicitOverlayChannels.push_back( explicitChannelOverlayConfig );
+            hasChannelOverlays = true;
             
             CORE::CString channelName = explicitChannelOverlayConfig.channelName.ReplaceSubstr( "{channelId}", CORE::ToString( explicitChannelOverlayConfig.channelId ) );            
             GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSub2PubSubConfig:LoadConfig: Loaded an explicit channel overlay config with name \"" + channelName + "\"" );
@@ -1003,12 +1005,13 @@ PubSub2PubSubConfig::LoadConfig( const CORE::CDataNode& cfg )
     }
 
     const CORE::CDataNode* numericalAutoChannelsConfigNode = cfg.FindChild( "numericalAutoChannels" );
-    if ( GUCEF_NULL == numericalAutoChannelsConfigNode )
+    if ( GUCEF_NULL == numericalAutoChannelsConfigNode && !hasChannelOverlays )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "PubSub2PubSubConfig:LoadConfig: Unable to find mandatory numericalAutoChannels section" );
         return false;
     }
-    totalSuccess = numericalAutoChannelConfig.LoadConfig( *numericalAutoChannelsConfigNode ) && totalSuccess; 
+    if ( GUCEF_NULL != numericalAutoChannelsConfigNode )
+        totalSuccess = numericalAutoChannelConfig.LoadConfig( *numericalAutoChannelsConfigNode ) && totalSuccess; 
     
     return NormalizeConfig() && totalSuccess;
 }
@@ -1024,7 +1027,7 @@ PubSub2PubSubConfig::NormalizeConfig( void )
     bool totalSuccess = true;
     channelConfigs.clear();
 
-    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSub2PubSubConfig:NormalizeConfig: Normalizing " + CORE::ToString( explicitOverlayChannels.size() ) + " explicit channel overlay configs" )
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSub2PubSubConfig:NormalizeConfig: Normalizing " + CORE::ToString( explicitOverlayChannels.size() ) + " explicit channel overlay configs" );
 
     ExplicitChannelOverlayConfigVector::iterator i = explicitOverlayChannels.begin();
     while ( i != explicitOverlayChannels.end() )
@@ -1073,6 +1076,11 @@ PubSub2PubSubConfig::NormalizeConfig( void )
             }
 
             channelConfigs[ channelConfig.channelId ] = channelConfig;
+        }
+        else
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSub2PubSubConfig:NormalizeConfig: Overlay references template \"" + overlayConfig.usingTemplate + "\" which cannot be found" );
+            totalSuccess = false;
         }
         ++i;
     }

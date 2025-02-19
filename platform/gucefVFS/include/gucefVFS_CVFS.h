@@ -261,6 +261,16 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
 
     /**
      *  Attempts to store the provided data as file content
+     *  This is a syncronous blocking call and it returns when the operation is 
+     *  completed or failed.
+     */
+    bool StoreAsFile( const CORE::CString& filepath                          ,
+                      const CORE::CDataNode& data                            ,
+                      const CORE::CString& codecToUse = CORE::CString::Empty ,
+                      const bool overwrite = false                           );
+
+    /**
+     *  Attempts to store the provided data as file content
      *  This is a asyncronous non-blocking call and it returns right after 
      *  attempting to queue the storage task.
      *  Due to this being an async operation you must subscribe to the appropriote events
