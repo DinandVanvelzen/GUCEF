@@ -130,20 +130,20 @@ GUCEF_OSMAIN_BEGIN
 
         //GUCEF::CORE::CGUCEFApplication::Instance()->main( argc, argv, true );
         
-        //PerformStringTests();
-        //PerformVarsTests();
-        //PerformDateTimeTests();        
-        //PerformUriTests();
-        //PerformVariantTests();
-        //PerformVariantBinarySerializerTests();
-        //PerformDataNodeBinarySerializerTests();
-        //PerformIniParserTests();        
-        //PerformSharedPtrTests();
+        PerformStringTests();
+        PerformVarsTests();
+        PerformDateTimeTests();        
+        PerformUriTests();
+        PerformVariantTests();
+        PerformVariantBinarySerializerTests();
+        PerformDataNodeBinarySerializerTests();
+        PerformIniParserTests();        
+        PerformSharedPtrTests();
         PerformTokenizerTests();
-        //PerformDynamicBufferSwapTests();
-        //PerformDynamicBufferStringStreamTests();
-        //PerformCyclicDynamicBufferTests();
-        //PerformNotifierObserverTests();
+        PerformDynamicBufferSwapTests();
+        PerformDynamicBufferStringStreamTests();
+        PerformCyclicDynamicBufferTests();
+        PerformNotifierObserverTests();
 
         return 1;
     }

@@ -37,7 +37,7 @@
                         "desiredNrOfBuffers": 3,
                         "desiredMinimalSerializedBlockSize": 2560000,
                         "desiredMaxTimeToWaitToGrowSerializedBlockSizeInMs": 1000,
-                        "vfsStorageRootPath": "InstallPath/storage-source",
+                        "vfsStorageRootPath": "{topicName}",
                         "vfsFileExtention": "pubsubmsgs",
                         "encodeCodecFamily": "",
                         "encodeCodecName": "",
@@ -61,7 +61,7 @@
                         "treatEveryFullfilledRequestAsEODEvent": false,
                         "deleteContainersWithFullyAckdContent": false,
                         "moveContainersWithFullyAckdContent": true,
-                        "vfsStorageRootPathForFullyAckdContainers": "InstallPath/storage-source/processed",
+                        "vfsStorageRootPathForFullyAckdContainers": "{topicName}/../storage-source/processed",
                         "maxCompletedContainerRefsToRetain": 50
                     }
                 },

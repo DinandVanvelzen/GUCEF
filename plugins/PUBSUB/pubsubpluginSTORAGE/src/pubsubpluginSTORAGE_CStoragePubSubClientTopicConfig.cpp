@@ -55,6 +55,8 @@ namespace STORAGE {
 #define GUCEF_DEFAULT_MAX_COMPLETED_CONTAINERREFS_TO_RETAIN         50
 #define GUCEF_DEFAULT_NOACK_RETRANSMIT_CHECK_CYCLETIME_IN_MS        30000         // 30 secs
 #define GUCEF_DEFAULT_MAX_TIME_FOR_ACKING_ALL_IN_MSG_BATHC_IN_MS    30000         // 30 secs
+#define GUCEF_DEFAULT_VFS_STORAGE_ROOT                              "{topicName}"
+#define GUCEF_DEFAULT_VFS_STORAGE_CONTAINER_FILEEXT                 "pubsubmsgs"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -70,8 +72,8 @@ CStoragePubSubClientTopicConfig::CStoragePubSubClientTopicConfig( void )
     , desiredNrOfBuffers( GUCEF_DEFAULT_DEFAULT_NR_OF_SWAP_BUFFERS )
     , desiredMinimalSerializedBlockSize( GUCEF_DEFAULT_MINIMAL_PUBSUB_BLOCK_STORAGE_SIZE_IN_BYTES )
     , desiredMaxTimeToWaitToGrowSerializedBlockSizeInMs( GUCEF_DEFAULT_MAXIMAL_PUBSUB_BLOCK_STORE_GROW_DELAY_IN_MS )
-    , vfsStorageRootPath()
-    , vfsFileExtention()
+    , vfsStorageRootPath( GUCEF_DEFAULT_VFS_STORAGE_ROOT )
+    , vfsFileExtention( GUCEF_DEFAULT_VFS_STORAGE_CONTAINER_FILEEXT )
     , encodeCodecFamily()
     , encodeCodecName()
     , decodeCodecFamily()
@@ -157,8 +159,8 @@ CStoragePubSubClientTopicConfig::CStoragePubSubClientTopicConfig( const PUBSUB::
     , desiredNrOfBuffers( GUCEF_DEFAULT_DEFAULT_NR_OF_SWAP_BUFFERS )
     , desiredMinimalSerializedBlockSize( GUCEF_DEFAULT_MINIMAL_PUBSUB_BLOCK_STORAGE_SIZE_IN_BYTES )
     , desiredMaxTimeToWaitToGrowSerializedBlockSizeInMs( GUCEF_DEFAULT_MAXIMAL_PUBSUB_BLOCK_STORE_GROW_DELAY_IN_MS )
-    , vfsStorageRootPath()
-    , vfsFileExtention()
+    , vfsStorageRootPath( GUCEF_DEFAULT_VFS_STORAGE_ROOT )
+    , vfsFileExtention( GUCEF_DEFAULT_VFS_STORAGE_CONTAINER_FILEEXT )
     , encodeCodecFamily()
     , encodeCodecName()
     , decodeCodecFamily()

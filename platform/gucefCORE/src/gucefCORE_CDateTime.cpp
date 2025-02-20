@@ -1027,10 +1027,30 @@ inline bool
 HasNonDigitDotT( const char* buffer, UInt32 bufferSize )
 {GUCEF_TRACE;
 
-    for ( UInt32 i=0; i<bufferSize; ++i )
-    {
-        if ( !IsDigit( buffer[ i ] ) && buffer[ i ] != '.' && buffer[ i ] != 'T' && buffer[ i ] != '\0' )
-            return true;
+    if ( bufferSize > 0 && GUCEF_NULL != buffer )
+    {    
+        // check for last index. depends on if we have a null terminator
+        UInt32 lastCharIndex = 0;
+        if ( '\0' == buffer[ bufferSize-1 ] )
+        {
+            if ( bufferSize > 1 )
+                lastCharIndex = bufferSize-2;
+        }
+        else
+            lastCharIndex = bufferSize-1;
+
+        for ( UInt32 i=0; i<bufferSize; ++i )
+        {
+            if ( !IsDigit( buffer[ i ] ) && buffer[ i ] != '.' && buffer[ i ] != 'T' && buffer[ i ] != '\0' )
+            {
+                if ( i == lastCharIndex )
+                {
+                    if ( buffer[ i ] == 'Z' )
+                        return false;
+                }
+                return true;
+            }
+        }
     }
     return false;
 }

@@ -1785,11 +1785,17 @@ bool
 CPubSubFlowRouter::IsTrackingInFlightPublishedMsgsForAcksNeeded( CPubSubClientSide* sideWeAskFor ) const
 {GUCEF_TRACE;
 
+    if ( GUCEF_NULL == sideWeAskFor )
+        return false;
+    
     MT::CScopeReaderLock lock( m_lock );
-
+    
+    // Find routes this side is used in
     TSidePtrToRouteInfoPtrVectorMap::const_iterator i = m_usedInRouteMap.find( sideWeAskFor );
     if ( i != m_usedInRouteMap.end() )
     {
+        // For each route this side is used in check if tracking is needed
+        // If just one side needs tracking we need to track for the entire route
         const TRouteInfoPtrVector& multiRouteInfo = (*i).second;
         TRouteInfoPtrVector::const_iterator n = multiRouteInfo.begin();
         while ( n != multiRouteInfo.end() )
@@ -1797,7 +1803,8 @@ CPubSubFlowRouter::IsTrackingInFlightPublishedMsgsForAcksNeeded( CPubSubClientSi
             const CRouteInfo* routeInfo = (*n);
 
             // We need tracking as soon as 1 side anywhere needs a subscriber ack
-            bool trackingNeeded = IsTrackingInFlightPublishedMsgsForAcksNeededForSide( routeInfo->toSide ) ||
+            bool trackingNeeded = IsTrackingInFlightPublishedMsgsForAcksNeededForSide( routeInfo->fromSide ) ||
+                                  IsTrackingInFlightPublishedMsgsForAcksNeededForSide( routeInfo->toSide ) ||
                                   IsTrackingInFlightPublishedMsgsForAcksNeededForSide( routeInfo->failoverSide ) ||
                                   IsTrackingInFlightPublishedMsgsForAcksNeededForSide( routeInfo->deadLetterSide ) ||
                                   IsTrackingInFlightPublishedMsgsForAcksNeededForSide( routeInfo->spilloverBufferSide );
