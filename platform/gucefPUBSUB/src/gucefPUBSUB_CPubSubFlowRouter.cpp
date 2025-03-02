@@ -590,7 +590,7 @@ CPubSubFlowRouter::CRouteInfo::MatchAllTopicRouteConfigs( void )
             CORE::ToString( routeConfig->topicAssociations.size() ) + " topic associations" );
 
     bool totalSuccess = true;
-    CPubSubFlowRouteConfig::PubSubFlowRouteTopicConfigVector::const_iterator t = routeConfig->topicAssociations.begin();
+    CPubSubFlowRouteConfig::PubSubFlowRouteTopicConfigPtrVector::const_iterator t = routeConfig->topicAssociations.begin();
     while ( t != routeConfig->topicAssociations.end() )
     {
         totalSuccess = MatchTopicRouteConfig( (*t) ) && totalSuccess;
@@ -791,7 +791,7 @@ CPubSubFlowRouter::NormalizeConfig( const CPubSubFlowRouterConfig& originalConfi
         ++i;
     }
 
-    CPubSubFlowRouterConfig::PubSubFlowRouteConfigVector::const_iterator n = originalConfig.routes.begin();
+    CPubSubFlowRouterConfig::PubSubFlowRouteConfigPtrVector::const_iterator n = originalConfig.routes.begin();
     while ( n != originalConfig.routes.end() )
     {
         if ( "*" != (*n)->toSideId )
@@ -941,7 +941,7 @@ CPubSubFlowRouter::NormalizeConfig( const CPubSubFlowRouterConfig& originalConfi
     // if the router config dictates that we should match topics mappings across sides we will do so in bulk now
     // we do also handle events for new topics which will perform the same process as needed per topic
 
-    CPubSubFlowRouterConfig::PubSubFlowRouteConfigVector::iterator r = normalizedConfig.routes.begin();
+    CPubSubFlowRouterConfig::PubSubFlowRouteConfigPtrVector::iterator r = normalizedConfig.routes.begin();
     while ( r != normalizedConfig.routes.end() )
     {
         CPubSubFlowRouteConfigPtr routeConfig = (*r);
@@ -1002,77 +1002,78 @@ CPubSubFlowRouter::BuildRoutes( const CPubSubFlowRouterConfig& config ,
 
     // Now we generate the pointer map based on the normalized config
     UInt32 totalPossibleRoutes = 0;
-    CPubSubFlowRouterConfig::PubSubFlowRouteConfigVector::const_iterator i = m_normalizedConfig.routes.begin();
+    CPubSubFlowRouterConfig::PubSubFlowRouteConfigPtrVector::const_iterator i = m_normalizedConfig.routes.begin();
     while ( i != m_normalizedConfig.routes.end() )
     {
         const CPubSubFlowRouteConfigPtr routeConfig = (*i);
-
-        // Try to find actual side objects to match against the IDs in the config
-        // Note that based on how sloppy the config is we may not find any matches
-        UInt32 possibleRoutes = 0;
-        CPubSubClientSidePtr fromSide;
-        CPubSubClientSidePtr toSide;
-        CPubSubClientSidePtr failoverSide;
-        CPubSubClientSidePtr spilloverSide;
-        CPubSubClientSidePtr deadletterSide;
-        TPubSubClientSidePtrVector::iterator n = sides.begin();
-        while ( n != sides.end() )
+        if ( !routeConfig.IsNULL() )
         {
-            CORE::CString sideId = (*n)->GetSideId();
-            if ( !sideId.IsNULLOrEmpty() )
+            // Try to find actual side objects to match against the IDs in the config
+            // Note that based on how sloppy the config is we may not find any matches
+            UInt32 possibleRoutes = 0;
+            CPubSubClientSidePtr fromSide;
+            CPubSubClientSidePtr toSide;
+            CPubSubClientSidePtr failoverSide;
+            CPubSubClientSidePtr spilloverSide;
+            CPubSubClientSidePtr deadletterSide;
+            TPubSubClientSidePtrVector::iterator n = sides.begin();
+            while ( n != sides.end() )
             {
-                if ( routeConfig->fromSideId == sideId )
-                    fromSide = (*n);
-                else
-                if ( routeConfig->toSideId == sideId )
+                CORE::CString sideId = (*n)->GetSideId();
+                if ( !sideId.IsNULLOrEmpty() )
                 {
-                    toSide = (*n);
-                    ++possibleRoutes;
+                    if ( routeConfig->fromSideId == sideId )
+                        fromSide = (*n);
+                    else
+                    if ( routeConfig->toSideId == sideId )
+                    {
+                        toSide = (*n);
+                        ++possibleRoutes;
+                    }
+                    else
+                    if ( routeConfig->failoverSideId == sideId )
+                    {
+                        failoverSide = (*n);
+                        ++possibleRoutes;
+                    }
+                    else
+                    if ( routeConfig->spilloverBufferSideId == sideId )
+                    {
+                        spilloverSide = (*n);
+                        ++possibleRoutes;
+                    }
+                    else
+                    if ( routeConfig->deadLetterSideId == sideId )
+                    {
+                        deadletterSide = (*n);
+                        ++possibleRoutes;
+                    }
                 }
-                else
-                if ( routeConfig->failoverSideId == sideId )
-                {
-                    failoverSide = (*n);
-                    ++possibleRoutes;
-                }
-                else
-                if ( routeConfig->spilloverBufferSideId == sideId )
-                {
-                    spilloverSide = (*n);
-                    ++possibleRoutes;
-                }
-                else
-                if ( routeConfig->deadLetterSideId == sideId )
-                {
-                    deadletterSide = (*n);
-                    ++possibleRoutes;
-                }
+                ++n;
             }
-            ++n;
-        }
 
-        // The minimum you need is from and to sides, the rest is optional
-        if ( !fromSide.IsNULL() && !toSide.IsNULL() )
-        {
-            // We found the side combo for which we have a route config
-            TRouteInfoVector& multiRouteInfo = m_routeMap[ fromSide.GetPointerAlways() ];
-            multiRouteInfo.push_back( CRouteInfo() );
-            CRouteInfo& routeInfo = multiRouteInfo.back();
-            routeInfo.fromSide = fromSide.GetPointerAlways();
-            routeInfo.toSide = toSide.GetPointerAlways();
-            routeInfo.failoverSide = failoverSide.GetPointerAlways();
-            routeInfo.spilloverBufferSide = spilloverSide.GetPointerAlways();
-            routeInfo.deadLetterSide = deadletterSide.GetPointerAlways();
-            routeInfo.routeConfig = routeConfig;
+            // The minimum you need is from and to sides, the rest is optional
+            if ( !fromSide.IsNULL() && !toSide.IsNULL() )
+            {
+                // We found the side combo for which we have a route config
+                TRouteInfoVector& multiRouteInfo = m_routeMap[ fromSide.GetPointerAlways() ];
+                multiRouteInfo.push_back( CRouteInfo() );
+                CRouteInfo& routeInfo = multiRouteInfo.back();
+                routeInfo.fromSide = fromSide.GetPointerAlways();
+                routeInfo.toSide = toSide.GetPointerAlways();
+                routeInfo.failoverSide = failoverSide.GetPointerAlways();
+                routeInfo.spilloverBufferSide = spilloverSide.GetPointerAlways();
+                routeInfo.deadLetterSide = deadletterSide.GetPointerAlways();
+                routeInfo.routeConfig = routeConfig;
 
-            totalPossibleRoutes += possibleRoutes;
+                totalPossibleRoutes += possibleRoutes;
+            }
+            else
+            {
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSubFlowRouter:BuildRoutes: Unable to find sides referenced in route " +
+                    routeConfig->fromSideId + " -> " + routeConfig->toSideId + ". Route has no effect" );
+            }
         }
-        else
-        {
-            GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSubFlowRouter:BuildRoutes: Unable to find sides referenced in route " +
-                routeConfig->fromSideId + " -> " + routeConfig->toSideId + ". Route has no effect" );
-        }
-
         ++i;
     }
 
@@ -1091,6 +1092,28 @@ CPubSubFlowRouter::BuildRoutes( const CPubSubFlowRouterConfig& config ,
         {
             CRouteInfo& routeInfo = (*n);
 
+            if ( fromSide != routeInfo.fromSide )
+            {
+                // This should never happen. There is a bug somewhere
+                routeInfo.fromSide = fromSide;
+                GUCEF_ASSERT_ALWAYS;
+            }            
+            if ( GUCEF_NULL != routeInfo.fromSide )
+            {
+                CPubSubClientFeatures features;
+                if ( routeInfo.fromSide->GetPubSubClientSupportedFeatures( features ) )
+                {
+                    // the 'from' side must be capable of:
+                    //      - subscribing and thus reading messages and publishing them to the router
+
+                    if ( !features.supportsSubscribing )
+                    {
+                        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSubFlowRouter:BuildRoutes: 'from' side's client does not support subscribing. This is invalid. route: \"" +
+                            fromSide->GetSideId() + "\" -> \"" + routeInfo.toSide->GetSideId() );
+                        ++sideClientCapabilityErrors;
+                    }
+                }
+            }
             if ( GUCEF_NULL != routeInfo.toSide )
             {
                 CPubSubClientFeatures features;
@@ -1302,7 +1325,7 @@ CPubSubFlowRouter::BuildRoutes( const CPubSubFlowRouterConfig& config ,
                     CRouteInfo& spilloverBypassRoute = spilloverMultiRouteInfo.back();
 
                     bool foundSpilloverEgressRouteConfig = false;
-                    CPubSubFlowRouterConfig::PubSubFlowRouteConfigVector::iterator c = m_normalizedConfig.routes.begin();
+                    CPubSubFlowRouterConfig::PubSubFlowRouteConfigPtrVector::iterator c = m_normalizedConfig.routes.begin();
                     while ( c != m_normalizedConfig.routes.end() )
                     {
                         CPubSubFlowRouteConfigPtr routeConfig = (*c);
@@ -2750,7 +2773,7 @@ CPubSubFlowRouter::CreateNewFromTopicAssociationAsNeeded( CPubSubClientTopicBasi
         return;
 
     // If we are auto matching topic associations do so for new runtime discovered topics as well
-    CPubSubFlowRouterConfig::PubSubFlowRouteConfigVector::iterator c = m_config.routes.begin();
+    CPubSubFlowRouterConfig::PubSubFlowRouteConfigPtrVector::iterator c = m_config.routes.begin();
     while ( c != m_config.routes.end() )
     {
         CPubSubFlowRouteConfigPtr routeConfig = (*c);

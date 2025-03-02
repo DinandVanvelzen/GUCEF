@@ -378,18 +378,46 @@ CMsmqPubSubClientTopic::Publish( CORE::UInt64& publishActionId, const PUBSUB::CI
         }
         ++i;
     }
-
-
     
     bool success = false;
-    // @TODO: Code the actual publish to MSMQ, not implemented yet
-
-    if ( notify )
+    
+    if ( GUCEF_NULL == m_sendQueueHandle )
     {
-        if ( success )
-            m_publishSuccessActionIds.push_back( publishActionId );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "MsmqPubSubClientTopic:Publish: No send queue handle, will try to auto-subscribe" );
+        if ( !Subscribe() )
+        {
+            GUCEF_ERROR_LOG(CORE::LOGLEVEL_NORMAL, "MsmqPubSubClientTopic:Publish: Cannot publish message, failed to subscribe" );
+            return false;
+        }        
+    }
+    
+    if ( GUCEF_NULL != m_sendQueueHandle )
+    {
+        // Send message
+        HRESULT sendMsgResult = ::MQSendMessage( m_sendQueueHandle, &m_msgSendMsg.msgprops, NULL );
+
+        if ( !FAILED( sendMsgResult ) )
+        {
+            success = true;
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "MsmqPubSubClientTopic:Publish: Successfully published msg to \"" + m_queue.queueName + "\" with publishActionId=" + CORE::ToString( publishActionId ) ); 
+
+            if ( notify )
+            {
+                m_publishSuccessActionIds.push_back( publishActionId );
+            }
+            return true;
+        }
         else
-            m_publishFailureActionIds.push_back( publishActionId );
+        {
+            CORE::UInt32 errorCode =  HRESULT_CODE( sendMsgResult );
+            std::wstring errMsg = RetrieveWin32APIErrorMessage( errorCode );
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "MsmqPubSubClientTopic:Publish: Failed to publish to MSMQ queue " + m_queue.queueName + ". HRESULT=" + CORE::ToString( sendMsgResult ) + " Code Segment= " + CORE::ToString( errorCode ) + ". Error msg: " + CORE::ToString( errMsg ) ) ; 
+
+            if ( notify )
+            {
+                m_publishFailureActionIds.push_back( publishActionId );
+            }
+        }
     }
     return success;
 }

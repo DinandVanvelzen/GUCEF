@@ -172,7 +172,7 @@ CPubSubFlowRouterConfig::SaveConfig( CORE::CDataNode& cfg ) const
     if ( GUCEF_NULL != routesParentNode )
     {
         routesParentNode->SetNodeType( GUCEF_DATATYPE_ARRAY );
-        PubSubFlowRouteConfigVector::const_iterator i = routes.begin();
+        PubSubFlowRouteConfigPtrVector::const_iterator i = routes.begin();
         while ( i != routes.end() )
         {
             const CPubSubFlowRouteConfigPtr route = (*i);
@@ -258,6 +258,24 @@ CPubSubFlowRouterConfig::GetClassTypeName( void ) const
 
     static const CString classTypeName = "GUCEF::PUBSUB::CPubSubFlowRouterConfig";
     return classTypeName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPubSubFlowRouteConfigPtr 
+CPubSubFlowRouterConfig::FindRouteWithFromSideAndToSide( const CORE::CString& fromSideId , 
+                                                         const CORE::CString& toSideId   ) const
+{GUCEF_TRACE;
+
+    PubSubFlowRouteConfigPtrVector::const_iterator i = routes.begin();
+    while ( i != routes.end() )
+    {
+        const CPubSubFlowRouteConfigPtr route = (*i);
+        if ( route->fromSideId == fromSideId && route->toSideId == toSideId )
+            return route;
+        ++i;
+    }
+    return CPubSubFlowRouteConfigPtr();
 }
 
 /*-------------------------------------------------------------------------//

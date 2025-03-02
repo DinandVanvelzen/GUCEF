@@ -54,6 +54,14 @@ namespace CORE {
 #if ( GUCEF_DEFAULT_STRING_FORMAT == GUCEF_DATATYPE_ASCII_STRING )
 
 typedef CAsciiString                        CString;
+typedef CAsciiString::StringSet             CStringSet;
+typedef CAsciiString::StringMap             CStringMap;
+typedef CAsciiString::StringMapMap          CStringMapMap;
+typedef CAsciiString::StringMapMapMap       CStringMapMapMap;
+typedef CAsciiString::StringMapMapMapMap    CStringMapMapMapMap;
+typedef CAsciiString::StringMapSet          CStringMapSet;
+typedef CAsciiString::StringMapMapSet       CStringMapMapSet;
+typedef CAsciiString::StringMapMapMapSet    CStringMapMapMapSet;
 
 #define GUCEF_DATATYPE_DATETIME_ISO8601_STRING     GUCEF_DATATYPE_DATETIME_ISO8601_ASCII_STRING
 #define GUCEF_DATATYPE_STRING                      GUCEF_DATATYPE_ASCII_STRING
@@ -61,6 +69,14 @@ typedef CAsciiString                        CString;
 #else
 
 typedef CUtf8String                         CString;
+typedef CUtf8String::StringSet              CStringSet;
+typedef CUtf8String::StringMap              CStringMap;
+typedef CUtf8String::StringMapMap           CStringMapMap;
+typedef CUtf8String::StringMapMapMap        CStringMapMapMap;
+typedef CUtf8String::StringMapMapMapMap     CStringMapMapMapMap;
+typedef CUtf8String::StringMapSet           CStringMapSet;
+typedef CUtf8String::StringMapMapSet        CStringMapMapSet;
+typedef CUtf8String::StringMapMapMapSet     CStringMapMapMapSet;
 
 #define GUCEF_DATATYPE_DATETIME_ISO8601_STRING     GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING
 #define GUCEF_DATATYPE_STRING                      GUCEF_DATATYPE_UTF8_STRING

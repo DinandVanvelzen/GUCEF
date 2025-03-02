@@ -223,7 +223,15 @@
                 "toSideId": "msmq-sink",
                 "failoverSideId": "",
                 "spilloverBufferSideId": "",
-                "deadLetterSideId": ""
+                "deadLetterSideId": "",
+                "toSideTopicsAutoMatchFromSide": false,
+                "failoverSideTopicsAutoMatchFromSide": false,
+                "spilloverSideTopicsAutoMatchFromSide": false,
+                "deadLetterSideTopicsAutoMatchFromSide": false,
+                "preferFromTopicThreadForDestination": false,
+				"egressAllDiscoveredSpilloverTopicsOnStart": true,
+				"autoAssociateTopicsAnyToAnyAcrossSides": true,
+                "topicAssociations": []				
             }
         ]
     }

@@ -54,7 +54,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouterConfig : public CORE::CIConfigura
 {
     public:
 
-    typedef CPubSubFlowRouteConfig::PubSubFlowRouteConfigVector     PubSubFlowRouteConfigVector;
+    typedef CPubSubFlowRouteConfig::PubSubFlowRouteConfigPtrVector     PubSubFlowRouteConfigPtrVector;
 
     enum AckStyle : Int32
     {
@@ -64,7 +64,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouterConfig : public CORE::CIConfigura
     };
 
     AckStyle ackStyle;
-    PubSubFlowRouteConfigVector routes;
+    PubSubFlowRouteConfigPtrVector routes;
     CORE::UInt32 minBadHealthDurationBeforeFailoverInMs;
     CORE::UInt32 minBadHealthDurationBeforeSpilloverInMs;
     CORE::UInt32 minPrimarySideGoodHealthDurationBeforeActivationInMs;
@@ -74,6 +74,9 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouterConfig : public CORE::CIConfigura
 
     static CORE::CString AckStyleToString( AckStyle ackStyle );
     static AckStyle StringToAckStyle( const CORE::CString& ackStyleStr );
+
+    CPubSubFlowRouteConfigPtr FindRouteWithFromSideAndToSide( const CORE::CString& fromSideId , 
+                                                              const CORE::CString& toSideId   ) const;
 
     void Clear( void );
 

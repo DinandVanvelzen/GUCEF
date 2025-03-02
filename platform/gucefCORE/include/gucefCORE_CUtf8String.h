@@ -91,6 +91,18 @@ class GUCEF_CORE_PUBLIC_CPP CUtf8String
     typedef std::set< CUtf8String, std::less< CUtf8String >, gucef_allocator< CUtf8String > >               StringSet;
     typedef std::pair< const CUtf8String, CUtf8String >                                                     StringPair;
     typedef std::map< CUtf8String, CUtf8String, std::less< CUtf8String >, gucef_allocator< StringPair > >   StringMap;
+    typedef std::pair< const CUtf8String, StringSet >                                                                           StringStringSetPair;
+    typedef std::map< CUtf8String, StringSet, std::less< CUtf8String >, gucef_allocator< StringStringSetPair > >                StringMapSet;
+    typedef std::pair< const CUtf8String, StringMap >                                                                           StringStringMapPair;
+    typedef std::map< CUtf8String, StringMap, std::less< CUtf8String >, gucef_allocator< StringStringMapPair > >                StringMapMap;
+    typedef std::pair< const CUtf8String, StringMapSet >                                                                        StringStringMapSetPair;
+    typedef std::map< CUtf8String, StringMapSet, std::less< CUtf8String >, gucef_allocator< StringStringMapSetPair > >          StringMapMapSet;
+    typedef std::pair< const CUtf8String, StringMapMap >                                                                        StringStringMapMapPair;
+    typedef std::map< CUtf8String, StringMapMap, std::less< CUtf8String >, gucef_allocator< StringStringMapMapPair > >          StringMapMapMap;
+    typedef std::pair< const CUtf8String, StringMapMapMap >                                                                     StringStringMapMapMapPair;
+    typedef std::map< CUtf8String, StringMapMap, std::less< CUtf8String >, gucef_allocator< StringStringMapMapMapPair > >       StringMapMapMapMap;
+    typedef std::pair< const CUtf8String, StringMapMapSet >                                                                     StringStringMapMapSetPair;
+    typedef std::map< CUtf8String, StringMapMapSet, std::less< CUtf8String >, gucef_allocator< StringStringMapMapSetPair > >    StringMapMapMapSet;
 
     static const CUtf8String    Empty;
     static const StringVector   EmptyStringVector;

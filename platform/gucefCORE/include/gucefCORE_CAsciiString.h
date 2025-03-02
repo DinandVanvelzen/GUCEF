@@ -67,6 +67,18 @@ class GUCEF_CORE_PUBLIC_CPP CAsciiString
     typedef std::set< CAsciiString, std::less< CAsciiString >, gucef_allocator< CAsciiString > >               StringSet;
     typedef std::pair< const CAsciiString, CAsciiString >                                                      StringPair;
     typedef std::map< CAsciiString, CAsciiString, std::less< CAsciiString >, gucef_allocator< StringPair > >   StringMap;
+    typedef std::pair< const CAsciiString, StringSet >                                                                            StringStringSetPair;
+    typedef std::map< CAsciiString, StringSet, std::less< CAsciiString >, gucef_allocator< StringStringSetPair > >                StringMapSet;
+    typedef std::pair< const CAsciiString, StringMap >                                                                            StringStringMapPair;
+    typedef std::map< CAsciiString, StringMap, std::less< CAsciiString >, gucef_allocator< StringStringMapPair > >                StringMapMap;
+    typedef std::pair< const CAsciiString, StringMapSet >                                                                         StringStringMapSetPair;
+    typedef std::map< CAsciiString, StringMapSet, std::less< CAsciiString >, gucef_allocator< StringStringMapSetPair > >          StringMapMapSet;
+    typedef std::pair< const CAsciiString, StringMapMap >                                                                         StringStringMapMapPair;
+    typedef std::map< CAsciiString, StringMapMap, std::less< CAsciiString >, gucef_allocator< StringStringMapMapPair > >          StringMapMapMap;
+    typedef std::pair< const CAsciiString, StringMapMapMap >                                                                      StringStringMapMapMapPair;
+    typedef std::map< CAsciiString, StringMapMap, std::less< CAsciiString >, gucef_allocator< StringStringMapMapMapPair > >       StringMapMapMapMap;
+    typedef std::pair< const CAsciiString, StringMapMapSet >                                                                      StringStringMapMapSetPair;
+    typedef std::map< CAsciiString, StringMapMapSet, std::less< CAsciiString >, gucef_allocator< StringStringMapMapSetPair > >    StringMapMapMapSet;
 
     static const CAsciiString   Empty;
     static const StringVector   EmptyStringVector;

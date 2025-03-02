@@ -1075,6 +1075,9 @@ PubSub2PubSubConfig::NormalizeConfig( void )
                 ++s;
             }
 
+            // If auto topic association is enabled we have to apply it as such for the above loaded channels and associated topics
+            channelConfig.AutoAssociateTopicsAnyToAnyAcrossSides();
+
             channelConfigs[ channelConfig.channelId ] = channelConfig;
         }
         else

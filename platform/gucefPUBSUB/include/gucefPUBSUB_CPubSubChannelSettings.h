@@ -80,6 +80,35 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubChannelConfig : public CORE::CIConfigurable
     bool collectMetrics;                                                   
     CORE::UInt32 metricsIntervalInMs;
 
+    /**
+     *  Utility function to generate side topic associations for the routes as a simplistic string id table
+     *  The table is a map of the following:
+     *          fromSideId -> fromSideTopicName -> <target>SideId -> <target>SideTopicName
+     */
+    bool GenerateTopicAssociationTableForAllCurrentRoutes( CORE::CStringMapMapMapSet& sideTopicAssociationTable ) const;
+
+    /**
+     *  Utility function to generate side topic associations for the preconfigured topics as a simplistic string id table
+     *  The table is a map of the following:
+     *          fromSideId -> fromSideTopicName -> <target>SideId -> <target>SideTopicName
+     */
+    bool GenerateTopicAssociationTableForAllPossibleRoutes( CORE::CStringMapMapMapSet& sideTopicAssociationTable ) const;
+
+    /**
+     *  Utility function to generate a map of sides which have an associated route entry with 'autoAssociateTopicsAnyToAnyAcrossSides' set to true
+     *  These are the sides which will have topics auto associated across sides in a any-to-any fashion if you use the AutoAssociateTopicsAnyToAnyAcrossSides function
+     */    
+    bool GenerateSetOfFromSidesWithAutoTopicAssociations( CORE::CStringSet& fromSidesWithAutoTopicAssociations ) const;
+
+    /**
+     *  Utility function to generate topic associations for the route
+     *  if 'autoAssociateTopicsAnyToAnyAcrossSides' on a route is true then this function will auto associate topics across sides
+     *  in a any-to-any fashion. This is intended for cases where you have a non-complicated pubsub setup with 
+     *  straightforward flow from one side to another thus negating the need for explicit topic associations 
+     *  which are needed to support more complex flows, thus making configuration less cumbersome and error prone.
+     */
+    bool AutoAssociateTopicsAnyToAnyAcrossSides( void );
+
     virtual bool SaveConfig( CORE::CDataNode& tree ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool LoadConfig( const CORE::CDataNode& tree ) GUCEF_VIRTUAL_OVERRIDE;

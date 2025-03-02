@@ -277,6 +277,242 @@ CPubSubChannelConfig::LoadConfig( const CORE::CDataNode& cfg )
 
 /*-------------------------------------------------------------------------*/
 
+bool 
+CPubSubChannelConfig::GenerateTopicAssociationTableForAllCurrentRoutes( CORE::CStringMapMapMapSet& sideTopicAssociationTable ) const
+{GUCEF_TRACE;
+
+    CPubSubFlowRouterConfig::PubSubFlowRouteConfigPtrVector::const_iterator i = flowRouterConfig.routes.begin();
+    while ( i != flowRouterConfig.routes.end() )
+    {
+        CPubSubFlowRouteConfigPtr routeConfig = (*i);
+        if ( !routeConfig.IsNULL() && !routeConfig->fromSideId.IsNULLOrEmpty() )
+        {
+            CPubSubFlowRouteConfig::PubSubFlowRouteTopicConfigPtrVector& topicAssociations = routeConfig->topicAssociations;
+            CPubSubFlowRouteConfig::PubSubFlowRouteTopicConfigPtrVector::const_iterator n = topicAssociations.begin();
+            while ( n != topicAssociations.end() )
+            {
+                CPubSubFlowRouteTopicConfigPtr topicConfig = (*n);
+                if ( !topicConfig.IsNULL() )
+                {
+                    if ( !routeConfig->toSideId.IsNULLOrEmpty() && !topicConfig->toSideTopicName.IsNULLOrEmpty() )
+                    {
+                        sideTopicAssociationTable[ routeConfig->fromSideId ][ topicConfig->fromSideTopicName ][ routeConfig->toSideId ].insert( topicConfig->toSideTopicName );
+                    }
+                 /*   if ( !routeConfig->failoverSideId.IsNULLOrEmpty() && !topicConfig->failoverSideTopicName.IsNULLOrEmpty() )
+                    {
+                        sideTopicAssociationTable[ routeConfig->fromSideId ][ topicConfig->fromSideTopicName ][ routeConfig->failoverSideId ].insert( topicConfig->failoverSideTopicName );
+                    }
+                    if ( !routeConfig->deadLetterSideId.IsNULLOrEmpty() && !topicConfig->deadLetterSideTopicName.IsNULLOrEmpty() )
+                    {
+                        sideTopicAssociationTable[ routeConfig->fromSideId ][ topicConfig->fromSideTopicName ][ routeConfig->deadLetterSideId ].insert( topicConfig->deadLetterSideTopicName );
+                    }
+                    if ( !routeConfig->spilloverBufferSideId.IsNULLOrEmpty() && !topicConfig->spilloverSideTopicName.IsNULLOrEmpty() )
+                    {
+                        sideTopicAssociationTable[ routeConfig->fromSideId ][ topicConfig->fromSideTopicName ][ routeConfig->spilloverBufferSideId ].insert( topicConfig->spilloverSideTopicName );
+                    }
+                 */
+                }
+                ++n;
+            }
+        }
+        ++i;
+    }
+
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CPubSubChannelConfig::GenerateTopicAssociationTableForAllPossibleRoutes( CORE::CStringMapMapMapSet& sideTopicAssociationTable ) const
+{GUCEF_TRACE;
+
+    TStringToPubSubSideChannelSettingsMap::const_iterator i = pubSubSideChannelSettingsMap.begin();
+    while ( i != pubSubSideChannelSettingsMap.end() )
+    {
+        const CORE::CString& sideId = (*i).first;
+        const CPubSubSideChannelSettingsPtr sideSettings = (*i).second;
+        if ( !sideId.IsNULLOrEmpty() && !sideSettings.IsNULL() )
+        {
+            const CPubSubClientConfig::TPubSubClientTopicConfigPtrVector& topics = sideSettings->pubsubClientConfig.topics;
+            CPubSubClientConfig::TPubSubClientTopicConfigPtrVector::const_iterator t = topics.begin();
+            while ( t != topics.end() )
+            {
+                const CPubSubClientTopicConfigPtr& topicConfig = (*t);
+                if ( !topicConfig.IsNULL() )
+                {
+                    bool isFromTopic = topicConfig->needSubscribeSupport;
+                    if ( isFromTopic )
+                    {
+                        const CORE::CString& fromSideId = sideId;
+                        const CORE::CString& fromSideTopicName = topicConfig->topicName;
+
+                        TStringToPubSubSideChannelSettingsMap::const_iterator m = pubSubSideChannelSettingsMap.begin();
+                        while ( m != pubSubSideChannelSettingsMap.end() )
+                        {
+                            const CORE::CString& otherSideId = (*m).first;                            
+                            if ( sideId != otherSideId )
+                            {       
+                                const CPubSubSideChannelSettingsPtr otherSideSettings = (*m).second;
+                                if ( !otherSideId.IsNULLOrEmpty() && !otherSideSettings.IsNULL() )
+                                {
+                                    const CPubSubClientConfig::TPubSubClientTopicConfigPtrVector& otherTopics = otherSideSettings->pubsubClientConfig.topics;
+                                    CPubSubClientConfig::TPubSubClientTopicConfigPtrVector::const_iterator o = otherTopics.begin();
+                                    while ( o != otherTopics.end() )
+                                    {
+                                        const CPubSubClientTopicConfigPtr& otherTopicConfig = (*o);
+                                        if ( !otherTopicConfig.IsNULL() )
+                                        {
+                                            bool isToTopic = otherTopicConfig->needPublishSupport;
+                                            if ( isToTopic )
+                                            {
+                                                const CORE::CString& toSideId = otherSideId;
+                                                const CORE::CString& toSideTopicName = otherTopicConfig->topicName;
+
+                                                sideTopicAssociationTable[ fromSideId ][ fromSideTopicName ][ toSideId ].insert( toSideTopicName );
+                                            }
+                                        }
+                                        ++o;
+                                    }
+                                }
+                            }
+                            ++m;
+                        }
+                    }
+                }
+                ++t;
+            }
+        }
+        ++i;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CPubSubChannelConfig::GenerateSetOfFromSidesWithAutoTopicAssociations( CORE::CStringSet& fromSidesWithAutoTopicAssociations ) const
+{GUCEF_TRACE;
+
+    CPubSubFlowRouterConfig::PubSubFlowRouteConfigPtrVector::const_iterator i = flowRouterConfig.routes.begin();
+    while ( i != flowRouterConfig.routes.end() )
+    {
+        CPubSubFlowRouteConfigPtr routeConfig = (*i);
+        if ( !routeConfig.IsNULL() && !routeConfig->fromSideId.IsNULLOrEmpty() && routeConfig->autoAssociateTopicsAnyToAnyAcrossSides )
+        {
+            fromSidesWithAutoTopicAssociations.insert( routeConfig->fromSideId );
+        }
+        ++i;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CPubSubChannelConfig::AutoAssociateTopicsAnyToAnyAcrossSides( void )
+{GUCEF_TRACE;
+
+    // first create a table of existing associations for easy lookup
+    // we will need to check if we need to add any new associations thus if they are not already present
+        
+    CORE::CStringMapMapMapSet existingAssociations;
+    if ( !GenerateTopicAssociationTableForAllCurrentRoutes( existingAssociations ) )
+        return false;
+
+    // Now get a table of all possible associations
+    CORE::CStringMapMapMapSet possibleAssociations;
+    if ( !GenerateTopicAssociationTableForAllPossibleRoutes( possibleAssociations ) )
+        return false;
+
+    // Now get a set of 'from' sides that have auto topic associations enabled
+    // You have to opt-in to this functionality as we dont want to be too aggressive in creating associations
+    // this is intended for less advanced use-cases
+    CORE::CStringSet fromSidesWithAutoTopicAssociations;
+    if ( !GenerateSetOfFromSidesWithAutoTopicAssociations( fromSidesWithAutoTopicAssociations ) )
+        return false;
+
+    // Now we need to iterate over the possible associations and add any that are not already present
+    CORE::CStringMapMapMapSet::const_iterator i = possibleAssociations.begin();
+    while ( i != possibleAssociations.end() )
+    {
+        const CORE::CString& fromSideId = (*i).first;
+        const CORE::CStringMapMapSet& fromSideTopicsMap = (*i).second;
+
+        // Check to see if we want to auto-associate topics for this 'from' side
+        if ( fromSidesWithAutoTopicAssociations.find( fromSideId ) != fromSidesWithAutoTopicAssociations.end() )
+        {
+            CORE::CStringMapMapSet::const_iterator n = fromSideTopicsMap.begin();
+            while ( n != fromSideTopicsMap.end() )
+            {
+                const CORE::CString& fromSideTopicName = (*n).first;
+                const CORE::CStringMapSet& targetSidesMap = (*n).second;
+                
+                CORE::CStringMapSet::const_iterator m = targetSidesMap.begin();
+                while ( m != targetSidesMap.end() )
+                {
+                    const CORE::CString& targetSideId = (*m).first;
+                    const CORE::CStringSet& targetSideTopicNames = (*m).second;
+
+                    CORE::CStringSet::const_iterator o = targetSideTopicNames.begin();
+                    while ( o != targetSideTopicNames.end() )
+                    {
+                        const CORE::CString& targetSideTopicName = (*o);
+
+                        // Check if this association is already present
+                        if ( existingAssociations.find( fromSideId ) == existingAssociations.end() ||
+                             existingAssociations[ fromSideId ].find( fromSideTopicName ) == existingAssociations[ fromSideId ].end() ||
+                             existingAssociations[ fromSideId ][ fromSideTopicName ].find( targetSideId ) == existingAssociations[ fromSideId ][ fromSideTopicName ].end() ||
+                             existingAssociations[ fromSideId ][ fromSideTopicName ][ targetSideId ].find( targetSideTopicName ) == existingAssociations[ fromSideId ][ fromSideTopicName ][ targetSideId ].end() )
+                        {
+                            // No such association exists, create it
+                            
+                            CPubSubFlowRouteConfigPtr routeConfig = flowRouterConfig.FindRouteWithFromSideAndToSide( fromSideId, targetSideId );
+                            if ( routeConfig.IsNULL() )
+                            {
+                                // This should not happen, how did we get here?
+                                routeConfig = CPubSubFlowRouteConfig::CreateSharedObj();
+                                if ( !routeConfig.IsNULL() )
+                                {
+                                    routeConfig->fromSideId = fromSideId;
+                                    routeConfig->toSideId = targetSideId;
+                                    flowRouterConfig.routes.push_back( routeConfig );
+
+                                    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "PubSubChannelConfig:AutoAssociateTopicsAnyToAnyAcrossSides: Added new default base route" );
+                                }
+                                else
+                                {
+                                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "PubSubChannelConfig:AutoAssociateTopicsAnyToAnyAcrossSides: Failed to create a new route config" );
+                                    return false;
+                                }
+                            }
+
+                            CPubSubFlowRouteTopicConfigPtr topicLevelRouteConfig = CPubSubFlowRouteTopicConfig::CreateSharedObj();
+                            if ( !topicLevelRouteConfig.IsNULL() )
+                            {
+                                topicLevelRouteConfig->fromSideTopicName = fromSideTopicName;
+                                topicLevelRouteConfig->toSideTopicName = targetSideTopicName;
+                                routeConfig->topicAssociations.push_back( topicLevelRouteConfig );
+
+                                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSubChannelConfig:AutoAssociateTopicsAnyToAnyAcrossSides: Added new topic association to routes : " +
+                                    fromSideId + " > " + fromSideTopicName + " -> " + targetSideId + " > " + targetSideTopicName );
+                            }
+                        }
+                        ++o;
+                    }
+                    ++m;
+                }
+                ++n;
+            }
+        }
+        ++i;
+    }
+
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 const CORE::CString&
 CPubSubChannelConfig::GetClassTypeName( void ) const
 {GUCEF_TRACE;

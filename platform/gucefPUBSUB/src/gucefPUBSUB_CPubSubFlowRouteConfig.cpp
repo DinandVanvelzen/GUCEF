@@ -156,6 +156,7 @@ CPubSubFlowRouteConfig::CPubSubFlowRouteConfig( void )
     , deadLetterSideTopicsAutoMatchFromSide( false )
     , preferFromTopicThreadForDestination( false )
     , egressAllDiscoveredSpilloverTopicsOnStart( true )
+    , autoAssociateTopicsAnyToAnyAcrossSides( false )
 {GUCEF_TRACE;
 
 }
@@ -177,6 +178,7 @@ CPubSubFlowRouteConfig::CPubSubFlowRouteConfig( const CPubSubFlowRouteConfig& sr
     , deadLetterSideTopicsAutoMatchFromSide( src.deadLetterSideTopicsAutoMatchFromSide )
     , preferFromTopicThreadForDestination( src.preferFromTopicThreadForDestination )
     , egressAllDiscoveredSpilloverTopicsOnStart( src.egressAllDiscoveredSpilloverTopicsOnStart )
+    , autoAssociateTopicsAnyToAnyAcrossSides( src.autoAssociateTopicsAnyToAnyAcrossSides )
 {GUCEF_TRACE;
 
 }
@@ -209,6 +211,7 @@ CPubSubFlowRouteConfig::operator=( const CPubSubFlowRouteConfig& src )
         deadLetterSideTopicsAutoMatchFromSide = src.deadLetterSideTopicsAutoMatchFromSide;
         preferFromTopicThreadForDestination = src.preferFromTopicThreadForDestination;
         egressAllDiscoveredSpilloverTopicsOnStart = src.egressAllDiscoveredSpilloverTopicsOnStart;
+        autoAssociateTopicsAnyToAnyAcrossSides = src.autoAssociateTopicsAnyToAnyAcrossSides;
     }
     return *this;
 }
@@ -231,13 +234,14 @@ CPubSubFlowRouteConfig::SaveConfig( CORE::CDataNode& cfg ) const
     totalSuccess = cfg.SetAttribute( "deadLetterSideTopicsAutoMatchFromSide", deadLetterSideTopicsAutoMatchFromSide ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "preferFromTopicThreadForDestination", preferFromTopicThreadForDestination ) && totalSuccess; 
     totalSuccess = cfg.SetAttribute( "egressAllDiscoveredSpilloverTopicsOnStart", egressAllDiscoveredSpilloverTopicsOnStart ) && totalSuccess;
-
+    totalSuccess = cfg.SetAttribute( "autoAssociateTopicsAnyToAnyAcrossSides", autoAssociateTopicsAnyToAnyAcrossSides ) && totalSuccess;
+    
     CORE::CDataNode* topicAssociationsNode = cfg.FindOrAddChild( "topicAssociations" );
     if ( GUCEF_NULL != topicAssociationsNode )
     {
         topicAssociationsNode->DelSubTree();
         topicAssociationsNode->SetNodeType( GUCEF_DATATYPE_ARRAY );
-        PubSubFlowRouteTopicConfigVector::const_iterator i = topicAssociations.begin();
+        PubSubFlowRouteTopicConfigPtrVector::const_iterator i = topicAssociations.begin();
         while ( i != topicAssociations.end() )
         {
             const CPubSubFlowRouteTopicConfigPtr topicConfig = (*i);
@@ -269,6 +273,7 @@ CPubSubFlowRouteConfig::LoadConfig( const CORE::CDataNode& cfg )
     deadLetterSideTopicsAutoMatchFromSide = cfg.GetAttributeValueOrChildValueByName( "deadLetterSideTopicsAutoMatchFromSide" ).AsBool( deadLetterSideTopicsAutoMatchFromSide, true );
     preferFromTopicThreadForDestination = cfg.GetAttributeValueOrChildValueByName( "preferFromTopicThreadForDestination" ).AsBool( preferFromTopicThreadForDestination, true );
     egressAllDiscoveredSpilloverTopicsOnStart = cfg.GetAttributeValueOrChildValueByName( "egressAllDiscoveredSpilloverTopicsOnStart" ).AsBool( egressAllDiscoveredSpilloverTopicsOnStart, true );
+    autoAssociateTopicsAnyToAnyAcrossSides = cfg.GetAttributeValueOrChildValueByName( "autoAssociateTopicsAnyToAnyAcrossSides" ).AsBool( autoAssociateTopicsAnyToAnyAcrossSides, true );
 
     const CORE::CDataNode* topicAssociationsNode = cfg.FindChild( "topicAssociations" );
     if ( GUCEF_NULL != topicAssociationsNode )
@@ -322,7 +327,7 @@ CPubSubFlowRouteConfig::FindTopicAssociation( const CORE::CString& fromTopicName
 {GUCEF_TRACE;
 
     // first look for an exact match, those should take priority regardless
-    PubSubFlowRouteTopicConfigVector::iterator i = topicAssociations.begin();
+    PubSubFlowRouteTopicConfigPtrVector::iterator i = topicAssociations.begin();
     while ( i != topicAssociations.end() )
     {
         CPubSubFlowRouteTopicConfigPtr topicConfig = (*i);
@@ -335,7 +340,7 @@ CPubSubFlowRouteConfig::FindTopicAssociation( const CORE::CString& fromTopicName
     {
         // if there is no exact match the request is to try and pattern match next
 
-        PubSubFlowRouteTopicConfigVector::iterator i = topicAssociations.begin();
+        PubSubFlowRouteTopicConfigPtrVector::iterator i = topicAssociations.begin();
         while ( i != topicAssociations.end() )
         {
             CPubSubFlowRouteTopicConfigPtr topicConfig = (*i);
