@@ -27,6 +27,7 @@ plugins/CORE/codecspluginSTBRUMMEHASH/*
 plugins/CORE/codecspluginZLIB/*
 plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/dstorepluginPARSIFALXML/*
+plugins/CORE/dstorepluginPROTOBUF/*
 plugins/CORE/dstorepluginYAML/*
 plugins/GUI/guidriverAndroidGLES/*
 plugins/GUI/guidriverCEGUI/*

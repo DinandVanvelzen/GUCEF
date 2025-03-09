@@ -1,0 +1,19 @@
+<ModuleInfoEntry>
+    <Module Name="libprotobuf" Type="SharedLibrary" Platform="All">
+        <Dependencies>
+            <Dependency Name="zlib" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="zlib" />
+        </Linker>
+        <Preprocessor>
+            <Define String="PROTOBUF_USE_DLLS" />
+            <Define String="LIBPROTOBUF_EXPORTS" />
+        </Preprocessor>
+    </Module>
+    <Module Platform="android">
+        <Linker>
+            <Dependency Name="log" />
+        </Linker>		
+    </Module>
+</ModuleInfoEntry>

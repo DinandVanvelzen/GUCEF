@@ -86,6 +86,8 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaFieldDefinition : public CORE::CIData
     static CORE::UInt8 StringToEndianValue( const CORE::CString& str );
     static const CORE::CString& EndianValueToString( CORE::UInt8 value );
 
+    static CORE::UInt8 KaitaiTypeStringToGucefType( const CORE::CString& str );
+
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;

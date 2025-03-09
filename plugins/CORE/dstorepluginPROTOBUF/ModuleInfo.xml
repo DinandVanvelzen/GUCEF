@@ -1,0 +1,16 @@
+<ModuleInfoEntry>
+    <Module Name="dstorepluginPROTOBUF" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="libprotobuf" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="libprotobuf" />
+        </Linker>
+        <Preprocessor>
+            <Define String="DSTOREPLUGINPROTOBUF_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

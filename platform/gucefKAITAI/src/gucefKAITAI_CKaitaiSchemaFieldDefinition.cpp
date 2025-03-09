@@ -55,7 +55,7 @@ CKaitaiSchemaFieldDefinition::CKaitaiSchemaFieldDefinition( void )
     : CORE::CIDataNodeSerializable()
     , id()
     , type()
-    , endianess( 0 )
+    , endianess( GUCEF_BYTEORDER_UNKNOWN_ENDIAN )
     , fieldTypeId( 0 )
     , hasSize( false )
     , size( 0 )
@@ -177,12 +177,57 @@ CKaitaiSchemaFieldDefinition::EndianValueToString( CORE::UInt8 value )
 
 /*-------------------------------------------------------------------------*/
 
+CORE::UInt8 
+CKaitaiSchemaFieldDefinition::KaitaiTypeStringToGucefType( const CORE::CString& str )
+{GUCEF_TRACE;
+
+    bool isLittleEndian = str.HasSubstr( "le" ) > -1;
+    bool isBigEndian = str.HasSubstr( "be" ) > -1;
+
+    if ( isLittleEndian )
+        return GUCEF_BYTEORDER_LITTLE_ENDIAN;
+    if ( isBigEndian )
+        return GUCEF_BYTEORDER_BIG_ENDIAN;
+
+    return GUCEF_BYTEORDER_UNKNOWN_ENDIAN;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool 
 CKaitaiSchemaFieldDefinition::Deserialize( const CORE::CDataNode& domRootNode                  , 
                                            const CORE::CDataNodeSerializableSettings& settings )
 {GUCEF_TRACE;
     
-    
+    id = domRootNode.GetAttributeValueOrChildValueByName( "id", id, true ).AsString( id, true );
+
+    type = domRootNode.GetAttributeValueOrChildValueByName( "type", type, true ).AsString( type, true );
+    if ( !type.IsNULLOrEmpty() )
+        fieldTypeId = KaitaiTypeStringToGucefType(type);
+    else
+        fieldTypeId = GUCEF_DATATYPE_UNKNOWN;
+
+    const CORE::CDataNode* contentsNode = domRootNode.FindChild( "contents" );
+    if ( GUCEF_NULL != contentsNode )
+    {
+        // In Kaitai the contents field can be different types
+        if ( GUCEF_DATATYPE_ARRAY == contentsNode->GetNodeType() )
+        {
+            //todo
+        }
+        else
+        if ( GUCEF_DATATYPE_STRING == contentsNode->GetNodeType() )
+        {
+            contents = contentsNode->GetValue();
+            hasContents = true;
+        }
+
+       
+    }
+
+    documentation = domRootNode.GetAttributeValueOrChildValueByName( "doc" ).AsString( CORE::CString::Empty, true);
+
+
     return false;
 }
 
