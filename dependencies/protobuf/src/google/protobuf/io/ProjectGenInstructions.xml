@@ -1,0 +1,14 @@
+<PROJECTGENERATOR>
+    <EXCLUDES PLATFORM="ALL">
+        <ITEM NAME="*" TYPE="DIR" />
+		<ITEM NAME="*" TYPE="FILE" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="ALL">
+      <ITEM NAME="gzip_stream.h" TYPE="FILE" />
+      <ITEM NAME="gzip_stream.cc" TYPE="FILE" />
+      <ITEM NAME="printer.h" TYPE="FILE" />
+      <ITEM NAME="printer.cc" TYPE="FILE" />
+      <ITEM NAME="tokenizer.h" TYPE="FILE" />
+      <ITEM NAME="tokenizer.cc" TYPE="FILE" />
+   </INCLUDES>
+</PROJECTGENERATOR>

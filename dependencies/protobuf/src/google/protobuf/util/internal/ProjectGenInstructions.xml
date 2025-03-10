@@ -1,0 +1,34 @@
+<PROJECTGENERATOR>
+    <EXCLUDES PLATFORM="ALL">
+        <ITEM NAME="*" TYPE="DIR" />
+		<ITEM NAME="*" TYPE="FILE" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="ALL">
+      <ITEM NAME="datapiece.h" TYPE="FILE" />
+      <ITEM NAME="datapiece.cc" TYPE="FILE" />
+      <ITEM NAME="default_value_objectwriter.h" TYPE="FILE" />
+      <ITEM NAME="default_value_objectwriter.cc" TYPE="FILE" />
+      <ITEM NAME="error_listener.h" TYPE="FILE" />
+      <ITEM NAME="error_listener.cc" TYPE="FILE" />
+      <ITEM NAME="field_mask_utility.h" TYPE="FILE" />
+      <ITEM NAME="field_mask_utility.cc" TYPE="FILE" />
+      <ITEM NAME="json_escaping.h" TYPE="FILE" />
+      <ITEM NAME="json_escaping.cc" TYPE="FILE" />
+      <ITEM NAME="json_objectwriter.h" TYPE="FILE" />
+      <ITEM NAME="json_objectwriter.cc" TYPE="FILE" />
+      <ITEM NAME="json_stream_parser.h" TYPE="FILE" />
+      <ITEM NAME="json_stream_parser.cc" TYPE="FILE" />
+      <ITEM NAME="object_writer.h" TYPE="FILE" />
+      <ITEM NAME="object_writer.cc" TYPE="FILE" />
+      <ITEM NAME="proto_writer.h" TYPE="FILE" />
+      <ITEM NAME="proto_writer.cc" TYPE="FILE" />
+      <ITEM NAME="protostream_objectsource.h" TYPE="FILE" />
+      <ITEM NAME="protostream_objectsource.cc" TYPE="FILE" />
+      <ITEM NAME="protostream_objectwriter.h" TYPE="FILE" />
+      <ITEM NAME="protostream_objectwriter.cc" TYPE="FILE" />
+      <ITEM NAME="type_info.h" TYPE="FILE" />
+      <ITEM NAME="type_info.cc" TYPE="FILE" />
+      <ITEM NAME="utility.h" TYPE="FILE" />
+      <ITEM NAME="utility.cc" TYPE="FILE" />
+   </INCLUDES>
+</PROJECTGENERATOR>

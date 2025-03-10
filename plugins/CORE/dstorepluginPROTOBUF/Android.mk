@@ -27,19 +27,12 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../../common/include \
+  $(MY_MODULE_PATH)/../../../dependencies/protobuf/src \
   $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google \
   $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf \
   $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf/compiler \
-  $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf/compiler/cpp \
-  $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf/compiler/csharp \
-  $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf/compiler/java \
-  $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf/compiler/objectivec \
-  $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf/compiler/php \
-  $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf/compiler/python \
-  $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf/compiler/ruby \
   $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf/io \
   $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf/stubs \
-  $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf/testing \
   $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf/util \
   $(MY_MODULE_PATH)/../../../dependencies/protobuf/src/google/protobuf/util/internal \
   $(MY_MODULE_PATH)/../../../platform/gucefCORE/include \

@@ -28,6 +28,7 @@ dependencies/libsquish/*
 dependencies/libyaml/*
 dependencies/openexr/IlmBase/*
 dependencies/openexr/OpenEXR/*
+dependencies/protobuf/src/*
 dependencies/stbrumme-hash-library/*
 dependencies/tiff/libtiff/*
 dependencies/zlib/*
@@ -44,6 +45,7 @@ plugins/CORE/codecspluginSTBRUMMEHASH/*
 plugins/CORE/codecspluginZLIB/*
 plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/dstorepluginPARSIFALXML/*
+plugins/CORE/dstorepluginPROTOBUF/*
 plugins/CORE/dstorepluginYAML/*
 plugins/IMAGE/imgpluginDEVIL/*
 plugins/IMAGE/imgpluginFLIC/*

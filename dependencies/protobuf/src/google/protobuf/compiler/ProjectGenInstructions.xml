@@ -1,0 +1,12 @@
+<PROJECTGENERATOR>
+    <EXCLUDES PLATFORM="ALL">
+        <ITEM NAME="*" TYPE="DIR" />
+		<ITEM NAME="*" TYPE="FILE" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="ALL">
+      <ITEM NAME="importer.h" TYPE="FILE" />
+      <ITEM NAME="importer.cc" TYPE="FILE" />
+      <ITEM NAME="parser.h" TYPE="FILE" />
+      <ITEM NAME="parser.cc" TYPE="FILE" />
+   </INCLUDES>
+</PROJECTGENERATOR>

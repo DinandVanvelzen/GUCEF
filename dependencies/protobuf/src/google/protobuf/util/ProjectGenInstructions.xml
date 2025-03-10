@@ -1,0 +1,23 @@
+<PROJECTGENERATOR>
+    <EXCLUDES PLATFORM="ALL">
+        <ITEM NAME="*" TYPE="DIR" />
+		<ITEM NAME="*" TYPE="FILE" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="ALL">
+      <ITEM NAME="delimited_message_util.h" TYPE="FILE" />
+      <ITEM NAME="delimited_message_util.cc" TYPE="FILE" />
+      <ITEM NAME="field_comparator.h" TYPE="FILE" />
+      <ITEM NAME="field_comparator.cc" TYPE="FILE" />
+      <ITEM NAME="field_mask_util.h" TYPE="FILE" />
+      <ITEM NAME="field_mask_util.cc" TYPE="FILE" />
+      <ITEM NAME="json_util.h" TYPE="FILE" />
+      <ITEM NAME="json_util.cc" TYPE="FILE" />
+      <ITEM NAME="message_differencer.h" TYPE="FILE" />
+      <ITEM NAME="message_differencer.cc" TYPE="FILE" />
+      <ITEM NAME="time_util.h" TYPE="FILE" />
+      <ITEM NAME="time_util.cc" TYPE="FILE" />
+      <ITEM NAME="type_resolver_util.h" TYPE="FILE" />
+      <ITEM NAME="type_resolver_util.cc" TYPE="FILE" />
+      <ITEM NAME="internal" TYPE="DIR" />
+   </INCLUDES>
+</PROJECTGENERATOR>

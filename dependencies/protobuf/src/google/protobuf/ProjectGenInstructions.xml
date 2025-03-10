@@ -1,0 +1,65 @@
+<PROJECTGENERATOR>
+    <EXCLUDES PLATFORM="ALL">
+        <ITEM NAME="*" TYPE="DIR" />
+		<ITEM NAME="*" TYPE="FILE" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="ALL">
+      <ITEM NAME="any.h" TYPE="FILE" />
+      <ITEM NAME="any.cc" TYPE="FILE" />
+      <ITEM NAME="any.pb.h" TYPE="FILE" />
+      <ITEM NAME="any.pb.cc" TYPE="FILE" />
+      <ITEM NAME="api.pb.h" TYPE="FILE" />
+      <ITEM NAME="api.pb.cc" TYPE="FILE" />
+      <ITEM NAME="descriptor.h" TYPE="FILE" />
+      <ITEM NAME="descriptor.cc" TYPE="FILE" />
+      <ITEM NAME="descriptor_database.h" TYPE="FILE" />
+      <ITEM NAME="descriptor_database.cc" TYPE="FILE" />
+      <ITEM NAME="duration.pb.h" TYPE="FILE" />
+      <ITEM NAME="duration.pb.cc" TYPE="FILE" />
+      <ITEM NAME="dynamic_message.h" TYPE="FILE" />
+      <ITEM NAME="dynamic_message.cc" TYPE="FILE" />
+      <ITEM NAME="empty.pb.h" TYPE="FILE" />
+      <ITEM NAME="empty.pb.cc" TYPE="FILE" />
+      <ITEM NAME="extension_set_heavy.cc" TYPE="FILE" />
+      <ITEM NAME="field_access_listener.h" TYPE="FILE" />
+      <ITEM NAME="field_mask.pb.h" TYPE="FILE" />
+      <ITEM NAME="field_mask.pb.cc" TYPE="FILE" />
+      <ITEM NAME="generated_enum_reflection.h" TYPE="FILE" />
+      <ITEM NAME="generated_message_bases.h" TYPE="FILE" />
+      <ITEM NAME="generated_message_bases.cc" TYPE="FILE" />
+      <ITEM NAME="generated_message_reflection.h" TYPE="FILE" />
+      <ITEM NAME="generated_message_reflection.cc" TYPE="FILE" />
+      <ITEM NAME="generated_message_tctable_full.cc" TYPE="FILE" />
+      <ITEM NAME="map_field.h" TYPE="FILE" />
+      <ITEM NAME="map_field.cc" TYPE="FILE" />
+      <ITEM NAME="map_field_inl.h" TYPE="FILE" />
+      <ITEM NAME="message.h" TYPE="FILE" />
+      <ITEM NAME="message.cc" TYPE="FILE" />
+      <ITEM NAME="reflection.h" TYPE="FILE" />
+      <ITEM NAME="reflection_internal.h" TYPE="FILE" />
+      <ITEM NAME="reflection_ops.h" TYPE="FILE" />
+      <ITEM NAME="reflection_ops.cc" TYPE="FILE" />
+      <ITEM NAME="service.h" TYPE="FILE" />
+      <ITEM NAME="service.cc" TYPE="FILE" />
+      <ITEM NAME="source_context.pb.h" TYPE="FILE" />
+      <ITEM NAME="source_context.pb.cc" TYPE="FILE" />
+      <ITEM NAME="struct.pb.h" TYPE="FILE" />
+      <ITEM NAME="struct.pb.cc" TYPE="FILE" />
+      <ITEM NAME="text_format.h" TYPE="FILE" />
+      <ITEM NAME="text_format.cc" TYPE="FILE" />
+      <ITEM NAME="timestamp.pb.h" TYPE="FILE" />
+      <ITEM NAME="timestamp.pb.cc" TYPE="FILE" />
+      <ITEM NAME="type.pb.h" TYPE="FILE" />
+      <ITEM NAME="type.pb.cc" TYPE="FILE" />
+      <ITEM NAME="unknown_field_set.h" TYPE="FILE" />
+      <ITEM NAME="unknown_field_set.cc" TYPE="FILE" />
+      <ITEM NAME="wire_format.h" TYPE="FILE" />
+      <ITEM NAME="wire_format.cc" TYPE="FILE" />
+      <ITEM NAME="wrappers.pb.h" TYPE="FILE" />
+      <ITEM NAME="wrappers.pb.cc" TYPE="FILE" />
+      <ITEM NAME="compiler" TYPE="DIR" />
+      <ITEM NAME="io" TYPE="DIR" />
+      <ITEM NAME="stubs" TYPE="DIR" />
+      <ITEM NAME="util" TYPE="DIR" />
+   </INCLUDES>
+</PROJECTGENERATOR>

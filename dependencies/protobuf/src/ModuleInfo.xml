@@ -1,19 +1,31 @@
+<root>
+<ModuleInfoEntry>
+    <Module Name="libprotobuf_header_root" Type="HeaderIncludeLocation" ConsiderSubDirs="False" Platform="All" >
+    </Module>
+</ModuleInfoEntry>
 <ModuleInfoEntry>
     <Module Name="libprotobuf" Type="SharedLibrary" Platform="All">
+        <Dependencies>
+            <Dependency Name="libprotobuf_header_root" />
+        </Dependencies>
+        <Preprocessor>
+            <Define String="PROTOBUF_USE_DLLS" />
+            <Define String="LIBPROTOBUF_EXPORTS" />
+        </Preprocessor>
+    </Module>
+    <Module Platform="linux;mswin">
         <Dependencies>
             <Dependency Name="zlib" />
         </Dependencies>
         <Linker>
             <Dependency Name="zlib" />
         </Linker>
-        <Preprocessor>
-            <Define String="PROTOBUF_USE_DLLS" />
-            <Define String="LIBPROTOBUF_EXPORTS" />
-        </Preprocessor>
     </Module>
     <Module Platform="android">
         <Linker>
             <Dependency Name="log" />
-        </Linker>		
+            <Dependency Name="z" />
+        </Linker>
     </Module>
 </ModuleInfoEntry>
+</root>

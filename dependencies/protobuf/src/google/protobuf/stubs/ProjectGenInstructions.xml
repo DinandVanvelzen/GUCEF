@@ -1,0 +1,10 @@
+<PROJECTGENERATOR>
+    <EXCLUDES PLATFORM="ALL">
+        <ITEM NAME="*" TYPE="DIR" />
+		<ITEM NAME="*" TYPE="FILE" />
+    </EXCLUDES>
+    <INCLUDES PLATFORM="ALL">
+      <ITEM NAME="substitute.h" TYPE="FILE" />
+      <ITEM NAME="substitute.cc" TYPE="FILE" />
+   </INCLUDES>
+</PROJECTGENERATOR>
