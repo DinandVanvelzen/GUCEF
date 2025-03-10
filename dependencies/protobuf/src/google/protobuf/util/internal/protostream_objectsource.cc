@@ -47,7 +47,7 @@
 #include <google/protobuf/stubs/casts.h>
 #include <google/protobuf/stubs/status.h>
 #include <google/protobuf/stubs/stringprintf.h>
-#include <google/protobuf/stubs/time.h>
+#include <google/protobuf/stubs/protobuf_time.h>
 #include <google/protobuf/util/internal/constants.h>
 #include <google/protobuf/util/internal/field_mask_utility.h>
 #include <google/protobuf/util/internal/utility.h>

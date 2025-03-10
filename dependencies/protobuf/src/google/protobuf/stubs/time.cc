@@ -1,4 +1,4 @@
-#include <google/protobuf/stubs/time.h>
+#include <google/protobuf/stubs/protobuf_time.h>
 
 #include <ctime>
 
