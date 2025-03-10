@@ -69,7 +69,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CIProjectInfoGatherer
     CIProjectInfoGatherer& operator=( const CIProjectInfoGatherer& src );
     
     virtual bool GatherInfo( const TStringVector& rootDirs  ,
-                             TProjectInfo& projectInfo      ,
+                             CProjectInfo& projectInfo      ,
                              const CORE::CValueList& params ) = 0;
 };
 

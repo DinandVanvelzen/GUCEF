@@ -74,7 +74,7 @@ const char* makefileHeader =
 
 CORE::CString
 GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks ,
-                                   const TModuleInfo& moduleInfo                ,
+                                   const CModuleInfo& moduleInfo                ,
                                    const CORE::CString& moduleRoot              ,
                                    bool addGeneratorCompileTimeToOutput         ,
                                    TStringSet& ndkModulesUsed                   )
@@ -204,7 +204,7 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
     // Now we add the compiler flags, if any
     // For Android we only support the GCC compilers
     CORE::CString compilerSection;
-    TStringMap::const_iterator p = moduleInfo.compilerSettings.compilerFlags.find( "GCC" );
+    CORE::CStringMap::const_iterator p = moduleInfo.compilerSettings.compilerFlags.find( "GCC" );
     if ( p != moduleInfo.compilerSettings.compilerFlags.end() )
     {
         compilerSection = "LOCAL_CFLAGS +=" + (*p).second + "\n\n";
@@ -263,7 +263,7 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
             {
                 // Since the depedendency module type was not predefined we will investigate among
                 // the other modules to try to determine the nature of the linked module
-                const TModuleInfo* linkedDependency = FindModuleByName( mergeLinks, linkedLibName );
+                const CModuleInfo* linkedDependency = FindModuleByName( mergeLinks, linkedLibName );
                 if ( NULL != linkedDependency )
                 {
                     // The module we are linking too is part of this project.
@@ -486,7 +486,7 @@ DidMakefileContentChange( const CORE::CString& makefilePath ,
 
 bool
 CreateAndroidMakefileOnDiskForModule( const TModuleInfoEntryPairVector& mergeLinks ,
-                                      const TModuleInfo& moduleInfo                ,
+                                      const CModuleInfo& moduleInfo                ,
                                       const CORE::CString& moduleRoot              ,
                                       bool addGeneratorCompileTimeToOutput         ,
                                       TStringSet& ndkModulesUsed                   )
@@ -550,7 +550,7 @@ CreateAndroidMakefileOnDiskForEachModule( const TModuleInfoEntryPairVector& merg
     while ( i != mergeLinks.end() )
     {
         const CModuleInfoEntry& moduleInfoEntry = (*(*i).first);
-        const TModuleInfo& moduleInfo = (*(*i).second);
+        const CModuleInfo& moduleInfo = (*(*i).second);
 
         if ( !CreateAndroidMakefileOnDiskForModule( mergeLinks                      ,
                                                     moduleInfo                      ,
@@ -569,12 +569,12 @@ CreateAndroidMakefileOnDiskForEachModule( const TModuleInfoEntryPairVector& merg
 
 /*-------------------------------------------------------------------------*/
 
-const TModuleInfo*
+const CModuleInfo*
 FindFirstModuleAccordingToBuildOrder( const TModuleInfoEntryPairVector& mergeLinks )
 {GUCEF_TRACE;
 
     int actualLowestBuildOrderFound = GUCEFCORE_INT32MAX;
-    const TModuleInfo* candidateModule = GUCEF_NULL;
+    const CModuleInfo* candidateModule = GUCEF_NULL;
 
     TModuleInfoEntryPairVector::const_iterator i = mergeLinks.begin();
     while ( i != mergeLinks.end() )
@@ -592,14 +592,14 @@ FindFirstModuleAccordingToBuildOrder( const TModuleInfoEntryPairVector& mergeLin
 
 /*-------------------------------------------------------------------------*/
 
-const TModuleInfo*
+const CModuleInfo*
 FindNextModuleAccordingToBuildOrder( const TModuleInfoEntryPairVector& mergeLinks ,
-                                     const TModuleInfo& currentModule             )
+                                     const CModuleInfo& currentModule             )
 {GUCEF_TRACE;
 
     int lowestAllowedModuleBuildOrder = currentModule.buildOrder+1;
     int actualLowestBuildOrderFound = GUCEFCORE_INT32MAX;
-    const TModuleInfo* candidateModule = GUCEF_NULL;
+    const CModuleInfo* candidateModule = GUCEF_NULL;
 
     TModuleInfoEntryPairVector::const_iterator i = mergeLinks.begin();
     while ( i != mergeLinks.end() )
@@ -620,7 +620,7 @@ FindNextModuleAccordingToBuildOrder( const TModuleInfoEntryPairVector& mergeLink
 
 const CModuleInfoEntry*
 FindModuleInfoEntryForMergedInfo( const TModuleInfoEntryPairVector& mergeLinks ,
-                                  const TModuleInfo& mergedModule              )
+                                  const CModuleInfo& mergedModule              )
 {
     TModuleInfoEntryPairVector::const_iterator i = mergeLinks.begin();
     while ( i != mergeLinks.end() )
@@ -691,7 +691,7 @@ GenerateContentForAndroidProjectMakefile( const CORE::CString& projectName      
     }
 */
     // Include each module's makefile in the order listed as their build order
-    const TModuleInfo* currentModule = FindFirstModuleAccordingToBuildOrder( mergeLinks );
+    const CModuleInfo* currentModule = FindFirstModuleAccordingToBuildOrder( mergeLinks );
     while ( GUCEF_NULL != currentModule )
     {
         if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != currentModule->moduleType )   &&
@@ -765,7 +765,7 @@ CreateAndroidProjectMakefileOnDisk( const CORE::CString& projectName            
 /*--------------------------------------------------------------------------*/
 
 void
-WriteAndroidTargetsToDisk( const TProjectInfo& projectInfo          ,
+WriteAndroidTargetsToDisk( const CProjectInfo& projectInfo          ,
                            const CORE::CString& projectName         ,
                            const CORE::CString& targetName          ,
                            const TProjectTargetInfo& targetInfo     ,
@@ -801,7 +801,7 @@ WriteAndroidTargetsToDisk( const TProjectInfo& projectInfo          ,
 /*--------------------------------------------------------------------------*/
 
 void
-WriteAndroidTargetsToDisk( const TProjectInfo& projectInfo         ,
+WriteAndroidTargetsToDisk( const CProjectInfo& projectInfo         ,
                            const TProjectTargetInfoMapMap& targets ,
                            const CORE::CString& outputDir          ,
                            const CORE::CString& targetsOutputDir   ,
@@ -874,7 +874,7 @@ CAndroidMakefileGenerator::~CAndroidMakefileGenerator()
 /*-------------------------------------------------------------------------*/
 
 bool
-CAndroidMakefileGenerator::GenerateProject( TProjectInfo& projectInfo            ,
+CAndroidMakefileGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
                                             const CORE::CString& outputDir       ,
                                             bool addGeneratorCompileTimeToOutput ,
                                             const CORE::CValueList& params       )

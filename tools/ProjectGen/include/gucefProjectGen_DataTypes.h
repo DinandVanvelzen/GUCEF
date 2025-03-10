@@ -72,7 +72,6 @@ namespace PROJECTGEN {
 
 typedef CORE::CString::StringSet TStringSet;
 typedef std::set< CORE::Int32 > TInt32Set;
-typedef std::map< CORE::CString, CORE::CString > TStringMap;
 typedef std::map< CORE::CString, TStringSet > TStringSetMap;
 typedef CORE::CString::StringVector TStringVector;
 typedef std::map< CORE::CString, TStringVector > TStringVectorMap;
@@ -135,7 +134,7 @@ typedef struct SLinkerSettings TLinkerSettings;
 struct SCompilerSettings
 {
     TStringSet languagesUsed;                // list of all programming languages used within this module
-    TStringMap compilerFlags;                // map of flags to pass to the specific compilers
+    CORE::CStringMap compilerFlags;          // map of flags to pass to the specific compilers
 };
 typedef struct SCompilerSettings TCompilerSettings;
 
@@ -211,8 +210,10 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleMetaData : public CORE::CIDataNodeSeria
 
 /*---------------------------------------------------------------------------*/
 
-struct SModuleInfo
+class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo
 {
+    public:
+    
     CORE::CString name;                          // the name of the module
     TModuleType moduleType;                      // The type of module we are dealing with
     TStringSet tags;                             // optional tags that can be associated which allows filtering of modules
@@ -228,23 +229,30 @@ struct SModuleInfo
     int buildChain;                              // index of the build chain, different build chains can be build independently but may depend on other chains
     TInt32Set buildChainDependencies;            // other build chains this build chain is dependent on, if any
     bool considerSubDirs;                        // Whether only the dir with the ModuleInfo is to be considered or whether subdirs are recursively considered
+    bool hasConsiderSubDirs;                     // Whether the considerSubDirs flag is based on an explicit setting or not
 
     TLinkerSettings linkerSettings;              // all linker related settings for this module
     TCompilerSettings compilerSettings;          // all compiler related settings for this module
     TPreprocessorSettings preprocessorSettings;  // all preprocessor related settings for this module
 
     bool ignoreModule;                           // whether this module should be included in the build
+    bool hasIgnoreModule;                        // whether the ignoreModule flag is based on an explicit setting or not
     CModuleMetaData metadata;                    // module metadata
+
+    void Clear( void );
+    
+    CModuleInfo( void );
+    CModuleInfo( const CModuleInfo& src );
+    virtual ~CModuleInfo();
 };
-typedef struct SModuleInfo TModuleInfo;
 
 /*---------------------------------------------------------------------------*/
 
-typedef std::vector< TModuleInfo > TModuleInfoVector;
+typedef std::vector< CModuleInfo > TModuleInfoVector;
 typedef std::map< CORE::CString, TModuleInfoVector > TModuleInfoVectorMap;
-typedef std::map< CORE::CString, TModuleInfo > TModuleInfoMap;
-typedef std::vector< TModuleInfo* > TModuleInfoPtrVector;
-typedef std::map< CORE::CString, const TModuleInfo* > TConstModuleInfoPtrMap;
+typedef std::map< CORE::CString, CModuleInfo > TModuleInfoMap;
+typedef std::vector< CModuleInfo* > TModuleInfoPtrVector;
+typedef std::map< CORE::CString, const CModuleInfo* > TConstModuleInfoPtrMap;
 
 /*---------------------------------------------------------------------------*/
 
@@ -266,7 +274,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
 
     void Clear( void );
 
-    void SetModuleInfo( TModuleInfo& moduleInfo       ,
+    void SetModuleInfo( CModuleInfo& moduleInfo       ,
                         const CORE::CString& platform );
 
     CModuleInfoEntry& operator=( const CModuleInfoEntry& src );
@@ -294,8 +302,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
 /*---------------------------------------------------------------------------*/
 
 typedef std::vector< CModuleInfoEntry > TModuleInfoEntryVector;
-typedef std::pair< const CModuleInfoEntry*, const TModuleInfo* > TModuleInfoEntryPair;
-typedef std::pair< CModuleInfoEntry*, TModuleInfo* > TMutableModuleInfoEntryPair;
+typedef std::pair< const CModuleInfoEntry*, const CModuleInfo* > TModuleInfoEntryPair;
+typedef std::pair< CModuleInfoEntry*, CModuleInfo* > TMutableModuleInfoEntryPair;
 typedef std::vector< TModuleInfoEntryPair > TModuleInfoEntryPairVector;
 typedef std::vector< TMutableModuleInfoEntryPair > TMutableModuleInfoEntryPairVector;
 typedef std::vector< CModuleInfoEntry* > TModuleInfoEntryPtrVector;
@@ -336,16 +344,23 @@ typedef std::map< CORE::CString, TDirProcessingInstructions > TDirProcessingInst
 
 /*---------------------------------------------------------------------------*/
 
-struct SProjectInfo
+class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo
 {
+    public:
+
     CORE::CString projectName;                               // Name of the overall project
     TStringVector rootDirs;                                  // Root dirs used to gather all project info
     TModuleInfoEntryVector modules;                          // All generated module information
     TDirProcessingInstructionsMap dirProcessingInstructions; // All loaded processing instructions mapped per path
     TStringVector globalDirExcludeList;                      // Dirs that should never be included in processing regardless of path
     TPlatformDefinitionMap platforms;                        // All supported platforms for this project
+
+    void Clear( void );
+    
+    CProjectInfo( void );
+    CProjectInfo( const CProjectInfo& src );
+    virtual ~CProjectInfo();
 };
-typedef struct SProjectInfo TProjectInfo;
 
 /*---------------------------------------------------------------------------*/
 
@@ -374,26 +389,26 @@ GetXmlDStoreCodec( void );
 GUCEF_PROJECTGEN_PUBLIC_CPP 
 void
 ApplyConfigToProject( const CORE::CDataNode& loadedConfig , 
-                      TProjectInfo& projectInfo           );
+                      CProjectInfo& projectInfo           );
 
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 void
-InitializeModuleInfo( TModuleInfo& moduleInfo );
+InitializeModuleInfo( CModuleInfo& moduleInfo );
 
 
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
-const TModuleInfo*
+const CModuleInfo*
 FindModuleInfoForPlatform( const CModuleInfoEntry& moduleInfoEntry ,
                            const CORE::CString& platform           );
 
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
-TModuleInfo*
+CModuleInfo*
 FindModuleInfoForPlatform( CModuleInfoEntry& moduleInfoEntry ,
                            const CORE::CString& platform     ,
                            bool createNewIfNoneExists        );
@@ -404,7 +419,7 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 const CORE::CString*
 GetModuleName( const CModuleInfoEntry& moduleInfoEntry     ,
                const CORE::CString& targetPlatform         ,
-               const TModuleInfo** moduleInfo = GUCEF_NULL );
+               const CModuleInfo** moduleInfo = GUCEF_NULL );
 
 /*-------------------------------------------------------------------------*/
 
@@ -412,7 +427,7 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 const CORE::CString*
 GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
                const CORE::CString& targetPlatform          ,
-               const TModuleInfo** moduleInfo = GUCEF_NULL  );
+               const CModuleInfo** moduleInfo = GUCEF_NULL  );
                
 /*-------------------------------------------------------------------------*/
 
@@ -424,7 +439,7 @@ GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
 GUCEF_PROJECTGEN_PUBLIC_CPP
 CORE::CString
 GetConsensusModuleName( const CModuleInfoEntry& moduleInfoEntry     ,
-                        const TModuleInfo** moduleInfo = GUCEF_NULL );
+                        const CModuleInfo** moduleInfo = GUCEF_NULL );
 
 /*-------------------------------------------------------------------------*/
 
@@ -458,7 +473,7 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 CORE::CString
 GetModuleNameAlways( const CModuleInfoEntry& moduleInfoEntry ,
                      const CORE::CString& targetPlatform     ,
-                     const TModuleInfo** moduleInfo = NULL   );
+                     const CModuleInfo** moduleInfo = NULL   );
                      
 /*-------------------------------------------------------------------------*/
                      
@@ -496,8 +511,8 @@ MergeStringSetMap( TStringSetMap& targetMap          ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 void
-MergeModuleInfo( TModuleInfo& targetModuleInfo          ,
-                 const TModuleInfo& moduleInfoToMergeIn );
+MergeModuleInfo( CModuleInfo& targetModuleInfo          ,
+                 const CModuleInfo& moduleInfoToMergeIn );
 
 /*-------------------------------------------------------------------------*/
 
@@ -505,7 +520,7 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
 MergeModuleInfo( const CModuleInfoEntry& moduleInfo     ,
                  const CORE::CString& targetPlatform    ,
-                 TModuleInfo& mergedModuleInfo          );
+                 CModuleInfo& mergedModuleInfo          );
 
 /*-------------------------------------------------------------------------*/
 
@@ -529,7 +544,7 @@ MergeAllModuleInfoForPlatform( const TModuleInfoEntryConstPtrSet& allInfo ,
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
-const TModuleInfo*
+const CModuleInfo*
 FindModuleByName( const TModuleInfoEntryPairVector& mergeLinks ,
                   const CORE::CString& moduleName              );
 
@@ -568,7 +583,7 @@ SerializeModuleInfo( const CModuleInfoEntry& moduleInfo  ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
-DeserializeModuleInfo( const TProjectInfo& projectInfo ,  
+DeserializeModuleInfo( const CProjectInfo& projectInfo ,  
                        CModuleInfoEntry& moduleInfo    ,
                        const CORE::CDataNode& rootNode );
 
@@ -576,7 +591,7 @@ DeserializeModuleInfo( const TProjectInfo& projectInfo ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
-DeserializeModuleInfo( const TProjectInfo& projectInfo           ,
+DeserializeModuleInfo( const CProjectInfo& projectInfo           ,
                        TModuleInfoEntryVector& moduleInfoEntries ,
                        const CORE::CString& inputFilepath        );
 
@@ -584,28 +599,28 @@ DeserializeModuleInfo( const TProjectInfo& projectInfo           ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
-SerializeProjectInfo( const TProjectInfo& projectInfo ,
+SerializeProjectInfo( const CProjectInfo& projectInfo ,
                       CORE::CDataNode& rootNodeToBe   );
 
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
-DeserializeProjectInfo( TProjectInfo& projectInfo       ,
+DeserializeProjectInfo( CProjectInfo& projectInfo       ,
                         const CORE::CDataNode& rootNode );
 
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
-SerializeProjectInfo( const TProjectInfo& projectInfo     ,
+SerializeProjectInfo( const CProjectInfo& projectInfo     ,
                       const CORE::CString& outputFilepath );
 
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
-DeserializeProjectInfo( TProjectInfo& projectInfo            ,
+DeserializeProjectInfo( CProjectInfo& projectInfo            ,
                         const CORE::CString& projectInfoPath );
 
 /*-------------------------------------------------------------------------*/
@@ -621,7 +636,7 @@ GetModuleDependencies( const CModuleInfoEntry& moduleInfoEntry ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
-GetModuleDependencies( const TProjectInfo& projectInfo           ,
+GetModuleDependencies( const CProjectInfo& projectInfo           ,
                        const CModuleInfoEntry& moduleInfoEntry   ,
                        const CORE::CString& targetPlatform       ,
                        TModuleInfoEntryConstPtrSet& dependencies ,
@@ -665,10 +680,10 @@ GetModuleInfoWithUniqueModuleNames( const CModuleInfoEntry& moduleInfoEntry ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 const CModuleInfoEntry*
-GetModuleInfoEntry( const TProjectInfo& projectInfo       ,
+GetModuleInfoEntry( const CProjectInfo& projectInfo       ,
                     const CORE::CString& moduleName       ,
                     const CORE::CString& platform         ,
-                    const TModuleInfo** moduleInfo = NULL );
+                    const CModuleInfo** moduleInfo = NULL );
 
 /*-------------------------------------------------------------------------*/
 
@@ -699,7 +714,7 @@ GetAllModuleInfoFilePaths( const CModuleInfoEntry& moduleInfoEntry ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 void
-GetAllModuleInfoFilePaths( const TProjectInfo& projectInfo         ,
+GetAllModuleInfoFilePaths( const CProjectInfo& projectInfo         ,
                            const CModuleInfoEntry& moduleInfoEntry ,
                            const CORE::CString& platform           ,
                            CORE::CString::StringSet& allPaths      ,
@@ -721,7 +736,7 @@ GetAllModuleInfoPaths( const CModuleInfoEntry& moduleInfoEntry ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 void
-GetAllModuleInfoPaths( const TProjectInfo& projectInfo         ,
+GetAllModuleInfoPaths( const CProjectInfo& projectInfo         ,
                        const CModuleInfoEntry& moduleInfoEntry ,
                        const CORE::CString& platform           ,
                        CORE::CString::StringSet& allPaths      ,
@@ -733,7 +748,7 @@ GetAllModuleInfoPaths( const TProjectInfo& projectInfo         ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 CORE::CString
-GetShortestRelativePathFromModuleToProjectRoot( const TProjectInfo& projectInfo         ,
+GetShortestRelativePathFromModuleToProjectRoot( const CProjectInfo& projectInfo         ,
                                                 const CModuleInfoEntry& moduleInfoEntry );
 
 
@@ -741,7 +756,7 @@ GetShortestRelativePathFromModuleToProjectRoot( const TProjectInfo& projectInfo 
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 CORE::CString
-GetShortestRelativePathFromAbsPathToProjectRoot( const TProjectInfo& projectInfo ,
+GetShortestRelativePathFromAbsPathToProjectRoot( const CProjectInfo& projectInfo ,
                                                  const CORE::CString& absPath    );
 
 /*-------------------------------------------------------------------------*/
@@ -750,7 +765,7 @@ GetShortestRelativePathFromAbsPathToProjectRoot( const TProjectInfo& projectInfo
 // names of the platforms in the given platformList
 GUCEF_PROJECTGEN_PUBLIC_CPP
 void
-GetAllPlatformsUsed( const TProjectInfo& projectInfo ,
+GetAllPlatformsUsed( const CProjectInfo& projectInfo ,
                      TStringSet& platformList        );
 
 /*-------------------------------------------------------------------------*/
@@ -758,7 +773,7 @@ GetAllPlatformsUsed( const TProjectInfo& projectInfo ,
 // Collects a list of all unique tag values used
 GUCEF_PROJECTGEN_PUBLIC_CPP
 void
-GetAllTagsUsed( const TProjectInfo& projectInfo ,
+GetAllTagsUsed( const CProjectInfo& projectInfo ,
                 TStringSet& tagsUsed            );
 
 /*-------------------------------------------------------------------------*/
@@ -781,7 +796,7 @@ IsModuleTagged( const CModuleInfoEntry& module       ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 void
-GetTaggedModules( const TProjectInfo& projectInfo            ,
+GetTaggedModules( const CProjectInfo& projectInfo            ,
                   const CORE::CString& tag                   ,
                   TModuleInfoEntryConstPtrSet& taggedModules ,
                   const CORE::CString& platform              );
@@ -790,7 +805,7 @@ GetTaggedModules( const TProjectInfo& projectInfo            ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 CORE::CString
-GetLanguageForModule( const TModuleInfo& moduleInfo );
+GetLanguageForModule( const CModuleInfo& moduleInfo );
                       
 /*-------------------------------------------------------------------------*/
 
@@ -830,7 +845,7 @@ IsModuleTaggedWith( const CModuleInfoEntry& moduleInfo ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 void
-GetExecutables( const TProjectInfo& projectInfo                ,
+GetExecutables( const CProjectInfo& projectInfo                ,
                 TModuleInfoEntryConstPtrSet& executableTargets ,
                 const CORE::CString& platform                  );
 
@@ -842,7 +857,7 @@ GetExecutables( const TProjectInfo& projectInfo                ,
  */
 GUCEF_PROJECTGEN_PUBLIC_CPP
 void
-SplitProjectPerTarget( const TProjectInfo& projectInfo   ,
+SplitProjectPerTarget( const CProjectInfo& projectInfo   ,
                        TProjectTargetInfoMapMap& targets ,
                        bool tagsAsTargets                ,
                        bool collapseRedundantPlatforms   ,
@@ -857,7 +872,7 @@ SplitProjectPerTarget( const TProjectInfo& projectInfo   ,
  */
 GUCEF_PROJECTGEN_PUBLIC_CPP
 void
-SplitProjectPerTarget( const TProjectInfo& projectInfo   ,
+SplitProjectPerTarget( const CProjectInfo& projectInfo   ,
                        TProjectTargetInfoMapMap& targets ,
                        bool tagsAsTargets                ,
                        bool collapseRedundantPlatforms   );

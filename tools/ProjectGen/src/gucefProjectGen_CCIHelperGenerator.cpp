@@ -401,7 +401,7 @@ GenerateGithubActionsWorkflowProjectSection( const CORE::CString& targetName    
 /*-------------------------------------------------------------------------*/
 
 void
-GenerateGithubActionsWorkflowTargetsYml( const TProjectInfo& projectInfo                  ,
+GenerateGithubActionsWorkflowTargetsYml( const CProjectInfo& projectInfo                  ,
                                          const TProjectTargetInfoMapMap& targets          ,
                                          const CORE::CString::StringSet& platformFilter   ,
                                          const CORE::CString& targetsOutputDir            ,
@@ -536,7 +536,7 @@ GenerateGithubActionsWorkflowTargetsYml( const TProjectInfo& projectInfo        
 /*-------------------------------------------------------------------------*/
 
 void
-GenerateFilePathListPerTarget( const TProjectInfo& projectInfo                ,
+GenerateFilePathListPerTarget( const CProjectInfo& projectInfo                ,
                                const TProjectTargetInfoMapMap& targets        ,
                                const CORE::CString::StringSet& platformFilter ,
                                const CORE::CString& targetsOutputDir          )
@@ -606,7 +606,7 @@ GenerateFilePathListPerTarget( const TProjectInfo& projectInfo                ,
 /*-------------------------------------------------------------------------*/
 
 void
-GeneratePathListPerTarget( const TProjectInfo& projectInfo                ,
+GeneratePathListPerTarget( const CProjectInfo& projectInfo                ,
                            const TProjectTargetInfoMapMap& targets        ,
                            const CORE::CString::StringSet& platformFilter ,
                            const CORE::CString targetsOutputDir           )
@@ -676,7 +676,7 @@ GeneratePathListPerTarget( const TProjectInfo& projectInfo                ,
 /*-------------------------------------------------------------------------*/
 
 void
-GenerateGlobPatternPathListPerTarget( const TProjectInfo& projectInfo                ,
+GenerateGlobPatternPathListPerTarget( const CProjectInfo& projectInfo                ,
                                       const TProjectTargetInfoMapMap& targets        ,
                                       const CORE::CString::StringSet& platformFilter ,
                                       const CORE::CString targetsOutputDir           )
@@ -794,7 +794,7 @@ CCIHelperGenerator::~CCIHelperGenerator()
 /*-------------------------------------------------------------------------*/
 
 bool
-CCIHelperGenerator::GenerateProject( TProjectInfo& projectInfo            ,
+CCIHelperGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
                                      const CORE::CString& outputDir       ,
                                      bool addGeneratorCompileTimeToOutput ,
                                      const CORE::CValueList& params       )

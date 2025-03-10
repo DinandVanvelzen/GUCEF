@@ -68,7 +68,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CIProjectPreprocessor
 
     CIProjectPreprocessor& operator=( const CIProjectPreprocessor& src );
 
-    virtual bool ProccessProjects( TProjectInfo& projectInfo            ,
+    virtual bool ProccessProjects( CProjectInfo& projectInfo            ,
                                    const CORE::CString& outputDir       ,
                                    const CORE::CValueList& params       ) = 0;
 };

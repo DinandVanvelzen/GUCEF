@@ -80,7 +80,7 @@ CXmlProjectGenerator::~CXmlProjectGenerator()
 /*-------------------------------------------------------------------------*/
     
 bool
-CXmlProjectGenerator::GenerateProject( TProjectInfo& projectInfo            ,
+CXmlProjectGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
                                        const CORE::CString& outputDir       ,
                                        bool addGeneratorCompileTimeToOutput ,
                                        const CORE::CValueList& params       )

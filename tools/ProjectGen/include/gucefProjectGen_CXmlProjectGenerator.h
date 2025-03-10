@@ -59,10 +59,10 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CXmlProjectGenerator : public CIProjectGenerat
     
     virtual ~CXmlProjectGenerator();
     
-    virtual bool GenerateProject( TProjectInfo& projectInfo            ,
+    virtual bool GenerateProject( const CProjectInfo& projectInfo      ,
                                   const CORE::CString& outputDir       ,
                                   bool addGeneratorCompileTimeToOutput ,
-                                  const CORE::CValueList& params       );
+                                  const CORE::CValueList& params       ) GUCEF_VIRTUAL_OVERRIDE;
                                   
     private:
     
@@ -83,14 +83,3 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CXmlProjectGenerator : public CIProjectGenerat
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_PROJECTGEN_CXMLPROJECTGENERATOR_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 27-11-2004 :
-        - Dinand: Initial implementation
-
----------------------------------------------------------------------------*/

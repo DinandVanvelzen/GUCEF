@@ -61,10 +61,10 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CPremake4ProjectGenerator : public CIProjectGe
 
     virtual ~CPremake4ProjectGenerator();
 
-    virtual bool GenerateProject( TProjectInfo& projectInfo            ,
+    virtual bool GenerateProject( const CProjectInfo& projectInfo      ,
                                   const CORE::CString& outputDir       ,
                                   bool addGeneratorCompileTimeToOutput ,
-                                  const CORE::CValueList& params       );
+                                  const CORE::CValueList& params       ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
@@ -83,14 +83,3 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CPremake4ProjectGenerator : public CIProjectGe
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_PROJECTGEN_CPREMAKE4PROJECTGENERATOR_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 27-11-2004 :
-        - Dinand: Initial implementation
-
----------------------------------------------------------------------------*/

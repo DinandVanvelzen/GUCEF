@@ -364,7 +364,7 @@ GUCEF_OSMAIN_BEGIN
         generatorList.push_back( "xml" );
     }
 
-    TProjectInfo projectInfo;
+    CProjectInfo projectInfo;
     ApplyConfigToProject( loadedConfig, projectInfo );
 
     // Set any global dir excludes that where passed as cmd parameters

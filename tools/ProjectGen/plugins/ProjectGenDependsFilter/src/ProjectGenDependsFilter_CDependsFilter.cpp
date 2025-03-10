@@ -211,7 +211,7 @@ CDependsFilter::GetListOfModules( const CORE::CString::StringVector& dependsCsvF
 /*--------------------------------------------------------------------------*/
     
 bool
-CDependsFilter::ProccessProjects( TProjectInfo& projectInfo      ,
+CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
                                   const CORE::CString& outputDir ,
                                   const CORE::CValueList& params )
 {GUCEF_TRACE;

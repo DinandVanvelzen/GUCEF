@@ -79,7 +79,7 @@ static const char* batchfileHeader =
 
 CORE::CString
 GenerateContentForArduinoCLIWindowsSymlinkBatchfile( const TModuleInfoEntryPairVector& mergeLinks ,
-                                                     const TModuleInfo& moduleInfo                ,
+                                                     const CModuleInfo& moduleInfo                ,
                                                      const CORE::CString& moduleRoot              ,
                                                      bool addGeneratorCompileTimeToOutput         ,
                                                      const CORE::CString& outputDir               )
@@ -204,7 +204,7 @@ CreateArduinoCLIOutputFolderStructure( const CORE::CString& outputDir  ,
 
 bool
 IsArduinoCompilationTarget( const CModuleInfoEntry& moduleInfoEntry   ,
-                            const TModuleInfo& moduleInfo             ,
+                            const CModuleInfo& moduleInfo             ,
                             bool onlyConsiderSpecificTags             ,
                             const CORE::CString::StringSet& validTags )
 {GUCEF_TRACE;
@@ -212,7 +212,7 @@ IsArduinoCompilationTarget( const CModuleInfoEntry& moduleInfoEntry   ,
     if ( !onlyConsiderSpecificTags ||
             ( onlyConsiderSpecificTags && IsModuleTagged( moduleInfoEntry, validTags, ArduinoPlatformName ) ) )
     {
-        if ( !moduleInfo.ignoreModule                                          &&
+        if ( ( !moduleInfo.hasIgnoreModule || ( moduleInfo.hasIgnoreModule && !moduleInfo.ignoreModule ) )  &&
             ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleInfo.moduleType ) &&
             ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleInfo.moduleType )   &&
             ( MODULETYPE_REFERENCE_LIBRARY != moduleInfo.moduleType )         &&
@@ -248,7 +248,7 @@ CreateArduinoCLIWindowsSymlinkBatchfiles( const TModuleInfoEntryPairVector& merg
     while ( i != mergeLinks.end() )
     {
         const CModuleInfoEntry* originalModule = (*i).first;
-        const TModuleInfo* mergedModule = (*i).second;
+        const CModuleInfo* mergedModule = (*i).second;
 
         if ( IsArduinoCompilationTarget( *originalModule          ,
                                          *mergedModule            ,
@@ -297,7 +297,7 @@ CreateArduinoCLIWindowsSymlinkBatchfiles( const TModuleInfoEntryPairVector& merg
     while ( i != mergeLinks.end() )
     {
         const CModuleInfoEntry* originalModule = (*i).first;
-        const TModuleInfo* mergedModule = (*i).second;
+        const CModuleInfo* mergedModule = (*i).second;
 
         if ( IsArduinoCompilationTarget( *originalModule          ,
                                          *mergedModule            ,
@@ -348,7 +348,7 @@ CreateArduinoCLILibraryPropertiesFiles( const TModuleInfoEntryPairVector& mergeL
     while ( i != mergeLinks.end() )
     {
         const CModuleInfoEntry* originalModule = (*i).first;
-        const TModuleInfo* mergedModule = (*i).second;
+        const CModuleInfo* mergedModule = (*i).second;
 
         if ( IsArduinoCompilationTarget( *originalModule          ,
                                          *mergedModule            ,
@@ -428,7 +428,7 @@ CArduinoCLIGenerator::~CArduinoCLIGenerator()
 /*-------------------------------------------------------------------------*/
 
 bool
-CArduinoCLIGenerator::GenerateProject( TProjectInfo& projectInfo            ,
+CArduinoCLIGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
                                        const CORE::CString& outputDir       ,
                                        bool addGeneratorCompileTimeToOutput ,
                                        const CORE::CValueList& params       )

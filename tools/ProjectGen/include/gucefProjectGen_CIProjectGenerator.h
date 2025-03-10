@@ -68,7 +68,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CIProjectGenerator
     
     CIProjectGenerator& operator=( const CIProjectGenerator& src );
     
-    virtual bool GenerateProject( TProjectInfo& projectInfo            ,
+    virtual bool GenerateProject( const CProjectInfo& projectInfo      ,
                                   const CORE::CString& outputDir       ,
                                   bool addGeneratorCompileTimeToOutput ,
                                   const CORE::CValueList& params       ) = 0;

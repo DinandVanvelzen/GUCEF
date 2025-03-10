@@ -74,7 +74,7 @@ class GUCEF_HIDDEN CDependsFilter : public PROJECTGEN::CIProjectPreprocessor
     
     CDependsFilter& operator=( const CDependsFilter& src );
     
-    virtual bool ProccessProjects( TProjectInfo& projectInfo      ,
+    virtual bool ProccessProjects( CProjectInfo& projectInfo      ,
                                    const CORE::CString& outputDir ,
                                    const CORE::CValueList& params );
 

@@ -66,7 +66,7 @@ namespace PROJECTGEN {
 //-------------------------------------------------------------------------*/
 
 static const CORE::CString AllPlatforms = "all";
-static TStringMap cmakeAdditionTemplates;
+static CORE::CStringMap cmakeAdditionTemplates;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -251,7 +251,7 @@ GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntry& moduleInfoEntry ,
                                        const CORE::CString& platformName       )
 {GUCEF_TRACE;
 
-    const TModuleInfo* moduleInfo = NULL;
+    const CModuleInfo* moduleInfo = NULL;
     const CORE::CString* moduleName = GetModuleName( moduleInfoEntry, platformName, &moduleInfo );
 
     if ( ( NULL != moduleName ) && ( NULL != moduleInfo ) )
@@ -260,7 +260,7 @@ GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntry& moduleInfoEntry ,
         // We can make this more advanced later if needed but for now differentiating based on module
         // type provides enough flexibility since you can do the rest in CMake utility functions
         CORE::CString moduleTypeSttr = ModuleTypeToString( GetModuleType( moduleInfoEntry, platformName ) ).Lowercase();
-        TStringMap::iterator i = cmakeAdditionTemplates.find( moduleTypeSttr );
+        CORE::CStringMap::iterator i = cmakeAdditionTemplates.find( moduleTypeSttr );
         if ( i != cmakeAdditionTemplates.end() )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Processing template with name \"" + moduleTypeSttr + "\" for module with name " + *moduleName + " using platform " + platformName );
@@ -587,7 +587,7 @@ GenerateCMakeListsFilePlatformFilesSection( const CModuleInfoEntry& moduleInfoEn
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeModuleIncludesSection( const TModuleInfo& moduleInfo ,
+GenerateCMakeModuleIncludesSection( const CModuleInfo& moduleInfo ,
                                     const CORE::CString& rootDir  )
 {GUCEF_TRACE;
     
@@ -734,7 +734,7 @@ LoadCMakeListsAdditionFileFromDisk( const CModuleInfoEntry& moduleInfoEntry )
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeModuleDescriptionLine( const TModuleInfo& moduleInfo     ,
+GenerateCMakeModuleDescriptionLine( const CModuleInfo& moduleInfo     ,
                                     const CORE::CString& moduleName   ,
                                     const CORE::CString& platformName )
 {GUCEF_TRACE;
@@ -774,8 +774,8 @@ GenerateCMakeModuleDescriptionLine( const TModuleInfo& moduleInfo     ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeModuleDependenciesLine( const TProjectInfo& projectInfo   ,
-                                     const TModuleInfo& moduleInfo     ,
+GenerateCMakeModuleDependenciesLine( const CProjectInfo& projectInfo   ,
+                                     const CModuleInfo& moduleInfo     ,
                                      const CORE::CString& moduleName   ,
                                      const CORE::CString& platformName )
 {GUCEF_TRACE;
@@ -856,8 +856,8 @@ ConcatPaths( const TStringSet& pathList )
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeModuleLinkerDirsLine( const TProjectInfo& projectInfo ,
-                                   const TModuleInfo& moduleInfo   ,
+GenerateCMakeModuleLinkerDirsLine( const CProjectInfo& projectInfo ,
+                                   const CModuleInfo& moduleInfo   ,
                                    const CORE::CString& moduleName )
 {GUCEF_TRACE;
 
@@ -892,7 +892,7 @@ GenerateCMakeModuleLinkerDirsLine( const TProjectInfo& projectInfo ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeModuleLinkerDirsLines( const TProjectInfo& projectInfo         ,
+GenerateCMakeModuleLinkerDirsLines( const CProjectInfo& projectInfo         ,
                                     const CModuleInfoEntry& moduleInfoEntry ,
                                     const CORE::CString& moduleName         )
 {GUCEF_TRACE;
@@ -904,7 +904,7 @@ GenerateCMakeModuleLinkerDirsLines( const TProjectInfo& projectInfo         ,
     TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
     if ( i != moduleInfoEntry.modulesPerPlatform.end() )
     {
-        const TModuleInfo& moduleInfo = (*i).second;
+        const CModuleInfo& moduleInfo = (*i).second;
         sectionContent = GenerateCMakeModuleLinkerDirsLine( projectInfo, moduleInfo, moduleName );
     }
 
@@ -915,7 +915,7 @@ GenerateCMakeModuleLinkerDirsLines( const TProjectInfo& projectInfo         ,
         const CORE::CString& platformName = (*i).first;
         if ( platformName != AllPlatforms )
         {
-            const TModuleInfo& moduleInfo = (*i).second;
+            const CModuleInfo& moduleInfo = (*i).second;
             CORE::CString libDirsLine = GenerateCMakeModuleLinkerDirsLine( projectInfo, moduleInfo, moduleName );
             if ( !libDirsLine.IsNULLOrEmpty() )
             {
@@ -934,8 +934,8 @@ GenerateCMakeModuleLinkerDirsLines( const TProjectInfo& projectInfo         ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeModuleLinkerLine( const TProjectInfo& projectInfo   ,
-                               const TModuleInfo& moduleInfo     ,
+GenerateCMakeModuleLinkerLine( const CProjectInfo& projectInfo   ,
+                               const CModuleInfo& moduleInfo     ,
                                const CORE::CString& moduleName   ,
                                const CORE::CString& platformName )
 {GUCEF_TRACE;
@@ -984,7 +984,7 @@ GenerateCMakeModuleLinkerLine( const TProjectInfo& projectInfo   ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeModuleDefinesLine( const TModuleInfo& moduleInfo     ,
+GenerateCMakeModuleDefinesLine( const CModuleInfo& moduleInfo     ,
                                 const CORE::CString& moduleName   ,
                                 const CORE::CString& platformName )
 {GUCEF_TRACE;
@@ -1021,7 +1021,7 @@ GenerateCMakeModuleDefinesLine( const TModuleInfo& moduleInfo     ,
 
 CORE::CString
 GenerateCMakeModuleVersionLine( const CModuleInfoEntry& moduleInfoEntry ,
-                                const TModuleInfo& moduleInfo           ,
+                                const CModuleInfo& moduleInfo           ,
                                 const CORE::CString& moduleName         ,
                                 const CORE::CString& platformName       )
 {GUCEF_TRACE;
@@ -1131,7 +1131,7 @@ GenerateCMakeModuleDescriptionSection( const CModuleInfoEntry& moduleInfoEntry  
     while ( n != moduleTypeMap.end() )
     {
         const CORE::CString& platformName = (*n).first;
-        const TModuleInfo* moduleInfo = (*n).second;
+        const CModuleInfo* moduleInfo = (*n).second;
 
         if ( platformName != AllPlatforms )
         {
@@ -1151,7 +1151,7 @@ GenerateCMakeModuleDescriptionSection( const CModuleInfoEntry& moduleInfoEntry  
     n = moduleTypeMap.find( AllPlatforms );
     if ( n != moduleTypeMap.end() )
     {
-        const TModuleInfo* moduleInfo = (*n).second;
+        const CModuleInfo* moduleInfo = (*n).second;
 
         if ( platformAdded )
         {
@@ -1192,7 +1192,7 @@ GenerateCMakeModuleDescriptionSection( const CModuleInfoEntry& moduleInfoEntry  
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeListsModuleInfoSection( const TProjectInfo& projectInfo         ,
+GenerateCMakeListsModuleInfoSection( const CProjectInfo& projectInfo         ,
                                      const CModuleInfoEntry& moduleInfoEntry )
 {GUCEF_TRACE;
 
@@ -1214,7 +1214,7 @@ GenerateCMakeListsModuleInfoSection( const TProjectInfo& projectInfo         ,
     if ( i != moduleInfoEntry.modulesPerPlatform.end() )
     {
         const CORE::CString& platformName = (*i).first;
-        const TModuleInfo& moduleInfo = (*i).second;
+        const CModuleInfo& moduleInfo = (*i).second;
 
         // Generate the different instructions for all platforms (if any exist)
         CORE::CString moduleDependenciesStr = GenerateCMakeModuleDependenciesLine( projectInfo, moduleInfo, consensusName, platformName );
@@ -1240,7 +1240,7 @@ GenerateCMakeListsModuleInfoSection( const TProjectInfo& projectInfo         ,
 
         if ( platformName != AllPlatforms )
         {
-            const TModuleInfo& moduleInfo = (*i).second;
+            const CModuleInfo& moduleInfo = (*i).second;
 
             // Generate the different instructions for this platform (if any exist)
             CORE::CString moduleDependenciesStr = GenerateCMakeModuleDependenciesLine( projectInfo, moduleInfo, consensusName, platformName );
@@ -1283,7 +1283,7 @@ GenerateCMakeListsModuleInfoSection( const TProjectInfo& projectInfo         ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeListsFileContent( const TProjectInfo& projectInfo         ,
+GenerateCMakeListsFileContent( const CProjectInfo& projectInfo         ,
                                const CModuleInfoEntry& moduleInfoEntry ,
                                bool treatTagsAsOptions                 ,
                                bool addCompileDate = false             )
@@ -1351,7 +1351,7 @@ GenerateCMakeListsFileContent( const TProjectInfo& projectInfo         ,
 /*---------------------------------------------------------------------------*/
 
 void
-WriteCMakeListsFilesToDisk( const TProjectInfo& projectInfo  ,
+WriteCMakeListsFilesToDisk( const CProjectInfo& projectInfo  ,
                             const CORE::CString& logFilename ,
                             bool treatTagsAsOptions          ,
                             bool addCompileDate = false      )
@@ -1396,7 +1396,7 @@ WriteCMakeListsFilesToDisk( const TProjectInfo& projectInfo  ,
 /*--------------------------------------------------------------------------*/
 
 void
-WriteCMakeOptionsListToDisk( const TProjectInfo& projectInfo       ,
+WriteCMakeOptionsListToDisk( const CProjectInfo& projectInfo       ,
                              const CORE::CString& outputDir        ,
                              const CORE::CString& targetsOutputDir ,
                              bool addCompileDate                   ,
@@ -1460,7 +1460,7 @@ WriteCMakeOptionsListToDisk( const TProjectInfo& projectInfo       ,
 /*--------------------------------------------------------------------------*/
 
 void
-WriteCMakeTargetsToDisk( const TProjectInfo& projectInfo              ,
+WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
                          const CORE::CString& projectName             ,
                          const CORE::CString& targetName              ,
                          const TProjectTargetInfoMap& targetPlatforms ,
@@ -1574,7 +1574,7 @@ WriteCMakeTargetsToDisk( const TProjectInfo& projectInfo              ,
         // on eachother. It all still works because the ModuleDirs file will actually pull in the directories containing the modules which can actually
         // live in a different part of the directory tree which is perfectly legal per CMake.
             
-        TStringMap::iterator i = cmakeAdditionTemplates.find( "cmakelists" );
+        CORE::CStringMap::iterator i = cmakeAdditionTemplates.find( "cmakelists" );
         if ( i != cmakeAdditionTemplates.end() )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Processing CMakeLists.cmt template for target \"" + projectName + "\"" );
@@ -1637,7 +1637,7 @@ WriteCMakeTargetsToDisk( const TProjectInfo& projectInfo              ,
 /*--------------------------------------------------------------------------*/
 
 void
-WriteCMakeTargetsToDisk( const TProjectInfo& projectInfo         ,
+WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo         ,
                          const TProjectTargetInfoMapMap& targets ,
                          const CORE::CString& outputDir          ,
                          const CORE::CString& targetsOutputDir   ,
@@ -1697,7 +1697,7 @@ CCMakeProjectGenerator::~CCMakeProjectGenerator()
 /*-------------------------------------------------------------------------*/
 
 bool
-CCMakeProjectGenerator::GenerateProject( TProjectInfo& projectInfo            ,
+CCMakeProjectGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
                                          const CORE::CString& outputDir       ,
                                          bool addGeneratorCompileTimeToOutput ,
                                          const CORE::CValueList& params       )

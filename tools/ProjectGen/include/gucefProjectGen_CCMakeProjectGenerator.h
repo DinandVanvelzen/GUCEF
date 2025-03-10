@@ -61,10 +61,10 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CCMakeProjectGenerator : public CIProjectGener
     
     virtual ~CCMakeProjectGenerator();
     
-    virtual bool GenerateProject( TProjectInfo& projectInfo            ,
+    virtual bool GenerateProject( const CProjectInfo& projectInfo      ,
                                   const CORE::CString& outputDir       ,
                                   bool addGeneratorCompileTimeToOutput ,
-                                  const CORE::CValueList& params       );
+                                  const CORE::CValueList& params       ) GUCEF_VIRTUAL_OVERRIDE;
                                   
     private:
     

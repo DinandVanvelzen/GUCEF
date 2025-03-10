@@ -179,7 +179,7 @@ CDirPreprocessor::StudioConfigurationTypeToModuleType( const CORE::CString& conf
 
 void
 CDirPreprocessor::ParseGlobalVars( const CORE::CDataNode& projectData ,
-                                   TStringMap& globals                )
+                                   CORE::CStringMap& globals          )
 {GUCEF_TRACE;
 
     CORE::CDataNode::TConstDataNodeSet nodes = projectData.FindChildrenOfType( "PropertyGroup", true );
@@ -231,13 +231,13 @@ CDirPreprocessor::ParseVisualStudioVariables( const CORE::CString& testStr ,
 
 CORE::CString
 CDirPreprocessor::ReplaceVisualStudioVariables( const CORE::CString& testStr          ,
-                                                const TStringMap& globals             ,
+                                                const CORE::CStringMap& globals       ,
                                                 bool replaceRemainderWithEnvVarLookup )
 {GUCEF_TRACE;
 
     CORE::CString resultStr = testStr;
     
-    TStringMap::const_iterator i = globals.begin();
+    CORE::CStringMap::const_iterator i = globals.begin();
     while ( i != globals.end() )
     {
         CORE::CString varStr = "$(" + (*i).first + ')';        
@@ -309,12 +309,12 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
         PROJECTGEN::CModuleInfoEntry moduleEntry;
         moduleEntry.rootDir = path;
 
-        PROJECTGEN::TModuleInfo& moduleInfo = moduleEntry.modulesPerPlatform[ "all" ];
+        PROJECTGEN::CModuleInfo& moduleInfo = moduleEntry.modulesPerPlatform[ "all" ];
         InitializeModuleInfo( moduleInfo );        
         
         // First parse the globals so we can resolve variables in other sections
         // The $(ProjectName) var is actually derived from the filename so we handle it seperatly
-        TStringMap globals;
+        CORE::CStringMap globals;
         globals[ "ProjectName" ] = ExtractFilename( (*i) );
         ParseGlobalVars( rootNode, globals );
         

@@ -91,10 +91,10 @@ class GUCEF_HIDDEN CDirPreprocessor : public PROJECTGEN::CIDirPreprocessor
     static PROJECTGEN::TModuleType StudioConfigurationTypeToModuleType( const CORE::CString& configType );
 
     static void ParseGlobalVars( const CORE::CDataNode& projectData ,
-                                 TStringMap& globals                );
+                                 CORE::CStringMap& globals          );
 
     static CORE::CString ReplaceVisualStudioVariables( const CORE::CString& path             ,
-                                                       const TStringMap& globals             ,
+                                                       const CORE::CStringMap& globals       ,
                                                        bool replaceRemainderWithEnvVarLookup );
 
     static void ParseVisualStudioVariables( const CORE::CString& testStr ,

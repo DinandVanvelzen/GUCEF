@@ -65,7 +65,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CDirCrawlingProjectInfoGatherer : public CIPro
     virtual ~CDirCrawlingProjectInfoGatherer();
     
     virtual bool GatherInfo( const TStringVector& rootDirs  ,
-                             TProjectInfo& projectInfo      ,
+                             CProjectInfo& projectInfo      ,
                              const CORE::CValueList& params );
                               
     private:
@@ -86,15 +86,4 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CDirCrawlingProjectInfoGatherer : public CIPro
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_PROJECTGEN_CDIRCRAWLINGPROJECTINFOGATHERER_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 27-11-2004 :
-        - Dinand: Initial implementation
-
----------------------------------------------------------------------------*/
 
