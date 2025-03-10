@@ -7,7 +7,7 @@
       <ITEM NAME="bytestream.h" TYPE="FILE" />
       <ITEM NAME="bytestream.cc" TYPE="FILE" />
       <ITEM NAME="callback.h" TYPE="FILE" />
-      <ITEM NAME="casts.cc" TYPE="FILE" />
+      <ITEM NAME="casts.h" TYPE="FILE" />
       <ITEM NAME="common.h" TYPE="FILE" />
       <ITEM NAME="common.cc" TYPE="FILE" />	  
       <ITEM NAME="hash.h" TYPE="FILE" />
@@ -19,7 +19,7 @@
 	  <ITEM NAME="mathutil.h" TYPE="FILE" />
 	  <ITEM NAME="mutex.h" TYPE="FILE" />
 	  <ITEM NAME="once.h" TYPE="FILE" />
-	  <ITEM NAME="platform_macro.h" TYPE="FILE" />
+	  <ITEM NAME="platform_macros.h" TYPE="FILE" />
 	  <ITEM NAME="port.h" TYPE="FILE" />
 	  <ITEM NAME="protobuf_time.h" TYPE="FILE" />
 	  <ITEM NAME="protobuf_time.h" TYPE="FILE" />

@@ -15,22 +15,38 @@ set( HEADER_FILES
   google/protobuf/any.h
   google/protobuf/any.pb.h
   google/protobuf/api.pb.h
+  google/protobuf/arena.h
+  google/protobuf/arenastring.h
   google/protobuf/descriptor.h
+  google/protobuf/descriptor.pb.h
   google/protobuf/descriptor_database.h
   google/protobuf/duration.pb.h
   google/protobuf/dynamic_message.h
   google/protobuf/empty.pb.h
+  google/protobuf/extension_set.h
   google/protobuf/field_access_listener.h
   google/protobuf/field_mask.pb.h
   google/protobuf/generated_enum_reflection.h
+  google/protobuf/generated_enum_util.h
   google/protobuf/generated_message_bases.h
   google/protobuf/generated_message_reflection.h
+  google/protobuf/generated_message_util.h
+  google/protobuf/implicit_weak_message.h
+  google/protobuf/inlined_string_field.h
+  google/protobuf/map.h
+  google/protobuf/map_entry_lite.h
   google/protobuf/map_field.h
   google/protobuf/map_field_inl.h
+  google/protobuf/map_field_lite.h
   google/protobuf/message.h
+  google/protobuf/message_lite.h
+  google/protobuf/metadata_lite.h
+  google/protobuf/parse_context.h
   google/protobuf/reflection.h
   google/protobuf/reflection_internal.h
   google/protobuf/reflection_ops.h
+  google/protobuf/repeated_field.h
+  google/protobuf/repeated_ptr_field.h
   google/protobuf/service.h
   google/protobuf/source_context.pb.h
   google/protobuf/struct.pb.h
@@ -39,20 +55,55 @@ set( HEADER_FILES
   google/protobuf/type.pb.h
   google/protobuf/unknown_field_set.h
   google/protobuf/wire_format.h
+  google/protobuf/wire_format_lite.h
   google/protobuf/wrappers.pb.h
+  google/protobuf/compiler/code_generator.h
   google/protobuf/compiler/importer.h
   google/protobuf/compiler/parser.h
+  google/protobuf/compiler/plugin.h
+  google/protobuf/compiler/plugin.pb.h
+  google/protobuf/io/coded_stream.h
   google/protobuf/io/gzip_stream.h
+  google/protobuf/io/package_info.h
   google/protobuf/io/printer.h
+  google/protobuf/io/strtod.h
   google/protobuf/io/tokenizer.h
+  google/protobuf/io/zero_copy_stream.h
+  google/protobuf/io/zero_copy_stream_impl.h
+  google/protobuf/io/zero_copy_stream_impl_lite.h
+  google/protobuf/stubs/bytestream.h
+  google/protobuf/stubs/callback.h
+  google/protobuf/stubs/casts.h
+  google/protobuf/stubs/common.h
+  google/protobuf/stubs/hash.h
+  google/protobuf/stubs/int128.h
+  google/protobuf/stubs/logging.h
+  google/protobuf/stubs/macros.h
+  google/protobuf/stubs/map_util.h
+  google/protobuf/stubs/mathutil.h
+  google/protobuf/stubs/mutex.h
+  google/protobuf/stubs/once.h
+  google/protobuf/stubs/platform_macros.h
+  google/protobuf/stubs/port.h
+  google/protobuf/stubs/protobuf_time.h
+  google/protobuf/stubs/status.h
+  google/protobuf/stubs/status_macros.h
+  google/protobuf/stubs/statusor.h
+  google/protobuf/stubs/stl_util.h
+  google/protobuf/stubs/stringpiece.h
+  google/protobuf/stubs/stringprintf.h
+  google/protobuf/stubs/strutil.h
   google/protobuf/stubs/substitute.h
+  google/protobuf/stubs/template_util.h
   google/protobuf/util/delimited_message_util.h
   google/protobuf/util/field_comparator.h
   google/protobuf/util/field_mask_util.h
   google/protobuf/util/json_util.h
   google/protobuf/util/message_differencer.h
   google/protobuf/util/time_util.h
+  google/protobuf/util/type_resolver.h
   google/protobuf/util/type_resolver_util.h
+  google/protobuf/util/internal/constants.h
   google/protobuf/util/internal/datapiece.h
   google/protobuf/util/internal/default_value_objectwriter.h
   google/protobuf/util/internal/error_listener.h
@@ -60,10 +111,14 @@ set( HEADER_FILES
   google/protobuf/util/internal/json_escaping.h
   google/protobuf/util/internal/json_objectwriter.h
   google/protobuf/util/internal/json_stream_parser.h
+  google/protobuf/util/internal/location_tracker.h
+  google/protobuf/util/internal/object_location_tracker.h
+  google/protobuf/util/internal/object_source.h
   google/protobuf/util/internal/object_writer.h
   google/protobuf/util/internal/proto_writer.h
   google/protobuf/util/internal/protostream_objectsource.h
   google/protobuf/util/internal/protostream_objectwriter.h
+  google/protobuf/util/internal/structured_objectwriter.h
   google/protobuf/util/internal/type_info.h
   google/protobuf/util/internal/utility.h
 )
@@ -71,20 +126,35 @@ set( HEADER_FILES
 set( SOURCE_FILES 
   google/protobuf/any.cc
   google/protobuf/any.pb.cc
+  google/protobuf/any_lite.cc
   google/protobuf/api.pb.cc
+  google/protobuf/arena.cc
+  google/protobuf/arenastring.cc
   google/protobuf/descriptor.cc
+  google/protobuf/descriptor.pb.cc
   google/protobuf/descriptor_database.cc
   google/protobuf/duration.pb.cc
   google/protobuf/dynamic_message.cc
   google/protobuf/empty.pb.cc
+  google/protobuf/extension_set.cc
   google/protobuf/extension_set_heavy.cc
   google/protobuf/field_mask.pb.cc
+  google/protobuf/generated_enum_util.cc
   google/protobuf/generated_message_bases.cc
   google/protobuf/generated_message_reflection.cc
   google/protobuf/generated_message_tctable_full.cc
+  google/protobuf/generated_message_tctable_lite.cc
+  google/protobuf/generated_message_util.cc
+  google/protobuf/implicit_weak_message.cc
+  google/protobuf/inlined_string_field.cc
+  google/protobuf/map.cc
   google/protobuf/map_field.cc
   google/protobuf/message.cc
+  google/protobuf/message_lite.cc
+  google/protobuf/parse_context.cc
   google/protobuf/reflection_ops.cc
+  google/protobuf/repeated_field.cc
+  google/protobuf/repeated_ptr_field.cc
   google/protobuf/service.cc
   google/protobuf/source_context.pb.cc
   google/protobuf/struct.pb.cc
@@ -93,13 +163,32 @@ set( SOURCE_FILES
   google/protobuf/type.pb.cc
   google/protobuf/unknown_field_set.cc
   google/protobuf/wire_format.cc
+  google/protobuf/wire_format_lite.cc
   google/protobuf/wrappers.pb.cc
+  google/protobuf/compiler/code_generator.cc
   google/protobuf/compiler/importer.cc
   google/protobuf/compiler/parser.cc
+  google/protobuf/compiler/plugin.cc
+  google/protobuf/compiler/plugin.pb.cc
+  google/protobuf/io/coded_stream.cc
   google/protobuf/io/gzip_stream.cc
   google/protobuf/io/printer.cc
+  google/protobuf/io/strtod.cc
   google/protobuf/io/tokenizer.cc
+  google/protobuf/io/zero_copy_stream.cc
+  google/protobuf/io/zero_copy_stream_impl.cc
+  google/protobuf/io/zero_copy_stream_impl_lite.cc
+  google/protobuf/stubs/bytestream.cc
+  google/protobuf/stubs/common.cc
+  google/protobuf/stubs/int128.cc
+  google/protobuf/stubs/status.cc
+  google/protobuf/stubs/statusor.cc
+  google/protobuf/stubs/stringpiece.cc
+  google/protobuf/stubs/stringprintf.cc
+  google/protobuf/stubs/structurally_valid.cc
+  google/protobuf/stubs/strutil.cc
   google/protobuf/stubs/substitute.cc
+  google/protobuf/stubs/time.cc
   google/protobuf/util/delimited_message_util.cc
   google/protobuf/util/field_comparator.cc
   google/protobuf/util/field_mask_util.cc
@@ -129,22 +218,38 @@ if (ANDROID)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -153,20 +258,55 @@ if (ANDROID)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -174,10 +314,14 @@ if (ANDROID)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -188,20 +332,35 @@ if (ANDROID)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -210,13 +369,32 @@ if (ANDROID)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -247,22 +425,38 @@ elseif (ARDUINO)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -271,20 +465,55 @@ elseif (ARDUINO)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -292,10 +521,14 @@ elseif (ARDUINO)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -306,20 +539,35 @@ elseif (ARDUINO)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -328,13 +576,32 @@ elseif (ARDUINO)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -365,22 +632,38 @@ elseif (EMSCRIPTEN)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -389,20 +672,55 @@ elseif (EMSCRIPTEN)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -410,10 +728,14 @@ elseif (EMSCRIPTEN)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -424,20 +746,35 @@ elseif (EMSCRIPTEN)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -446,13 +783,32 @@ elseif (EMSCRIPTEN)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -483,22 +839,38 @@ elseif (GLX)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -507,20 +879,55 @@ elseif (GLX)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -528,10 +935,14 @@ elseif (GLX)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -542,20 +953,35 @@ elseif (GLX)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -564,13 +990,32 @@ elseif (GLX)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -601,22 +1046,38 @@ elseif (GTK)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -625,20 +1086,55 @@ elseif (GTK)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -646,10 +1142,14 @@ elseif (GTK)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -660,20 +1160,35 @@ elseif (GTK)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -682,13 +1197,32 @@ elseif (GTK)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -719,22 +1253,38 @@ elseif (IOS)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -743,20 +1293,55 @@ elseif (IOS)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -764,10 +1349,14 @@ elseif (IOS)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -778,20 +1367,35 @@ elseif (IOS)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -800,13 +1404,32 @@ elseif (IOS)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -837,22 +1460,38 @@ elseif (LINUX32)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -861,20 +1500,55 @@ elseif (LINUX32)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -882,10 +1556,14 @@ elseif (LINUX32)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -896,20 +1574,35 @@ elseif (LINUX32)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -918,13 +1611,32 @@ elseif (LINUX32)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -955,22 +1667,38 @@ elseif (LINUX64)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -979,20 +1707,55 @@ elseif (LINUX64)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -1000,10 +1763,14 @@ elseif (LINUX64)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -1014,20 +1781,35 @@ elseif (LINUX64)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -1036,13 +1818,32 @@ elseif (LINUX64)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -1073,22 +1874,38 @@ elseif (NACL)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -1097,20 +1914,55 @@ elseif (NACL)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -1118,10 +1970,14 @@ elseif (NACL)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -1132,20 +1988,35 @@ elseif (NACL)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -1154,13 +2025,32 @@ elseif (NACL)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -1191,22 +2081,38 @@ elseif (OSX)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -1215,20 +2121,55 @@ elseif (OSX)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -1236,10 +2177,14 @@ elseif (OSX)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -1250,20 +2195,35 @@ elseif (OSX)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -1272,13 +2232,32 @@ elseif (OSX)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -1309,22 +2288,38 @@ elseif (POSIX)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -1333,20 +2328,55 @@ elseif (POSIX)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -1354,10 +2384,14 @@ elseif (POSIX)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -1368,20 +2402,35 @@ elseif (POSIX)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -1390,13 +2439,32 @@ elseif (POSIX)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -1427,22 +2495,38 @@ elseif (SDL)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -1451,20 +2535,55 @@ elseif (SDL)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -1472,10 +2591,14 @@ elseif (SDL)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -1486,20 +2609,35 @@ elseif (SDL)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -1508,13 +2646,32 @@ elseif (SDL)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -1545,22 +2702,38 @@ elseif (SYMBIAN)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -1569,20 +2742,55 @@ elseif (SYMBIAN)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -1590,10 +2798,14 @@ elseif (SYMBIAN)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -1604,20 +2816,35 @@ elseif (SYMBIAN)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -1626,13 +2853,32 @@ elseif (SYMBIAN)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -1663,22 +2909,38 @@ elseif (UNIX)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -1687,20 +2949,55 @@ elseif (UNIX)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -1708,10 +3005,14 @@ elseif (UNIX)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -1722,20 +3023,35 @@ elseif (UNIX)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -1744,13 +3060,32 @@ elseif (UNIX)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -1781,22 +3116,38 @@ elseif (WIN32)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -1805,20 +3156,56 @@ elseif (WIN32)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/io_win32.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -1826,10 +3213,14 @@ elseif (WIN32)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -1840,20 +3231,35 @@ elseif (WIN32)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -1862,13 +3268,33 @@ elseif (WIN32)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
+    google/protobuf/io/io_win32.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -1899,22 +3325,38 @@ elseif (WIN64)
     google/protobuf/any.h
     google/protobuf/any.pb.h
     google/protobuf/api.pb.h
+    google/protobuf/arena.h
+    google/protobuf/arenastring.h
     google/protobuf/descriptor.h
+    google/protobuf/descriptor.pb.h
     google/protobuf/descriptor_database.h
     google/protobuf/duration.pb.h
     google/protobuf/dynamic_message.h
     google/protobuf/empty.pb.h
+    google/protobuf/extension_set.h
     google/protobuf/field_access_listener.h
     google/protobuf/field_mask.pb.h
     google/protobuf/generated_enum_reflection.h
+    google/protobuf/generated_enum_util.h
     google/protobuf/generated_message_bases.h
     google/protobuf/generated_message_reflection.h
+    google/protobuf/generated_message_util.h
+    google/protobuf/implicit_weak_message.h
+    google/protobuf/inlined_string_field.h
+    google/protobuf/map.h
+    google/protobuf/map_entry_lite.h
     google/protobuf/map_field.h
     google/protobuf/map_field_inl.h
+    google/protobuf/map_field_lite.h
     google/protobuf/message.h
+    google/protobuf/message_lite.h
+    google/protobuf/metadata_lite.h
+    google/protobuf/parse_context.h
     google/protobuf/reflection.h
     google/protobuf/reflection_internal.h
     google/protobuf/reflection_ops.h
+    google/protobuf/repeated_field.h
+    google/protobuf/repeated_ptr_field.h
     google/protobuf/service.h
     google/protobuf/source_context.pb.h
     google/protobuf/struct.pb.h
@@ -1923,20 +3365,56 @@ elseif (WIN64)
     google/protobuf/type.pb.h
     google/protobuf/unknown_field_set.h
     google/protobuf/wire_format.h
+    google/protobuf/wire_format_lite.h
     google/protobuf/wrappers.pb.h
+    google/protobuf/compiler/code_generator.h
     google/protobuf/compiler/importer.h
     google/protobuf/compiler/parser.h
+    google/protobuf/compiler/plugin.h
+    google/protobuf/compiler/plugin.pb.h
+    google/protobuf/io/coded_stream.h
     google/protobuf/io/gzip_stream.h
+    google/protobuf/io/io_win32.h
+    google/protobuf/io/package_info.h
     google/protobuf/io/printer.h
+    google/protobuf/io/strtod.h
     google/protobuf/io/tokenizer.h
+    google/protobuf/io/zero_copy_stream.h
+    google/protobuf/io/zero_copy_stream_impl.h
+    google/protobuf/io/zero_copy_stream_impl_lite.h
+    google/protobuf/stubs/bytestream.h
+    google/protobuf/stubs/callback.h
+    google/protobuf/stubs/casts.h
+    google/protobuf/stubs/common.h
+    google/protobuf/stubs/hash.h
+    google/protobuf/stubs/int128.h
+    google/protobuf/stubs/logging.h
+    google/protobuf/stubs/macros.h
+    google/protobuf/stubs/map_util.h
+    google/protobuf/stubs/mathutil.h
+    google/protobuf/stubs/mutex.h
+    google/protobuf/stubs/once.h
+    google/protobuf/stubs/platform_macros.h
+    google/protobuf/stubs/port.h
+    google/protobuf/stubs/protobuf_time.h
+    google/protobuf/stubs/status.h
+    google/protobuf/stubs/status_macros.h
+    google/protobuf/stubs/statusor.h
+    google/protobuf/stubs/stl_util.h
+    google/protobuf/stubs/stringpiece.h
+    google/protobuf/stubs/stringprintf.h
+    google/protobuf/stubs/strutil.h
     google/protobuf/stubs/substitute.h
+    google/protobuf/stubs/template_util.h
     google/protobuf/util/delimited_message_util.h
     google/protobuf/util/field_comparator.h
     google/protobuf/util/field_mask_util.h
     google/protobuf/util/json_util.h
     google/protobuf/util/message_differencer.h
     google/protobuf/util/time_util.h
+    google/protobuf/util/type_resolver.h
     google/protobuf/util/type_resolver_util.h
+    google/protobuf/util/internal/constants.h
     google/protobuf/util/internal/datapiece.h
     google/protobuf/util/internal/default_value_objectwriter.h
     google/protobuf/util/internal/error_listener.h
@@ -1944,10 +3422,14 @@ elseif (WIN64)
     google/protobuf/util/internal/json_escaping.h
     google/protobuf/util/internal/json_objectwriter.h
     google/protobuf/util/internal/json_stream_parser.h
+    google/protobuf/util/internal/location_tracker.h
+    google/protobuf/util/internal/object_location_tracker.h
+    google/protobuf/util/internal/object_source.h
     google/protobuf/util/internal/object_writer.h
     google/protobuf/util/internal/proto_writer.h
     google/protobuf/util/internal/protostream_objectsource.h
     google/protobuf/util/internal/protostream_objectwriter.h
+    google/protobuf/util/internal/structured_objectwriter.h
     google/protobuf/util/internal/type_info.h
     google/protobuf/util/internal/utility.h
   )
@@ -1958,20 +3440,35 @@ elseif (WIN64)
   set( PLATFORM_SOURCE_FILES 
     google/protobuf/any.cc
     google/protobuf/any.pb.cc
+    google/protobuf/any_lite.cc
     google/protobuf/api.pb.cc
+    google/protobuf/arena.cc
+    google/protobuf/arenastring.cc
     google/protobuf/descriptor.cc
+    google/protobuf/descriptor.pb.cc
     google/protobuf/descriptor_database.cc
     google/protobuf/duration.pb.cc
     google/protobuf/dynamic_message.cc
     google/protobuf/empty.pb.cc
+    google/protobuf/extension_set.cc
     google/protobuf/extension_set_heavy.cc
     google/protobuf/field_mask.pb.cc
+    google/protobuf/generated_enum_util.cc
     google/protobuf/generated_message_bases.cc
     google/protobuf/generated_message_reflection.cc
     google/protobuf/generated_message_tctable_full.cc
+    google/protobuf/generated_message_tctable_lite.cc
+    google/protobuf/generated_message_util.cc
+    google/protobuf/implicit_weak_message.cc
+    google/protobuf/inlined_string_field.cc
+    google/protobuf/map.cc
     google/protobuf/map_field.cc
     google/protobuf/message.cc
+    google/protobuf/message_lite.cc
+    google/protobuf/parse_context.cc
     google/protobuf/reflection_ops.cc
+    google/protobuf/repeated_field.cc
+    google/protobuf/repeated_ptr_field.cc
     google/protobuf/service.cc
     google/protobuf/source_context.pb.cc
     google/protobuf/struct.pb.cc
@@ -1980,13 +3477,33 @@ elseif (WIN64)
     google/protobuf/type.pb.cc
     google/protobuf/unknown_field_set.cc
     google/protobuf/wire_format.cc
+    google/protobuf/wire_format_lite.cc
     google/protobuf/wrappers.pb.cc
+    google/protobuf/compiler/code_generator.cc
     google/protobuf/compiler/importer.cc
     google/protobuf/compiler/parser.cc
+    google/protobuf/compiler/plugin.cc
+    google/protobuf/compiler/plugin.pb.cc
+    google/protobuf/io/coded_stream.cc
     google/protobuf/io/gzip_stream.cc
+    google/protobuf/io/io_win32.cc
     google/protobuf/io/printer.cc
+    google/protobuf/io/strtod.cc
     google/protobuf/io/tokenizer.cc
+    google/protobuf/io/zero_copy_stream.cc
+    google/protobuf/io/zero_copy_stream_impl.cc
+    google/protobuf/io/zero_copy_stream_impl_lite.cc
+    google/protobuf/stubs/bytestream.cc
+    google/protobuf/stubs/common.cc
+    google/protobuf/stubs/int128.cc
+    google/protobuf/stubs/status.cc
+    google/protobuf/stubs/statusor.cc
+    google/protobuf/stubs/stringpiece.cc
+    google/protobuf/stubs/stringprintf.cc
+    google/protobuf/stubs/structurally_valid.cc
+    google/protobuf/stubs/strutil.cc
     google/protobuf/stubs/substitute.cc
+    google/protobuf/stubs/time.cc
     google/protobuf/util/delimited_message_util.cc
     google/protobuf/util/field_comparator.cc
     google/protobuf/util/field_mask_util.cc
@@ -2019,7 +3536,7 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 
 set( MODULE_NAME "libprotobuf" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "LIBPROTOBUF_EXPORTS;PROTOBUF_USE_DLLS" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "LIBPROTOBUF_EXPORTS;LIBPROTOC_EXPORTS;PROTOBUF_USE_DLLS" )
 
 if ( ANDROID )
   target_link_libraries( ${MODULE_NAME} log z )
@@ -2045,7 +3562,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} zlib )
 endif( WIN64 )
 
-include_directories(  google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
+include_directories( ../src google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 
 if ( ANDROID )
   include_directories( google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
