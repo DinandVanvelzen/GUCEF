@@ -4,9 +4,15 @@
 		<ITEM NAME="*" TYPE="FILE" />
     </EXCLUDES>
     <INCLUDES PLATFORM="ALL">
+      <ITEM NAME="code_generator.h" TYPE="FILE" />
+      <ITEM NAME="code_generator.cc" TYPE="FILE" />
       <ITEM NAME="importer.h" TYPE="FILE" />
       <ITEM NAME="importer.cc" TYPE="FILE" />
       <ITEM NAME="parser.h" TYPE="FILE" />
       <ITEM NAME="parser.cc" TYPE="FILE" />
+      <ITEM NAME="plugin.h" TYPE="FILE" />
+      <ITEM NAME="plugin.cc" TYPE="FILE" />
+      <ITEM NAME="plugin.pb.h" TYPE="FILE" />
+      <ITEM NAME="plugin.pb.cc" TYPE="FILE" />
    </INCLUDES>
 </PROJECTGENERATOR>

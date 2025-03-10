@@ -4,7 +4,43 @@
 		<ITEM NAME="*" TYPE="FILE" />
     </EXCLUDES>
     <INCLUDES PLATFORM="ALL">
-      <ITEM NAME="substitute.h" TYPE="FILE" />
-      <ITEM NAME="substitute.cc" TYPE="FILE" />
+      <ITEM NAME="bytestream.h" TYPE="FILE" />
+      <ITEM NAME="bytestream.cc" TYPE="FILE" />
+      <ITEM NAME="callback.h" TYPE="FILE" />
+      <ITEM NAME="casts.cc" TYPE="FILE" />
+      <ITEM NAME="common.h" TYPE="FILE" />
+      <ITEM NAME="common.cc" TYPE="FILE" />	  
+      <ITEM NAME="hash.h" TYPE="FILE" />
+      <ITEM NAME="int128.h" TYPE="FILE" />
+	  <ITEM NAME="int128.cc" TYPE="FILE" />
+	  <ITEM NAME="logging.h" TYPE="FILE" />
+	  <ITEM NAME="macros.h" TYPE="FILE" />
+	  <ITEM NAME="map_util.h" TYPE="FILE" />
+	  <ITEM NAME="mathutil.h" TYPE="FILE" />
+	  <ITEM NAME="mutex.h" TYPE="FILE" />
+	  <ITEM NAME="once.h" TYPE="FILE" />
+	  <ITEM NAME="platform_macro.h" TYPE="FILE" />
+	  <ITEM NAME="port.h" TYPE="FILE" />
+	  <ITEM NAME="protobuf_time.h" TYPE="FILE" />
+	  <ITEM NAME="protobuf_time.h" TYPE="FILE" />
+	  <ITEM NAME="status.h" TYPE="FILE" />
+	  <ITEM NAME="status.cc" TYPE="FILE" />
+	  <ITEM NAME="status_macros.h" TYPE="FILE" />
+	  <ITEM NAME="statusor.h" TYPE="FILE" />
+	  <ITEM NAME="statusor.cc" TYPE="FILE" />
+	  <ITEM NAME="stl_util.h" TYPE="FILE" />
+	  <ITEM NAME="stringpiece.h" TYPE="FILE" />
+	  <ITEM NAME="stringpiece.cc" TYPE="FILE" />	  
+	  <ITEM NAME="stringpiece.h" TYPE="FILE" />
+	  <ITEM NAME="stringpiece.cc" TYPE="FILE" />	  
+	  <ITEM NAME="stringprintf.h" TYPE="FILE" />
+	  <ITEM NAME="stringprintf.cc" TYPE="FILE" />
+	  <ITEM NAME="structurally_valid.cc" TYPE="FILE" />
+	  <ITEM NAME="strutil.h" TYPE="FILE" />
+	  <ITEM NAME="strutil.cc" TYPE="FILE" />
+	  <ITEM NAME="substitute.h" TYPE="FILE" />
+	  <ITEM NAME="substitute.cc" TYPE="FILE" />
+	  <ITEM NAME="template_util.h" TYPE="FILE" />
+	  <ITEM NAME="time.cc" TYPE="FILE" />
    </INCLUDES>
 </PROJECTGENERATOR>

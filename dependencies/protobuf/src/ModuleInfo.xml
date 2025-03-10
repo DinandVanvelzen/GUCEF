@@ -11,6 +11,7 @@
         <Preprocessor>
             <Define String="PROTOBUF_USE_DLLS" />
             <Define String="LIBPROTOBUF_EXPORTS" />
+			<Define String="LIBPROTOC_EXPORTS" />
         </Preprocessor>
     </Module>
     <Module Platform="linux;mswin">

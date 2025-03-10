@@ -4,11 +4,26 @@
 		<ITEM NAME="*" TYPE="FILE" />
     </EXCLUDES>
     <INCLUDES PLATFORM="ALL">
+      <ITEM NAME="coded_stream.h" TYPE="FILE" />
+      <ITEM NAME="coded_stream.cc" TYPE="FILE" />
       <ITEM NAME="gzip_stream.h" TYPE="FILE" />
       <ITEM NAME="gzip_stream.cc" TYPE="FILE" />
       <ITEM NAME="printer.h" TYPE="FILE" />
       <ITEM NAME="printer.cc" TYPE="FILE" />
-      <ITEM NAME="tokenizer.h" TYPE="FILE" />
+      <ITEM NAME="strtod.h" TYPE="FILE" />
+      <ITEM NAME="strtod.cc" TYPE="FILE" />	  	  
+      <ITEM NAME="package_info.h" TYPE="FILE" />
+	  <ITEM NAME="tokenizer.h" TYPE="FILE" />
       <ITEM NAME="tokenizer.cc" TYPE="FILE" />
+      <ITEM NAME="zero_copy_stream.h" TYPE="FILE" />
+      <ITEM NAME="zero_copy_stream.cc" TYPE="FILE" />	  
+      <ITEM NAME="zero_copy_stream_impl.h" TYPE="FILE" />
+      <ITEM NAME="zero_copy_stream_impl.cc" TYPE="FILE" />	  
+      <ITEM NAME="zero_copy_stream_impl_lite.h" TYPE="FILE" />
+      <ITEM NAME="zero_copy_stream_impl_lite.cc" TYPE="FILE" />	  
    </INCLUDES>
+    <INCLUDES PLATFORM="mswin">
+      <ITEM NAME="io_win32.h" TYPE="FILE" />
+      <ITEM NAME="io_win32.cc" TYPE="FILE" />
+   </INCLUDES>   
 </PROJECTGENERATOR>

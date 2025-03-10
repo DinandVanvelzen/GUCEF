@@ -16,7 +16,8 @@
       <ITEM NAME="message_differencer.cc" TYPE="FILE" />
       <ITEM NAME="time_util.h" TYPE="FILE" />
       <ITEM NAME="time_util.cc" TYPE="FILE" />
-      <ITEM NAME="type_resolver_util.h" TYPE="FILE" />
+      <ITEM NAME="type_resolver.h" TYPE="FILE" />
+	  <ITEM NAME="type_resolver_util.h" TYPE="FILE" />
       <ITEM NAME="type_resolver_util.cc" TYPE="FILE" />
       <ITEM NAME="internal" TYPE="DIR" />
    </INCLUDES>

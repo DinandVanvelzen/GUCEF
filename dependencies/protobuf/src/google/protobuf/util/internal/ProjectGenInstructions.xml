@@ -4,7 +4,8 @@
 		<ITEM NAME="*" TYPE="FILE" />
     </EXCLUDES>
     <INCLUDES PLATFORM="ALL">
-      <ITEM NAME="datapiece.h" TYPE="FILE" />
+      <ITEM NAME="constants.h" TYPE="FILE" />
+	  <ITEM NAME="datapiece.h" TYPE="FILE" />
       <ITEM NAME="datapiece.cc" TYPE="FILE" />
       <ITEM NAME="default_value_objectwriter.h" TYPE="FILE" />
       <ITEM NAME="default_value_objectwriter.cc" TYPE="FILE" />
@@ -18,7 +19,11 @@
       <ITEM NAME="json_objectwriter.cc" TYPE="FILE" />
       <ITEM NAME="json_stream_parser.h" TYPE="FILE" />
       <ITEM NAME="json_stream_parser.cc" TYPE="FILE" />
-      <ITEM NAME="object_writer.h" TYPE="FILE" />
+	  <ITEM NAME="location_tracker.h" TYPE="FILE" />
+	  <ITEM NAME="object_location_tracker.h" TYPE="FILE" />
+	  <ITEM NAME="object_location_tracker.h" TYPE="FILE" />
+	  <ITEM NAME="object_source.h" TYPE="FILE" />
+	  <ITEM NAME="object_writer.h" TYPE="FILE" />
       <ITEM NAME="object_writer.cc" TYPE="FILE" />
       <ITEM NAME="proto_writer.h" TYPE="FILE" />
       <ITEM NAME="proto_writer.cc" TYPE="FILE" />
@@ -26,6 +31,7 @@
       <ITEM NAME="protostream_objectsource.cc" TYPE="FILE" />
       <ITEM NAME="protostream_objectwriter.h" TYPE="FILE" />
       <ITEM NAME="protostream_objectwriter.cc" TYPE="FILE" />
+	  <ITEM NAME="structured_objectwriter.h" TYPE="FILE" />
       <ITEM NAME="type_info.h" TYPE="FILE" />
       <ITEM NAME="type_info.cc" TYPE="FILE" />
       <ITEM NAME="utility.h" TYPE="FILE" />
