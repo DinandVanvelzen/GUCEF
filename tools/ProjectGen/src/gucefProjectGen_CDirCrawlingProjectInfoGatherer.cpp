@@ -2282,7 +2282,7 @@ FillHeaderSubDirIncludes( CProjectInfo& projectInfo         ,
         if ( (*n).second.considerSubDirs )
         {
             TStringSetMap newDirs;
-            TModuleInfo& moduleInfo = (*n).second;
+            CModuleInfo& moduleInfo = (*n).second;
             TStringSetMap::iterator d = moduleInfo.includeDirs.begin();
             while ( d != moduleInfo.includeDirs.end() )
             {
