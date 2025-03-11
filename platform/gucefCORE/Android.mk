@@ -241,13 +241,13 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_LogLevels.cpp \
   src/gucefCORE_TaskStatus.cpp \
   src/gucefCORE_ThreadStatus.cpp \
+  src/gucefCORE_c_api_impl.cpp \
   src/md5.c \
   src/streamables.cpp \
   src/streamers.cpp \
   src/tsprinting.c \
   src/android/gucefCORE_CAndroidSystemLogger.cpp \
-  src/c_api/gucefCORE_c_variantdata.c \
-  src/c_api/gucefCORE_cinterface.cpp
+  src/c_api/gucefCORE_c_variantdata.c
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \

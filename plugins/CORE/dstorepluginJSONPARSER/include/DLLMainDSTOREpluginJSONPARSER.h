@@ -53,6 +53,11 @@
 #include "gucefCORE_c_variantdata.h"
 #define GUCEF_CORE_C_VARIANTDATA_H
 #endif /* GUCEF_CORE_C_VARIANTDATA_H ? */
+
+#ifndef GUCEF_CORE_C_API_H
+#include "gucefCORE_c_api.h"
+#define GUCEF_CORE_C_API_H
+#endif /* GUCEF_CORE_C_API_H ? */
  
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -82,7 +87,7 @@ extern "C" {
 /*---------------------------------------------------------------------------*/
 
 DSTOREPLUG_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Init( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+DSTOREPLUG_Init( void** plugdata, TGucefCoreCApi* libApi ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*---------------------------------------------------------------------------*/
 

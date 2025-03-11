@@ -297,6 +297,7 @@ files( {
   "include/gucefCORE_ThreadStatus.h",
   "include/gucefCORE_TokenTypes.h",
   "include/gucefCORE_TypeInfoTemplateExt.h",
+  "include/gucefCORE_c_api_impl.h",
   "include/gucefCORE_config.h",
   "include/gucefCORE_datanode_serializables.h",
   "include/gucefCORE_macros.h",
@@ -308,6 +309,7 @@ files( {
   "include/streamers.h",
   "include/tsprinting.h",
   "include/c_api/gucefCORE_CTVariantVectorApi.h",
+  "include/c_api/gucefCORE_c_api.h",
   "include/c_api/gucefCORE_c_document_parser_callbacks.h",
   "include/c_api/gucefCORE_c_fractiondata.h",
   "include/c_api/gucefCORE_c_function_definition.h",
@@ -316,8 +318,7 @@ files( {
   "include/c_api/gucefCORE_c_pointerdata.h",
   "include/c_api/gucefCORE_c_valuemap_parser_callbacks.h",
   "include/c_api/gucefCORE_c_variantdata.h",
-  "include/c_api/gucefCORE_c_variantvector.h",
-  "include/c_api/gucefCORE_cinterface.h"
+  "include/c_api/gucefCORE_c_variantvector.h"
  } )
 
 
@@ -544,12 +545,12 @@ files( {
   "src/gucefCORE_LogLevels.cpp",
   "src/gucefCORE_TaskStatus.cpp",
   "src/gucefCORE_ThreadStatus.cpp",
+  "src/gucefCORE_c_api_impl.cpp",
   "src/md5.c",
   "src/streamables.cpp",
   "src/streamers.cpp",
   "src/tsprinting.c",
-  "src/c_api/gucefCORE_c_variantdata.c",
-  "src/c_api/gucefCORE_cinterface.cpp"
+  "src/c_api/gucefCORE_c_variantdata.c"
  } )
 
 

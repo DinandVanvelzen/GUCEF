@@ -53,7 +53,7 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
-#include "gucefCORE_cinterface.h"
+#include "gucefCORE_c_api_impl.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -165,7 +165,7 @@ GUCEF_CORE_GucefSetDefaultPluginLoaderLogicType( const char* defaultLoaderLogicT
 
 /*-------------------------------------------------------------------------*/
 
-GUCEF_CORE_PUBLIC_C void
+void
 GUCEF_CORE_GucefLog( int logType     , 
                      int logLevel    , 
                      const char* msg )
@@ -173,6 +173,22 @@ GUCEF_CORE_GucefLog( int logType     ,
 
     TLogMsgType msgType = (TLogMsgType) logType;
     CCoreGlobal::Instance()->GetLogManager().Log( msgType, logLevel, msg );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+GUCEF_CORE_LinkCApi( TGucefCoreCApi* cApi )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == cApi )
+        return;
+
+    cApi->Log = &GUCEF_CORE_GucefLog;
+    cApi->SetDefaultPluginLoaderLogicType = &GUCEF_CORE_GucefSetDefaultPluginLoaderLogicType;
+    cApi->AddPluginDir = &GUCEF_CORE_GucefAddPluginDir;
+    cApi->LoadPlugin = &GUCEF_CORE_GucefLoadPlugin;
+    cApi->LoadConfig = &GUCEF_CORE_GucefLoadConfig;
 }
 
 /*-------------------------------------------------------------------------*/

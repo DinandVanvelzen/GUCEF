@@ -95,6 +95,14 @@ typedef struct SSrcFileData TSrcFileData;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      GLOBAL VARS                                                        //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+static TGucefCoreCApi g_libApi;
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -291,10 +299,16 @@ DetectScalarType( yaml_event_t* ymlEvent )
 /*---------------------------------------------------------------------------*/
 
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Init( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+DSTOREPLUG_Init( void** plugdata, TGucefCoreCApi* libApi ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    /* libyaml does not require global initialization */
-    *plugdata = GUCEF_NULL;
+    /* libyaml itself does not require global initialization */
+    if ( GUCEF_NULL != plugdata )
+        *plugdata = GUCEF_NULL;
+
+    /* link the gucefCORE API */
+    if ( GUCEF_NULL != libApi )
+        g_libApi = *libApi;
+
     return 1;
 }
 
@@ -303,7 +317,9 @@ DSTOREPLUG_Init( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Shutdown( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    /* libyaml does not require global cleanup */
+    /* libyaml itself does not require global cleanup */
+
+    memset( &g_libApi, 0, sizeof g_libApi );
 }
 
 /*---------------------------------------------------------------------------*/

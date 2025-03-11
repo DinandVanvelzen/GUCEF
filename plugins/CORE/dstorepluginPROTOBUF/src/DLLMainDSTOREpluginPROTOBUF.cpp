@@ -31,6 +31,7 @@
 #include <google/protobuf/descriptor.pb.h>    // Protobuf definitions for descriptors
 #include <google/protobuf/dynamic_message.h>  // Dynamic message handling
 #include <google/protobuf/compiler/importer.h>// Importing .proto files at runtime
+#include <google/protobuf/stubs/logging.h>    // Logging utils for log redirection
 
 #include "DLLMainDSTOREpluginPROTOBUF.h"    /* gucefCORE DSTORE codec plugin API */
 
@@ -38,6 +39,31 @@
 #include "gucefCORE_macros.h"  /* gucefCORE macros, used here for the export and callspec macros */
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      MACROS                                                             //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/* make sure no structure packing is enabled, this allows us to use the structures directly */
+#if (defined(_WIN32) || defined(__WIN32__))
+#pragma pack(push, 1)
+#else
+#pragma pack(1)
+#endif /* WIN32 */
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      NAMESPACE                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+namespace GUCEF {
+namespace DSTOREPLUGIN {
+namespace PROTOBUF {
+
+using namespace GUCEF::CORE;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -59,8 +85,8 @@
 struct SDestFileData
 {
     TIOAccess* fptr;
-    yaml_parser_t parser;
-    yaml_emitter_t emitter;
+    //yaml_parser_t parser;
+    //yaml_emitter_t emitter;
     char activeNodeIsValueNode;
     char* base64EncodeBuffer;
     UInt32 base64EncodeBufferSize;
@@ -72,8 +98,8 @@ typedef struct SDestFileData TDestFileData;
 struct SSrcFileData
 {
     TIOAccess* access;
-    yaml_parser_t parser;
-    yaml_event_t event;
+    //yaml_parser_t parser;
+    //yaml_event_t event;
     void* privdata;
     TReadHandlers handlers;
     UInt32 stringEncodingType;
@@ -99,206 +125,257 @@ typedef struct SSrcFileData TSrcFileData;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      GLOBAL VARS                                                        //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+static TGucefCoreCApi g_libApi;
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-UInt8
-YamlEncodingToGucefDataType( yaml_encoding_t yamlEncoding )
-{
-    switch ( yamlEncoding )
-    {
-        case YAML_UTF8_ENCODING:
-            return GUCEF_DATATYPE_UTF8_STRING;
-        case YAML_UTF16LE_ENCODING:
-            return GUCEF_DATATYPE_UTF16_LE_STRING;
-        case YAML_UTF16BE_ENCODING:
-            return GUCEF_DATATYPE_UTF16_BE_STRING;
-
-        default:
-            return GUCEF_DATATYPE_UNKNOWN;
-    }
-}
+//UInt8
+//YamlEncodingToGucefDataType( yaml_encoding_t yamlEncoding )
+//{
+//    switch ( yamlEncoding )
+//    {
+//        case YAML_UTF8_ENCODING:
+//            return GUCEF_DATATYPE_UTF8_STRING;
+//        case YAML_UTF16LE_ENCODING:
+//            return GUCEF_DATATYPE_UTF16_LE_STRING;
+//        case YAML_UTF16BE_ENCODING:
+//            return GUCEF_DATATYPE_UTF16_BE_STRING;
+//
+//        default:
+//            return GUCEF_DATATYPE_UNKNOWN;
+//    }
+//}
+//
+///*---------------------------------------------------------------------------*/
+//
+//static UInt32
+//PushNesting( TSrcFileData* sd, UInt8 nestType )
+//{
+//    if ( GUCEF_NULL == sd )
+//        return 0;
+//
+//    if ( sd->nestingIndex >= sd->nestingTypeBufferSize )
+//    {
+//        UInt16 currentBufferSize = sd->nestingTypeBufferSize;
+//        UInt16 newBufferSize = 64;
+//        if ( 0 != currentBufferSize )
+//            newBufferSize = 2 * currentBufferSize;
+//        void* newBuffer = realloc( sd->nestingType, newBufferSize );
+//        if ( GUCEF_NULL != newBuffer )
+//        {
+//            sd->nestingType = (UInt8*) newBuffer;
+//            sd->nestingTypeBufferSize = newBufferSize;
+//            memset( sd->nestingType, 0, sd->nestingTypeBufferSize );
+//        }
+//        else
+//        {
+//            return 0;
+//        }
+//    }
+//
+//    sd->nestingType[ sd->nestingIndex ] = nestType;
+//    ++sd->nestingIndex;
+//    return 1;
+//}
+//
+///*---------------------------------------------------------------------------*/
+//
+//static UInt8
+//PopNesting( TSrcFileData* sd )
+//{
+//    if ( sd->nestingIndex > 0 )
+//    {
+//        --sd->nestingIndex;
+//        sd->nestingType[ sd->nestingIndex ] = 0;
+//        if ( sd->nestingIndex > 0 )
+//            return sd->nestingType[ sd->nestingIndex-1 ];
+//    }
+//    return 0;
+//}
+//
+///*---------------------------------------------------------------------------*/
+//
+//static UInt8
+//CurrentNesting( TSrcFileData* sd )
+//{
+//    if ( sd->nestingIndex > 0 )
+//        return sd->nestingType[ sd->nestingIndex-1 ];
+//    else
+//        return 0;
+//}
+//
+///*---------------------------------------------------------------------------*/
+//
+//static Float64
+//ToFloat64( yaml_event_t* ymlEvent )
+//{
+//    Float64 val = 0.0;
+//    if ( 1 == sscanf( ymlEvent->data.scalar.value, "%lf", &val ) )
+//        return val;
+//    return 0.0;
+//}
+//
+///*---------------------------------------------------------------------------*/
+//
+//static Int64
+//ToInt64( yaml_event_t* ymlEvent )
+//{
+//    Int64 val = 0;
+//    #ifdef GUCEF_MSWIN_BUILD
+//    if ( 1 == sscanf( ymlEvent->data.scalar.value, "%I64u", &val ) )
+//    #else
+//    if ( 1 == sscanf( ymlEvent->data.scalar.value, "%llu", &val ) )
+//    #endif
+//        return val;
+//    return 0;
+//}
+//
+///*---------------------------------------------------------------------------*/
+//
+//UInt8
+//DetectScalarType( yaml_event_t* ymlEvent )
+//{
+//    if ( GUCEF_NULL == ymlEvent )
+//        return GUCEF_DATATYPE_UNKNOWN;
+//
+//    if ( ymlEvent->data.scalar.style == YAML_PLAIN_SCALAR_STYLE )
+//    {
+//        /* with a plain scalar we have to consider that we could be dealing with an int or float
+//         * look for all digits and a dot
+//         */
+//        UInt8 allDigits = 1;
+//        UInt8 foundDotCount = 0;
+//        size_t scalarSize = ymlEvent->data.scalar.length;
+//        yaml_char_t* value = ymlEvent->data.scalar.value;
+//        for ( size_t i=0; i<scalarSize; ++i )
+//        {
+//            yaml_char_t c = value[ i ];
+//            if ( c == '.' )
+//            {
+//                ++foundDotCount;
+//                if ( foundDotCount > 1 )
+//                {
+//                    allDigits = 0;
+//                    break;
+//                }
+//            }
+//            if ( !( c >= '0' && c <= '9' || c == '+' || c == '-' || c == '.' ) )
+//            {
+//                allDigits = 0;
+//                break;
+//            }
+//
+//        }
+//
+//        if ( 0 == allDigits )
+//        {
+//            /* check if its a boolean value
+//             * yaml supports multiple specific keywords 
+//             */
+//            switch ( scalarSize )
+//            {
+//                case 5:
+//                {
+//                    if ( 0 == memcmp( "false", value, 5 ) )
+//                        return GUCEF_DATATYPE_BOOLEAN_ASCII_STRING;
+//                    else
+//                        return GUCEF_DATATYPE_UTF8_STRING;
+//                }
+//                case 4:
+//                {
+//                    if ( 0 == memcmp( "true", value, 4 ) )
+//                        return GUCEF_DATATYPE_BOOLEAN_ASCII_STRING;
+//                    else
+//                        return GUCEF_DATATYPE_UTF8_STRING;
+//                }
+//                case 3:
+//                {
+//                    if ( 0 == memcmp( "off", value, 3 ) ||
+//                         0 == memcmp( "yes", value, 3 ) )
+//                        return GUCEF_DATATYPE_BOOLEAN_ASCII_STRING;
+//                    else
+//                        return GUCEF_DATATYPE_UTF8_STRING;
+//                }
+//                case 2:
+//                {
+//                    if ( 0 == memcmp( "on", value, 2 ) ||
+//                         0 == memcmp( "no", value, 2 ) )
+//                        return GUCEF_DATATYPE_BOOLEAN_ASCII_STRING;
+//                    else
+//                        return GUCEF_DATATYPE_UTF8_STRING;
+//                }
+//                default:
+//                    return GUCEF_DATATYPE_UTF8_STRING;    
+//                
+//            }
+//        }
+//        else if ( 0 == foundDotCount )
+//            return GUCEF_DATATYPE_INT64;
+//        else
+//            return GUCEF_DATATYPE_FLOAT64;
+//    }
+//
+//    return GUCEF_DATATYPE_UTF8_STRING;
+//}
 
 /*---------------------------------------------------------------------------*/
 
-static UInt32
-PushNesting( TSrcFileData* sd, UInt8 nestType )
-{
-    if ( GUCEF_NULL == sd )
-        return 0;
+void 
+gucefLogRedirect( google::protobuf::LogLevel level , 
+                  const char* filename             , 
+                  int line                         , 
+                  const std::string& message       ) 
+{GUCEF_TRACE;
 
-    if ( sd->nestingIndex >= sd->nestingTypeBufferSize )
-    {
-        UInt16 currentBufferSize = sd->nestingTypeBufferSize;
-        UInt16 newBufferSize = 64;
-        if ( 0 != currentBufferSize )
-            newBufferSize = 2 * currentBufferSize;
-        void* newBuffer = realloc( sd->nestingType, newBufferSize );
-        if ( GUCEF_NULL != newBuffer )
-        {
-            sd->nestingType = (UInt8*) newBuffer;
-            sd->nestingTypeBufferSize = newBufferSize;
-            memset( sd->nestingType, 0, sd->nestingTypeBufferSize );
-        }
-        else
-        {
-            return 0;
-        }
-    }
+    if ( GUCEF_NULL == g_libApi.Log )
+        return;
+    
+    //switch ( level )
+    //{
+    //    case google::protobuf::LOGLEVEL_INFO:
+    //        GUCEF_LOG_INFO( message.c_str() );
+    //        break;
+    //    case google::protobuf::LOGLEVEL_WARNING:
+    //        GUCEF_LOG_WARNING( message.c_str() );
+    //        break;
+    //    case google::protobuf::LOGLEVEL_ERROR:
+    //        GUCEF_LOG_ERROR( message.c_str() );
+    //        break;
+    //    case google::protobuf::LOGLEVEL_FATAL:
+    //        GUCEF_LOG_FATAL( message.c_str() );
+    //        break;
+    //    default:
+    //        GUCEF_LOG_INFO( message.c_str() );
+    //        break;
+    //}
 
-    sd->nestingType[ sd->nestingIndex ] = nestType;
-    ++sd->nestingIndex;
-    return 1;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static UInt8
-PopNesting( TSrcFileData* sd )
-{
-    if ( sd->nestingIndex > 0 )
-    {
-        --sd->nestingIndex;
-        sd->nestingType[ sd->nestingIndex ] = 0;
-        if ( sd->nestingIndex > 0 )
-            return sd->nestingType[ sd->nestingIndex-1 ];
-    }
-    return 0;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static UInt8
-CurrentNesting( TSrcFileData* sd )
-{
-    if ( sd->nestingIndex > 0 )
-        return sd->nestingType[ sd->nestingIndex-1 ];
-    else
-        return 0;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static Float64
-ToFloat64( yaml_event_t* ymlEvent )
-{
-    Float64 val = 0.0;
-    if ( 1 == sscanf( ymlEvent->data.scalar.value, "%lf", &val ) )
-        return val;
-    return 0.0;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static Int64
-ToInt64( yaml_event_t* ymlEvent )
-{
-    Int64 val = 0;
-    #ifdef GUCEF_MSWIN_BUILD
-    if ( 1 == sscanf( ymlEvent->data.scalar.value, "%I64u", &val ) )
-    #else
-    if ( 1 == sscanf( ymlEvent->data.scalar.value, "%llu", &val ) )
-    #endif
-        return val;
-    return 0;
-}
-
-/*---------------------------------------------------------------------------*/
-
-UInt8
-DetectScalarType( yaml_event_t* ymlEvent )
-{
-    if ( GUCEF_NULL == ymlEvent )
-        return GUCEF_DATATYPE_UNKNOWN;
-
-    if ( ymlEvent->data.scalar.style == YAML_PLAIN_SCALAR_STYLE )
-    {
-        /* with a plain scalar we have to consider that we could be dealing with an int or float
-         * look for all digits and a dot
-         */
-        UInt8 allDigits = 1;
-        UInt8 foundDotCount = 0;
-        size_t scalarSize = ymlEvent->data.scalar.length;
-        yaml_char_t* value = ymlEvent->data.scalar.value;
-        for ( size_t i=0; i<scalarSize; ++i )
-        {
-            yaml_char_t c = value[ i ];
-            if ( c == '.' )
-            {
-                ++foundDotCount;
-                if ( foundDotCount > 1 )
-                {
-                    allDigits = 0;
-                    break;
-                }
-            }
-            if ( !( c >= '0' && c <= '9' || c == '+' || c == '-' || c == '.' ) )
-            {
-                allDigits = 0;
-                break;
-            }
-
-        }
-
-        if ( 0 == allDigits )
-        {
-            /* check if its a boolean value
-             * yaml supports multiple specific keywords 
-             */
-            switch ( scalarSize )
-            {
-                case 5:
-                {
-                    if ( 0 == memcmp( "false", value, 5 ) )
-                        return GUCEF_DATATYPE_BOOLEAN_ASCII_STRING;
-                    else
-                        return GUCEF_DATATYPE_UTF8_STRING;
-                }
-                case 4:
-                {
-                    if ( 0 == memcmp( "true", value, 4 ) )
-                        return GUCEF_DATATYPE_BOOLEAN_ASCII_STRING;
-                    else
-                        return GUCEF_DATATYPE_UTF8_STRING;
-                }
-                case 3:
-                {
-                    if ( 0 == memcmp( "off", value, 3 ) ||
-                         0 == memcmp( "yes", value, 3 ) )
-                        return GUCEF_DATATYPE_BOOLEAN_ASCII_STRING;
-                    else
-                        return GUCEF_DATATYPE_UTF8_STRING;
-                }
-                case 2:
-                {
-                    if ( 0 == memcmp( "on", value, 2 ) ||
-                         0 == memcmp( "no", value, 2 ) )
-                        return GUCEF_DATATYPE_BOOLEAN_ASCII_STRING;
-                    else
-                        return GUCEF_DATATYPE_UTF8_STRING;
-                }
-                default:
-                    return GUCEF_DATATYPE_UTF8_STRING;    
-                
-            }
-        }
-        else if ( 0 == foundDotCount )
-            return GUCEF_DATATYPE_INT64;
-        else
-            return GUCEF_DATATYPE_FLOAT64;
-    }
-
-    return GUCEF_DATATYPE_UTF8_STRING;
 }
 
 /*---------------------------------------------------------------------------*/
 
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Init( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    /* libyaml does not require global initialization */
-    *plugdata = GUCEF_NULL;
+DSTOREPLUG_Init( void** plugdata, TGucefCoreCApi* libApi ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    // libprotobuf does not require global initialization itself
+    if ( GUCEF_NULL != plugdata )
+        *plugdata = GUCEF_NULL;
+
+    // link the gucefCORE API
+    if ( GUCEF_NULL != libApi )
+        g_libApi = *libApi;
+
+    // Hook up the protobuf logging to the gucefCORE logging
+    google::protobuf::SetLogHandler( &gucefLogRedirect );
+
     return 1;
 }
 
@@ -306,25 +383,28 @@ DSTOREPLUG_Init( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Shutdown( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    /* libyaml does not require global cleanup */
+{GUCEF_TRACE;
+
+    // libprotobuf itself does not require global cleanup
+
+    memset( &g_libApi, 0, sizeof g_libApi );
 }
 
 /*---------------------------------------------------------------------------*/
 
-int 
-yaml_write_handler( void *data, unsigned char *buffer, size_t size )
-{
-    TDestFileData* fd = (TDestFileData*) data;
-    if ( GUCEF_NULL != fd )
-    {
-        if ( 1 == fd->fptr->write( fd->fptr, buffer, size, 1 ) )
-        {
-            return 1;
-        }
-    }
-    return 0;
-}
+//int 
+//yaml_write_handler( void *data, unsigned char *buffer, size_t size )
+//{
+//    TDestFileData* fd = (TDestFileData*) data;
+//    if ( GUCEF_NULL != fd )
+//    {
+//        if ( 1 == fd->fptr->write( fd->fptr, buffer, size, 1 ) )
+//        {
+//            return 1;
+//        }
+//    }
+//    return 0;
+//}
 
 /*---------------------------------------------------------------------------*/
 
@@ -332,31 +412,32 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Dest_File_Open( void** plugdata    ,
                            void** filedata    ,
                            TIOAccess* outFile ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    *filedata = GUCEF_NULL;
-    if ( outFile != GUCEF_NULL )
-    {
-        TDestFileData* fd = (TDestFileData*) malloc( sizeof( TDestFileData ) );
-        if ( GUCEF_NULL != fd )
-        {
-            memset( fd, 0, sizeof( TDestFileData ) );
-            fd->fptr = outFile;
-            fd->activeNodeIsValueNode = 0;
-            fd->base64EncodeBuffer = GUCEF_NULL;
-            fd->base64EncodeBufferSize = 0;
+{GUCEF_TRACE;
 
-            if ( 0 != yaml_parser_initialize( &fd->parser ) )
-            {
-                if ( 0 != yaml_emitter_initialize( &fd->emitter ) )
-                {
-                    yaml_emitter_set_output( &fd->emitter, &yaml_write_handler, fd );
-                    *filedata = fd;
-                    return 1;
-                }
-                yaml_parser_delete( &fd->parser );
-            }
-        }
-    }
+    //*filedata = GUCEF_NULL;
+    //if ( outFile != GUCEF_NULL )
+    //{
+    //    TDestFileData* fd = (TDestFileData*) malloc( sizeof( TDestFileData ) );
+    //    if ( GUCEF_NULL != fd )
+    //    {
+    //        memset( fd, 0, sizeof( TDestFileData ) );
+    //        fd->fptr = outFile;
+    //        fd->activeNodeIsValueNode = 0;
+    //        fd->base64EncodeBuffer = GUCEF_NULL;
+    //        fd->base64EncodeBufferSize = 0;
+
+    //        if ( 0 != yaml_parser_initialize( &fd->parser ) )
+    //        {
+    //            if ( 0 != yaml_emitter_initialize( &fd->emitter ) )
+    //            {
+    //                yaml_emitter_set_output( &fd->emitter, &yaml_write_handler, fd );
+    //                *filedata = fd;
+    //                return 1;
+    //            }
+    //            yaml_parser_delete( &fd->parser );
+    //        }
+    //    }
+    //}
     return 0;
 }
 
@@ -365,28 +446,29 @@ DSTOREPLUG_Dest_File_Open( void** plugdata    ,
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Dest_File_Close( void** plugdata ,
                             void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    if ( filedata == GUCEF_NULL )
-        return;
-    if ( *filedata == GUCEF_NULL )
-        return;
+{GUCEF_TRACE;
 
-    TDestFileData* fd = (TDestFileData*)*filedata;
-    if ( fd != GUCEF_NULL )
-    {
-        yaml_parser_delete( &fd->parser );
-        yaml_emitter_delete( &fd->emitter );
-        fd->fptr->close( fd->fptr );
+    //if ( filedata == GUCEF_NULL )
+    //    return;
+    //if ( *filedata == GUCEF_NULL )
+    //    return;
 
-        if ( GUCEF_NULL != fd->base64EncodeBuffer )
-        {
-            free( fd->base64EncodeBuffer );
-            fd->base64EncodeBuffer = GUCEF_NULL;
-        }
-        free( *filedata );
-    }
+    //TDestFileData* fd = (TDestFileData*)*filedata;
+    //if ( fd != GUCEF_NULL )
+    //{
+    //    yaml_parser_delete( &fd->parser );
+    //    yaml_emitter_delete( &fd->emitter );
+    //    fd->fptr->close( fd->fptr );
 
-    *filedata = GUCEF_NULL;
+    //    if ( GUCEF_NULL != fd->base64EncodeBuffer )
+    //    {
+    //        free( fd->base64EncodeBuffer );
+    //        fd->base64EncodeBuffer = GUCEF_NULL;
+    //    }
+    //    free( *filedata );
+    //}
+
+    //*filedata = GUCEF_NULL;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -398,7 +480,8 @@ DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
                              Int32 nodeType       ,
                              UInt32 attscount     ,
                              UInt32 haschildren   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
+{GUCEF_TRACE;
+
     //TDestFileData* fd = (TDestFileData*)*filedata;
     //fd->activeNodeIsValueNode = 0;
 
@@ -468,7 +551,8 @@ DSTOREPLUG_End_Node_Store( void** plugdata      ,
                            const char* nodename ,
                            UInt32 attscount     ,
                            UInt32 haschildren   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
+{GUCEF_TRACE;
+
     //TDestFileData* fd = (TDestFileData*)*filedata;
     //if ( ( GUCEF_NULL != fd->currentJsonNode ) && ( 0 == fd->activeNodeIsValueNode ) )
     //    fd->currentJsonNode = fd->currentJsonNode->parent;
@@ -486,7 +570,8 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
                            const char* attname          ,
                            const TVariantData* attvalue ,
                            UInt32 haschildren           ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
+{GUCEF_TRACE;
+
     TDestFileData* fd = (TDestFileData*)*filedata;
 
     //if ( 0 == attscount )
@@ -720,26 +805,27 @@ UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Src_File_Open( void** plugdata ,
                           void** filedata ,
                           TIOAccess* file ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    TSrcFileData* sd = GUCEF_NULL;
-    *plugdata = GUCEF_NULL;
+{GUCEF_TRACE;
 
-    sd = (TSrcFileData*) malloc( sizeof(TSrcFileData) );
-    if ( GUCEF_NULL != sd )
-    {
-        memset( sd, 0, sizeof( TSrcFileData ) );
-        sd->stringEncodingType = GUCEF_DATATYPE_UTF8_STRING;
-        sd->access = file;
-        if ( 0 != yaml_parser_initialize( &sd->parser ) )
-        {
-            yaml_parser_set_input( &sd->parser, yaml_read_handler, sd );            
-            
-            *filedata = sd;
-            return 1;
-        }
+    //TSrcFileData* sd = GUCEF_NULL;
+    //*plugdata = GUCEF_NULL;
 
-        free( sd );
-    }    
+    //sd = (TSrcFileData*) malloc( sizeof(TSrcFileData) );
+    //if ( GUCEF_NULL != sd )
+    //{
+    //    memset( sd, 0, sizeof( TSrcFileData ) );
+    //    sd->stringEncodingType = GUCEF_DATATYPE_UTF8_STRING;
+    //    sd->access = file;
+    //    if ( 0 != yaml_parser_initialize( &sd->parser ) )
+    //    {
+    //        yaml_parser_set_input( &sd->parser, yaml_read_handler, sd );            
+    //        
+    //        *filedata = sd;
+    //        return 1;
+    //    }
+
+    //    free( sd );
+    //}    
     return 0;    
 }
 
@@ -748,17 +834,18 @@ DSTOREPLUG_Src_File_Open( void** plugdata ,
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Src_File_Close( void** plugdata ,
                            void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    if ( *filedata != GUCEF_NULL )
-    {
-        TSrcFileData* sd = (TSrcFileData*) *filedata;
-        if ( GUCEF_NULL != sd )
-        {
-            yaml_parser_delete( &sd->parser );
-            sd->access->close( sd->access );            
-            free( sd );
-        }        
-    }
+{GUCEF_TRACE;
+
+    //if ( *filedata != GUCEF_NULL )
+    //{
+    //    TSrcFileData* sd = (TSrcFileData*) *filedata;
+    //    if ( GUCEF_NULL != sd )
+    //    {
+    //        yaml_parser_delete( &sd->parser );
+    //        sd->access->close( sd->access );            
+    //        free( sd );
+    //    }        
+    //}
 }
 
 /*---------------------------------------------------------------------------*/
@@ -768,7 +855,8 @@ DSTOREPLUG_Set_Read_Handlers( void** plugdata                ,
                               void** filedata                ,
                               const TReadHandlers* rhandlers ,
                               void* privdata                 ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
+{GUCEF_TRACE;
+
     if ( *filedata != GUCEF_NULL )
     {
         TSrcFileData* sd = (TSrcFileData*) *filedata;
@@ -925,191 +1013,192 @@ DSTOREPLUG_Set_Read_Handlers( void** plugdata                ,
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Start_Reading( void** plugdata ,
                           void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    if ( GUCEF_NULL != filedata )
-    {
-        TSrcFileData* sd = (TSrcFileData*) *filedata;
-        if ( GUCEF_NULL != sd )
-        {
-            UInt8 currentNesting = 0;
-            UInt8 nextScalarIsAKey = 1;
-            UInt8 dontDeleteYamlEvent = 0;
-            yaml_event_t yamlEvent;
-            yaml_event_t lastYamlEvent;
-            do 
-            {
-                if (  0 == yaml_parser_parse( &sd->parser, &yamlEvent ) ) 
-                {
-                    size_t problemStrSize = strlen( sd->parser.problem );
-                    char* problemStr = calloc( 1, 1024);
-                    if ( NULL != problemStr )
-                    {
-                        sprintf( problemStr, "problem:\"%s\" offset=%zu", sd->parser.problem, sd->parser.problem_offset );   
-                    }
-                    (*sd->handlers.OnError)( sd->privdata, (Int32) sd->parser.error, problemStr );
-                    free( problemStr );
-                    return (UInt32) sd->parser.error;
-                }
+{GUCEF_TRACE;
 
-                switch ( yamlEvent.type )
-                { 
-                    case YAML_NO_EVENT: 
-                        break; 
-                    
-                    /* Stream start/end */
-                    case YAML_STREAM_START_EVENT:
-                    {
-                        sd->stringEncodingType = YamlEncodingToGucefDataType( yamlEvent.data.stream_start.encoding );
-                        break;
-                    }
-                    case YAML_STREAM_END_EVENT: 
-                        break;
+    //if ( GUCEF_NULL != filedata )
+    //{
+    //    TSrcFileData* sd = (TSrcFileData*) *filedata;
+    //    if ( GUCEF_NULL != sd )
+    //    {
+    //        UInt8 currentNesting = 0;
+    //        UInt8 nextScalarIsAKey = 1;
+    //        UInt8 dontDeleteYamlEvent = 0;
+    //        yaml_event_t yamlEvent;
+    //        yaml_event_t lastYamlEvent;
+    //        do 
+    //        {
+    //            if (  0 == yaml_parser_parse( &sd->parser, &yamlEvent ) ) 
+    //            {
+    //                size_t problemStrSize = strlen( sd->parser.problem );
+    //                char* problemStr = calloc( 1, 1024);
+    //                if ( NULL != problemStr )
+    //                {
+    //                    sprintf( problemStr, "problem:\"%s\" offset=%zu", sd->parser.problem, sd->parser.problem_offset );   
+    //                }
+    //                (*sd->handlers.OnError)( sd->privdata, (Int32) sd->parser.error, problemStr );
+    //                free( problemStr );
+    //                return (UInt32) sd->parser.error;
+    //            }
 
-                    /* Block delimeters */
-                    case YAML_DOCUMENT_START_EVENT:
-                    {
-                        (*sd->handlers.OnTreeBegin)( sd->privdata );
-                        break;
-                    }
-                    case YAML_DOCUMENT_END_EVENT:    
-                    {
-                        (*sd->handlers.OnTreeEnd)( sd->privdata );
-                        break;
-                    }
-                    case YAML_SEQUENCE_START_EVENT:  
-                    {
-                        const char* name = GUCEF_NULL;
-                        if ( 0 != dontDeleteYamlEvent )
-                            name = lastYamlEvent.data.scalar.value;
-                        sd->handlers.OnNodeBegin( sd->privdata, name, GUCEF_DATATYPE_ARRAY );
-                        sd->handlers.OnNodeChildrenBegin( sd->privdata, name );
-                        if ( 0 != dontDeleteYamlEvent )
-                        {
-                            dontDeleteYamlEvent = 0;
-                            yaml_event_delete( &lastYamlEvent );
-                        }
-                        currentNesting = (UInt8) YAML_SEQUENCE_START_EVENT;
-                        PushNesting( sd, (UInt8) YAML_SEQUENCE_START_EVENT );
-                        break;
-                    }
-                    case YAML_SEQUENCE_END_EVENT:    
-                    {
-                        const char* name = yamlEvent.data.sequence_start.tag;
-                        sd->handlers.OnNodeChildrenEnd( sd->privdata, name );
-                        sd->handlers.OnNodeEnd( sd->privdata, name );
-                        currentNesting = PopNesting( sd );
-                        if ( YAML_MAPPING_START_EVENT == currentNesting )
-                            nextScalarIsAKey = 1;
-                        else
-                            nextScalarIsAKey = 0;
-                        break;
-                    }
-                    case YAML_MAPPING_START_EVENT:   
-                    {
-                        const char* name = GUCEF_NULL;
-                        if ( 0 != dontDeleteYamlEvent )
-                            name = lastYamlEvent.data.scalar.value;
-                        currentNesting = (UInt8) YAML_MAPPING_START_EVENT;
-                        nextScalarIsAKey = 1;
-                        sd->handlers.OnNodeBegin( sd->privdata, name, GUCEF_DATATYPE_OBJECT );
-                        sd->handlers.OnNodeChildrenBegin( sd->privdata, name );
-                        if ( 0 != dontDeleteYamlEvent )
-                        {
-                            dontDeleteYamlEvent = 0;
-                            yaml_event_delete( &lastYamlEvent );
-                        }
-                        PushNesting( sd, (UInt8) YAML_MAPPING_START_EVENT );
-                        break;
-                    }
-                    case YAML_MAPPING_END_EVENT:   
-                    {
-                        const char* name = yamlEvent.data.mapping_start.tag;
-                        sd->handlers.OnNodeChildrenEnd( sd->privdata, name );
-                        sd->handlers.OnNodeEnd( sd->privdata, name );
-                        currentNesting = PopNesting( sd );
-                        if ( YAML_MAPPING_START_EVENT == currentNesting )
-                            nextScalarIsAKey = 1;
-                        else
-                            nextScalarIsAKey = 0;
-                        break;
-                    }
+    //            switch ( yamlEvent.type )
+    //            { 
+    //                case YAML_NO_EVENT: 
+    //                    break; 
+    //                
+    //                /* Stream start/end */
+    //                case YAML_STREAM_START_EVENT:
+    //                {
+    //                    sd->stringEncodingType = YamlEncodingToGucefDataType( yamlEvent.data.stream_start.encoding );
+    //                    break;
+    //                }
+    //                case YAML_STREAM_END_EVENT: 
+    //                    break;
 
-                    /* Data */
+    //                /* Block delimeters */
+    //                case YAML_DOCUMENT_START_EVENT:
+    //                {
+    //                    (*sd->handlers.OnTreeBegin)( sd->privdata );
+    //                    break;
+    //                }
+    //                case YAML_DOCUMENT_END_EVENT:    
+    //                {
+    //                    (*sd->handlers.OnTreeEnd)( sd->privdata );
+    //                    break;
+    //                }
+    //                case YAML_SEQUENCE_START_EVENT:  
+    //                {
+    //                    const char* name = GUCEF_NULL;
+    //                    if ( 0 != dontDeleteYamlEvent )
+    //                        name = lastYamlEvent.data.scalar.value;
+    //                    sd->handlers.OnNodeBegin( sd->privdata, name, GUCEF_DATATYPE_ARRAY );
+    //                    sd->handlers.OnNodeChildrenBegin( sd->privdata, name );
+    //                    if ( 0 != dontDeleteYamlEvent )
+    //                    {
+    //                        dontDeleteYamlEvent = 0;
+    //                        yaml_event_delete( &lastYamlEvent );
+    //                    }
+    //                    currentNesting = (UInt8) YAML_SEQUENCE_START_EVENT;
+    //                    PushNesting( sd, (UInt8) YAML_SEQUENCE_START_EVENT );
+    //                    break;
+    //                }
+    //                case YAML_SEQUENCE_END_EVENT:    
+    //                {
+    //                    const char* name = yamlEvent.data.sequence_start.tag;
+    //                    sd->handlers.OnNodeChildrenEnd( sd->privdata, name );
+    //                    sd->handlers.OnNodeEnd( sd->privdata, name );
+    //                    currentNesting = PopNesting( sd );
+    //                    if ( YAML_MAPPING_START_EVENT == currentNesting )
+    //                        nextScalarIsAKey = 1;
+    //                    else
+    //                        nextScalarIsAKey = 0;
+    //                    break;
+    //                }
+    //                case YAML_MAPPING_START_EVENT:   
+    //                {
+    //                    const char* name = GUCEF_NULL;
+    //                    if ( 0 != dontDeleteYamlEvent )
+    //                        name = lastYamlEvent.data.scalar.value;
+    //                    currentNesting = (UInt8) YAML_MAPPING_START_EVENT;
+    //                    nextScalarIsAKey = 1;
+    //                    sd->handlers.OnNodeBegin( sd->privdata, name, GUCEF_DATATYPE_OBJECT );
+    //                    sd->handlers.OnNodeChildrenBegin( sd->privdata, name );
+    //                    if ( 0 != dontDeleteYamlEvent )
+    //                    {
+    //                        dontDeleteYamlEvent = 0;
+    //                        yaml_event_delete( &lastYamlEvent );
+    //                    }
+    //                    PushNesting( sd, (UInt8) YAML_MAPPING_START_EVENT );
+    //                    break;
+    //                }
+    //                case YAML_MAPPING_END_EVENT:   
+    //                {
+    //                    const char* name = yamlEvent.data.mapping_start.tag;
+    //                    sd->handlers.OnNodeChildrenEnd( sd->privdata, name );
+    //                    sd->handlers.OnNodeEnd( sd->privdata, name );
+    //                    currentNesting = PopNesting( sd );
+    //                    if ( YAML_MAPPING_START_EVENT == currentNesting )
+    //                        nextScalarIsAKey = 1;
+    //                    else
+    //                        nextScalarIsAKey = 0;
+    //                    break;
+    //                }
 
-                    case YAML_ALIAS_EVENT:   
-                        break;
-                        
-                    case YAML_SCALAR_EVENT:  
-                    {
-                        if ( 0 != nextScalarIsAKey )
-                        {
-                            memcpy( &lastYamlEvent, &yamlEvent, sizeof( yamlEvent ) );
-                            dontDeleteYamlEvent = 1;
-                            nextScalarIsAKey = 0;                         
-                        }
-                        else
-                        {
-                            TVariantData var;
-                            memset( &var, 0, sizeof( var ) );
+    //                /* Data */
 
-                            UInt8 scalarType = DetectScalarType( &yamlEvent );
-                            switch ( scalarType )
-                            {
-                                case GUCEF_DATATYPE_FLOAT64 :
-                                {
-                                    var.containedType = GUCEF_DATATYPE_FLOAT64;
-                                    var.union_data.float64_data = ToFloat64( &yamlEvent );
-                                    break;
-                                }
-                                case GUCEF_DATATYPE_INT64 :
-                                {
-                                    var.containedType = GUCEF_DATATYPE_INT64;
-                                    var.union_data.int64_data = ToInt64( &yamlEvent );
-                                    break;
-                                }
-                                case GUCEF_DATATYPE_BOOLEAN_ASCII_STRING :
-                                case GUCEF_DATATYPE_UTF8_STRING:
-                                case GUCEF_DATATYPE_UTF16_LE_STRING:
-                                case GUCEF_DATATYPE_UTF16_BE_STRING:
-                                default:
-                                {
-                                    var.containedType = scalarType;
-                                    var.union_data.heap_data.heap_data_is_linked = 1;
-                                    var.union_data.heap_data.heap_data_size = (UInt32) yamlEvent.data.scalar.length+1;
-                                    var.union_data.heap_data.union_data.char_heap_data = yamlEvent.data.scalar.value;
-                                    break;
-                                }
-                            }
+    //                case YAML_ALIAS_EVENT:   
+    //                    break;
+    //                    
+    //                case YAML_SCALAR_EVENT:  
+    //                {
+    //                    if ( 0 != nextScalarIsAKey )
+    //                    {
+    //                        memcpy( &lastYamlEvent, &yamlEvent, sizeof( yamlEvent ) );
+    //                        dontDeleteYamlEvent = 1;
+    //                        nextScalarIsAKey = 0;                         
+    //                    }
+    //                    else
+    //                    {
+    //                        TVariantData var;
+    //                        memset( &var, 0, sizeof( var ) );
 
-                            yaml_char_t* key = GUCEF_NULL;
-                            if ( YAML_MAPPING_START_EVENT == currentNesting )
-                            {
-                                key = lastYamlEvent.data.scalar.value;
-                                nextScalarIsAKey = 1;
-                            }
+    //                        UInt8 scalarType = DetectScalarType( &yamlEvent );
+    //                        switch ( scalarType )
+    //                        {
+    //                            case GUCEF_DATATYPE_FLOAT64 :
+    //                            {
+    //                                var.containedType = GUCEF_DATATYPE_FLOAT64;
+    //                                var.union_data.float64_data = ToFloat64( &yamlEvent );
+    //                                break;
+    //                            }
+    //                            case GUCEF_DATATYPE_INT64 :
+    //                            {
+    //                                var.containedType = GUCEF_DATATYPE_INT64;
+    //                                var.union_data.int64_data = ToInt64( &yamlEvent );
+    //                                break;
+    //                            }
+    //                            case GUCEF_DATATYPE_BOOLEAN_ASCII_STRING :
+    //                            case GUCEF_DATATYPE_UTF8_STRING:
+    //                            case GUCEF_DATATYPE_UTF16_LE_STRING:
+    //                            case GUCEF_DATATYPE_UTF16_BE_STRING:
+    //                            default:
+    //                            {
+    //                                var.containedType = scalarType;
+    //                                var.union_data.heap_data.heap_data_is_linked = 1;
+    //                                var.union_data.heap_data.heap_data_size = (UInt32) yamlEvent.data.scalar.length+1;
+    //                                var.union_data.heap_data.union_data.char_heap_data = yamlEvent.data.scalar.value;
+    //                                break;
+    //                            }
+    //                        }
 
-                            sd->handlers.OnNodeAtt( sd->privdata, "", key, &var );
+    //                        yaml_char_t* key = GUCEF_NULL;
+    //                        if ( YAML_MAPPING_START_EVENT == currentNesting )
+    //                        {
+    //                            key = lastYamlEvent.data.scalar.value;
+    //                            nextScalarIsAKey = 1;
+    //                        }
 
-                            if ( YAML_MAPPING_START_EVENT == currentNesting )
-                            {
-                                yaml_event_delete( &lastYamlEvent );
-                                dontDeleteYamlEvent = 0;
-                            }
-                        }
-                        break;
-                    }
-                }
+    //                        sd->handlers.OnNodeAtt( sd->privdata, "", key, &var );
 
-                if( yamlEvent.type != YAML_STREAM_END_EVENT && 0 == dontDeleteYamlEvent )
-                    yaml_event_delete( &yamlEvent );
+    //                        if ( YAML_MAPPING_START_EVENT == currentNesting )
+    //                        {
+    //                            yaml_event_delete( &lastYamlEvent );
+    //                            dontDeleteYamlEvent = 0;
+    //                        }
+    //                    }
+    //                    break;
+    //                }
+    //            }
 
-            } 
-            while( yamlEvent.type != YAML_STREAM_END_EVENT );
-            yaml_event_delete( &yamlEvent );
+    //            if( yamlEvent.type != YAML_STREAM_END_EVENT && 0 == dontDeleteYamlEvent )
+    //                yaml_event_delete( &yamlEvent );
 
-            return 0; /* error code of 0 means no error */
-        }
-    }
+    //        } 
+    //        while( yamlEvent.type != YAML_STREAM_END_EVENT );
+    //        yaml_event_delete( &yamlEvent );
+
+    //        return 0; /* error code of 0 means no error */
+    //    }
+    //}
     return 1;
 }
 
@@ -1117,7 +1206,8 @@ DSTOREPLUG_Start_Reading( void** plugdata ,
 
 const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Type( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
+{GUCEF_TRACE;
+
     return "protobuf";
 }
 
@@ -1125,7 +1215,8 @@ DSTOREPLUG_Type( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 
 const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Name( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
+{GUCEF_TRACE;
+
     return "gucefCORE DSTORE codec plugin utilizing libprotobuf for reading/writing the protobuf format";
 }
 
@@ -1133,16 +1224,18 @@ DSTOREPLUG_Name( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 
 const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Copyright( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
+{GUCEF_TRACE;
+
     return "Copyright (C) Dinand Vanvelzen. 1998 - 2025. Licensed under the Apache License, Version 2.0 (the \"License\")";
 }
 
 /*---------------------------------------------------------------------------*/
 
-const TVersion* GUCEF_PLUGIN_CALLSPEC_PREFIX
+const CORE::TVersion* GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Version( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    static TVersion version;
+{GUCEF_TRACE;
+
+    static CORE::TVersion version;
     version.major = VERSION_MAJOR_FIELD;
     version.minor = VERSION_MINOR_FIELD;
     version.patch = VERSION_PATCH_FIELD;
@@ -1151,4 +1244,28 @@ DSTOREPLUG_Version( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
     return &version;
 }
 
-/*---------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      NAMESPACE                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+}; /* namespace PROTOBUF */
+}; /* namespace DSTOREPLUGIN */
+}; /* namespace GUCEF */
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      MACROS                                                             //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/* restore structure packing */
+#if (defined(_WIN32) || defined(__WIN32__))
+#pragma pack(pop)
+#else
+#pragma pack()
+#endif /* WIN32 */
+
+/*-------------------------------------------------------------------------*/
+

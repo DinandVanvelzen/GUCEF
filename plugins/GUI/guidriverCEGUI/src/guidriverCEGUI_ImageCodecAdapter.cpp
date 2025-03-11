@@ -102,13 +102,13 @@ ImageCodecAdapter::getSupportedFormat() const
 
     IMAGE::CImageCodecRegistry& codecRegistry = IMAGE::CImageGlobal::Instance()->GetImageCodecRegistry();
     
-    IMAGE::CImageCodecRegistry::TStringList codecList;
-    codecRegistry.GetList( codecList );
+    CORE::CString::StringVector codecList;
+    codecRegistry.GetRegisteredObjNames( codecList );
     
     static CEGUI::String formatStr;
 
     formatStr.clear();
-    IMAGE::CImageCodecRegistry::TStringList::iterator i = codecList.begin();
+    CORE::CString::StringVector::iterator i = codecList.begin();
     while ( i != codecList.end() )
     {
         if ( !formatStr.empty() )

@@ -57,6 +57,16 @@
 
 #include "CDStoreCodecPlugin.h"  /* definition of the class implemented here */
 
+#ifndef GUCEF_CORE_C_API_H
+#include "gucefCORE_c_api.h"
+#define GUCEF_CORE_C_API_H
+#endif /* GUCEF_CORE_C_API_H ? */
+
+#ifndef GUCEF_CORE_C_API_IMP_H
+#include "gucefCORE_c_api_impl.h"
+#define GUCEF_CORE_C_API_IMP_H
+#endif /* GUCEF_CORE_C_API_IMP_H ? */
+
 #ifndef GUCEF_CORE_GUCEF_ESSENTIALS_H
 #include "gucef_essentials.h"
 #define GUCEF_CORE_GUCEF_ESSENTIALS_H
@@ -116,7 +126,7 @@ enum
 
 /*-------------------------------------------------------------------------*/
 
-typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Init )                ( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Init )                ( void** plugdata, TGucefCoreCApi* libApi ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Shutdown )              ( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef const char* ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Name )           ( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef const char* ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Copyright )      ( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
@@ -401,7 +411,9 @@ CDStoreCodecPlugin::Link( void* modulePtr                   ,
         /*
          *      Intialize the plugin module
          */
-        UInt32 statusCode = ( (TDSTOREPLUGFPTR_Init) _fptable[ DSTOREPLUG_INIT ] )( &_plugdata );
+        TGucefCoreCApi libraryCApi;
+        GUCEF_CORE_LinkCApi( &libraryCApi );
+        UInt32 statusCode = ( (TDSTOREPLUGFPTR_Init) _fptable[ DSTOREPLUG_INIT ] )( &_plugdata, &libraryCApi );
         if ( statusCode > 0 )
         {
             // We have loaded & linked our plugin module

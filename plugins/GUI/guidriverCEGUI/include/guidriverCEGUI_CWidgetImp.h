@@ -617,7 +617,7 @@ CWidgetImp< BaseClass >::SetProperties( const GUCEF::CORE::CValueList& list )
     {
         try
         {
-            m_window->setProperty( list.GetKey( i ).C_String()              ,
+            m_window->setProperty( list.GetKey( i ).AsString().C_String()   ,
                                    list.GetValue( i ).AsString().C_String() );
         }
         catch ( CEGUI::UnknownObjectException& )

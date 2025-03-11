@@ -54,6 +54,23 @@
 #define GUCEF_CORE_C_VARIANTDATA_H
 #endif /* GUCEF_CORE_C_VARIANTDATA_H ? */
  
+#ifndef GUCEF_CORE_C_API_H
+#include "gucefCORE_c_api.h"
+#define GUCEF_CORE_C_API_H
+#endif /* GUCEF_CORE_C_API_H ? */
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      NAMESPACE                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+#ifdef __cplusplus
+namespace GUCEF {
+namespace DSTOREPLUGIN {
+namespace PROTOBUF {
+#endif /* __cplusplus */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      MACROS                                                             //
@@ -76,13 +93,15 @@
  *      Prevent C++ name mangling
  */
 #ifdef __cplusplus
+using namespace ::GUCEF;
+using namespace ::GUCEF::CORE;
 extern "C" {
 #endif
 
 /*---------------------------------------------------------------------------*/
 
 DSTOREPLUG_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Init( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+DSTOREPLUG_Init( void** plugdata, TGucefCoreCApi* libApi ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*---------------------------------------------------------------------------*/
 
@@ -200,6 +219,18 @@ DSTOREPLUG_Version( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
    }
 #endif /* __cplusplus */
 
-/*--------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      NAMESPACE                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+#ifdef __cplusplus
+}; /* namespace PROTOBUF */
+}; /* namespace DSTOREPLUGIN */
+}; /* namespace GUCEF */
+#endif /* __cplusplus */
+
+/*-------------------------------------------------------------------------*/
 
 #endif /* DLLMAINDSTOREPLUGINPROTOBUF_H ? */

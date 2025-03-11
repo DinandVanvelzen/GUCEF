@@ -26,8 +26,8 @@
  *  from changes within the C++ code which would normally require re-linking.
  */
  
-#ifndef GUCEF_CINTERFACE_H
-#define GUCEF_CINTERFACE_H
+#ifndef GUCEF_CORE_C_API_IMP_H
+#define GUCEF_CORE_C_API_IMP_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -40,6 +40,11 @@
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
 
+#ifndef GUCEF_CORE_C_API_H
+#include "gucefCORE_c_api.h"
+#define GUCEF_CORE_C_API_H
+#endif /* GUCEF_CORE_C_API_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -49,6 +54,11 @@
 #ifdef __cplusplus
    extern "C" {
 #endif   /* __cplusplus */
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_CORE_PUBLIC_C void
+GUCEF_CORE_LinkCApi( TGucefCoreCApi* cApi );
 
 /*-------------------------------------------------------------------------*/
 
@@ -98,15 +108,4 @@ GUCEF_CORE_GucefLog( int logType     ,
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_CINTERFACE_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 04-05-2005 :
-        - Dinand: Initial version.
-
----------------------------------------------------------------------------*/
+#endif /* GUCEF_CORE_C_API_IMP_H ? */
