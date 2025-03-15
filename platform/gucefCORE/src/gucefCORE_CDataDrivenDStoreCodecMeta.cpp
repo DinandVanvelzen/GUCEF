@@ -23,6 +23,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CDATANODE_H 
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
+
 #include "gucefCORE_CDataDrivenDStoreCodecMeta.h"       
 
 /*-------------------------------------------------------------------------//
@@ -210,7 +215,14 @@ bool
 CDataDrivenDStoreCodecMeta::SaveConfig( CDataNode& config ) const
 {GUCEF_TRACE;
 
-    return false;
+    bool totalSuccess = true;
+    totalSuccess = config.SetAttribute( "baseCodecTypeName", m_baseCodecTypeName ) && totalSuccess;
+    totalSuccess = config.SetAttribute( "dataDrivenCodecTypeName", m_dataDrivenCodecTypeName ) && totalSuccess;
+    totalSuccess = config.SetMappedValuesOfChildByName( "resources", m_resources ) && totalSuccess;
+    totalSuccess = config.SetMappedValuesOfChildByName( "params", m_params ) && totalSuccess;
+    totalSuccess = config.SetAttribute( "isShareable", m_isShareable ) && totalSuccess;
+    
+    return totalSuccess;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -219,7 +231,14 @@ bool
 CDataDrivenDStoreCodecMeta::LoadConfig( const CDataNode& config )
 {GUCEF_TRACE;
 
-    return false;
+    bool totalSuccess = true;
+    m_baseCodecTypeName = config.GetAttributeValueOrChildValueByName( "baseCodecTypeName" ).AsString( m_baseCodecTypeName, true );
+    m_dataDrivenCodecTypeName = config.GetAttributeValueOrChildValueByName( "dataDrivenCodecTypeName" ).AsString( m_dataDrivenCodecTypeName, true );
+    totalSuccess = config.GetMappedValuesOfChildByName( "resources", m_resources ) && totalSuccess;
+    totalSuccess = config.GetMappedValuesOfChildByName( "params", m_params ) && totalSuccess;
+    m_isShareable = config.GetAttributeValueOrChildValueByName( "isShareable" ).AsBool( m_isShareable, true );
+
+    return totalSuccess;
 }
 
 /*-------------------------------------------------------------------------*/

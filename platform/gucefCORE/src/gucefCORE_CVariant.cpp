@@ -4070,6 +4070,22 @@ ToStringSet( const CVariant::VariantSet& var )
     return result;
 }
 
+/*-------------------------------------------------------------------------*/
+
+CString::StringMap 
+ToStringMap( const CVariant::VariantMap& var )
+{GUCEF_TRACE;
+
+    CString::StringMap result;
+    CVariant::VariantMap::const_iterator i = var.begin();
+    while ( i != var.end() )
+    {
+        result[ (*i).first.AsString() ] = (*i).second.AsString();
+        ++i;
+    }
+    return result;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

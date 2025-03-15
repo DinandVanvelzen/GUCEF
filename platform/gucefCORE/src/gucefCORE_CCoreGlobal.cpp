@@ -173,10 +173,10 @@
 #define GUCEF_CORE_CFILESYSTEMURIRESOURCEACCESSOR_H
 #endif /* GUCEF_CORE_CFILESYSTEMURIRESOURCEACCESSOR_H ? */
 
-#ifndef GUCEF_CORE_CDATADRIVENDSTORECODECFACTORY_H
-#include "gucefCORE_CDataDrivenDStoreCodecFactory.h"
-#define GUCEF_CORE_CDATADRIVENDSTORECODECFACTORY_H
-#endif /* GUCEF_CORE_CDATADRIVENDSTORECODECFACTORY_H ? */
+#ifndef GUCEF_CORE_CGLOBALDATADRIVENDSTORECODECFACTORY_H
+#include "gucefCORE_CGlobalDataDrivenDStoreCodecFactory.h"
+#define GUCEF_CORE_CGLOBALDATADRIVENDSTORECODECFACTORY_H
+#endif /* GUCEF_CORE_CGLOBALDATADRIVENDSTORECODECFACTORY_H ? */
 
 #if GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
 
@@ -345,7 +345,7 @@ CCoreGlobal::Initialize( void )
     m_application = GUCEF_NEW CGUCEFApplication();
     m_taskManager = GUCEF_NEW CTaskManager();
     m_dstoreCodecRegistry = GUCEF_NEW CDStoreCodecRegistry();
-    m_dataDrivenDStoreCodecFactory = GUCEF_NEW CDataDrivenDStoreCodecFactory();
+    m_dataDrivenDStoreCodecFactory = GUCEF_NEW CGlobalDataDrivenDStoreCodecFactory();
     m_codecRegistry = GUCEF_NEW CCodecRegistry();
     m_pluginControl = GUCEF_NEW CPluginControl();
     m_dstoreCodecPluginManager = GUCEF_NEW CDStoreCodecPluginManager();
@@ -430,7 +430,7 @@ CCoreGlobal::~CCoreGlobal()
     m_uriResourceAccessorFactory = GUCEF_NULL;
     GUCEF_DELETE m_dstoreCodecRegistry;
     m_dstoreCodecRegistry = GUCEF_NULL;
-    GUCEF_DELETE m_dataDrivenDStoreCodecFactory;
+    GUCEF_DELETE static_cast< CGlobalDataDrivenDStoreCodecFactory* >( m_dataDrivenDStoreCodecFactory );
     m_dataDrivenDStoreCodecFactory = GUCEF_NULL;
     GUCEF_DELETE m_exclusiveActivationManager;
     m_exclusiveActivationManager = GUCEF_NULL;

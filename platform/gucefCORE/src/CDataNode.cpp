@@ -1887,6 +1887,133 @@ CDataNode::GetValuesOfChildByName( const CString& name           ,
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CDataNode::SetMappedValuesOfChildByName( const CString& name                  ,
+                                         const CDataNode::TVariantMap& values ,
+                                         bool linkIfPossible                  )
+{GUCEF_TRACE;
+
+    CDataNode* collectionNode = FindOrAddChild( name );
+    if ( GUCEF_NULL != collectionNode )
+    {
+        CDataNode::TVariantMap::const_iterator v = values.begin();
+        while ( v != values.end() )
+        {
+            CDataNode* childNode = collectionNode->FindOrAddChild( v->first );
+            if ( GUCEF_NULL == childNode )
+            {
+                if ( linkIfPossible )
+                {
+                    CVariant& valueVar = childNode->GetValue();
+                    valueVar.LinkTo( v->second );
+                }
+                else
+                {
+                    childNode->SetValue( v->second );
+                }
+            }
+
+            ++v;
+        }
+
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CDataNode::SetMappedValuesOfChildByName( const CString& name              ,
+                                         const CString::StringMap& values )
+{GUCEF_TRACE;
+
+    CDataNode* collectionNode = FindOrAddChild( name );
+    if ( GUCEF_NULL != collectionNode )
+    {
+        CString::StringMap::const_iterator v = values.begin();
+        while ( v != values.end() )
+        {
+            CDataNode* childNode = collectionNode->FindOrAddChild( v->first );
+            if ( GUCEF_NULL == childNode )
+            {
+                childNode->SetValue( v->second );
+            }
+
+            ++v;
+        }
+
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::GetMappedValuesOfChildByName( const CString& name               ,
+                                         CDataNode::TVariantMap& outValues ,
+                                         bool linkIfPossible               ) const
+{GUCEF_TRACE;
+
+    CDataNode* collectionNode = FindChild( name );
+    if ( GUCEF_NULL != collectionNode )
+    {
+        TDataNodeList::const_iterator i = collectionNode->m_children.begin();
+        while ( i != collectionNode->m_children.end() )
+        {
+            switch ( (*i)->GetNodeType() )
+            {
+                case GUCEF_DATATYPE_ARRAY:
+                {
+                    // Complex types cannot be obtained this way, skip
+                    break;
+                }
+                default:
+                {
+                    const CString& childName = (*i)->GetName();
+                    const CVariant& childValue = (*i)->GetValue();
+                    if ( childValue.IsInitialized() )
+                    {
+                        if ( linkIfPossible )
+                        {
+                            CVariant& valueVar = outValues[ childName ];
+                            valueVar.LinkTo( childValue );
+                        }
+                        else
+                        {
+                            outValues[ childName ] = childValue;
+                        }
+                    }
+                    break;
+                }
+            }
+            ++i;
+        }
+
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CDataNode::GetMappedValuesOfChildByName( const CString& name           ,
+                                        CString::StringMap& outValues ) const
+{GUCEF_TRACE;
+
+    TVariantMap varValues;
+    if ( GetMappedValuesOfChildByName( name, varValues, true ) )
+    {
+        outValues = ToStringMap( varValues );
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void 
 CDataNode::Delete( void )
 {GUCEF_TRACE;

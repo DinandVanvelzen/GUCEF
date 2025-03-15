@@ -90,6 +90,7 @@ class GUCEF_CORE_PUBLIC_CPP CDataNode : public CIEnumerable
     typedef std::vector< CDataNode*, gucef_allocator< CDataNode* > >                                            TDataNodeVector;
     typedef std::set< const CDataNode*, std::less< const CDataNode* >, gucef_allocator< const CDataNode* > >    TConstDataNodeSet;
     typedef std::map< CString, CVariant, std::less< CString >, gucef_allocator< TKeyValuePair >  >              TAttributeMap;
+    typedef CVariant::VariantMap                                                                                TVariantMap;
     typedef CVariant::VariantVector                                                                             TVariantVector;
     typedef CVariant::VariantSet                                                                                TVariantSet;
 
@@ -301,6 +302,21 @@ class GUCEF_CORE_PUBLIC_CPP CDataNode : public CIEnumerable
 
     bool GetValuesOfChildByName( const CString& name           ,
                                  CString::StringSet& outValues ) const;
+
+
+    bool SetMappedValuesOfChildByName( const CString& name                  ,
+                                       const CDataNode::TVariantMap& values ,
+                                       bool linkIfPossible = false          );
+
+    bool SetMappedValuesOfChildByName( const CString& name              ,
+                                       const CString::StringMap& values );                                 
+
+    bool GetMappedValuesOfChildByName( const CString& name               ,
+                                       CDataNode::TVariantMap& outValues ,
+                                       bool linkIfPossible = false       ) const;
+
+    bool GetMappedValuesOfChildByName( const CString& name           ,
+                                       CString::StringMap& outValues ) const;
 
     CDataNode* FindRoot( void ) const;
 

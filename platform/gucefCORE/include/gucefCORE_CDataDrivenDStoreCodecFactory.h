@@ -41,6 +41,11 @@
 #define GUCEF_CORE_CTONREGISTRY_H
 #endif /* GUCEF_CORE_CTONREGISTRY_H ? */
 
+#ifndef GUCEF_CORE_CGLOBALLYCONFIGURABLE_H
+#include "gucefCORE_CGloballyConfigurable.h"
+#define GUCEF_CORE_CGLOBALLYCONFIGURABLE_H
+#endif /* GUCEF_CORE_CGLOBALLYCONFIGURABLE_H ? */
+
 #ifndef GUCEF_CORE_CDSTORECODEC_H
 #include "CDStoreCodec.h"         /* base class for data storage codecs */
 #define GUCEF_CORE_CDSTORECODEC_H
@@ -83,7 +88,7 @@ namespace CORE {
  *  This is because one cannot function or be of use without the other.
  */
 class GUCEF_CORE_PUBLIC_CPP CDataDrivenDStoreCodecFactory : public CTAbstractFactoryWithParam< CString, CDataDrivenDStoreCodec, CDataDrivenDStoreCodecMetaPtr, MT::CMutex > ,
-                                                            public CTONRegistry< CDataDrivenDStoreCodecMeta, MT::CMutex >
+                                                            public CTONRegistry< CDataDrivenDStoreCodecMeta, MT::CMutex >                                                   
 {
     public:
 
@@ -96,11 +101,10 @@ class GUCEF_CORE_PUBLIC_CPP CDataDrivenDStoreCodecFactory : public CTAbstractFac
     virtual ~CDataDrivenDStoreCodecFactory( void );
 
     /**
-     *  Utility specialization of Create() which uses the contextually more natural Uri class
+     *  Utility specialization which makes utilizing the factory easier by combining the registry lookup and codec creation
      */
     TProductPtr CreateCodec( const CString& dataDrivenCodecTypeName ,
                              bool caseSensitive = true              );
-
 
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

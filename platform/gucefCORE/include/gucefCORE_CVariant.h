@@ -88,8 +88,10 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
 {
     public:
 
-    typedef std::vector< CVariant, gucef_allocator< CVariant > >                        VariantVector;
-    typedef std::set< CVariant, std::less< CVariant >, gucef_allocator< CVariant > >    VariantSet;
+    typedef std::vector< CVariant, gucef_allocator< CVariant > >                                    VariantVector;
+    typedef std::set< CVariant, std::less< CVariant >, gucef_allocator< CVariant > >                VariantSet;
+    typedef std::pair< CVariant, CVariant >                                                         VariantPair;
+    typedef std::map< CVariant, CVariant, std::less< CVariant >, gucef_allocator< VariantPair > >   VariantMap;
 
     static const CVariant           Empty;
     static const VariantVector      EmptyVector;
@@ -471,6 +473,7 @@ GUCEF_CORE_PUBLIC_CPP CString::StringVector ToStringVector( const CVariant::Vari
 GUCEF_CORE_PUBLIC_CPP CString::StringVector ToStringVector( const CVariant::VariantSet& var );
 GUCEF_CORE_PUBLIC_CPP CString::StringSet ToStringSet( const CVariant::VariantVector& var );
 GUCEF_CORE_PUBLIC_CPP CString::StringSet ToStringSet( const CVariant::VariantSet& var );
+GUCEF_CORE_PUBLIC_CPP CString::StringMap ToStringMap( const CVariant::VariantMap& var );
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

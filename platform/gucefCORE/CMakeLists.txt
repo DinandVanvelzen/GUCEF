@@ -169,6 +169,7 @@ set( HEADER_FILES
   include/gucefCORE_CGenericValueToDataNodeSerializer.h
   include/gucefCORE_CGeoLocation.h
   include/gucefCORE_CGlobalConfigValueList.h
+  include/gucefCORE_CGlobalDataDrivenDStoreCodecFactory.h
   include/gucefCORE_CGloballyConfigurable.h
   include/gucefCORE_CICallbackStyleParser.h
   include/gucefCORE_CIConfigurable.h
@@ -436,6 +437,7 @@ set( SOURCE_FILES
   src/gucefCORE_CGenericValueToDataNodeSerializer.cpp
   src/gucefCORE_CGeoLocation.cpp
   src/gucefCORE_CGlobalConfigValueList.cpp
+  src/gucefCORE_CGlobalDataDrivenDStoreCodecFactory.cpp
   src/gucefCORE_CGloballyConfigurable.cpp
   src/gucefCORE_CIConfigurable.cpp
   src/gucefCORE_CIConsoleLogger.cpp
