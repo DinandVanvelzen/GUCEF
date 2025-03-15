@@ -173,6 +173,11 @@
 #define GUCEF_CORE_CFILESYSTEMURIRESOURCEACCESSOR_H
 #endif /* GUCEF_CORE_CFILESYSTEMURIRESOURCEACCESSOR_H ? */
 
+#ifndef GUCEF_CORE_CDATADRIVENDSTORECODECFACTORY_H
+#include "gucefCORE_CDataDrivenDStoreCodecFactory.h"
+#define GUCEF_CORE_CDATADRIVENDSTORECODECFACTORY_H
+#endif /* GUCEF_CORE_CDATADRIVENDSTORECODECFACTORY_H ? */
+
 #if GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
 
   #ifndef GUCEF_CORE_CWNDMSGHOOKNOTIFIER_H
@@ -340,6 +345,7 @@ CCoreGlobal::Initialize( void )
     m_application = GUCEF_NEW CGUCEFApplication();
     m_taskManager = GUCEF_NEW CTaskManager();
     m_dstoreCodecRegistry = GUCEF_NEW CDStoreCodecRegistry();
+    m_dataDrivenDStoreCodecFactory = GUCEF_NEW CDataDrivenDStoreCodecFactory();
     m_codecRegistry = GUCEF_NEW CCodecRegistry();
     m_pluginControl = GUCEF_NEW CPluginControl();
     m_dstoreCodecPluginManager = GUCEF_NEW CDStoreCodecPluginManager();
@@ -371,6 +377,7 @@ CCoreGlobal::CCoreGlobal( void )
     , m_taskManager( GUCEF_NULL )                
     , m_urlHandlerRegistry( GUCEF_NULL )         
     , m_dstoreCodecRegistry( GUCEF_NULL )        
+    , m_dataDrivenDStoreCodecFactory( GUCEF_NULL )
     , m_exclusiveActivationManager( GUCEF_NULL ) 
     , m_application( GUCEF_NULL )                
     , m_logManager( GUCEF_NULL )                
@@ -405,6 +412,7 @@ CCoreGlobal::~CCoreGlobal()
     m_urlHandlerRegistry->UnregisterAll();
     m_codecRegistry->UnregisterAll();
     m_dstoreCodecRegistry->UnregisterAll();
+    m_dataDrivenDStoreCodecFactory->UnregisterAllConcreteFactories();
     m_pluginControl->UnloadAll();
    
 
@@ -422,6 +430,8 @@ CCoreGlobal::~CCoreGlobal()
     m_uriResourceAccessorFactory = GUCEF_NULL;
     GUCEF_DELETE m_dstoreCodecRegistry;
     m_dstoreCodecRegistry = GUCEF_NULL;
+    GUCEF_DELETE m_dataDrivenDStoreCodecFactory;
+    m_dataDrivenDStoreCodecFactory = GUCEF_NULL;
     GUCEF_DELETE m_exclusiveActivationManager;
     m_exclusiveActivationManager = GUCEF_NULL;
     GUCEF_DELETE m_application;
@@ -580,6 +590,15 @@ CCoreGlobal::GetDStoreCodecRegistry( void )
 {GUCEF_TRACE;
 
     return *m_dstoreCodecRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDataDrivenDStoreCodecFactory&
+CCoreGlobal::GetDataDrivenDStoreCodecFactory( void )
+{GUCEF_TRACE;
+
+    return *m_dataDrivenDStoreCodecFactory;
 }
 
 /*-------------------------------------------------------------------------*/

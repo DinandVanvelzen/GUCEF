@@ -95,6 +95,11 @@ class CTFactoryWithParam : public CTFactoryBaseWithParam< BaseClassType, Constru
      */
     virtual CICloneable* Clone( void ) const;
 
+    /**
+     *  Returns a string representing the name of concrete class that can be created
+     */
+    virtual CString GetConcreteClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual void DestroyObject( ConcreteClassType* objectToBeDestroyed ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual void DestroyObject( ConcreteClassType* objectToBeDestroyed, const CString& classTypeName ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -215,6 +220,16 @@ CTFactoryWithParam< BaseClassType, ConcreteClassType, ConstructionParamType, Loc
      *  to be considdered.
      */
     return GUCEF_NEW CTFactoryWithParam< BaseClassType, ConcreteClassType, ConstructionParamType, LockType >;
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< class BaseClassType, class ConcreteClassType, typename ConstructionParamType, typename LockType >
+CString
+CTFactoryWithParam< BaseClassType, ConcreteClassType, ConstructionParamType, LockType >::GetConcreteClassTypeName( void ) const
+{GUCEF_TRACE;
+
+    return ToString< ConcreteClassType >();
 }
 
 /*-------------------------------------------------------------------------//

@@ -98,6 +98,11 @@ class CTFactoryBaseWithParam : public CICloneable
      *  @return pointer to the base class of the constructed factory product
      */
     virtual TProductPtr Create( const ConstructionParamType& param  ) = 0;
+
+    /**
+     *  Returns a string representing the name of concrete class that can be created
+     */
+    virtual CString GetConcreteClassTypeName( void ) const = 0;
     
 };
 

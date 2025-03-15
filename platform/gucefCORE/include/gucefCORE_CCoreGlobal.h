@@ -76,6 +76,7 @@ class CUriResourceAccessorFactory;
 class CTaskManager;
 class CURLHandlerRegistry;
 class CDStoreCodecRegistry;
+class CDataDrivenDStoreCodecFactory;
 class CExclusiveActivationManager;
 class CGUCEFApplication;
 class CLogManager;
@@ -127,6 +128,8 @@ class GUCEF_CORE_PUBLIC_CPP CCoreGlobal
 
     CDStoreCodecRegistry& GetDStoreCodecRegistry( void );
 
+    CDataDrivenDStoreCodecFactory& GetDataDrivenDStoreCodecFactory( void );
+
     CDStoreCodecPluginManager& GetDStoreCodecPluginManager( void );
 
     CGenericPluginManager& GetGenericPluginManager( void );
@@ -176,6 +179,7 @@ class GUCEF_CORE_PUBLIC_CPP CCoreGlobal
     CTaskManager* m_taskManager;
     CURLHandlerRegistry* m_urlHandlerRegistry;
     CDStoreCodecRegistry* m_dstoreCodecRegistry;
+    CDataDrivenDStoreCodecFactory* m_dataDrivenDStoreCodecFactory;
     CExclusiveActivationManager* m_exclusiveActivationManager;
     CGUCEFApplication* m_application;
     CLogManager* m_logManager;

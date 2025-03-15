@@ -1615,10 +1615,12 @@ MergeModuleInfo( CModuleInfo& targetModuleInfo          ,
     if ( moduleInfoToMergeIn.hasIgnoreModule )
     {
         targetModuleInfo.ignoreModule = moduleInfoToMergeIn.ignoreModule;
+        targetModuleInfo.hasIgnoreModule = true;
     }
     if ( moduleInfoToMergeIn.hasConsiderSubDirs )
     {
         targetModuleInfo.considerSubDirs = moduleInfoToMergeIn.considerSubDirs;
+        targetModuleInfo.hasConsiderSubDirs = true;
     }
 
     // Now combine the other items without overwriting

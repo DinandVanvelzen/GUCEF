@@ -39,6 +39,16 @@
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
 
+#ifndef GUCEF_CORE_C_LOGTYPES_H
+#include "gucefCORE_c_logtypes.h"
+#define GUCEF_CORE_C_LOGTYPES_H
+#endif /* GUCEF_CORE_C_LOGTYPES_H ? */
+
+#ifndef GUCEF_CORE_C_LOGLEVELS_H
+#include "gucefCORE_c_loglevels.h"
+#define GUCEF_CORE_C_LOGLEVELS_H
+#endif /* GUCEF_CORE_C_LOGLEVELS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

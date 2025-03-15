@@ -83,7 +83,7 @@ class GUCEF_CORE_PUBLIC_CPP CIConfigurable : public virtual CITypeNamed
      *      @param tree the data tree you wish to store
      *      @return wheter storing the tree was successfull
      */
-    virtual bool SaveConfig( CDataNode& tree ) const = 0;
+    virtual bool SaveConfig( CDataNode& config ) const = 0;
 
     /**
      *      Attempts to load data from the given file to the
@@ -93,7 +93,7 @@ class GUCEF_CORE_PUBLIC_CPP CIConfigurable : public virtual CITypeNamed
      *      @param treeroot pointer to the node that is to act as root of the data tree
      *      @return whether building the tree from the given file was successfull.
      */
-    virtual bool LoadConfig( const CDataNode& treeroot ) = 0;
+    virtual bool LoadConfig( const CDataNode& config ) = 0;
 
 };
 

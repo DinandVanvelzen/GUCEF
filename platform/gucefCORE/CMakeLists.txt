@@ -144,6 +144,9 @@ set( HEADER_FILES
   include/gucefCORE_CCharSepLoggingFormatter.h
   include/gucefCORE_CCoreGlobal.h
   include/gucefCORE_CDStoreBinaryCodec.h
+  include/gucefCORE_CDataDrivenDStoreCodec.h
+  include/gucefCORE_CDataDrivenDStoreCodecFactory.h
+  include/gucefCORE_CDataDrivenDStoreCodecMeta.h
   include/gucefCORE_CDataNodeBinarySerializer.h
   include/gucefCORE_CDataNodeDefinition.h
   include/gucefCORE_CDataNodeDocumentBuilder.h
@@ -275,16 +278,20 @@ set( HEADER_FILES
   include/streamables.h
   include/streamers.h
   include/tsprinting.h
-  include/c_api/gucefCORE_CTVariantVectorApi.h
+  include/c_api/gucefCORE_CTVariantMapAdapter_Cpp2C.h
+  include/c_api/gucefCORE_CTVariantVectorAdapter_Cpp2C.h
   include/c_api/gucefCORE_c_api.h
   include/c_api/gucefCORE_c_document_parser_callbacks.h
   include/c_api/gucefCORE_c_fractiondata.h
   include/c_api/gucefCORE_c_function_definition.h
   include/c_api/gucefCORE_c_function_param_types.h
   include/c_api/gucefCORE_c_ioaccess.h
+  include/c_api/gucefCORE_c_loglevels.h
+  include/c_api/gucefCORE_c_logtypes.h
   include/c_api/gucefCORE_c_pointerdata.h
   include/c_api/gucefCORE_c_valuemap_parser_callbacks.h
   include/c_api/gucefCORE_c_variantdata.h
+  include/c_api/gucefCORE_c_variantmap.h
   include/c_api/gucefCORE_c_variantvector.h
 )
 
@@ -405,6 +412,9 @@ set( SOURCE_FILES
   src/gucefCORE_CCharSepLoggingFormatter.cpp
   src/gucefCORE_CCoreGlobal.cpp
   src/gucefCORE_CDStoreBinaryCodec.cpp
+  src/gucefCORE_CDataDrivenDStoreCodec.cpp
+  src/gucefCORE_CDataDrivenDStoreCodecFactory.cpp
+  src/gucefCORE_CDataDrivenDStoreCodecMeta.cpp
   src/gucefCORE_CDataNodeBinarySerializer.cpp
   src/gucefCORE_CDataNodeDefinition.cpp
   src/gucefCORE_CDataNodeDocumentBuilder.cpp

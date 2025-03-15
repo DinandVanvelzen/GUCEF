@@ -132,5 +132,26 @@
 
 /*-------------------------------------------------------------------------*/
 
+#undef GUCEF_PREDICT_IS_SUPPORTED
+#undef GUCEF_PREDICT_TRUE
+#undef GUCEF_PREDICT_FALSE
+#if defined( GUCEF_PREDICT_TRUE ) || defined( GUCEF_PREDICT_FALSE )
+  #error GUCEF_PREDICT_(TRUE|FALSE) was previously defined
+#endif
+#if ( defined(_MSC_VER) && _MSVC_LANG>= 202002L ) || __cplusplus >= 202002L  /* Are we using C++20 or newer? If so use attributes */
+  #define GUCEF_PREDICT_TRUE( x ) ( x ) [[likely]]
+  #define GUCEF_PREDICT_FALSE( x ) ( x ) [[unlikely]]
+  #define GUCEF_PREDICT_IS_SUPPORTED 1
+#elif ( ( GUCEF_COMPILER == GUCEF_COMPILER_GNUC ) && ( GCC_VERSION >= 30000 ) )
+  #define GUCEF_PREDICT_TRUE( x ) (__builtin_expect(false || (x), true))
+  #define GUCEF_PREDICT_FALSE( x ) (__builtin_expect(false || (x), false))
+  #define GUCEF_PREDICT_IS_SUPPORTED 1
+#else
+  #define GUCEF_PREDICT_TRUE( x ) ( x )
+  #define GUCEF_PREDICT_FALSE( x ) ( x )
+#endif
+
+/*-------------------------------------------------------------------------*/
+
 #endif /* GUCEF_CPP_H ? */
 

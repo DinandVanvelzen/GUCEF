@@ -59,7 +59,8 @@ namespace CORE {
 class GUCEF_CORE_PUBLIC_CPP CDStoreCodecRegistry : public CTRegistry< CDStoreCodec, MT::CMutex >
 {
     public:
-    typedef TRegisteredObjPtr TDStoreCodecPtr;
+
+    typedef typename CTRegistry< CDStoreCodec, MT::CMutex >::TRegisteredObjPtr TDStoreCodecPtr;
 
     virtual const CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

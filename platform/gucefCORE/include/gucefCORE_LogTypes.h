@@ -31,6 +31,11 @@
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
 
+#ifndef GUCEF_CORE_C_LOGTYPES_H
+#include "gucefCORE_c_logtypes.h"
+#define GUCEF_CORE_C_LOGTYPES_H
+#endif /* GUCEF_CORE_C_LOGTYPES_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -48,20 +53,20 @@ namespace CORE {
 
 enum ELogMsgType
 {
-    LOG_ERROR,     /**< I strongly suggest you use this for logging serious errors only */
-    LOG_WARNING,   /**< used for something that could be a problem but not necessarily so */
-    LOG_STANDARD,  /**< can be anything */
-    LOG_USER,      /**< typically info that relates to user actions */
-    LOG_SYSTEM,    /**< typically info that relates to the state of of the system */
-    LOG_DEV,       /**< typically info that will be of interest to developers */
-    LOG_DEBUG,     /**< typically info that wont be logged in a release build, just for debugging */
-    LOG_SERVICE,   /**< typically info useful to a service engineer */
-    LOG_PROTECTED, /**< typically used for logging info that should be encrypted before being stored */
-    LOG_CALLSTACK, /**< typically used for logging the call stack of a running application for debugging purposes */
-    LOG_EXCEPTION, /**< typically used for logging exception details just before throwing an exception, see exception macros */
-    LOG_CONSOLE,   /**< typically used for logging input/output of the system console */
-
-    LOG_UNKNOWNTYPE /**< reserved for initialization of a ELogMsgType variable with a debug value */
+    LOG_UNKNOWNTYPE = GUCEF_LOGMSGTYPE_UNKNOWNTYPE, /**< reserved for initialization of a ELogMsgType variable with a debug value */
+    
+    LOG_ERROR = GUCEF_LOGMSGTYPE_ERROR,             /**< I strongly suggest you use this for logging serious errors only */
+    LOG_WARNING = GUCEF_LOGMSGTYPE_WARNING,         /**< used for something that could be a problem but not necessarily so */
+    LOG_STANDARD = GUCEF_LOGMSGTYPE_STANDARD,       /**< can be anything */
+    LOG_USER = GUCEF_LOGMSGTYPE_USER,               /**< typically info that relates to user actions */
+    LOG_SYSTEM = GUCEF_LOGMSGTYPE_SYSTEM,           /**< typically info that relates to the state of of the system */
+    LOG_DEV = GUCEF_LOGMSGTYPE_DEV,                 /**< typically info that will be of interest to developers */
+    LOG_DEBUG = GUCEF_LOGMSGTYPE_DEBUG,             /**< typically info that wont be logged in a release build, just for debugging */
+    LOG_SERVICE = GUCEF_LOGMSGTYPE_SERVICE,         /**< typically info useful to a service engineer */
+    LOG_PROTECTED = GUCEF_LOGMSGTYPE_PROTECTED,     /**< typically used for logging info that should be encrypted before being stored */
+    LOG_CALLSTACK = GUCEF_LOGMSGTYPE_CALLSTACK,     /**< typically used for logging the call stack of a running application for debugging purposes */
+    LOG_EXCEPTION = GUCEF_LOGMSGTYPE_EXCEPTION,     /**< typically used for logging exception details just before throwing an exception, see exception macros */
+    LOG_CONSOLE = GUCEF_LOGMSGTYPE_CONSOLE          /**< typically used for logging input/output of the system console, intended to use log interface for a CLI */  
 };
 typedef enum ELogMsgType TLogMsgType;
 

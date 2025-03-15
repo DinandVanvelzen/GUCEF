@@ -97,7 +97,7 @@ class CTVariantVectorApi
 
     /*
      *  The below are the C API functions which mimic the std::vector functions
-     *  The following set works with and non-const vectors only
+     *  The following set works with non-const vectors only
      */
 
     static void push_back( void* privdata, TVariantData* data, UInt8 linkIfPossible );

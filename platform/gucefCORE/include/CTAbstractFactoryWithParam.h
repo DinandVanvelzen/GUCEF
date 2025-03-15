@@ -108,19 +108,22 @@ class CTAbstractFactoryWithParam : public CAbstractFactoryBase
      *  @return pointer to the base class of the constructed factory product
      */
     TProductPtr Create( const SelectionCriteriaType& selectedType ,
-                        const ConstructionParamType& param        );
+                        const ConstructionParamType& param        ) const;
 
     /**
      *  Constructs the concrete factory product using a class type name
      *
      *  @return pointer to the base class of the constructed factory product
      */
-    TProductPtr CreateUsingClassTypeName( const CString& classTypeName ) const;
+    TProductPtr CreateUsingClassTypeName( const CString& classTypeName       ,
+                                          const ConstructionParamType& param ) const;
 
     void RegisterConcreteFactory( const SelectionCriteriaType& selectedType ,
                                   TFactory* concreteFactory                 );
 
     void UnregisterConcreteFactory( const SelectionCriteriaType& selectedType );
+
+    void UnregisterAllConcreteFactories( void );
 
     bool IsConstructible( const SelectionCriteriaType& selectedType ) const;
 
@@ -214,11 +217,11 @@ CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionPa
 template< typename SelectionCriteriaType, class BaseClassType, typename ConstructionParamType, class LockType >
 typename CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionParamType, LockType >::TProductPtr
 CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionParamType, LockType >::Create( const SelectionCriteriaType& selectedType ,
-																                                             const ConstructionParamType& param        )
+																                                             const ConstructionParamType& param        ) const
 {GUCEF_TRACE;
 
     MT::CObjectScopeLock lock( this );
-    typename TFactoryList::iterator i( m_concreteFactoryList.find( selectedType ) );
+    typename TFactoryList::const_iterator i( m_concreteFactoryList.find( selectedType ) );
     if ( i != m_concreteFactoryList.end() )
     {
         TProductPtr product( (*i).second->Create( param ) );
@@ -232,7 +235,8 @@ CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionPa
 
 template< typename SelectionCriteriaType, class BaseClassType, typename ConstructionParamType, class LockType >
 typename CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionParamType, LockType >::TProductPtr
-CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionParamType, LockType >::CreateUsingClassTypeName( const CString& classTypeName ) const
+CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionParamType, LockType >::CreateUsingClassTypeName( const CString& classTypeName       ,
+                                                                                                                               const ConstructionParamType& param ) const
 {GUCEF_TRACE;
 
     MT::CObjectScopeLock lock( this, GUCEF_MT_VERY_LONG_LOCK_TIMEOUT );
@@ -242,7 +246,8 @@ CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionPa
     if ( i != m_concreteFactoryTypeMap.end() )
     {
         // Use the registered type name to actually carry out the creation
-        return Create( (*i).second );
+        const SelectionCriteriaType& selectedType = (*i).second;
+        return Create( selectedType, param );
     }
     return TProductPtr();
 }
@@ -353,6 +358,41 @@ CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionPa
             NotifyObservers( ConcreteFactoryUnregisteredEvent, &keyContainer );
         }
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename SelectionCriteriaType, class BaseClassType, typename ConstructionParamType, class LockType >
+void
+CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionParamType, LockType >::UnregisterAllConcreteFactories( void )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this, GUCEF_MT_VERY_LONG_LOCK_TIMEOUT );
+    while ( !m_concreteFactoryList.empty() )
+    {
+        typename TFactoryList::iterator i = m_concreteFactoryList.begin();
+        CString concreteClassTypeName = (*i).second->GetConcreteClassTypeName();
+
+        if ( m_assumeFactoryOwnership )
+        {
+            GUCEF_DELETE (*i).second;
+            (*i).second = GUCEF_NULL;
+        }
+
+        SelectionCriteriaType selectedType = (*i).first;
+        m_concreteFactoryList.erase( i );
+        m_concreteFactoryTypeMap.erase( concreteClassTypeName );
+
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "TAbstractFactoryWithParam<>: Unregistered concrete factory for type \"" + ToString( selectedType ) + "\"" );
+
+        if ( m_useEventing )
+        {
+            TKeyContainer keyContainer( selectedType );
+            NotifyObservers( ConcreteFactoryUnregisteredEvent, &keyContainer );
+        }
+    }
+
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "TAbstractFactoryWithParam<>: Unregistered all concrete factories" );
 }
 
 /*-------------------------------------------------------------------------//

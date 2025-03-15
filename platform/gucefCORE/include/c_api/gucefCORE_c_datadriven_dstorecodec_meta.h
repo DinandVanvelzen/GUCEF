@@ -17,23 +17,19 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#ifndef GUCEF_CORE_C_DATADRIVENDSTORECODECMETA_H
+#define GUCEF_CORE_C_DATADRIVENDSTORECODECMETA_H
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      INCLUDES                                                           //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
-#include "dvcppstringutils.h"
-#define GUCEF_CORE_DVCPPSTRINGUTILS_H
-#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
-
-#ifndef GUCEF_CORE_C_LOGLEVELS_H
-#include "gucefCORE_c_loglevels.h"
-#define GUCEF_CORE_C_LOGLEVELS_H
-#endif /* GUCEF_CORE_C_LOGLEVELS_H ? */
-
-#include "gucefCORE_LogLevels.h"    
+#ifndef GUCEF_CORE_C_VARIANTMAP_H
+#include "gucefCORE_c_variantmap.h"        
+#define GUCEF_CORE_C_VARIANTMAP_H
+#endif /* GUCEF_CORE_C_VARIANTMAP_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -46,46 +42,29 @@ namespace CORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      GLOBAL VARS                                                        //
+//      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-extern "C" {
+/**
+ *  Meta-data structure referencing the information that allows constructing a 
+ *  data driven data storage codec by combining the base codec type name with resources
+ *  and a data driven codec type name under which this logical codec will be registered.
+ * 
+ *  Some examples of data driven data storage codecs are:
+ *      - protobuf schema driven data storage codecs for specific data types
+ *      - kaitai schema driven data storage codecs for specific data types
+ */
+struct SDataDrivenDStoreCodecMeta
+{
+    const char* base_codec_type_name;
+    const char* data_driven_codec_typename;
+    TVariantMapApi resources;
+    TVariantMapApi params;
+    UInt8 is_shareable;
+};
 
-const Int32 LOGLEVEL_CRITICAL = GUCEF_LOGLEVEL_CRITICAL;
-const Int32 LOGLEVEL_VERY_IMPORTANT = GUCEF_LOGLEVEL_VERY_IMPORTANT;
-const Int32 LOGLEVEL_IMPORTANT = GUCEF_LOGLEVEL_IMPORTANT;
-const Int32 LOGLEVEL_NORMAL = GUCEF_LOGLEVEL_NORMAL;
-const Int32 LOGLEVEL_BELOW_NORMAL = GUCEF_LOGLEVEL_BELOW_NORMAL;
-const Int32 LOGLEVEL_EVERYTHING = GUCEF_LOGLEVEL_EVERYTHING;
-
-}
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      UTILITIES                                                          //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-#ifdef __cplusplus 
-
-CString
-LogLevelToString( const Int32 logLevel )
-{GUCEF_TRACE;
-
-    switch ( logLevel )
-    {
-        case LOGLEVEL_CRITICAL : return "CRITICAL";
-        case LOGLEVEL_VERY_IMPORTANT : return "VERY_IMPORTANT";
-        case LOGLEVEL_IMPORTANT : return "IMPORTANT";
-        case LOGLEVEL_NORMAL : return "NORMAL";
-        case LOGLEVEL_BELOW_NORMAL : return "BELOW_NORMAL";
-        case LOGLEVEL_EVERYTHING : return "EVERYTHING";
-        default : return Int32ToString( logLevel );
-    }
-}
-
-#endif
+typedef struct SDataDrivenDStoreCodecMeta TDataDrivenDStoreCodecMeta;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -97,3 +76,5 @@ LogLevelToString( const Int32 logLevel )
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
+
+#endif /* GUCEF_CORE_C_DATADRIVENDSTORECODECMETA_H ? */

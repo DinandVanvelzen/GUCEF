@@ -23,17 +23,7 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
-#include "dvcppstringutils.h"
-#define GUCEF_CORE_DVCPPSTRINGUTILS_H
-#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
-
-#ifndef GUCEF_CORE_C_LOGLEVELS_H
-#include "gucefCORE_c_loglevels.h"
-#define GUCEF_CORE_C_LOGLEVELS_H
-#endif /* GUCEF_CORE_C_LOGLEVELS_H ? */
-
-#include "gucefCORE_LogLevels.h"    
+#include "gucefCORE_CDataDrivenDStoreCodec.h"       
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -46,46 +36,22 @@ namespace CORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      GLOBAL VARS                                                        //
+//      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-extern "C" {
-
-const Int32 LOGLEVEL_CRITICAL = GUCEF_LOGLEVEL_CRITICAL;
-const Int32 LOGLEVEL_VERY_IMPORTANT = GUCEF_LOGLEVEL_VERY_IMPORTANT;
-const Int32 LOGLEVEL_IMPORTANT = GUCEF_LOGLEVEL_IMPORTANT;
-const Int32 LOGLEVEL_NORMAL = GUCEF_LOGLEVEL_NORMAL;
-const Int32 LOGLEVEL_BELOW_NORMAL = GUCEF_LOGLEVEL_BELOW_NORMAL;
-const Int32 LOGLEVEL_EVERYTHING = GUCEF_LOGLEVEL_EVERYTHING;
-
-}
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      UTILITIES                                                          //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-#ifdef __cplusplus 
-
-CString
-LogLevelToString( const Int32 logLevel )
+CDataDrivenDStoreCodec::CDataDrivenDStoreCodec( void )
+    : CDStoreCodec()
 {GUCEF_TRACE;
 
-    switch ( logLevel )
-    {
-        case LOGLEVEL_CRITICAL : return "CRITICAL";
-        case LOGLEVEL_VERY_IMPORTANT : return "VERY_IMPORTANT";
-        case LOGLEVEL_IMPORTANT : return "IMPORTANT";
-        case LOGLEVEL_NORMAL : return "NORMAL";
-        case LOGLEVEL_BELOW_NORMAL : return "BELOW_NORMAL";
-        case LOGLEVEL_EVERYTHING : return "EVERYTHING";
-        default : return Int32ToString( logLevel );
-    }
 }
 
-#endif
+/*-------------------------------------------------------------------------*/
+
+CDataDrivenDStoreCodec::~CDataDrivenDStoreCodec()
+{GUCEF_TRACE;
+
+}
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -97,3 +63,4 @@ LogLevelToString( const Int32 logLevel )
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
+

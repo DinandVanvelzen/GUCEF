@@ -39,6 +39,11 @@
 #define GUCEF_EXCEPTIONS_H
 #endif /* GUCEF_EXCEPTIONS_H ? */
 
+#ifndef GUCEF_SFINAE_H
+#include "gucef_SFINAE.h"
+#define GUCEF_SFINAE_H
+#endif /* GUCEF_SFINAE_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -225,6 +230,14 @@ class CTFraction
     private:
 
     void Normalize( void );
+
+    template < typename T = DenominatorType >
+    typename EnableIf< TypeIsUnsigned< T >::value, void >::type
+    MakeDenominatorPositive( T denomTypeVar );
+
+    template < typename T = DenominatorType >
+    typename EnableIfNot< TypeIsUnsigned< T >::value, void >::type
+    MakeDenominatorPositive( T denomTypeVar );
 
     private:
 
@@ -487,11 +500,23 @@ CTFraction< NumeratorType, DenominatorType >::FromMixedFraction( NumeratorType w
     Normalize();
 }
 
+///*-------------------------------------------------------------------------*/
+
+template < typename NumeratorType, typename DenominatorType >
+template < typename T >
+typename EnableIf< TypeIsUnsigned<T>::value, void >::type
+CTFraction< NumeratorType, DenominatorType >::MakeDenominatorPositive( T /*denomTypeVar*/ )
+{GUCEF_TRACE;
+
+    // Nothing to do here for unsigned denominators
+}
+
 /*-------------------------------------------------------------------------*/
 
 template < typename NumeratorType, typename DenominatorType >
-void
-CTFraction< NumeratorType, DenominatorType >::Normalize( void )
+template < typename T >
+typename EnableIfNot< TypeIsUnsigned<T>::value, void >::type
+CTFraction< NumeratorType, DenominatorType >::MakeDenominatorPositive( T /*denomTypeVar*/ )
 {GUCEF_TRACE;
 
     if ( m_denominator < 0 )
@@ -499,6 +524,17 @@ CTFraction< NumeratorType, DenominatorType >::Normalize( void )
         m_numerator = -m_numerator;
         m_denominator = -m_denominator;
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+template < typename NumeratorType, typename DenominatorType >
+void
+CTFraction< NumeratorType, DenominatorType >::Normalize( void )
+{GUCEF_TRACE;
+
+    MakeDenominatorPositive( m_denominator );
+    
     #if __cplusplus >= 201703L // numeric header was added in C++17
     NumeratorType gcdValue = static_cast< NumeratorType >( std::gcd( m_numerator, m_denominator ) );
     #else

@@ -17,23 +17,24 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#ifndef GUCEF_CORE_CDATADRIVENDSTORECODEC_H
+#define GUCEF_CORE_CDATADRIVENDSTORECODEC_H
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      INCLUDES                                                           //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
-#include "dvcppstringutils.h"
-#define GUCEF_CORE_DVCPPSTRINGUTILS_H
-#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
+#ifndef GUCEF_CORE_CDSTORECODEC_H
+#include "CDStoreCodec.h"       
+#define GUCEF_CORE_CDSTORECODEC_H
+#endif /* GUCEF_CORE_CDSTORECODEC_H ? */
 
-#ifndef GUCEF_CORE_C_LOGLEVELS_H
-#include "gucefCORE_c_loglevels.h"
-#define GUCEF_CORE_C_LOGLEVELS_H
-#endif /* GUCEF_CORE_C_LOGLEVELS_H ? */
-
-#include "gucefCORE_LogLevels.h"    
+#ifndef GUCEF_CORE_CDATADRIVENDSTORECODECMETA_H
+#include "gucefCORE_CDataDrivenDStoreCodecMeta.h"
+#define GUCEF_CORE_CDATADRIVENDSTORECODECMETA_H
+#endif /* GUCEF_CORE_CDATADRIVENDSTORECODECMETA_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -46,46 +47,30 @@ namespace CORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      GLOBAL VARS                                                        //
+//      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-extern "C" {
+/**
+ *  Abstract base class for data driven data storage codecs
+ *  It simple adds context that its data driven plus access to the relevant meta data
+ */
+class GUCEF_CORE_PUBLIC_CPP CDataDrivenDStoreCodec : public CDStoreCodec
+{
+    public:
 
-const Int32 LOGLEVEL_CRITICAL = GUCEF_LOGLEVEL_CRITICAL;
-const Int32 LOGLEVEL_VERY_IMPORTANT = GUCEF_LOGLEVEL_VERY_IMPORTANT;
-const Int32 LOGLEVEL_IMPORTANT = GUCEF_LOGLEVEL_IMPORTANT;
-const Int32 LOGLEVEL_NORMAL = GUCEF_LOGLEVEL_NORMAL;
-const Int32 LOGLEVEL_BELOW_NORMAL = GUCEF_LOGLEVEL_BELOW_NORMAL;
-const Int32 LOGLEVEL_EVERYTHING = GUCEF_LOGLEVEL_EVERYTHING;
+    CDataDrivenDStoreCodec( void );
 
-}
+    virtual ~CDataDrivenDStoreCodec();
 
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      UTILITIES                                                          //
-//                                                                         //
-//-------------------------------------------------------------------------*/
+    virtual bool SetDataDrivenDStoreCodecMeta( CDataDrivenDStoreCodecMetaPtr newMetaData ) = 0;
 
-#ifdef __cplusplus 
+    virtual CDataDrivenDStoreCodecMetaPtr GetDataDrivenDStoreCodecMeta( void ) const = 0;
 
-CString
-LogLevelToString( const Int32 logLevel )
-{GUCEF_TRACE;
-
-    switch ( logLevel )
-    {
-        case LOGLEVEL_CRITICAL : return "CRITICAL";
-        case LOGLEVEL_VERY_IMPORTANT : return "VERY_IMPORTANT";
-        case LOGLEVEL_IMPORTANT : return "IMPORTANT";
-        case LOGLEVEL_NORMAL : return "NORMAL";
-        case LOGLEVEL_BELOW_NORMAL : return "BELOW_NORMAL";
-        case LOGLEVEL_EVERYTHING : return "EVERYTHING";
-        default : return Int32ToString( logLevel );
-    }
-}
-
-#endif
+    private:
+    CDataDrivenDStoreCodec( const CDataDrivenDStoreCodec& src );             /**< no sense in an copied codec */
+    CDataDrivenDStoreCodec& operator=( const CDataDrivenDStoreCodec& src );  /**< no sense in an copied codec */
+};
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -97,3 +82,5 @@ LogLevelToString( const Int32 logLevel )
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
+
+#endif /* GUCEF_CORE_CDATADRIVENDSTORECODEC_H ? */

@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_TYPES_H
+#include "gucef_types.h"
+#define GUCEF_TYPES_H
+#endif /* GUCEF_TYPES_H ? */
+
 #ifndef GUCEF_CPP_H
 #include "gucef_cpp.h"
 #define GUCEF_CPP_H
@@ -188,6 +193,39 @@ struct TypeIsDerivedFrom
 
     // The constant used as a return value for the test.
     enum { value = sizeof( test( static_cast< DerivedClassType* >( GUCEF_NULL ) ) ) == sizeof( yes ) };
+};
+
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  C++98 compatible SFINAE template helper
+ *  Allows checking if T is an unsigned type
+ */
+template < class T >
+struct TypeIsUnsigned
+{
+    // For the compile time comparison.
+    typedef char    yes[1];
+    typedef yes     no[2];
+
+    template < typename TestPtrType >
+    static yes& test(typename EnableIf<sizeof(TestPtrType) == sizeof(UInt8), UInt8>::type* /* unused */) { static yes result; return result; }
+
+    template < typename TestPtrType >
+    static yes& test(typename EnableIf<sizeof(TestPtrType) == sizeof(UInt16), UInt16>::type* /* unused */) { static yes result; return result; }
+
+    template < typename TestPtrType >
+    static yes& test(typename EnableIf<sizeof(TestPtrType) == sizeof(UInt32), UInt32>::type* /* unused */) { static yes result; return result; }
+
+    template < typename TestPtrType >
+    static yes& test(typename EnableIf<sizeof(TestPtrType) == sizeof(UInt64), UInt64>::type* /* unused */) { static yes result; return result; }
+
+    template < typename TestPtrType >
+    static no& test(...) { static no result; return result; }
+
+    // The constant used as a return value for the test.
+    enum { value = sizeof( test< T >( T() ) ) == sizeof( yes ) };
 };
 
 /*-------------------------------------------------------------------------//
