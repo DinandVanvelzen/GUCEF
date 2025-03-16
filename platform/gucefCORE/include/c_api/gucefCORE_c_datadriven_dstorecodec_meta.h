@@ -37,8 +37,17 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifdef __cplusplus
 namespace GUCEF {
 namespace CORE {
+#endif /* __cplusplus ? */
+
+/*
+ *      Prevent C++ name mangling
+ */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -72,8 +81,14 @@ typedef struct SDataDrivenDStoreCodecMeta TDataDrivenDStoreCodecMeta;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifdef __cplusplus
+   }
+#endif /* __cplusplus */
+
+#ifdef __cplusplus
 }; /* namespace CORE */
 }; /* namespace GUCEF */
+#endif /* __cplusplus ? */
 
 /*-------------------------------------------------------------------------*/
 

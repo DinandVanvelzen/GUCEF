@@ -46,6 +46,11 @@
 #define GUCEF_CORE_CPLUGINMETADATA_H
 #endif /* GUCEF_CORE_CPLUGINMETADATA_H ? */
 
+#ifndef GUCEF_CORE_C_DSTORE_PLUGIN_API_H
+#include "gucefCORE_c_dstore_plugin_api.h"
+#define GUCEF_CORE_C_DSTORE_PLUGIN_API_H
+#endif /* GUCEF_CORE_C_DSTORE_PLUGIN_API_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -146,6 +151,12 @@ class GUCEF_CORE_PUBLIC_CPP CDStoreCodecPlugin : public CDStoreCodec ,
     virtual CString GetTypeName( void ) const;
 
     /**
+     *  Returns whether this codec type is data driven
+     *  Data driven codecs require a data map or schema to be able to perform their transformations
+     */
+    virtual bool IsCodecTypeDataDriven( void ) const;
+
+    /**
      *      Returns the name of the codec
      *      The author of the codec can give an codec a name that the user can
      *      obtain using this member function.
@@ -184,10 +195,10 @@ class GUCEF_CORE_PUBLIC_CPP CDStoreCodecPlugin : public CDStoreCodec ,
     void StoreNode( const CDataNode* n ,
                     void** filedata    ); /**< recursive node storage algorithm */
 
-    UInt32 _id;                     /**< codec id, typicly used by manager classes */
-    TDefaultFuncPtr _fptable[ 17 ]; /**< function pointer table */
-    void* _sohandle;                /**< access to the so module */
-    void* _plugdata;                /**< storage pointer to be used by the plugin as needed */
+    UInt32 _id;                       /**< codec id, typicly used by manager classes */
+    TGucefCoreCDStorePluginApi m_api; /**< function pointers to plugin API */
+    void* _sohandle;                  /**< access to the so module */
+    void* _plugdata;                  /**< storage pointer to be used by the plugin as needed */
     TPluginMetaDataStoragePtr m_metaData;
 
 };
@@ -208,14 +219,3 @@ typedef CTSharedPtr< CDStoreCodecPlugin, MT::CMutex > TDStoreCodecPluginPtr;
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_CORE_CDSTORECODECPLUGIN_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 05-04-2005 :
-        - Initial implementation
-
------------------------------------------------------------------------------*/

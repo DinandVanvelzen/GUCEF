@@ -149,6 +149,15 @@ CIniDataStoreCodec::GetTypeName( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool 
+CIniDataStoreCodec::IsCodecTypeDataDriven( void ) const
+{GUCEF_TRACE;
+
+    return false; 
+}
+
+/*-------------------------------------------------------------------------*/
+
 CString
 CIniDataStoreCodec::GetCopyright( void ) const
 {GUCEF_TRACE;

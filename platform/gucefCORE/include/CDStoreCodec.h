@@ -139,6 +139,12 @@ class GUCEF_CORE_PUBLIC_CPP CDStoreCodec : public CICloneable
     virtual CString GetTypeName( void ) const = 0;
 
     /**
+     *  Returns whether this codec type is data driven
+     *  Data driven codecs require a data map or schema to be able to perform their transformations
+     */
+    virtual bool IsCodecTypeDataDriven( void ) const = 0;
+
+    /**
      *      Returns the copyright of the codec
      *      The author of the codec can give an codec a copyright notice that the user can
      *      obtain using this member function.

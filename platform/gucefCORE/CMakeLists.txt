@@ -281,8 +281,9 @@ set( HEADER_FILES
   include/tsprinting.h
   include/c_api/gucefCORE_CTVariantMapAdapter_Cpp2C.h
   include/c_api/gucefCORE_CTVariantVectorAdapter_Cpp2C.h
-  include/c_api/gucefCORE_c_api.h
+  include/c_api/gucefCORE_c_api.h  
   include/c_api/gucefCORE_c_document_parser_callbacks.h
+  include/c_api/gucefCORE_c_dstore_plugin_api.h
   include/c_api/gucefCORE_c_fractiondata.h
   include/c_api/gucefCORE_c_function_definition.h
   include/c_api/gucefCORE_c_function_param_types.h

@@ -175,6 +175,15 @@ CDataStoreBinaryCodec::GetTypeName( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool 
+CDataStoreBinaryCodec::IsCodecTypeDataDriven( void ) const
+{GUCEF_TRACE;
+
+    return false; 
+}
+
+/*-------------------------------------------------------------------------*/
+
 CString
 CDataStoreBinaryCodec::GetCopyright( void ) const
 {GUCEF_TRACE;

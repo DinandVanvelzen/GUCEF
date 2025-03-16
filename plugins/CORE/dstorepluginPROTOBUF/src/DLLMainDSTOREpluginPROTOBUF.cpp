@@ -1204,6 +1204,14 @@ DSTOREPLUG_Start_Reading( void** plugdata ,
 
 /*---------------------------------------------------------------------------*/
 
+UInt8 GUCEF_PLUGIN_CALLSPEC_PREFIX
+DSTOREPLUG_Type_Is_Data_Driven( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+{GUCEF_TRACE;
+
+    return 1;
+}
+/*---------------------------------------------------------------------------*/
+
 const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Type( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;

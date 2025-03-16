@@ -55,7 +55,7 @@ class GUCEF_CORE_PUBLIC_CPP CIniDataStoreCodec : public CDStoreCodec
 
     CIniDataStoreCodec( void );
 
-    virtual ~CIniDataStoreCodec();
+    virtual ~CIniDataStoreCodec() GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *      Whether or not the codec is currently valid
@@ -73,7 +73,7 @@ class GUCEF_CORE_PUBLIC_CPP CIniDataStoreCodec : public CDStoreCodec
      *      @return whether storing the tree was successful
      */
     virtual bool StoreDataTree( const CDataNode* tree   ,
-                                const CString& filename );
+                                const CString& filename ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *      Attempts to store the given tree in the file
@@ -84,7 +84,7 @@ class GUCEF_CORE_PUBLIC_CPP CIniDataStoreCodec : public CDStoreCodec
      *      @return whether storing the tree was successful
      */
     virtual bool StoreDataTree( const CDataNode* tree   ,
-                                CIOAccess* file         );
+                                CIOAccess* file         ) GUCEF_VIRTUAL_OVERRIDE;
 
 
     /**
@@ -97,7 +97,7 @@ class GUCEF_CORE_PUBLIC_CPP CIniDataStoreCodec : public CDStoreCodec
      *      @return whether building the tree from the given file was successful.
      */
     virtual bool BuildDataTree( CDataNode* treeroot     ,
-                                const CString& filename );
+                                const CString& filename ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *      Attempts to load data from the given file to the
@@ -109,7 +109,7 @@ class GUCEF_CORE_PUBLIC_CPP CIniDataStoreCodec : public CDStoreCodec
      *      @return whether building the tree from the given file was successful.
      */
     virtual bool BuildDataTree( CDataNode* treeroot ,
-                                CIOAccess* file     );
+                                CIOAccess* file     ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *      Returns the name of the codec
@@ -118,7 +118,7 @@ class GUCEF_CORE_PUBLIC_CPP CIniDataStoreCodec : public CDStoreCodec
      *
      *      @return name of the codec
      */
-    virtual CString GetName( void ) const;
+    virtual CString GetName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *      Get the name of the type that this codec implements
@@ -126,7 +126,9 @@ class GUCEF_CORE_PUBLIC_CPP CIniDataStoreCodec : public CDStoreCodec
      *
      *      @return the name of the resource type supported by this codec
      */
-    virtual CString GetTypeName( void ) const;
+    virtual CString GetTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool IsCodecTypeDataDriven( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *      Returns the copyright of the codec
@@ -135,16 +137,16 @@ class GUCEF_CORE_PUBLIC_CPP CIniDataStoreCodec : public CDStoreCodec
      *
      *      @return copyright notice of the codec
      */
-    virtual CString GetCopyright( void ) const;
+    virtual CString GetCopyright( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *      Returns the codec version
      *
      *      @return the version of the codec
      */
-    virtual TVersion GetVersion( void ) const;
+    virtual TVersion GetVersion( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual CICloneable* Clone( void ) const;
+    virtual CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
     
     private:
     
