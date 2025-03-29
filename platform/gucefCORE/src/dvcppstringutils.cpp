@@ -618,7 +618,14 @@ RelativePath( const CString& relpath ,
             {
                 if ( !resolvedSegments.empty() )
                 {
-                    resolvedSegments.pop_back();
+                    if ( resolvedSegments.back() != ".." )
+                        resolvedSegments.pop_back();
+                    else
+                        resolvedSegments.push_back( *it );
+                }
+                else
+                {
+                    resolvedSegments.push_back( *it );
                 }
             }
             else
@@ -694,10 +701,11 @@ GetRelativePathToOtherPathRoot( const CString& fromPath ,
         //   =
         //     ../../lol
 
-        fromPathRemainder = fromPathRemainder.CutChars( pathEquality, true, 0 );
-
-        TStringVector upDirElements = fromPathRemainder.ParseElements( '/', false );
         CString relativePath;
+
+        // We use the 'from' path to determine how many up dir segments we need
+        fromPathRemainder = fromPathRemainder.CutChars( pathEquality, true, 0 );
+        TStringVector upDirElements = fromPathRemainder.ParseElements( '/', false );        
         for ( UInt32 i=0; i<upDirElements.size(); ++i )
         {
             relativePath += "../";
