@@ -80,15 +80,18 @@ CDataDrivenDStoreCodecFactory::CreateCodec( const CString& dataDrivenCodecTypeNa
     }
 
     // Now we can create the codec using the meta-data
-    TProductPtr newCodec = Create( dataDrivenCodecTypeName, codecMeta );
+    TProductPtr newCodec = Create( codecMeta->GetBaseCodecTypeName(), codecMeta );
     if ( newCodec.IsNULL() )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DataDrivenDStoreCodecFactory::CreateCodec: Failed to create codec of type: " + dataDrivenCodecTypeName );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DataDrivenDStoreCodecFactory::CreateCodec: Failed to create codec of type \"" + 
+            dataDrivenCodecTypeName + "\" using base codec with type name \"" + codecMeta->GetBaseCodecTypeName() + "\"" );
         return TProductPtr(); // failed to create codec even though we had the meta-data for it
     }
     
     // Initialize the codec with the meta-data
-    newCodec->SetDataDrivenDStoreCodecMeta( codecMeta );
+    if ( newCodec->GetDataDrivenDStoreCodecMeta().IsNULL() )
+        newCodec->SetDataDrivenDStoreCodecMeta( codecMeta );
+
     return newCodec;
 }
 

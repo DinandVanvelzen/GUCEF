@@ -155,20 +155,23 @@ DSTOREPLUG_End_Node_Children( void** plugdata      ,
 /*---------------------------------------------------------------------------*/                                  
                                   
 DSTOREPLUG_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX 
-DSTOREPLUG_Src_File_Open( void** plugdata      , 
-                          void** filedata      ,
-                          TIOAccess* file      ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+DSTOREPLUG_Src_File_Open( void** plugdata   , 
+                           void** codecdata , 
+                          void** filedata   ,
+                          TIOAccess* file   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
                           
 /*---------------------------------------------------------------------------*/
                           
 DSTOREPLUG_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
-DSTOREPLUG_Src_File_Close( void** plugdata , 
-                           void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+DSTOREPLUG_Src_File_Close( void** plugdata  , 
+                           void** codecdata ,
+                           void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
                            
 /*---------------------------------------------------------------------------*/
                            
 DSTOREPLUG_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
 DSTOREPLUG_Set_Read_Handlers( void** plugdata                , 
+                              void** codecdata               ,
                               void** filedata                , 
                               const TReadHandlers* rhandlers , 
                               void* privdata                 ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
@@ -176,8 +179,9 @@ DSTOREPLUG_Set_Read_Handlers( void** plugdata                ,
 /*---------------------------------------------------------------------------*/
                              
 DSTOREPLUG_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX 
-DSTOREPLUG_Start_Reading( void** plugdata , 
-                          void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+DSTOREPLUG_Start_Reading( void** plugdata  , 
+                          void** codecdata ,
+                          void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
                   
 /*---------------------------------------------------------------------------*/
 
@@ -208,14 +212,3 @@ DSTOREPLUG_Version( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 /*--------------------------------------------------------------------------*/
 
 #endif /* DLLMAINDSTOREPLUGINJSONPARSER_H ? */
-
-/*--------------------------------------------------------------------------//
-//                                                                          //
-//      Info & Changes                                                      //
-//                                                                          //
-//--------------------------------------------------------------------------//
-
-- 05-04-2005 :
-        - Initial version of this DSTORE codec plugin module for gucefCORE
-
-----------------------------------------------------------------------------*/

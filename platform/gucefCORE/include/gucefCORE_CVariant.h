@@ -90,7 +90,7 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
 
     typedef std::vector< CVariant, gucef_allocator< CVariant > >                                    VariantVector;
     typedef std::set< CVariant, std::less< CVariant >, gucef_allocator< CVariant > >                VariantSet;
-    typedef std::pair< CVariant, CVariant >                                                         VariantPair;
+    typedef std::pair< const CVariant, CVariant >                                                   VariantPair;
     typedef std::map< CVariant, CVariant, std::less< CVariant >, gucef_allocator< VariantPair > >   VariantMap;
 
     static const CVariant           Empty;
@@ -202,6 +202,14 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     bool OwnsDynamicMemory( void ) const;
 
     /**
+     *  This function can be used to check if a specific type uses dynamic memory when placed in a variant
+     *  The typeToCheck parameter is optional, we just need the type specified to the template
+     *  This defaults to 'true' and for any type that uses dynamic memory
+     */
+    template < typename T >
+    bool TTypeUsesDynamicMemory( const T* typeToCheck = GUCEF_NULL ) const;
+
+    /**
      *  If the variant object is the future recipient of a value which is based on dynamic memory
      *  this member function can be used to pre-allocate the memory needed to store the value.
      *  This allows one to forgo the potential overhead of an intermediate transfer buffer.
@@ -288,6 +296,14 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     T AsTValue( const T defaultIfNeeded = T(), bool resolveVarsIfApplicable = false ) const;
 
     /**
+     *  Templated member function for setting the value of the variant
+     *  If you use this instead of assignment operators you can set the value while specifying linkOnlyForDynMem
+     *  This allows for more efficient use of dynamic memory in some cases
+     */
+    template < typename T >
+    bool SetTValue( const T& valueToSet, bool linkOnlyForDynMem = false );
+
+    /**
      *  Returns the size of the storage used in bytes by the stored type
      */
     UInt32 ByteSize( bool includeNullTerm = true ) const;
@@ -325,6 +341,9 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     CVariant& operator=( const std::wstring& data );
     CVariant& operator=( const CVariant& src );
     CVariant& operator=( const TVariantData& src );
+    CVariant& operator=( const TDefaultFuncPtr& src );
+    CVariant& operator=( const void*& src );    
+    CVariant& operator=( void*& src );
 
     operator CAsciiString() const;
     operator CUtf8String() const;
@@ -462,9 +481,83 @@ template <> inline std::string CVariant::AsTValue( const std::string defaultIfNe
 template <> inline std::wstring CVariant::AsTValue( const std::wstring defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return ToWString( AsString( ToString( defaultIfNeeded ), resolveVarsIfApplicable ) ); }
 //template <> inline void* CVariant::AsTValue( const void* defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsVoidPtr( defaultIfNeeded ), resolveVarsIfApplicable ) ); }
 template <> inline TDefaultFuncPtr CVariant::AsTValue( const TDefaultFuncPtr defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsDefaultFuncPtr( defaultIfNeeded ); }
+//template <> inline CDynamicBuffer CVariant::AsTValue( const CDynamicBuffer defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsBuffer(); }
 
 /*-------------------------------------------------------------------------*/
 
+template < typename T >
+inline bool
+CVariant::TTypeUsesDynamicMemory( const T* typeToCheck ) const 
+{GUCEF_TRACE;
+
+    // For safety we will assume that any type not explicitly defined as NOT using dynamic memory (heap) 
+    // will use dynamic memory. This is a conservative approach but it is better to be safe than sorry.
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const CVariant* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const bool* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const Int8* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const UInt8* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const Int16* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const UInt16* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const Int32* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const UInt32* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const Int64* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const UInt64* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const Float32* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const Float64* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
+//template <> inline bool CVariant::TTypeUsesDynamicMemory( const size_t* defaultIfNeeded ) const {GUCEF_TRACE; false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const CAsciiString* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const CUtf8String* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const CDateTime* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const std::string* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const std::wstring* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const void* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const TDefaultFuncPtr* defaultIfNeeded ) const {GUCEF_TRACE; false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const CDynamicBuffer* defaultIfNeeded ) const {GUCEF_TRACE; true; }
+
+/*-------------------------------------------------------------------------*/
+
+template < typename T >
+inline bool
+CVariant::SetTValue( const T& valueToSet, bool linkOnlyForDynMem ) 
+{GUCEF_TRACE;
+
+    // For safety we will consider setting the value a failure unless we have a specialization that allows us to explictly set the value
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+template <> inline bool CVariant::SetTValue( const CVariant& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
+template <> inline bool CVariant::SetTValue( const TVariantData& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
+template <> inline bool CVariant::SetTValue( const bool& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const Int8& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const UInt8& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const Int16& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const UInt16& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const Int32& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const UInt32& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const Int64& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const UInt64& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const Float32& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const Float64& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+//template <> inline bool CVariant::SetTValue( const size_t& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const CAsciiString& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
+template <> inline bool CVariant::SetTValue( const CUtf8String& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
+template <> inline bool CVariant::SetTValue( const CDateTime& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const std::string& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
+template <> inline bool CVariant::SetTValue( const std::wstring& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
+//template <> inline bool CVariant::SetTValue( const void*& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const TDefaultFuncPtr& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const CDynamicBuffer& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
+
+/*-------------------------------------------------------------------------*/
+
+// Syntactic sugar for generic ToString conversion
 inline CString ToString( const CVariant& var ) { return var.AsString(); }
 
 /*-------------------------------------------------------------------------*/
@@ -474,6 +567,14 @@ GUCEF_CORE_PUBLIC_CPP CString::StringVector ToStringVector( const CVariant::Vari
 GUCEF_CORE_PUBLIC_CPP CString::StringSet ToStringSet( const CVariant::VariantVector& var );
 GUCEF_CORE_PUBLIC_CPP CString::StringSet ToStringSet( const CVariant::VariantSet& var );
 GUCEF_CORE_PUBLIC_CPP CString::StringMap ToStringMap( const CVariant::VariantMap& var );
+
+/*-------------------------------------------------------------------------*/
+
+// Shortcuts for the common variant container types
+typedef CVariant::VariantVector     CVariantVector;    
+typedef CVariant::VariantSet        CVariantSet;
+typedef CVariant::VariantPair       CVariantPair;
+typedef CVariant::VariantMap        CVariantMap;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

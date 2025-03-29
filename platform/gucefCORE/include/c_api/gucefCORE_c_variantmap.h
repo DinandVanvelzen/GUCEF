@@ -57,7 +57,7 @@ typedef UInt8 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TVariantMapFunc_insert ) ( void* p
 typedef UInt8 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TVariantMapFunc_set ) ( void* privdata, TVariantData* key, TVariantData* value, UInt8 linkIfPossible ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TVariantMapFunc_clear ) ( void* privdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef size_t ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TVariantMapFunc_size ) ( void* privdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-typedef UInt8 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TVariantMapFunc_erase ) ( void* privdata, TVariantData* searchKey ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+typedef UInt8 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TVariantMapFunc_erase ) ( void* privdata, const TVariantData* searchKey ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TVariantMapFunc_at_key ) ( void* privdata, TVariantData* searchKey, TVariantData* outValue ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TVariantMapFunc_at_index ) ( void* privdata, UInt32 index, TVariantData* outValue ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
@@ -88,7 +88,7 @@ struct SVariantMapApi
      *  These require a writeable map
      */    
     TVariantMapFunc_insert       insert;   /**< attempts to insert a key-value pair into the map. It does not overwrite thus will fail if the key exists */
-    TVariantMapFunc_set          set;      /**< attempts to set an existing key's value pair into the map. It does not overwrite thus will fail if the key exists */
+    TVariantMapFunc_set          set;      /**< attempts to set a key-value pair into the map. if the key exists the value will be overwritten */
     TVariantMapFunc_clear        clear;    /**< clears the map */
     TVariantMapFunc_erase        erase;    /**< attempts to erase a key-value pair from the map, if the key doesnt exists the operation fails and is a no-op */
 

@@ -24,7 +24,9 @@
 
 #include <stdlib.h>     /* memory management */
 #include <stdio.h>      /* standard I/O utils */
-#include <string.h>     /* standard string utils */
+#include <memory>
+#include <string>
+#include <unordered_map>
 
 #include <google/protobuf/message.h>          // Base class for all protobuf messages
 #include <google/protobuf/descriptor.h>       // Describes the structure of protobuf messages
@@ -32,6 +34,8 @@
 #include <google/protobuf/dynamic_message.h>  // Dynamic message handling
 #include <google/protobuf/compiler/importer.h>// Importing .proto files at runtime
 #include <google/protobuf/stubs/logging.h>    // Logging utils for log redirection
+#include <google/protobuf/io/zero_copy_stream.h> // Zero-copy stream for protobuf
+#include <google/protobuf/io/coded_stream.h>  // Coded stream for reading/writing protobuf messages
 
 #include "DLLMainDSTOREpluginPROTOBUF.h"    /* gucefCORE DSTORE codec plugin API */
 
@@ -39,6 +43,11 @@
 #include "gucefCORE_macros.h"  /* gucefCORE macros, used here for the export and callspec macros */
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
+
+#ifndef GUCEF_CORE_C_LOGGING_H
+#include "gucefCORE_c_logging.h"
+#define GUCEF_CORE_C_LOGGING_H
+#endif /* GUCEF_CORE_C_LOGGING_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -78,39 +87,6 @@ using namespace GUCEF::CORE;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      TYPES                                                              //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-struct SDestFileData
-{
-    TIOAccess* fptr;
-    //yaml_parser_t parser;
-    //yaml_emitter_t emitter;
-    char activeNodeIsValueNode;
-    char* base64EncodeBuffer;
-    UInt32 base64EncodeBufferSize;
-};
-typedef struct SDestFileData TDestFileData;
-
-/*---------------------------------------------------------------------------*/
-
-struct SSrcFileData
-{
-    TIOAccess* access;
-    //yaml_parser_t parser;
-    //yaml_event_t event;
-    void* privdata;
-    TReadHandlers handlers;
-    UInt32 stringEncodingType;
-    UInt8* nestingType;
-    UInt16 nestingTypeBufferSize;
-    UInt16 nestingIndex;
-};
-typedef struct SSrcFileData TSrcFileData;
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
 //      MACROS                                                             //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -133,198 +109,699 @@ static TGucefCoreCApi g_libApi;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      UTILITIES                                                          //
+//      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-//UInt8
-//YamlEncodingToGucefDataType( yaml_encoding_t yamlEncoding )
-//{
-//    switch ( yamlEncoding )
-//    {
-//        case YAML_UTF8_ENCODING:
-//            return GUCEF_DATATYPE_UTF8_STRING;
-//        case YAML_UTF16LE_ENCODING:
-//            return GUCEF_DATATYPE_UTF16_LE_STRING;
-//        case YAML_UTF16BE_ENCODING:
-//            return GUCEF_DATATYPE_UTF16_BE_STRING;
-//
-//        default:
-//            return GUCEF_DATATYPE_UNKNOWN;
-//    }
-//}
-//
-///*---------------------------------------------------------------------------*/
-//
-//static UInt32
-//PushNesting( TSrcFileData* sd, UInt8 nestType )
-//{
-//    if ( GUCEF_NULL == sd )
-//        return 0;
-//
-//    if ( sd->nestingIndex >= sd->nestingTypeBufferSize )
-//    {
-//        UInt16 currentBufferSize = sd->nestingTypeBufferSize;
-//        UInt16 newBufferSize = 64;
-//        if ( 0 != currentBufferSize )
-//            newBufferSize = 2 * currentBufferSize;
-//        void* newBuffer = realloc( sd->nestingType, newBufferSize );
-//        if ( GUCEF_NULL != newBuffer )
-//        {
-//            sd->nestingType = (UInt8*) newBuffer;
-//            sd->nestingTypeBufferSize = newBufferSize;
-//            memset( sd->nestingType, 0, sd->nestingTypeBufferSize );
-//        }
-//        else
-//        {
-//            return 0;
-//        }
-//    }
-//
-//    sd->nestingType[ sd->nestingIndex ] = nestType;
-//    ++sd->nestingIndex;
-//    return 1;
-//}
-//
-///*---------------------------------------------------------------------------*/
-//
-//static UInt8
-//PopNesting( TSrcFileData* sd )
-//{
-//    if ( sd->nestingIndex > 0 )
-//    {
-//        --sd->nestingIndex;
-//        sd->nestingType[ sd->nestingIndex ] = 0;
-//        if ( sd->nestingIndex > 0 )
-//            return sd->nestingType[ sd->nestingIndex-1 ];
-//    }
-//    return 0;
-//}
-//
-///*---------------------------------------------------------------------------*/
-//
-//static UInt8
-//CurrentNesting( TSrcFileData* sd )
-//{
-//    if ( sd->nestingIndex > 0 )
-//        return sd->nestingType[ sd->nestingIndex-1 ];
-//    else
-//        return 0;
-//}
-//
-///*---------------------------------------------------------------------------*/
-//
-//static Float64
-//ToFloat64( yaml_event_t* ymlEvent )
-//{
-//    Float64 val = 0.0;
-//    if ( 1 == sscanf( ymlEvent->data.scalar.value, "%lf", &val ) )
-//        return val;
-//    return 0.0;
-//}
-//
-///*---------------------------------------------------------------------------*/
-//
-//static Int64
-//ToInt64( yaml_event_t* ymlEvent )
-//{
-//    Int64 val = 0;
-//    #ifdef GUCEF_MSWIN_BUILD
-//    if ( 1 == sscanf( ymlEvent->data.scalar.value, "%I64u", &val ) )
-//    #else
-//    if ( 1 == sscanf( ymlEvent->data.scalar.value, "%llu", &val ) )
-//    #endif
-//        return val;
-//    return 0;
-//}
-//
-///*---------------------------------------------------------------------------*/
-//
-//UInt8
-//DetectScalarType( yaml_event_t* ymlEvent )
-//{
-//    if ( GUCEF_NULL == ymlEvent )
-//        return GUCEF_DATATYPE_UNKNOWN;
-//
-//    if ( ymlEvent->data.scalar.style == YAML_PLAIN_SCALAR_STYLE )
-//    {
-//        /* with a plain scalar we have to consider that we could be dealing with an int or float
-//         * look for all digits and a dot
-//         */
-//        UInt8 allDigits = 1;
-//        UInt8 foundDotCount = 0;
-//        size_t scalarSize = ymlEvent->data.scalar.length;
-//        yaml_char_t* value = ymlEvent->data.scalar.value;
-//        for ( size_t i=0; i<scalarSize; ++i )
-//        {
-//            yaml_char_t c = value[ i ];
-//            if ( c == '.' )
-//            {
-//                ++foundDotCount;
-//                if ( foundDotCount > 1 )
-//                {
-//                    allDigits = 0;
-//                    break;
-//                }
-//            }
-//            if ( !( c >= '0' && c <= '9' || c == '+' || c == '-' || c == '.' ) )
-//            {
-//                allDigits = 0;
-//                break;
-//            }
-//
-//        }
-//
-//        if ( 0 == allDigits )
-//        {
-//            /* check if its a boolean value
-//             * yaml supports multiple specific keywords 
-//             */
-//            switch ( scalarSize )
-//            {
-//                case 5:
-//                {
-//                    if ( 0 == memcmp( "false", value, 5 ) )
-//                        return GUCEF_DATATYPE_BOOLEAN_ASCII_STRING;
-//                    else
-//                        return GUCEF_DATATYPE_UTF8_STRING;
-//                }
-//                case 4:
-//                {
-//                    if ( 0 == memcmp( "true", value, 4 ) )
-//                        return GUCEF_DATATYPE_BOOLEAN_ASCII_STRING;
-//                    else
-//                        return GUCEF_DATATYPE_UTF8_STRING;
-//                }
-//                case 3:
-//                {
-//                    if ( 0 == memcmp( "off", value, 3 ) ||
-//                         0 == memcmp( "yes", value, 3 ) )
-//                        return GUCEF_DATATYPE_BOOLEAN_ASCII_STRING;
-//                    else
-//                        return GUCEF_DATATYPE_UTF8_STRING;
-//                }
-//                case 2:
-//                {
-//                    if ( 0 == memcmp( "on", value, 2 ) ||
-//                         0 == memcmp( "no", value, 2 ) )
-//                        return GUCEF_DATATYPE_BOOLEAN_ASCII_STRING;
-//                    else
-//                        return GUCEF_DATATYPE_UTF8_STRING;
-//                }
-//                default:
-//                    return GUCEF_DATATYPE_UTF8_STRING;    
-//                
-//            }
-//        }
-//        else if ( 0 == foundDotCount )
-//            return GUCEF_DATATYPE_INT64;
-//        else
-//            return GUCEF_DATATYPE_FLOAT64;
-//    }
-//
-//    return GUCEF_DATATYPE_UTF8_STRING;
-//}
+class GUCEF_HIDDEN ProtoErrorCollector : public google::protobuf::compiler::MultiFileErrorCollector 
+{
+    public:
+
+    virtual void AddError( const std::string& filename, int line, int column, const std::string& message ) GUCEF_VIRTUAL_OVERRIDE 
+    {GUCEF_TRACE;
+        
+        GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, ( "ProtoErrorCollector:AddError: Error in " + filename + " at " + std::to_string(line) + ":" + std::to_string(column) + ": " + message ).c_str() );
+    }
+
+    virtual void AddWarning( const std::string& filename, int line, int column, const std::string& message ) GUCEF_VIRTUAL_OVERRIDE 
+    {GUCEF_TRACE;
+        
+        GUCEF_C_WARNING_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, ( "ProtoErrorCollector:AddError: Warning in " + filename + " at " + std::to_string(line) + ":" + std::to_string(column) + ": " + message ).c_str() );
+    }
+};
+
+/*---------------------------------------------------------------------------*/
+
+class GUCEF_HIDDEN CustomZeroCopyInputStream : public google::protobuf::io::ZeroCopyInputStream 
+{
+    private:
+
+    TIOAccess* m_access;
+    char m_buffer[ 4096 ];
+    size_t m_bufferSize;
+    size_t m_bufferPos;
+
+    public:
+    
+    CustomZeroCopyInputStream( TIOAccess* access )
+        : m_access( access ) 
+        , m_bufferSize(0) 
+        , m_bufferPos(0) 
+    {GUCEF_TRACE;
+        
+        memset( m_buffer, 0, sizeof(m_buffer) );
+    }
+
+    virtual ~CustomZeroCopyInputStream() GUCEF_VIRTUAL_OVERRIDE 
+    {GUCEF_TRACE;
+
+    }
+
+    virtual bool 
+    Next( const void** data , 
+          int* size         ) GUCEF_VIRTUAL_OVERRIDE 
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL == m_access || 
+             GUCEF_NULL == data     ||
+             GUCEF_NULL == size      )
+            return false;   
+        
+        if ( m_bufferPos >= m_bufferSize ) 
+        {
+            m_bufferSize = m_access->read( m_access, m_buffer, 1, sizeof(m_buffer) );
+            m_bufferPos = 0;
+        }
+
+        if (m_bufferSize == 0) {
+            return false;
+        }
+
+        *data = m_buffer + m_bufferPos;
+        *size = static_cast<int>( m_bufferSize - m_bufferPos );
+        m_bufferPos = m_bufferSize;
+        return true;
+    }
+
+    virtual void 
+    BackUp( int count ) GUCEF_VIRTUAL_OVERRIDE 
+    {GUCEF_TRACE;
+
+        m_bufferPos -= count;
+    }
+
+    virtual bool 
+    Skip( int count ) GUCEF_VIRTUAL_OVERRIDE 
+    {GUCEF_TRACE;
+
+        m_bufferPos += count;
+        if ( m_bufferPos > m_bufferSize ) 
+        {
+            m_bufferPos = m_bufferSize;
+            return false;
+        }
+        return true;
+    }
+
+    virtual int64_t 
+    ByteCount() const GUCEF_VIRTUAL_OVERRIDE 
+    {GUCEF_TRACE;
+
+        return m_bufferPos;
+    }
+};
+
+/*---------------------------------------------------------------------------*/
+
+class GUCEF_HIDDEN CustomSourceTree : public google::protobuf::compiler::SourceTree 
+{
+    private:
+
+    TVariantMapApi* m_loadedResources;
+
+    public:
+
+    CustomSourceTree( void )
+        : m_loadedResources( GUCEF_NULL ) 
+    {GUCEF_TRACE;
+
+    }
+
+    bool Init( TVariantMapApi* loadedResources )
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL == loadedResources )
+        {
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "CustomSourceTree:Init: Invalid parameters" );
+            return false;
+        }
+        m_loadedResources = loadedResources;
+        return true;
+    }
+    
+    virtual google::protobuf::io::ZeroCopyInputStream* 
+    Open( const std::string& filename ) GUCEF_VIRTUAL_OVERRIDE 
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL == m_loadedResources ) 
+            return GUCEF_NULL;
+
+        TVariantData keyVar;
+        keyVar.containedType = GUCEF_DATATYPE_UTF8_STRING;
+        keyVar.union_data.heap_data.heap_data_size = (UInt32) filename.size();
+        keyVar.union_data.heap_data.heap_data_is_linked = 1;
+        keyVar.union_data.heap_data.union_data.char_heap_data = (char*) filename.c_str();
+        
+        TVariantData valueVar;
+        memset( &valueVar, 0, sizeof( valueVar ) );
+        
+        m_loadedResources->at_key( m_loadedResources->privateData, &keyVar, &valueVar );     
+        
+        // Create a ZeroCopyInputStream from the resource data if we have any
+        if ( GUCEF_DATATYPE_ASCII_STRING == valueVar.containedType ||
+             GUCEF_DATATYPE_UTF8_STRING == valueVar.containedType  || 
+             GUCEF_DATATYPE_BINARY_BLOB == valueVar.containedType   )
+        {            
+            return new google::protobuf::io::ArrayInputStream( valueVar.union_data.heap_data.union_data.void_heap_data , 
+                                                               (int) valueVar.union_data.heap_data.heap_data_size      );
+        } 
+        if ( GUCEF_DATATYPE_BINARY_BSOB == valueVar.containedType )
+        {
+            return new google::protobuf::io::ArrayInputStream( valueVar.union_data.bsob_data , 
+                                                               (int) GUCEF_VARIANT_BSOB_SIZE );
+        }        
+
+        return GUCEF_NULL;
+    }
+};
+
+/*---------------------------------------------------------------------------*/
+
+class GUCEF_HIDDEN CDataDrivenCodecInfo
+{
+    public:
+    
+    std::string m_codecTypeName;
+    CustomSourceTree m_sourceTree;
+    ProtoErrorCollector m_errorCollector;
+    google::protobuf::compiler::Importer m_importer;
+    const google::protobuf::Descriptor* m_descriptor;
+    google::protobuf::DynamicMessageFactory m_msgFactory;
+    const google::protobuf::Message* m_message;
+
+    bool Init( TDataDrivenDStoreCodecMeta* codecMeta ,
+               TVariantMapApi* loadedResources       ) 
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL == codecMeta                             ||
+             GUCEF_NULL == codecMeta->base_codec_type_name       ||
+             GUCEF_NULL == codecMeta->data_driven_codec_typename ||
+             GUCEF_NULL == loadedResources                        )
+        {
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "DataDrivenCodecInfo:Init: Invalid parameters" );
+            return false;
+        }
+
+        m_codecTypeName = codecMeta->data_driven_codec_typename;
+
+        
+        if ( !m_sourceTree.Init( loadedResources ) )
+        {
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "DataDrivenCodecInfo:Init: Failed to initialize source tree" );
+            return false;
+        }
+
+        if ( GUCEF_NULL == m_importer.Import( m_codecTypeName ) ) 
+        {
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, ( "DataDrivenCodecInfo:Init: Failed to import proto file: " + m_codecTypeName ).c_str() );
+            return false;
+        }
+
+        m_descriptor = m_importer.pool()->FindMessageTypeByName( m_codecTypeName );
+        if ( GUCEF_NULL == m_descriptor ) 
+        {
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, ( "DataDrivenCodecInfo:Init: Failed to find message type: " + m_codecTypeName ).c_str() );
+            return false;
+        }
+
+        m_message = m_msgFactory.GetPrototype( m_descriptor );
+        if ( GUCEF_NULL == m_message ) 
+        {
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, ( "DataDrivenCodecInfo:Init: Failed to generate message prototype for type: " + m_codecTypeName ).c_str() );
+            return false;
+        }
+
+        return true;
+    }
+
+    CDataDrivenCodecInfo( void ) 
+        : m_codecTypeName()
+        , m_sourceTree()
+        , m_errorCollector()
+        , m_importer( &m_sourceTree, &m_errorCollector )
+        , m_descriptor( GUCEF_NULL )
+        , m_msgFactory()
+        , m_message( GUCEF_NULL )
+    {GUCEF_TRACE;
+
+    }
+
+    private:
+
+    CDataDrivenCodecInfo( const CDataDrivenCodecInfo& );
+    CDataDrivenCodecInfo& operator=( const CDataDrivenCodecInfo& );
+};
+
+/*---------------------------------------------------------------------------*/
+
+class GUCEF_HIDDEN ProtoSAXParser 
+{
+    private:
+
+    bool has_error_;
+    std::string error_message_;
+    void* m_readPrivData;
+    TReadHandlers m_readCallbacks;
+    CDataDrivenCodecInfo* m_codecInfo;
+
+    private:
+
+    void SetError( const std::string& message ) 
+    {GUCEF_TRACE;
+
+        has_error_ = true;
+        error_message_ = message;
+
+        GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, message.c_str() );
+    }
+
+    public:
+    
+    ProtoSAXParser( void ) 
+        : has_error_( false ) 
+        , error_message_()
+        , m_readPrivData( GUCEF_NULL )
+        , m_readCallbacks()
+        , m_codecInfo( GUCEF_NULL )
+    {GUCEF_TRACE;
+
+        memset( &m_readCallbacks, 0, sizeof( m_readCallbacks ) );
+    }
+
+    bool Init( CDataDrivenCodecInfo* codecInfo    ,
+               const TReadHandlers* readCallbacks ,
+               void* readPrivData                 )
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL == codecInfo     || 
+             GUCEF_NULL == readCallbacks || 
+             GUCEF_NULL == readPrivData   )
+        {
+            SetError( "ProtoSAXParser:Init: Invalid parameters" );
+            return false;
+        }
+
+        m_codecInfo = codecInfo;
+        m_readPrivData = readPrivData;
+        m_readCallbacks = *readCallbacks;
+        return true;
+    }
+
+    bool ParseMessage( const google::protobuf::Descriptor* descriptor , 
+                       const google::protobuf::Message* prototype     , 
+                       TIOAccess* access                              ) 
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL == descriptor ||  
+             GUCEF_NULL == prototype  || 
+             GUCEF_NULL == access      )
+        {
+            SetError( "Invalid parameters for ParseMessage" );
+            return false;
+        }
+
+        CustomZeroCopyInputStream zero_copy_input( access );
+        google::protobuf::io::CodedInputStream coded_input( &zero_copy_input );
+        std::unique_ptr<google::protobuf::Message> message( prototype->New() );
+
+        return ParseFields( message.get(), &coded_input );
+    }
+
+    bool HasError( void ) const 
+    {GUCEF_TRACE;
+
+        return has_error_;
+    }
+
+    std::string GetErrorMessage( void ) const 
+    {GUCEF_TRACE;
+
+        return error_message_;
+    }
+
+    /*---------------------------------------------------------------------------*/
+
+    bool ParseFields(google::protobuf::Message* message, google::protobuf::io::CodedInputStream* input) 
+    {GUCEF_TRACE;
+
+        const google::protobuf::Descriptor* descriptor = message->GetDescriptor();
+        const google::protobuf::Reflection* reflection = message->GetReflection();
+
+        while ( input->BytesUntilLimit() > 0 ) 
+        {
+            uint32_t tag = input->ReadTag();
+            int field_number = google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag);
+            const google::protobuf::FieldDescriptor* field = descriptor->FindFieldByNumber(field_number);
+
+            if ( GUCEF_NULL == field ) 
+            {
+                // Skip unknown field
+                if ( !google::protobuf::internal::WireFormatLite::SkipField( input, tag ) ) 
+                {
+                    SetError("Failed to skip unknown field");
+                    return false;
+                }
+                continue;
+            }
+
+            if ( field->is_repeated() ) 
+            {
+                // Handle repeated fields
+                if ( !ParseRepeatedField(message, reflection, field, input ) ) 
+                {
+                    return false;
+                }
+            } 
+            else 
+            {
+                // Handle singular fields
+                if ( !ParseSingularField(message, reflection, field, input ) ) 
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /*---------------------------------------------------------------------------*/
+
+    bool ParseRepeatedField( google::protobuf::Message* message             , 
+                             const google::protobuf::Reflection* reflection ,
+                             const google::protobuf::FieldDescriptor* field , 
+                             google::protobuf::io::CodedInputStream* input  ) 
+    {GUCEF_TRACE;
+
+        switch ( field->type() ) 
+        {
+            case google::protobuf::FieldDescriptor::TYPE_INT32: 
+            {
+                uint32_t value = 0;
+                if ( !input->ReadVarint32( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read int32 value" );
+                    return false;
+                }
+                
+                reflection->AddInt32( message, field, static_cast< int32_t >( value ) );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_UINT32: 
+            {
+                uint32_t value = 0;
+                if ( !input->ReadVarint32( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read uint32 value" );
+                    return false;
+                }
+                reflection->AddUInt32( message, field, value );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_INT64: 
+            {
+                uint64_t value = 0;
+                if ( !input->ReadVarint64( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read int64 value" );
+                    return false;
+                }
+                reflection->AddInt64( message, field, static_cast< int64_t >( value ) );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_UINT64: 
+            {
+                uint64_t value = 0;
+                if ( !input->ReadVarint64( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read uint64 value" );
+                    return false;
+                }
+                reflection->AddUInt64( message, field, value );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_FLOAT: 
+            {
+                float value = 0.0f;
+                if ( !input->ReadLittleEndian32( reinterpret_cast<uint32_t*>(&value) ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read float value" );
+                    return false;
+                }
+                reflection->AddFloat( message, field, value );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_DOUBLE: 
+            {
+                double value = 0.0;
+                if ( !input->ReadLittleEndian64( reinterpret_cast<uint64_t*>(&value) ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read double value" );
+                    return false;
+                }
+                reflection->AddDouble( message, field, value );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_BOOL: 
+            {
+                uint32_t value = 0;
+                if ( !input->ReadVarint32( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read bool value" );
+                    return false;
+                }
+                reflection->AddBool( message, field, static_cast< bool >( value ) );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_STRING: 
+            {
+                std::string value;
+                if ( !input->ReadString( &value, input->BytesUntilLimit() ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read string value" );
+                    return false;
+                }
+                reflection->AddString( message, field, value );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_MESSAGE: 
+            {
+                google::protobuf::Message* nested_message = reflection->AddMessage( message, field );
+                if ( !ParseFields(nested_message, input ) ) 
+                {
+                    return false;
+                }
+                break;
+            }
+
+            // Handle other types as needed
+            default:
+            {
+                SetError( "Unsupported field type for repeated field" );
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /*---------------------------------------------------------------------------*/
+
+    bool ParseSingularField( google::protobuf::Message* message, 
+                             const google::protobuf::Reflection* reflection,
+                             const google::protobuf::FieldDescriptor* field, 
+                             google::protobuf::io::CodedInputStream* input ) 
+    {GUCEF_TRACE;
+
+        switch ( field->type() ) 
+        {
+            case google::protobuf::FieldDescriptor::TYPE_INT32: 
+            {
+                uint32_t value = 0;
+                if ( !input->ReadVarint32( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read int32 value" );
+                    return false;
+                }
+                reflection->SetInt32( message, field, static_cast< int32_t >( value ) );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_INT64: 
+            {
+                uint64_t value = 0;
+                if ( !input->ReadVarint64( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read int64 value" );
+                    return false;
+                }
+                reflection->SetInt64( message, field, static_cast< int64_t >( value ) );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_UINT32: 
+            {
+                uint32_t value = 0;
+                if ( !input->ReadVarint32( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read uint32 value" );
+                    return false;
+                }
+                reflection->SetUInt32( message, field, value);
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_UINT64: 
+            {
+                uint64_t value = 0;
+                if ( !input->ReadVarint64( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read uint64 value" );
+                    return false;
+                }
+                reflection->SetUInt64( message, field, value );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_FLOAT: 
+            {
+                float value = 0.0f;
+                if ( !input->ReadLittleEndian32( reinterpret_cast<uint32_t*>(&value) ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read float value" );
+                    return false;
+                }
+                reflection->SetFloat( message, field, value );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_DOUBLE: 
+            {
+                double value = 0.0;
+                if (!input->ReadLittleEndian64( reinterpret_cast<uint64_t*>(&value) ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read double value" );
+                    return false;
+                }
+                reflection->SetDouble( message, field, value );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_BOOL: 
+            {
+                uint32_t value = 0;
+                if ( !input->ReadVarint32( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read bool value" );
+                    return false;
+                }
+                reflection->SetBool( message, field, static_cast< bool >( value ) );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_STRING: 
+            {
+                std::string value;
+                if ( !input->ReadString(&value, input->BytesUntilLimit() ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read string value" );
+                    return false;
+                }
+                reflection->SetString(message, field, value);
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_MESSAGE: 
+            {
+                google::protobuf::Message* nested_message = reflection->MutableMessage( message, field );
+                if ( !ParseFields( nested_message, input ) ) 
+                {
+                    return false;
+                }
+                break;
+            }
+
+            // Handle other types as needed
+            default:
+            {
+                SetError( "ProtoSAXParser:ParseSingularField: Unsupported field type for singular field" );
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
+/*---------------------------------------------------------------------------*/
+
+struct SDestFileData
+{
+    TIOAccess* fptr;
+    //yaml_parser_t parser;
+    //yaml_emitter_t emitter;
+    char activeNodeIsValueNode;
+    char* base64EncodeBuffer;
+    UInt32 base64EncodeBufferSize;
+};
+typedef struct SDestFileData TDestFileData;
+
+/*---------------------------------------------------------------------------*/
+
+class GUCEF_HIDDEN CResourceReadingInfo
+{
+    public:
+    
+    TIOAccess* m_access;
+    ProtoSAXParser m_parser;
+    CDataDrivenCodecInfo* m_codecInfo;
+
+    bool InitResource( CDataDrivenCodecInfo* codecInfo ,
+                       TIOAccess* access               )
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL == codecInfo || 
+             GUCEF_NULL == access     )
+        {
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "ResourceReadingInfo:InitResource: Invalid parameters" );
+            return false;
+        }
+
+        m_access = access;
+        m_codecInfo = codecInfo;
+
+        return true;
+    }
+
+    bool InitParser( const TReadHandlers* readCallbacks ,
+                     void* readPrivData                 )
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL == readCallbacks || 
+             GUCEF_NULL == readPrivData    )
+        {
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "ResourceReadingInfo:InitParser: Invalid parameters" );
+            return false;
+        }
+        return m_parser.Init( m_codecInfo, readCallbacks, readPrivData );
+    }
+
+    bool ParseMessage( void ) 
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL != m_codecInfo && 
+             GUCEF_NULL != m_access     )
+        {
+            return m_parser.ParseMessage( m_codecInfo->m_descriptor , 
+                                          m_codecInfo->m_message    , 
+                                          m_access                  );
+        }
+        return false;
+    }
+    
+    CResourceReadingInfo( void ) 
+        : m_access( GUCEF_NULL ) 
+        , m_parser()
+        , m_codecInfo( GUCEF_NULL )
+    {GUCEF_TRACE;
+        
+    }
+
+    private:
+
+    CResourceReadingInfo( const CResourceReadingInfo& );
+    CResourceReadingInfo& operator=( const CResourceReadingInfo& );
+};
 
 /*---------------------------------------------------------------------------*/
 
@@ -338,25 +815,24 @@ gucefLogRedirect( google::protobuf::LogLevel level ,
     if ( GUCEF_NULL == g_libApi.Log )
         return;
     
-    //switch ( level )
-    //{
-    //    case google::protobuf::LOGLEVEL_INFO:
-    //        GUCEF_LOG_INFO( message.c_str() );
-    //        break;
-    //    case google::protobuf::LOGLEVEL_WARNING:
-    //        GUCEF_LOG_WARNING( message.c_str() );
-    //        break;
-    //    case google::protobuf::LOGLEVEL_ERROR:
-    //        GUCEF_LOG_ERROR( message.c_str() );
-    //        break;
-    //    case google::protobuf::LOGLEVEL_FATAL:
-    //        GUCEF_LOG_FATAL( message.c_str() );
-    //        break;
-    //    default:
-    //        GUCEF_LOG_INFO( message.c_str() );
-    //        break;
-    //}
-
+    switch ( level )
+    {
+        case google::protobuf::LOGLEVEL_INFO:
+            GUCEF_C_SYSTEM_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, message.c_str() );
+            break;
+        case google::protobuf::LOGLEVEL_WARNING:
+            GUCEF_C_WARNING_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, message.c_str() );
+            break;
+        case google::protobuf::LOGLEVEL_ERROR:
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, message.c_str() );
+            break;
+        case google::protobuf::LOGLEVEL_FATAL:
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_CRITICAL, message.c_str() );
+            break;
+        default:
+            GUCEF_C_SYSTEM_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, message.c_str() );
+            break;
+    }
 }
 
 /*---------------------------------------------------------------------------*/
@@ -386,25 +862,9 @@ DSTOREPLUG_Shutdown( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
     // libprotobuf itself does not require global cleanup
-
+    google::protobuf::SetLogHandler( GUCEF_NULL );
     memset( &g_libApi, 0, sizeof g_libApi );
 }
-
-/*---------------------------------------------------------------------------*/
-
-//int 
-//yaml_write_handler( void *data, unsigned char *buffer, size_t size )
-//{
-//    TDestFileData* fd = (TDestFileData*) data;
-//    if ( GUCEF_NULL != fd )
-//    {
-//        if ( 1 == fd->fptr->write( fd->fptr, buffer, size, 1 ) )
-//        {
-//            return 1;
-//        }
-//    }
-//    return 0;
-//}
 
 /*---------------------------------------------------------------------------*/
 
@@ -414,30 +874,6 @@ DSTOREPLUG_Dest_File_Open( void** plugdata    ,
                            TIOAccess* outFile ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    //*filedata = GUCEF_NULL;
-    //if ( outFile != GUCEF_NULL )
-    //{
-    //    TDestFileData* fd = (TDestFileData*) malloc( sizeof( TDestFileData ) );
-    //    if ( GUCEF_NULL != fd )
-    //    {
-    //        memset( fd, 0, sizeof( TDestFileData ) );
-    //        fd->fptr = outFile;
-    //        fd->activeNodeIsValueNode = 0;
-    //        fd->base64EncodeBuffer = GUCEF_NULL;
-    //        fd->base64EncodeBufferSize = 0;
-
-    //        if ( 0 != yaml_parser_initialize( &fd->parser ) )
-    //        {
-    //            if ( 0 != yaml_emitter_initialize( &fd->emitter ) )
-    //            {
-    //                yaml_emitter_set_output( &fd->emitter, &yaml_write_handler, fd );
-    //                *filedata = fd;
-    //                return 1;
-    //            }
-    //            yaml_parser_delete( &fd->parser );
-    //        }
-    //    }
-    //}
     return 0;
 }
 
@@ -448,27 +884,7 @@ DSTOREPLUG_Dest_File_Close( void** plugdata ,
                             void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    //if ( filedata == GUCEF_NULL )
-    //    return;
-    //if ( *filedata == GUCEF_NULL )
-    //    return;
 
-    //TDestFileData* fd = (TDestFileData*)*filedata;
-    //if ( fd != GUCEF_NULL )
-    //{
-    //    yaml_parser_delete( &fd->parser );
-    //    yaml_emitter_delete( &fd->emitter );
-    //    fd->fptr->close( fd->fptr );
-
-    //    if ( GUCEF_NULL != fd->base64EncodeBuffer )
-    //    {
-    //        free( fd->base64EncodeBuffer );
-    //        fd->base64EncodeBuffer = GUCEF_NULL;
-    //    }
-    //    free( *filedata );
-    //}
-
-    //*filedata = GUCEF_NULL;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -482,65 +898,7 @@ DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
                              UInt32 haschildren   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    //TDestFileData* fd = (TDestFileData*)*filedata;
-    //fd->activeNodeIsValueNode = 0;
 
-    //if ( GUCEF_NULL == fd->currentJsonNode )
-    //{
-    //    if ( nodeType == GUCEF_DATATYPE_ARRAY )
-    //    {
-    //        fd->jsonDoc = fd->currentJsonNode = json_array_new( attscount + haschildren );
-    //    }
-    //    else
-    //    {
-    //        fd->jsonDoc = fd->currentJsonNode = json_object_new( attscount + haschildren );
-    //    }
-    //}
-    //else
-    //{
-    //    json_value* childNode = GUCEF_NULL;
-    //    if ( nodeType == GUCEF_DATATYPE_ARRAY )
-    //    {
-    //        childNode = json_array_new( attscount + haschildren );
-    //    }
-    //    else
-    //    if ( nodeType == GUCEF_DATATYPE_OBJECT )
-    //    {
-    //        if ( 1 != attscount || 0 != haschildren )
-    //            childNode = json_object_new( attscount + haschildren );
-    //        else
-    //            fd->activeNodeIsValueNode = 1;
-    //    }
-
-    //    if ( GUCEF_NULL != childNode )
-    //    {
-    //        if ( GUCEF_NULL == nodename )
-    //            nodename = "noname";
-    //        if ( fd->currentJsonNode->type == json_object )
-    //            json_object_push( fd->currentJsonNode, nodename, childNode );
-    //        else
-    //        if ( fd->currentJsonNode->type == json_array )
-    //            json_array_push( fd->currentJsonNode, childNode );
-    //        fd->currentJsonNode = childNode;
-    //    }
-    //    else
-    //    {
-    //        if ( 0 == attscount && 0 == haschildren )
-    //        {
-    //            TVariantData var;
-    //            memset( &var, 0, sizeof var );
-    //            var.containedType = nodeType;
-    //            var.union_data.heap_data.union_data.char_heap_data = (char*) nodename;
-    //            var.union_data.heap_data.heap_data_size = (UInt32) strlen( nodename );
-    //            
-    //            DSTOREPLUG_Store_Node_Att( plugdata, filedata, GUCEF_NULL, 1, 0, GUCEF_NULL, &var, haschildren );
-    //        }
-    //        if ( nodeType != GUCEF_DATATYPE_ARRAY && nodeType != GUCEF_DATATYPE_OBJECT )
-    //        {
-    //            fd->activeNodeIsValueNode = 1;
-    //        }
-    //    }
-    //}
 }
 
 /*---------------------------------------------------------------------------*/
@@ -553,10 +911,7 @@ DSTOREPLUG_End_Node_Store( void** plugdata      ,
                            UInt32 haschildren   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    //TDestFileData* fd = (TDestFileData*)*filedata;
-    //if ( ( GUCEF_NULL != fd->currentJsonNode ) && ( 0 == fd->activeNodeIsValueNode ) )
-    //    fd->currentJsonNode = fd->currentJsonNode->parent;
-    //fd->activeNodeIsValueNode = 0;
+
 }
 
 /*---------------------------------------------------------------------------*/
@@ -572,196 +927,7 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
                            UInt32 haschildren           ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    TDestFileData* fd = (TDestFileData*)*filedata;
 
-    //if ( 0 == attscount )
-    //    return;
-
-    //if ( GUCEF_NULL == attvalue )
-    //{
-    //    static TVariantData dummy;
-    //    memset( &dummy, 0, sizeof dummy );
-    //    attvalue = &dummy;
-    //}
-    //if ( GUCEF_NULL == nodename )
-    //{
-    //    nodename = "noname";
-    //}
-
-    //switch ( attvalue->containedType )
-    //{
-    //    case GUCEF_DATATYPE_NULL:
-    //    case GUCEF_DATATYPE_NIL:
-    //    {
-    //        json_value* att = json_null_new(); 
-    //        if ( fd->currentJsonNode->type == json_array )
-    //            json_array_push( fd->currentJsonNode, att );
-    //        else
-    //        if ( fd->currentJsonNode->type == json_object )
-    //            if ( GUCEF_NULL != attname )
-    //                json_object_push( fd->currentJsonNode, attname, att );
-    //            else
-    //                json_object_push( fd->currentJsonNode, nodename, att );
-    //        break;
-    //    }
-    //    case GUCEF_DATATYPE_BOOLEAN_ASCII_STRING:
-    //    case GUCEF_DATATYPE_BOOLEAN_UTF8_STRING:
-    //    {
-    //        int isNotTrue = stricmp( (const char*) attvalue->union_data.heap_data.union_data.char_heap_data, "true" );
-    //        int isNotFalse = stricmp( (const char*) attvalue->union_data.heap_data.union_data.char_heap_data, "false" );
-
-    //        json_value* att = GUCEF_NULL;
-    //        if ( isNotTrue == 0 )
-    //            att = json_boolean_new( 1 );
-    //        else
-    //        if ( isNotFalse == 0 )
-    //            att = json_boolean_new( 0 );
-
-    //        if ( att != GUCEF_NULL )
-    //        {
-    //            if ( fd->currentJsonNode->type == json_array )
-    //                json_array_push( fd->currentJsonNode, att );
-    //            else
-    //            if ( fd->currentJsonNode->type == json_object )
-    //                if ( GUCEF_NULL != attname )
-    //                    json_object_push( fd->currentJsonNode, attname, att );
-    //                else
-    //                    json_object_push( fd->currentJsonNode, nodename, att );
-    //        }
-    //        break;
-    //    }
-    //    case GUCEF_DATATYPE_BOOLEAN_INT32:
-    //    {
-    //        Int32 boolInt = attvalue->union_data.int32_data;
-    //        json_value* att = json_boolean_new( boolInt );
-    //        if ( fd->currentJsonNode->type == json_array )
-    //            json_array_push( fd->currentJsonNode, att );
-    //        else
-    //        if ( fd->currentJsonNode->type == json_object )
-    //            if ( GUCEF_NULL != attname )
-    //                json_object_push( fd->currentJsonNode, attname, att );
-    //            else
-    //                json_object_push( fd->currentJsonNode, nodename, att );
-    //        break;
-    //    }
-    //    case GUCEF_DATATYPE_FLOAT32:
-    //    case GUCEF_DATATYPE_FLOAT64:
-    //    case GUCEF_DATATYPE_NUMERIC:
-    //    {
-    //        double number = 0.0l;
-    //        if ( GUCEF_DATATYPE_FLOAT32 == attvalue->containedType )
-    //            number = attvalue->union_data.float32_data;
-    //        else
-    //            number = attvalue->union_data.float64_data;
-
-    //        json_value* att = json_double_new( number );
-    //        if ( fd->currentJsonNode->type == json_array )
-    //            json_array_push( fd->currentJsonNode, att );
-    //        else
-    //        if ( fd->currentJsonNode->type == json_object )
-    //            if ( GUCEF_NULL != attname )
-    //                json_object_push( fd->currentJsonNode, attname, att );
-    //            else
-    //                json_object_push( fd->currentJsonNode, nodename, att );
-    //        break;
-    //    }
-    //    case GUCEF_DATATYPE_INT8:
-    //    case GUCEF_DATATYPE_UINT8:
-    //    case GUCEF_DATATYPE_INT16:
-    //    case GUCEF_DATATYPE_UINT16:
-    //    case GUCEF_DATATYPE_INT32:
-    //    case GUCEF_DATATYPE_UINT32:
-    //    case GUCEF_DATATYPE_INT64:
-    //    case GUCEF_DATATYPE_UINT64:
-    //    {
-    //        json_value* att = GUCEF_NULL;
-    //        long long integer = 0;
-    //        switch ( attvalue->containedType )
-    //        {
-    //            case GUCEF_DATATYPE_INT8:   { integer = (long long) attvalue->union_data.int8_data; break; }
-    //            case GUCEF_DATATYPE_UINT8:  { integer = (long long) attvalue->union_data.uint8_data; break; }
-    //            case GUCEF_DATATYPE_INT16:  { integer = (long long) attvalue->union_data.int16_data; break; }
-    //            case GUCEF_DATATYPE_UINT16: { integer = (long long) attvalue->union_data.uint16_data; break; }
-    //            case GUCEF_DATATYPE_INT32:  { integer = (long long) attvalue->union_data.int32_data; break; }
-    //            case GUCEF_DATATYPE_UINT32: { integer = (long long) attvalue->union_data.uint32_data; break; }
-    //            case GUCEF_DATATYPE_INT64:  { integer = (long long) attvalue->union_data.int64_data; break; }
-    //            case GUCEF_DATATYPE_UINT64: { integer = (long long) attvalue->union_data.uint64_data; break; }
-    //        }
-
-    //        att = json_integer_new( integer );
-    //        if ( fd->currentJsonNode->type == json_array )
-    //            json_array_push( fd->currentJsonNode, att );
-    //        else
-    //        if ( fd->currentJsonNode->type == json_object )
-    //            if ( GUCEF_NULL != attname )
-    //                json_object_push( fd->currentJsonNode, attname, att );
-    //            else
-    //                json_object_push( fd->currentJsonNode, nodename, att );
-    //        break;
-    //    }
-    //    case GUCEF_DATATYPE_BINARY_BLOB:
-    //    {
-    //        if ( 0 != Base64Encode( attvalue->union_data.heap_data.union_data.void_heap_data , 
-    //                                attvalue->union_data.heap_data.heap_data_size            ,
-    //                                fd                                                       ) )
-    //        {
-    //            if ( GUCEF_NULL != fd->base64EncodeBuffer )
-    //            {
-    //                json_value* att = json_string_new( fd->base64EncodeBuffer );
-    //                if ( fd->currentJsonNode->type == json_array )
-    //                    json_array_push( fd->currentJsonNode, att );
-    //                else
-    //                if ( fd->currentJsonNode->type == json_object )
-    //                    if ( GUCEF_NULL != attname )
-    //                        json_object_push( fd->currentJsonNode, attname, att );
-    //                    else
-    //                        json_object_push( fd->currentJsonNode, nodename, att );
-    //                break;            
-    //            }
-    //        }
-    //        break;
-    //    }
-    //    case GUCEF_DATATYPE_BINARY_BSOB:
-    //    {
-    //        if ( 0 != Base64Encode( &attvalue->union_data.bsob_data       , 
-    //                                sizeof attvalue->union_data.bsob_data ,
-    //                                fd                                    ) )
-    //        {
-    //            if ( GUCEF_NULL != fd->base64EncodeBuffer )
-    //            {
-    //                json_value* att = json_string_new( fd->base64EncodeBuffer );
-    //                if ( fd->currentJsonNode->type == json_array )
-    //                    json_array_push( fd->currentJsonNode, att );
-    //                else
-    //                if ( fd->currentJsonNode->type == json_object )
-    //                    if ( GUCEF_NULL != attname )
-    //                        json_object_push( fd->currentJsonNode, attname, att );
-    //                    else
-    //                        json_object_push( fd->currentJsonNode, nodename, att );
-    //                break;            
-    //            }
-    //        }
-    //        break;
-    //    }
-    //    case GUCEF_DATATYPE_UTF8_STRING:
-    //    case GUCEF_DATATYPE_ASCII_STRING:
-    //    default:
-    //    {
-    //        const char* attValue = attvalue->union_data.heap_data.union_data.char_heap_data;
-    //        if ( GUCEF_NULL == attValue )
-    //            attValue = "";
-    //        json_value* att = json_string_new( attValue );
-    //        if ( fd->currentJsonNode->type == json_array )
-    //            json_array_push( fd->currentJsonNode, att );
-    //        else
-    //        if ( fd->currentJsonNode->type == json_object )
-    //            if ( GUCEF_NULL != attname )
-    //                json_object_push( fd->currentJsonNode, attname, att );
-    //            else
-    //                json_object_push( fd->currentJsonNode, nodename, att );
-    //        break;
-    //    }
-    //}
 }
 
 /*---------------------------------------------------------------------------*/
@@ -786,430 +952,165 @@ DSTOREPLUG_End_Node_Children( void** plugdata      ,
 
 /*---------------------------------------------------------------------------*/
 
-int
-yaml_read_handler( void *data, unsigned char *buffer, size_t size, size_t *size_read )
-{
-    TSrcFileData* sd = (TSrcFileData*) data;
-    if ( GUCEF_NULL != sd )
-    {
-        UInt64 bytesRead = sd->access->read( sd->access, buffer, 1, size );
-        *size_read = bytesRead;
-        return 1;
-    }
-    return 0;
-}
-
-/*---------------------------------------------------------------------------*/
-
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Src_File_Open( void** plugdata ,
-                          void** filedata ,
-                          TIOAccess* file ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+DSTOREPLUG_Src_File_Open( void** plugdata  ,
+                          void** codecdata ,
+                          void** filedata  ,
+                          TIOAccess* file  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    //TSrcFileData* sd = GUCEF_NULL;
-    //*plugdata = GUCEF_NULL;
+    *plugdata = GUCEF_NULL;
 
-    //sd = (TSrcFileData*) malloc( sizeof(TSrcFileData) );
-    //if ( GUCEF_NULL != sd )
-    //{
-    //    memset( sd, 0, sizeof( TSrcFileData ) );
-    //    sd->stringEncodingType = GUCEF_DATATYPE_UTF8_STRING;
-    //    sd->access = file;
-    //    if ( 0 != yaml_parser_initialize( &sd->parser ) )
-    //    {
-    //        yaml_parser_set_input( &sd->parser, yaml_read_handler, sd );            
-    //        
-    //        *filedata = sd;
-    //        return 1;
-    //    }
+    if ( GUCEF_NULL != codecdata &&
+         GUCEF_NULL != *codecdata )
+    {
+        CDataDrivenCodecInfo* codecInfo = static_cast< CDataDrivenCodecInfo* >( *codecdata );
 
-    //    free( sd );
-    //}    
+        CResourceReadingInfo* resourceReadingInfo = GUCEF_NEW CResourceReadingInfo();
+        if ( GUCEF_NULL != resourceReadingInfo )
+        {
+            if ( resourceReadingInfo->InitResource( codecInfo, file ) )
+            {
+                *filedata = resourceReadingInfo;
+                return 1;
+            }
+
+            GUCEF_DELETE resourceReadingInfo;
+        }    
+    }
     return 0;    
 }
 
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Src_File_Close( void** plugdata ,
-                           void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+DSTOREPLUG_Src_File_Close( void** plugdata  ,
+                           void** codecdata ,
+                           void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    //if ( *filedata != GUCEF_NULL )
-    //{
-    //    TSrcFileData* sd = (TSrcFileData*) *filedata;
-    //    if ( GUCEF_NULL != sd )
-    //    {
-    //        yaml_parser_delete( &sd->parser );
-    //        sd->access->close( sd->access );            
-    //        free( sd );
-    //    }        
-    //}
+    if ( filedata != GUCEF_NULL && *filedata != GUCEF_NULL )
+    {
+        CResourceReadingInfo* resourceReadingInfo = static_cast< CResourceReadingInfo* >( *filedata );
+        GUCEF_DELETE resourceReadingInfo;
+        *filedata = GUCEF_NULL;
+    }
 }
 
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Set_Read_Handlers( void** plugdata                ,
+                              void** codecdata               ,
                               void** filedata                ,
                               const TReadHandlers* rhandlers ,
                               void* privdata                 ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    if ( *filedata != GUCEF_NULL )
+    if ( filedata != GUCEF_NULL && *filedata != GUCEF_NULL )
     {
-        TSrcFileData* sd = (TSrcFileData*) *filedata;
-        sd->handlers = *rhandlers;
-        sd->privdata = privdata;
+        CResourceReadingInfo* resourceReadingInfo = static_cast< CResourceReadingInfo* >( *filedata );
+
+        if ( resourceReadingInfo->InitParser( rhandlers, privdata ) )
+        {
+            *filedata = resourceReadingInfo;
+        }
+        else
+        {
+            *filedata = GUCEF_NULL;
+            GUCEF_C_ERROR_LOG(g_libApi, GUCEF_LOGLEVEL_NORMAL, "DSTOREPLUG_Set_Read_Handlers: Failed to init parser ");
+        }
     }
 }
 
 /*---------------------------------------------------------------------------*/
 
-//static void process_object( TSrcFileData* sd, const char* name, json_value* value )
-//{
-//    int length=0, x=0, childNodes=0;
-//    if ( GUCEF_NULL == value )
-//        return;
-//
-//    sd->handlers.OnNodeBegin( sd->privdata, name, GUCEF_DATATYPE_OBJECT );
-//    length = value->u.object.length;
-//    for ( x=0; x<length; x++ )
-//    {
-//        if ( value->type != json_object && value->type != json_array )
-//            process_value( sd, name, value->u.object.values[x].name, value->u.object.values[x].value );
-//        else
-//            childNodes++;
-//    }
-//    if ( childNodes > 0 )
-//    {
-//        sd->handlers.OnNodeChildrenBegin( sd->privdata, name );
-//        for ( x=0; x<length; x++ )
-//        {
-//            if ( value->type == json_object || value->type == json_array )
-//                process_value( sd, name, value->u.object.values[x].name, value->u.object.values[x].value );
-//        }
-//        sd->handlers.OnNodeChildrenEnd( sd->privdata, name );
-//    }
-//    sd->handlers.OnNodeEnd( sd->privdata, name );
-//}
-
-/*---------------------------------------------------------------------------*/
-
-//int
-//json_type_to_gucef_type( json_type type )
-//{
-//    switch ( type )
-//    {
-//        case json_object:
-//            return GUCEF_DATATYPE_OBJECT;
-//        case json_array:
-//            return GUCEF_DATATYPE_ARRAY;
-//        case json_integer:
-//            return GUCEF_DATATYPE_INT64;
-//        case json_double:
-//            return GUCEF_DATATYPE_FLOAT64;
-//        case json_string:
-//            return GUCEF_DATATYPE_STRING;
-//        case json_boolean:
-//            return GUCEF_DATATYPE_BOOLEAN_STRING;
-//        case json_null:
-//            return GUCEF_DATATYPE_NIL;
-//        case json_none:
-//        default: 
-//            return GUCEF_DATATYPE_UNKNOWN;
-//    }
-//}
-
-/*---------------------------------------------------------------------------*/
-
-//static void
-//process_array( TSrcFileData* sd, const char* name, json_value* value )
-//{
-//    int length=0, x=0;
-//
-//    if ( GUCEF_NULL == value )
-//        return;
-//
-//    sd->handlers.OnNodeBegin( sd->privdata, name, GUCEF_DATATYPE_ARRAY );
-//    sd->handlers.OnNodeChildrenBegin( sd->privdata, name );
-//    length = value->u.array.length;
-//    for ( x=0; x<length; x++ )
-//    {
-//        process_value( sd, name, GUCEF_NULL, value->u.array.values[x] );
-//    }
-//    sd->handlers.OnNodeChildrenEnd( sd->privdata, name );
-//    sd->handlers.OnNodeEnd( sd->privdata, name );
-//}
-
-/*---------------------------------------------------------------------------*/
-//
-//static void
-//process_value( TSrcFileData* sd    ,
-//               const char* objName ,
-//               const char* name    ,
-//               json_value* value   )
-//{
-//    if ( GUCEF_NULL == value )
-//        return;
-//
-//    switch ( value->type )
-//    {
-//        case json_none:
-//        {
-//            break;
-//        }
-//        case json_null:
-//        {
-//            sd->handlers.OnNodeAtt( sd->privdata, objName, name, NULL, GUCEF_DATATYPE_NIL );
-//            break;
-//        }
-//        case json_object:
-//        {
-//            process_object( sd, name, value );
-//            break;
-//        }
-//        case json_array:
-//        {
-//            process_array( sd, name, value );
-//            break;
-//        }
-//        case json_integer:
-//        {
-//            char valueBuffer[64];
-//            sprintf( valueBuffer, "%lli", value->u.integer );
-//
-//            sd->handlers.OnNodeAtt( sd->privdata, objName, name, valueBuffer, GUCEF_DATATYPE_INT64 );
-//            break;
-//        }
-//        case json_double:
-//        {
-//            char valueBuffer[64];
-//            sprintf( valueBuffer, "%f", value->u.dbl );
-//
-//            sd->handlers.OnNodeAtt( sd->privdata, objName, name, valueBuffer, GUCEF_DATATYPE_FLOAT64 );
-//            break;
-//        }
-//        case json_string:
-//        {
-//            sd->handlers.OnNodeAtt( sd->privdata, objName, name, value->u.string.ptr, GUCEF_DATATYPE_STRING );
-//            break;
-//        }
-//        case json_boolean:
-//        {
-//            char* boolValue = "true";
-//            if ( 0 == value->u.boolean )
-//                boolValue = "false";
-//
-//            sd->handlers.OnNodeAtt( sd->privdata, objName, name, boolValue, GUCEF_DATATYPE_BOOLEAN_STRING );
-//            break;
-//        }
-//    }
-//}
-
-/*---------------------------------------------------------------------------*/
-
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Start_Reading( void** plugdata ,
-                          void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+DSTOREPLUG_Start_Reading( void** plugdata  ,
+                          void** codecdata ,
+                          void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    //if ( GUCEF_NULL != filedata )
-    //{
-    //    TSrcFileData* sd = (TSrcFileData*) *filedata;
-    //    if ( GUCEF_NULL != sd )
-    //    {
-    //        UInt8 currentNesting = 0;
-    //        UInt8 nextScalarIsAKey = 1;
-    //        UInt8 dontDeleteYamlEvent = 0;
-    //        yaml_event_t yamlEvent;
-    //        yaml_event_t lastYamlEvent;
-    //        do 
-    //        {
-    //            if (  0 == yaml_parser_parse( &sd->parser, &yamlEvent ) ) 
-    //            {
-    //                size_t problemStrSize = strlen( sd->parser.problem );
-    //                char* problemStr = calloc( 1, 1024);
-    //                if ( NULL != problemStr )
-    //                {
-    //                    sprintf( problemStr, "problem:\"%s\" offset=%zu", sd->parser.problem, sd->parser.problem_offset );   
-    //                }
-    //                (*sd->handlers.OnError)( sd->privdata, (Int32) sd->parser.error, problemStr );
-    //                free( problemStr );
-    //                return (UInt32) sd->parser.error;
-    //            }
+    if ( codecdata != GUCEF_NULL && *codecdata != GUCEF_NULL &&
+         filedata != GUCEF_NULL && *filedata != GUCEF_NULL    )
+    {        
+        CResourceReadingInfo* resourceReadingInfo = static_cast< CResourceReadingInfo* >( *filedata );
 
-    //            switch ( yamlEvent.type )
-    //            { 
-    //                case YAML_NO_EVENT: 
-    //                    break; 
-    //                
-    //                /* Stream start/end */
-    //                case YAML_STREAM_START_EVENT:
-    //                {
-    //                    sd->stringEncodingType = YamlEncodingToGucefDataType( yamlEvent.data.stream_start.encoding );
-    //                    break;
-    //                }
-    //                case YAML_STREAM_END_EVENT: 
-    //                    break;
-
-    //                /* Block delimeters */
-    //                case YAML_DOCUMENT_START_EVENT:
-    //                {
-    //                    (*sd->handlers.OnTreeBegin)( sd->privdata );
-    //                    break;
-    //                }
-    //                case YAML_DOCUMENT_END_EVENT:    
-    //                {
-    //                    (*sd->handlers.OnTreeEnd)( sd->privdata );
-    //                    break;
-    //                }
-    //                case YAML_SEQUENCE_START_EVENT:  
-    //                {
-    //                    const char* name = GUCEF_NULL;
-    //                    if ( 0 != dontDeleteYamlEvent )
-    //                        name = lastYamlEvent.data.scalar.value;
-    //                    sd->handlers.OnNodeBegin( sd->privdata, name, GUCEF_DATATYPE_ARRAY );
-    //                    sd->handlers.OnNodeChildrenBegin( sd->privdata, name );
-    //                    if ( 0 != dontDeleteYamlEvent )
-    //                    {
-    //                        dontDeleteYamlEvent = 0;
-    //                        yaml_event_delete( &lastYamlEvent );
-    //                    }
-    //                    currentNesting = (UInt8) YAML_SEQUENCE_START_EVENT;
-    //                    PushNesting( sd, (UInt8) YAML_SEQUENCE_START_EVENT );
-    //                    break;
-    //                }
-    //                case YAML_SEQUENCE_END_EVENT:    
-    //                {
-    //                    const char* name = yamlEvent.data.sequence_start.tag;
-    //                    sd->handlers.OnNodeChildrenEnd( sd->privdata, name );
-    //                    sd->handlers.OnNodeEnd( sd->privdata, name );
-    //                    currentNesting = PopNesting( sd );
-    //                    if ( YAML_MAPPING_START_EVENT == currentNesting )
-    //                        nextScalarIsAKey = 1;
-    //                    else
-    //                        nextScalarIsAKey = 0;
-    //                    break;
-    //                }
-    //                case YAML_MAPPING_START_EVENT:   
-    //                {
-    //                    const char* name = GUCEF_NULL;
-    //                    if ( 0 != dontDeleteYamlEvent )
-    //                        name = lastYamlEvent.data.scalar.value;
-    //                    currentNesting = (UInt8) YAML_MAPPING_START_EVENT;
-    //                    nextScalarIsAKey = 1;
-    //                    sd->handlers.OnNodeBegin( sd->privdata, name, GUCEF_DATATYPE_OBJECT );
-    //                    sd->handlers.OnNodeChildrenBegin( sd->privdata, name );
-    //                    if ( 0 != dontDeleteYamlEvent )
-    //                    {
-    //                        dontDeleteYamlEvent = 0;
-    //                        yaml_event_delete( &lastYamlEvent );
-    //                    }
-    //                    PushNesting( sd, (UInt8) YAML_MAPPING_START_EVENT );
-    //                    break;
-    //                }
-    //                case YAML_MAPPING_END_EVENT:   
-    //                {
-    //                    const char* name = yamlEvent.data.mapping_start.tag;
-    //                    sd->handlers.OnNodeChildrenEnd( sd->privdata, name );
-    //                    sd->handlers.OnNodeEnd( sd->privdata, name );
-    //                    currentNesting = PopNesting( sd );
-    //                    if ( YAML_MAPPING_START_EVENT == currentNesting )
-    //                        nextScalarIsAKey = 1;
-    //                    else
-    //                        nextScalarIsAKey = 0;
-    //                    break;
-    //                }
-
-    //                /* Data */
-
-    //                case YAML_ALIAS_EVENT:   
-    //                    break;
-    //                    
-    //                case YAML_SCALAR_EVENT:  
-    //                {
-    //                    if ( 0 != nextScalarIsAKey )
-    //                    {
-    //                        memcpy( &lastYamlEvent, &yamlEvent, sizeof( yamlEvent ) );
-    //                        dontDeleteYamlEvent = 1;
-    //                        nextScalarIsAKey = 0;                         
-    //                    }
-    //                    else
-    //                    {
-    //                        TVariantData var;
-    //                        memset( &var, 0, sizeof( var ) );
-
-    //                        UInt8 scalarType = DetectScalarType( &yamlEvent );
-    //                        switch ( scalarType )
-    //                        {
-    //                            case GUCEF_DATATYPE_FLOAT64 :
-    //                            {
-    //                                var.containedType = GUCEF_DATATYPE_FLOAT64;
-    //                                var.union_data.float64_data = ToFloat64( &yamlEvent );
-    //                                break;
-    //                            }
-    //                            case GUCEF_DATATYPE_INT64 :
-    //                            {
-    //                                var.containedType = GUCEF_DATATYPE_INT64;
-    //                                var.union_data.int64_data = ToInt64( &yamlEvent );
-    //                                break;
-    //                            }
-    //                            case GUCEF_DATATYPE_BOOLEAN_ASCII_STRING :
-    //                            case GUCEF_DATATYPE_UTF8_STRING:
-    //                            case GUCEF_DATATYPE_UTF16_LE_STRING:
-    //                            case GUCEF_DATATYPE_UTF16_BE_STRING:
-    //                            default:
-    //                            {
-    //                                var.containedType = scalarType;
-    //                                var.union_data.heap_data.heap_data_is_linked = 1;
-    //                                var.union_data.heap_data.heap_data_size = (UInt32) yamlEvent.data.scalar.length+1;
-    //                                var.union_data.heap_data.union_data.char_heap_data = yamlEvent.data.scalar.value;
-    //                                break;
-    //                            }
-    //                        }
-
-    //                        yaml_char_t* key = GUCEF_NULL;
-    //                        if ( YAML_MAPPING_START_EVENT == currentNesting )
-    //                        {
-    //                            key = lastYamlEvent.data.scalar.value;
-    //                            nextScalarIsAKey = 1;
-    //                        }
-
-    //                        sd->handlers.OnNodeAtt( sd->privdata, "", key, &var );
-
-    //                        if ( YAML_MAPPING_START_EVENT == currentNesting )
-    //                        {
-    //                            yaml_event_delete( &lastYamlEvent );
-    //                            dontDeleteYamlEvent = 0;
-    //                        }
-    //                    }
-    //                    break;
-    //                }
-    //            }
-
-    //            if( yamlEvent.type != YAML_STREAM_END_EVENT && 0 == dontDeleteYamlEvent )
-    //                yaml_event_delete( &yamlEvent );
-
-    //        } 
-    //        while( yamlEvent.type != YAML_STREAM_END_EVENT );
-    //        yaml_event_delete( &yamlEvent );
-
-    //        return 0; /* error code of 0 means no error */
-    //    }
-    //}
+        if ( resourceReadingInfo->ParseMessage() )
+        {
+            // no error is no error code aka 0
+            return 0;
+        }
+    }
     return 1;
 }
 
 /*---------------------------------------------------------------------------*/
 
 UInt8 GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Type_Is_Data_Driven( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+DSTOREPLUG_Create_Data_Driven_Codec( const void* plugdata                  ,
+                                     TDataDrivenDStoreCodecMeta* codecMeta ,
+                                     TVariantMapApi* loadedResources       ,
+                                     void** dataDrivenCodecPrivateData     ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == dataDrivenCodecPrivateData )
+        return 0;
+
+    CDataDrivenCodecInfo* codecInfo = GUCEF_NEW CDataDrivenCodecInfo();
+    if ( GUCEF_NULL == codecInfo )
+        return 0;
+    
+    if ( !codecInfo->Init( codecMeta, loadedResources ) )
+    {
+        GUCEF_DELETE codecInfo;
+        return 0;
+    }
+
+    *dataDrivenCodecPrivateData = codecInfo;
+    return 1;
+}
+
+/*---------------------------------------------------------------------------*/
+
+UInt8 GUCEF_PLUGIN_CALLSPEC_PREFIX
+DSTOREPLUG_Destroy_Data_Driven_Codec( const void* plugdata                  ,
+                                      TDataDrivenDStoreCodecMeta* codecMeta ,
+                                      void** dataDrivenCodecPrivateData     ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == dataDrivenCodecPrivateData )
+        return 0;
+
+    CDataDrivenCodecInfo* codecInfo = static_cast< CDataDrivenCodecInfo* >( *dataDrivenCodecPrivateData );
+    if ( GUCEF_NULL == codecInfo )
+        return 0;
+    
+    try
+    {
+        GUCEF_DELETE codecInfo;
+    }
+    catch ( const std::exception& e )
+    {
+        std::string errMsg( "DSTOREPLUG_Destroy_Data_Driven_Codec: Exception deleting codec info: " );
+        errMsg += e.what();
+        GUCEF_C_EXCEPTION_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, errMsg.c_str() );
+        return 0;
+    }
+
+    *dataDrivenCodecPrivateData = GUCEF_NULL;
+    return 1;
+}
+
+/*---------------------------------------------------------------------------*/
+
+UInt8 GUCEF_PLUGIN_CALLSPEC_PREFIX
+DSTOREPLUG_Type_Is_Data_Driven( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
     return 1;
 }
+
 /*---------------------------------------------------------------------------*/
 
 const char* GUCEF_PLUGIN_CALLSPEC_PREFIX

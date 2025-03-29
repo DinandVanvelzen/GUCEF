@@ -253,7 +253,7 @@ CDataDrivenDStoreCodecMeta::GetClassTypeName( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CDataDrivenDStoreCodecMeta::LinkCAdapter( TDataDrivenDStoreCodecMeta* cAdapter )
+CDataDrivenDStoreCodecMeta::LinkCAdapter( TDataDrivenDStoreCodecMeta* cAdapter ) const
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == cAdapter )

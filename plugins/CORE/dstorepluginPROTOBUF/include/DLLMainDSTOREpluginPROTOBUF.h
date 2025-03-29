@@ -59,6 +59,11 @@
 #define GUCEF_CORE_C_API_H
 #endif /* GUCEF_CORE_C_API_H ? */
 
+#ifndef GUCEF_CORE_C_DATADRIVENDSTORECODECMETA_H
+#include "gucefCORE_c_datadriven_dstorecodec_meta.h"
+#define GUCEF_CORE_C_DATADRIVENDSTORECODECMETA_H
+#endif /* GUCEF_CORE_C_DATADRIVENDSTORECODECMETA_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -170,19 +175,22 @@ DSTOREPLUG_End_Node_Children( void** plugdata      ,
                                   
 DSTOREPLUG_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX 
 DSTOREPLUG_Src_File_Open( void** plugdata      , 
+                          void** codecdata     , 
                           void** filedata      ,
                           TIOAccess* file      ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
                           
 /*---------------------------------------------------------------------------*/
                           
 DSTOREPLUG_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
-DSTOREPLUG_Src_File_Close( void** plugdata , 
-                           void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+DSTOREPLUG_Src_File_Close( void** plugdata  , 
+                           void** codecdata ,
+                           void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
                            
 /*---------------------------------------------------------------------------*/
                            
 DSTOREPLUG_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
 DSTOREPLUG_Set_Read_Handlers( void** plugdata                , 
+                              void** codecdata               ,
                               void** filedata                , 
                               const TReadHandlers* rhandlers , 
                               void* privdata                 ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
@@ -190,8 +198,9 @@ DSTOREPLUG_Set_Read_Handlers( void** plugdata                ,
 /*---------------------------------------------------------------------------*/
                              
 DSTOREPLUG_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX 
-DSTOREPLUG_Start_Reading( void** plugdata , 
-                          void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+DSTOREPLUG_Start_Reading( void** plugdata  , 
+                          void** codecdata ,
+                          void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
                   
 /*---------------------------------------------------------------------------*/
 
@@ -202,6 +211,21 @@ DSTOREPLUG_Type( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
                   
 DSTOREPLUG_EXPORT_C UInt8 GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Type_Is_Data_Driven( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+/*---------------------------------------------------------------------------*/
+
+DSTOREPLUG_EXPORT_C UInt8 GUCEF_PLUGIN_CALLSPEC_PREFIX
+DSTOREPLUG_Create_Data_Driven_Codec( const void* plugdata                  ,
+                                     TDataDrivenDStoreCodecMeta* codecMeta ,
+                                     TVariantMapApi* loadedResources       ,
+                                     void** dataDrivenCodecPrivateData     ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+/*---------------------------------------------------------------------------*/
+
+DSTOREPLUG_EXPORT_C UInt8 GUCEF_PLUGIN_CALLSPEC_PREFIX
+DSTOREPLUG_Destroy_Data_Driven_Codec( const void* plugdata                  ,
+                                      TDataDrivenDStoreCodecMeta* codecMeta ,
+                                      void** dataDrivenCodecPrivateData     ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*---------------------------------------------------------------------------*/
 

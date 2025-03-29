@@ -63,6 +63,16 @@
 #define GUCEF_CORE_CDSTORECODECPLUGIN_H
 #endif /* GUCEF_CORE_CDSTORECODECPLUGIN_H ? */
 
+#ifndef GUCEF_CORE_CDATADRIVENDSTORECODECFACTORY_H
+#include "gucefCORE_CDataDrivenDStoreCodecFactory.h"
+#define GUCEF_CORE_CDATADRIVENDSTORECODECFACTORY_H
+#endif /* GUCEF_CORE_CDATADRIVENDSTORECODECFACTORY_H ? */
+
+#ifndef GUCEF_CORE_CPLUGINFACTORYADAPTERFORDATADRIVENDSTORECODEC_H
+#include "gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.h"
+#define GUCEF_CORE_CPLUGINFACTORYADAPTERFORDATADRIVENDSTORECODEC_H
+#endif /* GUCEF_CORE_CPLUGINFACTORYADAPTERFORDATADRIVENDSTORECODEC_H ? */
+
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
 #define GUCEF_CORE_CCOREGLOBAL_H
@@ -145,6 +155,13 @@ CDStoreCodecPluginManager::RegisterPlugin( void* modulePtr                   ,
     {
         if ( CCoreGlobal::Instance()->GetDStoreCodecRegistry().TryRegister( plugin->GetTypeName(), plugin ) )
         {
+            if ( plugin->IsCodecTypeDataDriven() )
+            {
+                // Register the concrete factory for the codec with the abstract data driven codec factory
+                // this allows data driven instances to be created, which represent derivations of the codec able to perform the actual work
+                CCoreGlobal::Instance()->GetDataDrivenDStoreCodecFactory().RegisterConcreteFactory( plugin->GetTypeName(), plugin->GetDataDrivenCodecFactory() );
+            }
+            
             return plugin.StaticCast< CIPlugin >();
         }
     }
@@ -158,12 +175,23 @@ bool
 CDStoreCodecPluginManager::UnregisterPlugin( TPluginPtr plugin )
 {GUCEF_TRACE;
 
-    // First unregister from the registry
-    TDStoreCodecPluginPtr pointerToPlugin = plugin.StaticCast< CDStoreCodecPlugin >();
-    CCoreGlobal::Instance()->GetDStoreCodecRegistry().Unregister( pointerToPlugin->GetTypeName() );
+    
+    TDStoreCodecPluginPtr codecPlugin = plugin.StaticCast< CDStoreCodecPlugin >();
+    if ( codecPlugin.IsNULL() )
+        return false;
+
+    if ( codecPlugin->IsCodecTypeDataDriven() )
+    {
+        // ensure that the concrete codec factory is unregistered from the abstract data driven codec factory
+        // We dont want any more derivations of the codec to be created
+        CCoreGlobal::Instance()->GetDataDrivenDStoreCodecFactory().UnregisterConcreteFactory( codecPlugin->GetTypeName() );
+    }
+
+    // unregister from the registry
+    CCoreGlobal::Instance()->GetDStoreCodecRegistry().Unregister( codecPlugin->GetTypeName() );
 
     // Now unlink the plugin
-    return pointerToPlugin->Unlink();
+    return codecPlugin->Unlink();
 }
 
 /*-------------------------------------------------------------------------//

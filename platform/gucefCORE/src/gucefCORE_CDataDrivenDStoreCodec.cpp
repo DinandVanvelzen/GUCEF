@@ -42,6 +42,16 @@ namespace CORE {
 
 CDataDrivenDStoreCodec::CDataDrivenDStoreCodec( void )
     : CDStoreCodec()
+    , m_codecMeta()
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDataDrivenDStoreCodec::CDataDrivenDStoreCodec( CDataDrivenDStoreCodecMetaPtr codecMeta )
+    : CDStoreCodec()
+    , m_codecMeta( codecMeta )
 {GUCEF_TRACE;
 
 }
@@ -51,6 +61,35 @@ CDataDrivenDStoreCodec::CDataDrivenDStoreCodec( void )
 CDataDrivenDStoreCodec::~CDataDrivenDStoreCodec()
 {GUCEF_TRACE;
 
+    m_codecMeta.Unlink();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataDrivenDStoreCodec::SetDataDrivenDStoreCodecMeta( CDataDrivenDStoreCodecMetaPtr newMetaData )
+{GUCEF_TRACE;
+
+    m_codecMeta = newMetaData;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDataDrivenDStoreCodecMetaPtr 
+CDataDrivenDStoreCodec::GetDataDrivenDStoreCodecMeta( void ) const
+{GUCEF_TRACE;
+
+    return m_codecMeta;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CDataDrivenDStoreCodec::IsCodecTypeDataDriven( void ) const
+{GUCEF_TRACE;
+
+    return true;
 }
 
 /*-------------------------------------------------------------------------//

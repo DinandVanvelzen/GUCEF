@@ -868,9 +868,10 @@ DSTOREPLUG_End_Node_Children( void** plugdata      ,
 /*---------------------------------------------------------------------------*/
 
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Src_File_Open( void** plugdata      ,
-                          void** filedata      ,
-                          TIOAccess* file      ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+DSTOREPLUG_Src_File_Open( void** plugdata  ,
+                          void** codecdata ,
+                          void** filedata  ,
+                          TIOAccess* file  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     TSrcFileData* sd;
     *plugdata = NULL;
@@ -905,8 +906,9 @@ DSTOREPLUG_Src_File_Open( void** plugdata      ,
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Src_File_Close( void** plugdata ,
-                           void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+DSTOREPLUG_Src_File_Close( void** plugdata  ,
+                           void** codecdata ,
+                           void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
         if ( *filedata )
         {
@@ -920,6 +922,7 @@ DSTOREPLUG_Src_File_Close( void** plugdata ,
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Set_Read_Handlers( void** plugdata                ,
+                              void** codecdata               ,
                               void** filedata                ,
                               const TReadHandlers* rhandlers ,
                               void* privdata                 ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
@@ -935,8 +938,9 @@ DSTOREPLUG_Set_Read_Handlers( void** plugdata                ,
 /*---------------------------------------------------------------------------*/
 
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Start_Reading( void** plugdata ,
-                          void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+DSTOREPLUG_Start_Reading( void** plugdata  ,
+                          void** codecdata ,
+                          void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     if ( GUCEF_NULL != filedata )
     {

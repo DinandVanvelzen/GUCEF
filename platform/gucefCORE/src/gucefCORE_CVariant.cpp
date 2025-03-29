@@ -2279,6 +2279,42 @@ CVariant::operator=( const TVariantData& src )
 
 /*-------------------------------------------------------------------------*/
 
+CVariant&
+CVariant::operator=( const TDefaultFuncPtr& src )                                   
+{GUCEF_TRACE;
+
+    Clear();
+    m_variantData.union_data.memory_address_data.funcPtr = src;
+    m_variantData.containedType = GUCEF_DATATYPE_FUNCTION_MEMORY_ADDRESS;
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariant&
+CVariant::operator=( const void*& src )                                   
+{GUCEF_TRACE;
+
+    Clear();
+    m_variantData.union_data.memory_address_data.const_objPtr = src;
+    m_variantData.containedType = GUCEF_DATATYPE_CONST_DATA_MEMORY_ADDRESS;
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariant&
+CVariant::operator=( void*& src )                                   
+{GUCEF_TRACE;
+
+    Clear();
+    m_variantData.union_data.memory_address_data.const_objPtr = src;
+    m_variantData.containedType = GUCEF_DATATYPE_DATA_MEMORY_ADDRESS;
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CVariant::Set( const void* data, UInt32 dataSize, UInt8 varType, bool linkOnlyForDynMem )
 {GUCEF_TRACE;

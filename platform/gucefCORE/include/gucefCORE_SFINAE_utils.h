@@ -98,6 +98,28 @@ struct TypeHasLockType
 
 /**
  *  C++98 compatible SFINAE template helper
+ *  Allows for checking for the existance of the member function T& T::LinkTo
+ */
+template < class T >
+struct TypeHasMemberFunctionLinkTo
+{
+    // For the compile time comparison.
+    typedef char    yes[1];
+    typedef yes     no[2];
+
+    template <typename U, U u> struct reallyHas;
+
+    template < typename TestClass > static yes& test( reallyHas< TestClass& (TestClass::*)(), &TestClass::LinkTo >* /*unused*/ ) { static yes result; return result; }
+    template < typename TestClass > static no&  test( ... ) { static no result; return result; }
+
+    // The constant used as a return value for the test.
+    enum { value = sizeof( test<T>(0) ) == sizeof( yes ) };
+};
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  C++98 compatible SFINAE template helper
  *  Allows for checking for the existance of the member function TContainedType* T::GetPointerAlways
  */
 template < class T >

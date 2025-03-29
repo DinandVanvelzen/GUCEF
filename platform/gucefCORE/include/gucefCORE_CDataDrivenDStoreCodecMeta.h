@@ -125,7 +125,7 @@ class GUCEF_CORE_PUBLIC_CPP CDataDrivenDStoreCodecMeta : public CIConfigurable ,
      *  keeping the instance of this class that is linked to immutable and alive for the duration of the C API call
      *  Use with care!
      */
-    bool LinkCAdapter( TDataDrivenDStoreCodecMeta* cAdapter );
+    bool LinkCAdapter( TDataDrivenDStoreCodecMeta* cAdapter ) const;
 
     virtual bool SaveConfig( CDataNode& config ) const GUCEF_VIRTUAL_OVERRIDE;
 

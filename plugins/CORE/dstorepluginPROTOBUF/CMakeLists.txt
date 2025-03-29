@@ -33,6 +33,7 @@ add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT libprotobuf )
 target_link_libraries( ${MODULE_NAME} libprotobuf )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINPROTOBUF_BUILD_MODULE" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "PROTOBUF_USE_DLLS" )
 
 include_directories( ../../../common/include ../../../dependencies/protobuf/src ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 

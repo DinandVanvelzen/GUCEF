@@ -11,6 +11,7 @@
         </Linker>
         <Preprocessor>
             <Define String="DSTOREPLUGINPROTOBUF_BUILD_MODULE" />
+			<Define String="PROTOBUF_USE_DLLS" />
         </Preprocessor>
     </Module>
 </ModuleInfoEntry>

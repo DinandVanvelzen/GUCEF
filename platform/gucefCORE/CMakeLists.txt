@@ -208,6 +208,7 @@ set( HEADER_FILES
   include/gucefCORE_CPlatformNativeConsoleWindow.h
   include/gucefCORE_CPluginGroup.h
   include/gucefCORE_CPluginMetaData.h
+  include/gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.h
   include/gucefCORE_CProperty.h
   include/gucefCORE_CPropertyDefinition.h
   include/gucefCORE_CPropertyDefinitionList.h
@@ -350,7 +351,7 @@ set( SOURCE_FILES
   src/CPFileAccess.cpp
   src/CPFileChunkAccess.cpp
   src/CPluginControl.cpp
-  src/CPluginManager.cpp
+  src/CPluginManager.cpp  
   src/CPumpedObserver.cpp
   src/CROIOAccess.cpp
   src/CSTDOStreamAdapter.cpp
@@ -476,6 +477,7 @@ set( SOURCE_FILES
   src/gucefCORE_CPlatformNativeConsoleWindow.cpp
   src/gucefCORE_CPluginGroup.cpp
   src/gucefCORE_CPluginMetaData.cpp
+  src/gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.cpp
   src/gucefCORE_CProperty.cpp
   src/gucefCORE_CPropertyDefinition.cpp
   src/gucefCORE_CPropertyDefinitionList.cpp

@@ -52,7 +52,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 /**
- *  Abstract base class for data driven data storage codecs
+ *  Base class for data driven data storage codecs
  *  It simple adds context that its data driven plus access to the relevant meta data
  */
 class GUCEF_CORE_PUBLIC_CPP CDataDrivenDStoreCodec : public CDStoreCodec
@@ -61,12 +61,20 @@ class GUCEF_CORE_PUBLIC_CPP CDataDrivenDStoreCodec : public CDStoreCodec
 
     CDataDrivenDStoreCodec( void );
 
-    virtual ~CDataDrivenDStoreCodec();
+    CDataDrivenDStoreCodec( CDataDrivenDStoreCodecMetaPtr codecMeta );
 
-    virtual bool SetDataDrivenDStoreCodecMeta( CDataDrivenDStoreCodecMetaPtr newMetaData ) = 0;
+    virtual ~CDataDrivenDStoreCodec() GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual CDataDrivenDStoreCodecMetaPtr GetDataDrivenDStoreCodecMeta( void ) const = 0;
+    virtual bool SetDataDrivenDStoreCodecMeta( CDataDrivenDStoreCodecMetaPtr newMetaData );
 
+    virtual CDataDrivenDStoreCodecMetaPtr GetDataDrivenDStoreCodecMeta( void ) const;
+
+    virtual bool IsCodecTypeDataDriven( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    protected:
+
+    CDataDrivenDStoreCodecMetaPtr m_codecMeta;
+    
     private:
     CDataDrivenDStoreCodec( const CDataDrivenDStoreCodec& src );             /**< no sense in an copied codec */
     CDataDrivenDStoreCodec& operator=( const CDataDrivenDStoreCodec& src );  /**< no sense in an copied codec */

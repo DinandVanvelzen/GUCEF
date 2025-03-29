@@ -64,6 +64,11 @@
 #define GUCEF_CORE_DSTORECODECPLUGINSTRUCTS_H
 #endif /* GUCEF_CORE_DSTORECODECPLUGINSTRUCTS_H ? */
 
+#ifndef GUCEF_CORE_C_DATADRIVENDSTORECODECMETA_H
+#include "gucefCORE_c_datadriven_dstorecodec_meta.h"
+#define GUCEF_CORE_C_DATADRIVENDSTORECODECMETA_H
+#endif /* GUCEF_CORE_C_DATADRIVENDSTORECODECMETA_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -94,7 +99,15 @@ typedef const char* ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Name )      
 typedef const char* ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Copyright )      ( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef const TVersion* ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Version )    ( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef const char* ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Type )           ( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
 typedef UInt8 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Type_Is_Data_Driven )  ( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+typedef UInt8 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Create_Data_Driven_Codec ) ( const void* plugdata                  ,
+                                                                                           TDataDrivenDStoreCodecMeta* codecMeta ,
+                                                                                           TVariantMapApi* loadedResources       ,
+                                                                                           void** dataDrivenCodecPrivateData     ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+typedef UInt8 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Destroy_Data_Driven_Codec ) ( const void* plugdata                  ,
+                                                                                            TDataDrivenDStoreCodecMeta* codecMeta ,
+                                                                                            void** dataDrivenCodecPrivateData     ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Dest_File_Open )      ( void** plugdata, void** filedata, TIOAccess* file ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Dest_File_Close )       ( void** plugdata, void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
@@ -104,10 +117,10 @@ typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Store_Node_Att )   
 typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Begin_Node_Children )   ( void** plugdata, void** filedata, const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_End_Node_Children )     ( void** plugdata, void** filedata, const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
-typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Src_File_Open )       ( void** plugdata, void** filedata, TIOAccess* file ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Src_File_Close )        ( void** plugdata, void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Set_Read_Handlers )     ( void** plugdata, void** filedata, const TReadHandlers* rhandlers, void* privdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Start_Reading )       ( void** plugdata, void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Src_File_Open )       ( void** plugdata, void** codecdata, void** filedata, TIOAccess* file ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Src_File_Close )        ( void** plugdata, void** codecdata, void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+typedef void ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Set_Read_Handlers )     ( void** plugdata, void** codecdata, void** filedata, const TReadHandlers* rhandlers, void* privdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TDSTOREPLUGFPTR_Start_Reading )       ( void** plugdata, void** codecdata, void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*-------------------------------------------------------------------------*/
 
@@ -122,7 +135,10 @@ struct SGucefCoreCDStorePluginApi
     TDSTOREPLUGFPTR_Copyright Copyright;                                   /**< Function to get the copyright of the plugin, e.g. "Licensed under the Apache License, Version 2.0" */
     TDSTOREPLUGFPTR_Version Version;                                       /**< Function to get the semantic version of the plugin, e.g. "1.0.0" */
     TDSTOREPLUGFPTR_Type Type;                                             /**< Function to get the type of the plugin, e.g. "protobuf", "json", etc. */
+
     TDSTOREPLUGFPTR_Type_Is_Data_Driven Type_Is_Data_Driven;               /**< Optional function to determine if the plugin is data driven, default false (0) if not present */
+    TDSTOREPLUGFPTR_Create_Data_Driven_Codec Create_Data_Driven_Codec;     /**< Optional function to create a data driven codec, Mandatory for data driven codec plugins if Type_Is_Data_Driven returns true (1). Factory function returns 0 or 1 to indicate success */
+    TDSTOREPLUGFPTR_Destroy_Data_Driven_Codec Destroy_Data_Driven_Codec;   /**< Optional function to destroy a data driven codec, Mandatory for data driven codec plugins if Type_Is_Data_Driven returns true (1). returns 0 or 1 to indicate success */
 
     TDSTOREPLUGFPTR_Dest_File_Open Dest_File_Open;
     TDSTOREPLUGFPTR_Dest_File_Close Dest_File_Close;
