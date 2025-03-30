@@ -46,8 +46,8 @@ LOCAL_SRC_FILES := \
   ../gucefCORE/src/gucefCORE_CTime.cpp \
   ../gucefCORE/src/gucefCORE_CUtf8String.cpp \
   ../gucefCORE/src/gucefCORE_CVariant.cpp \
-  ../gucefCORE/src/gucefCORE_VariantData.c \
   ../gucefCORE/src/md5.c \
+  ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c \
   ../gucefMT/src/gucefMT_CICloneable.cpp \
   ../gucefMT/src/gucefMT_CILockable.cpp \
   ../gucefMT/src/gucefMT_CMutex.cpp \
@@ -59,6 +59,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../gucefCORE/include/ \
+  $(MY_MODULE_PATH)/../gucefCORE/include/c_api/ \
   $(MY_MODULE_PATH)/../gucefMT/include/ \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/.. \

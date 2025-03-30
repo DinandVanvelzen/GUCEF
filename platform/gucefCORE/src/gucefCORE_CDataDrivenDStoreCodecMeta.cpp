@@ -263,10 +263,10 @@ CDataDrivenDStoreCodecMeta::LinkCAdapter( TDataDrivenDStoreCodecMeta* cAdapter )
     cAdapter->base_codec_type_name = m_baseCodecTypeName.C_String();
     cAdapter->data_driven_codec_typename = m_dataDrivenCodecTypeName.C_String();
     //cAdapter->resources = m_resources;
-    //cAdapter->params = m_params;           // TODO
+    //cAdapter->params = m_params;           // @TODO
     cAdapter->is_shareable = m_isShareable ? 1 : 0;
 
-    return false;
+    return true;
 }
 
 /*-------------------------------------------------------------------------//

@@ -69,6 +69,8 @@ class GUCEF_CORE_PUBLIC_CPP CResourceMetaData
     bool hasName;
     CString version;
     bool hasVersion;
+    CString mimeType;
+    bool hasMimeType;
     CDateTime creationDateTime;
     bool hasCreationDateTime;
     CDateTime modifiedDateTime;
@@ -90,6 +92,8 @@ class GUCEF_CORE_PUBLIC_CPP CResourceMetaData
     bool isCompressed;
     bool hasIsEncrypted;
     bool isEncrypted;
+    bool hasIsEncoded;
+    bool isEncoded;
     bool hasIsTemporary;
     bool isTemporary;
     bool hasIsOffline;

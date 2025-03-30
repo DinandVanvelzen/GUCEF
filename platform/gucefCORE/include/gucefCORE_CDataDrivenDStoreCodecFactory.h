@@ -103,8 +103,8 @@ class GUCEF_CORE_PUBLIC_CPP CDataDrivenDStoreCodecFactory : public CTAbstractFac
     /**
      *  Utility specialization which makes utilizing the factory easier by combining the registry lookup and codec creation
      */
-    TProductPtr CreateCodec( const CString& dataDrivenCodecTypeName ,
-                             bool caseSensitive = true              );
+    CDataDrivenDStoreCodecPtr CreateCodec( const CString& dataDrivenCodecTypeName ,
+                                           bool caseSensitive = true              );
 
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

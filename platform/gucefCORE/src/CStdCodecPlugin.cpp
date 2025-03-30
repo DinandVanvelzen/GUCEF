@@ -183,7 +183,7 @@ CStdCodecPlugin::LinkCodecSet( void )
                                                    familyRegistry         ,
                                                    true                   ) )
                     {
-                        familyRegistry = CCodecRegistry::TCodecFamilyRegistryPtr( GUCEF_NEW CCodecRegistry::TCodecFamilyRegistry() );
+                        familyRegistry = CCodecRegistry::TCodecFamilyRegistryTypedPtr( GUCEF_NEW CCodecRegistry::TCodecFamilyRegistry() );
                         if ( !codecRegistry.TryRegister( codecLink->codecFamily, familyRegistry ) )
                         {
                             // race condition?

@@ -2279,10 +2279,18 @@ FillHeaderSubDirIncludes( CProjectInfo& projectInfo         ,
     TModuleInfoMap::iterator n = moduleInfoEntry.modulesPerPlatform.find( platform );
     if ( n != moduleInfoEntry.modulesPerPlatform.end() )
     {
-        if ( (*n).second.considerSubDirs )
+        CModuleInfo& moduleInfo = (*n).second;
+
+        if ( MODULETYPE_HEADER_INCLUDE_LOCATION == moduleInfo.moduleType )
+        {
+            // the very notion of a header include location is that it is a location
+            // as such we include the root dir as a include dir
+            moduleInfo.includeDirs[ CORE::CString::Empty ];
+        }
+        
+        if ( moduleInfo.considerSubDirs )
         {
             TStringSetMap newDirs;
-            CModuleInfo& moduleInfo = (*n).second;
             TStringSetMap::iterator d = moduleInfo.includeDirs.begin();
             while ( d != moduleInfo.includeDirs.end() )
             {

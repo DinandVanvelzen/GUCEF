@@ -102,6 +102,16 @@
 #include "TestTokenizer.h"
 #define GUCEF_CORE_TESTAPP_TESTTOKENIZER_H
 #endif /* GUCEF_CORE_TESTAPP_TESTTOKENIZER_H ? */
+                                
+#ifndef GUCEF_CORE_TESTAPP_TESTFILEUTILS_H
+#include "TestFileUtils.h"
+#define GUCEF_CORE_TESTAPP_TESTFILEUTILS_H
+#endif /* GUCEF_CORE_TESTAPP_TESTFILEUTILS_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTDATADRIVENDSTORECODECS_H
+#include "TestDataDrivenDStoreCodecs.h"
+#define GUCEF_CORE_TESTAPP_TESTDATADRIVENDSTORECODECS_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDATADRIVENDSTORECODECS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -132,6 +142,7 @@ GUCEF_OSMAIN_BEGIN
         
         PerformStringTests();
         PerformVarsTests();
+        PerformFileUtilsTests();
         PerformDateTimeTests();        
         PerformUriTests();
         PerformVariantTests();
@@ -144,6 +155,7 @@ GUCEF_OSMAIN_BEGIN
         PerformDynamicBufferStringStreamTests();
         PerformCyclicDynamicBufferTests();
         PerformNotifierObserverTests();
+        PerformDataDrivenDStoreCodecsTests();
 
         return 1;
     }

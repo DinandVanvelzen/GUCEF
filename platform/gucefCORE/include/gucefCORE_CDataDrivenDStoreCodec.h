@@ -80,6 +80,10 @@ class GUCEF_CORE_PUBLIC_CPP CDataDrivenDStoreCodec : public CDStoreCodec
     CDataDrivenDStoreCodec& operator=( const CDataDrivenDStoreCodec& src );  /**< no sense in an copied codec */
 };
 
+/*-------------------------------------------------------------------------*/
+
+typedef CTBasicSharedPtr< CDataDrivenDStoreCodec, MT::CMutex > CDataDrivenDStoreCodecPtr;
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

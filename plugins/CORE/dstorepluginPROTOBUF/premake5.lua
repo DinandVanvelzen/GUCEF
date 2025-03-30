@@ -34,7 +34,7 @@ links( { "libprotobuf" } )
 
 
 configuration( {} )
-defines( { "DSTOREPLUGINPROTOBUF_BUILD_MODULE" } )
+defines( { "DSTOREPLUGINPROTOBUF_BUILD_MODULE", "PROTOBUF_USE_DLLS" } )
 
 
 configuration( {} )

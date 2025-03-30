@@ -48,13 +48,13 @@
         <ITEM NAME="../gucefCORE/src/PAFILE.c" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/PAFILE.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/IOACCESS.c" TYPE="FILE" />
-        <ITEM NAME="../gucefCORE/include/IOACCESS.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/CIOAccess.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/CIOAccess.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/CDynamicBuffer.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/CDynamicBuffer.h" TYPE="FILE" />
-        <ITEM NAME="../gucefCORE/src/gucefCORE_VariantData.c" TYPE="FILE" />
-        <ITEM NAME="../gucefCORE/include/gucefCORE_VariantData.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/c_api/gucefCORE_c_variantdata.c" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/c_api/gucefCORE_c_variantdata.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/gucefCORE_CVariant.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/gucefCORE_CVariant.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/dvfileutils.cpp" TYPE="FILE" />

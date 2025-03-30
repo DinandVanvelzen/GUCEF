@@ -31,9 +31,9 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../dependencies/ \
   $(MY_MODULE_PATH)/../../dependencies/hiredis \
-  $(MY_MODULE_PATH)/../../dependencies/redis-plus-plus/../ \
-  $(MY_MODULE_PATH)/../../dependencies/redis-plus-plus/src/sw/../ \
+  $(MY_MODULE_PATH)/../../dependencies/redis-plus-plus/src/ \
   $(MY_MODULE_PATH)/../../dependencies/redis-plus-plus/src/sw/redis++ \
   $(MY_MODULE_PATH)/../../dependencies/redis-plus-plus/src/sw/redis++/cxx11 \
   $(MY_MODULE_PATH)/../../dependencies/redis-plus-plus/src/sw/redis++/cxx11/sw \

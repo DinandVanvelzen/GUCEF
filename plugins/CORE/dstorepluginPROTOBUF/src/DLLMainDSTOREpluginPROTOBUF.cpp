@@ -1064,11 +1064,11 @@ DSTOREPLUG_Create_Data_Driven_Codec( const void* plugdata                  ,
     if ( !codecInfo->Init( codecMeta, loadedResources ) )
     {
         GUCEF_DELETE codecInfo;
-        return 0;
+        return 1; // basic failure error code
     }
 
     *dataDrivenCodecPrivateData = codecInfo;
-    return 1;
+    return 0; // 0 == success
 }
 
 /*---------------------------------------------------------------------------*/

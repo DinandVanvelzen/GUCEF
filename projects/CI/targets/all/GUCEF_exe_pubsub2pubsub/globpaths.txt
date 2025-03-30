@@ -1,3 +1,4 @@
+/*
 common/include/*
 dependencies/*
 platform/gucefCOM/*
@@ -6,20 +7,5 @@ platform/gucefMT/*
 platform/gucefPUBSUB/*
 platform/gucefVFS/*
 platform/gucefWEB/*
-plugins/../*
-plugins/CORE/codecspluginSTBRUMMEHASH/*
-plugins/CORE/codecspluginZLIB/*
-plugins/CORE/dstorepluginJSONPARSER/*
-plugins/CORE/dstorepluginPARSIFALXML/*
-plugins/CORE/dstorepluginYAML/*
-plugins/PUBSUB/../*
-plugins/PUBSUB/pubsubpluginAWSSQS/*
-plugins/PUBSUB/pubsubpluginKAFKA/*
-plugins/PUBSUB/pubsubpluginREDISCLUSTER/*
-plugins/PUBSUB/pubsubpluginSTORAGE/*
-plugins/PUBSUB/pubsubpluginTEST/*
-plugins/PUBSUB/pubsubpluginUDP/*
-plugins/PUBSUB/pubsubpluginWEB/*
-plugins/SHARED/pluginglueAWSSDK/*
-plugins/VFS/vfspluginAWSS3/*
+plugins/*
 tools/*

@@ -44,6 +44,8 @@ CResourceMetaData::CResourceMetaData( void )
     : name()
     , hasName( false )
     , version()
+    , mimeType()
+    , hasMimeType( false )
     , hasVersion( false )
     , creationDateTime(  )
     , hasCreationDateTime( false )
@@ -66,6 +68,8 @@ CResourceMetaData::CResourceMetaData( void )
     , isCompressed( false )
     , hasIsEncrypted( false )
     , isEncrypted( false )
+    , hasIsEncoded( false )
+    , isEncoded( false )
     , hasIsTemporary( false )
     , isTemporary( false )
     , hasIsOffline( false )
@@ -81,6 +85,8 @@ CResourceMetaData::CResourceMetaData( const CResourceMetaData& src )
     , hasName( src.hasName )
     , version( src.version )
     , hasVersion( src.hasVersion )
+    , mimeType( src.mimeType )
+    , hasMimeType( src.hasMimeType )
     , creationDateTime( src.creationDateTime )
     , hasCreationDateTime( src.hasCreationDateTime )
     , modifiedDateTime( src.modifiedDateTime )
@@ -102,6 +108,8 @@ CResourceMetaData::CResourceMetaData( const CResourceMetaData& src )
     , isCompressed( src.isCompressed )
     , hasIsEncrypted( src.hasIsEncrypted )
     , isEncrypted( src.isEncrypted )
+    , hasIsEncoded( src.hasIsEncoded )
+    , isEncoded( src.isEncoded )
     , hasIsTemporary( src.hasIsTemporary )
     , isTemporary( src.isTemporary )
     , hasIsOffline( src.hasIsOffline )
@@ -120,6 +128,8 @@ CResourceMetaData::Clear( void )
     hasName = false;
     version.Clear();
     hasVersion = false;
+    mimeType.Clear();
+    hasMimeType = false;
     creationDateTime.Clear();
     hasCreationDateTime = false;
     modifiedDateTime.Clear();
@@ -141,6 +151,8 @@ CResourceMetaData::Clear( void )
     isCompressed = false;
     hasIsEncrypted = false;
     isEncrypted = false;
+    hasIsEncoded = false;
+    isEncoded = false;
     hasIsTemporary = false;
     isTemporary = false;
     hasIsOffline = false;

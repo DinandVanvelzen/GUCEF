@@ -3562,7 +3562,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} zlib )
 endif( WIN64 )
 
-include_directories( ../src google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
+include_directories(  ../src google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 
 if ( ANDROID )
   include_directories( google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )

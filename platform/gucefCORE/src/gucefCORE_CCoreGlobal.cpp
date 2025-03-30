@@ -173,6 +173,11 @@
 #define GUCEF_CORE_CFILESYSTEMURIRESOURCEACCESSOR_H
 #endif /* GUCEF_CORE_CFILESYSTEMURIRESOURCEACCESSOR_H ? */
 
+#ifndef GUCEF_CORE_CDATAURIRESOURCEACCESSOR_H
+#include "gucefCORE_CDataUriResourceAccessor.h"
+#define GUCEF_CORE_CDATAURIRESOURCEACCESSOR_H
+#endif /* GUCEF_CORE_CDATAURIRESOURCEACCESSOR_H ? */
+
 #ifndef GUCEF_CORE_CGLOBALDATADRIVENDSTORECODECFACTORY_H
 #include "gucefCORE_CGlobalDataDrivenDStoreCodecFactory.h"
 #define GUCEF_CORE_CGLOBALDATADRIVENDSTORECODECFACTORY_H
@@ -214,6 +219,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 typedef CTFactory< CUriResourceAccessor, CFileSystemUriResourceAccessor, MT::CMutex >     TFileSystemUriResourceAccessorFactory;
+typedef CTFactory< CUriResourceAccessor, CDataUriResourceAccessor, MT::CMutex >           TDataUriResourceAccessorFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -225,6 +231,7 @@ MT::CMutex CCoreGlobal::g_dataLock;
 CCoreGlobal* CCoreGlobal::g_instance = NULL;
 
 TFileSystemUriResourceAccessorFactory g_fileSystemUriResourceAccessorFactory;
+TDataUriResourceAccessorFactory g_dataUriResourceAccessorFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -358,14 +365,15 @@ CCoreGlobal::Initialize( void )
     /*
      *      Register some default URI handlers
      */
-    m_urlHandlerRegistry->Register( "file", CURLHandlerRegistry::TRegisteredObjPtr( GUCEF_NEW CFileURLHandler() ) ); // <- legacy version. @deprecated
+    m_urlHandlerRegistry->Register( "file", CURLHandlerRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CFileURLHandler() ) ); // <- legacy version. @deprecated
     m_uriResourceAccessorFactory->RegisterConcreteFactory( CFileSystemUriResourceAccessor::SchemeName, &g_fileSystemUriResourceAccessorFactory );
+    m_uriResourceAccessorFactory->RegisterConcreteFactory( CDataUriResourceAccessor::SchemeName, &g_dataUriResourceAccessorFactory );
 
     /*
      *      Register some default codecs
      */    
-    m_dstoreCodecRegistry->Register( "ini", CDStoreCodecRegistry::TRegisteredObjPtr( GUCEF_NEW CIniDataStoreCodec() ) );
-    m_dstoreCodecRegistry->Register( "dnc", CDStoreCodecRegistry::TRegisteredObjPtr( GUCEF_NEW CDataStoreBinaryCodec() ) );
+    m_dstoreCodecRegistry->Register( "ini", CDStoreCodecRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CIniDataStoreCodec() ) );
+    m_dstoreCodecRegistry->Register( "dnc", CDStoreCodecRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CDataStoreBinaryCodec() ) );
 
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "gucefCORE Global systems initialized" );
 }

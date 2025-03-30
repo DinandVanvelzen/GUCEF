@@ -338,6 +338,16 @@ class GUCEF_CORE_PUBLIC_CPP CAsciiString
     StringSet ParseUniqueElements( char seperator               ,
                                    bool addEmptyElements = true ) const;
 
+    static StringVector ParseElements( const char* bufferPtr  ,
+                                       UInt32 bufferSize      ,
+                                       char seperator         ,
+                                       bool addEmptyElements  );
+
+    static StringSet ParseUniqueElements( const char* bufferPtr ,
+                                          UInt32 bufferSize     ,
+                                          char seperator        ,
+                                          bool addEmptyElements );
+
     bool WildcardEquals( const CAsciiString& strWithWildcards  ,
                          const char wildCardToken = '*'        ,
                          const bool caseSensitive = true       ,

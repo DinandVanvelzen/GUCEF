@@ -47,10 +47,12 @@ configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/TestCyclicDynamicBuffer.h",
+  "include/TestDataDrivenDStoreCodecs.h",
   "include/TestDataNodeBinarySerializer.h",
   "include/TestDateTime.h",
   "include/TestDynamicBufferStringStream.h",
   "include/TestDynamicBufferSwap.h",
+  "include/TestFileUtils.h",
   "include/TestIniParser.h",
   "include/TestNotifierObserver.h",
   "include/TestSharedPtr.h",
@@ -68,10 +70,12 @@ configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/TestCyclicDynamicBuffer.cpp",
+  "src/TestDataDrivenDStoreCodecs.cpp",
   "src/TestDataNodeBinarySerializer.cpp",
   "src/TestDateTime.cpp",
   "src/TestDynamicBufferStringStream.cpp",
   "src/TestDynamicBufferSwap.cpp",
+  "src/TestFileUtils.cpp",
   "src/TestIniParser.cpp",
   "src/TestNotifierObserver.cpp",
   "src/TestSharedPtr.cpp",

@@ -3542,7 +3542,7 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "", "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
+includedirs( { "", "../src", "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "ANDROID" } )
 includedirs( { "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )

@@ -371,10 +371,6 @@ CDynamicBuffer::operator!=( const CDynamicBuffer& other ) const
 
 /*-------------------------------------------------------------------------*/
 
-/**
- *      Turns the current dynamic buffer into a copy of the source
- *      dynamic buffer and returns the result.
- */
 CDynamicBuffer&
 CDynamicBuffer::operator=( const CDynamicBuffer &src )
 {GUCEF_TRACE;
@@ -384,17 +380,48 @@ CDynamicBuffer::operator=( const CDynamicBuffer &src )
         if ( 0 != src._bsize )
         {
             Clear( true );
-        
-            _buffer = (Int8*) realloc( _buffer, src._bsize );
-            memcpy( _buffer, src._buffer, src._bsize );
-            _bsize = src._bsize;
-            m_dataSize = src.m_dataSize;
-            m_linked = false;                 
+            if ( SetBufferSize( src._bsize, false, true ) )
+            {
+                memcpy( _buffer, src._buffer, src._bsize );
+                m_dataSize = src.m_dataSize;
+                m_linked = false;                 
+            }
+            else
+            {
+                Clear( false );
+            }        
         }
         else
         {
             Clear( false );
         }
+    }
+    return *this;                        
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDynamicBuffer&
+CDynamicBuffer::operator=( const CString &src )
+{GUCEF_TRACE;
+
+    if ( !src.IsNULLOrEmpty() )
+    {
+        Clear( true );        
+        if ( SetBufferSize( src.ByteSize(), false, true ) )
+        {
+            memcpy( _buffer, src.C_String(), src.ByteSize() );
+            m_dataSize = src.ByteSize();
+            m_linked = false;                             
+        }
+        else
+        {
+            Clear( false );
+        }
+    }
+    else
+    {
+        Clear( false );
     }
     return *this;                        
 }
@@ -702,6 +729,26 @@ CDynamicBuffer::CopyAndDecodeBase64From( const CString& source, UInt32 destinati
     {
         UInt32 bytesUsed = 0;
         if ( Base64Decode( source, GetBufferPtr(), GetBufferSize(), bytesUsed ) )
+        {
+            SetDataSize( bytesUsed );
+            return bytesUsed;
+        }
+    }
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32 
+CDynamicBuffer::CopyAndDecodeBase16From( const CString& source, UInt32 destinationOffset )
+{GUCEF_TRACE;
+
+    // Since the base 16 data does not get larger when decoded but will be equal size or smaller 
+    // we can use the source string size to pre-allocate the output buffer size
+    if ( SetBufferSize( source.ByteSize(), false ) )
+    {
+        UInt32 bytesUsed = 0;
+        if ( Base16Decode( source, false, GetBufferPtr(), GetBufferSize(), bytesUsed ) )
         {
             SetDataSize( bytesUsed );
             return bytesUsed;

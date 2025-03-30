@@ -2918,17 +2918,17 @@ CVariant::operator==( const CVariant& other ) const
 
         if ( isSignedInt && otherSignedInt )
         {
-            return AsInt64() < other.AsInt64();
+            return AsInt64() == other.AsInt64();
         }
         else
         if ( !isSignedInt && !otherSignedInt )
         {
-            return AsUInt64() < other.AsUInt64();
+            return AsUInt64() == other.AsUInt64();
         }
         else
         {
             // Comparing signed and unsigned integers
-            return AsInt64() < other.AsInt64();
+            return AsInt64() == other.AsInt64();
         }
     }
     else

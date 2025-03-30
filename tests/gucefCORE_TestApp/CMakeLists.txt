@@ -13,10 +13,12 @@
 
 set( HEADER_FILES 
   include/TestCyclicDynamicBuffer.h
+  include/TestDataDrivenDStoreCodecs.h
   include/TestDataNodeBinarySerializer.h
   include/TestDateTime.h
   include/TestDynamicBufferStringStream.h
   include/TestDynamicBufferSwap.h
+  include/TestFileUtils.h
   include/TestIniParser.h
   include/TestNotifierObserver.h
   include/TestSharedPtr.h
@@ -30,10 +32,12 @@ set( HEADER_FILES
 
 set( SOURCE_FILES 
   src/TestCyclicDynamicBuffer.cpp
+  src/TestDataDrivenDStoreCodecs.cpp
   src/TestDataNodeBinarySerializer.cpp
   src/TestDateTime.cpp
   src/TestDynamicBufferStringStream.cpp
   src/TestDynamicBufferSwap.cpp
+  src/TestFileUtils.cpp
   src/TestIniParser.cpp
   src/TestNotifierObserver.cpp
   src/TestSharedPtr.cpp

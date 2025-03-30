@@ -192,7 +192,7 @@ PerformTypedStringTests( void )
         // test ParseUniqueElements
         testStr3 = digitsRepeat3;
         StringType::StringSet slist = testStr3.ParseUniqueElements( '\n', true );
-        ASSERT_TRUE( 2 == slist.size() );
+        ASSERT_TRUE( 2 == slist.size() );  // each seperator results in an entry including at the end of the string
         slist = testStr3.ParseUniqueElements( '\n', false );
         ASSERT_TRUE( 1 == slist.size() );
         

@@ -61,7 +61,13 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class GUCEF_CORE_PUBLIC_CPP CDStoreCodecPluginManager : public CPluginManager
+/**
+ *  Internal implementation class for managing DStoreCodec plugins
+ *  These codec plugins use their own specific C interface which is intended to remain stable for a long time
+ *  Thus the plugin manager is responsible for loading and unloading the plugins and providing them to the outside world,
+ *  as the party aware of the specifics of these C API plugins.
+ */
+class GUCEF_HIDDEN CDStoreCodecPluginManager : public CPluginManager
 {
     public:
 

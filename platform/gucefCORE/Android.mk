@@ -138,11 +138,15 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CCharSepLoggingFormatter.cpp \
   src/gucefCORE_CCoreGlobal.cpp \
   src/gucefCORE_CDStoreBinaryCodec.cpp \
+  src/gucefCORE_CDataDrivenDStoreCodec.cpp \
+  src/gucefCORE_CDataDrivenDStoreCodecFactory.cpp \
+  src/gucefCORE_CDataDrivenDStoreCodecMeta.cpp \
   src/gucefCORE_CDataNodeBinarySerializer.cpp \
   src/gucefCORE_CDataNodeDefinition.cpp \
   src/gucefCORE_CDataNodeDocumentBuilder.cpp \
   src/gucefCORE_CDataNodeSerializableDataNode.cpp \
   src/gucefCORE_CDataNodeSerializableSettings.cpp \
+  src/gucefCORE_CDataUriResourceAccessor.cpp \
   src/gucefCORE_CDate.cpp \
   src/gucefCORE_CDateTime.cpp \
   src/gucefCORE_CDirectoryWatcherEvents.cpp \
@@ -159,6 +163,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CGenericValueToDataNodeSerializer.cpp \
   src/gucefCORE_CGeoLocation.cpp \
   src/gucefCORE_CGlobalConfigValueList.cpp \
+  src/gucefCORE_CGlobalDataDrivenDStoreCodecFactory.cpp \
   src/gucefCORE_CGloballyConfigurable.cpp \
   src/gucefCORE_CIConfigurable.cpp \
   src/gucefCORE_CIConsoleLogger.cpp \
@@ -194,6 +199,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CObserverSwitch.cpp \
   src/gucefCORE_CPlatformNativeConsoleLogger.cpp \
   src/gucefCORE_CPlatformNativeConsoleWindow.cpp \
+  src/gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.cpp \
   src/gucefCORE_CPluginGroup.cpp \
   src/gucefCORE_CPluginMetaData.cpp \
   src/gucefCORE_CProperty.cpp \

@@ -25,12 +25,13 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../platform \
   $(MY_MODULE_PATH)/../../platform/gucefCORE \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/ \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/android \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
-  $(MY_MODULE_PATH)/../../platform/gucefLOADER/.. \
+  $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api/ \
   $(MY_MODULE_PATH)/../../platform/gucefLOADER/include \
   $(MY_MODULE_PATH)/../../platform/gucefMT \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include \

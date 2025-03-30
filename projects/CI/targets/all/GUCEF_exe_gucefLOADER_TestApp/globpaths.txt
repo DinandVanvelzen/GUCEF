@@ -1,5 +1,3 @@
 common/include/*
-platform/gucefCORE/*
-platform/gucefLOADER/*
-platform/gucefMT/*
+platform/*
 tests/gucefLOADER_TestApp/*

@@ -3,10 +3,13 @@ dependencies/json-builder/*
 dependencies/json-parser/*
 dependencies/libparsifal/*
 dependencies/libyaml/*
+dependencies/protobuf/src/*
+dependencies/zlib/*
 platform/gucefCORE/*
 platform/gucefMT/*
 plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/dstorepluginPARSIFALXML/*
+plugins/CORE/dstorepluginPROTOBUF/*
 plugins/CORE/dstorepluginYAML/*
 tests/gucefCORE_TestApp/*
 tools/MemoryLeakFinder/*

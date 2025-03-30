@@ -116,6 +116,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/google/protobuf/util \
   $(MY_MODULE_PATH)/google/protobuf/util/internal \
   $(MY_MODULE_PATH)/ \
+  $(MY_MODULE_PATH)/../src \
   $(MY_MODULE_PATH)/google
 
 LOCAL_CFLAGS := -DLIBPROTOBUF_EXPORTS -DLIBPROTOC_EXPORTS -DPROTOBUF_USE_DLLS

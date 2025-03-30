@@ -2103,7 +2103,7 @@ CUtf8String::ParseUniqueElements( const UInt8* bufferPtr ,
         // add last item
         UInt32 stringLength = bufferCps-lastSepCpIndex;
         if ( ( 0 == stringLength && addEmptyElements ) ||
-             ( stringLength > 0 ) )
+             ( stringLength > 0 && ( GUCEF_NULL != lastSepCpPtr && ( *lastSepCpPtr != '\0' || addEmptyElements ) ) ) )
         {
             entry.Set( lastSepCpPtr, (UInt32)(cpPos-lastSepCpPtr), stringLength );
             list.insert( entry );

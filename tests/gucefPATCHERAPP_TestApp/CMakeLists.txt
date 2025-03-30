@@ -33,70 +33,70 @@ endif()
 add_dependencies( ${MODULE_NAME} gucefLOADER )
 target_link_libraries( ${MODULE_NAME} gucefLOADER )
 
-include_directories( ../../common/include ../../platform/gucefCORE ../../platform/gucefCORE/include ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api ../../platform/gucefLOADER/.. ../../platform/gucefLOADER/include ../../platform/gucefMT ../../platform/gucefMT/include ../../platform/gucefMT/include/ )
+include_directories( ../../common/include ../../platform ../../platform/gucefCORE ../../platform/gucefCORE/include ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/c_api/ ../../platform/gucefLOADER/include ../../platform/gucefMT ../../platform/gucefMT/include ../../platform/gucefMT/include/ )
 
 if ( ANDROID )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/android ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( ANDROID )
 
 if ( ARDUINO )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( ARDUINO )
 
 if ( EMSCRIPTEN )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( EMSCRIPTEN )
 
 if ( GLX )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( GLX )
 
 if ( GTK )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( GTK )
 
 if ( IOS )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( IOS )
 
 if ( LINUX32 )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/linux ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/linux ../../platform/gucefMT/include/ )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/linux ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/linux ../../platform/gucefMT/include/ )
 endif( LINUX64 )
 
 if ( NACL )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( NACL )
 
 if ( OSX )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( OSX )
 
 if ( POSIX )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( POSIX )
 
 if ( SDL )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( SDL )
 
 if ( SYMBIAN )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( SYMBIAN )
 
 if ( UNIX )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefMT/include/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( UNIX )
 
 if ( WIN32 )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/mswin ../../platform/gucefCORE/include/mswin/ ../../platform/gucefMT/include/ ../../platform/gucefMT/include/mswin ../../platform/gucefMT/include/mswin/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/mswin ../../platform/gucefCORE/include/mswin/ ../../platform/gucefMT/include/ ../../platform/gucefMT/include/mswin ../../platform/gucefMT/include/mswin/ )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/mswin ../../platform/gucefCORE/include/mswin/ ../../platform/gucefMT/include/ ../../platform/gucefMT/include/mswin ../../platform/gucefMT/include/mswin/ )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/mswin ../../platform/gucefCORE/include/mswin/ ../../platform/gucefMT/include/ ../../platform/gucefMT/include/mswin ../../platform/gucefMT/include/mswin/ )
 endif( WIN64 )
 
 

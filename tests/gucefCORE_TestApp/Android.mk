@@ -22,10 +22,12 @@ LOCAL_MODULE := gucefCORE_TestApp
 
 LOCAL_SRC_FILES := \
   src/TestCyclicDynamicBuffer.cpp \
+  src/TestDataDrivenDStoreCodecs.cpp \
   src/TestDataNodeBinarySerializer.cpp \
   src/TestDateTime.cpp \
   src/TestDynamicBufferStringStream.cpp \
   src/TestDynamicBufferSwap.cpp \
+  src/TestFileUtils.cpp \
   src/TestIniParser.cpp \
   src/TestNotifierObserver.cpp \
   src/TestSharedPtr.cpp \

@@ -179,6 +179,8 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
      */
     CDynamicBuffer& operator=( const CDynamicBuffer &src );
 
+    CDynamicBuffer& operator=( const CString &src );
+
     /**
      *      Sets the new actual buffer size.
      */
@@ -265,6 +267,7 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
     UInt32 CopyFrom( const CDynamicBuffer& source, UInt32 destinationOffset, UInt32 nrOfBytes, UInt32 sourceOffset );
     UInt32 CopyFrom( const CVariant& source, UInt32 destinationOffset );
     UInt32 CopyAndDecodeBase64From( const CString& source, UInt32 destinationOffset );
+    UInt32 CopyAndDecodeBase16From( const CString& source, UInt32 destinationOffset );
 
     /**
      *  Copies size number of bytes from the buffer to src from the offset given.
@@ -579,6 +582,10 @@ CDynamicBuffer::AppendValue( const T value, const bool appendToLogicalData )
 
     return Append( &value, sizeof( T ), appendToLogicalData );
 }
+
+/*-------------------------------------------------------------------------*/
+
+inline CString ToString( const CDynamicBuffer& src ) {GUCEF_TRACE; return CString( src.AsConstTypePtr< char >(), src.GetDataSize(), src.GetDataSize(), true ); }
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

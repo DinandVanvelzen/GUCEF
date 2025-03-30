@@ -95,7 +95,8 @@ template < class T, class LockType >
 class CTRegistry : public MT::CILockable
 {
     public:
-    typedef CTSharedPtr< T, LockType >       TRegisteredObjPtr;
+    typedef CTBasicSharedPtr< T, LockType >                                        TRegisteredObjPtr;
+    typedef CTSharedPtr< T, LockType >                                             TRegisteredObjTypedPtr;
     typedef std::vector< TRegisteredObjPtr, gucef_allocator< TRegisteredObjPtr > > TRegisteredObjPtrVector;
 
     CTRegistry( void );
@@ -224,7 +225,7 @@ CTRegistry< T, LockType >::IsRegistered( const CString& name ) const
 /*-------------------------------------------------------------------------*/
 
 template< class T, class LockType >
-CTSharedPtr< T, LockType >
+typename CTRegistry< T, LockType >::TRegisteredObjPtr
 CTRegistry< T, LockType >::Lookup( const CString& name ) const
 {GUCEF_TRACE;
 

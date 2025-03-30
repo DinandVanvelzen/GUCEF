@@ -66,7 +66,7 @@ CDataDrivenDStoreCodecFactory::~CDataDrivenDStoreCodecFactory()
 
 /*-------------------------------------------------------------------------*/
 
-CDataDrivenDStoreCodecFactory::TProductPtr
+CDataDrivenDStoreCodecPtr
 CDataDrivenDStoreCodecFactory::CreateCodec( const CString& dataDrivenCodecTypeName ,
                                             bool caseSensitive                     )
 {GUCEF_TRACE;
@@ -76,16 +76,18 @@ CDataDrivenDStoreCodecFactory::CreateCodec( const CString& dataDrivenCodecTypeNa
     if ( !TryLookup( dataDrivenCodecTypeName, codecMeta, caseSensitive ) || codecMeta.IsNULL() )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DataDrivenDStoreCodecFactory:CreateCodec: No meta-data found for codec type: " + dataDrivenCodecTypeName );
-        return TProductPtr(); // no meta-data found to produce codec
+        return CDataDrivenDStoreCodecPtr(); // no meta-data found to produce codec
     }
 
     // Now we can create the codec using the meta-data
+    // Note that we use the base codec type for the factory to create the codec since the derived codec comes out of 
+    // the factory as a product based on the data its given. That is the whole concept of a data-driven codec
     TProductPtr newCodec = Create( codecMeta->GetBaseCodecTypeName(), codecMeta );
     if ( newCodec.IsNULL() )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DataDrivenDStoreCodecFactory::CreateCodec: Failed to create codec of type \"" + 
             dataDrivenCodecTypeName + "\" using base codec with type name \"" + codecMeta->GetBaseCodecTypeName() + "\"" );
-        return TProductPtr(); // failed to create codec even though we had the meta-data for it
+        return CDataDrivenDStoreCodecPtr(); // failed to create codec even though we had the meta-data for it
     }
     
     // Initialize the codec with the meta-data

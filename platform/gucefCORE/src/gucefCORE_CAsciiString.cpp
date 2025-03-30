@@ -1402,39 +1402,7 @@ CAsciiString::ParseUniqueElements( char seperator        ,
                                    bool addEmptyElements ) const
 {GUCEF_TRACE;
 
-    if ( m_length > 0 )
-    {
-        StringSet list;
-        CAsciiString entry;
-        UInt32 last = 0;
-        for ( UInt32 i=0; i<m_length; ++i )
-        {
-            if ( m_string[ i ] == seperator )
-            {
-                UInt32 stringLength = i-last;
-                if ( ( 0 == stringLength && addEmptyElements ) ||
-                     ( stringLength > 0 ) )
-                {
-                    entry.Set( m_string+last ,
-                               stringLength  );
-                    list.insert( entry );
-                }
-                last = i+1;
-            }
-        }
-
-        // add last item
-        UInt32 stringLength = m_length-last;
-        if ( ( 0 == stringLength && addEmptyElements ) ||
-             ( stringLength > 0 ) )
-        {
-            entry.Set( m_string+last ,
-                       stringLength );
-            list.insert( entry );
-        }
-        return list;
-    }
-    return StringSet();
+    return ParseUniqueElements( m_string, m_length, seperator, addEmptyElements );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1444,21 +1412,33 @@ CAsciiString::ParseElements( char seperator        ,
                              bool addEmptyElements ) const
 {GUCEF_TRACE;
 
-    if ( m_length > 0 )
+    return ParseElements( m_string, m_length, seperator, addEmptyElements );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAsciiString::StringVector 
+CAsciiString::ParseElements( const char* bufferPtr  ,
+                             UInt32 bufferSize      ,
+                             char seperator         ,
+                             bool addEmptyElements  )
+{GUCEF_TRACE;
+
+    if ( bufferSize > 0 )
     {
         StringVector list;
         CAsciiString entry;
         UInt32 last = 0;
-        for ( UInt32 i=0; i<m_length; ++i )
+        for ( UInt32 i=0; i<bufferSize; ++i )
         {
-            if ( m_string[ i ] == seperator )
+            if ( bufferPtr[ i ] == seperator )
             {
                 UInt32 stringLength = i-last;
                 if ( ( 0 == stringLength && addEmptyElements ) ||
                      ( stringLength > 0 ) )
                 {
-                    entry.Set( m_string+last ,
-                               stringLength  );
+                    entry.Set( bufferPtr+last ,
+                               stringLength   );
                     list.push_back( entry );
                 }
                 last = i+1;
@@ -1466,17 +1446,61 @@ CAsciiString::ParseElements( char seperator        ,
         }
 
         // add last item
-        UInt32 stringLength = m_length-last;
+        UInt32 stringLength = bufferSize-last;
         if ( ( 0 == stringLength && addEmptyElements ) ||
              ( stringLength > 0 ) )
         {
-            entry.Set( m_string+last ,
-                       stringLength );
+            entry.Set( bufferPtr+last ,
+                       stringLength   );
             list.push_back( entry );
         }
         return list;
     }
     return StringVector();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAsciiString::StringSet 
+CAsciiString::ParseUniqueElements( const char* bufferPtr ,
+                                   UInt32 bufferSize     ,
+                                   char seperator        ,
+                                   bool addEmptyElements )
+{GUCEF_TRACE;
+
+    if ( bufferSize > 0 )
+    {
+        StringSet list;
+        CAsciiString entry;
+        UInt32 last = 0;
+        for ( UInt32 i=0; i<bufferSize; ++i )
+        {
+            if ( bufferPtr[ i ] == seperator )
+            {
+                UInt32 stringLength = i-last;
+                if ( ( 0 == stringLength && addEmptyElements ) ||
+                     ( stringLength > 0 ) )
+                {
+                    entry.Set( bufferPtr+last ,
+                               stringLength   );
+                    list.insert( entry );
+                }
+                last = i+1;
+            }
+        }
+
+        // add last item
+        UInt32 stringLength = bufferSize-last;
+        if ( ( 0 == stringLength && addEmptyElements ) ||
+             ( stringLength > 0 ) )
+        {
+            entry.Set( bufferPtr+last ,
+                       stringLength );
+            list.insert( entry );
+        }
+        return list;
+    }
+    return StringSet();
 }
 
 /*-------------------------------------------------------------------------*/

@@ -152,6 +152,7 @@ set( HEADER_FILES
   include/gucefCORE_CDataNodeDocumentBuilder.h
   include/gucefCORE_CDataNodeSerializableDataNode.h
   include/gucefCORE_CDataNodeSerializableSettings.h
+  include/gucefCORE_CDataUriResourceAccessor.h
   include/gucefCORE_CDate.h
   include/gucefCORE_CDateTime.h
   include/gucefCORE_CDirectoryWatcherEvents.h
@@ -206,9 +207,9 @@ set( HEADER_FILES
   include/gucefCORE_CObserverSwitch.h
   include/gucefCORE_CPlatformNativeConsoleLogger.h
   include/gucefCORE_CPlatformNativeConsoleWindow.h
+  include/gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.h
   include/gucefCORE_CPluginGroup.h
   include/gucefCORE_CPluginMetaData.h
-  include/gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.h
   include/gucefCORE_CProperty.h
   include/gucefCORE_CPropertyDefinition.h
   include/gucefCORE_CPropertyDefinitionList.h
@@ -282,13 +283,15 @@ set( HEADER_FILES
   include/tsprinting.h
   include/c_api/gucefCORE_CTVariantMapAdapter_Cpp2C.h
   include/c_api/gucefCORE_CTVariantVectorAdapter_Cpp2C.h
-  include/c_api/gucefCORE_c_api.h  
+  include/c_api/gucefCORE_c_api.h
+  include/c_api/gucefCORE_c_datadriven_dstorecodec_meta.h
   include/c_api/gucefCORE_c_document_parser_callbacks.h
   include/c_api/gucefCORE_c_dstore_plugin_api.h
   include/c_api/gucefCORE_c_fractiondata.h
   include/c_api/gucefCORE_c_function_definition.h
   include/c_api/gucefCORE_c_function_param_types.h
   include/c_api/gucefCORE_c_ioaccess.h
+  include/c_api/gucefCORE_c_logging.h
   include/c_api/gucefCORE_c_loglevels.h
   include/c_api/gucefCORE_c_logtypes.h
   include/c_api/gucefCORE_c_pointerdata.h
@@ -351,7 +354,7 @@ set( SOURCE_FILES
   src/CPFileAccess.cpp
   src/CPFileChunkAccess.cpp
   src/CPluginControl.cpp
-  src/CPluginManager.cpp  
+  src/CPluginManager.cpp
   src/CPumpedObserver.cpp
   src/CROIOAccess.cpp
   src/CSTDOStreamAdapter.cpp
@@ -423,6 +426,7 @@ set( SOURCE_FILES
   src/gucefCORE_CDataNodeDocumentBuilder.cpp
   src/gucefCORE_CDataNodeSerializableDataNode.cpp
   src/gucefCORE_CDataNodeSerializableSettings.cpp
+  src/gucefCORE_CDataUriResourceAccessor.cpp
   src/gucefCORE_CDate.cpp
   src/gucefCORE_CDateTime.cpp
   src/gucefCORE_CDirectoryWatcherEvents.cpp
@@ -475,9 +479,9 @@ set( SOURCE_FILES
   src/gucefCORE_CObserverSwitch.cpp
   src/gucefCORE_CPlatformNativeConsoleLogger.cpp
   src/gucefCORE_CPlatformNativeConsoleWindow.cpp
+  src/gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.cpp
   src/gucefCORE_CPluginGroup.cpp
   src/gucefCORE_CPluginMetaData.cpp
-  src/gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.cpp
   src/gucefCORE_CProperty.cpp
   src/gucefCORE_CPropertyDefinition.cpp
   src/gucefCORE_CPropertyDefinitionList.cpp
