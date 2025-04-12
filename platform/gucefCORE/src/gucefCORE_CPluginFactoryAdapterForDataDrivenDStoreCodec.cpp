@@ -94,7 +94,7 @@ CDataDrivenDStoreCodecPluginLink::StoreDataTree( const CDataNode* tree, const CS
 
     if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_codecPlugin )
     {
-        return m_codecPlugin->StoreDataTree( tree, filename );
+        return m_codecPlugin->StoreDataTree( &m_ddCodecData, tree, filename );
     }
     return false;
 }
@@ -107,7 +107,7 @@ CDataDrivenDStoreCodecPluginLink::StoreDataTree( const CDataNode* tree, CIOAcces
 
     if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_codecPlugin )
     {
-        return m_codecPlugin->StoreDataTree( tree, file );
+        return m_codecPlugin->StoreDataTree( &m_ddCodecData, tree, file );
     }
     return false;
 }
@@ -120,7 +120,7 @@ CDataDrivenDStoreCodecPluginLink::BuildDataTree( CDataNode* treeroot, const CStr
 
     if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_codecPlugin )
     {
-        return m_codecPlugin->BuildDataTree( treeroot, filename );
+        return m_codecPlugin->BuildDataTree( &m_ddCodecData, treeroot, filename );
     }
     return false;
 }
@@ -133,7 +133,7 @@ CDataDrivenDStoreCodecPluginLink::BuildDataTree( CDataNode* treeroot, CIOAccess*
 
     if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_codecPlugin )
     {
-        return m_codecPlugin->BuildDataTree( treeroot, file );
+        return m_codecPlugin->BuildDataTree( &m_ddCodecData, treeroot, file );
     }
     return false;
 }

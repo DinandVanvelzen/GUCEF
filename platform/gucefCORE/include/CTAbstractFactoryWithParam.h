@@ -225,7 +225,14 @@ CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionPa
     if ( i != m_concreteFactoryList.end() )
     {
         TProductPtr product( (*i).second->Create( param ) );
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, !product.IsNULL() ? "TAbstractFactoryWithParam<>: Created concrete type \"" + ToString( selectedType ) + "\"" : "TAbstractFactoryWithParam<>: Failed to create concrete type \"" + ToString( selectedType ) + "\"" );
+
+        #ifdef GUCEF_DEBUG_MODE
+        if ( !product.IsNULL() )
+            { GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, !product.IsNULL() ? "TAbstractFactoryWithParam<>: Created concrete type \"" + ToString( selectedType ) + "\"" : "TAbstractFactoryWithParam<>: Failed to create concrete type \"" + ToString( selectedType ) + "\"" ); }
+        else
+            { GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "TAbstractFactoryWithParam<>: Failed to create concrete type \"" + ToString( selectedType ) + "\"" ); }
+        #endif /* GUCEF_DEBUG_MODE */
+
         return product;
     }
     return TProductPtr();

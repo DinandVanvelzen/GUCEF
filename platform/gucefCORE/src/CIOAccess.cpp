@@ -60,8 +60,14 @@ namespace CORE {
 UInt32 GUCEF_CALLSPEC_PREFIX
 fa_open( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-        ( (CIOAccess*) access->privdata )->Open();
+
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == access )
+    {
         return 0;
+    }
+
+    static_cast< CIOAccess* >( access->privdata )->Open();
+    return 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -69,7 +75,13 @@ fa_open( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX
 UInt32 GUCEF_CALLSPEC_PREFIX
 fa_opened( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-        return ( (CIOAccess*) access->privdata )->Opened();
+
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == access )
+    {
+        return 0;
+    }
+
+    return static_cast< CIOAccess* >( access->privdata )->Opened() ? 1 : 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -77,8 +89,14 @@ fa_opened( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX
 UInt32 GUCEF_CALLSPEC_PREFIX
 fa_close( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-        ( (CIOAccess*) access->privdata )->Close();
+
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == access )
+    {
         return 0;
+    }
+
+    static_cast< CIOAccess* >( access->privdata )->Close();
+    return 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -87,10 +105,16 @@ UInt32 GUCEF_CALLSPEC_PREFIX
 fa_readl( struct SIOAccess* access ,
           char **dest              ) GUCEF_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-        CString str = ( (CIOAccess*) access->privdata )->ReadLine();
-        *dest = GUCEF_NEW char[ str.Length()+1 ];
-        memcpy( *dest, str.C_String(), str.Length() );
-        return str.Length();
+
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == access || GUCEF_NULL == dest )
+    {
+        return 0;
+    }
+
+    CString str = static_cast< CIOAccess* >( access->privdata )->ReadLine();
+    *dest = GUCEF_NEW char[ str.Length()+1 ];
+    memcpy( *dest, str.C_String(), str.Length() );
+    return str.Length();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -99,10 +123,16 @@ UInt32 GUCEF_CALLSPEC_PREFIX
 fa_reads( struct SIOAccess* access ,
           char **dest              ) GUCEF_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-        CString str = ( (CIOAccess*) access->privdata )->ReadString();
-        *dest = GUCEF_NEW char[ str.Length()+1 ];
-        memcpy( *dest, str.C_String(), str.Length() );
-        return str.Length();
+
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == access || GUCEF_NULL == dest )
+    {
+        return 0;
+    }
+
+    CString str = static_cast< CIOAccess* >( access->privdata )->ReadString();
+    *dest = GUCEF_NEW char[ str.Length()+1 ];
+    memcpy( *dest, str.C_String(), str.Length() );
+    return str.Length();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -113,9 +143,12 @@ fa_write( struct SIOAccess* access ,
           UInt32 esize             ,
           UInt32 elements          ) GUCEF_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-        return ( (CIOAccess*) access->privdata )->Write( srcData  ,
-                                                         esize    ,
-                                                         elements );
+
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == access || GUCEF_NULL == srcData )
+    {
+        return 0;
+    }
+    return static_cast< CIOAccess* >( access->privdata )->Write( srcData, esize, elements );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -126,9 +159,12 @@ fa_read( struct SIOAccess* access ,
          UInt32 esize             ,
          UInt32 elements          ) GUCEF_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-        return ( (CIOAccess*) access->privdata )->Read( dest     ,
-                                                        esize    ,
-                                                        elements );
+
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == access || GUCEF_NULL == dest )
+    {
+        return 0;
+    }
+    return static_cast< CIOAccess* >( access->privdata )->Read( dest, esize, elements );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -137,7 +173,11 @@ UInt64 GUCEF_CALLSPEC_PREFIX
 fa_tell( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-        return ( (CIOAccess*) access->privdata )->Tell();
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == access )
+    {
+        return 0;
+    }
+    return static_cast< CIOAccess* >( access->privdata )->Tell();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -147,8 +187,12 @@ fa_seek( struct SIOAccess* access ,
          Int64 offset             ,
          Int32 origin             ) GUCEF_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-        return ( (CIOAccess*) access->privdata )->Seek( offset ,
-                                                        origin );
+
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == access )
+    {
+        return 0;
+    }    
+    return static_cast< CIOAccess* >( access->privdata )->Seek( offset, origin );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -157,7 +201,12 @@ UInt32 GUCEF_CALLSPEC_PREFIX
 fa_setpos( struct SIOAccess* access ,
            UInt64 pos               ) GUCEF_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-        return ( (CIOAccess*) access->privdata )->Setpos( pos );
+
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == access )
+    {
+        return 0;
+    }    
+    return static_cast< CIOAccess* >( access->privdata )->Setpos( pos );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -165,7 +214,12 @@ fa_setpos( struct SIOAccess* access ,
 Int32 GUCEF_CALLSPEC_PREFIX
 fa_getc( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-        return ( (CIOAccess*) access->privdata )->GetChar();
+
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == access )
+    {
+        return 0;
+    }    
+    return static_cast< CIOAccess* >( access->privdata )->GetChar();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -173,7 +227,25 @@ fa_getc( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX
 Int32 GUCEF_CALLSPEC_PREFIX
 fa_eof( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-        return ( (CIOAccess*) access->privdata )->Eof();
+    
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == access )
+    {
+        return 0;
+    }
+    return static_cast< CIOAccess* >( access->privdata )->Eof();
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64 GUCEF_CALLSPEC_PREFIX
+fa_size( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == access )
+    {
+        return 0;
+    }
+    return static_cast< CIOAccess* >( access->privdata )->GetSize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -181,7 +253,8 @@ fa_eof( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX
 void GUCEF_CALLSPEC_PREFIX
 fa_free( void* mem ) GUCEF_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
-        GUCEF_DELETE []((char*)mem);
+
+    GUCEF_DELETE []((char*)mem);
 }
 
 /*-------------------------------------------------------------------------*/
@@ -241,6 +314,7 @@ CIOAccess::LinkCStyleAccess( void )
     m_cStyleAccess.setpos = fa_setpos;
     m_cStyleAccess.getc = fa_getc;
     m_cStyleAccess.eof = fa_eof;
+    m_cStyleAccess.size = fa_size;
     m_cStyleAccess.memfree = fa_free;
     m_cStyleAccess.privdata = this;
 }
@@ -252,7 +326,8 @@ CIOAccess::ReadUntill( void *dest            ,
                        UInt32 bsize          ,
                        const void* delimiter ,
                        UInt32 delimsize      )
-{
+{GUCEF_TRACE;
+
         //DEBUGOUTPUT( "CIOAccess::ReadUntill()" );
 
         GUCEF_BEGIN;
@@ -335,8 +410,6 @@ UInt32
 CIOAccess::SkipUntill( const void* delimiter ,
                        UInt32 delimsize      )
 {GUCEF_TRACE;
-
-    //DEBUGOUTPUT( "CIOAccess::SkipUntill()" );
 
     if ( !delimsize )
     {

@@ -461,7 +461,7 @@ CDynamicBufferAccess::Clone( void ) const
 {GUCEF_TRACE;
         
     // Cannot be cloned
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------//

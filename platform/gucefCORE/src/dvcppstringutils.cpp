@@ -495,7 +495,7 @@ Base64Decode( const CString& base64Str, void* byteBuffer, UInt32 bufferSize, UIn
         }
     }
 
-    bytesUsed = last;
+    bytesUsed = bufferSizeNeeded;
     return true;
 }
 

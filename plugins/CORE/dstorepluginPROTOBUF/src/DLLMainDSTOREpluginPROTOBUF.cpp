@@ -26,6 +26,8 @@
 #include <stdio.h>      /* standard I/O utils */
 #include <memory>
 #include <string>
+#include <iostream>
+#include <sstream>
 #include <unordered_map>
 
 #include <google/protobuf/message.h>          // Base class for all protobuf messages
@@ -36,6 +38,7 @@
 #include <google/protobuf/stubs/logging.h>    // Logging utils for log redirection
 #include <google/protobuf/io/zero_copy_stream.h> // Zero-copy stream for protobuf
 #include <google/protobuf/io/coded_stream.h>  // Coded stream for reading/writing protobuf messages
+#include <google/protobuf/wire_format_lite.h> // used for reading/writing protobuf messages with encodings
 
 #include "DLLMainDSTOREpluginPROTOBUF.h"    /* gucefCORE DSTORE codec plugin API */
 
@@ -120,13 +123,21 @@ class GUCEF_HIDDEN ProtoErrorCollector : public google::protobuf::compiler::Mult
     virtual void AddError( const std::string& filename, int line, int column, const std::string& message ) GUCEF_VIRTUAL_OVERRIDE 
     {GUCEF_TRACE;
         
-        GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, ( "ProtoErrorCollector:AddError: Error in " + filename + " at " + std::to_string(line) + ":" + std::to_string(column) + ": " + message ).c_str() );
+        std::ostringstream logStrStr;
+        logStrStr << "ProtoErrorCollector: Error : " << filename << " at " << line << ":" << column << " : " << message;
+        std::string logStr = logStrStr.str();
+        
+        GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, logStr.c_str() );
     }
 
     virtual void AddWarning( const std::string& filename, int line, int column, const std::string& message ) GUCEF_VIRTUAL_OVERRIDE 
     {GUCEF_TRACE;
         
-        GUCEF_C_WARNING_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, ( "ProtoErrorCollector:AddError: Warning in " + filename + " at " + std::to_string(line) + ":" + std::to_string(column) + ": " + message ).c_str() );
+        std::ostringstream logStrStr;
+        logStrStr << "ProtoErrorCollector: Warning : " << filename << " at " << line << ":" << column << " : " << message;
+        std::string logStr = logStrStr.str();
+
+        GUCEF_C_WARNING_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, logStr.c_str() );
     }
 };
 
@@ -138,18 +149,39 @@ class GUCEF_HIDDEN CustomZeroCopyInputStream : public google::protobuf::io::Zero
 
     TIOAccess* m_access;
     char m_buffer[ 4096 ];
-    size_t m_bufferSize;
-    size_t m_bufferPos;
+    UInt64 m_totalBytesRead;
 
     public:
     
     CustomZeroCopyInputStream( TIOAccess* access )
         : m_access( access ) 
-        , m_bufferSize(0) 
-        , m_bufferPos(0) 
+        , m_totalBytesRead( 0 ) 
     {GUCEF_TRACE;
         
         memset( m_buffer, 0, sizeof(m_buffer) );
+        if GUCEF_PREDICT_FALSE( GUCEF_NULL == m_access )
+        {
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "CustomZeroCopyInputStream: NULL passed for IOAccess" );
+            return;
+        }
+        if ( 0 == m_access->opened( m_access ) )
+        {
+            if GUCEF_PREDICT_FALSE( !m_access->open( m_access ) )
+            {
+                GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "CustomZeroCopyInputStream: Failed to open IOAccess" );
+                return;
+            }
+        }
+
+        #ifdef GUCEF_DEBUG_MODE    
+        UInt64 resourcePos = static_cast< size_t >( m_access->tell( m_access ) );
+        UInt64 resourceSize = static_cast< size_t >( m_access->size( m_access ) );
+        std::ostringstream debugStrStr;
+        debugStrStr << "CustomZeroCopyInputStream: Access init to resource of " << resourceSize << " bytes at offset " << resourcePos;
+        std::string debugStr = debugStrStr.str();
+        GUCEF_C_DEBUG_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, debugStr.c_str() );
+        #endif /* GUCEF_DEBUG_MODE ? */
+
     }
 
     virtual ~CustomZeroCopyInputStream() GUCEF_VIRTUAL_OVERRIDE 
@@ -162,24 +194,31 @@ class GUCEF_HIDDEN CustomZeroCopyInputStream : public google::protobuf::io::Zero
           int* size         ) GUCEF_VIRTUAL_OVERRIDE 
     {GUCEF_TRACE;
 
-        if ( GUCEF_NULL == m_access || 
+        if GUCEF_PREDICT_FALSE( GUCEF_NULL == m_access || 
              GUCEF_NULL == data     ||
              GUCEF_NULL == size      )
             return false;   
-        
-        if ( m_bufferPos >= m_bufferSize ) 
+
+        int bytesRead = m_access->read( m_access, m_buffer, 1, sizeof(m_buffer) );
+        if GUCEF_PREDICT_FALSE( 0 == bytesRead )
         {
-            m_bufferSize = m_access->read( m_access, m_buffer, 1, sizeof(m_buffer) );
-            m_bufferPos = 0;
+            Int32 isEof = m_access->eof( m_access );
+            if ( 0 != isEof )
+            {
+                GUCEF_C_DEBUG_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "CustomZeroCopyInputStream: Finished reading resource" );
+                return false;
+            }
+            else
+            {
+                GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "CustomZeroCopyInputStream: Failed to read bytes from IOAccess" );
+                return false;
+            }
         }
 
-        if (m_bufferSize == 0) {
-            return false;
-        }
+        m_totalBytesRead += bytesRead;
 
-        *data = m_buffer + m_bufferPos;
-        *size = static_cast<int>( m_bufferSize - m_bufferPos );
-        m_bufferPos = m_bufferSize;
+        *size = bytesRead;
+        *data = m_buffer;
         return true;
     }
 
@@ -187,18 +226,37 @@ class GUCEF_HIDDEN CustomZeroCopyInputStream : public google::protobuf::io::Zero
     BackUp( int count ) GUCEF_VIRTUAL_OVERRIDE 
     {GUCEF_TRACE;
 
-        m_bufferPos -= count;
+        if GUCEF_PREDICT_FALSE( GUCEF_NULL == m_access )
+            return;   
+            
+        Int32 errorCode = m_access->seek( m_access, -count, SEEK_SET );
+        if GUCEF_PREDICT_FALSE( 0 != errorCode )
+        {
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "CustomZeroCopyInputStream: Failed to seek in IOAccess" );
+        }
     }
 
     virtual bool 
     Skip( int count ) GUCEF_VIRTUAL_OVERRIDE 
     {GUCEF_TRACE;
 
-        m_bufferPos += count;
-        if ( m_bufferPos > m_bufferSize ) 
+        if GUCEF_PREDICT_FALSE( GUCEF_NULL == m_access )
+            return false;   
+            
+        Int32 errorCode = m_access->seek( m_access, count, SEEK_SET );
+        if GUCEF_PREDICT_FALSE( 0 != errorCode )
         {
-            m_bufferPos = m_bufferSize;
-            return false;
+            Int32 isEof = m_access->eof( m_access );
+            if ( 0 != isEof )
+            {
+                GUCEF_C_DEBUG_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "CustomZeroCopyInputStream: Finished reading resource" );
+                return false;
+            }
+            else
+            {
+                GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "CustomZeroCopyInputStream: Failed to seek in IOAccess" );
+                return false;
+            }
         }
         return true;
     }
@@ -207,7 +265,17 @@ class GUCEF_HIDDEN CustomZeroCopyInputStream : public google::protobuf::io::Zero
     ByteCount() const GUCEF_VIRTUAL_OVERRIDE 
     {GUCEF_TRACE;
 
-        return m_bufferPos;
+        return m_totalBytesRead;
+    }
+
+    UInt64 MaxBytesAvailable( void ) const
+    {GUCEF_TRACE;
+
+        if GUCEF_PREDICT_FALSE( GUCEF_NULL == m_access )
+            return 0;           
+    
+        UInt64 resourceSize = static_cast< UInt64 >( m_access->size( m_access ) );
+        return resourceSize;
     }
 };
 
@@ -311,13 +379,27 @@ class GUCEF_HIDDEN CDataDrivenCodecInfo
             return false;
         }
 
-        if ( GUCEF_NULL == m_importer.Import( m_codecTypeName ) ) 
+        const google::protobuf::FileDescriptor* fileDescriptor = m_importer.Import( m_codecTypeName );
+        if ( GUCEF_NULL == fileDescriptor ) 
         {
             GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, ( "DataDrivenCodecInfo:Init: Failed to import proto file: " + m_codecTypeName ).c_str() );
             return false;
         }
 
-        m_descriptor = m_importer.pool()->FindMessageTypeByName( m_codecTypeName );
+        std::string msgTypeName;
+        int messageTypeCount = fileDescriptor->message_type_count();
+        for ( int i=0; i<messageTypeCount; ++i ) 
+        {
+            const google::protobuf::Descriptor* descriptor = fileDescriptor->message_type( i );
+            if ( GUCEF_NULL != descriptor ) 
+            {
+                GUCEF_C_DEBUG_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, ( "DataDrivenCodecInfo:Init: Loaded message type: " + descriptor->name() ).c_str() );
+                if ( msgTypeName.empty() )
+                    msgTypeName = descriptor->name();
+            }
+        }
+
+        m_descriptor = fileDescriptor->FindMessageTypeByName( msgTypeName );
         if ( GUCEF_NULL == m_descriptor ) 
         {
             GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, ( "DataDrivenCodecInfo:Init: Failed to find message type: " + m_codecTypeName ).c_str() );
@@ -422,6 +504,7 @@ class GUCEF_HIDDEN ProtoSAXParser
 
         CustomZeroCopyInputStream zero_copy_input( access );
         google::protobuf::io::CodedInputStream coded_input( &zero_copy_input );
+        coded_input.PushLimit( static_cast< int >( zero_copy_input.MaxBytesAvailable() ) );
         std::unique_ptr<google::protobuf::Message> message( prototype->New() );
 
         return ParseFields( message.get(), &coded_input );
@@ -441,7 +524,46 @@ class GUCEF_HIDDEN ProtoSAXParser
 
     /*---------------------------------------------------------------------------*/
 
-    bool ParseFields(google::protobuf::Message* message, google::protobuf::io::CodedInputStream* input) 
+    bool ReadSInt32Field( google::protobuf::io::CodedInputStream* input, int32_t& value ) 
+    {GUCEF_TRACE;
+
+        value = 0;
+        uint32_t raw_value = 0;
+        if GUCEF_PREDICT_TRUE( input->ReadVarint32( &raw_value ) ) 
+        {
+            value = google::protobuf::internal::WireFormatLite::ZigZagDecode32( raw_value );
+            return true;
+        }
+        else
+        {
+            SetError( "Failed to read sint32 value" );
+            return false;
+        }
+    }
+
+    /*---------------------------------------------------------------------------*/
+
+    bool ReadSInt64Field( google::protobuf::io::CodedInputStream* input, int64_t& value ) 
+    {GUCEF_TRACE;
+
+        value = 0;
+        uint64_t raw_value = 0;
+        if GUCEF_PREDICT_TRUE( input->ReadVarint64( &raw_value ) ) 
+        {
+            value = google::protobuf::internal::WireFormatLite::ZigZagDecode64( raw_value );
+            return true;
+        }
+        else
+        {
+            SetError( "Failed to read sint64 value" );
+            return false;
+        }
+    }
+
+    /*---------------------------------------------------------------------------*/
+
+    bool ParseFields( google::protobuf::Message* message            , 
+                      google::protobuf::io::CodedInputStream* input ) 
     {GUCEF_TRACE;
 
         const google::protobuf::Descriptor* descriptor = message->GetDescriptor();
@@ -450,8 +572,8 @@ class GUCEF_HIDDEN ProtoSAXParser
         while ( input->BytesUntilLimit() > 0 ) 
         {
             uint32_t tag = input->ReadTag();
-            int field_number = google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag);
-            const google::protobuf::FieldDescriptor* field = descriptor->FindFieldByNumber(field_number);
+            int field_number = google::protobuf::internal::WireFormatLite::GetTagFieldNumber( tag );
+            const google::protobuf::FieldDescriptor* field = descriptor->FindFieldByNumber( field_number );
 
             if ( GUCEF_NULL == field ) 
             {
@@ -540,6 +662,50 @@ class GUCEF_HIDDEN ProtoSAXParser
                 reflection->AddUInt64( message, field, value );
                 break;
             }
+            case google::protobuf::FieldDescriptor::TYPE_FIXED64:
+            {
+                uint64_t value = 0;
+                if ( !input->ReadLittleEndian64( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read fixed size uint64 value" );
+                    return false;
+                }
+                reflection->SetUInt64( message, field, value );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_FIXED32:
+            {
+                uint32_t value = 0;
+                if ( !input->ReadLittleEndian32( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read fixed size uint32 value" );
+                    return false;
+                }
+                reflection->SetUInt32( message, field, value );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SINT32:
+            {
+                int32_t value = 0;
+                if ( !ReadSInt32Field( input, value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read zigZag int32 value" );
+                    return false;
+                }
+                reflection->SetInt32( message, field, value );                
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SINT64:
+            {
+                int64_t value = 0;
+                if ( !ReadSInt64Field( input, value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read zigZag int64 value" );
+                    return false;
+                }
+                reflection->SetInt64( message, field, value );                
+                break;
+            }            
             case google::protobuf::FieldDescriptor::TYPE_FLOAT: 
             {
                 float value = 0.0f;
@@ -658,6 +824,50 @@ class GUCEF_HIDDEN ProtoSAXParser
                 reflection->SetUInt64( message, field, value );
                 break;
             }
+            case google::protobuf::FieldDescriptor::TYPE_FIXED64:
+            {
+                uint64_t value = 0;
+                if ( !input->ReadLittleEndian64( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read fixed size uint64 value" );
+                    return false;
+                }
+                reflection->SetUInt64( message, field, value );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_FIXED32:
+            {
+                uint32_t value = 0;
+                if ( !input->ReadLittleEndian32( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read fixed size uint32 value" );
+                    return false;
+                }
+                reflection->SetUInt32( message, field, value );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SINT32:
+            {
+                int32_t value = 0;
+                if ( !ReadSInt32Field( input, value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read zigZag int32 value" );
+                    return false;
+                }
+                reflection->SetInt32( message, field, value );                
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SINT64:
+            {
+                int64_t value = 0;
+                if ( !ReadSInt64Field( input, value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read zigZag int64 value" );
+                    return false;
+                }
+                reflection->SetInt64( message, field, value );                
+                break;
+            }  
             case google::protobuf::FieldDescriptor::TYPE_FLOAT: 
             {
                 float value = 0.0f;
@@ -672,7 +882,7 @@ class GUCEF_HIDDEN ProtoSAXParser
             case google::protobuf::FieldDescriptor::TYPE_DOUBLE: 
             {
                 double value = 0.0;
-                if (!input->ReadLittleEndian64( reinterpret_cast<uint64_t*>(&value) ) ) 
+                if ( !input->ReadLittleEndian64( reinterpret_cast<uint64_t*>(&value) ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseSingularField: Failed to read double value" );
                     return false;
@@ -715,7 +925,11 @@ class GUCEF_HIDDEN ProtoSAXParser
             // Handle other types as needed
             default:
             {
-                SetError( "ProtoSAXParser:ParseSingularField: Unsupported field type for singular field" );
+                Int32 typeId = static_cast< Int32 >( field->type() );
+                std::ostringstream debugStrStr;
+                debugStrStr << "ProtoSAXParser:ParseSingularField: Unsupported field type for singular field: " << typeId;
+                std::string debugStr = debugStrStr.str();
+                SetError( debugStr );
                 return false;
             }
         }
@@ -815,22 +1029,26 @@ gucefLogRedirect( google::protobuf::LogLevel level ,
     if ( GUCEF_NULL == g_libApi.Log )
         return;
     
+    std::ostringstream logStrStr;
+    logStrStr << "protobuf: " << filename << " at " << line << " : " << message;
+    std::string logStr = logStrStr.str();
+
     switch ( level )
     {
         case google::protobuf::LOGLEVEL_INFO:
-            GUCEF_C_SYSTEM_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, message.c_str() );
+            GUCEF_C_SYSTEM_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, logStr.c_str() );
             break;
         case google::protobuf::LOGLEVEL_WARNING:
-            GUCEF_C_WARNING_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, message.c_str() );
+            GUCEF_C_WARNING_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, logStr.c_str() );
             break;
         case google::protobuf::LOGLEVEL_ERROR:
-            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, message.c_str() );
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, logStr.c_str() );
             break;
         case google::protobuf::LOGLEVEL_FATAL:
-            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_CRITICAL, message.c_str() );
+            GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_CRITICAL, logStr.c_str() );
             break;
         default:
-            GUCEF_C_SYSTEM_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, message.c_str() );
+            GUCEF_C_SYSTEM_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, logStr.c_str() );
             break;
     }
 }
@@ -1055,16 +1273,16 @@ DSTOREPLUG_Create_Data_Driven_Codec( const void* plugdata                  ,
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == dataDrivenCodecPrivateData )
-        return 0;
+        return 1; // basic failure error code
 
     CDataDrivenCodecInfo* codecInfo = GUCEF_NEW CDataDrivenCodecInfo();
     if ( GUCEF_NULL == codecInfo )
-        return 0;
+        return 2; // basic failure error code
     
     if ( !codecInfo->Init( codecMeta, loadedResources ) )
     {
         GUCEF_DELETE codecInfo;
-        return 1; // basic failure error code
+        return 3; // basic failure error code
     }
 
     *dataDrivenCodecPrivateData = codecInfo;
@@ -1080,11 +1298,11 @@ DSTOREPLUG_Destroy_Data_Driven_Codec( const void* plugdata                  ,
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == dataDrivenCodecPrivateData )
-        return 0;
+        return 1; // basic failure error code
 
     CDataDrivenCodecInfo* codecInfo = static_cast< CDataDrivenCodecInfo* >( *dataDrivenCodecPrivateData );
     if ( GUCEF_NULL == codecInfo )
-        return 0;
+        return 2; // basic failure error code
     
     try
     {
@@ -1095,11 +1313,11 @@ DSTOREPLUG_Destroy_Data_Driven_Codec( const void* plugdata                  ,
         std::string errMsg( "DSTOREPLUG_Destroy_Data_Driven_Codec: Exception deleting codec info: " );
         errMsg += e.what();
         GUCEF_C_EXCEPTION_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, errMsg.c_str() );
-        return 0;
+        return 3; // basic failure error code
     }
 
     *dataDrivenCodecPrivateData = GUCEF_NULL;
-    return 1;
+    return 0;  // 0 == success
 }
 
 /*---------------------------------------------------------------------------*/

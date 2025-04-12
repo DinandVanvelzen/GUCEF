@@ -118,6 +118,7 @@ typedef Int32  ( GUCEF_CALLSPEC_PREFIX *TIOAccessfunction_seek ) ( struct SIOAcc
 typedef UInt32 ( GUCEF_CALLSPEC_PREFIX *TIOAccessfunction_setpos ) ( struct SIOAccess* access, UInt64 pos ) GUCEF_CALLSPEC_SUFFIX;
 typedef Int32  ( GUCEF_CALLSPEC_PREFIX *TIOAccessfunction_getc ) ( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX;
 typedef Int32  ( GUCEF_CALLSPEC_PREFIX *TIOAccessfunction_eof ) ( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX;
+typedef UInt64 ( GUCEF_CALLSPEC_PREFIX *TIOAccessfunction_size ) ( struct SIOAccess* access ) GUCEF_CALLSPEC_SUFFIX;
 typedef void   ( GUCEF_CALLSPEC_PREFIX *TIOAccessfunction_free ) ( void* mem ) GUCEF_CALLSPEC_SUFFIX;
 
 /*-------------------------------------------------------------------------*/
@@ -144,6 +145,7 @@ struct SIOAccess
     TIOAccessfunction_setpos setpos;  /* move to a different part */
     TIOAccessfunction_getc   getc;    /* get a character */
     TIOAccessfunction_eof    eof;     /* are we at the end of the recource */
+    TIOAccessfunction_size   size;    /* attempts to obtain the overall size of the resource */
     TIOAccessfunction_free   memfree; /* free memory allocated with one of the other functions here */
 
     void *privdata;                   /* internally used data, Don't touch !!! */
