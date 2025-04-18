@@ -147,6 +147,7 @@ static const CORE::CString PROTO_DEFINITION_ALL_TYPES =
 
 // the above as a json with test values
 // can be used in a tool like https://www.protobufpal.com/ to generate the base64 encoded binary representations
+// you can verify the correctness of the base64 encoded string below using an online tool like https://protobuf-decoder.netlify.app/
 /*
 {
   "int_field": -44,
@@ -266,7 +267,7 @@ PerformProtobufTest_FieldTypesMapping( void )
     CORE::CDStoreCodecRegistry& codecRegistry = coreGlobal->GetDStoreCodecRegistry();
 
     CORE::CDynamicBuffer encodedData;
-    encodedData.LinkTo( PROTO_ALL_TYPES_MESSAGE_BASE64 );
+    encodedData.CopyAndDecodeBase64From( PROTO_ALL_TYPES_MESSAGE_BASE64, 0 );
     CORE::CDynamicBufferAccess encodedDataAccess( encodedData );
 
     // First just fetch the DStoreCodec like any other regular codec
@@ -283,35 +284,102 @@ PerformProtobufTest_FieldTypesMapping( void )
     ASSERT_TRUE( intFieldVar.IsInitialized() );
     ASSERT_TRUE( intFieldVar.IsInteger() );
     ASSERT_TRUE( intFieldVar.IsSignedInteger() );
-    ASSERT_TRUE( intFieldVar.GetTypeId() == GUCEF_DATATYPE_INT32 );
+    ASSERT_TRUE( intFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_INT32 );
     ASSERT_TRUE( intFieldVar.AsInt32() == -44 );
-    const CORE::CVariant& longFieldVar = documentNode.GetAttributeValueOrChildValueByName( "long_field" );
-    ASSERT_TRUE( longFieldVar.IsInitialized() );
-    ASSERT_TRUE( longFieldVar.IsInteger() );
-    ASSERT_TRUE( longFieldVar.IsSignedInteger() );
-    ASSERT_TRUE( longFieldVar.GetTypeId() == GUCEF_DATATYPE_INT32 );
-    ASSERT_TRUE( longFieldVar.AsInt32() == -3455 );
     const CORE::CVariant& uintFieldVar = documentNode.GetAttributeValueOrChildValueByName( "uint_field" );
     ASSERT_TRUE( uintFieldVar.IsInitialized() );
     ASSERT_TRUE( uintFieldVar.IsInteger() );
     ASSERT_TRUE( !uintFieldVar.IsSignedInteger() );
-    ASSERT_TRUE( uintFieldVar.GetTypeId() == GUCEF_DATATYPE_UINT32 );
+    ASSERT_TRUE( uintFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_UINT32 );
     ASSERT_TRUE( uintFieldVar.AsInt32() == 3453577 );
-
-  //
-  //"ulong_field": 3557878,
-  //"sint_field": 97676,
-  //"slong_field": 868680,
-  //"fixed_field": 5560,
-  //"lfixed_field": 7670,
-  //"sfixed_field": -670,
-  //"slfixed_field": -67077899,
-  //"float_field": 0.454535,
-  //"double_field": 0.3543534534,
-  //"bool_field": false,
-  //"string_field": "this is a string",
-
+    const CORE::CVariant& longFieldVar = documentNode.GetAttributeValueOrChildValueByName( "long_field" );
+    ASSERT_TRUE( longFieldVar.IsInitialized() );
+    ASSERT_TRUE( longFieldVar.IsInteger() );
+    ASSERT_TRUE( longFieldVar.IsSignedInteger() );
+    ASSERT_TRUE( longFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_INT64 );
+    ASSERT_TRUE( longFieldVar.AsInt64() == -3455 );
+    const CORE::CVariant& ulongFieldVar = documentNode.GetAttributeValueOrChildValueByName( "ulong_field" );
+    ASSERT_TRUE( ulongFieldVar.IsInitialized() );
+    ASSERT_TRUE( ulongFieldVar.IsInteger() );
+    ASSERT_TRUE( !ulongFieldVar.IsSignedInteger() );
+    ASSERT_TRUE( ulongFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_UINT64 );
+    ASSERT_TRUE( ulongFieldVar.AsUInt64() == 3557878 );
+    const CORE::CVariant& sintFieldVar = documentNode.GetAttributeValueOrChildValueByName( "sint_field" );
+    ASSERT_TRUE( sintFieldVar.IsInitialized() );
+    ASSERT_TRUE( sintFieldVar.IsInteger() );
+    ASSERT_TRUE( sintFieldVar.IsSignedInteger() );
+    ASSERT_TRUE( sintFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_INT32 );
+    ASSERT_TRUE( sintFieldVar.AsInt32() == 97676 );
+    const CORE::CVariant& slongFieldVar = documentNode.GetAttributeValueOrChildValueByName( "slong_field" );
+    ASSERT_TRUE( slongFieldVar.IsInitialized() );
+    ASSERT_TRUE( slongFieldVar.IsInteger() );
+    ASSERT_TRUE( slongFieldVar.IsSignedInteger() );
+    ASSERT_TRUE( slongFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_INT64 );
+    ASSERT_TRUE( slongFieldVar.AsInt64() == 868680 );
+    const CORE::CVariant& fixedFieldVar = documentNode.GetAttributeValueOrChildValueByName( "fixed_field" );
+    ASSERT_TRUE( fixedFieldVar.IsInitialized() );
+    ASSERT_TRUE( fixedFieldVar.IsInteger() );
+    ASSERT_TRUE( !fixedFieldVar.IsSignedInteger() );
+    ASSERT_TRUE( fixedFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_UINT32 );
+    ASSERT_TRUE( fixedFieldVar.AsUInt32() == 5560 );
+    const CORE::CVariant& lfixedFieldVar = documentNode.GetAttributeValueOrChildValueByName( "lfixed_field" );
+    ASSERT_TRUE( lfixedFieldVar.IsInitialized() );
+    ASSERT_TRUE( lfixedFieldVar.IsInteger() );
+    ASSERT_TRUE( !lfixedFieldVar.IsSignedInteger() );
+    ASSERT_TRUE( lfixedFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_UINT64 );
+    ASSERT_TRUE( lfixedFieldVar.AsUInt64() == 7670 );
+    const CORE::CVariant& sfixedFieldVar = documentNode.GetAttributeValueOrChildValueByName( "sfixed_field" );
+    ASSERT_TRUE( sfixedFieldVar.IsInitialized() );
+    ASSERT_TRUE( sfixedFieldVar.IsInteger() );
+    ASSERT_TRUE( sfixedFieldVar.IsSignedInteger() );
+    ASSERT_TRUE( sfixedFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_INT32 );
+    ASSERT_TRUE( sfixedFieldVar.AsInt32() == -670 );
+    const CORE::CVariant& slfixedFieldVar = documentNode.GetAttributeValueOrChildValueByName( "slfixed_field" );
+    ASSERT_TRUE( slfixedFieldVar.IsInitialized() );
+    ASSERT_TRUE( slfixedFieldVar.IsInteger() );
+    ASSERT_TRUE( slfixedFieldVar.IsSignedInteger() );
+    ASSERT_TRUE( slfixedFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_INT64 );
+    ASSERT_TRUE( slfixedFieldVar.AsInt64() == -67077899 );
+    const CORE::CVariant& floatFieldVar = documentNode.GetAttributeValueOrChildValueByName( "float_field" );
+    ASSERT_TRUE( floatFieldVar.IsInitialized() );
+    ASSERT_TRUE( !floatFieldVar.IsInteger() );
+    ASSERT_TRUE( floatFieldVar.IsFloat() );
+    ASSERT_TRUE( floatFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_FLOAT32 );
+    CORE::CVariant compareFloat32( static_cast< Float32 >( 0.454535 ) );
+    ASSERT_TRUE( floatFieldVar == compareFloat32 );
+    const CORE::CVariant& doubleFieldVar = documentNode.GetAttributeValueOrChildValueByName( "double_field" );
+    ASSERT_TRUE( doubleFieldVar.IsInitialized() );
+    ASSERT_TRUE( !doubleFieldVar.IsInteger() );
+    ASSERT_TRUE( doubleFieldVar.IsFloat() );
+    ASSERT_TRUE( doubleFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_FLOAT64 );
+    CORE::CVariant compareFloat64( static_cast< Float64 >( 0.3543534534 ) );
+    ASSERT_TRUE( doubleFieldVar == compareFloat64 );
+    const CORE::CVariant& boolFieldVar = documentNode.GetAttributeValueOrChildValueByName( "bool_field" );
+    ASSERT_TRUE( boolFieldVar.IsInitialized() );
+    ASSERT_TRUE( !boolFieldVar.IsInteger() );
+    ASSERT_TRUE( !boolFieldVar.IsFloat() );
+    ASSERT_TRUE( boolFieldVar.IsBoolean() );
+    ASSERT_TRUE( boolFieldVar.GetTypeId() == GUCEF_DATATYPE_BOOLEAN_INT32 );
+    ASSERT_TRUE( boolFieldVar == false );
+    const CORE::CVariant& stringFieldVar = documentNode.GetAttributeValueOrChildValueByName( "string_field" );
+    ASSERT_TRUE( stringFieldVar.IsInitialized() );
+    ASSERT_TRUE( !stringFieldVar.IsInteger() );
+    ASSERT_TRUE( !stringFieldVar.IsFloat() );
+    ASSERT_TRUE( !stringFieldVar.IsBoolean() );
+    ASSERT_TRUE( stringFieldVar.IsString() );
+    ASSERT_TRUE( stringFieldVar.GetTypeId() == GUCEF_DATATYPE_UTF8_STRING );
+    ASSERT_TRUE( stringFieldVar.AsString() == "this is a string" );
+    const CORE::CVariant& bytesFieldVar = documentNode.GetAttributeValueOrChildValueByName( "bytes_field" );
+    ASSERT_TRUE( bytesFieldVar.IsInitialized() );
+    ASSERT_TRUE( !bytesFieldVar.IsInteger() );
+    ASSERT_TRUE( !bytesFieldVar.IsFloat() );
+    ASSERT_TRUE( !bytesFieldVar.IsBoolean() );
+    ASSERT_TRUE( !bytesFieldVar.IsString() );
+    ASSERT_TRUE( bytesFieldVar.IsBlob() );
+    ASSERT_TRUE( bytesFieldVar.GetTypeId() == GUCEF_DATATYPE_BINARY_BLOB );
+    ASSERT_TRUE( bytesFieldVar.ByteSize() == 0 );
     
+
 }
 
 /*-------------------------------------------------------------------------*/

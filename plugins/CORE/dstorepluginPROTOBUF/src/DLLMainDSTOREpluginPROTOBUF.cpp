@@ -445,6 +445,8 @@ class GUCEF_HIDDEN ProtoSAXParser
     void* m_readPrivData;
     TReadHandlers m_readCallbacks;
     CDataDrivenCodecInfo* m_codecInfo;
+    std::string m_stringFieldBuffer;
+    std::vector<UInt8> m_byteFieldBuffer;
 
     private:
 
@@ -465,6 +467,8 @@ class GUCEF_HIDDEN ProtoSAXParser
         , m_readPrivData( GUCEF_NULL )
         , m_readCallbacks()
         , m_codecInfo( GUCEF_NULL )
+        , m_stringFieldBuffer()
+        , m_byteFieldBuffer()
     {GUCEF_TRACE;
 
         memset( &m_readCallbacks, 0, sizeof( m_readCallbacks ) );
@@ -502,12 +506,32 @@ class GUCEF_HIDDEN ProtoSAXParser
             return false;
         }
 
+        m_readCallbacks.OnTreeBegin( m_readPrivData );
+        
         CustomZeroCopyInputStream zero_copy_input( access );
         google::protobuf::io::CodedInputStream coded_input( &zero_copy_input );
         coded_input.PushLimit( static_cast< int >( zero_copy_input.MaxBytesAvailable() ) );
-        std::unique_ptr<google::protobuf::Message> message( prototype->New() );
+                        
+        //std::string rawDataStr = "ProtoSAXParser: Raw message payload: \n";
+        //const void* raw_data = GUCEF_NULL;
+        //int size;
+        //if ( coded_input.GetDirectBufferPointer( &raw_data, &size ) ) 
+        //{
+        //    char printBuffer[ 128 ];
+        //    const uint8_t* bytes = static_cast<const uint8_t*>( raw_data );
+        //    for ( int i=0; i<size; ++i ) 
+        //    {
+        //        sprintf( printBuffer, "Byte %d: 0x%02X\n", i, bytes[i] );
+        //        rawDataStr += printBuffer;
+        //    }
+        //}
+        //GUCEF_C_DEBUG_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, rawDataStr.c_str() );
 
-        return ParseFields( message.get(), &coded_input );
+        bool parseResult = ParseFields( descriptor, &coded_input );
+
+        m_readCallbacks.OnTreeEnd( m_readPrivData );
+
+        return parseResult;
     }
 
     bool HasError( void ) const 
@@ -562,12 +586,74 @@ class GUCEF_HIDDEN ProtoSAXParser
 
     /*---------------------------------------------------------------------------*/
 
-    bool ParseFields( google::protobuf::Message* message            , 
-                      google::protobuf::io::CodedInputStream* input ) 
+    bool ReadStringField( google::protobuf::io::CodedInputStream* input, std::string& value ) 
     {GUCEF_TRACE;
 
-        const google::protobuf::Descriptor* descriptor = message->GetDescriptor();
-        const google::protobuf::Reflection* reflection = message->GetReflection();
+        value.clear();
+        
+        // Read the length of the string (length-delimited field)
+        uint32_t length = 0;
+        if GUCEF_PREDICT_FALSE( !input->ReadVarint32( &length ) ) 
+        {
+            SetError( "Failed to read string length" );
+            return false;
+        }
+
+        // Read the string data
+        if GUCEF_PREDICT_FALSE( !input->ReadString( &value, length ) ) 
+        {
+            SetError( "Failed to read string data" );
+            return false;
+        }
+
+        return true;
+    }
+
+    /*---------------------------------------------------------------------------*/
+
+    bool ReadBytesField( google::protobuf::io::CodedInputStream* input, std::vector< UInt8 >& byteBuffer ) 
+    {GUCEF_TRACE;
+
+        try
+        {
+            byteBuffer.clear();
+        
+            // Read the number of bytes (length-delimited field)
+            uint32_t nrOfBytes = 0;
+            if GUCEF_PREDICT_FALSE( !input->ReadVarint32( &nrOfBytes ) ) 
+            {
+                SetError( "Failed to read blob nr of bytes" );
+                return false;
+            }
+
+            if ( nrOfBytes > 0 )
+            {
+                byteBuffer.resize( nrOfBytes );
+
+                // Read the string data
+                if GUCEF_PREDICT_FALSE( !input->ReadRaw( &byteBuffer[ 0 ], nrOfBytes ) ) 
+                {                
+                    SetError( "Failed to read blob" );
+                    byteBuffer.clear();
+                    return false;
+                }
+            }
+            return true;
+        }
+        catch ( const std::exception& )
+        {
+            SetError( "Failed to read blob: exception" );
+            return false;
+        }
+    }
+
+    /*---------------------------------------------------------------------------*/
+
+    bool ParseFields( const google::protobuf::Descriptor* descriptor , 
+                      google::protobuf::io::CodedInputStream* input  ) 
+    {GUCEF_TRACE;
+
+        m_readCallbacks.OnNodeBegin( m_readPrivData, descriptor->name().c_str(), GUCEF_DATATYPE_OBJECT );
 
         while ( input->BytesUntilLimit() > 0 ) 
         {
@@ -589,7 +675,7 @@ class GUCEF_HIDDEN ProtoSAXParser
             if ( field->is_repeated() ) 
             {
                 // Handle repeated fields
-                if ( !ParseRepeatedField(message, reflection, field, input ) ) 
+                if ( !ParseRepeatedField( descriptor, field, input ) ) 
                 {
                     return false;
                 }
@@ -597,23 +683,28 @@ class GUCEF_HIDDEN ProtoSAXParser
             else 
             {
                 // Handle singular fields
-                if ( !ParseSingularField(message, reflection, field, input ) ) 
+                if ( !ParseSingularField( descriptor, field, input ) ) 
                 {
                     return false;
                 }
             }
         }
 
+        m_readCallbacks.OnNodeEnd( m_readPrivData, descriptor->name().c_str() );
+
         return true;
     }
 
     /*---------------------------------------------------------------------------*/
 
-    bool ParseRepeatedField( google::protobuf::Message* message             , 
-                             const google::protobuf::Reflection* reflection ,
-                             const google::protobuf::FieldDescriptor* field , 
-                             google::protobuf::io::CodedInputStream* input  ) 
+    bool ParseRepeatedField( const google::protobuf::Descriptor* msgDescriptor ,
+                             const google::protobuf::FieldDescriptor* field    , 
+                             google::protobuf::io::CodedInputStream* input     ) 
     {GUCEF_TRACE;
+
+        // Note that protobuf assumes all values on the wire to be little endian
+        // also parse functions make no effort to convert to host endian, hence values are 
+        // always assumed to be little endian and higher level code must convert to host endian if needed
 
         switch ( field->type() ) 
         {
@@ -625,8 +716,11 @@ class GUCEF_HIDDEN ProtoSAXParser
                     SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read int32 value" );
                     return false;
                 }
-                
-                reflection->AddInt32( message, field, static_cast< int32_t >( value ) );
+
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_INT32;
+                valueVar.union_data.int32_data = static_cast< int32_t >( value ) ;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_UINT32: 
@@ -637,7 +731,10 @@ class GUCEF_HIDDEN ProtoSAXParser
                     SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read uint32 value" );
                     return false;
                 }
-                reflection->AddUInt32( message, field, value );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_UINT32;
+                valueVar.union_data.uint32_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_INT64: 
@@ -648,7 +745,10 @@ class GUCEF_HIDDEN ProtoSAXParser
                     SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read int64 value" );
                     return false;
                 }
-                reflection->AddInt64( message, field, static_cast< int64_t >( value ) );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_INT64;
+                valueVar.union_data.int64_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_UINT64: 
@@ -659,7 +759,10 @@ class GUCEF_HIDDEN ProtoSAXParser
                     SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read uint64 value" );
                     return false;
                 }
-                reflection->AddUInt64( message, field, value );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_UINT64;
+                valueVar.union_data.uint64_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_FIXED64:
@@ -670,7 +773,10 @@ class GUCEF_HIDDEN ProtoSAXParser
                     SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read fixed size uint64 value" );
                     return false;
                 }
-                reflection->SetUInt64( message, field, value );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_UINT64;
+                valueVar.union_data.uint64_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_FIXED32:
@@ -681,7 +787,38 @@ class GUCEF_HIDDEN ProtoSAXParser
                     SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read fixed size uint32 value" );
                     return false;
                 }
-                reflection->SetUInt32( message, field, value );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_UINT32;
+                valueVar.union_data.uint32_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SFIXED64:
+            {
+                uint64_t value = 0;
+                if ( !input->ReadLittleEndian64( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read fixed size int64 value" );
+                    return false;
+                }
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_INT64;
+                valueVar.union_data.uint64_data = static_cast< Int64 >( value );
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SFIXED32:
+            {
+                uint32_t value = 0;
+                if ( !input->ReadLittleEndian32( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read fixed size int32 value" );
+                    return false;
+                }
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_INT32;
+                valueVar.union_data.uint32_data = static_cast< Int32 >( value );                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_SINT32:
@@ -692,7 +829,10 @@ class GUCEF_HIDDEN ProtoSAXParser
                     SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read zigZag int32 value" );
                     return false;
                 }
-                reflection->SetInt32( message, field, value );                
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_INT32;
+                valueVar.union_data.int32_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );               
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_SINT64:
@@ -703,7 +843,10 @@ class GUCEF_HIDDEN ProtoSAXParser
                     SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read zigZag int64 value" );
                     return false;
                 }
-                reflection->SetInt64( message, field, value );                
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_INT64;
+                valueVar.union_data.int64_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );               
                 break;
             }            
             case google::protobuf::FieldDescriptor::TYPE_FLOAT: 
@@ -714,7 +857,10 @@ class GUCEF_HIDDEN ProtoSAXParser
                     SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read float value" );
                     return false;
                 }
-                reflection->AddFloat( message, field, value );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_FLOAT32;
+                valueVar.union_data.float32_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_DOUBLE: 
@@ -725,7 +871,10 @@ class GUCEF_HIDDEN ProtoSAXParser
                     SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read double value" );
                     return false;
                 }
-                reflection->AddDouble( message, field, value );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_FLOAT64;
+                valueVar.union_data.float64_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_BOOL: 
@@ -736,34 +885,60 @@ class GUCEF_HIDDEN ProtoSAXParser
                     SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read bool value" );
                     return false;
                 }
-                reflection->AddBool( message, field, static_cast< bool >( value ) );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_BOOLEAN_INT32;
+                valueVar.union_data.int32_data = static_cast< Int32 >( value );
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_STRING: 
             {
-                std::string value;
-                if ( !input->ReadString( &value, input->BytesUntilLimit() ) ) 
+                if ( !ReadStringField( input, m_stringFieldBuffer ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read string value" );
                     return false;
                 }
-                reflection->AddString( message, field, value );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_UTF8_STRING;
+                valueVar.union_data.heap_data.heap_data_size = static_cast< UInt32 >( m_stringFieldBuffer.size() );
+                valueVar.union_data.heap_data.heap_data_is_linked = 1;
+                valueVar.union_data.heap_data.union_data.const_char_heap_data = m_stringFieldBuffer.c_str();
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_MESSAGE: 
             {
-                google::protobuf::Message* nested_message = reflection->AddMessage( message, field );
-                if ( !ParseFields(nested_message, input ) ) 
+                const google::protobuf::Descriptor* nestedMsgDescriptor = field->message_type();
+                if ( !ParseFields( nestedMsgDescriptor, input ) ) 
                 {
                     return false;
                 }
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_BYTES:
+            {
+                if GUCEF_PREDICT_FALSE( !ReadBytesField( input, m_byteFieldBuffer ) )
+                {
+                    SetError( "ProtoSAXParser:ParseRepeatedField: Failed to read byte array field" );
+                    return false;
+                }
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_BINARY_BLOB;
+                valueVar.union_data.heap_data.heap_data_size = static_cast< UInt32 >( m_byteFieldBuffer.size() );
+                valueVar.union_data.heap_data.heap_data_is_linked = 1;
+                valueVar.union_data.heap_data.union_data.void_heap_data = &m_byteFieldBuffer[0];                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
 
             // Handle other types as needed
             default:
             {
-                SetError( "Unsupported field type for repeated field" );
+                Int32 typeId = static_cast< Int32 >( field->type() );
+                std::ostringstream debugStrStr;
+                debugStrStr << "ProtoSAXParser:ParseRepeatedField: Unsupported field type for repeated field: " << typeId;
+                std::string debugStr = debugStrStr.str();
+                SetError( debugStr );
                 return false;
             }
         }
@@ -772,153 +947,239 @@ class GUCEF_HIDDEN ProtoSAXParser
 
     /*---------------------------------------------------------------------------*/
 
-    bool ParseSingularField( google::protobuf::Message* message, 
-                             const google::protobuf::Reflection* reflection,
-                             const google::protobuf::FieldDescriptor* field, 
-                             google::protobuf::io::CodedInputStream* input ) 
+    bool ParseSingularField( const google::protobuf::Descriptor* msgDescriptor ,
+                             const google::protobuf::FieldDescriptor* field    , 
+                             google::protobuf::io::CodedInputStream* input     ) 
     {GUCEF_TRACE;
+
+        // Note that protobuf assumes all values on the wire to be little endian
+        // also parse functions make no effort to convert to host endian, hence values are 
+        // always assumed to be little endian and higher level code must convert to host endian if needed
 
         switch ( field->type() ) 
         {
             case google::protobuf::FieldDescriptor::TYPE_INT32: 
             {
                 uint32_t value = 0;
-                if ( !input->ReadVarint32( &value ) ) 
+                if GUCEF_PREDICT_FALSE( !input->ReadVarint32( &value ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseSingularField: Failed to read int32 value" );
                     return false;
                 }
-                reflection->SetInt32( message, field, static_cast< int32_t >( value ) );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_INT32;
+                valueVar.union_data.int32_data = static_cast< Int32 >( value );
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_INT64: 
             {
                 uint64_t value = 0;
-                if ( !input->ReadVarint64( &value ) ) 
+                if GUCEF_PREDICT_FALSE( !input->ReadVarint64( &value ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseSingularField: Failed to read int64 value" );
                     return false;
                 }
-                reflection->SetInt64( message, field, static_cast< int64_t >( value ) );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_INT64;
+                valueVar.union_data.int64_data = static_cast< Int64 >( value );
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_UINT32: 
             {
                 uint32_t value = 0;
-                if ( !input->ReadVarint32( &value ) ) 
+                if GUCEF_PREDICT_FALSE( !input->ReadVarint32( &value ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseSingularField: Failed to read uint32 value" );
                     return false;
                 }
-                reflection->SetUInt32( message, field, value);
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_UINT32;
+                valueVar.union_data.uint32_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_UINT64: 
             {
                 uint64_t value = 0;
-                if ( !input->ReadVarint64( &value ) ) 
+                if GUCEF_PREDICT_FALSE( !input->ReadVarint64( &value ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseSingularField: Failed to read uint64 value" );
                     return false;
                 }
-                reflection->SetUInt64( message, field, value );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_UINT64;
+                valueVar.union_data.uint64_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_FIXED64:
             {
                 uint64_t value = 0;
-                if ( !input->ReadLittleEndian64( &value ) ) 
+                if GUCEF_PREDICT_FALSE( !input->ReadLittleEndian64( &value ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseSingularField: Failed to read fixed size uint64 value" );
                     return false;
                 }
-                reflection->SetUInt64( message, field, value );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_UINT64;
+                valueVar.union_data.uint64_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_FIXED32:
             {
                 uint32_t value = 0;
-                if ( !input->ReadLittleEndian32( &value ) ) 
+                if GUCEF_PREDICT_FALSE( !input->ReadLittleEndian32( &value ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseSingularField: Failed to read fixed size uint32 value" );
                     return false;
                 }
-                reflection->SetUInt32( message, field, value );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_UINT32;
+                valueVar.union_data.uint32_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SFIXED64:
+            {
+                uint64_t value = 0;
+                if GUCEF_PREDICT_FALSE( !input->ReadLittleEndian64( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read fixed size int64 value" );
+                    return false;
+                }
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_INT64;
+                valueVar.union_data.uint64_data = static_cast< Int64 >( value );
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SFIXED32:
+            {
+                uint32_t value = 0;
+                if GUCEF_PREDICT_FALSE( !input->ReadLittleEndian32( &value ) ) 
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read fixed size int32 value" );
+                    return false;
+                }
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_INT32;
+                valueVar.union_data.uint32_data = static_cast< Int32 >( value );                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_SINT32:
             {
                 int32_t value = 0;
-                if ( !ReadSInt32Field( input, value ) ) 
+                if GUCEF_PREDICT_FALSE( !ReadSInt32Field( input, value ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseSingularField: Failed to read zigZag int32 value" );
                     return false;
                 }
-                reflection->SetInt32( message, field, value );                
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_INT32;
+                valueVar.union_data.int32_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );          
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_SINT64:
             {
                 int64_t value = 0;
-                if ( !ReadSInt64Field( input, value ) ) 
+                if GUCEF_PREDICT_FALSE( !ReadSInt64Field( input, value ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseSingularField: Failed to read zigZag int64 value" );
                     return false;
                 }
-                reflection->SetInt64( message, field, value );                
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_INT64;
+                valueVar.union_data.int64_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );                         
                 break;
             }  
             case google::protobuf::FieldDescriptor::TYPE_FLOAT: 
             {
                 float value = 0.0f;
-                if ( !input->ReadLittleEndian32( reinterpret_cast<uint32_t*>(&value) ) ) 
+                if GUCEF_PREDICT_FALSE( !input->ReadLittleEndian32( reinterpret_cast<uint32_t*>(&value) ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseSingularField: Failed to read float value" );
                     return false;
                 }
-                reflection->SetFloat( message, field, value );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_FLOAT32;
+                valueVar.union_data.float32_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_DOUBLE: 
             {
                 double value = 0.0;
-                if ( !input->ReadLittleEndian64( reinterpret_cast<uint64_t*>(&value) ) ) 
+                if GUCEF_PREDICT_FALSE( !input->ReadLittleEndian64( reinterpret_cast<uint64_t*>(&value) ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseSingularField: Failed to read double value" );
                     return false;
                 }
-                reflection->SetDouble( message, field, value );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_LE_FLOAT64;
+                valueVar.union_data.float64_data = value;                
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_BOOL: 
             {
                 uint32_t value = 0;
-                if ( !input->ReadVarint32( &value ) ) 
+                if GUCEF_PREDICT_FALSE( !input->ReadVarint32( &value ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseSingularField: Failed to read bool value" );
                     return false;
                 }
-                reflection->SetBool( message, field, static_cast< bool >( value ) );
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_BOOLEAN_INT32;
+                valueVar.union_data.int32_data = static_cast< Int32 >( value );
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_STRING: 
             {
-                std::string value;
-                if ( !input->ReadString(&value, input->BytesUntilLimit() ) ) 
+                if GUCEF_PREDICT_FALSE( !ReadStringField( input, m_stringFieldBuffer ) ) 
                 {
                     SetError( "ProtoSAXParser:ParseSingularField: Failed to read string value" );
                     return false;
                 }
-                reflection->SetString(message, field, value);
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_UTF8_STRING;
+                valueVar.union_data.heap_data.heap_data_size = static_cast< UInt32 >( m_stringFieldBuffer.size() );
+                valueVar.union_data.heap_data.heap_data_is_linked = 1;
+                valueVar.union_data.heap_data.union_data.const_char_heap_data = m_stringFieldBuffer.c_str();
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
             case google::protobuf::FieldDescriptor::TYPE_MESSAGE: 
             {
-                google::protobuf::Message* nested_message = reflection->MutableMessage( message, field );
-                if ( !ParseFields( nested_message, input ) ) 
+                const google::protobuf::Descriptor* nestedMsgDescriptor = field->message_type();
+                if GUCEF_PREDICT_FALSE( !ParseFields( nestedMsgDescriptor, input ) ) 
                 {
                     return false;
                 }
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_BYTES:
+            {
+                if GUCEF_PREDICT_FALSE( !ReadBytesField( input, m_byteFieldBuffer ) )
+                {
+                    SetError( "ProtoSAXParser:ParseSingularField: Failed to read byte array field" );
+                    return false;
+                }
+                TVariantData valueVar;
+                valueVar.containedType = GUCEF_DATATYPE_BINARY_BLOB;
+                valueVar.union_data.heap_data.heap_data_size = static_cast< UInt32 >( m_byteFieldBuffer.size() );
+                valueVar.union_data.heap_data.heap_data_is_linked = 1;
+                if ( valueVar.union_data.heap_data.heap_data_size > 0 )
+                    valueVar.union_data.heap_data.union_data.void_heap_data = &m_byteFieldBuffer[0];                
+                else
+                    valueVar.union_data.heap_data.union_data.void_heap_data = GUCEF_NULL;
+                m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), field->name().c_str(), &valueVar );
                 break;
             }
 

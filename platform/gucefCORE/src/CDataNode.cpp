@@ -1724,10 +1724,10 @@ CDataNode::GetAttributeValueOrChildValueByName( const CString& name          ,
 {GUCEF_TRACE;
 
     const CVariant& attValue = GetAttributeValue( name, CVariant::Empty, caseSensitive );
-    if ( attValue.IsNULLOrEmpty() )
+    if ( !attValue.IsInitialized() )
     {
         const CVariant& childValue = GetChildValueByName( name, CVariant::Empty, caseSensitive );
-        if ( childValue.IsNULLOrEmpty() )
+        if ( !childValue.IsInitialized() )
         {
             return defaultValue;
         }
@@ -1744,7 +1744,7 @@ CDataNode::GetAttributeValueOrChildValuesByName( const CString& name ) const
 
     TVariantVector results = GetChildrenValuesByName( name );
     CVariant attValue = GetAttributeValue( name );
-    if ( !attValue.IsNULLOrEmpty() )
+    if ( attValue.IsInitialized() )
     {
         results.push_back( attValue );
     }
@@ -1774,7 +1774,7 @@ CDataNode::GetChildrenValuesByName( const CString& name ) const
             default:
             {
                 const CVariant& childValue = (*i)->GetValue();
-                if ( !childValue.IsNULLOrEmpty() )
+                if ( childValue.IsInitialized() )
                 {
                     results.push_back( childValue );
                 }
@@ -1809,7 +1809,7 @@ CDataNode::GetChildrenValues( void ) const
             default:
             {
                 const CVariant& childValue = (*i)->GetValue();
-                if ( !childValue.IsNULLOrEmpty() )
+                if ( childValue.IsInitialized() )
                 {
                     results.push_back( childValue );
                 }

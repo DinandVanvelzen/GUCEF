@@ -71,6 +71,7 @@ struct SHeapData
     {
         void* void_heap_data;                       /**< pointer to the block of heap memory */
         char* char_heap_data;                       /**< pointer to the block of heap memory */
+        const char* const_char_heap_data;           /**< const pointer to the block of heap memory */
         TInt64T2Fraction* fraction_int64t2_data;    /**< pointer to the block of heap memory because supporting this any other way would grow the size of the variant struct for all use-cases which is not desireable */
         TUInt64T2Fraction* fraction_uint64t2_data;  /**< pointer to the block of heap memory because supporting this any other way would grow the size of the variant struct for all use-cases which is not desireable */
         UInt64 uint64_heap_data_ref;                /**< included for space reservation purposes between 32bit and 64bit builds as we want to keep the struct a constant size */
