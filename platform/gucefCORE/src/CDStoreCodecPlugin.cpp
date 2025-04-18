@@ -168,7 +168,7 @@ OnNodeEndHandler( void* privdata       ,
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 OnNodeAttHandler( void* privdata               ,
                   const char* nodename         ,
-                  const char* attname          ,
+                  const TVariantData* attname  ,
                   const TVariantData* attvalue ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
@@ -177,17 +177,23 @@ OnNodeAttHandler( void* privdata               ,
     {
         if ( GUCEF_NULL != attvalue )
         {
-            if ( GUCEF_NULL != attname )
+            Int32 nodeType = pd->curnode->GetNodeType();
+            if ( GUCEF_DATATYPE_ARRAY == nodeType ||
+                 GUCEF_DATATYPE_SET == nodeType    )
             {
-                pd->curnode->SetAttribute( attname, *attvalue );
+                pd->curnode->AddValueAsChild( *attvalue );
             }
-            else        
+            else
             {
-                if ( GUCEF_DATATYPE_ARRAY == pd->curnode->GetNodeType() )
-                    pd->curnode->AddValueAsChild( *attvalue );
+                if ( GUCEF_NULL != attname )
+                {
+                    pd->curnode->SetAttribute( *attname, *attvalue );
+                }
                 else
+                {
                     pd->curnode->SetValue( *attvalue );
-            }
+                }
+            }   
         }
     }
 }
@@ -205,10 +211,16 @@ OnNodeValueHandler( void* privdata               ,
     {
         if ( GUCEF_NULL != attvalue )
         {
-            if ( GUCEF_DATATYPE_ARRAY == pd->curnode->GetNodeType() )
+            Int32 nodeType = pd->curnode->GetNodeType();
+            if ( GUCEF_DATATYPE_ARRAY == nodeType ||
+                 GUCEF_DATATYPE_SET == nodeType    )
+            {
                 pd->curnode->AddValueAsChild( *attvalue );
+            }
             else
+            {
                 pd->curnode->SetValue( *attvalue );
+            }
         }
     }
 }

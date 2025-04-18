@@ -775,8 +775,16 @@ process_value( TSrcFileData* sd    ,
                const char* name    ,
                json_value* value   )
 {
+    TVariantData key;
+    
     if ( GUCEF_NULL == value )
         return;
+
+    memset( &key, 0, sizeof( key ) );
+    key.containedType = GUCEF_DATATYPE_UTF8_STRING; 
+    key.union_data.heap_data.heap_data_is_linked = 1;
+    key.union_data.heap_data.heap_data_size = (UInt32) strlen( name );
+    key.union_data.heap_data.union_data.const_char_heap_data = name;
 
     switch ( value->type )
     {
@@ -785,11 +793,11 @@ process_value( TSrcFileData* sd    ,
             break;
         }
         case json_null:
-        {
+        {            
             TVariantData var;
             memset( &var, 0, sizeof( var ) );
             var.containedType = GUCEF_DATATYPE_NIL;
-            sd->handlers.OnNodeAtt( sd->privdata, objName, name, &var );
+            sd->handlers.OnNodeAtt( sd->privdata, objName, &key, &var );
             break;
         }
         case json_object:
@@ -809,7 +817,7 @@ process_value( TSrcFileData* sd    ,
             var.containedType = GUCEF_DATATYPE_INT64; 
             var.union_data.int64_data = value->u.integer;
 
-            sd->handlers.OnNodeAtt( sd->privdata, objName, name, &var );
+            sd->handlers.OnNodeAtt( sd->privdata, objName, &key, &var );
             break;
         }
         case json_double:
@@ -819,7 +827,7 @@ process_value( TSrcFileData* sd    ,
             var.containedType = GUCEF_DATATYPE_FLOAT64; 
             var.union_data.float64_data = value->u.dbl;
 
-            sd->handlers.OnNodeAtt( sd->privdata, objName, name, &var );
+            sd->handlers.OnNodeAtt( sd->privdata, objName, &key, &var );
             break;
         }
         case json_string:
@@ -831,7 +839,7 @@ process_value( TSrcFileData* sd    ,
             var.union_data.heap_data.heap_data_size = value->u.string.length;
             var.union_data.heap_data.union_data.char_heap_data = value->u.string.ptr;
 
-            sd->handlers.OnNodeAtt( sd->privdata, objName, name, &var );
+            sd->handlers.OnNodeAtt( sd->privdata, objName, &key, &var );
             break;
         }
         case json_boolean:
@@ -841,7 +849,7 @@ process_value( TSrcFileData* sd    ,
             var.containedType = GUCEF_DATATYPE_BOOLEAN_INT32; 
             var.union_data.int32_data = value->u.boolean;
 
-            sd->handlers.OnNodeAtt( sd->privdata, objName, name, &var );
+            sd->handlers.OnNodeAtt( sd->privdata, objName, &key, &var );
             break;
         }
     }

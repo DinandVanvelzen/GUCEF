@@ -234,6 +234,7 @@ class GUCEF_CORE_PUBLIC_CPP CDataNode : public CIEnumerable
     bool SetAttribute( const CString& name, UInt64 value );
     bool SetAttribute( const CString& name, const CVariant& value, bool linkWherePossible = false );
     bool SetAttribute( const CString& name, const TVariantData& value, bool linkWherePossible = false );
+    bool SetAttribute( const TVariantData& name, const TVariantData& value, bool linkWherePossible = false );
     bool SetAttribute( const CString& name, Float32 value );
     //bool SetAttribute( const CVariant& name, const CVariant& value, bool linkWherePossible = false );
 

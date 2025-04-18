@@ -146,6 +146,10 @@
   #define GUCEF_PREDICT_TRUE( x ) (__builtin_expect(false || (x), true))
   #define GUCEF_PREDICT_FALSE( x ) (__builtin_expect(false || (x), false))
   #define GUCEF_PREDICT_IS_SUPPORTED 1
+#elif ( ( GUCEF_COMPILER == GUCEF_COMPILER_CLANG ) && ( GUCEF_COMP_VER >= 30900 ) )
+  #define GUCEF_PREDICT_TRUE( x ) (__builtin_expect(false || (x), true))
+  #define GUCEF_PREDICT_FALSE( x ) (__builtin_expect(false || (x), false))
+  #define GUCEF_PREDICT_IS_SUPPORTED 1
 #else
   #define GUCEF_PREDICT_TRUE( x ) ( x )
   #define GUCEF_PREDICT_FALSE( x ) ( x )

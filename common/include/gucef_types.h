@@ -293,6 +293,7 @@ typedef double          Float64;  /* 8 bytes, signed, decimal */
 #define GUCEF_DATATYPE_VARIANT_DATA             42      /**< data type representing our variant data concept */
 #define GUCEF_DATATYPE_VARIANT_ARRAY            43      /**< data type representing our variant data concept contained within an array */
 #define GUCEF_DATATYPE_VARIANT_SET              44      /**< data type representing our variant data concept contained within a set */
+#define GUCEF_DATATYPE_VARIANT_MAP              45      /**< data type representing our variant data concept contained within a map */
 
 #define GUCEF_DATATYPE_DATETIME_ISO8601_ASCII_STRING    50  /**< ASCII character set string value actually representing a date time value per the ISO 8601 convention */
 #define GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING     51  /**< UTF8 character set string value actually representing a date time value per the ISO 8601 convention */
@@ -315,17 +316,21 @@ typedef double          Float64;  /* 8 bytes, signed, decimal */
 #define GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION    70       /**< sequentially stored 64bit unsigned integers followed by a 32 bit unsigned integer in little endian representing a fraction value */
 #define GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION    71       /**< sequentially stored 64bit unsigned integers followed by a 32 bit unsigned integer in big endian representing a fraction value */
 
-#define GUCEF_DATATYPE_CONST_DATA_MEMORY_ADDRESS      247      /**< address in memory of 'some static data'. context of the data, its type, needs to be garantueed by the user. Only intended for transient use */
-#define GUCEF_DATATYPE_DATA_MEMORY_ADDRESS            248      /**< address in memory of 'some data'. context of the data, its type, needs to be garantueed by the user. Only intended for transient use */
-#define GUCEF_DATATYPE_FUNCTION_MEMORY_ADDRESS        249      /**< address in memory of 'some function'. context of the function, its prototype, needs to be handled by the user. Only intended for transient use */
+#define GUCEF_DATATYPE_CONST_DATA_MEMORY_ADDRESS      237      /**< address in memory of 'some static data'. context of the data, its type, needs to be garantueed by the user. Only intended for transient use */
+#define GUCEF_DATATYPE_DATA_MEMORY_ADDRESS            238      /**< address in memory of 'some data'. context of the data, its type, needs to be garantueed by the user. Only intended for transient use */
+#define GUCEF_DATATYPE_FUNCTION_MEMORY_ADDRESS        239      /**< address in memory of 'some function'. context of the function, its prototype, needs to be handled by the user. Only intended for transient use */
 
-#define GUCEF_DATATYPE_ARRAY                    250      /**< data type representing an array container concept */
-#define GUCEF_DATATYPE_OBJECT                   251      /**< data type representing an object container concept */
-#define GUCEF_DATATYPE_NIL                      252      /**< representing data that is zero or nought. The word nil started to be used in the mid 19th century as a contraction of nihil, a Latin word that means nothing */
-#define GUCEF_DATATYPE_NULL                     253      /**< representing data that is null and void */
-#define GUCEF_DATATYPE_SET                      254      /**< data type representing a set container concept */
+#define GUCEF_DATATYPE_MAP                      240      /**< data type representing a map container concept */
+#define GUCEF_DATATYPE_ENUM                     241      /**< data type representing an enumeration container concept */
+#define GUCEF_DATATYPE_ARRAY                    242      /**< data type representing an array container concept */
+#define GUCEF_DATATYPE_OBJECT                   243      /**< data type representing an object container concept */
+#define GUCEF_DATATYPE_NIL                      244      /**< representing data that is zero or nought. The word nil started to be used in the mid 19th century as a contraction of nihil, a Latin word that means nothing */
+#define GUCEF_DATATYPE_NULL                     245      /**< representing data that is null and void */
+#define GUCEF_DATATYPE_SET                      246      /**< data type representing a set container concept */
 
-#define GUCEF_DATATYPE_LAST_TYPE_ID         GUCEF_DATATYPE_SET
+#define GUCEF_DATATYPE_MORETHANONEBYTE          255      /**< NOT an actual data type. Used to indicate the data type is not one of the first 254 types listed and an additional byte is used to indicate the type */
+
+#define GUCEF_DATATYPE_LAST_TYPE_ID         GUCEF_DATATYPE_MORETHANONEBYTE
 
 #define GUCEF_DATATYPE_NAME_BOOLEAN                  "BOOLEAN"
 #define GUCEF_DATATYPE_NAME_NUMERIC                  "NUMERIC"
@@ -349,6 +354,7 @@ typedef double          Float64;  /* 8 bytes, signed, decimal */
 #define GUCEF_DATATYPE_NAME_VARIANT_DATA             "VARIANT_DATA"
 #define GUCEF_DATATYPE_NAME_VARIANT_ARRAY            "VARIANT_ARRAY"
 #define GUCEF_DATATYPE_NAME_VARIANT_SET              "VARIANT_SET"
+#define GUCEF_DATATYPE_NAME_VARIANT_MAP              "VARIANT_MAP"
 
 #define GUCEF_DATATYPE_NAME_DATETIME_ISO8601_ASCII_STRING   "DATETIME_ISO8601_ASCII_STRING"
 #define GUCEF_DATATYPE_NAME_DATETIME_ISO8601_UTF8_STRING    "DATETIME_ISO8601_UTF8_STRING"
@@ -380,6 +386,8 @@ typedef double          Float64;  /* 8 bytes, signed, decimal */
 #define GUCEF_DATATYPE_NAME_NIL                      "NIL"
 #define GUCEF_DATATYPE_NAME_NULL                     "NULL"
 #define GUCEF_DATATYPE_NAME_SET                      "SET"
+#define GUCEF_DATATYPE_NAME_MAP                      "MAP"
+#define GUCEF_DATATYPE_NAME_ENUM                     "ENUM"
 
 #if GUCEF_PLATFORM_BYTEORDER_ENDIAN == GUCEF_BYTEORDER_LITTLE_ENDIAN
 
@@ -501,6 +509,7 @@ enum EBasicDataType
     DATATYPE_INT64_INT32_BE_FRACTION    = GUCEF_DATATYPE_INT64_INT32_BE_FRACTION    ,
     DATATYPE_UINT64_UINT32_LE_FRACTION  = GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION  ,
     DATATYPE_UINT64_UINT32_BE_FRACTION  = GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION  ,
+    DATATYPE_MAP                        = GUCEF_DATATYPE_MAP                        ,
     DATATYPE_ARRAY                      = GUCEF_DATATYPE_ARRAY                      ,
     DATATYPE_OBJECT                     = GUCEF_DATATYPE_OBJECT                     ,
     DATATYPE_NIL                        = GUCEF_DATATYPE_NIL                        ,

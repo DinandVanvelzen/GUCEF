@@ -185,6 +185,7 @@ ParsifalElementStart( void* userdata         ,
 {
     Int32 i;
     LPXMLRUNTIMEATT att;
+    TVariantData key;
     TVariantData var;
 
     TSrcFileData* sd = (TSrcFileData*) userdata;
@@ -196,6 +197,12 @@ ParsifalElementStart( void* userdata         ,
         {            
             att = (LPXMLRUNTIMEATT) XMLVector_Get( atts, i );
             
+            memset( &key, 0, sizeof( key ) );
+            key.containedType = GUCEF_DATATYPE_UTF8_STRING; 
+            key.union_data.heap_data.heap_data_is_linked = 1;
+            key.union_data.heap_data.heap_data_size = (UInt32) strlen( att->qname );
+            key.union_data.heap_data.union_data.char_heap_data = att->qname;
+
             memset( &var, 0, sizeof( var ) );
             var.containedType = GUCEF_DATATYPE_UTF8_STRING; 
             var.union_data.heap_data.heap_data_is_linked = 1;
@@ -203,9 +210,9 @@ ParsifalElementStart( void* userdata         ,
             var.union_data.heap_data.union_data.char_heap_data = att->value;
             
             (*sd->handlers.OnNodeAtt)( sd->privdata ,
-                                        qname       ,
-                                        att->qname  ,
-                                        &var        );
+                                       qname        ,
+                                       &key         ,
+                                       &var         );
         }
     }
     return XML_OK;

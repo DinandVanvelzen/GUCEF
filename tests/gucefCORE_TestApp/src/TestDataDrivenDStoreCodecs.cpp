@@ -93,38 +93,6 @@ using namespace GUCEF;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static const CORE::CString PROTO_DEFINITION_SIMPLE = 
-    "syntax = \"proto3\";\n"
-    "message SimpleMessage {\n"
-    "  int32 id = 1;\n"
-    "  string name = 2;\n"
-    "  bool is_active = 3;\n"
-    "}";
-
-static const CORE::CString PROTO_DEFINITION_NESTED = 
-    "syntax = \"proto3\";\n"
-    "message NestedMessage {\n"
-    "  message InnerMessage {\n"
-    "    int32 inner_id = 1;\n"
-    "    string inner_name = 2;\n"
-    "  }\n"
-    "  int32 id = 1;\n"
-    "  InnerMessage inner_message = 2;\n"
-    "}";
-
-static const CORE::CString PROTO_DEFINITION_COMPLEX = 
-    "syntax = \"proto3\";\n"
-    "message ComplexMessage {\n"
-    "  repeated int32 ids = 1;\n"
-    "  map<string, int32> name_to_id = 2;\n"
-    "  enum Status {\n"
-    "    UNKNOWN = 0;\n"
-    "    ACTIVE = 1;\n"
-    "    INACTIVE = 2;\n"
-    "  }\n"
-    "  Status status = 3;\n"
-    "}";
-
 static const CORE::CString PROTO_DEFINITION_ALL_TYPES = 
     "syntax = \"proto3\";\n"
     "message AllTypesMessage {\n"
@@ -171,15 +139,139 @@ static const CORE::CString PROTO_ALL_TYPES_MESSAGE_BASE64 = "CNT//////////wEQgeX
 static CORE::CDataDrivenDStoreCodecMetaPtr ddCodecMetaAllTypesMessage;
 static CORE::CString ddCodecTypeNameForAllTypesMessage = "testCodec_protobuf_AllTypesMessage";
 
+/*-------------------------------------------------------------------------*/
+
+static const CORE::CString PROTO_DEFINITION_NESTED = 
+    "syntax = \"proto3\";\n"
+    "message NestedMessage {\n"
+    "  message InnerMessage {\n"
+    "    int32 inner_id = 1;\n"
+    "    string inner_name = 2;\n"
+    "  }\n"
+    "  int32 id = 1;\n"
+    "  InnerMessage inner_message = 2;\n"
+    "}";
+
+// the above as a json with test values
+// can be used in a tool like https://www.protobufpal.com/ to generate the base64 encoded binary representations
+// you can verify the correctness of the base64 encoded string below using an online tool like https://protobuf-decoder.netlify.app/
+/*
+{
+  "id": 777,
+  "inner_message": {
+    "inner_id": 747,
+    "inner_name": "this is the inner message"
+  }
+}
+*/
+static const CORE::CString PROTO_NESTED_MESSAGE_BASE64 = "CIkGEh4I6wUSGXRoaXMgaXMgdGhlIGlubmVyIG1lc3NhZ2U=";
+static CORE::CDataDrivenDStoreCodecMetaPtr ddCodecMetaNestedMessage;
+static CORE::CString ddCodecTypeNameForNestedMessage = "testCodec_protobuf_NestedMessage";
+
+/*-------------------------------------------------------------------------*/
+
+static const CORE::CString PROTO_DEFINITION_COMPLEX = 
+    "syntax = \"proto3\";\n"
+    "message ComplexMessage {\n"
+    "  repeated int32 ids = 1;\n"
+    "  map<string, int32> name_to_id = 2;\n"
+    "  enum Status {\n"
+    "    UNKNOWN = 0;\n"
+    "    ACTIVE = 1;\n"
+    "    INACTIVE = 2;\n"
+    "  }\n"
+    "  Status status = 3;\n"
+    "  oneof optional_data {\n"
+    "    string optional_string = 4;\n"
+    "    int32 optional_number = 5;\n"
+    "    NestedOptionalMessage nested_optional_message = 6;\n"
+    "  }\n"
+    "  message NestedOptionalMessage {\n"
+    "    string nested_optional_field_1 = 1;\n"
+    "    double nested_optional_field_2 = 2;\n"
+    "  }\n"
+    "  message NestedMessage {\n"
+    "    int32 inner_id = 1;\n"
+    "    string inner_name = 2;\n"
+    "    uint64 inner_timestamp = 3;\n"
+    "  }\n"
+    "  repeated NestedMessage nested_messages = 7;\n"
+    "}";
+
+/*
+syntax = "proto3";
+
+message ComplexMessage {
+  repeated int32 ids = 1;
+  map<string, int32> name_to_id = 2;
+  enum Status {
+    UNKNOWN = 0;
+    ACTIVE = 1;
+    INACTIVE = 2;
+  }
+  Status status = 3;
+  oneof optional_data {
+    string optional_string = 4;
+    int32 optional_number = 5;
+    NestedOptionalMessage nested_optional_message = 6;
+  }
+  message NestedOptionalMessage {
+    string nested_optional_field_1 = 1;
+    double nested_optional_field_2 = 2;
+  }
+  message NestedMessage {
+    int32 inner_id = 1;
+    string inner_name = 2;
+    uint64 inner_timestamp = 3;
+  }  
+  repeated NestedMessage nested_messages = 7;
+}
+*/
+
+// the above as a json with test values
+// can be used in a tool like https://www.protobufpal.com/ to generate the base64 encoded binary representations
+// you can verify the correctness of the base64 encoded string below using an online tool like https://protobuf-decoder.netlify.app/
+/*
+{
+    "ids": [
+        1,
+        2,
+        3,
+        4,
+        5
+    ],
+    "name_to_id": {
+        "Alice": 1,
+        "Bob": 2
+    },
+    "status": "ACTIVE",
+    "nested_optional_message": {
+        "nested_optional_field_1": "optional nested value",
+        "nested_optional_field_2": 3.14159
+    },
+    "nested_messages": [
+        {
+            "inner_id": 10,
+            "inner_name": "nested inner 1",
+            "inner_timestamp": 345386786767
+        },
+        {
+            "inner_id": 20,
+            "inner_name": "nested inner 2",
+            "inner_timestamp": 334435534534
+        }
+    ]
+}
+*/
+static const CORE::CString PROTO_COMPLEX_MESSAGE_BASE64 = "CgUBAgMEBRIJCgVBbGljZRABEgcKA0JvYhACGAEyIAoVb3B0aW9uYWwgbmVzdGVkIHZhbHVlEW6GG/D5IQlAOhkIChIObmVzdGVkIGlubmVyIDEYz7+g1YYKOhkIFBIObmVzdGVkIGlubmVyIDIYxo2l790J";
+static CORE::CDataDrivenDStoreCodecMetaPtr ddCodecMetaComplexMessage;
+static CORE::CString ddCodecTypeNameForComplexMessage = "testCodec_protobuf_ComplexMessage";
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-
-
-/*-------------------------------------------------------------------------*/
 
 void
 PerformProtobufTestsIfFeasible_PluginBootstrap( CORE::CDStoreCodecRegistry::TDStoreCodecPtr& protobufCodec )
@@ -237,6 +329,8 @@ PerformProtobufTestsIfFeasible_DataBootstrap( void )
     CORE::CDataDrivenDStoreCodecFactory& ddCodecFactory = coreGlobal->GetDataDrivenDStoreCodecFactory();
     CORE::CDStoreCodecRegistry& codecRegistry = coreGlobal->GetDStoreCodecRegistry();
 
+    // prepare the "AllTypesMessage" codec
+
     ddCodecMetaAllTypesMessage = CORE::CDataDrivenDStoreCodecMeta::CreateSharedObj();
     ASSERT_TRUE( !ddCodecMetaAllTypesMessage.IsNULL() );
     ddCodecMetaAllTypesMessage->SetBaseCodecTypeName( "protobuf" );
@@ -255,6 +349,45 @@ PerformProtobufTestsIfFeasible_DataBootstrap( void )
         
     ASSERT_TRUE( codecRegistry.TryRegister( ddCodecPtr->GetDataDrivenDStoreCodecMeta()->GetDataDrivenCodecTypeName(), ddCodecPtr.StaticCast< CORE::CDStoreCodec >() ) );
 
+    // prepare the "NestedMessage" codec
+
+    ddCodecMetaNestedMessage = CORE::CDataDrivenDStoreCodecMeta::CreateSharedObj();
+    ASSERT_TRUE( !ddCodecMetaNestedMessage.IsNULL() );
+    ddCodecMetaNestedMessage->SetBaseCodecTypeName( "protobuf" );
+    ddCodecMetaNestedMessage->SetDataDrivenCodecTypeName( ddCodecTypeNameForNestedMessage );
+    ddCodecMetaNestedMessage->SetIsShareable( true );
+    
+    // to keep things simple and self-contained we will use the protobuf definition as a data-uri vs pointing to something external
+    uri.Clear();
+    ASSERT_TRUE( CORE::CDataUriResourceAccessor::CreateDataUriFromText( uri, "application/test-protobuf-NestedMessage", PROTO_DEFINITION_NESTED, CORE::CDataUriResourceAccessor::DATAURI_ENCODING_BASE64 ) );    
+    ddCodecMetaNestedMessage->GetDataMap()[ ddCodecTypeNameForNestedMessage ] = uri;
+
+    ddCodecFactory.Register( ddCodecMetaNestedMessage->GetDataDrivenCodecTypeName(), ddCodecMetaNestedMessage );
+    ddCodecPtr = ddCodecFactory.CreateCodec( ddCodecMetaNestedMessage->GetDataDrivenCodecTypeName(), false );    
+    ASSERT_TRUE( !ddCodecPtr.IsNULL() );
+    ASSERT_TRUE( !ddCodecPtr->GetDataDrivenDStoreCodecMeta().IsNULL() );
+        
+    ASSERT_TRUE( codecRegistry.TryRegister( ddCodecPtr->GetDataDrivenDStoreCodecMeta()->GetDataDrivenCodecTypeName(), ddCodecPtr.StaticCast< CORE::CDStoreCodec >() ) );
+
+    // prepare the "ComplexMessage" codec
+
+    ddCodecMetaComplexMessage = CORE::CDataDrivenDStoreCodecMeta::CreateSharedObj();
+    ASSERT_TRUE( !ddCodecMetaComplexMessage.IsNULL() );
+    ddCodecMetaComplexMessage->SetBaseCodecTypeName( "protobuf" );
+    ddCodecMetaComplexMessage->SetDataDrivenCodecTypeName( ddCodecTypeNameForComplexMessage );
+    ddCodecMetaComplexMessage->SetIsShareable( true );
+    
+    // to keep things simple and self-contained we will use the protobuf definition as a data-uri vs pointing to something external
+    uri.Clear();
+    ASSERT_TRUE( CORE::CDataUriResourceAccessor::CreateDataUriFromText( uri, "application/test-protobuf-ComplexMessage", PROTO_DEFINITION_COMPLEX, CORE::CDataUriResourceAccessor::DATAURI_ENCODING_BASE64 ) );    
+    ddCodecMetaComplexMessage->GetDataMap()[ ddCodecTypeNameForComplexMessage ] = uri;
+
+    ddCodecFactory.Register( ddCodecMetaComplexMessage->GetDataDrivenCodecTypeName(), ddCodecMetaComplexMessage );
+    ddCodecPtr = ddCodecFactory.CreateCodec( ddCodecMetaComplexMessage->GetDataDrivenCodecTypeName(), false );    
+    ASSERT_TRUE( !ddCodecPtr.IsNULL() );
+    ASSERT_TRUE( !ddCodecPtr->GetDataDrivenDStoreCodecMeta().IsNULL() );
+        
+    ASSERT_TRUE( codecRegistry.TryRegister( ddCodecPtr->GetDataDrivenDStoreCodecMeta()->GetDataDrivenCodecTypeName(), ddCodecPtr.StaticCast< CORE::CDStoreCodec >() ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -378,7 +511,171 @@ PerformProtobufTest_FieldTypesMapping( void )
     ASSERT_TRUE( bytesFieldVar.IsBlob() );
     ASSERT_TRUE( bytesFieldVar.GetTypeId() == GUCEF_DATATYPE_BINARY_BLOB );
     ASSERT_TRUE( bytesFieldVar.ByteSize() == 0 );
+   
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformProtobufTest_NestedMessage( void )
+{GUCEF_TRACE;
+
+    CORE::CCoreGlobal* coreGlobal = CORE::CCoreGlobal::Instance();
+    CORE::CDStoreCodecRegistry& codecRegistry = coreGlobal->GetDStoreCodecRegistry();
+
+    CORE::CDynamicBuffer encodedData;
+    encodedData.CopyAndDecodeBase64From( PROTO_NESTED_MESSAGE_BASE64, 0 );
+    CORE::CDynamicBufferAccess encodedDataAccess( encodedData );
+
+    // First just fetch the DStoreCodec like any other regular codec
+    CORE::CDStoreCodecRegistry::TDStoreCodecPtr protobufCodec_NestedMessage;
+    ASSERT_TRUE( codecRegistry.TryLookup( ddCodecTypeNameForNestedMessage, protobufCodec_NestedMessage, false ) );
+
+    // Now we can use the codec to decode the test message
+
+    CORE::CDataNode documentNode;
+    ASSERT_TRUE( protobufCodec_NestedMessage->BuildDataTree( &documentNode, &encodedDataAccess ) );
     
+    ASSERT_TRUE( documentNode.GetName() == "NestedMessage" );    
+
+    const CORE::CVariant& intIDFieldVar = documentNode.GetAttributeValueOrChildValueByName( "id" );
+    ASSERT_TRUE( intIDFieldVar.IsInitialized() );
+    ASSERT_TRUE( intIDFieldVar.IsInteger() );
+    ASSERT_TRUE( intIDFieldVar.IsSignedInteger() );
+    ASSERT_TRUE( intIDFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_INT32 );
+    ASSERT_TRUE( intIDFieldVar.AsInt32() == 777 );
+    
+    ASSERT_TRUE( documentNode.GetNrOfChildNodes() == 1 );    
+    CORE::CDataNode* innerMsgNode = documentNode.FindChild( "InnerMessage", true );
+    ASSERT_TRUE( innerMsgNode != GUCEF_NULL );
+    ASSERT_TRUE( innerMsgNode->GetName() == "InnerMessage" );
+
+    const CORE::CVariant& intInnerIDFieldVar = innerMsgNode->GetAttributeValueOrChildValueByName( "inner_id" );
+    ASSERT_TRUE( intInnerIDFieldVar.IsInitialized() );
+    ASSERT_TRUE( intInnerIDFieldVar.IsInteger() );
+    ASSERT_TRUE( intInnerIDFieldVar.IsSignedInteger() );
+    ASSERT_TRUE( intInnerIDFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_INT32 );
+    ASSERT_TRUE( intInnerIDFieldVar.AsInt32() == 747 );    
+
+    const CORE::CVariant& intInnerNameFieldVar = innerMsgNode->GetAttributeValueOrChildValueByName( "inner_name" );
+    ASSERT_TRUE( intInnerNameFieldVar.IsInitialized() );
+    ASSERT_TRUE( !intInnerNameFieldVar.IsInteger() );
+    ASSERT_TRUE( intInnerNameFieldVar.IsString() );
+    ASSERT_TRUE( intInnerNameFieldVar.GetTypeId() == GUCEF_DATATYPE_UTF8_STRING );
+    ASSERT_TRUE( intInnerNameFieldVar.AsString() == "this is the inner message" );
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformProtobufTest_ComplexMessage( void )
+{GUCEF_TRACE;
+
+    CORE::CCoreGlobal* coreGlobal = CORE::CCoreGlobal::Instance();
+    CORE::CDStoreCodecRegistry& codecRegistry = coreGlobal->GetDStoreCodecRegistry();
+
+    CORE::CDynamicBuffer encodedData;
+    encodedData.CopyAndDecodeBase64From( PROTO_COMPLEX_MESSAGE_BASE64, 0 );
+    CORE::CDynamicBufferAccess encodedDataAccess( encodedData );
+
+    // First just fetch the DStoreCodec like any other regular codec
+    CORE::CDStoreCodecRegistry::TDStoreCodecPtr protobufCodec_ComplexMessage;
+    ASSERT_TRUE( codecRegistry.TryLookup( ddCodecTypeNameForComplexMessage, protobufCodec_ComplexMessage, false ) );
+
+    // Now we can use the codec to decode the test message
+
+    CORE::CDataNode documentNode;
+    ASSERT_TRUE( protobufCodec_ComplexMessage->BuildDataTree( &documentNode, &encodedDataAccess ) );
+    
+    ASSERT_TRUE( documentNode.GetName() == "ComplexMessage" );    
+    ASSERT_TRUE( documentNode.GetNrOfChildNodes() == 5 );
+    ASSERT_TRUE( documentNode.GetAttCount() == 0 );
+
+    // test the packed array structure
+    
+    const CORE::CDataNode* idArrayNode = documentNode.FindChild( "ids" );
+    ASSERT_TRUE( GUCEF_NULL != idArrayNode );
+    ASSERT_TRUE( idArrayNode->GetNodeType() == GUCEF_DATATYPE_ARRAY );
+    ASSERT_TRUE( idArrayNode->GetNrOfChildNodes() == 5 );
+    CORE::CDataNode::TVariantVector values = idArrayNode->GetChildrenValues();
+    ASSERT_TRUE( !values.empty() );
+    ASSERT_TRUE( values.size() == 5 );
+    for ( int i=0; i<5; ++i )
+    {    
+        ASSERT_TRUE( values[ i ].IsInteger() );
+        ASSERT_TRUE( values[ i ].IsSignedInteger() );
+        ASSERT_TRUE( values[ i ] > 0 && values[ i ] < 6 );
+    }
+
+    // test the map structure
+
+    const CORE::CDataNode* nameToIdMapNode = documentNode.FindChild( "name_to_id" );
+    ASSERT_TRUE( GUCEF_NULL != nameToIdMapNode );
+    ASSERT_TRUE( nameToIdMapNode->GetNodeType() == GUCEF_DATATYPE_MAP );
+    ASSERT_TRUE( nameToIdMapNode->GetAttCount() == 2 );
+    
+    const CORE::CVariant& mapEntryAliceFieldVar = nameToIdMapNode->GetAttributeValueOrChildValueByName( "Alice" );
+    ASSERT_TRUE( mapEntryAliceFieldVar.IsInitialized() );
+    ASSERT_TRUE( mapEntryAliceFieldVar.IsInteger() );
+    ASSERT_TRUE( mapEntryAliceFieldVar.IsSignedInteger() );
+    ASSERT_TRUE( mapEntryAliceFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_INT32 );
+    ASSERT_TRUE( mapEntryAliceFieldVar.AsInt32() == 1 );    
+    
+    const CORE::CVariant& mapEntryBobFieldVar = nameToIdMapNode->GetAttributeValueOrChildValueByName( "Bob" );
+    ASSERT_TRUE( mapEntryBobFieldVar.IsInitialized() );
+    ASSERT_TRUE( mapEntryBobFieldVar.IsInteger() );
+    ASSERT_TRUE( mapEntryBobFieldVar.IsSignedInteger() );
+    ASSERT_TRUE( mapEntryBobFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_INT32 );
+    ASSERT_TRUE( mapEntryBobFieldVar.AsInt32() == 2 ); 
+
+    // test enum field
+
+    const CORE::CDataNode* statusEnumNode = documentNode.FindChild( "status" );
+    ASSERT_TRUE( GUCEF_NULL != statusEnumNode );
+    ASSERT_TRUE( statusEnumNode->GetNodeType() == GUCEF_DATATYPE_ENUM );
+    ASSERT_TRUE( statusEnumNode->GetAttCount() == 0 );
+    ASSERT_TRUE( statusEnumNode->GetNrOfChildNodes() == 0 );
+    ASSERT_TRUE( statusEnumNode->GetName() == "status" );
+    const CORE::CVariant& statusFieldVar = statusEnumNode->GetValue();
+    ASSERT_TRUE( statusFieldVar.IsInitialized() );
+    ASSERT_TRUE( statusFieldVar.IsInteger() );
+    ASSERT_TRUE( statusFieldVar.IsSignedInteger() );
+    ASSERT_TRUE( statusFieldVar.GetTypeId() == GUCEF_DATATYPE_LE_INT32 );
+    ASSERT_TRUE( statusFieldVar.AsInt32() == 1 );
+    const CORE::CVariant& sameStatusFieldVar = documentNode.GetAttributeValueOrChildValueByName( "status" );
+    ASSERT_TRUE( statusFieldVar == sameStatusFieldVar );
+
+    // test the nested optional message
+
+    const CORE::CDataNode* nestedOptMsgNode = documentNode.FindChild( "nested_optional_message" );
+    ASSERT_TRUE( GUCEF_NULL != nestedOptMsgNode );
+    ASSERT_TRUE( nestedOptMsgNode->GetNodeType() == GUCEF_DATATYPE_OBJECT );
+    ASSERT_TRUE( nestedOptMsgNode->GetAttCount() == 0 );
+    ASSERT_TRUE( nestedOptMsgNode->GetNrOfChildNodes() == 0 );
+    ASSERT_TRUE( nestedOptMsgNode->GetName() == "nested_optional_message" );
+    ASSERT_TRUE( nestedOptMsgNode->GetAttCount() == 2 );
+    const CORE::CVariant& nestedOptMsgField1Var = nestedOptMsgNode->GetAttributeValueOrChildValueByName( "nested_optional_field_1" );
+    ASSERT_TRUE( nestedOptMsgField1Var.IsInitialized() );
+    ASSERT_TRUE( nestedOptMsgField1Var.IsInteger() );
+    ASSERT_TRUE( nestedOptMsgField1Var.IsSignedInteger() );
+    ASSERT_TRUE( nestedOptMsgField1Var.GetTypeId() == GUCEF_DATATYPE_LE_INT32 );
+    ASSERT_TRUE( nestedOptMsgField1Var.AsInt32() == 1 );
+    const CORE::CVariant& nestedOptMsgField2Var = nestedOptMsgNode->GetAttributeValueOrChildValueByName( "nested_optional_field_2" );
+    ASSERT_TRUE( nestedOptMsgField1Var.IsInitialized() );
+    ASSERT_TRUE( !nestedOptMsgField1Var.IsInteger() );
+    ASSERT_TRUE( !nestedOptMsgField1Var.IsSignedInteger() );
+    ASSERT_TRUE( nestedOptMsgField1Var.IsFloat() );
+    ASSERT_TRUE( nestedOptMsgField1Var.GetTypeId() == GUCEF_DATATYPE_LE_FLOAT64 );
+    CORE::CVariant compareFloat64( static_cast< Float64 >( 3.14159 ) );
+    ASSERT_TRUE( nestedOptMsgField1Var == compareFloat64 );
+
+    // test the repeated nested messages
+
+    const CORE::CDataNode* nestedMsgArrayNode = documentNode.FindChild( "nested_messages" );
+    ASSERT_TRUE( GUCEF_NULL != nestedMsgArrayNode );
+    ASSERT_TRUE( nestedMsgArrayNode->GetNodeType() == GUCEF_DATATYPE_ARRAY );
+    ASSERT_TRUE( nestedMsgArrayNode->GetNrOfChildNodes() == 2 );
 
 }
 
@@ -407,7 +704,14 @@ PerformProtobufTestsIfFeasible( void )
 
             // Considering we have the base codec we can perform the relevant tests            
             // We start with a simple field type mapping test
-            PerformProtobufTest_FieldTypesMapping();
+            //PerformProtobufTest_FieldTypesMapping();
+
+            // Then we can test the nested message, another fundamental feature of protobuf
+            // slightly more complicated due to nesting vs just a flat structure
+            //PerformProtobufTest_NestedMessage();
+
+            // Finally we can test a more complex message with repeated fields, maps and oneof
+            PerformProtobufTest_ComplexMessage();
 
         }
     }

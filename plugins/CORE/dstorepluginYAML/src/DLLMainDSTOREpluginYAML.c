@@ -1065,7 +1065,11 @@ DSTOREPLUG_Start_Reading( void** plugdata  ,
                         }
                         else
                         {
+                            TVariantData keyVar;
                             TVariantData var;
+                            yaml_char_t* key = GUCEF_NULL;
+
+                            memset( &keyVar, 0, sizeof( keyVar ) );
                             memset( &var, 0, sizeof( var ) );
 
                             UInt8 scalarType = DetectScalarType( &yamlEvent );
@@ -1096,15 +1100,19 @@ DSTOREPLUG_Start_Reading( void** plugdata  ,
                                     break;
                                 }
                             }
-
-                            yaml_char_t* key = GUCEF_NULL;
+                            
                             if ( YAML_MAPPING_START_EVENT == currentNesting )
                             {
                                 key = lastYamlEvent.data.scalar.value;
                                 nextScalarIsAKey = 1;
                             }
 
-                            sd->handlers.OnNodeAtt( sd->privdata, "", key, &var );
+                            keyVar.containedType = GUCEF_DATATYPE_UTF8_STRING; 
+                            keyVar.union_data.heap_data.heap_data_is_linked = 1;
+                            keyVar.union_data.heap_data.heap_data_size = GUCEF_NULL != key ? (UInt32) strlen( key ) : 0;
+                            keyVar.union_data.heap_data.union_data.char_heap_data = key;
+
+                            sd->handlers.OnNodeAtt( sd->privdata, "", &keyVar, &var );
 
                             if ( YAML_MAPPING_START_EVENT == currentNesting )
                             {

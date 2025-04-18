@@ -108,6 +108,12 @@
                          + __GNUC_PATCHLEVEL__)
 #endif
 
+#if defined( __clang__ ) && !defined( CLANG_VERSION ) /* Clang C++ compiler */
+    #define CLANG_VERSION (__clang_major__ * 10000 \
+                         + __clang_minor__ * 100 \
+                         + __clang_patchlevel__)
+#endif
+
 /* Finds the compiler type and version.
 */
 #if defined( _MSC_VER )
@@ -124,9 +130,7 @@
 #   endif
 #elif defined( __clang__ )
 #   define GUCEF_COMPILER GUCEF_COMPILER_CLANG
-#   define GUCEF_COMP_VER (((__clang_major__)*100) + \
-        (__clang_minor__*10) + \
-        __clang_patchlevel__)
+#   define GUCEF_COMP_VER CLANG_VERSION
 #   if defined( __i386__ ) || defined( __i486__ ) || defined( __i586__ ) || defined( __i686__ )
 #       define GUCEF_CPU_ARCHITECTURE GUCEF_CPU_ARCHITECTURE_X86
 #   elif defined( __amd64__ ) || defined( __amd64 ) || defined( __x86_64__ ) || defined( __x86_64 )

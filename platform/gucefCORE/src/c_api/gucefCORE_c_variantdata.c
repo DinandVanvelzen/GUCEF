@@ -108,6 +108,8 @@ TypeNameForGucefTypeId( UInt8 typeId )
         case GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION:      return GUCEF_DATATYPE_NAME_UINT64_UINT32_LE_FRACTION;
         case GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION:      return GUCEF_DATATYPE_NAME_UINT64_UINT32_BE_FRACTION;        
 
+        case GUCEF_DATATYPE_MAP:                            return GUCEF_DATATYPE_NAME_MAP;
+        case GUCEF_DATATYPE_ENUM:                           return GUCEF_DATATYPE_NAME_ENUM;
         case GUCEF_DATATYPE_SET:                            return GUCEF_DATATYPE_NAME_SET;
         case GUCEF_DATATYPE_ARRAY:                          return GUCEF_DATATYPE_NAME_ARRAY;
         case GUCEF_DATATYPE_OBJECT:                         return GUCEF_DATATYPE_NAME_OBJECT;
@@ -177,6 +179,8 @@ GucefTypeIdForTypeName( const char* typeName )
         if ( 0 == strcmp( GUCEF_DATATYPE_NAME_INT64_INT32_BE_FRACTION, typeName ) ) return GUCEF_DATATYPE_INT64_INT32_BE_FRACTION;
         if ( 0 == strcmp( GUCEF_DATATYPE_NAME_UINT64_UINT32_LE_FRACTION, typeName ) ) return GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION;
         if ( 0 == strcmp( GUCEF_DATATYPE_NAME_UINT64_UINT32_BE_FRACTION, typeName ) ) return GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION;
+        if ( 0 == strcmp( GUCEF_DATATYPE_NAME_MAP, typeName ) ) return GUCEF_DATATYPE_MAP;
+        if ( 0 == strcmp( GUCEF_DATATYPE_NAME_ENUM, typeName ) ) return GUCEF_DATATYPE_ENUM;
         if ( 0 == strcmp( GUCEF_DATATYPE_NAME_SET, typeName ) ) return GUCEF_DATATYPE_SET;
         if ( 0 == strcmp( GUCEF_DATATYPE_NAME_ARRAY, typeName ) ) return GUCEF_DATATYPE_ARRAY;
         if ( 0 == strcmp( GUCEF_DATATYPE_NAME_OBJECT, typeName ) ) return GUCEF_DATATYPE_OBJECT;
@@ -234,7 +238,7 @@ GucefByteSizeOfFixedSizeType( UInt8 varType )
         case GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION: return sizeof( UInt64 ) + sizeof( UInt32 );
         case GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION: return sizeof( UInt64 ) + sizeof( UInt32 );
         
-        case GUCEF_DATATYPE_CONST_DATA_MEMORY_ADDRESS: return sizeof( void* );
+        case GUCEF_DATATYPE_CONST_DATA_MEMORY_ADDRESS: return sizeof( const void* );
         case GUCEF_DATATYPE_DATA_MEMORY_ADDRESS: return sizeof( void* );
         case GUCEF_DATATYPE_FUNCTION_MEMORY_ADDRESS: return sizeof( TDefaultFuncPtr );
         

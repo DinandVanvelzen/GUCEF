@@ -625,6 +625,21 @@ CDataNode::SetAttribute( const CString& name       ,
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CDataNode::SetAttribute( const TVariantData& name  , 
+                         const TVariantData& value , 
+                         bool linkWherePossible    )
+{GUCEF_TRACE;
+
+    if ( linkWherePossible )
+        _atts[ CVariant( name, true ) ].LinkTo( value );
+    else
+        _atts[ CVariant( name, true ) ] = value;
+    return true;                      
+}
+
+/*-------------------------------------------------------------------------*/
+
 //bool 
 //CDataNode::SetAttribute( const CVariant& name   ,
 //                         const CVariant& value  ,
