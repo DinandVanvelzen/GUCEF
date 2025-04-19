@@ -531,7 +531,7 @@ class GUCEF_HIDDEN ProtoSAXParser
         //}
         //GUCEF_C_DEBUG_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, rawDataStr.c_str() );
 
-        bool parseResult = ParseMsgFields( msgDescriptor, &coded_input );
+        bool parseResult = ParseMsgFields( msgDescriptor, GUCEF_NULL, &coded_input );
 
         m_readCallbacks.OnTreeEnd( m_readPrivData );
 
@@ -851,7 +851,7 @@ class GUCEF_HIDDEN ProtoSAXParser
                     if GUCEF_PREDICT_TRUE( input->ReadVarint32( &nestedMsgSizeInBytes ) ) 
                     {
                         google::protobuf::io::CodedInputStream::Limit limit = input->PushLimit( nestedMsgSizeInBytes );                        
-                        if GUCEF_PREDICT_FALSE( !ParseMsgFields( nestedMsgDescriptor, input ) ) 
+                        if GUCEF_PREDICT_FALSE( !ParseMsgFields( nestedMsgDescriptor, field, input ) ) 
                         {
                             return false;
                         }
@@ -1071,11 +1071,16 @@ class GUCEF_HIDDEN ProtoSAXParser
 
     /*---------------------------------------------------------------------------*/
 
-    bool ParseMsgFields( const google::protobuf::Descriptor* msgDescriptor , 
-                         google::protobuf::io::CodedInputStream* input     ) 
+    bool ParseMsgFields( const google::protobuf::Descriptor* msgDescriptor           , 
+                         const google::protobuf::FieldDescriptor* msgFieldDescriptor ,
+                         google::protobuf::io::CodedInputStream* input               ) 
     {GUCEF_TRACE;
 
-        m_readCallbacks.OnNodeBegin( m_readPrivData, msgDescriptor->name().c_str(), GUCEF_DATATYPE_OBJECT );
+        // If the message is the root message, we need to use the root message descriptor
+        // otherwise the message itself is a field and we should use the field name for the node name
+        const char* nodeName = GUCEF_NULL != msgFieldDescriptor ? msgFieldDescriptor->name().c_str() : msgDescriptor->name().c_str();
+        
+        m_readCallbacks.OnNodeBegin( m_readPrivData, nodeName, GUCEF_DATATYPE_OBJECT );
 
         while ( input->BytesUntilLimit() > 0 ) 
         {
@@ -1107,7 +1112,7 @@ class GUCEF_HIDDEN ProtoSAXParser
             if ( field->is_repeated() ) 
             {
                 // Handle repeated fields
-                if ( !ParseRepeatedField( msgDescriptor, field, tag, input ) ) 
+                if ( !ParseRepeatedField( msgDescriptor, msgFieldDescriptor, field, tag, input ) ) 
                 {
                     return false;
                 }
@@ -1115,14 +1120,14 @@ class GUCEF_HIDDEN ProtoSAXParser
             else 
             {
                 // Handle singular fields
-                if ( !ParseSingularField( msgDescriptor, field, input ) ) 
+                if ( !ParseSingularField( msgDescriptor, msgFieldDescriptor, field, input ) ) 
                 {
                     return false;
                 }
             }
         }
 
-        m_readCallbacks.OnNodeEnd( m_readPrivData, msgDescriptor->name().c_str() );
+        m_readCallbacks.OnNodeEnd( m_readPrivData, nodeName );
 
         return true;
     }
@@ -1216,10 +1221,11 @@ class GUCEF_HIDDEN ProtoSAXParser
 
     /*---------------------------------------------------------------------------*/
 
-    bool ParseRepeatedField( const google::protobuf::Descriptor* msgDescriptor ,
-                             const google::protobuf::FieldDescriptor* field    ,
-                             const uint32_t fieldTag                           ,
-                             google::protobuf::io::CodedInputStream* input     ) 
+    bool ParseRepeatedField( const google::protobuf::Descriptor* msgDescriptor           ,
+                             const google::protobuf::FieldDescriptor* msgFieldDescriptor ,
+                             const google::protobuf::FieldDescriptor* field              ,
+                             const uint32_t fieldTag                                     ,
+                             google::protobuf::io::CodedInputStream* input               ) 
     {GUCEF_TRACE;
 
         // Note that protobuf assumes all values on the wire to be little endian
@@ -1256,13 +1262,6 @@ class GUCEF_HIDDEN ProtoSAXParser
             }
             google::protobuf::io::CodedInputStream::Limit limit = input->PushLimit( repeatedFieldBlockByteSize );
 
-            TVariantData keyVar;
-            memset( &keyVar, 0, sizeof( keyVar ) );
-            keyVar.containedType = GUCEF_DATATYPE_UTF8_STRING;
-            keyVar.union_data.heap_data.heap_data_is_linked = 1;
-            keyVar.union_data.heap_data.heap_data_size = static_cast< UInt32 >( field->name().size() );
-            keyVar.union_data.heap_data.union_data.const_char_heap_data = field->name().c_str();
-
             while ( input->BytesUntilLimit() > 0 ) 
             {
                 bool wasComplex = false;
@@ -1274,7 +1273,11 @@ class GUCEF_HIDDEN ProtoSAXParser
                 }
                 if ( !wasComplex )
                 {
-                    m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), &keyVar, &valueVar );
+                    m_readCallbacks.OnNodeValue( m_readPrivData, field->name().c_str(), &valueVar );
+                }
+                else
+                {
+                    SetError( "ParseRepeatedField: Unexpected complex field type for a 'packed' field" );
                 }
             }
 
@@ -1300,13 +1303,6 @@ class GUCEF_HIDDEN ProtoSAXParser
             }
             else
             {
-                TVariantData keyVar;
-                memset( &keyVar, 0, sizeof( keyVar ) );
-                keyVar.containedType = GUCEF_DATATYPE_UTF8_STRING;
-                keyVar.union_data.heap_data.heap_data_is_linked = 1;
-                keyVar.union_data.heap_data.heap_data_size = static_cast< UInt32 >( field->name().size() );
-                keyVar.union_data.heap_data.union_data.const_char_heap_data = field->name().c_str();
-
                 while ( input->BytesUntilLimit() > 0 ) 
                 {
                     bool wasComplex = false;
@@ -1317,8 +1313,8 @@ class GUCEF_HIDDEN ProtoSAXParser
                         return false;
                     }
                     if ( !wasComplex )
-                    {
-                        m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), &keyVar, &valueVar );
+                    {                        
+                        m_readCallbacks.OnNodeValue( m_readPrivData, field->name().c_str(), &valueVar );
                     }
 
                     // In order to know if we are done with the repeated field we need to read the next tag
@@ -1343,9 +1339,10 @@ class GUCEF_HIDDEN ProtoSAXParser
 
     /*---------------------------------------------------------------------------*/
 
-    bool ParseSingularField( const google::protobuf::Descriptor* msgDescriptor ,
-                             const google::protobuf::FieldDescriptor* field    , 
-                             google::protobuf::io::CodedInputStream* input     ) 
+    bool ParseSingularField( const google::protobuf::Descriptor* msgDescriptor           ,
+                             const google::protobuf::FieldDescriptor* msgFieldDescriptor ,
+                             const google::protobuf::FieldDescriptor* field              ,  
+                             google::protobuf::io::CodedInputStream* input               ) 
     {GUCEF_TRACE;
 
         // Note that protobuf assumes all values on the wire to be little endian
@@ -1383,8 +1380,12 @@ class GUCEF_HIDDEN ProtoSAXParser
                 }
                 default:
                 {
+                    // if the field is part of a nested message instead of the root message we need to use the message field descriptor
+                    // to get the correct name for the node
+                    const char* nodeName = GUCEF_NULL != msgFieldDescriptor ? msgFieldDescriptor->name().c_str() : msgDescriptor->name().c_str();
+                    
                     // All other types are just considered attributes
-                    m_readCallbacks.OnNodeAtt( m_readPrivData, msgDescriptor->name().c_str(), &keyVar, &valueVar );
+                    m_readCallbacks.OnNodeAtt( m_readPrivData, nodeName, &keyVar, &valueVar );
                     break;
                 }
             }

@@ -546,9 +546,9 @@ PerformProtobufTest_NestedMessage( void )
     ASSERT_TRUE( intIDFieldVar.AsInt32() == 777 );
     
     ASSERT_TRUE( documentNode.GetNrOfChildNodes() == 1 );    
-    CORE::CDataNode* innerMsgNode = documentNode.FindChild( "InnerMessage", true );
+    CORE::CDataNode* innerMsgNode = documentNode.FindChild( "inner_message", true );
     ASSERT_TRUE( innerMsgNode != GUCEF_NULL );
-    ASSERT_TRUE( innerMsgNode->GetName() == "InnerMessage" );
+    ASSERT_TRUE( innerMsgNode->GetName() == "inner_message" );
 
     const CORE::CVariant& intInnerIDFieldVar = innerMsgNode->GetAttributeValueOrChildValueByName( "inner_id" );
     ASSERT_TRUE( intInnerIDFieldVar.IsInitialized() );
@@ -589,7 +589,7 @@ PerformProtobufTest_ComplexMessage( void )
     ASSERT_TRUE( protobufCodec_ComplexMessage->BuildDataTree( &documentNode, &encodedDataAccess ) );
     
     ASSERT_TRUE( documentNode.GetName() == "ComplexMessage" );    
-    ASSERT_TRUE( documentNode.GetNrOfChildNodes() == 5 );
+    ASSERT_TRUE( documentNode.GetNrOfDirectChildNodes() == 5 );
     ASSERT_TRUE( documentNode.GetAttCount() == 0 );
 
     // test the packed array structure
@@ -598,6 +598,7 @@ PerformProtobufTest_ComplexMessage( void )
     ASSERT_TRUE( GUCEF_NULL != idArrayNode );
     ASSERT_TRUE( idArrayNode->GetNodeType() == GUCEF_DATATYPE_ARRAY );
     ASSERT_TRUE( idArrayNode->GetNrOfChildNodes() == 5 );
+    ASSERT_TRUE( idArrayNode->GetNrOfDirectChildNodes() == 5 );    
     CORE::CDataNode::TVariantVector values = idArrayNode->GetChildrenValues();
     ASSERT_TRUE( !values.empty() );
     ASSERT_TRUE( values.size() == 5 );
@@ -651,24 +652,23 @@ PerformProtobufTest_ComplexMessage( void )
     const CORE::CDataNode* nestedOptMsgNode = documentNode.FindChild( "nested_optional_message" );
     ASSERT_TRUE( GUCEF_NULL != nestedOptMsgNode );
     ASSERT_TRUE( nestedOptMsgNode->GetNodeType() == GUCEF_DATATYPE_OBJECT );
-    ASSERT_TRUE( nestedOptMsgNode->GetAttCount() == 0 );
     ASSERT_TRUE( nestedOptMsgNode->GetNrOfChildNodes() == 0 );
     ASSERT_TRUE( nestedOptMsgNode->GetName() == "nested_optional_message" );
     ASSERT_TRUE( nestedOptMsgNode->GetAttCount() == 2 );
     const CORE::CVariant& nestedOptMsgField1Var = nestedOptMsgNode->GetAttributeValueOrChildValueByName( "nested_optional_field_1" );
     ASSERT_TRUE( nestedOptMsgField1Var.IsInitialized() );
-    ASSERT_TRUE( nestedOptMsgField1Var.IsInteger() );
-    ASSERT_TRUE( nestedOptMsgField1Var.IsSignedInteger() );
-    ASSERT_TRUE( nestedOptMsgField1Var.GetTypeId() == GUCEF_DATATYPE_LE_INT32 );
-    ASSERT_TRUE( nestedOptMsgField1Var.AsInt32() == 1 );
-    const CORE::CVariant& nestedOptMsgField2Var = nestedOptMsgNode->GetAttributeValueOrChildValueByName( "nested_optional_field_2" );
-    ASSERT_TRUE( nestedOptMsgField1Var.IsInitialized() );
     ASSERT_TRUE( !nestedOptMsgField1Var.IsInteger() );
-    ASSERT_TRUE( !nestedOptMsgField1Var.IsSignedInteger() );
-    ASSERT_TRUE( nestedOptMsgField1Var.IsFloat() );
-    ASSERT_TRUE( nestedOptMsgField1Var.GetTypeId() == GUCEF_DATATYPE_LE_FLOAT64 );
+    ASSERT_TRUE( nestedOptMsgField1Var.IsString() );
+    ASSERT_TRUE( nestedOptMsgField1Var.GetTypeId() == GUCEF_DATATYPE_UTF8_STRING );
+    ASSERT_TRUE( nestedOptMsgField1Var.AsString() == "optional nested value" );
+    const CORE::CVariant& nestedOptMsgField2Var = nestedOptMsgNode->GetAttributeValueOrChildValueByName( "nested_optional_field_2" );
+    ASSERT_TRUE( nestedOptMsgField2Var.IsInitialized() );
+    ASSERT_TRUE( !nestedOptMsgField2Var.IsInteger() );
+    ASSERT_TRUE( !nestedOptMsgField2Var.IsSignedInteger() );
+    ASSERT_TRUE( nestedOptMsgField2Var.IsFloat() );
+    ASSERT_TRUE( nestedOptMsgField2Var.GetTypeId() == GUCEF_DATATYPE_LE_FLOAT64 );
     CORE::CVariant compareFloat64( static_cast< Float64 >( 3.14159 ) );
-    ASSERT_TRUE( nestedOptMsgField1Var == compareFloat64 );
+    ASSERT_TRUE( nestedOptMsgField2Var == compareFloat64 );
 
     // test the repeated nested messages
 
@@ -704,11 +704,11 @@ PerformProtobufTestsIfFeasible( void )
 
             // Considering we have the base codec we can perform the relevant tests            
             // We start with a simple field type mapping test
-            //PerformProtobufTest_FieldTypesMapping();
+            PerformProtobufTest_FieldTypesMapping();
 
             // Then we can test the nested message, another fundamental feature of protobuf
             // slightly more complicated due to nesting vs just a flat structure
-            //PerformProtobufTest_NestedMessage();
+            PerformProtobufTest_NestedMessage();
 
             // Finally we can test a more complex message with repeated fields, maps and oneof
             PerformProtobufTest_ComplexMessage();
