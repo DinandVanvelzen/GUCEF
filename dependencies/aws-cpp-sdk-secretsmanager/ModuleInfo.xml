@@ -1,0 +1,14 @@
+<ModuleInfoEntry>
+    <Module Name="aws-cpp-sdk-secretsmanager" Type="SharedLibrary" Platform="All">
+        <Preprocessor>
+            <Define String="USE_IMPORT_EXPORT=1" />
+            <Define String="AWS_SECRETSMANAGER_EXPORTS" />
+        </Preprocessor>
+        <Dependencies>
+			<Dependency Name="aws-cpp-sdk-core" />
+        </Dependencies>
+        <Linker>
+			<Dependency Name="aws-cpp-sdk-core" />		
+        </Linker>		
+    </Module>
+</ModuleInfoEntry>

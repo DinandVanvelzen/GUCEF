@@ -34,11 +34,12 @@ Protocol Buffers is at release v21.12 from https://github.com/protocolbuffers/pr
 aws-cpp-sdk-core is version 1.10.51 from GitHub (Jan 13th 2023) @ https://github.com/aws/aws-sdk-cpp/releases/tag/1.10.51
 aws-cpp-sdk-s3 is version 1.10.51 from GitHub (Jan 13th 2023) @ https://github.com/aws/aws-sdk-cpp/releases/tag/1.10.51
 aws-cpp-sdk-sqs is version 1.10.51 from GitHub (Jan 13th 2023) @ https://github.com/aws/aws-sdk-cpp/releases/tag/1.10.51
+aws-cpp-sdk-secretsmanager is version 1.10.51 from GitHub (Jan 13th 2023) @ https://github.com/aws/aws-sdk-cpp/releases/tag/1.10.51
 aws-lambda-runtime is version 0.2.7 from GitHub @ https://github.com/awslabs/aws-lambda-cpp/releases/tag/v0.2.7
 libyaml is in-flight version 0.2.6 from GitHub @ https://github.com/yaml/libyaml obtained source dated 2023-04-23
 
 Note for MS Windows builds: 
 - to build the DirectInput dependent code you must have the DirectX SDK installed on your system.
 Such external binary dependencies are managed via the ModuleInfo.xml under /dependencies/external
-- Note that for some of the dependencies you need to Windows SDK installed. Said SDK needs to be of the correct recent version to avoid build issues.
+- Note that for some of the dependencies you need to have the Windows SDK installed. Said SDK needs to be of the correct recent version to avoid build issues.
 Incorrect older SDKs on Windows can cause build issues due to certain APIs not being available because of NTDDI_VERSION based exclusions.
