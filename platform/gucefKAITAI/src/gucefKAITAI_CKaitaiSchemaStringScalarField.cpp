@@ -32,7 +32,7 @@
 #define GUCEF_CORE_CDATANODE_H
 #endif /* GUCEF_CORE_CDATANODE_H ? */
 
-#include "gucefKAITAI_CKaitaiSchemaBasicField.h"
+#include "gucefKAITAI_CKaitaiSchemaStringScalarField.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -49,7 +49,7 @@ namespace KAITAI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-const CORE::CString CKaitaiSchemaBasicField::ClassTypeName = "GUCEF::KAITAI::CKaitaiSchemaBasicField";
+const CORE::CString CKaitaiSchemaStringScalarField::ClassTypeName = "GUCEF::KAITAI::CKaitaiSchemaStringScalarField";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -57,33 +57,45 @@ const CORE::CString CKaitaiSchemaBasicField::ClassTypeName = "GUCEF::KAITAI::CKa
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CKaitaiSchemaBasicField::CKaitaiSchemaBasicField( void )
-    : CKaitaiSchemaBaseField( BasicField )
-    , CORE::CTSharedObjCreator< CKaitaiSchemaBasicField, MT::CMutex >( this )
+CKaitaiSchemaStringScalarField::CKaitaiSchemaStringScalarField( void )
+    : CKaitaiSchemaBaseField( StringScalarField, CKaitaiSchemaMeta::CreateSharedObj() )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaStringScalarField, MT::CMutex >( this )
+    , m_encoding( "utf-8" )
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaBasicField::CKaitaiSchemaBasicField( const CKaitaiSchemaBasicField& src )    
+CKaitaiSchemaStringScalarField::CKaitaiSchemaStringScalarField( CKaitaiSchemaMetaPtr schemaMeta )
+    : CKaitaiSchemaBaseField( StringScalarField, schemaMeta )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaStringScalarField, MT::CMutex >( this )
+    , m_encoding( "utf-8" )
+{GUCEF_TRACE;
+
+}
+    
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaStringScalarField::CKaitaiSchemaStringScalarField( const CKaitaiSchemaStringScalarField& src )    
     : CKaitaiSchemaBaseField( src )
-    , CORE::CTSharedObjCreator< CKaitaiSchemaBasicField, MT::CMutex >( this )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaStringScalarField, MT::CMutex >( this )
+    , m_encoding( src.m_encoding )
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaBasicField::~CKaitaiSchemaBasicField()
+CKaitaiSchemaStringScalarField::~CKaitaiSchemaStringScalarField()
 {GUCEF_TRACE;
     // Nothing to do here
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaBasicField& 
-CKaitaiSchemaBasicField::operator=( const CKaitaiSchemaBasicField& src )
+CKaitaiSchemaStringScalarField& 
+CKaitaiSchemaStringScalarField::operator=( const CKaitaiSchemaStringScalarField& src )
 {GUCEF_TRACE;
 
     if ( this != &src )
@@ -97,16 +109,16 @@ CKaitaiSchemaBasicField::operator=( const CKaitaiSchemaBasicField& src )
 /*-------------------------------------------------------------------------*/
 
 CORE::CICloneable* 
-CKaitaiSchemaBasicField::Clone( void ) const
+CKaitaiSchemaStringScalarField::Clone( void ) const
 {GUCEF_TRACE;
 
-    return GUCEF_NEW CKaitaiSchemaBasicField( *this );
+    return GUCEF_NEW CKaitaiSchemaStringScalarField( *this );
 }
 
 /*-------------------------------------------------------------------------*/
 
 const CORE::CString& 
-CKaitaiSchemaBasicField::GetClassTypeName( void ) const
+CKaitaiSchemaStringScalarField::GetClassTypeName( void ) const
 {GUCEF_TRACE;
 
     return ClassTypeName;
@@ -114,9 +126,19 @@ CKaitaiSchemaBasicField::GetClassTypeName( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+Int32
+CKaitaiSchemaStringScalarField::GetFixedSizeIfAny( void ) const
+{GUCEF_TRACE;
+
+    // Strings are variable size
+    return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool 
-CKaitaiSchemaBasicField::Serialize( CORE::CDataNode& domRootNode                        , 
-                                    const CORE::CDataNodeSerializableSettings& settings ) const
+CKaitaiSchemaStringScalarField::Serialize( CORE::CDataNode& domRootNode                        , 
+                                           const CORE::CDataNodeSerializableSettings& settings ) const
 {GUCEF_TRACE;
 
     return false;
@@ -125,10 +147,18 @@ CKaitaiSchemaBasicField::Serialize( CORE::CDataNode& domRootNode                
 /*-------------------------------------------------------------------------*/
 
 bool 
-CKaitaiSchemaBasicField::Deserialize( const CORE::CDataNode& domRootNode                  , 
-                                      const CORE::CDataNodeSerializableSettings& settings )
+CKaitaiSchemaStringScalarField::Deserialize( const CORE::CDataNode& domRootNode                  , 
+                                             const CORE::CDataNodeSerializableSettings& settings )
 {GUCEF_TRACE;
 
+    id = domRootNode.GetAttributeValueOrChildValueByName( "id" ).AsString();
+    type = domRootNode.GetAttributeValueOrChildValueByName( "type" ).AsString();
+    m_encoding = domRootNode.GetAttributeValueOrChildValueByName( "encoding", m_encoding ).AsString( m_encoding );
+    if ( !type.IsNULLOrEmpty() )
+    {
+        gucefDataType = KaitaiBuildInTypeStringToGucefType( type );
+        return true;
+    }
     return false;
 }
 

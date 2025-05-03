@@ -63,21 +63,19 @@ const CORE::CString CKaitaiSchemaStructureField::ClassTypeName = "GUCEF::KAITAI:
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaStructureField::CKaitaiSchemaStructureField( void )
-    : CKaitaiSchemaBaseField( StructureField )
+    : CKaitaiSchemaBaseField( StructureField, CKaitaiSchemaMeta::CreateSharedObj() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaStructureField, MT::CMutex >( this )
     , fields()
-    , m_schemaFamily()
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaStructureField::CKaitaiSchemaStructureField( const CORE::CString& schemaFamily )
-    : CKaitaiSchemaBaseField( StructureField )
+CKaitaiSchemaStructureField::CKaitaiSchemaStructureField( CKaitaiSchemaMetaPtr schemaMeta )
+    : CKaitaiSchemaBaseField( StructureField, schemaMeta )
     , CORE::CTSharedObjCreator< CKaitaiSchemaStructureField, MT::CMutex >( this )
     , fields()
-    , m_schemaFamily( schemaFamily )
 {GUCEF_TRACE;
 
 }
@@ -88,7 +86,6 @@ CKaitaiSchemaStructureField::CKaitaiSchemaStructureField( const CKaitaiSchemaStr
     : CKaitaiSchemaBaseField( src )
     , CORE::CTSharedObjCreator< CKaitaiSchemaStructureField, MT::CMutex >( this )
     , fields()
-    , m_schemaFamily( src.m_schemaFamily )
 {GUCEF_TRACE;
 
 }
@@ -145,21 +142,30 @@ CKaitaiSchemaStructureField::GetClassTypeName( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaBaseFieldPtr 
-CKaitaiSchemaStructureField::CreateFieldObjectForFieldTypeStr( const CORE::CString& typeName ) const
+Int32
+CKaitaiSchemaStructureField::GetFixedSizeIfAny( void ) const
 {GUCEF_TRACE;
 
-    // First check for build-in types
-    // You should not be able to override build-in types
-    CKaitaiSchemaBaseFieldPtr fieldObj = CreateDefaultFieldObjectForBuildInFieldTypeName( typeName );
-    if ( fieldObj.IsNULL() )
+    // A structure field can only be fixed size if all its fields are fixed size
+    Int32 totalSize = 0;
+    CKaitaiSchemaBaseFieldPtrVector::const_iterator i = fields.begin();
+    while ( i != fields.end() )
     {
-        // This might be a typedef
-        // We will need to check the registry for the type as it could be defined in the parent schema or any of the imports
-        CKaitaiGlobal* kaitaiGlobal = CKaitaiGlobal::Instance();
-        fieldObj = kaitaiGlobal->GetKaitaiSchemaRegistry().TryGetSchemaOrSubType( m_schemaFamily, typeName );
+        const CKaitaiSchemaBaseFieldPtr& field = (*i);
+        if ( !field.IsNULL() )
+        {
+            Int32 fieldSize = field->GetFixedSizeIfAny();
+            if ( fieldSize < 0 )
+                return -1; // not fixed size
+            totalSize += fieldSize;
+        }
+        else
+        {
+            return -1; // not fixed size
+        }
+        ++i;
     }
-    return fieldObj;
+    return totalSize;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -177,9 +183,7 @@ CKaitaiSchemaStructureField::Serialize( CORE::CDataNode& domRootNode            
 bool 
 CKaitaiSchemaStructureField::Deserialize( const CORE::CDataNode& domRootNode                  , 
                                           const CORE::CDataNodeSerializableSettings& settings )
-{GUCEF_TRACE;
-    
-    
+{GUCEF_TRACE;    
     
     id = domRootNode.GetAttributeValueOrChildValueByName( "id", id, true ).AsString( id, false );
 
@@ -203,16 +207,16 @@ CKaitaiSchemaStructureField::Deserialize( const CORE::CDataNode& domRootNode    
                 CORE::CString fieldTypeStr = fieldNode->GetAttributeValueOrChildValueByName( "type" ).AsString();
                 if ( !fieldTypeStr.IsNULLOrEmpty() )
                 {
-                    CKaitaiSchemaBaseFieldPtr field = CreateFieldObjectForFieldTypeStr( fieldTypeStr );
+                    CKaitaiSchemaBaseFieldPtr field = CreateFieldObjectForFieldTypeStr( fieldTypeStr, GetSchemaMeta() );
                     if GUCEF_PREDICT_FALSE( field.IsNULL() )
                     {                                                
                         totalSuccess = false;
 
                         // In order to do 'best effort' deserialization we will skip the field
-                        // However due to field ordering we cannot just leave the stop empty
+                        // However due to field ordering we cannot just leave the slot empty
                         // we have to make it expliciy there is an error location in the sequence
                         // We will create a dummy field object to fill the gap
-                        field = CreateDefaultFieldObjectForFieldType( UnknownField );
+                        field = CreateDefaultFieldObjectForFieldType( UnknownField, GetSchemaMeta() );
                         if ( !field.IsNULL() )
                         {
                             field->type = fieldTypeStr;
@@ -226,14 +230,60 @@ CKaitaiSchemaStructureField::Deserialize( const CORE::CDataNode& domRootNode    
                     if GUCEF_PREDICT_FALSE( !field->Deserialize( *fieldNode, settings ) )
                     {
                         totalSuccess = false;
-                        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaStructureField::Deserialize: Failed to deserialize field of type " + fieldTypeStr );
+                        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaStructureField:Deserialize: Failed to deserialize field spec of type " + fieldTypeStr );
                     }
                     fields.push_back( field );  // @TODO: is using an UnknownField placeholder the better choice on failure ?
                 }
-            }
-        }
+                else
+                {                    
+                    // We do not have a type, the type can be implicit via 'size' which means its a binary payload
+                    CORE::CString sizeValue = fieldNode->GetAttributeValueOrChildValueByName( "size" ).AsString();
+                    if ( !sizeValue.IsNULLOrEmpty() )
+                    {
+                        // we have a binary field
+                        CKaitaiSchemaBinaryScalarFieldPtr field = CKaitaiSchemaBinaryScalarField::CreateSharedObjWithParam( m_schemaMeta );
+                        if ( !field.IsNULL() )
+                        {
+                            if GUCEF_PREDICT_FALSE( !field->Deserialize( *fieldNode, settings ) )
+                            {
+                                totalSuccess = false;
+                                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaStructureField:Deserialize: Failed to deserialize binary field spec with size " + sizeValue );
+                            }
+                            fields.push_back( field );  // @TODO: is using an UnknownField placeholder the better choice on failure ?  
+                        }
+                        else
+                        {
+                            // dont assume we can recover from allocation failures
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        // Check if this is a switch section
+                        const CORE::CDataNode* switchOnNode = fieldNode->Find( "switch-on" );
+                        if ( GUCEF_NULL != switchOnNode )
+                        {
+                            // We have a switch section
+                            CKaitaiSchemaSwitchFieldPtr switchElement = CKaitaiSchemaSwitchField::CreateSharedObjWithParam( m_schemaMeta );
+                            if GUCEF_PREDICT_FALSE( switchElement.IsNULL() )
+                            {
+                                // dont assume we can recover from allocation failures
+                                return false;
+                            }
 
-        ++i;
+                            if GUCEF_PREDICT_FALSE( !switchElement->Deserialize( *switchOnNode, settings ) )
+                            {
+                                totalSuccess = false;
+                                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaStructureField:Deserialize: Failed to deserialize switch statement" );
+                            }
+                        }
+                    }
+                }
+            }
+            ++i;
+        }
+        
+        return true;
     }
     return false;
 

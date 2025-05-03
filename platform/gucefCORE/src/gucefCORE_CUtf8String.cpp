@@ -919,6 +919,44 @@ CUtf8String::GetNonMatchCharactersCount( const char* searchChars ,
 
 /*-------------------------------------------------------------------------*/
 
+UInt32 
+CUtf8String::GetNonMatchCharactersCount( const CUtf8String& searchChars ) const
+{GUCEF_TRACE;
+
+    if ( searchChars.IsNULLOrEmpty() )
+        return 0;
+
+    UInt32 charCount = 0;
+    const void* cpPos = m_string;    
+    UInt32 cp = 0;
+    for ( UInt32 i=0; i<m_length; ++i )
+    {
+        // get current codepoint of this string
+        cpPos = utf8codepoint( cpPos, &cp );
+
+        // check if the current codepoint is in the search string
+        bool wasFound = false;
+        UInt32 searchCp = 0;
+        const void* searchCpPos = searchChars.m_string;
+        for ( UInt32 n=0; n<searchChars.m_length; ++n )
+        {
+            // get current codepoint of the search Cp string
+            searchCpPos = utf8codepoint( searchCpPos, &searchCp );
+            if ( cp == searchCp )
+            {
+                wasFound = true;
+            }
+        }
+
+        // if the current codepoint was not found in the search string
+        if ( !wasFound )
+            ++charCount;
+    }
+    return charCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32
 CUtf8String::GetNonMatchCharactersCount( const Int32* searchChars ,
                                          UInt32 nrOfSearchChars   ) const
@@ -928,7 +966,7 @@ CUtf8String::GetNonMatchCharactersCount( const Int32* searchChars ,
         return 0;
 
     UInt32 charCount = 0;
-    void* cpPos = m_string;
+    const void* cpPos = m_string;
     UInt32 cp = 0;
     for ( UInt32 i=0; i<m_length; ++i )
     {
@@ -951,7 +989,7 @@ CUtf8String::GetCharacterRepeatCount( const Int32 searchChar ) const
 {GUCEF_TRACE;
 
     UInt32 charRepeatCount = 0;
-    void* cpPos = m_string;
+    const void* cpPos = m_string;
     UInt32 cp = 0;
     for ( UInt32 i=0; i<m_length; ++i )
     {

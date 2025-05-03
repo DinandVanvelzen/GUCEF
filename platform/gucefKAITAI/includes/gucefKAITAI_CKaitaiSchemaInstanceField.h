@@ -66,7 +66,8 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaInstanceField : public CKaitaiSchemaB
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
-    CKaitaiSchemaInstanceField( void );
+    CKaitaiSchemaInstanceField( void );                                   /**< dont use this, use the other constructor */
+    CKaitaiSchemaInstanceField( CKaitaiSchemaMetaPtr schemaMeta );
     CKaitaiSchemaInstanceField( const CKaitaiSchemaInstanceField& src );
     virtual ~CKaitaiSchemaInstanceField();
     CKaitaiSchemaInstanceField& operator=( const CKaitaiSchemaInstanceField& src );

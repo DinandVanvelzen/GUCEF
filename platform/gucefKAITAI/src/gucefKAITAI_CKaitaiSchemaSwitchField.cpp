@@ -58,7 +58,16 @@ const CORE::CString CKaitaiSchemaSwitchField::ClassTypeName = "GUCEF::KAITAI::CK
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaSwitchField::CKaitaiSchemaSwitchField( void )
-    : CKaitaiSchemaBaseField( SwitchField )
+    : CKaitaiSchemaBaseField( SwitchField, CKaitaiSchemaMeta::CreateSharedObj() )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaSwitchField, MT::CMutex >( this )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaSwitchField::CKaitaiSchemaSwitchField( CKaitaiSchemaMetaPtr schemaMeta )
+    : CKaitaiSchemaBaseField( SwitchField, schemaMeta )
     , CORE::CTSharedObjCreator< CKaitaiSchemaSwitchField, MT::CMutex >( this )
 {GUCEF_TRACE;
 

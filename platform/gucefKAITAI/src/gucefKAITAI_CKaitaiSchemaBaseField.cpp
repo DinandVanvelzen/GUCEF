@@ -37,6 +37,16 @@
 #define GUCEF_KAITAI_CKAITAISCHEMA_H
 #endif /* GUCEF_KAITAI_CKAITAISCHEMA_H ? */
 
+#ifndef GUCEF_KAITAI_CKAITAIGLOBAL_H
+#include "gucefKAITAI_CKaitaiGlobal.h"
+#define GUCEF_KAITAI_CKAITAIGLOBAL_H
+#endif /* GUCEF_KAITAI_CKAITAIGLOBAL_H ? */
+
+#ifndef GUCEF_KAITAI_CKAITAISCHEMAREGISTRY_H
+#include "gucefKAITAI_CKaitaiSchemaRegistry.h"
+#define GUCEF_KAITAI_CKAITAISCHEMAREGISTRY_H
+#endif /* GUCEF_KAITAI_CKAITAISCHEMAREGISTRY_H ? */
+
 #include "gucefKAITAI_CKaitaiSchemaBaseField.h"
 
 /*-------------------------------------------------------------------------//
@@ -62,7 +72,7 @@ const CORE::CString CKaitaiSchemaBaseField::ClassTypeName = "GUCEF::KAITAI::CKai
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-KaitaiSchemaFieldType 
+KaitaiSchemaElementType 
 CKaitaiSchemaBaseField::GetFieldType( void ) const
 {GUCEF_TRACE;
 
@@ -71,14 +81,12 @@ CKaitaiSchemaBaseField::GetFieldType( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaBaseField::CKaitaiSchemaBaseField( KaitaiSchemaFieldType fieldType )
+CKaitaiSchemaBaseField::CKaitaiSchemaBaseField( KaitaiSchemaElementType fieldType ,
+                                                CKaitaiSchemaMetaPtr schemaMeta   )
     : CORE::CIDataNodeSerializable()
-    , id()
-    , type()
-    , isLittleEndian( true )
     , gucefDataType( GUCEF_DATATYPE_UNKNOWN )
-    , validExpression()
     , m_fieldType( fieldType )
+    , m_schemaMeta( schemaMeta )
 {GUCEF_TRACE;
 
 }
@@ -89,10 +97,9 @@ CKaitaiSchemaBaseField::CKaitaiSchemaBaseField( const CKaitaiSchemaBaseField& sr
     : CORE::CIDataNodeSerializable( src )
     , id( src.id )
     , type( src.type )
-    , isLittleEndian( src.isLittleEndian )
     , gucefDataType( src.gucefDataType )
-    , validExpression( src.validExpression )
     , m_fieldType( src.m_fieldType )
+    , m_schemaMeta( src.m_schemaMeta )
 {GUCEF_TRACE;
 }
 
@@ -107,9 +114,7 @@ CKaitaiSchemaBaseField::operator=( const CKaitaiSchemaBaseField& src )
         CORE::CIDataNodeSerializable::operator=( src );
         id = src.id;
         type = src.type;
-        isLittleEndian = src.isLittleEndian;
         gucefDataType = src.gucefDataType;
-        validExpression = src.validExpression;
         m_fieldType = src.m_fieldType;
     }
     return *this;
@@ -123,10 +128,60 @@ CKaitaiSchemaBaseField::Clear( void )
 
     id.Clear();
     type.Clear();
-    isLittleEndian = true;
     gucefDataType = GUCEF_DATATYPE_UNKNOWN;
-    validExpression.Clear();
     m_fieldType = BaseField;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString& 
+CKaitaiSchemaBaseField::GetSchemaFamily( void ) const
+{GUCEF_TRACE;
+
+   if ( !m_schemaMeta.IsNULL() )
+       return m_schemaMeta->GetSchemaFamily();
+   return CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString& 
+CKaitaiSchemaBaseField::GetSchemaId( void ) const
+{GUCEF_TRACE;
+
+   if ( !m_schemaMeta.IsNULL() )
+       return m_schemaMeta->GetSchemaId();
+   return CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CKaitaiSchemaBaseField::IsLittleEndian( void ) const
+{GUCEF_TRACE;
+
+   if ( !m_schemaMeta.IsNULL() )
+       return m_schemaMeta->IsLittleEndian();
+   return true;
+}
+
+/*-------------------------------------------------------------------------*/
+bool 
+CKaitaiSchemaBaseField::IsBigEndian( void ) const
+{GUCEF_TRACE;
+
+   if ( !m_schemaMeta.IsNULL() )
+       return m_schemaMeta->IsBigEndian();
+   return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaMetaPtr 
+CKaitaiSchemaBaseField::GetSchemaMeta( void ) const
+{GUCEF_TRACE;
+
+    return m_schemaMeta;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -148,7 +203,13 @@ CKaitaiSchemaBaseField::CloneAsFieldObject( void ) const
     {
         case BaseField: return CKaitaiSchemaBaseFieldTypedPtr( GUCEF_NEW CKaitaiSchemaBaseField( *this ) );
         case UnknownField: return CKaitaiSchemaBaseFieldTypedPtr( GUCEF_NEW CKaitaiSchemaBaseField( *this ) );
-        case BasicField: return CKaitaiSchemaBasicField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaBasicField* >( this ) );
+
+        case NumericScalarField: return CKaitaiSchemaNumericScalarField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaNumericScalarField* >( this ) );
+        case StringScalarField: return CKaitaiSchemaStringScalarField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaStringScalarField* >( this ) );
+        case BinaryScalarField: return CKaitaiSchemaBinaryScalarField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaBinaryScalarField* >( this ) );
+
+        case EnumDefinition: return CKaitaiSchemaEnumDefinition::CreateSharedObjWithParam(*static_cast<const CKaitaiSchemaEnumDefinition*>(this));
+        
         case SwitchField: return CKaitaiSchemaSwitchField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaSwitchField* >( this ) );
         case InstanceField: return CKaitaiSchemaInstanceField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaInstanceField* >( this ) );
         case SubstreamField: return CKaitaiSchemaSubstreamField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaSubstreamField* >( this ) );
@@ -227,105 +288,195 @@ CKaitaiSchemaBaseField::KaitaiBuildInTypeStringToGucefType( const CORE::CString&
     if ( typeName.Length() == 2 )
     {
         UInt32 firstCodePoint = typeName[ 0 ];
-        if ( firstCodePoint == 'u' )
+        switch ( firstCodePoint )
         {
-            switch ( typeName[ 1 ] )
+            case 'u':
             {
-                case '1': return GUCEF_DATATYPE_UINT8;
-                case '2': return GUCEF_DATATYPE_UINT16;
-                case '4': return GUCEF_DATATYPE_UINT32;
-                case '8': return GUCEF_DATATYPE_UINT64;
+                switch ( typeName[ 1 ] )
+                {
+                    case '1': return GUCEF_DATATYPE_UINT8;
+                    case '2': return GUCEF_DATATYPE_UINT16;
+                    case '4': return GUCEF_DATATYPE_UINT32;
+                    case '8': return GUCEF_DATATYPE_UINT64;
+                }
+                break;
             }
-        }
-        else
-        if ( firstCodePoint == 'i' )
-        {
-            switch ( typeName[ 1 ] )
+            case 's':
             {
-                case '1': return GUCEF_DATATYPE_INT8;
-                case '2': return GUCEF_DATATYPE_INT16;
-                case '4': return GUCEF_DATATYPE_INT32;
-                case '8': return GUCEF_DATATYPE_INT64;
+                switch ( typeName[ 1 ] )
+                {
+                    case '1': return GUCEF_DATATYPE_INT8;
+                    case '2': return GUCEF_DATATYPE_INT16;
+                    case '4': return GUCEF_DATATYPE_INT32;
+                    case '8': return GUCEF_DATATYPE_INT64;
+                }
+                break;
             }
-        }
-        else
-        if ( firstCodePoint == 'f' )
-        {
-            switch ( typeName[ 1 ] )
+            case 'f':
             {
-                case '4': return GUCEF_DATATYPE_FLOAT32;
-                case '8': return GUCEF_DATATYPE_FLOAT64;
+                switch ( typeName[ 1 ] )
+                {
+                    case '4': return GUCEF_DATATYPE_FLOAT32;
+                    case '8': return GUCEF_DATATYPE_FLOAT64;
+                }
+                break;
+            }
+            case 'b':
+            {
+                // @todo: add support for Kaitai 'bool' type
+                // 'b1' is single bit boolean
+                return GUCEF_DATATYPE_BOOLEAN;
             }
         }
     }
-
+    else
+    {
+        if ( "str" == typeName )
+            return GUCEF_DATATYPE_STRING;
+        if ( "bytes" == typeName )
+            return GUCEF_DATATYPE_BINARY_BLOB;
+    }
     return GUCEF_DATATYPE_UNKNOWN;
 }
 
 /*-------------------------------------------------------------------------*/
 
+Int32 
+CKaitaiSchemaBaseField::KaitaiFixedSizeValueStringToFixedSizeIfAny( const CORE::CString& sizeValue ) const
+{GUCEF_TRACE;
+
+    // in Kaitai Struct, the type and size properties of a field definition are mutually exclusive. 
+    // If you specify a type, Kaitai assumes the field's size is determined by that type. 
+    // Conversely, if you specify a size, Kaitai treats the field as a raw byte array of that length, meaning you cannot also define a type.
+    Int32 fixedSize = CORE::StringToInt32( sizeValue, -1 );
+    if ( fixedSize >= 0 )
+    {
+        return fixedSize;
+    }
+    else
+    {
+        Int32 sizeofKeywordOffset = sizeValue.Lowercase().HasSubstr( "sizeof(" );
+        if ( sizeofKeywordOffset >= 0 )
+        {
+            sizeofKeywordOffset += 7; // The sizeof( keyword is 7 characters long
+
+            // The size is defined by the sizeof() keyword
+            // The usage of sizeof() mandates that the field that is referenced is a fixed size field
+            // We will need to check the registry for the type as it could be defined in the parent schema
+            Int32 sizeofKeywordEndOffset = sizeValue.HasChar( ')', static_cast< UInt32 >( sizeofKeywordOffset ), true );
+            if ( sizeofKeywordEndOffset > 0 )
+            {
+                // Extract the type name from the sizeof() expression
+                CORE::CString typeName = sizeValue.SubstrFromRange( sizeofKeywordOffset, sizeofKeywordEndOffset );
+                typeName = typeName.Trim( true ).Trim( false );
+
+                CKaitaiGlobal* kaitaiGlobal = CKaitaiGlobal::Instance();
+                CKaitaiSchemaRegistry& schemaRegistry = kaitaiGlobal->GetKaitaiSchemaRegistry();
+                CKaitaiSchemaBaseFieldPtr fieldObj = schemaRegistry.TryGetSchemaRootOrSubType( GetSchemaFamily(), GetSchemaId(), typeName );
+                if ( !fieldObj.IsNULL() )
+                {
+                    // We have a valid field object
+                    // Check if it is fixed size
+                    Int32 fieldSize = fieldObj->GetFixedSizeIfAny();
+                    if ( fieldSize >= 0 )
+                    {
+                        return fieldSize;
+                    }
+                }
+            }
+        }
+    }
+
+    // the size string could be a direct reference to a scalar field
+    // in such a case its not fixed size because the scalar field itself is the variable we rely upon
+    return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CKaitaiSchemaBaseField::IsValidPossibleFieldName( const CORE::CString& testStr )
+{GUCEF_TRACE;
+
+    if ( testStr.IsNULLOrEmpty() )
+        return false;
+
+    // Must start with a letter or underscore
+    if ( !std::isalpha( testStr[ 0 ] ) && testStr[ 0 ] != '_' )
+        return false;
+
+    // Must contain only letters, digits, underscores, or hyphens
+    static const CORE::CString validFieldNameChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-";
+    UInt32 nrOfViolations = testStr.GetNonMatchCharactersCount( validFieldNameChars );
+    
+    return nrOfViolations == 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::UInt8 
+CKaitaiSchemaBaseField::KaitaiFixedSizeValueStringToGucefType( Int32 fixedSize )
+{GUCEF_TRACE;
+
+    if ( fixedSize > 0 )
+    {
+        if ( fixedSize <= GUCEF_VARIANT_BSOB_SIZE )
+            return GUCEF_DATATYPE_BINARY_BSOB;
+        else
+            return GUCEF_DATATYPE_BINARY_BLOB;
+    }
+    return GUCEF_DATATYPE_UNKNOWN;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::UInt8 
+CKaitaiSchemaBaseField::KaitaiFixedSizeValueStringToGucefType( const CORE::CString& sizeValue ) const
+{GUCEF_TRACE;
+
+    Int32 fixedSize = KaitaiFixedSizeValueStringToFixedSizeIfAny( sizeValue );
+    return KaitaiFixedSizeValueStringToGucefType( fixedSize );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CKaitaiSchemaBaseFieldPtr
-CKaitaiSchemaBaseField::CreateDefaultFieldObjectForFieldType( KaitaiSchemaFieldType fieldType )
+CKaitaiSchemaBaseField::CreateDefaultFieldObjectForFieldType( KaitaiSchemaElementType fieldType , 
+                                                              CKaitaiSchemaMetaPtr schemaMeta   )
 {GUCEF_TRACE;
 
     switch ( fieldType )
     {
         case BaseField:
-        case BasicField:
         {
-            // the type is scalar and we can return the corresponding KaitaiSchemaFieldType
-            return CKaitaiSchemaBasicField::CreateSharedObj();
+            CKaitaiSchemaBaseFieldTypedPtr baseField( GUCEF_NEW CKaitaiSchemaBaseField( BaseField, schemaMeta ) );
+            return baseField;
         }
-        //case ConditionalField:
-        //{
-        //    // the type is scalar and we can return the corresponding KaitaiSchemaFieldType
-        //    return CKaitaiSchemaConditionalField::CreateSharedObj();
-        //}
 
-        //case RepeatedField:
-        //{
-        //    // the type is scalar and we can return the corresponding KaitaiSchemaFieldType
-        //    return CKaitaiSchemaRepeatedField::CreateSharedObj();
-        //}
-        case SwitchField:
-        {
-            return CKaitaiSchemaSwitchField::CreateSharedObj();
-        }
-        case InstanceField:
-        {
-            return CKaitaiSchemaSwitchField::CreateSharedObj();
-        }
-        case SubstreamField:
-        {
-            return CKaitaiSchemaSubstreamField::CreateSharedObj();
-        }
-        //case BitField,
-        //case EnumField,
-        case OpaqueField:
-        {
-            return CKaitaiSchemaOpaqueField::CreateSharedObj();
-        }
-        case DelimitedField:
-        {
-            return CKaitaiSchemaDelimitedField::CreateSharedObj();
-        }
-        case StructureField:
-        {
-            return CKaitaiSchemaStructureField::CreateSharedObj();
-        }
+        case NumericScalarField: return CKaitaiSchemaNumericScalarField::CreateSharedObjWithParam( schemaMeta );
+        case StringScalarField: return CKaitaiSchemaStringScalarField::CreateSharedObjWithParam( schemaMeta );
+        case BinaryScalarField: return CKaitaiSchemaBinaryScalarField::CreateSharedObjWithParam( schemaMeta );
+
+        case EnumDefinition: return CKaitaiSchemaEnumDefinition::CreateSharedObjWithParam( schemaMeta );
+
+        case SwitchField: return CKaitaiSchemaSwitchField::CreateSharedObjWithParam( schemaMeta );
+        case InstanceField: return CKaitaiSchemaInstanceField::CreateSharedObjWithParam( schemaMeta );
+        case SubstreamField: return CKaitaiSchemaSubstreamField::CreateSharedObjWithParam( schemaMeta );
+        case OpaqueField: return CKaitaiSchemaOpaqueField::CreateSharedObjWithParam( schemaMeta );
+        case DelimitedField: return CKaitaiSchemaDelimitedField::CreateSharedObjWithParam( schemaMeta );
+        case StructureField: return CKaitaiSchemaStructureField::CreateSharedObjWithParam( schemaMeta );
 
         case UnknownField:
         {
             // This type is a placeholder for a type that is not known
             // it is not intended to help data deserialization but rather allow for a schema to be
             // interpreted 'best effort' and also be displayed as such
-            CKaitaiSchemaBaseFieldTypedPtr dummyField( GUCEF_NEW CKaitaiSchemaBaseField( UnknownField ) );
+            CKaitaiSchemaBaseFieldTypedPtr dummyField( GUCEF_NEW CKaitaiSchemaBaseField( UnknownField, schemaMeta ) );
             if ( !dummyField.IsNULL() )
             {
                 dummyField->id = "UnknownField";
                 dummyField->type = "UnknownField";
                 dummyField->gucefDataType = GUCEF_DATATYPE_UNKNOWN;
-                dummyField->isLittleEndian = true;
             }
             return dummyField;
         }
@@ -338,7 +489,8 @@ CKaitaiSchemaBaseField::CreateDefaultFieldObjectForFieldType( KaitaiSchemaFieldT
 /*-------------------------------------------------------------------------*/
 
 CKaitaiSchemaBaseFieldPtr 
-CKaitaiSchemaBaseField::CreateDefaultFieldObjectForBuildInFieldTypeName( const CORE::CString& typeName )
+CKaitaiSchemaBaseField::CreateDefaultFieldObjectForBuildInFieldTypeName( const CORE::CString& typeName   ,
+                                                                         CKaitaiSchemaMetaPtr schemaMeta )
 {GUCEF_TRACE;
 
     CORE::UInt8 gupDataType = KaitaiBuildInTypeStringToGucefType( typeName );
@@ -353,9 +505,23 @@ CKaitaiSchemaBaseField::CreateDefaultFieldObjectForBuildInFieldTypeName( const C
         case GUCEF_DATATYPE_INT32:
         case GUCEF_DATATYPE_INT64:
         case GUCEF_DATATYPE_FLOAT32:
-        case GUCEF_DATATYPE_FLOAT64:
+        case GUCEF_DATATYPE_FLOAT64:        
         {
-            return CreateDefaultFieldObjectForFieldType( BasicField );
+            return CreateDefaultFieldObjectForFieldType( NumericScalarField, schemaMeta );
+        }
+        case GUCEF_DATATYPE_ASCII_STRING:
+        case GUCEF_DATATYPE_UTF8_STRING:
+        case GUCEF_DATATYPE_UTF16_LE_STRING:
+        case GUCEF_DATATYPE_UTF16_BE_STRING:
+        case GUCEF_DATATYPE_UTF32_LE_STRING:
+        case GUCEF_DATATYPE_UTF32_BE_STRING:
+        {
+            return CreateDefaultFieldObjectForFieldType( StringScalarField, schemaMeta );
+        }
+        case GUCEF_DATATYPE_BINARY_BSOB:
+        case GUCEF_DATATYPE_BINARY_BLOB:
+        {
+            return CreateDefaultFieldObjectForFieldType( BinaryScalarField, schemaMeta );
         }
 
         default:
@@ -367,63 +533,54 @@ CKaitaiSchemaBaseField::CreateDefaultFieldObjectForBuildInFieldTypeName( const C
 
 /*-------------------------------------------------------------------------*/
 
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaBaseField::CreateFieldObjectForFieldTypeStr( const CORE::CString& typeName   ,
+                                                          CKaitaiSchemaMetaPtr schemaMeta ) const
+{GUCEF_TRACE;
+
+    // First check for build-in types
+    // You should not be able to override build-in types
+    CKaitaiSchemaBaseFieldPtr fieldObj = CreateDefaultFieldObjectForBuildInFieldTypeName( typeName, schemaMeta );
+    if ( fieldObj.IsNULL() && !schemaMeta.IsNULL() )
+    {
+        // This might be a typedef
+        // We will need to check the registry for the type as it could be defined in the parent schema or any of the imports
+        CKaitaiGlobal* kaitaiGlobal = CKaitaiGlobal::Instance();
+        fieldObj = kaitaiGlobal->GetKaitaiSchemaRegistry().TryGetSchemaRootOrSubType( schemaMeta->GetSchemaFamily() , 
+                                                                                      schemaMeta->GetSchemaId()     , 
+                                                                                      typeName                      );
+    }
+    return fieldObj;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CKaitaiSchemaBaseField::IsFixedSize( void ) const
+{GUCEF_TRACE;
+
+    return GetFixedSizeIfAny() >= 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CKaitaiSchemaBaseField::GetFixedSizeIfAny( void ) const
+{GUCEF_TRACE;
+
+    // The base class is not fixed size because its not a valid type in of itself
+    // The derived classes will override this
+    return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool 
 CKaitaiSchemaBaseField::Deserialize( const CORE::CDataNode& domRootNode                  , 
                                      const CORE::CDataNodeSerializableSettings& settings )
 {GUCEF_TRACE;
     
     id = domRootNode.GetAttributeValueOrChildValueByName( "id", id, true ).AsString( id, false );
-
-    //type = domRootNode.GetAttributeValueOrChildValueByName( "type", type, true ).AsString( type, false );
-    //if ( !type.IsNULLOrEmpty() )
-    //    gucefDataType = KaitaiTypeStringToGucefType( type );
-    //else
-    //    gucefDataType = GUCEF_DATATYPE_UNKNOWN;
-
-    //if ( GUCEF_DATATYPE_UNKNOWN == gucefDataType )
-    //{
-    //    CORE::CString sizeStr = domRootNode.GetAttributeValueOrChildValueByName( "size" ).AsString();
-    //    if ( sizeStr.IsNULLOrEmpty() )
-    //    {
-    //        size.propertyType = FIELD_PROPERTY_TYPE_NOT_SPECIFIED;
-    //        size.union_data.specifiedUInt32 = CORE::StringToUInt32( sizeStr );
-    //    }
-    //    if ( CORE::IsANumber( sizeStr ) )
-    //    {
-    //        size.propertyType = FIELD_PROPERTY_TYPE_SPECIFIED_UINT32;
-    //        size.union_data.specifiedUInt32 = CORE::StringToUInt32( sizeStr );
-    //        hasSize = true;
-    //    }
-    //    else
-    //    {
-    //        hasSize = false;
-    //    }
-    //}
-    //else
-    //{
-    //    size = CORE::CVariant::ByteSizeOfFixedSizeType( gucefDataType );
-    //}
-
-    //const CORE::CDataNode* contentsNode = domRootNode.FindChild( "contents" );
-    //if ( GUCEF_NULL != contentsNode )
-    //{
-    //    // In Kaitai the contents field can be different types
-    //    if ( GUCEF_DATATYPE_ARRAY == contentsNode->GetNodeType() )
-    //    {
-    //        //todo
-    //    }
-    //    else
-    //    if ( GUCEF_DATATYPE_STRING == contentsNode->GetNodeType() )
-    //    {
-    //        contents = contentsNode->GetValue();
-    //        hasContents = true;
-    //    }
-
-    //   
-    //}
-
-    //documentation = domRootNode.GetAttributeValueOrChildValueByName( "doc" ).AsString( CORE::CString::Empty, true);
-
 
     return false;
 }

@@ -517,6 +517,12 @@ class GUCEF_CORE_PUBLIC_CPP CUtf8String
      *  Counts how many times characters differing from the given UTF32 denoted search characters
      *  occur within the UTF8 encoded string
      */
+    UInt32 GetNonMatchCharactersCount( const CUtf8String& searchChars ) const;
+
+    /**
+     *  Counts how many times characters differing from the given UTF32 denoted search characters
+     *  occur within the UTF8 encoded string
+     */
     UInt32 GetNonMatchCharactersCount( const Int32* searchChars ,
                                        UInt32 nrOfSearchChars   ) const;
 

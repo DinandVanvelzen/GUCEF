@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_KAITAI_CKAITAISCHEMABASICFIELD_H
-#define GUCEF_KAITAI_CKAITAISCHEMABASICFIELD_H
+#ifndef GUCEF_KAITAI_CKAITAISCHEMABINARYSCALARFIELD_H
+#define GUCEF_KAITAI_CKAITAISCHEMABINARYSCALARFIELD_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,32 +45,42 @@ namespace KAITAI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaBasicField : public CKaitaiSchemaBaseField ,
-                                                        public CORE::CTSharedObjCreator< CKaitaiSchemaBasicField, MT::CMutex >
+class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaBinaryScalarField : public CKaitaiSchemaBaseField ,
+                                                               public CORE::CTSharedObjCreator< CKaitaiSchemaBinaryScalarField, MT::CMutex >
 {
     public:
 
     static const CORE::CString ClassTypeName;
 
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaBasicField, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaBasicFieldPtr;  
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaBasicField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaBasicFieldTypedPtr;  
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaBinaryScalarField, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaBinaryScalarFieldPtr;  
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaBinaryScalarField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaBinaryScalarFieldTypedPtr;  
+
+    virtual Int32 GetFixedSizeIfAny( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Clear( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    CKaitaiSchemaBasicField( void );
-    CKaitaiSchemaBasicField( const CKaitaiSchemaBasicField& src );
-    virtual ~CKaitaiSchemaBasicField();
-    CKaitaiSchemaBasicField& operator=( const CKaitaiSchemaBasicField& src );
+    CKaitaiSchemaBinaryScalarField( void );                               /**< dont use this, use the other constructor */
+    CKaitaiSchemaBinaryScalarField( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaBinaryScalarField( const CKaitaiSchemaBinaryScalarField& src );
+    virtual ~CKaitaiSchemaBinaryScalarField();
+    CKaitaiSchemaBinaryScalarField& operator=( const CKaitaiSchemaBinaryScalarField& src );
+
+    private:
+
+    Int32 m_fixedSize; /**< The fixed size of the field, if any. */
+    CORE::CString m_referencedScalarFieldForSize; /**< The name of the field to reference, if any. */
+    CORE::CString m_sizeAsExpression; /**< The expression to evaluate for the size, if any. */
 
 };
 
 /*-------------------------------------------------------------------------*/
 
-typedef CKaitaiSchemaBasicField::CKaitaiSchemaBasicFieldPtr         CKaitaiSchemaBasicFieldPtr;
-typedef CKaitaiSchemaBasicField::CKaitaiSchemaBasicFieldTypedPtr    CKaitaiSchemaBasicFieldTypedPtr;
+typedef CKaitaiSchemaBinaryScalarField::CKaitaiSchemaBinaryScalarFieldPtr         CKaitaiSchemaBinaryScalarFieldPtr;
+typedef CKaitaiSchemaBinaryScalarField::CKaitaiSchemaBinaryScalarFieldTypedPtr    CKaitaiSchemaBinaryScalarFieldTypedPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -83,4 +93,4 @@ typedef CKaitaiSchemaBasicField::CKaitaiSchemaBasicFieldTypedPtr    CKaitaiSchem
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_KAITAI_CKAITAISCHEMABASICFIELD_H ? */
+#endif /* GUCEF_KAITAI_CKAITAISCHEMABINARYSCALARFIELD_H ? */

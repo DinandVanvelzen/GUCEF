@@ -50,6 +50,11 @@
 #define GUCEF_KAITAI_MACROS_H
 #endif /* GUCEF_KAITAI_MACROS_H ? */
 
+#ifndef GUCEF_KAITAI_CKAITAISCHEMAMETA_H
+#include "gucefKAITAI_CKaitaiSchemaMeta.h"
+#define GUCEF_KAITAI_CKAITAISCHEMAMETA_H
+#endif /* GUCEF_KAITAI_CKAITAISCHEMAMETA_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -65,22 +70,27 @@ namespace KAITAI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-// Enum to represent field types
-enum KaitaiSchemaFieldType 
+// Enum to represent schema element types
+enum KaitaiSchemaElementType 
 {
     UnknownField = 0,
     
-    Schema = 1,
+    Schema = 1,    
+    BaseField = 2,
+
+    NumericScalarField = 3,
+    EnumScalarField    = 4,
+    StringScalarField  = 5,
+    BinaryScalarField  = 6,
+
+    EnumDefinition = 7,
     
-    BaseField,
-    BasicField,
     ConditionalField,
     RepeatedField,
     SwitchField,
     InstanceField,
     SubstreamField,
-    BitField,
-    EnumField,
+    BitField,    
     OpaqueField,
     DelimitedField,
     StructureField
@@ -107,10 +117,8 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaBaseField : public CORE::CIDataNodeSe
     
     CORE::CString id;             // Field id
     CORE::CString type;           // Field data type
-    bool isLittleEndian;          // Byte order (true = little-endian, false = big-endian)
-    UInt8 gucefDataType;          // Custom data type for GUCEF
-    CORE::CString validExpression; // Validation expression (optional)
-    
+
+    UInt8 gucefDataType;          // Custom data type for GUCEF    
 
     /**
      * Virtual validation method.
@@ -119,7 +127,15 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaBaseField : public CORE::CIDataNodeSe
      */
     virtual bool IsValid( void ) const;
 
-    virtual KaitaiSchemaFieldType GetFieldType( void ) const;
+    virtual bool IsFixedSize( void ) const;
+    virtual Int32 GetFixedSizeIfAny( void ) const;
+    virtual KaitaiSchemaElementType GetFieldType( void ) const;
+    virtual const CORE::CString& GetSchemaFamily( void ) const;
+    virtual const CORE::CString& GetSchemaId( void ) const;    
+    virtual bool IsLittleEndian( void ) const;
+    virtual bool IsBigEndian( void ) const;
+    virtual CKaitaiSchemaMetaPtr GetSchemaMeta( void ) const;
+
     virtual void Clear( void );
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -132,20 +148,26 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaBaseField : public CORE::CIDataNodeSe
     static CORE::UInt8 StringToEndianValue( const CORE::CString& endianTypeStr );
     static const CORE::CString& EndianValueToString( CORE::UInt8 endianIdValue );
     static CORE::UInt8 KaitaiBuildInTypeStringToGucefType( const CORE::CString& typeName );
-    static CKaitaiSchemaBaseFieldPtr CreateDefaultFieldObjectForFieldType( KaitaiSchemaFieldType fieldType );
-    static CKaitaiSchemaBaseFieldPtr CreateDefaultFieldObjectForBuildInFieldTypeName( const CORE::CString& typeName );    
+    static CORE::UInt8 KaitaiFixedSizeValueStringToGucefType( Int32 sizeValue );
+    static bool IsValidPossibleFieldName( const CORE::CString& testStr );
+    CORE::UInt8 KaitaiFixedSizeValueStringToGucefType( const CORE::CString& sizeValue ) const;
+    CORE::Int32 KaitaiFixedSizeValueStringToFixedSizeIfAny( const CORE::CString& sizeValue ) const;
+    static CKaitaiSchemaBaseFieldPtr CreateDefaultFieldObjectForFieldType( KaitaiSchemaElementType fieldType, CKaitaiSchemaMetaPtr schemaMeta );
+    static CKaitaiSchemaBaseFieldPtr CreateDefaultFieldObjectForBuildInFieldTypeName( const CORE::CString& typeName, CKaitaiSchemaMetaPtr schemaMeta );    
+    virtual CKaitaiSchemaBaseFieldPtr CreateFieldObjectForFieldTypeStr( const CORE::CString& typeFieldStr, CKaitaiSchemaMetaPtr schemaMeta ) const;
 
-    CKaitaiSchemaBaseField( KaitaiSchemaFieldType fieldType );
+    CKaitaiSchemaBaseField( KaitaiSchemaElementType fieldType, CKaitaiSchemaMetaPtr schemaMeta );
     CKaitaiSchemaBaseField( const CKaitaiSchemaBaseField& src );    
     CKaitaiSchemaBaseField& operator=( const CKaitaiSchemaBaseField& src ); 
 
     protected:
 
-    KaitaiSchemaFieldType m_fieldType; // The type of field (e.g., BasicField, StructureField, etc.)
+    KaitaiSchemaElementType m_fieldType; // The type of field (e.g., BasicField, StructureField, etc.)
+    CKaitaiSchemaMetaPtr m_schemaMeta; // The schema meta information for the field, needed for context
 
     private:
 
-    CKaitaiSchemaBaseField( void );
+    CKaitaiSchemaBaseField( void ); /**< Don't use, need params to correctly construct */
 };
 
 /*-------------------------------------------------------------------------*/

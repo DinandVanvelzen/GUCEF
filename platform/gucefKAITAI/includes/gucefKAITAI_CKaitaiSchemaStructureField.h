@@ -64,23 +64,20 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaStructureField : public CKaitaiSchema
     CORE::CString params;                  // Parameters for dynamic behavior
 
     virtual void Clear( void ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual Int32 GetFixedSizeIfAny( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
-    CKaitaiSchemaBaseFieldPtr CreateFieldObjectForFieldTypeStr( const CORE::CString& typeFieldStr ) const;
-
-    CKaitaiSchemaStructureField( void );
-    CKaitaiSchemaStructureField( const CORE::CString& schemaFamily );
+    CKaitaiSchemaStructureField( void );                                  /**< dont use this, use the other constructor */
+    CKaitaiSchemaStructureField( CKaitaiSchemaMetaPtr schemaMeta );
     CKaitaiSchemaStructureField( const CKaitaiSchemaStructureField& src );
     virtual ~CKaitaiSchemaStructureField();
     CKaitaiSchemaStructureField& operator=( const CKaitaiSchemaStructureField& src );
 
     private:
-
-    CORE::CString m_schemaFamily;
 
 };
 

@@ -137,38 +137,78 @@ CKaitaiSchemaRegistry::TryGetSchema( const CORE::CString& schemaFamily ,
 /*-------------------------------------------------------------------------*/
 
 CKaitaiSchemaBaseFieldPtr 
-CKaitaiSchemaRegistry::TryGetSchemaOrSubType( const CORE::CString& schemaFamily          , 
-                                              const CORE::CString& schemaOrSubTypeName   ) const
+CKaitaiSchemaRegistry::TryGetSchemaRootOrSubType( const CORE::CString& schemaFamily      , 
+                                                  const CORE::CString& schemaId          ,
+                                                  const CORE::CString& typeNameToSearch  ) const
 {GUCEF_TRACE;
 
-    // Finding the type name at the schema level if preferred, we try that first
-    CKaitaiSchemaBaseFieldPtr schemaOrSubType = TryGetSchema( schemaFamily, schemaOrSubTypeName );
-    if ( schemaOrSubType.IsNULL() )
-    {
-        // Since we did not find the type name at the schema level we try to find it at the sub-type level
-        // this requires searching all registered schemas in the family
-        TSchemaFamilyRegistryPtr schemaFamilyRegistry;
-        if ( TryLookup( schemaFamily, schemaFamilyRegistry, false ) && schemaFamilyRegistry )
-        {            
-            TSchemaFamilyRegistry::TRegisteredObjPtrVector allSchemas;
-            schemaFamilyRegistry->GetRegisteredObjs( allSchemas );
+    // It is assumed that this function is used to search for a type name beyond the local scope
+    // if a local scope name was satisfactory it should have been used instead and locally resolved 
+    // instead of calling this function
+    
+    // Order of precedence for references in KAITAI:
+    //  1 - Instance variables defined in the same scope
+    //  2 - Fields in the same 'seq' section
+    //  3 - Enums defined in the same schema
+    //  4 - Types defined in 'types' section
+    //  5 - Imported Types
 
-            TSchemaFamilyRegistry::TRegisteredObjPtrVector::const_iterator i = allSchemas.begin();
-            while ( i != allSchemas.end() )
+    // How Imports Work in Kaitai:
+    // - You must reference imported types using the imported_schema::type_name syntax.
+    // - You cannot reference individual fields inside an imported type.
+    // - If you need access to specific fields, you must instantiate the imported type and access its fields programmatically
+
+    // In order to obey scoping rules we must use the given schema as the starting point
+    CKaitaiSchemaPtr schema = TryGetSchema( schemaFamily, schemaId );
+    if ( schema.IsNULL() )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaRegistry:TryGetSchemaRootOrSubType: Did not find schema \"" + schemaId + "\" in schema family \"" + schemaFamily + "\"" );
+        return CKaitaiSchemaBaseFieldPtr();
+    }
+
+    // First check if the function is being used to get the root of the schema
+    if ( typeNameToSearch == schemaId )
+    {
+        // the schema itself has the desired name
+        // instead of returning the schema itself we return the root structure of the schema
+        return schema->structure;
+    }
+
+    // Now per rules of precendence we check the schema for the instance variables
+
+
+    // Now we check the schema for the fields in the 'seq' section
+
+    // Now we check the schema for the enums defined in the same schema
+
+    // Now we check the schema for the types defined in the 'types' section
+
+    // Now we check the schema for the imported types
+    
+    // Since we did not find the type name at the schema level we try to find it at the sub-type level
+    // this requires searching all registered schemas in the family
+    TSchemaFamilyRegistryPtr schemaFamilyRegistry;
+    if ( TryLookup( schemaFamily, schemaFamilyRegistry, false ) && schemaFamilyRegistry )
+    {            
+        TSchemaFamilyRegistry::TRegisteredObjPtrVector allSchemas;
+        schemaFamilyRegistry->GetRegisteredObjs( allSchemas );
+
+        TSchemaFamilyRegistry::TRegisteredObjPtrVector::const_iterator i = allSchemas.begin();
+        while ( i != allSchemas.end() )
+        {
+            const TSchemaPtr& schema = (*i);
+            if ( !schema.IsNULL() )
             {
-                const TSchemaPtr& schema = (*i);
-                if ( !schema.IsNULL() )
-                {
-                    // Try to find the sub-type in the schema
-                    schemaOrSubType = schema->TryGetDefinedType( schemaOrSubTypeName );
-                    if ( !schemaOrSubType.IsNULL() )
-                        break;
-                }
-                ++i;
+                // Try to find the sub-type in the schema
+                CKaitaiSchemaBaseFieldPtr schemaOrSubType = schema->TryGetDefinedType( typeNameToSearch );
+                if ( !schemaOrSubType.IsNULL() )
+                    return schemaOrSubType;
             }
+            ++i;
         }
     }
-    return schemaOrSubType;
+
+    return CKaitaiSchemaBaseFieldPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -178,6 +218,9 @@ CKaitaiSchemaRegistry::RegisterSchema( TSchemaPtr schema                 ,
                                        const CORE::CString& schemaFamily )
 {GUCEF_TRACE;
 
+    if GUCEF_PREDICT_FALSE( schema.IsNULL() )
+        return false;
+    
     MT::CObjectScopeLock lock( AsLockable() );
     
     TRegisteredObjPtr registry;
@@ -190,15 +233,15 @@ CKaitaiSchemaRegistry::RegisterSchema( TSchemaPtr schema                 ,
 
     if ( !registry.IsNULL() )
     {
-        if ( registry->TryRegister( schema->id, schema ) )
+        if ( registry->TryRegister( schema->GetSchemaId(), schema ) )
         {
-            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaRegistry:RegisterSchema: Successfully registered new schema with id \"" + schema->id + 
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaRegistry:RegisterSchema: Successfully registered new schema with id \"" + schema->GetSchemaId() + 
                 "\" for family " + schemaFamily );
             return true;
         }
         else
         {
-            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaRegistry:RegisterSchema: Failed to register new schema with id \"" + schema->id + 
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaRegistry:RegisterSchema: Failed to register new schema with id \"" + schema->GetSchemaId() + 
                 "\" for family " + schemaFamily );
             return false;
         }
@@ -340,15 +383,15 @@ CKaitaiSchemaRegistry::LoadSchema( const CORE::CUri& schemaResource  ,
                         
             if ( RegisterSchema( schema, schemaFamily ) )
             {
-                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchema: Successfully registered schema into family " + 
-                    schemaFamily + " using resource " + CORE::ToString( schemaResource ) + ". It has " + CORE::ToString( unresolvedImports.size() ) + " unresolved imports" );
+                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaRegistry:LoadSchema: Successfully registered schema \"" + schema->GetSchemaId() + "\" into family \"" + 
+                    schemaFamily + "\" It has " + CORE::ToString( unresolvedImports.size() ) + " unresolved imports" );
 
                 return true;
             }
             else
             {
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchema: Failed to register schema into family " + 
-                    schemaFamily + " using resource " + CORE::ToString( schemaResource ) );
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaRegistry:LoadSchema: Failed to register schema \"" + schema->GetSchemaId() + "\" into family \"" + 
+                    schemaFamily + "\" using resource " + CORE::ToString( schemaResource ) );
                 return false;
             }
         }

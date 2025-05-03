@@ -32,7 +32,7 @@
 #define GUCEF_CORE_CDATANODE_H
 #endif /* GUCEF_CORE_CDATANODE_H ? */
 
-#include "gucefKAITAI_CKaitaiSchemaOpaqueField.h"
+#include "gucefKAITAI_CKaitaiSchemaNumericScalarField.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -49,7 +49,7 @@ namespace KAITAI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-const CORE::CString CKaitaiSchemaOpaqueField::ClassTypeName = "GUCEF::KAITAI::CKaitaiSchemaOpaqueField";
+const CORE::CString CKaitaiSchemaNumericScalarField::ClassTypeName = "GUCEF::KAITAI::CKaitaiSchemaNumericScalarField";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -57,42 +57,42 @@ const CORE::CString CKaitaiSchemaOpaqueField::ClassTypeName = "GUCEF::KAITAI::CK
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueField( void )
-    : CKaitaiSchemaBaseField( OpaqueField, CKaitaiSchemaMeta::CreateSharedObj() )
-    , CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >( this )
+CKaitaiSchemaNumericScalarField::CKaitaiSchemaNumericScalarField( void )
+    : CKaitaiSchemaBaseField( NumericScalarField, CKaitaiSchemaMeta::CreateSharedObj() )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaNumericScalarField, MT::CMutex >( this )
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueField( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( OpaqueField, schemaMeta )
-    , CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >( this )
+CKaitaiSchemaNumericScalarField::CKaitaiSchemaNumericScalarField( CKaitaiSchemaMetaPtr schemaMeta )
+    : CKaitaiSchemaBaseField( NumericScalarField, schemaMeta )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaNumericScalarField, MT::CMutex >( this )
 {GUCEF_TRACE;
 
 }
-
+    
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueField( const CKaitaiSchemaOpaqueField& src )    
+CKaitaiSchemaNumericScalarField::CKaitaiSchemaNumericScalarField( const CKaitaiSchemaNumericScalarField& src )    
     : CKaitaiSchemaBaseField( src )
-    , CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >( this )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaNumericScalarField, MT::CMutex >( this )
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaOpaqueField::~CKaitaiSchemaOpaqueField()
+CKaitaiSchemaNumericScalarField::~CKaitaiSchemaNumericScalarField()
 {GUCEF_TRACE;
     // Nothing to do here
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaOpaqueField& 
-CKaitaiSchemaOpaqueField::operator=( const CKaitaiSchemaOpaqueField& src )
+CKaitaiSchemaNumericScalarField& 
+CKaitaiSchemaNumericScalarField::operator=( const CKaitaiSchemaNumericScalarField& src )
 {GUCEF_TRACE;
 
     if ( this != &src )
@@ -106,16 +106,16 @@ CKaitaiSchemaOpaqueField::operator=( const CKaitaiSchemaOpaqueField& src )
 /*-------------------------------------------------------------------------*/
 
 CORE::CICloneable* 
-CKaitaiSchemaOpaqueField::Clone( void ) const
+CKaitaiSchemaNumericScalarField::Clone( void ) const
 {GUCEF_TRACE;
 
-    return GUCEF_NEW CKaitaiSchemaOpaqueField( *this );
+    return GUCEF_NEW CKaitaiSchemaNumericScalarField( *this );
 }
 
 /*-------------------------------------------------------------------------*/
 
 const CORE::CString& 
-CKaitaiSchemaOpaqueField::GetClassTypeName( void ) const
+CKaitaiSchemaNumericScalarField::GetClassTypeName( void ) const
 {GUCEF_TRACE;
 
     return ClassTypeName;
@@ -123,9 +123,18 @@ CKaitaiSchemaOpaqueField::GetClassTypeName( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+Int32
+CKaitaiSchemaNumericScalarField::GetFixedSizeIfAny( void ) const
+{GUCEF_TRACE;
+
+    return CORE::CVariant::ByteSizeOfFixedSizeType( gucefDataType );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool 
-CKaitaiSchemaOpaqueField::Serialize( CORE::CDataNode& domRootNode                        , 
-                                     const CORE::CDataNodeSerializableSettings& settings ) const
+CKaitaiSchemaNumericScalarField::Serialize( CORE::CDataNode& domRootNode                        , 
+                                            const CORE::CDataNodeSerializableSettings& settings ) const
 {GUCEF_TRACE;
 
     return false;
@@ -134,10 +143,17 @@ CKaitaiSchemaOpaqueField::Serialize( CORE::CDataNode& domRootNode               
 /*-------------------------------------------------------------------------*/
 
 bool 
-CKaitaiSchemaOpaqueField::Deserialize( const CORE::CDataNode& domRootNode                  , 
-                                       const CORE::CDataNodeSerializableSettings& settings )
+CKaitaiSchemaNumericScalarField::Deserialize( const CORE::CDataNode& domRootNode                  , 
+                                              const CORE::CDataNodeSerializableSettings& settings )
 {GUCEF_TRACE;
 
+    id = domRootNode.GetAttributeValueOrChildValueByName( "id" ).AsString();
+    type = domRootNode.GetAttributeValueOrChildValueByName( "type" ).AsString();
+    if ( !type.IsNULLOrEmpty() )
+    {
+        gucefDataType = KaitaiBuildInTypeStringToGucefType( type );
+        return true;
+    }
     return false;
 }
 

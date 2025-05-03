@@ -21,13 +21,16 @@ set( HEADER_FILES
   includes/gucefKAITAI_CKaitaiReader.h
   includes/gucefKAITAI_CKaitaiSchema.h
   includes/gucefKAITAI_CKaitaiSchemaBaseField.h
-  includes/gucefKAITAI_CKaitaiSchemaBasicField.h
+  includes/gucefKAITAI_CKaitaiSchemaBinaryScalarField.h
   includes/gucefKAITAI_CKaitaiSchemaDelimitedField.h
   includes/gucefKAITAI_CKaitaiSchemaEnumDefinition.h
   includes/gucefKAITAI_CKaitaiSchemaFieldDefinition.h
   includes/gucefKAITAI_CKaitaiSchemaInstanceField.h
+  includes/gucefKAITAI_CKaitaiSchemaMeta.h
+  includes/gucefKAITAI_CKaitaiSchemaNumericScalarField.h
   includes/gucefKAITAI_CKaitaiSchemaOpaqueField.h
   includes/gucefKAITAI_CKaitaiSchemaRegistry.h
+  includes/gucefKAITAI_CKaitaiSchemaStringScalarField.h
   includes/gucefKAITAI_CKaitaiSchemaStructureField.h
   includes/gucefKAITAI_CKaitaiSchemaSubstreamField.h
   includes/gucefKAITAI_CKaitaiSchemaSwitchField.h
@@ -47,13 +50,16 @@ set( SOURCE_FILES
   src/gucefKAITAI_CKaitaiReader.cpp
   src/gucefKAITAI_CKaitaiSchema.cpp
   src/gucefKAITAI_CKaitaiSchemaBaseField.cpp
-  src/gucefKAITAI_CKaitaiSchemaBasicField.cpp
+  src/gucefKAITAI_CKaitaiSchemaBinaryScalarField.cpp
   src/gucefKAITAI_CKaitaiSchemaDelimitedField.cpp
   src/gucefKAITAI_CKaitaiSchemaEnumDefinition.cpp
   src/gucefKAITAI_CKaitaiSchemaFieldDefinition.cpp
   src/gucefKAITAI_CKaitaiSchemaInstanceField.cpp
+  src/gucefKAITAI_CKaitaiSchemaMeta.cpp
+  src/gucefKAITAI_CKaitaiSchemaNumericScalarField.cpp
   src/gucefKAITAI_CKaitaiSchemaOpaqueField.cpp
   src/gucefKAITAI_CKaitaiSchemaRegistry.cpp
+  src/gucefKAITAI_CKaitaiSchemaStringScalarField.cpp
   src/gucefKAITAI_CKaitaiSchemaStructureField.cpp
   src/gucefKAITAI_CKaitaiSchemaSubstreamField.cpp
   src/gucefKAITAI_CKaitaiSchemaSwitchField.cpp

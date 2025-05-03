@@ -58,7 +58,16 @@ const CORE::CString CKaitaiSchemaInstanceField::ClassTypeName = "GUCEF::KAITAI::
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaInstanceField::CKaitaiSchemaInstanceField( void )
-    : CKaitaiSchemaBaseField( InstanceField )
+    : CKaitaiSchemaBaseField( InstanceField, CKaitaiSchemaMeta::CreateSharedObj() )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaInstanceField, MT::CMutex >( this )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaInstanceField::CKaitaiSchemaInstanceField( CKaitaiSchemaMetaPtr schemaMeta )
+    : CKaitaiSchemaBaseField( InstanceField, schemaMeta )
     , CORE::CTSharedObjCreator< CKaitaiSchemaInstanceField, MT::CMutex >( this )
 {GUCEF_TRACE;
 

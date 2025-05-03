@@ -60,7 +60,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaSwitchField : public CKaitaiSchemaBas
     typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaSwitchField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaSwitchFieldTypedPtr;
     
     CORE::CString switchOn;                              // Expression to determine type
-    std::map<CORE::CString, CORE::CString> cases;        // Mapping of cases to types
+    std::map<CORE::CVariant, CORE::CString> cases;        // Mapping of cases to types
     CORE::CString defaultCase;                           // Default case for unmatched conditions
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -68,7 +68,8 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaSwitchField : public CKaitaiSchemaBas
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
-    CKaitaiSchemaSwitchField( void );
+    CKaitaiSchemaSwitchField( void );                               /**< dont use this, use the other constructor */
+    CKaitaiSchemaSwitchField( CKaitaiSchemaMetaPtr schemaMeta );
     CKaitaiSchemaSwitchField( const CKaitaiSchemaSwitchField& src );
     virtual ~CKaitaiSchemaSwitchField();
     CKaitaiSchemaSwitchField& operator=( const CKaitaiSchemaSwitchField& src );

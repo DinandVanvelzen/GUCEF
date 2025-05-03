@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_KAITAI_CKAITAISCHEMASUBSTREAMFIELD_H
-#define GUCEF_KAITAI_CKAITAISCHEMASUBSTREAMFIELD_H
+#ifndef GUCEF_KAITAI_CKAITAISCHEMASTRINGSCALARFIELD_H
+#define GUCEF_KAITAI_CKAITAISCHEMASTRINGSCALARFIELD_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,39 +45,39 @@ namespace KAITAI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- * CSubstreamField represents substreams and supports custom processing routines.
- * Useful for handling compressed, encrypted, or obfuscated data.
- */
-class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaSubstreamField : public CKaitaiSchemaBaseField ,
-                                                            public CORE::CTSharedObjCreator< CKaitaiSchemaSubstreamField, MT::CMutex >
+class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaStringScalarField : public CKaitaiSchemaBaseField ,
+                                                               public CORE::CTSharedObjCreator< CKaitaiSchemaStringScalarField, MT::CMutex >
 {
     public:
 
     static const CORE::CString ClassTypeName;
 
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaSubstreamField, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaSubstreamFieldPtr;
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaSubstreamField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaSubstreamFieldTypedPtr;
-    
-    CORE::CString substream;         // Reference to the substream
-    CORE::CString processingRoutine; // Hook for custom processing logic (e.g., XOR, compression)
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaStringScalarField, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaStringScalarFieldPtr;  
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaStringScalarField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaStringScalarFieldTypedPtr;  
+
+    virtual Int32 GetFixedSizeIfAny( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
-    CKaitaiSchemaSubstreamField( void );                            /**< dont use this, use the other constructor */
-    CKaitaiSchemaSubstreamField( CKaitaiSchemaMetaPtr schemaMeta );
-    CKaitaiSchemaSubstreamField( const CKaitaiSchemaSubstreamField& src );
-    virtual ~CKaitaiSchemaSubstreamField();
-    CKaitaiSchemaSubstreamField& operator=( const CKaitaiSchemaSubstreamField& src );
+    CKaitaiSchemaStringScalarField( void );                               /**< dont use this, use the other constructor */
+    CKaitaiSchemaStringScalarField( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaStringScalarField( const CKaitaiSchemaStringScalarField& src );
+    virtual ~CKaitaiSchemaStringScalarField();
+    CKaitaiSchemaStringScalarField& operator=( const CKaitaiSchemaStringScalarField& src );
+
+    private:
+
+    CORE::CString m_encoding; /**< The encoding of the string, e.g. "utf-8" */
+
 };
 
 /*-------------------------------------------------------------------------*/
 
-typedef CKaitaiSchemaSubstreamField::CKaitaiSchemaSubstreamFieldPtr         CKaitaiSchemaSubstreamFieldPtr;
-typedef CKaitaiSchemaSubstreamField::CKaitaiSchemaSubstreamFieldTypedPtr    CKaitaiSchemaSubstreamFieldTypedPtr;
+typedef CKaitaiSchemaStringScalarField::CKaitaiSchemaStringScalarFieldPtr         CKaitaiSchemaStringScalarFieldPtr;
+typedef CKaitaiSchemaStringScalarField::CKaitaiSchemaStringScalarFieldTypedPtr    CKaitaiSchemaStringScalarFieldTypedPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -90,4 +90,4 @@ typedef CKaitaiSchemaSubstreamField::CKaitaiSchemaSubstreamFieldTypedPtr    CKai
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_KAITAI_CKAITAISCHEMASUBSTREAMFIELD_H ? */
+#endif /* GUCEF_KAITAI_CKAITAISCHEMASTRINGSCALARFIELD_H ? */
