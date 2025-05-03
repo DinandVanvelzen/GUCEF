@@ -14,12 +14,23 @@
 set( HEADER_FILES 
   includes/gucefKAITAI.h
   includes/gucefKAITAI_CGlobalKaitaiSchemaRegistry.h
+  includes/gucefKAITAI_CKaitaiDStoreCodec.h
+  includes/gucefKAITAI_CKaitaiDataDrivenDStoreCodec.h
+  includes/gucefKAITAI_CKaitaiDataDrivenDStoreCodecFactory.h
   includes/gucefKAITAI_CKaitaiGlobal.h
   includes/gucefKAITAI_CKaitaiReader.h
   includes/gucefKAITAI_CKaitaiSchema.h
+  includes/gucefKAITAI_CKaitaiSchemaBaseField.h
+  includes/gucefKAITAI_CKaitaiSchemaBasicField.h
+  includes/gucefKAITAI_CKaitaiSchemaDelimitedField.h
   includes/gucefKAITAI_CKaitaiSchemaEnumDefinition.h
   includes/gucefKAITAI_CKaitaiSchemaFieldDefinition.h
+  includes/gucefKAITAI_CKaitaiSchemaInstanceField.h
+  includes/gucefKAITAI_CKaitaiSchemaOpaqueField.h
   includes/gucefKAITAI_CKaitaiSchemaRegistry.h
+  includes/gucefKAITAI_CKaitaiSchemaStructureField.h
+  includes/gucefKAITAI_CKaitaiSchemaSubstreamField.h
+  includes/gucefKAITAI_CKaitaiSchemaSwitchField.h
   includes/gucefKAITAI_CKaitaiSerializer.h
   includes/gucefKAITAI_CModule.h
   includes/gucefKAITAI_ETypes.h
@@ -29,12 +40,23 @@ set( HEADER_FILES
 
 set( SOURCE_FILES 
   src/gucefKAITAI_CGlobalKaitaiSchemaRegistry.cpp
+  src/gucefKAITAI_CKaitaiDStoreCodec.cpp
+  src/gucefKAITAI_CKaitaiDataDrivenDStoreCodec.cpp
+  src/gucefKAITAI_CKaitaiDataDrivenDStoreCodecFactory.cpp
   src/gucefKAITAI_CKaitaiGlobal.cpp
   src/gucefKAITAI_CKaitaiReader.cpp
   src/gucefKAITAI_CKaitaiSchema.cpp
+  src/gucefKAITAI_CKaitaiSchemaBaseField.cpp
+  src/gucefKAITAI_CKaitaiSchemaBasicField.cpp
+  src/gucefKAITAI_CKaitaiSchemaDelimitedField.cpp
   src/gucefKAITAI_CKaitaiSchemaEnumDefinition.cpp
   src/gucefKAITAI_CKaitaiSchemaFieldDefinition.cpp
+  src/gucefKAITAI_CKaitaiSchemaInstanceField.cpp
+  src/gucefKAITAI_CKaitaiSchemaOpaqueField.cpp
   src/gucefKAITAI_CKaitaiSchemaRegistry.cpp
+  src/gucefKAITAI_CKaitaiSchemaStructureField.cpp
+  src/gucefKAITAI_CKaitaiSchemaSubstreamField.cpp
+  src/gucefKAITAI_CKaitaiSchemaSwitchField.cpp
   src/gucefKAITAI_CModule.cpp
 )
 

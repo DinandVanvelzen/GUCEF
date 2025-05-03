@@ -159,6 +159,23 @@ CDataNode::Clear( void )
 
 /*-------------------------------------------------------------------------*/
 
+bool 
+CDataNode::IsEmpty( void ) const
+{GUCEF_TRACE;
+
+    return ( m_nodeType == GUCEF_DATATYPE_OBJECT || m_nodeType == GUCEF_DATATYPE_UNKNOWN ) &&
+           _name.IsNULLOrEmpty() &&
+           m_value.IsNULLOrEmpty() &&
+           _atts.empty() &&
+           _pparent == GUCEF_NULL &&
+           m_children.empty() &&
+           _pnext == GUCEF_NULL &&
+           _pprev == GUCEF_NULL &&
+           m_associatedData == GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void       
 CDataNode::Detach( void )
 {GUCEF_TRACE;
@@ -1974,11 +1991,13 @@ CDataNode::GetMappedValuesOfChildByName( const CString& name               ,
     CDataNode* collectionNode = FindChild( name );
     if ( GUCEF_NULL != collectionNode )
     {
+        UInt64 childIndex = 1;
         TDataNodeList::const_iterator i = collectionNode->m_children.begin();
         while ( i != collectionNode->m_children.end() )
         {
             switch ( (*i)->GetNodeType() )
             {
+                case GUCEF_DATATYPE_SET:
                 case GUCEF_DATATYPE_ARRAY:
                 {
                     // Complex types cannot be obtained this way, skip
@@ -1990,19 +2009,36 @@ CDataNode::GetMappedValuesOfChildByName( const CString& name               ,
                     const CVariant& childValue = (*i)->GetValue();
                     if ( childValue.IsInitialized() )
                     {
-                        if ( linkIfPossible )
+                        if ( childName.IsNULLOrEmpty() )
                         {
-                            CVariant& valueVar = outValues[ childName ];
-                            valueVar.LinkTo( childValue );
+                            if ( linkIfPossible )
+                            {
+                                CVariant& valueVar = outValues[ childIndex ];
+                                valueVar.LinkTo( childValue );
+                            }
+                            else
+                            {
+                                outValues[ childIndex ] = childValue;
+                            }
                         }
                         else
-                        {
-                            outValues[ childName ] = childValue;
+                        {                        
+                            if ( linkIfPossible )
+                            {
+                                CVariant& valueVar = outValues[ childName ];
+                                valueVar.LinkTo( childValue );
+                            }
+                            else
+                            {
+                                outValues[ childName ] = childValue;
+                            }
                         }
                     }
                     break;
                 }
             }
+
+            ++childIndex;
             ++i;
         }
 

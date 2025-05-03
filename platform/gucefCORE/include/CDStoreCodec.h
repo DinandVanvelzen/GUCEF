@@ -83,7 +83,7 @@ class GUCEF_CORE_PUBLIC_CPP CDStoreCodec : public CICloneable
      *      @return whether storing the tree was successful
      */
     virtual bool StoreDataTree( const CDataNode* tree   ,
-                                const CString& filename ) = 0;
+                                const CString& filename );
 
     /**
      *      Attempts to store the given tree in the file
@@ -107,7 +107,7 @@ class GUCEF_CORE_PUBLIC_CPP CDStoreCodec : public CICloneable
      *      @return whether building the tree from the given file was successful.
      */
     virtual bool BuildDataTree( CDataNode* treeroot     ,
-                                const CString& filename ) = 0;
+                                const CString& filename );
 
     /**
      *      Attempts to load data from the given file to the

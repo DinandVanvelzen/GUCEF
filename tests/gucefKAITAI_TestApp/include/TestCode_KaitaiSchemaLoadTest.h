@@ -26,7 +26,7 @@
 //-------------------------------------------------------------------------*/
 
 void
-PerformKaitaiSchemaLoadTest( void );
+PerformKaitaiTest_ConfigDrivenCodecSpecification( void );
 
 /*-------------------------------------------------------------------------*/
 

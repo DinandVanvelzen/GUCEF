@@ -63,23 +63,10 @@ namespace CORE {
 
 UInt32
 IsANumber( const char* str )
-{
-    if ( NULL == str )
-        return 0;
-    if ( '\0' == *str )
-        return 0;
+{GUCEF_TRACE;
 
-    bool foundDigit = false;
-    while ( '\0' != *str )
-    {
-        if ( *str >= 48 && *str <= 57 )
-            foundDigit = true;
-        else
-        if ( *str != '.' )
-            return 0;
-        ++str;
-    }
-    return foundDigit ? 1 : 0;
+    // Just call the C++ implementation
+    return IsANumber( CString( str ) ) ? 1 : 0;
 }
 
 /*--------------------------------------------------------------------------*/

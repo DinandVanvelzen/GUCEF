@@ -190,7 +190,7 @@ CTONRegistry< T, LockType >::Register( const CString& name                ,
                                        const TRegisteredObjPtr& sharedPtr )
 {GUCEF_TRACE;
 
-    TExpansionBase::Lock();
+    MT::CObjectScopeLock lock( AsLockable() );    
 
     try
     {
@@ -200,10 +200,8 @@ CTONRegistry< T, LockType >::Register( const CString& name                ,
     }
     catch ( typename TExpansionBase::EAlreadyRegistered& e )
     {
-        TExpansionBase::Unlock();
         throw e;
     }
-    TExpansionBase::Unlock();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -214,7 +212,7 @@ CTONRegistry< T, LockType >::TryRegister( const CString& name                ,
                                           const TRegisteredObjPtr& sharedPtr )
 {GUCEF_TRACE;
 
-    TExpansionBase::Lock();
+    MT::CObjectScopeLock lock( AsLockable() );
 
     bool wasRegistered = CTObservingNotifierExpansion< CTRegistry< T, LockType > >::TryRegister( name, sharedPtr );
     if ( wasRegistered )
@@ -222,8 +220,6 @@ CTONRegistry< T, LockType >::TryRegister( const CString& name                ,
         ItemRegisteredEventData eData( name );
         TExpansionBase::NotifyObservers( ItemRegisteredEvent, &eData );
     }
-
-    TExpansionBase::Unlock();
 
     return wasRegistered;
 }
@@ -235,13 +231,11 @@ void
 CTONRegistry< T, LockType >::Unregister( const CString& name )
 {GUCEF_TRACE;
 
-    TExpansionBase::Lock();
+    MT::CObjectScopeLock lock( AsLockable() );
 
     CTObservingNotifierExpansion< CTRegistry< T, LockType > >::Unregister( name );
     ItemRegisteredEventData eData( name );
     TExpansionBase::NotifyObservers( ItemRegisteredEvent, &eData );
-
-    TExpansionBase::Unlock();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -251,7 +245,7 @@ void
 CTONRegistry< T, LockType >::UnregisterAll( void )
 {GUCEF_TRACE;
 
-    TExpansionBase::Lock();
+    MT::CObjectScopeLock lock( AsLockable() );
 
     CString::StringVector list;
     this->GetRegisteredObjNames( list );
@@ -260,8 +254,6 @@ CTONRegistry< T, LockType >::UnregisterAll( void )
     {
         Unregister( list[ i ] );
     }
-
-    TExpansionBase::Unlock();
 }
 
 /*-------------------------------------------------------------------------*/

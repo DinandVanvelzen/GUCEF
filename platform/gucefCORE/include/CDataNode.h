@@ -135,6 +135,8 @@ class GUCEF_CORE_PUBLIC_CPP CDataNode : public CIEnumerable
 
     bool operator!=( const CDataNode& other ) const;
 
+    bool IsEmpty( void ) const;
+
     bool Compare( const CDataNode& other        ,
                   const TStringSet& excludeList ) const;
 

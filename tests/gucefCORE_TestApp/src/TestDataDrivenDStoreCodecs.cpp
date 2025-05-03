@@ -329,6 +329,9 @@ PerformProtobufTestsIfFeasible_DataBootstrap( void )
     CORE::CDataDrivenDStoreCodecFactory& ddCodecFactory = coreGlobal->GetDataDrivenDStoreCodecFactory();
     CORE::CDStoreCodecRegistry& codecRegistry = coreGlobal->GetDStoreCodecRegistry();
 
+    ddCodecFactory.UnregisterAll();
+    ddCodecFactory.UnregisterAllConcreteFactories();
+
     // prepare the "AllTypesMessage" codec
 
     ddCodecMetaAllTypesMessage = CORE::CDataDrivenDStoreCodecMeta::CreateSharedObj();
@@ -682,6 +685,77 @@ PerformProtobufTest_ComplexMessage( void )
 /*-------------------------------------------------------------------------*/
 
 void
+PerformProtobufTest_ConfigDrivenCodecSpecification( void )
+{GUCEF_TRACE;
+
+    try
+    {
+        CORE::CCoreGlobal* coreGlobal = CORE::CCoreGlobal::Instance();
+        CORE::CPluginControl& pluginControl = coreGlobal->GetPluginControl();
+        CORE::CDStoreCodecRegistry& codecRegistry = coreGlobal->GetDStoreCodecRegistry();
+        CORE::CDStoreCodecPluginManager& codecPluginManager = coreGlobal->GetDStoreCodecPluginManager();
+        CORE::CDataDrivenDStoreCodecFactory& ddCodecFactory = coreGlobal->GetDataDrivenDStoreCodecFactory();
+
+        ddCodecFactory.UnregisterAll();
+        
+        // We dont want to test the entire global config loading but we know that the data driven data storage 
+        // codec factory is actually a global factory so we can just test that subset of the config loading
+
+        CORE::CDataNode ddCodecFactoryConfig( "GlobalDataDrivenDStoreCodecFactory", GUCEF_DATATYPE_OBJECT );
+        ddCodecFactoryConfig.SetAttribute( "autoInstantiateShareableCodecs", true );
+
+        CORE::CUri allTypesUri;
+        ASSERT_TRUE( CORE::CDataUriResourceAccessor::CreateDataUriFromText( allTypesUri, "application/test-protobuf-AllTypesMessage", PROTO_DEFINITION_ALL_TYPES, CORE::CDataUriResourceAccessor::DATAURI_ENCODING_BASE64 ) );    
+
+        CORE::CDataNode* codecConfigMetaNode = ddCodecFactoryConfig.AddChild( "codecMeta", GUCEF_DATATYPE_ARRAY );
+        ASSERT_TRUE( GUCEF_NULL != codecConfigMetaNode );
+
+        CORE::CDataNode* allTypesCodecConfigNode = codecConfigMetaNode->AddChild( "codecMetaDefinition", GUCEF_DATATYPE_OBJECT );
+        ASSERT_TRUE( GUCEF_NULL != allTypesCodecConfigNode );
+        allTypesCodecConfigNode->SetAttribute( "dataDrivenCodecTypeName", ddCodecTypeNameForAllTypesMessage );
+        allTypesCodecConfigNode->SetAttribute( "baseCodecTypeName", "protobuf" );
+        allTypesCodecConfigNode->SetAttribute( "isShareable", "true" );
+        CORE::CDataNode* allTypesCodecResourcesConfigNode = allTypesCodecConfigNode->AddChild( "resources", GUCEF_DATATYPE_ARRAY );
+        ASSERT_TRUE( GUCEF_NULL != allTypesCodecResourcesConfigNode );
+        ASSERT_TRUE( GUCEF_NULL != allTypesCodecResourcesConfigNode->AddValueAsChild( allTypesUri ) );
+
+        CORE::CUri nestedMsgUri;
+        ASSERT_TRUE( CORE::CDataUriResourceAccessor::CreateDataUriFromText( nestedMsgUri, "application/test-protobuf-NestedMessage", PROTO_DEFINITION_NESTED, CORE::CDataUriResourceAccessor::DATAURI_ENCODING_BASE64 ) );    
+
+        CORE::CDataNode* nestedMsgConfigNode = codecConfigMetaNode->AddChild( "codecMetaDefinition", GUCEF_DATATYPE_OBJECT );
+        ASSERT_TRUE( GUCEF_NULL != nestedMsgConfigNode );
+        nestedMsgConfigNode->SetAttribute( "dataDrivenCodecTypeName", ddCodecTypeNameForNestedMessage );
+        nestedMsgConfigNode->SetAttribute( "baseCodecTypeName", "protobuf" );
+        nestedMsgConfigNode->SetAttribute( "isShareable", "true" );
+        CORE::CDataNode* nestedMsgCodecResourcesConfigNode = nestedMsgConfigNode->AddChild( "resources", GUCEF_DATATYPE_ARRAY );
+        ASSERT_TRUE( GUCEF_NULL != nestedMsgCodecResourcesConfigNode );
+        ASSERT_TRUE( GUCEF_NULL != nestedMsgCodecResourcesConfigNode->AddValueAsChild( nestedMsgUri ) );
+
+        CORE::CUri complexMsgUri;
+        ASSERT_TRUE( CORE::CDataUriResourceAccessor::CreateDataUriFromText( complexMsgUri, "application/test-protobuf-ComplexMessage", PROTO_DEFINITION_COMPLEX, CORE::CDataUriResourceAccessor::DATAURI_ENCODING_BASE64 ) );    
+
+        CORE::CDataNode* complexMsgCodecConfigNode = codecConfigMetaNode->AddChild( "codecMetaDefinition", GUCEF_DATATYPE_OBJECT );
+        ASSERT_TRUE( GUCEF_NULL != complexMsgCodecConfigNode );
+        complexMsgCodecConfigNode->SetAttribute( "dataDrivenCodecTypeName", ddCodecTypeNameForComplexMessage );
+        complexMsgCodecConfigNode->SetAttribute( "baseCodecTypeName", "protobuf" );
+        complexMsgCodecConfigNode->SetAttribute( "isShareable", "true" );
+        CORE::CDataNode* complexMsgCodecResourcesConfigNode = complexMsgCodecConfigNode->AddChild( "resources", GUCEF_DATATYPE_ARRAY );
+        ASSERT_TRUE( GUCEF_NULL != complexMsgCodecResourcesConfigNode );
+        ASSERT_TRUE( GUCEF_NULL != complexMsgCodecResourcesConfigNode->AddValueAsChild( complexMsgUri ) );
+
+
+        ASSERT_TRUE( ddCodecFactory.LoadConfig( ddCodecFactoryConfig ) );
+
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 PerformProtobufTestsIfFeasible( void )
 {GUCEF_TRACE;
 
@@ -712,6 +786,9 @@ PerformProtobufTestsIfFeasible( void )
 
             // Finally we can test a more complex message with repeated fields, maps and oneof
             PerformProtobufTest_ComplexMessage();
+
+            // Also test the config driven codec specification instead of direct hardcoding
+            PerformProtobufTest_ConfigDrivenCodecSpecification();
 
         }
     }

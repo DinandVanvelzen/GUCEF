@@ -107,6 +107,44 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+bool
+IsANumber( const CString& strToTest )
+{GUCEF_TRACE;
+
+    if ( strToTest.IsNULLOrEmpty() )
+        return false;
+
+    UInt32 codePoint = 0;
+    
+    // Check for a leading sign
+    UInt32 startPos = 0;
+    codePoint = strToTest[ 0 ];
+    if ( codePoint == '-' || codePoint == '+' )
+        ++startPos;
+
+    // Check for a decimal point
+    bool decimalPointFound = false;
+    for ( UInt32 i=startPos; i<strToTest.Length(); ++i )
+    {
+        UInt32 codePoint = strToTest[ i ];
+        if ( codePoint == '.' )
+        {
+            if ( decimalPointFound )
+                return false;
+            else
+                decimalPointFound = true;
+        }
+        else
+        {
+            if ( codePoint < 48 || codePoint > 57 )
+                return false;
+        }
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CString
 TempDir( void )
 {GUCEF_TRACE;

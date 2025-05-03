@@ -23,6 +23,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CDATANODE_H 
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
+
 #include "gucefCORE_CDataDrivenDStoreCodecFactory.h"
 
 /*-------------------------------------------------------------------------//
@@ -51,6 +56,7 @@ const CString CDataDrivenDStoreCodecFactory::ClassTypeName = "GUCEF::CORE::CData
 CDataDrivenDStoreCodecFactory::CDataDrivenDStoreCodecFactory( void )
     : CTAbstractFactoryWithParam< CString, CDataDrivenDStoreCodec, CDataDrivenDStoreCodecMetaPtr, MT::CMutex >()
     , CTONRegistry< CDataDrivenDStoreCodecMeta, MT::CMutex >()
+    , m_autoInstantiateShareableCodecs( false )
 {GUCEF_TRACE;
 
 }
@@ -134,6 +140,99 @@ CDataDrivenDStoreCodecFactory::Unlock( void ) const
 
     // we will use the base factory lock as THE lock to remove ambiguity
     return CTAbstractFactoryWithParam< CString, CDataDrivenDStoreCodec, CDataDrivenDStoreCodecMetaPtr, MT::CMutex >::Unlock();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataDrivenDStoreCodecFactory::SaveConfig( CDataNode& cfg ) const
+{GUCEF_TRACE;
+
+    return false; // not implemented yet
+}
+
+/*-------------------------------------------------------------------------*/
+
+void 
+CDataDrivenDStoreCodecFactory::SetAutoInstantiateShareableCodecs( bool autoInstantiateShareableCodecs )
+{GUCEF_TRACE;
+
+    m_autoInstantiateShareableCodecs = autoInstantiateShareableCodecs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CDataDrivenDStoreCodecFactory::GetAutoInstantiateShareableCodecs( void ) const
+{GUCEF_TRACE;
+
+    return m_autoInstantiateShareableCodecs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataDrivenDStoreCodecFactory::LoadConfig( const CDataNode& cfg )
+{GUCEF_TRACE;
+
+    m_autoInstantiateShareableCodecs = cfg.GetAttributeValueOrChildValueByName( "autoInstantiateShareableCodecs", m_autoInstantiateShareableCodecs ).AsBool( m_autoInstantiateShareableCodecs );
+    
+    const CDataNode* allCodecMetaCfg = cfg.Find( "codecMeta" );
+    if ( GUCEF_NULL != allCodecMetaCfg )
+    {
+        CStringSet newSharableCodecsToInit;
+        
+        // Iterate over all codec meta-data and register them
+        CDataNode::const_iterator it = allCodecMetaCfg->ConstBegin();            
+        while ( it != allCodecMetaCfg->ConstEnd() )
+        {
+            const CDataNode* codecMetaCfg = (*it);
+            if ( GUCEF_NULL != codecMetaCfg && codecMetaCfg->GetNodeType() == GUCEF_DATATYPE_OBJECT )
+            {
+                CDataDrivenDStoreCodecMetaPtr codecMeta = CDataDrivenDStoreCodecMeta::CreateSharedObj();
+                if ( !codecMeta.IsNULL() )
+                {
+                    if ( codecMeta->LoadConfig( *codecMetaCfg ) )
+                    {
+                        // Register the codec meta-data with the registry
+                        // This allows us to create codecs of this type later on
+                        if ( TryRegister( codecMeta->GetDataDrivenCodecTypeName(), codecMeta ) )
+                        {
+                            if ( codecMeta->IsShareable() && m_autoInstantiateShareableCodecs )
+                            {
+                                newSharableCodecsToInit.insert( codecMeta->GetDataDrivenCodecTypeName() );
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // we dont know if we were able to parse a name for the log statement, best effort
+                        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DataDrivenDStoreCodecFactory:LoadConfig: Failed to load config for data driven codec meta-data. Possibly for codec type: \"" + codecMeta->GetDataDrivenCodecTypeName() + "\"" );
+                    }
+                }
+            }
+            ++it;
+        }
+
+        // Now instantiate codecs as applicable
+        CStringSet::iterator i = newSharableCodecsToInit.begin();
+        while ( i != newSharableCodecsToInit.end() )
+        {
+            const CString& codecTypeName = (*i);
+            CDataDrivenDStoreCodecPtr codec = CreateCodec( codecTypeName, true );
+            if ( !codec.IsNULL() )
+            {
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DataDrivenDStoreCodecFactory:LoadConfig: Successfully instantiated shareable codec of type: \"" + codecTypeName + "\"" );
+            }
+            else
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DataDrivenDStoreCodecFactory:LoadConfig: Failed to instantiate shareable codec of type: \"" + codecTypeName + "\"" );
+            }
+            ++i;
+        }
+    }
+
+    return false;
 }
 
 /*-------------------------------------------------------------------------//

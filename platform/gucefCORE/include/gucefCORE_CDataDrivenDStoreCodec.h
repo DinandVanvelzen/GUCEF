@@ -71,6 +71,14 @@ class GUCEF_CORE_PUBLIC_CPP CDataDrivenDStoreCodec : public CDStoreCodec
 
     virtual bool IsCodecTypeDataDriven( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /**
+     *  Returns the codec type
+     *  a dat file codec might return "dat" and an xml codec "xml" ect.
+     *
+     *  @return the codec type
+     */
+    virtual CORE::CString GetTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     protected:
 
     CDataDrivenDStoreCodecMetaPtr m_codecMeta;

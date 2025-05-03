@@ -35,6 +35,11 @@
 #define GUCEF_CORE_CIDATANODESERIALIZABLE_H
 #endif /* GUCEF_CORE_CIDATANODESERIALIZABLE_H ? */
 
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
+
 #ifndef GUCEF_CORE_CURI_H
 #include "gucefCORE_CUri.h"
 #define GUCEF_CORE_CURI_H
@@ -45,15 +50,45 @@
 #define GUCEF_KAITAI_MACROS_H
 #endif /* GUCEF_KAITAI_MACROS_H ? */
 
-#ifndef GUCEF_KAITAI_CKAITAISCHEMAFIELDDEFINITION_H
-#include "gucefKAITAI_CKaitaiSchemaFieldDefinition.h"
-#define GUCEF_KAITAI_CKAITAISCHEMAFIELDDEFINITION_H
-#endif /* GUCEF_KAITAI_CKAITAISCHEMAFIELDDEFINITION_H ? */
+#ifndef GUCEF_KAITAI_CKAITAISCHEMABASEFIELD_H
+#include "gucefKAITAI_CKaitaiSchemaBaseField.h"
+#define GUCEF_KAITAI_CKAITAISCHEMABASEFIELD_H
+#endif /* GUCEF_KAITAI_CKAITAISCHEMABASEFIELD_H ? */
 
-#ifndef GUCEF_KAITAI_CKAITAISCHEMAENUMDEFINITION_H
-#include "gucefKAITAI_CKaitaiSchemaEnumDefinition.h"
-#define GUCEF_KAITAI_CKAITAISCHEMAENUMDEFINITION_H
-#endif /* GUCEF_KAITAI_CKAITAISCHEMAENUMDEFINITION_H ? */
+#ifndef GUCEF_KAITAI_CKAITAISCHEMABASICFIELD_H
+#include "gucefKAITAI_CKaitaiSchemaBasicField.h"
+#define GUCEF_KAITAI_CKAITAISCHEMABASICFIELD_H
+#endif /* GUCEF_KAITAI_CKAITAISCHEMABASICFIELD_H ? */
+
+#ifndef GUCEF_KAITAI_CKAITAISCHEMASWITCHFIELD_H
+#include "gucefKAITAI_CKaitaiSchemaSwitchField.h"
+#define GUCEF_KAITAI_CKAITAISCHEMASWITCHFIELD_H
+#endif /* GUCEF_KAITAI_CKAITAISCHEMASWITCHFIELD_H ? */
+
+#ifndef GUCEF_KAITAI_CKAITAISCHEMAOPAQUEFIELD_H
+#include "gucefKAITAI_CKaitaiSchemaOpaqueField.h"
+#define GUCEF_KAITAI_CKAITAISCHEMAOPAQUEFIELD_H
+#endif /* GUCEF_KAITAI_CKAITAISCHEMAOPAQUEFIELD_H ? */
+
+#ifndef GUCEF_KAITAI_CKAITAISCHEMASUBSTREAMFIELD_H
+#include "gucefKAITAI_CKaitaiSchemaSubstreamField.h"
+#define GUCEF_KAITAI_CKAITAISCHEMASUBSTREAMFIELD_H
+#endif /* GUCEF_KAITAI_CKAITAISCHEMASUBSTREAMFIELD_H ? */
+
+#ifndef GUCEF_KAITAI_CKAITAISCHEMADELIMITEDFIELD_H
+#include "gucefKAITAI_CKaitaiSchemaDelimitedField.h"
+#define GUCEF_KAITAI_CKAITAISCHEMADELIMITEDFIELD_H
+#endif /* GUCEF_KAITAI_CKAITAISCHEMADELIMITEDFIELD_H ? */
+
+#ifndef GUCEF_KAITAI_CKAITAISCHEMAINSTANCEFIELD_H
+#include "gucefKAITAI_CKaitaiSchemaInstanceField.h"
+#define GUCEF_KAITAI_CKAITAISCHEMAINSTANCEFIELD_H
+#endif /* GUCEF_KAITAI_CKAITAISCHEMAINSTANCEFIELD_H ? */
+
+#ifndef GUCEF_KAITAI_CKAITAISCHEMASTRUCTUREFIELD_H
+#include "gucefKAITAI_CKaitaiSchemaStructureField.h"
+#define GUCEF_KAITAI_CKAITAISCHEMASTRUCTUREFIELD_H
+#endif /* GUCEF_KAITAI_CKAITAISCHEMASTRUCTUREFIELD_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -71,56 +106,102 @@ namespace KAITAI {
 //-------------------------------------------------------------------------*/
 
 
-class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchema : public CORE::CIDataNodeSerializable ,
+class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchema : public CKaitaiSchemaBaseField ,
                                               public CORE::CTSharedObjCreator< CKaitaiSchema, MT::CMutex >
 {
     public:
 
-    typedef std::map< CORE::CString, CKaitaiSchemaFieldDefinition >     TFieldMap;
-    typedef std::map< CORE::CString, CKaitaiSchemaEnumDefinition >      TEnumMap;
-
     static const CORE::CString ClassTypeName;
+    static const CORE::CString SchemaFileExtension;
+
+    typedef std::pair< const CORE::CString, CKaitaiSchemaBaseFieldPtr >                                                           TFieldTypePair;
+    typedef std::map< CORE::CString, CKaitaiSchemaBaseFieldPtr, std::less< CORE::CString >, gucef_allocator< TFieldTypePair > >   TFieldTypeMap;
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchema, MT::CMutex >::TBasicSharedPtrType                                   CKaitaiSchemaPtr;
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchema, MT::CMutex >::TSharedPtrType                                        CKaitaiSchemaTypedPtr;
     
-    CORE::CString id;
-    CORE::CString::StringSet imports;
-    CORE::UInt8 endianess;
-    TFieldMap fields;
-    TEnumMap enums;
+    CORE::CString id;                           // The schema ID
+    bool isLittleEndian;                        // True if the schema is little-endian, false if big-endian
+    CORE::CStringVector imports;                // List of imported schemas
+    CKaitaiSchemaStructureFieldPtr structure;   // the layout of the schema as an object hierarchy
+    TFieldTypeMap types;
 
     CKaitaiSchema( void );
+    CKaitaiSchema( const CORE::CString& schemaFamily );
     CKaitaiSchema( const CKaitaiSchema& src );   
+    virtual ~CKaitaiSchema() GUCEF_VIRTUAL_OVERRIDE;
     CKaitaiSchema& operator=( const CKaitaiSchema& src ); 
 
     /*
      *  Utility function for loading a Kaitai schema
      */
-    bool LoadSchemaFromString( const CORE::CString& schemaContent );
+    bool LoadSchemaFromString( const CORE::CString& schemaContent  ,
+                               CORE::CStringSet& unresolvedImports );
 
     /*
      *  Utility function for loading a Kaitai schema
      */
-    bool LoadSchema( CORE::IOAccessPtr schemaResource );
+    bool LoadSchema( CORE::IOAccessPtr schemaResource    , 
+                     CORE::CStringSet& unresolvedImports );
 
     /*
      *  Utility function for loading a Kaitai schema
      */
-    bool LoadSchema( const CORE::CUri& schemaResource ); 
+    bool LoadSchema( const CORE::CUri& schemaResource    ,
+                     CORE::CStringSet& unresolvedImports ); 
 
     /*
      *  Utility function for loading a Kaitai schema using the VFS
      */
-    bool LoadSchemaUsingVfs( const CORE::CString& schemaResourcePath );
+    bool LoadSchemaUsingVfs( const CORE::CString& schemaResourcePath ,
+                             CORE::CStringSet& unresolvedImports     );
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool IsValid( void ) const GUCEF_VIRTUAL_OVERRIDE;
     
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual bool Deserialize( const CORE::CDataNode& domRootNode                  , 
+                              const CORE::CDataNodeSerializableSettings& settings ,
+                              CORE::CStringSet& unresolvedImports                 );
     
-    virtual bool DeserializeMetaData( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
-    virtual bool DeserializeFieldSequence( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
-    virtual bool DeserializeEnumDefinitions( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
+    virtual bool Deserialize( const CORE::CDataNode& domRootNode                  , 
+                              const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
+    
+    virtual bool DeserializeMetaData( const CORE::CDataNode& domRootNode                  , 
+                                      const CORE::CDataNodeSerializableSettings& settings ,
+                                      CORE::CStringSet& unresolvedImports                 );
+
+    virtual bool DeserializeTypesData( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
+    //virtual bool DeserializeFieldSequence( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
+    //virtual bool DeserializeEnumDefinitions( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
+    
+    KaitaiSchemaFieldType GetFieldTypeForTypeFieldString( const CORE::CString& typeFieldStr ) const;
+    
+    CKaitaiSchemaBaseFieldPtr CreateFieldObjectForFieldTypeStr( const CORE::CString& typeFieldStr ) const;
+
+    void Clear( void );
+
+    bool HasUnresolvedImports( void ) const;
+
+    bool ResolveImports( CORE::CStringSet& unresolvedImports );
+
+    const CORE::CString& GetSchemaFamily( void ) const;
+
+    CKaitaiSchemaBaseFieldPtr TryGetDefinedType( const CORE::CString& typeName ) const;
+    
+    private:
+
+    CORE::CString m_schemaFamily;
+    CORE::CDataNode m_schemaDocument;
 };
+
+/*-------------------------------------------------------------------------*/
+
+typedef CKaitaiSchema::CKaitaiSchemaPtr         CKaitaiSchemaPtr;
+typedef CKaitaiSchema::CKaitaiSchemaTypedPtr    CKaitaiSchemaTypedPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

@@ -69,14 +69,18 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaRegistry : public CORE::CTONRegistry<
 {
     public:
 
-    typedef CORE::CTONRegistry< CKaitaiSchema, MT::CMutex >         TSchemaFamilyRegistry;
-    typedef CORE::CTSharedPtr< TSchemaFamilyRegistry, MT::CMutex >  TSchemaFamilyRegistryPtr;
-    typedef TSchemaFamilyRegistry::TRegisteredObjPtr                TSchemaPtr;
+    typedef CORE::CTONRegistry< CKaitaiSchema, MT::CMutex >          TSchemaFamilyRegistry;
+    typedef CORE::CTSharedPtr< TSchemaFamilyRegistry, MT::CMutex >   TSchemaFamilyRegistryPtr;
+    typedef CORE::CTONRegistry< TSchemaFamilyRegistry, MT::CMutex >  TSchemaRegistryBase;        
+    typedef TSchemaFamilyRegistry::TRegisteredObjPtr                 TSchemaPtr;
     
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    TSchemaPtr TryGetSchema( const CORE::CString& schemaFamily , 
-                             const CORE::CString& schemaName   ) const;
+    CKaitaiSchemaPtr TryGetSchema( const CORE::CString& schemaFamily , 
+                                   const CORE::CString& schemaName   ) const;
+
+    CKaitaiSchemaBaseFieldPtr TryGetSchemaOrSubType( const CORE::CString& schemaFamily          , 
+                                                     const CORE::CString& schemaOrSubTypeName   ) const;
 
     bool RegisterSchema( TSchemaPtr schema                 ,
                          const CORE::CString& schemaFamily );
@@ -98,6 +102,10 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaRegistry : public CORE::CTONRegistry<
                               const CORE::CString& schemaFamily        ,
                               bool recursive                           );
 
+    virtual void Unregister( const CORE::CString& name ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual void UnregisterAll( void ) GUCEF_VIRTUAL_OVERRIDE;    
+    
     protected:
 
     virtual MT::TLockStatus Lock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -110,10 +118,19 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaRegistry : public CORE::CTONRegistry<
 
     private:
     
+    typedef std::set< CKaitaiSchemaPtr >                TSchemaSet;
+    typedef std::map< CORE::CString, TSchemaSet >       TSchemaSetMap;
+    typedef std::map< CORE::CString, TSchemaSetMap >    TSchemaFamilyMap;
+
+    void ResolveSchemaImportDependencies( CKaitaiSchemaPtr schema                   ,
+                                          const CORE::CStringSet& unresolvedImports );
+
     CKaitaiSchemaRegistry( const CKaitaiSchemaRegistry& src );              /**< not implemented, don't use */
     CKaitaiSchemaRegistry& operator=( const CKaitaiSchemaRegistry& src );   /**< not implemented, don't use */
 
     private:
+
+    TSchemaFamilyMap m_missingImportsSchemaFamilyMap; /**< The registry of schema families and their schemas */
     MT::CMutex m_dataLock;
 };
 

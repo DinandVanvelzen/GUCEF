@@ -158,7 +158,7 @@ CVfsGlobal::Initialize( void )
     
     try
     {
-        CORE::CCoreGlobal::Instance()->GetCodecRegistry().Register( "VFSPackCodec", CORE::CCodecRegistry::TCodecFamilyRegistryPtr( GUCEF_NEW CORE::CCodecRegistry::TCodecFamilyRegistry() ) );
+        CORE::CCoreGlobal::Instance()->GetCodecRegistry().Register( "VFSPackCodec", CORE::CCodecRegistry::TCodecFamilyRegistryTypedPtr( GUCEF_NEW CORE::CCodecRegistry::TCodecFamilyRegistry() ) );
     }
     catch ( CORE::CCodecRegistry::EAlreadyRegistered& )
     {

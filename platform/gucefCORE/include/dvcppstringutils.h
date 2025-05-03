@@ -469,6 +469,11 @@ GetHostname( void );
 /*-------------------------------------------------------------------------*/
 
 GUCEF_CORE_PUBLIC_CPP bool
+IsANumber( const CString& strToTest );
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_CORE_PUBLIC_CPP bool
 Utf16toUtf8( const std::wstring& wstr ,
              std::string& str         );
 

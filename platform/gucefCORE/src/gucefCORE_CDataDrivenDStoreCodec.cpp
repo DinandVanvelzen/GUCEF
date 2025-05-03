@@ -92,6 +92,20 @@ CDataDrivenDStoreCodec::IsCodecTypeDataDriven( void ) const
     return true;
 }
 
+/*-------------------------------------------------------------------------*/
+
+CORE::CString 
+CDataDrivenDStoreCodec::GetTypeName( void ) const
+{GUCEF_TRACE;
+
+    CDataDrivenDStoreCodecMetaPtr meta = m_codecMeta;
+    if (!meta.IsNULL())
+    {
+        return meta->GetDataDrivenCodecTypeName();
+    }
+    return CORE::CString::Empty;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

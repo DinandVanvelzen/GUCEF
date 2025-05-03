@@ -23,12 +23,23 @@ LOCAL_MODULE_FILENAME := libgucefKAITAI
 
 LOCAL_SRC_FILES := \
   src/gucefKAITAI_CGlobalKaitaiSchemaRegistry.cpp \
+  src/gucefKAITAI_CKaitaiDStoreCodec.cpp \
+  src/gucefKAITAI_CKaitaiDataDrivenDStoreCodec.cpp \
+  src/gucefKAITAI_CKaitaiDataDrivenDStoreCodecFactory.cpp \
   src/gucefKAITAI_CKaitaiGlobal.cpp \
   src/gucefKAITAI_CKaitaiReader.cpp \
   src/gucefKAITAI_CKaitaiSchema.cpp \
+  src/gucefKAITAI_CKaitaiSchemaBaseField.cpp \
+  src/gucefKAITAI_CKaitaiSchemaBasicField.cpp \
+  src/gucefKAITAI_CKaitaiSchemaDelimitedField.cpp \
   src/gucefKAITAI_CKaitaiSchemaEnumDefinition.cpp \
   src/gucefKAITAI_CKaitaiSchemaFieldDefinition.cpp \
+  src/gucefKAITAI_CKaitaiSchemaInstanceField.cpp \
+  src/gucefKAITAI_CKaitaiSchemaOpaqueField.cpp \
   src/gucefKAITAI_CKaitaiSchemaRegistry.cpp \
+  src/gucefKAITAI_CKaitaiSchemaStructureField.cpp \
+  src/gucefKAITAI_CKaitaiSchemaSubstreamField.cpp \
+  src/gucefKAITAI_CKaitaiSchemaSwitchField.cpp \
   src/gucefKAITAI_CModule.cpp
 
 LOCAL_C_INCLUDES := \

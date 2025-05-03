@@ -26,7 +26,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CURIRESOURCEACCESSOR_H
 #include "gucefCORE_CUriResourceAccessor.h"
+#define GUCEF_CORE_CURIRESOURCEACCESSOR_H
+#endif /* GUCEF_CORE_CURIRESOURCEACCESSOR_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

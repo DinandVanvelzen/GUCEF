@@ -195,6 +195,51 @@ struct TypeIsDerivedFrom
     enum { value = sizeof( test( static_cast< DerivedClassType* >( GUCEF_NULL ) ) ) == sizeof( yes ) };
 };
 
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  C++98 compatible SFINAE template helper
+ *  Allows checking if T has a publicly accessible copy constructor
+ */
+template < class TestType >
+struct TypeHasCopyConstructor
+{
+    // For the compile-time comparison.
+    typedef char    yes[1];
+    typedef yes     no[2];
+
+    template < typename U > 
+    static yes& test( int, U(*) = new U(*(U*)0) ) { static yes result; return result; }
+
+    template < typename U > 
+    static no& test( ... ) { static no result; return result; }
+
+    // The constant used as a return value for the test.
+    enum { value = sizeof( test<TestType>( 0 ) ) == sizeof( yes ) };
+};
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  C++98 compatible SFINAE template helper
+ *  Allows checking if T has a publicly accessible default constructor
+ */
+template < class TestType >
+struct TypeHasDefaultConstructor
+{
+    // For the compile-time comparison.
+    typedef char    yes[1];
+    typedef yes     no[2];
+
+    template < typename U > 
+    static yes& test(int, U(*) = new U);  // Tries to instantiate the default constructor
+
+    template < typename U > 
+    static no& test(...);  // Fallback when the default constructor is missing or inaccessible
+
+    // The constant used as a return value for the test.
+    enum { value = sizeof(test<TestType>(0)) == sizeof(yes) };
+};
 
 /*--------------------------------------------------------------------------*/
 

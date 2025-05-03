@@ -37,6 +37,11 @@
 #define GUCEF_VFS_H
 #endif /* GUCEF_VFS_H ? */
 
+#ifndef GUCEF_KAITAI_H
+#include "gucefKAITAI.h"
+#define GUCEF_KAITAI_H
+#endif /* GUCEF_KAITAI_H ? */
+
 #ifndef GUCEF_CORE_CGLOBALCONFIGVALUELIST_H
 #include "gucefCORE_CGlobalConfigValueList.h"
 #define GUCEF_CORE_CGLOBALCONFIGVALUELIST_H
@@ -224,6 +229,7 @@ GUCEF_OSMAIN_BEGIN
         // Initialize systems
         GUCEF::CORE::CCoreGlobal::Instance();
         GUCEF::VFS::CVfsGlobal::Instance();
+        GUCEF::KAITAI::CKaitaiGlobal::Instance();
 
         // Check for config param first
         CORE::CValueList keyValueList;
@@ -263,7 +269,7 @@ GUCEF_OSMAIN_BEGIN
         consoleWindow.CreateConsole();
 
         // Now actually run the tests...
-        PerformKaitaiSchemaLoadTest();
+        PerformKaitaiTest_ConfigDrivenCodecSpecification();
 
         auto& app = CORE::CCoreGlobal::Instance()->GetApplication();
         app.GetPulseGenerator()->RequestPulseInterval( 10 );

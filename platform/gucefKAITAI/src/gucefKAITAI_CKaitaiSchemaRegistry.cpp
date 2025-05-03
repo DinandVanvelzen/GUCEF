@@ -112,7 +112,7 @@ CKaitaiSchemaRegistry::Unlock( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaRegistry::TSchemaPtr 
+CKaitaiSchemaPtr
 CKaitaiSchemaRegistry::TryGetSchema( const CORE::CString& schemaFamily , 
                                      const CORE::CString& schemaName   ) const
 {GUCEF_TRACE;
@@ -125,13 +125,50 @@ CKaitaiSchemaRegistry::TryGetSchema( const CORE::CString& schemaFamily ,
         TSchemaPtr schema;
         if ( schemaFamilyRegistry->TryLookup( schemaName, schema, false ) && schema )
         {
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaRegistry:TryGetCodec: Obtained schema " + schemaName + " from schema family " + schemaFamily );
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaRegistry:TryGetCodec: Obtained schema \"" + schemaName + "\" from schema family " + schemaFamily );
             return schema;
         }
     }
 
-    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaRegistry:TryGetCodec: Failed to obtain schema " + schemaName + " from schema family " + schemaFamily );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaRegistry:TryGetCodec: Did not find schema \"" + schemaName + "\" in schema family " + schemaFamily );
     return TSchemaPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaRegistry::TryGetSchemaOrSubType( const CORE::CString& schemaFamily          , 
+                                              const CORE::CString& schemaOrSubTypeName   ) const
+{GUCEF_TRACE;
+
+    // Finding the type name at the schema level if preferred, we try that first
+    CKaitaiSchemaBaseFieldPtr schemaOrSubType = TryGetSchema( schemaFamily, schemaOrSubTypeName );
+    if ( schemaOrSubType.IsNULL() )
+    {
+        // Since we did not find the type name at the schema level we try to find it at the sub-type level
+        // this requires searching all registered schemas in the family
+        TSchemaFamilyRegistryPtr schemaFamilyRegistry;
+        if ( TryLookup( schemaFamily, schemaFamilyRegistry, false ) && schemaFamilyRegistry )
+        {            
+            TSchemaFamilyRegistry::TRegisteredObjPtrVector allSchemas;
+            schemaFamilyRegistry->GetRegisteredObjs( allSchemas );
+
+            TSchemaFamilyRegistry::TRegisteredObjPtrVector::const_iterator i = allSchemas.begin();
+            while ( i != allSchemas.end() )
+            {
+                const TSchemaPtr& schema = (*i);
+                if ( !schema.IsNULL() )
+                {
+                    // Try to find the sub-type in the schema
+                    schemaOrSubType = schema->TryGetDefinedType( schemaOrSubTypeName );
+                    if ( !schemaOrSubType.IsNULL() )
+                        break;
+                }
+                ++i;
+            }
+        }
+    }
+    return schemaOrSubType;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -173,16 +210,99 @@ CKaitaiSchemaRegistry::RegisterSchema( TSchemaPtr schema                 ,
 
 /*-------------------------------------------------------------------------*/
 
+void
+CKaitaiSchemaRegistry::ResolveSchemaImportDependencies( CKaitaiSchemaPtr schema                   ,
+                                                        const CORE::CStringSet& unresolvedImports )
+{GUCEF_TRACE;
+
+    if GUCEF_PREDICT_FALSE( schema.IsNULL() )
+        return;
+    
+    const CORE::CString& schemaFamily = schema->GetSchemaFamily();
+    
+    // If this schema has unresolved imports regisster them for deferred resolution
+    if ( !unresolvedImports.empty() )
+    {
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchema: Noted " + CORE::ToString( unresolvedImports.size() ) + " missing import dependencies" );
+
+        CORE::CStringSet::const_iterator i = unresolvedImports.begin();
+        while ( i != unresolvedImports.end() )
+        {
+            const CORE::CString& importId = (*i);
+            m_missingImportsSchemaFamilyMap[ schemaFamily ][ importId ].insert( schema );
+
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchema: Noted missing import dependency '" + importId + 
+                "' for schema '" + schema->id + "' in family " + schemaFamily );
+            ++i;
+        }
+    }
+
+    // Check to see if we can resolve the imports of other schemas that depend on this one
+    TSchemaFamilyMap::iterator i = m_missingImportsSchemaFamilyMap.find( schemaFamily );
+    if ( i != m_missingImportsSchemaFamilyMap.end() )
+    {
+        TSchemaSetMap::iterator j = (*i).second.find( schema->id );
+        if ( j != i->second.end() )
+        {
+            // There are schemas that depend on this one
+            TSchemaSet::iterator k = j->second.begin();
+            while ( k != j->second.end() )
+            {
+                CKaitaiSchemaPtr dependentSchema = (*k);
+                if ( !dependentSchema.IsNULL() )
+                {
+                    // Try to resolve the imports of the dependent schema
+                    CORE::CStringSet stillUnresolvedImports;
+                    dependentSchema->ResolveImports( stillUnresolvedImports );
+
+                    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchema: Resolved import dependency '" + schema->id + 
+                        "' for schema '" + dependentSchema->id + "' in family " + schemaFamily + " with " + CORE::ToString( stillUnresolvedImports.size() ) + " unresolved imports remaining" );
+                }
+                ++k;
+            }
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void 
+CKaitaiSchemaRegistry::Unregister( const CORE::CString& name )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( AsLockable() );
+    
+    m_missingImportsSchemaFamilyMap.erase( name );
+    TSchemaRegistryBase::Unregister( name );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void 
+CKaitaiSchemaRegistry::UnregisterAll( void )
+{GUCEF_TRACE;
+ 
+    MT::CObjectScopeLock lock( AsLockable() );
+    
+    m_missingImportsSchemaFamilyMap.clear();
+    TSchemaRegistryBase::UnregisterAll();
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool 
 CKaitaiSchemaRegistry::LoadSchemaFromString( const CORE::CString& schemaContent ,
                                              const CORE::CString& schemaFamily  )
 {GUCEF_TRACE;
 
-    TSchemaPtr schema = CKaitaiSchema::CreateSharedObj();
+    TSchemaPtr schema = CKaitaiSchema::CreateSharedObjWithParam( schemaFamily );
     if ( !schema.IsNULL() )
     {
-        if ( schema->LoadSchemaFromString( schemaContent ) )
+        CORE::CStringSet unresolvedImports;
+        if ( schema->LoadSchemaFromString( schemaContent, unresolvedImports ) )
         {
+            ResolveSchemaImportDependencies( schema, unresolvedImports );
+            
             if ( RegisterSchema( schema, schemaFamily ) )
             {
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchemaFromString: Successfully registered schema into family " + 
@@ -210,20 +330,24 @@ CKaitaiSchemaRegistry::LoadSchema( const CORE::CUri& schemaResource  ,
                                    const CORE::CString& schemaFamily )
 {GUCEF_TRACE;
 
-    TSchemaPtr schema = CKaitaiSchema::CreateSharedObj();
+    TSchemaPtr schema = CKaitaiSchema::CreateSharedObjWithParam( schemaFamily );
     if ( !schema.IsNULL() )
     {
-        if ( schema->LoadSchema( schemaResource ) )
+        CORE::CStringSet unresolvedImports;
+        if ( schema->LoadSchema( schemaResource, unresolvedImports ) )
         {
+            ResolveSchemaImportDependencies( schema, unresolvedImports );
+                        
             if ( RegisterSchema( schema, schemaFamily ) )
             {
-                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchema: Successfully registered schema into family " + 
-                    schemaFamily + " using resource " + CORE::ToString( schemaResource ) );
+                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchema: Successfully registered schema into family " + 
+                    schemaFamily + " using resource " + CORE::ToString( schemaResource ) + ". It has " + CORE::ToString( unresolvedImports.size() ) + " unresolved imports" );
+
                 return true;
             }
             else
             {
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchema: SFailed to register schema into family " + 
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchema: Failed to register schema into family " + 
                     schemaFamily + " using resource " + CORE::ToString( schemaResource ) );
                 return false;
             }
@@ -273,11 +397,14 @@ CKaitaiSchemaRegistry::LoadSchemaUsingVfs( const CORE::CString& schemaResourcePa
                                            const CORE::CString& schemaFamily        )
 {GUCEF_TRACE;
 
-    TSchemaPtr schema = CKaitaiSchema::CreateSharedObj();
+    TSchemaPtr schema = CKaitaiSchema::CreateSharedObjWithParam( schemaFamily );
     if ( !schema.IsNULL() )
     {
-        if ( schema->LoadSchemaUsingVfs( schemaResourcePath ) )
+        CORE::CStringSet unresolvedImports;
+        if ( schema->LoadSchemaUsingVfs( schemaResourcePath, unresolvedImports ) )
         {
+            ResolveSchemaImportDependencies( schema, unresolvedImports );
+            
             if ( RegisterSchema( schema, schemaFamily ) )
             {
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchema: Successfully registered schema into family " + 

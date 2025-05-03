@@ -30,6 +30,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/Rend
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Ogre/RenderSystems/GL3Plus ${CMAKE_BINARY_DIR}/OgreRenderSystem_GL3Plus )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/aws-cpp-sdk-core ${CMAKE_BINARY_DIR}/aws-cpp-sdk-core )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/aws-cpp-sdk-s3 ${CMAKE_BINARY_DIR}/aws-cpp-sdk-s3 )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/aws-cpp-sdk-secretsmanager ${CMAKE_BINARY_DIR}/aws-cpp-sdk-secretsmanager )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/aws-cpp-sdk-sqs ${CMAKE_BINARY_DIR}/aws-cpp-sdk-sqs )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/aws-crt-cpp ${CMAKE_BINARY_DIR}/aws-crt-cpp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/aws-crt-cpp/crt/aws-c-auth ${CMAKE_BINARY_DIR}/aws-c-auth )

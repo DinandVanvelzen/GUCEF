@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#define GUCEF_KAITAI_MAJOR_VERSION   0
+#define GUCEF_KAITAI_MINOR_VERSION   1
+#define GUCEF_KAITAI_PATCH_VERSION   0
+#define GUCEF_KAITAI_RELEASE_VERSION 0
+
 #define GUCEF_KAITAI_PUBLIC_CPP_CODE
 #define GUCEF_KAITAI_PUBLIC_C_CODE
 

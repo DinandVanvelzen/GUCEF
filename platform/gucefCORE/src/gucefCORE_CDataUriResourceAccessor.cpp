@@ -208,6 +208,8 @@ CDataUriResourceAccessor::GetResourceAccess( const CUri& uri               ,
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "DataUriResourceAccessor:GetResourceAccess: Obtained access to data in data uri: mimeType=\""
             + mimeType + "\" decoded payload size=" + ToString( payload->GetDataSize() ) );
+        
+        accessToResource = bufferAccess;
         return true;
     }
     else

@@ -31,6 +31,7 @@
 #include <set>
 #include <string>
 #include <map>
+#include <unordered_map>
 
 #ifndef GUCEF_CORE_MACROS_H
 #include "gucefCORE_macros.h"    /* macros that are GUCEF specific and generic macros */
@@ -87,22 +88,36 @@ class GUCEF_CORE_PUBLIC_CPP CUtf8String
 {
     public:
 
-    typedef std::vector< CUtf8String, gucef_allocator< CUtf8String > >                                      StringVector;
-    typedef std::set< CUtf8String, std::less< CUtf8String >, gucef_allocator< CUtf8String > >               StringSet;
-    typedef std::pair< const CUtf8String, CUtf8String >                                                     StringPair;
-    typedef std::map< CUtf8String, CUtf8String, std::less< CUtf8String >, gucef_allocator< StringPair > >   StringMap;
+    // Because strings are so common and because we want to make our lives easier wrt their common usage and allocation in containers
+    // we have a list of typedefs for the most common containers we use, providing shorter names for them
+    typedef std::vector< CUtf8String, gucef_allocator< CUtf8String > >                                                          StringVector;
+    typedef std::set< CUtf8String, std::less< CUtf8String >, gucef_allocator< CUtf8String > >                                   StringSet;
+    typedef std::pair< const CUtf8String, CUtf8String >                                                                         StringPair;
+    typedef std::unordered_map< CUtf8String, CUtf8String, std::less< CUtf8String >, gucef_allocator< StringPair > >             StringUMap;
+    typedef std::map< CUtf8String, CUtf8String, std::less< CUtf8String >, gucef_allocator< StringPair > >                       StringMap;
     typedef std::pair< const CUtf8String, StringSet >                                                                           StringStringSetPair;
     typedef std::map< CUtf8String, StringSet, std::less< CUtf8String >, gucef_allocator< StringStringSetPair > >                StringMapSet;
+    typedef std::unordered_map< CUtf8String, StringSet, std::less< CUtf8String >, gucef_allocator< StringStringSetPair > >      StringUMapSet;
     typedef std::pair< const CUtf8String, StringMap >                                                                           StringStringMapPair;
+    typedef std::pair< const CUtf8String, StringUMap >                                                                          StringStringUMapPair;
     typedef std::map< CUtf8String, StringMap, std::less< CUtf8String >, gucef_allocator< StringStringMapPair > >                StringMapMap;
+    typedef std::unordered_map< CUtf8String, StringUMap, std::less< CUtf8String >, gucef_allocator< StringStringUMapPair > >    StringUMapUMap;
     typedef std::pair< const CUtf8String, StringMapSet >                                                                        StringStringMapSetPair;
+    typedef std::pair< const CUtf8String, StringUMapSet >                                                                       StringStringUMapSetPair;
     typedef std::map< CUtf8String, StringMapSet, std::less< CUtf8String >, gucef_allocator< StringStringMapSetPair > >          StringMapMapSet;
-    typedef std::pair< const CUtf8String, StringMapMap >                                                                        StringStringMapMapPair;
-    typedef std::map< CUtf8String, StringMapMap, std::less< CUtf8String >, gucef_allocator< StringStringMapMapPair > >          StringMapMapMap;
-    typedef std::pair< const CUtf8String, StringMapMapMap >                                                                     StringStringMapMapMapPair;
-    typedef std::map< CUtf8String, StringMapMap, std::less< CUtf8String >, gucef_allocator< StringStringMapMapMapPair > >       StringMapMapMapMap;
-    typedef std::pair< const CUtf8String, StringMapMapSet >                                                                     StringStringMapMapSetPair;
-    typedef std::map< CUtf8String, StringMapMapSet, std::less< CUtf8String >, gucef_allocator< StringStringMapMapSetPair > >    StringMapMapMapSet;
+    typedef std::unordered_map< CUtf8String, StringUMapSet, std::less< CUtf8String >, gucef_allocator< StringStringUMapSetPair > >      StringUMapUMapSet;
+    typedef std::pair< const CUtf8String, StringMapMap >                                                                                StringStringMapMapPair;
+    typedef std::pair< const CUtf8String, StringUMapUMap >                                                                              StringStringUMapUMapPair;
+    typedef std::map< CUtf8String, StringMapMap, std::less< CUtf8String >, gucef_allocator< StringStringMapMapPair > >                  StringMapMapMap;
+    typedef std::unordered_map< CUtf8String, StringUMapUMap, std::less< CUtf8String >, gucef_allocator< StringStringUMapUMapPair > >    StringUMapUMapUMap;
+    typedef std::pair< const CUtf8String, StringMapMapMap >                                                                             StringStringMapMapMapPair;
+    typedef std::pair< const CUtf8String, StringUMapUMapUMap >                                                                          StringStringUMapUMapUMapPair;
+    typedef std::map< CUtf8String, StringMapMapMap, std::less< CUtf8String >, gucef_allocator< StringStringMapMapMapPair > >            StringMapMapMapMap;
+    typedef std::unordered_map< CUtf8String, StringUMapUMapUMap, std::less< CUtf8String >, gucef_allocator< StringStringUMapUMapUMapPair > >       StringUMapUMapUMapUMap;
+    typedef std::pair< const CUtf8String, StringMapMapSet >                                                                                        StringStringMapMapSetPair;
+    typedef std::pair< const CUtf8String, StringUMapUMapSet >                                                                                      StringStringUMapUMapSetPair;
+    typedef std::map< CUtf8String, StringMapMapSet, std::less< CUtf8String >, gucef_allocator< StringStringMapMapSetPair > >                       StringMapMapMapSet;
+    typedef std::unordered_map< CUtf8String, StringUMapUMapSet, std::less< CUtf8String >, gucef_allocator< StringStringUMapUMapSetPair > >         StringUMapUMapUMapSet;
 
     static const CUtf8String    Empty;
     static const StringVector   EmptyStringVector;

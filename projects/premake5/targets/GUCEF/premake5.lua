@@ -43,6 +43,7 @@ filter "ALL"
   include( "dependencies/Ogre/RenderSystems/GL3Plus" )
   include( "dependencies/aws-cpp-sdk-core" )
   include( "dependencies/aws-cpp-sdk-s3" )
+  include( "dependencies/aws-cpp-sdk-secretsmanager" )
   include( "dependencies/aws-cpp-sdk-sqs" )
   include( "dependencies/aws-crt-cpp" )
   include( "dependencies/aws-crt-cpp/crt/aws-c-auth" )

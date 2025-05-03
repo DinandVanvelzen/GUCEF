@@ -235,7 +235,7 @@ CDataDrivenDStoreCodecMeta::LoadConfig( const CDataNode& config )
     m_baseCodecTypeName = config.GetAttributeValueOrChildValueByName( "baseCodecTypeName" ).AsString( m_baseCodecTypeName, true );
     m_dataDrivenCodecTypeName = config.GetAttributeValueOrChildValueByName( "dataDrivenCodecTypeName" ).AsString( m_dataDrivenCodecTypeName, true );
     totalSuccess = config.GetMappedValuesOfChildByName( "resources", m_resources ) && totalSuccess;
-    totalSuccess = config.GetMappedValuesOfChildByName( "params", m_params ) && totalSuccess;
+    config.GetMappedValuesOfChildByName( "params", m_params );
     m_isShareable = config.GetAttributeValueOrChildValueByName( "isShareable" ).AsBool( m_isShareable, true );
 
     return totalSuccess;

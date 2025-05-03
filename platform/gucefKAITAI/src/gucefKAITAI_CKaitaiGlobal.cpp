@@ -32,6 +32,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CDATADRIVENDSTORECODECFACTORY_H
+#include "gucefCORE_CDataDrivenDStoreCodecFactory.h"         
+#define GUCEF_CORE_CDATADRIVENDSTORECODECFACTORY_H
+#endif /* GUCEF_CORE_CDATADRIVENDSTORECODECFACTORY_H ? */
+
 //#ifndef GUCEF_VFS_CVFSGLOBAL_H
 //#include "gucefVFS_CVfsGlobal.h"
 //#define GUCEF_VFS_CVFSGLOBAL_H
@@ -41,6 +46,11 @@
 #include "gucefKAITAI_CGlobalKaitaiSchemaRegistry.h"    
 #define GUCEF_KAITAI_CGLOBALKAITAISCHEMAREGISTRY_H
 #endif /* GUCEF_KAITAI_CGLOBALKAITAISCHEMAREGISTRY_H ? */
+
+#ifndef GUCEF_KAITAI_CKAITAIDATADRIVENDSTORECODECFACTORY_H
+#include "gucefKAITAI_CKaitaiDataDrivenDStoreCodecFactory.h"
+#define GUCEF_KAITAI_CKAITAIDATADRIVENDSTORECODECFACTORY_H
+#endif /* GUCEF_KAITAI_CKAITAIDATADRIVENDSTORECODECFACTORY_H ? */
 
 #include "gucefKAITAI_CKaitaiGlobal.h"  /* definition of the class implemented here */
 
@@ -61,6 +71,8 @@ namespace KAITAI {
 
 MT::CMutex CKaitaiGlobal::g_dataLock;
 CKaitaiGlobal* CKaitaiGlobal::g_instance = GUCEF_NULL;
+
+CKaitaiDataDrivenDStoreCodecFactory g_kaitaiDStoreCodecFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -86,6 +98,8 @@ CKaitaiGlobal::Initialize( void )
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefKAITAI Global systems initializing" );
 
     m_kaitaiSchemaRegistry = GUCEF_NEW CGlobalKaitaiSchemaRegistry();
+
+    CORE::CCoreGlobal::Instance()->GetDataDrivenDStoreCodecFactory().RegisterConcreteFactory( CKaitaiDStoreCodec::CodecTypeName, &g_kaitaiDStoreCodecFactory );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -94,6 +108,8 @@ CKaitaiGlobal::~CKaitaiGlobal()
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefKATAI Global systems shutting down" );
+    
+    CORE::CCoreGlobal::Instance()->GetDataDrivenDStoreCodecFactory().UnregisterConcreteFactory( CKaitaiDStoreCodec::CodecTypeName );
     
     GUCEF_DELETE static_cast< CGlobalKaitaiSchemaRegistry* >( m_kaitaiSchemaRegistry );
     m_kaitaiSchemaRegistry = GUCEF_NULL;

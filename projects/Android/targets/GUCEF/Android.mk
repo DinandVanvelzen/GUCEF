@@ -522,3 +522,6 @@ include $(MY_MODULE_PATH)/Android.mk
 MY_MODULE_PATH := $(PROJECT_ROOT_PATH)/../../../../plugins/PUBSUB/pubsubpluginAWSSQS
 include $(MY_MODULE_PATH)/Android.mk
 
+MY_MODULE_PATH := $(PROJECT_ROOT_PATH)/../../../../dependencies/aws-cpp-sdk-secretsmanager
+include $(MY_MODULE_PATH)/Android.mk
+

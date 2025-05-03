@@ -23,6 +23,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_DVCPPFILEUTILS_H
+#include "dvcppfileutils.h"
+#define GUCEF_CORE_DVCPPFILEUTILS_H
+#endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
+
 #include "CDStoreCodec.h"       /* definition of the class implemented here */
 
 #ifndef GUCEF_CORE_GUCEF_ESSENTIALS_H
@@ -46,35 +51,66 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 CDStoreCodec::CDStoreCodec( const CDStoreCodec& src )
-{
-        GUCEF_BEGIN;
-        GUCEF_END;
+    : CICloneable( src )
+{GUCEF_TRACE;
+
 }
 
 /*-------------------------------------------------------------------------*/
 
 CDStoreCodec::CDStoreCodec( void )
-{
-        GUCEF_BEGIN;
-        GUCEF_END;
+    : CICloneable()
+{GUCEF_TRACE;
+
 }
 
 /*-------------------------------------------------------------------------*/
 
 CDStoreCodec::~CDStoreCodec()
-{
-        GUCEF_BEGIN;
-        GUCEF_END;
+{GUCEF_TRACE;
+
 }
 
 /*-------------------------------------------------------------------------*/
 
 CDStoreCodec&
 CDStoreCodec::operator=( const CDStoreCodec& src )
-{
-        GUCEF_BEGIN;
-        GUCEF_END;        
-        return *this;
+{GUCEF_TRACE;
+
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDStoreCodec::StoreDataTree( const CDataNode* tree   ,
+                             const CString& filename )
+{GUCEF_TRACE;
+
+    CreatePathDirectories( filename );
+
+    CFileAccess access( filename, "wb" );
+    if ( access.IsValid() )
+    {
+        return StoreDataTree( tree, &access );
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDStoreCodec::BuildDataTree( CDataNode* treeroot     ,
+                             const CString& filename )
+
+{GUCEF_TRACE;
+
+    CFileAccess access( filename );
+    if ( access.IsValid() )
+    {
+        return BuildDataTree( treeroot, &access );
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------//
