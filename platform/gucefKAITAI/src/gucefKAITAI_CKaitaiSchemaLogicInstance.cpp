@@ -32,7 +32,7 @@
 #define GUCEF_CORE_CDATANODE_H
 #endif /* GUCEF_CORE_CDATANODE_H ? */
 
-#include "gucefKAITAI_CKaitaiSchemaInstanceField.h"
+#include "gucefKAITAI_CKaitaiSchemaLogicInstance.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -49,7 +49,7 @@ namespace KAITAI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-const CORE::CString CKaitaiSchemaInstanceField::ClassTypeName = "GUCEF::KAITAI::CKaitaiSchemaInstanceField";
+const CORE::CString CKaitaiSchemaLogicInstance::ClassTypeName = "GUCEF::KAITAI::CKaitaiSchemaLogicInstance";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -57,42 +57,42 @@ const CORE::CString CKaitaiSchemaInstanceField::ClassTypeName = "GUCEF::KAITAI::
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CKaitaiSchemaInstanceField::CKaitaiSchemaInstanceField( void )
-    : CKaitaiSchemaBaseField( InstanceField, CKaitaiSchemaMeta::CreateSharedObj() )
-    , CORE::CTSharedObjCreator< CKaitaiSchemaInstanceField, MT::CMutex >( this )
+CKaitaiSchemaLogicInstance::CKaitaiSchemaLogicInstance( void )
+    : CKaitaiSchemaBaseField( LogicInstance, CKaitaiSchemaMeta::CreateSharedObj() )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaLogicInstance, MT::CMutex >( this )
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaInstanceField::CKaitaiSchemaInstanceField( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( InstanceField, schemaMeta )
-    , CORE::CTSharedObjCreator< CKaitaiSchemaInstanceField, MT::CMutex >( this )
+CKaitaiSchemaLogicInstance::CKaitaiSchemaLogicInstance( CKaitaiSchemaMetaPtr schemaMeta )
+    : CKaitaiSchemaBaseField( LogicInstance, schemaMeta )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaLogicInstance, MT::CMutex >( this )
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaInstanceField::CKaitaiSchemaInstanceField( const CKaitaiSchemaInstanceField& src )    
+CKaitaiSchemaLogicInstance::CKaitaiSchemaLogicInstance( const CKaitaiSchemaLogicInstance& src )    
     : CKaitaiSchemaBaseField( src )
-    , CORE::CTSharedObjCreator< CKaitaiSchemaInstanceField, MT::CMutex >( this )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaLogicInstance, MT::CMutex >( this )
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaInstanceField::~CKaitaiSchemaInstanceField()
+CKaitaiSchemaLogicInstance::~CKaitaiSchemaLogicInstance()
 {GUCEF_TRACE;
     // Nothing to do here
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaInstanceField& 
-CKaitaiSchemaInstanceField::operator=( const CKaitaiSchemaInstanceField& src )
+CKaitaiSchemaLogicInstance& 
+CKaitaiSchemaLogicInstance::operator=( const CKaitaiSchemaLogicInstance& src )
 {GUCEF_TRACE;
 
     if ( this != &src )
@@ -106,16 +106,16 @@ CKaitaiSchemaInstanceField::operator=( const CKaitaiSchemaInstanceField& src )
 /*-------------------------------------------------------------------------*/
 
 CORE::CICloneable* 
-CKaitaiSchemaInstanceField::Clone( void ) const
+CKaitaiSchemaLogicInstance::Clone( void ) const
 {GUCEF_TRACE;
 
-    return GUCEF_NEW CKaitaiSchemaInstanceField( *this );
+    return GUCEF_NEW CKaitaiSchemaLogicInstance( *this );
 }
 
 /*-------------------------------------------------------------------------*/
 
 const CORE::CString& 
-CKaitaiSchemaInstanceField::GetClassTypeName( void ) const
+CKaitaiSchemaLogicInstance::GetClassTypeName( void ) const
 {GUCEF_TRACE;
 
     return ClassTypeName;
@@ -124,7 +124,7 @@ CKaitaiSchemaInstanceField::GetClassTypeName( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool 
-CKaitaiSchemaInstanceField::Serialize( CORE::CDataNode& domRootNode                        , 
+CKaitaiSchemaLogicInstance::Serialize( CORE::CDataNode& domRootNode                        , 
                                        const CORE::CDataNodeSerializableSettings& settings ) const
 {GUCEF_TRACE;
 
@@ -134,11 +134,32 @@ CKaitaiSchemaInstanceField::Serialize( CORE::CDataNode& domRootNode             
 /*-------------------------------------------------------------------------*/
 
 bool 
-CKaitaiSchemaInstanceField::Deserialize( const CORE::CDataNode& domRootNode                  , 
+CKaitaiSchemaLogicInstance::Deserialize( const CORE::CDataNode& domRootNode                  , 
                                          const CORE::CDataNodeSerializableSettings& settings )
 {GUCEF_TRACE;
 
-    return false;
+    id = domRootNode.GetName();
+    type = "instance";
+
+    if GUCEF_PREDICT_FALSE( id.IsNULLOrEmpty() )
+        return false;
+
+    m_expression = domRootNode.GetAttributeValueOrChildValueByName( "value" ).AsString();
+
+    // if we dont have an expression it defeats the purpose of this class
+    if GUCEF_PREDICT_FALSE( m_expression.IsNULLOrEmpty() )
+        return false;
+    
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString& 
+CKaitaiSchemaLogicInstance::GetExpression( void ) const
+{GUCEF_TRACE;
+
+    return m_expression;
 }
 
 /*-------------------------------------------------------------------------//

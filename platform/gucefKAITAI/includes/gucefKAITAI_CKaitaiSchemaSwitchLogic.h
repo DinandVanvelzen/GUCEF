@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_KAITAI_CKAITAISCHEMAOPAQUEFIELD_H
-#define GUCEF_KAITAI_CKAITAISCHEMAOPAQUEFIELD_H
+#ifndef GUCEF_KAITAI_CKAITAISCHEMASWITCHLOGIC_H
+#define GUCEF_KAITAI_CKAITAISCHEMASWITCHLOGIC_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,39 +45,65 @@ namespace KAITAI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+enum SwitchType
+{
+    UnknownSwitch = 0,
+    
+    TypeViaSwitch,
+    SizeViaSwitch,
+};
+
+/*-------------------------------------------------------------------------*/
+
 /**
- * CKaitaiSchemaOpaqueField represents fields that are processed externally using custom logic.
- * This class can integrate external libraries or hooks.
- * 
+ * CKaitaiSchemaSwitchLogic supports advanced type switching based on dynamic conditions.
+ * Nested switches and multi-condition cases are supported.
  */
-class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaOpaqueField : public CKaitaiSchemaBaseField ,
-                                                         public CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >
+class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaSwitchLogic : public CKaitaiSchemaBaseField ,
+                                                         public CORE::CTSharedObjCreator< CKaitaiSchemaSwitchLogic, MT::CMutex >
 {
     public:
 
     static const CORE::CString ClassTypeName;
 
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaOpaqueFieldPtr;
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaOpaqueFieldTypedPtr;
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaSwitchLogic, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaSwitchLogicPtr;
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaSwitchLogic, MT::CMutex >::TSharedPtrType       CKaitaiSchemaSwitchLogicTypedPtr;
     
-    CORE::CString externalProcessor; // Name of the external processing routine
+    CORE::CString switchOn;                              // Expression to determine type    
+    CORE::CString defaultCase;                           // Default case for unmatched conditions
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Clear( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    CKaitaiSchemaOpaqueField( void );                                       /**< dont use this, use the other constructor */
-    CKaitaiSchemaOpaqueField( CKaitaiSchemaMetaPtr schemaMeta );
-    CKaitaiSchemaOpaqueField( const CKaitaiSchemaOpaqueField& src );
-    virtual ~CKaitaiSchemaOpaqueField();
-    CKaitaiSchemaOpaqueField& operator=( const CKaitaiSchemaOpaqueField& src );
+    CKaitaiSchemaSwitchLogic( void );                               /**< dont use this, use the other constructor */
+    CKaitaiSchemaSwitchLogic( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaSwitchLogic( const CKaitaiSchemaSwitchLogic& src );
+    virtual ~CKaitaiSchemaSwitchLogic();
+    CKaitaiSchemaSwitchLogic& operator=( const CKaitaiSchemaSwitchLogic& src );
+
+    SwitchType GetSwitchType( void ) const;
+
+    const CORE::CVariantMap& GetCases( void ) const;
+    
+    bool HasDefaultCase( void ) const;
+
+    const CORE::CVariant& GetDefaultCase( void ) const;
+
+    private:
+    
+    SwitchType m_switchType;
+    CORE::CVariantMap m_cases;       // Mapping of cases to types
+    CORE::CVariant m_defaultCase;    // Default case for unmatched conditions
+
 };
 
 /*-------------------------------------------------------------------------*/
 
-typedef CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueFieldPtr         CKaitaiSchemaOpaqueFieldPtr;
-typedef CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueFieldTypedPtr    CKaitaiSchemaOpaqueFieldTypedPtr;
+typedef CKaitaiSchemaSwitchLogic::CKaitaiSchemaSwitchLogicPtr         CKaitaiSchemaSwitchLogicPtr;
+typedef CKaitaiSchemaSwitchLogic::CKaitaiSchemaSwitchLogicTypedPtr    CKaitaiSchemaSwitchLogicTypedPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -90,4 +116,4 @@ typedef CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueFieldTypedPtr    CKaitaiSch
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_KAITAI_CKAITAISCHEMAOPAQUEFIELD_H ? */
+#endif /* GUCEF_KAITAI_CKAITAISCHEMASWITCHLOGIC_H ? */

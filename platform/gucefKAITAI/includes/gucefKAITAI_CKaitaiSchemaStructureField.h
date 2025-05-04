@@ -60,7 +60,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaStructureField : public CKaitaiSchema
     typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaStructureField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaStructureFieldTypedPtr;
     typedef std::vector< CKaitaiSchemaBaseFieldPtr, gucef_allocator< CKaitaiSchemaBaseFieldPtr > >             CKaitaiSchemaBaseFieldPtrVector;
 
-    CKaitaiSchemaBaseFieldPtrVector fields;    /**< the sequence of fields within the structure */
+    
     CORE::CString params;                  // Parameters for dynamic behavior
 
     virtual void Clear( void ) GUCEF_VIRTUAL_OVERRIDE;
@@ -71,13 +71,24 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaStructureField : public CKaitaiSchema
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /**
+     *  Attempts to detect what OOP construct the field is based on the various datanode shapes presented
+     *  Once the correct object type is able to be determined the object is created and returned 
+     *  with the data node deserialized into the construct. Returns a null shared ptr object on failure.
+     */
+    CKaitaiSchemaBaseFieldPtr CreateSchemaObjectForFieldDataNode( const CORE::CDataNode& fieldNode, bool& totalSuccess  ) const;
+
     CKaitaiSchemaStructureField( void );                                  /**< dont use this, use the other constructor */
     CKaitaiSchemaStructureField( CKaitaiSchemaMetaPtr schemaMeta );
     CKaitaiSchemaStructureField( const CKaitaiSchemaStructureField& src );
     virtual ~CKaitaiSchemaStructureField();
     CKaitaiSchemaStructureField& operator=( const CKaitaiSchemaStructureField& src );
 
+    const CKaitaiSchemaBaseFieldPtrVector& GetFields( void ) const;
+
     private:
+
+    CKaitaiSchemaBaseFieldPtrVector fields;    /**< the sequence of fields within the structure */
 
 };
 

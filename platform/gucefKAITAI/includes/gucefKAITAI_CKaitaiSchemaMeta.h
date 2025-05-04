@@ -102,6 +102,8 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaMeta : public CORE::CIDataNodeSeriali
 
     const CORE::CStringVector& GetImports( void ) const;
 
+    bool AreOpaqueTypesEnabled( void ) const;
+
     void Clear( void );
 
     private:
@@ -116,6 +118,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaMeta : public CORE::CIDataNodeSeriali
     CORE::CString m_schemaFamily;
     bool m_isLittleEndian;                        // True if the schema is little-endian, false if big-endian
     CORE::CStringVector m_imports;
+    bool m_opaqueTypesSupported;
 };
 
 /*-------------------------------------------------------------------------*/

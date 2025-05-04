@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_KAITAI_CKAITAISCHEMAOPAQUEFIELD_H
-#define GUCEF_KAITAI_CKAITAISCHEMAOPAQUEFIELD_H
+#ifndef GUCEF_KAITAI_CKAITAISCHEMALOGICINSTANCE_H
+#define GUCEF_KAITAI_CKAITAISCHEMALOGICINSTANCE_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -46,38 +46,41 @@ namespace KAITAI {
 //-------------------------------------------------------------------------*/
 
 /**
- * CKaitaiSchemaOpaqueField represents fields that are processed externally using custom logic.
- * This class can integrate external libraries or hooks.
- * 
+ * CKaitaiSchemaLogicInstance represents computed fields derived from other schema data.
+ * Can support complex expressions or dependencies.
  */
-class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaOpaqueField : public CKaitaiSchemaBaseField ,
-                                                         public CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >
+class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaLogicInstance : public CKaitaiSchemaBaseField ,
+                                                           public CORE::CTSharedObjCreator< CKaitaiSchemaLogicInstance, MT::CMutex >
 {
     public:
 
     static const CORE::CString ClassTypeName;
 
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaOpaqueFieldPtr;
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaOpaqueFieldTypedPtr;
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaLogicInstance, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaLogicInstancePtr;
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaLogicInstance, MT::CMutex >::TSharedPtrType       CKaitaiSchemaLogicInstanceTypedPtr;
     
-    CORE::CString externalProcessor; // Name of the external processing routine
-
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
-    CKaitaiSchemaOpaqueField( void );                                       /**< dont use this, use the other constructor */
-    CKaitaiSchemaOpaqueField( CKaitaiSchemaMetaPtr schemaMeta );
-    CKaitaiSchemaOpaqueField( const CKaitaiSchemaOpaqueField& src );
-    virtual ~CKaitaiSchemaOpaqueField();
-    CKaitaiSchemaOpaqueField& operator=( const CKaitaiSchemaOpaqueField& src );
+    const CORE::CString& GetExpression( void ) const;
+    
+    CKaitaiSchemaLogicInstance( void );                                   /**< dont use this, use the other constructor */
+    CKaitaiSchemaLogicInstance( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaLogicInstance( const CKaitaiSchemaLogicInstance& src );
+    virtual ~CKaitaiSchemaLogicInstance();
+    CKaitaiSchemaLogicInstance& operator=( const CKaitaiSchemaLogicInstance& src );
+
+    private:
+    
+    CORE::CString m_expression; // Logic for deriving the value
 };
 
 /*-------------------------------------------------------------------------*/
 
-typedef CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueFieldPtr         CKaitaiSchemaOpaqueFieldPtr;
-typedef CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueFieldTypedPtr    CKaitaiSchemaOpaqueFieldTypedPtr;
+typedef CKaitaiSchemaLogicInstance::CKaitaiSchemaLogicInstancePtr         CKaitaiSchemaLogicInstancePtr;
+typedef CKaitaiSchemaLogicInstance::CKaitaiSchemaLogicInstanceTypedPtr    CKaitaiSchemaLogicInstanceTypedPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -90,4 +93,4 @@ typedef CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueFieldTypedPtr    CKaitaiSch
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_KAITAI_CKAITAISCHEMAOPAQUEFIELD_H ? */
+#endif /* GUCEF_KAITAI_CKAITAISCHEMALOGICINSTANCE_H ? */

@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_KAITAI_CKAITAISCHEMASWITCHFIELD_H
-#define GUCEF_KAITAI_CKAITAISCHEMASWITCHFIELD_H
+#ifndef GUCEF_KAITAI_CKAITAISCHEMAENUMSCALARFIELD_H
+#define GUCEF_KAITAI_CKAITAISCHEMAENUMSCALARFIELD_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,40 +45,40 @@ namespace KAITAI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- * CKaitaiSchemaSwitchField supports advanced type switching based on dynamic conditions.
- * Nested switches and multi-condition cases are supported.
- */
-class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaSwitchField : public CKaitaiSchemaBaseField ,
-                                                         public CORE::CTSharedObjCreator< CKaitaiSchemaSwitchField, MT::CMutex >
+class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaEnumScalarField : public CKaitaiSchemaBaseField ,
+                                                             public CORE::CTSharedObjCreator< CKaitaiSchemaEnumScalarField, MT::CMutex >
 {
     public:
 
     static const CORE::CString ClassTypeName;
 
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaSwitchField, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaSwitchFieldPtr;
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaSwitchField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaSwitchFieldTypedPtr;
-    
-    CORE::CString switchOn;                              // Expression to determine type
-    std::map<CORE::CVariant, CORE::CString> cases;        // Mapping of cases to types
-    CORE::CString defaultCase;                           // Default case for unmatched conditions
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaEnumScalarField, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaEnumScalarFieldPtr;  
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaEnumScalarField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaEnumScalarFieldTypedPtr;  
+
+    virtual Int32 GetFixedSizeIfAny( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
-    CKaitaiSchemaSwitchField( void );                               /**< dont use this, use the other constructor */
-    CKaitaiSchemaSwitchField( CKaitaiSchemaMetaPtr schemaMeta );
-    CKaitaiSchemaSwitchField( const CKaitaiSchemaSwitchField& src );
-    virtual ~CKaitaiSchemaSwitchField();
-    CKaitaiSchemaSwitchField& operator=( const CKaitaiSchemaSwitchField& src );
+    CKaitaiSchemaEnumScalarField( void );                               /**< dont use this, use the other constructor */
+    CKaitaiSchemaEnumScalarField( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaEnumScalarField( const CKaitaiSchemaEnumScalarField& src );
+    virtual ~CKaitaiSchemaEnumScalarField();
+    CKaitaiSchemaEnumScalarField& operator=( const CKaitaiSchemaEnumScalarField& src );
+
+    const CORE::CString& GetReferencedEnum( void ) const;
+
+    private:
+
+    CORE::CString m_referencedEnum;
 };
 
 /*-------------------------------------------------------------------------*/
 
-typedef CKaitaiSchemaSwitchField::CKaitaiSchemaSwitchFieldPtr         CKaitaiSchemaSwitchFieldPtr;
-typedef CKaitaiSchemaSwitchField::CKaitaiSchemaSwitchFieldTypedPtr    CKaitaiSchemaSwitchFieldTypedPtr;
+typedef CKaitaiSchemaEnumScalarField::CKaitaiSchemaEnumScalarFieldPtr         CKaitaiSchemaEnumScalarFieldPtr;
+typedef CKaitaiSchemaEnumScalarField::CKaitaiSchemaEnumScalarFieldTypedPtr    CKaitaiSchemaEnumScalarFieldTypedPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -91,4 +91,4 @@ typedef CKaitaiSchemaSwitchField::CKaitaiSchemaSwitchFieldTypedPtr    CKaitaiSch
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_KAITAI_CKAITAISCHEMASWITCHFIELD_H ? */
+#endif /* GUCEF_KAITAI_CKAITAISCHEMAENUMSCALARFIELD_H ? */

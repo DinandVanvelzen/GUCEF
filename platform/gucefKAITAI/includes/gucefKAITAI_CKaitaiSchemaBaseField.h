@@ -83,12 +83,14 @@ enum KaitaiSchemaElementType
     StringScalarField  = 5,
     BinaryScalarField  = 6,
 
-    EnumDefinition = 7,
+    ConstValidationField  = 7,
+    EnumDefinition = 8,
     
-    ConditionalField,
-    RepeatedField,
-    SwitchField,
-    InstanceField,
+    ConditionalLogic,           /**< runtime conditional logic ('if') statement that isnt a field in the data but rather logic which directs repeated data interpretation */
+    RepeatLogic,                /**< runtime loop (repeat) statement that isnt a field in the data but rather logic which directs repeated data interpretation */
+    SwitchLogic,                /**< runtime switch statement that isnt a field in the data but rather logic which directs data interpretation */
+    LogicInstance,              /**< a logical runtime variable that isnt a field in the data but is computed and can be referenced */
+
     SubstreamField,
     BitField,    
     OpaqueField,

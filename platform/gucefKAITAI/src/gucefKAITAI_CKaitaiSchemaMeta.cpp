@@ -99,6 +99,7 @@ CKaitaiSchemaMeta::CKaitaiSchemaMeta( void )
     , m_schemaFamily()
     , m_isLittleEndian( true )
     , m_imports()
+    , m_opaqueTypesSupported( false )
 {GUCEF_TRACE;
 
 }
@@ -112,6 +113,7 @@ CKaitaiSchemaMeta::CKaitaiSchemaMeta( const CORE::CString& schemaFamily )
     , m_schemaFamily( schemaFamily )
     , m_isLittleEndian( true )
     , m_imports()
+    , m_opaqueTypesSupported( false )
 {GUCEF_TRACE;
 
 }
@@ -125,6 +127,7 @@ CKaitaiSchemaMeta::CKaitaiSchemaMeta( const CKaitaiSchemaMeta& src )
     , m_schemaFamily( src.m_schemaFamily )
     , m_isLittleEndian( src.m_isLittleEndian )
     , m_imports( src.m_imports )
+    , m_opaqueTypesSupported( src.m_opaqueTypesSupported )
 {GUCEF_TRACE;
 
 }
@@ -150,6 +153,7 @@ CKaitaiSchemaMeta::operator=( const CKaitaiSchemaMeta& src )
         m_schemaFamily = src.m_schemaFamily;
         m_isLittleEndian = src.m_isLittleEndian;
         m_imports = src.m_imports;
+        m_opaqueTypesSupported = src.m_opaqueTypesSupported;
     }
     return *this;
 }
@@ -164,6 +168,7 @@ CKaitaiSchemaMeta::Clear( void )
     m_schemaFamily.Clear();
     m_isLittleEndian = true;
     m_imports.clear();
+    m_opaqueTypesSupported = false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -216,9 +221,21 @@ CKaitaiSchemaMeta::Deserialize( const CORE::CDataNode& domRootNode              
             m_imports = CORE::ToStringVector( importsList );
         }
 
+        m_opaqueTypesSupported = metaNode->GetAttributeValueOrChildValueByName( "opaque-types" ).AsBool( false );
+
+
         return true;
     }
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CKaitaiSchemaMeta::AreOpaqueTypesEnabled( void ) const
+{GUCEF_TRACE;
+
+    return m_opaqueTypesSupported;
 }
 
 /*-------------------------------------------------------------------------*/

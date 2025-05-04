@@ -32,7 +32,7 @@
 #define GUCEF_CORE_CDATANODE_H
 #endif /* GUCEF_CORE_CDATANODE_H ? */
 
-#include "gucefKAITAI_CKaitaiSchemaSwitchField.h"
+#include "gucefKAITAI_CKaitaiSchemaConstValidationScalarField.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -49,7 +49,7 @@ namespace KAITAI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-const CORE::CString CKaitaiSchemaSwitchField::ClassTypeName = "GUCEF::KAITAI::CKaitaiSchemaSwitchField";
+const CORE::CString CKaitaiSchemaConstValidationScalarField::ClassTypeName = "GUCEF::KAITAI::CKaitaiSchemaConstValidationScalarField";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -57,65 +57,84 @@ const CORE::CString CKaitaiSchemaSwitchField::ClassTypeName = "GUCEF::KAITAI::CK
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CKaitaiSchemaSwitchField::CKaitaiSchemaSwitchField( void )
-    : CKaitaiSchemaBaseField( SwitchField, CKaitaiSchemaMeta::CreateSharedObj() )
-    , CORE::CTSharedObjCreator< CKaitaiSchemaSwitchField, MT::CMutex >( this )
+CKaitaiSchemaConstValidationScalarField::CKaitaiSchemaConstValidationScalarField( void )
+    : CKaitaiSchemaBaseField( ConstValidationField, CKaitaiSchemaMeta::CreateSharedObj() )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaConstValidationScalarField, MT::CMutex >( this )
+    , m_referencedScalarFieldToValidate()
+    , m_constantValue()
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaSwitchField::CKaitaiSchemaSwitchField( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( SwitchField, schemaMeta )
-    , CORE::CTSharedObjCreator< CKaitaiSchemaSwitchField, MT::CMutex >( this )
+CKaitaiSchemaConstValidationScalarField::CKaitaiSchemaConstValidationScalarField( CKaitaiSchemaMetaPtr schemaMeta )
+    : CKaitaiSchemaBaseField( ConstValidationField, schemaMeta )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaConstValidationScalarField, MT::CMutex >( this )
+    , m_referencedScalarFieldToValidate()
+    , m_constantValue()
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaSwitchField::CKaitaiSchemaSwitchField( const CKaitaiSchemaSwitchField& src )    
+CKaitaiSchemaConstValidationScalarField::CKaitaiSchemaConstValidationScalarField( const CKaitaiSchemaConstValidationScalarField& src )    
     : CKaitaiSchemaBaseField( src )
-    , CORE::CTSharedObjCreator< CKaitaiSchemaSwitchField, MT::CMutex >( this )
+    , CORE::CTSharedObjCreator< CKaitaiSchemaConstValidationScalarField, MT::CMutex >( this )
+    , m_referencedScalarFieldToValidate( src.m_referencedScalarFieldToValidate )
+    , m_constantValue( src.m_constantValue )
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaSwitchField::~CKaitaiSchemaSwitchField()
+CKaitaiSchemaConstValidationScalarField::~CKaitaiSchemaConstValidationScalarField()
 {GUCEF_TRACE;
-    // Nothing to do here
+
+    Clear();
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaSwitchField& 
-CKaitaiSchemaSwitchField::operator=( const CKaitaiSchemaSwitchField& src )
+CKaitaiSchemaConstValidationScalarField& 
+CKaitaiSchemaConstValidationScalarField::operator=( const CKaitaiSchemaConstValidationScalarField& src )
 {GUCEF_TRACE;
 
     if ( this != &src )
     {
         CKaitaiSchemaBaseField::operator=( src );
-
+        m_referencedScalarFieldToValidate = src.m_referencedScalarFieldToValidate;
+        m_constantValue = src.m_constantValue;
     }
     return *this;
 }
 
 /*-------------------------------------------------------------------------*/
 
-CORE::CICloneable* 
-CKaitaiSchemaSwitchField::Clone( void ) const
+void 
+CKaitaiSchemaConstValidationScalarField::Clear( void )
 {GUCEF_TRACE;
 
-    return GUCEF_NEW CKaitaiSchemaSwitchField( *this );
+    CKaitaiSchemaBaseField::Clear();
+    m_referencedScalarFieldToValidate.Clear();
+    m_constantValue.Clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CICloneable* 
+CKaitaiSchemaConstValidationScalarField::Clone( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NEW CKaitaiSchemaConstValidationScalarField( *this );
 }
 
 /*-------------------------------------------------------------------------*/
 
 const CORE::CString& 
-CKaitaiSchemaSwitchField::GetClassTypeName( void ) const
+CKaitaiSchemaConstValidationScalarField::GetClassTypeName( void ) const
 {GUCEF_TRACE;
 
     return ClassTypeName;
@@ -123,9 +142,36 @@ CKaitaiSchemaSwitchField::GetClassTypeName( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+const CORE::CVariant& 
+CKaitaiSchemaConstValidationScalarField::GetConstantValue( void ) const
+{GUCEF_TRACE;
+
+    return m_constantValue;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CKaitaiSchemaConstValidationScalarField::GetReferencedScalarFieldToValidate( void ) const
+{GUCEF_TRACE;
+    
+    return m_referencedScalarFieldToValidate;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CKaitaiSchemaConstValidationScalarField::GetFixedSizeIfAny( void ) const
+{GUCEF_TRACE;
+
+    return static_cast< Int32 >( m_constantValue.ByteSize( false ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool 
-CKaitaiSchemaSwitchField::Serialize( CORE::CDataNode& domRootNode                        , 
-                                     const CORE::CDataNodeSerializableSettings& settings ) const
+CKaitaiSchemaConstValidationScalarField::Serialize( CORE::CDataNode& domRootNode                        , 
+                                                    const CORE::CDataNodeSerializableSettings& settings ) const
 {GUCEF_TRACE;
 
     return false;
@@ -134,11 +180,18 @@ CKaitaiSchemaSwitchField::Serialize( CORE::CDataNode& domRootNode               
 /*-------------------------------------------------------------------------*/
 
 bool 
-CKaitaiSchemaSwitchField::Deserialize( const CORE::CDataNode& domRootNode                  , 
-                                       const CORE::CDataNodeSerializableSettings& settings )
+CKaitaiSchemaConstValidationScalarField::Deserialize( const CORE::CDataNode& domRootNode                  , 
+                                                      const CORE::CDataNodeSerializableSettings& settings )
 {GUCEF_TRACE;
 
-    return false;
+    Clear();
+
+    id = domRootNode.GetAttributeValueOrChildValueByName( "id" ).AsString();
+    type = "bytes";
+    gucefDataType = GUCEF_DATATYPE_BINARY_BLOB;
+
+    m_constantValue = domRootNode.GetAttributeValueOrChildValueByName( "contents" );
+    return true;
 }
 
 /*-------------------------------------------------------------------------//

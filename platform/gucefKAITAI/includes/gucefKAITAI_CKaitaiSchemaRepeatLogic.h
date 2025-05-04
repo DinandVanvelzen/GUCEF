@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_KAITAI_CKAITAISCHEMAOPAQUEFIELD_H
-#define GUCEF_KAITAI_CKAITAISCHEMAOPAQUEFIELD_H
+#ifndef GUCEF_KAITAI_CKAITAISCHEMAREPEATLOGIC_H
+#define GUCEF_KAITAI_CKAITAISCHEMAREPEATLOGIC_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,39 +45,62 @@ namespace KAITAI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+enum RepeatType
+{
+    UnknownRepeat = 0,
+    
+    RepeatUntilExpressionFalse,
+    RepeatUntilEndOfStream,
+    RepeatUpToGivenCount
+};
+
+/*-------------------------------------------------------------------------*/
+
 /**
- * CKaitaiSchemaOpaqueField represents fields that are processed externally using custom logic.
- * This class can integrate external libraries or hooks.
- * 
+ * CKaitaiSchemaRepeatLogic supports looping constructs in the Kaitai schema.
  */
-class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaOpaqueField : public CKaitaiSchemaBaseField ,
-                                                         public CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >
+class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaRepeatLogic : public CKaitaiSchemaBaseField ,
+                                                         public CORE::CTSharedObjCreator< CKaitaiSchemaRepeatLogic, MT::CMutex >
 {
     public:
 
     static const CORE::CString ClassTypeName;
 
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaOpaqueFieldPtr;
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaOpaqueFieldTypedPtr;
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaRepeatLogic, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaRepeatLogicPtr;
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaRepeatLogic, MT::CMutex >::TSharedPtrType       CKaitaiSchemaRepeatLogicTypedPtr;
     
-    CORE::CString externalProcessor; // Name of the external processing routine
+    CORE::CString switchOn;                              // Expression to determine type    
+    CORE::CString defaultCase;                           // Default case for unmatched conditions
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Clear( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    CKaitaiSchemaOpaqueField( void );                                       /**< dont use this, use the other constructor */
-    CKaitaiSchemaOpaqueField( CKaitaiSchemaMetaPtr schemaMeta );
-    CKaitaiSchemaOpaqueField( const CKaitaiSchemaOpaqueField& src );
-    virtual ~CKaitaiSchemaOpaqueField();
-    CKaitaiSchemaOpaqueField& operator=( const CKaitaiSchemaOpaqueField& src );
+    CKaitaiSchemaRepeatLogic( void );                               /**< dont use this, use the other constructor */
+    CKaitaiSchemaRepeatLogic( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaRepeatLogic( const CKaitaiSchemaRepeatLogic& src );
+    virtual ~CKaitaiSchemaRepeatLogic();
+    CKaitaiSchemaRepeatLogic& operator=( const CKaitaiSchemaRepeatLogic& src );
+
+    RepeatType GetRepeatType( void ) const;
+
+    const CORE::CString& GetRepeatExpression( void ) const;
+
+    CKaitaiSchemaBaseFieldPtr GetRepeatedField( void ) const;
+
+    private:
+    
+    CORE::CString m_repeatExpression;          /**< the repeat expression to evaluate if applicable */
+    RepeatType m_repeatType;                   /**< the manner in which the repeat logic should execute */
+    CKaitaiSchemaBaseFieldPtr m_repeatedField; /**< The field to repeat */
 };
 
 /*-------------------------------------------------------------------------*/
 
-typedef CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueFieldPtr         CKaitaiSchemaOpaqueFieldPtr;
-typedef CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueFieldTypedPtr    CKaitaiSchemaOpaqueFieldTypedPtr;
+typedef CKaitaiSchemaRepeatLogic::CKaitaiSchemaRepeatLogicPtr         CKaitaiSchemaRepeatLogicPtr;
+typedef CKaitaiSchemaRepeatLogic::CKaitaiSchemaRepeatLogicTypedPtr    CKaitaiSchemaRepeatLogicTypedPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -90,4 +113,4 @@ typedef CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueFieldTypedPtr    CKaitaiSch
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_KAITAI_CKAITAISCHEMAOPAQUEFIELD_H ? */
+#endif /* GUCEF_KAITAI_CKAITAISCHEMAREPEATLOGIC_H ? */

@@ -31,18 +31,22 @@ LOCAL_SRC_FILES := \
   src/gucefKAITAI_CKaitaiSchema.cpp \
   src/gucefKAITAI_CKaitaiSchemaBaseField.cpp \
   src/gucefKAITAI_CKaitaiSchemaBinaryScalarField.cpp \
+  src/gucefKAITAI_CKaitaiSchemaConditionalLogic.cpp \
+  src/gucefKAITAI_CKaitaiSchemaConstValidationScalarField.cpp \
   src/gucefKAITAI_CKaitaiSchemaDelimitedField.cpp \
   src/gucefKAITAI_CKaitaiSchemaEnumDefinition.cpp \
+  src/gucefKAITAI_CKaitaiSchemaEnumScalarField.cpp \
   src/gucefKAITAI_CKaitaiSchemaFieldDefinition.cpp \
-  src/gucefKAITAI_CKaitaiSchemaInstanceField.cpp \
+  src/gucefKAITAI_CKaitaiSchemaLogicInstance.cpp \
   src/gucefKAITAI_CKaitaiSchemaMeta.cpp \
   src/gucefKAITAI_CKaitaiSchemaNumericScalarField.cpp \
   src/gucefKAITAI_CKaitaiSchemaOpaqueField.cpp \
   src/gucefKAITAI_CKaitaiSchemaRegistry.cpp \
+  src/gucefKAITAI_CKaitaiSchemaRepeatLogic.cpp \
   src/gucefKAITAI_CKaitaiSchemaStringScalarField.cpp \
   src/gucefKAITAI_CKaitaiSchemaStructureField.cpp \
   src/gucefKAITAI_CKaitaiSchemaSubstreamField.cpp \
-  src/gucefKAITAI_CKaitaiSchemaSwitchField.cpp \
+  src/gucefKAITAI_CKaitaiSchemaSwitchLogic.cpp \
   src/gucefKAITAI_CModule.cpp
 
 LOCAL_C_INCLUDES := \

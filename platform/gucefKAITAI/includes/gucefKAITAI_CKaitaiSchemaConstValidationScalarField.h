@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_KAITAI_CKAITAISCHEMAINSTANCEFIELD_H
-#define GUCEF_KAITAI_CKAITAISCHEMAINSTANCEFIELD_H
+#ifndef GUCEF_KAITAI_CKAITAISCHEMACONSTVALIDATIONSCALARFIELD_H
+#define GUCEF_KAITAI_CKAITAISCHEMACONSTVALIDATIONSCALARFIELD_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,38 +45,44 @@ namespace KAITAI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- * CKaitaiSchemaInstanceField represents computed fields derived from other schema data.
- * Can support complex expressions or dependencies.
- */
-class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaInstanceField : public CKaitaiSchemaBaseField ,
-                                                           public CORE::CTSharedObjCreator< CKaitaiSchemaInstanceField, MT::CMutex >
+class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaConstValidationScalarField : public CKaitaiSchemaBaseField ,
+                                                                        public CORE::CTSharedObjCreator< CKaitaiSchemaConstValidationScalarField, MT::CMutex >
 {
     public:
 
     static const CORE::CString ClassTypeName;
 
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaInstanceField, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaInstanceFieldPtr;
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaInstanceField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaInstanceFieldTypedPtr;
-    
-    CORE::CString expression; // Logic for deriving the value
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaConstValidationScalarField, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaConstValidationScalarFieldPtr;  
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaConstValidationScalarField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaConstValidationScalarFieldTypedPtr;  
+
+    virtual Int32 GetFixedSizeIfAny( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Clear( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    CKaitaiSchemaInstanceField( void );                                   /**< dont use this, use the other constructor */
-    CKaitaiSchemaInstanceField( CKaitaiSchemaMetaPtr schemaMeta );
-    CKaitaiSchemaInstanceField( const CKaitaiSchemaInstanceField& src );
-    virtual ~CKaitaiSchemaInstanceField();
-    CKaitaiSchemaInstanceField& operator=( const CKaitaiSchemaInstanceField& src );
+    CKaitaiSchemaConstValidationScalarField( void );                               /**< dont use this, use the other constructor */
+    CKaitaiSchemaConstValidationScalarField( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaConstValidationScalarField( const CKaitaiSchemaConstValidationScalarField& src );
+    virtual ~CKaitaiSchemaConstValidationScalarField();
+    CKaitaiSchemaConstValidationScalarField& operator=( const CKaitaiSchemaConstValidationScalarField& src );
+
+    const CORE::CVariant& GetConstantValue( void ) const;
+
+    const CORE::CString& GetReferencedScalarFieldToValidate( void ) const;
+    
+    private:
+
+    CORE::CString m_referencedScalarFieldToValidate; /**< The name of the field to reference for validation against the constant */
+    CORE::CVariant m_constantValue;                  /**< The constant value to evaluate against */
 };
 
 /*-------------------------------------------------------------------------*/
 
-typedef CKaitaiSchemaInstanceField::CKaitaiSchemaInstanceFieldPtr         CKaitaiSchemaInstanceFieldPtr;
-typedef CKaitaiSchemaInstanceField::CKaitaiSchemaInstanceFieldTypedPtr    CKaitaiSchemaInstanceFieldTypedPtr;
+typedef CKaitaiSchemaConstValidationScalarField::CKaitaiSchemaConstValidationScalarFieldPtr         CKaitaiSchemaConstValidationScalarFieldPtr;
+typedef CKaitaiSchemaConstValidationScalarField::CKaitaiSchemaConstValidationScalarFieldTypedPtr    CKaitaiSchemaConstValidationScalarFieldTypedPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -89,4 +95,4 @@ typedef CKaitaiSchemaInstanceField::CKaitaiSchemaInstanceFieldTypedPtr    CKaita
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_KAITAI_CKAITAISCHEMAINSTANCEFIELD_H ? */
+#endif /* GUCEF_KAITAI_CKAITAISCHEMACONSTVALIDATIONSCALARFIELD_H ? */

@@ -210,8 +210,11 @@ CKaitaiSchemaBaseField::CloneAsFieldObject( void ) const
 
         case EnumDefinition: return CKaitaiSchemaEnumDefinition::CreateSharedObjWithParam(*static_cast<const CKaitaiSchemaEnumDefinition*>(this));
         
-        case SwitchField: return CKaitaiSchemaSwitchField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaSwitchField* >( this ) );
-        case InstanceField: return CKaitaiSchemaInstanceField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaInstanceField* >( this ) );
+        case SwitchLogic: return CKaitaiSchemaSwitchLogic::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaSwitchLogic* >( this ) );
+        case RepeatLogic: return CKaitaiSchemaRepeatLogic::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaRepeatLogic* >( this ) );
+        case ConditionalLogic: return CKaitaiSchemaConditionalLogic::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaConditionalLogic* >( this ) );
+        case LogicInstance: return CKaitaiSchemaLogicInstance::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaLogicInstance* >( this ) );
+
         case SubstreamField: return CKaitaiSchemaSubstreamField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaSubstreamField* >( this ) );
         case OpaqueField: return CKaitaiSchemaOpaqueField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaOpaqueField*>( this ) );
         case DelimitedField: return CKaitaiSchemaDelimitedField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaDelimitedField*>( this ) );
@@ -335,6 +338,8 @@ CKaitaiSchemaBaseField::KaitaiBuildInTypeStringToGucefType( const CORE::CString&
             return GUCEF_DATATYPE_STRING;
         if ( "bytes" == typeName )
             return GUCEF_DATATYPE_BINARY_BLOB;
+        if ( "enum" == typeName )
+            return GUCEF_DATATYPE_ENUM;
     }
     return GUCEF_DATATYPE_UNKNOWN;
 }
@@ -454,13 +459,18 @@ CKaitaiSchemaBaseField::CreateDefaultFieldObjectForFieldType( KaitaiSchemaElemen
         }
 
         case NumericScalarField: return CKaitaiSchemaNumericScalarField::CreateSharedObjWithParam( schemaMeta );
+        case EnumScalarField: return CKaitaiSchemaEnumScalarField::CreateSharedObjWithParam( schemaMeta );
         case StringScalarField: return CKaitaiSchemaStringScalarField::CreateSharedObjWithParam( schemaMeta );
         case BinaryScalarField: return CKaitaiSchemaBinaryScalarField::CreateSharedObjWithParam( schemaMeta );
+        case ConstValidationField: return CKaitaiSchemaConstValidationScalarField::CreateSharedObjWithParam( schemaMeta );
 
         case EnumDefinition: return CKaitaiSchemaEnumDefinition::CreateSharedObjWithParam( schemaMeta );
 
-        case SwitchField: return CKaitaiSchemaSwitchField::CreateSharedObjWithParam( schemaMeta );
-        case InstanceField: return CKaitaiSchemaInstanceField::CreateSharedObjWithParam( schemaMeta );
+        case SwitchLogic: return CKaitaiSchemaSwitchLogic::CreateSharedObjWithParam( schemaMeta );
+        case RepeatLogic: return CKaitaiSchemaRepeatLogic::CreateSharedObjWithParam( schemaMeta );
+        case ConditionalLogic: return CKaitaiSchemaConditionalLogic::CreateSharedObjWithParam( schemaMeta );
+        case LogicInstance: return CKaitaiSchemaLogicInstance::CreateSharedObjWithParam( schemaMeta );
+
         case SubstreamField: return CKaitaiSchemaSubstreamField::CreateSharedObjWithParam( schemaMeta );
         case OpaqueField: return CKaitaiSchemaOpaqueField::CreateSharedObjWithParam( schemaMeta );
         case DelimitedField: return CKaitaiSchemaDelimitedField::CreateSharedObjWithParam( schemaMeta );
@@ -522,6 +532,10 @@ CKaitaiSchemaBaseField::CreateDefaultFieldObjectForBuildInFieldTypeName( const C
         case GUCEF_DATATYPE_BINARY_BLOB:
         {
             return CreateDefaultFieldObjectForFieldType( BinaryScalarField, schemaMeta );
+        }
+        case GUCEF_DATATYPE_ENUM:
+        {
+            return CreateDefaultFieldObjectForFieldType( EnumScalarField, schemaMeta );
         }
 
         default:
