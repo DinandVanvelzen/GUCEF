@@ -59,7 +59,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaEnumDefinition : public CKaitaiSchema
     static const CORE::CString ClassTypeName;
 
     CKaitaiSchemaEnumDefinition( void );                                    /**< dont use this, use the other constructor */
-    CKaitaiSchemaEnumDefinition( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaEnumDefinition( CKaitaiSchemaBaseFieldPtr parent );
     CKaitaiSchemaEnumDefinition( const CKaitaiSchemaEnumDefinition& src );   
     CKaitaiSchemaEnumDefinition& operator=( const CKaitaiSchemaEnumDefinition& src ); 
 

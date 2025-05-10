@@ -63,19 +63,25 @@ const CORE::CString CKaitaiSchemaStructureField::ClassTypeName = "GUCEF::KAITAI:
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaStructureField::CKaitaiSchemaStructureField( void )
-    : CKaitaiSchemaBaseField( StructureField, CKaitaiSchemaMeta::CreateSharedObj() )
+    : CKaitaiSchemaBaseField( StructureField, CKaitaiSchemaBaseFieldPtr() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaStructureField, MT::CMutex >( this )
-    , fields()
+    , m_instances()
+    , m_enums()
+    , m_types()
+    , m_fields()
 {GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaStructureField::CKaitaiSchemaStructureField( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( StructureField, schemaMeta )
+CKaitaiSchemaStructureField::CKaitaiSchemaStructureField( CKaitaiSchemaBaseFieldPtr parent )
+    : CKaitaiSchemaBaseField( StructureField, parent )
     , CORE::CTSharedObjCreator< CKaitaiSchemaStructureField, MT::CMutex >( this )
-    , fields()
+    , m_instances()
+    , m_enums()
+    , m_types()
+    , m_fields()
 {GUCEF_TRACE;
 
 }
@@ -85,9 +91,14 @@ CKaitaiSchemaStructureField::CKaitaiSchemaStructureField( CKaitaiSchemaMetaPtr s
 CKaitaiSchemaStructureField::CKaitaiSchemaStructureField( const CKaitaiSchemaStructureField& src )    
     : CKaitaiSchemaBaseField( src )
     , CORE::CTSharedObjCreator< CKaitaiSchemaStructureField, MT::CMutex >( this )
-    , fields()
+    , m_instances()
+    , m_enums()
+    , m_types()
+    , m_fields()
 {GUCEF_TRACE;
 
+    // Use the assignment operator to do the work
+    *this = src;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -105,8 +116,54 @@ CKaitaiSchemaStructureField::operator=( const CKaitaiSchemaStructureField& src )
 
     if ( this != &src )
     {
+        Clear();
+        
         CKaitaiSchemaBaseField::operator=( src );
 
+        // deep copy the instances
+        TFieldTypeMap::const_iterator i = src.m_instances.begin();
+        while ( i != src.m_instances.end() )
+        {
+            const CORE::CString& typeName = (*i).first;
+            const CKaitaiSchemaBaseFieldPtr& fieldObj = (*i).second;
+
+            if ( !fieldObj.IsNULL() )
+            {
+                // we have a valid type object
+                m_instances[ typeName ] = fieldObj->CloneAsFieldObject();
+            }
+            ++i;
+        }
+
+        // deep copy the enums
+        i = src.m_enums.begin();
+        while ( i != src.m_enums.end() )
+        {
+            const CORE::CString& typeName = (*i).first;
+            const CKaitaiSchemaBaseFieldPtr& fieldObj = (*i).second;
+
+            if ( !fieldObj.IsNULL() )
+            {
+                // we have a valid type object
+                m_enums[ typeName ] = fieldObj->CloneAsFieldObject();
+            }
+            ++i;
+        }
+
+        // deep copy the types
+        i = src.m_types.begin();
+        while ( i != src.m_types.end() )
+        {
+            const CORE::CString& typeName = (*i).first;
+            const CKaitaiSchemaBaseFieldPtr& fieldObj = (*i).second;
+
+            if ( !fieldObj.IsNULL() )
+            {
+                // we have a valid type object
+                m_types[ typeName ] = fieldObj->CloneAsFieldObject();
+            }
+            ++i;
+        }
     }
     return *this;
 }
@@ -118,7 +175,47 @@ CKaitaiSchemaStructureField::Clear( void )
 {GUCEF_TRACE;
 
     CKaitaiSchemaBaseField::Clear();
-    fields.clear();
+
+    TFieldTypeMap::const_iterator i = m_instances.begin();
+    while ( i != m_instances.end() )
+    {
+        CKaitaiSchemaBaseFieldPtr obj = (*i).second;
+        if ( !obj.IsNULL() )
+            obj->Clear();
+        ++i;
+    }
+    m_instances.clear();
+
+    i = m_enums.begin();
+    while ( i != m_enums.end() )
+    {
+        CKaitaiSchemaBaseFieldPtr obj = (*i).second;
+        if ( !obj.IsNULL() )
+            obj->Clear();
+        ++i;
+    }
+    m_enums.clear();
+
+    i = m_types.begin();
+    while ( i != m_types.end() )
+    {
+        CKaitaiSchemaBaseFieldPtr obj = (*i).second;
+        if ( !obj.IsNULL() )
+            obj->Clear();
+        ++i;
+    }
+    m_types.clear();
+
+    CKaitaiSchemaBaseFieldPtrVector::iterator n = m_fields.begin();
+    while ( n != m_fields.end() )
+    {
+        CKaitaiSchemaBaseFieldPtr obj = (*n);
+        if ( !obj.IsNULL() )
+            obj->Clear();
+        ++n;
+    }
+    m_fields.clear();
+
     params.Clear();
 }
 
@@ -142,14 +239,34 @@ CKaitaiSchemaStructureField::GetClassTypeName( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+const CKaitaiSchema::TFieldTypeMap& 
+CKaitaiSchemaStructureField::GetDefinedEnums( void ) const
+{GUCEF_TRACE;
+
+    // return the enums map
+    return m_enums;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CKaitaiSchema::TFieldTypeMap& 
+CKaitaiSchemaStructureField::GetDefinedTypes( void ) const
+{GUCEF_TRACE;
+
+    // return the types map
+    return m_types;
+}
+
+/*-------------------------------------------------------------------------*/
+
 Int32
 CKaitaiSchemaStructureField::GetFixedSizeIfAny( void ) const
 {GUCEF_TRACE;
 
     // A structure field can only be fixed size if all its fields are fixed size
     Int32 totalSize = 0;
-    CKaitaiSchemaBaseFieldPtrVector::const_iterator i = fields.begin();
-    while ( i != fields.end() )
+    CKaitaiSchemaBaseFieldPtrVector::const_iterator i = m_fields.begin();
+    while ( i != m_fields.end() )
     {
         const CKaitaiSchemaBaseFieldPtr& field = (*i);
         if ( !field.IsNULL() )
@@ -184,14 +301,116 @@ const CKaitaiSchemaStructureField::CKaitaiSchemaBaseFieldPtrVector&
 CKaitaiSchemaStructureField::GetFields( void ) const
 {GUCEF_TRACE; 
 
-   return fields;
+   return m_fields;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaStructureField::TryGetLocalScopeElement( const CORE::CString& elementName ) const
+{GUCEF_TRACE;
+
+    // Order of precedence for non-fully-qualified references in KAITAI:
+    //  1 - Instance variables
+    //  2 - Fields in the same 'seq' section
+    //  3 - Enums
+    //  4 - Types
+    CKaitaiSchemaBaseFieldPtr element = TryGetLocalScopeInstance( elementName );
+    if ( element.IsNULL() )
+        element = TryGetLocalScopeField( elementName );    
+        if ( element.IsNULL() )
+            element = TryGetLocalScopeEnum( elementName );
+            if ( element.IsNULL() )
+                element = TryGetLocalScopeTypedef( elementName );
+
+    return element;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaStructureField::TryGetLocalScopeInstance( const CORE::CString& instanceName ) const
+{GUCEF_TRACE;
+
+    // try to get the type from our types map
+    TFieldTypeMap::const_iterator i = m_instances.find( instanceName );
+    if ( i != m_instances.end() )
+    {
+        // we have a valid type object
+        const CKaitaiSchemaBaseFieldPtr& instanceObj = (*i).second;
+        if ( !instanceObj.IsNULL() )
+            return instanceObj;
+    }
+    return CKaitaiSchemaBaseFieldPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaStructureField::TryGetLocalScopeEnum( const CORE::CString& enumName ) const
+{GUCEF_TRACE;
+
+    // try to get the type from our types map
+    TFieldTypeMap::const_iterator i = m_enums.find( enumName );
+    if ( i != m_enums.end() )
+    {
+        // we have a valid type object
+        const CKaitaiSchemaBaseFieldPtr& enumObj = (*i).second;
+        if ( !enumObj.IsNULL() )
+            return enumObj;
+    }
+    return CKaitaiSchemaBaseFieldPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaStructureField::TryGetLocalScopeTypedef( const CORE::CString& typeName ) const
+{GUCEF_TRACE;
+
+    // try to get the type from our types map
+    TFieldTypeMap::const_iterator i = m_types.find( typeName );
+    if ( i != m_types.end() )
+    {
+        // we have a valid type object
+        const CKaitaiSchemaBaseFieldPtr& typeObj = (*i).second;
+        if ( !typeObj.IsNULL() )
+            return typeObj;
+    }
+    return CKaitaiSchemaBaseFieldPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaStructureField::TryGetLocalScopeField( const CORE::CString& fieldName ) const
+{GUCEF_TRACE;
+
+    // try to get the type from our types map
+    CKaitaiSchemaBaseFieldPtrVector::const_iterator i = m_fields.begin();
+    while ( i != m_fields.end() )
+    {
+        // we have a valid type object
+        const CKaitaiSchemaBaseFieldPtr& fieldObj = (*i);
+        if ( !fieldObj.IsNULL() && fieldObj->GetFieldType() != UnknownField )
+        {
+            if ( fieldObj->id == fieldName )
+            {
+                // we have a match
+                return fieldObj;
+            }
+        }
+        ++i;
+    }
+    return CKaitaiSchemaBaseFieldPtr();
 }
 
 /*-------------------------------------------------------------------------*/
 
 CKaitaiSchemaBaseFieldPtr 
 CKaitaiSchemaStructureField::CreateSchemaObjectForFieldDataNode( const CORE::CDataNode& fieldNode , 
-                                                                 bool& totalSuccess               ) const
+                                                                 bool& totalSuccess               ,
+                                                                 CKaitaiSchemaBaseFieldPtr parent ) const
 {GUCEF_TRACE; 
                 
     CORE::CDataNodeSerializableSettings defaultSerializerSettings;
@@ -201,7 +420,7 @@ CKaitaiSchemaStructureField::CreateSchemaObjectForFieldDataNode( const CORE::CDa
     const CORE::CVariant& contents = fieldNode.GetAttributeValueOrChildValueByName( "contents" );
     if ( contents.IsInitialized() )
     {
-        CKaitaiSchemaBaseFieldPtr field = CKaitaiSchemaConstValidationScalarField::CreateSharedObjWithParam( GetSchemaMeta() ); 
+        CKaitaiSchemaBaseFieldPtr field = CKaitaiSchemaConstValidationScalarField::CreateSharedObjWithParam( parent ); 
         if GUCEF_PREDICT_FALSE( field.IsNULL() )        
         {
             // dont assume we can recover from allocation failures
@@ -223,7 +442,7 @@ CKaitaiSchemaStructureField::CreateSchemaObjectForFieldDataNode( const CORE::CDa
     const CORE::CVariant& repeat = fieldNode.GetAttributeValueOrChildValueByName( "repeat" );
     if ( repeat.IsInitialized() )
     {
-        CKaitaiSchemaBaseFieldPtr field = CKaitaiSchemaRepeatLogic::CreateSharedObjWithParam( GetSchemaMeta() ); 
+        CKaitaiSchemaBaseFieldPtr field = CKaitaiSchemaRepeatLogic::CreateSharedObjWithParam( parent ); 
         if GUCEF_PREDICT_FALSE( field.IsNULL() )        
         {
             // dont assume we can recover from allocation failures
@@ -249,9 +468,9 @@ CKaitaiSchemaStructureField::CreateSchemaObjectForFieldDataNode( const CORE::CDa
 
         CKaitaiSchemaBaseFieldPtr field;
         if ( !enumReference.IsInitialized() )
-            field = CreateFieldObjectForFieldTypeStr( fieldTypeStr, GetSchemaMeta() );
+            field = CreateFieldObjectForFieldTypeStr( fieldTypeStr, AsSharedPtr() );
         else
-            field = CKaitaiSchemaEnumScalarField::CreateSharedObjWithParam( GetSchemaMeta() );                    
+            field = CKaitaiSchemaEnumScalarField::CreateSharedObjWithParam( parent );                    
                     
         if GUCEF_PREDICT_FALSE( field.IsNULL() )
         {                                                
@@ -259,7 +478,7 @@ CKaitaiSchemaStructureField::CreateSchemaObjectForFieldDataNode( const CORE::CDa
             {
                 // When opaque types are enabled we can try to create a generic opaque field
                 // This will runtime reference some external processing capability for this type
-                field = CKaitaiSchemaOpaqueField::CreateSharedObjWithParam( GetSchemaMeta() );
+                field = CKaitaiSchemaOpaqueField::CreateSharedObjWithParam( parent );
             }
             else
             {
@@ -269,7 +488,7 @@ CKaitaiSchemaStructureField::CreateSchemaObjectForFieldDataNode( const CORE::CDa
                 // However due to field ordering we cannot just leave the slot empty
                 // we have to make it expliciy there is an error location in the sequence
                 // We will create a dummy field object to fill the gap
-                field = CreateDefaultFieldObjectForFieldType( UnknownField, GetSchemaMeta() );
+                field = CreateDefaultFieldObjectForFieldType( UnknownField, parent );
                 if ( !field.IsNULL() )
                 {
                     field->type = fieldTypeStr;
@@ -299,7 +518,7 @@ CKaitaiSchemaStructureField::CreateSchemaObjectForFieldDataNode( const CORE::CDa
         if ( !sizeValue.IsNULLOrEmpty() )
         {
             // we have a binary field
-            CKaitaiSchemaBinaryScalarFieldPtr field = CKaitaiSchemaBinaryScalarField::CreateSharedObjWithParam( m_schemaMeta );
+            CKaitaiSchemaBinaryScalarFieldPtr field = CKaitaiSchemaBinaryScalarField::CreateSharedObjWithParam( parent );
             if GUCEF_PREDICT_TRUE( !field.IsNULL() )
             {
                 if GUCEF_PREDICT_FALSE( !field->Deserialize( fieldNode, defaultSerializerSettings ) )
@@ -329,7 +548,7 @@ CKaitaiSchemaStructureField::CreateSchemaObjectForFieldDataNode( const CORE::CDa
                 CORE::CString switchOnValue = parentNode->GetAttributeValueOrChildValueByName( "switch-on" ).AsString(); 
                 if ( !switchOnValue.IsNULLOrEmpty() )
                 {
-                    CKaitaiSchemaSwitchLogicPtr switchElement = CKaitaiSchemaSwitchLogic::CreateSharedObjWithParam( m_schemaMeta );
+                    CKaitaiSchemaSwitchLogicPtr switchElement = CKaitaiSchemaSwitchLogic::CreateSharedObjWithParam( parent );
                     if GUCEF_PREDICT_FALSE( switchElement.IsNULL() )
                     {
                         // dont assume we can recover from allocation failures
@@ -355,9 +574,148 @@ CKaitaiSchemaStructureField::CreateSchemaObjectForFieldDataNode( const CORE::CDa
 /*-------------------------------------------------------------------------*/
 
 bool 
+CKaitaiSchemaStructureField::DeserializeTypesData( const CORE::CDataNode& domRootNode                  , 
+                                                   const CORE::CDataNodeSerializableSettings& settings )
+{GUCEF_TRACE;
+    
+    const CORE::CDataNode* typesNode = domRootNode.FindChild( "types" );
+    if ( GUCEF_NULL != typesNode )
+    {
+        m_types.clear();
+        
+        bool totalSuccess = true;
+        CORE::CDataNode::const_iterator i = typesNode->ConstBegin();
+        while ( i != typesNode->ConstEnd() )
+        {
+            const CORE::CDataNode* typeEntryNode = (*i);
+            const CORE::CDataNode* seqNode = typeEntryNode->FindChild( "seq" );
+            
+            if ( GUCEF_NULL != seqNode )
+            {
+                UInt32 nrOfFields = seqNode->GetNrOfDirectChildNodes();
+                if ( nrOfFields > 1 )
+                {
+                    // the type is a complex type, a structure
+                    CKaitaiSchemaStructureFieldPtr typeStruct = CKaitaiSchemaStructureField::CreateSharedObjWithParam( CORE::CTSharedObjCreator< CKaitaiSchemaStructureField, MT::CMutex >::CreateSharedPtr() );
+                    if GUCEF_PREDICT_FALSE( typeStruct.IsNULL() )
+                    {
+                        totalSuccess = false;
+                        ++i;
+                        continue;
+                    }
+
+                    if ( typeStruct->Deserialize( *typeEntryNode, settings ) )
+                    {
+                        m_types[ typeEntryNode->GetName() ] = typeStruct;
+                    }
+                    else
+                    {
+                        totalSuccess = false;
+                        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:DeserializeTypesData: Failed to deserialize structure type with name " + typeEntryNode->GetName() );
+                    }
+                }
+                else
+                if ( nrOfFields == 1 )
+                {
+                    // the type is a simple type, a field
+                    const CORE::CDataNode* fieldNode = ( *seqNode->ConstBegin() );
+                    if ( GUCEF_NULL != fieldNode )
+                    {
+                        CORE::CString fieldTypeStr = fieldNode->GetAttributeValueOrChildValueByName( "type" ).AsString();
+                        CKaitaiSchemaBaseFieldPtr field = CreateFieldObjectForFieldTypeStr( fieldTypeStr, CORE::CTSharedObjCreator< CKaitaiSchemaStructureField, MT::CMutex >::CreateSharedPtr() );
+                        if GUCEF_PREDICT_FALSE( field.IsNULL() )
+                        {
+                            totalSuccess = false;
+                            ++i;
+                            continue;
+                        }
+
+                        if ( field->Deserialize( *fieldNode, settings ) )
+                        {
+                            m_types[ typeEntryNode->GetName() ] = field;
+                        }
+                        else
+                        {
+                            totalSuccess = false;
+                            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:DeserializeTypesData: Failed to deserialize field of type " + fieldTypeStr + " for typedef " + typeEntryNode->GetName() );
+                        }
+                    }
+                }
+                else
+                {
+                    // sequence section with no children is malformed
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:DeserializeTypesData: Sequence section with no children is malformed. type=" + typeEntryNode->GetName() );
+                    totalSuccess = false;
+                }
+            }
+
+            ++i;
+        }
+        
+        return totalSuccess;
+    }
+    return true; // having a 'types' section is optional
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CKaitaiSchemaStructureField::DeserializeEnumsData( const CORE::CDataNode& domRootNode                  , 
+                                                   const CORE::CDataNodeSerializableSettings& settings )
+{GUCEF_TRACE;
+    
+    const CORE::CDataNode* enumsNode = domRootNode.FindChild( "enums" );
+    if ( GUCEF_NULL != enumsNode )
+    {
+        m_enums.clear();
+        
+        bool totalSuccess = true;
+        CORE::CDataNode::const_iterator i = enumsNode->ConstBegin();
+        while ( i != enumsNode->ConstEnd() )
+        {
+            CKaitaiSchemaEnumDefinitionPtr enumDef = CKaitaiSchemaEnumDefinition::CreateSharedObjWithParam( CORE::CTSharedObjCreator< CKaitaiSchemaStructureField, MT::CMutex >::CreateSharedPtr() );
+            if ( enumDef.IsNULL() )
+                return false;
+
+            const CORE::CDataNode* enumDefNode = (*i);
+
+            if ( enumDef->Deserialize( *enumDefNode, settings ) )
+            {
+                m_enums[ enumDef->id ] = enumDef;
+            }
+            else
+            {
+                totalSuccess = false;
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:DeserializeEnumsData: Failed to deserialize enum definition with name " + enumDefNode->GetName() );
+            }
+
+            ++i;
+        }
+        return totalSuccess;
+    }
+    return true; // having a 'enums' section is optional
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CKaitaiSchemaStructureField::DeserializeInstancesData( const CORE::CDataNode& domRootNode                  , 
+                                                       const CORE::CDataNodeSerializableSettings& settings )
+{GUCEF_TRACE;
+
+    return true; // @TODO: implement this
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
 CKaitaiSchemaStructureField::Deserialize( const CORE::CDataNode& domRootNode                  , 
                                           const CORE::CDataNodeSerializableSettings& settings )
 {GUCEF_TRACE;    
+    
+    bool instancesParseSuccess = DeserializeInstancesData( domRootNode, settings );
+    bool enumsParseSuccess = DeserializeEnumsData( domRootNode, settings );
+    bool typesParseSuccess = DeserializeTypesData( domRootNode, settings );  
     
     id = domRootNode.GetAttributeValueOrChildValueByName( "id", id, true ).AsString( id, false );
 
@@ -378,10 +736,10 @@ CKaitaiSchemaStructureField::Deserialize( const CORE::CDataNode& domRootNode    
             const CORE::CDataNode* fieldNode = (*i);
             if ( GUCEF_NULL != fieldNode )
             {
-                CKaitaiSchemaBaseFieldPtr fieldObj = CreateSchemaObjectForFieldDataNode( *fieldNode, totalSuccess );
+                CKaitaiSchemaBaseFieldPtr fieldObj = CreateSchemaObjectForFieldDataNode( *fieldNode, totalSuccess, CORE::CTSharedObjCreator< CKaitaiSchemaStructureField, MT::CMutex >::CreateSharedPtr() );
                 if ( !fieldObj.IsNULL() )
                 {
-                    fields.push_back( fieldObj );
+                    m_fields.push_back( fieldObj );
                 }
                 else
                 {

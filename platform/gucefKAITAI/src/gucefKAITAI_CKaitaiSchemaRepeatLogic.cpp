@@ -58,7 +58,7 @@ const CORE::CString CKaitaiSchemaRepeatLogic::ClassTypeName = "GUCEF::KAITAI::CK
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaRepeatLogic::CKaitaiSchemaRepeatLogic( void )
-    : CKaitaiSchemaBaseField( RepeatLogic, CKaitaiSchemaMeta::CreateSharedObj() )
+    : CKaitaiSchemaBaseField( RepeatLogic, CKaitaiSchemaBaseFieldPtr() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaRepeatLogic, MT::CMutex >( this )
     , m_repeatExpression()
     , m_repeatType( UnknownRepeat )
@@ -69,8 +69,8 @@ CKaitaiSchemaRepeatLogic::CKaitaiSchemaRepeatLogic( void )
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaRepeatLogic::CKaitaiSchemaRepeatLogic( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( RepeatLogic, schemaMeta )
+CKaitaiSchemaRepeatLogic::CKaitaiSchemaRepeatLogic( CKaitaiSchemaBaseFieldPtr parent )
+    : CKaitaiSchemaBaseField( RepeatLogic, parent )
     , CORE::CTSharedObjCreator< CKaitaiSchemaRepeatLogic, MT::CMutex >( this )
     , m_repeatExpression()
     , m_repeatType( UnknownRepeat )

@@ -58,7 +58,7 @@ const CORE::CString CKaitaiSchemaSubstreamField::ClassTypeName = "GUCEF::KAITAI:
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaSubstreamField::CKaitaiSchemaSubstreamField( void )
-    : CKaitaiSchemaBaseField( SubstreamField, CKaitaiSchemaMeta::CreateSharedObj() )
+    : CKaitaiSchemaBaseField( SubstreamField, CKaitaiSchemaBaseFieldPtr() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaSubstreamField, MT::CMutex >( this )
 {GUCEF_TRACE;
 
@@ -66,8 +66,8 @@ CKaitaiSchemaSubstreamField::CKaitaiSchemaSubstreamField( void )
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaSubstreamField::CKaitaiSchemaSubstreamField( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( SubstreamField, schemaMeta )
+CKaitaiSchemaSubstreamField::CKaitaiSchemaSubstreamField( CKaitaiSchemaBaseFieldPtr parent )
+    : CKaitaiSchemaBaseField( SubstreamField, parent )
     , CORE::CTSharedObjCreator< CKaitaiSchemaSubstreamField, MT::CMutex >( this )
 {GUCEF_TRACE;
 

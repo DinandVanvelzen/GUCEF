@@ -58,7 +58,7 @@ const CORE::CString CKaitaiSchemaBinaryScalarField::ClassTypeName = "GUCEF::KAIT
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaBinaryScalarField::CKaitaiSchemaBinaryScalarField( void )
-    : CKaitaiSchemaBaseField( BinaryScalarField, CKaitaiSchemaMeta::CreateSharedObj() )
+    : CKaitaiSchemaBaseField( BinaryScalarField, CKaitaiSchemaBaseFieldPtr() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaBinaryScalarField, MT::CMutex >( this )
     , m_fixedSize( -1 )
     , m_referencedScalarFieldForSize()
@@ -69,8 +69,8 @@ CKaitaiSchemaBinaryScalarField::CKaitaiSchemaBinaryScalarField( void )
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaBinaryScalarField::CKaitaiSchemaBinaryScalarField( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( BinaryScalarField, schemaMeta )
+CKaitaiSchemaBinaryScalarField::CKaitaiSchemaBinaryScalarField( CKaitaiSchemaBaseFieldPtr parent )
+    : CKaitaiSchemaBaseField( BinaryScalarField, parent )
     , CORE::CTSharedObjCreator< CKaitaiSchemaBinaryScalarField, MT::CMutex >( this )
     , m_fixedSize( -1 )
     , m_referencedScalarFieldForSize()

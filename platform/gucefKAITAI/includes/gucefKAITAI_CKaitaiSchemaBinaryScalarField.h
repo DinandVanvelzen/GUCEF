@@ -64,7 +64,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaBinaryScalarField : public CKaitaiSch
     virtual void Clear( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     CKaitaiSchemaBinaryScalarField( void );                               /**< dont use this, use the other constructor */
-    CKaitaiSchemaBinaryScalarField( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaBinaryScalarField( CKaitaiSchemaBaseFieldPtr parent );
     CKaitaiSchemaBinaryScalarField( const CKaitaiSchemaBinaryScalarField& src );
     virtual ~CKaitaiSchemaBinaryScalarField();
     CKaitaiSchemaBinaryScalarField& operator=( const CKaitaiSchemaBinaryScalarField& src );

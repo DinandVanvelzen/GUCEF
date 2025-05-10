@@ -67,7 +67,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaDelimitedField : public CKaitaiSchema
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
     CKaitaiSchemaDelimitedField( void );                           /**< dont use this, use the other constructor */
-    CKaitaiSchemaDelimitedField( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaDelimitedField( CKaitaiSchemaBaseFieldPtr parent );
     CKaitaiSchemaDelimitedField( const CKaitaiSchemaDelimitedField& src );
     virtual ~CKaitaiSchemaDelimitedField();
     CKaitaiSchemaDelimitedField& operator=( const CKaitaiSchemaDelimitedField& src );

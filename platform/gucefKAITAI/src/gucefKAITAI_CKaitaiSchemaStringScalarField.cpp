@@ -58,7 +58,7 @@ const CORE::CString CKaitaiSchemaStringScalarField::ClassTypeName = "GUCEF::KAIT
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaStringScalarField::CKaitaiSchemaStringScalarField( void )
-    : CKaitaiSchemaBaseField( StringScalarField, CKaitaiSchemaMeta::CreateSharedObj() )
+    : CKaitaiSchemaBaseField( StringScalarField, CKaitaiSchemaBaseFieldPtr() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaStringScalarField, MT::CMutex >( this )
     , m_encoding( "utf-8" )
 {GUCEF_TRACE;
@@ -67,8 +67,8 @@ CKaitaiSchemaStringScalarField::CKaitaiSchemaStringScalarField( void )
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaStringScalarField::CKaitaiSchemaStringScalarField( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( StringScalarField, schemaMeta )
+CKaitaiSchemaStringScalarField::CKaitaiSchemaStringScalarField( CKaitaiSchemaBaseFieldPtr parent )
+    : CKaitaiSchemaBaseField( StringScalarField, parent )
     , CORE::CTSharedObjCreator< CKaitaiSchemaStringScalarField, MT::CMutex >( this )
     , m_encoding( "utf-8" )
 {GUCEF_TRACE;

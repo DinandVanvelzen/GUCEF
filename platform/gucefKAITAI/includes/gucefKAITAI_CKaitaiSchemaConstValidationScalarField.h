@@ -64,7 +64,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaConstValidationScalarField : public C
     virtual void Clear( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     CKaitaiSchemaConstValidationScalarField( void );                               /**< dont use this, use the other constructor */
-    CKaitaiSchemaConstValidationScalarField( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaConstValidationScalarField( CKaitaiSchemaBaseFieldPtr parent );
     CKaitaiSchemaConstValidationScalarField( const CKaitaiSchemaConstValidationScalarField& src );
     virtual ~CKaitaiSchemaConstValidationScalarField();
     CKaitaiSchemaConstValidationScalarField& operator=( const CKaitaiSchemaConstValidationScalarField& src );

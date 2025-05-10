@@ -58,7 +58,7 @@ const CORE::CString CKaitaiSchemaEnumScalarField::ClassTypeName = "GUCEF::KAITAI
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaEnumScalarField::CKaitaiSchemaEnumScalarField( void )
-    : CKaitaiSchemaBaseField( EnumScalarField, CKaitaiSchemaMeta::CreateSharedObj() )
+    : CKaitaiSchemaBaseField( EnumScalarField, CKaitaiSchemaBaseFieldPtr() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaEnumScalarField, MT::CMutex >( this )
 {GUCEF_TRACE;
 
@@ -66,8 +66,8 @@ CKaitaiSchemaEnumScalarField::CKaitaiSchemaEnumScalarField( void )
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaEnumScalarField::CKaitaiSchemaEnumScalarField( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( EnumScalarField, schemaMeta )
+CKaitaiSchemaEnumScalarField::CKaitaiSchemaEnumScalarField( CKaitaiSchemaBaseFieldPtr parent )
+    : CKaitaiSchemaBaseField( EnumScalarField, parent )
     , CORE::CTSharedObjCreator< CKaitaiSchemaEnumScalarField, MT::CMutex >( this )
 {GUCEF_TRACE;
 

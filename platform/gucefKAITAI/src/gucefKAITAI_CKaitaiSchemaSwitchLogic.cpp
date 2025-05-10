@@ -58,7 +58,7 @@ const CORE::CString CKaitaiSchemaSwitchLogic::ClassTypeName = "GUCEF::KAITAI::CK
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaSwitchLogic::CKaitaiSchemaSwitchLogic( void )
-    : CKaitaiSchemaBaseField( SwitchLogic, CKaitaiSchemaMeta::CreateSharedObj() )
+    : CKaitaiSchemaBaseField( SwitchLogic, CKaitaiSchemaBaseFieldPtr() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaSwitchLogic, MT::CMutex >( this )
     , m_switchType( UnknownSwitch )
     , m_cases()
@@ -69,8 +69,8 @@ CKaitaiSchemaSwitchLogic::CKaitaiSchemaSwitchLogic( void )
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaSwitchLogic::CKaitaiSchemaSwitchLogic( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( SwitchLogic, schemaMeta )
+CKaitaiSchemaSwitchLogic::CKaitaiSchemaSwitchLogic( CKaitaiSchemaBaseFieldPtr parent )
+    : CKaitaiSchemaBaseField( SwitchLogic, parent )
     , CORE::CTSharedObjCreator< CKaitaiSchemaSwitchLogic, MT::CMutex >( this )
     , m_switchType( UnknownSwitch )
     , m_cases()

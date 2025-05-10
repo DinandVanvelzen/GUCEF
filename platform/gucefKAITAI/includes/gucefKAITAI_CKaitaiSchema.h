@@ -152,9 +152,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchema : public CKaitaiSchemaBaseField ,
     typedef std::pair< const CORE::CString, CKaitaiSchemaBaseFieldPtr >                                                           TFieldTypePair;
     typedef std::map< CORE::CString, CKaitaiSchemaBaseFieldPtr, std::less< CORE::CString >, gucef_allocator< TFieldTypePair > >   TFieldTypeMap;
     typedef typename CORE::CTSharedObjCreator< CKaitaiSchema, MT::CMutex >::TBasicSharedPtrType                                   CKaitaiSchemaPtr;
-    typedef typename CORE::CTSharedObjCreator< CKaitaiSchema, MT::CMutex >::TSharedPtrType                                        CKaitaiSchemaTypedPtr;
-    
-    CKaitaiSchemaStructureFieldPtr structure;   // the layout of the schema as an object hierarchy    
+    typedef typename CORE::CTSharedObjCreator< CKaitaiSchema, MT::CMutex >::TSharedPtrType                                        CKaitaiSchemaTypedPtr;   
 
     CKaitaiSchema( void );
     CKaitaiSchema( const CORE::CString& schemaFamily );
@@ -205,19 +203,6 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchema : public CKaitaiSchemaBaseField ,
                                       const CORE::CDataNodeSerializableSettings& settings ,
                                       CORE::CStringSet& unresolvedImports                 );
 
-    virtual bool DeserializeTypesData( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
-
-    virtual bool DeserializeEnumsData( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
-
-    virtual bool DeserializeInstancesData( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
-
-    //virtual bool DeserializeFieldSequence( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
-    //virtual bool DeserializeEnumDefinitions( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
-    
-    KaitaiSchemaElementType GetFieldTypeForTypeFieldString( const CORE::CString& typeFieldStr ) const;
-    
-    virtual CKaitaiSchemaBaseFieldPtr CreateFieldObjectForFieldTypeStr( const CORE::CString& typeFieldStr, CKaitaiSchemaMetaPtr schemaMeta ) const GUCEF_VIRTUAL_OVERRIDE;
-
     void Clear( void );
 
     bool HasUnresolvedImports( void ) const;
@@ -226,27 +211,50 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchema : public CKaitaiSchemaBaseField ,
 
     bool SetSchemaFamily( const CORE::CString& schemaFamily );
 
-    CKaitaiSchemaBaseFieldPtr TryGetDefinedInstance( const CORE::CString& instanceName ) const;
-    
-    CKaitaiSchemaBaseFieldPtr TryGetDefinedEnum( const CORE::CString& enumName ) const;
-    
-    CKaitaiSchemaBaseFieldPtr TryGetDefinedType( const CORE::CString& typeName ) const;
+    /**
+     *  Attempt to find an element with the given name in the local scope
+     *  This follows the local scope order or precedence wrt name resolution
+     */
+    CKaitaiSchemaBaseFieldPtr TryGetLocalScopeElement( const CORE::CString& elementName ) const;
+
+    /**
+     *  Attempt to find an 'instance' with the name given within the local scope
+     */
+    CKaitaiSchemaBaseFieldPtr TryGetLocalScopeInstance( const CORE::CString& instanceName ) const;
+
+    /**
+     *  Attempt to find an 'field' with the name given within the local scope
+     */
+    CKaitaiSchemaBaseFieldPtr TryGetLocalScopeField( const CORE::CString& fieldName ) const;
+
+    /**
+     *  Attempt to find an 'enum' with the name given within the local scope
+     */
+    CKaitaiSchemaBaseFieldPtr TryGetLocalScopeEnum( const CORE::CString& enumName ) const;
+
+    /**
+     *  Attempt to find an 'type definition' with the name given within the local scope
+     */
+    CKaitaiSchemaBaseFieldPtr TryGetLocalScopeTypedef( const CORE::CString& typeName ) const;
 
     CKaitaiSchemaBaseFieldPtr TryGetDefinedImport( const CORE::CString& importName ) const;
 
-    
-    const TFieldTypeMap& GetDefinedEnums( void ) const;
-    
-    const TFieldTypeMap& GetDefinedTypes( void ) const;
+    CKaitaiSchemaBaseFieldPtr TryGetReferencedFullyQualifiedElement( const CORE::CString& fullyQualifiedName );    
 
-    
-    
+    CKaitaiSchemaStructureFieldPtr GetRootStructure( void ) const;
+
+    virtual const CORE::CString& GetSchemaFamily( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual const CORE::CString& GetSchemaId( void ) const GUCEF_VIRTUAL_OVERRIDE;    
+    virtual bool IsLittleEndian( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool IsBigEndian( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual CKaitaiSchemaMetaPtr GetSchemaMeta( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual CKaitaiSchemaBaseFieldPtr GetParent( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual CKaitaiSchemaBaseFieldPtr GetRootParent( void ) const GUCEF_VIRTUAL_OVERRIDE;    
     private:
 
-    TFieldTypeMap m_instances;
-    TFieldTypeMap m_enums;
-    TFieldTypeMap m_types;
+    CKaitaiSchemaStructureFieldPtr m_structure;   // the layout of the schema as an object hierarchy 
     TFieldTypeMap m_imports;
+    CKaitaiSchemaMetaPtr m_schemaMeta;
     CORE::CDataNode m_schemaDocument;
 };
 

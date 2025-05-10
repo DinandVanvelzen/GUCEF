@@ -63,7 +63,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaNumericScalarField : public CKaitaiSc
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
     CKaitaiSchemaNumericScalarField( void );                               /**< dont use this, use the other constructor */
-    CKaitaiSchemaNumericScalarField( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaNumericScalarField( CKaitaiSchemaBaseFieldPtr parent );
     CKaitaiSchemaNumericScalarField( const CKaitaiSchemaNumericScalarField& src );
     virtual ~CKaitaiSchemaNumericScalarField();
     CKaitaiSchemaNumericScalarField& operator=( const CKaitaiSchemaNumericScalarField& src );

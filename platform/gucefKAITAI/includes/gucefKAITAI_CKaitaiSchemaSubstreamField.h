@@ -68,7 +68,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaSubstreamField : public CKaitaiSchema
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
     CKaitaiSchemaSubstreamField( void );                            /**< dont use this, use the other constructor */
-    CKaitaiSchemaSubstreamField( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaSubstreamField( CKaitaiSchemaBaseFieldPtr parent );
     CKaitaiSchemaSubstreamField( const CKaitaiSchemaSubstreamField& src );
     virtual ~CKaitaiSchemaSubstreamField();
     CKaitaiSchemaSubstreamField& operator=( const CKaitaiSchemaSubstreamField& src );

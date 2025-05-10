@@ -53,7 +53,7 @@ const CORE::CString CKaitaiSchemaEnumDefinition::ClassTypeName = "GUCEF::KAITAI:
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaEnumDefinition::CKaitaiSchemaEnumDefinition( void )
-    : CKaitaiSchemaBaseField( EnumDefinition, CKaitaiSchemaMeta::CreateSharedObj() )
+    : CKaitaiSchemaBaseField( EnumDefinition, CKaitaiSchemaBaseFieldPtr() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaEnumDefinition, MT::CMutex >( this )
     , m_enumValues()
 {GUCEF_TRACE;
@@ -62,8 +62,8 @@ CKaitaiSchemaEnumDefinition::CKaitaiSchemaEnumDefinition( void )
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaEnumDefinition::CKaitaiSchemaEnumDefinition( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( EnumDefinition, schemaMeta )
+CKaitaiSchemaEnumDefinition::CKaitaiSchemaEnumDefinition( CKaitaiSchemaBaseFieldPtr parent )
+    : CKaitaiSchemaBaseField( EnumDefinition, parent )
     , CORE::CTSharedObjCreator< CKaitaiSchemaEnumDefinition, MT::CMutex >( this )
     , m_enumValues()
 {GUCEF_TRACE;

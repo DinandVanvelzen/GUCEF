@@ -58,7 +58,7 @@ const CORE::CString CKaitaiSchemaNumericScalarField::ClassTypeName = "GUCEF::KAI
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaNumericScalarField::CKaitaiSchemaNumericScalarField( void )
-    : CKaitaiSchemaBaseField( NumericScalarField, CKaitaiSchemaMeta::CreateSharedObj() )
+    : CKaitaiSchemaBaseField( NumericScalarField, CKaitaiSchemaBaseFieldPtr() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaNumericScalarField, MT::CMutex >( this )
 {GUCEF_TRACE;
 
@@ -66,8 +66,8 @@ CKaitaiSchemaNumericScalarField::CKaitaiSchemaNumericScalarField( void )
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaNumericScalarField::CKaitaiSchemaNumericScalarField( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( NumericScalarField, schemaMeta )
+CKaitaiSchemaNumericScalarField::CKaitaiSchemaNumericScalarField( CKaitaiSchemaBaseFieldPtr parent )
+    : CKaitaiSchemaBaseField( NumericScalarField, parent )
     , CORE::CTSharedObjCreator< CKaitaiSchemaNumericScalarField, MT::CMutex >( this )
 {GUCEF_TRACE;
 

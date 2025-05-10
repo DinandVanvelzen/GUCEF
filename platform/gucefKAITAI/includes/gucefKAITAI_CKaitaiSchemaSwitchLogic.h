@@ -79,7 +79,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaSwitchLogic : public CKaitaiSchemaBas
     virtual void Clear( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     CKaitaiSchemaSwitchLogic( void );                               /**< dont use this, use the other constructor */
-    CKaitaiSchemaSwitchLogic( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaSwitchLogic( CKaitaiSchemaBaseFieldPtr parent );
     CKaitaiSchemaSwitchLogic( const CKaitaiSchemaSwitchLogic& src );
     virtual ~CKaitaiSchemaSwitchLogic();
     CKaitaiSchemaSwitchLogic& operator=( const CKaitaiSchemaSwitchLogic& src );

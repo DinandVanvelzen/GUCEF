@@ -58,7 +58,7 @@ const CORE::CString CKaitaiSchemaConditionalLogic::ClassTypeName = "GUCEF::KAITA
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaConditionalLogic::CKaitaiSchemaConditionalLogic( void )
-    : CKaitaiSchemaBaseField( ConditionalLogic, CKaitaiSchemaMeta::CreateSharedObj() )
+    : CKaitaiSchemaBaseField( ConditionalLogic, CKaitaiSchemaBaseFieldPtr() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaConditionalLogic, MT::CMutex >( this )
     , m_ifExpression()
    // , m_switchType( UnknownSwitch )
@@ -70,8 +70,8 @@ CKaitaiSchemaConditionalLogic::CKaitaiSchemaConditionalLogic( void )
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaConditionalLogic::CKaitaiSchemaConditionalLogic( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( ConditionalLogic, schemaMeta )
+CKaitaiSchemaConditionalLogic::CKaitaiSchemaConditionalLogic( CKaitaiSchemaBaseFieldPtr parent )
+    : CKaitaiSchemaBaseField( ConditionalLogic, parent )
     , CORE::CTSharedObjCreator< CKaitaiSchemaConditionalLogic, MT::CMutex >( this )
     , m_ifExpression()
   //  , m_switchType( UnknownSwitch )

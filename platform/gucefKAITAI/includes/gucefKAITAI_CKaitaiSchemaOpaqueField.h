@@ -68,7 +68,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaOpaqueField : public CKaitaiSchemaBas
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
     CKaitaiSchemaOpaqueField( void );                                       /**< dont use this, use the other constructor */
-    CKaitaiSchemaOpaqueField( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaOpaqueField( CKaitaiSchemaBaseFieldPtr parent );
     CKaitaiSchemaOpaqueField( const CKaitaiSchemaOpaqueField& src );
     virtual ~CKaitaiSchemaOpaqueField();
     CKaitaiSchemaOpaqueField& operator=( const CKaitaiSchemaOpaqueField& src );

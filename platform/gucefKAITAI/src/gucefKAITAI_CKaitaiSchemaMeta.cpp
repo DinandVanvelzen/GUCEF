@@ -152,7 +152,6 @@ CKaitaiSchemaMeta::operator=( const CKaitaiSchemaMeta& src )
         m_schemaId = src.m_schemaId;
         m_schemaFamily = src.m_schemaFamily;
         m_isLittleEndian = src.m_isLittleEndian;
-        m_imports = src.m_imports;
         m_opaqueTypesSupported = src.m_opaqueTypesSupported;
     }
     return *this;

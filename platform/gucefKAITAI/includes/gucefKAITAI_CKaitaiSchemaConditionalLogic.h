@@ -78,7 +78,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaConditionalLogic : public CKaitaiSche
     virtual void Clear( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     CKaitaiSchemaConditionalLogic( void );                               /**< dont use this, use the other constructor */
-    CKaitaiSchemaConditionalLogic( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaConditionalLogic( CKaitaiSchemaBaseFieldPtr parent );
     CKaitaiSchemaConditionalLogic( const CKaitaiSchemaConditionalLogic& src );
     virtual ~CKaitaiSchemaConditionalLogic();
     CKaitaiSchemaConditionalLogic& operator=( const CKaitaiSchemaConditionalLogic& src );

@@ -58,7 +58,7 @@ const CORE::CString CKaitaiSchemaDelimitedField::ClassTypeName = "GUCEF::KAITAI:
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaDelimitedField::CKaitaiSchemaDelimitedField( void )
-    : CKaitaiSchemaBaseField( DelimitedField, CKaitaiSchemaMeta::CreateSharedObj() )
+    : CKaitaiSchemaBaseField( DelimitedField, CKaitaiSchemaBaseFieldPtr() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaDelimitedField, MT::CMutex >( this )
 {GUCEF_TRACE;
 
@@ -66,8 +66,8 @@ CKaitaiSchemaDelimitedField::CKaitaiSchemaDelimitedField( void )
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaDelimitedField::CKaitaiSchemaDelimitedField( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( DelimitedField, schemaMeta )
+CKaitaiSchemaDelimitedField::CKaitaiSchemaDelimitedField( CKaitaiSchemaBaseFieldPtr parent )
+    : CKaitaiSchemaBaseField( DelimitedField, parent )
     , CORE::CTSharedObjCreator< CKaitaiSchemaDelimitedField, MT::CMutex >( this )
 {GUCEF_TRACE;
 

@@ -58,7 +58,7 @@ const CORE::CString CKaitaiSchemaOpaqueField::ClassTypeName = "GUCEF::KAITAI::CK
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueField( void )
-    : CKaitaiSchemaBaseField( OpaqueField, CKaitaiSchemaMeta::CreateSharedObj() )
+    : CKaitaiSchemaBaseField( OpaqueField, CKaitaiSchemaBaseFieldPtr() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >( this )
 {GUCEF_TRACE;
 
@@ -66,8 +66,8 @@ CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueField( void )
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueField( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( OpaqueField, schemaMeta )
+CKaitaiSchemaOpaqueField::CKaitaiSchemaOpaqueField( CKaitaiSchemaBaseFieldPtr parent )
+    : CKaitaiSchemaBaseField( OpaqueField, parent )
     , CORE::CTSharedObjCreator< CKaitaiSchemaOpaqueField, MT::CMutex >( this )
 {GUCEF_TRACE;
 

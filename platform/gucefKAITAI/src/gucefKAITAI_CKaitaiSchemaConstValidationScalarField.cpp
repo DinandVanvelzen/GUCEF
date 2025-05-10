@@ -58,7 +58,7 @@ const CORE::CString CKaitaiSchemaConstValidationScalarField::ClassTypeName = "GU
 //-------------------------------------------------------------------------*/
 
 CKaitaiSchemaConstValidationScalarField::CKaitaiSchemaConstValidationScalarField( void )
-    : CKaitaiSchemaBaseField( ConstValidationField, CKaitaiSchemaMeta::CreateSharedObj() )
+    : CKaitaiSchemaBaseField( ConstValidationField, CKaitaiSchemaBaseFieldPtr() )
     , CORE::CTSharedObjCreator< CKaitaiSchemaConstValidationScalarField, MT::CMutex >( this )
     , m_referencedScalarFieldToValidate()
     , m_constantValue()
@@ -68,8 +68,8 @@ CKaitaiSchemaConstValidationScalarField::CKaitaiSchemaConstValidationScalarField
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaConstValidationScalarField::CKaitaiSchemaConstValidationScalarField( CKaitaiSchemaMetaPtr schemaMeta )
-    : CKaitaiSchemaBaseField( ConstValidationField, schemaMeta )
+CKaitaiSchemaConstValidationScalarField::CKaitaiSchemaConstValidationScalarField( CKaitaiSchemaBaseFieldPtr parent )
+    : CKaitaiSchemaBaseField( ConstValidationField, parent )
     , CORE::CTSharedObjCreator< CKaitaiSchemaConstValidationScalarField, MT::CMutex >( this )
     , m_referencedScalarFieldToValidate()
     , m_constantValue()

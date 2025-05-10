@@ -79,7 +79,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaRepeatLogic : public CKaitaiSchemaBas
     virtual void Clear( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     CKaitaiSchemaRepeatLogic( void );                               /**< dont use this, use the other constructor */
-    CKaitaiSchemaRepeatLogic( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaRepeatLogic( CKaitaiSchemaBaseFieldPtr parent );
     CKaitaiSchemaRepeatLogic( const CKaitaiSchemaRepeatLogic& src );
     virtual ~CKaitaiSchemaRepeatLogic();
     CKaitaiSchemaRepeatLogic& operator=( const CKaitaiSchemaRepeatLogic& src );

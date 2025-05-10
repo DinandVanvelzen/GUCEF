@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  gucefKAITAI: Platform module supporting the Kaitai binary description format
  *
  *  Copyright (C) 1998 - 2023.  Dinand Vanvelzen
@@ -82,11 +82,11 @@ CKaitaiSchemaBaseField::GetFieldType( void ) const
 /*-------------------------------------------------------------------------*/
 
 CKaitaiSchemaBaseField::CKaitaiSchemaBaseField( KaitaiSchemaElementType fieldType ,
-                                                CKaitaiSchemaMetaPtr schemaMeta   )
+                                                CKaitaiSchemaBaseFieldPtr parent  )
     : CORE::CIDataNodeSerializable()
     , gucefDataType( GUCEF_DATATYPE_UNKNOWN )
     , m_fieldType( fieldType )
-    , m_schemaMeta( schemaMeta )
+    , m_parent( parent )
 {GUCEF_TRACE;
 
 }
@@ -99,7 +99,7 @@ CKaitaiSchemaBaseField::CKaitaiSchemaBaseField( const CKaitaiSchemaBaseField& sr
     , type( src.type )
     , gucefDataType( src.gucefDataType )
     , m_fieldType( src.m_fieldType )
-    , m_schemaMeta( src.m_schemaMeta )
+    , m_parent( src.m_parent )
 {GUCEF_TRACE;
 }
 
@@ -116,6 +116,7 @@ CKaitaiSchemaBaseField::operator=( const CKaitaiSchemaBaseField& src )
         type = src.type;
         gucefDataType = src.gucefDataType;
         m_fieldType = src.m_fieldType;
+        m_parent = src.m_parent;
     }
     return *this;
 }
@@ -130,6 +131,7 @@ CKaitaiSchemaBaseField::Clear( void )
     type.Clear();
     gucefDataType = GUCEF_DATATYPE_UNKNOWN;
     m_fieldType = BaseField;
+    m_parent.Unlink();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -138,8 +140,9 @@ const CORE::CString&
 CKaitaiSchemaBaseField::GetSchemaFamily( void ) const
 {GUCEF_TRACE;
 
-   if ( !m_schemaMeta.IsNULL() )
-       return m_schemaMeta->GetSchemaFamily();
+   CKaitaiSchemaMetaPtr schemaMeta = GetSchemaMeta();
+   if ( !schemaMeta.IsNULL() )
+       return schemaMeta->GetSchemaFamily();
    return CORE::CString::Empty;
 }
 
@@ -149,8 +152,9 @@ const CORE::CString&
 CKaitaiSchemaBaseField::GetSchemaId( void ) const
 {GUCEF_TRACE;
 
-   if ( !m_schemaMeta.IsNULL() )
-       return m_schemaMeta->GetSchemaId();
+   CKaitaiSchemaMetaPtr schemaMeta = GetSchemaMeta();
+   if ( !schemaMeta.IsNULL() )
+       return schemaMeta->GetSchemaId();
    return CORE::CString::Empty;
 }
 
@@ -160,8 +164,9 @@ bool
 CKaitaiSchemaBaseField::IsLittleEndian( void ) const
 {GUCEF_TRACE;
 
-   if ( !m_schemaMeta.IsNULL() )
-       return m_schemaMeta->IsLittleEndian();
+   CKaitaiSchemaMetaPtr schemaMeta = GetSchemaMeta();
+   if ( !schemaMeta.IsNULL() )
+       return schemaMeta->IsLittleEndian();
    return true;
 }
 
@@ -170,8 +175,9 @@ bool
 CKaitaiSchemaBaseField::IsBigEndian( void ) const
 {GUCEF_TRACE;
 
-   if ( !m_schemaMeta.IsNULL() )
-       return m_schemaMeta->IsBigEndian();
+   CKaitaiSchemaMetaPtr schemaMeta = GetSchemaMeta();
+   if ( !schemaMeta.IsNULL() )
+       return schemaMeta->IsBigEndian();
    return true;
 }
 
@@ -181,7 +187,13 @@ CKaitaiSchemaMetaPtr
 CKaitaiSchemaBaseField::GetSchemaMeta( void ) const
 {GUCEF_TRACE;
 
-    return m_schemaMeta;
+    CKaitaiSchemaBaseFieldPtr root = GetRootParent();
+    if ( !root.IsNULL() )
+    {
+        // The root should be the schema object itself
+        return root->GetSchemaMeta();
+    }
+    return CKaitaiSchemaMetaPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -220,6 +232,37 @@ CKaitaiSchemaBaseField::CloneAsFieldObject( void ) const
         case DelimitedField: return CKaitaiSchemaDelimitedField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaDelimitedField*>( this ) );
         case StructureField: return CKaitaiSchemaStructureField::CreateSharedObjWithParam( *static_cast< const CKaitaiSchemaStructureField*>( this ) );
 
+        default:
+            return CKaitaiSchemaBaseFieldPtr();
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaBaseField::AsSharedPtr( void ) const
+{GUCEF_TRACE;
+
+    switch ( m_fieldType )
+    {
+        case NumericScalarField: return static_cast< const CKaitaiSchemaNumericScalarField* >( this )->CreateSharedPtr();
+        case StringScalarField: return static_cast< const CKaitaiSchemaStringScalarField* >( this )->CreateSharedPtr();
+        case BinaryScalarField: return static_cast< const CKaitaiSchemaBinaryScalarField* >( this )->CreateSharedPtr();
+
+        case EnumDefinition: return static_cast< const CKaitaiSchemaEnumDefinition* >( this )->CreateSharedPtr();
+        
+        case SwitchLogic: return static_cast< const CKaitaiSchemaSwitchLogic* >( this )->CreateSharedPtr();
+        case RepeatLogic: return static_cast< const CKaitaiSchemaRepeatLogic* >( this )->CreateSharedPtr();
+        case ConditionalLogic: return static_cast< const CKaitaiSchemaConditionalLogic* >( this )->CreateSharedPtr();
+        case LogicInstance: return static_cast< const CKaitaiSchemaLogicInstance* >( this )->CreateSharedPtr();
+
+        case SubstreamField: return static_cast< const CKaitaiSchemaSubstreamField* >( this )->CreateSharedPtr();
+        case OpaqueField: return static_cast< const CKaitaiSchemaOpaqueField* >( this )->CreateSharedPtr();
+        case DelimitedField: return static_cast< const CKaitaiSchemaDelimitedField* >( this )->CreateSharedPtr();
+        case StructureField: return static_cast< const CKaitaiSchemaStructureField* >( this )->CreateSharedPtr();
+
+        case BaseField:
+        case UnknownField:
         default:
             return CKaitaiSchemaBaseFieldPtr();
     }
@@ -375,9 +418,7 @@ CKaitaiSchemaBaseField::KaitaiFixedSizeValueStringToFixedSizeIfAny( const CORE::
                 CORE::CString typeName = sizeValue.SubstrFromRange( sizeofKeywordOffset, sizeofKeywordEndOffset );
                 typeName = typeName.Trim( true ).Trim( false );
 
-                CKaitaiGlobal* kaitaiGlobal = CKaitaiGlobal::Instance();
-                CKaitaiSchemaRegistry& schemaRegistry = kaitaiGlobal->GetKaitaiSchemaRegistry();
-                CKaitaiSchemaBaseFieldPtr fieldObj = schemaRegistry.TryGetSchemaRootOrSubType( GetSchemaFamily(), GetSchemaId(), typeName );
+                CKaitaiSchemaBaseFieldPtr fieldObj = TryGetReferencedElement( typeName, AsSharedPtr(), false );
                 if ( !fieldObj.IsNULL() )
                 {
                     // We have a valid field object
@@ -447,41 +488,41 @@ CKaitaiSchemaBaseField::KaitaiFixedSizeValueStringToGucefType( const CORE::CStri
 
 CKaitaiSchemaBaseFieldPtr
 CKaitaiSchemaBaseField::CreateDefaultFieldObjectForFieldType( KaitaiSchemaElementType fieldType , 
-                                                              CKaitaiSchemaMetaPtr schemaMeta   )
+                                                              CKaitaiSchemaBaseFieldPtr parent  )
 {GUCEF_TRACE;
 
     switch ( fieldType )
     {
         case BaseField:
         {
-            CKaitaiSchemaBaseFieldTypedPtr baseField( GUCEF_NEW CKaitaiSchemaBaseField( BaseField, schemaMeta ) );
+            CKaitaiSchemaBaseFieldTypedPtr baseField( GUCEF_NEW CKaitaiSchemaBaseField( BaseField, parent ) );
             return baseField;
         }
 
-        case NumericScalarField: return CKaitaiSchemaNumericScalarField::CreateSharedObjWithParam( schemaMeta );
-        case EnumScalarField: return CKaitaiSchemaEnumScalarField::CreateSharedObjWithParam( schemaMeta );
-        case StringScalarField: return CKaitaiSchemaStringScalarField::CreateSharedObjWithParam( schemaMeta );
-        case BinaryScalarField: return CKaitaiSchemaBinaryScalarField::CreateSharedObjWithParam( schemaMeta );
-        case ConstValidationField: return CKaitaiSchemaConstValidationScalarField::CreateSharedObjWithParam( schemaMeta );
+        case NumericScalarField: return CKaitaiSchemaNumericScalarField::CreateSharedObjWithParam( parent );
+        case EnumScalarField: return CKaitaiSchemaEnumScalarField::CreateSharedObjWithParam( parent );
+        case StringScalarField: return CKaitaiSchemaStringScalarField::CreateSharedObjWithParam( parent );
+        case BinaryScalarField: return CKaitaiSchemaBinaryScalarField::CreateSharedObjWithParam( parent );
+        case ConstValidationField: return CKaitaiSchemaConstValidationScalarField::CreateSharedObjWithParam( parent );
 
-        case EnumDefinition: return CKaitaiSchemaEnumDefinition::CreateSharedObjWithParam( schemaMeta );
+        case EnumDefinition: return CKaitaiSchemaEnumDefinition::CreateSharedObjWithParam( parent );
 
-        case SwitchLogic: return CKaitaiSchemaSwitchLogic::CreateSharedObjWithParam( schemaMeta );
-        case RepeatLogic: return CKaitaiSchemaRepeatLogic::CreateSharedObjWithParam( schemaMeta );
-        case ConditionalLogic: return CKaitaiSchemaConditionalLogic::CreateSharedObjWithParam( schemaMeta );
-        case LogicInstance: return CKaitaiSchemaLogicInstance::CreateSharedObjWithParam( schemaMeta );
+        case SwitchLogic: return CKaitaiSchemaSwitchLogic::CreateSharedObjWithParam( parent );
+        case RepeatLogic: return CKaitaiSchemaRepeatLogic::CreateSharedObjWithParam( parent );
+        case ConditionalLogic: return CKaitaiSchemaConditionalLogic::CreateSharedObjWithParam( parent );
+        case LogicInstance: return CKaitaiSchemaLogicInstance::CreateSharedObjWithParam( parent );
 
-        case SubstreamField: return CKaitaiSchemaSubstreamField::CreateSharedObjWithParam( schemaMeta );
-        case OpaqueField: return CKaitaiSchemaOpaqueField::CreateSharedObjWithParam( schemaMeta );
-        case DelimitedField: return CKaitaiSchemaDelimitedField::CreateSharedObjWithParam( schemaMeta );
-        case StructureField: return CKaitaiSchemaStructureField::CreateSharedObjWithParam( schemaMeta );
+        case SubstreamField: return CKaitaiSchemaSubstreamField::CreateSharedObjWithParam( parent );
+        case OpaqueField: return CKaitaiSchemaOpaqueField::CreateSharedObjWithParam( parent );
+        case DelimitedField: return CKaitaiSchemaDelimitedField::CreateSharedObjWithParam( parent );
+        case StructureField: return CKaitaiSchemaStructureField::CreateSharedObjWithParam( parent );
 
         case UnknownField:
         {
             // This type is a placeholder for a type that is not known
             // it is not intended to help data deserialization but rather allow for a schema to be
             // interpreted 'best effort' and also be displayed as such
-            CKaitaiSchemaBaseFieldTypedPtr dummyField( GUCEF_NEW CKaitaiSchemaBaseField( UnknownField, schemaMeta ) );
+            CKaitaiSchemaBaseFieldTypedPtr dummyField( GUCEF_NEW CKaitaiSchemaBaseField( UnknownField, parent ) );
             if ( !dummyField.IsNULL() )
             {
                 dummyField->id = "UnknownField";
@@ -499,8 +540,8 @@ CKaitaiSchemaBaseField::CreateDefaultFieldObjectForFieldType( KaitaiSchemaElemen
 /*-------------------------------------------------------------------------*/
 
 CKaitaiSchemaBaseFieldPtr 
-CKaitaiSchemaBaseField::CreateDefaultFieldObjectForBuildInFieldTypeName( const CORE::CString& typeName   ,
-                                                                         CKaitaiSchemaMetaPtr schemaMeta )
+CKaitaiSchemaBaseField::CreateDefaultFieldObjectForBuildInFieldTypeName( const CORE::CString& typeName    ,
+                                                                         CKaitaiSchemaBaseFieldPtr parent )
 {GUCEF_TRACE;
 
     CORE::UInt8 gupDataType = KaitaiBuildInTypeStringToGucefType( typeName );
@@ -517,7 +558,7 @@ CKaitaiSchemaBaseField::CreateDefaultFieldObjectForBuildInFieldTypeName( const C
         case GUCEF_DATATYPE_FLOAT32:
         case GUCEF_DATATYPE_FLOAT64:        
         {
-            return CreateDefaultFieldObjectForFieldType( NumericScalarField, schemaMeta );
+            return CreateDefaultFieldObjectForFieldType( NumericScalarField, parent );
         }
         case GUCEF_DATATYPE_ASCII_STRING:
         case GUCEF_DATATYPE_UTF8_STRING:
@@ -526,16 +567,16 @@ CKaitaiSchemaBaseField::CreateDefaultFieldObjectForBuildInFieldTypeName( const C
         case GUCEF_DATATYPE_UTF32_LE_STRING:
         case GUCEF_DATATYPE_UTF32_BE_STRING:
         {
-            return CreateDefaultFieldObjectForFieldType( StringScalarField, schemaMeta );
+            return CreateDefaultFieldObjectForFieldType( StringScalarField, parent );
         }
         case GUCEF_DATATYPE_BINARY_BSOB:
         case GUCEF_DATATYPE_BINARY_BLOB:
         {
-            return CreateDefaultFieldObjectForFieldType( BinaryScalarField, schemaMeta );
+            return CreateDefaultFieldObjectForFieldType( BinaryScalarField, parent );
         }
         case GUCEF_DATATYPE_ENUM:
         {
-            return CreateDefaultFieldObjectForFieldType( EnumScalarField, schemaMeta );
+            return CreateDefaultFieldObjectForFieldType( EnumScalarField, parent );
         }
 
         default:
@@ -547,24 +588,256 @@ CKaitaiSchemaBaseField::CreateDefaultFieldObjectForBuildInFieldTypeName( const C
 
 /*-------------------------------------------------------------------------*/
 
-CKaitaiSchemaBaseFieldPtr 
-CKaitaiSchemaBaseField::CreateFieldObjectForFieldTypeStr( const CORE::CString& typeName   ,
-                                                          CKaitaiSchemaMetaPtr schemaMeta ) const
+bool
+CKaitaiSchemaBaseField::IsSchemaElementALogicalOne( KaitaiSchemaElementType elementType )
 {GUCEF_TRACE;
+
+    switch ( elementType )
+    {
+        case SwitchLogic:
+        case RepeatLogic:
+        case ConditionalLogic:
+        case EnumDefinition:
+            return true;
+        default:
+            return false;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaBaseField::TryGetNonLogicalParent( CKaitaiSchemaBaseFieldPtr thisElement )
+{GUCEF_TRACE;
+
+    if ( !thisElement.IsNULL() )
+    {
+        CKaitaiSchemaBaseFieldPtr parent = thisElement->GetParent();
+        if ( !parent.IsNULL() )
+        {
+            KaitaiSchemaElementType parentType = parent->GetFieldType();
+            if ( IsSchemaElementALogicalOne( parentType ) )
+            {
+                // logical elements simply wrap a field in actionable logic 
+                // per the purpose of this function we will ignore them
+                parent = parent->GetParent();
+                if ( parent.IsNULL() )
+                    return CKaitaiSchemaBaseFieldPtr();
+                parentType = parent->GetFieldType();
+            }
+        }
+        return parent;
+    }
+
+    return CKaitaiSchemaBaseFieldPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaBaseField::TryGetRootSchemaObj( CKaitaiSchemaBaseFieldPtr fromElement )
+{GUCEF_TRACE;
+
+    if ( !fromElement.IsNULL() )
+    {
+        CKaitaiSchemaBaseFieldPtr rootObj = fromElement->GetRootParent();
+        if ( !rootObj.IsNULL() )
+        {
+            if ( rootObj->GetFieldType() == Schema ) // better safe than sorry
+            {
+                // We cannot cast here since the type is not know technically at this base class
+                // but anyone using this function can now safely cast it to a schema object
+                return rootObj;
+            }
+        }
+    }
+    return CKaitaiSchemaBaseFieldPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaBaseField::TryGetReferencedElement( const CORE::CString& typeName         ,
+                                                 CKaitaiSchemaBaseFieldPtr thisElement ,
+                                                 bool currentScopeOnly                 )
+{GUCEF_TRACE;
+
+    if GUCEF_PREDICT_FALSE( thisElement.IsNULL() || typeName.IsNULLOrEmpty() ) // input sanity check
+        return CKaitaiSchemaBaseFieldPtr();
+    
+    // Order of precedence for non-fully-qualified references in KAITAI:
+    //  1 - Instance variables
+    //  2 - Fields in the same 'seq' section
+    //  3 - Enums
+    //  4 - Types
+    //  5 - root level enums (if not already at root)
+    //  6 - root level types (if not already at root)
+    // 
+    //  Fully qualified names do not follow this order of precedence in the local scope
+    //  rather they obey the scope as specified per their namespace qualification
+    //  Note that root level 'instances' require a fully qualified name to be used from a nested scope
+    // 
+    //  When using fully qualified names you also have to consider imports
+    //  this yields the following order of precedence:
+    //    1 - Instance variables as per the full qualification, the leaf node of the namespace 
+    //    2 - Fields names as per the full qualification, the leaf node of the namespace
+    //    3 - Enums as per the full qualification, the leaf node of the namespace
+    //    4 - Types as per the full qualification, the leaf node of the namespace
+    //    5 - Imported Types as per the full qualification, the leaf node of the namespace
+    //
+    // Hence:
+    // - If :: is used, we should not search for the type in the default resolution order 
+    //      (local instances → fields → enums → types → imports)
+    //   but rather obey the explicit type namespacing from the root as directed by the double colon notation 
+    //   :: separated names always start at the schema root, explicitly following a root-based namespacing approach in Kaitai Struct. This ensures that:
+    //      - Every :: separated name is resolved from the schema root.
+    //      - Nested types and imported types are fully qualified, preventing ambiguity.
+    //      - There is no implicit hierarchical traversal—the name explicitly states its full path.
+    //  Same thing for _root and _parent prefixed names, they are always fully qualified and start as per the namespace qualification
+    //
+
+    if ( !currentScopeOnly )
+    {
+        if ( typeName.HasSubstr( "::" ) > -1 )
+        {
+            // The type name is a fully qualified name
+            // We need to split it up and check if the first part is a valid import
+            // If so we can use the import to resolve the rest of the name
+            CKaitaiSchemaPtr schema = TryGetRootSchemaObj( thisElement ).StaticCast< CKaitaiSchema >();
+            if ( !schema.IsNULL() )
+            {
+                return schema->TryGetReferencedFullyQualifiedElement( typeName );
+            }
+
+            // We cannot resolve the type name
+            // fully qualified names are not allowed to be used in the default resolution order
+            return CKaitaiSchemaBaseFieldPtr();
+        }
+        else
+        if ( typeName.StartsWith( "_root." ) )
+        {
+            // The type name is a fully qualified reference to a root type
+            CKaitaiSchemaBaseFieldPtr schema = TryGetRootSchemaObj( thisElement );
+            if ( !schema.IsNULL() )
+            {
+                CORE::CString rootTypeName = typeName.CutChars( 6 ); // remove the _root. prefix
+                return schema->TryGetReferencedElement( rootTypeName, schema, true );
+            }
+
+            // We cannot resolve the type name
+            // fully qualified names are not allowed to be used in the default resolution order
+            return CKaitaiSchemaBaseFieldPtr();        
+        }
+        else
+        if ( typeName.StartsWith( "_parent." ) )
+        {
+            // The type name is a fully qualified reference to a type namespaced to the parent
+            CKaitaiSchemaBaseFieldPtr parent = TryGetNonLogicalParent( thisElement );
+            if ( !parent.IsNULL() )
+            {
+                CORE::CString parentScopeTypeName = typeName.CutChars( 8 ); // remove the _parent. prefix
+                return parent->TryGetReferencedElement( parentScopeTypeName, thisElement, true );
+            }
+
+            // We cannot resolve the type name
+            // fully qualified names are not allowed to be used in the default resolution order
+            return CKaitaiSchemaBaseFieldPtr();        
+        }
+    }
+    
+    // Try to resolve the type name in the default resolution order
+    // we first check the current scope
+    CKaitaiSchemaBaseFieldPtr parent = TryGetNonLogicalParent( thisElement );
+    if ( !parent.IsNULL() )
+    {
+        KaitaiSchemaElementType parentType = parent->GetFieldType();
+        switch ( parentType )
+        {
+            case StructureField:
+            {
+                CKaitaiSchemaStructureFieldPtr parentStructure = parent.StaticCast< CKaitaiSchemaStructureField >();
+                CKaitaiSchemaBaseFieldPtr scopeInstance = parentStructure->TryGetLocalScopeElement( typeName );
+                if ( !scopeInstance.IsNULL() )
+                    return scopeInstance;
+                break;
+            }
+            case Schema:
+            {
+                CKaitaiSchemaPtr parentSchema = parent.StaticCast< CKaitaiSchema >();
+                CKaitaiSchemaBaseFieldPtr scopeInstance = parentSchema->TryGetLocalScopeElement( typeName );
+                if ( !scopeInstance.IsNULL() )
+                    return scopeInstance;
+                
+                // Since the parent is already the schema, no need for further checks
+                return CKaitaiSchemaStructureFieldPtr();
+            }
+            default:
+                break; // no action needed. 'same scope' precedence choices are not applicable
+        }
+    }
+
+    if ( !currentScopeOnly )
+    {
+        // We were unable to resolve the type name in the current scope
+        // We will now check the root scope since enums and types defined there are also valid 
+        // as a lower precedence choice
+        CKaitaiSchemaPtr parentSchema = TryGetRootSchemaObj( thisElement ).StaticCast< CKaitaiSchema >();
+        if ( !parentSchema.IsNULL() )
+        {
+            CKaitaiSchemaBaseFieldPtr scopeInstance = parentSchema->TryGetLocalScopeElement( typeName );
+            if ( !scopeInstance.IsNULL() )
+                return scopeInstance;
+        }
+    }
+
+    // Nothing found that qualifies for the type name given
+    return CKaitaiSchemaStructureFieldPtr();
+}
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaBaseField::CreateFieldObjectForFieldTypeStr( const CORE::CString& typeName         ,
+                                                          CKaitaiSchemaBaseFieldPtr thisElement )
+{GUCEF_TRACE;
+
+    CKaitaiSchemaBaseFieldPtr parent = TryGetNonLogicalParent( thisElement );
 
     // First check for build-in types
     // You should not be able to override build-in types
-    CKaitaiSchemaBaseFieldPtr fieldObj = CreateDefaultFieldObjectForBuildInFieldTypeName( typeName, schemaMeta );
-    if ( fieldObj.IsNULL() && !schemaMeta.IsNULL() )
+    CKaitaiSchemaBaseFieldPtr fieldObj = CreateDefaultFieldObjectForBuildInFieldTypeName( typeName, parent );
+    if ( fieldObj.IsNULL() )
     {
-        // This might be a typedef
-        // We will need to check the registry for the type as it could be defined in the parent schema or any of the imports
-        CKaitaiGlobal* kaitaiGlobal = CKaitaiGlobal::Instance();
-        fieldObj = kaitaiGlobal->GetKaitaiSchemaRegistry().TryGetSchemaRootOrSubType( schemaMeta->GetSchemaFamily() , 
-                                                                                      schemaMeta->GetSchemaId()     , 
-                                                                                      typeName                      );
+        CKaitaiSchemaBaseFieldPtr templateObj = TryGetReferencedElement( typeName, thisElement, false );
+        if ( !templateObj.IsNULL() )
+            return templateObj->CloneAsFieldObject();
     }
     return fieldObj;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaBaseField::GetParent( void ) const
+{GUCEF_TRACE;
+
+    return m_parent;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CKaitaiSchemaBaseFieldPtr 
+CKaitaiSchemaBaseField::GetRootParent( void ) const
+{GUCEF_TRACE;
+
+    CKaitaiSchemaBaseFieldPtr parent = m_parent;
+    while ( !parent.IsNULL() )
+    {
+        CKaitaiSchemaBaseFieldPtr parentParent = parent->GetParent();
+        if ( parentParent.IsNULL() )
+            break;
+        parent = parentParent;
+    }
+    return parent;
 }
 
 /*-------------------------------------------------------------------------*/

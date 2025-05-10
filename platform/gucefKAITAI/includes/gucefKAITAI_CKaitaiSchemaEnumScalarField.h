@@ -63,7 +63,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaEnumScalarField : public CKaitaiSchem
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
     CKaitaiSchemaEnumScalarField( void );                               /**< dont use this, use the other constructor */
-    CKaitaiSchemaEnumScalarField( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaEnumScalarField( CKaitaiSchemaBaseFieldPtr parent );
     CKaitaiSchemaEnumScalarField( const CKaitaiSchemaEnumScalarField& src );
     virtual ~CKaitaiSchemaEnumScalarField();
     CKaitaiSchemaEnumScalarField& operator=( const CKaitaiSchemaEnumScalarField& src );

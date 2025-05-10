@@ -79,10 +79,6 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaRegistry : public CORE::CTONRegistry<
     CKaitaiSchemaPtr TryGetSchema( const CORE::CString& schemaFamily , 
                                    const CORE::CString& schemaName   ) const;
 
-    CKaitaiSchemaBaseFieldPtr TryGetSchemaRootOrSubType( const CORE::CString& schemaFamily     , 
-                                                         const CORE::CString& schemaId         ,
-                                                         const CORE::CString& typeNameToSearch ) const;
-
     bool RegisterSchema( TSchemaPtr schema                 ,
                          const CORE::CString& schemaFamily );
     

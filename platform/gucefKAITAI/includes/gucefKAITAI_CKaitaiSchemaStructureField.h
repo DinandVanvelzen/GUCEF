@@ -59,7 +59,8 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaStructureField : public CKaitaiSchema
     typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaStructureField, MT::CMutex >::TBasicSharedPtrType  CKaitaiSchemaStructureFieldPtr;  
     typedef typename CORE::CTSharedObjCreator< CKaitaiSchemaStructureField, MT::CMutex >::TSharedPtrType       CKaitaiSchemaStructureFieldTypedPtr;
     typedef std::vector< CKaitaiSchemaBaseFieldPtr, gucef_allocator< CKaitaiSchemaBaseFieldPtr > >             CKaitaiSchemaBaseFieldPtrVector;
-
+    typedef std::pair< const CORE::CString, CKaitaiSchemaBaseFieldPtr >                                                           TFieldTypePair;
+    typedef std::map< CORE::CString, CKaitaiSchemaBaseFieldPtr, std::less< CORE::CString >, gucef_allocator< TFieldTypePair > >   TFieldTypeMap;
     
     CORE::CString params;                  // Parameters for dynamic behavior
 
@@ -71,25 +72,51 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaStructureField : public CKaitaiSchema
     virtual bool Serialize( CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual bool Deserialize( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual bool DeserializeInstancesData( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
+    virtual bool DeserializeTypesData( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
+    virtual bool DeserializeEnumsData( const CORE::CDataNode& domRootNode, const CORE::CDataNodeSerializableSettings& settings );
+
     /**
      *  Attempts to detect what OOP construct the field is based on the various datanode shapes presented
      *  Once the correct object type is able to be determined the object is created and returned 
      *  with the data node deserialized into the construct. Returns a null shared ptr object on failure.
      */
-    CKaitaiSchemaBaseFieldPtr CreateSchemaObjectForFieldDataNode( const CORE::CDataNode& fieldNode, bool& totalSuccess  ) const;
+    CKaitaiSchemaBaseFieldPtr CreateSchemaObjectForFieldDataNode( const CORE::CDataNode& fieldNode , 
+                                                                  bool& totalSuccess               ,
+                                                                  CKaitaiSchemaBaseFieldPtr parent ) const;
 
     CKaitaiSchemaStructureField( void );                                  /**< dont use this, use the other constructor */
-    CKaitaiSchemaStructureField( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaStructureField( CKaitaiSchemaBaseFieldPtr parent );
     CKaitaiSchemaStructureField( const CKaitaiSchemaStructureField& src );
     virtual ~CKaitaiSchemaStructureField();
     CKaitaiSchemaStructureField& operator=( const CKaitaiSchemaStructureField& src );
 
     const CKaitaiSchemaBaseFieldPtrVector& GetFields( void ) const;
 
+    /**
+     *  Attempt to find an element with the given name in the local scope
+     *  This follows the local scope order or precedence wrt name resolution
+     */
+    CKaitaiSchemaBaseFieldPtr TryGetLocalScopeElement( const CORE::CString& elementName ) const;
+
+    CKaitaiSchemaBaseFieldPtr TryGetLocalScopeInstance( const CORE::CString& instanceName ) const;
+
+    CKaitaiSchemaBaseFieldPtr TryGetLocalScopeField( const CORE::CString& fieldName ) const;
+
+    CKaitaiSchemaBaseFieldPtr TryGetLocalScopeEnum( const CORE::CString& enumName ) const;
+
+    CKaitaiSchemaBaseFieldPtr TryGetLocalScopeTypedef( const CORE::CString& typeName ) const;
+    
+    const TFieldTypeMap& GetDefinedEnums( void ) const;
+    
+    const TFieldTypeMap& GetDefinedTypes( void ) const;
+
     private:
 
-    CKaitaiSchemaBaseFieldPtrVector fields;    /**< the sequence of fields within the structure */
-
+    CKaitaiSchemaBaseFieldPtrVector m_fields;    /**< the sequence of fields within the structure */
+    TFieldTypeMap m_instances;
+    TFieldTypeMap m_enums;
+    TFieldTypeMap m_types;
 };
 
 /*-------------------------------------------------------------------------*/

@@ -67,7 +67,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchemaLogicInstance : public CKaitaiSchemaB
     const CORE::CString& GetExpression( void ) const;
     
     CKaitaiSchemaLogicInstance( void );                                   /**< dont use this, use the other constructor */
-    CKaitaiSchemaLogicInstance( CKaitaiSchemaMetaPtr schemaMeta );
+    CKaitaiSchemaLogicInstance( CKaitaiSchemaBaseFieldPtr parent );
     CKaitaiSchemaLogicInstance( const CKaitaiSchemaLogicInstance& src );
     virtual ~CKaitaiSchemaLogicInstance();
     CKaitaiSchemaLogicInstance& operator=( const CKaitaiSchemaLogicInstance& src );
