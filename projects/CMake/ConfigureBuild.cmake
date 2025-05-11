@@ -101,3 +101,10 @@ if (MSVC)
   add_compile_options(-bigobj)
 endif (MSVC)
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    if (CMAKE_CXX_COMPILER MATCHES "em\\+\\+")
+        message(STATUS "Building with Emscripten")
+        set(CMAKE_CXX_STANDARD 98)  # Explicitly set C++98 compatibility
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s USE_SDL=2")
+    endif()
+endif()
