@@ -529,6 +529,7 @@ ProcessMetrics::ProcessMetrics( void )
     , m_globalCpuDataPoint( GUCEF_NULL )
     , m_storageVolumeIds()
     , m_storageVolumeIdsToPaths()
+    , m_storageDeviceIds()
     , m_gatherProcPageFaultCountInBytes( true )
     , m_gatherProcPageFileUsageInBytes( true )
     , m_gatherProcPeakPageFileUsageInBytes( true )
@@ -566,17 +567,29 @@ ProcessMetrics::ProcessMetrics( void )
     , m_gatherGlobalNetworkStatOutboundNonUnicastPackets( true )
     , m_gatherGlobalNetworkStatOutboundErroredPackets( true )
     , m_gatherGlobalNetworkStatOutboundDiscardedPackets( true )
+    , m_gatherGlobalNetworkStatInboundMulticastOctets( true )
+    , m_gatherGlobalNetworkStatOutboundMulticastOctets( true )
+    , m_gatherGlobalNetworkStatInboundBroadcastOctets( true )
+    , m_gatherGlobalNetworkStatOutboundBroadcastOctets( true )
+    , m_gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec( true )
+    , m_gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec( true )
     , m_gatherGlobalStorageStats( true )
     , m_gatherGlobalStorageVolumeBytesAvailableToCaller( true )
     , m_gatherGlobalStorageVolumeBytesAvailable( true )
     , m_gatherGlobalStorageVolumeBytes( false )
     , m_gatherGlobalStorageVolumeAvailableToCallerPercentage( true )
     , m_gatherGlobalStorageVolumeAvailablePercentage( true )
+    , m_gatherGlobalStorageDeviceStats( true )
+    , m_gatherGlobalStorageDeviceBytesWritten( true )
+    , m_gatherGlobalStorageDeviceBytesRead( true )
+    , m_gatherGlobalStorageDeviceRequestsQueued( true )
+    , m_gatherGlobalStorageDeviceRequestsSplit( true )
+    , m_gatherGlobalStorageDeviceReadTimeInMs( true )
+    , m_gatherGlobalStorageDeviceWriteTimeInMs( true )
+    , m_gatherGlobalStorageDeviceIdleTimeInMs( true )
     , m_convertStorageVolumeIdsToPaths( true )
-    , m_gatherGlobalNetworkStatInboundMulticastOctets( true )
-    , m_gatherGlobalNetworkStatOutboundMulticastOctets( true )
-    , m_gatherGlobalNetworkStatInboundBroadcastOctets( true )
-    , m_gatherGlobalNetworkStatOutboundBroadcastOctets( true )
+
+
 {GUCEF_TRACE;
 
     RegisterEventHandlers();
@@ -697,7 +710,7 @@ ProcessMetrics::LaunchProcs( const CORE::CString::StringSet& procsToLaunch )
                         // On Windows due to security restrictions if you try to launch a process from a service
                         // and the process you are trying to launch is a GUI app it will fail. This is because the
                         // service is running in a different session than the user's session. To get around this
-                        // we have tp indirectly launch the process via a helper process that is running in the user's
+                        // we have to indirectly launch the process via a helper process that is running in the user's
                         // session. This helper process is a simple console app that takes the exe path and command line
                         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProcessMetrics: Attempting to launch process \"" + procInfo.exeName +
                             "\" using image \"" + exePath + "\" and command line \"" + cmdLine + "\"");
@@ -1597,6 +1610,30 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
             CORE::CStorageVolumeInformation volumeInfo;
             if ( CORE::GetFileSystemStorageVolumeInformationByVolumeId( volumeInfo, storageVolumeId ) && 0 < volumeInfo.totalNumberOfBytes )
             {
+                if ( m_gatherGlobalStorageDeviceStats && volumeInfo.hasPartitionId2deviceIdMapping )
+                {
+                    // If we have the device id mapping we can use it to track the devices
+                    // add these to the list so that we are at least able to track them for 
+                    // the devices for which we also track the volumes
+                    CORE::CStringMap::iterator j = volumeInfo.partitionId2deviceId.begin();
+                    while ( j != volumeInfo.partitionId2deviceId.end() )
+                    {
+                        const CORE::CString& partitionId = (*j).first;
+                        const CORE::CString& deviceId = (*j).second;
+
+                        CORE::CStringSet::iterator f = m_storageDeviceIds.find( deviceId );
+                        if ( f == m_storageDeviceIds.end() )
+                        {
+                            m_storageDeviceIds.insert( deviceId );
+
+                            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "ProcessMetrics: Storage volume with id: " + storageVolumeId + 
+                                " uses device with id: " + deviceId +
+                                " and partition id: " + partitionId );
+                        }   
+                        ++j;
+                    }
+                }
+                
                 const CORE::CString* metricStrToUse = &storageVolumeId;
                 if ( m_convertStorageVolumeIdsToPaths && !storagePath.IsNULLOrEmpty() )
                     metricStrToUse = &storagePath;
@@ -1637,6 +1674,70 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
                 }
             }
             ++i;
+        }
+
+        if ( m_gatherGlobalStorageDeviceStats )
+        {
+            i = m_storageDeviceIds.begin();
+            while ( i != m_storageDeviceIds.end() )
+            {
+                const CORE::CString& deviceId = (*i);
+
+                CORE::CStorageDeviceInformation deviceInfo;
+                if ( CORE::GetStorageDeviceInformationByDeviceId( deviceInfo, deviceId ) )
+                {
+                    if ( deviceInfo.hasPerfStats )
+                    {
+                        const CORE::CStorageDevicePerfStats& perfStats = deviceInfo.perfStats;
+                        CORE::CString metricsStorageDeviceId = GenerateMetricsFriendlyString( deviceId );
+
+                        if ( m_gatherGlobalStorageDeviceBytesWritten && perfStats.hasBytesWritten )
+                        {
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".BytesWritten";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesWritten, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.bytesWritten ), storageMetricName, CORE::CString::Empty );
+                        }
+                        if ( m_gatherGlobalStorageDeviceBytesRead && perfStats.hasBytesRead )
+                        {
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".BytesRead";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesRead, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.bytesRead ), storageMetricName, CORE::CString::Empty );
+                        }
+                        if ( m_gatherGlobalStorageDeviceRequestsQueued && perfStats.hasRequestQueueDepth )
+                        {
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".RequestQueueDepth";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.requestQueueDepth, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.requestQueueDepth ), storageMetricName, CORE::CString::Empty );
+                        }
+                        if ( m_gatherGlobalStorageDeviceRequestsSplit && perfStats.hasRequestSplitCount )
+                        {
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".RequestSplitCount";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.requestSplitCount, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.requestSplitCount ), storageMetricName, CORE::CString::Empty );
+                        }
+                        if ( m_gatherGlobalStorageDeviceReadTimeInMs && perfStats.hasReadTimeInMs )
+                        {
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".ReadTimeInMs";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.readTimeInMs, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.readTimeInMs ), storageMetricName, CORE::CString::Empty );
+                        }
+                        if ( m_gatherGlobalStorageDeviceWriteTimeInMs && perfStats.hasWriteTimeInMs )
+                        {
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".WriteTimeInMs";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.writeTimeInMs, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.writeTimeInMs ), storageMetricName, CORE::CString::Empty );
+                        }
+                        if ( m_gatherGlobalStorageDeviceIdleTimeInMs && perfStats.hasIdleTimeInMs )
+                        {
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".IdleTimeInMs";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.idleTimeInMs, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.idleTimeInMs ), storageMetricName, CORE::CString::Empty );
+                        }
+                    }
+                }
+            
+                ++i;
+            }
         }
     }
 
@@ -1797,6 +1898,15 @@ ProcessMetrics::LoadConfig( const CORE::CValueList& appConfig   ,
     m_gatherGlobalStorageVolumeAvailableToCallerPercentage = appConfig.GetValueAlways( "gatherGlobalStorageVolumeAvailableToCallerPercentage", m_gatherGlobalStorageVolumeAvailableToCallerPercentage ).AsBool( m_gatherGlobalStorageVolumeAvailableToCallerPercentage, true );
     m_gatherGlobalStorageVolumeAvailablePercentage = appConfig.GetValueAlways( "gatherGlobalStorageVolumeAvailablePercentage", m_gatherGlobalStorageVolumeAvailablePercentage ).AsBool( m_gatherGlobalStorageVolumeAvailablePercentage, true );
     m_convertStorageVolumeIdsToPaths = appConfig.GetValueAlways( "convertStorageVolumeIdsToPaths", m_convertStorageVolumeIdsToPaths ).AsBool( m_convertStorageVolumeIdsToPaths, true );
+
+    m_gatherGlobalStorageDeviceStats = appConfig.GetValueAlways( "gatherGlobalStorageDeviceStats", m_gatherGlobalStorageDeviceStats ).AsBool( m_gatherGlobalStorageDeviceStats, true );
+    m_gatherGlobalStorageDeviceBytesWritten = appConfig.GetValueAlways( "gatherGlobalStorageDeviceBytesWritten", m_gatherGlobalStorageDeviceBytesWritten ).AsBool( m_gatherGlobalStorageDeviceBytesWritten, true );
+    m_gatherGlobalStorageDeviceBytesRead = appConfig.GetValueAlways( "gatherGlobalStorageDeviceBytesRead", m_gatherGlobalStorageDeviceBytesRead ).AsBool( m_gatherGlobalStorageDeviceBytesRead, true );
+    m_gatherGlobalStorageDeviceRequestsQueued = appConfig.GetValueAlways( "gatherGlobalStorageDeviceRequestsQueued", m_gatherGlobalStorageDeviceRequestsQueued ).AsBool( m_gatherGlobalStorageDeviceRequestsQueued, true );
+    m_gatherGlobalStorageDeviceRequestsSplit = appConfig.GetValueAlways( "gatherGlobalStorageDeviceRequestsSplit", m_gatherGlobalStorageDeviceRequestsSplit ).AsBool( m_gatherGlobalStorageDeviceRequestsSplit, true );
+    m_gatherGlobalStorageDeviceReadTimeInMs = appConfig.GetValueAlways( "gatherGlobalStorageDeviceReadTimeInMs", m_gatherGlobalStorageDeviceReadTimeInMs ).AsBool( m_gatherGlobalStorageDeviceReadTimeInMs, true );
+    m_gatherGlobalStorageDeviceWriteTimeInMs = appConfig.GetValueAlways( "gatherGlobalStorageDeviceWriteTimeInMs", m_gatherGlobalStorageDeviceWriteTimeInMs ).AsBool( m_gatherGlobalStorageDeviceWriteTimeInMs, true );
+    m_gatherGlobalStorageDeviceIdleTimeInMs = appConfig.GetValueAlways( "gatherGlobalStorageDeviceIdleTimeInMs", m_gatherGlobalStorageDeviceIdleTimeInMs ).AsBool( m_gatherGlobalStorageDeviceIdleTimeInMs, true );
 
     TStringSet exeProcsToWatch = appConfig.GetValueAlways( "exeProcsToWatch" ).AsString().ParseUniqueElements( ';', false );
     TStringSet::iterator i = exeProcsToWatch.begin();

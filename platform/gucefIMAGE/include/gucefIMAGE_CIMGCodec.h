@@ -30,6 +30,11 @@
 #define GUCEF_CORE_CICODEC_H
 #endif /* GUCEF_CORE_CICODEC_H ? */
 
+#ifndef GUCEF_CORE_CCODECREGISTRY_H
+#include "CCodecRegistry.h"
+#define GUCEF_CORE_CCODECREGISTRY_H
+#endif /* GUCEF_CORE_CCODECREGISTRY_H ? */
+
 #ifndef GUCEFIMAGE_MACROS_H
 #include "gucefIMAGE_macros.h"       /* module macro's */
 #define GUCEFIMAGE_MACROS_H
@@ -79,7 +84,7 @@ class GUCEF_IMAGE_EXPORT_CPP CIMGCodec
 {
     public:
     
-    typedef CORE::CTSharedPtr< CORE::CICodec, MT::CMutex > CCodecPtr;
+    typedef CORE::CCodecRegistry::TICodecPtr   CCodecPtr;
     
     /**
      *  Constructs and links the conversion object

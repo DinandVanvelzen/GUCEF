@@ -985,6 +985,60 @@ CDynamicBuffer::ParseUniqueUtf8StringElements( UInt32 seperatorCodePoint ,
 
     return CUtf8String::ParseUniqueElements( ( const UInt8* ) _buffer, m_dataSize, seperatorCodePoint, addEmptyElements );
 }
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDynamicBuffer::ParseBinaryElements( void* seperatorBytes                 ,
+                                     UInt8 seperatorBytesSize             ,
+                                     TDynamicBufferVector& parsedElements ,
+                                     bool lastElementMustHaveSeperator    ,
+                                     bool addEmptyElements                ) const
+{GUCEF_TRACE;
+    
+    if ( seperatorBytesSize > 0 && GUCEF_NULL != seperatorBytes )
+    {
+        // We need to use the binary parser
+        UInt32 searchOffset = 0;        
+        Int32 foundOffset = 0;
+        do
+        {
+            foundOffset = Find( seperatorBytes, seperatorBytesSize, searchOffset );
+            if ( foundOffset >= 0 )
+            {
+                // Found an element
+                UInt32 elementSize = static_cast< UInt32 >( foundOffset - searchOffset );
+                if ( elementSize > 0 || addEmptyElements )
+                {
+                    parsedElements.push_back( CDynamicBuffer() );
+                    CDynamicBuffer& parsedElement = parsedElements.back();
+                    parsedElement.LinkTo( _buffer+searchOffset, elementSize );
+                }
+                searchOffset = static_cast< UInt32 >( foundOffset+seperatorBytesSize );
+            }
+        }
+        while ( foundOffset >= 0 );
+
+        if ( searchOffset > 0 && !lastElementMustHaveSeperator )
+        {
+            // Last element has no separator bytes, just link to the remainder of the buffer
+            parsedElements.push_back( CDynamicBuffer() );
+            CDynamicBuffer& parsedElement = parsedElements.back();
+            parsedElement.LinkTo( _buffer+searchOffset, m_dataSize-searchOffset );
+        }
+    }
+    else
+    {
+        if ( !lastElementMustHaveSeperator && m_dataSize > 0 )
+        {
+            // No separator bytes, just link to the entire buffer
+            parsedElements.push_back( CDynamicBuffer() );
+            CDynamicBuffer& parsedElement = parsedElements.back();
+            parsedElement.LinkTo( *this );
+        }
+    }
+}
+
 /*-------------------------------------------------------------------------*/
 
 bool

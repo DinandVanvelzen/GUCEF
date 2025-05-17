@@ -224,7 +224,7 @@ CHTTPURLHandler::Register( void )
     CORE::CURLHandlerRegistry* registry = &CORE::CCoreGlobal::Instance()->GetUrlHandlerRegistry();
     if ( !registry->IsRegistered( "http" ) )
     {
-        registry->Register( "http", CORE::CURLHandlerRegistry::TRegisteredObjPtr( GUCEF_NEW CHTTPURLHandler() ) );
+        registry->Register( "http", CORE::CURLHandlerRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CHTTPURLHandler() ) );
     }
 }
 

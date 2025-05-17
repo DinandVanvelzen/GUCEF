@@ -363,7 +363,11 @@ CKaitaiSchema::IsValid( void ) const
 {GUCEF_TRACE;
     
     // we are valid if we have a schema family and a schema id and imports are resolved which implied all deserialization is done
-    return !GetSchemaFamily().IsNULLOrEmpty() && !GetSchemaId().IsNULLOrEmpty() && !HasUnresolvedImports();
+    return !GetSchemaFamily().IsNULLOrEmpty() && 
+           !GetSchemaId().IsNULLOrEmpty() && 
+           !HasUnresolvedImports() && 
+           !m_structure.IsNULL() && 
+           m_structure->IsValid();
 }
 
 /*-------------------------------------------------------------------------*/

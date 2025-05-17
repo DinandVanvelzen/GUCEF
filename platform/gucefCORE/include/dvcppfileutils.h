@@ -159,9 +159,85 @@ PathExists( const CString& path );
 
 /*-------------------------------------------------------------------------*/
 
+class GUCEF_CORE_PUBLIC_CPP CStorageDeviceGeometry
+{
+    public:
+
+    bool hasCylinderCount;
+    UInt64 cylinderCount;
+    bool hasTracksPerCylinder;
+    UInt64 tracksPerCylinder;
+    bool hasSectorsPerTrack;
+    UInt64 sectorsPerTrack;
+    bool hasBytesPerSector;
+    UInt64 bytesPerSector;
+    bool hasIsRemovable;
+    bool isRemovable;
+
+    CStorageDeviceGeometry( void );
+    void Clear( void );
+};
+
+/*-------------------------------------------------------------------------*/
+
+class GUCEF_CORE_PUBLIC_CPP CStorageDevicePerfStats
+{
+    public:
+
+    bool hasBytesRead;
+    UInt64 bytesRead;
+    bool hasBytesWritten;
+    UInt64 bytesWritten;
+    bool hasReadTimeInMs;
+    UInt64 readTimeInMs;
+    bool hasWriteTimeInMs;
+    UInt64 writeTimeInMs;
+    bool hasIdleTimeInMs;
+    UInt64 idleTimeInMs;
+    bool hasRequestQueueDepth;
+    UInt64 requestQueueDepth;
+    bool hasRequestSplitCount;
+    UInt64 requestSplitCount;
+
+    CStorageDevicePerfStats( void );
+    void Clear( void );
+};
+
+/*-------------------------------------------------------------------------*/
+
+class GUCEF_CORE_PUBLIC_CPP CStorageDeviceInformation
+{
+    public:
+
+    bool hasDeviceId;
+    CString deviceId;
+
+    bool hasGeometry;
+    CStorageDeviceGeometry geometry;
+    bool hasPerfStats;
+    CStorageDevicePerfStats perfStats;
+
+    CStorageDeviceInformation( void );
+    void Clear( void );
+};
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Attempts to obtain information about the storage device backing the given device id
+ *  You can obain the device id via the volume information since a volume maps to one or more devices
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+GetStorageDeviceInformationByDeviceId( CStorageDeviceInformation& info, const CString& deviceId );
+
+/*-------------------------------------------------------------------------*/
+
 class GUCEF_CORE_PUBLIC_CPP CStorageVolumeInformation
 {
     public:
+    
+    bool hasVolumeId;
+    CString volumeId;
 
     bool hasFreeBytesAvailableToCaller;
     UInt64 freeBytesAvailableToCaller;
@@ -173,6 +249,12 @@ class GUCEF_CORE_PUBLIC_CPP CStorageVolumeInformation
     bool isReadOnly;
     bool hasVolumeName;
     CString volumeName;
+    bool hasPhysicalDeviceId;
+    CString physicalDeviceId;
+    bool hasPaths;
+    CStringSet paths;
+    bool hasPartitionId2deviceIdMapping;
+    CStringMap partitionId2deviceId;
 
     CStorageVolumeInformation( void );
     void Clear( void );

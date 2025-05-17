@@ -296,6 +296,7 @@ class ProcessMetrics : public CORE::CObservingNotifier
     CORE::TCpuDataPoint* m_globalCpuDataPoint;
     CORE::CString::StringSet m_storageVolumeIds;
     CORE::CString::StringMap m_storageVolumeIdsToPaths;
+    CORE::CString::StringSet m_storageDeviceIds;
 
     bool m_gatherProcPageFaultCountInBytes;
     bool m_gatherProcPageFileUsageInBytes;
@@ -352,6 +353,15 @@ class ProcessMetrics : public CORE::CObservingNotifier
     bool m_gatherGlobalStorageVolumeAvailableToCallerPercentage;
     bool m_gatherGlobalStorageVolumeAvailablePercentage;
     bool m_convertStorageVolumeIdsToPaths;
+
+    bool m_gatherGlobalStorageDeviceStats;
+    bool m_gatherGlobalStorageDeviceBytesWritten;
+    bool m_gatherGlobalStorageDeviceBytesRead;
+    bool m_gatherGlobalStorageDeviceRequestsQueued;
+    bool m_gatherGlobalStorageDeviceRequestsSplit;
+    bool m_gatherGlobalStorageDeviceReadTimeInMs;
+    bool m_gatherGlobalStorageDeviceWriteTimeInMs;
+    bool m_gatherGlobalStorageDeviceIdleTimeInMs;
 };
 
 /*-------------------------------------------------------------------------*/

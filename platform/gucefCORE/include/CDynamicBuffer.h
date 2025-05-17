@@ -76,6 +76,8 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
 {
     public:
 
+    typedef std::vector< CDynamicBuffer, gucef_allocator< CDynamicBuffer > >        TDynamicBufferVector;
+
     CDynamicBuffer( CIOAccess& ioAccess );
 
     CDynamicBuffer( void ) GUCEF_NOEXCEPT;
@@ -337,6 +339,19 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
                                                           bool addEmptyElements = true ) const;
 
     /**
+     * @brief Helper to parse binary elements from a buffer which uses known seperator bytes
+     * @param seperatorBytes byte array of seperator bytes that together make up the seperator
+     * @param seperatorBytesSize size of the seperator byte array
+     * @param addEmptyElements whether to consider 0 byte size elements as elements to add to the output
+     * @return the vector of parsed strings
+     */
+    void ParseBinaryElements( void* seperatorBytes                     ,
+                              UInt8 seperatorBytesSize                 ,
+                              TDynamicBufferVector& parsedElements     ,
+                              bool lastElementMustHaveSeperator = true ,
+                              bool addEmptyElements = true             ) const;
+
+    /**
      *  Down shifts the data in the buffer by "bytesToWipe" bytes and adjust the data size indicator accordingly
      *  Returns false if out of bounds.
      */
@@ -353,8 +368,8 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
      *  Tries to write the dynamic buffer content to the file at the file path given
      */
     bool WriteContentToFile( const CORE::CString& filepath ,
-                                const CORE::UInt64 offset = 0 ,
-                                const bool overwrite = false  ) const;
+                             const CORE::UInt64 offset = 0 ,
+                             const bool overwrite = false  ) const;
 
     bool AppendContentToFile( const CORE::CString& filepath ) const;
 

@@ -634,6 +634,7 @@ configuration( { "WIN32" } )
       "include/mswin/gucefCORE_CMSWin32ConsoleWindow.h",
       "include/mswin/gucefCORE_CMsWin32Editbox.h",
       "include/mswin/gucefCORE_CMsWin32Window.h",
+      "include/mswin/gucefCORE_cppmswinutils.h",
       "include/mswin/gucefCORE_mswinutils.h"
     } )
 
@@ -645,6 +646,7 @@ configuration( { "WIN32" } )
       "src/mswin/gucefCORE_CMSWin32ConsoleWindow.cpp",
       "src/mswin/gucefCORE_CMsWin32Editbox.cpp",
       "src/mswin/gucefCORE_CMsWin32Window.cpp",
+      "src/mswin/gucefCORE_cppmswinutils.cpp",
       "src/mswin/gucefCORE_mswinutils.cpp"
     } )
 
@@ -659,6 +661,7 @@ configuration( { "WIN64" } )
       "include/mswin/gucefCORE_CMSWin32ConsoleWindow.h",
       "include/mswin/gucefCORE_CMsWin32Editbox.h",
       "include/mswin/gucefCORE_CMsWin32Window.h",
+      "include/mswin/gucefCORE_cppmswinutils.h",
       "include/mswin/gucefCORE_mswinutils.h"
     } )
 
@@ -670,6 +673,7 @@ configuration( { "WIN64" } )
       "src/mswin/gucefCORE_CMSWin32ConsoleWindow.cpp",
       "src/mswin/gucefCORE_CMsWin32Editbox.cpp",
       "src/mswin/gucefCORE_CMsWin32Window.cpp",
+      "src/mswin/gucefCORE_cppmswinutils.cpp",
       "src/mswin/gucefCORE_mswinutils.cpp"
     } )
 
