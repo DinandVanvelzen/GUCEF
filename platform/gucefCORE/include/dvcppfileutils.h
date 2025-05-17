@@ -186,8 +186,16 @@ class GUCEF_CORE_PUBLIC_CPP CStorageDevicePerfStats
 
     bool hasBytesRead;
     UInt64 bytesRead;
+    bool hasBytesReadPerSec;
+    UInt64 bytesReadPerSec;
+    bool hasAvgBytesReadPerSec;
+    UInt64 avgBytesReadPerSec;
     bool hasBytesWritten;
     UInt64 bytesWritten;
+    bool hasBytesWrittenPerSec;
+    UInt64 bytesWrittenPerSec;
+    bool hasAvgBytesWrittenPerSec;
+    UInt64 avgBytesWrittenPerSec;
     bool hasReadTimeInMs;
     UInt64 readTimeInMs;
     bool hasWriteTimeInMs;
@@ -198,6 +206,8 @@ class GUCEF_CORE_PUBLIC_CPP CStorageDevicePerfStats
     UInt64 requestQueueDepth;
     bool hasRequestSplitCount;
     UInt64 requestSplitCount;
+    bool hasRequestSplitCountPerSec;
+    UInt64 requestSplitCountPerSec;
 
     CStorageDevicePerfStats( void );
     void Clear( void );
@@ -211,6 +221,8 @@ class GUCEF_CORE_PUBLIC_CPP CStorageDeviceInformation
 
     bool hasDeviceId;
     CString deviceId;
+    bool hasDeviceIndex;
+    UInt32 deviceIndex;
 
     bool hasGeometry;
     CStorageDeviceGeometry geometry;

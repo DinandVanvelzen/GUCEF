@@ -30,8 +30,15 @@
 #include <windows.h>
 #include <comdef.h>
 #include <Wbemidl.h>
+#include <pdh.h>
 
+#include "gucefMT_CScopeMutex.h"
+
+#ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h" 
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -55,7 +62,16 @@ const GUID IID_IWbemLocator =
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      UTILTIIES                                                          //
+//      GLOBAL VARS                                                        //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+CWindowsComponentAccess* CWindowsComponentAccess::g_instance = GUCEF_NULL;
+MT::CMutex CWindowsComponentAccess::g_instanceLock;
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
@@ -92,6 +108,90 @@ class GUCEF_HIDDEN CWmiAccessImpl
 };
 
 /*-------------------------------------------------------------------------*/
+
+#define PDH_NO_DATA  0x800007D5
+
+class GUCEF_HIDDEN CPdhAccessImpl
+{
+    private:
+    friend class CPdhDevicePerfStatAccessImpl;
+
+    typedef PDH_STATUS (WINAPI *PdhOpenQueryFunc)(LPCWSTR, DWORD_PTR, PDH_HQUERY*);
+    typedef PDH_STATUS (WINAPI *PdhAddCounterAFunc)(PDH_HQUERY, LPCSTR, DWORD_PTR, PDH_HCOUNTER*);
+    typedef PDH_STATUS (WINAPI *PdhCollectQueryDataFunc)(PDH_HQUERY);
+    typedef PDH_STATUS (WINAPI *PdhGetFormattedCounterValueFunc)(PDH_HCOUNTER, DWORD, LPDWORD, PPDH_FMT_COUNTERVALUE);
+    typedef PDH_STATUS (WINAPI *PdhCloseQueryFunc)(PDH_HQUERY);
+
+    PdhOpenQueryFunc m_pdhOpenQuery;
+    PdhAddCounterAFunc m_pdhAddCounterA;
+    PdhCollectQueryDataFunc m_pdhCollectQueryData;
+    PdhGetFormattedCounterValueFunc m_pdhGetFormattedCounterValue;
+    PdhCloseQueryFunc m_pdhCloseQuery;
+    HMODULE m_pdhLibrary;
+    PDH_HQUERY m_realtimeQuery;
+    UInt64 m_lastCollectTimeInTicks;
+    
+    public:
+    
+    CPdhAccessImpl( void );     
+    
+    ~CPdhAccessImpl();
+    
+    Int32 TryLoadPDH( void );
+
+    Int32 UnloadPDH( void );
+
+    Int32 GetPhysicalDevicePerfStats( CPdhAccess::CPdhDevicePerfStatAccess& devicePerfStatAcces ,
+                                      CStorageDeviceInformation& devicePerfStats                );
+
+    bool IsValid( void ) const;
+
+    /**
+     *  Pulls latest performance data from the PDH API
+     *  
+     */
+    bool CollectStats( void );
+};
+
+/*-------------------------------------------------------------------------*/
+
+class GUCEF_HIDDEN CPdhDevicePerfStatAccessImpl
+{
+    private:
+    friend class CPdhAccess::CPdhDevicePerfStatAccess;
+    friend class CPdhAccessImpl;
+
+    struct CounterInfo
+    {
+        std::string name;
+        PDH_HCOUNTER handle;
+        LONGLONG value;
+    };
+
+    typedef std::vector< CounterInfo, gucef_allocator< CounterInfo > > TCounterInfoVector;
+    
+    TCounterInfoVector m_counters;
+    CPdhAccessImpl* m_pdhApi;
+    bool m_isInitialized;
+
+    bool InitForDeviceId( UInt32 deviceIndex, CPdhAccessImpl* pdhApi );
+
+    bool IsInitialized( void ) const;
+
+    bool CollectStats( CStorageDeviceInformation& devicePerfStats );
+
+    void Clear( void );
+
+    CPdhDevicePerfStatAccessImpl( void );
+
+    ~CPdhDevicePerfStatAccessImpl();
+};
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      IMPLEMENTATION                                                     //
+//                                                                         //
+//-------------------------------------------------------------------------*/
 
 CWmiAccessImpl::CWmiAccessImpl( void ) 
     : m_comInitialized( false )
@@ -531,6 +631,508 @@ CWmiAccess::IsValid( void ) const
     if ( GUCEF_NULL != m_impl )
         return m_impl->IsValid();
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPdhDevicePerfStatAccessImpl::CPdhDevicePerfStatAccessImpl( void )
+    : m_counters()
+    , m_pdhApi( GUCEF_NULL )
+    , m_isInitialized( false )
+{GUCEF_TRACE;
+
+    m_counters.reserve( 6 ); 
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPdhDevicePerfStatAccessImpl::~CPdhDevicePerfStatAccessImpl()
+{GUCEF_TRACE;
+
+    Clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPdhDevicePerfStatAccessImpl::Clear( void )
+{GUCEF_TRACE;
+
+    // Clear the PDH counters
+    // This is important to avoid memory leaks and dangling pointers
+    if ( GUCEF_NULL != m_pdhApi )
+    {
+        TCounterInfoVector::iterator i = m_counters.begin();
+        while ( i != m_counters.end() )
+        {
+            CounterInfo& counter = (*i);
+            if ( GUCEF_NULL != counter.handle )
+            {
+                m_pdhApi->m_pdhCloseQuery( counter.handle );
+                counter.handle = GUCEF_NULL;
+            }
+
+            ++i;
+        }
+        
+        m_pdhApi = GUCEF_NULL;
+    }
+
+    m_isInitialized = false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPdhDevicePerfStatAccessImpl::IsInitialized( void ) const
+{GUCEF_TRACE;
+ 
+    return m_isInitialized;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPdhDevicePerfStatAccessImpl::InitForDeviceId( UInt32 deviceIndex     , 
+                                               CPdhAccessImpl* pdhApi )
+{GUCEF_TRACE;
+
+    Clear();
+
+    m_pdhApi = pdhApi;
+    CString deviceIndexStr = ToString( deviceIndex );
+    
+    // Initialize the PDH counters for the specified device ID
+    m_counters = {
+        { "\\PhysicalDisk(" + deviceIndexStr + ")\\Disk Read Bytes/sec",           NULL, 0 },
+        { "\\PhysicalDisk(" + deviceIndexStr + ")\\Disk Write Bytes/sec",          NULL, 0 },
+        { "\\PhysicalDisk(" + deviceIndexStr + ")\\Avg. Disk sec/Read",            NULL, 0 },
+        { "\\PhysicalDisk(" + deviceIndexStr + ")\\Avg. Disk sec/Write",           NULL, 0 },
+        { "\\PhysicalDisk(" + deviceIndexStr + ")\\Current Disk Queue Length",     NULL, 0 },
+        { "\\PhysicalDisk(" + deviceIndexStr + ")\\Split IO/Sec",                  NULL, 0 }
+    };
+
+    if ( GUCEF_NULL == pdhApi || !pdhApi->IsValid() )
+    {
+        return false;
+    }
+
+    for ( size_t i=0; i<m_counters.size(); ++i )
+    {
+        if ( pdhApi->m_pdhAddCounterA( pdhApi->m_realtimeQuery, 
+                                       m_counters[ i ].name.c_str(), 
+                                       0, 
+                                       &m_counters[ i ].handle ) != ERROR_SUCCESS )
+        {
+            Clear();
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CPdhDevicePerfStatAccessImpl::CollectStats( CStorageDeviceInformation& devicePerfStats )
+{GUCEF_TRACE;
+    
+    devicePerfStats.perfStats.Clear();
+    devicePerfStats.hasPerfStats = false;
+    
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == m_pdhApi || !m_pdhApi->IsValid() || m_counters.size() < 6 )
+        return false;
+
+    devicePerfStats.perfStats.hasBytesReadPerSec = true;
+    devicePerfStats.perfStats.bytesReadPerSec = static_cast< UInt64 >( m_counters[0].value );
+    devicePerfStats.perfStats.hasBytesWrittenPerSec = true;
+    devicePerfStats.perfStats.bytesWrittenPerSec = static_cast< UInt64 >( m_counters[1].value );
+    devicePerfStats.perfStats.hasAvgBytesReadPerSec = true;
+    devicePerfStats.perfStats.avgBytesReadPerSec = static_cast< UInt64 >( m_counters[2].value );
+    devicePerfStats.perfStats.hasAvgBytesWrittenPerSec = true;
+    devicePerfStats.perfStats.avgBytesWrittenPerSec = static_cast< UInt64 >( m_counters[3].value );
+    devicePerfStats.perfStats.hasRequestQueueDepth = true;
+    devicePerfStats.perfStats.requestQueueDepth = static_cast< UInt64 >( m_counters[4].value );
+    devicePerfStats.perfStats.hasRequestSplitCountPerSec = true;
+    devicePerfStats.perfStats.requestSplitCountPerSec = static_cast< UInt64 >( m_counters[5].value );
+
+    devicePerfStats.hasPerfStats = true;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPdhAccess::CPdhDevicePerfStatAccess::CPdhDevicePerfStatAccess( void )
+    : m_impl( GUCEF_NEW CPdhDevicePerfStatAccessImpl() )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPdhAccess::CPdhDevicePerfStatAccess::~CPdhDevicePerfStatAccess()
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_impl )
+    {
+        GUCEF_DELETE m_impl;
+        m_impl = GUCEF_NULL;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPdhAccessImpl::CPdhAccessImpl( void )
+    : m_pdhOpenQuery( GUCEF_NULL )
+    , m_pdhAddCounterA( GUCEF_NULL )
+    , m_pdhCollectQueryData( GUCEF_NULL )
+    , m_pdhGetFormattedCounterValue( GUCEF_NULL )
+    , m_pdhCloseQuery( GUCEF_NULL )
+    , m_pdhLibrary( GUCEF_NULL )
+    , m_realtimeQuery( GUCEF_NULL )
+    , m_lastCollectTimeInTicks( 0 )
+{GUCEF_TRACE;
+
+    TryLoadPDH();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPdhAccessImpl::~CPdhAccessImpl()
+{GUCEF_TRACE;
+
+    UnloadPDH();
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32 
+CPdhAccessImpl::TryLoadPDH( void )
+{GUCEF_TRACE;
+
+    try
+    {
+        if ( GUCEF_NULL == m_pdhLibrary )
+        {
+            m_pdhLibrary = ::LoadLibraryA( "pdh.dll" );
+            if ( GUCEF_NULL == m_pdhLibrary )
+            {
+                GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "Failed to load PDH library" );
+                return -2;
+            }
+        }
+
+        m_pdhOpenQuery = (PdhOpenQueryFunc) ::GetProcAddress( m_pdhLibrary, "PdhOpenQueryW" );
+        m_pdhAddCounterA = (PdhAddCounterAFunc) ::GetProcAddress( m_pdhLibrary, "PdhAddCounterA" );
+        m_pdhCollectQueryData = (PdhCollectQueryDataFunc) ::GetProcAddress( m_pdhLibrary, "PdhCollectQueryData" );
+        m_pdhGetFormattedCounterValue = (PdhGetFormattedCounterValueFunc) ::GetProcAddress( m_pdhLibrary, "PdhGetFormattedCounterValue" );
+        m_pdhCloseQuery = (PdhCloseQueryFunc) ::GetProcAddress( m_pdhLibrary, "PdhCloseQuery");
+
+        if ( GUCEF_NULL == m_pdhOpenQuery   || 
+             GUCEF_NULL == m_pdhAddCounterA || 
+             GUCEF_NULL == m_pdhCollectQueryData ||
+             GUCEF_NULL == m_pdhGetFormattedCounterValue || 
+             GUCEF_NULL == m_pdhCloseQuery )
+        {
+            ::FreeLibrary( m_pdhLibrary );
+            m_pdhLibrary = GUCEF_NULL;
+            return -3;
+        }
+
+        if ( m_pdhOpenQuery( GUCEF_NULL, 0, &m_realtimeQuery ) != ERROR_SUCCESS )
+        {
+            FreeLibrary( m_pdhLibrary );
+            m_pdhLibrary = GUCEF_NULL;
+            return -4;
+        }
+    }
+    catch ( const std::exception& )
+    {
+        return -1;
+    }
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPdhAccessImpl::IsValid( void ) const
+{GUCEF_TRACE;
+
+    // Check if the PDH library and functions are valid
+    return ( GUCEF_NULL != m_pdhLibrary &&
+             GUCEF_NULL != m_pdhOpenQuery &&
+             GUCEF_NULL != m_pdhAddCounterA &&
+             GUCEF_NULL != m_pdhCollectQueryData &&
+             GUCEF_NULL != m_pdhGetFormattedCounterValue &&
+             GUCEF_NULL != m_pdhCloseQuery );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32 
+CPdhAccessImpl::UnloadPDH( void )
+{GUCEF_TRACE;
+
+    try
+    {
+        if ( GUCEF_NULL != m_realtimeQuery )
+        {
+            m_pdhCloseQuery( m_realtimeQuery );
+            m_realtimeQuery = GUCEF_NULL;
+        }
+        if ( GUCEF_NULL != m_pdhLibrary )
+        {
+            ::FreeLibrary( m_pdhLibrary );
+            m_pdhLibrary = GUCEF_NULL;
+        }
+    }
+    catch ( const std::exception& )
+    {
+        return -1;
+    }
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CPdhAccessImpl::CollectStats( void )
+{GUCEF_TRACE;
+
+    UInt64 currentTimeInTicks = ::GetTickCount64();
+    if ( currentTimeInTicks - m_lastCollectTimeInTicks < 900 )
+    {
+        // We only want to collect data with a minimum interval of 900ms
+        // to avoid flooding the PDH API with requests and/or invalidating the calculations
+        return true;
+    }
+
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_pdhLibrary && 
+                           GUCEF_NULL != m_pdhCollectQueryData &&
+                           GUCEF_NULL != m_realtimeQuery )
+    {
+        // Collect the PDH data
+        PDH_STATUS status = m_pdhCollectQueryData( m_realtimeQuery );
+        if ( status != ERROR_SUCCESS )
+        {
+            if ( PDH_NO_DATA != status )
+            {
+                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Failed to collect PDH data: error code: " + ToString( status ) );
+                return false;
+            }
+            else
+            {
+                // No data available, but this is not an error
+                // We can continue to collect data and the situation may resolve itself
+                GUCEF_DEBUG_LOG_EVERYTHING( "PdhAccess: No data available" );
+            }
+        }
+        m_lastCollectTimeInTicks = currentTimeInTicks;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32 
+CPdhAccessImpl::GetPhysicalDevicePerfStats( CPdhAccess::CPdhDevicePerfStatAccess& devicePerfStatAcces ,
+                                            CStorageDeviceInformation& devicePerfStats                )
+{GUCEF_TRACE;
+
+    devicePerfStats.perfStats.Clear();
+    devicePerfStats.hasPerfStats = false;
+    
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == devicePerfStatAcces.m_impl )
+        return -100;
+    if GUCEF_PREDICT_FALSE( !devicePerfStats.hasDeviceIndex )
+        return -101;
+    
+    if GUCEF_PREDICT_FALSE( !devicePerfStatAcces.m_impl->IsInitialized() )
+    {
+        // Initialize the PDH counters for the specified device ID
+        if ( !devicePerfStatAcces.m_impl->InitForDeviceId( devicePerfStats.deviceIndex, this ) )
+        {
+            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Failed to initialize PDH device perf counters for device ID: " + devicePerfStats.deviceId );
+            return -102;
+        }
+    }
+
+    // Collect the PDH data
+    if ( CollectStats() )
+    {
+        if GUCEF_PREDICT_FALSE( !devicePerfStatAcces.m_impl->CollectStats( devicePerfStats ) )
+        {
+            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Failed to collect PDH data for device Id: " + devicePerfStats.deviceId );
+            return -104;
+        }
+    }
+    else
+    {
+        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Failed to collect PDH data " );
+        return -103;
+    }
+    
+    return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPdhAccess::CPdhAccess( void )
+    : m_impl( GUCEF_NEW CPdhAccessImpl() )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPdhAccess::~CPdhAccess()
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_impl )
+    {
+        GUCEF_DELETE m_impl;
+        m_impl = GUCEF_NULL;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool 
+CPdhAccess::IsValid( void ) const
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_impl )
+        return m_impl->IsValid();
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32 
+CPdhAccess::TryLoadPDH( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_impl )
+        return m_impl->TryLoadPDH();
+    return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CPdhAccess::UnloadPDH( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_impl )
+        return m_impl->UnloadPDH();
+    return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32 
+CPdhAccess::GetPhysicalDevicePerfStats( CPdhDevicePerfStatAccess& devicePerfStatAcces ,
+                                        CStorageDeviceInformation& devicePerfStats    )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_impl )
+        return m_impl->GetPhysicalDevicePerfStats( devicePerfStatAcces, devicePerfStats );
+    return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CWindowsComponentAccess::CWindowsComponentAccess( void )
+    : m_wmiAccess( GUCEF_NULL )
+    , m_pdhAccess( GUCEF_NULL )
+{GUCEF_TRACE;
+
+    // We do not want to intitialize the windows components here 
+    // utilize a lazy-load approach instead to only use what we need
+}
+
+/*-------------------------------------------------------------------------*/
+
+CWindowsComponentAccess::~CWindowsComponentAccess()
+{GUCEF_TRACE;
+
+    MT::CScopeMutex scopeLock( g_instanceLock );
+    
+    if ( GUCEF_NULL != m_wmiAccess )
+    {
+        delete m_wmiAccess;
+        m_wmiAccess = GUCEF_NULL;
+    }
+    if ( GUCEF_NULL != m_pdhAccess )
+    {
+        delete m_pdhAccess;
+        m_pdhAccess = GUCEF_NULL;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CWindowsComponentAccess* 
+CWindowsComponentAccess::Instance( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == g_instance )
+    {
+        MT::CScopeMutex scopeLock( g_instanceLock );
+        if ( GUCEF_NULL == g_instance )
+        {
+            g_instance = GUCEF_NEW CWindowsComponentAccess();
+        }
+    }
+    return g_instance;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void 
+CWindowsComponentAccess::Deinstance( void )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex scopeLock( g_instanceLock );
+    if ( GUCEF_NULL != g_instance )
+    {
+        GUCEF_DELETE g_instance;
+        g_instance = GUCEF_NULL;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CWmiAccess* 
+CWindowsComponentAccess::GetWmiAccess( void )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex scopeLock( g_instanceLock );
+    
+    if ( GUCEF_NULL != m_wmiAccess )
+        return m_wmiAccess;
+    
+    // Lazy-load dependency only if needed
+    m_wmiAccess = GUCEF_NEW CWmiAccess();
+    return m_wmiAccess;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPdhAccess* 
+CWindowsComponentAccess::GetPdhAccess( void )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex scopeLock( g_instanceLock );
+    
+    if ( GUCEF_NULL != m_pdhAccess )
+        return m_pdhAccess;
+    
+    // Lazy-load dependency only if needed
+    m_pdhAccess = GUCEF_NEW CPdhAccess();
+    return m_pdhAccess;
 }
 
 /*-------------------------------------------------------------------------//

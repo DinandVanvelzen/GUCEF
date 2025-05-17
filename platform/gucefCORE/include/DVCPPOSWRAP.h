@@ -120,6 +120,16 @@ IsRunningAsService( void );
 
 /*--------------------------------------------------------------------------*/
 
+/**
+ *  Attempts to determine if the software is running as with administrative privileges
+ *  Even if the user is a member of the administrators group, the software may not be running with
+ *  elevated privileges. This is the case when UAC is enabled on Windows Vista and later for example.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+IsRunningAsElevatedAdmin( void );
+
+/*--------------------------------------------------------------------------*/
+
 GUCEF_CORE_PUBLIC_CPP bool
 CommandLineExecute( const CString& command, CString& result, bool waitForExit );
 

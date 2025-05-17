@@ -581,9 +581,14 @@ ProcessMetrics::ProcessMetrics( void )
     , m_gatherGlobalStorageVolumeAvailablePercentage( true )
     , m_gatherGlobalStorageDeviceStats( true )
     , m_gatherGlobalStorageDeviceBytesWritten( true )
+    , m_gatherGlobalStorageDeviceBytesWrittenPerSec( true )
+    , m_gatherGlobalStorageDeviceAvgBytesWrittenPerSec( true )
     , m_gatherGlobalStorageDeviceBytesRead( true )
+    , m_gatherGlobalStorageDeviceBytesReadPerSec( true )
+    , m_gatherGlobalStorageDeviceAvgBytesReadPerSec( true )
     , m_gatherGlobalStorageDeviceRequestsQueued( true )
     , m_gatherGlobalStorageDeviceRequestsSplit( true )
+    , m_gatherGlobalStorageDeviceRequestsSplitPerSec( true )
     , m_gatherGlobalStorageDeviceReadTimeInMs( true )
     , m_gatherGlobalStorageDeviceWriteTimeInMs( true )
     , m_gatherGlobalStorageDeviceIdleTimeInMs( true )
@@ -1697,11 +1702,35 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
                             GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesWritten, 1.0f );
                             ValidateMetricThresholds( CORE::CVariant( perfStats.bytesWritten ), storageMetricName, CORE::CString::Empty );
                         }
+                        if ( m_gatherGlobalStorageDeviceBytesWrittenPerSec && perfStats.hasBytesWrittenPerSec )
+                        {
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".BytesWrittenPerSec";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesWrittenPerSec, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.bytesWrittenPerSec ), storageMetricName, CORE::CString::Empty );
+                        }
+                        if ( m_gatherGlobalStorageDeviceAvgBytesWrittenPerSec && perfStats.hasAvgBytesWrittenPerSec )
+                        {
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".AvgBytesWrittenPerSec";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.avgBytesWrittenPerSec, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.avgBytesWrittenPerSec ), storageMetricName, CORE::CString::Empty );
+                        }
                         if ( m_gatherGlobalStorageDeviceBytesRead && perfStats.hasBytesRead )
                         {
                             CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".BytesRead";
                             GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesRead, 1.0f );
                             ValidateMetricThresholds( CORE::CVariant( perfStats.bytesRead ), storageMetricName, CORE::CString::Empty );
+                        }
+                        if ( m_gatherGlobalStorageDeviceBytesReadPerSec && perfStats.hasBytesReadPerSec )
+                        {
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".BytesReadPerSec";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesReadPerSec, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.bytesReadPerSec ), storageMetricName, CORE::CString::Empty );
+                        }
+                        if ( m_gatherGlobalStorageDeviceAvgBytesReadPerSec && perfStats.hasAvgBytesReadPerSec )
+                        {
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".AvgBytesReadPerSec";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.avgBytesReadPerSec, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.avgBytesReadPerSec ), storageMetricName, CORE::CString::Empty );
                         }
                         if ( m_gatherGlobalStorageDeviceRequestsQueued && perfStats.hasRequestQueueDepth )
                         {
@@ -1714,6 +1743,12 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
                             CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".RequestSplitCount";
                             GUCEF_METRIC_GAUGE( storageMetricName, perfStats.requestSplitCount, 1.0f );
                             ValidateMetricThresholds( CORE::CVariant( perfStats.requestSplitCount ), storageMetricName, CORE::CString::Empty );
+                        }
+                        if ( m_gatherGlobalStorageDeviceRequestsSplitPerSec && perfStats.hasRequestSplitCountPerSec )
+                        {
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".RequestSplitCountPerSec";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.requestSplitCountPerSec, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.requestSplitCountPerSec ), storageMetricName, CORE::CString::Empty );
                         }
                         if ( m_gatherGlobalStorageDeviceReadTimeInMs && perfStats.hasReadTimeInMs )
                         {
@@ -1901,9 +1936,14 @@ ProcessMetrics::LoadConfig( const CORE::CValueList& appConfig   ,
 
     m_gatherGlobalStorageDeviceStats = appConfig.GetValueAlways( "gatherGlobalStorageDeviceStats", m_gatherGlobalStorageDeviceStats ).AsBool( m_gatherGlobalStorageDeviceStats, true );
     m_gatherGlobalStorageDeviceBytesWritten = appConfig.GetValueAlways( "gatherGlobalStorageDeviceBytesWritten", m_gatherGlobalStorageDeviceBytesWritten ).AsBool( m_gatherGlobalStorageDeviceBytesWritten, true );
+    m_gatherGlobalStorageDeviceBytesWrittenPerSec = appConfig.GetValueAlways( "gatherGlobalStorageDeviceBytesWrittenPerSec", m_gatherGlobalStorageDeviceBytesWrittenPerSec ).AsBool( m_gatherGlobalStorageDeviceBytesWrittenPerSec, true );
+    m_gatherGlobalStorageDeviceAvgBytesWrittenPerSec = appConfig.GetValueAlways( "gatherGlobalStorageDeviceAvgBytesWrittenPerSec", m_gatherGlobalStorageDeviceAvgBytesWrittenPerSec ).AsBool( m_gatherGlobalStorageDeviceAvgBytesWrittenPerSec, true );
     m_gatherGlobalStorageDeviceBytesRead = appConfig.GetValueAlways( "gatherGlobalStorageDeviceBytesRead", m_gatherGlobalStorageDeviceBytesRead ).AsBool( m_gatherGlobalStorageDeviceBytesRead, true );
+    m_gatherGlobalStorageDeviceBytesReadPerSec = appConfig.GetValueAlways( "gatherGlobalStorageDeviceBytesReadPerSec", m_gatherGlobalStorageDeviceBytesReadPerSec ).AsBool( m_gatherGlobalStorageDeviceBytesReadPerSec, true );
+    m_gatherGlobalStorageDeviceAvgBytesReadPerSec = appConfig.GetValueAlways( "gatherGlobalStorageDeviceAvgBytesReadPerSec", m_gatherGlobalStorageDeviceAvgBytesReadPerSec ).AsBool( m_gatherGlobalStorageDeviceAvgBytesReadPerSec, true );
     m_gatherGlobalStorageDeviceRequestsQueued = appConfig.GetValueAlways( "gatherGlobalStorageDeviceRequestsQueued", m_gatherGlobalStorageDeviceRequestsQueued ).AsBool( m_gatherGlobalStorageDeviceRequestsQueued, true );
     m_gatherGlobalStorageDeviceRequestsSplit = appConfig.GetValueAlways( "gatherGlobalStorageDeviceRequestsSplit", m_gatherGlobalStorageDeviceRequestsSplit ).AsBool( m_gatherGlobalStorageDeviceRequestsSplit, true );
+    m_gatherGlobalStorageDeviceRequestsSplitPerSec = appConfig.GetValueAlways( "gatherGlobalStorageDeviceRequestsSplitPerSec", m_gatherGlobalStorageDeviceRequestsSplitPerSec ).AsBool( m_gatherGlobalStorageDeviceRequestsSplitPerSec, true );
     m_gatherGlobalStorageDeviceReadTimeInMs = appConfig.GetValueAlways( "gatherGlobalStorageDeviceReadTimeInMs", m_gatherGlobalStorageDeviceReadTimeInMs ).AsBool( m_gatherGlobalStorageDeviceReadTimeInMs, true );
     m_gatherGlobalStorageDeviceWriteTimeInMs = appConfig.GetValueAlways( "gatherGlobalStorageDeviceWriteTimeInMs", m_gatherGlobalStorageDeviceWriteTimeInMs ).AsBool( m_gatherGlobalStorageDeviceWriteTimeInMs, true );
     m_gatherGlobalStorageDeviceIdleTimeInMs = appConfig.GetValueAlways( "gatherGlobalStorageDeviceIdleTimeInMs", m_gatherGlobalStorageDeviceIdleTimeInMs ).AsBool( m_gatherGlobalStorageDeviceIdleTimeInMs, true );

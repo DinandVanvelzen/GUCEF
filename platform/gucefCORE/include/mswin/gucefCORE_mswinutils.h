@@ -33,11 +33,6 @@
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
-#ifndef GUCEF_CORE_CTBASICSHAREDPTR_H
-#include "CTBasicSharedPtr.h"
-#define GUCEF_CORE_CTBASICSHAREDPTR_H
-#endif /* GUCEF_CORE_CTBASICSHAREDPTR_H ? */
-
 #ifndef GUCEF_MT_MSWINUTILS_H
 #include "gucefMT_mswinutils.h"
 #define GUCEF_MT_MSWINUTILS_H

@@ -56,6 +56,11 @@
 #define GUCEF_CORE_DVFILEUTILS_H
 #endif /* GUCEF_CORE_DVFILEUTILS_H ? */
 
+#ifndef GUCEF_CORE_DVCPPOSWRAP_H
+#include "DVCPPOSWRAP.h"
+#define GUCEF_CORE_DVCPPOSWRAP_H
+#endif /* GUCEF_CORE_DVCPPOSWRAP_H ? */
+
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
   #ifndef GUCEF_CORE_MSWINUTILS_H
@@ -1557,7 +1562,7 @@ GetKernelLevelSymlinkForPath( const CString& path ,
 /*-------------------------------------------------------------------------*/
 
 bool GUCEF_HIDDEN
-Win32GetDiskGeometry( CStorageDeviceInformation& info ) 
+Win32GetDiskGeometryFromDriver( CStorageDeviceInformation& info ) 
 {GUCEF_TRACE;
 
     if ( info.deviceId.IsNULLOrEmpty() )
@@ -1613,8 +1618,20 @@ Win32GetDiskGeometry( CStorageDeviceInformation& info )
 
 /*-------------------------------------------------------------------------*/
 
+bool GUCEF_HIDDEN
+Win32GetDiskGeometry( CStorageDeviceInformation& info ) 
+{GUCEF_TRACE;
+
+    if ( IsRunningAsElevatedAdmin() )
+        return Win32GetDiskGeometryFromDriver( info );
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool 
-Win32GetDiskPerfStats( CStorageDeviceInformation& info ) 
+Win32GetDiskPerfStatsFromDriver( CStorageDeviceInformation& info ) 
 {GUCEF_TRACE;
 
     if ( info.deviceId.IsNULLOrEmpty() )
@@ -1670,6 +1687,34 @@ Win32GetDiskPerfStats( CStorageDeviceInformation& info )
     return 0 != success;
 }
 
+/*-------------------------------------------------------------------------*/
+
+bool 
+Win32GetDiskPerfStats( CStorageDeviceInformation& info ) 
+{GUCEF_TRACE;
+
+    if ( IsRunningAsElevatedAdmin() )
+    {
+        // Running as an elevated admin user providers the highest performance and most accurate data
+        // It negates the need to use any fallbacks
+        return Win32GetDiskPerfStatsFromDriver( info ); 
+    }
+    else
+    {
+        // Fall back to PDH API
+        // This is not as accurate but does not require admin rights
+        CWindowsComponentAccess* winComponentAccess = CWindowsComponentAccess::Instance();
+        CPdhAccess* pdhApi = winComponentAccess->GetPdhAccess();
+        if ( GUCEF_NULL != pdhApi && pdhApi->IsValid() )
+        {
+            CPdhAccess::CPdhDevicePerfStatAccess devicePerfStatAcces; // @TODO: <- cache this
+            Int32 errorCode = pdhApi->GetPhysicalDevicePerfStats( devicePerfStatAcces, info );
+            return 0 == errorCode;
+        }
+    }
+    return false;
+}
+
 #endif
 
 /*-------------------------------------------------------------------------*/
@@ -1686,10 +1731,11 @@ GetPhysicalDeviceIdsForVolumeId( const CString& guid                    ,
     // On Windows we can use WMI to get the device IDs
     // Do note that even WMI has a higher probability of not requiring admin rights its not garantueed
     // part of the success will depend on the user account control settings
-    CWmiAccess wmiApi;
-    if ( wmiApi.IsValid() )
+    CWindowsComponentAccess* winComponentAccess = CWindowsComponentAccess::Instance();
+    CWmiAccess* wmiApi = winComponentAccess->GetWmiAccess();
+    if ( GUCEF_NULL != wmiApi && wmiApi->IsValid() )
     {
-        Int32 errorCode = wmiApi.GetPhysicalDeviceIdsFromWMI( guid, partitionId2physicalDiskId );
+        Int32 errorCode = wmiApi->GetPhysicalDeviceIdsFromWMI( guid, partitionId2physicalDiskId );
         return 0 == errorCode;
     }
     return false;
@@ -1706,8 +1752,16 @@ GetPhysicalDeviceIdsForVolumeId( const CString& guid                    ,
 CStorageDevicePerfStats::CStorageDevicePerfStats( void )
     : hasBytesRead( false )
     , bytesRead( 0 )
+    , hasBytesReadPerSec( false )
+    , bytesReadPerSec( 0 )
+    , hasAvgBytesReadPerSec( false )
+    , avgBytesReadPerSec( 0 )
     , hasBytesWritten( false )
     , bytesWritten( 0 )
+    , hasBytesWrittenPerSec( false )
+    , bytesWrittenPerSec( 0 )
+    , hasAvgBytesWrittenPerSec( false )
+    , avgBytesWrittenPerSec( 0 )
     , hasReadTimeInMs( false )
     , readTimeInMs( 0 )
     , hasWriteTimeInMs( false )
@@ -1718,6 +1772,8 @@ CStorageDevicePerfStats::CStorageDevicePerfStats( void )
     , requestQueueDepth( 0 )
     , hasRequestSplitCount( false )
     , requestSplitCount( 0 )
+    , hasRequestSplitCountPerSec( false )
+    , requestSplitCountPerSec( 0 )
 {GUCEF_TRACE;
 
 }
@@ -1730,6 +1786,14 @@ CStorageDevicePerfStats::Clear( void )
 
     hasBytesRead = false;
     bytesRead = 0;
+    hasBytesReadPerSec = false;
+    bytesReadPerSec = 0;
+    hasAvgBytesReadPerSec = false;
+    avgBytesReadPerSec = 0;
+    hasBytesWrittenPerSec = false;
+    bytesWrittenPerSec = 0;
+    hasAvgBytesWrittenPerSec = false;
+    avgBytesWrittenPerSec = 0;
     hasBytesWritten = false;
     bytesWritten = 0;
     hasReadTimeInMs = false;
@@ -1742,6 +1806,8 @@ CStorageDevicePerfStats::Clear( void )
     requestQueueDepth = 0;
     hasRequestSplitCount = false;
     requestSplitCount = 0;
+    hasRequestSplitCountPerSec = false;
+    requestSplitCountPerSec = 0;    
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1784,6 +1850,8 @@ CStorageDeviceGeometry::Clear( void )
 CStorageDeviceInformation::CStorageDeviceInformation( void )
     : hasDeviceId( false )
     , deviceId( 0 )
+    , hasDeviceIndex( false )
+    , deviceIndex( 0 )
     , hasGeometry( false )
     , geometry()
     , hasPerfStats( false )
@@ -1800,6 +1868,8 @@ CStorageDeviceInformation::Clear( void )
 
     hasDeviceId = false;
     deviceId.Clear();
+    hasDeviceIndex = false;
+    deviceIndex = 0;
     hasGeometry = false;
     geometry.Clear();
     hasPerfStats = false;
@@ -1813,12 +1883,40 @@ GetStorageDeviceInformationByDeviceId( CStorageDeviceInformation& info ,
                                        const CString& deviceId         )
 {GUCEF_TRACE;
 
+    if GUCEF_PREDICT_FALSE( deviceId.IsNULLOrEmpty() )
+        return false;
+    
     bool totalSuccess = true;
     
-    info.deviceId = deviceId;
-    info.hasDeviceId = true;
+    if ( !info.hasDeviceId || info.deviceId.IsNULLOrEmpty() )
+    {
+        info.deviceId = deviceId;
+        info.hasDeviceId = true;
+    }
+    else
+    {
+        // We already have the device id
+        if ( info.deviceId != deviceId )
+            return false; // we cannot mix device ids
+    }
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    // On Windows the device index is simply the appended number in the device id
+    if ( !info.hasDeviceIndex )
+    {
+        Int32 offset = deviceId.HasSubstr( "PHYSICALDRIVE" );
+        if ( offset > 0 )
+        {
+            CString deviceIndexStr = deviceId.CutChars( offset + 13 );
+            Int32 deviceIndex = StringToInt32( deviceIndexStr, -1 );
+            if ( deviceIndex >= 0 )
+            {
+                info.hasDeviceIndex = true;
+                info.deviceIndex = static_cast< UInt32 >( deviceIndex );
+            }
+        }
+    }
 
     totalSuccess = Win32GetDiskGeometry( info ) && totalSuccess;
     totalSuccess = Win32GetDiskPerfStats( info ) && totalSuccess;

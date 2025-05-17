@@ -190,6 +190,11 @@
   #define GUCEF_CORE_CWNDMSGHOOKNOTIFIER_H
   #endif /* GUCEF_CORE_CWNDMSGHOOKNOTIFIER_H ? */
 
+  #ifndef GUCEF_CORE_CPPMSWINUTILS_H
+  #include "gucefCORE_cppmswinutils.h"
+  #define GUCEF_CORE_CPPMSWINUTILS_H
+  #endif /* GUCEF_CORE_CPPMSWINUTILS_H ? */
+
 #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ? */
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
@@ -311,6 +316,13 @@ CCoreGlobal::Initialize( void )
     m_notificationIdRegistry = GUCEF_NEW CNotificationIDRegistry();
     m_pulseGenerator = CTSharedObjCreator< CPulseGenerator, MT::CMutex >::CreateSharedObj();
 
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    
+    // Windows components access has no other dependencies, so we can create it right away
+    CWindowsComponentAccess::Instance(); 
+    
+    #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ? */
+
     /*
      *  Make sure all events are registered from the start
      */
@@ -336,7 +348,7 @@ CCoreGlobal::Initialize( void )
     
     CWndMsgHookNotifier::RegisterEvents();
     
-    #endif /* GUCEF_PLATFORM == ? */
+    #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ? */
 
     /*
      *  Next the Config Store because everything that used the global config will need it including perhaps
@@ -467,6 +479,11 @@ CCoreGlobal::~CCoreGlobal()
     GUCEF_DELETE m_functionRegistry;
     m_functionRegistry = GUCEF_NULL;
 
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    
+    CWindowsComponentAccess::Deinstance();
+    
+    #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ? */
 }
 
 /*-------------------------------------------------------------------------*/

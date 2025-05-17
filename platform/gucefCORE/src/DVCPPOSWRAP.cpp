@@ -577,7 +577,54 @@ IsRunningAsService( void )
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
     return IsProcessRunningAsService( ::getpid() );
     #else
-    GUCEF_WARNING_LOG(LOGLEVEL_NORMAL, "IsRunningAsService: Platform has no supported implementation");
+    GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "IsRunningAsService: Platform has no supported implementation");
+    return false;
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+IsRunningAsElevatedAdmin( void )
+{GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    static UInt8 g_isElevatedAdmin = 0; // tri-state: 0 = unknown, 1 = yes, 2 = no
+
+    // Only check once
+    // race condition is not a big deal, just slightly slower
+    if ( 0 == g_isElevatedAdmin )
+    {
+        HANDLE hToken = GUCEF_NULL;
+        BOOL openTokenSuccess = ::OpenProcessToken( ::GetCurrentProcess(), TOKEN_QUERY, &hToken );
+        if ( 0 != openTokenSuccess ) 
+        {
+            TOKEN_ELEVATION elevation;
+            DWORD dwSize = 0;
+            BOOL bResult = ::GetTokenInformation( hToken, TokenElevation, &elevation, sizeof(elevation), &dwSize );
+            if ( 0 != bResult ) 
+            {                
+                if ( elevation.TokenIsElevated != 0 )
+                {
+                    g_isElevatedAdmin = 1; // Running as elevated admin
+                }
+                else
+                {
+                    g_isElevatedAdmin = 2; // Not running as elevated admin
+                }
+            }
+            CloseHandle( hToken );
+        }
+    }
+
+    return 1 == g_isElevatedAdmin;
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "IsRunningAsElevatedAdmin: TODO" );
+    return false;
+    #else
+    GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "IsRunningAsElevatedAdmin: Platform has no supported implementation" );
     return false;
     #endif
 }

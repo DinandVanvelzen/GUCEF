@@ -356,9 +356,14 @@ class ProcessMetrics : public CORE::CObservingNotifier
 
     bool m_gatherGlobalStorageDeviceStats;
     bool m_gatherGlobalStorageDeviceBytesWritten;
+    bool m_gatherGlobalStorageDeviceBytesWrittenPerSec;
+    bool m_gatherGlobalStorageDeviceAvgBytesWrittenPerSec;
     bool m_gatherGlobalStorageDeviceBytesRead;
+    bool m_gatherGlobalStorageDeviceBytesReadPerSec;
+    bool m_gatherGlobalStorageDeviceAvgBytesReadPerSec;
     bool m_gatherGlobalStorageDeviceRequestsQueued;
     bool m_gatherGlobalStorageDeviceRequestsSplit;
+    bool m_gatherGlobalStorageDeviceRequestsSplitPerSec;
     bool m_gatherGlobalStorageDeviceReadTimeInMs;
     bool m_gatherGlobalStorageDeviceWriteTimeInMs;
     bool m_gatherGlobalStorageDeviceIdleTimeInMs;
