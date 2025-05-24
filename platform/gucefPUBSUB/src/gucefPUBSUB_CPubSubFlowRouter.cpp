@@ -1758,7 +1758,7 @@ CPubSubFlowRouter::PublishMsgs( CPubSubClientSide* fromSide                     
                     publishIstotalSuccess = false;
                 }
             }
-            catch ( const timeout_exception& e )
+            catch ( const timeout_exception& )
             {
                 CORE::CString sideId;
                 if ( GUCEF_NULL != targetSide )

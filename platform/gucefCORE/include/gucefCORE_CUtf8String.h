@@ -152,6 +152,11 @@ class GUCEF_CORE_PUBLIC_CPP CUtf8String
                  UInt32 lengthInWCodePoints     ,
                  bool reexamineByteSize = false );
 
+    CUtf8String( const wchar_t* src             ,
+                 UInt32 byteSize                ,
+                 UInt32 lengthInCodePoints      ,
+                 bool reexamineByteSize = false );
+
     explicit CUtf8String( const char src );
 
     explicit CUtf8String( const Int32 NULLvalueOrUtf32 );
@@ -347,6 +352,17 @@ class GUCEF_CORE_PUBLIC_CPP CUtf8String
      *  The wchar_t encoding will be converted to UTF8
      */
     void Set( const wchar_t* new_str         ,
+              UInt32 lengthInWCodePoints     ,
+              bool reexamineByteSize = false );
+
+    /**
+     *  This member functions allows you to set the string using a potentially
+     *  non-null-terminated char array as the source. The source will
+     *  be copied and a null terminator will be added if needed
+     *  The wchar_t encoding will be converted to UTF8
+     */
+    void Set( const wchar_t* new_str         ,
+              UInt32 byteSize                ,
               UInt32 lengthInWCodePoints     ,
               bool reexamineByteSize = false );
 

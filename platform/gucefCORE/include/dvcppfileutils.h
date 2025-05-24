@@ -36,6 +36,11 @@
 
 #include  <time.h>
 
+#ifndef GUCEF_MT_CMUTEX_H
+#include "gucefMT_CMutex.h"
+#define GUCEF_MT_CMUTEX_H
+#endif /* GUCEF_MT_CMUTEX_H ? */
+
 #ifndef GUCEF_CORE_MACROS_H
 #include "gucefCORE_macros.h"     /* often used gucef macros */
 #define GUCEF_CORE_MACROS_H
@@ -55,6 +60,11 @@
 #include "gucefCORE_CResourceMetaData.h"
 #define GUCEF_CORE_CRESOURCEMETADATA_H
 #endif /* GUCEF_CORE_CRESOURCEMETADATA_H ? */
+
+#ifndef GUCEF_CORE_CTSHAREDPTR_H
+#include "CTSharedPtr.h"
+#define GUCEF_CORE_CTSHAREDPTR_H
+#endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
 #undef MoveFile
 #undef CopyFile
@@ -159,6 +169,73 @@ PathExists( const CString& path );
 
 /*-------------------------------------------------------------------------*/
 
+class CStorageVolumeInfoOSDataImpl;
+
+/**
+ *  Class that holds the O/S specific data needed to repeatedly access the storage volume
+ *  Intended to be kept thread-private 
+ */
+class GUCEF_CORE_PUBLIC_CPP CStorageVolumeInfoOSData
+{
+    public:
+    
+    CStorageVolumeInfoOSData( void );
+    ~CStorageVolumeInfoOSData();
+
+    CStorageVolumeInfoOSDataImpl* GetOsData( void ) const;
+
+    void SetVolumeId( const CString& volumeId );
+    void SetAnyPathForVolume( const CString& anyPathForVolume );
+
+    const CString& GetVolumeId( void ) const;
+    const CString& GetAnyPathForVolume( void ) const;
+
+    private:
+    CStorageVolumeInfoOSData( const CStorageVolumeInfoOSData& src );             /**< do not copy */
+    CStorageVolumeInfoOSData& operator=( const CStorageVolumeInfoOSData& src );  /**< do not assign */
+    
+    private:
+
+    class CStorageVolumeInfoOSDataImpl* m_impl;
+    CString m_volumeId;         /**< the volume id of the volume this object is for */
+    CString m_anyPathForVolume; /**< a path that is guaranteed to be backed by the volume */
+};
+
+typedef CTSharedPtr< CStorageVolumeInfoOSData, MT::CMutex > CStorageVolumeInfoOSDataPtr;
+
+/*-------------------------------------------------------------------------*/
+
+class CStorageDeviceInfoOSDataImpl;
+
+/**
+ *  Class that holds the O/S specific data needed to repeatedly access the storage device
+ *  Intended to be kept thread-private 
+ */
+class GUCEF_CORE_PUBLIC_CPP CStorageDeviceInfoOSData
+{
+    public:
+    CStorageDeviceInfoOSData( const CString& deviceId );
+    ~CStorageDeviceInfoOSData();
+
+    CStorageDeviceInfoOSDataImpl* GetOsData( void ) const;
+
+    const CString& GetDeviceId( void ) const;
+
+    private:
+    CStorageDeviceInfoOSData( void );                                            /**< do not use */
+    CStorageDeviceInfoOSData( const CStorageDeviceInfoOSData& src );             /**< do not copy */
+    CStorageDeviceInfoOSData& operator=( const CStorageDeviceInfoOSData& src );  /**< do not assign */
+    
+    private:
+
+    class CStorageDeviceInfoOSDataImpl* m_impl;
+    CString m_deviceId;
+};
+
+typedef CTSharedPtr< CStorageDeviceInfoOSData, MT::CMutex > CStorageDeviceInfoOSDataPtr;
+
+/*-------------------------------------------------------------------------*/
+
 class GUCEF_CORE_PUBLIC_CPP CStorageDeviceGeometry
 {
     public:
@@ -180,7 +257,7 @@ class GUCEF_CORE_PUBLIC_CPP CStorageDeviceGeometry
 
 /*-------------------------------------------------------------------------*/
 
-class GUCEF_CORE_PUBLIC_CPP CStorageDevicePerfStats
+class GUCEF_CORE_PUBLIC_CPP CStoragePerfStats
 {
     public:
 
@@ -209,7 +286,7 @@ class GUCEF_CORE_PUBLIC_CPP CStorageDevicePerfStats
     bool hasRequestSplitCountPerSec;
     UInt64 requestSplitCountPerSec;
 
-    CStorageDevicePerfStats( void );
+    CStoragePerfStats( void );
     void Clear( void );
 };
 
@@ -227,11 +304,13 @@ class GUCEF_CORE_PUBLIC_CPP CStorageDeviceInformation
     bool hasGeometry;
     CStorageDeviceGeometry geometry;
     bool hasPerfStats;
-    CStorageDevicePerfStats perfStats;
+    CStoragePerfStats perfStats;
 
     CStorageDeviceInformation( void );
     void Clear( void );
 };
+
+typedef CTSharedPtr< CStorageDeviceInformation, MT::CMutex > CStorageDeviceInformationPtr;
 
 /*-------------------------------------------------------------------------*/
 
@@ -240,7 +319,8 @@ class GUCEF_CORE_PUBLIC_CPP CStorageDeviceInformation
  *  You can obain the device id via the volume information since a volume maps to one or more devices
  */
 GUCEF_CORE_PUBLIC_CPP bool
-GetStorageDeviceInformationByDeviceId( CStorageDeviceInformation& info, const CString& deviceId );
+GetStorageDeviceInformationByDeviceId( CStorageDeviceInfoOSData& osData ,
+                                       CStorageDeviceInformation& info  );
 
 /*-------------------------------------------------------------------------*/
 
@@ -257,30 +337,64 @@ class GUCEF_CORE_PUBLIC_CPP CStorageVolumeInformation
     UInt64 totalNumberOfBytes;
     bool hasTotalNumberOfFreeBytes;
     UInt64 totalNumberOfFreeBytes;
+
     bool hasIsReadOnly;
     bool isReadOnly;
     bool hasVolumeName;
     CString volumeName;
-    bool hasPhysicalDeviceId;
-    CString physicalDeviceId;
     bool hasPaths;
     CStringSet paths;
     bool hasPartitionId2deviceIdMapping;
-    CStringMap partitionId2deviceId;
+    CStringMap partitionId2deviceId;     /**< if available maps 1-N partition ids to device ids */
+
+    bool hasPerfStats;
+    CStoragePerfStats perfStats;
 
     CStorageVolumeInformation( void );
     void Clear( void );
 };
 
-/*-------------------------------------------------------------------------*/
-
-GUCEF_CORE_PUBLIC_CPP bool
-GetFileSystemStorageVolumeInformationByDirPath( CStorageVolumeInformation& info, const CString& path );
+typedef CTSharedPtr< CStorageVolumeInformation, MT::CMutex > CStorageVolumeInformationPtr;
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Obtains the aggregate volume information for the entire system
+ *  Note that this function is optimized to be called repeatedly for the same operation via volumeInfoOSData
+ */
 GUCEF_CORE_PUBLIC_CPP bool
-GetFileSystemStorageVolumeInformationByVolumeId( CStorageVolumeInformation& info, const CString& volumeId );
+GetFileSystemTotalStorageVolumeInformation( CStorageVolumeInfoOSData& volumeInfoOSData , 
+                                            CStorageVolumeInformation& info            );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Obtains the volume information for the given volume id
+ *  Note that this function is optimized to be called repeatedly for the same volume via volumeInfoOSData
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+GetFileSystemStorageVolumeInformation( CStorageVolumeInfoOSData& volumeInfoOSData , 
+                                       CStorageVolumeInformation& info            );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Convenience function to obtain the volume information for a given volume id
+ *  Use GetFileSystemStorageVolumeInformation() for repeated usage
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+GetFileSystemStorageVolumeInformationByVolumeId( CStorageVolumeInformation& info , 
+                                                 const CString& volumeId         );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Convenience function to obtain the volume information for a given path
+ *  Use GetFileSystemStorageVolumeInformation() for repeated usage
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+GetFileSystemStorageVolumeInformationByDirPath( CStorageVolumeInformation& info , 
+                                                const CString& path             );
 
 /*-------------------------------------------------------------------------*/
 

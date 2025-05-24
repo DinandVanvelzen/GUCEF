@@ -313,12 +313,33 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
                    const bool appendToLogicalData = true );
 
     /**
-     *  Attempts to find a matching block of bytes if any from the given offset and returns the offset
+     *  Attempts to find a matching block of bytes (if any) from the given offset and returns the offset
      *  at which the block was found. If no matching block is found -1 is returned.
+     * 
+     *  Note that this checks for any sequence of bytes in the buffer matching the given sequence on a per byte basis.
+     *  If you want to find a specific 'element' where you have a defined minimum byte size per element you should use
+     *  FindPerElement() instead. Example case would be if you are dealing with fixed with code points such as utf32 in which
+     *  case you'd want to shift the offset by 4 bytes for each code point, not search for any 4 byte sequence.
      */
     Int32 Find( const void* data   ,
                 const UInt32 size  ,
                 UInt32 offset = 0  ) const;
+
+    /**
+     *  Attempts to find a matching block of bytes (if any) from the given offset and returns the offset
+     *  at which the block was found. If no matching block is found -1 is returned.
+     * 
+     *  Note that this checks for any block of data which is a multiple of 'elementSize' nr of bytes in the buffer 
+     *  which matches the given sequence on a per byte basis.
+     *  If you don't have a specific 'element' where you have a defined minimum byte size per element you should use
+     *  Find() instead.
+     *  Pay attention that the search data is given in element size not in bytes 
+     *          thus bytesize of searchData is (elementSize * searchDataSizeInElements)   
+     */
+    Int32 FindPerElement( const void* searchData                ,
+                          const UInt32 searchDataSizeInElements ,
+                          const UInt32 elementSize              ,
+                          UInt32 offsetInBytes = 0              ) const;
 
     /**
      * @brief Helper to parse strings from a buffer
@@ -339,15 +360,37 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
                                                           bool addEmptyElements = true ) const;
 
     /**
+     * @brief Helper to parse wchar_t strings from a buffer and converts them to the native string format
+     * @param seperatorCodePoint code point value of the seperator
+     * @param addEmptyElements whether to consider empty strings as elements
+     * @return the vector of parsed strings
+     */
+    void ParseWStringElements( UInt32 seperatorCodePoint    ,
+                               CStringVector& elements      ,
+                               bool addEmptyElements = true ) const;
+
+    /**
+     * @brief Helper to parse wchar_t strings from a buffer and converts them to the native string format
+     * @param seperatorCodePoint code point value of the seperator
+     * @param addEmptyElements whether to consider empty strings as elements
+     * @return the vector of parsed strings
+     */
+    void ParseUniqueWStringElements( UInt32 seperatorCodePoint    ,
+                                     CStringSet& elements         ,
+                                     bool addEmptyElements = true ) const;
+
+    /**
      * @brief Helper to parse binary elements from a buffer which uses known seperator bytes
      * @param seperatorBytes byte array of seperator bytes that together make up the seperator
      * @param seperatorBytesSize size of the seperator byte array
+     * @param minElementSizeInBytes minimum size of an element to be considered valid while parsing
      * @param addEmptyElements whether to consider 0 byte size elements as elements to add to the output
      * @return the vector of parsed strings
      */
     void ParseBinaryElements( void* seperatorBytes                     ,
-                              UInt8 seperatorBytesSize                 ,
+                              UInt8 seperatorBytesSize                 ,                              
                               TDynamicBufferVector& parsedElements     ,
+                              const UInt32 minElementSizeInBytes = 1   ,
                               bool lastElementMustHaveSeperator = true ,
                               bool addEmptyElements = true             ) const;
 

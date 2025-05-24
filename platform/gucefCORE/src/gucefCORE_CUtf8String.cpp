@@ -209,6 +209,20 @@ CUtf8String::CUtf8String( const wchar_t* src         ,
 
 /*-------------------------------------------------------------------------*/
 
+CUtf8String::CUtf8String( const wchar_t* src         ,
+                          UInt32 byteSize            ,
+                          UInt32 lengthInWCodePoints ,
+                          bool reexamineByteSize     )
+    : m_string( GUCEF_NULL )
+    , m_length( 0 )
+    , m_byteSize( 0 )
+{GUCEF_TRACE;
+
+    Set( src, byteSize, lengthInWCodePoints, reexamineByteSize );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CUtf8String::CUtf8String( const Int32 NULLvalueOrUtf32 )
     : m_string( GUCEF_NULL )
     , m_length( 0 )
@@ -781,6 +795,40 @@ CUtf8String::Set( const wchar_t* str         ,
                   bool reexamineByteSize     )
 {GUCEF_TRACE;
 
+    if ( GUCEF_NULL == str || 0 == lengthInWCodePoints )
+    {
+        Clear();
+    }
+    else
+    {
+        std::wstring wtmp( str, lengthInWCodePoints );
+        std::string str;
+        if ( Utf16toUtf8( wtmp, str ) )
+        {
+            Set( str.c_str(), (UInt32) str.size(), reexamineByteSize );
+        }
+        else
+        {
+            Clear();
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUtf8String::Set( const wchar_t* str         ,
+                  UInt32 byteSize            ,
+                  UInt32 lengthInWCodePoints ,
+                  bool reexamineByteSize     )
+{GUCEF_TRACE;
+
+    // Put a sanity check on the lengthInWCodePoints to prevent it from exceeding the byte size
+    // this ensures that regardless of the supposed code point length we do not exceed the byte size which is 
+    // likely to be the input buffer size
+    if ( lengthInWCodePoints * sizeof(wchar_t) > byteSize )
+        lengthInWCodePoints = byteSize / sizeof(wchar_t);
+    
     if ( GUCEF_NULL == str || 0 == lengthInWCodePoints )
     {
         Clear();

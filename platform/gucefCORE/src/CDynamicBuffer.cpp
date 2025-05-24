@@ -968,6 +968,29 @@ CDynamicBuffer::Find( const void* data        ,
 
 /*-------------------------------------------------------------------------*/
 
+Int32 
+CDynamicBuffer::FindPerElement( const void* searchData                ,
+                                const UInt32 searchDataSizeInElements ,
+                                const UInt32 elementSize              ,
+                                UInt32 offset                         ) const
+{GUCEF_TRACE;
+    
+    UInt32 searchDataByteSize = searchDataSizeInElements * elementSize;
+    
+    if ( offset+searchDataByteSize > m_dataSize )
+        return -1;
+
+    UInt32 max = m_dataSize - searchDataByteSize;
+    for ( UInt32 i=offset; i<max; i+=elementSize )
+    {
+        if ( 0 == memcmp( _buffer+i, searchData, searchDataByteSize ) )
+            return (Int32) i;
+    }
+    return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CUtf8String::StringVector
 CDynamicBuffer::ParseUtf8StringElements( UInt32 seperatorCodePoint ,
                                          bool addEmptyElements     ) const
@@ -988,10 +1011,67 @@ CDynamicBuffer::ParseUniqueUtf8StringElements( UInt32 seperatorCodePoint ,
 
 /*-------------------------------------------------------------------------*/
 
+void 
+CDynamicBuffer::ParseUniqueWStringElements( UInt32 separatorCodePoint ,
+                                            CStringSet& elements      ,
+                                            bool addEmptyElements     ) const
+{GUCEF_TRACE;
+    
+    wchar_t wSeparatorCodePoint = static_cast< wchar_t >( separatorCodePoint );
+    CDynamicBuffer::TDynamicBufferVector parsedElements;
+    
+    // take a hint from the input set as to which size we might need as its use-case dependent
+    // and we want to avoid reallocations if possible
+    parsedElements.reserve( elements.size() ); 
+
+    ParseBinaryElements( &wSeparatorCodePoint, sizeof( wSeparatorCodePoint ), parsedElements, sizeof(wchar_t), true, addEmptyElements );
+
+    CDynamicBuffer::TDynamicBufferVector::const_iterator i = parsedElements.begin();
+    while ( i != parsedElements.end() )
+    {
+        const CDynamicBuffer& parsedElement = (*i);
+        CString str( parsedElement.AsConstTypePtr< wchar_t >(), parsedElement.GetDataSize(), parsedElement.GetDataSize() / sizeof( wchar_t ), false );
+        if ( !str.IsNULLOrEmpty() || addEmptyElements )
+            elements.insert( str );
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void 
+CDynamicBuffer::ParseWStringElements( UInt32 separatorCodePoint ,
+                                      CStringVector& elements   ,
+                                      bool addEmptyElements     ) const
+{GUCEF_TRACE;
+    
+    wchar_t wSeparatorCodePoint = static_cast< wchar_t >( separatorCodePoint );
+    CDynamicBuffer::TDynamicBufferVector parsedElements;
+    
+    // take a hint from the input vector as to which size we might need as its use-case dependent
+    // and we want to avoid reallocations if possible
+    parsedElements.reserve( elements.capacity() ); 
+
+    ParseBinaryElements( &wSeparatorCodePoint, sizeof( wSeparatorCodePoint ), parsedElements, sizeof(wchar_t), true, addEmptyElements );
+
+    CDynamicBuffer::TDynamicBufferVector::const_iterator i = parsedElements.begin();
+    while ( i != parsedElements.end() )
+    {
+        const CDynamicBuffer& parsedElement = (*i);
+        CString str( parsedElement.AsConstTypePtr< wchar_t >(), parsedElement.GetDataSize(), parsedElement.GetDataSize() / sizeof( wchar_t ), true );
+        if ( !str.IsNULLOrEmpty() || addEmptyElements )
+            elements.push_back( str );
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CDynamicBuffer::ParseBinaryElements( void* seperatorBytes                 ,
                                      UInt8 seperatorBytesSize             ,
                                      TDynamicBufferVector& parsedElements ,
+                                     const UInt32 minElementSizeInBytes   ,
                                      bool lastElementMustHaveSeperator    ,
                                      bool addEmptyElements                ) const
 {GUCEF_TRACE;
@@ -1001,9 +1081,10 @@ CDynamicBuffer::ParseBinaryElements( void* seperatorBytes                 ,
         // We need to use the binary parser
         UInt32 searchOffset = 0;        
         Int32 foundOffset = 0;
+        UInt32 seperatorSizeInElements = static_cast< UInt32 >( seperatorBytesSize / minElementSizeInBytes );
         do
         {
-            foundOffset = Find( seperatorBytes, seperatorBytesSize, searchOffset );
+            foundOffset = FindPerElement( seperatorBytes, seperatorSizeInElements, minElementSizeInBytes, searchOffset );
             if ( foundOffset >= 0 )
             {
                 // Found an element

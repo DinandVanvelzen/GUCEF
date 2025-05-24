@@ -1589,8 +1589,11 @@ FilePushDestination::PruneMovedFilesIfLowOnVolumeSpace( void )
     while ( n != m_fsVolumes.end() )
     {
         const CORE::CString& volumeId = (*n);
+
+        CORE::CStorageVolumeInfoOSData volumeInfoOSData;
         CORE::CStorageVolumeInformation storageVolumeInformation;
-        if ( CORE::GetFileSystemStorageVolumeInformationByVolumeId( storageVolumeInformation, volumeId ) )
+        volumeInfoOSData.SetVolumeId( volumeId );
+        if ( CORE::GetFileSystemStorageVolumeInformation( volumeInfoOSData, storageVolumeInformation ) )
         {
             if ( !DoesStorageVolumeHaveSufficientSpace( volumeId, storageVolumeInformation ) )
             {
@@ -1631,8 +1634,10 @@ FilePushDestination::PruneMovedFilesIfLowOnVolumeSpace( void )
                 {
                     const CORE::CString& filePath = (*n);
 
+                    CORE::CStorageVolumeInfoOSData volumeInfoOSData;
                     CORE::CStorageVolumeInformation storageVolumeInformation;
-                    if ( CORE::GetFileSystemStorageVolumeInformationByVolumeId( storageVolumeInformation, volumeId ) )
+                    volumeInfoOSData.SetVolumeId( volumeId );
+                    if ( CORE::GetFileSystemStorageVolumeInformation( volumeInfoOSData, storageVolumeInformation ) )
                     {
                         // recheck space requirement
                         if ( !DoesStorageVolumeHaveSufficientSpace( volumeId, storageVolumeInformation ) )

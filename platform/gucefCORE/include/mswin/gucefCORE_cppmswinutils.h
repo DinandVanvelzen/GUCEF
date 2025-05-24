@@ -113,6 +113,7 @@ class GUCEF_CORE_PUBLIC_CPP CWmiAccess
 
 class CPdhAccessImpl;
 class CPdhDevicePerfStatAccessImpl;
+class CPdhVolumePerfStatAccessImpl;
 
 /**
  *  Class which acts as a wrapper for the PDH API (Performance Data Helper API)
@@ -150,6 +151,28 @@ class GUCEF_CORE_PUBLIC_CPP CPdhAccess
     };
 
     /**
+     *  Class that hold private data needed to access storage volume performance data
+     *  Intended to be reused for multiple calls to GetLogicalVolumePerfStats()
+     */
+    class GUCEF_CORE_PUBLIC_CPP CPdhVolumePerfStatAccess
+    {
+        public:
+
+        CPdhVolumePerfStatAccess( void );
+
+        ~CPdhVolumePerfStatAccess();        
+        
+        private:
+        CPdhVolumePerfStatAccess( const CPdhVolumePerfStatAccess& src );  /**< do not copy */
+        CPdhVolumePerfStatAccess& operator=( const CPdhVolumePerfStatAccess& src );  /**< do not assign */
+        
+        private:
+        friend class CPdhAccessImpl;
+
+        CPdhVolumePerfStatAccessImpl* m_impl;
+    };
+
+    /**
      *  Attempts to load and link the PDH API
      *  Important: 
      *      - This function will return a failure if the PDH API is not available on the system
@@ -165,15 +188,66 @@ class GUCEF_CORE_PUBLIC_CPP CPdhAccess
     Int32 UnloadPDH( void );
 
     /**
+     *  Attempts to the list of all available system stat categories
+     *  
+     *  @param statCatagories the list of all available system stat categories 
+     */
+    Int32 GetListOfStatCategories( CStringSet& statCategories ) const;
+
+    /**
+     *  Attempts to the list of all available stat counters for the given category
+     *  
+     *  @param statCategory the stat category for which to obtain the stats
+     *  @param statsInCategory the list of all available stats in the given stat category
+     */
+    Int32 GetListOfStatCountersInCategory( const CString& statCategory ,
+                                           CStringSet& statsInCategory ) const;
+
+    /**
+     *  Attempts to the list of all available stat instances for the given category
+     *  
+     *  @param statCategory the stat category for which to obtain the stats
+     *  @param statsInCategory the list of all available stats in the given stat category
+     */
+    Int32 GetListOfStatInstancesInCategory( const CString& statCategory ,
+                                            CStringSet& statsInCategory ) const;
+
+    /**
      *  Attempts to obtain physical device performance stats via PDH
      *  The device index needs to be known and set
      *  
-     *  @param devicePerfStatAcces the object that will hold data needed to efficiently gather the stats repeatedly 
+     *  @param devicePerfStatAccess the object that will hold data needed to efficiently gather the stats repeatedly 
      *  @param devicePerfStats the object that will hold the performance stats
+     *  @param hasNewStats true if new stats were obtained, false if the stats are the same as before
      */
-    Int32 GetPhysicalDevicePerfStats( CPdhDevicePerfStatAccess& devicePerfStatAcces ,
-                                      CStorageDeviceInformation& devicePerfStats    );
+    Int32 GetPhysicalDevicePerfStats( CPdhDevicePerfStatAccess& devicePerfStatAccess ,
+                                      CStorageDeviceInformation& devicePerfStats     ,
+                                      bool& hasNewStats                              );
     
+    /**
+     *  Attempts to obtain logical volume performance stats via PDH
+     *  The volume needs to have mount paths. These can be resolved from the GUID if needed on first hit, however
+     *  not all volumes have mount paths. If the volume does not have mount paths then it is not possible to obtain the stats
+     *  
+     *  @param volumePerfStatAccess the object that will hold data needed to efficiently gather the stats repeatedly 
+     *  @param volumePerfStats the object that will hold the performance stats
+     *  @param hasNewStats true if new stats were obtained, false if the stats are the same as before
+     */
+    Int32 GetLogicalVolumePerfStats( CPdhVolumePerfStatAccess& volumePerfStatAccess ,
+                                     CStorageVolumeInformation& volumePerfStats     ,
+                                     bool& hasNewStats                              );
+
+    /**
+     *  Attempts to obtain system total storage performance stats via PDH
+     *  
+     *  @param volumePerfStatAccess the object that will hold data needed to efficiently gather the stats repeatedly 
+     *  @param totalPerfStats the object that will hold the performance stats
+     *  @param hasNewStats true if new stats were obtained, false if the stats are the same as before
+     */
+    Int32 GetTotalLogicalVolumePerfStats( CPdhVolumePerfStatAccess& volumePerfStatAccess ,
+                                          CStorageVolumeInformation& volumePerfStats     ,
+                                          bool& hasNewStats                              );
+
     bool IsValid( void ) const;
     
     private:

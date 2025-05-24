@@ -37,11 +37,6 @@
 #define GUCEF_CORE_DVCPPOSWRAP_H
 #endif /* GUCEF_CORE_DVCPPOSWRAP_H ? */
 
-#ifndef GUCEF_CORE_DVCPPFILEUTILS_H
-#include "dvcppfileutils.h"
-#define GUCEF_CORE_DVCPPFILEUTILS_H
-#endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
-
 #ifndef GUCEF_CORE_CCODECREGISTRY_H
 #include "CCodecRegistry.h"
 #define GUCEF_CORE_CCODECREGISTRY_H
@@ -530,6 +525,8 @@ ProcessMetrics::ProcessMetrics( void )
     , m_storageVolumeIds()
     , m_storageVolumeIdsToPaths()
     , m_storageDeviceIds()
+    , m_storageDeviceInfoMap()
+    , m_storageVolumeInfoMap()
     , m_gatherProcPageFaultCountInBytes( true )
     , m_gatherProcPageFileUsageInBytes( true )
     , m_gatherProcPeakPageFileUsageInBytes( true )
@@ -573,12 +570,26 @@ ProcessMetrics::ProcessMetrics( void )
     , m_gatherGlobalNetworkStatOutboundBroadcastOctets( true )
     , m_gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec( true )
     , m_gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec( true )
-    , m_gatherGlobalStorageStats( true )
+    , m_gatherGlobalStorageVolumeStats( true )
+    , m_gatherGlobalStorageVolumeStatsPerVolume( true )
     , m_gatherGlobalStorageVolumeBytesAvailableToCaller( true )
     , m_gatherGlobalStorageVolumeBytesAvailable( true )
     , m_gatherGlobalStorageVolumeBytes( false )
     , m_gatherGlobalStorageVolumeAvailableToCallerPercentage( true )
     , m_gatherGlobalStorageVolumeAvailablePercentage( true )
+    , m_gatherGlobalStorageVolumeBytesWritten( true )
+    , m_gatherGlobalStorageVolumeBytesWrittenPerSec( true )
+    , m_gatherGlobalStorageVolumeAvgBytesWrittenPerSec( true )
+    , m_gatherGlobalStorageVolumeBytesRead( true )
+    , m_gatherGlobalStorageVolumeBytesReadPerSec( true )
+    , m_gatherGlobalStorageVolumeAvgBytesReadPerSec( true )
+    , m_gatherGlobalStorageVolumeRequestsQueued( true )
+    , m_gatherGlobalStorageVolumeRequestsSplit( true )
+    , m_gatherGlobalStorageVolumeRequestsSplitPerSec( true )
+    , m_gatherGlobalStorageVolumeReadTimeInMs( true )
+    , m_gatherGlobalStorageVolumeWriteTimeInMs( true )
+    , m_gatherGlobalStorageVolumeIdleTimeInMs( true )
+    , m_convertStorageVolumeIdsToPaths( true )
     , m_gatherGlobalStorageDeviceStats( true )
     , m_gatherGlobalStorageDeviceBytesWritten( true )
     , m_gatherGlobalStorageDeviceBytesWrittenPerSec( true )
@@ -591,10 +602,7 @@ ProcessMetrics::ProcessMetrics( void )
     , m_gatherGlobalStorageDeviceRequestsSplitPerSec( true )
     , m_gatherGlobalStorageDeviceReadTimeInMs( true )
     , m_gatherGlobalStorageDeviceWriteTimeInMs( true )
-    , m_gatherGlobalStorageDeviceIdleTimeInMs( true )
-    , m_convertStorageVolumeIdsToPaths( true )
-
-
+    , m_gatherGlobalStorageDeviceIdleTimeInMs( true )    
 {GUCEF_TRACE;
 
     RegisterEventHandlers();
@@ -923,6 +931,84 @@ ProcessMetrics::PublishMetricThresholdExceeded( const CORE::CVariant& metricValu
 
 /*-------------------------------------------------------------------------*/
 
+bool
+ProcessMetrics::GetStorageDeviceInformationObjs( const CORE::CString& deviceId                       ,
+                                                 CORE::CStorageDeviceInfoOSDataPtr& deviceInfoOSData ,
+                                                 CORE::CStorageDeviceInformationPtr& deviceInfo      )
+{GUCEF_TRACE;
+
+    try
+    {
+        TStorageDeviceInfoMap::iterator i = m_storageDeviceInfoMap.find( deviceId );
+        if ( i != m_storageDeviceInfoMap.end() )
+        {
+            TStorageDeviceInfoPair& deviceInfoPair = (*i).second;
+            deviceInfoOSData = deviceInfoPair.first;
+            deviceInfo = deviceInfoPair.second;
+            return true;
+        }
+        else
+        {
+            TStorageDeviceInfoPair& deviceInfoPair = m_storageDeviceInfoMap[ deviceId ];
+            deviceInfoPair.first = CORE::CStorageDeviceInfoOSDataPtr( GUCEF_NEW CORE::CStorageDeviceInfoOSData( deviceId ) );
+            deviceInfoPair.second = CORE::CStorageDeviceInformationPtr( GUCEF_NEW CORE::CStorageDeviceInformation() );
+
+            deviceInfoOSData = deviceInfoPair.first;
+            deviceInfo = deviceInfoPair.second;
+            
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "ProcessMetrics:GetStorageDeviceInformation: Started tracking device informaton for deviceId \"" + deviceId + "\"" );
+            return true;
+        }
+    }
+    catch ( const std::exception& e )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProcessMetrics:GetStorageDeviceInformation: Failed to obtain storage device information for deviceId \"" + deviceId + "\". Error: " + CORE::CString( e.what() ) );
+        return false;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+ProcessMetrics::GetStorageVolumeInformationObjs( const CORE::CString& volumeId                       ,
+                                                 CORE::CStorageVolumeInfoOSDataPtr& volumeInfoOSData ,
+                                                 CORE::CStorageVolumeInformationPtr& volumeInfo      )
+{GUCEF_TRACE;
+
+    try
+    {
+        TStorageVolumeInfoMap::iterator i = m_storageVolumeInfoMap.find( volumeId );
+        if ( i != m_storageVolumeInfoMap.end() )
+        {
+            TStorageVolumeInfoPair& volumeInfoPair = (*i).second;
+            volumeInfoOSData = volumeInfoPair.first;
+            volumeInfo = volumeInfoPair.second;
+            return true;
+        }
+        else
+        {
+            TStorageVolumeInfoPair& volumeInfoPair = m_storageVolumeInfoMap[ volumeId ];
+            volumeInfoPair.first = CORE::CStorageVolumeInfoOSDataPtr( GUCEF_NEW CORE::CStorageVolumeInfoOSData() );
+            volumeInfoPair.second = CORE::CStorageVolumeInformationPtr( GUCEF_NEW CORE::CStorageVolumeInformation() );
+
+            volumeInfoPair.first->SetVolumeId( volumeId );
+
+            volumeInfoOSData = volumeInfoPair.first;
+            volumeInfo = volumeInfoPair.second;
+            
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "ProcessMetrics:GetStorageDeviceInformation: Started tracking volume informaton for volumeId \"" + volumeId + "\"" );
+            return true;
+        }
+    }
+    catch ( const std::exception& e )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProcessMetrics:GetStorageDeviceInformation: Failed to obtain storage volume information for volumeId \"" + volumeId + "\". Error: " + CORE::CString( e.what() ) );
+        return false;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 ProcessMetrics::ValidateMetricThresholds( const CORE::CVariant& metricValue ,
                                           const CORE::CString& metricName   ,
@@ -1061,6 +1147,140 @@ ProcessMetrics::RefreshPIDs( void )
     }
 
     RefreshPIDs( nonLockedOnProcs );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+ProcessMetrics::DispatchStorageVolumeMetrics( CORE::CStorageVolumeInfoOSDataPtr volumeInfoOSData ,
+                                              CORE::CStorageVolumeInformationPtr volumeInfoObj   )
+{GUCEF_TRACE;
+
+    if GUCEF_PREDICT_FALSE( volumeInfoOSData.IsNULL() || volumeInfoObj.IsNULL() )
+        return;
+
+    static const CORE::CString storageMetricNamePrefix = "ProcessMetrics.Storage.Volumes.";
+
+    const CORE::CString& storageVolumeId = volumeInfoOSData->GetVolumeId();
+    const CORE::CString& storagePath = volumeInfoOSData->GetAnyPathForVolume();
+    CORE::CStorageVolumeInformation& volumeInfo = *volumeInfoObj;
+
+    const CORE::CString* metricStrToUse = &storageVolumeId;
+    if ( m_convertStorageVolumeIdsToPaths && !storagePath.IsNULLOrEmpty() )
+        metricStrToUse = &storagePath;
+
+    CORE::CString metricsStorageVolumeId = GenerateMetricsFriendlyString( *metricStrToUse );
+
+    if ( m_gatherGlobalStorageVolumeBytesAvailableToCaller && volumeInfo.hasFreeBytesAvailableToCaller )
+    {
+        CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".FreeBytesAvailableToCaller";
+        GUCEF_METRIC_GAUGE( storageMetricName, volumeInfo.freeBytesAvailableToCaller, 1.0f );
+        ValidateMetricThresholds( CORE::CVariant( volumeInfo.freeBytesAvailableToCaller ), storageMetricName, CORE::CString::Empty );
+    }
+    if ( m_gatherGlobalStorageVolumeBytesAvailable && volumeInfo.hasTotalNumberOfFreeBytes )
+    {
+        CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".TotalNumberOfFreeBytes";
+        GUCEF_METRIC_GAUGE( storageMetricName, volumeInfo.totalNumberOfFreeBytes, 1.0f );
+        ValidateMetricThresholds( CORE::CVariant( volumeInfo.totalNumberOfFreeBytes ), storageMetricName, CORE::CString::Empty );
+    }
+    if ( m_gatherGlobalStorageVolumeBytes && volumeInfo.hasTotalNumberOfBytes )
+    {
+        CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".TotalNumberOfBytes";
+        GUCEF_METRIC_GAUGE( storageMetricName, volumeInfo.totalNumberOfBytes, 1.0f );
+        ValidateMetricThresholds( CORE::CVariant( volumeInfo.totalNumberOfBytes ), storageMetricName, CORE::CString::Empty );
+    }
+    if ( m_gatherGlobalStorageVolumeAvailableToCallerPercentage && volumeInfo.hasFreeBytesAvailableToCaller )
+    {
+        CORE::Float64 storageVolumeAvailableToCallerPercentage = volumeInfo.freeBytesAvailableToCaller / ( 0.01 * volumeInfo.totalNumberOfBytes );
+        CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".StorageVolumeAvailableToCallerPercentage";
+        GUCEF_METRIC_GAUGE( storageMetricName, storageVolumeAvailableToCallerPercentage, 1.0f );
+        ValidateMetricThresholds( CORE::CVariant( storageVolumeAvailableToCallerPercentage ), storageMetricName, CORE::CString::Empty );
+    }
+    if ( m_gatherGlobalStorageVolumeAvailablePercentage && volumeInfo.hasTotalNumberOfFreeBytes && volumeInfo.hasTotalNumberOfBytes )
+    {
+        CORE::Float64 storageVolumeAvailablePercentage = volumeInfo.totalNumberOfFreeBytes / ( 0.01 * volumeInfo.totalNumberOfBytes );
+        CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".StorageVolumeAvailablePercentage";
+        GUCEF_METRIC_GAUGE( storageMetricName, storageVolumeAvailablePercentage, 1.0f );
+        ValidateMetricThresholds( CORE::CVariant( storageVolumeAvailablePercentage ), storageMetricName, CORE::CString::Empty );
+    }
+
+    if ( volumeInfo.hasPerfStats )
+    {
+        const CORE::CStoragePerfStats& perfStats = volumeInfo.perfStats;
+
+        if ( m_gatherGlobalStorageVolumeBytesWritten && perfStats.hasBytesWritten )
+        {
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".BytesWritten";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesWritten, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.bytesWritten ), storageMetricName, CORE::CString::Empty );
+        }
+        if ( m_gatherGlobalStorageVolumeBytesWrittenPerSec && perfStats.hasBytesWrittenPerSec )
+        {
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".BytesWrittenPerSec";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesWrittenPerSec, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.bytesWrittenPerSec ), storageMetricName, CORE::CString::Empty );
+        }
+        if ( m_gatherGlobalStorageVolumeAvgBytesWrittenPerSec && perfStats.hasAvgBytesWrittenPerSec )
+        {
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".AvgBytesWrittenPerSec";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.avgBytesWrittenPerSec, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.avgBytesWrittenPerSec ), storageMetricName, CORE::CString::Empty );
+        }
+        if ( m_gatherGlobalStorageVolumeBytesRead && perfStats.hasBytesRead )
+        {
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".BytesRead";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesRead, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.bytesRead ), storageMetricName, CORE::CString::Empty );
+        }
+        if ( m_gatherGlobalStorageVolumeBytesReadPerSec && perfStats.hasBytesReadPerSec )
+        {
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".BytesReadPerSec";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesReadPerSec, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.bytesReadPerSec ), storageMetricName, CORE::CString::Empty );
+        }
+        if ( m_gatherGlobalStorageVolumeAvgBytesReadPerSec && perfStats.hasAvgBytesReadPerSec )
+        {
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".AvgBytesReadPerSec";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.avgBytesReadPerSec, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.avgBytesReadPerSec ), storageMetricName, CORE::CString::Empty );
+        }
+        if ( m_gatherGlobalStorageVolumeRequestsQueued && perfStats.hasRequestQueueDepth )
+        {
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".RequestQueueDepth";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.requestQueueDepth, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.requestQueueDepth ), storageMetricName, CORE::CString::Empty );
+        }
+        if ( m_gatherGlobalStorageVolumeRequestsSplit && perfStats.hasRequestSplitCount )
+        {
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".RequestSplitCount";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.requestSplitCount, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.requestSplitCount ), storageMetricName, CORE::CString::Empty );
+        }
+        if ( m_gatherGlobalStorageVolumeRequestsSplitPerSec && perfStats.hasRequestSplitCountPerSec )
+        {
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".RequestSplitCountPerSec";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.requestSplitCountPerSec, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.requestSplitCountPerSec ), storageMetricName, CORE::CString::Empty );
+        }
+        if ( m_gatherGlobalStorageVolumeReadTimeInMs && perfStats.hasReadTimeInMs )
+        {
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".ReadTimeInMs";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.readTimeInMs, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.readTimeInMs ), storageMetricName, CORE::CString::Empty );
+        }
+        if ( m_gatherGlobalStorageVolumeWriteTimeInMs && perfStats.hasWriteTimeInMs )
+        {
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".WriteTimeInMs";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.writeTimeInMs, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.writeTimeInMs ), storageMetricName, CORE::CString::Empty );
+        }
+        if ( m_gatherGlobalStorageVolumeIdleTimeInMs && perfStats.hasIdleTimeInMs )
+        {
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".IdleTimeInMs";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.idleTimeInMs, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.idleTimeInMs ), storageMetricName, CORE::CString::Empty );
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1553,8 +1773,23 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
             }
         }
     }
+    if ( m_gatherGlobalStorageVolumeStats )
+    {
+        CORE::CStorageVolumeInfoOSDataPtr volumeInfoOSData;
+        CORE::CStorageVolumeInformationPtr volumeInfoRef;
+        static const CORE::CString totalVolumeId = "total";
+        if ( GetStorageVolumeInformationObjs( totalVolumeId, volumeInfoOSData, volumeInfoRef ) && !volumeInfoOSData.IsNULL() && !volumeInfoRef.IsNULL() )
+        {
+            CORE::CStorageVolumeInformation& volumeInfo = *volumeInfoRef.GetPointerAlways();
+            if ( CORE::GetFileSystemTotalStorageVolumeInformation( *volumeInfoOSData.GetPointerAlways() ,
+                                                                   volumeInfo                           ) )
+            {
+                DispatchStorageVolumeMetrics( volumeInfoOSData, volumeInfoRef );
+            }
+        }
+    }
 
-    if ( m_gatherGlobalStorageStats )
+    if ( m_gatherGlobalStorageVolumeStatsPerVolume )
     {
         if ( m_storageVolumeIds.empty() )
         {
@@ -1568,7 +1803,7 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ProcessMetrics: Error trying to obtain a list of storage volumes. Obtained " + CORE::ToString( m_storageVolumeIds.size() ) );
                 if ( m_storageVolumeIds.empty() )
                 {
-                    m_gatherGlobalStorageStats = false;
+                    m_gatherGlobalStorageVolumeStats = false;
                 }
             }
 
@@ -1603,97 +1838,74 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
                 }
             }
         }
-
-        static const CORE::CString storageMetricNamePrefix = "ProcessMetrics.Storage.";
-
-        CORE::CString::StringSet::iterator i = m_storageVolumeIds.begin();
-        while ( i != m_storageVolumeIds.end() )
+        if ( !m_storageVolumeIds.empty() )
         {
-            const CORE::CString& storageVolumeId = (*i);
-            const CORE::CString& storagePath = m_storageVolumeIdsToPaths[ storageVolumeId ];
-
-            CORE::CStorageVolumeInformation volumeInfo;
-            if ( CORE::GetFileSystemStorageVolumeInformationByVolumeId( volumeInfo, storageVolumeId ) && 0 < volumeInfo.totalNumberOfBytes )
+            CORE::CString::StringSet::iterator i = m_storageVolumeIds.begin();
+            while ( i != m_storageVolumeIds.end() )
             {
-                if ( m_gatherGlobalStorageDeviceStats && volumeInfo.hasPartitionId2deviceIdMapping )
+                const CORE::CString& storageVolumeId = (*i);
+
+                CORE::CStorageVolumeInfoOSDataPtr volumeInfoOSData;
+                CORE::CStorageVolumeInformationPtr volumeInfoRef;
+                if ( GetStorageVolumeInformationObjs( storageVolumeId, volumeInfoOSData, volumeInfoRef ) && !volumeInfoOSData.IsNULL() && !volumeInfoRef.IsNULL() )
                 {
-                    // If we have the device id mapping we can use it to track the devices
-                    // add these to the list so that we are at least able to track them for 
-                    // the devices for which we also track the volumes
-                    CORE::CStringMap::iterator j = volumeInfo.partitionId2deviceId.begin();
-                    while ( j != volumeInfo.partitionId2deviceId.end() )
+                    CORE::CStorageVolumeInformation& volumeInfo = *volumeInfoRef.GetPointerAlways();
+                    const CORE::CString& storagePath = m_storageVolumeIdsToPaths[ storageVolumeId ];
+
+                    if ( CORE::GetFileSystemStorageVolumeInformation( *volumeInfoOSData.GetPointerAlways() ,
+                                                                      volumeInfo                           ) )
                     {
-                        const CORE::CString& partitionId = (*j).first;
-                        const CORE::CString& deviceId = (*j).second;
-
-                        CORE::CStringSet::iterator f = m_storageDeviceIds.find( deviceId );
-                        if ( f == m_storageDeviceIds.end() )
+                        if ( m_gatherGlobalStorageDeviceStats && volumeInfo.hasPartitionId2deviceIdMapping )
                         {
-                            m_storageDeviceIds.insert( deviceId );
+                            // If we have the device id mapping we can use it to track the devices
+                            // add these to the list so that we are at least able to track them for 
+                            // the devices for which we also track the volumes
+                            CORE::CStringMap::iterator j = volumeInfo.partitionId2deviceId.begin();
+                            while ( j != volumeInfo.partitionId2deviceId.end() )
+                            {
+                                const CORE::CString& partitionId = (*j).first;
+                                const CORE::CString& deviceId = (*j).second;
 
-                            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "ProcessMetrics: Storage volume with id: " + storageVolumeId + 
-                                " uses device with id: " + deviceId +
-                                " and partition id: " + partitionId );
-                        }   
-                        ++j;
+                                CORE::CStringSet::iterator f = m_storageDeviceIds.find( deviceId );
+                                if ( f == m_storageDeviceIds.end() )
+                                {
+                                    m_storageDeviceIds.insert( deviceId );
+
+                                    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "ProcessMetrics: Storage volume with id: " + storageVolumeId + 
+                                        " uses device with id: " + deviceId +
+                                        " and partition id: " + partitionId );
+                                }   
+                                ++j;
+                            }
+                        }
+
+                        DispatchStorageVolumeMetrics( volumeInfoOSData, volumeInfoRef );
                     }
                 }
-                
-                const CORE::CString* metricStrToUse = &storageVolumeId;
-                if ( m_convertStorageVolumeIdsToPaths && !storagePath.IsNULLOrEmpty() )
-                    metricStrToUse = &storagePath;
-
-                CORE::CString metricsStorageVolumeId = GenerateMetricsFriendlyString( *metricStrToUse );
-
-                if ( m_gatherGlobalStorageVolumeBytesAvailableToCaller && volumeInfo.hasFreeBytesAvailableToCaller )
-                {
-                    CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".FreeBytesAvailableToCaller";
-                    GUCEF_METRIC_GAUGE( storageMetricName, volumeInfo.freeBytesAvailableToCaller, 1.0f );
-                    ValidateMetricThresholds( CORE::CVariant( volumeInfo.freeBytesAvailableToCaller ), storageMetricName, CORE::CString::Empty );
-                }
-                if ( m_gatherGlobalStorageVolumeBytesAvailable && volumeInfo.hasTotalNumberOfFreeBytes )
-                {
-                    CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".TotalNumberOfFreeBytes";
-                    GUCEF_METRIC_GAUGE( storageMetricName, volumeInfo.totalNumberOfFreeBytes, 1.0f );
-                    ValidateMetricThresholds( CORE::CVariant( volumeInfo.totalNumberOfFreeBytes ), storageMetricName, CORE::CString::Empty );
-                }
-                if ( m_gatherGlobalStorageVolumeBytes && volumeInfo.hasTotalNumberOfBytes )
-                {
-                    CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".TotalNumberOfBytes";
-                    GUCEF_METRIC_GAUGE( storageMetricName, volumeInfo.totalNumberOfBytes, 1.0f );
-                    ValidateMetricThresholds( CORE::CVariant( volumeInfo.totalNumberOfBytes ), storageMetricName, CORE::CString::Empty );
-                }
-                if ( m_gatherGlobalStorageVolumeAvailableToCallerPercentage && volumeInfo.hasFreeBytesAvailableToCaller )
-                {
-                    CORE::Float64 storageVolumeAvailableToCallerPercentage = volumeInfo.freeBytesAvailableToCaller / ( 0.01 * volumeInfo.totalNumberOfBytes );
-                    CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".StorageVolumeAvailableToCallerPercentage";
-                    GUCEF_METRIC_GAUGE( storageMetricName, storageVolumeAvailableToCallerPercentage, 1.0f );
-                    ValidateMetricThresholds( CORE::CVariant( storageVolumeAvailableToCallerPercentage ), storageMetricName, CORE::CString::Empty );
-                }
-                if ( m_gatherGlobalStorageVolumeAvailablePercentage && volumeInfo.hasTotalNumberOfFreeBytes && volumeInfo.hasTotalNumberOfBytes )
-                {
-                    CORE::Float64 storageVolumeAvailablePercentage = volumeInfo.totalNumberOfFreeBytes / ( 0.01 * volumeInfo.totalNumberOfBytes );
-                    CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".StorageVolumeAvailablePercentage";
-                    GUCEF_METRIC_GAUGE( storageMetricName, storageVolumeAvailablePercentage, 1.0f );
-                    ValidateMetricThresholds( CORE::CVariant( storageVolumeAvailablePercentage ), storageMetricName, CORE::CString::Empty );
-                }
+                ++i;
             }
-            ++i;
         }
+    }
 
-        if ( m_gatherGlobalStorageDeviceStats )
+    if ( m_gatherGlobalStorageDeviceStats )
+    {
+        static const CORE::CString storageMetricNamePrefix = "ProcessMetrics.Storage.Devices.";
+        
+        CORE::CString::StringSet::iterator i = m_storageDeviceIds.begin();
+        while ( i != m_storageDeviceIds.end() )
         {
-            i = m_storageDeviceIds.begin();
-            while ( i != m_storageDeviceIds.end() )
-            {
-                const CORE::CString& deviceId = (*i);
+            const CORE::CString& deviceId = (*i);
 
-                CORE::CStorageDeviceInformation deviceInfo;
-                if ( CORE::GetStorageDeviceInformationByDeviceId( deviceInfo, deviceId ) )
+            CORE::CStorageDeviceInfoOSDataPtr deviceInfoOSData;
+            CORE::CStorageDeviceInformationPtr deviceInfo;
+            if ( GetStorageDeviceInformationObjs( deviceId, deviceInfoOSData, deviceInfo ) && !deviceInfoOSData.IsNULL() && !deviceInfo.IsNULL() )
+            {
+                if ( CORE::GetStorageDeviceInformationByDeviceId( *deviceInfoOSData.GetPointerAlways() ,
+                                                                  *deviceInfo.GetPointerAlways()       ) )
                 {
-                    if ( deviceInfo.hasPerfStats )
+                    if ( deviceInfo->hasPerfStats )
                     {
-                        const CORE::CStorageDevicePerfStats& perfStats = deviceInfo.perfStats;
+                        const CORE::CStoragePerfStats& perfStats = deviceInfo->perfStats;
                         CORE::CString metricsStorageDeviceId = GenerateMetricsFriendlyString( deviceId );
 
                         if ( m_gatherGlobalStorageDeviceBytesWritten && perfStats.hasBytesWritten )
@@ -1770,9 +1982,9 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
                         }
                     }
                 }
-            
-                ++i;
             }
+            
+            ++i;
         }
     }
 
@@ -1926,12 +2138,25 @@ ProcessMetrics::LoadConfig( const CORE::CValueList& appConfig   ,
     m_gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec = appConfig.GetValueAlways( "gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec", m_gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec ).AsBool( m_gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec, true );
     m_gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec = appConfig.GetValueAlways( "gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec", m_gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec ).AsBool( m_gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec, true );
 
-    m_gatherGlobalStorageStats = appConfig.GetValueAlways( "gatherGlobalStorageStats", m_gatherGlobalStorageStats ).AsBool( m_gatherGlobalStorageStats, true );
+    m_gatherGlobalStorageVolumeStats = appConfig.GetValueAlways( "gatherGlobalStorageVolumeStats", m_gatherGlobalStorageVolumeStats ).AsBool( m_gatherGlobalStorageVolumeStats, true );
+    m_gatherGlobalStorageVolumeStatsPerVolume = appConfig.GetValueAlways( "gatherGlobalStorageVolumeStatsPerVolume", m_gatherGlobalStorageVolumeStatsPerVolume ).AsBool( m_gatherGlobalStorageVolumeStatsPerVolume, true );
     m_gatherGlobalStorageVolumeBytesAvailableToCaller = appConfig.GetValueAlways( "gatherGlobalStorageVolumeBytesAvailableToCaller", m_gatherGlobalStorageVolumeBytesAvailableToCaller ).AsBool( m_gatherGlobalStorageVolumeBytesAvailableToCaller, true );
     m_gatherGlobalStorageVolumeBytesAvailable= appConfig.GetValueAlways( "gatherGlobalStorageVolumeBytesAvailable", m_gatherGlobalStorageVolumeBytesAvailable ).AsBool( m_gatherGlobalStorageVolumeBytesAvailable, true );
     m_gatherGlobalStorageVolumeBytes = appConfig.GetValueAlways( "gatherGlobalStorageVolumeBytes", m_gatherGlobalStorageVolumeBytes ).AsBool( m_gatherGlobalStorageVolumeBytes, true );
     m_gatherGlobalStorageVolumeAvailableToCallerPercentage = appConfig.GetValueAlways( "gatherGlobalStorageVolumeAvailableToCallerPercentage", m_gatherGlobalStorageVolumeAvailableToCallerPercentage ).AsBool( m_gatherGlobalStorageVolumeAvailableToCallerPercentage, true );
     m_gatherGlobalStorageVolumeAvailablePercentage = appConfig.GetValueAlways( "gatherGlobalStorageVolumeAvailablePercentage", m_gatherGlobalStorageVolumeAvailablePercentage ).AsBool( m_gatherGlobalStorageVolumeAvailablePercentage, true );
+    m_gatherGlobalStorageVolumeBytesWritten = appConfig.GetValueAlways( "gatherGlobalStorageVolumeBytesWritten", m_gatherGlobalStorageVolumeBytesWritten ).AsBool( m_gatherGlobalStorageVolumeBytesWritten, true );
+    m_gatherGlobalStorageVolumeBytesWrittenPerSec = appConfig.GetValueAlways( "gatherGlobalStorageVolumeBytesWrittenPerSec", m_gatherGlobalStorageVolumeBytesWrittenPerSec ).AsBool( m_gatherGlobalStorageVolumeBytesWrittenPerSec, true );
+    m_gatherGlobalStorageVolumeAvgBytesWrittenPerSec = appConfig.GetValueAlways( "gatherGlobalStorageVolumeAvgBytesWrittenPerSec", m_gatherGlobalStorageVolumeAvgBytesWrittenPerSec ).AsBool( m_gatherGlobalStorageVolumeAvgBytesWrittenPerSec, true );
+    m_gatherGlobalStorageVolumeBytesRead = appConfig.GetValueAlways( "gatherGlobalStorageVolumeBytesRead", m_gatherGlobalStorageVolumeBytesRead ).AsBool( m_gatherGlobalStorageVolumeBytesRead, true );
+    m_gatherGlobalStorageVolumeBytesReadPerSec = appConfig.GetValueAlways( "gatherGlobalStorageVolumeBytesReadPerSec", m_gatherGlobalStorageVolumeBytesReadPerSec ).AsBool( m_gatherGlobalStorageVolumeBytesReadPerSec, true );
+    m_gatherGlobalStorageVolumeAvgBytesReadPerSec = appConfig.GetValueAlways( "gatherGlobalStorageVolumeAvgBytesReadPerSec", m_gatherGlobalStorageVolumeAvgBytesReadPerSec ).AsBool( m_gatherGlobalStorageVolumeAvgBytesReadPerSec, true );
+    m_gatherGlobalStorageVolumeRequestsQueued = appConfig.GetValueAlways( "gatherGlobalStorageVolumeRequestsQueued", m_gatherGlobalStorageVolumeRequestsQueued ).AsBool( m_gatherGlobalStorageVolumeRequestsQueued, true );
+    m_gatherGlobalStorageVolumeRequestsSplit = appConfig.GetValueAlways( "gatherGlobalStorageVolumeRequestsSplit", m_gatherGlobalStorageVolumeRequestsSplit ).AsBool( m_gatherGlobalStorageVolumeRequestsSplit, true );
+    m_gatherGlobalStorageVolumeRequestsSplitPerSec = appConfig.GetValueAlways( "gatherGlobalStorageVolumeRequestsSplitPerSec", m_gatherGlobalStorageVolumeRequestsSplitPerSec ).AsBool( m_gatherGlobalStorageVolumeRequestsSplitPerSec, true );
+    m_gatherGlobalStorageVolumeReadTimeInMs = appConfig.GetValueAlways( "gatherGlobalStorageVolumeReadTimeInMs", m_gatherGlobalStorageVolumeReadTimeInMs ).AsBool( m_gatherGlobalStorageVolumeReadTimeInMs, true );
+    m_gatherGlobalStorageVolumeWriteTimeInMs = appConfig.GetValueAlways( "gatherGlobalStorageVolumeWriteTimeInMs", m_gatherGlobalStorageVolumeWriteTimeInMs ).AsBool( m_gatherGlobalStorageVolumeWriteTimeInMs, true );
+    m_gatherGlobalStorageVolumeIdleTimeInMs = appConfig.GetValueAlways( "gatherGlobalStorageVolumeIdleTimeInMs", m_gatherGlobalStorageVolumeIdleTimeInMs ).AsBool( m_gatherGlobalStorageVolumeIdleTimeInMs, true );
     m_convertStorageVolumeIdsToPaths = appConfig.GetValueAlways( "convertStorageVolumeIdsToPaths", m_convertStorageVolumeIdsToPaths ).AsBool( m_convertStorageVolumeIdsToPaths, true );
 
     m_gatherGlobalStorageDeviceStats = appConfig.GetValueAlways( "gatherGlobalStorageDeviceStats", m_gatherGlobalStorageDeviceStats ).AsBool( m_gatherGlobalStorageDeviceStats, true );

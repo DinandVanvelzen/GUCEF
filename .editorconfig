@@ -1,0 +1,26 @@
+root = true
+
+[*.{h,cpp}]
+charset = utf-8
+indent_style = space
+indent_size = 4
+tab_width = 4
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C++ specific style
+# - Braces on new lines for classes, functions, and namespaces
+# - Macros: UPPER_CASE
+# - Classes: PascalCase with 'C' prefix
+# - Member variables: camelBack, no prefix
+# - Constants: UPPER_CASE
+# - Indentation: 4 spaces
+# - Use Doxygen/C-style comments for documentation
+# - Project includes after system includes
+# - Use include guards
+
+# Exclude dependencies folder
+[dependencies/**]
+indent_style = unset
+indent_size = unset

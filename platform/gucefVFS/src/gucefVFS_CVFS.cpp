@@ -2358,8 +2358,10 @@ CVFS::MountFileSystemRoots( const CORE::CString& overrideMountRoot ,
         CORE::CString fsVolumePath;
         CORE::GetVolumePathForVolumeId( volumeId, fsVolumePath );
 
+        CORE::CStorageVolumeInfoOSData volumeInfoOSData;
         CORE::CStorageVolumeInformation fsVolumeInfo;
-        CORE::GetFileSystemStorageVolumeInformationByVolumeId( fsVolumeInfo, volumeId );
+        volumeInfoOSData.SetVolumeId( volumeId );
+        CORE::GetFileSystemStorageVolumeInformation( volumeInfoOSData, fsVolumeInfo );
 
         bool volumeIsWriteable = m_vfsVolumesAreWriteableIfPossible;
         if ( fsVolumeInfo.hasIsReadOnly && m_vfsVolumesAreWriteableIfPossible )

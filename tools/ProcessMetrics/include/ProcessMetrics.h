@@ -29,6 +29,11 @@
 #define GUCEF_CORE_CITASKCONSUMER_H
 #endif /* GUCEF_CORE_CITASKCONSUMER_H ? */
 
+#ifndef GUCEF_CORE_DVCPPFILEUTILS_H
+#include "dvcppfileutils.h"
+#define GUCEF_CORE_DVCPPFILEUTILS_H
+#endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
+
 #ifndef GUCEF_COMCORE_CUDPSOCKET_H
 #include "CUDPSocket.h"
 #define GUCEF_COMCORE_CUDPSOCKET_H
@@ -38,11 +43,6 @@
 #include "CTCPServerSocket.h"
 #define GUCEF_COMCORE_CTCPSERVERSOCKET_H
 #endif /* GUCEF_COMCORE_CTCPSERVERSOCKET_H ? */
-
-#ifndef GUCEF_COMCORE_CTCPCLIENTSOCKET_H
-#include "CTCPClientSocket.h"
-#define GUCEF_COMCORE_CTCPCLIENTSOCKET_H
-#endif /* GUCEF_COMCORE_CTCPCLIENTSOCKET_H ? */
 
 #ifndef GUCEF_PUBSUB_CPUBSUBCLIENT_H
 #include "gucefPUBSUB_CPubSubClient.h"
@@ -274,6 +274,21 @@ class ProcessMetrics : public CORE::CObservingNotifier
     typedef CORE::CString::StringVector TStringVector;
     typedef std::map< CORE::CString, MetricThreshold >  TMetricsThresholdMap;
     typedef std::map< CORE::CString, TMetricsThresholdMap >  TMetricsThresholdMapMap;
+    typedef std::pair< CORE::CStorageDeviceInfoOSDataPtr, CORE::CStorageDeviceInformationPtr >  TStorageDeviceInfoPair;
+    typedef std::map< CORE::CString, TStorageDeviceInfoPair > TStorageDeviceInfoMap;
+    typedef std::pair< CORE::CStorageVolumeInfoOSDataPtr, CORE::CStorageVolumeInformationPtr >  TStorageVolumeInfoPair;
+    typedef std::map< CORE::CString, TStorageVolumeInfoPair > TStorageVolumeInfoMap;
+
+    bool GetStorageDeviceInformationObjs( const CORE::CString& deviceId                       ,
+                                          CORE::CStorageDeviceInfoOSDataPtr& deviceInfoOSData ,
+                                          CORE::CStorageDeviceInformationPtr& deviceInfo      );
+
+    bool GetStorageVolumeInformationObjs( const CORE::CString& volumeId                       ,
+                                          CORE::CStorageVolumeInfoOSDataPtr& volumeInfoOSData ,
+                                          CORE::CStorageVolumeInformationPtr& deviceInfo      );
+
+    void DispatchStorageVolumeMetrics( CORE::CStorageVolumeInfoOSDataPtr volumeInfoOSData ,
+                                       CORE::CStorageVolumeInformationPtr deviceInfo      );
 
     WEB::CHTTPServer m_httpServer;
     WEB::CDefaultHTTPServerRouter m_httpRouter;
@@ -297,6 +312,8 @@ class ProcessMetrics : public CORE::CObservingNotifier
     CORE::CString::StringSet m_storageVolumeIds;
     CORE::CString::StringMap m_storageVolumeIdsToPaths;
     CORE::CString::StringSet m_storageDeviceIds;
+    TStorageDeviceInfoMap m_storageDeviceInfoMap;
+    TStorageVolumeInfoMap m_storageVolumeInfoMap;
 
     bool m_gatherProcPageFaultCountInBytes;
     bool m_gatherProcPageFileUsageInBytes;
@@ -346,12 +363,25 @@ class ProcessMetrics : public CORE::CObservingNotifier
     bool m_gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec;
     bool m_gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec;
 
-    bool m_gatherGlobalStorageStats;
+    bool m_gatherGlobalStorageVolumeStats;
+    bool m_gatherGlobalStorageVolumeStatsPerVolume;
     bool m_gatherGlobalStorageVolumeBytesAvailableToCaller;
     bool m_gatherGlobalStorageVolumeBytesAvailable;
     bool m_gatherGlobalStorageVolumeBytes;
     bool m_gatherGlobalStorageVolumeAvailableToCallerPercentage;
     bool m_gatherGlobalStorageVolumeAvailablePercentage;
+    bool m_gatherGlobalStorageVolumeBytesWritten;
+    bool m_gatherGlobalStorageVolumeBytesWrittenPerSec;
+    bool m_gatherGlobalStorageVolumeAvgBytesWrittenPerSec;
+    bool m_gatherGlobalStorageVolumeBytesRead;
+    bool m_gatherGlobalStorageVolumeBytesReadPerSec;
+    bool m_gatherGlobalStorageVolumeAvgBytesReadPerSec;
+    bool m_gatherGlobalStorageVolumeRequestsQueued;
+    bool m_gatherGlobalStorageVolumeRequestsSplit;
+    bool m_gatherGlobalStorageVolumeRequestsSplitPerSec;
+    bool m_gatherGlobalStorageVolumeReadTimeInMs;
+    bool m_gatherGlobalStorageVolumeWriteTimeInMs;
+    bool m_gatherGlobalStorageVolumeIdleTimeInMs;
     bool m_convertStorageVolumeIdsToPaths;
 
     bool m_gatherGlobalStorageDeviceStats;
