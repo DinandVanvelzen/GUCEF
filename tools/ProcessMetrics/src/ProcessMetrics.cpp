@@ -570,6 +570,7 @@ ProcessMetrics::ProcessMetrics( void )
     , m_gatherGlobalNetworkStatOutboundBroadcastOctets( true )
     , m_gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec( true )
     , m_gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec( true )
+    , m_useNetworkInterfaceDescriptionAsMetricName( true )
     , m_gatherGlobalStorageVolumeStats( true )
     , m_gatherGlobalStorageVolumeStatsPerVolume( true )
     , m_gatherGlobalStorageVolumeBytesAvailableToCaller( true )
@@ -579,24 +580,24 @@ ProcessMetrics::ProcessMetrics( void )
     , m_gatherGlobalStorageVolumeAvailablePercentage( true )
     , m_gatherGlobalStorageVolumeBytesWritten( true )
     , m_gatherGlobalStorageVolumeBytesWrittenPerSec( true )
-    , m_gatherGlobalStorageVolumeAvgBytesWrittenPerSec( true )
+    , m_gatherGlobalStorageVolumeAvgWriteTimePerOperationInMs( true )
     , m_gatherGlobalStorageVolumeBytesRead( true )
     , m_gatherGlobalStorageVolumeBytesReadPerSec( true )
-    , m_gatherGlobalStorageVolumeAvgBytesReadPerSec( true )
+    , m_gatherGlobalStorageVolumeAvgReadTimePerOperationInMs( true )
     , m_gatherGlobalStorageVolumeRequestsQueued( true )
     , m_gatherGlobalStorageVolumeRequestsSplit( true )
     , m_gatherGlobalStorageVolumeRequestsSplitPerSec( true )
     , m_gatherGlobalStorageVolumeReadTimeInMs( true )
     , m_gatherGlobalStorageVolumeWriteTimeInMs( true )
     , m_gatherGlobalStorageVolumeIdleTimeInMs( true )
-    , m_convertStorageVolumeIdsToPaths( true )
+    , m_convertStorageVolumeIdsToPathsAsMetricName( true )
     , m_gatherGlobalStorageDeviceStats( true )
     , m_gatherGlobalStorageDeviceBytesWritten( true )
     , m_gatherGlobalStorageDeviceBytesWrittenPerSec( true )
-    , m_gatherGlobalStorageDeviceAvgBytesWrittenPerSec( true )
+    , m_gatherGlobalStorageDeviceAvgWriteTimePerOperationInMs( true )
     , m_gatherGlobalStorageDeviceBytesRead( true )
     , m_gatherGlobalStorageDeviceBytesReadPerSec( true )
-    , m_gatherGlobalStorageDeviceAvgBytesReadPerSec( true )
+    , m_gatherGlobalStorageDeviceAvgReadTimePerOperationInMs( true )
     , m_gatherGlobalStorageDeviceRequestsQueued( true )
     , m_gatherGlobalStorageDeviceRequestsSplit( true )
     , m_gatherGlobalStorageDeviceRequestsSplitPerSec( true )
@@ -1166,7 +1167,7 @@ ProcessMetrics::DispatchStorageVolumeMetrics( CORE::CStorageVolumeInfoOSDataPtr 
     CORE::CStorageVolumeInformation& volumeInfo = *volumeInfoObj;
 
     const CORE::CString* metricStrToUse = &storageVolumeId;
-    if ( m_convertStorageVolumeIdsToPaths && !storagePath.IsNULLOrEmpty() )
+    if ( m_convertStorageVolumeIdsToPathsAsMetricName && !storagePath.IsNULLOrEmpty() )
         metricStrToUse = &storagePath;
 
     CORE::CString metricsStorageVolumeId = GenerateMetricsFriendlyString( *metricStrToUse );
@@ -1220,11 +1221,11 @@ ProcessMetrics::DispatchStorageVolumeMetrics( CORE::CStorageVolumeInfoOSDataPtr 
             GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesWrittenPerSec, 1.0f );
             ValidateMetricThresholds( CORE::CVariant( perfStats.bytesWrittenPerSec ), storageMetricName, CORE::CString::Empty );
         }
-        if ( m_gatherGlobalStorageVolumeAvgBytesWrittenPerSec && perfStats.hasAvgBytesWrittenPerSec )
+        if ( m_gatherGlobalStorageVolumeAvgWriteTimePerOperationInMs && perfStats.hasAvgWriteTimePerOperationInMs )
         {
-            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".AvgBytesWrittenPerSec";
-            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.avgBytesWrittenPerSec, 1.0f );
-            ValidateMetricThresholds( CORE::CVariant( perfStats.avgBytesWrittenPerSec ), storageMetricName, CORE::CString::Empty );
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".AvgWriteTimePerOperationInMs";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.avgWriteTimePerOperationInMs, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.avgWriteTimePerOperationInMs ), storageMetricName, CORE::CString::Empty );
         }
         if ( m_gatherGlobalStorageVolumeBytesRead && perfStats.hasBytesRead )
         {
@@ -1238,11 +1239,11 @@ ProcessMetrics::DispatchStorageVolumeMetrics( CORE::CStorageVolumeInfoOSDataPtr 
             GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesReadPerSec, 1.0f );
             ValidateMetricThresholds( CORE::CVariant( perfStats.bytesReadPerSec ), storageMetricName, CORE::CString::Empty );
         }
-        if ( m_gatherGlobalStorageVolumeAvgBytesReadPerSec && perfStats.hasAvgBytesReadPerSec )
+        if ( m_gatherGlobalStorageVolumeAvgReadTimePerOperationInMs && perfStats.hasAvgReadTimePerOperationInMs )
         {
-            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".AvgBytesReadPerSec";
-            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.avgBytesReadPerSec, 1.0f );
-            ValidateMetricThresholds( CORE::CVariant( perfStats.avgBytesReadPerSec ), storageMetricName, CORE::CString::Empty );
+            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageVolumeId + ".AvgReadTimePerOperationInMs";
+            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.avgReadTimePerOperationInMs, 1.0f );
+            ValidateMetricThresholds( CORE::CVariant( perfStats.avgReadTimePerOperationInMs ), storageMetricName, CORE::CString::Empty );
         }
         if ( m_gatherGlobalStorageVolumeRequestsQueued && perfStats.hasRequestQueueDepth )
         {
@@ -1653,6 +1654,7 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
         if ( comms.GetAllNetworkInterfaces( nics ) )
         {
             static const CORE::CString nicMetricNamePrefix = "ProcessMetrics.Network.";
+
             COMCORE::CCom::TINetworkInterfacePtrVector::iterator i = nics.begin();
             while ( i != nics.end() )
             {
@@ -1660,111 +1662,113 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
                 COMCORE::CNetworkInterfaceMetrics nicMetrics;
                 if ( !nic.IsNULL() && nic->GetMetrics( nicMetrics ) )
                 {
+                    const CORE::CString nicId = GenerateMetricsFriendlyString( m_useNetworkInterfaceDescriptionAsMetricName ? nic->GetAdapterDescription() : nic->GetAdapterName() );
+
                     if ( m_gatherGlobalNetworkStatInboundOctets && nicMetrics.hasInboundOctets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".InboundOctets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".InboundOctets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.inboundOctets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.inboundOctets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatInboundUnicastOctets && nicMetrics.hasInboundUnicastOctets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".InboundUnicastOctets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".InboundUnicastOctets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.inboundUnicastOctets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.inboundUnicastOctets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatInboundUnicastPackets && nicMetrics.hasInboundUnicastPackets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".InboundUnicastPackets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".InboundUnicastPackets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.inboundUnicastPackets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.inboundUnicastPackets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatInboundNonUnicastPackets && nicMetrics.hasInboundNonUnicastPackets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".InboundNonUnicastPackets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".InboundNonUnicastPackets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.inboundNonUnicastPackets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.inboundNonUnicastPackets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatInboundErroredPackets && nicMetrics.hasInboundErroredPackets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".InboundErroredPackets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".InboundErroredPackets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.inboundErroredPackets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.inboundErroredPackets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatInboundDiscardedPackets && nicMetrics.hasInboundDiscardedPackets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".InboundDiscardedPackets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".InboundDiscardedPackets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.inboundDiscardedPackets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.inboundDiscardedPackets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatOutboundOctets && nicMetrics.hasOutboundOctets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".OutboundOctets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".OutboundOctets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.outboundOctets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.outboundOctets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatOutboundUnicastOctets && nicMetrics.hasOutboundUnicastOctets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".OutboundUnicastOctets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".OutboundUnicastOctets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.outboundUnicastOctets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.outboundUnicastOctets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatOutboundUnicastPackets && nicMetrics.hasOutboundUnicastPackets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".OutboundUnicastPackets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".OutboundUnicastPackets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.outboundUnicastPackets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.outboundUnicastPackets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatOutboundNonUnicastPackets && nicMetrics.hasOutboundNonUnicastPackets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".OutboundNonUnicastPackets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".OutboundNonUnicastPackets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.outboundNonUnicastPackets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.outboundNonUnicastPackets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatOutboundErroredPackets && nicMetrics.hasOutboundErroredPackets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".OutboundErroredPackets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".OutboundErroredPackets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.outboundErroredPackets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.outboundErroredPackets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatOutboundDiscardedPackets && nicMetrics.hasOutboundDiscardedPackets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".OutboundDiscardedPackets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".OutboundDiscardedPackets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.outboundDiscardedPackets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.outboundDiscardedPackets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatInboundMulticastOctets && nicMetrics.hasInboundMulticastOctets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".InboundMulticastOctets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".InboundMulticastOctets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.inboundMulticastOctets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.inboundMulticastOctets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatOutboundMulticastOctets && nicMetrics.hasOutboundMulticastOctets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".OutboundMulticastOctets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".OutboundMulticastOctets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.outboundMulticastOctets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.outboundMulticastOctets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatInboundBroadcastOctets && nicMetrics.hasInboundBroadcastOctets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".InboundBroadcastOctets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".InboundBroadcastOctets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.inboundBroadcastOctets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.inboundBroadcastOctets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatOutboundBroadcastOctets && nicMetrics.hasOutboundBroadcastOctets )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".OutboundBroadcastOctets";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".OutboundBroadcastOctets";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.outboundBroadcastOctets, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.outboundBroadcastOctets ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec && nicMetrics.hasTransmitLinkSpeedBitsPerSec )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".TransmitLinkSpeedBitsPerSec";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".TransmitLinkSpeedBitsPerSec";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.transmitLinkSpeedBitsPerSec, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.transmitLinkSpeedBitsPerSec ), nicMetricName, CORE::CString::Empty );
                     }
                     if ( m_gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec && nicMetrics.hasReceiveLinkSpeedBitsPerSec )
                     {
-                        CORE::CString nicMetricName = nicMetricNamePrefix + nic->GetAdapterName() + ".ReceiveLinkSpeedBitsPerSec";
+                        CORE::CString nicMetricName = nicMetricNamePrefix + nicId + ".ReceiveLinkSpeedBitsPerSec";
                         GUCEF_METRIC_GAUGE( nicMetricName, nicMetrics.receiveLinkSpeedBitsPerSec, 1.0f );
                         ValidateMetricThresholds( CORE::CVariant( nicMetrics.receiveLinkSpeedBitsPerSec ), nicMetricName, CORE::CString::Empty );
                     }
@@ -1807,7 +1811,7 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
                 }
             }
 
-            if ( m_convertStorageVolumeIdsToPaths )
+            if ( m_convertStorageVolumeIdsToPathsAsMetricName )
             {
                 CORE::CString::StringSet::iterator i = m_storageVolumeIds.begin();
                 while ( i != m_storageVolumeIds.end() )
@@ -1920,11 +1924,11 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
                             GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesWrittenPerSec, 1.0f );
                             ValidateMetricThresholds( CORE::CVariant( perfStats.bytesWrittenPerSec ), storageMetricName, CORE::CString::Empty );
                         }
-                        if ( m_gatherGlobalStorageDeviceAvgBytesWrittenPerSec && perfStats.hasAvgBytesWrittenPerSec )
+                        if ( m_gatherGlobalStorageDeviceAvgWriteTimePerOperationInMs && perfStats.hasAvgWriteTimePerOperationInMs )
                         {
-                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".AvgBytesWrittenPerSec";
-                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.avgBytesWrittenPerSec, 1.0f );
-                            ValidateMetricThresholds( CORE::CVariant( perfStats.avgBytesWrittenPerSec ), storageMetricName, CORE::CString::Empty );
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".AvgWriteTimePerOperationInMs";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.avgWriteTimePerOperationInMs, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.avgWriteTimePerOperationInMs ), storageMetricName, CORE::CString::Empty );
                         }
                         if ( m_gatherGlobalStorageDeviceBytesRead && perfStats.hasBytesRead )
                         {
@@ -1938,11 +1942,11 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
                             GUCEF_METRIC_GAUGE( storageMetricName, perfStats.bytesReadPerSec, 1.0f );
                             ValidateMetricThresholds( CORE::CVariant( perfStats.bytesReadPerSec ), storageMetricName, CORE::CString::Empty );
                         }
-                        if ( m_gatherGlobalStorageDeviceAvgBytesReadPerSec && perfStats.hasAvgBytesReadPerSec )
+                        if ( m_gatherGlobalStorageDeviceAvgReadTimePerOperationInMs && perfStats.hasAvgReadTimePerOperationInMs )
                         {
-                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".AvgBytesReadPerSec";
-                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.avgBytesReadPerSec, 1.0f );
-                            ValidateMetricThresholds( CORE::CVariant( perfStats.avgBytesReadPerSec ), storageMetricName, CORE::CString::Empty );
+                            CORE::CString storageMetricName = storageMetricNamePrefix + metricsStorageDeviceId + ".AvgReadTimePerOperationInMs";
+                            GUCEF_METRIC_GAUGE( storageMetricName, perfStats.avgReadTimePerOperationInMs, 1.0f );
+                            ValidateMetricThresholds( CORE::CVariant( perfStats.avgReadTimePerOperationInMs ), storageMetricName, CORE::CString::Empty );
                         }
                         if ( m_gatherGlobalStorageDeviceRequestsQueued && perfStats.hasRequestQueueDepth )
                         {
@@ -1982,6 +1986,14 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
                         }
                     }
                 }
+                else
+                {
+                    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ProcessMetrics: Failed to obtain storage device information for device with id: " + deviceId );
+                }
+            }
+            else
+            {
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ProcessMetrics: Failed to obtain storage device information objects for device with id: " + deviceId );
             }
             
             ++i;
@@ -2000,8 +2012,8 @@ ProcessMetrics::GenerateMetricsFriendlyString( const CORE::CString& str )
     // Let's avoid non-ASCII stumbling blocks and force the down to ASCII
     CORE::CAsciiString asciiMetricsFriendlyStr = str.ForceToAscii( '_' );
 
-    // Replace special chars
-    static const char disallowedChars[] = { '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '=', '+', ',', '.', '<', '>', '/', '?', '`', '~', '\\', '|', '{', '}', '[', ']', ';', ':', '\'', '\"' };
+    // Replace special chars and space/tabs with an underscore
+    static const char disallowedChars[] = { ' ', '\t', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '=', '+', ',', '.', '<', '>', '/', '?', '`', '~', '\\', '|', '{', '}', '[', ']', ';', ':', '\'', '\"' };
     asciiMetricsFriendlyStr = asciiMetricsFriendlyStr.ReplaceChars( disallowedChars, sizeof(disallowedChars)/sizeof(char), '_' );
 
     // Back to the platform wide string convention format
@@ -2137,6 +2149,7 @@ ProcessMetrics::LoadConfig( const CORE::CValueList& appConfig   ,
     m_gatherGlobalNetworkStatInboundNonUnicastPackets = appConfig.GetValueAlways( "gatherGlobalNetworkStatInboundNonUnicastPackets", m_gatherGlobalNetworkStatInboundNonUnicastPackets ).AsBool( m_gatherGlobalNetworkStatInboundNonUnicastPackets, true );
     m_gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec = appConfig.GetValueAlways( "gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec", m_gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec ).AsBool( m_gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec, true );
     m_gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec = appConfig.GetValueAlways( "gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec", m_gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec ).AsBool( m_gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec, true );
+    m_useNetworkInterfaceDescriptionAsMetricName = appConfig.GetValueAlways( "useNetworkInterfaceDescriptionAsMetricName", m_useNetworkInterfaceDescriptionAsMetricName ).AsBool( m_useNetworkInterfaceDescriptionAsMetricName, true );
 
     m_gatherGlobalStorageVolumeStats = appConfig.GetValueAlways( "gatherGlobalStorageVolumeStats", m_gatherGlobalStorageVolumeStats ).AsBool( m_gatherGlobalStorageVolumeStats, true );
     m_gatherGlobalStorageVolumeStatsPerVolume = appConfig.GetValueAlways( "gatherGlobalStorageVolumeStatsPerVolume", m_gatherGlobalStorageVolumeStatsPerVolume ).AsBool( m_gatherGlobalStorageVolumeStatsPerVolume, true );
@@ -2147,25 +2160,25 @@ ProcessMetrics::LoadConfig( const CORE::CValueList& appConfig   ,
     m_gatherGlobalStorageVolumeAvailablePercentage = appConfig.GetValueAlways( "gatherGlobalStorageVolumeAvailablePercentage", m_gatherGlobalStorageVolumeAvailablePercentage ).AsBool( m_gatherGlobalStorageVolumeAvailablePercentage, true );
     m_gatherGlobalStorageVolumeBytesWritten = appConfig.GetValueAlways( "gatherGlobalStorageVolumeBytesWritten", m_gatherGlobalStorageVolumeBytesWritten ).AsBool( m_gatherGlobalStorageVolumeBytesWritten, true );
     m_gatherGlobalStorageVolumeBytesWrittenPerSec = appConfig.GetValueAlways( "gatherGlobalStorageVolumeBytesWrittenPerSec", m_gatherGlobalStorageVolumeBytesWrittenPerSec ).AsBool( m_gatherGlobalStorageVolumeBytesWrittenPerSec, true );
-    m_gatherGlobalStorageVolumeAvgBytesWrittenPerSec = appConfig.GetValueAlways( "gatherGlobalStorageVolumeAvgBytesWrittenPerSec", m_gatherGlobalStorageVolumeAvgBytesWrittenPerSec ).AsBool( m_gatherGlobalStorageVolumeAvgBytesWrittenPerSec, true );
+    m_gatherGlobalStorageVolumeAvgWriteTimePerOperationInMs = appConfig.GetValueAlways( "gatherGlobalStorageVolumeAvgWriteTimePerOperationInMs", m_gatherGlobalStorageVolumeAvgWriteTimePerOperationInMs ).AsBool( m_gatherGlobalStorageVolumeAvgWriteTimePerOperationInMs, true );
     m_gatherGlobalStorageVolumeBytesRead = appConfig.GetValueAlways( "gatherGlobalStorageVolumeBytesRead", m_gatherGlobalStorageVolumeBytesRead ).AsBool( m_gatherGlobalStorageVolumeBytesRead, true );
     m_gatherGlobalStorageVolumeBytesReadPerSec = appConfig.GetValueAlways( "gatherGlobalStorageVolumeBytesReadPerSec", m_gatherGlobalStorageVolumeBytesReadPerSec ).AsBool( m_gatherGlobalStorageVolumeBytesReadPerSec, true );
-    m_gatherGlobalStorageVolumeAvgBytesReadPerSec = appConfig.GetValueAlways( "gatherGlobalStorageVolumeAvgBytesReadPerSec", m_gatherGlobalStorageVolumeAvgBytesReadPerSec ).AsBool( m_gatherGlobalStorageVolumeAvgBytesReadPerSec, true );
+    m_gatherGlobalStorageVolumeAvgReadTimePerOperationInMs = appConfig.GetValueAlways( "gatherGlobalStorageVolumeAvgReadTimePerOperationInMs", m_gatherGlobalStorageVolumeAvgReadTimePerOperationInMs ).AsBool( m_gatherGlobalStorageVolumeAvgReadTimePerOperationInMs, true );
     m_gatherGlobalStorageVolumeRequestsQueued = appConfig.GetValueAlways( "gatherGlobalStorageVolumeRequestsQueued", m_gatherGlobalStorageVolumeRequestsQueued ).AsBool( m_gatherGlobalStorageVolumeRequestsQueued, true );
     m_gatherGlobalStorageVolumeRequestsSplit = appConfig.GetValueAlways( "gatherGlobalStorageVolumeRequestsSplit", m_gatherGlobalStorageVolumeRequestsSplit ).AsBool( m_gatherGlobalStorageVolumeRequestsSplit, true );
     m_gatherGlobalStorageVolumeRequestsSplitPerSec = appConfig.GetValueAlways( "gatherGlobalStorageVolumeRequestsSplitPerSec", m_gatherGlobalStorageVolumeRequestsSplitPerSec ).AsBool( m_gatherGlobalStorageVolumeRequestsSplitPerSec, true );
     m_gatherGlobalStorageVolumeReadTimeInMs = appConfig.GetValueAlways( "gatherGlobalStorageVolumeReadTimeInMs", m_gatherGlobalStorageVolumeReadTimeInMs ).AsBool( m_gatherGlobalStorageVolumeReadTimeInMs, true );
     m_gatherGlobalStorageVolumeWriteTimeInMs = appConfig.GetValueAlways( "gatherGlobalStorageVolumeWriteTimeInMs", m_gatherGlobalStorageVolumeWriteTimeInMs ).AsBool( m_gatherGlobalStorageVolumeWriteTimeInMs, true );
     m_gatherGlobalStorageVolumeIdleTimeInMs = appConfig.GetValueAlways( "gatherGlobalStorageVolumeIdleTimeInMs", m_gatherGlobalStorageVolumeIdleTimeInMs ).AsBool( m_gatherGlobalStorageVolumeIdleTimeInMs, true );
-    m_convertStorageVolumeIdsToPaths = appConfig.GetValueAlways( "convertStorageVolumeIdsToPaths", m_convertStorageVolumeIdsToPaths ).AsBool( m_convertStorageVolumeIdsToPaths, true );
+    m_convertStorageVolumeIdsToPathsAsMetricName = appConfig.GetValueAlways( "convertStorageVolumeIdsToPathsAsMetricName", m_convertStorageVolumeIdsToPathsAsMetricName ).AsBool( m_convertStorageVolumeIdsToPathsAsMetricName, true );
 
     m_gatherGlobalStorageDeviceStats = appConfig.GetValueAlways( "gatherGlobalStorageDeviceStats", m_gatherGlobalStorageDeviceStats ).AsBool( m_gatherGlobalStorageDeviceStats, true );
     m_gatherGlobalStorageDeviceBytesWritten = appConfig.GetValueAlways( "gatherGlobalStorageDeviceBytesWritten", m_gatherGlobalStorageDeviceBytesWritten ).AsBool( m_gatherGlobalStorageDeviceBytesWritten, true );
     m_gatherGlobalStorageDeviceBytesWrittenPerSec = appConfig.GetValueAlways( "gatherGlobalStorageDeviceBytesWrittenPerSec", m_gatherGlobalStorageDeviceBytesWrittenPerSec ).AsBool( m_gatherGlobalStorageDeviceBytesWrittenPerSec, true );
-    m_gatherGlobalStorageDeviceAvgBytesWrittenPerSec = appConfig.GetValueAlways( "gatherGlobalStorageDeviceAvgBytesWrittenPerSec", m_gatherGlobalStorageDeviceAvgBytesWrittenPerSec ).AsBool( m_gatherGlobalStorageDeviceAvgBytesWrittenPerSec, true );
+    m_gatherGlobalStorageDeviceAvgWriteTimePerOperationInMs = appConfig.GetValueAlways( "gatherGlobalStorageDeviceAvgWriteTimePerOperationInMs", m_gatherGlobalStorageDeviceAvgWriteTimePerOperationInMs ).AsBool( m_gatherGlobalStorageDeviceAvgWriteTimePerOperationInMs, true );
     m_gatherGlobalStorageDeviceBytesRead = appConfig.GetValueAlways( "gatherGlobalStorageDeviceBytesRead", m_gatherGlobalStorageDeviceBytesRead ).AsBool( m_gatherGlobalStorageDeviceBytesRead, true );
     m_gatherGlobalStorageDeviceBytesReadPerSec = appConfig.GetValueAlways( "gatherGlobalStorageDeviceBytesReadPerSec", m_gatherGlobalStorageDeviceBytesReadPerSec ).AsBool( m_gatherGlobalStorageDeviceBytesReadPerSec, true );
-    m_gatherGlobalStorageDeviceAvgBytesReadPerSec = appConfig.GetValueAlways( "gatherGlobalStorageDeviceAvgBytesReadPerSec", m_gatherGlobalStorageDeviceAvgBytesReadPerSec ).AsBool( m_gatherGlobalStorageDeviceAvgBytesReadPerSec, true );
+    m_gatherGlobalStorageDeviceAvgReadTimePerOperationInMs = appConfig.GetValueAlways( "gatherGlobalStorageDeviceAvgReadTimePerOperationInMs", m_gatherGlobalStorageDeviceAvgReadTimePerOperationInMs ).AsBool( m_gatherGlobalStorageDeviceAvgReadTimePerOperationInMs, true );
     m_gatherGlobalStorageDeviceRequestsQueued = appConfig.GetValueAlways( "gatherGlobalStorageDeviceRequestsQueued", m_gatherGlobalStorageDeviceRequestsQueued ).AsBool( m_gatherGlobalStorageDeviceRequestsQueued, true );
     m_gatherGlobalStorageDeviceRequestsSplit = appConfig.GetValueAlways( "gatherGlobalStorageDeviceRequestsSplit", m_gatherGlobalStorageDeviceRequestsSplit ).AsBool( m_gatherGlobalStorageDeviceRequestsSplit, true );
     m_gatherGlobalStorageDeviceRequestsSplitPerSec = appConfig.GetValueAlways( "gatherGlobalStorageDeviceRequestsSplitPerSec", m_gatherGlobalStorageDeviceRequestsSplitPerSec ).AsBool( m_gatherGlobalStorageDeviceRequestsSplitPerSec, true );

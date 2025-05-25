@@ -47,6 +47,11 @@
 #define GUCEF_CORE_CDYNAMICBUFFER_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
 
+#ifndef GUCEF_CORE_CVARIANT_H
+#include "gucefCORE_CVariant.h"
+#define GUCEF_CORE_CVARIANT_H
+#endif /* GUCEF_CORE_CVARIANT_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -119,6 +124,7 @@ class GUCEF_HIDDEN CWmiAccessImpl
 #define PDH_NO_DATA            0x800007D5
 #define PDH_MORE_DATA          0x800007D2
 #define PDH_CSTATUS_NO_COUNTER ( (PDH_STATUS) -1073738820 )  // 0xC0000BC4
+#define PDH_INVALID_DATA       ( (PDH_STATUS) -1073738810 )  // 0xC0000BC6 // specified counter does not contain valid data or a successful status code.
 
 class GUCEF_HIDDEN CPdhAccessImpl
 {
@@ -180,7 +186,7 @@ class GUCEF_HIDDEN CPdhAccessImpl
     /**
      *  Pulls latest performance data from the PDH API
      */
-    bool CollectStats( bool& hasNewStats );
+    bool CollectStats( UInt64& lastCollectTimeInTicks );
 };
 
 /*-------------------------------------------------------------------------*/
@@ -202,7 +208,8 @@ class GUCEF_HIDDEN CPdhDevicePerfStatAccessImpl
         public: 
         std::wstring name;
         PDH_HCOUNTER handle;
-        LONGLONG value;
+        CVariant value;
+        DWORD formatType;
         bool hasUpdatedValue;
 
         CounterInfo( void );
@@ -212,6 +219,7 @@ class GUCEF_HIDDEN CPdhDevicePerfStatAccessImpl
     typedef std::map< CString, TCounterInfoVector >                    TVolumePathToCounterInfoVector;
     
     TVolumePathToCounterInfoVector m_counters;
+    UInt64 m_lastCounterUpdateTimeInTicks;
     CPdhAccessImpl* m_pdhApi;
     bool m_isInitialized;
 
@@ -227,6 +235,7 @@ class GUCEF_HIDDEN CPdhDevicePerfStatAccessImpl
      *  @return whether the underlying operations experienced an error or not. true = no error
      */
     bool CollectStats( CStorageDeviceInformation& devicePerfStats ,
+                       UInt64 rtQueryLastCollectTimeInTicks       ,
                        bool& hasNewStats                          );
 
     void Clear( void );
@@ -255,7 +264,8 @@ class GUCEF_HIDDEN CPdhVolumePerfStatAccessImpl
         public: 
         std::wstring name;
         PDH_HCOUNTER handle;
-        LONGLONG value;
+        CVariant value;
+        DWORD formatType;
         bool hasUpdatedValue;
 
         CounterInfo( void );
@@ -264,6 +274,7 @@ class GUCEF_HIDDEN CPdhVolumePerfStatAccessImpl
     typedef std::vector< CounterInfo, gucef_allocator< CounterInfo > > TCounterInfoVector;
     
     TCounterInfoVector m_counters;
+    UInt64 m_lastCounterUpdateTimeInTicks;
     CPdhAccessImpl* m_pdhApi;
     bool m_isInitialized;
 
@@ -272,13 +283,14 @@ class GUCEF_HIDDEN CPdhVolumePerfStatAccessImpl
     bool IsInitialized( void ) const;
 
     /**
-     *  Retrieves the performance counter values after a successfull system query
-     *  Note that a successfull system query doesnt mean these specfic counters had an update
+     *  Retrieves the performance counter values after a successful system query
+     *  Note that a successful system query doesn't mean these specific counters had an update
      * 
      *  @param hasNewStats whether there are any stat values that were updated as a result of the query vs just 'last known' values
      *  @return whether the underlying operations experienced an error or not. true = no error
      */
     bool CollectStats( CStorageVolumeInformation& volumePerfStats ,
+                       UInt64 rtQueryLastCollectTimeInTicks       ,
                        bool& hasNewStats                          );
 
     void Clear( void );
@@ -533,7 +545,9 @@ CWmiAccessImpl::GetPhysicalDeviceIdsFromWMI( const CString& volumeGuid          
             pVolEnum->Release();
             if ( GUCEF_NULL != pVolObj )
                 pVolObj->Release();    
-            return 1;
+
+            // not having a drive letter is not an error. its a perfectly valid usecase
+            return 0;
         }
 
         // Read the DriveLetter
@@ -740,7 +754,8 @@ CWmiAccess::IsValid( void ) const
 CPdhDevicePerfStatAccessImpl::CounterInfo::CounterInfo( void )
     : name()
     , handle( GUCEF_NULL )
-    , value( 0 )
+    , value()
+    , formatType( PDH_FMT_LARGE ) // Default to large format for bytes/sec counters
     , hasUpdatedValue( false )
 {GUCEF_TRACE;
 
@@ -750,6 +765,7 @@ CPdhDevicePerfStatAccessImpl::CounterInfo::CounterInfo( void )
 
 CPdhDevicePerfStatAccessImpl::CPdhDevicePerfStatAccessImpl( void )
     : m_counters()
+    , m_lastCounterUpdateTimeInTicks( 0 )
     , m_pdhApi( GUCEF_NULL )
     , m_isInitialized( false )
 {GUCEF_TRACE;
@@ -797,6 +813,7 @@ CPdhDevicePerfStatAccessImpl::Clear( void )
         m_pdhApi = GUCEF_NULL;
     }
 
+    m_lastCounterUpdateTimeInTicks = 0;
     m_isInitialized = false;
 }
 
@@ -848,11 +865,17 @@ CPdhDevicePerfStatAccessImpl::InitForDeviceId( UInt32 deviceIndex     ,
                 // Initialize the PDH counters for the specified device ID
                 counterInfo.resize( 6 );
                 counterInfo[ 0 ].name = L"\\PhysicalDisk(" + wDeviceAndMountEntry + L")\\Disk Read Bytes/sec";
+                counterInfo[ 0 ].formatType = PDH_FMT_LARGE;
                 counterInfo[ 1 ].name = L"\\PhysicalDisk(" + wDeviceAndMountEntry + L")\\Disk Write Bytes/sec";
+                counterInfo[ 1 ].formatType = PDH_FMT_LARGE;
                 counterInfo[ 2 ].name = L"\\PhysicalDisk(" + wDeviceAndMountEntry + L")\\Avg. Disk sec/Read";
+                counterInfo[ 2 ].formatType = PDH_FMT_DOUBLE;
                 counterInfo[ 3 ].name = L"\\PhysicalDisk(" + wDeviceAndMountEntry + L")\\Avg. Disk sec/Write";
+                counterInfo[ 3 ].formatType = PDH_FMT_DOUBLE;
                 counterInfo[ 4 ].name = L"\\PhysicalDisk(" + wDeviceAndMountEntry + L")\\Current Disk Queue Length";
+                counterInfo[ 4 ].formatType = PDH_FMT_LARGE;
                 counterInfo[ 5 ].name = L"\\PhysicalDisk(" + wDeviceAndMountEntry + L")\\Split IO/Sec";
+                counterInfo[ 5 ].formatType = PDH_FMT_LARGE;
 
                 for ( size_t n=0; n<counterInfo.size(); ++n )
                 {
@@ -881,6 +904,7 @@ CPdhDevicePerfStatAccessImpl::InitForDeviceId( UInt32 deviceIndex     ,
 
 bool 
 CPdhDevicePerfStatAccessImpl::CollectStats( CStorageDeviceInformation& devicePerfStats ,
+                                            UInt64 rtQueryLastCollectTimeInTicks       ,
                                             bool& hasNewStats                          )
 {GUCEF_TRACE;
     
@@ -891,76 +915,145 @@ CPdhDevicePerfStatAccessImpl::CollectStats( CStorageDeviceInformation& devicePer
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == m_pdhApi || !m_pdhApi->IsValid() || m_counters.empty() )
         return false;
 
-    // Collect stats in a best effort manner
-    TVolumePathToCounterInfoVector::iterator n = m_counters.begin();
-    while ( n != m_counters.end() )
+    bool hadErrors = false;
+
+    // Check if we need to obtain new stats from the PDH API
+    // This depends on when the last global rt query was made
+    if ( m_lastCounterUpdateTimeInTicks < rtQueryLastCollectTimeInTicks )
     {
-        TCounterInfoVector& counterInfo = (*n).second;
-        bool mountHasNewStats = false;
-
-        for ( size_t i=0; i<counterInfo.size(); ++i )
+        // Collect stats in a best effort manner
+        TVolumePathToCounterInfoVector::iterator n = m_counters.begin();
+        while ( n != m_counters.end() )
         {
-            counterInfo[i].hasUpdatedValue = false;
+            TCounterInfoVector& counterInfo = (*n).second;
+            bool mountHasNewStats = false;
 
-            // Retrieve the counter value
-            PDH_FMT_COUNTERVALUE counterValue;
-            DWORD counterType = 0;
-            PDH_STATUS status = m_pdhApi->m_pdhGetFormattedCounterValue(
-                                                                        counterInfo[i].handle,           // The PDH_HCOUNTER handle
-                                                                        PDH_FMT_LARGE,                   // Format: PDH_FMT_LONG, PDH_FMT_DOUBLE, or PDH_FMT_LARGE
-                                                                        &counterType,                    // Receives the counter type
-                                                                        &counterValue                    // Receives the value
-                                                                    );
-            if ( status == ERROR_SUCCESS )
+            for ( size_t i=0; i<counterInfo.size(); ++i )
             {
-                counterInfo[i].value = counterValue.largeValue;
-                counterInfo[i].hasUpdatedValue = true;
-                mountHasNewStats = true;
+                counterInfo[i].hasUpdatedValue = false;
+
+                // Retrieve the counter value
+                PDH_FMT_COUNTERVALUE counterValue;
+                DWORD counterType = 0;
+                PDH_STATUS status = m_pdhApi->m_pdhGetFormattedCounterValue(
+                                                                            counterInfo[i].handle,           // The PDH_HCOUNTER handle
+                                                                            counterInfo[i].formatType,       // Format: PDH_FMT_LONG, PDH_FMT_DOUBLE, or PDH_FMT_LARGE
+                                                                            &counterType,                    // Receives the counter type
+                                                                            &counterValue                    // Receives the value
+                                                                        );
+                if ( status == ERROR_SUCCESS )
+                {
+                    counterInfo[i].hasUpdatedValue = true;
+                    mountHasNewStats = true;
+
+                    switch ( counterInfo[i].formatType )
+                    {
+                        case PDH_FMT_LARGE:
+                            counterInfo[i].value = counterValue.longValue;
+                            break;
+                        case PDH_FMT_DOUBLE:
+                            counterInfo[i].value = counterValue.doubleValue;
+                            break;
+                        default:
+                        {
+                            counterInfo[i].hasUpdatedValue = false; // Unsupported format type, skip this counter
+                            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "PdhDevicePerfStatAccessImpl: Unsupported format type for counter: " + 
+                                ToString( counterInfo[i].name ) + ". Format type: " + ToString( (UInt64) counterInfo[i].formatType ) );
+                            hadErrors = true; // Mark as error for the entire operation
+                            break;
+                        }
+                    }
+                }
+                else
+                if ( status == PDH_CSTATUS_NO_COUNTER )
+                {
+                    // Most likely the counter is not available on this system, or the mount path is invalid
+                    // However, it can also mean that the counter is not available for the specific mount path AT THIS TIME
+                    // we have to account for removable media that may not be present at the time of the query
+                    GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "PdhDevicePerfStatAccessImpl: Counter: " + 
+                        ToString (counterInfo[i].name ) + " is not available" );
+                }
+                else
+                if ( status == PDH_INVALID_DATA )
+                {
+                    // Some counters, like rate counters, require two data points to compute a value, and you might not have collected enough data before querying
+                    GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "PdhDevicePerfStatAccessImpl: Data not available (yet?) for counter: " + 
+                        ToString( counterInfo[i].name ) + ". Error code: " + ToString( status ) );
+                }
+                else
+                {
+                    GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "PdhDevicePerfStatAccessImpl: Failed to get formatted value for counter: " + 
+                        ToString( counterInfo[i].name ) + ". Error code: " + ToString( status ) );
+                    hadErrors = true; // Mark as error for the entire operation
+                }
             }
-            else
-            if ( status == PDH_CSTATUS_NO_COUNTER )
+        
+            if ( mountHasNewStats )
             {
-                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "PdhDevicePerfStatAccessImpl: Counter: " + 
-                    ToString(counterInfo[i].name) + " is not available" );
+                // Aggregate the values for the given device id - mount combo into the total
+                // We are emulating device wide stats here so we don't want the per-volume stats
+
+                devicePerfStats.perfStats.hasBytesReadPerSec = counterInfo[0].hasUpdatedValue || devicePerfStats.perfStats.hasBytesReadPerSec;
+                if ( counterInfo[0].hasUpdatedValue )
+                    devicePerfStats.perfStats.bytesReadPerSec += counterInfo[0].value.AsUInt64();
+                devicePerfStats.perfStats.hasBytesWrittenPerSec = counterInfo[1].hasUpdatedValue || devicePerfStats.perfStats.hasBytesWrittenPerSec;
+                if ( counterInfo[1].hasUpdatedValue )
+                    devicePerfStats.perfStats.bytesWrittenPerSec += counterInfo[1].value.AsUInt64();
+                devicePerfStats.perfStats.hasAvgReadTimePerOperationInMs = counterInfo[2].hasUpdatedValue || devicePerfStats.perfStats.hasAvgReadTimePerOperationInMs;
+                if ( counterInfo[2].hasUpdatedValue )
+                    devicePerfStats.perfStats.avgReadTimePerOperationInMs += counterInfo[2].value.AsFloat32() * 1000.0f;
+                devicePerfStats.perfStats.hasAvgWriteTimePerOperationInMs = counterInfo[3].hasUpdatedValue || devicePerfStats.perfStats.hasAvgWriteTimePerOperationInMs;
+                if ( counterInfo[3].hasUpdatedValue )
+                    devicePerfStats.perfStats.avgWriteTimePerOperationInMs += counterInfo[3].value.AsFloat32() * 1000.0f;
+                devicePerfStats.perfStats.hasRequestQueueDepth = counterInfo[4].hasUpdatedValue || devicePerfStats.perfStats.hasRequestQueueDepth;
+                if ( counterInfo[4].hasUpdatedValue )
+                    devicePerfStats.perfStats.requestQueueDepth += counterInfo[4].value.AsUInt64();
+                devicePerfStats.perfStats.hasRequestSplitCountPerSec = counterInfo[5].hasUpdatedValue || devicePerfStats.perfStats.hasRequestSplitCountPerSec;
+                if ( counterInfo[5].hasUpdatedValue )
+                    devicePerfStats.perfStats.requestSplitCountPerSec += counterInfo[5].value.AsUInt64();
+
+                hasNewStats = devicePerfStats.hasPerfStats = mountHasNewStats || hasNewStats;
             }
-            else
-            {
-                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "PdhDevicePerfStatAccessImpl: Failed to get formatted value for counter: " + 
-                    ToString( counterInfo[i].name ) + ". Error code: " + ToString( status ) );
-            }
+
+            ++n;
         }
-
-        if ( mountHasNewStats )
+    }
+    else
+    if ( 0 != m_lastCounterUpdateTimeInTicks )
+    {
+        // Use the last known values from the PDH counters
+        // the last known values are not guaranteed to be updated since the last query
+        TVolumePathToCounterInfoVector::iterator n = m_counters.begin();
+        while ( n != m_counters.end() )
         {
-            // Aggregate the values for the given device id - mount combo into the total
-            // We are emulating device wide stats here so we dont want the per-volume stats
+            TCounterInfoVector& counterInfo = (*n).second;
 
-            devicePerfStats.perfStats.hasBytesReadPerSec = counterInfo[0].hasUpdatedValue || devicePerfStats.perfStats.hasBytesReadPerSec;
-            if ( counterInfo[0].hasUpdatedValue )
-                devicePerfStats.perfStats.bytesReadPerSec += static_cast< UInt64 >( counterInfo[0].value );
-            devicePerfStats.perfStats.hasBytesWrittenPerSec = counterInfo[1].hasUpdatedValue || devicePerfStats.perfStats.hasBytesWrittenPerSec;
-            if ( counterInfo[1].hasUpdatedValue )
-                devicePerfStats.perfStats.bytesWrittenPerSec += static_cast< UInt64 >( counterInfo[1].value );
-            devicePerfStats.perfStats.hasAvgBytesReadPerSec = counterInfo[2].hasUpdatedValue || devicePerfStats.perfStats.hasAvgBytesReadPerSec;
-            if ( counterInfo[2].hasUpdatedValue )
-                devicePerfStats.perfStats.avgBytesReadPerSec += static_cast< UInt64 >( counterInfo[2].value );
-            devicePerfStats.perfStats.hasAvgBytesWrittenPerSec = counterInfo[3].hasUpdatedValue || devicePerfStats.perfStats.hasAvgBytesWrittenPerSec;
-            if ( counterInfo[3].hasUpdatedValue )
-                devicePerfStats.perfStats.avgBytesWrittenPerSec += static_cast< UInt64 >( counterInfo[3].value );
-            devicePerfStats.perfStats.hasRequestQueueDepth = counterInfo[4].hasUpdatedValue || devicePerfStats.perfStats.hasRequestQueueDepth;
-            if ( counterInfo[4].hasUpdatedValue )
-                devicePerfStats.perfStats.requestQueueDepth += static_cast< UInt64 >( counterInfo[4].value );
-            devicePerfStats.perfStats.hasRequestSplitCountPerSec = counterInfo[5].hasUpdatedValue || devicePerfStats.perfStats.hasRequestSplitCountPerSec;
-            if ( counterInfo[5].hasUpdatedValue )
-                devicePerfStats.perfStats.requestSplitCountPerSec += static_cast< UInt64 >( counterInfo[5].value );
-
-            hasNewStats = devicePerfStats.hasPerfStats = mountHasNewStats;
+            for ( size_t i=0; i<counterInfo.size(); ++i )
+            {
+                devicePerfStats.perfStats.hasBytesReadPerSec = counterInfo[0].hasUpdatedValue || devicePerfStats.perfStats.hasBytesReadPerSec;
+                if ( counterInfo[0].hasUpdatedValue )
+                    devicePerfStats.perfStats.bytesReadPerSec += counterInfo[0].value.AsUInt64();
+                devicePerfStats.perfStats.hasBytesWrittenPerSec = counterInfo[1].hasUpdatedValue || devicePerfStats.perfStats.hasBytesWrittenPerSec;
+                if ( counterInfo[1].hasUpdatedValue )
+                    devicePerfStats.perfStats.bytesWrittenPerSec += counterInfo[1].value.AsUInt64();
+                devicePerfStats.perfStats.hasAvgReadTimePerOperationInMs = counterInfo[2].hasUpdatedValue || devicePerfStats.perfStats.hasAvgReadTimePerOperationInMs;
+                if ( counterInfo[2].hasUpdatedValue )
+                    devicePerfStats.perfStats.avgReadTimePerOperationInMs += counterInfo[2].value.AsFloat32() * 1000.0f;
+                devicePerfStats.perfStats.hasAvgWriteTimePerOperationInMs = counterInfo[3].hasUpdatedValue || devicePerfStats.perfStats.hasAvgWriteTimePerOperationInMs;
+                if ( counterInfo[3].hasUpdatedValue )
+                    devicePerfStats.perfStats.avgWriteTimePerOperationInMs += counterInfo[3].value.AsFloat32() * 1000.0f;
+                devicePerfStats.perfStats.hasRequestQueueDepth = counterInfo[4].hasUpdatedValue || devicePerfStats.perfStats.hasRequestQueueDepth;
+                if ( counterInfo[4].hasUpdatedValue )
+                    devicePerfStats.perfStats.requestQueueDepth += counterInfo[4].value.AsUInt64();
+                devicePerfStats.perfStats.hasRequestSplitCountPerSec = counterInfo[5].hasUpdatedValue || devicePerfStats.perfStats.hasRequestSplitCountPerSec;
+                if ( counterInfo[5].hasUpdatedValue )
+                    devicePerfStats.perfStats.requestSplitCountPerSec += counterInfo[5].value.AsUInt64();
+            }
+            ++n;
         }
-
-        ++n;
     }
 
-    return hasNewStats;
+    return !hadErrors;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -988,7 +1081,8 @@ CPdhAccess::CPdhDevicePerfStatAccess::~CPdhDevicePerfStatAccess()
 CPdhVolumePerfStatAccessImpl::CounterInfo::CounterInfo( void )
     : name()
     , handle( GUCEF_NULL )
-    , value( 0 )
+    , value()
+    , formatType( PDH_FMT_LARGE ) // Default to large format for bytes/sec counters
     , hasUpdatedValue( false )
 {GUCEF_TRACE;
 
@@ -998,6 +1092,7 @@ CPdhVolumePerfStatAccessImpl::CounterInfo::CounterInfo( void )
 
 CPdhVolumePerfStatAccessImpl::CPdhVolumePerfStatAccessImpl( void )
     : m_counters()
+    , m_lastCounterUpdateTimeInTicks( 0 )
     , m_pdhApi( GUCEF_NULL )
     , m_isInitialized( false )
 {GUCEF_TRACE;
@@ -1039,6 +1134,7 @@ CPdhVolumePerfStatAccessImpl::Clear( void )
         m_pdhApi = GUCEF_NULL;
     }
 
+    m_lastCounterUpdateTimeInTicks = 0;
     m_isInitialized = false;
 }
 
@@ -1067,11 +1163,17 @@ CPdhVolumePerfStatAccessImpl::InitForMountPath( const CString& mountPath ,
     // example: "C:" thus \\LogicalDisk(C:)\\Disk Read Bytes/sec
     m_counters.resize( 6 );
     m_counters[ 0 ].name = L"\\LogicalDisk(" + wMountPath + L")\\Disk Read Bytes/sec";
+    m_counters[ 0 ].formatType = PDH_FMT_LARGE;
     m_counters[ 1 ].name = L"\\LogicalDisk(" + wMountPath + L")\\Disk Write Bytes/sec";
+    m_counters[ 1 ].formatType = PDH_FMT_LARGE;
     m_counters[ 2 ].name = L"\\LogicalDisk(" + wMountPath + L")\\Avg. Disk sec/Read";
+    m_counters[ 2 ].formatType = PDH_FMT_DOUBLE;
     m_counters[ 3 ].name = L"\\LogicalDisk(" + wMountPath + L")\\Avg. Disk sec/Write";
+    m_counters[ 3 ].formatType = PDH_FMT_DOUBLE;
     m_counters[ 4 ].name = L"\\LogicalDisk(" + wMountPath + L")\\Current Disk Queue Length";
+    m_counters[ 4 ].formatType = PDH_FMT_LARGE;
     m_counters[ 5 ].name = L"\\LogicalDisk(" + wMountPath + L")\\Split IO/Sec";
+    m_counters[ 5 ].formatType = PDH_FMT_LARGE;
 
     if ( GUCEF_NULL == pdhApi || !pdhApi->IsValid() )
     {
@@ -1098,6 +1200,7 @@ CPdhVolumePerfStatAccessImpl::InitForMountPath( const CString& mountPath ,
 
 bool 
 CPdhVolumePerfStatAccessImpl::CollectStats( CStorageVolumeInformation& volumePerfStats ,
+                                            UInt64 rtQueryLastCollectTimeInTicks       ,
                                             bool& hasNewStats                          )
 {GUCEF_TRACE;
     
@@ -1108,62 +1211,96 @@ CPdhVolumePerfStatAccessImpl::CollectStats( CStorageVolumeInformation& volumePer
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == m_pdhApi || !m_pdhApi->IsValid() || m_counters.size() < 6 )
         return false;
 
-    for ( size_t i=0; i<m_counters.size(); ++i )
-    {
-        m_counters[i].hasUpdatedValue = false;
+    bool hadErrors = false;
 
-        // Retrieve the counter value
-        PDH_FMT_COUNTERVALUE counterValue;
-        DWORD counterType = 0;
-        PDH_STATUS status = m_pdhApi->m_pdhGetFormattedCounterValue(
-                                                                    m_counters[i].handle,           // The PDH_HCOUNTER handle
-                                                                    PDH_FMT_LARGE,                   // Format: PDH_FMT_LONG, PDH_FMT_DOUBLE, or PDH_FMT_LARGE
-                                                                    &counterType,                    // Receives the counter type
-                                                                    &counterValue                    // Receives the value
-                                                                );
-        if ( status == ERROR_SUCCESS )
+    // Check if we need to obtain new stats from the PDH API
+    // This depends on when the last global rt query was made
+    if ( m_lastCounterUpdateTimeInTicks < rtQueryLastCollectTimeInTicks )
+    {
+        for ( size_t i=0; i<m_counters.size(); ++i )
         {
-            m_counters[i].value = counterValue.largeValue;
-            m_counters[i].hasUpdatedValue = true;
-            hasNewStats = true;
-        }
-        else
-        if ( status == PDH_CSTATUS_NO_COUNTER )
-        {
-            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "PdhVolumePerfStatAccessImpl: Counter: " + 
-                ToString(m_counters[i].name) + " is not available" );
-        }
-        else
-        {
-            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "PdhVolumePerfStatAccessImpl: Failed to get formatted value for counter: " + 
-                ToString( m_counters[i].name ) + ". Error code: " + ToString( status ) );
+            m_counters[i].hasUpdatedValue = false;
+
+            // Retrieve the counter value
+            PDH_FMT_COUNTERVALUE counterValue;
+            DWORD counterType = 0;
+            PDH_STATUS status = m_pdhApi->m_pdhGetFormattedCounterValue(
+                                                                        m_counters[i].handle,            // The PDH_HCOUNTER handle
+                                                                        m_counters[i].formatType,        // Format: PDH_FMT_LONG, PDH_FMT_DOUBLE, or PDH_FMT_LARGE
+                                                                        &counterType,                    // Receives the counter type
+                                                                        &counterValue                    // Receives the value
+                                                                    );
+
+            if ( status == ERROR_SUCCESS )
+            {
+                m_counters[i].hasUpdatedValue = true;
+                hasNewStats = true;
+
+                switch ( m_counters[i].formatType )
+                {
+                    case PDH_FMT_LARGE:
+                        m_counters[i].value = counterValue.longValue;
+                        break;
+                    case PDH_FMT_DOUBLE:
+                        m_counters[i].value = counterValue.doubleValue;
+                        break;
+                    default:
+                    {
+                        m_counters[i].hasUpdatedValue = false; // Unsupported format type, skip this counter
+                        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "PdhDevicePerfStatAccessImpl: Unsupported format type for counter: " + 
+                            ToString( m_counters[i].name ) + ". Format type: " + ToString( (UInt64) m_counters[i].formatType ) );
+                        hadErrors = true; // Mark as error for the entire operation
+                        break;
+                    }
+                }
+            }
+            else
+            if ( status == PDH_CSTATUS_NO_COUNTER )
+            {
+                // Most likely the counter is not available on this system, or the mount path is invalid
+                // However, it can also mean that the counter is not available for the specific mount path AT THIS TIME
+                // we have to account for removable media that may not be present at the time of the query
+                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "PdhVolumePerfStatAccessImpl: Counter: " + 
+                    ToString( m_counters[i].name ) + " is not available" );
+            }
+            else
+            if ( status == PDH_INVALID_DATA )
+            {
+                // Some counters, like rate counters, require two data points to compute a value, and you might not have collected enough data before querying
+                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "PdhVolumePerfStatAccessImpl: Data not available (yet?) for counter: " + 
+                    ToString( m_counters[i].name ) + ". Error code: " + ToString( status ) );
+            }
+            else
+            {
+                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "PdhVolumePerfStatAccessImpl: Failed to get formatted value for counter: " + 
+                    ToString( m_counters[i].name ) + ". Error code: " + ToString( status ) );
+                hadErrors = true;
+            }
         }
     }
 
-    if ( hasNewStats )
-    {
-        volumePerfStats.perfStats.hasBytesReadPerSec = m_counters[0].hasUpdatedValue;
-        if ( volumePerfStats.perfStats.hasBytesReadPerSec )
-            volumePerfStats.perfStats.bytesReadPerSec = static_cast< UInt64 >( m_counters[0].value );
-        volumePerfStats.perfStats.hasBytesWrittenPerSec = m_counters[1].hasUpdatedValue;
-        if ( volumePerfStats.perfStats.hasBytesWrittenPerSec )
-            volumePerfStats.perfStats.bytesWrittenPerSec = static_cast< UInt64 >( m_counters[1].value );
-        volumePerfStats.perfStats.hasAvgBytesReadPerSec = m_counters[2].hasUpdatedValue;
-        if ( volumePerfStats.perfStats.hasAvgBytesReadPerSec )
-            volumePerfStats.perfStats.avgBytesReadPerSec = static_cast< UInt64 >( m_counters[2].value );
-        volumePerfStats.perfStats.hasAvgBytesWrittenPerSec = m_counters[3].hasUpdatedValue;
-        if ( volumePerfStats.perfStats.hasAvgBytesWrittenPerSec )
-            volumePerfStats.perfStats.avgBytesWrittenPerSec = static_cast< UInt64 >( m_counters[3].value );
-        volumePerfStats.perfStats.hasRequestQueueDepth = m_counters[4].hasUpdatedValue;
-        if ( volumePerfStats.perfStats.hasRequestQueueDepth )
-            volumePerfStats.perfStats.requestQueueDepth = static_cast< UInt64 >( m_counters[4].value );
-        volumePerfStats.perfStats.hasRequestSplitCountPerSec = m_counters[5].hasUpdatedValue;
-        if ( volumePerfStats.perfStats.hasRequestSplitCountPerSec )
-            volumePerfStats.perfStats.requestSplitCountPerSec = static_cast< UInt64 >( m_counters[5].value );
+    volumePerfStats.perfStats.hasBytesReadPerSec = m_counters[0].hasUpdatedValue;
+    if ( volumePerfStats.perfStats.hasBytesReadPerSec )
+        volumePerfStats.perfStats.bytesReadPerSec = m_counters[0].value.AsUInt64();
+    volumePerfStats.perfStats.hasBytesWrittenPerSec = m_counters[1].hasUpdatedValue;
+    if ( volumePerfStats.perfStats.hasBytesWrittenPerSec )
+        volumePerfStats.perfStats.bytesWrittenPerSec = m_counters[1].value.AsUInt64();
+    volumePerfStats.perfStats.hasAvgReadTimePerOperationInMs = m_counters[2].hasUpdatedValue;
+    if ( volumePerfStats.perfStats.hasAvgReadTimePerOperationInMs )
+        volumePerfStats.perfStats.avgReadTimePerOperationInMs = m_counters[2].value.AsFloat32() * 1000.0f;
+    volumePerfStats.perfStats.hasAvgWriteTimePerOperationInMs = m_counters[3].hasUpdatedValue;
+    if ( volumePerfStats.perfStats.hasAvgWriteTimePerOperationInMs )
+        volumePerfStats.perfStats.avgWriteTimePerOperationInMs = m_counters[3].value.AsFloat32() * 1000.0f;
+    volumePerfStats.perfStats.hasRequestQueueDepth = m_counters[4].hasUpdatedValue;
+    if ( volumePerfStats.perfStats.hasRequestQueueDepth )
+        volumePerfStats.perfStats.requestQueueDepth = m_counters[4].value.AsUInt64();
+    volumePerfStats.perfStats.hasRequestSplitCountPerSec = m_counters[5].hasUpdatedValue;
+    if ( volumePerfStats.perfStats.hasRequestSplitCountPerSec )
+        volumePerfStats.perfStats.requestSplitCountPerSec = m_counters[5].value.AsUInt64();
 
-        volumePerfStats.hasPerfStats = true;
-    }
-    return hasNewStats;
+    volumePerfStats.hasPerfStats = true;
+
+    return !hadErrors;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1462,10 +1599,10 @@ CPdhAccessImpl::GetListOfStatInstancesInCategory( const CString& statCategory ,
 /*-------------------------------------------------------------------------*/
 
 bool 
-CPdhAccessImpl::CollectStats( bool& hasNewStats )
+CPdhAccessImpl::CollectStats( UInt64& lastCollectTimeInTicks )
 {GUCEF_TRACE;
 
-    hasNewStats = false;
+    lastCollectTimeInTicks = m_lastCollectTimeInTicks;
     UInt64 currentTimeInTicks = ::GetTickCount64();
     if ( currentTimeInTicks - m_lastCollectTimeInTicks < 900 )
     {
@@ -1496,10 +1633,9 @@ CPdhAccessImpl::CollectStats( bool& hasNewStats )
         }
         else
         {
-            hasNewStats = true;
             GUCEF_DEBUG_LOG( LOGLEVEL_BELOW_NORMAL, "PdhAccessImpl: Collected stats" );
         }
-        m_lastCollectTimeInTicks = currentTimeInTicks;
+        lastCollectTimeInTicks = m_lastCollectTimeInTicks = currentTimeInTicks;
     }
     return true;
 }
@@ -1507,24 +1643,24 @@ CPdhAccessImpl::CollectStats( bool& hasNewStats )
 /*-------------------------------------------------------------------------*/
 
 Int32 
-CPdhAccessImpl::GetPhysicalDevicePerfStats( CPdhAccess::CPdhDevicePerfStatAccess& devicePerfStatAcces ,
-                                            CStorageDeviceInformation& devicePerfStats                ,
-                                            bool& hasNewStats                                         )
+CPdhAccessImpl::GetPhysicalDevicePerfStats( CPdhAccess::CPdhDevicePerfStatAccess& devicePerfStatAccess ,
+                                            CStorageDeviceInformation& devicePerfStats                 ,
+                                            bool& hasNewStats                                          )
 {GUCEF_TRACE;
 
     devicePerfStats.perfStats.Clear();
     devicePerfStats.hasPerfStats = false;
     hasNewStats = false;
     
-    if GUCEF_PREDICT_FALSE( GUCEF_NULL == devicePerfStatAcces.m_impl )
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == devicePerfStatAccess.m_impl )
         return -100;
     if GUCEF_PREDICT_FALSE( !devicePerfStats.hasDeviceIndex )
         return -101;
     
-    if GUCEF_PREDICT_FALSE( !devicePerfStatAcces.m_impl->IsInitialized() )
+    if GUCEF_PREDICT_FALSE( !devicePerfStatAccess.m_impl->IsInitialized() )
     {
         // Initialize the PDH counters for the specified device ID
-        if ( !devicePerfStatAcces.m_impl->InitForDeviceId( devicePerfStats.deviceIndex, this ) )
+        if ( !devicePerfStatAccess.m_impl->InitForDeviceId( devicePerfStats.deviceIndex, this ) )
         {
             GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Failed to initialize PDH device perf counters for device ID: " + devicePerfStats.deviceId );
             return -102;
@@ -1532,16 +1668,13 @@ CPdhAccessImpl::GetPhysicalDevicePerfStats( CPdhAccess::CPdhDevicePerfStatAccess
     }
 
     // Collect the PDH data
-    bool hasNewStatsOverall = false;
-    if ( CollectStats( hasNewStatsOverall ) )
+    UInt64 rtQueryLastCollectTimeInTicks = 0;
+    if ( CollectStats( rtQueryLastCollectTimeInTicks ) )
     {
-        if ( hasNewStatsOverall ) // Something changed but we dont know what
+        if GUCEF_PREDICT_FALSE( !devicePerfStatAccess.m_impl->CollectStats( devicePerfStats, rtQueryLastCollectTimeInTicks, hasNewStats ) )
         {
-            if GUCEF_PREDICT_FALSE( !devicePerfStatAcces.m_impl->CollectStats( devicePerfStats, hasNewStats ) )
-            {
-                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Failed to collect PDH data for device Id: " + devicePerfStats.deviceId );
-                return -104;
-            }
+            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Failed to collect PDH data for device Id: " + devicePerfStats.deviceId );
+            return -104;
         }
     }
     else
@@ -1606,16 +1739,13 @@ CPdhAccessImpl::GetLogicalVolumePerfStats( CPdhAccess::CPdhVolumePerfStatAccess&
     }
 
     // Collect the PDH data
-    bool hasNewStatsOverall = false;
-    if ( CollectStats( hasNewStatsOverall ) )
+    UInt64 rtQueryLastCollectTimeInTicks = 0;
+    if ( CollectStats( rtQueryLastCollectTimeInTicks ) )
     {
-        if ( hasNewStatsOverall ) // Something changed but we dont know what
+        if GUCEF_PREDICT_FALSE( !volumePerfStatAccess.m_impl->CollectStats( volumePerfStats, rtQueryLastCollectTimeInTicks, hasNewStats ) )
         {
-            if GUCEF_PREDICT_FALSE( !volumePerfStatAccess.m_impl->CollectStats( volumePerfStats, hasNewStats ) )
-            {
-                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Failed to collect PDH data for volume Id: " + volumePerfStats.volumeId );
-                return -104;
-            }
+            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Failed to collect PDH data for volume Id: " + volumePerfStats.volumeId );
+            return -104;
         }
     }
     else
@@ -1655,16 +1785,13 @@ CPdhAccessImpl::GetTotalLogicalVolumePerfStats( CPdhAccess::CPdhVolumePerfStatAc
     }
 
     // Collect the PDH data
-    bool hasNewStatsOverall = false;
-    if ( CollectStats( hasNewStatsOverall ) )
+    UInt64 rtQueryLastCollectTimeInTicks = 0;
+    if ( CollectStats( rtQueryLastCollectTimeInTicks ) )
     {
-        if ( hasNewStatsOverall ) // Something changed but we dont know what
+        if GUCEF_PREDICT_FALSE( !volumePerfStatAccess.m_impl->CollectStats( volumePerfStats, rtQueryLastCollectTimeInTicks, hasNewStats ) )
         {
-            if GUCEF_PREDICT_FALSE( !volumePerfStatAccess.m_impl->CollectStats( volumePerfStats, hasNewStats ) )
-            {
-                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Failed to collect PDH data for system wide volume stats" );
-                return -104;
-            }
+            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Failed to collect PDH data for system wide volume stats" );
+            return -104;
         }
     }
     else

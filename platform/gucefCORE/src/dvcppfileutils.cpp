@@ -1869,20 +1869,20 @@ CStoragePerfStats::CStoragePerfStats( void )
     , bytesRead( 0 )
     , hasBytesReadPerSec( false )
     , bytesReadPerSec( 0 )
-    , hasAvgBytesReadPerSec( false )
-    , avgBytesReadPerSec( 0 )
     , hasBytesWritten( false )
     , bytesWritten( 0 )
     , hasBytesWrittenPerSec( false )
     , bytesWrittenPerSec( 0 )
-    , hasAvgBytesWrittenPerSec( false )
-    , avgBytesWrittenPerSec( 0 )
     , hasReadTimeInMs( false )
     , readTimeInMs( 0 )
     , hasWriteTimeInMs( false )
     , writeTimeInMs( 0 )
     , hasIdleTimeInMs( false )
     , idleTimeInMs( 0 )
+    , hasAvgReadTimePerOperationInMs( false )
+    , avgReadTimePerOperationInMs( 0.0f )
+    , hasAvgWriteTimePerOperationInMs( false )
+    , avgWriteTimePerOperationInMs( 0.0f )
     , hasRequestQueueDepth( false )
     , requestQueueDepth( 0 )
     , hasRequestSplitCount( false )
@@ -1903,12 +1903,8 @@ CStoragePerfStats::Clear( void )
     bytesRead = 0;
     hasBytesReadPerSec = false;
     bytesReadPerSec = 0;
-    hasAvgBytesReadPerSec = false;
-    avgBytesReadPerSec = 0;
     hasBytesWrittenPerSec = false;
     bytesWrittenPerSec = 0;
-    hasAvgBytesWrittenPerSec = false;
-    avgBytesWrittenPerSec = 0;
     hasBytesWritten = false;
     bytesWritten = 0;
     hasReadTimeInMs = false;
@@ -1917,6 +1913,10 @@ CStoragePerfStats::Clear( void )
     writeTimeInMs = 0;
     hasIdleTimeInMs = false;
     idleTimeInMs = 0;
+    hasAvgReadTimePerOperationInMs = false;
+    avgReadTimePerOperationInMs = 0.0f;
+    hasAvgWriteTimePerOperationInMs = false;
+    avgWriteTimePerOperationInMs = 0.0f;
     hasRequestQueueDepth = false;
     requestQueueDepth = 0;
     hasRequestSplitCount = false;
@@ -2102,7 +2102,15 @@ GetStorageDeviceInformationByDeviceId( CStorageDeviceInfoOSData& osData ,
     if ( !info.hasDeviceId || info.deviceId.IsNULLOrEmpty() )
     {
         info.deviceId = osData.GetDeviceId();
-        info.hasDeviceId = true;
+        if ( !info.deviceId.IsNULLOrEmpty() )
+        {
+            info.hasDeviceId = true;
+        }
+        else
+        {
+            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "GetStorageDeviceInformationByDeviceId: No device id provided" );
+            return false; // we cannot continue without a device id
+        }
     }
     else
     {
@@ -2190,7 +2198,7 @@ CStorageVolumeInformation::Clear( void )
 
 /*-------------------------------------------------------------------------*/
 
-bool GUCEF_HIDDEN
+bool GUCEF_CORE_PRIVATE_CPP
 GetFileSystemStorageVolumeInformationByDirPath_NoClear( CStorageVolumeInfoOSData& osData ,
                                                         CStorageVolumeInformation& info  )
 {GUCEF_TRACE;
@@ -2232,35 +2240,49 @@ GetFileSystemStorageVolumeInformationByDirPath_NoClear( CStorageVolumeInfoOSData
         totalSuccess = false;
     }
 
-    wchar_t volumeNameBuffer[MAX_PATH + 1] = {0};
-    wchar_t fileSystemNameBuffer[MAX_PATH + 1] = {0};
-    DWORD serialNumber = 0;
-    DWORD maxComponentLen = 0;
-    DWORD fileSystemFlags = 0;
-
-    result = ::GetVolumeInformationW( wActualPath.c_str()          ,
-                                      volumeNameBuffer             ,
-                                      sizeof(volumeNameBuffer)     ,
-                                      &serialNumber                ,
-                                      &maxComponentLen             ,
-                                      &fileSystemFlags             ,
-                                      fileSystemNameBuffer         ,
-                                      sizeof(fileSystemNameBuffer) );
-
-    if ( TRUE == result )
+    if ( !info.hasVolumeName || !info.hasIsReadOnly )
     {
-        info.volumeName = ToString( volumeNameBuffer );
-        info.hasVolumeName = true;
-        info.isReadOnly = (fileSystemFlags & FILE_READ_ONLY_VOLUME) == FILE_READ_ONLY_VOLUME;
-        info.hasIsReadOnly = true;
-    }
-    else
-    {
-        totalSuccess = false;
+        wchar_t volumeNameBuffer[MAX_PATH + 1] = {0};
+        wchar_t fileSystemNameBuffer[MAX_PATH + 1] = {0};
+        DWORD serialNumber = 0;
+        DWORD maxComponentLen = 0;
+        DWORD fileSystemFlags = 0;
+
+        result = ::GetVolumeInformationW( wActualPath.c_str()          ,
+                                          volumeNameBuffer             ,
+                                          sizeof(volumeNameBuffer)     ,
+                                          &serialNumber                ,
+                                          &maxComponentLen             ,
+                                          &fileSystemFlags             ,
+                                          fileSystemNameBuffer         ,
+                                          sizeof(fileSystemNameBuffer) );
+
+        if ( TRUE == result )
+        {
+            info.volumeName = ToString( volumeNameBuffer );
+            info.hasVolumeName = true;
+            info.isReadOnly = (fileSystemFlags & FILE_READ_ONLY_VOLUME) == FILE_READ_ONLY_VOLUME;
+            info.hasIsReadOnly = true;
+        }
+        else
+        {
+            totalSuccess = false;
+        }
     }
 
     if ( !info.hasVolumeId )
-        info.hasVolumeId = GetFileSystemStorageVolumeIdByDirPath( info.volumeId, path );
+    {
+        if ( !osData.GetVolumeId().IsNULLOrEmpty() )
+        {
+            info.volumeId = osData.GetVolumeId();
+            info.hasVolumeId = true;
+        }
+        else
+        {
+            info.hasVolumeId = GetFileSystemStorageVolumeIdByDirPath( info.volumeId, path );
+            osData.SetVolumeId( info.volumeId );
+        }
+    }
     
     if ( !info.hasPartitionId2deviceIdMapping && info.hasVolumeId )
     {
@@ -2439,7 +2461,7 @@ GetFileSystemTotalStorageVolumeInformation( CStorageVolumeInfoOSData& volumeInfo
 
 /*-------------------------------------------------------------------------*/
 
-bool GUCEF_HIDDEN
+bool GUCEF_CORE_PRIVATE_CPP
 GetFileSystemStorageVolumeInformation_NoClear( CStorageVolumeInfoOSData& volumeInfoOSData , 
                                                CStorageVolumeInformation& info            )
 {GUCEF_TRACE;
@@ -2458,7 +2480,6 @@ GetFileSystemStorageVolumeInformation( CStorageVolumeInfoOSData& volumeInfoOSDat
                                        CStorageVolumeInformation& info            )
 {GUCEF_TRACE;
 
-    info.Clear();
     return GetFileSystemStorageVolumeInformation_NoClear( volumeInfoOSData, info );
 }
 

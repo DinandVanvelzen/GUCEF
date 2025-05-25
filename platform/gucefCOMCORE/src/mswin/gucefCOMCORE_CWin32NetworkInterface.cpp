@@ -77,7 +77,8 @@ namespace COMCORE {
 
 bool
 CWin32NetworkInterface::SetupAdapterInfo( void* pAdaptInfoVoid ) 
-{
+{GUCEF_TRACE;
+
 	IP_ADAPTER_INFO* pAdaptInfo = (IP_ADAPTER_INFO*) pAdaptInfoVoid;
 	IP_ADDR_STRING* pNext			= NULL;
 	IP_PER_ADAPTER_INFO* pPerAdapt	= NULL;
@@ -181,7 +182,8 @@ CWin32NetworkInterface::SetupAdapterInfo( void* pAdaptInfoVoid )
 
 bool 
 CWin32NetworkInterface::EnumNetworkAdapters( TINetworkInterfacePtrVector& interfaces ) 
-{	
+{GUCEF_TRACE;
+
 	IP_ADAPTER_INFO* pAdptInfo	= NULL;
 	IP_ADAPTER_INFO* pNextAd	= NULL;	
 	ULONG ulLen					= 0;

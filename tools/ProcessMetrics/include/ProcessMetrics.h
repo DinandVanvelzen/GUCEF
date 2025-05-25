@@ -362,6 +362,7 @@ class ProcessMetrics : public CORE::CObservingNotifier
     bool m_gatherGlobalNetworkStatOutboundBroadcastOctets;
     bool m_gatherGlobalNetworkStatTransmitLinkSpeedBitsPerSec;
     bool m_gatherGlobalNetworkStatReceiveLinkSpeedBitsPerSec;
+    bool m_useNetworkInterfaceDescriptionAsMetricName;
 
     bool m_gatherGlobalStorageVolumeStats;
     bool m_gatherGlobalStorageVolumeStatsPerVolume;
@@ -372,25 +373,25 @@ class ProcessMetrics : public CORE::CObservingNotifier
     bool m_gatherGlobalStorageVolumeAvailablePercentage;
     bool m_gatherGlobalStorageVolumeBytesWritten;
     bool m_gatherGlobalStorageVolumeBytesWrittenPerSec;
-    bool m_gatherGlobalStorageVolumeAvgBytesWrittenPerSec;
+    bool m_gatherGlobalStorageVolumeAvgWriteTimePerOperationInMs;
     bool m_gatherGlobalStorageVolumeBytesRead;
     bool m_gatherGlobalStorageVolumeBytesReadPerSec;
-    bool m_gatherGlobalStorageVolumeAvgBytesReadPerSec;
+    bool m_gatherGlobalStorageVolumeAvgReadTimePerOperationInMs;
     bool m_gatherGlobalStorageVolumeRequestsQueued;
     bool m_gatherGlobalStorageVolumeRequestsSplit;
     bool m_gatherGlobalStorageVolumeRequestsSplitPerSec;
     bool m_gatherGlobalStorageVolumeReadTimeInMs;
     bool m_gatherGlobalStorageVolumeWriteTimeInMs;
     bool m_gatherGlobalStorageVolumeIdleTimeInMs;
-    bool m_convertStorageVolumeIdsToPaths;
+    bool m_convertStorageVolumeIdsToPathsAsMetricName;
 
     bool m_gatherGlobalStorageDeviceStats;
     bool m_gatherGlobalStorageDeviceBytesWritten;
     bool m_gatherGlobalStorageDeviceBytesWrittenPerSec;
-    bool m_gatherGlobalStorageDeviceAvgBytesWrittenPerSec;
+    bool m_gatherGlobalStorageDeviceAvgWriteTimePerOperationInMs;
     bool m_gatherGlobalStorageDeviceBytesRead;
     bool m_gatherGlobalStorageDeviceBytesReadPerSec;
-    bool m_gatherGlobalStorageDeviceAvgBytesReadPerSec;
+    bool m_gatherGlobalStorageDeviceAvgReadTimePerOperationInMs;
     bool m_gatherGlobalStorageDeviceRequestsQueued;
     bool m_gatherGlobalStorageDeviceRequestsSplit;
     bool m_gatherGlobalStorageDeviceRequestsSplitPerSec;

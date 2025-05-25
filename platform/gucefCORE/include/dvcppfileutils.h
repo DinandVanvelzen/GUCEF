@@ -265,20 +265,20 @@ class GUCEF_CORE_PUBLIC_CPP CStoragePerfStats
     UInt64 bytesRead;
     bool hasBytesReadPerSec;
     UInt64 bytesReadPerSec;
-    bool hasAvgBytesReadPerSec;
-    UInt64 avgBytesReadPerSec;
     bool hasBytesWritten;
     UInt64 bytesWritten;
     bool hasBytesWrittenPerSec;
     UInt64 bytesWrittenPerSec;
-    bool hasAvgBytesWrittenPerSec;
-    UInt64 avgBytesWrittenPerSec;
     bool hasReadTimeInMs;
     UInt64 readTimeInMs;
     bool hasWriteTimeInMs;
     UInt64 writeTimeInMs;
     bool hasIdleTimeInMs;
     UInt64 idleTimeInMs;
+    bool hasAvgReadTimePerOperationInMs;
+    Float32 avgReadTimePerOperationInMs;
+    bool hasAvgWriteTimePerOperationInMs;
+    Float32 avgWriteTimePerOperationInMs;
     bool hasRequestQueueDepth;
     UInt64 requestQueueDepth;
     bool hasRequestSplitCount;
@@ -316,7 +316,7 @@ typedef CTSharedPtr< CStorageDeviceInformation, MT::CMutex > CStorageDeviceInfor
 
 /**
  *  Attempts to obtain information about the storage device backing the given device id
- *  You can obain the device id via the volume information since a volume maps to one or more devices
+ *  You can obtain the device id via the volume information since a volume maps to one or more devices
  */
 GUCEF_CORE_PUBLIC_CPP bool
 GetStorageDeviceInformationByDeviceId( CStorageDeviceInfoOSData& osData ,
