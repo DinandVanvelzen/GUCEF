@@ -273,7 +273,9 @@ GUCEF_OSSERVICEMAIN_BEGIN( "udp2kafka" )
 
     keyValueList.Set( "logfile", logFilename );
 
+    Int32 maxRolloverFilesBeforeDeletion = keyValueList.GetValueAlways( "maxRolloverFilesBeforeDeletion", 10 ).AsInt32( 10, true ); 
     CORE::CRollingFileAccess logFileAccess( logFilename, "w" );
+    logFileAccess.SetMaxRolloverFilesBeforeDeletion( maxRolloverFilesBeforeDeletion );
     CORE::CStdLogger logger( logFileAccess );
     CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( &logger );
 
