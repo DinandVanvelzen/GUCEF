@@ -37,6 +37,7 @@ aws-cpp-sdk-sqs is version 1.10.51 from GitHub (Jan 13th 2023) @ https://github.
 aws-cpp-sdk-secretsmanager is version 1.10.51 from GitHub (Jan 13th 2023) @ https://github.com/aws/aws-sdk-cpp/releases/tag/1.10.51
 aws-lambda-runtime is version 0.2.7 from GitHub @ https://github.com/awslabs/aws-lambda-cpp/releases/tag/v0.2.7
 libyaml is in-flight version 0.2.6 from GitHub @ https://github.com/yaml/libyaml obtained source dated 2023-04-23
+opentelemetry-cpp is version 1.21.0 from GitHub
 
 Note for MS Windows builds: 
 - to build the DirectInput dependent code you must have the DirectX SDK installed on your system.
