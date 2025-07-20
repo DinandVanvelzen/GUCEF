@@ -38,7 +38,7 @@ add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} lua tolua )
 target_link_libraries( ${MODULE_NAME} lua tolua )
 
-include_directories( ../lua/src ../tolua/include ../tolua/src ../tolua/src/lib src include src/lib )
+include_directories( ../lua/src ../tolua/include ../tolua/src ../tolua/src/lib include src src/lib )
 
 
 

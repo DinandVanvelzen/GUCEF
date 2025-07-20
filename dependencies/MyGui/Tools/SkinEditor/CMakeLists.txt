@@ -773,19 +773,19 @@ endif( WIN64 )
 include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../Common ../../Common/FileSystemInfo ../../Common/Input ../../MyGUIEngine/include ../../Platforms/OpenGL/OpenGLPlatform/include ../../Platforms/OpenGL/OpenGLPlatform/include/GL )
 
 if ( LINUX32 )
-  include_directories( ../SkinEditor ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/OIS ../../Common/ItemBox ../../Common/Tools )
+  include_directories( ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/OIS ../../Common/ItemBox ../../Common/Tools ../SkinEditor )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../SkinEditor ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/OIS ../../Common/ItemBox ../../Common/Tools )
+  include_directories( ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/OIS ../../Common/ItemBox ../../Common/Tools ../SkinEditor )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../SkinEditor ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/Win32API ../../Common/ItemBox ../../Common/Tools )
+  include_directories( ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/Win32API ../../Common/ItemBox ../../Common/Tools ../SkinEditor )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../SkinEditor ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/Win32API ../../Common/ItemBox ../../Common/Tools )
+  include_directories( ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/Win32API ../../Common/ItemBox ../../Common/Tools ../SkinEditor )
 endif( WIN64 )
 
 

@@ -70,7 +70,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} opengl32 )
 endif( WIN64 )
 
-include_directories( ../../../../freetype/include ../../../../freetype/include/freetype ../../../../freetype/include/freetype/config ../../../../freetype/include/freetype/internal ../../../../freetype/include/freetype/internal/services ../../../../freetype/src ../../../../freetype/src/winfonts ../../../MyGUIEngine/include ../../../Common/FileSystemInfo include include/GL )
+include_directories( ../../../../freetype/include ../../../../freetype/include/freetype ../../../../freetype/include/freetype/config ../../../../freetype/include/freetype/internal ../../../../freetype/include/freetype/internal/services ../../../../freetype/src ../../../../freetype/src/winfonts ../../../Common/FileSystemInfo ../../../MyGUIEngine/include include include/GL )
 
 
 

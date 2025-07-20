@@ -120,7 +120,7 @@ add_dependencies( ${MODULE_NAME} libjpeg )
 target_link_libraries( ${MODULE_NAME} libjpeg )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "JAS_BUILDING_DLL;JAS_DLL;JAS_ENABLE_SHARED;JAS_HAVE_VISIBILITY" )
 
-include_directories( ../../../libjpeg include include/jasper bmp jp2 jpc jpg mif pgx pnm ras )
+include_directories( ../../../libjpeg bmp include include/jasper jp2 jpc jpg mif pgx pnm ras )
 
 
 

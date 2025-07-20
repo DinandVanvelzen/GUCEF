@@ -1503,30 +1503,44 @@ UnifyStringEol( const char* eolString ,
 /*-------------------------------------------------------------------------*/
 
 bool
-WriteStringAsTextFile( const CString& filePath    ,
-                       const CString& fileContent ,
-                       const bool unifyEol        ,
-                       const char* eolString      )
+WriteStringAsTextFile( const CString& filePath              ,
+                       const CString& fileContent           ,
+                       const bool unifyEol                  ,
+                       const char* eolString                ,
+                       const bool onlyWriteIfContentDiffers )
 {GUCEF_TRACE;
 
     if ( filePath.IsNULLOrEmpty() ) 
         return false;
 
-    FILE* fptr = fopen( filePath.C_String(), "wb" );
-    if ( NULL != fptr )
+    CString unifiedContent;
+    const CString* contentToWrite = &fileContent;
+    if ( unifyEol )
     {
-        if ( unifyEol )
+        unifiedContent = fileContent;
+        UnifyStringEol( eolString, unifiedContent );
+        contentToWrite = &unifiedContent;
+    }
+
+    if ( onlyWriteIfContentDiffers )
+    {
+        CString originalFileContent;
+        if ( LoadTextFileAsString( filePath, originalFileContent, false, GUCEF_NULL ) )
         {
-            CString unifiedContent = fileContent;
-            UnifyStringEol( eolString, unifiedContent );
-            if ( !unifiedContent.IsNULLOrEmpty() )
-                fwrite( unifiedContent.C_String(), unifiedContent.ByteSize()-1, 1, fptr );
+            if ( (*contentToWrite) == originalFileContent )
+            {
+                // Skip actually writing to disk since the file content is identical and the flag
+                // onlyWriteIfContentDiffers = true
+                return true;
+            }
         }
-        else
-        {
-            if ( !fileContent.IsNULLOrEmpty() )
-                fwrite( fileContent.C_String(), fileContent.ByteSize()-1, 1, fptr );
-        }
+    }
+
+    FILE* fptr = fopen( filePath.C_String(), "wb" );
+    if ( GUCEF_NULL != fptr )
+    {
+        if ( !contentToWrite->IsNULLOrEmpty() )
+            fwrite( contentToWrite->C_String(), contentToWrite->ByteSize()-1, 1, fptr );
         fclose( fptr );
         return true;
     }

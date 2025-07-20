@@ -495,7 +495,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} glu32.lib opengl32 )
 endif( WIN64 )
 
-include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../OgreMain/include ../../OgreMain/include/Hash ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/nedmalloc ../../OgreMain/src/stbi ../../include src src/GLSL src/atifs include include/GL src/GLSL/include src/StateCacheManager src/atifs/include src/nvparse src/nvparse/winheaders )
+include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../OgreMain/include ../../OgreMain/include/Hash ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/nedmalloc ../../OgreMain/src/stbi ../../include include include/GL src src/GLSL src/GLSL/include src/StateCacheManager src/atifs src/atifs/include src/nvparse src/nvparse/winheaders )
 
 if ( ANDROID )
   include_directories( ../../OgreMain/include/Android src/StateCacheManager )

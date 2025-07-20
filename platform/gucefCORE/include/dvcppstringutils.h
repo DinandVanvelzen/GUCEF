@@ -440,10 +440,11 @@ LoadTextFileAsString( const CString& filePath      ,
  *  native eol format is used.
  */
 GUCEF_CORE_PUBLIC_CPP bool
-WriteStringAsTextFile( const CString& filePath      ,
-                       const CString& fileContent   ,
-                       const bool unifyEol = false  ,
-                       const char* eolString = NULL );
+WriteStringAsTextFile( const CString& filePath                      ,
+                       const CString& fileContent                   ,
+                       const bool unifyEol = false                  ,
+                       const char* eolString = GUCEF_NULL           ,
+                       const bool onlyWriteIfContentDiffers = false );
 
 /*-------------------------------------------------------------------------*/
 

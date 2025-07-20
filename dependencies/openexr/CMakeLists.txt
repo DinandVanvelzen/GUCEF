@@ -352,7 +352,7 @@ if ( WIN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "HALF_EXPORTS;IEX_EXPORTS;ILMIMF_EXPORTS;ILMTHREAD_EXPORTS;IMATH_EXPORTS;OPENEXR_DLL" )
 endif( WIN64 )
 
-include_directories( IlmBase OpenEXR IlmBase/Half IlmBase/Iex IlmBase/IexMath IlmBase/IlmThread IlmBase/Imath IlmBase/config.windows OpenEXR/IlmImf OpenEXR/IlmImfUtil OpenEXR/config.windows )
+include_directories( IlmBase IlmBase/Half IlmBase/Iex IlmBase/IexMath IlmBase/IlmThread IlmBase/Imath IlmBase/config.windows OpenEXR OpenEXR/IlmImf OpenEXR/IlmImfUtil OpenEXR/config.windows )
 
 if ( LINUX32 )
   include_directories( ../zlib )

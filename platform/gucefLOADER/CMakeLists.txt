@@ -1411,10 +1411,10 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PowrProf.lib Ws2_32.lib winmm.lib )
 endif( WIN64 )
 
-include_directories( .. ../../common/include ../gucefCORE ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT ../gucefMT/include ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefMT/include/ include )
+include_directories( .. ../../common/include ../gucefCORE ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT ../gucefMT/include include )
 
 if ( ANDROID )
-  include_directories( ../gucefCORE/include/android ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefMT/include/ )
+  include_directories( ../gucefCORE/include/ ../gucefCORE/include/android ../gucefCORE/include/c_api/ ../gucefMT/include/ )
 endif( ANDROID )
 
 if ( ARDUINO )
@@ -1438,11 +1438,11 @@ if ( IOS )
 endif( IOS )
 
 if ( LINUX32 )
-  include_directories( ../gucefCORE/include/linux ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefMT/include/ )
+  include_directories( ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefCORE/include/linux ../gucefMT/include/ )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../gucefCORE/include/linux ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefMT/include/ )
+  include_directories( ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefCORE/include/linux ../gucefMT/include/ )
 endif( LINUX64 )
 
 if ( NACL )
@@ -1470,11 +1470,11 @@ if ( UNIX )
 endif( UNIX )
 
 if ( WIN32 )
-  include_directories( ../gucefCORE/include/mswin ../gucefMT/include/mswin ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefCORE/include/mswin/ ../gucefMT/include/ ../gucefMT/include/mswin/ )
+  include_directories( ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefCORE/include/mswin ../gucefMT/include/ ../gucefMT/include/mswin )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../gucefCORE/include/mswin ../gucefMT/include/mswin ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefCORE/include/mswin/ ../gucefMT/include/ ../gucefMT/include/mswin/ )
+  include_directories( ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefCORE/include/mswin ../gucefMT/include/ ../gucefMT/include/mswin )
 endif( WIN64 )
 
 

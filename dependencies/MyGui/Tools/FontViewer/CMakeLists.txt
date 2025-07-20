@@ -185,19 +185,19 @@ endif( WIN64 )
 include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../Common ../../Common/FileSystemInfo ../../Common/Input ../../MyGUIEngine/include ../../Platforms/OpenGL/OpenGLPlatform/include ../../Platforms/OpenGL/OpenGLPlatform/include/GL )
 
 if ( LINUX32 )
-  include_directories( ../FontViewer ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/OIS )
+  include_directories( ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/OIS ../FontViewer )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../FontViewer ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/OIS )
+  include_directories( ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/OIS ../FontViewer )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../FontViewer ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/Win32API )
+  include_directories( ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/Win32API ../FontViewer )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../FontViewer ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/Win32API )
+  include_directories( ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/Win32API ../FontViewer )
 endif( WIN64 )
 
 

@@ -593,14 +593,14 @@ GenerateCMakeModuleIncludesSection( const CModuleInfo& moduleInfo ,
     
     // Add include dirs for each dependency we know about
     CORE::CString allRelDependencyPaths;
+    CORE::CStringSet allRelDependencyPathsSet;
     const TStringSet& includeDirs = moduleInfo.dependencyIncludeDirs;
     TStringSet::const_iterator i = includeDirs.begin();
     while ( i != includeDirs.end() )
     {
         // CMake needs spaces in paths to be escaped
-        CORE::CString path = (*i).ReplaceSubstr( " ", "\\ " );
-
-        allRelDependencyPaths += ConvertEnvVarStrings( path ) + " ";
+        CORE::CString path = (*i).ReplaceSubstr( " ", "\\ " );        
+        allRelDependencyPathsSet.insert( ConvertEnvVarStrings( path ).Trim( true ).Trim( false ) );
         ++i;
     }
 
@@ -615,7 +615,7 @@ GenerateCMakeModuleIncludesSection( const CModuleInfo& moduleInfo ,
 
         if ( 0 != includeDir.Length() )
         {
-            allRelDependencyPaths += includeDir + " ";
+            allRelDependencyPathsSet.insert( includeDir.Trim( true ).Trim( false ) );
         }
         else
         {
@@ -627,11 +627,54 @@ GenerateCMakeModuleIncludesSection( const CModuleInfo& moduleInfo ,
             {
                 CORE::CString path = "../" + CORE::LastSubDir( rootDir );
                 path = path.ReplaceSubstr( " ", "\\ " );
-                allRelDependencyPaths += path + " ";
+                allRelDependencyPathsSet.insert( path.Trim( true ).Trim( false ) );
             }
         }
         ++n;
     }
+
+    // Now that we gathered all the paths, the entire set, we can turn it into a singular
+    // string and thus later file section. We want to keep the ordering consistent
+    // as such we want to sort & merge across sources into a single merged and sorted set
+
+    CORE::CStringSet pathsToErase;
+    CORE::CStringSet::iterator p = allRelDependencyPathsSet.begin();
+    while ( p != allRelDependencyPathsSet.end() )
+    {
+        const CORE::CString& pathEntry = (*p);
+        if ( !pathEntry.IsNULLOrEmpty() )
+        {
+            // For CMake include paths there is no need per se to add a trailing (back)slash
+            // If we have one it can miss deduplication
+            bool hasBackSlash = pathEntry.EndsWith( "\\" );
+            bool hasSlash = pathEntry.EndsWith( "/" );
+            if ( hasBackSlash || hasSlash )
+            {
+                CORE::CString withoutLastChar = pathEntry.CutChars( 1, false );
+                CORE::CStringSet::iterator p2 = allRelDependencyPathsSet.find( withoutLastChar );
+                if ( p2 != allRelDependencyPathsSet.end() )
+                {
+                    pathsToErase.insert( pathEntry );
+                }
+            }
+        }
+        ++p;
+    }
+    p = pathsToErase.begin();
+    while ( p != pathsToErase.end() )
+    {
+        allRelDependencyPathsSet.erase( (*p) );
+        ++p;
+    }
+
+    p = allRelDependencyPathsSet.begin();
+    while ( p != allRelDependencyPathsSet.end() )
+    {
+        const CORE::CString& pathEntry = (*p);
+        if ( !pathEntry.IsNULLOrEmpty() )
+            allRelDependencyPaths += pathEntry + " ";
+        ++p;
+    }    
 
     CORE::CString sectionContent;
     if ( allRelDependencyPaths.Length() > 0 )
@@ -1377,7 +1420,7 @@ WriteCMakeListsFilesToDisk( const CProjectInfo& projectInfo  ,
             CORE::CString pathToCMakeListsFile = moduleInfoEntry.rootDir;
             CORE::AppendToPath( pathToCMakeListsFile, "CMakeLists.txt" );
 
-            if ( CORE::WriteStringAsTextFile( pathToCMakeListsFile, fileContent ) )
+            if ( CORE::WriteStringAsTextFile( pathToCMakeListsFile, fileContent, true, "\n", true ) )
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created CMakeLists.txt file for project dir: " + moduleInfoEntry.rootDir );
             }
@@ -1446,7 +1489,7 @@ WriteCMakeOptionsListToDisk( const CProjectInfo& projectInfo       ,
         fileContent = GetCMakeListsFileHeader( addCompileDate ) + "\n\n" + fileContent;
 
         CORE::CString pathToOptionsListFile = CORE::CombinePath( targetsOutputDir, projectInfo.projectName + "_OptionsList.cmake" );
-        if ( CORE::WriteStringAsTextFile( pathToOptionsListFile, fileContent ) )
+        if ( CORE::WriteStringAsTextFile( pathToOptionsListFile, fileContent, true, "\n", true ) )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created OptionsList.cmake file in output dir: " + outputDir );
         }
@@ -1573,7 +1616,7 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
     {        
         CORE::CString qualifiedName = projectName + "_ModuleDirs.cmake";
         CORE::CString pathToCMakeModuleDirsFile = CORE::CombinePath( targetOutputDir, qualifiedName );
-        if ( CORE::WriteStringAsTextFile( pathToCMakeModuleDirsFile, fileContent ) )
+        if ( CORE::WriteStringAsTextFile( pathToCMakeModuleDirsFile, fileContent, true, "\n", true ) )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created " + qualifiedName + " file in output dir: " + targetOutputDir );
         }
@@ -1603,7 +1646,7 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
             // ... Add additional variables here to resolve
 
             CORE::CString pathToCMakeListsFile = CORE::CombinePath( targetOutputDir, "CMakeLists.txt" );
-            if ( CORE::WriteStringAsTextFile( pathToCMakeListsFile, projectfileContent ) )
+            if ( CORE::WriteStringAsTextFile( pathToCMakeListsFile, projectfileContent, true, "\n", true ) )
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created CMakeLists.txt file for project " + projectName + " in output dir: " + targetOutputDir );
             }
@@ -1632,7 +1675,7 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
 
             CORE::CString qualifiedName = projectName + "_Packaging.cmake";
             CORE::CString pathToCMakeListsFile = CORE::CombinePath( targetOutputDir, qualifiedName );
-            if ( CORE::WriteStringAsTextFile( pathToCMakeListsFile, packagingfileContent ) )
+            if ( CORE::WriteStringAsTextFile( pathToCMakeListsFile, packagingfileContent, true, "\n", true ) )
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created \"" + qualifiedName + "\" file for project " + projectName + " in output dir: " + targetOutputDir );
             }

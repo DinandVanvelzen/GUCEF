@@ -221,7 +221,7 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
     // or a statically linked module. As such we have to figure out which is which.
     //
     // We make an alphabetical list instead of creating the section right away because
-    // we dont want the order to vary in the makefile because such changes cause the NDK
+    // we don't want the order to vary in the makefile because such changes cause the NDK
     // to build the code again for no reason.
     CORE::CString linkingErrorSection;
     TStringSet linkedSharedLibraries;
@@ -261,7 +261,7 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
             }
             default:
             {
-                // Since the depedendency module type was not predefined we will investigate among
+                // Since the dependency module type was not predefined we will investigate among
                 // the other modules to try to determine the nature of the linked module
                 const CModuleInfo* linkedDependency = FindModuleByName( mergeLinks, linkedLibName );
                 if ( NULL != linkedDependency )
@@ -309,7 +309,7 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
                         {
                             linkingErrorSection +=
                               "# *** ERROR *** Finish me\n"
-                              "# Unable to determing module type from the source information\n"
+                              "# Unable to determine module type from the source information\n"
                               "# Please edit the line below to manually set the correct linking method for this dependency\n";
                             linkingErrorSection += "#LOCAL_<(LDLIBS???)> += " + moduleInfo.name + "\n\n";
 

@@ -761,7 +761,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} zlib )
 endif( WIN64 )
 
-include_directories( src include include/freetype include/freetype/config include/freetype/internal include/freetype/internal/services src/winfonts )
+include_directories( include include/freetype include/freetype/config include/freetype/internal include/freetype/internal/services src src/winfonts )
 
 if ( LINUX32 )
   include_directories( ../zlib )

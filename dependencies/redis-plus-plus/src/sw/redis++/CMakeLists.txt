@@ -76,7 +76,7 @@ add_dependencies( ${MODULE_NAME} hiredis )
 target_link_libraries( ${MODULE_NAME} hiredis )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "REDIS_PLUS_PLUS_BUILD_TEST=OFF;REDIS_PLUS_PLUS_CXX_STANDARD=11" )
 
-include_directories( ../../ ../../../../ ../../../../hiredis cxx11 cxx11/sw no_tls no_tls/sw ../redis++ cxx11/sw/redis++ no_tls/sw/redis++ patterns )
+include_directories( ../../ ../../../../ ../../../../hiredis ../redis++ cxx11 cxx11/sw cxx11/sw/redis++ no_tls no_tls/sw no_tls/sw/redis++ patterns )
 
 if ( ANDROID )
   include_directories( ../../../../Ogre ../../../../Ogre/RenderSystems ../../../../Ogre/RenderSystems/GLES2 ../../../../Ogre/RenderSystems/GLES2/include ../../../../Ogre/RenderSystems/GLES2/include/EGL ../../../../Ogre/RenderSystems/GLES2/include/EGL/Android ../../../../hiredis )

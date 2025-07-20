@@ -46,7 +46,7 @@ if ( WIN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "TOLUA5_DLL" )
 endif( WIN64 )
 
-include_directories( ../lua/src src include src/lib )
+include_directories( ../lua/src include src src/lib )
 
 
 

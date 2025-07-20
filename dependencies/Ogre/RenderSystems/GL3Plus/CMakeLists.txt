@@ -228,11 +228,11 @@ if ( EMSCRIPTEN )
 endif( EMSCRIPTEN )
 
 if ( GLX )
-  include_directories( ../../OgreMain/src/GLX include/windowing src src/windowing include/windowing/GLX src/windowing/GLX )
+  include_directories( ../../OgreMain/src/GLX include/windowing include/windowing/GLX src src/windowing src/windowing/GLX )
 endif( GLX )
 
 if ( GTK )
-  include_directories( ../../OgreMain/include/gtk ../../OgreMain/src/gtk include/windowing src src/windowing include/windowing/gtk src/windowing/gtk )
+  include_directories( ../../OgreMain/include/gtk ../../OgreMain/src/gtk include/windowing include/windowing/gtk src src/windowing src/windowing/gtk )
 endif( GTK )
 
 if ( IOS )
@@ -240,15 +240,15 @@ if ( IOS )
 endif( IOS )
 
 if ( OSX )
-  include_directories( ../../OgreMain/include/OSX include/windowing src src/windowing include/windowing/OSX src/windowing/OSX )
+  include_directories( ../../OgreMain/include/OSX include/windowing include/windowing/OSX src src/windowing src/windowing/OSX )
 endif( OSX )
 
 if ( SDL )
-  include_directories( include/windowing src src/windowing include/windowing/SDL src/windowing/SDL )
+  include_directories( include/windowing include/windowing/SDL src src/windowing src/windowing/SDL )
 endif( SDL )
 
 if ( WIN32 )
-  include_directories( ../../OgreMain/include/WIN32 ../../OgreMain/src/WIN32 include/windowing src src/windowing include/windowing/win32 src/windowing/win32 )
+  include_directories( ../../OgreMain/include/WIN32 ../../OgreMain/src/WIN32 include/windowing include/windowing/win32 src src/windowing src/windowing/win32 )
 endif( WIN32 )
 
 
