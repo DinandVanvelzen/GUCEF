@@ -240,8 +240,8 @@ LoadPremake4FileAdditionTemplates( const CORE::CString& templateDir )
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GeneratePremake4TemplatedAdditionSection( const CModuleInfoEntry& moduleInfoEntry ,
-                                          const CORE::CString& platformName       )
+GeneratePremake4TemplatedAdditionSection( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                          const CORE::CString& platformName          )
 {GUCEF_TRACE;
 
     const CModuleInfo* moduleInfo = NULL;
@@ -275,7 +275,7 @@ GeneratePremake4TemplatedAdditionSection( const CModuleInfoEntry& moduleInfoEntr
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GeneratePremake4TemplatedAdditionSection( const CModuleInfoEntry& moduleInfoEntry )
+GeneratePremake4TemplatedAdditionSection( const CModuleInfoEntryPtr& moduleInfoEntry )
 
 {GUCEF_TRACE;
 
@@ -386,13 +386,13 @@ GeneratePremake4FileSection( const CORE::CString& sectionContent ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GeneratePremake4FileIncludeSection( const CModuleInfoEntry& moduleInfoEntry  ,
-                                    const CORE::CString& consensusModuleName )
+GeneratePremake4FileIncludeSection( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                    const CORE::CString& consensusModuleName   )
 {GUCEF_TRACE;
 
     CORE::CString sectionContent;
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const TStringSetMap& includeFiles = (*i).second.includeDirs;
         if ( !includeFiles.empty() )
@@ -415,13 +415,13 @@ GeneratePremake4FileIncludeSection( const CModuleInfoEntry& moduleInfoEntry  ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GeneratePremake4FileSrcSection( const CModuleInfoEntry& moduleInfoEntry  ,
-                                const CORE::CString& consensusModuleName )
+GeneratePremake4FileSrcSection( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                const CORE::CString& consensusModuleName   )
 {GUCEF_TRACE;
 
     CORE::CString sectionContent;
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const TStringSetMap& srcFiles = (*i).second.sourceDirs;
         if ( !srcFiles.empty() )
@@ -443,16 +443,16 @@ GeneratePremake4FileSrcSection( const CModuleInfoEntry& moduleInfoEntry  ,
 /*---------------------------------------------------------------------------*/
 
 void
-GeneratePremake4FilePlatformFilesSection( const CModuleInfoEntry& moduleInfoEntry ,
-                                          const CORE::CString& platformName       ,
-                                          CORE::CString& headerSection            ,
-                                          CORE::CString& sourceSection            ,
-                                          bool& hasPlatformHeaderFiles            ,
-                                          bool& hasPlatformSourceFiles            )
+GeneratePremake4FilePlatformFilesSection( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                          const CORE::CString& platformName          ,
+                                          CORE::CString& headerSection               ,
+                                          CORE::CString& sourceSection               ,
+                                          bool& hasPlatformHeaderFiles               ,
+                                          bool& hasPlatformSourceFiles               )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator m = moduleInfoEntry.modulesPerPlatform.find( platformName );
-    if ( m != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator m = moduleInfoEntry->modulesPerPlatform.find( platformName );
+    if ( m != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const TStringSetMap& platformHeaderFiles = (*m).second.includeDirs;
         if ( !platformHeaderFiles.empty() )
@@ -528,15 +528,15 @@ GeneratePremake4FilePlatformFilesSection( const CModuleInfoEntry& moduleInfoEntr
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GeneratePremake4FilePlatformFilesSection( const CModuleInfoEntry& moduleInfoEntry )
+GeneratePremake4FilePlatformFilesSection( const CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
     bool hasPlatformHeaderFiles = false;
     bool hasPlatformSourceFiles = false;
 
     CORE::CString sectionContent;
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.begin();
-    while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+    while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         CORE::CString headerSection;
         CORE::CString sourceSection;
@@ -638,28 +638,28 @@ GeneratePremake4ModuleIncludesSection( const CModuleInfo& moduleInfo ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GeneratePremake4ModuleIncludesSection( const CModuleInfoEntry& moduleInfoEntry )
+GeneratePremake4ModuleIncludesSection( const CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
     CORE::CString sectionContent;
 
     // First add the include section which applies to all platforms
     // it should not have an 'if' check around it
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         sectionContent += "\nconfiguration( {} )\n";
-        sectionContent += GeneratePremake4ModuleIncludesSection( (*i).second, moduleInfoEntry.rootDir );
+        sectionContent += GeneratePremake4ModuleIncludesSection( (*i).second, moduleInfoEntry->rootDir );
     }
 
     // Now add the include paths which are platform specific
-    i = moduleInfoEntry.modulesPerPlatform.begin();
-    while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    i = moduleInfoEntry->modulesPerPlatform.begin();
+    while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const CORE::CString& platformName = (*i).first;
         if ( platformName != AllPlatforms )
         {
-            CORE::CString platformSection = GeneratePremake4ModuleIncludesSection( (*i).second, moduleInfoEntry.rootDir );
+            CORE::CString platformSection = GeneratePremake4ModuleIncludesSection( (*i).second, moduleInfoEntry->rootDir );
             if ( platformSection.Length() > 0 )
             {
                 sectionContent += "\nconfiguration( { \"" + platformName.Uppercase() + "\" } )\n" + platformSection;
@@ -759,10 +759,10 @@ GeneratePremake4ModuleDependenciesLine( const CProjectInfo& projectInfo   ,
         {
             // We add all dependencies except for header include locations which are not real modules
             // and Premake4 will not be using a make file for those.
-            const CModuleInfoEntry* dependencyModule = GetModuleInfoEntry( projectInfo, (*i), AllPlatforms );
-            if ( NULL != dependencyModule )
+            const CModuleInfoEntryPtr dependencyModule = GetModuleInfoEntry( projectInfo, (*i), AllPlatforms );
+            if ( !dependencyModule.IsNULL() )
             {
-                TModuleType moduleType = GetModuleType( *dependencyModule, AllPlatforms );
+                TModuleType moduleType = GetModuleType( dependencyModule, AllPlatforms );
                 if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != moduleType )   &&
                      ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleType ) &&
                      ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleType )    )
@@ -896,7 +896,7 @@ GeneratePremake4ModuleDefinesLine( const CModuleInfo& moduleInfo     ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GeneratePremake4ModuleNameSection( const CModuleInfoEntry& moduleInfoEntry )
+GeneratePremake4ModuleNameSection( const CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating Premake4 section which defines the module name depending on the platform flags" );
@@ -948,8 +948,8 @@ GeneratePremake4ModuleNameSection( const CModuleInfoEntry& moduleInfoEntry )
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GeneratePremake4ModuleDescriptionSection( const CModuleInfoEntry& moduleInfoEntry  ,
-                                          const CORE::CString& consensusModuleName )
+GeneratePremake4ModuleDescriptionSection( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                          const CORE::CString& consensusModuleName   )
 {GUCEF_TRACE;
 
     // This bit of information is not additive and is in fact mutually exclusive per platform
@@ -1006,22 +1006,22 @@ GeneratePremake4ModuleDescriptionSection( const CModuleInfoEntry& moduleInfoEntr
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GeneratePremake4ModuleLanguageSection( const CModuleInfoEntry& moduleInfoEntry ,
-                                       const CORE::CString& consensusName      )
+GeneratePremake4ModuleLanguageSection( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                       const CORE::CString& consensusName         )
 {GUCEF_TRACE;
 
     CORE::CString sectionContent;
 
     CORE::CString allPlatformsLanguage;
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         allPlatformsLanguage = GetLanguageForModule( (*i).second );
         sectionContent = "\nconfiguration( {} )\nlanguage( \"" + allPlatformsLanguage + "\" )\n";
     }
 
-    i = moduleInfoEntry.modulesPerPlatform.begin();
-    while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    i = moduleInfoEntry->modulesPerPlatform.begin();
+    while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const CORE::CString& platformName = (*i).first;
 
@@ -1094,10 +1094,10 @@ GeneratePremake4ModuleTargetNameLine( const CModuleInfo& moduleInfo     ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GeneratePremake4ModuleInfoSection( const CProjectInfo& projectInfo         ,
-                                   const CModuleInfoEntry& moduleInfoEntry ,
-                                   const CORE::CString& premakeOutputDir   ,
-                                   const CORE::CString&  premakeTargetDir  )
+GeneratePremake4ModuleInfoSection( const CProjectInfo& projectInfo            ,
+                                   const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                   const CORE::CString& premakeOutputDir      ,
+                                   const CORE::CString&  premakeTargetDir     )
 {GUCEF_TRACE;
 
     CORE::CString consensusName = GetConsensusModuleName( moduleInfoEntry );
@@ -1117,7 +1117,7 @@ GeneratePremake4ModuleInfoSection( const CProjectInfo& projectInfo         ,
         }
         else
         {
-            CORE::CString pathToOutputDir = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry.rootDir, premakeOutputDir );
+            CORE::CString pathToOutputDir = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir, premakeOutputDir );
             pathToOutputDir = pathToOutputDir.ReplaceChar( '\\', '/' );
             sectionContent += "\nconfiguration( {} )\n  location( \"" + pathToOutputDir + "\" )\n";
         }
@@ -1135,7 +1135,7 @@ GeneratePremake4ModuleInfoSection( const CProjectInfo& projectInfo         ,
         }
         else
         {
-            CORE::CString pathToOutputDir = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry.rootDir, premakeTargetDir );
+            CORE::CString pathToOutputDir = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir, premakeTargetDir );
             sectionContent += "\nconfiguration( {} )\n  targetdir( \"" + pathToOutputDir + "\" )\n";
         }
     }
@@ -1147,8 +1147,8 @@ GeneratePremake4ModuleInfoSection( const CProjectInfo& projectInfo         ,
 
     // Add module info which is addative meaning AllPlatforms info can be
     // supplemented with it and it is not mutually exclusive
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const CORE::CString& platformName = (*i).first;
         const CModuleInfo& moduleInfo = (*i).second;
@@ -1170,8 +1170,8 @@ GeneratePremake4ModuleInfoSection( const CProjectInfo& projectInfo         ,
     }
 
     // Now do the same for all adative platform specific info
-    i = moduleInfoEntry.modulesPerPlatform.begin();
-    while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    i = moduleInfoEntry->modulesPerPlatform.begin();
+    while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const CORE::CString& platformName = (*i).first;
 
@@ -1225,11 +1225,11 @@ GeneratePremake4ModuleInfoSection( const CProjectInfo& projectInfo         ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GeneratePremake4ModuleFileContent( const CProjectInfo& projectInfo         ,
-                                   const CORE::CString& premakeOutputDir   ,
-                                   const CORE::CString& premakeTargetDir   ,
-                                   const CModuleInfoEntry& moduleInfoEntry ,
-                                   bool addCompileDate = false             )
+GeneratePremake4ModuleFileContent( const CProjectInfo& projectInfo            ,
+                                   const CORE::CString& premakeOutputDir      ,
+                                   const CORE::CString& premakeTargetDir      ,
+                                   const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                   bool addCompileDate = false                )
 {GUCEF_TRACE;
 
     // Set file header comment section
@@ -1285,10 +1285,10 @@ WritePremake4ModuleFilesToDisk( const CProjectInfo& projectInfo       ,
 {GUCEF_TRACE;
 
     // Write all the premake4 files
-    TModuleInfoEntryVector::const_iterator i = projectInfo.modules.begin();
+    TModuleInfoEntryPtrVector::const_iterator i = projectInfo.modules.begin();
     while ( i != projectInfo.modules.end() )
     {
-        const CModuleInfoEntry& moduleInfoEntry = (*i);
+        const CModuleInfoEntryPtr& moduleInfoEntry = (*i);
         TModuleType allPlatformsType = GetModuleType( moduleInfoEntry, AllPlatforms );
         if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != allPlatformsType )    &&
              ( MODULETYPE_HEADER_INTEGRATE_LOCATION != allPlatformsType )  &&
@@ -1300,16 +1300,16 @@ WritePremake4ModuleFilesToDisk( const CProjectInfo& projectInfo       ,
                 fileContent += "\n-- Generator logfile can be found at: " + logFilename;
             }
 
-            CORE::CString pathToPremake4ModuleFile = moduleInfoEntry.rootDir;
+            CORE::CString pathToPremake4ModuleFile = moduleInfoEntry->rootDir;
             CORE::AppendToPath( pathToPremake4ModuleFile, "premake4.lua" );
 
             if ( CORE::WriteStringAsTextFile( pathToPremake4ModuleFile, fileContent ) )
             {
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created premake4.lua file for project dir: " + moduleInfoEntry.rootDir );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created premake4.lua file for project dir: " + moduleInfoEntry->rootDir );
             }
             else
             {
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to write premake4.lua file content to disk at path " + moduleInfoEntry.rootDir );
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to write premake4.lua file content to disk at path " + moduleInfoEntry->rootDir );
             }
         }
         else
@@ -1381,13 +1381,13 @@ GeneratePremake4ProjectFileContent( const CProjectInfo& projectInfo       ,
 
     // Add the module includes
     CORE::CString moduleIncludeListSection = "  --\n  -- Includes for all modules in the solution:\n  --\n";
-    TModuleInfoEntryVector::const_iterator n = projectInfo.modules.begin();
+    TModuleInfoEntryPtrVector::const_iterator n = projectInfo.modules.begin();
     while ( n != projectInfo.modules.end() )
     {
-        const CModuleInfoEntry& moduleInfo = (*n);
-        if ( HasIndependentModuleType( moduleInfo.modulesPerPlatform ) )
+        const CModuleInfoEntryPtr& moduleInfo = (*n);
+        if ( HasIndependentModuleType( moduleInfo->modulesPerPlatform ) )
         {
-            CORE::CString pathToModuleDir = CORE::GetRelativePathToOtherPathRoot( outputDir, moduleInfo.rootDir );
+            CORE::CString pathToModuleDir = CORE::GetRelativePathToOtherPathRoot( outputDir, moduleInfo->rootDir );
 
             if ( 0 == pathToModuleDir.HasSubstr( "ENVVAR:", true ) )
             {

@@ -203,10 +203,10 @@ CreateArduinoCLIOutputFolderStructure( const CORE::CString& outputDir  ,
 /*-------------------------------------------------------------------------*/
 
 bool
-IsArduinoCompilationTarget( const CModuleInfoEntry& moduleInfoEntry   ,
-                            const CModuleInfo& moduleInfo             ,
-                            bool onlyConsiderSpecificTags             ,
-                            const CORE::CString::StringSet& validTags )
+IsArduinoCompilationTarget( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                            const CModuleInfo& moduleInfo              ,
+                            bool onlyConsiderSpecificTags              ,
+                            const CORE::CString::StringSet& validTags  )
 {GUCEF_TRACE;
 
     if ( !onlyConsiderSpecificTags ||
@@ -247,10 +247,10 @@ CreateArduinoCLIWindowsSymlinkBatchfiles( const TModuleInfoEntryPairVector& merg
     TModuleInfoEntryPairVector::const_iterator i = mergeLinks.begin();
     while ( i != mergeLinks.end() )
     {
-        const CModuleInfoEntry* originalModule = (*i).first;
+        const CModuleInfoEntryPtr originalModule = (*i).first;
         const CModuleInfo* mergedModule = (*i).second;
 
-        if ( IsArduinoCompilationTarget( *originalModule          ,
+        if ( IsArduinoCompilationTarget( originalModule           ,
                                          *mergedModule            ,
                                          onlyConsiderSpecificTags ,
                                          validTags                ) )
@@ -296,10 +296,10 @@ CreateArduinoCLIWindowsSymlinkBatchfiles( const TModuleInfoEntryPairVector& merg
     i = mergeLinks.begin();
     while ( i != mergeLinks.end() )
     {
-        const CModuleInfoEntry* originalModule = (*i).first;
+        const CModuleInfoEntryPtr originalModule = (*i).first;
         const CModuleInfo* mergedModule = (*i).second;
 
-        if ( IsArduinoCompilationTarget( *originalModule          ,
+        if ( IsArduinoCompilationTarget( originalModule           ,
                                          *mergedModule            ,
                                          onlyConsiderSpecificTags ,
                                          validTags                ) )
@@ -347,10 +347,10 @@ CreateArduinoCLILibraryPropertiesFiles( const TModuleInfoEntryPairVector& mergeL
     TModuleInfoEntryPairVector::const_iterator i = mergeLinks.begin();
     while ( i != mergeLinks.end() )
     {
-        const CModuleInfoEntry* originalModule = (*i).first;
+        const CModuleInfoEntryPtr originalModule = (*i).first;
         const CModuleInfo* mergedModule = (*i).second;
 
-        if ( IsArduinoCompilationTarget( *originalModule          ,
+        if ( IsArduinoCompilationTarget( originalModule           ,
                                          *mergedModule            ,
                                          onlyConsiderSpecificTags ,
                                          validTags                ) )
@@ -379,7 +379,7 @@ CreateArduinoCLILibraryPropertiesFiles( const TModuleInfoEntryPairVector& mergeL
                     //includes=src/common/include/gucef.h   ?
                 
                     CORE::CString::StringSet dependencies;
-                    GetModuleDependencies( *originalModule     ,
+                    GetModuleDependencies( originalModule      ,
                                            ArduinoPlatformName ,
                                            dependencies        ,
                                            false               );                

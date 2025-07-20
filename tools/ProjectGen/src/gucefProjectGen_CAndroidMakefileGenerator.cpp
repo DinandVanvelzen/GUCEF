@@ -268,7 +268,7 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
                 {
                     // The module we are linking too is part of this project.
                     // As such we can simply check the other module's info
-                    // to find out wheter its a dynamically linked module or not
+                    // to find out whether its a dynamically linked module or not
                     // which in turn tells us how to instruct the Android build system
                     // to link.
                     switch( linkedDependency->moduleType )
@@ -321,7 +321,7 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
                 else
                 {
                     // If we get here then this dependency is not on a module which is part of the project
-                    // As such we cannot build this module thus the only approriote linking method would seem
+                    // As such we cannot build this module thus the only appropriate linking method would seem
                     // to be the one where we simply instruct the linker to load this dependency at runtime.
                     // This will typically be the case for any Android NDK modules we have to link to.
                     linkedRuntimeLibraries.insert( linkedLibName );
@@ -618,7 +618,7 @@ FindNextModuleAccordingToBuildOrder( const TModuleInfoEntryPairVector& mergeLink
 
 /*-------------------------------------------------------------------------*/
 
-const CModuleInfoEntry*
+const CModuleInfoEntryPtr
 FindModuleInfoEntryForMergedInfo( const TModuleInfoEntryPairVector& mergeLinks ,
                                   const CModuleInfo& mergedModule              )
 {
@@ -631,7 +631,7 @@ FindModuleInfoEntryForMergedInfo( const TModuleInfoEntryPairVector& mergeLinks ,
         }
         ++i;
     }
-    return NULL;
+    return CModuleInfoEntryPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -699,7 +699,7 @@ GenerateContentForAndroidProjectMakefile( const CORE::CString& projectName      
              ( MODULETYPE_CODE_INTEGRATE_LOCATION != currentModule->moduleType )    )
         {
             // Get relative path from the outputDir to the other module
-            const CModuleInfoEntry* fullModuleInfo = FindModuleInfoEntryForMergedInfo( mergeLinks, *currentModule );
+            const CModuleInfoEntryPtr fullModuleInfo = FindModuleInfoEntryForMergedInfo( mergeLinks, *currentModule );
             CORE::CString relativePathToModule = CORE::GetRelativePathToOtherPathRoot( outputDir, fullModuleInfo->rootDir );
             relativePathToModule = relativePathToModule.ReplaceChar( '\\', '/' );
 

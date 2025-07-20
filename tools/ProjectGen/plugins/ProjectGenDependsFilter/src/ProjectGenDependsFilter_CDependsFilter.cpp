@@ -230,8 +230,8 @@ CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
     // Mark all the modules from the project which are not in the modules list for deletion
     // Note that not all module types are filtered as they are not compiled into binaries for which Depends can provide a check
     TStringSet deleteList;
-    TModuleInfoEntryVector& moduleInfoList = projectInfo.modules;
-    TModuleInfoEntryVector::iterator i = moduleInfoList.begin(); 
+    TModuleInfoEntryPtrVector& moduleInfoList = projectInfo.modules;
+    TModuleInfoEntryPtrVector::iterator i = moduleInfoList.begin(); 
     while ( i != moduleInfoList.end() )
     {
         CString targetName = GetModuleTargetName( (*i), "win32", true );
@@ -249,7 +249,7 @@ CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
             {
                 // The given module is not in the list of modules we obtained from depends
                 // as such we should filter it out
-                deleteList.insert( (*i).rootDir + ':' + targetName );
+                deleteList.insert( (*i)->rootDir + ':' + targetName );
             }
         }
         else
@@ -262,11 +262,11 @@ CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
 
     if ( !deleteList.empty() )
     {
-        TModuleInfoEntryVector::iterator i = moduleInfoList.begin(); 
+        TModuleInfoEntryPtrVector::iterator i = moduleInfoList.begin(); 
         while ( i != moduleInfoList.end() )
         {
             CString targetName = GetModuleTargetName( (*i), "win32", true );
-            TStringSet::iterator n = deleteList.find( (*i).rootDir + ':' + targetName );
+            TStringSet::iterator n = deleteList.find( (*i)->rootDir + ':' + targetName );
             if ( n != deleteList.end() )
             {
                 moduleInfoList.erase( i );

@@ -306,10 +306,10 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
 
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Loaded project file from: " + projectFilePath );
         
-        PROJECTGEN::CModuleInfoEntry moduleEntry;
-        moduleEntry.rootDir = path;
+        PROJECTGEN::CModuleInfoEntryPtr moduleEntry = PROJECTGEN::CModuleInfoEntry::CreateSharedObj();
+        moduleEntry->rootDir = path;
 
-        PROJECTGEN::CModuleInfo& moduleInfo = moduleEntry.modulesPerPlatform[ "all" ];
+        PROJECTGEN::CModuleInfo& moduleInfo = moduleEntry->modulesPerPlatform[ "all" ];
         InitializeModuleInfo( moduleInfo );        
         
         // First parse the globals so we can resolve variables in other sections
@@ -555,7 +555,7 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
 
         CORE::CString moduleInfoFilePath = CORE::CombinePath( path, "ModuleInfo.xml" );
 
-        moduleEntry.metadata.lastEditBy = "ProjectGenVSImporter";
+        moduleEntry->metadata.lastEditBy = "ProjectGenVSImporter";
         PROJECTGEN::SerializeModuleInfo( moduleEntry, moduleInfoFilePath );
 
         ++i;

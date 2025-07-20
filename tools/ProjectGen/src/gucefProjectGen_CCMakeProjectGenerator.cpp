@@ -247,8 +247,8 @@ LoadCMakeFileAdditionTemplates( const CORE::CString& templateDir )
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntry& moduleInfoEntry ,
-                                       const CORE::CString& platformName       )
+GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                       const CORE::CString& platformName          )
 {GUCEF_TRACE;
 
     const CModuleInfo* moduleInfo = NULL;
@@ -282,7 +282,7 @@ GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntry& moduleInfoEntry ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntry& moduleInfoEntry )
+GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntryPtr& moduleInfoEntry )
 
 {GUCEF_TRACE;
 
@@ -290,8 +290,8 @@ GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntry& moduleInfoEntry )
     bool platformAdded = false;
     bool allPlatformsSectionAdded = false;
 
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.begin();
-    while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+    while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const CORE::CString& platformName = (*i).first;
         if ( AllPlatforms != platformName )
@@ -317,8 +317,8 @@ GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntry& moduleInfoEntry )
         ++i;
     }
 
-    i = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    i = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         CORE::CString templatedContent = GenerateCMakeTemplatedAdditionSection( moduleInfoEntry, AllPlatforms );
         if ( !templatedContent.IsNULLOrEmpty() )
@@ -384,13 +384,13 @@ GenerateCMakeListsFileSection( const CORE::CString& sectionContent ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeListsFileIncludeSection( const CModuleInfoEntry& moduleInfoEntry  ,
-                                      const CORE::CString& consensusModuleName )
+GenerateCMakeListsFileIncludeSection( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                      const CORE::CString& consensusModuleName   )
 {GUCEF_TRACE;
 
     CORE::CString sectionContent;
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const TStringSetMap& includeFiles = (*i).second.includeDirs;
         if ( !includeFiles.empty() )
@@ -410,13 +410,13 @@ GenerateCMakeListsFileIncludeSection( const CModuleInfoEntry& moduleInfoEntry  ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeListsFileSrcSection( const CModuleInfoEntry& moduleInfoEntry  ,
-                                  const CORE::CString& consensusModuleName )
+GenerateCMakeListsFileSrcSection( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                  const CORE::CString& consensusModuleName   )
 {GUCEF_TRACE;
 
     CORE::CString sectionContent;
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const TStringSetMap& srcFiles = (*i).second.sourceDirs;
         if ( !srcFiles.empty() )
@@ -436,16 +436,16 @@ GenerateCMakeListsFileSrcSection( const CModuleInfoEntry& moduleInfoEntry  ,
 /*---------------------------------------------------------------------------*/
 
 void
-GenerateCMakeListsFilePlatformFilesSection( const CModuleInfoEntry& moduleInfoEntry ,
-                                            const CORE::CString& platformName       ,
-                                            CORE::CString& headerSection            ,
-                                            CORE::CString& sourceSection            ,
-                                            bool& hasPlatformHeaderFiles            ,
-                                            bool& hasPlatformSourceFiles            )
+GenerateCMakeListsFilePlatformFilesSection( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                            const CORE::CString& platformName          ,
+                                            CORE::CString& headerSection               ,
+                                            CORE::CString& sourceSection               ,
+                                            bool& hasPlatformHeaderFiles               ,
+                                            bool& hasPlatformSourceFiles               )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator m = moduleInfoEntry.modulesPerPlatform.find( platformName );
-    if ( m != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator m = moduleInfoEntry->modulesPerPlatform.find( platformName );
+    if ( m != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const TStringSetMap& platformHeaderFiles = (*m).second.includeDirs;
         if ( !platformHeaderFiles.empty() )
@@ -523,7 +523,7 @@ GenerateCMakeListsFilePlatformFilesSection( const CModuleInfoEntry& moduleInfoEn
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeListsFilePlatformFilesSection( const CModuleInfoEntry& moduleInfoEntry )
+GenerateCMakeListsFilePlatformFilesSection( const CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
     bool hasPlatformHeaderFiles = false;
@@ -531,8 +531,8 @@ GenerateCMakeListsFilePlatformFilesSection( const CModuleInfoEntry& moduleInfoEn
 
     CORE::CString sectionContent;
     bool firstPlatform = true;
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.begin();
-    while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+    while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         CORE::CString headerSection;
         CORE::CString sourceSection;
@@ -687,28 +687,28 @@ GenerateCMakeModuleIncludesSection( const CModuleInfo& moduleInfo ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeModuleIncludesSection( const CModuleInfoEntry& moduleInfoEntry )
+GenerateCMakeModuleIncludesSection( const CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
     CORE::CString sectionContent;
 
     // First add the include section which applies to all platforms
     // it should not have an 'if' check around it
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         sectionContent += "\n";
-        sectionContent += GenerateCMakeModuleIncludesSection( (*i).second, moduleInfoEntry.rootDir );
+        sectionContent += GenerateCMakeModuleIncludesSection( (*i).second, moduleInfoEntry->rootDir );
     }
 
     // Now add the include paths which are platform specific
-    i = moduleInfoEntry.modulesPerPlatform.begin();
-    while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    i = moduleInfoEntry->modulesPerPlatform.begin();
+    while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const CORE::CString& platformName = (*i).first;
         if ( platformName != AllPlatforms )
         {
-            CORE::CString platformSection = GenerateCMakeModuleIncludesSection( (*i).second, moduleInfoEntry.rootDir );
+            CORE::CString platformSection = GenerateCMakeModuleIncludesSection( (*i).second, moduleInfoEntry->rootDir );
             if ( platformSection.Length() > 0 )
             {
                 sectionContent += "\nif ( "+ platformName.Uppercase() + " )\n  ";
@@ -744,7 +744,7 @@ GenerateAutoGenertedSeperator( bool end )
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-LoadLegacyCMakeListsSuffixFileFromDisk( const CModuleInfoEntry& moduleInfoEntry )
+LoadLegacyCMakeListsSuffixFileFromDisk( const CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
     // Mainly meant to support backwards compatibility with the old way this tool
@@ -752,7 +752,7 @@ LoadLegacyCMakeListsSuffixFileFromDisk( const CModuleInfoEntry& moduleInfoEntry 
     // Archives should be updated to the new way of working which is not CMake
     // specific
 
-    CORE::CString suffixFilePath = moduleInfoEntry.rootDir;
+    CORE::CString suffixFilePath = moduleInfoEntry->rootDir;
     CORE::AppendToPath( suffixFilePath, "CMakeListsSuffix.txt" );
 
     CORE::CString fileContent;
@@ -763,10 +763,10 @@ LoadLegacyCMakeListsSuffixFileFromDisk( const CModuleInfoEntry& moduleInfoEntry 
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-LoadCMakeListsAdditionFileFromDisk( const CModuleInfoEntry& moduleInfoEntry )
+LoadCMakeListsAdditionFileFromDisk( const CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
-    CORE::CString additionFilePath = moduleInfoEntry.rootDir;
+    CORE::CString additionFilePath = moduleInfoEntry->rootDir;
     CORE::AppendToPath( additionFilePath, "CMakeListsAddition.txt" );
 
     CORE::CString fileContent;
@@ -835,10 +835,10 @@ GenerateCMakeModuleDependenciesLine( const CProjectInfo& projectInfo   ,
         {
             // We add all dependencies except for header include locations which are not real modules
             // and CMake will not be using a make file for those.
-            const CModuleInfoEntry* dependencyModule = GetModuleInfoEntry( projectInfo, (*i), platformName );
-            if ( NULL != dependencyModule )
+            const CModuleInfoEntryPtr dependencyModule = GetModuleInfoEntry( projectInfo, (*i), platformName );
+            if ( !dependencyModule.IsNULL() )
             {
-                TModuleType moduleType = GetModuleType( *dependencyModule, platformName );
+                TModuleType moduleType = GetModuleType( dependencyModule, platformName );
                 if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != moduleType )   &&
                      ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleType ) &&
                      ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleType )   &&
@@ -935,25 +935,25 @@ GenerateCMakeModuleLinkerDirsLine( const CProjectInfo& projectInfo ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeModuleLinkerDirsLines( const CProjectInfo& projectInfo         ,
-                                    const CModuleInfoEntry& moduleInfoEntry ,
-                                    const CORE::CString& moduleName         )
+GenerateCMakeModuleLinkerDirsLines( const CProjectInfo& projectInfo            ,
+                                    const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                    const CORE::CString& moduleName            )
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating CMake module linker library dirs (if any) for module " + moduleName );
     CORE::CString sectionContent;
 
     // First take care of dirs for any platform
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const CModuleInfo& moduleInfo = (*i).second;
         sectionContent = GenerateCMakeModuleLinkerDirsLine( projectInfo, moduleInfo, moduleName );
     }
 
     // Now the additional platforms if any. 
-    i = moduleInfoEntry.modulesPerPlatform.begin();
-    while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    i = moduleInfoEntry->modulesPerPlatform.begin();
+    while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const CORE::CString& platformName = (*i).first;
         if ( platformName != AllPlatforms )
@@ -1000,10 +1000,10 @@ GenerateCMakeModuleLinkerLine( const CProjectInfo& projectInfo   ,
         {
             // We add all dependencies except for header include locations which are not real modules
             // and CMake will not be using a make file for those.
-            const CModuleInfoEntry* dependencyModule = GetModuleInfoEntry( projectInfo, (*i).first, platformName );
-            if ( NULL != dependencyModule )
+            const CModuleInfoEntryPtr dependencyModule = GetModuleInfoEntry( projectInfo, (*i).first, platformName );
+            if ( !dependencyModule.IsNULL() )
             {
-                TModuleType moduleType = GetModuleType( *dependencyModule, platformName );
+                TModuleType moduleType = GetModuleType( dependencyModule, platformName );
                 if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != moduleType )   &&
                      ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleType ) &&
                      ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleType )   &&
@@ -1063,21 +1063,21 @@ GenerateCMakeModuleDefinesLine( const CModuleInfo& moduleInfo     ,
 /*---------------------------------------------------------------------------*/          
 
 CORE::CString
-GenerateCMakeModuleVersionLine( const CModuleInfoEntry& moduleInfoEntry ,
-                                const CModuleInfo& moduleInfo           ,
-                                const CORE::CString& moduleName         ,
-                                const CORE::CString& platformName       )
+GenerateCMakeModuleVersionLine( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                const CModuleInfo& moduleInfo              ,
+                                const CORE::CString& moduleName            ,
+                                const CORE::CString& platformName          )
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating CMake section which defines the module version variable ${MODULE_VERSION} depending on the platform flags" );
 
     CORE::CString sectionContent;
 
-    if ( !moduleInfoEntry.metadata.semver.IsAllZero() )
+    if ( !moduleInfoEntry->metadata.semver.IsAllZero() )
     {
         GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating CMake module preprocessor defines for module " + moduleName + " and platform " + platformName );
 
-        CORE::CString semverStr = moduleInfoEntry.metadata.semver.ToString();
+        CORE::CString semverStr = moduleInfoEntry->metadata.semver.ToString();
         CORE::CString sectionContent = ConvertEnvVarStrings( "set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION " + semverStr + " )\n" );
 
         TModuleType moduleType = GetModuleType( moduleInfoEntry, platformName );
@@ -1095,7 +1095,7 @@ GenerateCMakeModuleVersionLine( const CModuleInfoEntry& moduleInfoEntry ,
 /*---------------------------------------------------------------------------*/          
 
 CORE::CString
-GenerateCMakeListsModuleNameSection( const CModuleInfoEntry& moduleInfoEntry )
+GenerateCMakeListsModuleNameSection( const CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating CMake section which defines the module name variable ${MODULE_NAME} depending on the platform flags" );
@@ -1160,8 +1160,8 @@ GenerateCMakeListsModuleNameSection( const CModuleInfoEntry& moduleInfoEntry )
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeModuleDescriptionSection( const CModuleInfoEntry& moduleInfoEntry  ,
-                                       const CORE::CString& consensusModuleName )
+GenerateCMakeModuleDescriptionSection( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                       const CORE::CString& consensusModuleName   )
 {GUCEF_TRACE;
 
     // This bit of information is not additive and is in fact mutually exclusive per platform
@@ -1235,8 +1235,8 @@ GenerateCMakeModuleDescriptionSection( const CModuleInfoEntry& moduleInfoEntry  
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeListsModuleInfoSection( const CProjectInfo& projectInfo         ,
-                                     const CModuleInfoEntry& moduleInfoEntry )
+GenerateCMakeListsModuleInfoSection( const CProjectInfo& projectInfo            ,
+                                     const CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
     CORE::CString consensusName = GetConsensusModuleName( moduleInfoEntry );
@@ -1251,10 +1251,10 @@ GenerateCMakeListsModuleInfoSection( const CProjectInfo& projectInfo         ,
     // Add the module description which says what type of module this is
     sectionContent += GenerateCMakeModuleDescriptionSection( moduleInfoEntry, consensusName );
 
-    // Add module info which is addative meaning AllPlatforms info can be
+    // Add module info which is additive meaning AllPlatforms info can be
     // supplemented with it and it is not mutually exclusive
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const CORE::CString& platformName = (*i).first;
         const CModuleInfo& moduleInfo = (*i).second;
@@ -1276,8 +1276,8 @@ GenerateCMakeListsModuleInfoSection( const CProjectInfo& projectInfo         ,
     }
 
     // Now do the same for all adative platform specific info
-    i = moduleInfoEntry.modulesPerPlatform.begin();
-    while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    i = moduleInfoEntry->modulesPerPlatform.begin();
+    while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const CORE::CString& platformName = (*i).first;
 
@@ -1326,10 +1326,10 @@ GenerateCMakeListsModuleInfoSection( const CProjectInfo& projectInfo         ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeListsFileContent( const CProjectInfo& projectInfo         ,
-                               const CModuleInfoEntry& moduleInfoEntry ,
-                               bool treatTagsAsOptions                 ,
-                               bool addCompileDate = false             )
+GenerateCMakeListsFileContent( const CProjectInfo& projectInfo            ,
+                               const CModuleInfoEntryPtr& moduleInfoEntry ,
+                               bool treatTagsAsOptions                    ,
+                               bool addCompileDate = false                )
 {GUCEF_TRACE;
 
     // Set file header comment section
@@ -1401,10 +1401,10 @@ WriteCMakeListsFilesToDisk( const CProjectInfo& projectInfo  ,
 {GUCEF_TRACE;
 
     // Write all the CMakeLists.txt files
-    TModuleInfoEntryVector::const_iterator i = projectInfo.modules.begin();
+    TModuleInfoEntryPtrVector::const_iterator i = projectInfo.modules.begin();
     while ( i != projectInfo.modules.end() )
     {
-        const CModuleInfoEntry& moduleInfoEntry = (*i);
+        const CModuleInfoEntryPtr& moduleInfoEntry = (*i);
         TModuleType allPlatformsType = GetModuleType( moduleInfoEntry, AllPlatforms );
         if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != allPlatformsType )   &&
              ( MODULETYPE_HEADER_INTEGRATE_LOCATION != allPlatformsType ) &&
@@ -1417,16 +1417,16 @@ WriteCMakeListsFilesToDisk( const CProjectInfo& projectInfo  ,
                 fileContent += "\n# Generator logfile can be found at: " + logFilename;
             }
 
-            CORE::CString pathToCMakeListsFile = moduleInfoEntry.rootDir;
+            CORE::CString pathToCMakeListsFile = moduleInfoEntry->rootDir;
             CORE::AppendToPath( pathToCMakeListsFile, "CMakeLists.txt" );
 
             if ( CORE::WriteStringAsTextFile( pathToCMakeListsFile, fileContent, true, "\n", true ) )
             {
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created CMakeLists.txt file for project dir: " + moduleInfoEntry.rootDir );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created CMakeLists.txt file for project dir: " + moduleInfoEntry->rootDir );
             }
             else
             {
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to write CMakeLists.txt file content to disk at path " + moduleInfoEntry.rootDir );
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to write CMakeLists.txt file content to disk at path " + moduleInfoEntry->rootDir );
             }
         }
         else
@@ -1530,10 +1530,10 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
 
         CORE::CStringSet cmakeLines;
 
-        TModuleInfoEntryConstPtrSet::const_iterator i = targetProjectInfo.modules.begin();
+        TModuleInfoEntryPtrSet::const_iterator i = targetProjectInfo.modules.begin();
         while ( i != targetProjectInfo.modules.end() )
         {
-            const CModuleInfoEntry& moduleInfoEntry = *(*i);
+            const CModuleInfoEntryPtr& moduleInfoEntry = (*i);
 
             TModuleType moduleType = GetModuleType( moduleInfoEntry, targetPlatform );
             if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != moduleType )   &&
@@ -1542,14 +1542,14 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
                  ( MODULETYPE_BINARY_PACKAGE != moduleType )            &&
                  ( MODULETYPE_UNDEFINED != moduleType )                  )
             {
-                CORE::CString pathToModuleDir = CORE::GetRelativePathToOtherPathRoot( targetOutputDir, moduleInfoEntry.rootDir );
+                CORE::CString pathToModuleDir = CORE::GetRelativePathToOtherPathRoot( targetOutputDir, moduleInfoEntry->rootDir );
                     
                 // Check to see if the target output files will be a sub-dir of the module.
                 // If not we have to also specify a binary output as per CMake rules to avoid an error like this:
                 //     "add_subdirectory not given a binary directory but the given source directory "<dir name>" is not
                 //      a subdirectory of "<dir name 2>".
                 //      When specifying an out-of-tree source a binary directory must be explicitly specified."
-                if ( targetOutputDir.HasSubstr( moduleInfoEntry.rootDir, true ) == 0 )
+                if ( targetOutputDir.HasSubstr( moduleInfoEntry->rootDir, true ) == 0 )
                 {
                     // The target dir is a sub-dir of the module so no need to specify a binary dir
                     pathToModuleDir = pathToModuleDir.ReplaceChar( '\\', '/' );

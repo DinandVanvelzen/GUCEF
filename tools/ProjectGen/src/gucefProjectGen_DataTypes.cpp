@@ -568,10 +568,10 @@ ResolveMultiPlatformName( const CORE::CString& platformName          ,
 // the given entry. The given moduleInfo can be an independent platform
 // moduleInfo or a merged moduleInfo
 bool
-SerializeModuleInfo( const CModuleInfoEntry& moduleEntry ,
-                     const CModuleInfo& moduleInfo       ,
-                     const CORE::CString& platform       ,
-                     CORE::CDataNode& parentNode         )
+SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
+                     const CModuleInfo& moduleInfo          ,
+                     const CORE::CString& platform          ,
+                     CORE::CDataNode& parentNode            )
 {GUCEF_TRACE;
 
     // Add basic module info
@@ -582,7 +582,7 @@ SerializeModuleInfo( const CModuleInfoEntry& moduleEntry ,
     {
         moduleInfoNode.SetAttribute( "Name", moduleInfo.name );
     }
-    moduleInfoNode.SetAttribute( "SemVer", moduleEntry.metadata.semver.ToString() );
+    moduleInfoNode.SetAttribute( "SemVer", moduleEntry->metadata.semver.ToString() );
     if ( moduleInfo.buildOrder != -1 )
     {
         moduleInfoNode.SetAttribute( "BuildOrder", CORE::Int32ToString( moduleInfo.buildOrder ) );
@@ -752,7 +752,7 @@ SerializeModuleInfo( const CModuleInfoEntry& moduleEntry ,
                 // subdir.
                 if ( 1 < moduleInfo.includeDirs.size() )
                 {
-                    CORE::CString includeDir = "../" + CORE::LastSubDir( moduleEntry.rootDir ) + " ";
+                    CORE::CString includeDir = "../" + CORE::LastSubDir( moduleEntry->rootDir ) + " ";
                     CORE::CDataNode includeNode;
                     includeNode.SetName( "Include" );
                     includeNode.SetAttribute( "Path", includeDir );
@@ -889,15 +889,15 @@ SerializeModuleInfo( const CModuleInfoEntry& moduleEntry ,
 /*-------------------------------------------------------------------------*/
 
 bool
-SerializeModuleInfo( const CModuleInfoEntry& moduleEntry ,
-                     CORE::CDataNode& parentNode         )
+SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
+                     CORE::CDataNode& parentNode            )
 {GUCEF_TRACE;
 
     CORE::CDataNode* node = parentNode.AddChild( "ModuleInfoEntry" );
     if ( GUCEF_NULL != node )
     {       
         CORE::CDataNodeSerializableSettings defaultSerializableSettings;
-        if ( moduleEntry.Serialize( *node, defaultSerializableSettings ) )
+        if ( moduleEntry->Serialize( *node, defaultSerializableSettings ) )
         {
             return true;
         }
@@ -908,8 +908,8 @@ SerializeModuleInfo( const CModuleInfoEntry& moduleEntry ,
 /*-------------------------------------------------------------------------*/
 
 bool
-SerializeModuleInfo( const CModuleInfoEntry& moduleEntry ,
-                     const CORE::CString& outputFilepath )
+SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
+                     const CORE::CString& outputFilepath    )
 {GUCEF_TRACE;
 
     CORE::CDStoreCodecRegistry::TDStoreCodecPtr codec = GetXmlDStoreCodec();
@@ -957,7 +957,7 @@ SerializeProjectInfo( const CProjectInfo& projectInfo ,
     rootNodeToBe.SetAttribute( "Name", projectInfo.projectName );
 
     // Add info for each module
-    TModuleInfoEntryVector::const_iterator i = projectInfo.modules.begin();
+    TModuleInfoEntryPtrVector::const_iterator i = projectInfo.modules.begin();
     while ( i != projectInfo.modules.end() )
     {
         if ( !SerializeModuleInfo( (*i)         ,
@@ -992,9 +992,9 @@ DeserializeProjectInfo( CProjectInfo& projectInfo       ,
     CORE::CDataNode::TConstDataNodeSet::const_iterator i = nodeSet.begin();
     while ( i != nodeSet.end() )
     {
-        CModuleInfoEntry newModuleInfo;
+        CModuleInfoEntryPtr newModuleInfo = CModuleInfoEntry::CreateSharedObj();
         projectInfo.modules.push_back( newModuleInfo );
-        CModuleInfoEntry& moduleInfoEntry = projectInfo.modules.back();
+        CModuleInfoEntryPtr& moduleInfoEntry = projectInfo.modules.back();
 
         if ( !DeserializeModuleInfo( projectInfo, moduleInfoEntry, *(*i) ) )
         {
@@ -1373,11 +1373,11 @@ FindModuleByName( const TModuleInfoEntryPairVector& mergeLinks ,
 /*-------------------------------------------------------------------------*/
 
 void
-CleanupIncludeDirs( CModuleInfoEntry& moduleInfoEntry )
+CleanupIncludeDirs( CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::iterator i = moduleInfoEntry.modulesPerPlatform.begin();
-    while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+    while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         CModuleInfo& moduleInfo = (*i).second;
         
@@ -1429,9 +1429,9 @@ CleanupIncludeDirs( CModuleInfoEntry& moduleInfoEntry )
 /*-------------------------------------------------------------------------*/
 
 bool
-DeserializeModuleInfo( const CProjectInfo& projectInfo   ,
-                       CModuleInfoEntry& moduleInfoEntry ,
-                       const CORE::CDataNode& parentNode )
+DeserializeModuleInfo( const CProjectInfo& projectInfo      ,
+                       CModuleInfoEntryPtr& moduleInfoEntry ,
+                       const CORE::CDataNode& parentNode    )
 {GUCEF_TRACE;
 
     const CORE::CDataNode* moduleEntryNode = parentNode.Find( "ModuleInfoEntry" );
@@ -1443,15 +1443,15 @@ DeserializeModuleInfo( const CProjectInfo& projectInfo   ,
     // @TODO: temp hack to get ProjectInfo into the deserializer which is needed for normalization
     defaultSerializableSettings.SetUserData( const_cast< CProjectInfo* >( &projectInfo ) );
 
-    return moduleInfoEntry.Deserialize( *moduleEntryNode, defaultSerializableSettings );
+    return moduleInfoEntry->Deserialize( *moduleEntryNode, defaultSerializableSettings );
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-DeserializeModuleInfo( const CProjectInfo& projectInfo           ,
-                       TModuleInfoEntryVector& moduleInfoEntries ,
-                       const CORE::CString& inputFilepath        )
+DeserializeModuleInfo( const CProjectInfo& projectInfo              ,
+                       TModuleInfoEntryPtrVector& moduleInfoEntries ,
+                       const CORE::CString& inputFilepath           )
 {GUCEF_TRACE;
 
     CORE::CDStoreCodecRegistry::TDStoreCodecPtr codec = GetXmlDStoreCodec();
@@ -1473,7 +1473,7 @@ DeserializeModuleInfo( const CProjectInfo& projectInfo           ,
             CORE::CDataNode::TDataNodeSet::iterator i = moduleEntryNodes.begin();
             while ( i != moduleEntryNodes.end() )
             {
-                CModuleInfoEntry entry;                
+                CModuleInfoEntryPtr entry;                
                 if ( !DeserializeModuleInfo( projectInfo, entry, *(*i) ) )
                     ++errorCount;
                 
@@ -1659,13 +1659,13 @@ MergeModuleInfo( CModuleInfo& targetModuleInfo          ,
 /*-------------------------------------------------------------------------*/
 
 CModuleInfo*
-FindModuleInfoForPlatform( CModuleInfoEntry& moduleInfoEntry ,
-                           const CORE::CString& platform     ,
-                           bool createNewIfNoneExists        )
+FindModuleInfoForPlatform( CModuleInfoEntryPtr& moduleInfoEntry ,
+                           const CORE::CString& platform        ,
+                           bool createNewIfNoneExists           )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::iterator i = moduleInfoEntry.modulesPerPlatform.find( platform.Lowercase() );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::iterator i = moduleInfoEntry->modulesPerPlatform.find( platform.Lowercase() );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         return &(*i).second;
     }
@@ -1674,8 +1674,8 @@ FindModuleInfoForPlatform( CModuleInfoEntry& moduleInfoEntry ,
         CModuleInfo moduleInfo;
         InitializeModuleInfo( moduleInfo );
 
-        moduleInfoEntry.modulesPerPlatform.insert( std::pair< CORE::CString, CModuleInfo >( platform, moduleInfo ) );
-        return &moduleInfoEntry.modulesPerPlatform[ platform ];
+        moduleInfoEntry->modulesPerPlatform.insert( std::pair< CORE::CString, CModuleInfo >( platform, moduleInfo ) );
+        return &moduleInfoEntry->modulesPerPlatform[ platform ];
     }
     return NULL;
 }
@@ -1683,12 +1683,12 @@ FindModuleInfoForPlatform( CModuleInfoEntry& moduleInfoEntry ,
 /*-------------------------------------------------------------------------*/
 
 const CModuleInfo*
-FindModuleInfoForPlatform( const CModuleInfoEntry& moduleInfoEntry ,
-                           const CORE::CString& platform           )
+FindModuleInfoForPlatform( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                           const CORE::CString& platform              )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( platform.Lowercase() );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( platform.Lowercase() );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         return &(*i).second;
     }
@@ -1720,9 +1720,9 @@ MergeModuleMetaData( const CModuleMetaData& priorityA ,
 /*-------------------------------------------------------------------------*/
 
 bool
-MergeModuleMetaData( const CModuleInfoEntry& moduleInfoEntry ,
-                     const CORE::CString& targetPlatform     ,
-                     CModuleInfo& mergedModuleInfo           )
+MergeModuleMetaData( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                     const CORE::CString& targetPlatform        ,
+                     CModuleInfo& mergedModuleInfo              )
 {GUCEF_TRACE;
 
     const CModuleInfo* allPlatformsInfo = FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms );
@@ -1730,7 +1730,7 @@ MergeModuleMetaData( const CModuleInfoEntry& moduleInfoEntry ,
 
     // an all-platforms module level meta-data overrules overarching meta-data
     if ( GUCEF_NULL != allPlatformsInfo )
-        MergeModuleMetaData( allPlatformsInfo->metadata, moduleInfoEntry.metadata, mergedModuleInfo.metadata );
+        MergeModuleMetaData( allPlatformsInfo->metadata, moduleInfoEntry->metadata, mergedModuleInfo.metadata );
     
     // a platform specific module level meta-data overrules all-platforms meta-data
     if ( GUCEF_NULL != targetPlatformInfo )
@@ -1742,9 +1742,9 @@ MergeModuleMetaData( const CModuleInfoEntry& moduleInfoEntry ,
 /*-------------------------------------------------------------------------*/
 
 bool
-MergeModuleInfo( const CModuleInfoEntry& moduleInfoEntry ,
-                 const CORE::CString& targetPlatform     ,
-                 CModuleInfo& mergedModuleInfo           )
+MergeModuleInfo( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                 const CORE::CString& targetPlatform        ,
+                 CModuleInfo& mergedModuleInfo              )
 {GUCEF_TRACE;
 
     InitializeModuleInfo( mergedModuleInfo );
@@ -1806,29 +1806,29 @@ MergeModuleInfo( const CModuleInfoEntry& moduleInfoEntry ,
 /*-------------------------------------------------------------------------*/
 
 bool
-MergeModuleInfoEntries( const TModuleInfoEntryVector& moduleInfoEntriesToMergeIn ,
-                        TModuleInfoEntryVector& moduleInfoEntries                )
+MergeModuleInfoEntries( const TModuleInfoEntryPtrVector& moduleInfoEntriesToMergeIn ,
+                        TModuleInfoEntryPtrVector& moduleInfoEntries                )
 {GUCEF_TRACE;
 
     bool totalSuccess = true;
-    TModuleInfoEntryVector::const_iterator i = moduleInfoEntriesToMergeIn.begin();
+    TModuleInfoEntryPtrVector::const_iterator i = moduleInfoEntriesToMergeIn.begin();
     while ( i != moduleInfoEntriesToMergeIn.end() )
     {
-        const CModuleInfoEntry& entryToMergeIn = (*i);
+        const CModuleInfoEntryPtr& entryToMergeIn = (*i);
         CString consensusName = GetConsensusModuleName( entryToMergeIn );
 
         bool foundMatch = false;
-        TModuleInfoEntryVector::iterator e = moduleInfoEntries.begin();
+        TModuleInfoEntryPtrVector::iterator e = moduleInfoEntries.begin();
         while ( e != moduleInfoEntries.end() )
         {
-            CModuleInfoEntry& existingEntry = (*e);
+            CModuleInfoEntryPtr& existingEntry = (*e);
             CString existingEntryConsensusName = GetConsensusModuleName( existingEntry );
 
             if ( existingEntryConsensusName == consensusName )
             {
                 // We already have such a module entry, we need to merge
                 foundMatch = true;
-                totalSuccess = existingEntry.Merge( entryToMergeIn ) && totalSuccess;
+                totalSuccess = existingEntry->Merge( entryToMergeIn ) && totalSuccess;
             }
 
             ++e;
@@ -1848,24 +1848,22 @@ MergeModuleInfoEntries( const TModuleInfoEntryVector& moduleInfoEntriesToMergeIn
 /*-------------------------------------------------------------------------*/
 
 bool
-MergeAllModuleInfoForPlatform( const TModuleInfoEntryConstPtrSet& allInfo ,
-                               const CORE::CString& platform              ,
-                               TModuleInfoVector& allMergedInfo           ,
-                               TModuleInfoEntryPairVector& mergeLinks     )
+MergeAllModuleInfoForPlatform( const TModuleInfoEntryPtrSet& allInfo  ,
+                               const CORE::CString& platform          ,
+                               TModuleInfoVector& allMergedInfo       ,
+                               TModuleInfoEntryPairVector& mergeLinks )
 {GUCEF_TRACE;
-
-    typedef std::vector< const CModuleInfoEntry* > TModuleInfoEntryPtrVector;
 
     allMergedInfo.clear();
 
     TModuleInfoEntryPtrVector indexMap;
-    TModuleInfoEntryConstPtrSet::const_iterator i = allInfo.begin();
+    TModuleInfoEntryPtrSet::const_iterator i = allInfo.begin();
     while ( i != allInfo.end() )
     {
         // For each module we create a merged platform specific module
         // description which is easy to process if you only care about that platform
         CModuleInfo mergedInfo;
-        if ( MergeModuleInfo( *(*i), platform, mergedInfo ) )
+        if ( MergeModuleInfo( (*i), platform, mergedInfo ) )
         {
             // Store the merged info
             allMergedInfo.push_back( mergedInfo );
@@ -1890,17 +1888,17 @@ MergeAllModuleInfoForPlatform( const TModuleInfoEntryConstPtrSet& allInfo ,
 /*---------------------------------------------------------------------------*/
 
 bool
-MergeAllModuleInfoForPlatform( const TModuleInfoEntryVector& allInfo  ,
-                               const CORE::CString& platform          ,
-                               TModuleInfoVector& allMergedInfo       ,
-                               TModuleInfoEntryPairVector& mergeLinks )
+MergeAllModuleInfoForPlatform( const TModuleInfoEntryPtrVector& allInfo ,
+                               const CORE::CString& platform            ,
+                               TModuleInfoVector& allMergedInfo         ,
+                               TModuleInfoEntryPairVector& mergeLinks   )
 {GUCEF_TRACE;
 
-    TModuleInfoEntryConstPtrSet infoPtrs;
-    TModuleInfoEntryVector::const_iterator i = allInfo.begin();
+    TModuleInfoEntryPtrSet infoPtrs;
+    TModuleInfoEntryPtrVector::const_iterator i = allInfo.begin();
     while ( i != allInfo.end() )
     {
-        infoPtrs.insert( &(*i) );
+        infoPtrs.insert( (*i) );
         ++i;
     }
 
@@ -2008,13 +2006,13 @@ MergeDirProcessingInstructionsMap( TDirProcessingInstructionsMap& mergedInstruct
 /*---------------------------------------------------------------------------*/
 
 const CORE::CString*
-GetModuleName( const CModuleInfoEntry& moduleInfoEntry ,
-               const CORE::CString& targetPlatform     ,
-               const CModuleInfo** outModuleInfo       )
+GetModuleName( const CModuleInfoEntryPtr& moduleInfoEntry ,
+               const CORE::CString& targetPlatform        ,
+               const CModuleInfo** outModuleInfo          )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator n = moduleInfoEntry.modulesPerPlatform.find( targetPlatform );
-    if ( n != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator n = moduleInfoEntry->modulesPerPlatform.find( targetPlatform );
+    if ( n != moduleInfoEntry->modulesPerPlatform.end() )
     {
         // A module was specified for this platform
         // Just because we have a module definition doenst mean we have a name
@@ -2033,8 +2031,8 @@ GetModuleName( const CModuleInfoEntry& moduleInfoEntry ,
     // default for all platforms
     if ( targetPlatform != AllPlatforms )
     {
-        n = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
-        if ( n != moduleInfoEntry.modulesPerPlatform.end() )
+        n = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
+        if ( n != moduleInfoEntry->modulesPerPlatform.end() )
         {
             // An 'AllPlatforms' definition is available for this module
             // Just because we have a module definition doenst mean we have a name
@@ -2064,10 +2062,10 @@ GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
     TProjectTargetInfoMap::const_iterator i = targetPlatforms.find( targetPlatform );
     if ( i != targetPlatforms.end() )
     {
-        const CModuleInfoEntry* mainModule = (*i).second.mainModule;
-        if ( GUCEF_NULL != mainModule )
+        const CModuleInfoEntryPtr mainModule = (*i).second.mainModule;
+        if ( !mainModule.IsNULL() )
         {
-            return GetModuleName( *mainModule, targetPlatform, outModuleInfo );
+            return GetModuleName( mainModule, targetPlatform, outModuleInfo );
         }
     }
 
@@ -2078,10 +2076,10 @@ GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
         i = targetPlatforms.find( AllPlatforms );
         if ( i != targetPlatforms.end() )
         {
-            const CModuleInfoEntry* mainModule = (*i).second.mainModule;
-            if ( GUCEF_NULL != mainModule )
+            const CModuleInfoEntryPtr mainModule = (*i).second.mainModule;
+            if ( !mainModule.IsNULL() )
             {
-                return GetModuleName( *mainModule, AllPlatforms, outModuleInfo );
+                return GetModuleName( mainModule, AllPlatforms, outModuleInfo );
             }
         }
     }
@@ -2092,15 +2090,15 @@ GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GetConsensusModuleName( const CModuleInfoEntry& moduleInfoEntry ,
-                        const CModuleInfo** moduleInfo          )
+GetConsensusModuleName( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                        const CModuleInfo** moduleInfo             )
 {GUCEF_TRACE;
 
     if ( NULL != moduleInfo )
         *moduleInfo = GUCEF_NULL;
 
-    TModuleInfoMap::const_iterator n = moduleInfoEntry.modulesPerPlatform.find( AllPlatforms );
-    if ( n != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator n = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
+    if ( n != moduleInfoEntry->modulesPerPlatform.end() )
     {
         // A name was specified for all platforms which makes our job easy
         // an all platform name always counts as the general consensus name
@@ -2121,8 +2119,8 @@ GetConsensusModuleName( const CModuleInfoEntry& moduleInfoEntry ,
     typedef std::map< CORE::CString, CORE::UInt32 > TStringCountMap;
 
     TStringCountMap countMap;
-    n = moduleInfoEntry.modulesPerPlatform.begin();
-    while ( n != moduleInfoEntry.modulesPerPlatform.end() )
+    n = moduleInfoEntry->modulesPerPlatform.begin();
+    while ( n != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const CModuleInfo& mInfo = (*n).second;
         if ( !mInfo.name.IsNULLOrEmpty() )
@@ -2146,7 +2144,7 @@ GetConsensusModuleName( const CModuleInfoEntry& moduleInfoEntry ,
         // Given that we have no module definitions for ANY platform and yet have a higher level concept of it...
         // We promised we would always return a module name. The only thing we have at this point is the directory path
         // As such we will assume the dir is named after the module it houses as our last ditch guess
-        return CORE::LastSubDir( moduleInfoEntry.rootDir );
+        return CORE::LastSubDir( moduleInfoEntry->rootDir );
     }
 
     // Now that we have the popularity count of each name get the highest count
@@ -2182,8 +2180,8 @@ GetConsensusModuleName( const CModuleInfoEntry& moduleInfoEntry ,
     if ( NULL != moduleInfo )
     {
         // Now turn the consensus name back into a module pointer
-        n = moduleInfoEntry.modulesPerPlatform.begin();
-        while ( n != moduleInfoEntry.modulesPerPlatform.end() )
+        n = moduleInfoEntry->modulesPerPlatform.begin();
+        while ( n != moduleInfoEntry->modulesPerPlatform.end() )
         {
             if ( (*n).second.name == consensusName )
             {
@@ -2210,7 +2208,7 @@ GetConsensusTargetName( const TProjectTargetInfoMap& targetPlatforms ,
         const TProjectTargetInfo& target = (*n).second;
         if ( GUCEF_NULL != target.mainModule )
         {
-            return GetModuleTargetName( *target.mainModule, targetPlatform, true );
+            return GetModuleTargetName( target.mainModule, targetPlatform, true );
         }
     }
 
@@ -2229,7 +2227,7 @@ GetConsensusTargetName( const TProjectTargetInfoMap& targetPlatforms ,
         const TProjectTargetInfo& target = (*n).second;
         if ( GUCEF_NULL != target.mainModule )
         {
-            CORE::CString targetName = GetModuleTargetName( *target.mainModule, targetPlatform, true );
+            CORE::CString targetName = GetModuleTargetName( target.mainModule, targetPlatform, true );
             TStringCountMap::iterator m = countMap.find( targetName );
             if ( m != countMap.end() )
             {
@@ -2295,9 +2293,9 @@ GetConsensusTargetName( const TProjectTargetInfoMap& targetPlatforms )
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GetModuleNameAlways( const CModuleInfoEntry& moduleInfoEntry ,
-                     const CORE::CString& targetPlatform     ,
-                     const CModuleInfo** moduleInfo          )
+GetModuleNameAlways( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                     const CORE::CString& targetPlatform        ,
+                     const CModuleInfo** moduleInfo             )
 {GUCEF_TRACE;
 
     const CORE::CString* strPtr = GetModuleName( moduleInfoEntry, targetPlatform, moduleInfo );
@@ -2311,9 +2309,9 @@ GetModuleNameAlways( const CModuleInfoEntry& moduleInfoEntry ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GetModuleTargetName( const CModuleInfoEntry& moduleInfoEntry ,
-                     const CORE::CString& targetPlatform     ,
-                     bool useModuleNameIfNoTargetName        )
+GetModuleTargetName( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                     const CORE::CString& targetPlatform        ,
+                     bool useModuleNameIfNoTargetName           )
 {GUCEF_TRACE;
 
     const CModuleInfo* moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, targetPlatform );
@@ -2346,13 +2344,13 @@ GetModuleTargetName( const CModuleInfoEntry& moduleInfoEntry ,
 /*---------------------------------------------------------------------------*/
 
 void
-GetModuleDependencies( const CModuleInfoEntry& moduleInfoEntry ,
-                       const CORE::CString& targetPlatform     ,
-                       TStringSet& dependencies                ,
-                       bool includeRuntimeDependencies         )
+GetModuleDependencies( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                       const CORE::CString& targetPlatform        ,
+                       TStringSet& dependencies                   ,
+                       bool includeRuntimeDependencies            )
 {GUCEF_TRACE;
 
-    CModuleInfoEntry& mutableModuleInfoEntry = const_cast< CModuleInfoEntry& >( moduleInfoEntry );
+    CModuleInfoEntryPtr mutableModuleInfoEntry = moduleInfoEntry;
     CModuleInfo* moduleInfo = FindModuleInfoForPlatform( mutableModuleInfoEntry, targetPlatform, false );
     if ( NULL != moduleInfo )
     {
@@ -2375,12 +2373,12 @@ GetModuleDependencies( const CModuleInfoEntry& moduleInfoEntry ,
 /*---------------------------------------------------------------------------*/
 
 bool
-GetModuleDependencies( const CProjectInfo& projectInfo           ,
-                       const CModuleInfoEntry& moduleInfoEntry   ,
-                       const CORE::CString& targetPlatform       ,
-                       TModuleInfoEntryConstPtrSet& dependencies ,
-                       bool includeDependenciesOfDependencies    ,
-                       bool includeRuntimeDependencies           )
+GetModuleDependencies( const CProjectInfo& projectInfo            ,
+                       const CModuleInfoEntryPtr& moduleInfoEntry ,
+                       const CORE::CString& targetPlatform        ,
+                       TModuleInfoEntryPtrSet& dependencies       ,
+                       bool includeDependenciesOfDependencies     ,
+                       bool includeRuntimeDependencies            )
 {GUCEF_TRACE;
 
     TStringSet deps;
@@ -2389,12 +2387,12 @@ GetModuleDependencies( const CProjectInfo& projectInfo           ,
     CORE::CString moduleName = GetConsensusModuleName( moduleInfoEntry );
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GetModuleDependencies: For module " + moduleName + ": found \"" + CORE::ToString( deps.size() ) + "\" dependencies for platform " + targetPlatform );
 
-    TModuleInfoEntryConstPtrSet depsPtrs;    
+    TModuleInfoEntryPtrSet depsPtrs;    
     bool foundAllDeps = true;
     TStringSet::iterator m = deps.begin();
     while ( m != deps.end() )
     {
-        const CModuleInfoEntry* dependency = GetModuleInfoEntry( projectInfo, (*m), targetPlatform );
+        const CModuleInfoEntryPtr dependency = GetModuleInfoEntry( projectInfo, (*m), targetPlatform );
         if ( GUCEF_NULL != dependency )
             depsPtrs.insert( dependency );
         else
@@ -2407,24 +2405,24 @@ GetModuleDependencies( const CProjectInfo& projectInfo           ,
     
     if ( includeDependenciesOfDependencies )
     {
-        TModuleInfoEntryConstPtrSet depsOfdependencies;
-        TModuleInfoEntryConstPtrSet::iterator i = depsPtrs.begin();
+        TModuleInfoEntryPtrSet depsOfdependencies;
+        TModuleInfoEntryPtrSet::iterator i = depsPtrs.begin();
         while ( i != depsPtrs.end() )
         {
-            const CModuleInfoEntry* entry = (*i);            
-            CORE::CString depModuleName = GetConsensusModuleName( *entry );
+            const CModuleInfoEntryPtr entry = (*i);            
+            CORE::CString depModuleName = GetConsensusModuleName( entry );
 
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GetModuleDependencies: For module " + moduleName + ": Recursively looking for dependencies of dependency \"" + depModuleName + "\" for platform " + targetPlatform );
 
             foundAllDeps = foundAllDeps && GetModuleDependencies( projectInfo, 
-                                                                  *entry, 
+                                                                  entry, 
                                                                   targetPlatform, 
                                                                   depsOfdependencies, 
                                                                   includeDependenciesOfDependencies, 
                                                                   includeRuntimeDependencies ); 
             ++i;
         }
-        TModuleInfoEntryConstPtrSet::iterator n = depsOfdependencies.begin();
+        TModuleInfoEntryPtrSet::iterator n = depsOfdependencies.begin();
         while ( n != depsOfdependencies.end() )
         {
             depsPtrs.insert( (*n) );
@@ -2432,7 +2430,7 @@ GetModuleDependencies( const CProjectInfo& projectInfo           ,
         }
     }
 
-    TModuleInfoEntryConstPtrSet::iterator i = depsPtrs.begin();
+    TModuleInfoEntryPtrSet::iterator i = depsPtrs.begin();
     while ( i != depsPtrs.end() )
     {
         dependencies.insert( (*i) );
@@ -2445,8 +2443,8 @@ GetModuleDependencies( const CProjectInfo& projectInfo           ,
 /*---------------------------------------------------------------------------*/
 
 TModuleType
-GetModuleType( const CModuleInfoEntry& moduleInfoEntry ,
-               const CORE::CString& targetPlatform     )
+GetModuleType( const CModuleInfoEntryPtr& moduleInfoEntry ,
+               const CORE::CString& targetPlatform        )
 {GUCEF_TRACE;
 
     const CModuleInfo* moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, targetPlatform );
@@ -2469,8 +2467,8 @@ GetModuleType( const CModuleInfoEntry& moduleInfoEntry ,
     // Since there is no specific info for the given platform and no AllPlatform info
     // we will see if we can derive from another if there is consensus
     std::set< TModuleType > typeSet;
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.begin();
-    while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+    while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const CModuleInfo& platformModuleInfo = (*i).second;
         if ( MODULETYPE_UNDEFINED != platformModuleInfo.moduleType )
@@ -2488,8 +2486,8 @@ GetModuleType( const CModuleInfoEntry& moduleInfoEntry ,
 /*---------------------------------------------------------------------------*/
 
 void
-GetModuleInfoWithUniqueModulesTypes( const CModuleInfoEntry& moduleInfoEntry ,
-                                     TConstModuleInfoPtrMap& moduleMap       )
+GetModuleInfoWithUniqueModulesTypes( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                     TConstModuleInfoPtrMap& moduleMap          )
 {GUCEF_TRACE;
 
     // First try and get a 'AllPlatforms' definition which makes all the difference
@@ -2498,8 +2496,8 @@ GetModuleInfoWithUniqueModulesTypes( const CModuleInfoEntry& moduleInfoEntry ,
     {
         // Since a 'AllPlatforms' definition is available we have a baseline to compare against
         // We will only add platform specific entries if they differ from our baseline
-        TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.begin();
-        while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+        TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+        while ( i != moduleInfoEntry->modulesPerPlatform.end() )
         {
             const CORE::CString& platformName = (*i).first;
             const CModuleInfo& platformModuleInfo = (*i).second;
@@ -2516,8 +2514,8 @@ GetModuleInfoWithUniqueModulesTypes( const CModuleInfoEntry& moduleInfoEntry ,
     else
     {
         // If we get here: We cannot filter in this case,.. just add all platforms
-        TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.begin();
-        while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+        TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+        while ( i != moduleInfoEntry->modulesPerPlatform.end() )
         {
             const CORE::CString& platformName = (*i).first;
             const CModuleInfo& platformModuleInfo = (*i).second;
@@ -2534,8 +2532,8 @@ GetModuleInfoWithUniqueModulesTypes( const CModuleInfoEntry& moduleInfoEntry ,
 /*---------------------------------------------------------------------------*/
 
 void
-GetModuleInfoWithUniqueModuleNames( const CModuleInfoEntry& moduleInfoEntry ,
-                                    TConstModuleInfoPtrMap& moduleMap       )
+GetModuleInfoWithUniqueModuleNames( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                    TConstModuleInfoPtrMap& moduleMap          )
 {GUCEF_TRACE;
 
     // First try and get a 'AllPlatforms' definition which makes all the difference
@@ -2544,8 +2542,8 @@ GetModuleInfoWithUniqueModuleNames( const CModuleInfoEntry& moduleInfoEntry ,
     {
         // Since a 'AllPlatforms' definition is available we have a baseline to compare against
         // We will only add platform specific entries if they differ from our baseline
-        TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.begin();
-        while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+        TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+        while ( i != moduleInfoEntry->modulesPerPlatform.end() )
         {
             const CORE::CString& platformName = (*i).first;
             const CModuleInfo& platformModuleInfo = (*i).second;
@@ -2562,8 +2560,8 @@ GetModuleInfoWithUniqueModuleNames( const CModuleInfoEntry& moduleInfoEntry ,
     else
     {
         // If we get here: We cannot filter in this case,.. just add all platforms
-        TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.begin();
-        while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+        TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+        while ( i != moduleInfoEntry->modulesPerPlatform.end() )
         {
             const CORE::CString& platformName = (*i).first;
             const CModuleInfo& platformModuleInfo = (*i).second;
@@ -2601,19 +2599,19 @@ LocalizeDirSepCharForPlatform( const CORE::CString& path     ,
 /*---------------------------------------------------------------------------*/
 
 void
-GetAllModuleInfoPaths( const CModuleInfoEntry& moduleInfoEntry ,
-                       const CORE::CString& platform           ,
-                       CORE::CString::StringSet& allPaths      ,
-                       bool includeModuleRootPath              ,
-                       bool includeDepencencyIncludePaths      )
+GetAllModuleInfoPaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                       const CORE::CString& platform              ,
+                       CORE::CString::StringSet& allPaths         ,
+                       bool includeModuleRootPath                 ,
+                       bool includeDepencencyIncludePaths         )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( platform );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( platform );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         if ( includeModuleRootPath )
         {
-            allPaths.insert( moduleInfoEntry.rootDir );
+            allPaths.insert( moduleInfoEntry->rootDir );
         }
         
         const TStringSetMap& includeDirs = (*i).second.includeDirs; 
@@ -2623,7 +2621,7 @@ GetAllModuleInfoPaths( const CModuleInfoEntry& moduleInfoEntry ,
             const CORE::CString& includeDir = (*n).first;
             if ( includeModuleRootPath )
             {
-                CORE::CString path = CORE::CombinePath( moduleInfoEntry.rootDir, includeDir );
+                CORE::CString path = CORE::CombinePath( moduleInfoEntry->rootDir, includeDir );
                 path = CORE::RelativePath( path, true );
                 path = LocalizeDirSepCharForPlatform( path, platform );
                 allPaths.insert( path );
@@ -2645,7 +2643,7 @@ GetAllModuleInfoPaths( const CModuleInfoEntry& moduleInfoEntry ,
 
             if ( includeModuleRootPath )
             {
-                CORE::CString path = CORE::CombinePath( moduleInfoEntry.rootDir, sourceDir );
+                CORE::CString path = CORE::CombinePath( moduleInfoEntry->rootDir, sourceDir );
                 path = CORE::RelativePath( path, true );
                 path = LocalizeDirSepCharForPlatform( path, platform );
                 allPaths.insert( path );
@@ -2667,7 +2665,7 @@ GetAllModuleInfoPaths( const CModuleInfoEntry& moduleInfoEntry ,
             {
                 if ( includeModuleRootPath )
                 {
-                    CORE::CString path = CORE::CombinePath( moduleInfoEntry.rootDir, (*m) );
+                    CORE::CString path = CORE::CombinePath( moduleInfoEntry->rootDir, (*m) );
                     path = CORE::RelativePath( path, true );
                     path = LocalizeDirSepCharForPlatform( path, platform );
                     allPaths.insert( path );
@@ -2695,14 +2693,14 @@ GetAllModuleInfoPaths( const CModuleInfoEntry& moduleInfoEntry ,
 /*---------------------------------------------------------------------------*/
 
 void
-GetAllModuleInfoFilePaths( const CModuleInfoEntry& moduleInfoEntry ,
-                           const CORE::CString& platform           ,
-                           CORE::CString::StringSet& allPaths      ,
-                           bool includeModuleRootPath              )
+GetAllModuleInfoFilePaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                           const CORE::CString& platform              ,
+                           CORE::CString::StringSet& allPaths         ,
+                           bool includeModuleRootPath                 )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.find( platform );
-    if ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( platform );
+    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         const TStringSetMap& includeDirs = (*i).second.includeDirs; 
         TStringSetMap::const_iterator n = includeDirs.begin();
@@ -2717,7 +2715,7 @@ GetAllModuleInfoFilePaths( const CModuleInfoEntry& moduleInfoEntry ,
                 CORE::CString path = CORE::CombinePath( includeDir, (*m) );
                 if ( includeModuleRootPath )
                 {
-                    path = CORE::CombinePath( moduleInfoEntry.rootDir, path );
+                    path = CORE::CombinePath( moduleInfoEntry->rootDir, path );
                 }
 
                 path = CORE::RelativePath( path, true );
@@ -2741,7 +2739,7 @@ GetAllModuleInfoFilePaths( const CModuleInfoEntry& moduleInfoEntry ,
                 CORE::CString path = CORE::CombinePath( sourceDir, (*m) );
                 if ( includeModuleRootPath )
                 {
-                    path = CORE::CombinePath( moduleInfoEntry.rootDir, path );
+                    path = CORE::CombinePath( moduleInfoEntry->rootDir, path );
                 }
 
                 path = CORE::RelativePath( path, true );
@@ -2791,22 +2789,22 @@ GetShortestRelativePathFromAbsPathToProjectRoot( const CProjectInfo& projectInfo
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GetShortestRelativePathFromModuleToProjectRoot( const CProjectInfo& projectInfo         ,
-                                                const CModuleInfoEntry& moduleInfoEntry )
+GetShortestRelativePathFromModuleToProjectRoot( const CProjectInfo& projectInfo            ,
+                                                const CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
-    return GetShortestRelativePathFromAbsPathToProjectRoot( projectInfo, moduleInfoEntry.rootDir );
+    return GetShortestRelativePathFromAbsPathToProjectRoot( projectInfo, moduleInfoEntry->rootDir );
 }
 
 /*---------------------------------------------------------------------------*/
 
 void
-GetAllModuleInfoFilePaths( const CProjectInfo& projectInfo         ,
-                           const CModuleInfoEntry& moduleInfoEntry ,
-                           const CORE::CString& platform           ,
-                           CORE::CString::StringSet& allPaths      ,
-                           bool includeModuleRootPath              ,
-                           bool relativeToProjectRoot              )
+GetAllModuleInfoFilePaths( const CProjectInfo& projectInfo            ,
+                           const CModuleInfoEntryPtr& moduleInfoEntry ,
+                           const CORE::CString& platform              ,
+                           CORE::CString::StringSet& allPaths         ,
+                           bool includeModuleRootPath                 ,
+                           bool relativeToProjectRoot                 )
 {GUCEF_TRACE;
 
     if ( includeModuleRootPath && relativeToProjectRoot )
@@ -2836,13 +2834,13 @@ GetAllModuleInfoFilePaths( const CProjectInfo& projectInfo         ,
 /*---------------------------------------------------------------------------*/
 
 void
-GetAllModuleInfoPaths( const CProjectInfo& projectInfo         ,
-                       const CModuleInfoEntry& moduleInfoEntry ,
-                       const CORE::CString& platform           ,
-                       CORE::CString::StringSet& allPaths      ,
-                       bool includeModuleRootPath              ,
-                       bool relativeToProjectRoot              ,
-                       bool includeDepencencyIncludePaths      )
+GetAllModuleInfoPaths( const CProjectInfo& projectInfo            ,
+                       const CModuleInfoEntryPtr& moduleInfoEntry ,
+                       const CORE::CString& platform              ,
+                       CORE::CString::StringSet& allPaths         ,
+                       bool includeModuleRootPath                 ,
+                       bool relativeToProjectRoot                 ,
+                       bool includeDepencencyIncludePaths         )
 {GUCEF_TRACE;
 
     if ( includeModuleRootPath && relativeToProjectRoot )
@@ -2872,29 +2870,29 @@ GetAllModuleInfoPaths( const CProjectInfo& projectInfo         ,
 
 /*---------------------------------------------------------------------------*/
 
-const CModuleInfoEntry*
-GetModuleInfoEntry( const TModuleInfoEntryVector& moduleInfoEntries ,
-                    const CORE::CString& moduleName                 ,
-                    const CORE::CString& platform                   ,
-                    const CModuleInfo** moduleInfo                  )
+const CModuleInfoEntryPtr
+GetModuleInfoEntry( const TModuleInfoEntryPtrVector& moduleInfoEntries ,
+                    const CORE::CString& moduleName                    ,
+                    const CORE::CString& platform                      ,
+                    const CModuleInfo** moduleInfo                     )
 {GUCEF_TRACE;
 
-    TModuleInfoEntryVector::const_iterator i = moduleInfoEntries.begin();
+    TModuleInfoEntryPtrVector::const_iterator i = moduleInfoEntries.begin();
     while ( i != moduleInfoEntries.end() )
     {
         CORE::CString nameOfCurrentModule = GetModuleNameAlways( (*i), platform, moduleInfo );
         if ( nameOfCurrentModule == moduleName )
         {
-            return &(*i);
+            return (*i);
         }
         ++i;
     }
-    return GUCEF_NULL;
+    return CModuleInfoEntryPtr();
 }
 
 /*---------------------------------------------------------------------------*/
 
-const CModuleInfoEntry*
+const CModuleInfoEntryPtr
 GetModuleInfoEntry( const CProjectInfo& projectInfo ,
                     const CORE::CString& moduleName ,
                     const CORE::CString& platform   ,
@@ -2911,10 +2909,10 @@ GetAllPlatformsUsed( const CProjectInfo& projectInfo ,
                      TStringSet& platformList        )
 {GUCEF_TRACE;
 
-    TModuleInfoEntryVector::const_iterator i = projectInfo.modules.begin();
+    TModuleInfoEntryPtrVector::const_iterator i = projectInfo.modules.begin();
     while ( i != projectInfo.modules.end() )
     {
-        const TModuleInfoMap& modulesPerPlatform = (*i).modulesPerPlatform;
+        const TModuleInfoMap& modulesPerPlatform = (*i)->modulesPerPlatform;
         TModuleInfoMap::const_iterator n = modulesPerPlatform.begin();
         while ( n != modulesPerPlatform.end() )
         {
@@ -2932,10 +2930,10 @@ GetAllTagsUsed( const CProjectInfo& projectInfo ,
                 TStringSet& tagsUsed            )
 {GUCEF_TRACE;
 
-    TModuleInfoEntryVector::const_iterator i = projectInfo.modules.begin();
+    TModuleInfoEntryPtrVector::const_iterator i = projectInfo.modules.begin();
     while ( i != projectInfo.modules.end() )
     {
-        const TModuleInfoMap& modulesPerPlatform = (*i).modulesPerPlatform;
+        const TModuleInfoMap& modulesPerPlatform = (*i)->modulesPerPlatform;
         TModuleInfoMap::const_iterator n = modulesPerPlatform.begin();
         while ( n != modulesPerPlatform.end() )
         {
@@ -2949,19 +2947,19 @@ GetAllTagsUsed( const CProjectInfo& projectInfo ,
 /*---------------------------------------------------------------------------*/
 
 bool
-IsModuleTagged( const CModuleInfoEntry& module ,
-                const CORE::CString& tag       ,
-                const CORE::CString& platform  )
+IsModuleTagged( const CModuleInfoEntryPtr& module ,
+                const CORE::CString& tag          ,
+                const CORE::CString& platform     )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator i = module.modulesPerPlatform.find( AllPlatforms );
-    if ( i != module.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = module->modulesPerPlatform.find( AllPlatforms );
+    if ( i != module->modulesPerPlatform.end() )
     {
         if ( (*i).second.tags.find( tag ) != (*i).second.tags.end() )
             return true;
     }
-    i = module.modulesPerPlatform.find( platform );
-    if ( i != module.modulesPerPlatform.end() )
+    i = module->modulesPerPlatform.find( platform );
+    if ( i != module->modulesPerPlatform.end() )
     {
         if ( (*i).second.tags.find( tag ) != (*i).second.tags.end() )
             return true;
@@ -2972,7 +2970,7 @@ IsModuleTagged( const CModuleInfoEntry& module ,
 /*---------------------------------------------------------------------------*/
 
 bool
-IsModuleTagged( const CModuleInfoEntry& module       ,
+IsModuleTagged( const CModuleInfoEntryPtr& module    ,
                 const CORE::CString::StringSet& tags ,
                 const CORE::CString& platform        )
 {GUCEF_TRACE;
@@ -2990,17 +2988,17 @@ IsModuleTagged( const CModuleInfoEntry& module       ,
 /*---------------------------------------------------------------------------*/
 
 void
-GetTaggedModules( const CProjectInfo& projectInfo            ,
-                  const CORE::CString& tag                   ,
-                  TModuleInfoEntryConstPtrSet& taggedModules ,
-                  const CORE::CString& platform              )
+GetTaggedModules( const CProjectInfo& projectInfo       ,
+                  const CORE::CString& tag              ,
+                  TModuleInfoEntryPtrSet& taggedModules ,
+                  const CORE::CString& platform         )
 {GUCEF_TRACE;
 
-    TModuleInfoEntryVector::const_iterator i = projectInfo.modules.begin();
+    TModuleInfoEntryPtrVector::const_iterator i = projectInfo.modules.begin();
     while ( i != projectInfo.modules.end() )
     {
         if ( IsModuleTagged( (*i), tag, platform ) )
-            taggedModules.insert( &(*i) );
+            taggedModules.insert( (*i) );
         ++i;
     }
 }
@@ -3008,11 +3006,11 @@ GetTaggedModules( const CProjectInfo& projectInfo            ,
 /*---------------------------------------------------------------------------*/
 
 bool
-ShouldModuleBeIgnored( const CModuleInfoEntry& moduleInfo ,
-                       const CORE::CString& platformName  )
+ShouldModuleBeIgnored( const CModuleInfoEntryPtr& moduleInfo ,
+                       const CORE::CString& platformName     )
 {GUCEF_TRACE;
 
-    const TModuleInfoMap& modulesPerPlatform = moduleInfo.modulesPerPlatform;
+    const TModuleInfoMap& modulesPerPlatform = moduleInfo->modulesPerPlatform;
     TModuleInfoMap::const_iterator i = modulesPerPlatform.find( platformName );
     if ( i != modulesPerPlatform.end() )
     {
@@ -3033,12 +3031,12 @@ ShouldModuleBeIgnored( const CModuleInfoEntry& moduleInfo ,
 /*---------------------------------------------------------------------------*/
 
 bool
-IsModuleTaggedWith( const CModuleInfoEntry& moduleInfo ,
-                    const CORE::CString& platformName  ,
-                    const CORE::CString& tag           )
+IsModuleTaggedWith( const CModuleInfoEntryPtr& moduleInfo ,
+                    const CORE::CString& platformName     ,
+                    const CORE::CString& tag              )
 {GUCEF_TRACE;
 
-    const TModuleInfoMap& modulesPerPlatform = moduleInfo.modulesPerPlatform;
+    const TModuleInfoMap& modulesPerPlatform = moduleInfo->modulesPerPlatform;
     TModuleInfoMap::const_iterator i = modulesPerPlatform.find( platformName );
     if ( i != modulesPerPlatform.end() )
     {
@@ -3082,16 +3080,16 @@ HasIndependentModuleType( const TModuleInfoMap& moduleDefs )
 /*---------------------------------------------------------------------------*/
 
 void
-GetExecutables( const CProjectInfo& projectInfo                ,
-                TModuleInfoEntryConstPtrSet& executableTargets ,
-                const CORE::CString& platform                  )
+GetExecutables( const CProjectInfo& projectInfo           ,
+                TModuleInfoEntryPtrSet& executableTargets ,
+                const CORE::CString& platform             )
 {GUCEF_TRACE;
 
-    TModuleInfoEntryVector::const_iterator i = projectInfo.modules.begin();
+    TModuleInfoEntryPtrVector::const_iterator i = projectInfo.modules.begin();
     while ( i != projectInfo.modules.end() )
     {
         if ( MODULETYPE_EXECUTABLE == GetModuleType( (*i), platform ) )
-            executableTargets.insert( &(*i) );
+            executableTargets.insert( (*i) );
         ++i;
     }
 }
@@ -3114,24 +3112,24 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Locating executables (if any) for platform " + (*p) );
 
-        TModuleInfoEntryConstPtrSet executables;
+        TModuleInfoEntryPtrSet executables;
         GetExecutables( projectInfo, executables, (*p) );
 
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Located " + CORE::ToString( executables.size() ) + " executable target candidates for platform " + (*p) );
 
-        TModuleInfoEntryConstPtrSet::iterator i = executables.begin();
+        TModuleInfoEntryPtrSet::iterator i = executables.begin();
         while ( i != executables.end() )
         {
-            const CModuleInfoEntry& executable = *(*i);
+            CModuleInfoEntryPtr executable = (*i);
             CORE::CString targetName = GetModuleNameAlways( executable, (*p) );
 
             // Don't bother if the executable itself doesnt have a platform definition for the current platform            
-            if ( executable.modulesPerPlatform.find( (*p) ) != executable.modulesPerPlatform.end() )
+            if ( executable->modulesPerPlatform.find( (*p) ) != executable->modulesPerPlatform.end() )
             {            
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Locating dependencies for target candidate \"" + 
                     targetName + "\" for platform " + (*p) );
 
-                TModuleInfoEntryConstPtrSet foundDependencies;
+                TModuleInfoEntryPtrSet foundDependencies;
                 if ( GetModuleDependencies( projectInfo, executable, (*p), foundDependencies, true, true ) )
                 {
                     // if we made it here we found the executable and were able to satisfy all dependencies
@@ -3145,9 +3143,9 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
                         " dependencies for executable target \"" + targetName + "\" for platform " + (*p) );
 
                     target.projectName = projectName;
-                    target.mainModule = &executable;
-                    target.modules.insert( &executable );
-                    TModuleInfoEntryConstPtrSet::iterator j = foundDependencies.begin();
+                    target.mainModule = executable;
+                    target.modules.insert( executable );
+                    TModuleInfoEntryPtrSet::iterator j = foundDependencies.begin();
                     while ( j != foundDependencies.end() )
                     {
                         target.modules.insert( (*j) );
@@ -3183,34 +3181,34 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
             TStringSet::iterator i = tagsUsed.begin();
             while ( i != tagsUsed.end() )
             {
-                TModuleInfoEntryConstPtrSet taggedModules;
+                TModuleInfoEntryPtrSet taggedModules;
                 GetTaggedModules( projectInfo, (*i), taggedModules, (*p) );
                 CORE::CString projectName = projectInfo.projectName + "_tag_" + (*i);
 
-                TModuleInfoEntryConstPtrSet::iterator m = taggedModules.begin();
+                TModuleInfoEntryPtrSet::iterator m = taggedModules.begin();
                 while ( m != taggedModules.end() )
                 {
-                    const CModuleInfoEntry& taggedModule = *(*m);
+                    const CModuleInfoEntryPtr& taggedModule = (*m);
                                             
                     // Don't include this module if it doesnt have a definition for the current platform
-                    if ( taggedModule.modulesPerPlatform.find( (*p) ) != taggedModule.modulesPerPlatform.end() )
+                    if ( taggedModule->modulesPerPlatform.find( (*p) ) != taggedModule->modulesPerPlatform.end() )
                     {                    
                         // Tagged or not we need to include the dependencies of tagged modules as well
                         // We don't want to make projects that cannot compile
-                        TModuleInfoEntryConstPtrSet foundDependencies;
+                        TModuleInfoEntryPtrSet foundDependencies;
                         if ( GetModuleDependencies( projectInfo, taggedModule, (*p), foundDependencies, true, true ) )
                         {
                             TProjectTargetInfoMap& targetPerPlatform = targets[ projectName ];
                             TProjectTargetInfo& target = targetPerPlatform[ (*p) ];
 
                             target.projectName = projectName;
-                            target.modules.insert( &taggedModule );
+                            target.modules.insert( taggedModule );
 
                             // Since many modules can have the same tag there really is no such thing as a 'main' tagged module.
                             // It may be that there is only 1 in a repo but that is a coincidence and not relevant
-                            target.mainModule = GUCEF_NULL;
+                            target.mainModule.Unlink();
 
-                            TModuleInfoEntryConstPtrSet::iterator j = foundDependencies.begin();
+                            TModuleInfoEntryPtrSet::iterator j = foundDependencies.begin();
                             while ( j != foundDependencies.end() )
                             {
                                 target.modules.insert( (*j) );
@@ -3277,11 +3275,11 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
     TProjectTargetInfoMap& fullProjectTargets = targets[ projectInfo.projectName ];
     TProjectTargetInfo& fullProjectTarget = fullProjectTargets[ AllPlatforms ];
     fullProjectTarget.projectName = projectInfo.projectName;
-    fullProjectTarget.mainModule = GUCEF_NULL;
-    TModuleInfoEntryVector::const_iterator w = projectInfo.modules.begin();
+    fullProjectTarget.mainModule.Unlink();
+    TModuleInfoEntryPtrVector::const_iterator w = projectInfo.modules.begin();
     while ( w != projectInfo.modules.end() )
     {
-        fullProjectTarget.modules.insert( &(*w) );
+        fullProjectTarget.modules.insert( (*w) );
         ++w;
     }
 }
@@ -3331,12 +3329,12 @@ GetPlatformProjectTarget( const TProjectTargetInfoMap& platformTargets ,
 /*-------------------------------------------------------------------------*/
 
 bool
-HasPlatformDefinition( const CModuleInfoEntry& moduleInfoEntry ,
-                       const CORE::CString& platform           )
+HasPlatformDefinition( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                       const CORE::CString& platform              )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator i = moduleInfoEntry.modulesPerPlatform.begin();
-    while ( i != moduleInfoEntry.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+    while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         if ( (*i).first.Equals( platform, false ) )
             return true;
@@ -3589,14 +3587,14 @@ TryAutoLicenceDetection( const CORE::CString& fileContent ,
 /*---------------------------------------------------------------------------*/
 
 bool
-IsAnyLicenseDefined( const TModuleInfoEntryVector& moduleInfoEntries )
+IsAnyLicenseDefined( const TModuleInfoEntryPtrVector& moduleInfoEntries )
 {GUCEF_TRACE;
 
-    TModuleInfoEntryVector::const_iterator i = moduleInfoEntries.begin();
+    TModuleInfoEntryPtrVector::const_iterator i = moduleInfoEntries.begin();
     while ( i != moduleInfoEntries.end() )
     {
-        const CModuleInfoEntry& entry = (*i);
-        if ( !entry.metadata.license.IsNULLOrEmpty() )
+        const CModuleInfoEntryPtr& entry = (*i);
+        if ( !entry->metadata.license.IsNULLOrEmpty() )
         {
             return true;
         }
@@ -3608,14 +3606,14 @@ IsAnyLicenseDefined( const TModuleInfoEntryVector& moduleInfoEntries )
 /*---------------------------------------------------------------------------*/
 
 bool
-IsAnySemVerDefined( const TModuleInfoEntryVector& moduleInfoEntries )
+IsAnySemVerDefined( const TModuleInfoEntryPtrVector& moduleInfoEntries )
 {GUCEF_TRACE;
 
-    TModuleInfoEntryVector::const_iterator i = moduleInfoEntries.begin();
+    TModuleInfoEntryPtrVector::const_iterator i = moduleInfoEntries.begin();
     while ( i != moduleInfoEntries.end() )
     {
-        const CModuleInfoEntry& entry = (*i);
-        if ( !entry.metadata.semver.IsAllZero() )
+        const CModuleInfoEntryPtr& entry = (*i);
+        if ( !entry->metadata.semver.IsAllZero() )
         {
             return true;
         }
@@ -4032,6 +4030,7 @@ const CORE::CString CModuleInfoEntry::ClassTypeName = "GUCEF::PROJECTGEN::CModul
 
 CModuleInfoEntry::CModuleInfoEntry( void ) 
     : CORE::CIDataNodeSerializable()
+    , CORE::CTSharedObjCreator< CModuleInfoEntry, MT::CMutex >( this )
     , modulesPerPlatform()
     , rootDir()
     , metadata()
@@ -4043,6 +4042,7 @@ CModuleInfoEntry::CModuleInfoEntry( void )
 
 CModuleInfoEntry::CModuleInfoEntry( const CModuleInfoEntry& src ) 
     : CORE::CIDataNodeSerializable( src )
+    , CORE::CTSharedObjCreator< CModuleInfoEntry, MT::CMutex >( this )
     , modulesPerPlatform( src.modulesPerPlatform )
     , rootDir( src.rootDir )
     , metadata( src.metadata )
@@ -4107,10 +4107,10 @@ CModuleInfoEntry::Serialize( CORE::CDataNode& domRootNode                       
         const CORE::CString& platform = (*i).first;
         const CModuleInfo& moduleInfo = (*i).second;
 
-        if ( !SerializeModuleInfo( *this           ,
-                                   moduleInfo      ,
-                                   platform        ,
-                                   domRootNode     ) )
+        if ( !SerializeModuleInfo( CreateBasicSharedPtr() ,
+                                   moduleInfo             ,
+                                   platform               ,
+                                   domRootNode            ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "SerializeModuleInfo: Failed to serialize moduleInfo of module " + moduleInfo.name + " for platform " + platform );
             totalSuccess = false;
@@ -4232,22 +4232,22 @@ CModuleInfoEntry::Deserialize( const CORE::CDataNode& domRootNode               
 /*---------------------------------------------------------------------------*/
 
 bool
-CModuleInfoEntry::Merge( const CModuleInfoEntry& infoToMergeIn ,
-                         bool onConflictOriginalInfoStays      ) 
+CModuleInfoEntry::Merge( const CModuleInfoEntryPtr& infoToMergeIn ,
+                         bool onConflictOriginalInfoStays         ) 
 {GUCEF_TRACE;
 
     bool totalSuccess = true;
 
     if ( rootDir.IsNULLOrEmpty() )
-        rootDir = infoToMergeIn.rootDir;
+        rootDir = infoToMergeIn->rootDir;
     else
-    if ( !onConflictOriginalInfoStays && !infoToMergeIn.rootDir.IsNULLOrEmpty() )
-        rootDir = infoToMergeIn.rootDir;
+    if ( !onConflictOriginalInfoStays && !infoToMergeIn->rootDir.IsNULLOrEmpty() )
+        rootDir = infoToMergeIn->rootDir;
 
-    totalSuccess = metadata.Merge( infoToMergeIn.metadata ) && totalSuccess;
+    totalSuccess = metadata.Merge( infoToMergeIn->metadata ) && totalSuccess;
 
-    TModuleInfoMap::const_iterator i = infoToMergeIn.modulesPerPlatform.begin();
-    while ( i != infoToMergeIn.modulesPerPlatform.end() )
+    TModuleInfoMap::const_iterator i = infoToMergeIn->modulesPerPlatform.begin();
+    while ( i != infoToMergeIn->modulesPerPlatform.end() )
     {
         const CString& platformToMergeIn = (*i).first;
         const CModuleInfo& moduleInfoToMergeIn = (*i).second;
