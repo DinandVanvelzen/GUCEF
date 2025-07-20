@@ -79,7 +79,7 @@ static const char* batchfileHeader =
 
 CORE::CString
 GenerateContentForArduinoCLIWindowsSymlinkBatchfile( const TModuleInfoEntryPairVector& mergeLinks ,
-                                                     const CModuleInfo& moduleInfo                ,
+                                                     const CModuleInfoPtr& moduleInfo             ,
                                                      const CORE::CString& moduleRoot              ,
                                                      bool addGeneratorCompileTimeToOutput         ,
                                                      const CORE::CString& outputDir               )
@@ -98,11 +98,11 @@ GenerateContentForArduinoCLIWindowsSymlinkBatchfile( const TModuleInfoEntryPairV
     CORE::CString scriptOutDir = CORE::RelativePath( outputDir );
     CORE::CString content = contentPrefix + "IF NOT EXIST \"" + scriptOutDir + "\" mkdir \"" + scriptOutDir + "\"\n\n";
 
-    if ( MODULETYPE_EXECUTABLE != moduleInfo.moduleType )
+    if ( MODULETYPE_EXECUTABLE != moduleInfo->moduleType )
     {
-        CORE::CString arduinoLibPath = "\"%UserProfile%\\Documents\\Arduino\\libraries\\" + moduleInfo.name + "\"";
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Generating symlink script from system Arduino libraries folder to module dir for module \"" + moduleInfo.name + "\" at: " + arduinoLibPath );
-        content += "\necho Setting up \""+ moduleInfo.name + "\" library symlink at " + arduinoLibPath + "\n";
+        CORE::CString arduinoLibPath = "\"%UserProfile%\\Documents\\Arduino\\libraries\\" + moduleInfo->name + "\"";
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Generating symlink script from system Arduino libraries folder to module dir for module \"" + moduleInfo->name + "\" at: " + arduinoLibPath );
+        content += "\necho Setting up \""+ moduleInfo->name + "\" library symlink at " + arduinoLibPath + "\n";
         content += "IF EXIST " + arduinoLibPath + " DEL /F /Q " + arduinoLibPath + "\n";
         content += "mklink /d /J " + arduinoLibPath + " \"" + outputDir + "\"\n";
     }
@@ -110,13 +110,13 @@ GenerateContentForArduinoCLIWindowsSymlinkBatchfile( const TModuleInfoEntryPairV
     CORE::CString outputSrcDir = CORE::RelativePath( CORE::CombinePath( scriptOutDir, "src" ) );
     content += "\n\nIF NOT EXIST \"" + outputSrcDir + "\" mkdir \"" + outputSrcDir + "\"\n";
 
-    if ( !moduleInfo.includeDirs.empty() )
+    if ( !moduleInfo->includeDirs.empty() )
     {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Generating symlinks script for all headers for module: " + moduleInfo.name );
-        content += "\necho Generating symlinks for all headers for module: " + moduleInfo.name + "\n";
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Generating symlinks script for all headers for module: " + moduleInfo->name );
+        content += "\necho Generating symlinks for all headers for module: " + moduleInfo->name + "\n";
     
-        TStringSetMap::const_iterator i = moduleInfo.includeDirs.begin();
-        while ( i != moduleInfo.includeDirs.end() )
+        TStringSetMap::const_iterator i = moduleInfo->includeDirs.begin();
+        while ( i != moduleInfo->includeDirs.end() )
         {
             const CORE::CString& includeDir = (*i).first;
             const CORE::CString::StringSet& includes = (*i).second;
@@ -138,13 +138,13 @@ GenerateContentForArduinoCLIWindowsSymlinkBatchfile( const TModuleInfoEntryPairV
         }    
     }
 
-    if ( !moduleInfo.sourceDirs.empty() )
+    if ( !moduleInfo->sourceDirs.empty() )
     {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Generating symlinks script for all source files for module: " + moduleInfo.name );
-        content += "\necho Generating symlinks for all source files for module: " + moduleInfo.name + "\n";
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Generating symlinks script for all source files for module: " + moduleInfo->name );
+        content += "\necho Generating symlinks for all source files for module: " + moduleInfo->name + "\n";
 
-        TStringSetMap::const_iterator i = moduleInfo.sourceDirs.begin();
-        while ( i != moduleInfo.sourceDirs.end() )
+        TStringSetMap::const_iterator i = moduleInfo->sourceDirs.begin();
+        while ( i != moduleInfo->sourceDirs.end() )
         {
             const CORE::CString& sourceDir = (*i).first;
             const CORE::CString::StringSet& sources = (*i).second;
@@ -204,7 +204,7 @@ CreateArduinoCLIOutputFolderStructure( const CORE::CString& outputDir  ,
 
 bool
 IsArduinoCompilationTarget( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                            const CModuleInfo& moduleInfo              ,
+                            const CModuleInfoPtr& moduleInfo           ,
                             bool onlyConsiderSpecificTags              ,
                             const CORE::CString::StringSet& validTags  )
 {GUCEF_TRACE;
@@ -212,11 +212,11 @@ IsArduinoCompilationTarget( const CModuleInfoEntryPtr& moduleInfoEntry ,
     if ( !onlyConsiderSpecificTags ||
             ( onlyConsiderSpecificTags && IsModuleTagged( moduleInfoEntry, validTags, ArduinoPlatformName ) ) )
     {
-        if ( ( !moduleInfo.hasIgnoreModule || ( moduleInfo.hasIgnoreModule && !moduleInfo.ignoreModule ) )  &&
-            ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleInfo.moduleType ) &&
-            ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleInfo.moduleType )   &&
-            ( MODULETYPE_REFERENCE_LIBRARY != moduleInfo.moduleType )         &&
-            ( MODULETYPE_EXECUTABLE != moduleInfo.moduleType || ( MODULETYPE_EXECUTABLE == moduleInfo.moduleType && HasPlatformDefinition( moduleInfoEntry, "arduino" ) ) ) )
+        if ( ( !moduleInfo->hasIgnoreModule || ( moduleInfo->hasIgnoreModule && !moduleInfo->ignoreModule ) )  &&
+            ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleInfo->moduleType ) &&
+            ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleInfo->moduleType )   &&
+            ( MODULETYPE_REFERENCE_LIBRARY != moduleInfo->moduleType )         &&
+            ( MODULETYPE_EXECUTABLE != moduleInfo->moduleType || ( MODULETYPE_EXECUTABLE == moduleInfo->moduleType && HasPlatformDefinition( moduleInfoEntry, "arduino" ) ) ) )
         {
             return true;
         }
@@ -248,17 +248,17 @@ CreateArduinoCLIWindowsSymlinkBatchfiles( const TModuleInfoEntryPairVector& merg
     while ( i != mergeLinks.end() )
     {
         const CModuleInfoEntryPtr originalModule = (*i).first;
-        const CModuleInfo* mergedModule = (*i).second;
+        const CModuleInfoPtr mergedModule = (*i).second;
 
         if ( IsArduinoCompilationTarget( originalModule           ,
-                                         *mergedModule            ,
+                                         mergedModule             ,
                                          onlyConsiderSpecificTags ,
                                          validTags                ) )
         {
             CORE::CString& typeBasedOutputDir = MODULETYPE_EXECUTABLE != mergedModule->moduleType ? libraryOutputDir : appsOutputDir;
             CORE::CString typeBasedModuleOutputDir = CORE::RelativePath( CORE::CombinePath( typeBasedOutputDir, mergedModule->name ) );
 
-            CORE::CString content = GenerateContentForArduinoCLIWindowsSymlinkBatchfile( mergeLinks, *mergedModule, originalModule->rootDir, addGeneratorCompileTimeToOutput, typeBasedModuleOutputDir );
+            CORE::CString content = GenerateContentForArduinoCLIWindowsSymlinkBatchfile( mergeLinks, mergedModule, originalModule->rootDir, addGeneratorCompileTimeToOutput, typeBasedModuleOutputDir );
 
             CORE::CString moduleSymlinksFilePath = CORE::CombinePath( scriptsOutputDir, mergedModule->name + "_create_symlinks.bat" );
 
@@ -297,10 +297,10 @@ CreateArduinoCLIWindowsSymlinkBatchfiles( const TModuleInfoEntryPairVector& merg
     while ( i != mergeLinks.end() )
     {
         const CModuleInfoEntryPtr originalModule = (*i).first;
-        const CModuleInfo* mergedModule = (*i).second;
+        const CModuleInfoPtr mergedModule = (*i).second;
 
         if ( IsArduinoCompilationTarget( originalModule           ,
-                                         *mergedModule            ,
+                                         mergedModule             ,
                                          onlyConsiderSpecificTags ,
                                          validTags                ) )
         {
@@ -348,10 +348,10 @@ CreateArduinoCLILibraryPropertiesFiles( const TModuleInfoEntryPairVector& mergeL
     while ( i != mergeLinks.end() )
     {
         const CModuleInfoEntryPtr originalModule = (*i).first;
-        const CModuleInfo* mergedModule = (*i).second;
+        const CModuleInfoPtr mergedModule = (*i).second;
 
         if ( IsArduinoCompilationTarget( originalModule           ,
-                                         *mergedModule            ,
+                                         mergedModule             ,
                                          onlyConsiderSpecificTags ,
                                          validTags                ) )
         {
@@ -456,7 +456,7 @@ CArduinoCLIGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
 
     // Merge all the module info to give us a complete module definition for the Arduino platform
     // per module. This makes is easy for us to process as we don't care about other platforms
-    TModuleInfoVector mergedInfo;
+    TModuleInfoPtrVector mergedInfo;
     TModuleInfoEntryPairVector mergeLinks;
     MergeAllModuleInfoForPlatform( projectInfo.modules, ArduinoPlatformName, mergedInfo, mergeLinks ); 
 

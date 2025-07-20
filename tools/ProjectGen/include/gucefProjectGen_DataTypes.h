@@ -218,15 +218,16 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleMetaData : public CORE::CIDataNodeSeria
 
 /*---------------------------------------------------------------------------*/
 
-class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo
+class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo  : public CORE::CTSharedObjCreator< CModuleInfo, MT::CMutex >
 {
     public:
+
+    typedef typename CORE::CTSharedObjCreator< CModuleInfo, MT::CMutex >::TBasicSharedPtrType    CModuleInfoPtr;
     
     CORE::CString name;                          // the name of the module
     TModuleType moduleType;                      // The type of module we are dealing with
     TStringSet tags;                             // optional tags that can be associated which allows filtering of modules
-    
-    TStringSet dependencies;                     // list of module names of all modules this module depends on
+
     TStringSet dependencyIncludeDirs;            // include directories needed for the headers of the dependencies, paths only no files
     TStringSet runtimeDependencies;              // dependencies not relative for builds but desired to be easily accessable due to runtime dependency, typically plugins
        
@@ -247,23 +248,39 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo
     bool hasIgnoreModule;                        // whether the ignoreModule flag is based on an explicit setting or not
     CModuleMetaData metadata;                    // module metadata
 
+    // list of module names of all modules this module depends on
+    void SetNamesOfDependencies( const TStringSet& dependencies );
+
+    // list of module names of all modules this module depends on
+    const TStringSet& GetNamesOfDependencies( void ) const;
+
+    void AddNameOfDependency( const CORE::CString& dependency );
+
+    void RemoveNameOfDependency( const CORE::CString& dependency );
+
+    void MergeNamesOfDependencies( const TStringSet& dependenciesToMergeIn );
+
     void Clear( void );
 
-    bool Merge( const CModuleInfo& moduleInfoToMergeIn  ,
-                bool onConflictOriginalInfoStays = true );
+    bool Merge( const CModuleInfoPtr& moduleInfoToMergeIn ,
+                bool onConflictOriginalInfoStays = true   );
     
     CModuleInfo( void );
     CModuleInfo( const CModuleInfo& src );
     virtual ~CModuleInfo();
+
+    private:
+
+    TStringSet m_namesOfDependencies;
 };
+
+typedef CModuleInfo::CModuleInfoPtr CModuleInfoPtr;
 
 /*---------------------------------------------------------------------------*/
 
-typedef std::vector< CModuleInfo > TModuleInfoVector;
-typedef std::map< CORE::CString, TModuleInfoVector > TModuleInfoVectorMap;
-typedef std::map< CORE::CString, CModuleInfo > TModuleInfoMap;
-typedef std::vector< CModuleInfo* > TModuleInfoPtrVector;
-typedef std::map< CORE::CString, const CModuleInfo* > TConstModuleInfoPtrMap;
+typedef std::vector< CModuleInfoPtr > TModuleInfoPtrVector;
+typedef std::map< CORE::CString, TModuleInfoPtrVector > TModuleInfoPtrVectorMap;
+typedef std::map< CORE::CString, CModuleInfoPtr > TModuleInfoPtrMap;
 
 /*---------------------------------------------------------------------------*/
 
@@ -276,7 +293,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
 
     static const CORE::CString ClassTypeName;
     
-    TModuleInfoMap modulesPerPlatform;     // ModuleInfo per platform
+    TModuleInfoPtrMap modulesPerPlatform;  // ModuleInfo per platform
     CORE::CString  rootDir;                // the absolute path to the root of this module's directory tree
     CModuleMetaData metadata;              // MetaData relating to the module
 
@@ -288,9 +305,23 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
 
     void Clear( void );
 
-    void SetModuleInfo( CModuleInfo& moduleInfo       ,
+    /**
+     *  The name to use in config files etc can't always be multiple names or defined
+     *  per platform. For that we have this function which looks at the different names
+     *  available across the platforms and find the general consensus name which is the
+     *  best guess name that could be used to label this module generally without specifying 
+     *  a platform
+     */
+    const CORE::CString& GetConsensusName( CModuleInfoPtr* moduleInfo = GUCEF_NULL ,
+                                           bool dontUseCached = false              ) const;
+
+    void SetModuleInfo( CModuleInfoPtr moduleInfo     ,
                         const CORE::CString& platform );
 
+    /**
+     *  Straightforward upsert style merge
+     *  Does not use business logic for merging
+     */
     bool Merge( const CModuleInfoEntryPtr& infoToMergeIn ,
                 bool onConflictOriginalInfoStays = true  );
 
@@ -314,20 +345,24 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    private:
+
+    mutable CORE::CString m_consensusName;
 };
 
 typedef CModuleInfoEntry::CModuleInfoEntryPtr CModuleInfoEntryPtr;
 
 /*---------------------------------------------------------------------------*/
 
-typedef std::vector< CModuleInfoEntryPtr >                          TModuleInfoEntryPtrVector;
-typedef CORE::CTSharedPtr< TModuleInfoEntryPtrVector, MT::CMutex >  TModuleInfoEntryPtrVectorPtr;
-typedef std::pair< const CModuleInfoEntryPtr, const CModuleInfo* >  TModuleInfoEntryPair;
-typedef std::pair< CModuleInfoEntryPtr, CModuleInfo* >              TMutableModuleInfoEntryPair;
-typedef std::vector< TModuleInfoEntryPair >                         TModuleInfoEntryPairVector;
-typedef std::vector< TMutableModuleInfoEntryPair >                  TMutableModuleInfoEntryPairVector;
-typedef std::set< CModuleInfoEntryPtr >                             TModuleInfoEntryPtrSet;
-typedef std::map< int, CModuleInfoEntryPtr >                        TModuleInfoEntryPrioMap;
+typedef std::vector< CModuleInfoEntryPtr >                           TModuleInfoEntryPtrVector;
+typedef CORE::CTSharedPtr< TModuleInfoEntryPtrVector, MT::CMutex >   TModuleInfoEntryPtrVectorPtr;
+typedef std::pair< const CModuleInfoEntryPtr, const CModuleInfoPtr > TModuleInfoEntryPair;
+typedef std::pair< CModuleInfoEntryPtr, CModuleInfoPtr >             TMutableModuleInfoEntryPair;
+typedef std::vector< TModuleInfoEntryPair >                          TModuleInfoEntryPairVector;
+typedef std::vector< TMutableModuleInfoEntryPair >                   TMutableModuleInfoEntryPairVector;
+typedef std::set< CModuleInfoEntryPtr >                              TModuleInfoEntryPtrSet;
+typedef std::map< int, CModuleInfoEntryPtr >                         TModuleInfoEntryPrioMap;
 
 /*---------------------------------------------------------------------------*/
 
@@ -428,21 +463,14 @@ ApplyConfigToProject( const CORE::CDataNode& loadedConfig ,
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
-void
-InitializeModuleInfo( CModuleInfo& moduleInfo );
-
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-const CModuleInfo*
+const CModuleInfoPtr
 FindModuleInfoForPlatform( const CModuleInfoEntryPtr& moduleInfoEntry ,
                            const CORE::CString& platform              );
 
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
-CModuleInfo*
+CModuleInfoPtr
 FindModuleInfoForPlatform( CModuleInfoEntryPtr& moduleInfoEntry ,
                            const CORE::CString& platform        ,
                            bool createNewIfNoneExists           );
@@ -451,9 +479,9 @@ FindModuleInfoForPlatform( CModuleInfoEntryPtr& moduleInfoEntry ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 const CORE::CString*
-GetModuleName( const CModuleInfoEntryPtr& moduleInfoEntry  ,
-               const CORE::CString& targetPlatform         ,
-               const CModuleInfo** moduleInfo = GUCEF_NULL );
+GetModuleName( const CModuleInfoEntryPtr& moduleInfoEntry ,
+               const CORE::CString& targetPlatform        ,
+               CModuleInfoPtr* moduleInfo = GUCEF_NULL    );
 
 /*-------------------------------------------------------------------------*/
 
@@ -461,19 +489,7 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 const CORE::CString*
 GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
                const CORE::CString& targetPlatform          ,
-               const CModuleInfo** moduleInfo = GUCEF_NULL  );
-               
-/*-------------------------------------------------------------------------*/
-
-// The name to use in config files etc can't always be multiple names or defined
-// per platform. For that we have this function which looks at the different names
-// available across the platforms and find the general consensus name which is the
-// best guess name that could be used to label this module generally without specifying 
-// a platform
-GUCEF_PROJECTGEN_PUBLIC_CPP
-CORE::CString
-GetConsensusModuleName( const CModuleInfoEntryPtr& moduleInfoEntry  ,
-                        const CModuleInfo** moduleInfo = GUCEF_NULL );
+               CModuleInfoPtr* moduleInfo = GUCEF_NULL      );
 
 /*-------------------------------------------------------------------------*/
 
@@ -507,7 +523,7 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 CORE::CString
 GetModuleNameAlways( const CModuleInfoEntryPtr& moduleInfoEntry ,
                      const CORE::CString& targetPlatform        ,
-                     const CModuleInfo** moduleInfo = NULL      );
+                     CModuleInfoPtr* moduleInfo = GUCEF_NULL    );
                      
 /*-------------------------------------------------------------------------*/
                      
@@ -576,7 +592,7 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
 MergeAllModuleInfoForPlatform( const TModuleInfoEntryPtrVector& allInfo ,
                                const CORE::CString& platform            ,
-                               TModuleInfoVector& allMergedInfo         ,
+                               TModuleInfoPtrVector& allMergedInfo      ,
                                TModuleInfoEntryPairVector& mergeLinks   );
 
 
@@ -586,7 +602,7 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
 MergeAllModuleInfoForPlatform( const TModuleInfoEntryPtrSet& allInfo  ,
                                const CORE::CString& platform          ,
-                               TModuleInfoVector& allMergedInfo       ,
+                               TModuleInfoPtrVector& allMergedInfo    ,
                                TModuleInfoEntryPairVector& mergeLinks );
 
 /*-------------------------------------------------------------------------*/
@@ -624,7 +640,7 @@ MergeDirProcessingInstructionsMap( TDirProcessingInstructionsMap& mergedInstruct
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
-const CModuleInfo*
+const CModuleInfoPtr
 FindModuleByName( const TModuleInfoEntryPairVector& mergeLinks ,
                   const CORE::CString& moduleName              );
 
@@ -747,14 +763,14 @@ GetModuleTargetName( const CModuleInfoEntryPtr& moduleInfoEntry ,
 GUCEF_PROJECTGEN_PUBLIC_CPP
 void
 GetModuleInfoWithUniqueModulesTypes( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                                     TConstModuleInfoPtrMap& moduleMap          );
+                                     TModuleInfoPtrMap& moduleMap               );
 
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 void
 GetModuleInfoWithUniqueModuleNames( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                                    TConstModuleInfoPtrMap& moduleMap          );
+                                    TModuleInfoPtrMap& moduleMap               );
 
 /*-------------------------------------------------------------------------*/
 
@@ -763,16 +779,16 @@ const CModuleInfoEntryPtr
 GetModuleInfoEntry( const TModuleInfoEntryPtrVector& moduleInfoEntries ,
                     const CORE::CString& moduleName                    ,
                     const CORE::CString& platform                      ,
-                    const CModuleInfo** moduleInfo = GUCEF_NULL        );
+                    CModuleInfoPtr* moduleInfo = GUCEF_NULL            );
 
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 const CModuleInfoEntryPtr
-GetModuleInfoEntry( const CProjectInfo& projectInfo             ,
-                    const CORE::CString& moduleName             ,
-                    const CORE::CString& platform               ,
-                    const CModuleInfo** moduleInfo = GUCEF_NULL );
+GetModuleInfoEntry( const CProjectInfo& projectInfo         ,
+                    const CORE::CString& moduleName         ,
+                    const CORE::CString& platform           ,
+                    CModuleInfoPtr* moduleInfo = GUCEF_NULL );
 
 /*-------------------------------------------------------------------------*/
 
@@ -894,16 +910,16 @@ GetTaggedModules( const CProjectInfo& projectInfo       ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 CORE::CString
-GetLanguageForModule( const CModuleInfo& moduleInfo );
+GetLanguageForModule( const CModuleInfoPtr& moduleInfo );
                       
 /*-------------------------------------------------------------------------*/
 
-// Determines whether the given list of module definitions has an indepdendant definition
+// Determines whether the given list of module definitions has an independent definition
 // An independent definition is a module who has a module type defined which is not a purely logical
 // module type used to structure modules (such as code/header integrate locations)
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
-HasIndependentModuleType( const TModuleInfoMap& moduleDefs );
+HasIndependentModuleType( const TModuleInfoPtrMap& moduleDefs );
                       
 /*-------------------------------------------------------------------------*/
 

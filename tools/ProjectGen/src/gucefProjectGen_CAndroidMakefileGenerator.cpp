@@ -263,8 +263,8 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
             {
                 // Since the dependency module type was not predefined we will investigate among
                 // the other modules to try to determine the nature of the linked module
-                const CModuleInfo* linkedDependency = FindModuleByName( mergeLinks, linkedLibName );
-                if ( NULL != linkedDependency )
+                const CModuleInfoPtr linkedDependency = FindModuleByName( mergeLinks, linkedLibName );
+                if ( !linkedDependency.IsNULL() )
                 {
                     // The module we are linking too is part of this project.
                     // As such we can simply check the other module's info
@@ -569,12 +569,12 @@ CreateAndroidMakefileOnDiskForEachModule( const TModuleInfoEntryPairVector& merg
 
 /*-------------------------------------------------------------------------*/
 
-const CModuleInfo*
+const CModuleInfoPtr
 FindFirstModuleAccordingToBuildOrder( const TModuleInfoEntryPairVector& mergeLinks )
 {GUCEF_TRACE;
 
     int actualLowestBuildOrderFound = GUCEFCORE_INT32MAX;
-    const CModuleInfo* candidateModule = GUCEF_NULL;
+    CModuleInfoPtr candidateModule;
 
     TModuleInfoEntryPairVector::const_iterator i = mergeLinks.begin();
     while ( i != mergeLinks.end() )
@@ -592,14 +592,14 @@ FindFirstModuleAccordingToBuildOrder( const TModuleInfoEntryPairVector& mergeLin
 
 /*-------------------------------------------------------------------------*/
 
-const CModuleInfo*
+const CModuleInfoPtr
 FindNextModuleAccordingToBuildOrder( const TModuleInfoEntryPairVector& mergeLinks ,
-                                     const CModuleInfo& currentModule             )
+                                     const CModuleInfoPtr& currentModule          )
 {GUCEF_TRACE;
 
-    int lowestAllowedModuleBuildOrder = currentModule.buildOrder+1;
+    int lowestAllowedModuleBuildOrder = currentModule->buildOrder+1;
     int actualLowestBuildOrderFound = GUCEFCORE_INT32MAX;
-    const CModuleInfo* candidateModule = GUCEF_NULL;
+    CModuleInfoPtr candidateModule;
 
     TModuleInfoEntryPairVector::const_iterator i = mergeLinks.begin();
     while ( i != mergeLinks.end() )
@@ -620,7 +620,7 @@ FindNextModuleAccordingToBuildOrder( const TModuleInfoEntryPairVector& mergeLink
 
 const CModuleInfoEntryPtr
 FindModuleInfoEntryForMergedInfo( const TModuleInfoEntryPairVector& mergeLinks ,
-                                  const CModuleInfo& mergedModule              )
+                                  const CModuleInfoPtr& mergedModule           )
 {
     TModuleInfoEntryPairVector::const_iterator i = mergeLinks.begin();
     while ( i != mergeLinks.end() )
@@ -691,15 +691,15 @@ GenerateContentForAndroidProjectMakefile( const CORE::CString& projectName      
     }
 */
     // Include each module's makefile in the order listed as their build order
-    const CModuleInfo* currentModule = FindFirstModuleAccordingToBuildOrder( mergeLinks );
-    while ( GUCEF_NULL != currentModule )
+    CModuleInfoPtr currentModule = FindFirstModuleAccordingToBuildOrder( mergeLinks );
+    while ( !currentModule.IsNULL() )
     {
         if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != currentModule->moduleType )   &&
              ( MODULETYPE_HEADER_INTEGRATE_LOCATION != currentModule->moduleType ) &&
              ( MODULETYPE_CODE_INTEGRATE_LOCATION != currentModule->moduleType )    )
         {
             // Get relative path from the outputDir to the other module
-            const CModuleInfoEntryPtr fullModuleInfo = FindModuleInfoEntryForMergedInfo( mergeLinks, *currentModule );
+            const CModuleInfoEntryPtr fullModuleInfo = FindModuleInfoEntryForMergedInfo( mergeLinks, currentModule );
             CORE::CString relativePathToModule = CORE::GetRelativePathToOtherPathRoot( outputDir, fullModuleInfo->rootDir );
             relativePathToModule = relativePathToModule.ReplaceChar( '\\', '/' );
 
@@ -709,7 +709,7 @@ GenerateContentForAndroidProjectMakefile( const CORE::CString& projectName      
         }
 
         // Done with this module, go to the next one
-        currentModule = FindNextModuleAccordingToBuildOrder( mergeLinks, *currentModule );
+        currentModule = FindNextModuleAccordingToBuildOrder( mergeLinks, currentModule );
     }
 
     return contentPrefix + moduleListSection;
@@ -777,7 +777,7 @@ WriteAndroidTargetsToDisk( const CProjectInfo& projectInfo          ,
 
     // Merge all the module info to give us a complete module definition for the Android platform
     // per module. This makes is easy for us to process as we don't care about other platforms
-    TModuleInfoVector mergedInfo;
+    TModuleInfoPtrVector mergedInfo;
     TModuleInfoEntryPairVector mergeLinks;
     MergeAllModuleInfoForPlatform( targetInfo.modules, "android", mergedInfo, mergeLinks ); 
 
@@ -892,7 +892,7 @@ CAndroidMakefileGenerator::GenerateProject( const CProjectInfo& projectInfo     
 
     // Merge all the module info to give us a complete module definition for the Android platform
     // per module. This makes is easy for us to process as we don't care about other platforms
-    TModuleInfoVector mergedInfo;
+    TModuleInfoPtrVector mergedInfo;
     TModuleInfoEntryPairVector mergeLinks;
     MergeAllModuleInfoForPlatform( projectInfo.modules, "android", mergedInfo, mergeLinks ); 
 

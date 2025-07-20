@@ -484,7 +484,7 @@ GenerateGithubActionsWorkflowTargetsYml( const CProjectInfo& projectInfo        
                 }
                 else
                 {
-                    productName = GetConsensusModuleName( targetInfo.mainModule );
+                    productName = targetInfo.mainModule->GetConsensusName();
                 }
             
                 CORE::CString runsOnPlatform = useSelfHostedRunner ? "self-hosted" : CORE::CString::Empty;
@@ -560,7 +560,7 @@ GenerateFilePathListPerTarget( const CProjectInfo& projectInfo                ,
                 TModuleInfoEntryPtrSet::const_iterator m = targetInfo.modules.begin();
                 while ( m != targetInfo.modules.end() )
                 {
-                    const TModuleInfoMap& moduleInfoPerPlatform = (*m)->modulesPerPlatform;
+                    const TModuleInfoPtrMap& moduleInfoPerPlatform = (*m)->modulesPerPlatform;
 
                     // Grab all file paths for this platform's module definition
                     GetAllModuleInfoFilePaths( projectInfo, (*m), platformName, allPaths, true, true );
@@ -630,7 +630,7 @@ GeneratePathListPerTarget( const CProjectInfo& projectInfo                ,
                 TModuleInfoEntryPtrSet::const_iterator m = targetInfo.modules.begin();
                 while ( m != targetInfo.modules.end() )
                 {
-                    const TModuleInfoMap& moduleInfoPerPlatform = (*m)->modulesPerPlatform;
+                    const TModuleInfoPtrMap& moduleInfoPerPlatform = (*m)->modulesPerPlatform;
 
                     // Grab all paths for this platform's module definition
                     GetAllModuleInfoPaths( projectInfo, (*m), platformName, allPaths, true, true, true );
@@ -700,7 +700,7 @@ GenerateGlobPatternPathListPerTarget( const CProjectInfo& projectInfo           
                 TModuleInfoEntryPtrSet::const_iterator m = targetInfo.modules.begin();
                 while ( m != targetInfo.modules.end() )
                 {
-                    const TModuleInfoMap& moduleInfoPerPlatform = (*m)->modulesPerPlatform;
+                    const TModuleInfoPtrMap& moduleInfoPerPlatform = (*m)->modulesPerPlatform;
 
                     // Grab all paths for this platform's module definition
                     GetAllModuleInfoPaths( projectInfo, (*m), platformName, allPaths, true, true, true );

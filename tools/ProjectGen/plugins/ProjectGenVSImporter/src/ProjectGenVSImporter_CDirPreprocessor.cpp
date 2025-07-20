@@ -309,8 +309,8 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
         PROJECTGEN::CModuleInfoEntryPtr moduleEntry = PROJECTGEN::CModuleInfoEntry::CreateSharedObj();
         moduleEntry->rootDir = path;
 
-        PROJECTGEN::CModuleInfo& moduleInfo = moduleEntry->modulesPerPlatform[ "all" ];
-        InitializeModuleInfo( moduleInfo );        
+        PROJECTGEN::CModuleInfoPtr& moduleInfo = moduleEntry->modulesPerPlatform[ "all" ];
+        moduleInfo->Clear();
         
         // First parse the globals so we can resolve variables in other sections
         // The $(ProjectName) var is actually derived from the filename so we handle it seperatly
@@ -328,7 +328,7 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                 CORE::CString rootName = (*n)->GetChildValueByName( "RootNamespace" );
                 if ( !rootName.IsNULLOrEmpty() )
                 {                    
-                    moduleInfo.name = rootName;
+                    moduleInfo->name = rootName;
                     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Determined project name to be: " + rootName );
                 }
             }
@@ -339,15 +339,15 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                 if ( !cTypeStr.IsNULLOrEmpty() )
                 {
                     PROJECTGEN::TModuleType configurationType = StudioConfigurationTypeToModuleType( cTypeStr );
-                    if ( PROJECTGEN::MODULETYPE_UNDEFINED == moduleInfo.moduleType )
+                    if ( PROJECTGEN::MODULETYPE_UNDEFINED == moduleInfo->moduleType )
                     {
-                        moduleInfo.moduleType = configurationType;
+                        moduleInfo->moduleType = configurationType;
                         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Determined project module type to be: " + ModuleTypeToString( configurationType ) );
                     }
                     else
-                    if ( PROJECTGEN::MODULETYPE_UNKNOWN != configurationType && PROJECTGEN::MODULETYPE_UNKNOWN == moduleInfo.moduleType )
+                    if ( PROJECTGEN::MODULETYPE_UNKNOWN != configurationType && PROJECTGEN::MODULETYPE_UNKNOWN == moduleInfo->moduleType )
                     {
-                        moduleInfo.moduleType = configurationType;
+                        moduleInfo->moduleType = configurationType;
                         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "Determined project module type to be: " + ModuleTypeToString( configurationType ) );
                     }
                 }                
@@ -361,7 +361,7 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                 {
                     if ( buildConfigToUse == (*m)->GetAttributeValue( "Condition" ) )
                     {
-                        moduleInfo.linkerSettings.targetName = ReplaceVisualStudioVariables( (*m)->GetValue(), globals, false );
+                        moduleInfo->linkerSettings.targetName = ReplaceVisualStudioVariables( (*m)->GetValue(), globals, false );
                     }
                     ++m;
                 }
@@ -382,7 +382,7 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                     PROJECTGEN::TStringSet::iterator m = newDefines.begin();
                     while ( m != newDefines.end() ) 
                     {
-                        moduleInfo.preprocessorSettings.defines.insert( ReplaceVisualStudioVariables( (*m), globals, true ) ); 
+                        moduleInfo->preprocessorSettings.defines.insert( ReplaceVisualStudioVariables( (*m), globals, true ) ); 
                         ++m;
                     }
 
@@ -390,7 +390,7 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                     m = additionalIncludeDirs.begin();
                     while ( m != additionalIncludeDirs.end() ) 
                     {
-                        moduleInfo.includeDirs[ ReplaceVisualStudioVariables( (*m), globals, true ) ];
+                        moduleInfo->includeDirs[ ReplaceVisualStudioVariables( (*m), globals, true ) ];
                         ++m;
                     }
                 }
@@ -413,8 +413,8 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                         CORE::Int32 dotIndex = outputFilename.HasChar( '.', false );
                         if ( dotIndex >= 0 ) outputFilename = outputFilename.SubstrToIndex( dotIndex, true );
                         
-                        GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Since the given module has an explicit Output filename set (\"" + outputFilename + "\") we will use said filename as the target name instead of \"" + moduleInfo.linkerSettings.targetName + "\"" );                        
-                        moduleInfo.linkerSettings.targetName = outputFilename;
+                        GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Since the given module has an explicit Output filename set (\"" + outputFilename + "\") we will use said filename as the target name instead of \"" + moduleInfo->linkerSettings.targetName + "\"" );                        
+                        moduleInfo->linkerSettings.targetName = outputFilename;
                     }
 
                     PROJECTGEN::TStringVector additionalDependencies = linkNode->GetChildValueByName( "AdditionalDependencies" ).AsString().ParseElements( ';', false );
@@ -423,7 +423,7 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                         PROJECTGEN::TStringVector::iterator m = additionalDependencies.begin();
                         while ( m != additionalDependencies.end() )
                         {
-                            moduleInfo.linkerSettings.linkedLibraries[ ReplaceVisualStudioVariables( (*m), globals, true ) ].moduleType = PROJECTGEN::MODULETYPE_UNKNOWN;
+                            moduleInfo->linkerSettings.linkedLibraries[ ReplaceVisualStudioVariables( (*m), globals, true ) ].moduleType = PROJECTGEN::MODULETYPE_UNKNOWN;
                             ++m;
                         }
                     }                
@@ -457,7 +457,7 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                     if ( !relPath.IsNULLOrEmpty() && ( ( vsRelPath != relPath ) || !CORE::IsPathValid( pathOnDisk ) || -1 == pathOnDisk.HasSubstr( path, 0, true ) ) )
                     {
                         GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Explicitly adding include file to module definition because it does not appear to be in a sub-dir: " + relPath );
-                        moduleInfo.includeDirs[ relPath ].insert( includeFilename );
+                        moduleInfo->includeDirs[ relPath ].insert( includeFilename );
                     }
                 }
                 ++m;
@@ -483,7 +483,7 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                     if ( !relPath.IsNULLOrEmpty() && ( ( vsRelPath != relPath ) || !CORE::IsPathValid( pathOnDisk ) || -1 == pathOnDisk.HasSubstr( path, 0, true ) ) )
                     {
                         GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Explicitly adding source file to module definition because it does not appear to be in a sub-dir: " + relPath );
-                        moduleInfo.sourceDirs[ relPath ].insert( sourceFilename );
+                        moduleInfo->sourceDirs[ relPath ].insert( sourceFilename );
                     }
                 }
                 ++m;
@@ -502,7 +502,7 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                     moduleDependency = ReplaceVisualStudioVariables( moduleDependency, globals, true );
 
                     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Module has dependency on: " + moduleDependency );
-                    moduleInfo.dependencies.insert( moduleDependency );
+                    moduleInfo->AddNameOfDependency( moduleDependency );
                 }
                 ++m;
             }
@@ -516,13 +516,13 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                 if ( 0 != vsRelPath.Length() )
                 {
                     // For now whenever we encounter a vcxproj that has references we will assume that this is a C++CLI project
-                    moduleInfo.compilerSettings.languagesUsed.insert( "C++CLI" );
+                    moduleInfo->compilerSettings.languagesUsed.insert( "C++CLI" );
 
                     CORE::CString referenceFilename = CORE::ExtractFilename( vsRelPath );
                     vsRelPath = vsRelPath.CutChars( referenceFilename.Length(), false );
                     CORE::CString relPath = ReplaceVisualStudioVariables( vsRelPath, globals, true );
 
-                    moduleInfo.linkerSettings.linkedLibraries[ referenceFilename ].moduleType = MODULETYPE_REFERENCE_LIBRARY;
+                    moduleInfo->linkerSettings.linkedLibraries[ referenceFilename ].moduleType = MODULETYPE_REFERENCE_LIBRARY;
                     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "The module has a managed reference to " + referenceFilename );
                 }
                 ++m;
@@ -531,25 +531,25 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
             ++n;
         }
 
-        if ( moduleInfo.name.IsNULLOrEmpty() )
+        if ( moduleInfo->name.IsNULLOrEmpty() )
         {
             CORE::Int32 dotIndex = (*i).HasChar( '.', false );
             if ( 0 <= dotIndex )
             {
-                moduleInfo.name = (*i).CutChars( (*i).Length() - dotIndex, false );
+                moduleInfo->name = (*i).CutChars( (*i).Length() - dotIndex, false );
             }
             else
             {
-                moduleInfo.name = ExtractFilename (*i);
+                moduleInfo->name = ExtractFilename (*i);
             }
-            GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Module name could not be determined from xml data, using project filename as module name: " + moduleInfo.name );
+            GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Module name could not be determined from xml data, using project filename as module name: " + moduleInfo->name );
         }
-        if ( !moduleInfo.linkerSettings.targetName.IsNULLOrEmpty() )
+        if ( !moduleInfo->linkerSettings.targetName.IsNULLOrEmpty() )
         {
             // Don't retain duplicate info: Only retain target name if it differs from the module name
-            if ( moduleInfo.name == moduleInfo.linkerSettings.targetName )
+            if ( moduleInfo->name == moduleInfo->linkerSettings.targetName )
             {
-                moduleInfo.linkerSettings.targetName.Clear();
+                moduleInfo->linkerSettings.targetName.Clear();
             }
         }
 

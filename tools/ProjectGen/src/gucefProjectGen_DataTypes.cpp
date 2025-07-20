@@ -451,22 +451,22 @@ ApplyConfigToProject( const CORE::CDataNode& loadedConfig ,
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GetLanguageForModule( const CModuleInfo& moduleInfo )
+GetLanguageForModule( const CModuleInfoPtr& moduleInfo )
 {GUCEF_TRACE;
 
-    const TStringSet& languageSet = moduleInfo.compilerSettings.languagesUsed;
+    const TStringSet& languageSet = moduleInfo->compilerSettings.languagesUsed;
     if ( languageSet.empty() )
     {
         // No language was specified but premake requires one
         // We will determine the languege based on the files in the project
-        if ( ContainsFileWithFileExtension( moduleInfo.sourceDirs, "CS" ) )
+        if ( ContainsFileWithFileExtension( moduleInfo->sourceDirs, "CS" ) )
         {
             return "C#";
         }
         else
-        if ( ( ContainsFileWithFileExtension( moduleInfo.sourceDirs, "CPP" ) ) ||
-             ( ContainsFileWithFileExtension( moduleInfo.sourceDirs, "CXX" ) ) ||
-             ( ContainsFileWithFileExtension( moduleInfo.sourceDirs, "CHH" ) ) )
+        if ( ( ContainsFileWithFileExtension( moduleInfo->sourceDirs, "CPP" ) ) ||
+             ( ContainsFileWithFileExtension( moduleInfo->sourceDirs, "CXX" ) ) ||
+             ( ContainsFileWithFileExtension( moduleInfo->sourceDirs, "CHH" ) ) )
         {
             return "C++";
         }
@@ -569,7 +569,7 @@ ResolveMultiPlatformName( const CORE::CString& platformName          ,
 // moduleInfo or a merged moduleInfo
 bool
 SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
-                     const CModuleInfo& moduleInfo          ,
+                     const CModuleInfoPtr& moduleInfo       ,
                      const CORE::CString& platform          ,
                      CORE::CDataNode& parentNode            )
 {GUCEF_TRACE;
@@ -578,24 +578,24 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
     CORE::CDataNode moduleInfoNode;
     moduleInfoNode.SetName( "Module" );
     
-    if ( !moduleInfo.name.IsNULLOrEmpty() )
+    if ( !moduleInfo->name.IsNULLOrEmpty() )
     {
-        moduleInfoNode.SetAttribute( "Name", moduleInfo.name );
+        moduleInfoNode.SetAttribute( "Name", moduleInfo->name );
     }
     moduleInfoNode.SetAttribute( "SemVer", moduleEntry->metadata.semver.ToString() );
-    if ( moduleInfo.buildOrder != -1 )
+    if ( moduleInfo->buildOrder != -1 )
     {
-        moduleInfoNode.SetAttribute( "BuildOrder", CORE::Int32ToString( moduleInfo.buildOrder ) );
+        moduleInfoNode.SetAttribute( "BuildOrder", CORE::Int32ToString( moduleInfo->buildOrder ) );
     }
-    if ( moduleInfo.buildChain != -1 )
+    if ( moduleInfo->buildChain != -1 )
     {
-        moduleInfoNode.SetAttribute( "BuildChain", CORE::Int32ToString( moduleInfo.buildChain ) );
+        moduleInfoNode.SetAttribute( "BuildChain", CORE::Int32ToString( moduleInfo->buildChain ) );
     }
-    if ( !moduleInfo.buildChainDependencies.empty() )
+    if ( !moduleInfo->buildChainDependencies.empty() )
     {
-        TInt32Set::iterator n = moduleInfo.buildChainDependencies.begin();
+        TInt32Set::iterator n = moduleInfo->buildChainDependencies.begin();
         CORE::CString buildChainDepsValue;
-        for ( UInt32 i=0; i+1 < moduleInfo.buildChainDependencies.size(); ++i )
+        for ( UInt32 i=0; i+1 < moduleInfo->buildChainDependencies.size(); ++i )
         {                     
             buildChainDepsValue += (*n) + ';';
             ++n;
@@ -603,16 +603,16 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
         buildChainDepsValue += (*n);
         moduleInfoNode.SetAttribute( "BuildChainDeps", buildChainDepsValue );
     }
-    if ( moduleInfo.moduleType != MODULETYPE_UNDEFINED )
+    if ( moduleInfo->moduleType != MODULETYPE_UNDEFINED )
     {
-        moduleInfoNode.SetAttribute( "Type", ModuleTypeToString( moduleInfo.moduleType ) );
+        moduleInfoNode.SetAttribute( "Type", ModuleTypeToString( moduleInfo->moduleType ) );
     }
-    if ( !moduleInfo.tags.empty() )
+    if ( !moduleInfo->tags.empty() )
     {
         UInt32 i=0;
         CORE::CString tagValue;
-        TStringSet::iterator s = moduleInfo.tags.begin();
-        while ( s != moduleInfo.tags.end() )
+        TStringSet::iterator s = moduleInfo->tags.begin();
+        while ( s != moduleInfo->tags.end() )
         {                     
             tagValue += (*s) + ';';
             ++s;
@@ -625,14 +625,14 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
     moduleInfoNode.SetAttribute( "Platform", platform );
 
     // Add headers
-    if ( moduleInfo.includeDirs.size() > 0 )
+    if ( moduleInfo->includeDirs.size() > 0 )
     {
         CORE::CDataNode headersInfoNode;
         headersInfoNode.SetName( "Files" );
         headersInfoNode.SetAttribute( "Type", "Headers" );
-        headersInfoNode.SetAttribute( "DirCount", CORE::ToString( moduleInfo.includeDirs.size() ) );
-        TStringSetMap::const_iterator n = moduleInfo.includeDirs.begin();
-        while ( n != moduleInfo.includeDirs.end() )
+        headersInfoNode.SetAttribute( "DirCount", CORE::ToString( moduleInfo->includeDirs.size() ) );
+        TStringSetMap::const_iterator n = moduleInfo->includeDirs.begin();
+        while ( n != moduleInfo->includeDirs.end() )
         {
             CORE::CDataNode pathNode;
             pathNode.SetName( "Dir" );
@@ -665,14 +665,14 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
     }
 
     // Add sources
-    if ( moduleInfo.sourceDirs.size() > 0 )
+    if ( moduleInfo->sourceDirs.size() > 0 )
     {
         CORE::CDataNode sourceInfoNode;
         sourceInfoNode.SetName( "Files" );
         sourceInfoNode.SetAttribute( "Type", "Source" );
-        sourceInfoNode.SetAttribute( "DirCount", CORE::ToString( moduleInfo.sourceDirs.size() ) );
-        TStringSetMap::const_iterator n = moduleInfo.sourceDirs.begin();
-        while ( n != moduleInfo.sourceDirs.end() )
+        sourceInfoNode.SetAttribute( "DirCount", CORE::ToString( moduleInfo->sourceDirs.size() ) );
+        TStringSetMap::const_iterator n = moduleInfo->sourceDirs.begin();
+        while ( n != moduleInfo->sourceDirs.end() )
         {
             CORE::CDataNode pathNode;
             pathNode.SetName( "Dir" );
@@ -705,13 +705,13 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
     }
 
     // Add include paths inherited from dependencies
-    if ( moduleInfo.dependencyIncludeDirs.size() > 0 )
+    if ( moduleInfo->dependencyIncludeDirs.size() > 0 )
     {
         CORE::CDataNode includesInfoNode( "Includes" );
-        includesInfoNode.SetAttribute( "Count", CORE::ToString( moduleInfo.dependencyIncludeDirs.size() ) );
+        includesInfoNode.SetAttribute( "Count", CORE::ToString( moduleInfo->dependencyIncludeDirs.size() ) );
         includesInfoNode.SetAttribute( "Source", "Dependency" );
-        TStringSet::const_iterator q = moduleInfo.dependencyIncludeDirs.begin();
-        while ( q != moduleInfo.dependencyIncludeDirs.end() )
+        TStringSet::const_iterator q = moduleInfo->dependencyIncludeDirs.begin();
+        while ( q != moduleInfo->dependencyIncludeDirs.end() )
         {
             CORE::CDataNode includeNode;
             includeNode.SetName( "Include" );
@@ -728,13 +728,13 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
     // Add all the regular include dirs for this module
     // These are already represented in the path attribute of the files section
     // but for ease of processing and clarity they are provided again in the includes section
-    if ( moduleInfo.includeDirs.size() > 0 )
+    if ( moduleInfo->includeDirs.size() > 0 )
     {
        CORE::CDataNode includesInfoNode( "Includes" );
-        includesInfoNode.SetAttribute( "Count", CORE::ToString( moduleInfo.includeDirs.size() ) );
+        includesInfoNode.SetAttribute( "Count", CORE::ToString( moduleInfo->includeDirs.size() ) );
         includesInfoNode.SetAttribute( "Source", "Self" );
-        TStringSetMap::const_iterator n = moduleInfo.includeDirs.begin();
-        while ( n != moduleInfo.includeDirs.end() )
+        TStringSetMap::const_iterator n = moduleInfo->includeDirs.begin();
+        while ( n != moduleInfo->includeDirs.end() )
         {
             CORE::CString includeDir = (*n).first.ReplaceChar( '\\', '/' );
             if ( 0 != includeDir.Length() )
@@ -750,7 +750,7 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
                 // If so we have create an include for an empty include dir
                 // to ensure files in subdirs can include the file with the zero length
                 // subdir.
-                if ( 1 < moduleInfo.includeDirs.size() )
+                if ( 1 < moduleInfo->includeDirs.size() )
                 {
                     CORE::CString includeDir = "../" + CORE::LastSubDir( moduleEntry->rootDir ) + " ";
                     CORE::CDataNode includeNode;
@@ -766,13 +766,13 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
     }
 
     // Add all the module dependencies
-    if ( moduleInfo.dependencies.size() > 0 )
+    if ( moduleInfo->GetNamesOfDependencies().size() > 0 )
     {
         CORE::CDataNode dependenciesNode;
         dependenciesNode.SetName( "Dependencies" );
-        dependenciesNode.SetAttribute( "Count", CORE::ToString( moduleInfo.dependencies.size() ) );
-        TStringSet::const_iterator m = moduleInfo.dependencies.begin();
-        while ( m != moduleInfo.dependencies.end() )
+        dependenciesNode.SetAttribute( "Count", CORE::ToString( moduleInfo->GetNamesOfDependencies().size() ) );
+        TStringSet::const_iterator m = moduleInfo->GetNamesOfDependencies().begin();
+        while ( m != moduleInfo->GetNamesOfDependencies().end() )
         {
             CORE::CDataNode dependencyNode;
             dependencyNode.SetName( "Dependency" );
@@ -784,13 +784,13 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
     }
 
     // Add all the runtime module dependencies
-    if ( moduleInfo.runtimeDependencies.size() > 0 )
+    if ( moduleInfo->runtimeDependencies.size() > 0 )
     {
         CORE::CDataNode dependenciesNode;
         dependenciesNode.SetName( "RuntimeDependencies" );
-        dependenciesNode.SetAttribute( "Count", CORE::ToString( moduleInfo.runtimeDependencies.size() ) );
-        TStringSet::const_iterator m = moduleInfo.runtimeDependencies.begin();
-        while ( m != moduleInfo.runtimeDependencies.end() )
+        dependenciesNode.SetAttribute( "Count", CORE::ToString( moduleInfo->runtimeDependencies.size() ) );
+        TStringSet::const_iterator m = moduleInfo->runtimeDependencies.begin();
+        while ( m != moduleInfo->runtimeDependencies.end() )
         {
             CORE::CDataNode dependencyNode;
             dependencyNode.SetName( "RuntimeDependency" );
@@ -802,12 +802,12 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
     }
 
     // Add all the module preprocessor instructions
-    if ( moduleInfo.preprocessorSettings.defines.size() > 0 )
+    if ( moduleInfo->preprocessorSettings.defines.size() > 0 )
     {
         CORE::CDataNode preprocessorNode;
         preprocessorNode.SetName( "Preprocessor" );
-        TStringSet::const_iterator m = moduleInfo.preprocessorSettings.defines.begin();
-        while ( m != moduleInfo.preprocessorSettings.defines.end() )
+        TStringSet::const_iterator m = moduleInfo->preprocessorSettings.defines.begin();
+        while ( m != moduleInfo->preprocessorSettings.defines.end() )
         {
             CORE::CDataNode defineNode;
             defineNode.SetName( "Define" );
@@ -824,11 +824,11 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
 
     // Now Serialize all linker related info
     // First add all the libraries that are linked but not part of the overall project
-    if ( moduleInfo.linkerSettings.linkedLibraries.size() > 0 )
+    if ( moduleInfo->linkerSettings.linkedLibraries.size() > 0 )
     {
         addedLinkedSettings = true;
-        TLinkedLibrarySettingsMap::const_iterator m = moduleInfo.linkerSettings.linkedLibraries.begin();
-        while ( m != moduleInfo.linkerSettings.linkedLibraries.end() )
+        TLinkedLibrarySettingsMap::const_iterator m = moduleInfo->linkerSettings.linkedLibraries.begin();
+        while ( m != moduleInfo->linkerSettings.linkedLibraries.end() )
         {
             CORE::CDataNode libraryNode;
             libraryNode.SetName( "Dependency" );
@@ -849,17 +849,17 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
         }
 
     }
-    if ( !moduleInfo.linkerSettings.targetName.IsNULLOrEmpty() )
+    if ( !moduleInfo->linkerSettings.targetName.IsNULLOrEmpty() )
     {
         addedLinkedSettings = true;
-        linkerNode.SetAttribute( "TargetName", moduleInfo.linkerSettings.targetName ); 
+        linkerNode.SetAttribute( "TargetName", moduleInfo->linkerSettings.targetName ); 
     }
 
-    if ( !moduleInfo.linkerSettings.libPaths.empty() )
+    if ( !moduleInfo->linkerSettings.libPaths.empty() )
     {
         CORE::CString libPaths;
-        TStringSet::const_iterator r = moduleInfo.linkerSettings.libPaths.begin();
-        while ( r != moduleInfo.linkerSettings.libPaths.end() )
+        TStringSet::const_iterator r = moduleInfo->linkerSettings.libPaths.begin();
+        while ( r != moduleInfo->linkerSettings.libPaths.end() )
         {
             if ( libPaths.IsNULLOrEmpty() )
             {
@@ -1083,7 +1083,7 @@ DeserializeProjectInfo( CProjectInfo& projectInfo            ,
 /*-------------------------------------------------------------------------*/
 
 bool
-DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
+DeserializeModuleInfo( CModuleInfoPtr& moduleInfo        ,
                        const CORE::CDataNode& parentNode )
 {GUCEF_TRACE;
 
@@ -1093,9 +1093,9 @@ DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
 
     // Find the overall module properties
     CORE::CString tmpStr = moduleInfoNode->GetAttributeValue( "BuildOrder", "-1" );
-    moduleInfo.buildOrder = CORE::StringToInt32( tmpStr );
+    moduleInfo->buildOrder = CORE::StringToInt32( tmpStr );
     tmpStr = moduleInfoNode->GetAttributeValue( "BuildChain", "-1" );
-    moduleInfo.buildChain = CORE::StringToInt32( tmpStr );
+    moduleInfo->buildChain = CORE::StringToInt32( tmpStr );
     tmpStr = moduleInfoNode->GetAttributeValue( "BuildChainDeps" );
     if ( !tmpStr.IsNULLOrEmpty() )
     {
@@ -1105,34 +1105,34 @@ DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
             for ( UInt32 i=0; i<tmpStrVec.size(); ++i )
             {
                 Int32 chainId = CORE::StringToInt32( tmpStrVec[ i ] );
-                moduleInfo.buildChainDependencies.insert( chainId );
+                moduleInfo->buildChainDependencies.insert( chainId );
             }
         }
     }
-    moduleInfo.tags = StringVectorToStringSet( moduleInfoNode->GetAttributeValue( "Tags" ).AsString().ParseElements( ';', false ) );
-    moduleInfo.moduleType = StringToModuleType( moduleInfoNode->GetAttributeValue( "Type" ) );
+    moduleInfo->tags = StringVectorToStringSet( moduleInfoNode->GetAttributeValue( "Tags" ).AsString().ParseElements( ';', false ) );
+    moduleInfo->moduleType = StringToModuleType( moduleInfoNode->GetAttributeValue( "Type" ) );
     
     if ( moduleInfoNode->IsAttribute( "ConsiderSubDirs" ) )
     {
-        moduleInfo.considerSubDirs = moduleInfoNode->GetAttributeValue( "ConsiderSubDirs", moduleInfo.considerSubDirs, false ).AsBool( moduleInfo.considerSubDirs, true );
-        moduleInfo.hasConsiderSubDirs = true;
+        moduleInfo->considerSubDirs = moduleInfoNode->GetAttributeValue( "ConsiderSubDirs", moduleInfo->considerSubDirs, false ).AsBool( moduleInfo->considerSubDirs, true );
+        moduleInfo->hasConsiderSubDirs = true;
     }
     else
-        moduleInfo.hasConsiderSubDirs = false;
+        moduleInfo->hasConsiderSubDirs = false;
 
     if ( moduleInfoNode->IsAttribute( "IgnoreModule" ) )
     {
-        moduleInfo.ignoreModule = moduleInfoNode->GetAttributeValue( "IgnoreModule", moduleInfo.ignoreModule, false ).AsBool( moduleInfo.ignoreModule, true );
-        moduleInfo.hasIgnoreModule = true;
+        moduleInfo->ignoreModule = moduleInfoNode->GetAttributeValue( "IgnoreModule", moduleInfo->ignoreModule, false ).AsBool( moduleInfo->ignoreModule, true );
+        moduleInfo->hasIgnoreModule = true;
     }
     else
-        moduleInfo.hasIgnoreModule = false;
+        moduleInfo->hasIgnoreModule = false;
 
     // Check to see if a name was defined
     tmpStr = moduleInfoNode->GetAttributeValue( "Name" );
     if ( !tmpStr.IsNULLOrEmpty() )
     {
-        moduleInfo.name = tmpStr;
+        moduleInfo->name = tmpStr;
     }
 
     // Find any/all files for which are part of this module
@@ -1159,13 +1159,13 @@ DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
                 if ( filesType == "Headers" )
                 {
                     // We have a list of header files
-                    moduleInfo.includeDirs[ path ].insert( filename );
+                    moduleInfo->includeDirs[ path ].insert( filename );
                 }
                 else
                 if ( filesType == "Source" )
                 {
                     // We have a list of source files
-                    moduleInfo.sourceDirs[ path ].insert( filename );
+                    moduleInfo->sourceDirs[ path ].insert( filename );
                 }
                 ++m;
             }
@@ -1190,7 +1190,7 @@ DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
                 const CORE::CDataNode* includeNode = (*n);
                 CORE::CString path = includeNode->GetAttributeValue( "Path" );
 
-                moduleInfo.dependencyIncludeDirs.insert( path );
+                moduleInfo->dependencyIncludeDirs.insert( path );
                 ++n;
             }
         }
@@ -1210,7 +1210,7 @@ DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
                 const CORE::CDataNode* includeNode = (*n);
                 CORE::CString path = includeNode->GetAttributeValue( "Path" );
 
-                if ( moduleInfo.includeDirs[ path ].empty() )
+                if ( moduleInfo->includeDirs[ path ].empty() )
                 {
                     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "DeserializeModuleInfo: Adding include dir of source \"self\" which does not currently have a reference to include files: " + path );
                 }
@@ -1232,7 +1232,7 @@ DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
             CORE::CString dependencyName = dependencyNode->GetAttributeValue( "Name" );
             if ( !dependencyName.IsNULLOrEmpty() )
             {
-                moduleInfo.dependencies.insert( dependencyName );
+                moduleInfo->AddNameOfDependency( dependencyName );
             }
             ++i;
         }
@@ -1250,7 +1250,7 @@ DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
             CORE::CString dependencyName = dependencyNode->GetAttributeValue( "Name" );
             if ( !dependencyName.IsNULLOrEmpty() )
             {
-                moduleInfo.runtimeDependencies.insert( dependencyName );
+                moduleInfo->runtimeDependencies.insert( dependencyName );
             }
             ++i;
         }
@@ -1260,12 +1260,12 @@ DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
     const CORE::CDataNode* linkerNode = moduleInfoNode->Find( "Linker" );
     if ( NULL != linkerNode )
     {
-        moduleInfo.linkerSettings.targetName = linkerNode->GetAttributeValueOrChildValueByName( "TargetName" );
+        moduleInfo->linkerSettings.targetName = linkerNode->GetAttributeValueOrChildValueByName( "TargetName" );
         
         // If general paths were defined at the linker level add them to each dependency
         // They should be added after the dependency paths this could have been added above because
         // those should take priority in a linker search for paths        
-        moduleInfo.linkerSettings.libPaths = StringVectorToStringSet( linkerNode->GetAttributeValueOrChildValueByName( "LibPaths" ).AsString().ParseElements( ';' ) );
+        moduleInfo->linkerSettings.libPaths = StringVectorToStringSet( linkerNode->GetAttributeValueOrChildValueByName( "LibPaths" ).AsString().ParseElements( ';' ) );
         
         // Find all the libraries that are linked but not part of the overall project
         CORE::CDataNode::TConstDataNodeSet linkedLibs = linkerNode->FindChildrenOfType( "Dependency" );
@@ -1276,7 +1276,7 @@ DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
             CORE::CString linkedLibName = linkedLibNode->GetAttributeValue( "Name" );
             if ( !linkedLibName.IsNULLOrEmpty() )
             {
-                TLinkedLibrarySettings& libSettings = moduleInfo.linkerSettings.linkedLibraries[ linkedLibName ]; 
+                TLinkedLibrarySettings& libSettings = moduleInfo->linkerSettings.linkedLibraries[ linkedLibName ]; 
                 
                 CORE::CString linkedLibType = linkedLibNode->GetAttributeValue( "Type" );
                 if ( !linkedLibType.IsNULLOrEmpty() )
@@ -1307,7 +1307,7 @@ DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
             CORE::CString defineValue = defineNode->GetAttributeValue( "String" );
             if ( !defineValue.IsNULLOrEmpty() )
             {
-                moduleInfo.preprocessorSettings.defines.insert( defineValue );
+                moduleInfo->preprocessorSettings.defines.insert( defineValue );
             }
             ++i;
         }
@@ -1326,7 +1326,7 @@ DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
             CORE::CString name = languageNode->GetAttributeValue( "Name" );
             if ( !name.IsNULLOrEmpty() )
             {
-                moduleInfo.compilerSettings.languagesUsed.insert( name );
+                moduleInfo->compilerSettings.languagesUsed.insert( name );
             }
             ++i;
         }
@@ -1341,7 +1341,7 @@ DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
             CORE::CString flags = flagsNode->GetAttributeValue( "Flags" );
             if ( !compilerName.IsNULLOrEmpty() && !flags.IsNULLOrEmpty() )
             {
-                moduleInfo.compilerSettings.compilerFlags[ compilerName ] = flags;
+                moduleInfo->compilerSettings.compilerFlags[ compilerName ] = flags;
             }
             ++i;
         }
@@ -1352,7 +1352,7 @@ DeserializeModuleInfo( CModuleInfo& moduleInfo           ,
 
 /*-------------------------------------------------------------------------*/
 
-const CModuleInfo*
+const CModuleInfoPtr
 FindModuleByName( const TModuleInfoEntryPairVector& mergeLinks ,
                   const CORE::CString& moduleName              )
 {GUCEF_TRACE;
@@ -1367,7 +1367,7 @@ FindModuleByName( const TModuleInfoEntryPairVector& mergeLinks ,
         }
         ++i;
     }
-    return NULL;
+    return CModuleInfoPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1376,17 +1376,17 @@ void
 CleanupIncludeDirs( CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+    TModuleInfoPtrMap::iterator i = moduleInfoEntry->modulesPerPlatform.begin();
     while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
-        CModuleInfo& moduleInfo = (*i).second;
+        CModuleInfoPtr& moduleInfo = (*i).second;
         
         // Check for empty include dirs
         // If the include dir does not have include files as part of this module then 
         // the dir should have been a dependency include dir
         TStringSet dirs;
-        TStringSetMap::iterator n = moduleInfo.includeDirs.begin();
-        while ( n != moduleInfo.includeDirs.end() )
+        TStringSetMap::iterator n = moduleInfo->includeDirs.begin();
+        while ( n != moduleInfo->includeDirs.end() )
         {
             TStringSet& filesInDirList = (*n).second;
             if ( filesInDirList.empty() )
@@ -1399,8 +1399,8 @@ CleanupIncludeDirs( CModuleInfoEntryPtr& moduleInfoEntry )
         TStringSet::iterator m = dirs.begin();
         while ( m != dirs.end() )
         {
-            moduleInfo.includeDirs.erase( (*m) ); 
-            moduleInfo.dependencyIncludeDirs.insert( (*m) );
+            moduleInfo->includeDirs.erase( (*m) ); 
+            moduleInfo->dependencyIncludeDirs.insert( (*m) );
 
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Moved dir from module header dir to dependency include dir as it had no files: " + (*m) );
 
@@ -1410,14 +1410,14 @@ CleanupIncludeDirs( CModuleInfoEntryPtr& moduleInfoEntry )
         // Check for duplicates,.. dirs that are listed as 
         // dependency includes but which also have headers part of this module
         // as such its not a dir coming from a dependency
-        n = moduleInfo.includeDirs.begin();
-        while ( n != moduleInfo.includeDirs.end() )
+        n = moduleInfo->includeDirs.begin();
+        while ( n != moduleInfo->includeDirs.end() )
         {
-            TStringSet::iterator p = moduleInfo.dependencyIncludeDirs.find( (*n).first );
-            if ( p != moduleInfo.dependencyIncludeDirs.end() )
+            TStringSet::iterator p = moduleInfo->dependencyIncludeDirs.find( (*n).first );
+            if ( p != moduleInfo->dependencyIncludeDirs.end() )
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Deleting dependency include dir since it already exists as a module header dir: " + (*p) );                
-                moduleInfo.dependencyIncludeDirs.erase( p );
+                moduleInfo->dependencyIncludeDirs.erase( p );
             }            
             ++n;
         }
@@ -1473,7 +1473,7 @@ DeserializeModuleInfo( const CProjectInfo& projectInfo              ,
             CORE::CDataNode::TDataNodeSet::iterator i = moduleEntryNodes.begin();
             while ( i != moduleEntryNodes.end() )
             {
-                CModuleInfoEntryPtr entry;                
+                CModuleInfoEntryPtr entry = CModuleInfoEntry::CreateSharedObj();                
                 if ( !DeserializeModuleInfo( projectInfo, entry, *(*i) ) )
                     ++errorCount;
                 
@@ -1492,33 +1492,6 @@ DeserializeModuleInfo( const CProjectInfo& projectInfo              ,
     }
     GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DeserializeModuleInfo: Cannot deserialize since no codec is registered that can be used for deserialization" );
     return false;
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-InitializeModuleInfo( CModuleInfo& moduleInfo )
-{GUCEF_TRACE;
-
-    // reset all fields
-    moduleInfo.buildOrder = -1;
-    moduleInfo.buildChain = -1;
-    moduleInfo.buildChainDependencies.clear();
-    moduleInfo.name.Clear();
-    moduleInfo.tags.clear();
-    moduleInfo.includeDirs.clear();
-    moduleInfo.sourceDirs.clear();
-    moduleInfo.dependencyIncludeDirs.clear();
-    moduleInfo.linkerSettings.linkedLibraries.clear();
-    moduleInfo.compilerSettings.languagesUsed.clear();
-    moduleInfo.preprocessorSettings.defines.clear();
-    moduleInfo.dependencies.clear();
-    moduleInfo.runtimeDependencies.clear();
-    moduleInfo.considerSubDirs = true;
-    moduleInfo.hasConsiderSubDirs = false;
-    moduleInfo.ignoreModule = false;
-    moduleInfo.hasIgnoreModule = false;
-    moduleInfo.moduleType = MODULETYPE_UNDEFINED;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1580,119 +1553,115 @@ MergeLinkedLibrarySettingsMap( TLinkedLibrarySettingsMap& baseMap           ,
 /*-------------------------------------------------------------------------*/
 
 void
-MergeModuleInfo( CModuleInfo& targetModuleInfo          ,
-                 const CModuleInfo& moduleInfoToMergeIn )
+MergeModuleInfo( CModuleInfoPtr& targetModuleInfo          ,
+                 const CModuleInfoPtr& moduleInfoToMergeIn )
 {GUCEF_TRACE;
 
     // First take care of items which we know overwrite
     // We overwrite when the 'moduleInfoToMergeIn' has these attributes set to a
     // value other then the initialization value
-    if ( moduleInfoToMergeIn.buildOrder > -1 )
+    if ( moduleInfoToMergeIn->buildOrder > -1 )
     {
-        targetModuleInfo.buildOrder = moduleInfoToMergeIn.buildOrder;
+        targetModuleInfo->buildOrder = moduleInfoToMergeIn->buildOrder;
     }
-    if ( moduleInfoToMergeIn.buildChain > -1 )
+    if ( moduleInfoToMergeIn->buildChain > -1 )
     {
-        targetModuleInfo.buildChain = moduleInfoToMergeIn.buildChain;
+        targetModuleInfo->buildChain = moduleInfoToMergeIn->buildChain;
     }
-    TInt32Set::iterator i = moduleInfoToMergeIn.buildChainDependencies.begin();
-    while ( i != moduleInfoToMergeIn.buildChainDependencies.end() )
+    TInt32Set::iterator i = moduleInfoToMergeIn->buildChainDependencies.begin();
+    while ( i != moduleInfoToMergeIn->buildChainDependencies.end() )
     {
-        targetModuleInfo.buildChainDependencies.insert( (*i) );
+        targetModuleInfo->buildChainDependencies.insert( (*i) );
     }
-    if ( !moduleInfoToMergeIn.name.IsNULLOrEmpty() )
+    if ( !moduleInfoToMergeIn->name.IsNULLOrEmpty() )
     {
-        targetModuleInfo.name = moduleInfoToMergeIn.name;
+        targetModuleInfo->name = moduleInfoToMergeIn->name;
     }
-    if ( moduleInfoToMergeIn.moduleType != MODULETYPE_UNDEFINED )
+    if ( moduleInfoToMergeIn->moduleType != MODULETYPE_UNDEFINED )
     {
-        targetModuleInfo.moduleType = moduleInfoToMergeIn.moduleType;
+        targetModuleInfo->moduleType = moduleInfoToMergeIn->moduleType;
     }
-    if ( !moduleInfoToMergeIn.linkerSettings.targetName.IsNULLOrEmpty() )
+    if ( !moduleInfoToMergeIn->linkerSettings.targetName.IsNULLOrEmpty() )
     {
-        targetModuleInfo.linkerSettings.targetName = moduleInfoToMergeIn.linkerSettings.targetName; 
+        targetModuleInfo->linkerSettings.targetName = moduleInfoToMergeIn->linkerSettings.targetName; 
     }
-    if ( moduleInfoToMergeIn.hasIgnoreModule )
+    if ( moduleInfoToMergeIn->hasIgnoreModule )
     {
-        targetModuleInfo.ignoreModule = moduleInfoToMergeIn.ignoreModule;
-        targetModuleInfo.hasIgnoreModule = true;
+        targetModuleInfo->ignoreModule = moduleInfoToMergeIn->ignoreModule;
+        targetModuleInfo->hasIgnoreModule = true;
     }
-    if ( moduleInfoToMergeIn.hasConsiderSubDirs )
+    if ( moduleInfoToMergeIn->hasConsiderSubDirs )
     {
-        targetModuleInfo.considerSubDirs = moduleInfoToMergeIn.considerSubDirs;
-        targetModuleInfo.hasConsiderSubDirs = true;
+        targetModuleInfo->considerSubDirs = moduleInfoToMergeIn->considerSubDirs;
+        targetModuleInfo->hasConsiderSubDirs = true;
     }
 
     // Now combine the other items without overwriting
-    MergeStringSet( targetModuleInfo.tags    ,
-                    moduleInfoToMergeIn.tags ,
-                    true                     );
-    MergeStringSet( targetModuleInfo.compilerSettings.languagesUsed    ,
-                    moduleInfoToMergeIn.compilerSettings.languagesUsed ,
-                    false                                              );
-    MergeStringMap( targetModuleInfo.compilerSettings.compilerFlags    ,
-                    moduleInfoToMergeIn.compilerSettings.compilerFlags ,
-                    false                                              ,
-                    true                                               );
-    MergeStringSet( targetModuleInfo.preprocessorSettings.defines    ,
-                    moduleInfoToMergeIn.preprocessorSettings.defines ,
-                    true                                             );
-    MergeLinkedLibrarySettingsMap( targetModuleInfo.linkerSettings.linkedLibraries    ,
-                                   moduleInfoToMergeIn.linkerSettings.linkedLibraries );
-    MergeStringSet( targetModuleInfo.dependencies    ,
-                    moduleInfoToMergeIn.dependencies ,
-                    false                            );
-    MergeStringSet( targetModuleInfo.runtimeDependencies    ,
-                    moduleInfoToMergeIn.runtimeDependencies ,
-                    true                                    );
-    MergeStringSet( targetModuleInfo.dependencyIncludeDirs    ,
-                    moduleInfoToMergeIn.dependencyIncludeDirs ,
-                    true                                      );
-    MergeStringSetMap( targetModuleInfo.includeDirs    ,
-                       moduleInfoToMergeIn.includeDirs ,
+    MergeStringSet( targetModuleInfo->tags    ,
+                    moduleInfoToMergeIn->tags ,
+                    true                      );
+    MergeStringSet( targetModuleInfo->compilerSettings.languagesUsed    ,
+                    moduleInfoToMergeIn->compilerSettings.languagesUsed ,
+                    false                                               );
+    MergeStringMap( targetModuleInfo->compilerSettings.compilerFlags    ,
+                    moduleInfoToMergeIn->compilerSettings.compilerFlags ,
+                    false                                               ,
+                    true                                                );
+    MergeStringSet( targetModuleInfo->preprocessorSettings.defines    ,
+                    moduleInfoToMergeIn->preprocessorSettings.defines ,
+                    true                                              );
+    MergeLinkedLibrarySettingsMap( targetModuleInfo->linkerSettings.linkedLibraries    ,
+                                   moduleInfoToMergeIn->linkerSettings.linkedLibraries );
+    targetModuleInfo->MergeNamesOfDependencies( moduleInfoToMergeIn->GetNamesOfDependencies() );
+    MergeStringSet( targetModuleInfo->runtimeDependencies    ,
+                    moduleInfoToMergeIn->runtimeDependencies ,
+                    true                                     );
+    MergeStringSet( targetModuleInfo->dependencyIncludeDirs    ,
+                    moduleInfoToMergeIn->dependencyIncludeDirs ,
+                    true                                       );
+    MergeStringSetMap( targetModuleInfo->includeDirs    ,
+                       moduleInfoToMergeIn->includeDirs ,
+                       true                             );
+    MergeStringSetMap( targetModuleInfo->sourceDirs    ,
+                       moduleInfoToMergeIn->sourceDirs ,
                        true                            );
-    MergeStringSetMap( targetModuleInfo.sourceDirs    ,
-                       moduleInfoToMergeIn.sourceDirs ,
-                       true                           );
 }
 
 /*-------------------------------------------------------------------------*/
 
-CModuleInfo*
+CModuleInfoPtr
 FindModuleInfoForPlatform( CModuleInfoEntryPtr& moduleInfoEntry ,
                            const CORE::CString& platform        ,
                            bool createNewIfNoneExists           )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::iterator i = moduleInfoEntry->modulesPerPlatform.find( platform.Lowercase() );
+    TModuleInfoPtrMap::iterator i = moduleInfoEntry->modulesPerPlatform.find( platform.Lowercase() );
     if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
-        return &(*i).second;
+        return (*i).second;
     }
     if ( createNewIfNoneExists )
     {
-        CModuleInfo moduleInfo;
-        InitializeModuleInfo( moduleInfo );
-
-        moduleInfoEntry->modulesPerPlatform.insert( std::pair< CORE::CString, CModuleInfo >( platform, moduleInfo ) );
-        return &moduleInfoEntry->modulesPerPlatform[ platform ];
+        CModuleInfoPtr moduleInfo = CModuleInfo::CreateSharedObj();
+        moduleInfoEntry->modulesPerPlatform.insert( std::pair< CORE::CString, CModuleInfoPtr >( platform, moduleInfo ) );
+        return moduleInfoEntry->modulesPerPlatform[ platform ];
     }
-    return NULL;
+    return CModuleInfoPtr();
 }
 
 /*-------------------------------------------------------------------------*/
 
-const CModuleInfo*
+const CModuleInfoPtr
 FindModuleInfoForPlatform( const CModuleInfoEntryPtr& moduleInfoEntry ,
                            const CORE::CString& platform              )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( platform.Lowercase() );
+    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( platform.Lowercase() );
     if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
-        return &(*i).second;
+        return (*i).second;
     }
-    return NULL;
+    return CModuleInfoPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1722,19 +1691,19 @@ MergeModuleMetaData( const CModuleMetaData& priorityA ,
 bool
 MergeModuleMetaData( const CModuleInfoEntryPtr& moduleInfoEntry ,
                      const CORE::CString& targetPlatform        ,
-                     CModuleInfo& mergedModuleInfo              )
+                     CModuleInfoPtr& mergedModuleInfo           )
 {GUCEF_TRACE;
 
-    const CModuleInfo* allPlatformsInfo = FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms );
-    const CModuleInfo* targetPlatformInfo = FindModuleInfoForPlatform( moduleInfoEntry, targetPlatform );
+    const CModuleInfoPtr allPlatformsInfo = FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms );
+    const CModuleInfoPtr targetPlatformInfo = FindModuleInfoForPlatform( moduleInfoEntry, targetPlatform );
 
     // an all-platforms module level meta-data overrules overarching meta-data
-    if ( GUCEF_NULL != allPlatformsInfo )
-        MergeModuleMetaData( allPlatformsInfo->metadata, moduleInfoEntry->metadata, mergedModuleInfo.metadata );
+    if ( !allPlatformsInfo.IsNULL() )
+        MergeModuleMetaData( allPlatformsInfo->metadata, moduleInfoEntry->metadata, mergedModuleInfo->metadata );
     
     // a platform specific module level meta-data overrules all-platforms meta-data
-    if ( GUCEF_NULL != targetPlatformInfo )
-        MergeModuleMetaData( targetPlatformInfo->metadata, mergedModuleInfo.metadata, mergedModuleInfo.metadata );
+    if ( !targetPlatformInfo.IsNULL() )
+        MergeModuleMetaData( targetPlatformInfo->metadata, mergedModuleInfo->metadata, mergedModuleInfo->metadata );
         
     return true;
 }
@@ -1744,17 +1713,17 @@ MergeModuleMetaData( const CModuleInfoEntryPtr& moduleInfoEntry ,
 bool
 MergeModuleInfo( const CModuleInfoEntryPtr& moduleInfoEntry ,
                  const CORE::CString& targetPlatform        ,
-                 CModuleInfo& mergedModuleInfo              )
+                 CModuleInfoPtr& mergedModuleInfo           )
 {GUCEF_TRACE;
 
-    InitializeModuleInfo( mergedModuleInfo );
+    mergedModuleInfo->Clear();
 
-    const CModuleInfo* allPlatformsInfo = FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms );
-    const CModuleInfo* targetPlatformInfo = FindModuleInfoForPlatform( moduleInfoEntry, targetPlatform );
-    if ( ( GUCEF_NULL != allPlatformsInfo ) || ( GUCEF_NULL != targetPlatformInfo ) )
+    const CModuleInfoPtr allPlatformsInfo = FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms );
+    const CModuleInfoPtr targetPlatformInfo = FindModuleInfoForPlatform( moduleInfoEntry, targetPlatform );
+    if ( ( !allPlatformsInfo.IsNULL() ) || ( !targetPlatformInfo.IsNULL() ) )
     {
         // Check if we have both
-        if ( GUCEF_NULL != allPlatformsInfo && GUCEF_NULL != targetPlatformInfo )
+        if ( !allPlatformsInfo.IsNULL() && !targetPlatformInfo.IsNULL() )
         {
             // Check if at least one of them has a build order set
             if ( allPlatformsInfo->buildOrder > -1 || targetPlatformInfo->buildOrder > -1 )
@@ -1763,10 +1732,10 @@ MergeModuleInfo( const CModuleInfoEntryPtr& moduleInfoEntry ,
                 if ( allPlatformsInfo->moduleType != MODULETYPE_UNDEFINED || targetPlatformInfo->moduleType != MODULETYPE_UNDEFINED )
                 {
                     // Use the 'all' platform as a base to work from
-                    mergedModuleInfo = *allPlatformsInfo;
+                    mergedModuleInfo = CModuleInfo::CreateSharedObjWithParam( *allPlatformsInfo );
 
                     // Now merge in the platform specific info
-                    MergeModuleInfo( mergedModuleInfo, *targetPlatformInfo );
+                    MergeModuleInfo( mergedModuleInfo, targetPlatformInfo );
 
                     MergeModuleMetaData( moduleInfoEntry, targetPlatform, mergedModuleInfo );
                     return true;
@@ -1778,20 +1747,20 @@ MergeModuleInfo( const CModuleInfoEntryPtr& moduleInfoEntry ,
             return false;
         }
         else
-        if ( GUCEF_NULL != allPlatformsInfo && allPlatformsInfo->buildOrder > -1 )
+        if ( !allPlatformsInfo.IsNULL() && allPlatformsInfo->buildOrder > -1 )
         {
             // We only have the 'all' platform which is fine, we will just use that
-            mergedModuleInfo = *allPlatformsInfo;
+            mergedModuleInfo = CModuleInfo::CreateSharedObjWithParam( *allPlatformsInfo );
             
             MergeModuleMetaData( moduleInfoEntry, targetPlatform, mergedModuleInfo );
             return true;
         }
         else
-        if ( GUCEF_NULL != targetPlatformInfo && targetPlatformInfo->buildOrder > -1 )
+        if ( !targetPlatformInfo.IsNULL() && targetPlatformInfo->buildOrder > -1 )
         {
             // We only have the target platform which is fine, we will just use that
             // this module apparently is not available for all platforms even in altered form
-            mergedModuleInfo = *targetPlatformInfo;
+            mergedModuleInfo = CModuleInfo::CreateSharedObjWithParam( *targetPlatformInfo );
             
             MergeModuleMetaData( moduleInfoEntry, targetPlatform, mergedModuleInfo );
             return true;
@@ -1815,14 +1784,14 @@ MergeModuleInfoEntries( const TModuleInfoEntryPtrVector& moduleInfoEntriesToMerg
     while ( i != moduleInfoEntriesToMergeIn.end() )
     {
         const CModuleInfoEntryPtr& entryToMergeIn = (*i);
-        CString consensusName = GetConsensusModuleName( entryToMergeIn );
+        CString consensusName = entryToMergeIn->GetConsensusName();
 
         bool foundMatch = false;
         TModuleInfoEntryPtrVector::iterator e = moduleInfoEntries.begin();
         while ( e != moduleInfoEntries.end() )
         {
             CModuleInfoEntryPtr& existingEntry = (*e);
-            CString existingEntryConsensusName = GetConsensusModuleName( existingEntry );
+            CString existingEntryConsensusName = existingEntry->GetConsensusName();
 
             if ( existingEntryConsensusName == consensusName )
             {
@@ -1850,7 +1819,7 @@ MergeModuleInfoEntries( const TModuleInfoEntryPtrVector& moduleInfoEntriesToMerg
 bool
 MergeAllModuleInfoForPlatform( const TModuleInfoEntryPtrSet& allInfo  ,
                                const CORE::CString& platform          ,
-                               TModuleInfoVector& allMergedInfo       ,
+                               TModuleInfoPtrVector& allMergedInfo    ,
                                TModuleInfoEntryPairVector& mergeLinks )
 {GUCEF_TRACE;
 
@@ -1862,7 +1831,7 @@ MergeAllModuleInfoForPlatform( const TModuleInfoEntryPtrSet& allInfo  ,
     {
         // For each module we create a merged platform specific module
         // description which is easy to process if you only care about that platform
-        CModuleInfo mergedInfo;
+        CModuleInfoPtr mergedInfo;
         if ( MergeModuleInfo( (*i), platform, mergedInfo ) )
         {
             // Store the merged info
@@ -1879,7 +1848,7 @@ MergeAllModuleInfoForPlatform( const TModuleInfoEntryPtrSet& allInfo  ,
     // of each entry to the actual data storage
     for ( CORE::UInt32 m=0; m<allMergedInfo.size(); ++m )
     {
-        TModuleInfoEntryPair mergeLink( indexMap[ m ], &(allMergedInfo[ m ]) );
+        TModuleInfoEntryPair mergeLink( indexMap[ m ], (allMergedInfo[ m ]) );
         mergeLinks.push_back( mergeLink );
     }
     return true;
@@ -1890,7 +1859,7 @@ MergeAllModuleInfoForPlatform( const TModuleInfoEntryPtrSet& allInfo  ,
 bool
 MergeAllModuleInfoForPlatform( const TModuleInfoEntryPtrVector& allInfo ,
                                const CORE::CString& platform            ,
-                               TModuleInfoVector& allMergedInfo         ,
+                               TModuleInfoPtrVector& allMergedInfo      ,
                                TModuleInfoEntryPairVector& mergeLinks   )
 {GUCEF_TRACE;
 
@@ -2008,22 +1977,22 @@ MergeDirProcessingInstructionsMap( TDirProcessingInstructionsMap& mergedInstruct
 const CORE::CString*
 GetModuleName( const CModuleInfoEntryPtr& moduleInfoEntry ,
                const CORE::CString& targetPlatform        ,
-               const CModuleInfo** outModuleInfo          )
+               CModuleInfoPtr* outModuleInfo              )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator n = moduleInfoEntry->modulesPerPlatform.find( targetPlatform );
+    TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->modulesPerPlatform.find( targetPlatform );
     if ( n != moduleInfoEntry->modulesPerPlatform.end() )
     {
         // A module was specified for this platform
         // Just because we have a module definition doenst mean we have a name
-        if ( !(*n).second.name.IsNULLOrEmpty() )
+        if ( !(*n).second->name.IsNULLOrEmpty() )
         {
             // We have a name for this specific plaform
             if ( GUCEF_NULL != outModuleInfo )
             {
-                *outModuleInfo = &(*n).second;
+                *outModuleInfo = (*n).second;
             }
-            return &( (*n).second.name );
+            return &( (*n).second->name );
         }
     }
 
@@ -2036,14 +2005,14 @@ GetModuleName( const CModuleInfoEntryPtr& moduleInfoEntry ,
         {
             // An 'AllPlatforms' definition is available for this module
             // Just because we have a module definition doenst mean we have a name
-            if ( !(*n).second.name.IsNULLOrEmpty() )
+            if ( !(*n).second->name.IsNULLOrEmpty() )
             {
                 // We have a name for this specific plaform
                 if ( GUCEF_NULL != outModuleInfo )
                 {
-                    *outModuleInfo = &(*n).second;
+                    *outModuleInfo = (*n).second;
                 }
-                return &( (*n).second.name );
+                return &( (*n).second->name );
             }
         }
     }
@@ -2055,7 +2024,7 @@ GetModuleName( const CModuleInfoEntryPtr& moduleInfoEntry ,
 const CORE::CString*
 GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
                const CORE::CString& targetPlatform          ,
-               const CModuleInfo** outModuleInfo            )
+               CModuleInfoPtr* outModuleInfo                )
 {GUCEF_TRACE;
 
 
@@ -2085,113 +2054,6 @@ GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
     }
 
     return GUCEF_NULL;
-}
-
-/*---------------------------------------------------------------------------*/
-
-CORE::CString
-GetConsensusModuleName( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                        const CModuleInfo** moduleInfo             )
-{GUCEF_TRACE;
-
-    if ( NULL != moduleInfo )
-        *moduleInfo = GUCEF_NULL;
-
-    TModuleInfoMap::const_iterator n = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
-    if ( n != moduleInfoEntry->modulesPerPlatform.end() )
-    {
-        // A name was specified for all platforms which makes our job easy
-        // an all platform name always counts as the general consensus name
-        if ( !(*n).second.name.IsNULLOrEmpty() )
-        {
-            if ( NULL != moduleInfo )
-                *moduleInfo = &(*n).second;
-            return (*n).second.name;
-        }
-    }
-
-    // If no name is specified for all platforms then we will have to
-    // determine the best name to use. We do this by getting the name
-    // for all platforms and counting how often each is used. The most used
-    // name is considered the general consensus name. If the same count applies
-    // to multiple we will try to use a popular platform to improve our 'guess'
-
-    typedef std::map< CORE::CString, CORE::UInt32 > TStringCountMap;
-
-    TStringCountMap countMap;
-    n = moduleInfoEntry->modulesPerPlatform.begin();
-    while ( n != moduleInfoEntry->modulesPerPlatform.end() )
-    {
-        const CModuleInfo& mInfo = (*n).second;
-        if ( !mInfo.name.IsNULLOrEmpty() )
-        {
-            TStringCountMap::iterator m = countMap.find( mInfo.name );
-            if ( m != countMap.end() )
-            {
-                ++((*m).second);
-            }
-            else
-            {
-                countMap[ mInfo.name ] = 1;
-            }
-        }
-        ++n;
-    }
-
-    if ( countMap.empty() )
-    {
-        // This should not happen:
-        // Given that we have no module definitions for ANY platform and yet have a higher level concept of it...
-        // We promised we would always return a module name. The only thing we have at this point is the directory path
-        // As such we will assume the dir is named after the module it houses as our last ditch guess
-        return CORE::LastSubDir( moduleInfoEntry->rootDir );
-    }
-
-    // Now that we have the popularity count of each name get the highest count
-    CORE::UInt32 highestCount = 0;
-    TStringCountMap::iterator i = countMap.begin();
-    while ( i != countMap.end() )
-    {
-        if ( highestCount < (*i).second )
-        {
-            highestCount = (*i).second;
-        }
-        ++i;
-    }
-
-    // Make the list of most popular names
-    TStringSet topNames;
-    i = countMap.begin();
-    while ( i != countMap.end() )
-    {
-        if ( highestCount == (*i).second )
-        {
-            topNames.insert( (*i).first );
-        }
-        ++i;
-    }
-
-    // If we have multiple use a popular platform if
-    // possible, otherwise just grab one
-
-    //@TODO: popular platform check
-
-    CString consensusName = (*topNames.begin());
-    if ( NULL != moduleInfo )
-    {
-        // Now turn the consensus name back into a module pointer
-        n = moduleInfoEntry->modulesPerPlatform.begin();
-        while ( n != moduleInfoEntry->modulesPerPlatform.end() )
-        {
-            if ( (*n).second.name == consensusName )
-            {
-                *moduleInfo = &(*n).second;
-                break;
-            }
-            ++n;
-        }
-    }
-    return consensusName;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2295,13 +2157,13 @@ GetConsensusTargetName( const TProjectTargetInfoMap& targetPlatforms )
 CORE::CString
 GetModuleNameAlways( const CModuleInfoEntryPtr& moduleInfoEntry ,
                      const CORE::CString& targetPlatform        ,
-                     const CModuleInfo** moduleInfo             )
+                     CModuleInfoPtr* moduleInfo                 )
 {GUCEF_TRACE;
 
     const CORE::CString* strPtr = GetModuleName( moduleInfoEntry, targetPlatform, moduleInfo );
     if ( GUCEF_NULL == strPtr )
     {
-        return GetConsensusModuleName( moduleInfoEntry, moduleInfo );
+        return moduleInfoEntry->GetConsensusName( moduleInfo );
     }
     return *strPtr;
 }
@@ -2314,8 +2176,8 @@ GetModuleTargetName( const CModuleInfoEntryPtr& moduleInfoEntry ,
                      bool useModuleNameIfNoTargetName           )
 {GUCEF_TRACE;
 
-    const CModuleInfo* moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, targetPlatform );
-    if ( NULL != moduleInfo )
+    CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, targetPlatform );
+    if ( !moduleInfo.IsNULL() )
     {
         if ( !moduleInfo->linkerSettings.targetName.IsNULLOrEmpty() )
         {
@@ -2351,19 +2213,19 @@ GetModuleDependencies( const CModuleInfoEntryPtr& moduleInfoEntry ,
 {GUCEF_TRACE;
 
     CModuleInfoEntryPtr mutableModuleInfoEntry = moduleInfoEntry;
-    CModuleInfo* moduleInfo = FindModuleInfoForPlatform( mutableModuleInfoEntry, targetPlatform, false );
-    if ( NULL != moduleInfo )
+    CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( mutableModuleInfoEntry, targetPlatform, false );
+    if ( !moduleInfo.IsNULL() )
     {
-        MergeStringSet( dependencies, moduleInfo->dependencies, false );
+        MergeStringSet( dependencies, moduleInfo->GetNamesOfDependencies(), false );
         if ( includeRuntimeDependencies )
             MergeStringSet( dependencies, moduleInfo->runtimeDependencies, false );
     }
     if ( targetPlatform != AllPlatforms && !targetPlatform.IsNULLOrEmpty() )
     {
         moduleInfo = FindModuleInfoForPlatform( mutableModuleInfoEntry, AllPlatforms, false );
-        if ( NULL != moduleInfo )
+        if ( !moduleInfo.IsNULL() )
         {
-            MergeStringSet( dependencies, moduleInfo->dependencies, false );
+            MergeStringSet( dependencies, moduleInfo->GetNamesOfDependencies(), false );
             if ( includeRuntimeDependencies )
                 MergeStringSet( dependencies, moduleInfo->runtimeDependencies, false );
         }
@@ -2384,7 +2246,7 @@ GetModuleDependencies( const CProjectInfo& projectInfo            ,
     TStringSet deps;
     GetModuleDependencies( moduleInfoEntry, targetPlatform, deps, includeRuntimeDependencies );     
     
-    CORE::CString moduleName = GetConsensusModuleName( moduleInfoEntry );
+    CORE::CString moduleName = moduleInfoEntry->GetConsensusName();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GetModuleDependencies: For module " + moduleName + ": found \"" + CORE::ToString( deps.size() ) + "\" dependencies for platform " + targetPlatform );
 
     TModuleInfoEntryPtrSet depsPtrs;    
@@ -2410,7 +2272,7 @@ GetModuleDependencies( const CProjectInfo& projectInfo            ,
         while ( i != depsPtrs.end() )
         {
             const CModuleInfoEntryPtr entry = (*i);            
-            CORE::CString depModuleName = GetConsensusModuleName( entry );
+            CORE::CString depModuleName = entry->GetConsensusName();
 
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GetModuleDependencies: For module " + moduleName + ": Recursively looking for dependencies of dependency \"" + depModuleName + "\" for platform " + targetPlatform );
 
@@ -2447,8 +2309,8 @@ GetModuleType( const CModuleInfoEntryPtr& moduleInfoEntry ,
                const CORE::CString& targetPlatform        )
 {GUCEF_TRACE;
 
-    const CModuleInfo* moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, targetPlatform );
-    if ( NULL != moduleInfo )
+    CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, targetPlatform );
+    if ( !moduleInfo.IsNULL() )
     {
         if ( MODULETYPE_UNDEFINED != moduleInfo->moduleType )
         {
@@ -2458,7 +2320,7 @@ GetModuleType( const CModuleInfoEntryPtr& moduleInfoEntry ,
     if ( targetPlatform != AllPlatforms && !targetPlatform.IsNULLOrEmpty() )
     {
         moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms );
-        if ( NULL != moduleInfo )
+        if ( !moduleInfo.IsNULL() )
         {
             return moduleInfo->moduleType;
         }
@@ -2467,12 +2329,12 @@ GetModuleType( const CModuleInfoEntryPtr& moduleInfoEntry ,
     // Since there is no specific info for the given platform and no AllPlatform info
     // we will see if we can derive from another if there is consensus
     std::set< TModuleType > typeSet;
-    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
     while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
-        const CModuleInfo& platformModuleInfo = (*i).second;
-        if ( MODULETYPE_UNDEFINED != platformModuleInfo.moduleType )
-            typeSet.insert( platformModuleInfo.moduleType );
+        const CModuleInfoPtr& platformModuleInfo = (*i).second;
+        if ( MODULETYPE_UNDEFINED != platformModuleInfo->moduleType )
+            typeSet.insert( platformModuleInfo->moduleType );
         ++i;
     }
     if ( 1 == typeSet.size() )
@@ -2487,25 +2349,25 @@ GetModuleType( const CModuleInfoEntryPtr& moduleInfoEntry ,
 
 void
 GetModuleInfoWithUniqueModulesTypes( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                                     TConstModuleInfoPtrMap& moduleMap          )
+                                     TModuleInfoPtrMap& moduleMap               )
 {GUCEF_TRACE;
 
     // First try and get a 'AllPlatforms' definition which makes all the difference
-    const CModuleInfo* moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms );
+    const CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms );
     if ( NULL != moduleInfo && ( MODULETYPE_UNDEFINED != moduleInfo->moduleType ) )
     {
         // Since a 'AllPlatforms' definition is available we have a baseline to compare against
         // We will only add platform specific entries if they differ from our baseline
-        TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+        TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
         while ( i != moduleInfoEntry->modulesPerPlatform.end() )
         {
             const CORE::CString& platformName = (*i).first;
-            const CModuleInfo& platformModuleInfo = (*i).second;
+            const CModuleInfoPtr& platformModuleInfo = (*i).second;
 
-            if ( ( MODULETYPE_UNDEFINED != platformModuleInfo.moduleType )  &&
-                 ( moduleInfo->moduleType != platformModuleInfo.moduleType ) )
+            if ( ( MODULETYPE_UNDEFINED != platformModuleInfo->moduleType )  &&
+                 ( moduleInfo->moduleType != platformModuleInfo->moduleType ) )
             {
-                moduleMap[ platformName ] = &((*i).second);
+                moduleMap[ platformName ] = ((*i).second);
             }
             ++i;
         }
@@ -2514,15 +2376,15 @@ GetModuleInfoWithUniqueModulesTypes( const CModuleInfoEntryPtr& moduleInfoEntry 
     else
     {
         // If we get here: We cannot filter in this case,.. just add all platforms
-        TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+        TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
         while ( i != moduleInfoEntry->modulesPerPlatform.end() )
         {
             const CORE::CString& platformName = (*i).first;
-            const CModuleInfo& platformModuleInfo = (*i).second;
+            const CModuleInfoPtr& platformModuleInfo = (*i).second;
 
-            if ( MODULETYPE_UNDEFINED != platformModuleInfo.moduleType )
+            if ( MODULETYPE_UNDEFINED != platformModuleInfo->moduleType )
             {
-                moduleMap[ platformName ] = &((*i).second);
+                moduleMap[ platformName ] = ((*i).second);
             }
             ++i;
         }
@@ -2533,25 +2395,25 @@ GetModuleInfoWithUniqueModulesTypes( const CModuleInfoEntryPtr& moduleInfoEntry 
 
 void
 GetModuleInfoWithUniqueModuleNames( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                                    TConstModuleInfoPtrMap& moduleMap          )
+                                    TModuleInfoPtrMap& moduleMap               )
 {GUCEF_TRACE;
 
     // First try and get a 'AllPlatforms' definition which makes all the difference
-    const CModuleInfo* moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms );
+    const CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms );
     if ( NULL != moduleInfo && !moduleInfo->name.IsNULLOrEmpty() )
     {
         // Since a 'AllPlatforms' definition is available we have a baseline to compare against
         // We will only add platform specific entries if they differ from our baseline
-        TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+        TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
         while ( i != moduleInfoEntry->modulesPerPlatform.end() )
         {
             const CORE::CString& platformName = (*i).first;
-            const CModuleInfo& platformModuleInfo = (*i).second;
+            const CModuleInfoPtr& platformModuleInfo = (*i).second;
 
-            if ( ( !platformModuleInfo.name.IsNULLOrEmpty() )  &&
-                 ( moduleInfo->name != platformModuleInfo.name ) )
+            if ( ( !platformModuleInfo->name.IsNULLOrEmpty() )   &&
+                 ( moduleInfo->name != platformModuleInfo->name ) )
             {
-                moduleMap[ platformName ] = &((*i).second);
+                moduleMap[ platformName ] = ((*i).second);
             }
             ++i;
         }
@@ -2560,15 +2422,15 @@ GetModuleInfoWithUniqueModuleNames( const CModuleInfoEntryPtr& moduleInfoEntry ,
     else
     {
         // If we get here: We cannot filter in this case,.. just add all platforms
-        TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+        TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
         while ( i != moduleInfoEntry->modulesPerPlatform.end() )
         {
             const CORE::CString& platformName = (*i).first;
-            const CModuleInfo& platformModuleInfo = (*i).second;
+            const CModuleInfoPtr& platformModuleInfo = (*i).second;
 
-            if ( MODULETYPE_UNDEFINED != platformModuleInfo.moduleType )
+            if ( MODULETYPE_UNDEFINED != platformModuleInfo->moduleType )
             {
-                moduleMap[ platformName ] = &((*i).second);
+                moduleMap[ platformName ] = ((*i).second);
             }
             ++i;
         }
@@ -2606,7 +2468,7 @@ GetAllModuleInfoPaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
                        bool includeDepencencyIncludePaths         )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( platform );
+    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( platform );
     if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         if ( includeModuleRootPath )
@@ -2614,7 +2476,7 @@ GetAllModuleInfoPaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
             allPaths.insert( moduleInfoEntry->rootDir );
         }
         
-        const TStringSetMap& includeDirs = (*i).second.includeDirs; 
+        const TStringSetMap& includeDirs = (*i).second->includeDirs; 
         TStringSetMap::const_iterator n = includeDirs.begin();
         while ( n != includeDirs.end() )
         {
@@ -2635,7 +2497,7 @@ GetAllModuleInfoPaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
             ++n;
         }        
 
-        const TStringSetMap& sourceDirs = (*i).second.sourceDirs; 
+        const TStringSetMap& sourceDirs = (*i).second->sourceDirs; 
         n = sourceDirs.begin();
         while ( n != sourceDirs.end() )
         {
@@ -2659,7 +2521,7 @@ GetAllModuleInfoPaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
 
         if ( includeDepencencyIncludePaths )
         {
-            const TStringSet& dependencyIncludeDirs = (*i).second.dependencyIncludeDirs;
+            const TStringSet& dependencyIncludeDirs = (*i).second->dependencyIncludeDirs;
             TStringSet::const_iterator m = dependencyIncludeDirs.begin();
             while ( m != dependencyIncludeDirs.end() )
             {
@@ -2699,10 +2561,10 @@ GetAllModuleInfoFilePaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
                            bool includeModuleRootPath                 )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( platform );
+    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.find( platform );
     if ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
-        const TStringSetMap& includeDirs = (*i).second.includeDirs; 
+        const TStringSetMap& includeDirs = (*i).second->includeDirs; 
         TStringSetMap::const_iterator n = includeDirs.begin();
         while ( n != includeDirs.end() )
         {
@@ -2726,7 +2588,7 @@ GetAllModuleInfoFilePaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
             ++n;
         }        
 
-        const TStringSetMap& sourceDirs = (*i).second.sourceDirs; 
+        const TStringSetMap& sourceDirs = (*i).second->sourceDirs; 
         n = sourceDirs.begin();
         while ( n != sourceDirs.end() )
         {
@@ -2874,7 +2736,7 @@ const CModuleInfoEntryPtr
 GetModuleInfoEntry( const TModuleInfoEntryPtrVector& moduleInfoEntries ,
                     const CORE::CString& moduleName                    ,
                     const CORE::CString& platform                      ,
-                    const CModuleInfo** moduleInfo                     )
+                    CModuleInfoPtr* moduleInfo                         )
 {GUCEF_TRACE;
 
     TModuleInfoEntryPtrVector::const_iterator i = moduleInfoEntries.begin();
@@ -2893,10 +2755,10 @@ GetModuleInfoEntry( const TModuleInfoEntryPtrVector& moduleInfoEntries ,
 /*---------------------------------------------------------------------------*/
 
 const CModuleInfoEntryPtr
-GetModuleInfoEntry( const CProjectInfo& projectInfo ,
-                    const CORE::CString& moduleName ,
-                    const CORE::CString& platform   ,
-                    const CModuleInfo** moduleInfo  )
+GetModuleInfoEntry( const CProjectInfo& projectInfo  ,
+                    const CORE::CString& moduleName  ,
+                    const CORE::CString& platform    ,
+                    CModuleInfoPtr* moduleInfo       )
 {GUCEF_TRACE;
 
     return GetModuleInfoEntry( projectInfo.modules, moduleName, platform, moduleInfo );
@@ -2912,8 +2774,8 @@ GetAllPlatformsUsed( const CProjectInfo& projectInfo ,
     TModuleInfoEntryPtrVector::const_iterator i = projectInfo.modules.begin();
     while ( i != projectInfo.modules.end() )
     {
-        const TModuleInfoMap& modulesPerPlatform = (*i)->modulesPerPlatform;
-        TModuleInfoMap::const_iterator n = modulesPerPlatform.begin();
+        const TModuleInfoPtrMap& modulesPerPlatform = (*i)->modulesPerPlatform;
+        TModuleInfoPtrMap::const_iterator n = modulesPerPlatform.begin();
         while ( n != modulesPerPlatform.end() )
         {
             platformList.insert( (*n).first );
@@ -2933,11 +2795,11 @@ GetAllTagsUsed( const CProjectInfo& projectInfo ,
     TModuleInfoEntryPtrVector::const_iterator i = projectInfo.modules.begin();
     while ( i != projectInfo.modules.end() )
     {
-        const TModuleInfoMap& modulesPerPlatform = (*i)->modulesPerPlatform;
-        TModuleInfoMap::const_iterator n = modulesPerPlatform.begin();
+        const TModuleInfoPtrMap& modulesPerPlatform = (*i)->modulesPerPlatform;
+        TModuleInfoPtrMap::const_iterator n = modulesPerPlatform.begin();
         while ( n != modulesPerPlatform.end() )
         {
-            MergeStringSet( tagsUsed, (*n).second.tags, true );
+            MergeStringSet( tagsUsed, (*n).second->tags, true );
             ++n;
         }
         ++i;
@@ -2952,16 +2814,16 @@ IsModuleTagged( const CModuleInfoEntryPtr& module ,
                 const CORE::CString& platform     )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator i = module->modulesPerPlatform.find( AllPlatforms );
+    TModuleInfoPtrMap::const_iterator i = module->modulesPerPlatform.find( AllPlatforms );
     if ( i != module->modulesPerPlatform.end() )
     {
-        if ( (*i).second.tags.find( tag ) != (*i).second.tags.end() )
+        if ( (*i).second->tags.find( tag ) != (*i).second->tags.end() )
             return true;
     }
     i = module->modulesPerPlatform.find( platform );
     if ( i != module->modulesPerPlatform.end() )
     {
-        if ( (*i).second.tags.find( tag ) != (*i).second.tags.end() )
+        if ( (*i).second->tags.find( tag ) != (*i).second->tags.end() )
             return true;
     }
     return false;
@@ -3010,20 +2872,20 @@ ShouldModuleBeIgnored( const CModuleInfoEntryPtr& moduleInfo ,
                        const CORE::CString& platformName     )
 {GUCEF_TRACE;
 
-    const TModuleInfoMap& modulesPerPlatform = moduleInfo->modulesPerPlatform;
-    TModuleInfoMap::const_iterator i = modulesPerPlatform.find( platformName );
+    const TModuleInfoPtrMap& modulesPerPlatform = moduleInfo->modulesPerPlatform;
+    TModuleInfoPtrMap::const_iterator i = modulesPerPlatform.find( platformName );
     if ( i != modulesPerPlatform.end() )
     {
-        const CModuleInfo& moduleInfo = (*i).second;
-        if ( moduleInfo.hasIgnoreModule )
-            return moduleInfo.ignoreModule;
+        const CModuleInfoPtr& moduleInfo = (*i).second;
+        if ( moduleInfo->hasIgnoreModule )
+            return moduleInfo->ignoreModule;
     }
     i = modulesPerPlatform.find( AllPlatforms );
     if ( i != modulesPerPlatform.end() )
     {
-        const CModuleInfo& moduleInfo = (*i).second;
-        if ( moduleInfo.hasIgnoreModule )
-            return moduleInfo.ignoreModule;
+        const CModuleInfoPtr& moduleInfo = (*i).second;
+        if ( moduleInfo->hasIgnoreModule )
+            return moduleInfo->ignoreModule;
     }
     return false;
 }
@@ -3036,17 +2898,17 @@ IsModuleTaggedWith( const CModuleInfoEntryPtr& moduleInfo ,
                     const CORE::CString& tag              )
 {GUCEF_TRACE;
 
-    const TModuleInfoMap& modulesPerPlatform = moduleInfo->modulesPerPlatform;
-    TModuleInfoMap::const_iterator i = modulesPerPlatform.find( platformName );
+    const TModuleInfoPtrMap& modulesPerPlatform = moduleInfo->modulesPerPlatform;
+    TModuleInfoPtrMap::const_iterator i = modulesPerPlatform.find( platformName );
     if ( i != modulesPerPlatform.end() )
     {
-        if ( IsStringInList( (*i).second.tags, false, tag ) )
+        if ( IsStringInList( (*i).second->tags, false, tag ) )
             return true;
     }
     i = modulesPerPlatform.find( AllPlatforms );
     if ( i != modulesPerPlatform.end() )
     {
-        if ( IsStringInList( (*i).second.tags, false, tag ) )
+        if ( IsStringInList( (*i).second->tags, false, tag ) )
             return true;
     }
     return false;
@@ -3055,13 +2917,13 @@ IsModuleTaggedWith( const CModuleInfoEntryPtr& moduleInfo ,
 /*---------------------------------------------------------------------------*/
 
 bool
-HasIndependentModuleType( const TModuleInfoMap& moduleDefs )
+HasIndependentModuleType( const TModuleInfoPtrMap& moduleDefs )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator i = moduleDefs.begin();
+    TModuleInfoPtrMap::const_iterator i = moduleDefs.begin();
     while ( i != moduleDefs.end() )
     {
-        TModuleType moduleType = (*i).second.moduleType;
+        TModuleType moduleType = (*i).second->moduleType;
 
         if ( ( moduleType != MODULETYPE_HEADER_INCLUDE_LOCATION )   &&
              ( moduleType != MODULETYPE_HEADER_INTEGRATE_LOCATION ) &&
@@ -3333,7 +3195,7 @@ HasPlatformDefinition( const CModuleInfoEntryPtr& moduleInfoEntry ,
                        const CORE::CString& platform              )
 {GUCEF_TRACE;
 
-    TModuleInfoMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
+    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->modulesPerPlatform.begin();
     while ( i != moduleInfoEntry->modulesPerPlatform.end() )
     {
         if ( (*i).first.Equals( platform, false ) )
@@ -3868,10 +3730,10 @@ CModuleMetaData::GetClassTypeName( void ) const
 /*---------------------------------------------------------------------------*/
 
 CModuleInfo::CModuleInfo( void ) 
-    : name()    
+    : CORE::CTSharedObjCreator< CModuleInfo, MT::CMutex >( this )
+    , name()    
     , moduleType( MODULETYPE_UNDEFINED )
     , tags()
-    , dependencies()
     , dependencyIncludeDirs()
     , runtimeDependencies()
     , includeDirs()
@@ -3887,6 +3749,7 @@ CModuleInfo::CModuleInfo( void )
     , ignoreModule( false )
     , hasIgnoreModule( false )
     , metadata()
+    , m_namesOfDependencies()
 {GUCEF_TRACE;
 
 }
@@ -3894,10 +3757,10 @@ CModuleInfo::CModuleInfo( void )
 /*---------------------------------------------------------------------------*/
 
 CModuleInfo::CModuleInfo( const CModuleInfo& src ) 
-    : name( src.name )
+    : CORE::CTSharedObjCreator< CModuleInfo, MT::CMutex >( this )
+    , name( src.name )
     , moduleType( src.moduleType )
     , tags( src.tags )
-    , dependencies( src.dependencies )
     , dependencyIncludeDirs( src.dependencyIncludeDirs )
     , runtimeDependencies( src.runtimeDependencies )
     , includeDirs( src.includeDirs )
@@ -3913,6 +3776,7 @@ CModuleInfo::CModuleInfo( const CModuleInfo& src )
     , ignoreModule( src.ignoreModule )
     , hasIgnoreModule( src.hasIgnoreModule )
     , metadata( src.metadata )
+    , m_namesOfDependencies( src.m_namesOfDependencies )
 {GUCEF_TRACE;
 
 }
@@ -3934,7 +3798,6 @@ CModuleInfo::Clear( void )
     name.Clear();
     moduleType = MODULETYPE_UNDEFINED;
     tags.clear();
-    dependencies.clear();
     dependencyIncludeDirs.clear();
     runtimeDependencies.clear();
     includeDirs.clear();
@@ -3944,82 +3807,129 @@ CModuleInfo::Clear( void )
     buildChainDependencies.clear();
     considerSubDirs = false;
     hasConsiderSubDirs = false;
-    //linkerSettings.Clear();
-    //compilerSettings.Clear();
-    //preprocessorSettings.Clear();
+    linkerSettings.linkedLibraries.clear();
+    compilerSettings.languagesUsed.clear();
+    preprocessorSettings.defines.clear();
     ignoreModule = false;
     hasIgnoreModule = false;
     metadata.Clear();
+
+    m_namesOfDependencies.clear();
 }
 
 /*---------------------------------------------------------------------------*/
 
 bool
-CModuleInfo::Merge( const CModuleInfo& moduleInfoToMergeIn ,
-                    bool onConflictOriginalInfoStays       )
+CModuleInfo::Merge( const CModuleInfoPtr& moduleInfoToMergeIn ,
+                    bool onConflictOriginalInfoStays          )
 {GUCEF_TRACE;
 
     bool totalSuccess = true;
 
     if ( name.IsNULLOrEmpty() )
-        name = moduleInfoToMergeIn.name;
+        name = moduleInfoToMergeIn->name;
     else
-    if ( !onConflictOriginalInfoStays && !moduleInfoToMergeIn.name.IsNULLOrEmpty() )
-        name = moduleInfoToMergeIn.name;
+    if ( !onConflictOriginalInfoStays && !moduleInfoToMergeIn->name.IsNULLOrEmpty() )
+        name = moduleInfoToMergeIn->name;
 
     if ( MODULETYPE_UNDEFINED == moduleType )
-        moduleType = moduleInfoToMergeIn.moduleType;
+        moduleType = moduleInfoToMergeIn->moduleType;
     else
-    if ( !onConflictOriginalInfoStays && MODULETYPE_UNDEFINED != moduleInfoToMergeIn.moduleType )
-        moduleType = moduleInfoToMergeIn.moduleType;
+    if ( !onConflictOriginalInfoStays && MODULETYPE_UNDEFINED != moduleInfoToMergeIn->moduleType )
+        moduleType = moduleInfoToMergeIn->moduleType;
 
-    MergeStringSet( tags, moduleInfoToMergeIn.tags, true );
-    MergeStringSet( dependencies, moduleInfoToMergeIn.dependencies, true );
-    MergeStringSet( dependencyIncludeDirs, moduleInfoToMergeIn.dependencyIncludeDirs, true );
-    MergeStringSet( runtimeDependencies, moduleInfoToMergeIn.runtimeDependencies, true );
+    MergeStringSet( tags, moduleInfoToMergeIn->tags, true );
+    MergeStringSet( m_namesOfDependencies, moduleInfoToMergeIn->m_namesOfDependencies, true );
+    MergeStringSet( dependencyIncludeDirs, moduleInfoToMergeIn->dependencyIncludeDirs, true );
+    MergeStringSet( runtimeDependencies, moduleInfoToMergeIn->runtimeDependencies, true );
         
 
     if ( -1 == buildOrder )
-        buildOrder = moduleInfoToMergeIn.buildOrder;
+        buildOrder = moduleInfoToMergeIn->buildOrder;
     else
-    if ( !onConflictOriginalInfoStays && -1 != moduleInfoToMergeIn.buildOrder )
-        buildOrder = moduleInfoToMergeIn.buildOrder;
+    if ( !onConflictOriginalInfoStays && -1 != moduleInfoToMergeIn->buildOrder )
+        buildOrder = moduleInfoToMergeIn->buildOrder;
 
     if ( -1 == buildChain )
-        buildChain = moduleInfoToMergeIn.buildChain;
+        buildChain = moduleInfoToMergeIn->buildChain;
     else
-    if ( !onConflictOriginalInfoStays && -1 != moduleInfoToMergeIn.buildChain )
-        buildChain = moduleInfoToMergeIn.buildChain;
+    if ( !onConflictOriginalInfoStays && -1 != moduleInfoToMergeIn->buildChain )
+        buildChain = moduleInfoToMergeIn->buildChain;
 
-    buildChainDependencies.insert( moduleInfoToMergeIn.buildChainDependencies.begin(), moduleInfoToMergeIn.buildChainDependencies.end() );
+    buildChainDependencies.insert( moduleInfoToMergeIn->buildChainDependencies.begin(), moduleInfoToMergeIn->buildChainDependencies.end() );
 
     if ( !hasConsiderSubDirs )
     {
-        considerSubDirs = moduleInfoToMergeIn.considerSubDirs;
-        hasConsiderSubDirs = moduleInfoToMergeIn.hasConsiderSubDirs;
+        considerSubDirs = moduleInfoToMergeIn->considerSubDirs;
+        hasConsiderSubDirs = moduleInfoToMergeIn->hasConsiderSubDirs;
     }
     else
-    if ( !onConflictOriginalInfoStays && moduleInfoToMergeIn.hasConsiderSubDirs )
+    if ( !onConflictOriginalInfoStays && moduleInfoToMergeIn->hasConsiderSubDirs )
     {
-        considerSubDirs = moduleInfoToMergeIn.considerSubDirs;
-        hasConsiderSubDirs = moduleInfoToMergeIn.hasConsiderSubDirs;
+        considerSubDirs = moduleInfoToMergeIn->considerSubDirs;
+        hasConsiderSubDirs = moduleInfoToMergeIn->hasConsiderSubDirs;
     }
 
     if ( !hasIgnoreModule )
     {
-        ignoreModule = moduleInfoToMergeIn.ignoreModule;
-        hasIgnoreModule = moduleInfoToMergeIn.hasIgnoreModule;
+        ignoreModule = moduleInfoToMergeIn->ignoreModule;
+        hasIgnoreModule = moduleInfoToMergeIn->hasIgnoreModule;
     }
     else
-    if ( !onConflictOriginalInfoStays && moduleInfoToMergeIn.hasIgnoreModule )
+    if ( !onConflictOriginalInfoStays && moduleInfoToMergeIn->hasIgnoreModule )
     {
-        ignoreModule = moduleInfoToMergeIn.ignoreModule;
-        hasIgnoreModule = moduleInfoToMergeIn.hasIgnoreModule;
+        ignoreModule = moduleInfoToMergeIn->ignoreModule;
+        hasIgnoreModule = moduleInfoToMergeIn->hasIgnoreModule;
     }
 
-    totalSuccess = metadata.Merge( moduleInfoToMergeIn.metadata, onConflictOriginalInfoStays ) && totalSuccess;
+    totalSuccess = metadata.Merge( moduleInfoToMergeIn->metadata, onConflictOriginalInfoStays ) && totalSuccess;
 
     return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CModuleInfo::SetNamesOfDependencies( const TStringSet& dependencies )
+{GUCEF_TRACE;
+
+    m_namesOfDependencies = dependencies;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const TStringSet&
+CModuleInfo::GetNamesOfDependencies( void ) const
+{GUCEF_TRACE;
+
+    return m_namesOfDependencies;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CModuleInfo::AddNameOfDependency( const CORE::CString& dependency )
+{GUCEF_TRACE;
+
+    m_namesOfDependencies.insert( dependency );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CModuleInfo::RemoveNameOfDependency( const CORE::CString& dependency )
+{GUCEF_TRACE;
+
+    m_namesOfDependencies.erase( dependency );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CModuleInfo::MergeNamesOfDependencies( const TStringSet& dependenciesToMergeIn )
+{GUCEF_TRACE;
+
+    MergeStringSet( m_namesOfDependencies, dependenciesToMergeIn, false );
 }
 
 /*---------------------------------------------------------------------------*/
@@ -4034,6 +3944,7 @@ CModuleInfoEntry::CModuleInfoEntry( void )
     , modulesPerPlatform()
     , rootDir()
     , metadata()
+    , m_consensusName()
 {GUCEF_TRACE;
 
 }
@@ -4046,6 +3957,7 @@ CModuleInfoEntry::CModuleInfoEntry( const CModuleInfoEntry& src )
     , modulesPerPlatform( src.modulesPerPlatform )
     , rootDir( src.rootDir )
     , metadata( src.metadata )
+    , m_consensusName( src.m_consensusName )
 {GUCEF_TRACE;
 
 }
@@ -4067,6 +3979,118 @@ CModuleInfoEntry::Clear( void )
     modulesPerPlatform.clear();
     rootDir.Clear();
     metadata.Clear();
+
+    m_consensusName.Clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CString&
+CModuleInfoEntry::GetConsensusName( CModuleInfoPtr* moduleInfo ,
+                                    bool dontUseCached         ) const
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != moduleInfo )
+        *moduleInfo = GUCEF_NULL;
+
+    if ( !dontUseCached && !m_consensusName.IsNULLOrEmpty() )
+        return m_consensusName;
+
+    TModuleInfoPtrMap::const_iterator n = modulesPerPlatform.find( AllPlatforms );
+    if ( n != modulesPerPlatform.end() )
+    {
+        // A name was specified for all platforms which makes our job easy
+        // an all platform name always counts as the general consensus name
+        if ( !(*n).second->name.IsNULLOrEmpty() )
+        {
+            if ( GUCEF_NULL != moduleInfo )
+                *moduleInfo = (*n).second;
+            return m_consensusName = (*n).second->name;
+        }
+    }
+
+    // If no name is specified for all platforms then we will have to
+    // determine the best name to use. We do this by getting the name
+    // for all platforms and counting how often each is used. The most used
+    // name is considered the general consensus name. If the same count applies
+    // to multiple we will try to use a popular platform to improve our 'guess'
+
+    typedef std::map< CORE::CString, CORE::UInt32 > TStringCountMap;
+
+    TStringCountMap countMap;
+    n = modulesPerPlatform.begin();
+    while ( n != modulesPerPlatform.end() )
+    {
+        const CModuleInfoPtr& mInfo = (*n).second;
+        if ( !mInfo->name.IsNULLOrEmpty() )
+        {
+            TStringCountMap::iterator m = countMap.find( mInfo->name );
+            if ( m != countMap.end() )
+            {
+                ++((*m).second);
+            }
+            else
+            {
+                countMap[ mInfo->name ] = 1;
+            }
+        }
+        ++n;
+    }
+
+    if ( countMap.empty() )
+    {
+        // This should not happen:
+        // Given that we have no module definitions for ANY platform and yet have a higher level concept of it...
+        // We promised we would always return a module name. The only thing we have at this point is the directory path
+        // As such we will assume the dir is named after the module it houses as our last ditch guess
+        return m_consensusName = CORE::LastSubDir( rootDir );
+    }
+
+    // Now that we have the popularity count of each name get the highest count
+    CORE::UInt32 highestCount = 0;
+    TStringCountMap::iterator i = countMap.begin();
+    while ( i != countMap.end() )
+    {
+        if ( highestCount < (*i).second )
+        {
+            highestCount = (*i).second;
+        }
+        ++i;
+    }
+
+    // Make the list of most popular names
+    TStringSet topNames;
+    i = countMap.begin();
+    while ( i != countMap.end() )
+    {
+        if ( highestCount == (*i).second )
+        {
+            topNames.insert( (*i).first );
+        }
+        ++i;
+    }
+
+    // If we have multiple use a popular platform if
+    // possible, otherwise just grab one
+
+    //@TODO: popular platform check
+
+    CString consensusName = (*topNames.begin());
+    if ( NULL != moduleInfo )
+    {
+        // Now turn the consensus name back into a module pointer
+        n = modulesPerPlatform.begin();
+        while ( n != modulesPerPlatform.end() )
+        {
+            if ( (*n).second->name == consensusName )
+            {
+                *moduleInfo = (*n).second;
+                break;
+            }
+            ++n;
+        }
+    }
+    return m_consensusName = consensusName;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -4080,6 +4104,8 @@ CModuleInfoEntry::operator=( const CModuleInfoEntry& src )
         modulesPerPlatform = src.modulesPerPlatform;
         rootDir = src.rootDir;
         metadata = src.metadata;
+
+        m_consensusName = src.m_consensusName;
     }
     return *this;
 }
@@ -4101,18 +4127,18 @@ CModuleInfoEntry::Serialize( CORE::CDataNode& domRootNode                       
         totalSuccess = metadata.Serialize( *metaDataNode, settings ) && totalSuccess;
     }
 
-    TModuleInfoMap::const_iterator i = modulesPerPlatform.begin();
+    TModuleInfoPtrMap::const_iterator i = modulesPerPlatform.begin();
     while ( i != modulesPerPlatform.end() )
     {
         const CORE::CString& platform = (*i).first;
-        const CModuleInfo& moduleInfo = (*i).second;
+        CModuleInfoPtr moduleInfo = (*i).second;
 
         if ( !SerializeModuleInfo( CreateBasicSharedPtr() ,
                                    moduleInfo             ,
                                    platform               ,
                                    domRootNode            ) )
         {
-            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "SerializeModuleInfo: Failed to serialize moduleInfo of module " + moduleInfo.name + " for platform " + platform );
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "SerializeModuleInfo: Failed to serialize moduleInfo of module " + moduleInfo->name + " for platform " + platform );
             totalSuccess = false;
         }
 
@@ -4125,12 +4151,12 @@ CModuleInfoEntry::Serialize( CORE::CDataNode& domRootNode                       
 /*---------------------------------------------------------------------------*/
 
 void
-CModuleInfoEntry::SetModuleInfo( CModuleInfo& moduleInfo       ,
+CModuleInfoEntry::SetModuleInfo( CModuleInfoPtr moduleInfo     ,
                                  const CORE::CString& platform )
 {GUCEF_TRACE;
 
     // First check if we already have a entry for this platform
-    TModuleInfoMap::iterator i = modulesPerPlatform.find( platform );
+    TModuleInfoPtrMap::iterator i = modulesPerPlatform.find( platform );
     if ( i != modulesPerPlatform.end() )
     {
         // Since we already have an entry for this platform we will merge the two
@@ -4171,21 +4197,19 @@ CModuleInfoEntry::Deserialize( const CORE::CDataNode& domRootNode               
     CORE::CDataNode::TConstDataNodeSet::const_iterator n = moduleInfoNodes.begin();
     while ( n != moduleInfoNodes.end() )
     {
-        CModuleInfo moduleInfoForPlatform;
-        InitializeModuleInfo( moduleInfoForPlatform );
-
+        CModuleInfoPtr moduleInfoForPlatform = CModuleInfo::CreateSharedObj();
         const CORE::CDataNode* moduleNode = (*n);
 
         if ( DeserializeModuleInfo( moduleInfoForPlatform ,
                                     *moduleNode           ) )
         {
-            if ( moduleInfoForPlatform.name.IsNULLOrEmpty() )
+            if ( moduleInfoForPlatform->name.IsNULLOrEmpty() )
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Successfully deserialized module definition for module with no name specified for the applicable platforms" );
             }
             else
             {
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Successfully deserialized module definition for module with name " + moduleInfoForPlatform.name );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Successfully deserialized module definition for module with name " + moduleInfoForPlatform->name );
             }
 
             // Get all platforms for which this info applies.
@@ -4246,19 +4270,19 @@ CModuleInfoEntry::Merge( const CModuleInfoEntryPtr& infoToMergeIn ,
 
     totalSuccess = metadata.Merge( infoToMergeIn->metadata ) && totalSuccess;
 
-    TModuleInfoMap::const_iterator i = infoToMergeIn->modulesPerPlatform.begin();
+    TModuleInfoPtrMap::const_iterator i = infoToMergeIn->modulesPerPlatform.begin();
     while ( i != infoToMergeIn->modulesPerPlatform.end() )
     {
         const CString& platformToMergeIn = (*i).first;
-        const CModuleInfo& moduleInfoToMergeIn = (*i).second;
+        const CModuleInfoPtr& moduleInfoToMergeIn = (*i).second;
 
-        TModuleInfoMap::iterator e = modulesPerPlatform.find( platformToMergeIn );
+        TModuleInfoPtrMap::iterator e = modulesPerPlatform.find( platformToMergeIn );
         if ( e != modulesPerPlatform.end() )
         {
             // We already have info for this platform
             // we need to merge
-            CModuleInfo& moduleInfo = (*e).second;
-            totalSuccess = moduleInfo.Merge( moduleInfoToMergeIn ) && totalSuccess;
+            CModuleInfoPtr& moduleInfo = (*e).second;
+            totalSuccess = moduleInfo->Merge( moduleInfoToMergeIn ) && totalSuccess;
 
             ++e;
         }
