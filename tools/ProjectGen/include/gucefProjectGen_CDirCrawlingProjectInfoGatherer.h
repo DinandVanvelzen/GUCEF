@@ -26,6 +26,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTHREADPOOL_H
+#include "gucefCORE_CThreadPool.h"
+#define GUCEF_CORE_CTHREADPOOL_H
+#endif /* GUCEF_CORE_CTHREADPOOL_H ? */
+
 #ifndef GUCEF_PROJECTGEN_DATATYPES_H
 #include "gucefProjectGen_DataTypes.h"
 #define GUCEF_PROJECTGEN_DATATYPES_H
@@ -64,14 +69,19 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CDirCrawlingProjectInfoGatherer : public CIPro
     
     virtual ~CDirCrawlingProjectInfoGatherer();
     
-    virtual bool GatherInfo( const TStringVector& rootDirs  ,
-                             CProjectInfo& projectInfo      ,
-                             const CORE::CValueList& params );
+    virtual bool GatherInfo( const TStringVector& rootDirs                               ,
+                             CProjectInfoPtr projectInfo                                 ,
+                             const CORE::CValueList& params                              ,
+                             const CORE::CString& threadPoolToUse = CORE::CString::Empty ) GUCEF_VIRTUAL_OVERRIDE;
                               
     private:
     
     CDirCrawlingProjectInfoGatherer( const CDirCrawlingProjectInfoGatherer& src );
     CDirCrawlingProjectInfoGatherer& operator=( const CDirCrawlingProjectInfoGatherer& src );
+
+    private:
+
+    CORE::ThreadPoolPtr m_threadPool;
 };
 
 /*-------------------------------------------------------------------------//

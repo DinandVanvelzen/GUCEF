@@ -90,7 +90,7 @@ CPatchTaskConsumer::GetTypeString( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CPatchTaskConsumer::OnTaskStart( CORE::CICloneable* taskData )
+CPatchTaskConsumer::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     return true;
@@ -99,7 +99,7 @@ CPatchTaskConsumer::OnTaskStart( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-CPatchTaskConsumer::OnTaskEnded( CORE::CICloneable* taskData, bool forced )
+CPatchTaskConsumer::OnTaskEnded( CORE::CTaskPtr task, bool forced )
 {GUCEF_TRACE;
 
 }
@@ -107,10 +107,14 @@ CPatchTaskConsumer::OnTaskEnded( CORE::CICloneable* taskData, bool forced )
 /*-------------------------------------------------------------------------*/
     
 bool
-CPatchTaskConsumer::OnTaskCycle( CORE::CICloneable* taskData )
+CPatchTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
-    
-    CPatchTaskData* ptData = static_cast< CPatchTaskData* >( taskData );
+
+    if ( task.IsNULL() )
+        return true;
+
+    CORE::CICloneable* opaqueTaskData = task->GetTaskData();
+    CPatchTaskData* ptData = static_cast< CPatchTaskData* >( opaqueTaskData );
     m_taskName = ptData->GetTaskName();    
     if ( m_patchEngine->GetConfig().LoadConfig( ptData->GetPatchEngineConfig() ) )
     {

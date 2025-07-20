@@ -61,26 +61,44 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-template < typename intType >
-class CTNumericID
+class CINumericID
 {
     public:
+};
+
+/*-------------------------------------------------------------------------*/
+
+template < typename intType >
+class CTNumericID : public CINumericID
+{
+    public:
+
+    typedef intType TIntegerTypeUsedForId;
 
     CTNumericID( void );
 
     /**
      *  Implementation of a copy constructor which takes a const
-     *  but in reallity the src will be altered to invalidate it
+     *  but in reality the src will be altered to invalidate it
      *  Only provided as const to allow for certain assignment operations
      */
     CTNumericID( const CTNumericID& src );
 
-    CTNumericID( intType id                            ,
-                 CINumericIDGeneratorBase* idGenerator );
+    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    CTNumericID( CTNumericID&& src ) GUCEF_NOEXCEPT;
+    #endif
+
+    CTNumericID( intType id                              ,
+                 CINumericIDGeneratorBasePtr idGenerator );
 
     ~CTNumericID();
 
-    CTNumericID& operator=( CTNumericID& src );
+    /**
+     *  Implementation of an assignment operator which takes a const
+     *  but in reality the src will be altered to invalidate it
+     *  Only provided as const to allow for certain assignment operations
+     */
+    CTNumericID& operator=( const CTNumericID& src );
 
     bool operator<( const CTNumericID& other ) const;
 
@@ -105,7 +123,7 @@ class CTNumericID
 
     intType m_id;
     bool m_initialized;
-    CINumericIDGeneratorBase* m_idGenerator;
+    CINumericIDGeneratorBasePtr m_idGenerator;
 };
 
 /*-------------------------------------------------------------------------//
@@ -116,9 +134,9 @@ class CTNumericID
 
 template < typename intType >
 CTNumericID< intType >::CTNumericID( void )
-    : m_idGenerator( NULL )  ,
-      m_id( 0 )              ,
-      m_initialized( false )
+    : m_idGenerator( GUCEF_NULL ) 
+    , m_id( 0 )              
+    , m_initialized( false )
 {GUCEF_TRACE;
 
     // The ID will have to be initialized before use or an exception will be thrown
@@ -128,9 +146,9 @@ CTNumericID< intType >::CTNumericID( void )
 
 template < typename intType >
 CTNumericID< intType >::CTNumericID( const CTNumericID& src )
-    : m_idGenerator( NULL )  ,
-      m_id( 0 )              ,
-      m_initialized( false )
+    : m_idGenerator( GUCEF_NULL )  
+    , m_id( 0 )              
+    , m_initialized( false )
 {GUCEF_TRACE;
 
     CTNumericID& nonConstSrc = const_cast< CTNumericID< intType >& >( src );
@@ -141,15 +159,36 @@ CTNumericID< intType >::CTNumericID( const CTNumericID& src )
 
     // Assume ownership of the ID and invalidate the source ID
     nonConstSrc.m_initialized = false;
-    nonConstSrc.m_idGenerator = NULL;
+    nonConstSrc.m_idGenerator.Unlink();
     nonConstSrc.m_id = 0;
 }
 
 /*-------------------------------------------------------------------------*/
+#ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
 
 template < typename intType >
-CTNumericID< intType >::CTNumericID( const intType id                      ,
-                                     CINumericIDGeneratorBase* idGenerator )
+CTNumericID< intType >::CTNumericID( CTNumericID&& src ) GUCEF_NOEXCEPT
+    : m_idGenerator( GUCEF_NULL )  
+    , m_id( 0 )              
+    , m_initialized( false )
+{GUCEF_TRACE;
+
+    m_idGenerator = src.m_idGenerator;
+    m_id = src.m_id;
+    m_initialized = src.m_initialized;
+
+    // Assume ownership of the ID and invalidate the source ID
+    src.m_initialized = false;
+    src.m_idGenerator.Unlink();
+    src.m_id = 0;
+}
+
+#endif /* GUCEF_RVALUE_REFERENCES_SUPPORTED ? */
+/*-------------------------------------------------------------------------*/
+
+template < typename intType >
+CTNumericID< intType >::CTNumericID( const intType id                        ,
+                                     CINumericIDGeneratorBasePtr idGenerator )
     : m_idGenerator( idGenerator ) ,
       m_id( id )                   ,
       m_initialized( true )
@@ -163,7 +202,7 @@ template < typename intType >
 CTNumericID< intType >::~CTNumericID()
 {GUCEF_TRACE;
 
-    if ( m_initialized && NULL != m_idGenerator )
+    if ( m_initialized && !m_idGenerator.IsNULL() )
     {
         m_idGenerator->ReleaseID( this );
     }
@@ -173,7 +212,7 @@ CTNumericID< intType >::~CTNumericID()
 
 template < typename intType >
 CTNumericID< intType >&
-CTNumericID< intType >::operator=( CTNumericID& src )
+CTNumericID< intType >::operator=( const CTNumericID& src )
 {GUCEF_TRACE;
 
     if ( this != &src )
@@ -186,9 +225,10 @@ CTNumericID< intType >::operator=( CTNumericID& src )
             m_id = src.m_id;
 
             // Assume ownership of the ID and invalidate the source ID
-            src.m_initialized = false;
-            src.m_idGenerator = NULL;
-            src.m_id = 0;
+            CTNumericID& nonConstSrc = const_cast< CTNumericID& >( src );
+            nonConstSrc.m_initialized = false;
+            nonConstSrc.m_idGenerator.Unlink();
+            nonConstSrc.m_id = 0;
         }
         else
         {
@@ -274,8 +314,6 @@ CTNumericID< intType >::operator intType() const
     {
         return m_id;
     }
-    GUCEF_ERROR_LOG( 0, "" );
-    GUCEF_EXCEPTION_LOG( 0, "" );
     GUCEF_EMSGTHROW( ENotInitialized, "CTNumericID<>::operator intType(): the ID is not initialized" );
 }
 

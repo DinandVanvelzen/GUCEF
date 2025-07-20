@@ -380,12 +380,14 @@ ClusterChannelRedisWriter::OnRedisReconnectTimerCycle( CORE::CNotifier* notifier
 /*-------------------------------------------------------------------------*/
 
 bool
-ClusterChannelRedisWriter::OnTaskStart( CORE::CICloneable* taskData )
+ClusterChannelRedisWriter::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
+    GUCEF_DELETE m_metricsTimer;
     m_metricsTimer = new CORE::CTimer( GetPulseGenerator(), 1000 );
     m_metricsTimer->SetEnabled( m_channelSettings.collectMetrics );
 
+    GUCEF_DELETE m_redisReconnectTimer;
     m_redisReconnectTimer = new CORE::CTimer( GetPulseGenerator(), m_channelSettings.redisReconnectDelayInMs );
 
     if ( m_channelSettings.performRedisWritesInDedicatedThread )
@@ -426,7 +428,7 @@ ClusterChannelRedisWriter::OnTaskStart( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 bool
-ClusterChannelRedisWriter::OnTaskCycle( CORE::CICloneable* taskData )
+ClusterChannelRedisWriter::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == m_redisContext || GUCEF_NULL == m_redisPipeline )
@@ -491,8 +493,8 @@ ClusterChannelRedisWriter::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-ClusterChannelRedisWriter::OnTaskEnding( CORE::CICloneable* taskdata ,
-                                         bool willBeForced           )
+ClusterChannelRedisWriter::OnTaskEnding( CORE::CTaskPtr task ,
+                                         bool willBeForced   )
 {GUCEF_TRACE;
 
 
@@ -501,8 +503,8 @@ ClusterChannelRedisWriter::OnTaskEnding( CORE::CICloneable* taskdata ,
 /*-------------------------------------------------------------------------*/
 
 void
-ClusterChannelRedisWriter::OnTaskEnded( CORE::CICloneable* taskData ,
-                                        bool wasForced              )
+ClusterChannelRedisWriter::OnTaskEnded( CORE::CTaskPtr task ,
+                                        bool wasForced      )
 {GUCEF_TRACE;
 
     delete m_metricsTimer;
@@ -511,7 +513,7 @@ ClusterChannelRedisWriter::OnTaskEnded( CORE::CICloneable* taskData ,
     delete m_redisReconnectTimer;
     m_redisReconnectTimer = GUCEF_NULL;
 
-    CORE::CTaskConsumer::OnTaskEnded( taskData, wasForced );
+    CORE::CTaskConsumer::OnTaskEnded( task, wasForced );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1429,7 +1431,7 @@ Udp2RedisClusterChannel::OnUDPPacketsRecieved( CORE::CNotifier* notifier   ,
 /*-------------------------------------------------------------------------*/
 
 bool
-Udp2RedisClusterChannel::OnTaskStart( CORE::CICloneable* taskData )
+Udp2RedisClusterChannel::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     if ( m_channelSettings.performRedisWritesInDedicatedThread )
@@ -1447,14 +1449,16 @@ Udp2RedisClusterChannel::OnTaskStart( CORE::CICloneable* taskData )
     }
     else
     {
-        if ( !m_redisWriter->OnTaskStart( taskData ) )
+        if ( !m_redisWriter->OnTaskStart( task ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "Udp2RedisClusterChannel:OnTaskStart: Failed startup of Redis writer logic" );
             return false;
         }
     }
 
-	m_udpSocket = new COMCORE::CUDPSocket( GetPulseGenerator(), false );
+    GUCEF_DELETE m_udpSocket;
+    m_udpSocket = new COMCORE::CUDPSocket( GetPulseGenerator(), false );
+    GUCEF_DELETE m_metricsTimer;
     m_metricsTimer = new CORE::CTimer( GetPulseGenerator(), 1000 );
     m_metricsTimer->SetEnabled( m_channelSettings.collectMetrics );
 
@@ -1503,12 +1507,12 @@ Udp2RedisClusterChannel::OnTaskStart( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 bool
-Udp2RedisClusterChannel::OnTaskCycle( CORE::CICloneable* taskData )
+Udp2RedisClusterChannel::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     if ( !m_channelSettings.performRedisWritesInDedicatedThread )
     {
-        m_redisWriter->OnTaskCycle( taskData );
+        m_redisWriter->OnTaskCycle( task );
     }
 
     // We are never 'done' so return false
@@ -1518,13 +1522,13 @@ Udp2RedisClusterChannel::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-Udp2RedisClusterChannel::OnTaskEnding( CORE::CICloneable* taskdata ,
-                                       bool willBeForced           )
+Udp2RedisClusterChannel::OnTaskEnding( CORE::CTaskPtr task ,
+                                       bool willBeForced   )
 {GUCEF_TRACE;
 
     if ( !m_channelSettings.performRedisWritesInDedicatedThread )
     {
-        m_redisWriter->OnTaskEnding( taskdata, willBeForced );
+        m_redisWriter->OnTaskEnding( task, willBeForced );
     }
     else
     {
@@ -1545,22 +1549,22 @@ Udp2RedisClusterChannel::OnTaskEnding( CORE::CICloneable* taskdata ,
 /*-------------------------------------------------------------------------*/
 
 void
-Udp2RedisClusterChannel::OnTaskEnded( CORE::CICloneable* taskData ,
-                                      bool wasForced              )
+Udp2RedisClusterChannel::OnTaskEnded( CORE::CTaskPtr task ,
+                                      bool wasForced      )
 {GUCEF_TRACE;
 
-    delete m_udpSocket;
+    GUCEF_DELETE m_udpSocket;
     m_udpSocket = GUCEF_NULL;
 
-    delete m_metricsTimer;
+    GUCEF_DELETE m_metricsTimer;
     m_metricsTimer = GUCEF_NULL;
 
     if ( !m_channelSettings.performRedisWritesInDedicatedThread )
     {
-        m_redisWriter->OnTaskEnded( taskData, wasForced );
+        m_redisWriter->OnTaskEnded( task, wasForced );
     }
 
-    CORE::CTaskConsumer::OnTaskEnded( taskData, wasForced );
+    CORE::CTaskConsumer::OnTaskEnded( task, wasForced );
 }
 
 /*-------------------------------------------------------------------------*/

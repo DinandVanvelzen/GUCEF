@@ -283,7 +283,7 @@ CPubSubClientChannel::InitializeChannel( bool force )
         {            
             // Perform task setup
             // This causes a thread delegator to be associated and as such a pulse generator made accessible
-            if ( !threadPool->SetupTask( side ) )
+            if ( !threadPool->SetupSingularTask( side ) )
             {
                 // As a fallback we support trying run as part of the channel thread instead
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "PubSubClientChannel:InitializeChannel: Failed to setup dedicated thread for side with id " + side->GetSideId() + ". Falling back to using main channel thread" );
@@ -329,7 +329,7 @@ CPubSubClientChannel::InitializeChannel( bool force )
         CPubSubClientSidePtr& side = (*i);
         if ( !side->IsRunningInDedicatedThread() )
         {
-            if ( !side->OnTaskStart( GUCEF_NULL ) )
+            if ( !side->OnTaskStart( CORE::CTaskPtr() ) )
             {
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "PubSubClientChannel:InitializeChannel: Aborting because non-dedicated-thread side with id " + side->GetSideId() + " failed its own OnTaskStart" );
                 return false;
@@ -347,7 +347,7 @@ CPubSubClientChannel::InitializeChannel( bool force )
                 sideSettings->performPubSubInDedicatedThread = false;
                 side->SetTaskDelegator( GetTaskDelegator() );
 
-                if ( !side->OnTaskStart( GUCEF_NULL ) )
+                if ( !side->OnTaskStart( CORE::CTaskPtr() ) )
                 {
                     GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "PubSubClientChannel:InitializeChannel: Aborting because non-dedicated-thread (fallback mode) side with id " + side->GetSideId() + " failed its own OnTaskStart" );
                     return false;
@@ -370,7 +370,7 @@ CPubSubClientChannel::InitializeChannel( bool force )
 /*-------------------------------------------------------------------------*/
 
 bool
-CPubSubClientChannel::OnTaskStart( CORE::CICloneable* taskData )
+CPubSubClientChannel::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     RegisterEventHandlers();
@@ -382,7 +382,7 @@ CPubSubClientChannel::OnTaskStart( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 bool
-CPubSubClientChannel::OnTaskCycle( CORE::CICloneable* taskData )
+CPubSubClientChannel::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     bool allDone = false;
@@ -394,7 +394,7 @@ CPubSubClientChannel::OnTaskCycle( CORE::CICloneable* taskData )
         {
             // This side does not have its own thread
             // we will let it use the channel's thread
-            allDone = side->OnTaskCycle( taskData ) || allDone;
+            allDone = side->OnTaskCycle( task ) || allDone;
         }
 
         ++i;
@@ -406,8 +406,8 @@ CPubSubClientChannel::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-CPubSubClientChannel::OnTaskEnding( CORE::CICloneable* taskdata ,
-                                    bool willBeForced           )
+CPubSubClientChannel::OnTaskEnding( CORE::CTaskPtr task ,
+                                    bool willBeForced   )
 {GUCEF_TRACE;
 
     TPubSubClientSidePtrVector::iterator i = m_sides.begin();
@@ -418,7 +418,7 @@ CPubSubClientChannel::OnTaskEnding( CORE::CICloneable* taskdata ,
         {
             // This side does not have its own thread
             // we have let it use the channel's thread so its fate was tied wrt OnTaskEnded timing
-            side->OnTaskEnding( taskdata, willBeForced );
+            side->OnTaskEnding( task, willBeForced );
         }
         else
         {
@@ -441,8 +441,8 @@ CPubSubClientChannel::OnTaskEnding( CORE::CICloneable* taskdata ,
 /*-------------------------------------------------------------------------*/
 
 void
-CPubSubClientChannel::OnTaskEnded( CORE::CICloneable* taskData ,
-                                   bool wasForced              )
+CPubSubClientChannel::OnTaskEnded( CORE::CTaskPtr task ,
+                                   bool wasForced      )
 {GUCEF_TRACE;  
 
     TPubSubClientSidePtrVector::iterator i = m_sides.begin();
@@ -453,7 +453,7 @@ CPubSubClientChannel::OnTaskEnded( CORE::CICloneable* taskData ,
         {
             // This side does not have its own thread
             // we will have let it use the channel's thread so its fate was tied wrt OnTaskEnded timing
-            side->OnTaskEnded( taskData, wasForced );
+            side->OnTaskEnded( task, wasForced );
         }
         ++i;
     }

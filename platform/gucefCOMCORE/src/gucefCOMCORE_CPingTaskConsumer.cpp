@@ -37,6 +37,11 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_CORE_CTASKMANAGER_H
+#include "gucefCORE_CTaskManager.h"
+#define GUCEF_CORE_CTASKMANAGER_H
+#endif /* GUCEF_CORE_CTASKMANAGER_H */
+
 #ifndef GUCEF_COMCORE_CPING_H
 #include "CPing.h"
 #define GUCEF_COMCORE_CPING_H
@@ -419,7 +424,7 @@ CPingTaskConsumer::IcmpCallback( void* vdata )
 /*-------------------------------------------------------------------------*/
 
 bool
-CPingTaskConsumer::OnTaskStart( CORE::CICloneable* taskData )
+CPingTaskConsumer::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     return true;
@@ -428,8 +433,8 @@ CPingTaskConsumer::OnTaskStart( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-CPingTaskConsumer::OnTaskEnding( CORE::CICloneable* taskData ,
-                                 bool willBeForced           )
+CPingTaskConsumer::OnTaskEnding( CORE::CTaskPtr task ,
+                                 bool willBeForced   )
 {GUCEF_TRACE;
 
 }
@@ -437,11 +442,11 @@ CPingTaskConsumer::OnTaskEnding( CORE::CICloneable* taskData ,
 /*-------------------------------------------------------------------------*/
 
 void
-CPingTaskConsumer::OnTaskEnded( CORE::CICloneable* taskData ,
-                                bool wasForced              )
+CPingTaskConsumer::OnTaskEnded( CORE::CTaskPtr task ,
+                                bool wasForced      )
 {GUCEF_TRACE;
 
-    CORE::CTaskConsumer::OnTaskEnded( taskData, wasForced );
+    CORE::CTaskConsumer::OnTaskEnded( task, wasForced );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -449,12 +454,16 @@ CPingTaskConsumer::OnTaskEnded( CORE::CICloneable* taskData ,
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     
 bool
-CPingTaskConsumer::OnTaskCycle( CORE::CICloneable* taskData )
+CPingTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
+
+    if ( task.IsNULL() )
+        return true; // no task to process, nothing to do
 
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CPingTaskConsumer: Starting to process the task" );
     
-    m_taskData = static_cast< CPingTaskData* >( taskData );
+    CORE::CICloneable* opaqueTaskData = task->GetTaskData();
+    m_taskData = static_cast< CPingTaskData* >( opaqueTaskData );
     m_notDone = true;
     
     // Prepare our ping packet
@@ -592,7 +601,7 @@ CPingTaskConsumer::OnTaskCycle( CORE::CICloneable* taskData )
 #else
 
 bool
-CPingTaskConsumer::OnTaskCycle( CORE::CICloneable* taskData )
+CPingTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     return true;
@@ -609,13 +618,4 @@ CPingTaskConsumer::OnTaskCycle( CORE::CICloneable* taskData )
 }; /* namespace COMCORE */
 }; /* namespace GUCEF */
 
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 29-12-2006 :
-        - Dinand: Initial version
-
-----------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/

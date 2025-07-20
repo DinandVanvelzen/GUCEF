@@ -26,7 +26,9 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <limits>
 #include <set>
+#include <deque>
 
 #ifndef GUCEF_CORE_EXCEPTIONCLASSMACROS_H
 #include "ExceptionClassMacros.h"   
@@ -37,6 +39,11 @@
 #include "ExceptionThrowMacros.h"
 #define GUCEF_CORE_EXCEPTIONTHROWMACROS_H
 #endif /* GUCEF_CORE_EXCEPTIONTHROWMACROS_H ? */
+
+#ifndef GUCEF_CORE_CTSHAREDPTR_H
+#include "CTSharedPtr.h"
+#define GUCEF_CORE_CTSHAREDPTR_H
+#endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
 #ifndef GUCEF_CORE_CTNUMERICID_H
 #include "CTNumericID.h"
@@ -70,12 +77,15 @@ namespace CORE {
  *  Note that the generator template is meant to be used with
  *  integer arguments, nothing else.
  */
-template < typename intType >
-class CTNumericIDGenerator : public CINumericIDGeneratorBase
+template < typename intType, class LockType >
+class CTNumericIDGenerator : public CINumericIDGeneratorBase ,
+                             public CTSharedObjCreator< CTNumericIDGenerator< intType, LockType >, LockType >
 {
     public:
 
-    typedef CTNumericID< intType >   TNumericID;
+    typedef CTNumericID< intType >                                                                              TNumericID;
+    typedef typename CTSharedObjCreator< CTNumericIDGenerator< intType, LockType >, LockType >::TSharedPtrType  TNumericIDGeneratorTypedPtr;
+    typedef intType                                                                                             TIntegerTypeUsedForId;
 
     CTNumericIDGenerator( void );
 
@@ -83,9 +93,21 @@ class CTNumericIDGenerator : public CINumericIDGeneratorBase
 
     TNumericID GenerateID( const bool releaseIDOnDestruction = true );
 
-    virtual void ReleaseID( void* idObj );
+    virtual void ReleaseID( CINumericID* idObj ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual void SetRecycleCheckThreshold( UInt32 recycleThreshold ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual UInt32 GetRecycleCheckThreshold( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     GUCEF_DEFINE_INLINED_MSGEXCEPTION( EMaximumReached );
+
+    protected:
+
+    virtual MT::TLockStatus Lock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual MT::TLockStatus Unlock( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
@@ -96,7 +118,9 @@ class CTNumericIDGenerator : public CINumericIDGeneratorBase
 
     intType m_lastID;
     intType m_maxValue;
-    std::set< intType > m_availableIDs;
+    std::deque< intType > m_availableIDs;
+    UInt32 m_recycleThreshold;
+    LockType m_lock;
 };
 
 /*-------------------------------------------------------------------------//
@@ -105,36 +129,42 @@ class CTNumericIDGenerator : public CINumericIDGeneratorBase
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-template < typename intType >
-CTNumericIDGenerator< intType >::CTNumericIDGenerator( void )
-    : m_lastID( 0 )     ,
-      m_maxValue( 256 )
+template < typename intType, class LockType >
+CTNumericIDGenerator< intType, LockType >::CTNumericIDGenerator( void )
+    : CINumericIDGeneratorBase()
+    , CTSharedObjCreator< CTNumericIDGenerator< intType, LockType >, LockType >( this )
+    , m_lastID( 0 )     
+    , m_maxValue( std::numeric_limits< intType >::max() )
+    , m_recycleThreshold( 512 )
 {GUCEF_TRACE;
 
-    // simple version of pow(), we multiple until
-    // we have the maximum value for this type.
-    // Note that an overflow is not a problem due to the way we check
-    // against the max value
-    for ( unsigned int i=0; i<sizeof( intType ); ++i )
+}
+
+/*-------------------------------------------------------------------------*/
+
+template < typename intType, class LockType >
+CTNumericIDGenerator< intType, LockType >::~CTNumericIDGenerator()
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+template < typename intType, class LockType >
+typename CTNumericIDGenerator< intType, LockType >::TNumericID
+CTNumericIDGenerator< intType, LockType >::GenerateID( const bool releaseIDOnDestruction /* = true */ )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+
+    // Check against the recycle threshold
+    if ( m_availableIDs.size() >= m_recycleThreshold )
     {
-        m_maxValue *= 256;
+        // use a recycled Id instead
+        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_availableIDs.back(), releaseIDOnDestruction ? CreateSharedPtr() : CINumericIDGeneratorBasePtr() );
+        m_availableIDs.pop_back();
+        return id;        
     }
-}
-
-/*-------------------------------------------------------------------------*/
-
-template < typename intType >
-CTNumericIDGenerator< intType >::~CTNumericIDGenerator()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-template < typename intType >
-typename CTNumericIDGenerator< intType >::TNumericID
-CTNumericIDGenerator< intType >::GenerateID( const bool releaseIDOnDestruction /* = true */ )
-{GUCEF_TRACE;
 
     // Check against the max value
     // Note that if T is a signed type max will most likely be a negative value
@@ -142,21 +172,18 @@ CTNumericIDGenerator< intType >::GenerateID( const bool releaseIDOnDestruction /
     if ( m_lastID+1 != m_maxValue )
     {
         ++m_lastID;
-        typename CTNumericIDGenerator< intType >::TNumericID id( m_lastID, releaseIDOnDestruction ? this : NULL );
+        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_lastID, releaseIDOnDestruction ? CreateSharedPtr() : CINumericIDGeneratorBasePtr() );
         return id;
     }
 
-    // We ran out of numbers we can dish out in a fast manner.
-    // Now we have to do some more work and check which ID is still available
-    intType idValue = 0;
-    while ( idValue != m_maxValue )
+    // We ran out of numbers we can dish out within the range constraints provided
+    // further drain the pool of available ids if possible
+    if ( !m_availableIDs.empty() )
     {
-        if ( m_availableIDs.find( idValue ) != m_availableIDs.end() )
-        {
-            typename CTNumericIDGenerator< intType >::TNumericID id( idValue, releaseIDOnDestruction ? this : NULL );
-            return id;
-        }
-        ++idValue;
+        // use a recycled Id instead
+        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_availableIDs.back(), releaseIDOnDestruction ? CreateSharedPtr() : CINumericIDGeneratorBasePtr() );
+        m_availableIDs.pop_back();
+        return id;
     }
 
     // If we get here then we ran out of IDs and we also ran out of options
@@ -165,13 +192,69 @@ CTNumericIDGenerator< intType >::GenerateID( const bool releaseIDOnDestruction /
 
 /*-------------------------------------------------------------------------*/
 
-template < typename intType >
+template < typename intType, class LockType >
 void
-CTNumericIDGenerator< intType >::ReleaseID( void* idObj )
+CTNumericIDGenerator< intType, LockType >::ReleaseID( CINumericID* idObj )
 {GUCEF_TRACE;
 
+    MT::CObjectScopeLock lock( this );
+
     TNumericID* id = static_cast< TNumericID* >( idObj );
-    m_availableIDs.insert( *id );
+    m_availableIDs.push_front( *id );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template < typename intType, class LockType >
+void
+CTNumericIDGenerator< intType, LockType >::SetRecycleCheckThreshold( UInt32 recycleThreshold )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    m_recycleThreshold = recycleThreshold;
+}
+
+/*-------------------------------------------------------------------------*/
+
+template < typename intType, class LockType >
+UInt32
+CTNumericIDGenerator< intType, LockType >::GetRecycleCheckThreshold( void ) const
+{GUCEF_TRACE;
+
+    MT::CObjectScopeReadOnlyLock lock( this );
+    UInt32 threshold = m_recycleThreshold;
+    lock.EarlyReaderUnlock();
+    return threshold;
+}
+
+/*-------------------------------------------------------------------------*/
+
+template < typename intType, class LockType >
+const MT::CILockable*
+CTNumericIDGenerator< intType, LockType >::AsLockable( void ) const
+{GUCEF_TRACE;
+
+    return this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+template < typename intType, class LockType >
+MT::TLockStatus
+CTNumericIDGenerator< intType, LockType >::Lock( UInt32 lockWaitTimeoutInMs ) const
+{GUCEF_TRACE;
+
+    return m_lock.Lock();
+}
+
+/*-------------------------------------------------------------------------*/
+
+template < typename intType, class LockType >
+MT::TLockStatus
+CTNumericIDGenerator< intType, LockType >::Unlock( void ) const
+{GUCEF_TRACE;
+
+    return m_lock.Unlock();
 }
 
 /*-------------------------------------------------------------------------//
@@ -186,14 +269,3 @@ CTNumericIDGenerator< intType >::ReleaseID( void* idObj )
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_CORE_CTNUMERICIDGENERATOR_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 02-03-2007 :
-        - Dinand: re-added this header
-
------------------------------------------------------------------------------*/

@@ -1,6 +1,6 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -17,8 +17,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef GUCEF_CORE_CIFUNCTION_H
-#define GUCEF_CORE_CIFUNCTION_H
+#ifndef GUCEF_CORE_CFUTURERESULT_H
+#define GUCEF_CORE_CFUTURERESULT_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -26,25 +26,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_MACROS_H
-#include "gucefCORE_macros.h"   
-#define GUCEF_CORE_MACROS_H
-#endif /* GUCEF_CORE_MACROS_H ? */
-
-#ifndef GUCEF_CORE_SFINAE_UTILS_H
-#include "gucefCORE_SFINAE_utils.h"
-#define GUCEF_CORE_SFINAE_UTILS_H
-#endif /* GUCEF_CORE_SFINAE_UTILS_H ? */
-
-#ifndef GUCEF_CORE_CINAMEDINSTANCE_H
-#include "CINamedInstance.h"
-#define GUCEF_CORE_CINAMEDINSTANCE_H
-#endif /* GUCEF_CORE_CINAMEDINSTANCE_H ? */
-
-#ifndef GUCEF_CORE_CVARIANT_H
-#include "gucefCORE_CVariant.h"
-#define GUCEF_CORE_CVARIANT_H
-#endif /* GUCEF_CORE_CVARIANT_H ? */
+#ifndef GUCEF_CORE_CTASK_H
+#include "gucefCORE_CTask.h"
+#define GUCEF_CORE_CTASK_H
+#endif /* GUCEF_CORE_CTASK_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -62,39 +47,47 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 /**
- *  Interface class for implementation of dynamic functions
- *  Note that while functions can be implemented via templates as well this allows
- *  for runtime config driven data to be applied. In addition this also enables the
- *  use of a plugin model for functions on platforms that support plugin mechanics.
- *  Can also be used to tie-in scripting modules
+ *  Class which provides syntactically convenient access to the outcome of async task processing.
+ *  This class implements a flavor of the 'futures' concept.
  */
-class GUCEF_CORE_PUBLIC_CPP CIFunction : public CINamedInstance
+class GUCEF_CORE_PUBLIC_CPP CFutureResult
 {
     public:
 
-    CIFunction( void );
+    CFutureResult( CTaskPtr task );
 
-    CIFunction( const CIFunction& src );
-
-    virtual ~CIFunction();
-
-    CIFunction& operator=( const CIFunction& src );
+    CFutureResult( const CFutureResult& src );
 
     /**
-     *  Executes the function.
-     *  @return 'true' if the function was successfully executed, meaning the intended logic was able to be invoked.
+     *  You can use Await to block the calling thread until the task completes
+     *  If a timeout occurs before the task completes a timeout_exception will be thrown
      */
-    virtual bool ExecuteFunction( const CVariant::VariantVector& params       , 
-                                  const CVariant::VariantVector& functionData ,
-                                  CVariant::VariantVector& functionResults    ) const = 0;
+    const CFutureResult& Await( Int32 timeoutInMs = GUCEF_MT_ULTRA_LONG_LOCK_TIMEOUT ) const;
+
+    CTaskPtr GetResult( Int32 timeoutInMs = GUCEF_MT_ULTRA_LONG_LOCK_TIMEOUT ) const;
+
+    bool IsReady( void ) const;
 
     /**
-     *  Obtains meta-data on the function.
-     *  @param requiredParams the numer and type of params that are required for the function to correctly execute
+     *  If there won't be any further future results on this 'future' its considered as having no future
+     *  This can happen due to an fatal error along the init and/or initialization of the task or
+     *  perhaps the task has already concluded with a failed state
      */
-    //virtual bool GetFunctionMetaData( CVariant::VariantVector& requiredParams  , 
-    //                                  CVariant::VariantVector& optionalParams  ,
-    //                                  CVariant::VariantVector& functionResults ) const = 0;
+    bool HasNoFuture( void ) const;
+
+    /**
+     *  Simply the opposite of HasNoFuture()
+     *  Provided as a distinct function for code clarity
+     */
+    bool HasAFuture( void ) const;
+
+    private:
+
+    CFutureResult( void ); /**< not implemented, you need a task reference */
+
+    private:
+
+    CTaskPtr m_task;
 };
 
 /*-------------------------------------------------------------------------//
@@ -108,4 +101,4 @@ class GUCEF_CORE_PUBLIC_CPP CIFunction : public CINamedInstance
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_CORE_CIFUNCTION_H ? */
+#endif /* GUCEF_CORE_CFUTURERESULT_H ? */

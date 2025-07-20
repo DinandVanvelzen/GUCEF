@@ -26,10 +26,25 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_MT_CILOCKABLE_H
+#include "gucefMT_CILockable.h"
+#define GUCEF_MT_CILOCKABLE_H
+#endif /* GUCEF_MT_CILOCKABLE_H ? */
+
+#ifndef GUCEF_MT_CMUTEX_H
+#include "gucefMT_CMutex.h"
+#define GUCEF_MT_CMUTEX_H
+#endif /* GUCEF_MT_CMUTEX_H ? */
+
 #ifndef GUCEF_CORE_MACROS_H
 #include "gucefCORE_macros.h"           /* often used gucef macros */
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
+
+#ifndef GUCEF_CORE_CTSHAREDPTR_H
+#include "CTSharedPtr.h"
+#define GUCEF_CORE_CTSHAREDPTR_H
+#endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -46,19 +61,41 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+class CINumericID;
+
 /**
  *  Interface class that serves as an abstract callback facility
  *  for numeric ID objects. It is basically a workaround for a circular
  *  dependency between templates.
  */
-class GUCEF_CORE_PUBLIC_CPP CINumericIDGeneratorBase
+class GUCEF_CORE_PUBLIC_CPP CINumericIDGeneratorBase : public MT::CILockable
 {
     public:
 
     /**
      *  abstract facility for releasing template IDs
      */
-    virtual void ReleaseID( void* idObj ) = 0;
+    virtual void ReleaseID( CINumericID* idObj ) = 0;
+
+    /**
+     *  How many freed IDs are allowed to accumulate before
+     *  we start taking from the pool of freed IDs instead of issuing new IDs
+     *
+     *  The purpose of this functionality is to provide you with a +- time period based on
+     *  the consumption rate within which you wont see the same ID again. This is mainly usefull for
+     *  IDs being used in human centric interfaces where fast recycle would likely confuse the humans due to race conditions
+     */
+    virtual void SetRecycleCheckThreshold( UInt32 recycleThreshold ) = 0;
+
+    /**
+     *  How many freed IDs are allowed to accumulate before
+     *  we start taking from the pool of freed IDs instead of issuing new IDs
+     *
+     *  The purpose of this functionality is to provide you with a +- time period based on
+     *  the consumption rate within which you wont see the same ID again. This is mainly usefull for
+     *  IDs being used in human centric interfaces where fast recycle would likely confuse the humans due to race conditions
+     */
+    virtual UInt32 GetRecycleCheckThreshold( void ) const = 0;
 
     protected:
 
@@ -67,6 +104,10 @@ class GUCEF_CORE_PUBLIC_CPP CINumericIDGeneratorBase
     virtual ~CINumericIDGeneratorBase();
     CINumericIDGeneratorBase& operator=( const CINumericIDGeneratorBase& src );
 };
+
+/*-------------------------------------------------------------------------*/
+
+typedef CTSharedPtr< CINumericIDGeneratorBase, MT::CMutex > CINumericIDGeneratorBasePtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -81,13 +122,3 @@ class GUCEF_CORE_PUBLIC_CPP CINumericIDGeneratorBase
 
 #endif /* GUCEF_CORE_CINUMERICIDGENERATORBASE_H ? */
 
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 02-03-2007 :
-        - Dinand: re-added this header
-
------------------------------------------------------------------------------*/

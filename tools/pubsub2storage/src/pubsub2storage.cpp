@@ -736,9 +736,10 @@ CPubSubClientChannel::ConnectPubSubClient( bool reset )
 /*-------------------------------------------------------------------------*/
 
 bool
-CPubSubClientChannel::OnTaskStart( CORE::CICloneable* taskData )
+CPubSubClientChannel::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
+    GUCEF_DELETE m_metricsTimer;
     m_metricsTimer = new CORE::CTimer( GetPulseGenerator(), 1000 );
     m_metricsTimer->SetEnabled( m_channelSettings.pubsubClientConfig.desiredFeatures.supportsMetrics );
 
@@ -875,7 +876,7 @@ CPubSubClientChannel::TransmitNextPubSubMsgBuffer( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CPubSubClientChannel::OnTaskCycle( CORE::CICloneable* taskData )
+CPubSubClientChannel::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;    
 
     if ( m_channelSettings.mode == TChannelMode::CHANNELMODE_STORAGE_TO_PUBSUB )
@@ -890,8 +891,8 @@ CPubSubClientChannel::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-CPubSubClientChannel::OnTaskEnding( CORE::CICloneable* taskdata ,
-                                    bool willBeForced           )
+CPubSubClientChannel::OnTaskEnding( CORE::CTaskPtr task ,
+                                    bool willBeForced   )
 {GUCEF_TRACE;
 
     m_buffers.SignalEndOfWriting();
@@ -900,17 +901,17 @@ CPubSubClientChannel::OnTaskEnding( CORE::CICloneable* taskdata ,
 /*-------------------------------------------------------------------------*/
 
 void
-CPubSubClientChannel::OnTaskEnded( CORE::CICloneable* taskData ,
-                                   bool wasForced              )
+CPubSubClientChannel::OnTaskEnded( CORE::CTaskPtr task ,
+                                   bool wasForced      )
 {GUCEF_TRACE;
 
-    delete m_metricsTimer;
+    GUCEF_DELETE m_metricsTimer;
     m_metricsTimer = GUCEF_NULL;
 
-    delete m_pubsubClientReconnectTimer;
+    GUCEF_DELETE m_pubsubClientReconnectTimer;
     m_pubsubClientReconnectTimer = GUCEF_NULL;
 
-    CORE::CTaskConsumer::OnTaskEnded( taskData, wasForced );
+    CORE::CTaskConsumer::OnTaskEnded( task, wasForced );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1179,7 +1180,7 @@ CStorageChannel::GetMetrics( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CStorageChannel::OnTaskStart( CORE::CICloneable* taskData )
+CStorageChannel::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     if ( m_channelSettings.performPubSubInDedicatedThread )
@@ -1198,7 +1199,7 @@ CStorageChannel::OnTaskStart( CORE::CICloneable* taskData )
 
     if ( !m_channelSettings.performPubSubInDedicatedThread )
     {
-        if ( !m_pubsubClient->OnTaskStart( taskData ) )
+        if ( !m_pubsubClient->OnTaskStart( task ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "StorageChannel:OnTaskStart: Failed startup of pub-sub client logic" );
             return false;
@@ -1743,12 +1744,12 @@ CStorageChannel::ProcessNextStorageToPubSubRequest( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CStorageChannel::OnTaskCycle( CORE::CICloneable* taskData )
+CStorageChannel::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     if ( !m_channelSettings.performPubSubInDedicatedThread )
     {
-        m_pubsubClient->OnTaskCycle( taskData );
+        m_pubsubClient->OnTaskCycle( task );
     }
 
     switch ( m_channelSettings.mode )
@@ -1772,13 +1773,13 @@ CStorageChannel::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-CStorageChannel::OnTaskEnding( CORE::CICloneable* taskdata ,
-                               bool willBeForced           )
+CStorageChannel::OnTaskEnding( CORE::CTaskPtr task ,
+                               bool willBeForced   )
 {GUCEF_TRACE;
 
     if ( !m_channelSettings.performPubSubInDedicatedThread )
     {
-        m_pubsubClient->OnTaskEnding( taskdata, willBeForced );
+        m_pubsubClient->OnTaskEnding( task, willBeForced );
     }
     else
     {
@@ -1799,19 +1800,19 @@ CStorageChannel::OnTaskEnding( CORE::CICloneable* taskdata ,
 /*-------------------------------------------------------------------------*/
 
 void
-CStorageChannel::OnTaskEnded( CORE::CICloneable* taskData ,
-                              bool wasForced              )
+CStorageChannel::OnTaskEnded( CORE::CTaskPtr task ,
+                              bool wasForced      )
 {GUCEF_TRACE;
 
-    delete m_metricsTimer;
+    GUCEF_DELETE m_metricsTimer;
     m_metricsTimer = GUCEF_NULL;
 
     if ( !m_channelSettings.performPubSubInDedicatedThread )
     {
-        m_pubsubClient->OnTaskEnded( taskData, wasForced );
+        m_pubsubClient->OnTaskEnded( task, wasForced );
     }
 
-    CORE::CTaskConsumer::OnTaskEnded( taskData, wasForced );
+    CORE::CTaskConsumer::OnTaskEnded( task, wasForced );
 }
 
 /*-------------------------------------------------------------------------*/

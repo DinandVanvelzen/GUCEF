@@ -91,6 +91,14 @@ namespace CORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      TYPES                                                              //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+typedef CTFactory< CTaskConsumer, CGenericCallbackTaskConsumer, MT::CMutex >     TGenericCallbackTaskConsumerFactory;
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      GLOBAL VARS                                                        //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -105,6 +113,8 @@ const CEvent CTaskManager::GlobalTaskDataFactoryUnregisteredEvent = "GUCEF::CORE
 
 const CString CTaskManager::ClassTypeName = "GUCEF::CORE::CTaskManager";
 const CString CTaskManager::DefaultThreadPoolName = "default";
+
+TGenericCallbackTaskConsumerFactory g_genericCallbackTaskConsumerFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -137,11 +147,15 @@ CTaskManager::CTaskManager( void )
     , m_activeGlobalNrOfThreads( 0 )
 {GUCEF_TRACE;
 
+    m_taskIdGenerator = TTaskIdGenerator::CreateSharedObj();
+
     ThreadPoolPtr defaultPool = ( GUCEF_NEW CThreadPool( CORE::CCoreGlobal::Instance()->GetPulseGenerator(), DefaultThreadPoolName ) )->CreateSharedPtr();
     m_threadPools[ DefaultThreadPoolName ] = defaultPool;
 
     RegisterEventHandlers();
-    RegisterThreadPoolEventHandlers( defaultPool.GetPointerAlways() );    
+    RegisterThreadPoolEventHandlers( defaultPool.GetPointerAlways() );
+
+    RegisterTaskConsumerFactory( CGenericCallbackTaskConsumer::TaskType, &g_genericCallbackTaskConsumerFactory );
 
     ThreadPoolCreatedEventData eData( DefaultThreadPoolName );
     NotifyObserversFromThread( ThreadPoolCreatedEvent, &eData );
@@ -152,9 +166,11 @@ CTaskManager::CTaskManager( void )
 CTaskManager::~CTaskManager( void )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this, GUCEF_MT_INFINITE_LOCK_TIMEOUT );
+    MT::CObjectScopeLock lock( this, GUCEF_MT_INFINITE_LOCK_TIMEOUT );    
+    UnregisterAllTaskConsumerFactories();
+    UnregisterAllTaskDataFactories();
+    UnregisterAllThreadPools();
     SignalUpcomingDestruction();
-    m_threadPools.clear();
     lock.EarlyUnlock();
 }
 
@@ -405,13 +421,12 @@ CTaskManager::UnregisterAllThreadPools( void )
 
 /*-------------------------------------------------------------------------*/
 
-TTaskStatus 
-CTaskManager::QueueTask( const CString& threadPoolName     ,
-                         const CString& taskType           ,
-                         CICloneable* taskData             ,
-                         CTaskConsumerPtr* outTaskConsumer ,
-                         CObserver* taskObserver           ,
-                         bool assumeOwnershipOfTaskData    )
+CFutureResult 
+CTaskManager::QueueTask( const CString& threadPoolName  ,
+                         const CString& taskType        ,
+                         CICloneable* taskData          ,
+                         CObserver* taskObserver        ,
+                         bool assumeOwnershipOfTaskData )
 {GUCEF_TRACE;
 
     ThreadPoolPtr threadPool = GetOrCreateThreadPool( threadPoolName, false );        
@@ -419,24 +434,25 @@ CTaskManager::QueueTask( const CString& threadPoolName     ,
     {
         return threadPool->QueueTask( taskType                  ,
                                       taskData                  ,
-                                      outTaskConsumer           ,
                                       taskObserver              ,
                                       assumeOwnershipOfTaskData );
     }
-    return TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
+
+    return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
 }
 
 /*-------------------------------------------------------------------------*/
 
-TTaskStatus
+CFutureResult
 CTaskManager::StartOrQueueTask( CIDataNodeSerializableTaskData* taskData ,
-                                CTaskConsumerPtr* outTaskConsumer        ,
                                 CObserver* taskObserver                  ,
                                 bool assumeOwnershipOfTaskData           )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == taskData )
-        return TTaskStatus::TASKSTATUS_TASKDATA_INVALID;
+    {
+        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+    }
     
     const CString& threadPoolName = taskData->GetThreadPoolName();
     const CString& taskType = taskData->GetTaskTypeName();
@@ -444,7 +460,7 @@ CTaskManager::StartOrQueueTask( CIDataNodeSerializableTaskData* taskData ,
     if ( !IsTaskOfTaskTypeExecutable( taskType, threadPoolName ) )
     {
         GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "TaskManager:StartOrQueueTask: Task type \"" + taskType + "\" is not an executable task type, aborting" );
-        return TTaskStatus::TASKSTATUS_TASKTYPE_INVALID;
+        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKTYPE_INVALID );
     }
 
     ThreadPoolPtr threadPool = GetOrCreateThreadPool( threadPoolName, !taskData->GetOnlyUseExistingThreadPool() );        
@@ -456,7 +472,6 @@ CTaskManager::StartOrQueueTask( CIDataNodeSerializableTaskData* taskData ,
         {
             return threadPool->QueueTask( taskType                  ,
                                           taskData                  ,
-                                          outTaskConsumer           ,
                                           taskObserver              ,
                                           assumeOwnershipOfTaskData );
         }
@@ -464,25 +479,23 @@ CTaskManager::StartOrQueueTask( CIDataNodeSerializableTaskData* taskData ,
         {
             return threadPool->StartTask( taskType                  ,
                                           taskData                  ,
-                                          outTaskConsumer           ,
                                           assumeOwnershipOfTaskData );
         }
     }
     else
     {
         if ( taskData->GetOnlyUseExistingThreadPool() )
-            return TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
+            return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
         else
-            return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+            return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
     }
 }
 
 /*-------------------------------------------------------------------------*/
 
-TTaskStatus
-CTaskManager::StartOrQueueTask( const CDataNode& taskData         ,
-                                CTaskConsumerPtr* outTaskConsumer ,
-                                CObserver* taskObserver           )
+CFutureResult
+CTaskManager::StartOrQueueTask( const CDataNode& taskData ,
+                                CObserver* taskObserver   )
 {GUCEF_TRACE;
 
     CDataNodeSerializableSettings defaultSerializationSettings;
@@ -497,13 +510,13 @@ CTaskManager::StartOrQueueTask( const CDataNode& taskData         ,
             {                
                 GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "TaskManager:StartOrQueueTask: Successfully deserialized custom task properties from provide DOM for task with type " + genericTaskData->GetTaskTypeName() );
                 GUCEF_DELETE genericTaskData;                
-                return StartOrQueueTask( taskDataObj.GetPointerAlways(), outTaskConsumer, taskObserver, false );
+                return StartOrQueueTask( taskDataObj.GetPointerAlways(), taskObserver, false );
             }
             else
             {
                 GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "TaskManager:StartOrQueueTask: Unable to deserialize custom task properties from provide DOM for task with type " + genericTaskData->GetTaskTypeName() );
                 GUCEF_DELETE genericTaskData;
-                return TTaskStatus::TASKSTATUS_TASKDATA_INVALID;
+                return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
             }
         }
         else
@@ -511,72 +524,66 @@ CTaskManager::StartOrQueueTask( const CDataNode& taskData         ,
             // No custom task data object is available, lets stick with the generic one
             // Since we allocated the generic one and its in-scope, let the task assume ownsership of the object we created
             GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "TaskManager:StartOrQueueTask: Successfully deserialized generic task properties from provide DOM for task with type " + genericTaskData->GetTaskTypeName() );
-            return StartOrQueueTask( genericTaskData, outTaskConsumer, taskObserver, true ); 
+            return StartOrQueueTask( genericTaskData, taskObserver, true ); 
         }
     }
     else
     {
         GUCEF_DELETE genericTaskData;
         GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "TaskManager:StartOrQueueTask: Unable to derive standard task properties from provide DOM" ); 
-        return TTaskStatus::TASKSTATUS_TASKDATA_INVALID;
+        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
     }
 }
 
 /*-------------------------------------------------------------------------*/
 
-TTaskStatus 
-CTaskManager::StartTask( const CString& threadPoolName     ,
-                         const CString& taskType           ,
-                         CICloneable* taskData             ,
-                         CTaskConsumerPtr* outTaskConsumer )
+CFutureResult 
+CTaskManager::StartTask( const CString& threadPoolName ,
+                         const CString& taskType       ,
+                         CICloneable* taskData         )
 {GUCEF_TRACE;
 
     ThreadPoolPtr threadPool = GetOrCreateThreadPool( threadPoolName, false );        
     if ( !threadPool.IsNULL() )
     {
-        return threadPool->StartTask( taskType        ,
-                                      taskData        ,
-                                      outTaskConsumer );
+        return threadPool->StartTask( taskType ,
+                                      taskData );
     }
-    return TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
+    return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
 }
 
 /*-------------------------------------------------------------------------*/
 
-TTaskStatus
-CTaskManager::StartTaskIfNoneExists( const CString& threadPoolName     ,
-                                     const CString& taskType           ,
-                                     CICloneable* taskData             ,
-                                     CTaskConsumerPtr* outTaskConsumer )
+CFutureResult
+CTaskManager::StartTaskIfNoneExists( const CString& threadPoolName ,
+                                     const CString& taskType       ,
+                                     CICloneable* taskData         )
 {GUCEF_TRACE;
 
     ThreadPoolPtr threadPool = GetOrCreateThreadPool( threadPoolName, false );        
     if ( !threadPool.IsNULL() )
     {
-        return threadPool->StartTaskIfNoneExists( taskType        ,
-                                                  taskData        ,
-                                                  outTaskConsumer );
+        return threadPool->StartTaskIfNoneExists( taskType ,
+                                                  taskData );
     }
-    return TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
+    return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
 }
 
 /*-------------------------------------------------------------------------*/
 
-TTaskStatus
-CTaskManager::StartTaskIfNoneExists( const CString& threadPoolName     ,
-                                     const CString& taskType           ,
-                                     const CDataNode& taskData         ,
-                                     CTaskConsumerPtr* outTaskConsumer )
+CFutureResult
+CTaskManager::StartTaskIfNoneExists( const CString& threadPoolName ,
+                                     const CString& taskType       ,
+                                     const CDataNode& taskData     )
 {GUCEF_TRACE;
 
     ThreadPoolPtr threadPool = GetOrCreateThreadPool( threadPoolName, false );        
     if ( !threadPool.IsNULL() )
     {
-        return threadPool->StartTaskIfNoneExists( taskType        ,
-                                                  taskData        ,
-                                                  outTaskConsumer );
+        return threadPool->StartTaskIfNoneExists( taskType ,
+                                                  taskData );
     }
-    return TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
+    return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -671,8 +678,11 @@ CTaskManager::RequestAllThreadsToStop( bool waitOnStop, bool acceptNewWork, Int3
 /*-------------------------------------------------------------------------*/
 
 void
-CTaskManager::RemoveConsumer( UInt32 taskID )
+CTaskManager::RemoveConsumer( CTaskConsumer* taskConsumer )
 {GUCEF_TRACE;
+
+    if ( GUCEF_NULL == taskConsumer )
+        return; // nothing to do
 
     ThreadPoolVector threadPools;
     GetAllThreadPools( threadPools );
@@ -680,7 +690,7 @@ CTaskManager::RemoveConsumer( UInt32 taskID )
     ThreadPoolVector::iterator i = threadPools.begin();
     while ( i != threadPools.end() )
     {
-        (*i)->RemoveConsumer( taskID );
+        (*i)->RemoveConsumer( taskConsumer );
         ++i;
     }    
 }
@@ -776,24 +786,48 @@ CTaskManager::UnregisterAllTaskDataFactories( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CTaskManager::RegisterTaskConsumerId( CTaskConsumer::TTaskId& taskId )
+CTaskManager::SetTaskIdRecycleCheckThreshold( UInt32 threshold )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
-    //@TODO: gcc does not allow direct assignment, check this
-    TTaskIdGenerator::TNumericID tmp = m_taskIdGenerator.GenerateID( false );
-    taskId = tmp;
+    m_taskIdGenerator->SetRecycleCheckThreshold( threshold );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CTaskManager::GetTaskIdRecycleCheckThreshold( void ) const
+{GUCEF_TRACE;
+
+    return m_taskIdGenerator->GetRecycleCheckThreshold();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTaskManager::TryGetGlobalTaskId( CTask::TTaskId& taskId )
+{GUCEF_TRACE;
+
+    try
+    {
+        //@TODO: gcc does not allow direct assignment, check this
+        TTaskIdGenerator::TNumericID tmp = m_taskIdGenerator->GenerateID( true );
+        taskId = tmp;
+    }
+    catch ( const TTaskIdGenerator::EMaximumReached& )
+    {
+        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "TaskManager: Global task id limit reached" );
+        return false; // no more task ids available
+    }
+    return true; // task id successfully generated
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CTaskManager::UnregisterTaskConsumerId( CTaskConsumer::TTaskId& taskId )
+CTaskManager::ReleaseGlobalTaskId( CTask::TTaskId& taskId )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
-    RemoveConsumer( taskId );
-    m_taskIdGenerator.ReleaseID( &taskId );
+    m_taskIdGenerator->ReleaseID( &taskId );
 }
 
 /*-------------------------------------------------------------------------*/

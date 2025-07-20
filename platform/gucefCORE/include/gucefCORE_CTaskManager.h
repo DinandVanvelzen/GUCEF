@@ -46,6 +46,11 @@
 #define GUCEF_CORE_CIDATANODESERIALIZABLETASKDATA_H
 #endif /* GUCEF_CORE_CIDATANODESERIALIZABLETASKDATA_H ? */
 
+#ifndef GUCEF_CORE_CASYNC_H
+#include "gucefCORE_CASync.h"
+#define GUCEF_CORE_CASYNC_H
+#endif /* GUCEF_CORE_CASYNC_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -66,12 +71,12 @@ class CTaskDelegator;
 /*-------------------------------------------------------------------------*/
 
 /**
- *  The task manager provides centralized managent of tasks and more importantly
+ *  The task manager provides centralized management of tasks and more importantly
  *  the threads that execute those tasks. A task is defined as the logic you wish to
  *  have executed in a worker thread. Instead of creating the thread yourself you
  *  create a task consumer and then decide when your task needs to be executed. The
- *  task manager will deal with threads themselves. This seperation of concerns allows
- *  for optimal thread reuse and schedueling. Threads have a global effect on your process
+ *  task manager will deal with threads themselves. This separation of concerns allows
+ *  for optimal thread reuse and scheduling. Threads have a global effect on your process
  *  and as such should be tracked globally within your process which is what the task
  *  manager does.
  *  You can group your threading concerns into distinct thread pools for which the task manager
@@ -135,12 +140,11 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
      *  @param assumeOwnershipOfTaskData    Whether the taskData given (if any) needs a private copy 
      *                                      or whether the task manager can assume ownership
      */
-    TTaskStatus QueueTask( const CString& threadPoolName                  ,
-                           const CString& taskType                        ,
-                           CICloneable* taskData = GUCEF_NULL             ,
-                           CTaskConsumerPtr* outTaskConsumer = GUCEF_NULL ,
-                           CObserver* taskObserver = GUCEF_NULL           ,
-                           bool assumeOwnershipOfTaskData = false         );
+    CFutureResult QueueTask( const CString& threadPoolName          ,
+                             const CString& taskType                ,
+                             CICloneable* taskData = GUCEF_NULL     ,
+                             CObserver* taskObserver = GUCEF_NULL   ,
+                             bool assumeOwnershipOfTaskData = false );
 
     /**
      *  Queues a task for execution as soon as a thread is available
@@ -149,46 +153,41 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
      *  @param assumeOwnershipOfTaskData    Whether the taskData given (if any) needs a private copy 
      *                                      or whether the task manager can assume ownership
      */
-    TTaskStatus StartOrQueueTask( CIDataNodeSerializableTaskData* taskData       ,
-                                  CTaskConsumerPtr* outTaskConsumer = GUCEF_NULL ,
-                                  CObserver* taskObserver = GUCEF_NULL           ,
-                                  bool assumeOwnershipOfTaskData = false         );
+    CFutureResult StartOrQueueTask( CIDataNodeSerializableTaskData* taskData ,
+                                    CObserver* taskObserver = GUCEF_NULL     ,
+                                    bool assumeOwnershipOfTaskData = false   );
 
     /**
      *  Attempts to distill a task description from the given data node based representation
      *  
      */
-    TTaskStatus StartOrQueueTask( const CDataNode& taskData                      ,
-                                  CTaskConsumerPtr* outTaskConsumer = GUCEF_NULL ,
-                                  CObserver* taskObserver = GUCEF_NULL           );
+    CFutureResult StartOrQueueTask( const CDataNode& taskData              ,
+                                    CObserver* taskObserver = GUCEF_NULL   );
 
     /**
-     *  Immediatly starts executing a task using the task
+     *  Immediately starts executing a task using the task
      *  information provided. Based on the provided information
      *  a task consumer will be constructed to actually carry out the task
      */
-    TTaskStatus StartTask( const CString& threadPoolName                  ,
-                           const CString& taskType                        ,
-                           CICloneable* taskData = GUCEF_NULL             ,
-                           CTaskConsumerPtr* outTaskConsumer = GUCEF_NULL );
+    CFutureResult StartTask( const CString& threadPoolName      ,
+                             const CString& taskType            ,
+                             CICloneable* taskData = GUCEF_NULL );
 
     /**
      *  Checks if a task of the given type already exists, if yes nothing new happens
      *  If no a new task one would be started right away
      */
-    TTaskStatus StartTaskIfNoneExists( const CString& threadPoolName                  ,
-                                       const CString& taskType                        ,
-                                       CICloneable* taskData = GUCEF_NULL             ,
-                                       CTaskConsumerPtr* outTaskConsumer = GUCEF_NULL );
+    CFutureResult StartTaskIfNoneExists( const CString& threadPoolName      ,
+                                         const CString& taskType            ,
+                                         CICloneable* taskData = GUCEF_NULL );
 
     /**
      *  Checks if a task of the given type already exists, if yes nothing new happens
      *  If no a new task one would be started right away
      */
-    TTaskStatus StartTaskIfNoneExists( const CString& threadPoolName                  ,
-                                       const CString& taskType                        ,
-                                       const CDataNode& taskData                      ,
-                                       CTaskConsumerPtr* outTaskConsumer = GUCEF_NULL );
+    CFutureResult StartTaskIfNoneExists( const CString& threadPoolName ,
+                                         const CString& taskType       ,
+                                         const CDataNode& taskData     );
 
     void RegisterTaskConsumerFactory( const CString& taskType       ,
                                       TTaskConsumerFactory* factory );
@@ -309,6 +308,10 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
      *  Gracefully shuts everything down and unregisters all that was registered
      */    
     void Shutdown( void );
+
+    void SetTaskIdRecycleCheckThreshold( UInt32 threshold );
+
+    UInt32 GetTaskIdRecycleCheckThreshold( void ) const;
     
     protected:
 
@@ -337,11 +340,12 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
                         CORE::CICloneable* eventData );
     
     private:
-    friend class CTaskConsumer;
+    friend class CThreadPool;
+    friend class CTask;
 
-    void RegisterTaskConsumerId( CTaskConsumer::TTaskId& taskId );
+    bool TryGetGlobalTaskId( CTask::TTaskId& taskId );
 
-    void UnregisterTaskConsumerId( CTaskConsumer::TTaskId& taskId );
+    void ReleaseGlobalTaskId( CTask::TTaskId& taskId );
 
     private:
     friend class CCoreGlobal;
@@ -352,7 +356,7 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
 
     private:
 
-    void RemoveConsumer( UInt32 taskID );
+    void RemoveConsumer( CTaskConsumer* taskConsumer );
 
     void RegisterThreadPoolEventHandlers( CThreadPool* threadPool );
 
@@ -366,10 +370,10 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
     typedef std::map< CString, ThreadPoolPtr > ThreadPoolMap;
     typedef CTAbstractFactory< CString, CTaskConsumer, MT::CMutex > TAbstractTaskConsumerFactory;
     typedef CTAbstractFactory< CString, CIDataNodeSerializableTaskData, MT::CMutex > TAbstractTaskDataFactory;
-    typedef CTaskConsumer::TTaskIdGenerator TTaskIdGenerator;
+    typedef CTask::TTaskIdGenerator TTaskIdGenerator;
     typedef CTEventHandlerFunctor< CTaskManager > TEventCallback;
 
-    TTaskIdGenerator m_taskIdGenerator;
+    TTaskIdGenerator::TNumericIDGeneratorTypedPtr m_taskIdGenerator;
     TAbstractTaskConsumerFactory m_consumerFactory;
     TAbstractTaskDataFactory m_taskDataFactory;
     ThreadPoolMap m_threadPools;

@@ -1751,10 +1751,10 @@ MergeModuleInfo( const CModuleInfoEntry& moduleInfoEntry ,
 
     const CModuleInfo* allPlatformsInfo = FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms );
     const CModuleInfo* targetPlatformInfo = FindModuleInfoForPlatform( moduleInfoEntry, targetPlatform );
-    if ( ( NULL != allPlatformsInfo ) || ( NULL != targetPlatformInfo ) )
+    if ( ( GUCEF_NULL != allPlatformsInfo ) || ( GUCEF_NULL != targetPlatformInfo ) )
     {
         // Check if we have both
-        if ( NULL != allPlatformsInfo && NULL != targetPlatformInfo )
+        if ( GUCEF_NULL != allPlatformsInfo && GUCEF_NULL != targetPlatformInfo )
         {
             // Check if at least one of them has a build order set
             if ( allPlatformsInfo->buildOrder > -1 || targetPlatformInfo->buildOrder > -1 )
@@ -1762,7 +1762,7 @@ MergeModuleInfo( const CModuleInfoEntry& moduleInfoEntry ,
                 // Check if at least one of them has a module type set
                 if ( allPlatformsInfo->moduleType != MODULETYPE_UNDEFINED || targetPlatformInfo->moduleType != MODULETYPE_UNDEFINED )
                 {
-                    // Use the 'all' plaform as a base to work from
+                    // Use the 'all' platform as a base to work from
                     mergedModuleInfo = *allPlatformsInfo;
 
                     // Now merge in the platform specific info
@@ -1778,7 +1778,7 @@ MergeModuleInfo( const CModuleInfoEntry& moduleInfoEntry ,
             return false;
         }
         else
-        if ( NULL != allPlatformsInfo && allPlatformsInfo->buildOrder > -1 )
+        if ( GUCEF_NULL != allPlatformsInfo && allPlatformsInfo->buildOrder > -1 )
         {
             // We only have the 'all' platform which is fine, we will just use that
             mergedModuleInfo = *allPlatformsInfo;
@@ -1787,10 +1787,10 @@ MergeModuleInfo( const CModuleInfoEntry& moduleInfoEntry ,
             return true;
         }
         else
-        if ( NULL != targetPlatformInfo && targetPlatformInfo->buildOrder > -1 )
+        if ( GUCEF_NULL != targetPlatformInfo && targetPlatformInfo->buildOrder > -1 )
         {
             // We only have the target platform which is fine, we will just use that
-            // this module aparently is not available for all platforms even in altered form
+            // this module apparently is not available for all platforms even in altered form
             mergedModuleInfo = *targetPlatformInfo;
             
             MergeModuleMetaData( moduleInfoEntry, targetPlatform, mergedModuleInfo );
@@ -1798,9 +1798,51 @@ MergeModuleInfo( const CModuleInfoEntry& moduleInfoEntry ,
         }
     }
 
-    // This module should not be used since it doesnt have platform specific info
+    // This module should not be used since it doesn't have platform specific info
     // nor info which applies to all platforms.
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+MergeModuleInfoEntries( const TModuleInfoEntryVector& moduleInfoEntriesToMergeIn ,
+                        TModuleInfoEntryVector& moduleInfoEntries                )
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+    TModuleInfoEntryVector::const_iterator i = moduleInfoEntriesToMergeIn.begin();
+    while ( i != moduleInfoEntriesToMergeIn.end() )
+    {
+        const CModuleInfoEntry& entryToMergeIn = (*i);
+        CString consensusName = GetConsensusModuleName( entryToMergeIn );
+
+        bool foundMatch = false;
+        TModuleInfoEntryVector::iterator e = moduleInfoEntries.begin();
+        while ( e != moduleInfoEntries.end() )
+        {
+            CModuleInfoEntry& existingEntry = (*e);
+            CString existingEntryConsensusName = GetConsensusModuleName( existingEntry );
+
+            if ( existingEntryConsensusName == consensusName )
+            {
+                // We already have such a module entry, we need to merge
+                foundMatch = true;
+                totalSuccess = existingEntry.Merge( entryToMergeIn ) && totalSuccess;
+            }
+
+            ++e;
+        }
+
+        if ( !foundMatch )
+        {
+            // No such match so the 'merge' is a straightforward insert
+            moduleInfoEntries.push_back( entryToMergeIn );
+        }
+        ++i;
+    }
+
+    return totalSuccess;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1866,6 +1908,101 @@ MergeAllModuleInfoForPlatform( const TModuleInfoEntryVector& allInfo  ,
                                           platform      ,
                                           allMergedInfo ,
                                           mergeLinks    );
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+MergePlatformDefinition( TPlatformDefinition& targetPlatform          ,
+                         const TPlatformDefinition& platformToMergeIn ,
+                         bool caseSensitive                           )
+{GUCEF_TRACE;
+
+    MergeStringSet( targetPlatform.aliases, platformToMergeIn.aliases, caseSensitive );
+    MergeStringSet( targetPlatform.platformDirs, platformToMergeIn.platformDirs, caseSensitive );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+MergePlatformDefinitionMap( TPlatformDefinitionMap& targetPlatforms          ,
+                            const TPlatformDefinitionMap& platformsToMergeIn ,
+                            bool caseSensitive                               )
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+    TPlatformDefinitionMap::const_iterator i = platformsToMergeIn.begin();
+    while ( i != platformsToMergeIn.end() )
+    {
+        TPlatformDefinitionMap::iterator n = targetPlatforms.find( (*i).first );
+        if ( n != targetPlatforms.end() )
+        {
+            // We already have a platform definition with this name, merge them
+            totalSuccess = MergePlatformDefinition( (*n).second, (*i).second, caseSensitive ) && totalSuccess;
+        }
+        else
+        {
+            // We do not have instructions for this dir yet, just add them
+            targetPlatforms.insert( *i );
+        }
+        ++i;
+    }
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+MergeDirProcessingInstructions( TDirProcessingInstructions& mergedInstructions    ,
+                                const TDirProcessingInstructions& newInstructions ,
+                                bool caseSensitive                                )
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    MergeStringVectorMap( mergedInstructions.dirExcludeList, newInstructions.dirExcludeList, caseSensitive );
+    MergeStringVectorMap( mergedInstructions.dirIncludeList, newInstructions.dirIncludeList, caseSensitive );
+    MergeStringVectorMap( mergedInstructions.fileExcludeList, newInstructions.fileExcludeList, caseSensitive );
+    MergeStringVectorMap( mergedInstructions.fileIncludeList, newInstructions.fileIncludeList, caseSensitive );
+    MergeStringVectorMap( mergedInstructions.fileIncludeList, newInstructions.fileIncludeList, caseSensitive );
+    totalSuccess = MergePlatformDefinitionMap( mergedInstructions.platforms, newInstructions.platforms, caseSensitive ) && totalSuccess;
+
+    // @TODO: We need some kind of proper tree merge for the opaque processing instructions
+    // For now we just copy the new instructions into the merged instructions as this is unlikely to be actually used
+    mergedInstructions.processingInstructions.CopySubTree( newInstructions.processingInstructions );
+
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+MergeDirProcessingInstructionsMap( TDirProcessingInstructionsMap& mergedInstructions    ,
+                                   const TDirProcessingInstructionsMap& newInstructions ,
+                                   bool caseSensitive                                   )
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    TDirProcessingInstructionsMap::const_iterator i = newInstructions.begin();
+    while ( i != newInstructions.end() )
+    {
+        TDirProcessingInstructionsMap::iterator n = mergedInstructions.find( (*i).first );
+        if ( n != mergedInstructions.end() )
+        {
+            // We already have instructions for this dir, merge them
+            totalSuccess = MergeDirProcessingInstructions( (*n).second, (*i).second, caseSensitive ) && totalSuccess;
+        }
+        else
+        {
+            // We do not have instructions for this dir yet, just add them
+            mergedInstructions.insert( *i );
+        }
+        ++i;
+    }
+
+    return totalSuccess;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2736,14 +2873,14 @@ GetAllModuleInfoPaths( const CProjectInfo& projectInfo         ,
 /*---------------------------------------------------------------------------*/
 
 const CModuleInfoEntry*
-GetModuleInfoEntry( const CProjectInfo& projectInfo ,
-                    const CORE::CString& moduleName ,
-                    const CORE::CString& platform   ,
-                    const CModuleInfo** moduleInfo  )
+GetModuleInfoEntry( const TModuleInfoEntryVector& moduleInfoEntries ,
+                    const CORE::CString& moduleName                 ,
+                    const CORE::CString& platform                   ,
+                    const CModuleInfo** moduleInfo                  )
 {GUCEF_TRACE;
 
-    TModuleInfoEntryVector::const_iterator i = projectInfo.modules.begin();
-    while ( i != projectInfo.modules.end() )
+    TModuleInfoEntryVector::const_iterator i = moduleInfoEntries.begin();
+    while ( i != moduleInfoEntries.end() )
     {
         CORE::CString nameOfCurrentModule = GetModuleNameAlways( (*i), platform, moduleInfo );
         if ( nameOfCurrentModule == moduleName )
@@ -2752,7 +2889,19 @@ GetModuleInfoEntry( const CProjectInfo& projectInfo ,
         }
         ++i;
     }
-    return NULL;
+    return GUCEF_NULL;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CModuleInfoEntry*
+GetModuleInfoEntry( const CProjectInfo& projectInfo ,
+                    const CORE::CString& moduleName ,
+                    const CORE::CString& platform   ,
+                    const CModuleInfo** moduleInfo  )
+{GUCEF_TRACE;
+
+    return GetModuleInfoEntry( projectInfo.modules, moduleName, platform, moduleInfo );
 }
 
 /*---------------------------------------------------------------------------*/
@@ -3607,6 +3756,30 @@ CModuleMetaData::Clear( void )
 
 /*---------------------------------------------------------------------------*/
 
+bool
+CModuleMetaData::Merge( const CModuleMetaData& moduleMetaDataToMergeIn ,
+                        bool onConflictOriginalInfoStays               )
+{GUCEF_TRACE;
+
+    if ( !moduleMetaDataToMergeIn.lastEditBy.IsNULLOrEmpty() )
+        lastEditBy = moduleMetaDataToMergeIn.lastEditBy;
+    
+    MergeStringSet( authors, moduleMetaDataToMergeIn.authors, false );
+
+    MergeStringSet( maintainers, moduleMetaDataToMergeIn.maintainers, false );
+
+    if ( descriptionHeadline.IsNULLOrEmpty() )
+        descriptionHeadline = moduleMetaDataToMergeIn.descriptionHeadline;
+    if ( descriptionDetails.IsNULLOrEmpty() )
+        descriptionDetails = moduleMetaDataToMergeIn.descriptionDetails;
+    if ( license.IsNULLOrEmpty() )
+        license = moduleMetaDataToMergeIn.license;
+
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
 CModuleMetaData&
 CModuleMetaData::operator=( const CModuleMetaData& src ) 
 {GUCEF_TRACE;
@@ -3779,6 +3952,76 @@ CModuleInfo::Clear( void )
     ignoreModule = false;
     hasIgnoreModule = false;
     metadata.Clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleInfo::Merge( const CModuleInfo& moduleInfoToMergeIn ,
+                    bool onConflictOriginalInfoStays       )
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    if ( name.IsNULLOrEmpty() )
+        name = moduleInfoToMergeIn.name;
+    else
+    if ( !onConflictOriginalInfoStays && !moduleInfoToMergeIn.name.IsNULLOrEmpty() )
+        name = moduleInfoToMergeIn.name;
+
+    if ( MODULETYPE_UNDEFINED == moduleType )
+        moduleType = moduleInfoToMergeIn.moduleType;
+    else
+    if ( !onConflictOriginalInfoStays && MODULETYPE_UNDEFINED != moduleInfoToMergeIn.moduleType )
+        moduleType = moduleInfoToMergeIn.moduleType;
+
+    MergeStringSet( tags, moduleInfoToMergeIn.tags, true );
+    MergeStringSet( dependencies, moduleInfoToMergeIn.dependencies, true );
+    MergeStringSet( dependencyIncludeDirs, moduleInfoToMergeIn.dependencyIncludeDirs, true );
+    MergeStringSet( runtimeDependencies, moduleInfoToMergeIn.runtimeDependencies, true );
+        
+
+    if ( -1 == buildOrder )
+        buildOrder = moduleInfoToMergeIn.buildOrder;
+    else
+    if ( !onConflictOriginalInfoStays && -1 != moduleInfoToMergeIn.buildOrder )
+        buildOrder = moduleInfoToMergeIn.buildOrder;
+
+    if ( -1 == buildChain )
+        buildChain = moduleInfoToMergeIn.buildChain;
+    else
+    if ( !onConflictOriginalInfoStays && -1 != moduleInfoToMergeIn.buildChain )
+        buildChain = moduleInfoToMergeIn.buildChain;
+
+    buildChainDependencies.insert( moduleInfoToMergeIn.buildChainDependencies.begin(), moduleInfoToMergeIn.buildChainDependencies.end() );
+
+    if ( !hasConsiderSubDirs )
+    {
+        considerSubDirs = moduleInfoToMergeIn.considerSubDirs;
+        hasConsiderSubDirs = moduleInfoToMergeIn.hasConsiderSubDirs;
+    }
+    else
+    if ( !onConflictOriginalInfoStays && moduleInfoToMergeIn.hasConsiderSubDirs )
+    {
+        considerSubDirs = moduleInfoToMergeIn.considerSubDirs;
+        hasConsiderSubDirs = moduleInfoToMergeIn.hasConsiderSubDirs;
+    }
+
+    if ( !hasIgnoreModule )
+    {
+        ignoreModule = moduleInfoToMergeIn.ignoreModule;
+        hasIgnoreModule = moduleInfoToMergeIn.hasIgnoreModule;
+    }
+    else
+    if ( !onConflictOriginalInfoStays && moduleInfoToMergeIn.hasIgnoreModule )
+    {
+        ignoreModule = moduleInfoToMergeIn.ignoreModule;
+        hasIgnoreModule = moduleInfoToMergeIn.hasIgnoreModule;
+    }
+
+    totalSuccess = metadata.Merge( moduleInfoToMergeIn.metadata, onConflictOriginalInfoStays ) && totalSuccess;
+
+    return totalSuccess;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -3988,6 +4231,51 @@ CModuleInfoEntry::Deserialize( const CORE::CDataNode& domRootNode               
 
 /*---------------------------------------------------------------------------*/
 
+bool
+CModuleInfoEntry::Merge( const CModuleInfoEntry& infoToMergeIn ,
+                         bool onConflictOriginalInfoStays      ) 
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    if ( rootDir.IsNULLOrEmpty() )
+        rootDir = infoToMergeIn.rootDir;
+    else
+    if ( !onConflictOriginalInfoStays && !infoToMergeIn.rootDir.IsNULLOrEmpty() )
+        rootDir = infoToMergeIn.rootDir;
+
+    totalSuccess = metadata.Merge( infoToMergeIn.metadata ) && totalSuccess;
+
+    TModuleInfoMap::const_iterator i = infoToMergeIn.modulesPerPlatform.begin();
+    while ( i != infoToMergeIn.modulesPerPlatform.end() )
+    {
+        const CString& platformToMergeIn = (*i).first;
+        const CModuleInfo& moduleInfoToMergeIn = (*i).second;
+
+        TModuleInfoMap::iterator e = modulesPerPlatform.find( platformToMergeIn );
+        if ( e != modulesPerPlatform.end() )
+        {
+            // We already have info for this platform
+            // we need to merge
+            CModuleInfo& moduleInfo = (*e).second;
+            totalSuccess = moduleInfo.Merge( moduleInfoToMergeIn ) && totalSuccess;
+
+            ++e;
+        }
+        else
+        {
+            // No entry exists yet for this platform so we can just do a simple insert
+            modulesPerPlatform[ platformToMergeIn ] = moduleInfoToMergeIn;
+        }
+
+        ++i;
+    }
+
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
 CORE::CICloneable* 
 CModuleInfoEntry::Clone( void ) const 
 {GUCEF_TRACE;
@@ -4007,7 +4295,9 @@ CModuleInfoEntry::GetClassTypeName( void ) const
 /*---------------------------------------------------------------------------*/
 
 CProjectInfo::CProjectInfo( void ) 
-    : projectName()
+    : CORE::CTSharedObjCreator< CProjectInfo, MT::CMutex >( this )
+    , m_rwLock( true )
+    , projectName()
     , rootDirs()
     , modules()
     , dirProcessingInstructions()
@@ -4020,7 +4310,9 @@ CProjectInfo::CProjectInfo( void )
 /*---------------------------------------------------------------------------*/
 
 CProjectInfo::CProjectInfo( const CProjectInfo& src ) 
-    : projectName( src.projectName )
+    : CORE::CTSharedObjCreator< CProjectInfo, MT::CMutex >( this )
+    , m_rwLock( true )
+    , projectName( src.projectName )
     , rootDirs( src.rootDirs )
     , modules( src.modules )
     , dirProcessingInstructions( src.dirProcessingInstructions )

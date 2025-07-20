@@ -1360,7 +1360,7 @@ ProcessMetrics::OnMetricsTimerCycle( CORE::CNotifier* notifier    ,
             if ( m_gatherGlobalCpuOverallPercentage )
             {
                 static const CORE::CString metricName = "CpuUsePercentage";
-                GUCEF_METRIC_GAUGE( lCpuMetricPrefix + metricName, cpuStats->cpuUsePercentage, 1.0f );
+                GUCEF_METRIC_TIMING( lCpuMetricPrefix + metricName, cpuStats->cpuUsePercentage, 1.0f );
                 ValidateMetricThresholds( CORE::CVariant( cpuStats->cpuUsePercentage ), metricName, CORE::CString::Empty );
             }
 

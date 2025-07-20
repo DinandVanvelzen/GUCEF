@@ -33,6 +33,11 @@
 #define GUCEF_MT_CMUTEX_H
 #endif /* GUCEF_MT_CMUTEX_H ? */
 
+#ifndef GUCEF_MT_CREADWRITELOCK_H
+#include "gucefMT_CReadWriteLock.h"
+#define GUCEF_MT_CREADWRITELOCK_H
+#endif /* GUCEF_MT_CREADWRITELOCK_H ? */
+
 #ifndef GUCEF_CORE_CSTRING_H
 #include "gucefCORE_CString.h"
 #define GUCEF_CORE_CSTRING_H
@@ -114,8 +119,10 @@ class GUCEF_CORE_PUBLIC_CPP CMetricsClientManager : public CIMetricsSystemClient
     /**
      *  Records a timing for a key, at a given frequency
      */
-    virtual void Timing( const CString& key, const UInt32 ms, const Float32 frequency = 1.0f ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual void Timing( const CString& key, const UInt64 ms, const Float32 frequency = 1.0f ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Timing( const CString& key, const UInt32 value, const Float32 frequency = 1.0f ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Timing( const CString& key, const UInt64 value, const Float32 frequency = 1.0f ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Timing( const CString& key, const Float32 value, const Float32 frequency = 1.0f ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Timing( const CString& key, const Float64 value, const Float32 frequency = 1.0f ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool SaveConfig( CDataNode& tree ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -141,7 +148,7 @@ class GUCEF_CORE_PUBLIC_CPP CMetricsClientManager : public CIMetricsSystemClient
     typedef std::map< CString, CIMetricsSystemClientPtr > TMetricsSystemClientPtrMap;
 
     TMetricsSystemClientPtrMap m_clients;
-    MT::CMutex m_dataLock;
+    MT::CReadWriteLock m_rwDataLock;
 };
 
 /*-------------------------------------------------------------------------//
@@ -156,14 +163,3 @@ class GUCEF_CORE_PUBLIC_CPP CMetricsClientManager : public CIMetricsSystemClient
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_CORE_CMETRICSCLIENTMANAGER_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 16-02-2007 :
-        - Dinand: Added this class
-
------------------------------------------------------------------------------*/

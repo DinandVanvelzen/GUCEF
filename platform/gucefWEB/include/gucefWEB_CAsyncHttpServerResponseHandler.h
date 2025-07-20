@@ -63,17 +63,17 @@ class GUCEF_HIDDEN CAsyncHttpServerResponseHandler : public CORE::CTaskConsumer
 
     CAsyncHttpServerResponseHandler();
     CAsyncHttpServerResponseHandler( const CAsyncHttpServerResponseHandler& src );
-    virtual ~CAsyncHttpServerResponseHandler();
+    virtual ~CAsyncHttpServerResponseHandler() GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool OnTaskStart( CORE::CICloneable* taskData ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool OnTaskStart( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
     
-    virtual bool OnTaskCycle( CORE::CICloneable* taskData ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool OnTaskCycle( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
     
-    virtual void OnTaskEnding( CORE::CICloneable* taskdata ,
-                               bool willBeForced           ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnTaskEnding( CORE::CTaskPtr task ,
+                               bool willBeForced   ) GUCEF_VIRTUAL_OVERRIDE;
     
-    virtual void OnTaskEnded( CORE::CICloneable* taskdata ,
-                               bool wasForced             ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnTaskEnded( CORE::CTaskPtr task ,
+                              bool wasForced      ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

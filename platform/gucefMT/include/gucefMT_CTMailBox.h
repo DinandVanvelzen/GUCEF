@@ -29,6 +29,11 @@
 #include <set>
 #include <vector>
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_MT_CMUTEX_H
 #include "gucefMT_CMutex.h"
 #define GUCEF_MT_CMUTEX_H
@@ -186,6 +191,12 @@ class CTMailBox : public virtual MT::CILockable
     UInt32 AmountOfMail( void ) const;
 
     void SetAcceptsNewMail( bool acceptNewMail );
+
+    /**
+     *  Utility function to help a given caller thread to wait until all mail in the mailbox
+     *  has been consumed and the mailbox is empty or the timeout is reached, whichever comes first
+     */
+    TLockStatus WaitForZeroMailInMailbox( Int32 waitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS );
 
     const CMutex& GetLock( void ) const;
 
@@ -518,6 +529,35 @@ CTMailBox< T >::AmountOfMail( void ) const
 
     CScopeMutex lock( m_lock );
     return (UInt32) m_mailQueue.size();
+}
+
+/*--------------------------------------------------------------------------*/
+
+template< typename T >
+TLockStatus
+CTMailBox< T >::WaitForZeroMailInMailbox( Int32 waitTimeoutInMs )
+{GUCEF_TRACE;
+
+    bool hasMail = false;
+    UInt64 tickCount = PrecisionTickCount();
+    do
+    {
+        CScopeMutex lock( m_lock );
+        hasMail = !m_mailQueue.empty();
+        lock.EarlyUnlock();
+
+        if ( hasMail )
+        {
+            PrecisionDelay( 10 );
+            UInt64 newTickCount = PrecisionTickCount();
+            
+            if ( waitTimeoutInMs > 0 && PrecisionTimerTicksToMs( newTickCount - tickCount ) >= waitTimeoutInMs )
+                return TLockStatus::LOCKSTATUS_WAIT_TIMEOUT;
+        }
+    }
+    while ( hasMail );
+
+    return TLockStatus::LOCKSTATUS_OPERATION_SUCCESS;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -105,7 +105,7 @@ CAsyncVfsOperation::GetType( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CAsyncVfsOperation::OnTaskStart( CORE::CICloneable* taskData )
+CAsyncVfsOperation::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     // This is a simplistic task, no bootstrap is required.
@@ -116,13 +116,17 @@ CAsyncVfsOperation::OnTaskStart( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 bool
-CAsyncVfsOperation::OnTaskCycle( CORE::CICloneable* taskData )
+CAsyncVfsOperation::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
+
+    if ( task.IsNULL() )
+        return true;
 
     CORE::CDateTime startTime = CORE::CDateTime::NowUTCDateTime();
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "AsyncVfsOperation(" + CORE::ToString( this ) + "):OnTaskCycle" );
 
-    CAsyncVfsTaskData* syncCallData = static_cast< CAsyncVfsTaskData* >( taskData );
+    CORE::CICloneable* opaqueTaskData = task->GetTaskData();
+    CAsyncVfsTaskData* syncCallData = static_cast< CAsyncVfsTaskData* >( opaqueTaskData );
     if ( GUCEF_NULL == syncCallData )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AsyncVfsOperation:OnTaskCycle: No task data to operate upon" );
@@ -278,8 +282,8 @@ CAsyncVfsOperation::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-CAsyncVfsOperation::OnTaskEnded( CORE::CICloneable* taskData ,
-                                 bool wasForced              )
+CAsyncVfsOperation::OnTaskEnded( CORE::CTaskPtr task ,
+                                 bool wasForced      )
 {GUCEF_TRACE;
 
     // This is a simplistic task, no shutdown or cleanup is required.

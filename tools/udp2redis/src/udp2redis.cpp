@@ -694,7 +694,7 @@ Udp2RedisChannel::RedisConnect( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-Udp2RedisChannel::OnTaskStart( CORE::CICloneable* taskData )
+Udp2RedisChannel::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
 	m_udpSocket = new COMCORE::CUDPSocket( GetPulseGenerator(), false );
@@ -739,7 +739,7 @@ Udp2RedisChannel::OnTaskStart( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 bool
-Udp2RedisChannel::OnTaskCycle( CORE::CICloneable* taskData )
+Udp2RedisChannel::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     // Poll the Redis socket etc,..
@@ -757,8 +757,8 @@ Udp2RedisChannel::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-Udp2RedisChannel::OnTaskEnded( CORE::CICloneable* taskData ,
-                               bool wasForced              )
+Udp2RedisChannel::OnTaskEnded( CORE::CTaskPtr task ,
+                               bool wasForced      )
 {GUCEF_TRACE;
 
     redisAsyncDisconnect( m_redisContext );

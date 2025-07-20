@@ -22,6 +22,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTHREADPOOL_H
+#include "gucefCORE_CThreadPool.h"
+#define GUCEF_CORE_CTHREADPOOL_H
+#endif /* GUCEF_CORE_CTHREADPOOL_H ? */
+
 #ifndef GUCEF_COMCORE_CDNSCACHE_H
 #include "gucefCOMCORE_CDnsCache.h"
 #define GUCEF_COMCORE_CDNSCACHE_H
@@ -88,25 +93,30 @@ CDnsCacheRefreshTaskConsumer::GetClassTypeName( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CDnsCacheRefreshTaskConsumer::OnTaskStart( CORE::CICloneable* taskData )
+CDnsCacheRefreshTaskConsumer::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
-    CDnsCachePtr* ptrPtr = static_cast< CDnsCachePtr* >( taskData );
-    if ( GUCEF_NULL == ptrPtr || (*ptrPtr).IsNULL() )
-        return false;
-    CDnsCachePtr dnsCache = *ptrPtr;
+    if ( !task.IsNULL() )
+    {
+        CORE::CICloneable* opaqueTaskData = task->GetTaskData();
+        CDnsCachePtr* ptrPtr = static_cast< CDnsCachePtr* >( opaqueTaskData );
+        if ( GUCEF_NULL == ptrPtr || (*ptrPtr).IsNULL() )
+            return false;
+        CDnsCachePtr dnsCache = *ptrPtr;
 
-    // Set the task cycle interval
-    RequestTaskCycleDelayInMs( dnsCache->GetAsyncRefreshIntervalInMs() );
-    
-    return true;
+        // Set the task cycle interval
+        RequestTaskCycleDelayInMs( dnsCache->GetAsyncRefreshIntervalInMs() );
+
+        return true;
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CDnsCacheRefreshTaskConsumer::OnTaskEnding( CORE::CICloneable* taskData ,
-                                            bool willBeForced           )
+CDnsCacheRefreshTaskConsumer::OnTaskEnding( CORE::CTaskPtr task ,
+                                            bool willBeForced   )
 {GUCEF_TRACE;
 
 }
@@ -114,34 +124,39 @@ CDnsCacheRefreshTaskConsumer::OnTaskEnding( CORE::CICloneable* taskData ,
 /*-------------------------------------------------------------------------*/
 
 void
-CDnsCacheRefreshTaskConsumer::OnTaskEnded( CORE::CICloneable* taskData ,
-                                           bool wasForced              )
+CDnsCacheRefreshTaskConsumer::OnTaskEnded( CORE::CTaskPtr task ,
+                                           bool wasForced      )
 {GUCEF_TRACE;
 
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CDnsCacheRefreshTaskConsumer: task finished" );
-    CORE::CTaskConsumer::OnTaskEnded( taskData, wasForced );
+    CORE::CTaskConsumer::OnTaskEnded( task, wasForced );
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CDnsCacheRefreshTaskConsumer::OnTaskCycle( CORE::CICloneable* taskData )
+CDnsCacheRefreshTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
-    CDnsCachePtr* ptrPtr = static_cast< CDnsCachePtr* >( taskData );
-    if ( GUCEF_NULL == ptrPtr || (*ptrPtr).IsNULL() )
+    if ( !task.IsNULL() )
+    {
+        CORE::CICloneable* opaqueTaskData = task->GetTaskData();
+        CDnsCachePtr* ptrPtr = static_cast< CDnsCachePtr* >( opaqueTaskData );
+        if ( GUCEF_NULL == ptrPtr || (*ptrPtr).IsNULL() )
+            return false;
+        CDnsCachePtr dnsCache = *ptrPtr;
+
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CDnsCacheRefreshTaskConsumer: Starting refresh cycle" );
+        dnsCache->Refresh();
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CDnsCacheRefreshTaskConsumer: Completed refresh cycle" );
+
+        // Update the task cycle interval
+        RequestTaskCycleDelayInMs( dnsCache->GetAsyncRefreshIntervalInMs() );
+
+        // We are never 'done' as this is an on-going background task
         return false;
-    CDnsCachePtr dnsCache = *ptrPtr;
-
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CDnsCacheRefreshTaskConsumer: Starting refresh cycle" );
-    dnsCache->Refresh();
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CDnsCacheRefreshTaskConsumer: Completed refresh cycle" );
-
-    // Update the task cycle interval
-    RequestTaskCycleDelayInMs( dnsCache->GetAsyncRefreshIntervalInMs() );
-
-    // We are never 'done' as this is an on-going background task
-    return false;
+    }
+    return true; // we are done if the task is NULL, which should not happen
 }
 
 /*-------------------------------------------------------------------------//

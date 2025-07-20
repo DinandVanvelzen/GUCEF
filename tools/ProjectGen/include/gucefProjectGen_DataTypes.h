@@ -30,6 +30,11 @@
 #include <map>
 #include <vector>
 
+#ifndef GUCEF_MT_CREADWRITELOCK_H
+#include "gucefMT_CReadWriteLock.h"
+#define GUCEF_MT_CREADWRITELOCK_H
+#endif /* GUCEF_MT_CREADWRITELOCK_H ? */
+
 #ifndef GUCEF_CORE_CDSTORECODECREGISTRY_H
 #include "CDStoreCodecRegistry.h"
 #define GUCEF_CORE_CDSTORECODECREGISTRY_H
@@ -186,6 +191,9 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleMetaData : public CORE::CIDataNodeSeria
 
     void Clear( void );
 
+    bool Merge( const CModuleMetaData& moduleMetaDataToMergeIn ,
+                bool onConflictOriginalInfoStays = true        );
+
     CModuleMetaData& operator=( const CModuleMetaData& src );
 
     /**
@@ -240,6 +248,9 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo
     CModuleMetaData metadata;                    // module metadata
 
     void Clear( void );
+
+    bool Merge( const CModuleInfo& moduleInfoToMergeIn  ,
+                bool onConflictOriginalInfoStays = true );
     
     CModuleInfo( void );
     CModuleInfo( const CModuleInfo& src );
@@ -277,6 +288,9 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     void SetModuleInfo( CModuleInfo& moduleInfo       ,
                         const CORE::CString& platform );
 
+    bool Merge( const CModuleInfoEntry& infoToMergeIn   ,
+                bool onConflictOriginalInfoStays = true );
+
     CModuleInfoEntry& operator=( const CModuleInfoEntry& src );
 
     /**
@@ -301,16 +315,17 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
 
 /*---------------------------------------------------------------------------*/
 
-typedef std::vector< CModuleInfoEntry > TModuleInfoEntryVector;
-typedef std::pair< const CModuleInfoEntry*, const CModuleInfo* > TModuleInfoEntryPair;
-typedef std::pair< CModuleInfoEntry*, CModuleInfo* > TMutableModuleInfoEntryPair;
-typedef std::vector< TModuleInfoEntryPair > TModuleInfoEntryPairVector;
-typedef std::vector< TMutableModuleInfoEntryPair > TMutableModuleInfoEntryPairVector;
-typedef std::vector< CModuleInfoEntry* > TModuleInfoEntryPtrVector;
-typedef std::vector< const CModuleInfoEntry* > TModuleInfoEntryConstPtrVector;
-typedef std::set< CModuleInfoEntry* > TModuleInfoEntryPtrSet;
-typedef std::set< const CModuleInfoEntry* > TModuleInfoEntryConstPtrSet;
-typedef std::map< int, CModuleInfoEntry* > TModuleInfoEntryPrioMap;
+typedef std::vector< CModuleInfoEntry >                             TModuleInfoEntryVector;
+typedef CORE::CTSharedPtr< TModuleInfoEntryVector, MT::CMutex >     TModuleInfoEntryVectorPtr;
+typedef std::pair< const CModuleInfoEntry*, const CModuleInfo* >    TModuleInfoEntryPair;
+typedef std::pair< CModuleInfoEntry*, CModuleInfo* >                TMutableModuleInfoEntryPair;
+typedef std::vector< TModuleInfoEntryPair >                         TModuleInfoEntryPairVector;
+typedef std::vector< TMutableModuleInfoEntryPair >                  TMutableModuleInfoEntryPairVector;
+typedef std::vector< CModuleInfoEntry* >                            TModuleInfoEntryPtrVector;
+typedef std::vector< const CModuleInfoEntry* >                      TModuleInfoEntryConstPtrVector;
+typedef std::set< CModuleInfoEntry* >                               TModuleInfoEntryPtrSet;
+typedef std::set< const CModuleInfoEntry* >                         TModuleInfoEntryConstPtrSet;
+typedef std::map< int, CModuleInfoEntry* >                          TModuleInfoEntryPrioMap;
 
 /*---------------------------------------------------------------------------*/
 
@@ -340,11 +355,13 @@ typedef struct SDirProcessingInstructions TDirProcessingInstructions;
 
 /*---------------------------------------------------------------------------*/
 
-typedef std::map< CORE::CString, TDirProcessingInstructions > TDirProcessingInstructionsMap;
+typedef std::map< CORE::CString, TDirProcessingInstructions >               TDirProcessingInstructionsMap;
+typedef CORE::CTSharedPtr< TDirProcessingInstructionsMap, MT::CMutex >      TDirProcessingInstructionsMapPtr;
 
 /*---------------------------------------------------------------------------*/
 
-class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo
+class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator< CProjectInfo, MT::CMutex > ,
+                                                 public MT::CILockable
 {
     public:
 
@@ -359,8 +376,23 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo
     
     CProjectInfo( void );
     CProjectInfo( const CProjectInfo& src );
-    virtual ~CProjectInfo();
+    virtual ~CProjectInfo() GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE {GUCEF_TRACE; return this; };
+
+    private:
+
+    MT::CReadWriteLock m_rwLock;
+
+    protected:
+
+    virtual MT::TLockStatus Lock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE {GUCEF_TRACE; return m_rwLock.Lock( lockWaitTimeoutInMs ); };
+    virtual MT::TLockStatus Unlock( void ) const GUCEF_VIRTUAL_OVERRIDE {GUCEF_TRACE; return m_rwLock.Unlock(); };
+    virtual MT::TLockStatus ReadOnlyLock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const {GUCEF_TRACE; return m_rwLock.ReadOnlyLock( lockWaitTimeoutInMs ); };
+    virtual MT::TLockStatus ReadOnlyUnlock( void ) const {GUCEF_TRACE; return m_rwLock.ReadOnlyUnlock(); };
 };
+
+typedef CProjectInfo::TSharedPtrType    CProjectInfoPtr;
 
 /*---------------------------------------------------------------------------*/
 
@@ -526,6 +558,20 @@ MergeModuleInfo( const CModuleInfoEntry& moduleInfo     ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
+MergeModuleInfoEntry( const CModuleInfoEntry& moduleInfoEntryToMergeIn ,
+                      CModuleInfoEntry& mergedModuleInfoEntry          );
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_PROJECTGEN_PUBLIC_CPP
+bool
+MergeModuleInfoEntries( const TModuleInfoEntryVector& moduleInfoEntriesToMergeIn ,
+                        TModuleInfoEntryVector& moduleInfoEntries                );
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_PROJECTGEN_PUBLIC_CPP
+bool
 MergeAllModuleInfoForPlatform( const TModuleInfoEntryVector& allInfo  ,
                                const CORE::CString& platform          ,
                                TModuleInfoVector& allMergedInfo       ,
@@ -540,6 +586,38 @@ MergeAllModuleInfoForPlatform( const TModuleInfoEntryConstPtrSet& allInfo ,
                                const CORE::CString& platform              ,
                                TModuleInfoVector& allMergedInfo           ,
                                TModuleInfoEntryPairVector& mergeLinks     );
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_PROJECTGEN_PUBLIC_CPP
+bool
+MergePlatformDefinition( TPlatformDefinition& targetPlatform          ,
+                         const TPlatformDefinition& platformToMergeIn ,
+                         bool caseSensitive                           );
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_PROJECTGEN_PUBLIC_CPP
+bool
+MergePlatformDefinitionMap( TPlatformDefinitionMap& targetPlatforms          ,
+                            const TPlatformDefinitionMap& platformsToMergeIn ,
+                            bool caseSensitive                               );
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_PROJECTGEN_PUBLIC_CPP
+bool
+MergeDirProcessingInstructions( TDirProcessingInstructions& mergedInstructions    ,
+                                const TDirProcessingInstructions& newInstructions ,
+                                bool caseSensitive                                );
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_PROJECTGEN_PUBLIC_CPP
+bool
+MergeDirProcessingInstructionsMap( TDirProcessingInstructionsMap& mergedInstructions    ,
+                                   const TDirProcessingInstructionsMap& newInstructions ,
+                                   bool caseSensitive                                   );
 
 /*-------------------------------------------------------------------------*/
 
@@ -680,10 +758,19 @@ GetModuleInfoWithUniqueModuleNames( const CModuleInfoEntry& moduleInfoEntry ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 const CModuleInfoEntry*
-GetModuleInfoEntry( const CProjectInfo& projectInfo       ,
-                    const CORE::CString& moduleName       ,
-                    const CORE::CString& platform         ,
-                    const CModuleInfo** moduleInfo = NULL );
+GetModuleInfoEntry( const TModuleInfoEntryVector& moduleInfoEntries ,
+                    const CORE::CString& moduleName                 ,
+                    const CORE::CString& platform                   ,
+                    const CModuleInfo** moduleInfo = GUCEF_NULL     );
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_PROJECTGEN_PUBLIC_CPP
+const CModuleInfoEntry*
+GetModuleInfoEntry( const CProjectInfo& projectInfo             ,
+                    const CORE::CString& moduleName             ,
+                    const CORE::CString& platform               ,
+                    const CModuleInfo** moduleInfo = GUCEF_NULL );
 
 /*-------------------------------------------------------------------------*/
 

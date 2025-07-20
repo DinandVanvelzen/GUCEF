@@ -257,6 +257,15 @@ PrecisionTimerResolution( void );
 /*--------------------------------------------------------------------------*/
 
 /**
+ *  Helper function to convert ticks to milliseconds
+ *  Typically used for the converting the difference of 2 tick counts into a timespan in milliseconds
+ */
+GUCEF_MT_PUBLIC_C Float64
+PrecisionTimerTicksToMs( UInt64 ticks );
+
+/*--------------------------------------------------------------------------*/
+
+/**
  *      Does whatever initialization is required for PrecisionDelay() and
  *      PrecisionTickCount() to perform their magic.
  *      MUST be called at application startup.

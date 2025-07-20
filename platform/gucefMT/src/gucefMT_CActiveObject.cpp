@@ -122,81 +122,160 @@ CActiveObject::IsActive( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-Int32
-CActiveObject::OnActivate( void* thisobject )
+bool
+CActiveObject::CallOnThreadStartWithTimeout( Int32 maxRetries, void* taskData )
 {GUCEF_TRACE;
 
-    CActiveObject* tao = (CActiveObject*) thisobject;
+    bool success = false;
+    Int32 nrOfAttempts = 1;
+    do
+    {
+        try
+        {
+            OnThreadStart( taskData );
+            success = true;
+        }
+        catch ( const timeout_exception& )
+        {
+            success = false;
+            if ( maxRetries <= nrOfAttempts )
+                return false;
+        }
+    }
+    while ( !success && ( maxRetries < 1 || maxRetries <= nrOfAttempts ) );
+    return success;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CActiveObject::CallOnThreadStartedWithTimeout( Int32 maxRetries, void* taskData )
+{GUCEF_TRACE;
+
+    bool success = false;
+    Int32 nrOfAttempts = 1;
+    do
+    {
+        try
+        {
+            OnThreadStarted( taskData );
+            success = true;
+        }
+        catch ( const timeout_exception& )
+        {
+            success = false;
+            if ( maxRetries <= nrOfAttempts )
+                return false;
+        }
+    }
+    while ( !success && ( maxRetries < 1 || maxRetries <= nrOfAttempts ) );
+    return success;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CActiveObject::CallOnThreadEndingWithTimeout( Int32 maxRetries, void* taskData, bool willBeForced )
+{GUCEF_TRACE;
+
+    bool success = false;
+    Int32 nrOfAttempts = 1;
+    do
+    {
+        try
+        {
+            OnThreadEnding( taskData, willBeForced );
+            success = true;
+        }
+        catch ( const timeout_exception& )
+        {
+            success = false;
+            if ( maxRetries <= nrOfAttempts )
+                return false;
+        }
+    }
+    while ( !success && ( maxRetries < 1 || maxRetries <= nrOfAttempts ) );
+    return success;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CActiveObject::OnActivate( void* thisObject )
+{GUCEF_TRACE;
+
+    CActiveObject* tao = (CActiveObject*) thisObject;
     try
     {
-        void* taskdata = tao->GetThreadData();
+        void* taskData = tao->GetThreadData();
+        Int32 maxRetries = 5;
 
-        if ( tao->OnThreadStart( taskdata ) )
+        if ( tao->CallOnThreadStartWithTimeout( maxRetries, taskData ) )
         {
-            tao->OnThreadStarted( taskdata );
-       
-            Float64 ticksPerMs = PrecisionTimerResolution() / 1000.0;
-            UInt64 tickCount = PrecisionTickCount();
-            UInt64 newTickCount = tickCount;
-            Float64 timeDeltaInMs = 0;
+            if ( tao->CallOnThreadStartedWithTimeout( maxRetries, taskData ) )
+            {       
+                Float64 ticksPerMs = PrecisionTimerResolution() / 1000.0;
+                UInt64 tickCount = PrecisionTickCount();
+                UInt64 newTickCount = tickCount;
+                Float64 timeDeltaInMs = 0;
 
-            bool taskfinished = false;
-            while ( !taskfinished && !tao->m_isDeactivationRequested )
-            {
-                // Check if the order has been given to suspend the thread
-                if ( tao->_suspend )
+                bool taskIsFinished = false;
+                while ( !taskIsFinished && !tao->m_isDeactivationRequested )
                 {
-                    ThreadSuspend( tao->_td );
-                }
-
-                // We can do a cycle
-                try
-                {
-                    taskfinished = tao->OnThreadCycle( taskdata );
-                }
-                catch ( const timeout_exception& )
-                {
-                    // if we timed out whatever async thing we were trying to do, 
-                    // just try again next round
-                }
-
-                // check if we are finished
-                if ( !taskfinished )
-                {
-                    // If we are going to do another cycle then make sure we
-                    // stay within the time slice range requested.
-                    // Here we calculate the time that has passed in seconds
-                    newTickCount = PrecisionTickCount();
-                    timeDeltaInMs = ( newTickCount - tickCount ) / ticksPerMs;
-
-                    if ( timeDeltaInMs < tao->m_minimalCycleDeltaInMilliSecs )
+                    // Check if the order has been given to suspend the thread
+                    if ( tao->_suspend )
                     {
-                        PrecisionDelay( tao->m_delayInMilliSecs );
-                        tickCount = PrecisionTickCount();
+                        ThreadSuspend( tao->_td );
                     }
-                    else
+
+                    // We can do a cycle
+                    try
                     {
-                        tickCount = newTickCount;
+                        taskIsFinished = tao->OnThreadCycle( taskData );
+                    }
+                    catch ( const timeout_exception& )
+                    {
+                        // if we timed out whatever async thing we were trying to do, 
+                        // just try again next round, no max nr of attempts
+                    }
+
+                    // check if we are finished
+                    if ( !taskIsFinished )
+                    {
+                        // If we are going to do another cycle then make sure we
+                        // stay within the time slice range requested.
+                        // Here we calculate the time that has passed in seconds
+                        newTickCount = PrecisionTickCount();
+                        timeDeltaInMs = ( newTickCount - tickCount ) / ticksPerMs;
+
+                        if ( timeDeltaInMs < tao->m_minimalCycleDeltaInMilliSecs )
+                        {
+                            PrecisionDelay( tao->m_delayInMilliSecs );
+                            tickCount = PrecisionTickCount();
+                        }
+                        else
+                        {
+                            tickCount = newTickCount;
+                        }
                     }
                 }
             }
-
-            tao->OnThreadEnding( taskdata, false );
         }
-    
+
+        tao->CallOnThreadEndingWithTimeout( maxRetries, taskData, false );    
         tao->_active = false;
         return 1;
     }
     catch ( const std::exception& )
     {
         tao->_active = false;
-        GUCEF_ASSERT_ALWAYS;
+        GUCEF_ASSERT_ALWAYS; // we should not come here: fix your code
         return -1;
     }
     catch ( ... )
     {
         tao->_active = false;
-        GUCEF_ASSERT_ALWAYS;
+        GUCEF_ASSERT_ALWAYS; // we should not come here: fix your code
         return GUCEF_INT32MIN;
     }
 }

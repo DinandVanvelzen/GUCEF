@@ -156,31 +156,39 @@ CAsyncHttpServerRequestHandler::GetType( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CAsyncHttpServerRequestHandler::OnTaskStart( CORE::CICloneable* taskData )
+CAsyncHttpServerRequestHandler::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "AsyncHttpServerRequestHandler(" + CORE::PointerToString( this ) + "):OnTaskStart" );
-
-    CAsyncHttpRequestData* httpRequestData = static_cast< CAsyncHttpRequestData* >( taskData );
-    if ( GUCEF_NULL != httpRequestData )
+    if ( !task.IsNULL() )
     {
-        m_requestHandler = httpRequestData->httpServer->GetRequestHandlerFactory()->Create();
-        if ( m_requestHandler.IsNULL() )
-            return false;
+        CORE::CICloneable* opaqueTaskData = task->GetTaskData();
+        CAsyncHttpRequestData* httpRequestData = static_cast< CAsyncHttpRequestData* >( opaqueTaskData );
+        if ( GUCEF_NULL != httpRequestData )
+        {
+            m_requestHandler = httpRequestData->httpServer->GetRequestHandlerFactory()->Create();
+            if ( m_requestHandler.IsNULL() )
+                return false;
+        }
+        return true;
     }
-    return true;
+    return false; 
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CAsyncHttpServerRequestHandler::OnTaskCycle( CORE::CICloneable* taskData )
+CAsyncHttpServerRequestHandler::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
+
+    if ( task.IsNULL() )
+        return true; // true means we are done
 
     time_t startTime = time( NULL );
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "AsyncHttpServerRequestHandler(" + CORE::PointerToString( this ) + "):OnTaskCycle" );
 
-    CAsyncHttpRequestData* httpRequestData = static_cast< CAsyncHttpRequestData* >( taskData );
+    CORE::CICloneable* opaqueTaskData = task->GetTaskData();
+    CAsyncHttpRequestData* httpRequestData = static_cast< CAsyncHttpRequestData* >( opaqueTaskData );
     if ( GUCEF_NULL == httpRequestData )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AsyncHttpServerRequestHandler(" + CORE::PointerToString( this ) + "):OnTaskCycle: No task data (http request) to operate upon" );
@@ -222,8 +230,8 @@ CAsyncHttpServerRequestHandler::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-CAsyncHttpServerRequestHandler::OnTaskEnding( CORE::CICloneable* taskData ,
-                                              bool willBeForced           )
+CAsyncHttpServerRequestHandler::OnTaskEnding( CORE::CTaskPtr task ,
+                                              bool willBeForced   )
 {GUCEF_TRACE;
 
 }
@@ -231,15 +239,15 @@ CAsyncHttpServerRequestHandler::OnTaskEnding( CORE::CICloneable* taskData ,
 /*-------------------------------------------------------------------------*/
 
 void
-CAsyncHttpServerRequestHandler::OnTaskEnded( CORE::CICloneable* taskData ,
-                                             bool wasForced              )
+CAsyncHttpServerRequestHandler::OnTaskEnded( CORE::CTaskPtr task ,
+                                             bool wasForced      )
 {GUCEF_TRACE;
 
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "AsyncHttpServerRequestHandler(" + CORE::PointerToString( this ) + "):OnTaskEnd" );
 
     m_requestHandler.Unlink();
 
-    CORE::CTaskConsumer::OnTaskEnded( taskData, wasForced );
+    CORE::CTaskConsumer::OnTaskEnded( task, wasForced );
 }
 
 /*-------------------------------------------------------------------------//

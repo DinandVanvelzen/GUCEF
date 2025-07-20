@@ -58,7 +58,7 @@ namespace CORE {
 
 /**
  *  C++98 compatible SFINAE template helper
- *  Allows for checking for the existance of the typedef TContainedType
+ *  Allows for checking for the existence of the typedef TContainedType
  */
 template < class T >
 struct TypeHasContainedType
@@ -78,7 +78,7 @@ struct TypeHasContainedType
 
 /**
  *  C++98 compatible SFINAE template helper
- *  Allows for checking for the existance of the typedef TLockType
+ *  Allows for checking for the existence of the typedef TLockType
  */
 template < class T >
 struct TypeHasLockType
@@ -98,7 +98,7 @@ struct TypeHasLockType
 
 /**
  *  C++98 compatible SFINAE template helper
- *  Allows for checking for the existance of the member function T& T::LinkTo
+ *  Allows for checking for the existence of the member function T& T::LinkTo
  */
 template < class T >
 struct TypeHasMemberFunctionLinkTo
@@ -120,7 +120,7 @@ struct TypeHasMemberFunctionLinkTo
 
 /**
  *  C++98 compatible SFINAE template helper
- *  Allows for checking for the existance of the member function TContainedType* T::GetPointerAlways
+ *  Allows for checking for the existence of the member function TContainedType* T::GetPointerAlways
  */
 template < class T >
 struct TypeHasMemberFunctionGetPointerAlways
@@ -142,7 +142,7 @@ struct TypeHasMemberFunctionGetPointerAlways
 
 /**
  *  C++98 compatible SFINAE template helper
- *  Allows for checking for the existance of the member function MT::CICloneable* T::Clone()
+ *  Allows for checking for the existence of the member function MT::CICloneable* T::Clone()
  */
 template < class T >
 struct TypeHasMemberFunctionClone

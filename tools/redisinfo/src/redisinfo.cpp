@@ -840,7 +840,7 @@ RedisInfoService::ProvideRedisNodesDoc( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-RedisInfoService::OnTaskStart( CORE::CICloneable* taskData )
+RedisInfoService::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     delete m_redisReconnectTimer;
@@ -878,7 +878,7 @@ RedisInfoService::OnTaskStart( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 bool
-RedisInfoService::OnTaskCycle( CORE::CICloneable* taskData )
+RedisInfoService::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     if ( m_redisContext.IsNULL() )
@@ -893,8 +893,8 @@ RedisInfoService::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-RedisInfoService::OnTaskEnding( CORE::CICloneable* taskdata ,
-                                bool willBeForced           )
+RedisInfoService::OnTaskEnding( CORE::CTaskPtr task ,
+                                bool willBeForced   )
 {GUCEF_TRACE;
 
 }
@@ -902,17 +902,17 @@ RedisInfoService::OnTaskEnding( CORE::CICloneable* taskdata ,
 /*-------------------------------------------------------------------------*/
 
 void
-RedisInfoService::OnTaskEnded( CORE::CICloneable* taskData ,
-                               bool wasForced              )
+RedisInfoService::OnTaskEnded( CORE::CTaskPtr task ,
+                               bool wasForced      )
 {GUCEF_TRACE;
 
-    delete m_metricsTimer;
+    GUCEF_DELETE m_metricsTimer;
     m_metricsTimer = GUCEF_NULL;
 
-    delete m_redisReconnectTimer;
+    GUCEF_DELETE m_redisReconnectTimer;
     m_redisReconnectTimer = GUCEF_NULL;
 
-    CORE::CTaskConsumer::OnTaskEnded( taskData, wasForced );
+    CORE::CTaskConsumer::OnTaskEnded( task, wasForced );
 }
 
 /*-------------------------------------------------------------------------*/

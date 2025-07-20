@@ -95,13 +95,14 @@ CRedisClusterKeyCacheUpdateTask::RegisterEventHandlers( void )
 /*-------------------------------------------------------------------------*/
 
 bool 
-CRedisClusterKeyCacheUpdateTask::OnTaskStart( CORE::CICloneable* taskData )
+CRedisClusterKeyCacheUpdateTask::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     CORE::PulseGeneratorPtr pulseGenerator = GetPulseGenerator();
     if ( pulseGenerator.IsNULL() )
         return false;
 
+    GUCEF_DELETE m_indexingTimer;
     m_indexingTimer = GUCEF_NEW CORE::CTimer( pulseGenerator, CRedisClusterKeyCache::Instance()->GetIndexingIntervalInMs() );
 
     RegisterEventHandlers();
@@ -115,7 +116,7 @@ CRedisClusterKeyCacheUpdateTask::OnTaskStart( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 bool
-CRedisClusterKeyCacheUpdateTask::OnTaskCycle( CORE::CICloneable* taskData )
+CRedisClusterKeyCacheUpdateTask::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     m_scanCountSize = CRedisClusterKeyCache::Instance()->GetRedisScanInterationCountSize();
@@ -225,18 +226,18 @@ CRedisClusterKeyCacheUpdateTask::OnIndexingTimerCycle( CORE::CNotifier* notifier
 /*-------------------------------------------------------------------------*/
 
 void
-CRedisClusterKeyCacheUpdateTask::OnTaskEnding( CORE::CICloneable* taskdata ,
-                                               bool willBeForced           )
+CRedisClusterKeyCacheUpdateTask::OnTaskEnding( CORE::CTaskPtr task ,
+                                               bool willBeForced   )
 {GUCEF_TRACE;
 
-    CORE::CTaskConsumer::OnTaskEnding( taskdata, willBeForced );
+    CORE::CTaskConsumer::OnTaskEnding( task, willBeForced );
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CRedisClusterKeyCacheUpdateTask::OnTaskEnded( CORE::CICloneable* taskdata ,
-                                              bool wasForced              )
+CRedisClusterKeyCacheUpdateTask::OnTaskEnded( CORE::CTaskPtr task ,
+                                              bool wasForced      )
 {GUCEF_TRACE;
 
     GUCEF_DELETE m_indexingTimer;

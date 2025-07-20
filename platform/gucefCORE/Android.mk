@@ -160,6 +160,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CFunctionMeta.cpp \
   src/gucefCORE_CFunctionParamMeta.cpp \
   src/gucefCORE_CFunctionRegistry.cpp \
+  src/gucefCORE_CGenericCallbackTaskConsumer.cpp \
   src/gucefCORE_CGenericValueToDataNodeSerializer.cpp \
   src/gucefCORE_CGeoLocation.cpp \
   src/gucefCORE_CGlobalConfigValueList.cpp \
@@ -182,7 +183,6 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CIPluginLoadLogic.cpp \
   src/gucefCORE_CIPluginMetaData.cpp \
   src/gucefCORE_CIPulseGeneratorDriver.cpp \
-  src/gucefCORE_CITaskConsumer.cpp \
   src/gucefCORE_CITime.cpp \
   src/gucefCORE_CIValueMapParserCallbacks.cpp \
   src/gucefCORE_CIValueToDataNodeSerializer.cpp \
@@ -221,6 +221,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CTIOAccessToStlStream.cpp \
   src/gucefCORE_CTIOAccessToStlStreambuff.cpp \
   src/gucefCORE_CTMultiRegistry.cpp \
+  src/gucefCORE_CTaskConsumer.cpp \
   src/gucefCORE_CTaskDelegator.cpp \
   src/gucefCORE_CTaskInfo.cpp \
   src/gucefCORE_CTaskManager.cpp \

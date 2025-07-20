@@ -216,6 +216,12 @@ class GUCEF_MT_PUBLIC_CPP CActiveObject : public virtual MT::CILockable
     UInt32 m_minimalCycleDeltaInMilliSecs;
 
     private:
+
+    bool CallOnThreadStartWithTimeout( Int32 maxRetries, void* taskData );
+    bool CallOnThreadStartedWithTimeout( Int32 maxRetries, void* taskData );
+    bool CallOnThreadEndingWithTimeout( Int32 maxRetries, void* taskData, bool willBeForced );
+
+    private:
     CActiveObject& operator=( const CActiveObject& src );
     static Int32 GUCEF_CALLSPEC_PREFIX OnActivate( void* thisobject ) GUCEF_CALLSPEC_SUFFIX;
 

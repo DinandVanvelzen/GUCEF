@@ -32,8 +32,8 @@
 #endif /* GUCEF_MT_CTMAILBOX_H ? */
 
 #ifndef GUCEF_CORE_CTASKCONSUMER_H
-#include "gucefCORE_CITaskConsumer.h"
-#define GUCEF_CORE_CTASKCONSUMER_H
+#include "gucefCORE_CTaskConsumer.h"
+#define GUCEF_CORE_CIASKCONSUMER_H
 #endif /* GUCEF_CORE_CTASKCONSUMER_H ? */
 
 #ifndef GUCEF_CORE_CTCLONEABLEOBJ_H
@@ -118,15 +118,15 @@ class GUCEF_CORE_PUBLIC_CPP CLoggingTask : public CTaskConsumer ,
 
     protected:
 
-    virtual bool OnTaskStart( CICloneable* taskdata ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool OnTaskStart( CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool OnTaskCycle( CICloneable* taskdata ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool OnTaskCycle( CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnTaskEnding( CORE::CICloneable* taskdata ,
-                               bool willBeForced           ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnTaskEnding( CTaskPtr task     ,
+                               bool willBeForced ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnTaskEnded( CORE::CICloneable* taskdata ,
-                               bool wasForced             ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnTaskEnded( CTaskPtr task  ,
+                              bool wasForced ) GUCEF_VIRTUAL_OVERRIDE;
     
     virtual MT::TLockStatus Lock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE;
     

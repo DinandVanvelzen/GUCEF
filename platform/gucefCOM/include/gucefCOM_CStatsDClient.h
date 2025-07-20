@@ -116,8 +116,10 @@ class GUCEF_COM_PUBLIC_CPP CStatsDClient : public CORE::CTSGNotifier          ,
     /**
      *  Records a timing for a key, at a given frequency
      */
-    virtual void Timing( const CString& key, const UInt32 ms, const Float32 frequency = 1.0f ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual void Timing( const CString& key, const UInt64 ms, const Float32 frequency = 1.0f ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Timing( const CString& key, const UInt32 mvalues, const Float32 frequency = 1.0f ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Timing( const CString& key, const UInt64 value, const Float32 frequency = 1.0f ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Timing( const CString& key, const Float32 value, const Float32 frequency = 1.0f ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual void Timing( const CString& key, const Float64 value, const Float32 frequency = 1.0f ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool SaveConfig( CORE::CDataNode& tree ) const GUCEF_VIRTUAL_OVERRIDE;
 

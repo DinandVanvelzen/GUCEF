@@ -1,6 +1,6 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -17,34 +17,13 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef GUCEF_CORE_CIFUNCTION_H
-#define GUCEF_CORE_CIFUNCTION_H
-
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      INCLUDES                                                           //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_MACROS_H
-#include "gucefCORE_macros.h"   
-#define GUCEF_CORE_MACROS_H
-#endif /* GUCEF_CORE_MACROS_H ? */
-
-#ifndef GUCEF_CORE_SFINAE_UTILS_H
-#include "gucefCORE_SFINAE_utils.h"
-#define GUCEF_CORE_SFINAE_UTILS_H
-#endif /* GUCEF_CORE_SFINAE_UTILS_H ? */
-
-#ifndef GUCEF_CORE_CINAMEDINSTANCE_H
-#include "CINamedInstance.h"
-#define GUCEF_CORE_CINAMEDINSTANCE_H
-#endif /* GUCEF_CORE_CINAMEDINSTANCE_H ? */
-
-#ifndef GUCEF_CORE_CVARIANT_H
-#include "gucefCORE_CVariant.h"
-#define GUCEF_CORE_CVARIANT_H
-#endif /* GUCEF_CORE_CVARIANT_H ? */
+#include "gucefCORE_CFutureResult.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -57,45 +36,86 @@ namespace CORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- *  Interface class for implementation of dynamic functions
- *  Note that while functions can be implemented via templates as well this allows
- *  for runtime config driven data to be applied. In addition this also enables the
- *  use of a plugin model for functions on platforms that support plugin mechanics.
- *  Can also be used to tie-in scripting modules
- */
-class GUCEF_CORE_PUBLIC_CPP CIFunction : public CINamedInstance
-{
-    public:
+CFutureResult::CFutureResult( CTaskPtr task )
+    : m_task( task )
+{GUCEF_TRACE;
 
-    CIFunction( void );
+}
 
-    CIFunction( const CIFunction& src );
+/*-------------------------------------------------------------------------*/
 
-    virtual ~CIFunction();
+CFutureResult::CFutureResult( const CFutureResult& src )
+    : m_task( src.m_task )
+{GUCEF_TRACE;
+    
+}
 
-    CIFunction& operator=( const CIFunction& src );
+/*-------------------------------------------------------------------------*/
 
-    /**
-     *  Executes the function.
-     *  @return 'true' if the function was successfully executed, meaning the intended logic was able to be invoked.
-     */
-    virtual bool ExecuteFunction( const CVariant::VariantVector& params       , 
-                                  const CVariant::VariantVector& functionData ,
-                                  CVariant::VariantVector& functionResults    ) const = 0;
+const CFutureResult&
+CFutureResult::Await( Int32 timeoutInMs ) const
+{GUCEF_TRACE;
 
-    /**
-     *  Obtains meta-data on the function.
-     *  @param requiredParams the numer and type of params that are required for the function to correctly execute
-     */
-    //virtual bool GetFunctionMetaData( CVariant::VariantVector& requiredParams  , 
-    //                                  CVariant::VariantVector& optionalParams  ,
-    //                                  CVariant::VariantVector& functionResults ) const = 0;
-};
+    if ( !m_task.IsNULL() )               
+    {
+        MT::TLockStatus waitStatus = m_task->WaitForTaskToFinish( timeoutInMs );
+        if ( MT::TLockStatus::LOCKSTATUS_OPERATION_FAILED == waitStatus ||
+             MT::TLockStatus::LOCKSTATUS_WAIT_TIMEOUT == waitStatus      )
+        {
+            throw timeout_exception();
+        }
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFutureResult::IsReady( void ) const
+{GUCEF_TRACE;
+
+    if ( !m_task.IsNULL() )               
+    {
+        return m_task->IsTaskInEndState();
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFutureResult::HasNoFuture( void ) const
+{GUCEF_TRACE;
+
+    if ( !m_task.IsNULL() )               
+    {
+        return m_task->IsTaskInErrorState();
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFutureResult::HasAFuture( void ) const
+{GUCEF_TRACE;
+
+    return !HasNoFuture();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTaskPtr
+CFutureResult::GetResult( Int32 timeoutInMs ) const
+{GUCEF_TRACE;
+
+    Await( timeoutInMs );
+    return m_task;
+}
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -107,5 +127,3 @@ class GUCEF_CORE_PUBLIC_CPP CIFunction : public CINamedInstance
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
-
-#endif /* GUCEF_CORE_CIFUNCTION_H ? */

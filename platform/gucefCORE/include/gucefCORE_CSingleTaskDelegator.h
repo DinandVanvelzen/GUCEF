@@ -60,9 +60,8 @@ class GUCEF_CORE_PRIVATE_CPP CSingleTaskDelegator : public CTaskDelegator
     private:
     friend class CThreadPool;
 
-    CSingleTaskDelegator( const TBasicThreadPoolPtr& threadPool ,
-                          const CTaskConsumerPtr& taskConsumer  ,
-                          CICloneable* taskData                 );
+    CSingleTaskDelegator( const ThreadPoolPtr& threadPool ,
+                          const CTaskPtr& task            );
 
     virtual ~CSingleTaskDelegator();
 
@@ -95,15 +94,3 @@ class GUCEF_CORE_PRIVATE_CPP CSingleTaskDelegator : public CTaskDelegator
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_CORE_CSINGLETASKDELEGATOR_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 20-02-2005 :
-        - Dinand: Added this class, it is based on some older C implementation
-          I made once. Ported but not tested.
-
-----------------------------------------------------------------------------*/

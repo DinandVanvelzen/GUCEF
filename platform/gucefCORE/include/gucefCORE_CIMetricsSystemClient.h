@@ -117,6 +117,8 @@ class GUCEF_CORE_PUBLIC_CPP CIMetricsSystemClient : public CIConfigurable  ,
      */
     virtual void Timing( const CString& key, const UInt32 ms, const Float32 frequency = 1.0f ) const = 0;
     virtual void Timing( const CString& key, const UInt64 ms, const Float32 frequency = 1.0f ) const = 0;
+    virtual void Timing( const CString& key, const Float32 value, const Float32 frequency = 1.0f ) const = 0;
+    virtual void Timing( const CString& key, const Float64 value, const Float32 frequency = 1.0f ) const = 0;
 
 };
 

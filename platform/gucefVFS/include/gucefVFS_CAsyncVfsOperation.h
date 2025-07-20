@@ -28,10 +28,10 @@
 
 #include <deque>
 
-#ifndef GUCEF_CORE_CITASKCONSUMER_H
-#include "gucefCORE_CITaskConsumer.h"
-#define GUCEF_CORE_CITASKCONSUMER_H
-#endif /* GUCEF_CORE_CITASKCONSUMER_H ? */
+#ifndef GUCEF_CORE_CTASKCONSUMER_H
+#include "gucefCORE_CTaskConsumer.h"
+#define GUCEF_CORE_CIASKCONSUMER_H
+#endif /* GUCEF_CORE_CTASKCONSUMER_H ? */
 
 #ifndef GUCEF_CORE_CICONFIGURABLE_H
 #include "gucefCORE_CIConfigurable.h"
@@ -84,14 +84,14 @@ class GUCEF_HIDDEN CAsyncVfsOperation : public CORE::CTaskConsumer
 
     CAsyncVfsOperation();
     CAsyncVfsOperation( const CAsyncVfsOperation& src );
-    virtual ~CAsyncVfsOperation();
+    virtual ~CAsyncVfsOperation() GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool OnTaskStart( CORE::CICloneable* taskData ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool OnTaskStart( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
     
-    virtual bool OnTaskCycle( CORE::CICloneable* taskData ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool OnTaskCycle( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
     
-    virtual void OnTaskEnded( CORE::CICloneable* taskData ,
-                              bool wasForced              ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnTaskEnded( CORE::CTaskPtr task ,
+                              bool wasForced      ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

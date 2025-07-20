@@ -50,6 +50,9 @@ namespace GUCEF {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+struct plain_true {};
+struct plain_false {};
+
 template <typename T>
 struct true_or_false_type
 {
@@ -59,15 +62,17 @@ struct true_or_false_type
 };
 
 template <typename T>
-struct true_type : true_or_false_type< T >
+struct false_type : true_or_false_type< T >
 {
-    enum { value = true };
+    typedef plain_false  value_type;
+    enum { value = false };
 };
 
 template <typename T>
-struct false_type : true_or_false_type< T >
+struct true_type : true_or_false_type< T >
 {
-    enum { value = false };
+    typedef plain_false  value_type;
+    enum { value = true };
 };
 
 template <typename T>
@@ -151,6 +156,28 @@ struct EnableIfNot2 {};
 
 template<class T, class T2>
 struct EnableIfNot2< false, false, T, T2 > { typedef T type; typedef T2 type2; };
+
+/*-------------------------------------------------------------------------*/
+
+//
+// Primary template: different types
+template <typename A, typename B>
+struct TypesAreExactlySame
+{
+    typedef struct false_type< A >                  value_type;
+    typedef typename false_type< A >::value_type    plain_value_type;
+    enum { value = value_type::value };
+};
+
+//
+// Specialization: same type
+template <typename T>
+struct TypesAreExactlySame<T, T>
+{
+    typedef struct true_type< T >                   value_type;
+    typedef typename true_type< T >::value_type     plain_value_type;
+    enum { value = value_type::value };
+};
 
 /*-------------------------------------------------------------------------*/
 

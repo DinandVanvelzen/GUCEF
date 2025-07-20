@@ -92,7 +92,7 @@ CRedisClusterKeyPrunerTask::~CRedisClusterKeyPrunerTask()
 /*-------------------------------------------------------------------------*/
 
 bool 
-CRedisClusterKeyPrunerTask::OnTaskStart( CORE::CICloneable* taskData )
+CRedisClusterKeyPrunerTask::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     return true;
@@ -171,10 +171,14 @@ CRedisClusterKeyPrunerTask::DeleteKey( RedisClusterPtr redisCluster, const CORE:
 /*-------------------------------------------------------------------------*/
 
 bool
-CRedisClusterKeyPrunerTask::OnTaskCycle( CORE::CICloneable* taskData )
+CRedisClusterKeyPrunerTask::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
-    CRedisClusterKeyPrunerTaskData* prunerTaskData = static_cast< CRedisClusterKeyPrunerTaskData* >( taskData );
+    if ( task.IsNULL() )
+        return true;
+
+    CORE::CICloneable* opaqueTaskData = task->GetTaskData();
+    CRedisClusterKeyPrunerTaskData* prunerTaskData = static_cast< CRedisClusterKeyPrunerTaskData* >( opaqueTaskData );
     if ( prunerTaskData->redisCluster.IsNULL() )
     {
         // no cluster access, we are done
@@ -220,18 +224,18 @@ CRedisClusterKeyPrunerTask::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-CRedisClusterKeyPrunerTask::OnTaskEnding( CORE::CICloneable* taskdata ,
-                                          bool willBeForced           )
+CRedisClusterKeyPrunerTask::OnTaskEnding( CORE::CTaskPtr task ,
+                                          bool willBeForced   )
 {GUCEF_TRACE;
 
-    CORE::CTaskConsumer::OnTaskEnding( taskdata, willBeForced );
+    CORE::CTaskConsumer::OnTaskEnding( task, willBeForced );
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CRedisClusterKeyPrunerTask::OnTaskEnded( CORE::CICloneable* taskdata ,
-                                              bool wasForced              )
+CRedisClusterKeyPrunerTask::OnTaskEnded( CORE::CTaskPtr task ,
+                                         bool wasForced      )
 {GUCEF_TRACE;
 
 }

@@ -245,21 +245,41 @@ CStatsDClient::Gauge( const CString& key, const Float64 value, const Float32 fre
 /*-------------------------------------------------------------------------*/
 
 void
-CStatsDClient::Timing( const CString& key, const UInt32 ms, const Float32 frequency ) const
+CStatsDClient::Timing( const CString& key, const UInt32 value, const Float32 frequency ) const
 {GUCEF_TRACE;
 
     static const CString statTypeName = "ms";
-    Transmit( key, ms, statTypeName, frequency );
+    Transmit( key, value, statTypeName, frequency );
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CStatsDClient::Timing( const CString& key, const UInt64 ms, const Float32 frequency ) const
+CStatsDClient::Timing( const CString& key, const UInt64 value, const Float32 frequency ) const
 {GUCEF_TRACE;
 
     static const CString statTypeName = "ms";
-    Transmit( key, ms, statTypeName, frequency );
+    Transmit( key, value, statTypeName, frequency );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CStatsDClient::Timing( const CString& key, const Float32 value, const Float32 frequency ) const
+{GUCEF_TRACE;
+
+    static const CString statTypeName = "ms";
+    Transmit( key, value, statTypeName, frequency );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CStatsDClient::Timing( const CString& key, const Float64 value, const Float32 frequency ) const
+{GUCEF_TRACE;
+
+    static const CString statTypeName = "ms";
+    Transmit( key, value, statTypeName, frequency );
 }
 
 /*-------------------------------------------------------------------------*/

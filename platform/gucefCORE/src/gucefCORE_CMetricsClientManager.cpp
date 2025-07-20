@@ -23,10 +23,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MT_CSCOPEMUTEX_H
-#include "gucefMT_CScopeMutex.h"
-#define GUCEF_MT_CSCOPEMUTEX_H
-#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+#ifndef GUCEF_MT_CSCOPERWLOCK_H
+#include "gucefMT_CScopeRwLock.h"
+#define GUCEF_MT_CSCOPERWLOCK_H
+#endif /* GUCEF_MT_CSCOPERWLOCK_H ? */
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -54,7 +54,7 @@ void
 CMetricsClientManager::AddMetricsClient( const CString& name, CIMetricsSystemClientPtr client )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeWriterLock writerLock( m_rwDataLock );
     m_clients[ name ] = client;
 }
 
@@ -66,7 +66,7 @@ CMetricsClientManager::RemoveMetricsClient( CIMetricsSystemClientPtr client )
 
     if ( client.IsNULL() )
         return;
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeWriterLock writerLock( m_rwDataLock );
     m_clients.erase( client->GetName() );
 }
 
@@ -76,7 +76,7 @@ void
 CMetricsClientManager::RemoveMetricsClient( const CString& name )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeWriterLock writerLock( m_rwDataLock );
     m_clients.erase( name );
 }
 
@@ -94,7 +94,7 @@ CMetricsClientManager::ClearMetricsClients( void )
 CMetricsClientManager::CMetricsClientManager( void )
     : CIMetricsSystemClient()
     , m_clients()
-    , m_dataLock()
+    , m_rwDataLock( true )
 {GUCEF_TRACE;
 
 }
@@ -104,7 +104,7 @@ CMetricsClientManager::CMetricsClientManager( void )
 CMetricsClientManager::~CMetricsClientManager()
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeWriterLock writerLock( m_rwDataLock );
     ClearMetricsClients();
 }
 
@@ -114,7 +114,7 @@ bool
 CMetricsClientManager::Open( void )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
 
     bool totalSuccess = true;
     TMetricsSystemClientPtrMap::iterator i = m_clients.begin();
@@ -133,7 +133,7 @@ bool
 CMetricsClientManager::Close( void )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
 
     bool totalSuccess = true;
     TMetricsSystemClientPtrMap::iterator i = m_clients.begin();
@@ -152,7 +152,8 @@ bool
 CMetricsClientManager::SaveConfig( CORE::CDataNode& tree ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     bool totalSuccess = true;
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
@@ -169,7 +170,8 @@ bool
 CMetricsClientManager::LoadConfig( const CORE::CDataNode& treeroot )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     bool totalSuccess = true;
     TMetricsSystemClientPtrMap::iterator i = m_clients.begin();
     while ( i != m_clients.end() )
@@ -206,7 +208,8 @@ void
 CMetricsClientManager::Increment( const CString& key, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
@@ -221,7 +224,8 @@ void
 CMetricsClientManager::Decrement( const CString& key, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
@@ -236,7 +240,8 @@ void
 CMetricsClientManager::Count( const CString& key, const Int32 delta, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
@@ -251,7 +256,8 @@ void
 CMetricsClientManager::Count( const CString& key, const Int64 delta, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
@@ -266,7 +272,8 @@ void
 CMetricsClientManager::Count( const CString& key, const UInt64 delta, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
@@ -281,7 +288,8 @@ void
 CMetricsClientManager::Count( const CString& key, const UInt32 delta, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
@@ -296,7 +304,8 @@ void
 CMetricsClientManager::Count( const CString& key, const CVariant& delta, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
@@ -311,7 +320,8 @@ void
 CMetricsClientManager::Gauge( const CString& key, const Int32 value, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
@@ -326,7 +336,8 @@ void
 CMetricsClientManager::Gauge( const CString& key, const UInt32 value, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
@@ -341,7 +352,8 @@ void
 CMetricsClientManager::Gauge( const CString& key, const Int64 value, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
@@ -356,7 +368,8 @@ void
 CMetricsClientManager::Gauge( const CString& key, const UInt64 value, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
@@ -371,7 +384,8 @@ void
 CMetricsClientManager::Gauge( const CString& key, const Float32 value, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
@@ -386,7 +400,8 @@ void
 CMetricsClientManager::Gauge( const CString& key, const Float64 value, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
@@ -398,14 +413,15 @@ CMetricsClientManager::Gauge( const CString& key, const Float64 value, const Flo
 /*-------------------------------------------------------------------------*/
 
 void
-CMetricsClientManager::Timing( const CString& key, const UInt32 ms, const Float32 frequency ) const
+CMetricsClientManager::Timing( const CString& key, const UInt32 value, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
-        (*i).second->Timing( key, ms, frequency );
+        (*i).second->Timing( key, value, frequency );
         ++i;
     }
 }
@@ -413,14 +429,47 @@ CMetricsClientManager::Timing( const CString& key, const UInt32 ms, const Float3
 /*-------------------------------------------------------------------------*/
 
 void
-CMetricsClientManager::Timing( const CString& key, const UInt64 ms, const Float32 frequency ) const
+CMetricsClientManager::Timing( const CString& key, const UInt64 value, const Float32 frequency ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_dataLock );
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
     TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
     while ( i != m_clients.end() )
     {
-        (*i).second->Timing( key, ms, frequency );
+        (*i).second->Timing( key, value, frequency );
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMetricsClientManager::Timing( const CString& key, const Float32 value, const Float32 frequency ) const
+{GUCEF_TRACE;
+
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
+    TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
+    while ( i != m_clients.end() )
+    {
+        (*i).second->Timing( key, value, frequency );
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMetricsClientManager::Timing( const CString& key, const Float64 value, const Float32 frequency ) const
+{GUCEF_TRACE;
+
+    MT::CScopeReaderLock readerLock( m_rwDataLock );
+
+    TMetricsSystemClientPtrMap::const_iterator i = m_clients.begin();
+    while ( i != m_clients.end() )
+    {
+        (*i).second->Timing( key, value, frequency );
         ++i;
     }
 }
@@ -434,13 +483,4 @@ CMetricsClientManager::Timing( const CString& key, const UInt64 ms, const Float3
 }; /* namespace CORE */
 }; /* namespace GUCEF */
 
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 16-02-2007 :
-        - Dinand: Added this class
-
----------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/

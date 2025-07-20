@@ -3351,7 +3351,7 @@ CPubSubClientSide::IsConnected( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CPubSubClientSide::OnTaskStart( CORE::CICloneable* taskData )
+CPubSubClientSide::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     // IMPORTANT: For thread safety we need to capture the ID of the thread running this side (consumer)
@@ -3441,7 +3441,7 @@ CPubSubClientSide::SetPerformConnectOnTaskStart( bool performConnectOnStart )
 /*-------------------------------------------------------------------------*/
 
 bool
-CPubSubClientSide::OnTaskCycle( CORE::CICloneable* taskData )
+CPubSubClientSide::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     ProcessMailbox();
@@ -3453,11 +3453,11 @@ CPubSubClientSide::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-CPubSubClientSide::OnTaskEnding( CORE::CICloneable* taskdata ,
-                                 bool willBeForced           )
+CPubSubClientSide::OnTaskEnding( CORE::CTaskPtr task ,
+                                 bool willBeForced   )
 {GUCEF_TRACE;
 
-    CORE::CTaskConsumer::OnTaskEnding( taskdata, willBeForced );
+    CORE::CTaskConsumer::OnTaskEnding( task, willBeForced );
 
     if ( willBeForced )
     {
@@ -3486,11 +3486,11 @@ CPubSubClientSide::OnTaskEnding( CORE::CICloneable* taskdata ,
 /*-------------------------------------------------------------------------*/
 
 void
-CPubSubClientSide::OnTaskEnded( CORE::CICloneable* taskData ,
-                                bool wasForced              )
+CPubSubClientSide::OnTaskEnded( CORE::CTaskPtr task ,
+                                bool wasForced      )
 {GUCEF_TRACE;
 
-    CORE::CTaskConsumer::OnTaskEnded( taskData, wasForced );
+    CORE::CTaskConsumer::OnTaskEnded( task, wasForced );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3505,7 +3505,7 @@ CPubSubClientSide::LoadConfig( const CPubSubSideChannelSettingsPtr sideSettings 
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "PubSubClientSide(" + CORE::ToString( this ) +
         "):LoadConfig: Loading new side settings for side: " + m_sideId );
 
-    // (re)loading the side settings could have many reprecussions for the pubsub client it uses
+    // (re)loading the side settings could have many repercussions for the pubsub client it uses
     // as such we get rid of the client if we need to (re)load the config
     MT::CObjectScopeLock lock( this );
     if ( DisconnectPubSubClient( true ) )

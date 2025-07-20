@@ -137,6 +137,7 @@ set( HEADER_FILES
   include/dvstrutils.h
   include/gucefCORE.h
   include/gucefCORE_BasicFunctions.h
+  include/gucefCORE_CASync.h
   include/gucefCORE_CAbstractFactoryBase.h
   include/gucefCORE_CAsciiString.h
   include/gucefCORE_CBasicBracketLoggingFormatter.h
@@ -155,6 +156,7 @@ set( HEADER_FILES
   include/gucefCORE_CDataUriResourceAccessor.h
   include/gucefCORE_CDate.h
   include/gucefCORE_CDateTime.h
+  include/gucefCORE_CDeferredTask.h
   include/gucefCORE_CDirectoryWatcherEvents.h
   include/gucefCORE_CDynamicBufferStringStream.h
   include/gucefCORE_CDynamicBufferSwap.h
@@ -167,6 +169,8 @@ set( HEADER_FILES
   include/gucefCORE_CFunctionMeta.h
   include/gucefCORE_CFunctionParamMeta.h
   include/gucefCORE_CFunctionRegistry.h
+  include/gucefCORE_CFutureResult.h
+  include/gucefCORE_CGenericCallbackTaskConsumer.h
   include/gucefCORE_CGenericValueToDataNodeSerializer.h
   include/gucefCORE_CGeoLocation.h
   include/gucefCORE_CGlobalConfigValueList.h
@@ -190,7 +194,6 @@ set( HEADER_FILES
   include/gucefCORE_CIPluginLoadLogic.h
   include/gucefCORE_CIPluginMetaData.h
   include/gucefCORE_CIPulseGeneratorDriver.h
-  include/gucefCORE_CITaskConsumer.h
   include/gucefCORE_CITime.h
   include/gucefCORE_CIValueMapParserCallbacks.h
   include/gucefCORE_CIValueToDataNodeSerializer.h
@@ -234,6 +237,8 @@ set( HEADER_FILES
   include/gucefCORE_CTLinkedCloneable.h
   include/gucefCORE_CTMailboxForSharedCloneables.h
   include/gucefCORE_CTMultiRegistry.h
+  include/gucefCORE_CTask.h
+  include/gucefCORE_CTaskConsumer.h
   include/gucefCORE_CTaskDelegator.h
   include/gucefCORE_CTaskInfo.h
   include/gucefCORE_CTaskManager.h
@@ -411,6 +416,7 @@ set( SOURCE_FILES
   src/dvmd5utils.c
   src/dvstrutils.cpp
   src/gucefCORE.cpp
+  src/gucefCORE_CASync.cpp
   src/gucefCORE_CAbstractFactoryBase.cpp
   src/gucefCORE_CAsciiString.cpp
   src/gucefCORE_CBasicBracketLoggingFormatter.cpp
@@ -440,6 +446,8 @@ set( SOURCE_FILES
   src/gucefCORE_CFunctionMeta.cpp
   src/gucefCORE_CFunctionParamMeta.cpp
   src/gucefCORE_CFunctionRegistry.cpp
+  src/gucefCORE_CFutureResult.cpp
+  src/gucefCORE_CGenericCallbackTaskConsumer.cpp
   src/gucefCORE_CGenericValueToDataNodeSerializer.cpp
   src/gucefCORE_CGeoLocation.cpp
   src/gucefCORE_CGlobalConfigValueList.cpp
@@ -462,7 +470,6 @@ set( SOURCE_FILES
   src/gucefCORE_CIPluginLoadLogic.cpp
   src/gucefCORE_CIPluginMetaData.cpp
   src/gucefCORE_CIPulseGeneratorDriver.cpp
-  src/gucefCORE_CITaskConsumer.cpp
   src/gucefCORE_CITime.cpp
   src/gucefCORE_CIValueMapParserCallbacks.cpp
   src/gucefCORE_CIValueToDataNodeSerializer.cpp
@@ -501,6 +508,8 @@ set( SOURCE_FILES
   src/gucefCORE_CTIOAccessToStlStream.cpp
   src/gucefCORE_CTIOAccessToStlStreambuff.cpp
   src/gucefCORE_CTMultiRegistry.cpp
+  src/gucefCORE_CTask.cpp
+  src/gucefCORE_CTaskConsumer.cpp
   src/gucefCORE_CTaskDelegator.cpp
   src/gucefCORE_CTaskInfo.cpp
   src/gucefCORE_CTaskManager.cpp

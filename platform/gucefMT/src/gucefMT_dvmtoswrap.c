@@ -826,6 +826,16 @@ PrecisionDelay( UInt32 delayInMs )
 
 /*--------------------------------------------------------------------------*/
 
+Float64
+PrecisionTimerTicksToMs( UInt64 ticks )
+{
+    /* divide the ticks by the time resolution per tick */
+    Float64 milliSecs = ticks / ( PrecisionTimerResolution() / 1000.0 );
+    return milliSecs;
+}
+
+/*--------------------------------------------------------------------------*/
+
 void
 PrecisionTimerInit( void )
 {

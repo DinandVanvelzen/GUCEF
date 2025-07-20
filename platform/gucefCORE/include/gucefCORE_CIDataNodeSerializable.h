@@ -71,8 +71,8 @@ class CDataNode;
 /*-------------------------------------------------------------------------*/
 
 /**
- *  Abstract base class for adding a serialization API to decending classes.
- *  Serialize/Deserialze via the DataNode class as a DOM
+ *  Abstract base class for adding a serialization API to descending classes.
+ *  Serialize/Deserialize via the DataNode class as a DOM
  */
 class GUCEF_CORE_PUBLIC_CPP CIDataNodeSerializable : public CICloneable ,
                                                      public CITypeNamed
@@ -83,7 +83,7 @@ class GUCEF_CORE_PUBLIC_CPP CIDataNodeSerializable : public CICloneable ,
 
     CIDataNodeSerializable( const CIDataNodeSerializable& src );
 
-    virtual ~CIDataNodeSerializable();
+    virtual ~CIDataNodeSerializable() GUCEF_VIRTUAL_OVERRIDE;
 
     CIDataNodeSerializable& operator=( const CIDataNodeSerializable& src );
 
@@ -97,7 +97,7 @@ class GUCEF_CORE_PUBLIC_CPP CIDataNodeSerializable : public CICloneable ,
      *  Attempts to serialize the object to a DOM created out of DataNode objects
      *
      *  @param domRootNode Node that acts as root of the DOM data tree from which to deserialize
-     *  @return whether deserializing the object data from the given DOM was successfull.
+     *  @return whether deserializing the object data from the given DOM was successful.
      */
     virtual bool Deserialize( const CDataNode& domRootNode                  ,
                               const CDataNodeSerializableSettings& settings ) = 0;
@@ -108,7 +108,7 @@ class GUCEF_CORE_PUBLIC_CPP CIDataNodeSerializable : public CICloneable ,
 
 /**
  *  C++98 compatible SFINAE template helper
- *  Allows for checking for the existance of the CIDataNodeSerializable or compatible
+ *  Allows for checking for the existence of the CIDataNodeSerializable or compatible
  *  member function
  *           bool T::Serialize( CDataNode& domRootNode                        ,
  *                              const CDataNodeSerializableSettings& settings ) const
@@ -133,7 +133,7 @@ struct TypeHasMemberFunctionForDataNodeSerialization
 
 /**
  *  C++98 compatible SFINAE template helper
- *  Allows for checking for the existance of the CIDataNodeSerializable or compatible
+ *  Allows for checking for the existence of the CIDataNodeSerializable or compatible
  *  member function
  *           bool T::Deserialize( const CDataNode& domRootNode                  ,
  *                                const CDataNodeSerializableSettings& settings )

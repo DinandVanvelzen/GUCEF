@@ -36,10 +36,10 @@
 #define GUCEF_CORE_CBUSYWAITPULSEGENERATORDRIVER_H
 #endif /* GUCEF_CORE_CBUSYWAITPULSEGENERATORDRIVER_H ? */
 
-#ifndef GUCEF_CORE_CITASKCONSUMER_H
-#include "gucefCORE_CITaskConsumer.h"
-#define GUCEF_CORE_CITASKCONSUMER_H
-#endif /* GUCEF_CORE_CITASKCONSUMER_H ? */
+#ifndef GUCEF_CORE_CTASKCONSUMER_H
+#include "gucefCORE_CTaskConsumer.h"
+#define GUCEF_CORE_CTASKCONSUMER_H
+#endif /* GUCEF_CORE_CTASKCONSUMER_H ? */
 
 #ifndef GUCEF_PATCHER_CPATCHENGINE_H
 #include "gucefPATCHER_CPatchEngine.h"
@@ -67,7 +67,7 @@ class GUCEF_PATCHER_EXPORT_CPP CPatchTaskConsumer : public CORE::CTaskConsumer
     
     CPatchTaskConsumer( void );
     
-    virtual ~CPatchTaskConsumer();
+    virtual ~CPatchTaskConsumer() GUCEF_VIRTUAL_OVERRIDE;
     
     const CString& GetTaskName( void ) const;
 
@@ -77,11 +77,11 @@ class GUCEF_PATCHER_EXPORT_CPP CPatchTaskConsumer : public CORE::CTaskConsumer
     
     static const CString& GetTypeString( void );
     
-    virtual bool OnTaskStart( CORE::CICloneable* taskData ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool OnTaskStart( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
     
-    virtual bool OnTaskCycle( CORE::CICloneable* taskData ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool OnTaskCycle( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
     
-    virtual void OnTaskEnded( CORE::CICloneable* taskData, bool forced ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnTaskEnded( CORE::CTaskPtr task, bool forced ) GUCEF_VIRTUAL_OVERRIDE;
     
     CPatchEngine& GetPatchEngine( void );
     

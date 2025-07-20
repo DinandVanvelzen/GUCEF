@@ -74,7 +74,7 @@ CRedisClusterPubSubClientTopicReader::~CRedisClusterPubSubClientTopicReader()
 /*-------------------------------------------------------------------------*/
 
 bool 
-CRedisClusterPubSubClientTopicReader::OnTaskStart( CORE::CICloneable* taskData )
+CRedisClusterPubSubClientTopicReader::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     return true;
@@ -83,7 +83,7 @@ CRedisClusterPubSubClientTopicReader::OnTaskStart( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 bool
-CRedisClusterPubSubClientTopicReader::OnTaskCycle( CORE::CICloneable* taskData )
+CRedisClusterPubSubClientTopicReader::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     try
@@ -103,8 +103,8 @@ CRedisClusterPubSubClientTopicReader::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-CRedisClusterPubSubClientTopicReader::OnTaskEnding( CORE::CICloneable* taskdata ,
-                                                    bool willBeForced           )
+CRedisClusterPubSubClientTopicReader::OnTaskEnding( CORE::CTaskPtr task ,
+                                                    bool willBeForced   )
 {GUCEF_TRACE;
 
 }
@@ -112,8 +112,8 @@ CRedisClusterPubSubClientTopicReader::OnTaskEnding( CORE::CICloneable* taskdata 
 /*-------------------------------------------------------------------------*/
 
 void
-CRedisClusterPubSubClientTopicReader::OnTaskEnded( CORE::CICloneable* taskdata ,
-                                                   bool wasForced              )
+CRedisClusterPubSubClientTopicReader::OnTaskEnded( CORE::CTaskPtr task ,
+                                                   bool wasForced      )
 {GUCEF_TRACE;
 
 }

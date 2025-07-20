@@ -364,21 +364,27 @@ GUCEF_OSMAIN_BEGIN
         generatorList.push_back( "xml" );
     }
 
-    CProjectInfo projectInfo;
-    ApplyConfigToProject( loadedConfig, projectInfo );
+    CProjectInfoPtr projectInfo = CProjectInfo::CreateSharedObj();
+    if ( projectInfo.IsNULL() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Failed to create ProjectInfo" );
+        return -1;
+    }
+
+    ApplyConfigToProject( loadedConfig, *projectInfo.GetPointerAlways() );
 
     // Set any global dir excludes that where passed as cmd parameters
-    projectInfo.globalDirExcludeList = keyValueList.GetValueAlways( "dirsToIgnore" ).AsString().ParseElements( ';', false );
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "There are " + CORE::ToString( projectInfo.globalDirExcludeList.size() ) + " dirs in the global dir ignore list" );
+    projectInfo->globalDirExcludeList = keyValueList.GetValueAlways( "dirsToIgnore" ).AsString().ParseElements( ';', false );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "There are " + CORE::ToString( projectInfo->globalDirExcludeList.size() ) + " dirs in the global dir ignore list" );
 
-    projectInfo.projectName = keyValueList.GetValueAlways( "projectName" );
+    projectInfo->projectName = keyValueList.GetValueAlways( "projectName" );
 
     bool useProjectInfoCache = CORE::StringToBool( keyValueList.GetValueAlways( "useProjectInfoCache" ) );
     bool projectInfoLoadedFromCache = false;
     if ( useProjectInfoCache )
     {
         CORE::CString cachedInfoPath = CORE::CombinePath( CORE::RelativePath( outputDir ), "Project.xml" );
-        projectInfoLoadedFromCache = DeserializeProjectInfo( projectInfo, cachedInfoPath );
+        projectInfoLoadedFromCache = DeserializeProjectInfo( *projectInfo.GetPointerAlways(), cachedInfoPath );
     }
 
     if ( !projectInfoLoadedFromCache )
@@ -398,7 +404,7 @@ GUCEF_OSMAIN_BEGIN
     while ( n != projectPreProcessors.end() )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Invoking project preprocessor" );
-        (*n)->ProccessProjects( projectInfo  ,
+        (*n)->ProccessProjects( *projectInfo.GetPointerAlways()  ,
                                 outputDir    ,
                                 keyValueList );
         ++n;
@@ -413,7 +419,7 @@ GUCEF_OSMAIN_BEGIN
             if ( !projectInfoLoadedFromCache )
             {
                 CXmlProjectGenerator xmlGenerator;
-                xmlGenerator.GenerateProject( projectInfo                ,
+                xmlGenerator.GenerateProject( *projectInfo.GetPointerAlways()                ,
                                               outputDir                  ,
                                               addToolCompileTimeToOutput ,
                                               keyValueList               );
@@ -423,7 +429,7 @@ GUCEF_OSMAIN_BEGIN
         if ( (*i).Lowercase() == "androidmake" )
         {
             CAndroidMakefileGenerator androidMakefileGenerator;
-            androidMakefileGenerator.GenerateProject( projectInfo                ,
+            androidMakefileGenerator.GenerateProject( *projectInfo.GetPointerAlways()                ,
                                                       outputDir                  ,
                                                       addToolCompileTimeToOutput ,
                                                       keyValueList               );
@@ -432,7 +438,7 @@ GUCEF_OSMAIN_BEGIN
         if ( (*i).Lowercase() == "cmake" )
         {
             CCMakeProjectGenerator cmakeGenerator;
-            cmakeGenerator.GenerateProject( projectInfo                ,
+            cmakeGenerator.GenerateProject( *projectInfo.GetPointerAlways()                ,
                                             outputDir                  ,
                                             addToolCompileTimeToOutput ,
                                             keyValueList               );
@@ -441,7 +447,7 @@ GUCEF_OSMAIN_BEGIN
         if ( (*i).Lowercase() == "premake4" )
         {
             CPremake4ProjectGenerator premake4Generator;
-            premake4Generator.GenerateProject( projectInfo                ,
+            premake4Generator.GenerateProject( *projectInfo.GetPointerAlways()                ,
                                                outputDir                  ,
                                                addToolCompileTimeToOutput ,
                                                keyValueList               );
@@ -450,7 +456,7 @@ GUCEF_OSMAIN_BEGIN
         if ( (*i).Lowercase() == "premake5" )
         {
             CPremake5ProjectGenerator premake5Generator;
-            premake5Generator.GenerateProject( projectInfo                ,
+            premake5Generator.GenerateProject( *projectInfo.GetPointerAlways()                ,
                                                outputDir                  ,
                                                addToolCompileTimeToOutput ,
                                                keyValueList               );
@@ -459,7 +465,7 @@ GUCEF_OSMAIN_BEGIN
         if ( (*i).Lowercase() == "cihelper" )
         {
             CCIHelperGenerator ciHelper;
-            ciHelper.GenerateProject( projectInfo                ,
+            ciHelper.GenerateProject( *projectInfo.GetPointerAlways()                ,
                                       outputDir                  ,
                                       addToolCompileTimeToOutput ,
                                       keyValueList               );
@@ -468,7 +474,7 @@ GUCEF_OSMAIN_BEGIN
         if ( (*i).Lowercase() == "arduinocli" )
         {
             CArduinoCLIGenerator cliHelper;
-            cliHelper.GenerateProject( projectInfo                ,
+            cliHelper.GenerateProject( *projectInfo.GetPointerAlways()                ,
                                        outputDir                  ,
                                        addToolCompileTimeToOutput ,
                                        keyValueList               );

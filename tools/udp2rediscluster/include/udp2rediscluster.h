@@ -29,10 +29,10 @@
 #define GUCEF_MT_CTMAILBOX_H
 #endif /* GUCEF_MT_CTMAILBOX_H ? */
 
-#ifndef GUCEF_CORE_CITASKCONSUMER_H
-#include "gucefCORE_CITaskConsumer.h"
-#define GUCEF_CORE_CITASKCONSUMER_H
-#endif /* GUCEF_CORE_CITASKCONSUMER_H ? */
+#ifndef GUCEF_CORE_CTASKCONSUMER_H
+#include "gucefCORE_CTaskConsumer.h"
+#define GUCEF_CORE_CIASKCONSUMER_H
+#endif /* GUCEF_CORE_CTASKCONSUMER_H ? */
 
 #ifndef GUCEF_COMCORE_CUDPSOCKET_H
 #include "CUDPSocket.h"
@@ -177,17 +177,17 @@ class ClusterChannelRedisWriter : public CORE::CTaskConsumer
     typedef COMCORE::CUDPSocket::TPacketEntry TPacketEntry;
 
     ClusterChannelRedisWriter();
-    virtual ~ClusterChannelRedisWriter();
+    virtual ~ClusterChannelRedisWriter() GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool OnTaskStart( CORE::CICloneable* taskData ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool OnTaskStart( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool OnTaskCycle( CORE::CICloneable* taskData ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool OnTaskCycle( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnTaskEnding( CORE::CICloneable* taskdata ,
-                               bool willBeForced           ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnTaskEnding( CORE::CTaskPtr task ,
+                               bool willBeForced   ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnTaskEnded( CORE::CICloneable* taskdata ,
-                               bool wasForced             ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnTaskEnded( CORE::CTaskPtr task ,
+                              bool wasForced      ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -290,15 +290,15 @@ class Udp2RedisClusterChannel : public CORE::CTaskConsumer
     Udp2RedisClusterChannel( const Udp2RedisClusterChannel& src );
     virtual ~Udp2RedisClusterChannel();
 
-    virtual bool OnTaskStart( CORE::CICloneable* taskData ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool OnTaskStart( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool OnTaskCycle( CORE::CICloneable* taskData ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual bool OnTaskCycle( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnTaskEnding( CORE::CICloneable* taskdata ,
-                               bool willBeForced           ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnTaskEnding( CORE::CTaskPtr task ,
+                               bool willBeForced   ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnTaskEnded( CORE::CICloneable* taskdata ,
-                              bool wasForced              ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnTaskEnded( CORE::CTaskPtr task ,
+                              bool wasForced      ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

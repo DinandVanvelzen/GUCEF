@@ -62,8 +62,8 @@
 #endif /* GUCEF_CORE_CIPULSEGENERATORDRIVER_H ? */
 
 #ifndef GUCEF_CORE_CTASKCONSUMER_H
-#include "gucefCORE_CITaskConsumer.h"
-#define GUCEF_CORE_CTASKCONSUMER_H
+#include "gucefCORE_CTaskConsumer.h"
+#define GUCEF_CORE_CIASKCONSUMER_H
 #endif /* GUCEF_CORE_CTASKCONSUMER_H ? */
 
 #ifndef GUCEF_CORE_CTHREADINFO_H
@@ -100,7 +100,7 @@ class CThreadPool;
  *  CTaskManager class. It should not be used directly.
  *
  *  This class implements an active object that delegates the actual logic to
- *  be threaded to a task consumer implementor. Thus seperating thread lifecycle
+ *  be threaded to a task consumer implementor. Thus separating thread lifecycle
  *  management from task lifecycle management. A delegator can execute as many
  *  tasks by invoking as many consumers as desired without having to (re)create
  *  a thread.
@@ -133,13 +133,17 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
 
     public:
 
-    typedef CTBasicSharedPtr< CThreadPool, MT::CMutex >     TBasicThreadPoolPtr;
+    typedef CTBasicSharedPtr< CThreadPool, MT::CMutex >     ThreadPoolPtr;
     
     CTaskConsumerPtr GetTaskConsumer( void ) const;
 
     PulseGeneratorPtr GetPulseGenerator( void );
 
-    TBasicThreadPoolPtr GetThreadPool( void );
+    ThreadPoolPtr GetThreadPool( void );
+
+    CTaskPtr GetCurrentTask( void ) const;
+
+    UInt32 GetCurrentTaskId( void ) const;
 
     /**
      *  Whether the consumer was provided with any data or was expected to run without a specific handoff of 
@@ -147,20 +151,13 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
      */
     bool HasTaskData( UInt32 taskId ) const;
 
-    /**
-     *  If the consumer was provided with any 'work' data and said data is serializable this can be used to obtain a copy of said data
-     */
-    bool GetSerializedTaskDataCopy( UInt32 taskId                                           , 
-                                    CDataNode& domNode                                      ,
-                                    const CDataNodeSerializableSettings& serializerSettings ) const;
-
     bool GetThreadInfo( CThreadInfo& info ) const;
     
     protected:
     friend class CThreadPool;
     friend class CTaskConsumer;
 
-    CTaskDelegator( const TBasicThreadPoolPtr& threadPool );
+    CTaskDelegator( const ThreadPoolPtr& threadPool );
 
     /**
      *  Startup routine for the task. You should return true if startup succeeded and the task can commence
@@ -169,19 +166,19 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
     virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
-     *  Called after a successfull call to OnTaskStart
+     *  Called after a successful call to OnTaskStart
      */
     virtual void OnThreadStarted( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *  Perform all your main task work in this function.
      *  It will be called repeatedly until true is returned indicating that the task has been completed.
-     *  Thus for ongoing tasks you can write this function to take care of a single interation of the task.
+     *  Thus for ongoing tasks you can write this function to take care of a single iteration of the task.
      */
     virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
-     *  Last chance notification to decended classes of impending end of the tread
+     *  Last chance notification to descended classes of impending end of the tread
      *  If the 'willBeForced' flag is true the thread will be killed next
      *  Since this would be used in cases where the thread is misbehaving one should
      *  keep that in mind in the implementation of this callback
@@ -196,17 +193,15 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
     /**
      *  This is where all the cleanup should be done for task data
      *  Note that this member function will be called from within the spawned thread when ending gracefully
-     *  but in the case of a forcefull termination of the spawned thread this member function will be called
-     *  from the thread that triggered the forcefull termination.
+     *  but in the case of a forceful termination of the spawned thread this member function will be called
+     *  from the thread that triggered the forceful termination.
      */
     virtual void OnThreadEnded( void* taskdata ,
                                 bool forced    ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool ProcessTask( CTaskConsumerPtr taskConsumer ,
-                              CICloneable* taskData         );
+    virtual bool ProcessTask( CTaskPtr task );
 
-    virtual void TaskCleanup( CTaskConsumerPtr taskConsumer ,
-                              CICloneable* taskData         );
+    virtual void TaskCleanup( CTaskPtr task );
 
     /**
      *  Requests that prior to the next task cycle a minimum delay of 'requestedDelayInMs' is observed
@@ -243,16 +238,14 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
 
     protected:
 
-    CTaskDelegator( const TBasicThreadPoolPtr& threadPool ,
-                    const CTaskConsumerPtr& taskConsumer  ,
-                    CICloneable* taskData                 );
+    CTaskDelegator( const ThreadPoolPtr& threadPool ,
+                    const CTaskPtr& task            );
 
-    CTaskConsumerPtr m_taskConsumer;
-    CICloneable* m_taskData;
+    CTaskPtr m_task;
 
     private:
 
-    TBasicThreadPoolPtr m_threadPool;
+    ThreadPoolPtr m_threadPool;
     bool m_consumerBusy;
     bool m_sendRegularPulses;
     Int32 m_immediatePulseTickets;

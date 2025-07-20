@@ -23,6 +23,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_MACROS_H
+#include "gucefCORE_macros.h"
+#define GUCEF_CORE_MACROS_H
+#endif /* GUCEF_CORE_MACROS_H ? */
+
 #ifndef GUCEF_CORE_CDSTORECODECREGISTRY_H
 #include "CDStoreCodecRegistry.h"
 #define GUCEF_CORE_CDSTORECODECREGISTRY_H
@@ -32,11 +37,6 @@
 #include "CDStoreCodecPluginManager.h"
 #define GUCEF_CORE_CDSTORECODECPLUGINMANAGER_H
 #endif /* GUCEF_CORE_CDSTORECODECPLUGINMANAGER_H ? */
-
-#ifndef GUCEF_CORE_MACROS_H
-#include "gucefCORE_macros.h"
-#define GUCEF_CORE_MACROS_H
-#endif /* GUCEF_CORE_MACROS_H ? */
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
@@ -67,6 +67,16 @@
 #include "DVOSWRAP.h"
 #define GUCEF_CORE_DVOSWRAP_H
 #endif /* GUCEF_CORE_DVOSWRAP_H ? */
+
+#ifndef GUCEF_CORE_CCOREGLOBAL_H
+#include "gucefCORE_CCoreGlobal.h"
+#define GUCEF_CORE_CCOREGLOBAL_H
+#endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
+
+#ifndef GUCEF_CORE_CTASKMANAGER_H
+#include "gucefCORE_CTaskManager.h"
+#define GUCEF_CORE_CTASKMANAGER_H
+#endif /* GUCEF_CORE_CTASKMANAGER_H ? */
 
 #ifndef GUCEF_PROJECTGEN_CPROJECTGENGLOBAL_H
 #include "gucefProjectGen_CProjectGenGlobal.h"
@@ -1233,25 +1243,33 @@ AreProcessingInstructionsOnDisk( const CORE::CString& dir )
 
 /*---------------------------------------------------------------------------*/
 
-TDirProcessingInstructions*
-GetProcessingInstructions( CProjectInfo& projectInfo ,
-                           const CORE::CString& dir  ,
-                           bool loadFromDisk         )
+const TDirProcessingInstructions*
+GetProcessingInstructions( const CProjectInfo& projectInfo                          ,
+                           const CORE::CString& dir                                 ,
+                           TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
     // See if we have already stored instructions for this directory
-    TDirProcessingInstructionsMap::iterator i = projectInfo.dirProcessingInstructions.find( dir );
+    TDirProcessingInstructionsMap::const_iterator i = projectInfo.dirProcessingInstructions.find( dir );
     if ( i != projectInfo.dirProcessingInstructions.end() )
     {
         return &( (*i).second );
     }
 
-    if ( loadFromDisk && AreProcessingInstructionsOnDisk( dir ) )
+    // Perhaps it was newly added but not added to the overall collection yet
+    i = newProcessingInstructions.find( dir );
+    if ( i != newProcessingInstructions.end() )
+    {
+        return &( (*i).second );
+    }
+
+    // We have nothing for this directory yet, see if we can find instructions on disk
+    if ( AreProcessingInstructionsOnDisk( dir ) )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Located processing instructions for directory \"" + dir + "\"" );
 
         // See if we can load instructions for this directory
-        TDirProcessingInstructions& instructions = projectInfo.dirProcessingInstructions[ dir ];
+        TDirProcessingInstructions& instructions = newProcessingInstructions[ dir ];
 
         // Load the simple exclude list and put the excludes in the correct list
         TStringVector simpleExcludeList = GetExcludeList( dir );
@@ -1292,7 +1310,7 @@ GetProcessingInstructions( CProjectInfo& projectInfo ,
         return &instructions;
     }
 
-    return NULL;
+    return GUCEF_NULL;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1313,12 +1331,13 @@ GetProcessingInstructions( const CProjectInfo& projectInfo ,
 /*---------------------------------------------------------------------------*/
 
 void
-LoadAllProcessingInstructions( CProjectInfo& projectInfo    ,
-                               const CORE::CString& rootDir )
+LoadAllProcessingInstructions( const CProjectInfo& projectInfo                          ,
+                               const CORE::CString& rootDir                             ,
+                               TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
     // Load instructions for the root dir itself
-    TDirProcessingInstructions* dirInstructions = GetProcessingInstructions( projectInfo, rootDir, true );
+    const TDirProcessingInstructions* dirInstructions = GetProcessingInstructions( projectInfo, rootDir, newProcessingInstructions );
 
     // Recurse through sub-dirs to find more instructions
     CORE::SDI_Data* sdiData = CORE::DI_First_Dir_Entry( rootDir.C_String() );
@@ -1347,7 +1366,7 @@ LoadAllProcessingInstructions( CProjectInfo& projectInfo    ,
                     else
                     if ( NULL != dirInstructions )
                     {
-                        TStringVectorMap::iterator i = dirInstructions->dirExcludeList.find( AllPlatforms );
+                        TStringVectorMap::const_iterator i = dirInstructions->dirExcludeList.find( AllPlatforms );
                         if ( i != dirInstructions->dirExcludeList.end() )
                         {
                             skipSubDir = IsStringInList( (*i).second, true, dirName, true );
@@ -1361,7 +1380,7 @@ LoadAllProcessingInstructions( CProjectInfo& projectInfo    ,
                     if ( !skipSubDir )
                     {
                         // Recurse into sub-dir
-                        LoadAllProcessingInstructions( projectInfo, subRoot );
+                        LoadAllProcessingInstructions( projectInfo, subRoot, newProcessingInstructions );
                     }
                 }
             }
@@ -1374,18 +1393,19 @@ LoadAllProcessingInstructions( CProjectInfo& projectInfo    ,
 /*---------------------------------------------------------------------------*/
 
 void
-ExcludeOrIncludeDirEntriesAsSpecifiedForDir( CProjectInfo& projectInfo     ,
-                                             const CORE::CString& dir      ,
-                                             const CORE::CString& platform ,
-                                             bool applyPlatformChangesOnly ,
-                                             TStringSet& allEntries     )
+ExcludeOrIncludeDirEntriesAsSpecifiedForDir( const CProjectInfo& projectInfo                          ,
+                                             const CORE::CString& dir                                 ,
+                                             const CORE::CString& platform                            ,
+                                             bool applyPlatformChangesOnly                            ,
+                                             TStringSet& allEntries                                   ,
+                                             TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
     // Fetch processing instructions from directory
-    TDirProcessingInstructions* instructionStorage = GetProcessingInstructions( projectInfo, dir, true );
+    const TDirProcessingInstructions* instructionStorage = GetProcessingInstructions( projectInfo, dir, newProcessingInstructions );
 
     // Perform processing of global dir excludes
-    TStringVector::iterator n = projectInfo.globalDirExcludeList.begin();
+    TStringVector::const_iterator n = projectInfo.globalDirExcludeList.begin();
     while ( n != projectInfo.globalDirExcludeList.end() )
     {
         if ( RemoveString( allEntries, (*n) ) )
@@ -1395,7 +1415,7 @@ ExcludeOrIncludeDirEntriesAsSpecifiedForDir( CProjectInfo& projectInfo     ,
         ++n;
     }
 
-    if ( NULL != instructionStorage )
+    if ( GUCEF_NULL != instructionStorage )
     {
         // Carry out the process using the fetched instructions
         ExcludeOrIncludeDirEntriesAsSpecifiedForDir( dir, *instructionStorage, platform, applyPlatformChangesOnly, allEntries );
@@ -1405,17 +1425,18 @@ ExcludeOrIncludeDirEntriesAsSpecifiedForDir( CProjectInfo& projectInfo     ,
 /*---------------------------------------------------------------------------*/
 
 void
-ExcludeFileEntriesAsSpecifiedForDir( CProjectInfo& projectInfo     ,
-                                     const CORE::CString& dir      ,
-                                     const CORE::CString& platform ,
-                                     bool applyPlatformChangesOnly ,
-                                     TStringSet& allEntries     )
+ExcludeFileEntriesAsSpecifiedForDir( const CProjectInfo& projectInfo                          ,
+                                     const CORE::CString& dir                                 ,
+                                     const CORE::CString& platform                            ,
+                                     bool applyPlatformChangesOnly                            ,
+                                     TStringSet& allEntries                                   ,
+                                     TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
     // Fetch processing instructions from directory
-    TDirProcessingInstructions* instructionStorage = GetProcessingInstructions( projectInfo, dir, true );
+    const TDirProcessingInstructions* instructionStorage = GetProcessingInstructions( projectInfo, dir, newProcessingInstructions );
 
-    if ( NULL != instructionStorage )
+    if ( GUCEF_NULL != instructionStorage )
     {
         // Carry out the process using the fetched instructions
         ExcludeFileEntriesAsSpecifiedForDir( *instructionStorage, platform, applyPlatformChangesOnly, allEntries );
@@ -1425,19 +1446,20 @@ ExcludeFileEntriesAsSpecifiedForDir( CProjectInfo& projectInfo     ,
 /*---------------------------------------------------------------------------*/
 
 void
-IncludeFileEntriesAsSpecifiedForDir( CProjectInfo& projectInfo        ,
-                                     const CORE::CString& dir         ,
-                                     const CORE::CString& platform    ,
-                                     const CORE::CString& currentPath ,
-                                     bool applyPlatformChangesOnly    ,
-                                     TStringSetMap& allEntries        ,
-                                     const TStringVector& fileTypes   )
+IncludeFileEntriesAsSpecifiedForDir( const CProjectInfo& projectInfo                          ,
+                                     const CORE::CString& dir                                 ,
+                                     const CORE::CString& platform                            ,
+                                     const CORE::CString& currentPath                         ,
+                                     bool applyPlatformChangesOnly                            ,
+                                     TStringSetMap& allEntries                                ,
+                                     const TStringVector& fileTypes                           ,
+                                     TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
     // Fetch processing instructions from directory
-    TDirProcessingInstructions* instructionStorage = GetProcessingInstructions( projectInfo, dir, true );
+    const TDirProcessingInstructions* instructionStorage = GetProcessingInstructions( projectInfo, dir, newProcessingInstructions );
 
-    if ( NULL != instructionStorage )
+    if ( GUCEF_NULL != instructionStorage )
     {
         // Carry out the process using the fetched instructions
         IncludeFileEntriesAsSpecifiedForDir( *instructionStorage      ,
@@ -1452,50 +1474,56 @@ IncludeFileEntriesAsSpecifiedForDir( CProjectInfo& projectInfo        ,
 /*---------------------------------------------------------------------------*/
 
 void
-ExcludeOrIncludeDirEntriesAsSpecifiedForDir( CProjectInfo& projectInfo ,
-                                             const CORE::CString& dir  ,
-                                             TStringSet& allEntries    )
+ExcludeOrIncludeDirEntriesAsSpecifiedForDir( const CProjectInfo& projectInfo                          ,
+                                             const CORE::CString& dir                                 ,
+                                             TStringSet& allEntries                                   ,
+                                             TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
-    ExcludeOrIncludeDirEntriesAsSpecifiedForDir( projectInfo,
-                                                 dir,
-                                                 CORE::CString(),
-                                                 false,
-                                                 allEntries );
+    ExcludeOrIncludeDirEntriesAsSpecifiedForDir( projectInfo               ,
+                                                 dir                       ,
+                                                 CORE::CString::Empty      ,
+                                                 false                     ,
+                                                 allEntries                ,
+                                                 newProcessingInstructions );
 }
 
 /*---------------------------------------------------------------------------*/
 
 void
-ExcludeFileEntriesAsSpecifiedForDir( CProjectInfo& projectInfo ,
-                                     const CORE::CString& dir  ,
-                                     TStringSet& allEntries    )
+ExcludeFileEntriesAsSpecifiedForDir( const CProjectInfo& projectInfo                          ,
+                                     const CORE::CString& dir                                 ,
+                                     TStringSet& allEntries                                   ,
+                                     TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
-    ExcludeFileEntriesAsSpecifiedForDir( projectInfo     ,
-                                         dir             ,
-                                         CORE::CString() ,
-                                         false           ,
-                                         allEntries      );
+    ExcludeFileEntriesAsSpecifiedForDir( projectInfo               ,
+                                         dir                       ,
+                                         CORE::CString::Empty      ,
+                                         false                     ,
+                                         allEntries                ,
+                                         newProcessingInstructions );
 }
 
 /*---------------------------------------------------------------------------*/
 
 void
-IncludeFileEntriesAsSpecifiedForDir( CProjectInfo& projectInfo        ,
-                                     const CORE::CString& dir         ,
-                                     TStringSetMap& allEntries        ,
-                                     const TStringVector& fileTypes   ,
-                                     const CORE::CString& currentPath )
+IncludeFileEntriesAsSpecifiedForDir( const CProjectInfo& projectInfo                          ,
+                                     const CORE::CString& dir                                 ,
+                                     TStringSetMap& allEntries                                ,
+                                     const TStringVector& fileTypes                           ,
+                                     const CORE::CString& currentPath                         ,
+                                     TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
-    IncludeFileEntriesAsSpecifiedForDir( projectInfo     ,
-                                         dir             ,
-                                         CORE::CString() ,
-                                         currentPath     ,
-                                         false           ,
-                                         allEntries      ,
-                                         fileTypes       );
+    IncludeFileEntriesAsSpecifiedForDir( projectInfo               ,
+                                         dir                       ,
+                                         CORE::CString::Empty      ,
+                                         currentPath               ,
+                                         false                     ,
+                                         allEntries                ,
+                                         fileTypes                 ,
+                                         newProcessingInstructions );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2184,31 +2212,34 @@ GenerateDependencyIncludes( CProjectInfo& projectInfo )
 /*---------------------------------------------------------------------------*/
 
 void
-FindSubDirsWithFileTypes( CProjectInfo& projectInfo          ,
-                          TStringSetMap& fileMap             ,
-                          const TStringVector& fileTypes     ,
-                          const CORE::CString& platform      ,
-                          bool applyOnlyPlatformInstructions ,
-                          const CORE::CString& curRootDir    ,
-                          const CORE::CString& curRootDirSeg )
+FindSubDirsWithFileTypes( const CProjectInfo& projectInfo                          ,
+                          TStringSetMap& fileMap                                   ,
+                          const TStringVector& fileTypes                           ,
+                          const CORE::CString& platform                            ,
+                          bool applyOnlyPlatformInstructions                       ,
+                          const CORE::CString& curRootDir                          ,
+                          const CORE::CString& curRootDirSeg                       ,
+                          TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
     TStringSet fileList;
     PopulateFileListFromDir( projectInfo, curRootDir, fileTypes, fileList, platform );
 
-    // Now we add/substract files based on generator instructions
+    // Now we add/subtract files based on generator instructions
     ExcludeFileEntriesAsSpecifiedForDir( projectInfo                   ,
                                          curRootDir                    ,
                                          platform                      ,
                                          applyOnlyPlatformInstructions ,
-                                         fileList                      );
+                                         fileList                      ,
+                                         newProcessingInstructions     );
     IncludeFileEntriesAsSpecifiedForDir( projectInfo                   ,
                                          curRootDir                    ,
                                          platform                      ,
                                          curRootDirSeg                 ,
                                          applyOnlyPlatformInstructions ,
                                          fileMap                       ,
-                                         fileTypes                     );
+                                         fileTypes                     ,
+                                         newProcessingInstructions     );
 
     if ( fileList.size() > 0 )
     {
@@ -2235,18 +2266,18 @@ FindSubDirsWithFileTypes( CProjectInfo& projectInfo          ,
     TStringSet dirList;
     PopulateDirListFromDir( projectInfo, curRootDir, dirList, platform, false );
 
-    // Now we add/substract dirs based on generator instructions
+    // Now we add/subtract dirs based on generator instructions
     ExcludeOrIncludeDirEntriesAsSpecifiedForDir( projectInfo                   ,
                                                  curRootDir                    ,
                                                  platform                      ,
                                                  applyOnlyPlatformInstructions ,
-                                                 dirList                       );
+                                                 dirList                       ,
+                                                 newProcessingInstructions     );
 
     TStringSet::iterator i = dirList.begin();
     while ( i != dirList.end() )
     {
-        CORE::CString subDir = curRootDir;
-        CORE::AppendToPath( subDir, (*i) );
+        CORE::CString subDir = CORE::CombinePath( curRootDir, (*i) );
 
         // Do not recurse into other module dirs
         if ( !IsDirAProjectDir( subDir ) )
@@ -2261,7 +2292,8 @@ FindSubDirsWithFileTypes( CProjectInfo& projectInfo          ,
                                       platform                      ,
                                       applyOnlyPlatformInstructions ,
                                       subDir                        ,
-                                      subDirSeg                     );
+                                      subDirSeg                     ,
+                                      newProcessingInstructions     );
         }
         ++i;
     }
@@ -2270,7 +2302,7 @@ FindSubDirsWithFileTypes( CProjectInfo& projectInfo          ,
 /*---------------------------------------------------------------------------*/
 
 void
-FillHeaderSubDirIncludes( CProjectInfo& projectInfo         ,
+FillHeaderSubDirIncludes( const CProjectInfo& projectInfo   ,
                           CModuleInfoEntry& moduleInfoEntry ,
                           const CORE::CString& platform     ,
                           TStringSetMap& exclusions         )
@@ -2323,7 +2355,7 @@ FillHeaderSubDirIncludes( CProjectInfo& projectInfo         ,
 /*---------------------------------------------------------------------------*/
 
 void
-FillHeaderSubDirIncludes( CProjectInfo& projectInfo         ,
+FillHeaderSubDirIncludes( const CProjectInfo& projectInfo   ,
                           CModuleInfoEntry& moduleInfoEntry )
 {GUCEF_TRACE;
 
@@ -2355,9 +2387,10 @@ FillHeaderSubDirIncludes( CProjectInfo& projectInfo         ,
 /*---------------------------------------------------------------------------*/
 
 void
-FindSubDirsWithHeaders( CProjectInfo& projectInfo         ,
-                        CModuleInfoEntry& moduleInfoEntry ,
-                        const CORE::CString& platform     )
+FindSubDirsWithHeaders( const CProjectInfo& projectInfo                          ,
+                        CModuleInfoEntry& moduleInfoEntry                        ,
+                        const CORE::CString& platform                            ,
+                        TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
     TStringSetMap fileMap;
@@ -2367,7 +2400,8 @@ FindSubDirsWithHeaders( CProjectInfo& projectInfo         ,
                               platform                  ,
                               false                     ,
                               moduleInfoEntry.rootDir   ,
-                              ""                        );
+                              CORE::CString::Empty      ,
+                              newProcessingInstructions );
 
     if ( !fileMap.empty() )
     {
@@ -2422,16 +2456,18 @@ FindSubDirsWithHeaders( CProjectInfo& projectInfo         ,
 /*---------------------------------------------------------------------------*/
 
 void
-FindSubDirsWithHeaders( CProjectInfo& projectInfo         ,
-                        CModuleInfoEntry& moduleInfoEntry )
+FindSubDirsWithHeaders( const CProjectInfo& projectInfo                          ,
+                        CModuleInfoEntry& moduleInfoEntry                        ,
+                        TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Locating headers which apply to all platforms" );
 
     // Add all generic headers
-    FindSubDirsWithHeaders( projectInfo     ,
-                            moduleInfoEntry ,
-                            AllPlatforms    );
+    FindSubDirsWithHeaders( projectInfo               ,
+                            moduleInfoEntry           ,
+                            AllPlatforms              ,
+                            newProcessingInstructions );
 
     // Add platform specific headers
     const TStringSet& platforms = GetSupportedPlatforms( projectInfo );
@@ -2440,9 +2476,10 @@ FindSubDirsWithHeaders( CProjectInfo& projectInfo         ,
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Locating headers which apply to platform " + (*i) );
 
-        FindSubDirsWithHeaders( projectInfo     ,
-                                moduleInfoEntry ,
-                                (*i)            );
+        FindSubDirsWithHeaders( projectInfo               ,
+                                moduleInfoEntry           ,
+                                (*i)                      ,
+                                newProcessingInstructions );
 
         ++i;
     }
@@ -2457,9 +2494,10 @@ FindSubDirsWithHeaders( CProjectInfo& projectInfo         ,
 /*---------------------------------------------------------------------------*/
 
 void
-FindSubDirsWithSource( CProjectInfo& projectInfo         ,
-                       CModuleInfoEntry& moduleInfoEntry ,
-                       const CORE::CString& platform     )
+FindSubDirsWithSource( const CProjectInfo& projectInfo                          ,
+                       CModuleInfoEntry& moduleInfoEntry                        ,
+                       const CORE::CString& platform                            ,
+                       TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
     TStringSetMap fileMap;
@@ -2469,7 +2507,8 @@ FindSubDirsWithSource( CProjectInfo& projectInfo         ,
                               platform                  ,
                               false                     ,
                               moduleInfoEntry.rootDir   ,
-                              ""                        );
+                              CORE::CString::Empty      ,
+                              newProcessingInstructions );
 
     if ( !fileMap.empty() )
     {
@@ -2525,16 +2564,18 @@ FindSubDirsWithSource( CProjectInfo& projectInfo         ,
 /*---------------------------------------------------------------------------*/
 
 void
-FindSubDirsWithSource( CProjectInfo& projectInfo         ,
-                       CModuleInfoEntry& moduleInfoEntry )
+FindSubDirsWithSource( const CProjectInfo& projectInfo                          ,
+                       CModuleInfoEntry& moduleInfoEntry                        ,
+                       TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Locating sources which apply to all platforms" );
 
     // Add all generic sources
-    FindSubDirsWithSource( projectInfo     ,
-                           moduleInfoEntry ,
-                           AllPlatforms    );
+    FindSubDirsWithSource( projectInfo               ,
+                           moduleInfoEntry           ,
+                           AllPlatforms              ,
+                           newProcessingInstructions );
 
     // Add platform specific source
     const TStringSet& platforms = GetSupportedPlatforms( projectInfo );
@@ -2543,9 +2584,10 @@ FindSubDirsWithSource( CProjectInfo& projectInfo         ,
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Locating sources which apply to platform " + (*i) );
 
-        FindSubDirsWithSource( projectInfo     ,
-                               moduleInfoEntry ,
-                               (*i)            );
+        FindSubDirsWithSource( projectInfo               ,
+                               moduleInfoEntry           ,
+                               (*i)                      ,
+                               newProcessingInstructions );
 
         ++i;
     }
@@ -2554,7 +2596,7 @@ FindSubDirsWithSource( CProjectInfo& projectInfo         ,
 /*---------------------------------------------------------------------------*/
 
 void
-LegacyCMakeProcessProjectDir( CProjectInfo& projectInfo         ,
+LegacyCMakeProcessProjectDir( const CProjectInfo& projectInfo   ,
                               CModuleInfoEntry& moduleInfoEntry )
 {GUCEF_TRACE;
 
@@ -2605,11 +2647,14 @@ LegacyCMakeProcessProjectDir( CProjectInfo& projectInfo         ,
 
 /*---------------------------------------------------------------------------*/
 
-void
-ProcessProjectDir( CProjectInfo& projectInfo                 ,
-                   const CORE::CString& rootDir              ,
-                   TModuleInfoEntryVector& moduleInfoEntries )
+bool
+ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
+                   CORE::CString rootDir                                      ,
+                   TModuleInfoEntryVectorPtr moduleInfoEntries                ,
+                   TDirProcessingInstructionsMapPtr newProcessingInstructions )
 {GUCEF_TRACE;
+
+    MT::CObjectScopeReadOnlyLock projectInfoReaderLock( projectInfo.GetPointerAlways() );
 
     CORE::CString pathToModuleInfoFile = rootDir;
     CORE::AppendToPath( pathToModuleInfoFile, "ModuleInfo.xml" );
@@ -2619,11 +2664,11 @@ ProcessProjectDir( CProjectInfo& projectInfo                 ,
         // load the ModuleInfoEntry entries from the file
         // typically there is only 1 but its possible to have more
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Processing ModuleInfo file " + pathToModuleInfoFile );
-        if ( DeserializeModuleInfo( projectInfo, moduleInfoEntries, pathToModuleInfoFile ) )
+        if ( DeserializeModuleInfo( *projectInfo.GetPointer(), *moduleInfoEntries.GetPointer(), pathToModuleInfoFile ) )
         {
             // Do some extra processing which does not apply to the legacy cmake files...
 
-            if ( !IsAnyLicenseDefined( moduleInfoEntries ) )
+            if ( !IsAnyLicenseDefined( *moduleInfoEntries.GetPointer() ) )
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "No license information is available in the ModuleInfo" );
 
@@ -2641,8 +2686,8 @@ ProcessProjectDir( CProjectInfo& projectInfo                 ,
                         {
                             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Auto detected license: " + detectedLicense );
 
-                            TModuleInfoEntryVector::iterator i = moduleInfoEntries.begin();
-                            while ( i != moduleInfoEntries.end() )
+                            TModuleInfoEntryVector::iterator i = moduleInfoEntries->begin();
+                            while ( i != moduleInfoEntries->end() )
                             {
                                 CModuleInfoEntry& moduleInfoEntry = (*i);
                                 moduleInfoEntry.metadata.license = detectedLicense;
@@ -2657,7 +2702,7 @@ ProcessProjectDir( CProjectInfo& projectInfo                 ,
                 }
             }
 
-            if ( !IsAnySemVerDefined( moduleInfoEntries ) )
+            if ( !IsAnySemVerDefined( *moduleInfoEntries.GetPointer() ) )
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "No semver information is available in the ModuleInfo" );
 
@@ -2675,8 +2720,8 @@ ProcessProjectDir( CProjectInfo& projectInfo                 ,
                         {
                             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Auto detected semver: " + detectedSemVer.ToString() );
 
-                            TModuleInfoEntryVector::iterator i = moduleInfoEntries.begin();
-                            while ( i != moduleInfoEntries.end() )
+                            TModuleInfoEntryVector::iterator i = moduleInfoEntries->begin();
+                            while ( i != moduleInfoEntries->end() )
                             {
                                 CModuleInfoEntry& moduleInfoEntry = (*i);
                                 moduleInfoEntry.metadata.semver = detectedSemVer;
@@ -2691,8 +2736,8 @@ ProcessProjectDir( CProjectInfo& projectInfo                 ,
                 }
             }
 
-            TModuleInfoEntryVector::iterator i = moduleInfoEntries.begin();
-            while ( i != moduleInfoEntries.end() )
+            TModuleInfoEntryVector::iterator i = moduleInfoEntries->begin();
+            while ( i != moduleInfoEntries->end() )
             {
                 CModuleInfoEntry& moduleInfoEntry = (*i);
 
@@ -2717,20 +2762,20 @@ ProcessProjectDir( CProjectInfo& projectInfo                 ,
 
         CModuleInfoEntry moduleInfoEntry;
         moduleInfoEntry.rootDir = rootDir;
-        LegacyCMakeProcessProjectDir( projectInfo, moduleInfoEntry );
-        moduleInfoEntries.push_back( moduleInfoEntry );
+        LegacyCMakeProcessProjectDir( *projectInfo.GetPointer(), moduleInfoEntry );
+        moduleInfoEntries->push_back( moduleInfoEntry );
     }
 
-    TModuleInfoEntryVector::iterator i = moduleInfoEntries.begin();
-    while ( i != moduleInfoEntries.end() )
+    TModuleInfoEntryVector::iterator i = moduleInfoEntries->begin();
+    while ( i != moduleInfoEntries->end() )
     {
         CModuleInfoEntry& moduleInfoEntry = (*i);
 
         // Assign the rootdir to the entry, we don't save this inside the files
         moduleInfoEntry.rootDir = rootDir;
 
-        FindSubDirsWithHeaders( projectInfo, moduleInfoEntry );
-        FindSubDirsWithSource( projectInfo, moduleInfoEntry );
+        FindSubDirsWithHeaders( *projectInfo.GetPointer(), moduleInfoEntry, *newProcessingInstructions.GetPointer() );
+        FindSubDirsWithSource( *projectInfo.GetPointer(), moduleInfoEntry, *newProcessingInstructions.GetPointer() );
 
         // If we have a module name then use it for our logging output
         // we want to be able to see in the log which modules where successfully processed
@@ -2740,6 +2785,8 @@ ProcessProjectDir( CProjectInfo& projectInfo                 ,
 
         ++i;
     }
+
+    return true;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2750,6 +2797,9 @@ PreprocessDir( const CORE::CString& path )
 
     CDirPreprocessorManager& dirPreprocessorManager = CProjectGenGlobal::Instance()->GetDirPreprocessorManager();
     const CDirPreprocessorManager::TDirPreprocessorsList& dirPreprocessorsList = dirPreprocessorManager.GetDirPreprocessors();
+
+    if ( dirPreprocessorsList.empty() )
+        return;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "There are " + CORE::ToString( dirPreprocessorsList.size() ) + " preprocessors registered" );
 
@@ -2771,29 +2821,22 @@ PreprocessDir( const CORE::CString& path )
 /*---------------------------------------------------------------------------*/
 
 void
-LocateAndProcessProjectDirsRecusively( CProjectInfo& projectInfo        ,
-                                       const CORE::CString& topLevelDir )
+LocateModuleDirsRecursively( const CProjectInfo& projectInfo                          ,
+                             const CORE::CString& topLevelDir                         ,
+                             CORE::CStringSet& allProjectDirs                         ,
+                             TDirProcessingInstructionsMap& newProcessingInstructions )
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_EVERYTHING, "Recursively processing directory for module info: " + topLevelDir );
 
-    // Run any custom preprocessing logic thats registered
+    // Run any custom preprocessing logic that's registered
     PreprocessDir( topLevelDir );
 
     // Is this a project dir or some other dir?
     if ( IsDirAProjectDir( topLevelDir ) )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Determined that the following directory is a project directory: " + topLevelDir );
-
-        // Process this dir
-        TModuleInfoEntryVector moduleInfoEntries;
-        ProcessProjectDir( projectInfo, topLevelDir, moduleInfoEntries );
-        TModuleInfoEntryVector::iterator i = moduleInfoEntries.begin();
-        while ( i != moduleInfoEntries.end() )
-        {
-            projectInfo.modules.push_back( (*i) );
-            ++i;
-        }
+        allProjectDirs.insert( topLevelDir );
     }
 
     // Get all subdir's
@@ -2803,7 +2846,7 @@ LocateAndProcessProjectDirsRecusively( CProjectInfo& projectInfo        ,
     // Add/subtract dirs from the list based on generator instructions
     // This early application (before module definition) of processing instructions allows us
     // to limit the number of directories that need to be processed and thus speed things up a bit
-    ExcludeOrIncludeDirEntriesAsSpecifiedForDir( projectInfo, topLevelDir, dirList );
+    ExcludeOrIncludeDirEntriesAsSpecifiedForDir( projectInfo, topLevelDir, dirList, newProcessingInstructions );
 
     // Process all sub-dirs
     TStringSet::iterator i = dirList.begin();
@@ -2812,7 +2855,7 @@ LocateAndProcessProjectDirsRecusively( CProjectInfo& projectInfo        ,
         CORE::CString subDir = topLevelDir;
         CORE::AppendToPath( subDir, (*i) );
 
-        LocateAndProcessProjectDirsRecusively( projectInfo, subDir );
+        LocateModuleDirsRecursively( projectInfo, subDir, allProjectDirs, newProcessingInstructions );
         ++i;
     }
 }
@@ -3682,6 +3725,84 @@ FlagTaggedModulesToIgnoreAsSpecified( CProjectInfo& projectInfo      ,
 
 /*-------------------------------------------------------------------------*/
 
+bool
+ProcessModuleInformation_MergeASyncTaskResult( CORE::CTaskPtr processModuleDirTask                        ,
+                                               bool processModuleDirResult                                ,
+                                               CProjectInfoPtr projectInfo                                ,
+                                               CORE::CString rootDir                                      ,
+                                               TModuleInfoEntryVectorPtr newModuleInfoEntries             ,
+                                               TDirProcessingInstructionsMapPtr newProcessingInstructions )
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    MT::CObjectScopeLock projectInfoWriterLock( projectInfo.GetPointerAlways() );
+
+    if ( !newProcessingInstructions.IsNULL() )
+        totalSuccess = MergeDirProcessingInstructionsMap( projectInfo->dirProcessingInstructions, (*newProcessingInstructions), true ) && totalSuccess;
+
+    if ( !newModuleInfoEntries.IsNULL() )
+        totalSuccess = MergeModuleInfoEntries( (*newModuleInfoEntries), projectInfo->modules ) && totalSuccess;
+
+    return totalSuccess;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+ProcessModuleInformation( CORE::ThreadPoolPtr threadPool        ,
+                          CProjectInfoPtr projectInfo           ,
+                          const CORE::CStringSet& allModuleDirs )
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    CORE::CASync asyncTasks( threadPool );
+    CORE::CStringSet::const_iterator p = allModuleDirs.begin();
+    while ( p != allModuleDirs.end() )
+    {
+        CORE::CString moduleDir = (*p);
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Queueing processing task for module dir: " + moduleDir );
+
+        // queue task chain for this module dir
+        TModuleInfoEntryVectorPtr newModuleInfoEntries = TModuleInfoEntryVectorPtr( GUCEF_NEW TModuleInfoEntryVector() );
+        TDirProcessingInstructionsMapPtr newProcessingInstructions = TDirProcessingInstructionsMapPtr( GUCEF_NEW TDirProcessingInstructionsMap() );
+        
+        CORE::CFutureResult future = asyncTasks.QueueCallback( &ProcessProjectDir        ,
+                                                               projectInfo               ,
+                                                               moduleDir                 ,
+                                                               newModuleInfoEntries      , 
+                                                               newProcessingInstructions ).ThenPassToCallback( &ProcessModuleInformation_MergeASyncTaskResult );
+        if ( future.HasNoFuture() )
+        {
+            totalSuccess = false;
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Encountered an error queueing processing task for module dir: " + moduleDir + " - TaskStatus: " + future.GetResult()->GetTaskStatusString() );
+            asyncTasks.ClearChain();
+        }
+
+        ++p;
+    }
+
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Waiting for all processing tasks to finish for discovered modules" );
+    while ( !threadPool->WaitForAllTasksToFinish( 5000 ) )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Waiting for processing tasks to finish for discovered modules" );
+    }
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Processing tasks all finished for the discovered modules" );
+
+    //// Process this dir
+    //TModuleInfoEntryVector moduleInfoEntries;
+    //ProcessProjectDir( projectInfo, moduleDIr, moduleInfoEntries );
+    //TModuleInfoEntryVector::iterator i = moduleInfoEntries.begin();
+    //while ( i != moduleInfoEntries.end() )
+    //{
+    //    projectInfo.modules.push_back( (*i) );
+    //    ++i;
+    //}
+}
+
+/*-------------------------------------------------------------------------*/
+
 CDirCrawlingProjectInfoGatherer::CDirCrawlingProjectInfoGatherer( void )
 {GUCEF_TRACE;
 
@@ -3697,48 +3818,64 @@ CDirCrawlingProjectInfoGatherer::~CDirCrawlingProjectInfoGatherer()
 /*-------------------------------------------------------------------------*/
 
 bool
-CDirCrawlingProjectInfoGatherer::GatherInfo( const TStringVector& rootDirs  ,
-                                             CProjectInfo& projectInfo      ,
-                                             const CORE::CValueList& params )
+CDirCrawlingProjectInfoGatherer::GatherInfo( const TStringVector& rootDirs        ,
+                                             CProjectInfoPtr projectInfo          ,
+                                             const CORE::CValueList& params       ,
+                                             const CORE::CString& threadPoolToUse )
 {GUCEF_TRACE;
 
+    m_threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( threadPoolToUse );
+    m_threadPool->SetNrOfWorkerThreadsToLogicalCPUs( 1 );
+    //m_threadPool->SetDesiredMinNrOfWorkerThreads( 1 );
+
     // Gather all processing instructions
+    TDirProcessingInstructionsMap newProcessingInstructions;
     TStringVector::const_iterator i = rootDirs.begin();
     while ( i != rootDirs.end() )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Recursively loading all processing instructions for root directory \"" + (*i) + "\"" );
-        LoadAllProcessingInstructions( projectInfo, CORE::RelativePath( (*i) ) );
+        LoadAllProcessingInstructions( *projectInfo.GetPointerAlways(), CORE::RelativePath( (*i) ), newProcessingInstructions );
         ++i;
     }
+    MergeDirProcessingInstructionsMap( projectInfo->dirProcessingInstructions, newProcessingInstructions, true );
+    newProcessingInstructions.clear();
 
     // Gather all module information
+    CORE::CStringSet allModuleDirs;
     i = rootDirs.begin();
     while ( i != rootDirs.end() )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Identifying all modules for root directory \"" + (*i) + "\"" );
-        projectInfo.rootDirs.push_back( CORE::RelativePath( (*i), true ) );
-        LocateAndProcessProjectDirsRecusively( projectInfo, CORE::RelativePath( (*i) ) );
+
+        CORE::CString resolvedPath = CORE::RelativePath( (*i), true );
+        projectInfo->rootDirs.push_back( resolvedPath );
+
+        LocateModuleDirsRecursively( *projectInfo.GetPointerAlways(), resolvedPath, allModuleDirs, newProcessingInstructions );
+
         ++i;
     }
+    MergeDirProcessingInstructionsMap( projectInfo->dirProcessingInstructions, newProcessingInstructions, true );
+
+    ProcessModuleInformation( m_threadPool, projectInfo, allModuleDirs );
 
     // Merge headers and code from integration locations into modules
-    MergeIntegrationLocationsIntoModule( projectInfo );
+    MergeIntegrationLocationsIntoModule( *projectInfo.GetPointerAlways() );
 
     // Merge linker dependencies from binary packages into modules
-    MergeBinaryPackageLinkerDepsIntoModule( projectInfo );
+    MergeBinaryPackageLinkerDepsIntoModule( *projectInfo.GetPointerAlways() );
 
     // By default no modules are ignored but if so specified tags can cause a module to be set to ignore
     // This is just an advisory flag and it is up to the generator backends to not include the module
     // in the output while still ensuring the build remains functional
-    FlagTaggedModulesToIgnoreAsSpecified( projectInfo, params );
+    FlagTaggedModulesToIgnoreAsSpecified( *projectInfo.GetPointerAlways(), params );
 
     // Based on all the information we have gathered we can now determine the correct build order
     // for all platforms
-    DetermineBuildOrderForAllModules( projectInfo );
+    DetermineBuildOrderForAllModules( *projectInfo.GetPointerAlways() );
 
     // Now we can generate all the include paths
     // this functionality relies on the build orders having been determined ahead of time
-    GenerateDependencyIncludes( projectInfo );
+    GenerateDependencyIncludes( *projectInfo.GetPointerAlways() );
 
     return true;
 }

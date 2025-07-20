@@ -24,10 +24,10 @@
 
 #include <queue>
 
-#ifndef GUCEF_CORE_CITASKCONSUMER_H
-#include "gucefCORE_CITaskConsumer.h"
-#define GUCEF_CORE_CITASKCONSUMER_H
-#endif /* GUCEF_CORE_CITASKCONSUMER_H ? */
+#ifndef GUCEF_CORE_CTASKCONSUMER_H
+#include "gucefCORE_CTaskConsumer.h"
+#define GUCEF_CORE_CIASKCONSUMER_H
+#endif /* GUCEF_CORE_CTASKCONSUMER_H ? */
 
 #ifndef GUCEF_CORE_DVCPPFILEUTILS_H
 #include "dvcppfileutils.h"

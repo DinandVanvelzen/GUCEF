@@ -53,11 +53,20 @@ namespace CORE {
     if ( 0 == strcmp( taskStatusStr, "TASKDATA_INVALID" ) )
         return ETaskStatus::TASKSTATUS_TASKDATA_INVALID;
 
+    if ( 0 == strcmp( taskStatusStr, "TASK_WITH_TYPE_EXISTS" ) )
+        return ETaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS;    
+
+    if ( 0 == strcmp( taskStatusStr, "TASK_CHAINING_FAILED" ) )
+        return ETaskStatus::TASKSTATUS_TASK_CHAINING_FAILED; 
+    
     if ( 0 == strcmp( taskStatusStr, "RESOURCE_NOT_AVAILABLE" ) )
         return ETaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
 
     if ( 0 == strcmp( taskStatusStr, "RESOURCE_LIMIT_REACHED" ) )
         return ETaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;       
+
+    if ( 0 == strcmp( taskStatusStr, "QUEUEING_FAILED" ) )
+        return ETaskStatus::TASKSTATUS_QUEUEING_FAILED;
 
     if ( 0 == strcmp( taskStatusStr, "SETUP" ) )
         return ETaskStatus::TASKSTATUS_SETUP;
@@ -86,6 +95,9 @@ namespace CORE {
     if ( 0 == strcmp( taskStatusStr, "STOPPED" ) )
         return ETaskStatus::TASKSTATUS_STOPPED;        
 
+    if ( 0 == strcmp( taskStatusStr, "KILLED" ) )
+        return ETaskStatus::TASKSTATUS_KILLED; 
+
     if ( 0 == strcmp( taskStatusStr, "FINISHED" ) )
         return ETaskStatus::TASKSTATUS_FINISHED;        
 
@@ -111,8 +123,11 @@ TaskStatusToTaskStatusString( TTaskStatus taskStatus )
     {
         case ETaskStatus::TASKSTATUS_TASKTYPE_INVALID: return "TASKTYPE_INVALID";
         case ETaskStatus::TASKSTATUS_TASKDATA_INVALID: return "TASKDATA_INVALID";
+        case ETaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS: return "TASK_WITH_TYPE_EXISTS";
+        case ETaskStatus::TASKSTATUS_TASK_CHAINING_FAILED: return "TASK_CHAINING_FAILED";
         case ETaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE: return "RESOURCE_NOT_AVAILABLE";
         case ETaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED: return "RESOURCE_LIMIT_REACHED";
+        case ETaskStatus::TASKSTATUS_QUEUEING_FAILED: return "QUEUEING_FAILED";
         case ETaskStatus::TASKSTATUS_SETUP_FAILED: return "SETUP_FAILED";
         case ETaskStatus::TASKSTATUS_SETUP: return "SETUP";
         case ETaskStatus::TASKSTATUS_QUEUED: return "QUEUED";
@@ -122,6 +137,7 @@ TaskStatusToTaskStatusString( TTaskStatus taskStatus )
         case ETaskStatus::TASKSTATUS_PAUSED: return "PAUSED";
         case ETaskStatus::TASKSTATUS_RESUMED: return "RESUMED";
         case ETaskStatus::TASKSTATUS_STOPPED: return "STOPPED";
+        case ETaskStatus::TASKSTATUS_KILLED: return "KILLED";
         case ETaskStatus::TASKSTATUS_FINISHED: return "FINISHED";
 
         default:
@@ -132,6 +148,28 @@ TaskStatusToTaskStatusString( TTaskStatus taskStatus )
     }
 }
 
+/*-------------------------------------------------------------------------*/
+
+bool
+TaskStatusIsAnEndState( TTaskStatus taskStatus )
+{GUCEF_TRACE;
+
+    switch ( taskStatus )
+    {
+        case ETaskStatus::TASKSTATUS_TASKTYPE_INVALID:
+        case ETaskStatus::TASKSTATUS_TASKDATA_INVALID:
+        case ETaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS:
+        case ETaskStatus::TASKSTATUS_TASK_CHAINING_FAILED:
+        case ETaskStatus::TASKSTATUS_QUEUEING_FAILED:
+        case ETaskStatus::TASKSTATUS_STOPPED:
+        case ETaskStatus::TASKSTATUS_KILLED:
+        case ETaskStatus::TASKSTATUS_FINISHED:
+            return true;
+
+        default:
+            return false;
+    }
+}
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

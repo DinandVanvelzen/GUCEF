@@ -73,7 +73,7 @@ CStoragePubSubClientTopicVfsTask::~CStoragePubSubClientTopicVfsTask()
 /*-------------------------------------------------------------------------*/
 
 bool 
-CStoragePubSubClientTopicVfsTask::OnTaskStart( CORE::CICloneable* taskData )
+CStoragePubSubClientTopicVfsTask::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     return true;
@@ -82,7 +82,7 @@ CStoragePubSubClientTopicVfsTask::OnTaskStart( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 bool
-CStoragePubSubClientTopicVfsTask::OnTaskCycle( CORE::CICloneable* taskData )
+CStoragePubSubClientTopicVfsTask::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
     m_ownerTopic->PerformASyncVfsWork();
@@ -92,8 +92,8 @@ CStoragePubSubClientTopicVfsTask::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
 
 void
-CStoragePubSubClientTopicVfsTask::OnTaskEnding( CORE::CICloneable* taskdata ,
-                                                bool willBeForced           )
+CStoragePubSubClientTopicVfsTask::OnTaskEnding( CORE::CTaskPtr task ,
+                                                bool willBeForced   )
 {GUCEF_TRACE;
 
 }
@@ -101,8 +101,8 @@ CStoragePubSubClientTopicVfsTask::OnTaskEnding( CORE::CICloneable* taskdata ,
 /*-------------------------------------------------------------------------*/
 
 void
-CStoragePubSubClientTopicVfsTask::OnTaskEnded( CORE::CICloneable* taskdata ,
-                                               bool wasForced              )
+CStoragePubSubClientTopicVfsTask::OnTaskEnded( CORE::CTaskPtr task ,
+                                               bool wasForced      )
 {GUCEF_TRACE;
 
     m_ownerTopic->OnEndOfASyncVfsWork();

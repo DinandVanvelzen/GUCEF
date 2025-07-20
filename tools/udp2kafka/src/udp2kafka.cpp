@@ -1107,7 +1107,7 @@ Udp2KafkaChannel::ConvertKafkaConsumerStartOffset( CORE::Int64 offset )
 /*-------------------------------------------------------------------------*/
 
 bool
-Udp2KafkaChannel::OnTaskStart( CORE::CICloneable* taskData )
+Udp2KafkaChannel::OnTaskStart( CORE::CTaskPtr task )
 {GUCEF_TRACE;
 
 	m_udpSocket = new GUCEF::COMCORE::CUDPSocket( GetPulseGenerator(), false );
@@ -1388,7 +1388,7 @@ Udp2KafkaChannel::CommitConsumerOffsets( void )
 /*-------------------------------------------------------------------------*/
     
 bool
-Udp2KafkaChannel::OnTaskCycle( CORE::CICloneable* taskData )
+Udp2KafkaChannel::OnTaskCycle( CORE::CTaskPtr task )
 {GUCEF_TRACE;
                       
     // You are required to periodically call poll() on a producer to trigger queued callbacks if any
@@ -1463,8 +1463,8 @@ Udp2KafkaChannel::OnTaskCycle( CORE::CICloneable* taskData )
 /*-------------------------------------------------------------------------*/
     
 void
-Udp2KafkaChannel::OnTaskEnded( CORE::CICloneable* taskData ,
-                               bool wasForced              )
+Udp2KafkaChannel::OnTaskEnded( CORE::CTaskPtr task ,
+                               bool wasForced      )
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Udp2KafkaChannel:OnTaskEnded" );

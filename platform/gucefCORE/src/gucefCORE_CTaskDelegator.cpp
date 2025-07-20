@@ -80,14 +80,12 @@ CTaskDelegator::RegisterEvents( void )
 
 /*-------------------------------------------------------------------------*/
 
-CTaskDelegator::CTaskDelegator( const TBasicThreadPoolPtr& threadPool )
+CTaskDelegator::CTaskDelegator( const ThreadPoolPtr& threadPool )
     : MT::CActiveObject()
     , CNotifier()
     , CTSharedPtrCreator< CTaskDelegator, MT::CMutex >( this )
     , CIPulseGeneratorDriver()
     , m_pulseGenerator()
-    , m_taskConsumer()
-    , m_taskData( GUCEF_NULL )
     , m_threadPool( threadPool )
     , m_consumerBusy( false )
     , m_sendRegularPulses( false )
@@ -96,9 +94,9 @@ CTaskDelegator::CTaskDelegator( const TBasicThreadPoolPtr& threadPool )
     , m_taskRequestedCycleDelayInMs( 0 )
 {GUCEF_TRACE;
 
-    assert( !m_threadPool.IsNULL() );
-
     RegisterEvents();
+
+    GUCEF_ASSERT( !m_threadPool.IsNULL() );
 
     m_pulseGenerator = CPulseGenerator::CreateSharedObj();
     m_pulseGenerator->SetPulseGeneratorDriver( this );
@@ -106,16 +104,14 @@ CTaskDelegator::CTaskDelegator( const TBasicThreadPoolPtr& threadPool )
 
 /*-------------------------------------------------------------------------*/
 
-CTaskDelegator::CTaskDelegator( const TBasicThreadPoolPtr& threadPool ,
-                                const CTaskConsumerPtr& taskConsumer  ,
-                                CICloneable* taskData                 )
+CTaskDelegator::CTaskDelegator( const ThreadPoolPtr& threadPool ,
+                                const CTaskPtr& task            )
     : MT::CActiveObject()
     , CNotifier()
     , CTSharedPtrCreator< CTaskDelegator, MT::CMutex >( this )
     , CIPulseGeneratorDriver()
     , m_pulseGenerator()
-    , m_taskConsumer( taskConsumer )
-    , m_taskData( taskData )
+    , m_task( task )
     , m_threadPool( threadPool )
     , m_consumerBusy( false )
     , m_sendRegularPulses( false )
@@ -126,13 +122,19 @@ CTaskDelegator::CTaskDelegator( const TBasicThreadPoolPtr& threadPool ,
 
     RegisterEvents();
 
+    // asserts to ensure we have the required objects for this internal implementation
+    GUCEF_ASSERT( !m_threadPool.IsNULL() );
+    GUCEF_ASSERT( !m_task.IsNULL() );
+
     m_pulseGenerator = CPulseGenerator::CreateSharedObj();
     m_pulseGenerator->SetPulseGeneratorDriver( this );
 
-    // If we are being handed the task consumer already we can already establish the bi-directional link
+    // If we are being handed the task already we can already establish the bi-directional link
     // this delegator is going to be the one to execute this task
     // This means the task is now assigned to the thread which is represented by this delegator
-    m_taskConsumer->SetTaskDelegator( CreateBasicSharedPtr() );
+    CTaskConsumerPtr taskConsumer = m_task->GetTaskConsumer();
+    GUCEF_ASSERT( !taskConsumer.IsNULL() );
+    taskConsumer->SetTaskDelegator( CreateBasicSharedPtr() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -148,14 +150,13 @@ CTaskDelegator::~CTaskDelegator()
     m_pulseGenerator.Unlink();
     m_threadPool.Unlink();
     
-    if ( !m_taskConsumer.IsNULL() )
-        m_taskConsumer->SetPulseGenerator( PulseGeneratorPtr() );
-    m_taskConsumer.Unlink();
+    TaskCleanup( m_task );
+    m_task.Unlink();
 }
 
 /*-------------------------------------------------------------------------*/
 
-TBasicThreadPoolPtr
+ThreadPoolPtr
 CTaskDelegator::GetThreadPool( void )
 {GUCEF_TRACE;
 
@@ -244,7 +245,7 @@ CTaskDelegator::RequestStopOfPeriodicUpdates( CPulseGenerator& pulseGenerator )
 /*-------------------------------------------------------------------------*/
 
 bool
-CTaskDelegator::OnThreadStart( void* taskdata )
+CTaskDelegator::OnThreadStart( void* taskData )
 {GUCEF_TRACE;
 
     m_pulseGenerator->SetPulseDriverThreadId( GetThreadID() );
@@ -256,7 +257,7 @@ CTaskDelegator::OnThreadStart( void* taskdata )
 /*-------------------------------------------------------------------------*/
 
 void
-CTaskDelegator::OnThreadStarted( void* taskdata )
+CTaskDelegator::OnThreadStarted( void* taskData )
 {GUCEF_TRACE;
 
 }
@@ -264,63 +265,74 @@ CTaskDelegator::OnThreadStarted( void* taskdata )
 /*-------------------------------------------------------------------------*/
 
 void
-CTaskDelegator::TaskCleanup( CTaskConsumerPtr taskConsumer ,
-                             CICloneable* taskData         )
+CTaskDelegator::TaskCleanup( CTaskPtr task )
 {GUCEF_TRACE;
 
-    if ( !m_threadPool.IsNULL() )
+    if ( !task.IsNULL() )
     {
-        m_threadPool->TaskCleanup( taskConsumer ,
-                                   taskData     );
-    }
+        try
+        {
+            // decouple the bi-directional link with the delegator
+            // important to avoid memory leaks
+            CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
+            if ( !taskConsumer.IsNULL() ) 
+                taskConsumer->SetTaskDelegator( CTaskDelegatorPtr() );
 
-    m_taskConsumer.Unlink();
-    taskConsumer->SetTaskDelegator( CTaskDelegatorPtr() );
+            if ( !m_threadPool.IsNULL() )
+            {
+                m_threadPool->TaskCleanup( task );
+            }
+        }
+        catch ( const timeout_exception& )
+        {
+            GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, "TaskDelegator:TaskCleanup: caught timeout_exception while attempting to clean up task of type " + task->GetTaskType() +
+                " with id " + ToString( task->GetTaskId() ) );
+        }
+        catch ( const std::exception& e )
+        {
+            GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, "TaskDelegator:TaskCleanup: caught std exception while attempting to process task of type " + task->GetTaskType() +
+                " with id " + ToString( task->GetTaskId() ) + " - std what = " + CString( e.what() ) );
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CTaskDelegator::OnThreadCycle( void* taskdata )
+CTaskDelegator::OnThreadCycle( void* )
 {GUCEF_TRACE;
 
-    CTaskConsumerPtr taskConsumer;
     if ( ( !m_threadPool.IsNULL() ) &&
-         ( m_threadPool->GetQueuedTask( taskConsumer    ,
-                                        &m_taskData     ) ) )
+         ( m_threadPool->GetQueuedTask( m_task ) ) &&
+         !m_task.IsNULL()                           )
     {
-        m_taskConsumer = taskConsumer;
-
-        
-        bool attemptTimedOut = false;
-        do
+        try
         {
-            attemptTimedOut = false;
-            try
+            bool attemptTimedOut = false;
+            do
             {
-                ProcessTask( taskConsumer ,
-                             m_taskData   );
-            }
-            catch ( const timeout_exception& )
-            {
-                if ( !taskConsumer.IsNULL() )
+                attemptTimedOut = false;
+                try
                 {
-                    GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, "SingleTaskDelegator: caught timeout_exception while attempting to process task of type " + taskConsumer->GetType() + " with id " + taskConsumer->GetTaskId() );
+                    ProcessTask( m_task );
                 }
-                else
+                catch ( const timeout_exception& )
                 {
-                    GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, "SingleTaskDelegator: caught timeout_exception while attempting to process task. TaskConsumer is now null" );
+                    GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, "TaskDelegator:OnThreadCycle: caught timeout_exception while attempting to process task of type " + m_task->GetTaskType() +
+                        " with id " + ToString( m_task->GetTaskId() ) );
+                    attemptTimedOut = true;
                 }
-                attemptTimedOut = true;
             }
+            while ( attemptTimedOut );
         }
-        while ( attemptTimedOut );
+        catch ( const std::exception& e )
+        {
+            GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, "TaskDelegator:OnThreadCycle: caught std exception while attempting to process task of type " + m_task->GetTaskType() +
+                " with id " + ToString(m_task->GetTaskId()) + " - std what = " + CString( e.what() ) );
+        }
 
-        TaskCleanup( taskConsumer ,
-                     m_taskData   );
-
-        taskConsumer.Unlink();
-        m_taskData = GUCEF_NULL;
+        TaskCleanup( m_task );
+        m_task.Unlink();
     }
 
     // Return false, this is an infinite task worker thread
@@ -330,8 +342,7 @@ CTaskDelegator::OnThreadCycle( void* taskdata )
 /*-------------------------------------------------------------------------*/
 
 bool
-CTaskDelegator::ProcessTask( CTaskConsumerPtr taskConsumer ,
-                             CICloneable* taskData         )
+CTaskDelegator::ProcessTask( CTaskPtr task )
 {GUCEF_TRACE;
 
     bool returnStatus = false;
@@ -339,14 +350,23 @@ CTaskDelegator::ProcessTask( CTaskConsumerPtr taskConsumer ,
 
     // Create local refs for the invocation duration to avoid external interference
     PulseGeneratorPtr pulseGenerator = m_pulseGenerator;
-    TBasicThreadPoolPtr threadPool = m_threadPool;
-    if ( pulseGenerator.IsNULL() || threadPool.IsNULL() || taskConsumer.IsNULL()  )
+    ThreadPoolPtr threadPool = m_threadPool;
+    if GUCEF_PREDICT_FALSE( pulseGenerator.IsNULL() || threadPool.IsNULL() || task.IsNULL()  )
         return false;
-    
+
+    // At this point we should have a valid task which has a valid task consumer
+    CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
+    if GUCEF_PREDICT_FALSE( taskConsumer.IsNULL() )
+        return false;
+
     // first establish the bi-directional link
     // this delegator is going to be the one to execute this task
     // This means the task is now assigned to the thread which is represented by this delegator
     taskConsumer->SetTaskDelegator( CreateBasicSharedPtr() );
+
+    // optionally the task has associated task data which we can use to pass to the consumer
+    // just keep a pointer here
+    CICloneable* taskData = task->GetTaskData();
 
     // Now that the consumer is linked to the delegator wait until we are
     // given the signal that we are ready to begin operations
@@ -368,13 +388,13 @@ CTaskDelegator::ProcessTask( CTaskConsumerPtr taskConsumer ,
         // where a thread sequence
         m_consumerBusy = true;
 
-        // Notify the threadpool directy
-        taskConsumer->SetTaskStatus( TASKSTATUS_STARTUP );
-        m_threadPool->OnTaskStartup( taskConsumer );
-        if ( taskConsumer->OnTaskStart( taskData ) )
+        // Notify the thread pool directly
+        task->SetTaskStatus( TASKSTATUS_STARTUP );
+        m_threadPool->OnTaskStartup( task );
+        if ( taskConsumer->OnTaskStart( task ) )
         {
-            taskConsumer->SetTaskStatus( TASKSTATUS_RUNNING );
-            taskConsumer->OnTaskStarted( taskData );
+            task->SetTaskStatus( TASKSTATUS_RUNNING );
+            taskConsumer->OnTaskStarted( task );
 
             // cycle the task as long as it is not "done"
             while ( !IsDeactivationRequested() )
@@ -382,7 +402,7 @@ CTaskDelegator::ProcessTask( CTaskConsumerPtr taskConsumer ,
                 try
                 {
                     // Perform a cycle directly and ask the task if we are done
-                    if ( taskConsumer->OnTaskCycle( taskData ) )
+                    if ( taskConsumer->OnTaskCycle( task ) )
                     {
                         // Task says we are done
                         taskWasFinished = true;
@@ -398,6 +418,8 @@ CTaskDelegator::ProcessTask( CTaskConsumerPtr taskConsumer ,
                     }
                     else
                     {
+                        // Per cycle we allow external deferment of the next cycle which is distinct from the minimum cycle delta
+                        // this allows others or the task logic itself to throttle and 'back off' on a per cycle basis as needed
                         if ( m_taskRequestedCycleDelayInMs > 0 && m_taskRequestedCycleDelayInMs > m_minimalCycleDeltaInMilliSecs )
                         {
                             UInt32 timeLeftToWait = m_taskRequestedCycleDelayInMs; 
@@ -412,7 +434,9 @@ CTaskDelegator::ProcessTask( CTaskConsumerPtr taskConsumer ,
                                 else
                                     timeLeftToWait = (UInt32) timeLeftToWaitResult;
 
-                                // While we dont trigger OnTaskCycle for an extended period, we do still send out out driver pulses
+                                // While we don't trigger OnTaskCycle for an extended period, we do still send out out driver pulses
+                                // This is because pulses are more rudimentary on not per se tied to task cycles explicitly
+                                // for example timer implementations may depend on it for additional processing time management
                                 if ( m_sendRegularPulses )
                                     SendDriverPulse( *pulseGenerator.GetPointerAlways() );
 
@@ -430,50 +454,47 @@ CTaskDelegator::ProcessTask( CTaskConsumerPtr taskConsumer ,
                 }
                 catch ( const timeout_exception& )
                 {                
-                    GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, "TaskDelegator: caught timeout_exception while attempting to carry out a cycle for task of type " + taskConsumer->GetType() + " with id " + ToString( taskConsumer->GetTaskId() ) );
+                    GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, "TaskDelegator: caught timeout_exception while attempting to carry out a cycle for task of type " + task->GetTaskType() + " with id " + ToString( task->GetTaskId() ) );
 
                     // if we timed out whatever async thing we were trying to do, 
                     // just try again next round
                 }
             }
 
-            taskConsumer->OnTaskEnding( taskData, false );
-            taskConsumer->SetTaskStatus( taskWasFinished ? TASKSTATUS_FINISHED : TASKSTATUS_STOPPED );
-            taskConsumer->OnTaskEnded( taskData, false );            
+            taskConsumer->OnTaskEnding( task, false );
+            task->SetTaskStatus( taskWasFinished ? TASKSTATUS_FINISHED : TASKSTATUS_STOPPED );
+            taskConsumer->OnTaskEnded( task, false );            
 
             if ( !threadPool.IsNULL() )
             {
-                // Notify the threadpool directy
-                threadPool->OnTaskFinished( taskConsumer );
-                threadPool->RemoveConsumer( taskConsumer->GetTaskId() );
+                // Notify the thread pool directly
+                threadPool->OnTaskFinished( task );
             }
             returnStatus = true;
         }
         else
         {
-            taskConsumer->SetTaskStatus( TASKSTATUS_STARTUP_FAILED );
-            taskConsumer->OnTaskStartupFailed( taskData );
+            task->SetTaskStatus( TASKSTATUS_STARTUP_FAILED );
+            taskConsumer->OnTaskStartupFailed( task );
 
             if ( !threadPool.IsNULL() )
             {
-                // Notify the threadpool directy
-                threadPool->OnTaskStartupFailed( taskConsumer );
-                threadPool->RemoveConsumer( taskConsumer->GetTaskId() );
+                // Notify the thread pool directly
+                threadPool->OnTaskStartupFailed( task );
             }
         }
         m_consumerBusy = false;    
     }
     else
     {
-        taskConsumer->SetTaskStatus( TASKSTATUS_STOPPED );
+        task->SetTaskStatus( TASKSTATUS_STOPPED );
         
         // We never even got to start the consumer's work
         // not an error, just an efficiency thing so we still return success
         if ( !threadPool.IsNULL() )
         {
-            // Notify the threadpool directy
-            threadPool->OnTaskStopped( taskConsumer );
-            threadPool->RemoveConsumer( taskConsumer->GetTaskId() );
+            // Notify the thread pool directly
+            threadPool->OnTaskStopped( task );
         }
         returnStatus = true;
     }
@@ -498,17 +519,21 @@ CTaskDelegator::OnThreadPausedForcibly( void* taskdata )
     ThreadPausedEventData id( GetThreadID() );
     if ( !NotifyObservers( ThreadPausedEvent, &id ) ) return;
 
-    CTaskConsumerPtr taskConsumer = m_taskConsumer;
-    if ( !taskConsumer.IsNULL() )
+    CTaskPtr task = m_task;
+    if ( !task.IsNULL() )
     {
-        taskConsumer->SetTaskStatus( TASKSTATUS_PAUSED );
-        taskConsumer->OnTaskPaused( static_cast< CICloneable* >( taskdata ), true );
-
-        TBasicThreadPoolPtr threadPool = m_threadPool;
-        if ( !threadPool.IsNULL() )
+        CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
+        if ( !taskConsumer.IsNULL() )
         {
-            // Notify the threadpool directy
-            threadPool->OnTaskPaused( taskConsumer );
+            task->SetTaskStatus( TASKSTATUS_PAUSED );
+            taskConsumer->OnTaskPaused( task, true );
+
+            ThreadPoolPtr threadPool = m_threadPool;
+            if ( !threadPool.IsNULL() )
+            {
+                // Notify the thread pool directly
+                threadPool->OnTaskPaused( task );
+            }
         }
     }
 }
@@ -522,18 +547,22 @@ CTaskDelegator::OnThreadResumed( void* taskdata )
     ThreadResumedEventData id( GetThreadID() );
     if ( !NotifyObservers( ThreadResumedEvent, &id ) ) return;
 
-    CTaskConsumerPtr taskConsumer = m_taskConsumer;
-    if ( !taskConsumer.IsNULL() )
-    {        
-        TBasicThreadPoolPtr threadPool = m_threadPool;
-        if ( !threadPool.IsNULL() )
-        {
-            // Notify the threadpool directy
-            threadPool->OnTaskResumed( taskConsumer );
-        }
+    CTaskPtr task = m_task;
+    if ( !task.IsNULL() )
+    {
+        CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
+        if ( !taskConsumer.IsNULL() )
+        {        
+            ThreadPoolPtr threadPool = m_threadPool;
+            if ( !threadPool.IsNULL() )
+            {
+                // Notify the thread pool directly
+                threadPool->OnTaskResumed( task );
+            }
 
-        taskConsumer->SetTaskStatus( TASKSTATUS_RESUMED );
-        taskConsumer->OnTaskResumed( static_cast< CICloneable* >( taskdata ) );
+            task->SetTaskStatus( TASKSTATUS_RESUMED );
+            taskConsumer->OnTaskResumed( task );
+        }
     }
 }
 
@@ -545,10 +574,14 @@ CTaskDelegator::OnThreadEnding( void* taskdata    ,
 {GUCEF_TRACE;
 
     // This is invoked from a different thread than the thread represented by the TaskDelegator
-    CTaskConsumerPtr taskConsumer = m_taskConsumer;
-    if ( !taskConsumer.IsNULL() )
+    CTaskPtr task = m_task;
+    if ( !task.IsNULL() )
     {
-        taskConsumer->OnTaskEnding( static_cast< CICloneable* >( taskdata ), willBeForced );
+        CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
+        if ( !taskConsumer.IsNULL() )
+        {
+            taskConsumer->OnTaskEnding( task, willBeForced );
+        }
     }
 }
 
@@ -562,21 +595,25 @@ CTaskDelegator::OnThreadEnded( void* taskdata ,
     // if we get here and the m_consumerBusy flag is set then the task was killed
     // and we did not finish whatever the consumer was doing gracefully
     // We should give the consumer a chance to cleanup
-    CTaskConsumerPtr taskConsumer = m_taskConsumer;
-    if ( !taskConsumer.IsNULL() )
+    CTaskPtr task = m_task;
+    if ( !task.IsNULL() )
     {
-        TTaskStatus taskStatusBeforeEnd = taskConsumer->GetTaskStatus();
-        if ( !( TASKSTATUS_STOPPED == taskStatusBeforeEnd || 
-                TASKSTATUS_FINISHED == taskStatusBeforeEnd ) )
+        CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
+        if ( !taskConsumer.IsNULL() )
         {
-            taskConsumer->SetTaskStatus( TASKSTATUS_STOPPED );
-        }
+            TTaskStatus taskStatusBeforeEnd = taskConsumer->GetTaskStatus();
+            if ( !( TASKSTATUS_STOPPED == taskStatusBeforeEnd || 
+                    TASKSTATUS_FINISHED == taskStatusBeforeEnd ) )
+            {
+                taskConsumer->SetTaskStatus( TASKSTATUS_STOPPED );
+            }
         
-        taskConsumer->OnTaskEnded( static_cast< CICloneable* >( taskdata ), m_consumerBusy );
+            taskConsumer->OnTaskEnded( task, m_consumerBusy );
 
-        if ( !m_threadPool.IsNULL() )
-            m_threadPool->RemoveConsumer( taskConsumer->GetTaskId() );
-        taskConsumer->SetTaskDelegator( CTaskDelegatorPtr() );
+            if ( !m_threadPool.IsNULL() )
+                m_threadPool->RemoveConsumer( task->GetTaskConsumer().GetPointerAlways() );
+            taskConsumer->SetTaskDelegator( CTaskDelegatorPtr() );
+        }
     }
 
     if ( forced )
@@ -597,7 +634,10 @@ CTaskConsumerPtr
 CTaskDelegator::GetTaskConsumer( void ) const
 {GUCEF_TRACE;
 
-    return m_taskConsumer;
+    CTaskPtr task = m_task;
+    if ( !task.IsNULL() )
+        return task->GetTaskConsumer();
+    return CTaskConsumerPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -606,42 +646,36 @@ bool
 CTaskDelegator::HasTaskData( UInt32 taskId ) const
 {GUCEF_TRACE;
 
-    CTaskConsumerPtr taskConsumer = m_taskConsumer;
-    if ( !taskConsumer.IsNULL() )
+    CTaskPtr task = m_task;
+    if ( !task.IsNULL() )
     {    
-        if ( taskId == taskConsumer->GetTaskId() )
-            return GUCEF_NULL != m_taskData;
+        if ( taskId == task->GetTaskId() )
+            return GUCEF_NULL != task->GetTaskData();
     }
     return false;
 }
 
 /*-------------------------------------------------------------------------*/
 
-bool 
-CTaskDelegator::GetSerializedTaskDataCopy( UInt32 taskId                                           , 
-                                           CDataNode& domNode                                      ,  
-                                           const CDataNodeSerializableSettings& serializerSettings ) const
+CTaskPtr
+CTaskDelegator::GetCurrentTask( void ) const
 {GUCEF_TRACE;
 
-    CTaskConsumerPtr taskConsumer = m_taskConsumer;
-    if ( !taskConsumer.IsNULL() )
+    return m_task;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTask::TIntegerTypeUsedForTaskId
+CTaskDelegator::GetCurrentTaskId( void ) const
+{GUCEF_TRACE;
+
+    CTaskPtr task = m_task;
+    if ( !task.IsNULL() )
     {    
-        if ( taskId == taskConsumer->GetTaskId() )
-        {
-            if ( GUCEF_NULL != m_taskData )
-            {
-                if ( CCoreGlobal::Instance()->GetTaskManager().IsCustomTaskDataForTaskTypeSerializable( taskConsumer->GetType() ) )
-                {
-                    const CIDataNodeSerializable* serializableTaskData = static_cast< const CIDataNodeSerializable* >( m_taskData );
-                    if ( serializableTaskData->Serialize( domNode, serializerSettings ) )
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
+        return task->GetTaskId();
     }
-    return false;
+    return 0;
 }
 
 /*-------------------------------------------------------------------------*/

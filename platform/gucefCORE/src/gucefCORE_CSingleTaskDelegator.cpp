@@ -47,13 +47,12 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CSingleTaskDelegator::CSingleTaskDelegator( const TBasicThreadPoolPtr& threadPool ,
-                                            const CTaskConsumerPtr& taskConsumer  ,
-                                            CICloneable* taskData                 )
-    : CTaskDelegator( threadPool, taskConsumer, taskData )
+CSingleTaskDelegator::CSingleTaskDelegator( const ThreadPoolPtr& threadPool ,
+                                            const CTaskPtr& task            )
+    : CTaskDelegator( threadPool, task )
 {GUCEF_TRACE;
 
-    assert( !taskConsumer.IsNULL() );
+    GUCEF_ASSERT( !task.IsNULL() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -68,12 +67,11 @@ CSingleTaskDelegator::~CSingleTaskDelegator()
 /*-------------------------------------------------------------------------*/
 
 bool
-CSingleTaskDelegator::OnThreadCycle( void* taskdata )
+CSingleTaskDelegator::OnThreadCycle( void* )
 {GUCEF_TRACE;
 
-    CTaskConsumerPtr taskConsumer = m_taskConsumer;
-    
-    if ( !taskConsumer.IsNULL() )
+    CTaskPtr task = m_task;    
+    if ( !task.IsNULL() )
     {
         bool taskResult = false;
         bool attemptTimedOut = false;
@@ -82,27 +80,19 @@ CSingleTaskDelegator::OnThreadCycle( void* taskdata )
             attemptTimedOut = false;
             try
             {
-                taskResult = CTaskDelegator::ProcessTask( taskConsumer, m_taskData );
+                taskResult = CTaskDelegator::ProcessTask( task );
             }
             catch ( const timeout_exception& )
             {
-                if ( !taskConsumer.IsNULL() )
-                {
-                    GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, "SingleTaskDelegator: caught timeout_exception while attempting to process task of type " + taskConsumer->GetType() + " with id " + ToString( taskConsumer->GetTaskId() ) );
-                }
-                else
-                {
-                    GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, "SingleTaskDelegator: caught timeout_exception while attempting to process task. TaskConsumer is now null" );
-                }
+                GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, "SingleTaskDelegator: caught timeout_exception while attempting to process task of type " + task->GetTaskType() + " with id " + ToString( task->GetTaskId() ) );
 
                 attemptTimedOut = true;
             }
         }
         while ( attemptTimedOut );
         
-        TaskCleanup( taskConsumer, m_taskData );
-        taskConsumer.Unlink();
-        m_taskData = GUCEF_NULL;
+        TaskCleanup( task );
+        task.Unlink();
         return taskResult;
     }
     return true;

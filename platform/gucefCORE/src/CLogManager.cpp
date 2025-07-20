@@ -235,12 +235,12 @@ CLogManager::AddLogger( CILogger* loggerImp )
     MT::CObjectScopeLock lock( this );
     if ( m_useLogThread )
     {
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->PauseTask( m_loggingTask->GetTaskId(), true );
+        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->PauseTask( m_loggingTask->GetCurrentTaskId(), true );
     }
     m_loggers->AddLogger( loggerImp );
     if ( m_useLogThread )
     {
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->ResumeTask( m_loggingTask->GetTaskId() );
+        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->ResumeTask( m_loggingTask->GetCurrentTaskId() );
     }
 }
 
@@ -253,12 +253,12 @@ CLogManager::RemoveLogger( CILogger* loggerImp )
     MT::CObjectScopeLock lock( this );
     if ( m_useLogThread )
     {
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->PauseTask( m_loggingTask->GetTaskId(), true );
+        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->PauseTask( m_loggingTask->GetCurrentTaskId(), true );
     }
     m_loggers->RemoveLogger( loggerImp );
     if ( m_useLogThread )
     {
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->ResumeTask( m_loggingTask->GetTaskId() );
+        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->ResumeTask( m_loggingTask->GetCurrentTaskId() );
     }
 }
 
@@ -271,12 +271,12 @@ CLogManager::ClearLoggers( void )
     MT::CObjectScopeLock lock( this );
     if ( m_useLogThread )
     {
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->PauseTask( m_loggingTask->GetTaskId(), true );
+        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->PauseTask( m_loggingTask->GetCurrentTaskId(), true );
     }
     m_loggers->ClearLoggers();
     if ( m_useLogThread )
     {
-        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->ResumeTask( m_loggingTask->GetTaskId() );
+        CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->ResumeTask( m_loggingTask->GetCurrentTaskId() );
     }
 }
 
@@ -568,12 +568,12 @@ CLogManager::SetUseLoggingThread( bool useLogThread )
         {
             CLoggingTaskPtr loggingTask( GUCEF_NEW CLoggingTask( *m_loggers ) );
             m_loggingTask = loggingTask;
-            if ( CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->StartTask( loggingTask ) )
+            if ( CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->StartTask( loggingTask, GUCEF_NULL ).HasAFuture() )
                 m_useLogThread = useLogThread;
         }
         else
         {
-            if ( CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->RequestTaskToStop( m_loggingTask->GetTaskId(), false ) )
+            if ( CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->RequestTaskToStop( m_loggingTask->GetCurrentTaskId(), false ) )
             {
                 m_useLogThread = useLogThread;
                 m_loggingTask.Unlink();

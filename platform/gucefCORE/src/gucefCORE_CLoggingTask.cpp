@@ -176,7 +176,7 @@ CLoggingTask::GetType( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CLoggingTask::OnTaskStart( CICloneable* taskdata )
+CLoggingTask::OnTaskStart( CTaskPtr task )
 {GUCEF_TRACE;
 
     // This task does not need to perform any initialization/setup
@@ -253,8 +253,8 @@ CLoggingTask::IsReadyToProcessCycle( void ) const
 /*-------------------------------------------------------------------------*/
 
 void 
-CLoggingTask::OnTaskEnding( CORE::CICloneable* taskdata ,
-                            bool willBeForced           )
+CLoggingTask::OnTaskEnding( CTaskPtr task     ,
+                            bool willBeForced )
 {GUCEF_TRACE;
     
 }
@@ -262,7 +262,7 @@ CLoggingTask::OnTaskEnding( CORE::CICloneable* taskdata ,
 /*-------------------------------------------------------------------------*/
 
 bool
-CLoggingTask::OnTaskCycle( CICloneable* taskdata )
+CLoggingTask::OnTaskCycle( CTaskPtr task )
 {GUCEF_TRACE;
 
     if ( IsReadyToProcessCycle() )
@@ -334,8 +334,8 @@ CLoggingTask::Unlock( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CLoggingTask::OnTaskEnded( CICloneable* taskdata ,
-                           bool wasForced        )
+CLoggingTask::OnTaskEnded( CTaskPtr task  ,
+                           bool wasForced )
 {GUCEF_TRACE;
 
     TLoggingMailBox::Mail* entry = GUCEF_NULL;
