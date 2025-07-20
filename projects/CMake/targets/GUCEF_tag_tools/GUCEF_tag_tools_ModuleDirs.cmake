@@ -10,7 +10,15 @@
 #
 
 
-if (LINUX32)
+if (GLX)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/HDFiller ${CMAKE_BINARY_DIR}/HDFiller )
+elseif (GTK)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/HDFiller ${CMAKE_BINARY_DIR}/HDFiller )
+elseif (LINUX32)
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/DVPACKSYS ${CMAKE_BINARY_DIR}/DVPACKSYS )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/DevIL/DevIL ${CMAKE_BINARY_DIR}/DevIL2 )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/FreeImage ${CMAKE_BINARY_DIR}/FreeImage )
@@ -160,6 +168,10 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ProjectGen/plugi
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ProjectGenerator ${CMAKE_BINARY_DIR}/ProjectGenerator )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/PubSubStorageTool ${CMAKE_BINARY_DIR}/PubSubStorageTool )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/itvExporter ${CMAKE_BINARY_DIR}/itvExporter )
+elseif (SDL)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/HDFiller ${CMAKE_BINARY_DIR}/HDFiller )
 elseif (WIN32)
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/DVPACKSYS ${CMAKE_BINARY_DIR}/DVPACKSYS )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/DevIL/DevIL ${CMAKE_BINARY_DIR}/DevIL2 )

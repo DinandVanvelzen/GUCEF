@@ -1479,7 +1479,13 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
     {
         const CORE::CString& targetPlatform = (*p).first;
         const TProjectTargetInfo& targetProjectInfo = (*p).second;
-        CORE::CString platformSection; 
+        CORE::CString platformSection;
+
+        // We want the ordering to stay consistent in the output file
+        // Since the output file will be based around paths we first generate the paths into an alphabetically ordered list
+        // before generating the final order for the file section at large
+
+        CORE::CStringSet cmakeLines;
 
         TModuleInfoEntryConstPtrSet::const_iterator i = targetProjectInfo.modules.begin();
         while ( i != targetProjectInfo.modules.end() )
@@ -1505,7 +1511,7 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
                     // The target dir is a sub-dir of the module so no need to specify a binary dir
                     pathToModuleDir = pathToModuleDir.ReplaceChar( '\\', '/' );
                     CORE::CString cmakeLine = "add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/" + pathToModuleDir + " )\n";
-                    platformSection += cmakeLine;
+                    cmakeLines.insert( cmakeLine );
                 }
                 else
                 {
@@ -1513,10 +1519,19 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
                     CORE::CString moduleName = GetConsensusModuleName( moduleInfoEntry );
                     pathToModuleDir = pathToModuleDir.ReplaceChar( '\\', '/' );
                     CORE::CString cmakeLine = "add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/" + pathToModuleDir + " ${CMAKE_BINARY_DIR}/" + moduleName + " )\n";
-                    platformSection += cmakeLine;
+                    cmakeLines.insert( cmakeLine );
                 }
             }
             ++i;
+        }
+
+        // Now that the lines are automatically ordered alphabetically by the container (and thus consistent)
+        // we will generate the actual file content section
+        CORE::CStringSet::iterator c = cmakeLines.begin();
+        while ( c != cmakeLines.end() )
+        {
+            platformSection += (*c);
+            ++c;
         }
 
         if ( !platformSection.IsNULLOrEmpty() )

@@ -77,7 +77,9 @@ include_directories( include src )
 
 
 
-if (WIN32)
+if (OSX)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (WIN32)
 GUCEF_config_lib( ${MODULE_NAME} )
 elseif (WIN64)
 GUCEF_config_lib( ${MODULE_NAME} )

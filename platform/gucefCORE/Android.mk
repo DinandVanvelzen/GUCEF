@@ -131,6 +131,7 @@ LOCAL_SRC_FILES := \
   src/dvmd5utils.c \
   src/dvstrutils.cpp \
   src/gucefCORE.cpp \
+  src/gucefCORE_CASync.cpp \
   src/gucefCORE_CAbstractFactoryBase.cpp \
   src/gucefCORE_CAsciiString.cpp \
   src/gucefCORE_CBasicBracketLoggingFormatter.cpp \
@@ -160,6 +161,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CFunctionMeta.cpp \
   src/gucefCORE_CFunctionParamMeta.cpp \
   src/gucefCORE_CFunctionRegistry.cpp \
+  src/gucefCORE_CFutureResult.cpp \
   src/gucefCORE_CGenericCallbackTaskConsumer.cpp \
   src/gucefCORE_CGenericValueToDataNodeSerializer.cpp \
   src/gucefCORE_CGeoLocation.cpp \
@@ -221,6 +223,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CTIOAccessToStlStream.cpp \
   src/gucefCORE_CTIOAccessToStlStreambuff.cpp \
   src/gucefCORE_CTMultiRegistry.cpp \
+  src/gucefCORE_CTask.cpp \
   src/gucefCORE_CTaskConsumer.cpp \
   src/gucefCORE_CTaskDelegator.cpp \
   src/gucefCORE_CTaskInfo.cpp \

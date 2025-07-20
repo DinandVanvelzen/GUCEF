@@ -304,7 +304,9 @@ include_directories( ../../freetype/include ../../freetype/include/freetype ../.
 
 
 
-if (LINUX32)
+if (ANDROID)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (LINUX32)
 GUCEF_config_lib( ${MODULE_NAME} )
 elseif (LINUX64)
 GUCEF_config_lib( ${MODULE_NAME} )
