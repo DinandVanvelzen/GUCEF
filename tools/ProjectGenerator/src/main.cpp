@@ -379,7 +379,7 @@ GUCEF_OSMAIN_BEGIN
 
     projectInfo->projectName = keyValueList.GetValueAlways( "projectName" );
 
-    bool useProjectInfoCache = CORE::StringToBool( keyValueList.GetValueAlways( "useProjectInfoCache" ) );
+    bool useProjectInfoCache = keyValueList.GetValueAlways( "useProjectInfoCache", false ).AsBool( false, true );
     bool projectInfoLoadedFromCache = false;
     if ( useProjectInfoCache )
     {

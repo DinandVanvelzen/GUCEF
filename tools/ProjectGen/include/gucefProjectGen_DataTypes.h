@@ -230,9 +230,6 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo  : public CORE::CTSharedObjCreator
 
     TStringSet dependencyIncludeDirs;            // include directories needed for the headers of the dependencies, paths only no files
     TStringSet runtimeDependencies;              // dependencies not relative for builds but desired to be easily accessable due to runtime dependency, typically plugins
-       
-    TStringSetMap includeDirs;                   // include directories of this module's own headers
-    TStringSetMap sourceDirs;                    // source directories of this module's own source
 
     int buildOrder;                              // order number of this module in the build dependency chain
     int buildChain;                              // index of the build chain, different build chains can be build independently but may depend on other chains
@@ -248,8 +245,49 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo  : public CORE::CTSharedObjCreator
     bool hasIgnoreModule;                        // whether the ignoreModule flag is based on an explicit setting or not
     CModuleMetaData metadata;                    // module metadata
 
+    void SetPlatformName( const CORE::CString& platformName );
+
+    const CORE::CString& GetPlatformName( void ) const;
+
+    void AddIncludeDir( const CORE::CString& pathToIncludeDir );
+
+    bool RemoveIncludeDir( const CORE::CString& pathToIncludeDir ,
+                           bool mustBeEmpty                      );
+
+    void SetIncludeFiles( const TStringSetMap& files );
+
+    void SetIncludeFiles( const CORE::CString& pathToFiles ,
+                          const TStringSet& files          );
+
+    void AddIncludeFiles( const CORE::CString& pathToFiles ,
+                          const TStringSet& files          );
+
+    void AddIncludeFiles( const TStringSetMap& files );
+
+    void AddIncludeFile( const CORE::CString& pathToFiles ,
+                         const CORE::CString& filename    );
+
+    const TStringSetMap& GetIncludeDirs( void ) const;
+
+    const TStringSet& GetIncludeFiles( const CORE::CString& pathToFiles ) const;
+
+    void SetSourceFiles( const TStringSetMap& files );
+
+    void SetSourceFiles( const CORE::CString& pathToFiles ,
+                         const TStringSet& files          );
+
+    void AddSourceFiles( const CORE::CString& pathToFiles ,
+                         const TStringSet& files          );
+
+    void AddSourceFiles( const TStringSetMap& files );
+
+    void AddSourceFile( const CORE::CString& pathToFiles ,
+                        const CORE::CString& filename    );
+
     // list of module names of all modules this module depends on
     void SetNamesOfDependencies( const TStringSet& dependencies );
+
+    const TStringSetMap& GetSourceDirs( void ) const;
 
     // list of module names of all modules this module depends on
     const TStringSet& GetNamesOfDependencies( void ) const;
@@ -262,8 +300,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo  : public CORE::CTSharedObjCreator
 
     void Clear( void );
 
-    bool Merge( const CModuleInfoPtr& moduleInfoToMergeIn ,
-                bool onConflictOriginalInfoStays = true   );
+    bool Merge( CModuleInfoPtr moduleInfoToMergeIn      ,
+                bool onConflictOriginalInfoStays = true );
     
     CModuleInfo( void );
     CModuleInfo( const CModuleInfo& src );
@@ -271,7 +309,11 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo  : public CORE::CTSharedObjCreator
 
     private:
 
+    CORE::CString m_platformName;
     TStringSet m_namesOfDependencies;
+    TStringSetMap m_includeDirs;                   // include directories of this module's own headers
+    TStringSetMap m_sourceDirs;                    // source directories of this module's own source
+
 };
 
 typedef CModuleInfo::CModuleInfoPtr CModuleInfoPtr;
@@ -293,7 +335,6 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
 
     static const CORE::CString ClassTypeName;
     
-    TModuleInfoPtrMap modulesPerPlatform;  // ModuleInfo per platform
     CORE::CString  rootDir;                // the absolute path to the root of this module's directory tree
     CModuleMetaData metadata;              // MetaData relating to the module
 
@@ -317,6 +358,12 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
 
     void SetModuleInfo( CModuleInfoPtr moduleInfo     ,
                         const CORE::CString& platform );
+
+    const CModuleInfoPtr FindModuleInfoForPlatform( const CORE::CString& platform ) const;
+
+    CModuleInfoPtr FindModuleInfoForPlatform( const CORE::CString& platform, bool createNewIfNoneExists );
+
+    const TModuleInfoPtrMap& GetModulesPerPlatform( void ) const;
 
     /**
      *  Straightforward upsert style merge
@@ -349,6 +396,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     private:
 
     mutable CORE::CString m_consensusName;
+    TModuleInfoPtrMap m_modulesPerPlatform;  // ModuleInfo per platform
 };
 
 typedef CModuleInfoEntry::CModuleInfoEntryPtr CModuleInfoEntryPtr;
@@ -459,21 +507,6 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 void
 ApplyConfigToProject( const CORE::CDataNode& loadedConfig , 
                       CProjectInfo& projectInfo           );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-const CModuleInfoPtr
-FindModuleInfoForPlatform( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                           const CORE::CString& platform              );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-CModuleInfoPtr
-FindModuleInfoForPlatform( CModuleInfoEntryPtr& moduleInfoEntry ,
-                           const CORE::CString& platform        ,
-                           bool createNewIfNoneExists           );
 
 /*-------------------------------------------------------------------------*/
 

@@ -110,13 +110,13 @@ GenerateContentForArduinoCLIWindowsSymlinkBatchfile( const TModuleInfoEntryPairV
     CORE::CString outputSrcDir = CORE::RelativePath( CORE::CombinePath( scriptOutDir, "src" ) );
     content += "\n\nIF NOT EXIST \"" + outputSrcDir + "\" mkdir \"" + outputSrcDir + "\"\n";
 
-    if ( !moduleInfo->includeDirs.empty() )
+    if ( !moduleInfo->GetIncludeDirs().empty() )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Generating symlinks script for all headers for module: " + moduleInfo->name );
         content += "\necho Generating symlinks for all headers for module: " + moduleInfo->name + "\n";
     
-        TStringSetMap::const_iterator i = moduleInfo->includeDirs.begin();
-        while ( i != moduleInfo->includeDirs.end() )
+        TStringSetMap::const_iterator i = moduleInfo->GetIncludeDirs().begin();
+        while ( i != moduleInfo->GetIncludeDirs().end() )
         {
             const CORE::CString& includeDir = (*i).first;
             const CORE::CString::StringSet& includes = (*i).second;
@@ -138,13 +138,13 @@ GenerateContentForArduinoCLIWindowsSymlinkBatchfile( const TModuleInfoEntryPairV
         }    
     }
 
-    if ( !moduleInfo->sourceDirs.empty() )
+    if ( !moduleInfo->GetSourceDirs().empty() )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Generating symlinks script for all source files for module: " + moduleInfo->name );
         content += "\necho Generating symlinks for all source files for module: " + moduleInfo->name + "\n";
 
-        TStringSetMap::const_iterator i = moduleInfo->sourceDirs.begin();
-        while ( i != moduleInfo->sourceDirs.end() )
+        TStringSetMap::const_iterator i = moduleInfo->GetSourceDirs().begin();
+        while ( i != moduleInfo->GetSourceDirs().end() )
         {
             const CORE::CString& sourceDir = (*i).first;
             const CORE::CString::StringSet& sources = (*i).second;

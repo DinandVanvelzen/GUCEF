@@ -109,8 +109,8 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
     // Generate the source files section
     CORE::CString srcFilesSection = "LOCAL_SRC_FILES := \\\n";
     bool firstLoop = true;
-    TStringSetMap::const_iterator i = moduleInfo.sourceDirs.begin();
-    while ( i != moduleInfo.sourceDirs.end() )
+    TStringSetMap::const_iterator i = moduleInfo.GetSourceDirs().begin();
+    while ( i != moduleInfo.GetSourceDirs().end() )
     {
         const CORE::CString& srcDir = (*i).first;
         const TStringSet& srcFiles = (*i).second;
@@ -141,9 +141,9 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
     // for android make files we only need the path
     // it will locate the header file on its own
     CORE::CString includeFilesSection = "LOCAL_C_INCLUDES := \\\n";
-    i = moduleInfo.includeDirs.begin();
+    i = moduleInfo.GetIncludeDirs().begin();
     firstLoop = true;
-    while ( i != moduleInfo.includeDirs.end() )
+    while ( i != moduleInfo.GetIncludeDirs().end() )
     {
         if ( !firstLoop )
         {

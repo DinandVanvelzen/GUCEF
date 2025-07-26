@@ -489,11 +489,11 @@ FindModuleAccordingToBuildOrderImp( CProjectInfo& projectInfo           ,
         CModuleInfoEntryPtr& moduleEntry = (*i);
 
         // Check to see if we have an entry for this platform
-        TModuleInfoPtrMap::iterator n = moduleEntry->modulesPerPlatform.find( targetPlatform );
-        if ( n != moduleEntry->modulesPerPlatform.end() )
+        TModuleInfoPtrMap::const_iterator n = moduleEntry->GetModulesPerPlatform().find( targetPlatform );
+        if ( n != moduleEntry->GetModulesPerPlatform().end() )
         {
             // Check to see if the entry has a platform specific build order
-            CModuleInfoPtr& info = (*n).second;
+            const CModuleInfoPtr& info = (*n).second;
             if ( buildOrderIndex == info->buildOrder )
             {
                 return (*i);
@@ -534,8 +534,8 @@ GetModuleBuildOrder( const CModuleInfoEntryPtr& moduleEntry ,
                      const CORE::CString& targetPlatform    )
 {
     // Check to see if we have an entry for this platform
-    TModuleInfoPtrMap::const_iterator n = moduleEntry->modulesPerPlatform.find( targetPlatform );
-    if ( n != moduleEntry->modulesPerPlatform.end() )
+    TModuleInfoPtrMap::const_iterator n = moduleEntry->GetModulesPerPlatform().find( targetPlatform );
+    if ( n != moduleEntry->GetModulesPerPlatform().end() )
     {
         // Check to see if the entry has a platform specific build order
         const CModuleInfoPtr& info = (*n).second;
@@ -547,8 +547,8 @@ GetModuleBuildOrder( const CModuleInfoEntryPtr& moduleEntry ,
 
     if ( targetPlatform != AllPlatforms )
     {
-        TModuleInfoPtrMap::const_iterator n = moduleEntry->modulesPerPlatform.find( AllPlatforms );
-        if ( n != moduleEntry->modulesPerPlatform.end() )
+        TModuleInfoPtrMap::const_iterator n = moduleEntry->GetModulesPerPlatform().find( AllPlatforms );
+        if ( n != moduleEntry->GetModulesPerPlatform().end() )
         {
             // Check to see if the entry has a platform specific build order
             const CModuleInfoPtr& info = (*n).second;
@@ -1651,8 +1651,8 @@ GetListOfAllModuleDirs( CModuleInfoPtr& moduleInfo   ,
                         const CORE::CString& rootDir )
 {GUCEF_TRACE;
 
-    TStringSetMap::iterator i = moduleInfo->includeDirs.begin();
-    while ( i != moduleInfo->includeDirs.end() )
+    TStringSetMap::const_iterator i = moduleInfo->GetIncludeDirs().begin();
+    while ( i != moduleInfo->GetIncludeDirs().end() )
     {
         if ( relativePaths )
         {
@@ -1667,8 +1667,8 @@ GetListOfAllModuleDirs( CModuleInfoPtr& moduleInfo   ,
         }
         ++i;
     }
-    i = moduleInfo->sourceDirs.begin();
-    while ( i != moduleInfo->sourceDirs.end() )
+    i = moduleInfo->GetSourceDirs().begin();
+    while ( i != moduleInfo->GetSourceDirs().end() )
     {
         if ( relativePaths )
         {
@@ -1694,10 +1694,11 @@ GetListOfAllModuleDirs( CModuleInfoEntryPtr& moduleInfoEntry ,
                         const CORE::CString& platform        )
 {GUCEF_TRACE;
 
-    TModuleInfoPtrMap::iterator i = moduleInfoEntry->modulesPerPlatform.find( platform );
-    if ( i != moduleInfoEntry->modulesPerPlatform.end() )
+    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->GetModulesPerPlatform().find( platform );
+    if ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
     {
-        GetListOfAllModuleDirs( (*i).second              ,
+        CModuleInfoPtr moduleInfo = (*i).second;
+        GetListOfAllModuleDirs( moduleInfo               ,
                                 moduleDirs               ,
                                 relativePaths            ,
                                 moduleInfoEntry->rootDir );
@@ -1989,8 +1990,8 @@ GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoEntry          
 {GUCEF_TRACE;
 
     // Narrow it down to the platform we are interested in
-    TModuleInfoPtrMap::const_iterator n = dependencyModuleEntry->modulesPerPlatform.find( platformName );
-    if ( n != dependencyModuleEntry->modulesPerPlatform.end() )
+    TModuleInfoPtrMap::const_iterator n = dependencyModuleEntry->GetModulesPerPlatform().find( platformName );
+    if ( n != dependencyModuleEntry->GetModulesPerPlatform().end() )
     {
         // this dependency has module info which is specfic to this platform
         const CModuleInfoPtr& dependencyModule = (*n).second;
@@ -2004,7 +2005,7 @@ GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoEntry          
         if ( ( dependencyModule->moduleType == MODULETYPE_HEADER_INCLUDE_LOCATION ) ||
              ( dependencyModule->moduleType == MODULETYPE_BINARY_PACKAGE )           )
         {
-            moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, platformName, true );
+            moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platformName, true );
 
             // Determine the relative path to this other module's root
             CORE::CString relativePath = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir       ,
@@ -2026,7 +2027,7 @@ GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoEntry          
 
         // Now construct the relative path to each of the dependency module's include dirs
         // These dir will all become include dirs for this module
-        const TStringSetMap& headerFiles = dependencyModule->includeDirs;
+        const TStringSetMap& headerFiles = dependencyModule->GetIncludeDirs();
         if ( !headerFiles.empty() )
         {
             // Since this platform specific entry has header files we will need to generate
@@ -2034,7 +2035,7 @@ GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoEntry          
             // to that end we will grab this module's definition for this platform or make a
             // new one if no entry exists yet
             if ( NULL == moduleInfo )
-                moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, platformName, true );
+                moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platformName, true );
 
             // Determine the relative path to this other module and subsequently the include dirs
             CORE::CString relativePath = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir       ,
@@ -2128,7 +2129,7 @@ GenerateModuleDependencyIncludesForPlatform( const CProjectInfo& projectInfo    
     bool addAllPlatformsIncludes = false;
     if ( platformName != AllPlatforms )
     {
-        addAllPlatformsIncludes = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms ) == moduleInfoEntry->modulesPerPlatform.end();
+        addAllPlatformsIncludes = moduleInfoEntry->GetModulesPerPlatform().find( AllPlatforms ) == moduleInfoEntry->GetModulesPerPlatform().end();
     }
 
     TStringSet::iterator i = dependencies.begin();
@@ -2305,26 +2306,26 @@ void
 FillHeaderSubDirIncludes( const CProjectInfo& projectInfo      ,
                           CModuleInfoEntryPtr& moduleInfoEntry ,
                           const CORE::CString& platform        ,
-                          TStringSetMap& exclusions            )
+                          const TStringSetMap& exclusions      )
 {GUCEF_TRACE;
 
-    TModuleInfoPtrMap::iterator n = moduleInfoEntry->modulesPerPlatform.find( platform );
-    if ( n != moduleInfoEntry->modulesPerPlatform.end() )
+    TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().find( platform );
+    if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
     {
-        CModuleInfoPtr& moduleInfo = (*n).second;
+        CModuleInfoPtr moduleInfo = (*n).second;
 
         if ( MODULETYPE_HEADER_INCLUDE_LOCATION == moduleInfo->moduleType )
         {
             // the very notion of a header include location is that it is a location
             // as such we include the root dir as a include dir
-            moduleInfo->includeDirs[ CORE::CString::Empty ];
+            moduleInfo->AddIncludeFiles( CORE::CString::Empty, CORE::CString::EmptyStringSet );
         }
         
-        if ( moduleInfo->considerSubDirs )
+        if ( !moduleInfo->hasConsiderSubDirs || ( moduleInfo->hasConsiderSubDirs && moduleInfo->considerSubDirs ) )
         {
             TStringSetMap newDirs;
-            TStringSetMap::iterator d = moduleInfo->includeDirs.begin();
-            while ( d != moduleInfo->includeDirs.end() )
+            TStringSetMap::const_iterator d = moduleInfo->GetIncludeDirs().begin();
+            while ( d != moduleInfo->GetIncludeDirs().end() )
             {
                 const CORE::CString fullDir = (*d).first;
                 TStringVector elements = fullDir.ParseElements( '/', false );
@@ -2347,7 +2348,7 @@ FillHeaderSubDirIncludes( const CProjectInfo& projectInfo      ,
                 ++d;
             }
             if ( !newDirs.empty() )
-                MergeStringSetMap( moduleInfo->includeDirs, newDirs, true );
+                moduleInfo->AddIncludeFiles( newDirs );
         }
     }
 }
@@ -2359,8 +2360,8 @@ FillHeaderSubDirIncludes( const CProjectInfo& projectInfo      ,
                           CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
-    TModuleInfoPtrMap::iterator n = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
-    if ( n != moduleInfoEntry->modulesPerPlatform.end() )
+    TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().find( AllPlatforms );
+    if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
     {
         TStringSetMap dummy;
         FillHeaderSubDirIncludes( projectInfo     ,
@@ -2368,16 +2369,16 @@ FillHeaderSubDirIncludes( const CProjectInfo& projectInfo      ,
                                   AllPlatforms    ,
                                   dummy           );
 
-        CModuleInfoPtr& allPlatformsModuleInfo = (*n).second;
-        TModuleInfoPtrMap::iterator m = moduleInfoEntry->modulesPerPlatform.begin();
-        while ( m != moduleInfoEntry->modulesPerPlatform.end() )
+        CModuleInfoPtr allPlatformsModuleInfo = (*n).second;
+        TModuleInfoPtrMap::const_iterator m = moduleInfoEntry->GetModulesPerPlatform().begin();
+        while ( m != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
             if ( !(*m).first.IsNULLOrEmpty() && (*m).first != AllPlatforms )
             {
                 FillHeaderSubDirIncludes( projectInfo                         ,
                                           moduleInfoEntry                     ,
                                           (*m).first                          ,
-                                          allPlatformsModuleInfo->includeDirs );
+                                          allPlatformsModuleInfo->GetIncludeDirs() );
             }
             ++m;
         }
@@ -2405,12 +2406,13 @@ FindSubDirsWithHeaders( const CProjectInfo& projectInfo                         
 
     if ( !fileMap.empty() )
     {
-        TModuleInfoPtrMap::iterator i = moduleInfoEntry->modulesPerPlatform.find( platform );
-        if ( i != moduleInfoEntry->modulesPerPlatform.end() )
+        TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->GetModulesPerPlatform().find( platform );
+        if ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
-            if ( (*i).second->considerSubDirs )
+            CModuleInfoPtr moduleInfo = (*i).second;
+            if ( !moduleInfo->hasConsiderSubDirs || ( moduleInfo->hasConsiderSubDirs && moduleInfo->considerSubDirs ) )
             {
-                MergeStringSetMap( (*i).second->includeDirs, fileMap, true );
+                moduleInfo->AddIncludeFiles( fileMap );
             }
             else
             {
@@ -2428,13 +2430,13 @@ FindSubDirsWithHeaders( const CProjectInfo& projectInfo                         
             // and specific platforms which is important for proper overrides/merging etc
             if ( AllPlatforms == platform || platform.IsNULLOrEmpty() )
             {
-                i = moduleInfoEntry->modulesPerPlatform.begin();
-                while ( i != moduleInfoEntry->modulesPerPlatform.end() )
+                i = moduleInfoEntry->GetModulesPerPlatform().begin();
+                while ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
                 {
-                    if ( (*i).second->considerSubDirs )
+                    CModuleInfoPtr moduleInfo = (*i).second;
+                    if ( !moduleInfo->hasConsiderSubDirs || ( moduleInfo->hasConsiderSubDirs && moduleInfo->considerSubDirs ) )
                     {
-                        CModuleInfoPtr& moduleInfo = (*i).second;
-                        MergeStringSetMap( moduleInfo->includeDirs, fileMap, true );
+                        moduleInfo->AddIncludeFiles( fileMap );
                     }
                     else
                     {
@@ -2445,8 +2447,8 @@ FindSubDirsWithHeaders( const CProjectInfo& projectInfo                         
             }
             else
             {
-                CModuleInfoPtr& moduleInfo = moduleInfoEntry->modulesPerPlatform[ platform ] = CModuleInfo::CreateSharedObj();
-                moduleInfo->includeDirs = fileMap;
+                CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platform, true );
+                moduleInfo->SetIncludeFiles( fileMap );
             }
         }
     }
@@ -2511,12 +2513,13 @@ FindSubDirsWithSource( const CProjectInfo& projectInfo                          
 
     if ( !fileMap.empty() )
     {
-        TModuleInfoPtrMap::iterator i = moduleInfoEntry->modulesPerPlatform.find( platform );
-        if ( i != moduleInfoEntry->modulesPerPlatform.end() )
+        TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->GetModulesPerPlatform().find( platform );
+        if ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
-            if ( (*i).second->considerSubDirs )
+            CModuleInfoPtr moduleInfo = (*i).second;
+            if ( !moduleInfo->hasConsiderSubDirs || ( moduleInfo->hasConsiderSubDirs && moduleInfo->considerSubDirs ) )
             {
-                MergeStringSetMap( (*i).second->sourceDirs, fileMap, true );
+                moduleInfo->AddSourceFiles( fileMap );
             }
             else
             {
@@ -2534,13 +2537,13 @@ FindSubDirsWithSource( const CProjectInfo& projectInfo                          
             // and specific platforms which is important for proper overrides/merging etc
             if ( AllPlatforms == platform || platform.IsNULLOrEmpty() )
             {
-                i = moduleInfoEntry->modulesPerPlatform.begin();
-                while ( i != moduleInfoEntry->modulesPerPlatform.end() )
-                {
-                    if ( (*i).second->considerSubDirs )
+                i = moduleInfoEntry->GetModulesPerPlatform().begin();
+                while ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
                     {
-                        CModuleInfoPtr& moduleInfo = (*i).second;
-                        MergeStringSetMap( moduleInfo->sourceDirs, fileMap, true );
+                    CModuleInfoPtr moduleInfo = (*i).second;
+                    if ( !moduleInfo->hasConsiderSubDirs || ( moduleInfo->hasConsiderSubDirs && moduleInfo->considerSubDirs ) )
+                    {
+                        moduleInfo->AddSourceFiles( fileMap );
                     }
                     else
                     {
@@ -2552,8 +2555,8 @@ FindSubDirsWithSource( const CProjectInfo& projectInfo                          
             }
             else
             {
-                CModuleInfoPtr& moduleInfo = moduleInfoEntry->modulesPerPlatform[ platform ] = CModuleInfo::CreateSharedObj();
-                moduleInfo->sourceDirs = fileMap;
+                CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platform, true );
+                moduleInfo->SetSourceFiles( fileMap );
             }
         }
     }
@@ -2612,7 +2615,7 @@ LegacyCMakeProcessProjectDir( const CProjectInfo& projectInfo      ,
     {
         // get a platform entry to use
         // this legacy system only supported AllPlatforms via CMake
-        CModuleInfo& moduleInfo = *FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms, true );
+        CModuleInfo& moduleInfo = *moduleInfoEntry->FindModuleInfoForPlatform( AllPlatforms, true );
 
         // Set a project name based off the module sub-dir name
         // Best we can do unless we can get it from the suffix file later
@@ -2743,7 +2746,7 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
                 // module name set then we shall determine a default which is the based on the directory the
                 // project is in. Note that platform specific info can overwrite this of course but at least
                 // this gives us a default if they don't have a name specified either.
-                CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms, false );
+                CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( AllPlatforms, false );
                 if ( !moduleInfo.IsNULL() && moduleInfo->name.IsNULLOrEmpty() )
                 {
                     // Set a project name based off the module sub-dir name
@@ -2892,8 +2895,8 @@ GetModuleDependencyCount( const CModuleInfoEntryPtr& moduleInfoEntry ,
 
     // Get dependencies which apply to all platforms
     CORE::UInt32 dependencyCount = 0;
-    TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
-    if ( n != moduleInfoEntry->modulesPerPlatform.end() )
+    TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().find( AllPlatforms );
+    if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
     {
         dependencyCount = (CORE::UInt32) (*n).second->GetNamesOfDependencies().size();
     }
@@ -2901,8 +2904,8 @@ GetModuleDependencyCount( const CModuleInfoEntryPtr& moduleInfoEntry ,
     // Get dependencies which are specific for the target platform
     if ( targetPlatform != AllPlatforms )
     {
-        n = moduleInfoEntry->modulesPerPlatform.find( targetPlatform );
-        if ( n != moduleInfoEntry->modulesPerPlatform.end() )
+        n = moduleInfoEntry->GetModulesPerPlatform().find( targetPlatform );
+        if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
             dependencyCount += (CORE::UInt32) (*n).second->GetNamesOfDependencies().size();
         }
@@ -2995,11 +2998,11 @@ DetermineBuildOrderForAllModules( CProjectInfo& projectInfo            ,
             int modulePrio = (*n).first;
             CModuleInfoEntryPtr moduleInfoEntry = (*n).second;
 
-            CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, targetPlatform, false );
+            CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( targetPlatform, false );
             if ( moduleInfo.IsNULL() && targetPlatform != AllPlatforms )
             {
                 // If no platform specific info is available we will use the info which applies to all platforms
-                moduleInfo = FindModuleInfoForPlatform( moduleInfoEntry, AllPlatforms, false );
+                moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( AllPlatforms, false );
                 if ( !moduleInfo.IsNULL() )
                 {
                     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Using AllPlatforms definition for module " + moduleInfo->name + " for build order determination since no definition was provided for platform \"" + targetPlatform + "\"" );
@@ -3129,13 +3132,13 @@ DetermineBuildOrderForAllModules( CProjectInfo& projectInfo            ,
     while ( n != prioMap.end() )
     {
         const CORE::CString* moduleName = NULL;
-        CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( (*n).second, targetPlatform, false );
+        CModuleInfoPtr moduleInfo = (*n).second->FindModuleInfoForPlatform( targetPlatform, false );
         if ( moduleInfo.IsNULL() )
         {
             // No module info is available for this platform
             // We will use the AllPlatforms info but keep in mind we cannot change it's build order since
             // this sorting is platform specific
-            moduleInfo = FindModuleInfoForPlatform( (*n).second, AllPlatforms, false );
+            moduleInfo = (*n).second->FindModuleInfoForPlatform( AllPlatforms, false );
             if ( NULL != moduleInfo )
             {
                 moduleName = &moduleInfo->name;
@@ -3152,7 +3155,7 @@ DetermineBuildOrderForAllModules( CProjectInfo& projectInfo            ,
                         + " as such we will have to create a platform specific entry for this module to retain the different build order" );
 
                     // We will have to just create a new entry for this platform because we need to store the platform specific build order
-                    moduleInfo = FindModuleInfoForPlatform( (*n).second, targetPlatform, true );
+                    moduleInfo = (*n).second->FindModuleInfoForPlatform( targetPlatform, true );
                 }
                 else
                 {
@@ -3195,7 +3198,7 @@ DetermineBuildOrderForAllModules( CProjectInfo& projectInfo )
     // Important: First determine the build order which applies to all modules
     // This build order will be used for specific platforms as well unless no 'AllPlatforms'
     // target is available or if the build order differs
-    // Doing it this way cuts down on the number platform spefic entries generated just to store
+    // Doing it this way cuts down on the number platform specific entries generated just to store
     // the build order
     DetermineBuildOrderForAllModules( projectInfo, AllPlatforms );
 
@@ -3223,11 +3226,11 @@ FindModulesWhichDependOnModuleForPlatform( CProjectInfo& projectInfo           ,
     while ( i != projectInfo.modules.end() )
     {
         CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleInfoPtrMap::iterator n = moduleInfoEntry->modulesPerPlatform.find( targetPlatform );
-        if ( n != moduleInfoEntry->modulesPerPlatform.end() )
+        TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().find( targetPlatform );
+        if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
             // This module has info for for this module, check its type
-            CModuleInfoPtr& moduleInfo = (*n).second;
+            CModuleInfoPtr moduleInfo = (*n).second;
             if ( IsStringInList( moduleInfo->GetNamesOfDependencies(), false, dependencyName ) )
             {
                 TMutableModuleInfoEntryPair infoPair( moduleInfoEntry, moduleInfo );
@@ -3286,26 +3289,25 @@ MergeIntegrationLocationsIntoModuleForPlatform( CProjectInfo& projectInfo       
     TMutableModuleInfoEntryPairVector::iterator i = targetModules.begin();
     while ( i != targetModules.end() )
     {
-        CModuleInfoEntry& moduleInfoEntry = *(*i).first;
-        CModuleInfo& moduleInfo = *(*i).second;
+        CModuleInfoEntryPtr moduleInfoEntry = (*i).first;
+        CModuleInfoPtr moduleInfo = (*i).second;
 
         // Determine the relative path to this other module
-        CORE::CString pathToCodeLocation = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry.rootDir ,
+        CORE::CString pathToCodeLocation = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir ,
                                                                                  codeIncludeRoot         );
 
         // merge in the content for header integration locations as well as code integration locations
         TStringSetMap::const_iterator n;
 
-        n = moduleInfoToMergeIn->includeDirs.begin();
-        while ( n != moduleInfoToMergeIn->includeDirs.end() )
+        n = moduleInfoToMergeIn->GetIncludeDirs().begin();
+        while ( n != moduleInfoToMergeIn->GetIncludeDirs().end() )
         {
             // Create the full path to the files
             CORE::CString fullPathToIncludeLocation = pathToCodeLocation;
             CORE::AppendToPath( fullPathToIncludeLocation, (*n).first );
 
             // Use the merge function just in case this location is already added by other means
-            TStringSet& targetSet = moduleInfo.includeDirs[ fullPathToIncludeLocation ];
-            MergeStringSet( targetSet, (*n).second, true );
+            moduleInfo->AddIncludeFiles( fullPathToIncludeLocation, (*n).second );
 
             ++n;
         }
@@ -3313,25 +3315,24 @@ MergeIntegrationLocationsIntoModuleForPlatform( CProjectInfo& projectInfo       
         // we only merge in source code for code integration locations
         if ( MODULETYPE_CODE_INTEGRATE_LOCATION == moduleInfoToMergeIn->moduleType )
         {
-            n = moduleInfoToMergeIn->sourceDirs.begin();
-            while ( n != moduleInfoToMergeIn->sourceDirs.end() )
+            n = moduleInfoToMergeIn->GetSourceDirs().begin();
+            while ( n != moduleInfoToMergeIn->GetSourceDirs().end() )
             {
                 // Create the full path to the files
                 CORE::CString fullPathToSourceLocation = pathToCodeLocation;
                 CORE::AppendToPath( fullPathToSourceLocation, (*n).first );
 
                 // Use the merge function just in case this location is already added by other means
-                TStringSet& targetSet = moduleInfo.sourceDirs[ fullPathToSourceLocation ];
-                MergeStringSet( targetSet, (*n).second, true );
+                moduleInfo->AddSourceFiles( fullPathToSourceLocation, (*n).second );
 
                 ++n;
             }
         }
 
         // merge in any defines that come with the location's header or source
-        MergeStringSet( moduleInfo.preprocessorSettings.defines, moduleInfoToMergeIn->preprocessorSettings.defines, true );
+        MergeStringSet( moduleInfo->preprocessorSettings.defines, moduleInfoToMergeIn->preprocessorSettings.defines, true );
         // merge in additional include dirs
-        MergeStringSet( moduleInfo.dependencyIncludeDirs, moduleInfoToMergeIn->dependencyIncludeDirs, true );
+        MergeStringSet( moduleInfo->dependencyIncludeDirs, moduleInfoToMergeIn->dependencyIncludeDirs, true );
 
         ++i;
     }
@@ -3349,11 +3350,11 @@ MergeIntegrationLocationsIntoModuleForPlatform( CProjectInfo& projectInfo       
     while ( i != projectInfo.modules.end() )
     {
         CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleInfoPtrMap::iterator n = moduleInfoEntry->modulesPerPlatform.find( targetPlatform );
-        if ( n != moduleInfoEntry->modulesPerPlatform.end() )
+        TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().find( targetPlatform );
+        if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
             // This module has info for for this module, check its type
-            CModuleInfoPtr& moduleInfo = (*n).second;
+            CModuleInfoPtr moduleInfo = (*n).second;
             if ( ( MODULETYPE_CODE_INTEGRATE_LOCATION == moduleInfo->moduleType ) ||
                  ( MODULETYPE_HEADER_INTEGRATE_LOCATION == moduleInfo->moduleType ) )
             {
@@ -3385,11 +3386,11 @@ FindModulesInfoEntryWhichDependOnModule( CProjectInfo& projectInfo           ,
     while ( i != projectInfo.modules.end() )
     {
         CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleInfoPtrMap::iterator n = moduleInfoEntry->modulesPerPlatform.begin();
-        while ( n != moduleInfoEntry->modulesPerPlatform.end() )
+        TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().begin();
+        while ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
             // Check if this module depends on the module we are looking for regardless of platform
-            CModuleInfoPtr& moduleInfo = (*n).second;
+            CModuleInfoPtr moduleInfo = (*n).second;
             if ( IsStringInList( moduleInfo->GetNamesOfDependencies(), false, dependencyName ) )
             {
                 resultList.insert( moduleInfoEntry );
@@ -3425,26 +3426,25 @@ MergeIntegrationLocationsIntoModuleForAllPlatformsPlatform( CProjectInfo& projec
         CORE::CString pathToCodeLocation = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir ,
                                                                                  codeIncludeRoot         );
 
-        TModuleInfoPtrMap::iterator m = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
-        if ( m != moduleInfoEntry->modulesPerPlatform.end() )
+        TModuleInfoPtrMap::const_iterator m = moduleInfoEntry->GetModulesPerPlatform().find( AllPlatforms );
+        if ( m != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
-            CModuleInfoPtr& moduleInfo = (*m).second;
+            CModuleInfoPtr moduleInfo = (*m).second;
 
             TStringSetMap::const_iterator n;
 
             if ( ( MODULETYPE_CODE_INTEGRATE_LOCATION == moduleInfoToMergeIn->moduleType )   ||
                  ( MODULETYPE_HEADER_INTEGRATE_LOCATION == moduleInfoToMergeIn->moduleType )  )
             {
-                n = moduleInfoToMergeIn->includeDirs.begin();
-                while ( n != moduleInfoToMergeIn->includeDirs.end() )
+                n = moduleInfoToMergeIn->GetIncludeDirs().begin();
+                while ( n != moduleInfoToMergeIn->GetIncludeDirs().end() )
                 {
                     // Create the full path to the files
                     CORE::CString fullPathToIncludeLocation = pathToCodeLocation;
                     CORE::AppendToPath( fullPathToIncludeLocation, (*n).first );
 
                     // Use the merge function just in case this location is already added by other means
-                    TStringSet& targetVector = moduleInfo->includeDirs[ fullPathToIncludeLocation ];
-                    MergeStringSet( targetVector, (*n).second, true );
+                    moduleInfo->AddIncludeFiles( fullPathToIncludeLocation, (*n).second );
 
                     ++n;
                 }
@@ -3457,17 +3457,15 @@ MergeIntegrationLocationsIntoModuleForAllPlatformsPlatform( CProjectInfo& projec
 
             if ( MODULETYPE_CODE_INTEGRATE_LOCATION == moduleInfoToMergeIn->moduleType )
             {
-                n = moduleInfoToMergeIn->sourceDirs.begin();
-                while ( n != moduleInfoToMergeIn->sourceDirs.end() )
+                n = moduleInfoToMergeIn->GetSourceDirs().begin();
+                while ( n != moduleInfoToMergeIn->GetSourceDirs().end() )
                 {
                     // Create the full path to the files
                     CORE::CString fullPathToSourceLocation = pathToCodeLocation;
                     CORE::AppendToPath( fullPathToSourceLocation, (*n).first );
 
                     // Use the merge function just in case this location is already added by other means
-                    TStringSet& targetVector = moduleInfo->sourceDirs[ fullPathToSourceLocation ];
-                    MergeStringSet( targetVector, (*n).second, true );
-
+                    moduleInfo->AddSourceFiles( fullPathToSourceLocation, (*n).second );
                     ++n;
                 }
             }
@@ -3476,10 +3474,10 @@ MergeIntegrationLocationsIntoModuleForAllPlatformsPlatform( CProjectInfo& projec
         {
             // Since there is no AllPlatforms entry we will merge into each of the platform specific
             // entries which requires the code include dependency
-            TModuleInfoPtrMap::iterator m = moduleInfoEntry->modulesPerPlatform.begin();
-            while ( m != moduleInfoEntry->modulesPerPlatform.end() )
+            TModuleInfoPtrMap::const_iterator m = moduleInfoEntry->GetModulesPerPlatform().begin();
+            while ( m != moduleInfoEntry->GetModulesPerPlatform().end() )
             {
-                CModuleInfoPtr& moduleInfo = (*m).second;
+                CModuleInfoPtr moduleInfo = (*m).second;
 
                 // Check if this particular platform needs the dependency
                 if ( IsStringInList( moduleInfo->GetNamesOfDependencies(), false, moduleInfoToMergeIn->name ) )
@@ -3489,16 +3487,15 @@ MergeIntegrationLocationsIntoModuleForAllPlatformsPlatform( CProjectInfo& projec
                     if ( ( MODULETYPE_CODE_INTEGRATE_LOCATION == moduleInfoToMergeIn->moduleType )   ||
                          ( MODULETYPE_HEADER_INTEGRATE_LOCATION == moduleInfoToMergeIn->moduleType )  )
                     {
-                        n = moduleInfoToMergeIn->includeDirs.begin();
-                        while ( n != moduleInfoToMergeIn->includeDirs.end() )
+                        n = moduleInfoToMergeIn->GetIncludeDirs().begin();
+                        while ( n != moduleInfoToMergeIn->GetIncludeDirs().end() )
                         {
                             // Create the full path to the files
                             CORE::CString fullPathToIncludeLocation = pathToCodeLocation;
                             CORE::AppendToPath( fullPathToIncludeLocation, (*n).first );
 
                             // Use the merge function just in case this location is already added by other means
-                            TStringSet& targetSet = moduleInfo->includeDirs[ fullPathToIncludeLocation ];
-                            MergeStringSet( targetSet, (*n).second, true );
+                            moduleInfo->AddIncludeFiles( fullPathToIncludeLocation, (*n).second );
 
                             ++n;
                         }
@@ -3511,16 +3508,15 @@ MergeIntegrationLocationsIntoModuleForAllPlatformsPlatform( CProjectInfo& projec
 
                     if ( MODULETYPE_CODE_INTEGRATE_LOCATION == moduleInfoToMergeIn->moduleType )
                     {
-                        n = moduleInfoToMergeIn->sourceDirs.begin();
-                        while ( n != moduleInfoToMergeIn->sourceDirs.end() )
+                        n = moduleInfoToMergeIn->GetSourceDirs().begin();
+                        while ( n != moduleInfoToMergeIn->GetSourceDirs().end() )
                         {
                             // Create the full path to the files
                             CORE::CString fullPathToSourceLocation = pathToCodeLocation;
                             CORE::AppendToPath( fullPathToSourceLocation, (*n).first );
 
                             // Use the merge function just in case this location is already added by other means
-                            TStringSet& targetSet = moduleInfo->sourceDirs[ fullPathToSourceLocation ];
-                            MergeStringSet( targetSet, (*n).second, true );
+                            moduleInfo->AddSourceFiles( fullPathToSourceLocation, (*n).second );
 
                             ++n;
                         }
@@ -3545,11 +3541,11 @@ MergeIntegrationLocationsIntoModuleForAllPlatformsPlatform( CProjectInfo& projec
     while ( i != projectInfo.modules.end() )
     {
         CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleInfoPtrMap::iterator n = moduleInfoEntry->modulesPerPlatform.find( AllPlatforms );
-        if ( n != moduleInfoEntry->modulesPerPlatform.end() )
+        TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().find( AllPlatforms );
+        if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
             // This module has info for for this module, check its type
-            CModuleInfoPtr& moduleInfo = (*n).second;
+            CModuleInfoPtr moduleInfo = (*n).second;
             if ( ( MODULETYPE_CODE_INTEGRATE_LOCATION == moduleInfo->moduleType )   ||
                  ( MODULETYPE_HEADER_INTEGRATE_LOCATION == moduleInfo->moduleType )  )
             {
@@ -3577,10 +3573,11 @@ RemoveDependencyToModule( CProjectInfo& projectInfo       ,
     while ( i != projectInfo.modules.end() )
     {
         CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleInfoPtrMap::iterator n = moduleInfoEntry->modulesPerPlatform.begin();
-        while ( n != moduleInfoEntry->modulesPerPlatform.end() )
+        TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().begin();
+        while ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
-            (*n).second->RemoveNameOfDependency( moduleName );
+            CModuleInfoPtr moduleInfo = (*n).second;
+            moduleInfo->RemoveNameOfDependency( moduleName );
             ++n;
         }
         ++i;
@@ -3598,10 +3595,10 @@ RemoveDependenciesOnIntegrationLocations( CProjectInfo& projectInfo )
     while ( i != projectInfo.modules.end() )
     {
         CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleInfoPtrMap::iterator n = moduleInfoEntry->modulesPerPlatform.begin();
-        while ( n != moduleInfoEntry->modulesPerPlatform.end() )
+        TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().begin();
+        while ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
-            CModuleInfoPtr& moduleInfo = (*n).second;
+            const CModuleInfoPtr& moduleInfo = (*n).second;
             if ( ( MODULETYPE_CODE_INTEGRATE_LOCATION == moduleInfo->moduleType ) ||
                  ( MODULETYPE_HEADER_INTEGRATE_LOCATION == moduleInfo->moduleType ) )
             {
@@ -3649,11 +3646,11 @@ MergeBinaryPackageLinkerDepsIntoModule( CProjectInfo& projectInfo )
     while ( i != projectInfo.modules.end() )
     {
         CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleInfoPtrMap::iterator n = moduleInfoEntry->modulesPerPlatform.begin();
-        while ( n != moduleInfoEntry->modulesPerPlatform.end() )
+        TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().begin();
+        while ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
             const CORE::CString& platformName = (*n).first;
-            CModuleInfoPtr& moduleInfo = (*n).second;
+            CModuleInfoPtr moduleInfo = (*n).second;
             if ( MODULETYPE_BINARY_PACKAGE == moduleInfo->moduleType )
             {
                 CORE::CString moduleName = GetModuleNameAlways( moduleInfoEntry, (*n).first );
@@ -3699,13 +3696,13 @@ FlagTaggedModulesToIgnoreAsSpecified( CProjectInfo& projectInfo      ,
     TModuleInfoEntryPtrVector::iterator n = projectInfo.modules.begin();
     while ( n != projectInfo.modules.end() )
     {
-        TModuleInfoPtrMap::iterator m = (*n)->modulesPerPlatform.begin();
-        while ( m != (*n)->modulesPerPlatform.end() )
+        TModuleInfoPtrMap::const_iterator m = (*n)->GetModulesPerPlatform().begin();
+        while ( m != (*n)->GetModulesPerPlatform().end() )
         {
             TStringVector::iterator i = tagsOfModulesToRemove.begin();
             while ( i != tagsOfModulesToRemove.end() )
             {
-                CModuleInfoPtr& moduleInfo = (*m).second;
+                CModuleInfoPtr moduleInfo = (*m).second;
                 moduleInfo->ignoreModule = IsModuleTaggedWith( (*n), (*m).first, (*i) );
                 moduleInfo->hasIgnoreModule = true;
 

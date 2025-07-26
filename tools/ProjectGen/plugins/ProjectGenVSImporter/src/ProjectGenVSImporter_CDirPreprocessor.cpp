@@ -309,8 +309,9 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
         PROJECTGEN::CModuleInfoEntryPtr moduleEntry = PROJECTGEN::CModuleInfoEntry::CreateSharedObj();
         moduleEntry->rootDir = path;
 
-        PROJECTGEN::CModuleInfoPtr& moduleInfo = moduleEntry->modulesPerPlatform[ "all" ];
-        moduleInfo->Clear();
+        PROJECTGEN::CModuleInfoPtr moduleInfo = moduleEntry->FindModuleInfoForPlatform( "all" );
+        if ( !moduleInfo.IsNULL() )
+            moduleInfo->Clear();
         
         // First parse the globals so we can resolve variables in other sections
         // The $(ProjectName) var is actually derived from the filename so we handle it seperatly
@@ -390,7 +391,7 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                     m = additionalIncludeDirs.begin();
                     while ( m != additionalIncludeDirs.end() ) 
                     {
-                        moduleInfo->includeDirs[ ReplaceVisualStudioVariables( (*m), globals, true ) ];
+                        moduleInfo->AddIncludeDir( ReplaceVisualStudioVariables( (*m), globals, true ) );
                         ++m;
                     }
                 }
@@ -457,7 +458,7 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                     if ( !relPath.IsNULLOrEmpty() && ( ( vsRelPath != relPath ) || !CORE::IsPathValid( pathOnDisk ) || -1 == pathOnDisk.HasSubstr( path, 0, true ) ) )
                     {
                         GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Explicitly adding include file to module definition because it does not appear to be in a sub-dir: " + relPath );
-                        moduleInfo->includeDirs[ relPath ].insert( includeFilename );
+                        moduleInfo->AddIncludeFile( relPath, includeFilename );
                     }
                 }
                 ++m;
@@ -483,7 +484,7 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
                     if ( !relPath.IsNULLOrEmpty() && ( ( vsRelPath != relPath ) || !CORE::IsPathValid( pathOnDisk ) || -1 == pathOnDisk.HasSubstr( path, 0, true ) ) )
                     {
                         GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Explicitly adding source file to module definition because it does not appear to be in a sub-dir: " + relPath );
-                        moduleInfo->sourceDirs[ relPath ].insert( sourceFilename );
+                        moduleInfo->AddSourceFile( relPath, sourceFilename );
                     }
                 }
                 ++m;
