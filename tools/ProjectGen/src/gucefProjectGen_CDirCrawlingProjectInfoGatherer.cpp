@@ -1839,7 +1839,9 @@ CMakeParseSuffixFile( CModuleInfo& moduleInfo, const CORE::CString& cmakeListSuf
             TStringVector::iterator n = elements.begin();
             while ( n != elements.end() )
             {
-                moduleInfo.linkerSettings.linkedLibraries[ (*n) ].moduleType = MODULETYPE_UNDEFINED;
+                CLinkedLibrarySettingsPtr linkedLibrary;
+                if ( moduleInfo.linkerSettings.TryGetLinkedLibrary( (*n), linkedLibrary, true ) )
+                    linkedLibrary->SetModuleType( MODULETYPE_UNDEFINED );
                 ++n;
             }
         }
@@ -3330,7 +3332,7 @@ MergeIntegrationLocationsIntoModuleForPlatform( CProjectInfo& projectInfo       
         }
 
         // merge in any defines that come with the location's header or source
-        MergeStringSet( moduleInfo->preprocessorSettings.defines, moduleInfoToMergeIn->preprocessorSettings.defines, true );
+        moduleInfo->preprocessorSettings.Merge( moduleInfoToMergeIn->preprocessorSettings, false );
         // merge in additional include dirs
         MergeStringSet( moduleInfo->dependencyIncludeDirs, moduleInfoToMergeIn->dependencyIncludeDirs, true );
 
@@ -3450,7 +3452,7 @@ MergeIntegrationLocationsIntoModuleForAllPlatformsPlatform( CProjectInfo& projec
                 }
 
                 // merge in any defines that come with the location's header or source
-                MergeStringSet( moduleInfo->preprocessorSettings.defines, moduleInfoToMergeIn->preprocessorSettings.defines, true );
+                moduleInfo->preprocessorSettings.Merge( moduleInfoToMergeIn->preprocessorSettings, false );
                 // merge in additional include dirs
                 MergeStringSet( moduleInfo->dependencyIncludeDirs, moduleInfoToMergeIn->dependencyIncludeDirs, true );
             }
@@ -3501,7 +3503,7 @@ MergeIntegrationLocationsIntoModuleForAllPlatformsPlatform( CProjectInfo& projec
                         }
 
                         // merge in any defines that come with the location's header or source
-                        MergeStringSet( moduleInfo->preprocessorSettings.defines, moduleInfoToMergeIn->preprocessorSettings.defines, true );
+                        moduleInfo->preprocessorSettings.Merge( moduleInfoToMergeIn->preprocessorSettings, false );
                         // merge in additional include dirs
                         MergeStringSet( moduleInfo->dependencyIncludeDirs, moduleInfoToMergeIn->dependencyIncludeDirs, true );
                     }
@@ -3633,13 +3635,13 @@ MergeIntegrationLocationsIntoModule( CProjectInfo& projectInfo )
     RemoveDependenciesOnIntegrationLocations( projectInfo );
 }
 
-
-
 /*-------------------------------------------------------------------------*/
 
-void
+bool
 MergeBinaryPackageLinkerDepsIntoModule( CProjectInfo& projectInfo )
 {GUCEF_TRACE;
+
+    bool totalSuccess = true;
 
     // Loop trough all modules and process each code as we go
     TModuleInfoEntryPtrVector::iterator i = projectInfo.modules.begin();
@@ -3651,26 +3653,34 @@ MergeBinaryPackageLinkerDepsIntoModule( CProjectInfo& projectInfo )
         {
             const CORE::CString& platformName = (*n).first;
             CModuleInfoPtr moduleInfo = (*n).second;
+
             if ( MODULETYPE_BINARY_PACKAGE == moduleInfo->moduleType )
             {
+                // When we find a binary package we need to add its information to the modules that depend on it
+                // its not a module in the same sense as the other modules, its a way to designate a dependency
+                // We now resolved and integrate that dependency
                 CORE::CString moduleName = GetModuleNameAlways( moduleInfoEntry, (*n).first );
                 TMutableModuleInfoEntryPairVector links = FindModulesWhichDependOnModule( projectInfo, moduleName );
                 TMutableModuleInfoEntryPairVector::iterator m = links.begin();
                 while ( m != links.end() )
                 {
+                    CModuleInfoEntryPtr depModuleInfoEntry = (*m).first;
                     CModuleInfoPtr depModuleInfo = (*m).second;
-                    auto logicalLink = depModuleInfo->linkerSettings.linkedLibraries.find( moduleName );
-                    if ( logicalLink != depModuleInfo->linkerSettings.linkedLibraries.end() )
-                    {
-                        depModuleInfo->linkerSettings.linkedLibraries.erase( logicalLink );
 
-                        MergeStringSet( depModuleInfo->linkerSettings.libPaths, moduleInfo->linkerSettings.libPaths, true );
-                        TLinkedLibrarySettingsMap::iterator k = moduleInfo->linkerSettings.linkedLibraries.begin();
-                        while ( k != moduleInfo->linkerSettings.linkedLibraries.end() )
+                    if ( !depModuleInfo.IsNULL() )
+                    {
+                        // For this library replace the binary package reference with the information from said message
+                        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Replacing binary package reference \"" + moduleName +
+                            "\" for platform " + platformName + " with information from said package for module: " + depModuleInfoEntry->GetConsensusName() );
+
+                        depModuleInfo->linkerSettings.DeleteLinkedLibrary( moduleName );
+                        bool mergeSuccess = depModuleInfo->linkerSettings.Merge( moduleInfo->linkerSettings );
+                        if ( !mergeSuccess )
                         {
-                            depModuleInfo->linkerSettings.linkedLibraries[ (*k).first ] = (*k).second;
-                            ++k;
+                            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Failed to merge binary package reference \"" + moduleName +
+                                "\" for platform " + platformName + " information into module: " + depModuleInfoEntry->GetConsensusName() );
                         }
+                        totalSuccess = mergeSuccess && totalSuccess;
                     }
                     ++m;
                 }
@@ -3680,6 +3690,8 @@ MergeBinaryPackageLinkerDepsIntoModule( CProjectInfo& projectInfo )
 
         ++i;
     }
+
+    return totalSuccess;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3784,16 +3796,6 @@ ProcessModuleInformation( CORE::ThreadPoolPtr threadPool        ,
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Waiting for processing tasks to finish for discovered modules" );
     }
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Processing tasks all finished for the discovered modules" );
-
-    //// Process this dir
-    //TModuleInfoEntryVector moduleInfoEntries;
-    //ProcessProjectDir( projectInfo, moduleDIr, moduleInfoEntries );
-    //TModuleInfoEntryVector::iterator i = moduleInfoEntries.begin();
-    //while ( i != moduleInfoEntries.end() )
-    //{
-    //    projectInfo.modules.push_back( (*i) );
-    //    ++i;
-    //}
 }
 
 /*-------------------------------------------------------------------------*/

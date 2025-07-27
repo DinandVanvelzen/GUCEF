@@ -186,12 +186,12 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
 
     // Now we add the preprocessor definitions
     CORE::CString preprocessorSection;
-    if ( !moduleInfo.preprocessorSettings.defines.empty() )
+    if ( !moduleInfo.preprocessorSettings.GetDefines().empty() )
     {
         preprocessorSection = "LOCAL_CFLAGS :=";
 
-        TStringSet::const_iterator m = moduleInfo.preprocessorSettings.defines.begin();
-        while ( m != moduleInfo.preprocessorSettings.defines.end() )
+        TStringSet::const_iterator m = moduleInfo.preprocessorSettings.GetDefines().begin();
+        while ( m != moduleInfo.preprocessorSettings.GetDefines().end() )
         {
             preprocessorSection += " -D" + (*m);
             ++m;
@@ -204,13 +204,13 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
     // Now we add the compiler flags, if any
     // For Android we only support the GCC compilers
     CORE::CString compilerSection;
-    CORE::CStringMap::const_iterator p = moduleInfo.compilerSettings.compilerFlags.find( "GCC" );
-    if ( p != moduleInfo.compilerSettings.compilerFlags.end() )
+    CORE::CStringMap::const_iterator p = moduleInfo.compilerSettings.GetCompilerFlags().find( "GCC" );
+    if ( p != moduleInfo.compilerSettings.GetCompilerFlags().end() )
     {
         compilerSection = "LOCAL_CFLAGS +=" + (*p).second + "\n\n";
     }
-    p = moduleInfo.compilerSettings.compilerFlags.find( "G++" );
-    if ( p != moduleInfo.compilerSettings.compilerFlags.end() )
+    p = moduleInfo.compilerSettings.GetCompilerFlags().find( "G++" );
+    if ( p != moduleInfo.compilerSettings.GetCompilerFlags().end() )
     {
         compilerSection = "LOCAL_CPPFLAGS +=" + (*p).second + "\n\n";
     }
@@ -227,11 +227,11 @@ GenerateContentForAndroidMakefile( const TModuleInfoEntryPairVector& mergeLinks 
     TStringSet linkedSharedLibraries;
     TStringSet linkedStaticLibraries;
     TStringSet linkedRuntimeLibraries;
-    TLinkedLibrarySettingsMap::const_iterator m = moduleInfo.linkerSettings.linkedLibraries.begin();
-    while ( m != moduleInfo.linkerSettings.linkedLibraries.end() )
+    TLinkedLibrarySettingsPtrMap::const_iterator m = moduleInfo.linkerSettings.GetLinkedLibraries().begin();
+    while ( m != moduleInfo.linkerSettings.GetLinkedLibraries().end() )
     {
         const CORE::CString& linkedLibName = (*m).first;
-        TModuleType linkedLibType = (*m).second.moduleType;
+        TModuleType linkedLibType = (*m).second->GetModuleType();
         switch ( linkedLibType )
         {
             case MODULETYPE_EXECUTABLE:
@@ -625,7 +625,7 @@ FindModuleInfoEntryForMergedInfo( const TModuleInfoEntryPairVector& mergeLinks ,
     TModuleInfoEntryPairVector::const_iterator i = mergeLinks.begin();
     while ( i != mergeLinks.end() )
     {
-        if ( (*i).second == &mergedModule )
+        if ( (*i).second.GetPointerAlways() == mergedModule.GetPointerAlways() && !mergedModule.IsNULL() )
         {
             return (*i).first;
         }

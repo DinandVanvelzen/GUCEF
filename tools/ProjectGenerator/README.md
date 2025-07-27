@@ -2,7 +2,7 @@
 
 A powerful, cross-platform project file generator designed for large-scale mono-repositories. ProjectGenerator is part of the GUCEF (Galaxy Unlimited Framework) ecosystem and serves as a unified build system abstraction layer.
 
-## ?? Overview
+## Overview
 
 ProjectGenerator is an intelligent build system generator that transforms minimal XML module descriptions into comprehensive project files for multiple build systems and IDEs. Born from the necessity to manage complex mono-repositories, it automates the tedious aspects of build system maintenance while providing flexibility for various development workflows.
 
@@ -12,39 +12,40 @@ ProjectGenerator is an intelligent build system generator that transforms minima
 - **Mono-Repo Optimized**: Built specifically to handle the complexities of large, multi-project repositories
 - **CI/CD Ready**: Includes intelligent CI pipeline generation with change-based build triggering
 
-## ? Features
+## Features
 
-### ?? Intelligent Project Analysis
+### Intelligent Project Analysis
 - **Automatic File Discovery**: Scans directory structures to identify source files, headers, and resources
 - **License Detection**: Automatically determines project licenses from copyright headers
 - **Semantic Versioning**: Integrates with semVer files when present
 - **Dependency Resolution**: Simple name-based dependency references with automatic path resolution
 
-### ??? Multi-Target Generation
+### Multi-Target Generation
 Supports **7 different output generators**:
 
 | Generator | Description | Use Case |
 |-----------|-------------|----------|
 | **XML** | Project information dump | Caching, middleware integration |
 | **CMake** | CMake build files | Cross-platform C++ builds |
-| **Premake4/5** | Premake project files | IDE project generation |
+| **Premake4** | Premake 4 project files | IDE project generation |
+| **Premake5** | Premake 5 project files | IDE project generation |
 | **Android Make** | Android.mk makefiles | Android NDK development |
 | **Arduino CLI** | Arduino IDE projects | Microcontroller development |
 | **CI Helper** | CI/CD automation files | GitHub Actions, GitLab CI |
 
-### ?? Advanced CI/CD Integration
+### Advanced CI/CD Integration
 - **Smart Build Triggering**: Only builds targets affected by code changes
 - **GitHub Actions Workflows**: Auto-generates complete CI pipelines
 - **Glob Pattern Generation**: Creates file watch patterns for change detection
 - **Multi-Platform Support**: Handles Windows, Linux, and cross-compilation scenarios
 
-### ?? Extensible Architecture
+### Extensible Architecture
 - **Preprocessor System**: Custom data manipulation before generation
 - **Plugin Support**: Visual Studio project import, dependency filtering
 - **Template System**: Customizable output with macro replacements
 - **Caching Mechanism**: Speeds up subsequent runs with project info caching
 
-## ?? Module Definition (ModuleInfo.xml)
+## Module Definition (ModuleInfo.xml)
 
 The heart of ProjectGenerator is the `ModuleInfo.xml` file that describes each module in your project. This file should be placed in the root directory of each 'module' you wish to define.
 
@@ -64,7 +65,7 @@ The heart of ProjectGenerator is the `ModuleInfo.xml` file that describes each m
 ### Real GUCEF Examples
 
 #### Simple Executable (from ArchiveDiff tool)
-
+```xml
 <ModuleInfoEntry>
     <Module Name="ArchiveDiff" Type="Executable" Platform="mswin;linux" Tags="tools">
         <Dependencies>
@@ -84,16 +85,18 @@ The heart of ProjectGenerator is the `ModuleInfo.xml` file that describes each m
         </Preprocessor>
     </Module>
 </ModuleInfoEntry>
+```
 
 #### Simple Header-Only Library
-
+```xml
 <ModuleInfoEntry>
     <Module Name="gucefHeaders" Type="HeaderIncludeLocation" Platform="All" Tags="platform">
     </Module>
 </ModuleInfoEntry>
+```
 
 #### Advanced Multi-Platform Library (from gucefCORE)
-
+```xml
 <ModuleInfoEntries>
 <ModuleInfoEntry>
     <ModuleMetaData>
@@ -137,9 +140,10 @@ The heart of ProjectGenerator is the `ModuleInfo.xml` file that describes each m
     </Module>
 </ModuleInfoEntry>
 </ModuleInfoEntries>
+```
 
 #### Application with Dependencies (from gucefPATCHERAPP)
-
+```xml
 <ModuleInfoEntry>
     <Module Name="gucefPATCHERAPP" Type="SharedLibrary" Platform="All">
         <Dependencies>
@@ -168,6 +172,7 @@ The heart of ProjectGenerator is the `ModuleInfo.xml` file that describes each m
         </Preprocessor>
     </Module>
 </ModuleInfoEntry>
+```
 
 ### Key XML Structure Elements
 
@@ -207,12 +212,11 @@ GUCEF ProjectGenerator supports platform-specific configurations:
 | `android` | Android with support for native Linux code | Android NDK |
 | `android32` | 32-bit Android with support for native Linux code | Linux based distribution specific code |
 | `android64` | 64-bit Android with support for native Linux code | Linux based distribution specific code |
-| `Linux` | Alternative Linux syntax | Legacy compatibility |
 
 Note that mswin is an alias for win32 and win64, specifying both at the same time.
 The same exists for linux and android, where linux is an alias for linux32 and linux64, and android is an alias for android32 and android64.
 
-## ??? Configuration Files
+## Configuration Files
 
 ### Directory Processing Control
 
@@ -230,10 +234,11 @@ build*/
 node_modules/
 *.bak
 
-## ?? Quick Start
+## Quick Start
 
 ### Basic Module Definition
 Create a simple XML file describing your module:
+```xml
 <ModuleInfoEntry>
     <Module Name="MyLibrary" Type="SharedLibrary" Platform="All" Tags="myproject">
         <Dependencies>
@@ -247,6 +252,7 @@ Create a simple XML file describing your module:
         </Preprocessor>
     </Module>
 </ModuleInfoEntry>
+```
 
 ### Running ProjectGenerator # Generate all supported formats
 ProjectGenerator.exe
@@ -269,7 +275,7 @@ output/
 ?   ??? MyLibrary.yml
 ??? Project.xml                 # Cached project info
 
-## ?? Command Line Parameters
+## Command Line Parameters
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
@@ -301,7 +307,7 @@ output/
 - `premake4gen:PM4OutputDir` - Premake4 output directory
 - `premake5gen:PM5OutputDir` - Premake5 output directory
 
-## ??? Architecture
+## Architecture
 
 ### Core Components
 
@@ -328,7 +334,7 @@ ProjectGenerator
 4. **Generation**: Creates output files using selected generators
 5. **Caching**: Stores project info for faster subsequent runs
 
-## ?? Use Cases
+## Use Cases
 
 ### Large Mono-Repository Management
 Perfect for repositories with hundreds of modules where maintaining individual build files becomes impractical.
@@ -345,22 +351,28 @@ Use preprocessors to import existing Visual Studio projects and modernize build 
 ### Embedded Development
 Arduino CLI generator creates proper directory structures for microcontroller development.
 
-## ?? Advanced Configuration
+## Advanced Configuration
 
 ### Custom Templates
 CMake and Premake generators support custom templates with macro replacement:
 
 # Template file: SharedLibrary.cmake.template
+```cmake
 project(${PROJECT_NAME})
 add_library(${TARGET_NAME} SHARED ${SOURCE_FILES})
 target_include_directories(${TARGET_NAME} PUBLIC ${INCLUDE_DIRS})
+```
 
 ### Environment Overrides
-Support for environment variable overrides from file:# env_overrides.txt
+Support for environment variable overrides from file:
+#### env_overrides.txt
+```text
 CUSTOM_BUILD_PATH=/path/to/custom/builds
 SPECIAL_COMPILER_FLAGS=-O3 -march=native
+```
 
 ### Platform-Specific Configurations
+```xml
 <Module Name="PlatformSpecific" Type="SharedLibrary" Platform="All">
     <Dependencies>
         <Dependency Name="gucefCORE" />
@@ -381,8 +393,9 @@ SPECIAL_COMPILER_FLAGS=-O3 -march=native
         <Dependency Name="pthread" />
     </Linker>
 </Module>
+```
 
-## ?? Contributing
+## Contributing
 
 ProjectGenerator is one of the oldest surviving projects in the GUCEF ecosystem dating back to the early 2000s and contains battle-tested code handling numerous edge cases. The codebase uses a more functional, C-like style that is being gradually modernized.
 
@@ -399,11 +412,11 @@ ProjectGenerator.exe *generators=cmake*
 cd build
 cmake --build .
 
-## ?? License
+## License
 
 This library is free software; you can redistribute it and/or modify it under the terms of the Apache v2 license.
 
-## ?? Related Projects
+## Related Projects
 
 ProjectGenerator is part of the larger GUCEF (Galaxy Unlimited Framework) ecosystem:
 - **gucefCORE**: Core utilities and platform abstraction
@@ -415,3 +428,13 @@ ProjectGenerator is part of the larger GUCEF (Galaxy Unlimited Framework) ecosys
 **Copyright (C) Dinand Vanvelzen**
 
 *ProjectGenerator: Reducing the complexity of build system management for large-scale C++ development.*
+## Usage/Examples
+
+```javascript
+import Component from 'my-project'
+
+function App() {
+  return <Component />
+}
+```
+

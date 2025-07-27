@@ -904,12 +904,12 @@ GenerateCMakeModuleLinkerDirsLine( const CProjectInfo& projectInfo  ,
                                    const CORE::CString& moduleName  )
 {GUCEF_TRACE;
 
-    CORE::CString libPaths = ConcatPaths( moduleInfo->linkerSettings.libPaths );
+    CORE::CString libPaths = ConcatPaths( moduleInfo->linkerSettings.GetLibraryPaths() );
         
-    TLinkedLibrarySettingsMap::const_iterator n = moduleInfo->linkerSettings.linkedLibraries.begin();
-    while ( n != moduleInfo->linkerSettings.linkedLibraries.end() )
+    TLinkedLibrarySettingsPtrMap::const_iterator n = moduleInfo->linkerSettings.GetLinkedLibraries().begin();
+    while ( n != moduleInfo->linkerSettings.GetLinkedLibraries().end() )
     {
-        const CORE::CString& origPath = (*n).second.libPath;
+        const CORE::CString& origPath = (*n).second->GetLibraryPath();
         if ( !origPath.IsNULLOrEmpty() )
         {
             CORE::CString path = ConvertEnvVarStrings( origPath ).ReplaceChar( '\\', '/' ).ReplaceSubstr( " ", "\\ " );
@@ -986,17 +986,17 @@ GenerateCMakeModuleLinkerLine( const CProjectInfo& projectInfo   ,
     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating CMake module linker line for module " + moduleName + " and platform " + platformName );
     CORE::CString sectionContent;
 
-    if ( !moduleInfo->linkerSettings.targetName.IsNULLOrEmpty() )
+    if ( !moduleInfo->linkerSettings.GetTargetName().IsNULLOrEmpty() )
     {
-        sectionContent += "set_target_properties( ${MODULE_NAME} PROPERTIES OUTPUT_NAME " + moduleInfo->linkerSettings.targetName + " )\n";
+        sectionContent += "set_target_properties( ${MODULE_NAME} PROPERTIES OUTPUT_NAME " + moduleInfo->linkerSettings.GetTargetName() + " )\n";
     }
         
-    if ( !moduleInfo->linkerSettings.linkedLibraries.empty() )
+    if ( !moduleInfo->linkerSettings.GetLinkedLibraries().empty() )
     {
         sectionContent += "target_link_libraries( ${MODULE_NAME}";
 
-        TLinkedLibrarySettingsMap::const_iterator i = moduleInfo->linkerSettings.linkedLibraries.begin();
-        while ( i != moduleInfo->linkerSettings.linkedLibraries.end() )
+        TLinkedLibrarySettingsPtrMap::const_iterator i = moduleInfo->linkerSettings.GetLinkedLibraries().begin();
+        while ( i != moduleInfo->linkerSettings.GetLinkedLibraries().end() )
         {
             // We add all dependencies except for header include locations which are not real modules
             // and CMake will not be using a make file for those.
@@ -1032,15 +1032,15 @@ GenerateCMakeModuleDefinesLine( const CModuleInfoPtr& moduleInfo  ,
                                 const CORE::CString& platformName )
 {GUCEF_TRACE;
 
-    if ( !moduleInfo->preprocessorSettings.defines.empty() )
+    if ( !moduleInfo->preprocessorSettings.GetDefines().empty() )
     {
         GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating CMake module preprocessor defines for module " + moduleName + " and platform " + platformName );
 
         CORE::CString sectionContent = "set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS \"";
 
         bool first = true;
-        TStringSet::const_iterator i = moduleInfo->preprocessorSettings.defines.begin();
-        while ( i != moduleInfo->preprocessorSettings.defines.end() )
+        TStringSet::const_iterator i = moduleInfo->preprocessorSettings.GetDefines().begin();
+        while ( i != moduleInfo->preprocessorSettings.GetDefines().end() )
         {
             if ( first )
             {

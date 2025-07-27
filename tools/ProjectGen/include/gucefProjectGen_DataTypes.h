@@ -77,7 +77,7 @@ namespace PROJECTGEN {
 
 typedef CORE::CString::StringSet TStringSet;
 typedef std::set< CORE::Int32 > TInt32Set;
-typedef std::map< CORE::CString, TStringSet > TStringSetMap;
+typedef CORE::CString::StringMapSet TStringSetMap;
 typedef CORE::CString::StringVector TStringVector;
 typedef std::map< CORE::CString, TStringVector > TStringVectorMap;
 typedef std::map< CORE::CString, TStringVectorMap > TStringVectorMapMap;
@@ -107,41 +107,140 @@ typedef std::map< CORE::CString, TModuleType > TModuleTypeMap;
 /*---------------------------------------------------------------------------*/
 
 /**
- *  Structure where all linker related information should be stored
+ *  Class where all linker related information should be stored
  *  for a specific linked library
  */
-struct SLinkedLibrarySettings
+class GUCEF_PROJECTGEN_PUBLIC_CPP CLinkedLibrarySettings : public CORE::CTSharedObjCreator< CLinkedLibrarySettings, MT::CMutex >
 {
-    TModuleType moduleType;               // Module type of the linked library if already known
-    CORE::CString libPath;                // optional extra path for the linker to search for the given library
+    public:
+
+    typedef typename CORE::CTSharedObjCreator< CLinkedLibrarySettings, MT::CMutex >::TBasicSharedPtrType  CLinkedLibrarySettingsPtr;
+
+    void SetModuleType( TModuleType moduleType );
+
+    TModuleType GetModuleType( void ) const;
+
+    void SetLibraryPath( const CORE::CString& libPath );
+
+    const CORE::CString& GetLibraryPath( void ) const;
+
+    bool Merge( const CLinkedLibrarySettings& linkedLibrarySettingsToMergeIn ,
+                bool onConflictOriginalInfoStays = true                      );
+
+    void Clear( void );
+
+    CLinkedLibrarySettings( void );
+
+    CLinkedLibrarySettings( const CLinkedLibrarySettings& src );
+
+    private:
+
+    TModuleType m_moduleType;               // Module type of the linked library if already known
+    CORE::CString m_libPath;                // optional extra path for the linker to search for the given library
 };
-typedef struct SLinkedLibrarySettings TLinkedLibrarySettings;
-typedef std::map< CORE::CString, TLinkedLibrarySettings > TLinkedLibrarySettingsMap;
+
+typedef CLinkedLibrarySettings::CLinkedLibrarySettingsPtr  CLinkedLibrarySettingsPtr;
+typedef std::map< CORE::CString, CLinkedLibrarySettingsPtr > TLinkedLibrarySettingsPtrMap;
 
 /*---------------------------------------------------------------------------*/
 
 /**
- *  Structure where all linker related information should be stored
+ *  Class where all linker related information should be stored
  */
-struct SLinkerSettings
+class GUCEF_PROJECTGEN_PUBLIC_CPP CLinkerSettings : public CORE::CTSharedObjCreator< CLinkerSettings, MT::CMutex >
 {
-    TLinkedLibrarySettingsMap linkedLibraries;    // list of all libraries the module links against
-    TStringSet libPaths;                          // list of hint paths where to look for libraries
-    CORE::CString targetName;                     // optional name for the linker target if desired from the module name
+    public:
+
+    typedef typename CORE::CTSharedObjCreator< CLinkerSettings, MT::CMutex >::TBasicSharedPtrType  CLinkerSettingsPtr;
+
+    bool Merge( const CLinkerSettings& linkerSettingsToMergeIn ,
+                bool onConflictOriginalInfoStays = true        );
+
+    void Clear( void );
+
+    const TLinkedLibrarySettingsPtrMap& GetLinkedLibraries( void ) const;
+
+    void GetListOfLinkedLibraries( CORE::CStringSet& linkedLibraries ) const;
+
+    bool TryGetLinkedLibrary( const CORE::CString& libraryName         ,                                     
+                              CLinkedLibrarySettingsPtr& linkedLibrary ,
+                              bool createDefaultIfNotExist             );
+
+    bool TryGetLinkedLibrary( const CORE::CString& libraryName         ,
+                              CLinkedLibrarySettingsPtr& linkedLibrary ) const;
+
+    void DeleteLinkedLibrary( const CORE::CString& libraryName );
+
+    const TStringSet& GetLibraryPaths( void ) const;
+
+    bool MergeLibraryPaths( const TStringSet& libPathsToMergeIn );
+
+    void SetTargetName( const CORE::CString& targetName );
+
+    const CORE::CString& GetTargetName( void ) const;
+
+    /**
+     *  Attempts to serialize the object to a DOM created out of DataNode objects
+     *
+     *  @param domRootNode Node that acts as root of the DOM data tree from which to deserialize
+     *  @return whether deserializing the object data from the given DOM was successful.
+     */
+    virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
+                              const CORE::CDataNodeSerializableSettings& settings );
+
+    CLinkerSettings( void );
+
+    CLinkerSettings( const CLinkerSettings& src );
+
+    private:
+
+    TLinkedLibrarySettingsPtrMap m_linkedLibraries;    // list of all libraries the module links against
+    TStringSet m_libPaths;                             // list of hint paths where to look for libraries
+    CORE::CString m_targetName;                        // optional name for the linker target if desired from the module name
 };
-typedef struct SLinkerSettings TLinkerSettings;
+
+typedef CLinkerSettings::CLinkerSettingsPtr  CLinkerSettingsPtr;
 
 /*---------------------------------------------------------------------------*/
 
 /**
- *  Structure where all compiler related information should be stored
+ *  Class where all compiler related information should be stored
  */
-struct SCompilerSettings
+class GUCEF_PROJECTGEN_PUBLIC_CPP CCompilerSettings : public CORE::CTSharedObjCreator< CCompilerSettings, MT::CMutex >
 {
-    TStringSet languagesUsed;                // list of all programming languages used within this module
-    CORE::CStringMap compilerFlags;          // map of flags to pass to the specific compilers
+    public:
+
+    CCompilerSettings( void );
+
+    CCompilerSettings( const CCompilerSettings& src );
+
+    void AddUsedLanguage( const CORE::CString& languageUsed );
+
+    const CORE::CStringSet& GetLanguagesUsed( void ) const;
+
+    const CORE::CStringMap& GetCompilerFlags( void ) const;
+
+    bool Merge( const CCompilerSettings& compilerSettingsToMergeIn ,
+                bool onConflictOriginalInfoStays = true            );
+
+    /**
+     *  Attempts to serialize the object to a DOM created out of DataNode objects
+     *
+     *  @param domRootNode Node that acts as root of the DOM data tree from which to deserialize
+     *  @return whether deserializing the object data from the given DOM was successful.
+     */
+    virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
+                              const CORE::CDataNodeSerializableSettings& settings );
+
+    void Clear( void );
+
+    private:
+
+    TStringSet m_languagesUsed;                // list of all programming languages used within this module
+    CORE::CStringMap m_compilerFlags;          // map of flags to pass to the specific compilers
 };
-typedef struct SCompilerSettings TCompilerSettings;
+
+/*---------------------------------------------------------------------------*/
 
 /**
  *  Structure where all dependency related information should be stored
@@ -159,13 +258,38 @@ typedef struct SDependencyInfo TDependencyInfo;
 /*---------------------------------------------------------------------------*/
 
 /**
- *  Structure where all preprocessor related information should be stored
+ *  Class where all preprocessor related information should be stored
  */
-struct SPreprocessorSettings
+class GUCEF_PROJECTGEN_PUBLIC_CPP CPreprocessorSettings : public CORE::CTSharedObjCreator< CPreprocessorSettings, MT::CMutex >
 {
-    TStringSet defines;                       // list of all precompiler definitions for this module
+    public:
+
+    CPreprocessorSettings( void );
+
+    CPreprocessorSettings( const CPreprocessorSettings& src );
+
+    void AddDefine( const CORE::CString& define );
+
+    const CORE::CStringSet& GetDefines( void ) const;
+
+    bool Merge( const CPreprocessorSettings& preprocessorSettingsToMergeIn ,
+                bool onConflictOriginalInfoStays = true                    );
+
+    /**
+     *  Attempts to serialize the object to a DOM created out of DataNode objects
+     *
+     *  @param domRootNode Node that acts as root of the DOM data tree from which to deserialize
+     *  @return whether deserializing the object data from the given DOM was successful.
+     */
+    virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
+                              const CORE::CDataNodeSerializableSettings& settings );
+
+    void Clear( void );
+
+    private:
+
+    CORE::CStringSet m_defines;   // list of all precompiler definitions for this module
 };
-typedef struct SPreprocessorSettings TPreprocessorSettings;
 
 /*---------------------------------------------------------------------------*/
 
@@ -218,7 +342,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleMetaData : public CORE::CIDataNodeSeria
 
 /*---------------------------------------------------------------------------*/
 
-class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo  : public CORE::CTSharedObjCreator< CModuleInfo, MT::CMutex >
+class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo : public CORE::CTSharedObjCreator< CModuleInfo, MT::CMutex >
 {
     public:
 
@@ -229,7 +353,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo  : public CORE::CTSharedObjCreator
     TStringSet tags;                             // optional tags that can be associated which allows filtering of modules
 
     TStringSet dependencyIncludeDirs;            // include directories needed for the headers of the dependencies, paths only no files
-    TStringSet runtimeDependencies;              // dependencies not relative for builds but desired to be easily accessable due to runtime dependency, typically plugins
+    TStringSet runtimeDependencies;              // dependencies not relative for builds but desired to be easily accessible due to runtime dependency, typically plugins
 
     int buildOrder;                              // order number of this module in the build dependency chain
     int buildChain;                              // index of the build chain, different build chains can be build independently but may depend on other chains
@@ -237,9 +361,9 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo  : public CORE::CTSharedObjCreator
     bool considerSubDirs;                        // Whether only the dir with the ModuleInfo is to be considered or whether subdirs are recursively considered
     bool hasConsiderSubDirs;                     // Whether the considerSubDirs flag is based on an explicit setting or not
 
-    TLinkerSettings linkerSettings;              // all linker related settings for this module
-    TCompilerSettings compilerSettings;          // all compiler related settings for this module
-    TPreprocessorSettings preprocessorSettings;  // all preprocessor related settings for this module
+    CLinkerSettings linkerSettings;              // all linker related settings for this module
+    CCompilerSettings compilerSettings;          // all compiler related settings for this module
+    CPreprocessorSettings preprocessorSettings;  // all preprocessor related settings for this module
 
     bool ignoreModule;                           // whether this module should be included in the build
     bool hasIgnoreModule;                        // whether the ignoreModule flag is based on an explicit setting or not

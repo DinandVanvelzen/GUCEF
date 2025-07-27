@@ -175,8 +175,8 @@ IsKeyStringInMap( const CORE::CStringMap& testMap ,
 static void
 MergeStringMap( CORE::CStringMap& targetMap          ,
                 const CORE::CStringMap& mapToMergeIn ,
-                bool caseSensitive             ,
-                bool concatExistingEntries     )
+                bool caseSensitive                   ,
+                bool concatExistingEntries           )
 {GUCEF_TRACE;
 
     CORE::CStringMap::const_iterator i = mapToMergeIn.begin();
@@ -454,7 +454,7 @@ CORE::CString
 GetLanguageForModule( const CModuleInfoPtr& moduleInfo )
 {GUCEF_TRACE;
 
-    const TStringSet& languageSet = moduleInfo->compilerSettings.languagesUsed;
+    const TStringSet& languageSet = moduleInfo->compilerSettings.GetLanguagesUsed();
     if ( languageSet.empty() )
     {
         // No language was specified but premake requires one
@@ -802,12 +802,12 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
     }
 
     // Add all the module preprocessor instructions
-    if ( moduleInfo->preprocessorSettings.defines.size() > 0 )
+    if ( moduleInfo->preprocessorSettings.GetDefines().size() > 0 )
     {
         CORE::CDataNode preprocessorNode;
         preprocessorNode.SetName( "Preprocessor" );
-        TStringSet::const_iterator m = moduleInfo->preprocessorSettings.defines.begin();
-        while ( m != moduleInfo->preprocessorSettings.defines.end() )
+        TStringSet::const_iterator m = moduleInfo->preprocessorSettings.GetDefines().begin();
+        while ( m != moduleInfo->preprocessorSettings.GetDefines().end() )
         {
             CORE::CDataNode defineNode;
             defineNode.SetName( "Define" );
@@ -824,42 +824,42 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
 
     // Now Serialize all linker related info
     // First add all the libraries that are linked but not part of the overall project
-    if ( moduleInfo->linkerSettings.linkedLibraries.size() > 0 )
+    if ( moduleInfo->linkerSettings.GetLinkedLibraries().size() > 0 )
     {
         addedLinkedSettings = true;
-        TLinkedLibrarySettingsMap::const_iterator m = moduleInfo->linkerSettings.linkedLibraries.begin();
-        while ( m != moduleInfo->linkerSettings.linkedLibraries.end() )
+        TLinkedLibrarySettingsPtrMap::const_iterator m = moduleInfo->linkerSettings.GetLinkedLibraries().begin();
+        while ( m != moduleInfo->linkerSettings.GetLinkedLibraries().end() )
         {
             CORE::CDataNode libraryNode;
             libraryNode.SetName( "Dependency" );
             libraryNode.SetAttribute( "Name", (*m).first );
 
-            TModuleType linkedLibType = (*m).second.moduleType;
+            TModuleType linkedLibType = (*m).second->GetModuleType();
             if ( ( MODULETYPE_UNDEFINED == linkedLibType ) ||
                  ( MODULETYPE_UNKNOWN == linkedLibType )    )
             {
                 libraryNode.SetAttribute( "Type", ModuleTypeToString( linkedLibType ) );
             }
-            if ( !(*m).second.libPath.IsNULLOrEmpty() )
+            if ( !(*m).second->GetLibraryPath().IsNULLOrEmpty() )
             {
-                libraryNode.SetAttribute( "Path", (*m).second.libPath );
+                libraryNode.SetAttribute( "Path", (*m).second->GetLibraryPath() );
             }
             linkerNode.AddChild( libraryNode );
             ++m;
         }
 
     }
-    if ( !moduleInfo->linkerSettings.targetName.IsNULLOrEmpty() )
+    if ( !moduleInfo->linkerSettings.GetTargetName().IsNULLOrEmpty() )
     {
         addedLinkedSettings = true;
-        linkerNode.SetAttribute( "TargetName", moduleInfo->linkerSettings.targetName ); 
+        linkerNode.SetAttribute( "TargetName", moduleInfo->linkerSettings.GetTargetName() ); 
     }
 
-    if ( !moduleInfo->linkerSettings.libPaths.empty() )
+    if ( !moduleInfo->linkerSettings.GetLibraryPaths().empty() )
     {
         CORE::CString libPaths;
-        TStringSet::const_iterator r = moduleInfo->linkerSettings.libPaths.begin();
-        while ( r != moduleInfo->linkerSettings.libPaths.end() )
+        TStringSet::const_iterator r = moduleInfo->linkerSettings.GetLibraryPaths().begin();
+        while ( r != moduleInfo->linkerSettings.GetLibraryPaths().end() )
         {
             if ( libPaths.IsNULLOrEmpty() )
             {
@@ -1256,96 +1256,16 @@ DeserializeModuleInfo( CModuleInfoPtr& moduleInfo        ,
         }
     }
 
-    // Go through all linker related settings, if any exist
-    const CORE::CDataNode* linkerNode = moduleInfoNode->Find( "Linker" );
-    if ( NULL != linkerNode )
-    {
-        moduleInfo->linkerSettings.targetName = linkerNode->GetAttributeValueOrChildValueByName( "TargetName" );
-        
-        // If general paths were defined at the linker level add them to each dependency
-        // They should be added after the dependency paths this could have been added above because
-        // those should take priority in a linker search for paths        
-        moduleInfo->linkerSettings.libPaths = StringVectorToStringSet( linkerNode->GetAttributeValueOrChildValueByName( "LibPaths" ).AsString().ParseElements( ';' ) );
-        
-        // Find all the libraries that are linked but not part of the overall project
-        CORE::CDataNode::TConstDataNodeSet linkedLibs = linkerNode->FindChildrenOfType( "Dependency" );
-        i = linkedLibs.begin();
-        while ( i != linkedLibs.end() )
-        {
-            const CORE::CDataNode* linkedLibNode = (*i);
-            CORE::CString linkedLibName = linkedLibNode->GetAttributeValue( "Name" );
-            if ( !linkedLibName.IsNULLOrEmpty() )
-            {
-                TLinkedLibrarySettings& libSettings = moduleInfo->linkerSettings.linkedLibraries[ linkedLibName ]; 
-                
-                CORE::CString linkedLibType = linkedLibNode->GetAttributeValue( "Type" );
-                if ( !linkedLibType.IsNULLOrEmpty() )
-                {
-                    libSettings.moduleType = StringToModuleType( linkedLibType );
-                }
-                else
-                {
-                    libSettings.moduleType = MODULETYPE_UNDEFINED;
-                }
+    CORE::CDataNodeSerializableSettings serializableSettings;
 
-                libSettings.libPath = linkedLibNode->GetAttributeValue( "Path" );
-            }
-            ++i;
-        }
-    }
+    // Go through all linker related settings, if any exist    
+    moduleInfo->linkerSettings.Deserialize( *moduleInfoNode, serializableSettings );
 
    // Go through all preprocessor related settings, if any exist
-    const CORE::CDataNode* preprocessorNode = moduleInfoNode->Find( "Preprocessor" );
-    if ( NULL != preprocessorNode )
-    {
-        // Find all the preprocessor definitions
-        CORE::CDataNode::TConstDataNodeSet defines = preprocessorNode->FindChildrenOfType( "Define" );
-        i = defines.begin();
-        while ( i != defines.end() )
-        {
-            const CORE::CDataNode* defineNode = (*i);
-            CORE::CString defineValue = defineNode->GetAttributeValue( "String" );
-            if ( !defineValue.IsNULLOrEmpty() )
-            {
-                moduleInfo->preprocessorSettings.defines.insert( defineValue );
-            }
-            ++i;
-        }
-    }
+    moduleInfo->preprocessorSettings.Deserialize( *moduleInfoNode, serializableSettings );
 
-   // Go through all preprocessor related settings, if any exist
-    const CORE::CDataNode* compilerNode = moduleInfoNode->Find( "Compiler" );
-    if ( NULL != compilerNode )
-    {
-        // Find all the code languages defined for the compiler
-        CORE::CDataNode::TConstDataNodeSet languages = compilerNode->FindChildrenOfType( "Language" );
-        i = languages.begin();
-        while ( i != languages.end() )
-        {
-            const CORE::CDataNode* languageNode = (*i);
-            CORE::CString name = languageNode->GetAttributeValue( "Name" );
-            if ( !name.IsNULLOrEmpty() )
-            {
-                moduleInfo->compilerSettings.languagesUsed.insert( name );
-            }
-            ++i;
-        }
-
-        // Find all the compiler flags defined per compiler
-        CORE::CDataNode::TConstDataNodeSet flagNodes = compilerNode->FindChildrenOfType( "CompilerFlags" );
-        i = flagNodes.begin();
-        while ( i != flagNodes.end() )
-        {
-            const CORE::CDataNode* flagsNode = (*i);
-            CORE::CString compilerName = flagsNode->GetAttributeValue( "CompilerName" );
-            CORE::CString flags = flagsNode->GetAttributeValue( "Flags" );
-            if ( !compilerName.IsNULLOrEmpty() && !flags.IsNULLOrEmpty() )
-            {
-                moduleInfo->compilerSettings.compilerFlags[ compilerName ] = flags;
-            }
-            ++i;
-        }
-    }
+    // Go through all compiler related settings, if any exist
+    moduleInfo->compilerSettings.Deserialize( *moduleInfoNode, serializableSettings );
 
     return true;
 }
@@ -1524,34 +1444,6 @@ MergeModuleTypeMap( TModuleTypeMap& baseMap           ,
 
 /*-------------------------------------------------------------------------*/
 
-void
-MergeLinkedLibrarySettingsMap( TLinkedLibrarySettingsMap& baseMap           ,
-                               const TLinkedLibrarySettingsMap& incomingMap )
-{GUCEF_TRACE;
-
-    TLinkedLibrarySettingsMap::const_iterator i = incomingMap.begin();
-    while ( i != incomingMap.end() )
-    {
-        TLinkedLibrarySettingsMap::iterator n = baseMap.find( (*i).first );
-        if ( n != baseMap.end() )
-        {
-            TModuleType moduleType = (*i).second.moduleType;
-            if ( ( MODULETYPE_UNDEFINED != moduleType ) &&
-                 ( MODULETYPE_UNKNOWN != moduleType )    )
-            {
-                baseMap[ (*i).first ].moduleType = moduleType;
-            }
-        }
-        else
-        {
-            baseMap[ (*i).first ] = (*i).second;
-        }
-        ++i;
-    }
-}
-
-/*-------------------------------------------------------------------------*/
-
 bool
 MergeModuleMetaData( const CModuleMetaData& priorityA ,
                      const CModuleMetaData& priorityB ,
@@ -1602,7 +1494,8 @@ MergeModuleInfo( const CModuleInfoEntryPtr& moduleInfoEntry ,
                  CModuleInfoPtr& mergedModuleInfo           )
 {GUCEF_TRACE;
 
-    mergedModuleInfo->Clear();
+    if ( !mergedModuleInfo.IsNULL() )
+        mergedModuleInfo->Clear();
 
     const CModuleInfoPtr allPlatformsInfo = moduleInfoEntry->FindModuleInfoForPlatform( AllPlatforms );
     const CModuleInfoPtr targetPlatformInfo = moduleInfoEntry->FindModuleInfoForPlatform( targetPlatform );
@@ -2065,17 +1958,17 @@ GetModuleTargetName( const CModuleInfoEntryPtr& moduleInfoEntry ,
     CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( targetPlatform );
     if ( !moduleInfo.IsNULL() )
     {
-        if ( !moduleInfo->linkerSettings.targetName.IsNULLOrEmpty() )
+        if ( !moduleInfo->linkerSettings.GetTargetName().IsNULLOrEmpty() )
         {
-            return moduleInfo->linkerSettings.targetName;
+            return moduleInfo->linkerSettings.GetTargetName();
         }
     }
     if ( targetPlatform != AllPlatforms && !targetPlatform.IsNULLOrEmpty() )
     {
         moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( AllPlatforms );
-        if ( !moduleInfo->linkerSettings.targetName.IsNULLOrEmpty() )
+        if ( !moduleInfo->linkerSettings.GetTargetName().IsNULLOrEmpty() )
         {
-            return moduleInfo->linkerSettings.targetName;
+            return moduleInfo->linkerSettings.GetTargetName();
         }
     }
 
@@ -3445,6 +3338,530 @@ TryAutoSemVerDetection( const CORE::CString& fileContent ,
 
 /*---------------------------------------------------------------------------*/
 
+CLinkedLibrarySettings::CLinkedLibrarySettings( void )
+    : CORE::CTSharedObjCreator< CLinkedLibrarySettings, MT::CMutex >( this )
+    , m_moduleType( TModuleType::MODULETYPE_UNDEFINED )
+    , m_libPath()
+{GUCEF_TRACE;
+
+}
+
+/*---------------------------------------------------------------------------*/
+
+CLinkedLibrarySettings::CLinkedLibrarySettings( const CLinkedLibrarySettings& src )
+    : CORE::CTSharedObjCreator< CLinkedLibrarySettings, MT::CMutex >( this )
+    , m_moduleType( src.m_moduleType )
+    , m_libPath( src.m_libPath )
+{GUCEF_TRACE;
+
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CLinkedLibrarySettings::Clear( void )
+{GUCEF_TRACE;
+
+    m_moduleType = TModuleType::MODULETYPE_UNDEFINED;
+    m_libPath.Clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CLinkedLibrarySettings::SetModuleType( TModuleType moduleType )
+{GUCEF_TRACE;
+
+    m_moduleType = moduleType;
+}
+
+/*---------------------------------------------------------------------------*/
+
+TModuleType
+CLinkedLibrarySettings::GetModuleType( void ) const
+{GUCEF_TRACE;
+
+    return m_moduleType;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CLinkedLibrarySettings::SetLibraryPath( const CORE::CString& libPath )
+{GUCEF_TRACE;
+
+    m_libPath = libPath;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CString&
+CLinkedLibrarySettings::GetLibraryPath( void ) const
+{GUCEF_TRACE;
+
+    return m_libPath;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CLinkedLibrarySettings::Merge( const CLinkedLibrarySettings& linkedLibrarySettingsToMergeIn ,
+                               bool onConflictOriginalInfoStays                             )
+{GUCEF_TRACE;
+
+    if ( m_libPath.IsNULLOrEmpty() )
+        m_libPath = linkedLibrarySettingsToMergeIn.m_libPath;
+    else
+    if ( !onConflictOriginalInfoStays && !linkedLibrarySettingsToMergeIn.m_libPath.IsNULLOrEmpty() )
+        m_libPath = linkedLibrarySettingsToMergeIn.m_libPath;
+
+    if ( TModuleType::MODULETYPE_UNDEFINED == m_moduleType || ( TModuleType::MODULETYPE_UNKNOWN == m_moduleType && TModuleType::MODULETYPE_UNDEFINED != linkedLibrarySettingsToMergeIn.m_moduleType ) )
+        m_moduleType = linkedLibrarySettingsToMergeIn.m_moduleType;
+    else
+    if ( !onConflictOriginalInfoStays && !( TModuleType::MODULETYPE_UNDEFINED == linkedLibrarySettingsToMergeIn.m_moduleType || TModuleType::MODULETYPE_UNKNOWN == linkedLibrarySettingsToMergeIn.m_moduleType ) )
+        m_moduleType = linkedLibrarySettingsToMergeIn.m_moduleType;
+
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
+CLinkerSettings::CLinkerSettings( void )
+    : CORE::CTSharedObjCreator< CLinkerSettings, MT::CMutex >( this )
+    , m_linkedLibraries()
+    , m_libPaths()
+    , m_targetName()
+{GUCEF_TRACE;
+
+}
+
+/*---------------------------------------------------------------------------*/
+
+CLinkerSettings::CLinkerSettings( const CLinkerSettings& src )
+    : CORE::CTSharedObjCreator< CLinkerSettings, MT::CMutex >( this )
+    , m_linkedLibraries( src.m_linkedLibraries )
+    , m_libPaths( src.m_libPaths )
+    , m_targetName( src.m_targetName )
+{GUCEF_TRACE;
+
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CLinkerSettings::Clear( void )
+{GUCEF_TRACE;
+
+    m_linkedLibraries.clear();
+    m_libPaths.clear();
+    m_targetName.Clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
+const TLinkedLibrarySettingsPtrMap&
+CLinkerSettings::GetLinkedLibraries( void ) const
+{GUCEF_TRACE;
+
+    return m_linkedLibraries;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const TStringSet&
+CLinkerSettings::GetLibraryPaths( void ) const
+{GUCEF_TRACE;
+
+    return m_libPaths;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CLinkerSettings::SetTargetName( const CORE::CString& targetName )
+{GUCEF_TRACE;
+
+    m_targetName = targetName;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CString&
+CLinkerSettings::GetTargetName( void ) const
+{GUCEF_TRACE;
+
+    return m_targetName;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CLinkerSettings::GetListOfLinkedLibraries( CORE::CStringSet& linkedLibraries ) const
+{GUCEF_TRACE;
+
+    TLinkedLibrarySettingsPtrMap::const_iterator i = m_linkedLibraries.begin();
+    while ( i != m_linkedLibraries.end() )
+    {
+        linkedLibraries.insert( (*i).first );
+        ++i;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CLinkerSettings::MergeLibraryPaths( const TStringSet& libPathsToMergeIn )
+{GUCEF_TRACE;
+
+    MergeStringSet( m_libPaths, libPathsToMergeIn, true );
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CLinkerSettings::TryGetLinkedLibrary( const CORE::CString& libraryName         ,
+                                      CLinkedLibrarySettingsPtr& linkedLibrary ,
+                                      bool createDefaultIfNotExist             ) 
+{GUCEF_TRACE;
+
+    TLinkedLibrarySettingsPtrMap::iterator i = m_linkedLibraries.find( libraryName );
+    if ( i != m_linkedLibraries.end() )
+    {
+       linkedLibrary = (*i).second;
+       return true;
+    }
+    else
+    {
+        if ( createDefaultIfNotExist )
+        {
+            linkedLibrary = CLinkedLibrarySettings::CreateSharedObj();
+            if ( !linkedLibrary.IsNULL() )
+            {
+                m_linkedLibraries[ libraryName ] = linkedLibrary;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CLinkerSettings::TryGetLinkedLibrary( const CORE::CString& libraryName         ,
+                                      CLinkedLibrarySettingsPtr& linkedLibrary ) const
+{GUCEF_TRACE;
+
+    TLinkedLibrarySettingsPtrMap::const_iterator i = m_linkedLibraries.find( libraryName );
+    if ( i != m_linkedLibraries.end() )
+    {
+       linkedLibrary = (*i).second;
+       return true;
+    }
+    return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CLinkerSettings::DeleteLinkedLibrary( const CORE::CString& libraryName )
+{GUCEF_TRACE;
+
+    m_linkedLibraries.erase( libraryName );
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CLinkerSettings::Deserialize( const CORE::CDataNode& domRootNode                  ,
+                              const CORE::CDataNodeSerializableSettings& settings )
+{GUCEF_TRACE;
+
+    // Go through all linker related settings, if any exist
+    const CORE::CDataNode* linkerNode = domRootNode.Find( "Linker" );
+    if ( GUCEF_NULL != linkerNode )
+    {
+        m_targetName = linkerNode->GetAttributeValueOrChildValueByName( "TargetName" );
+        
+        // If general paths were defined at the linker level add them to each dependency
+        // They should be added after the dependency paths this could have been added above because
+        // those should take priority in a linker search for paths        
+        m_libPaths = StringVectorToStringSet( linkerNode->GetAttributeValueOrChildValueByName( "LibPaths" ).AsString().ParseElements( ';' ) );
+        
+        // Find all the libraries that are linked but not part of the overall project
+        CORE::CDataNode::TConstDataNodeSet linkedLibs = linkerNode->FindChildrenOfType( "Dependency" );
+        CORE::CDataNode::TConstDataNodeSet::const_iterator i = linkedLibs.begin();
+        while ( i != linkedLibs.end() )
+        {
+            const CORE::CDataNode* linkedLibNode = (*i);
+            CORE::CString linkedLibName = linkedLibNode->GetAttributeValue( "Name" );
+            if ( !linkedLibName.IsNULLOrEmpty() )
+            {
+                CLinkedLibrarySettingsPtr linkedLibrary;
+                if ( TryGetLinkedLibrary( linkedLibName, linkedLibrary, true ) && !linkedLibrary.IsNULL() )
+                {
+                    CORE::CString linkedLibType = linkedLibNode->GetAttributeValue( "Type" );
+                    if ( !linkedLibType.IsNULLOrEmpty() )
+                    {
+                        linkedLibrary->SetModuleType( StringToModuleType( linkedLibType ) );
+                    }
+                    else
+                    {
+                        linkedLibrary->SetModuleType( MODULETYPE_UNDEFINED );
+                    }
+
+                    linkedLibrary->SetLibraryPath( linkedLibNode->GetAttributeValue( "Path" ) );
+                }
+            }
+            ++i;
+        }
+    }
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CLinkerSettings::Merge( const CLinkerSettings& linkerSettingsToMergeIn ,
+                        bool onConflictOriginalInfoStays               )
+{GUCEF_TRACE;
+
+
+    bool totalSuccess = true;
+
+    TLinkedLibrarySettingsPtrMap::const_iterator i = linkerSettingsToMergeIn.m_linkedLibraries.begin();
+    while ( i != linkerSettingsToMergeIn.m_linkedLibraries.end() )
+    {
+        const CORE::CString& libName = (*i).first;
+        const CLinkedLibrarySettingsPtr& libSettingsToMergeIn = (*i).second;
+
+        if ( !libSettingsToMergeIn.IsNULL() )
+        {
+            TLinkedLibrarySettingsPtrMap::iterator n = m_linkedLibraries.find( libName );
+            if ( n != m_linkedLibraries.end() )
+            {
+                // We already have such a library specified and as such we will merge
+                CLinkedLibrarySettingsPtr& targetLibSettings = (*n).second;
+                totalSuccess = targetLibSettings->Merge( *libSettingsToMergeIn, onConflictOriginalInfoStays ) && totalSuccess;
+            }
+            else
+            {
+                // No such library specified, add it
+                m_linkedLibraries[ libName ] = CLinkedLibrarySettings::CreateSharedObjWithParam( *libSettingsToMergeIn );
+            }
+        }
+        ++i;
+    }
+
+    MergeStringSet( m_libPaths, linkerSettingsToMergeIn.m_libPaths, true );
+
+    if ( m_targetName.IsNULLOrEmpty() )
+        m_targetName = linkerSettingsToMergeIn.m_targetName;
+    else
+    if ( !onConflictOriginalInfoStays && !linkerSettingsToMergeIn.m_targetName.IsNULLOrEmpty() )
+        m_targetName = linkerSettingsToMergeIn.m_targetName;
+
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+CCompilerSettings::CCompilerSettings( void )
+    : CORE::CTSharedObjCreator< CCompilerSettings, MT::CMutex >( this )
+    , m_languagesUsed()
+    , m_compilerFlags()
+{GUCEF_TRACE;
+
+}
+
+/*---------------------------------------------------------------------------*/
+
+CCompilerSettings::CCompilerSettings( const CCompilerSettings& src )
+    : CORE::CTSharedObjCreator< CCompilerSettings, MT::CMutex >( this )
+    , m_languagesUsed( src.m_languagesUsed )
+    , m_compilerFlags( src.m_compilerFlags )
+{GUCEF_TRACE;
+
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CCompilerSettings::AddUsedLanguage( const CORE::CString& languageUsed )
+{GUCEF_TRACE;
+
+    m_languagesUsed.insert( languageUsed );
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CStringSet&
+CCompilerSettings::GetLanguagesUsed( void ) const
+{GUCEF_TRACE;
+
+    return m_languagesUsed;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CStringMap&
+CCompilerSettings::GetCompilerFlags( void ) const
+{GUCEF_TRACE;
+
+    return m_compilerFlags;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CCompilerSettings::Merge( const CCompilerSettings& compilerSettingsToMergeIn ,
+                          bool onConflictOriginalInfoStays                   )
+{GUCEF_TRACE;
+
+    MergeStringSet( m_languagesUsed, compilerSettingsToMergeIn.m_languagesUsed, false );
+    MergeStringMap( m_compilerFlags, compilerSettingsToMergeIn.m_compilerFlags, false, true );
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CCompilerSettings::Deserialize( const CORE::CDataNode& domRootNode                  ,
+                                const CORE::CDataNodeSerializableSettings& settings )
+{GUCEF_TRACE;
+
+   // Go through all preprocessor related settings, if any exist
+    const CORE::CDataNode* compilerNode = domRootNode.Find( "Compiler" );
+    if ( GUCEF_NULL != compilerNode )
+    {
+        // Find all the code languages defined for the compiler
+        CORE::CDataNode::TConstDataNodeSet languages = compilerNode->FindChildrenOfType( "Language" );
+        CORE::CDataNode::TConstDataNodeSet::const_iterator i = languages.begin();
+        while ( i != languages.end() )
+        {
+            const CORE::CDataNode* languageNode = (*i);
+            CORE::CString name = languageNode->GetAttributeValue( "Name" );
+            if ( !name.IsNULLOrEmpty() )
+            {
+                m_languagesUsed.insert( name );
+            }
+            ++i;
+        }
+
+        // Find all the compiler flags defined per compiler
+        CORE::CDataNode::TConstDataNodeSet flagNodes = compilerNode->FindChildrenOfType( "CompilerFlags" );
+        i = flagNodes.begin();
+        while ( i != flagNodes.end() )
+        {
+            const CORE::CDataNode* flagsNode = (*i);
+            CORE::CString compilerName = flagsNode->GetAttributeValue( "CompilerName" );
+            CORE::CString flags = flagsNode->GetAttributeValue( "Flags" );
+            if ( !compilerName.IsNULLOrEmpty() && !flags.IsNULLOrEmpty() )
+            {
+                m_compilerFlags[ compilerName ] = flags;
+            }
+            ++i;
+        }
+    }
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CCompilerSettings::Clear( void )
+{GUCEF_TRACE;
+
+    m_languagesUsed.clear();
+    m_compilerFlags.clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
+CPreprocessorSettings::CPreprocessorSettings( void )
+    : CORE::CTSharedObjCreator< CPreprocessorSettings, MT::CMutex >( this )
+    , m_defines()
+{GUCEF_TRACE;
+
+}
+
+/*---------------------------------------------------------------------------*/
+
+CPreprocessorSettings::CPreprocessorSettings( const CPreprocessorSettings& src )
+    : CORE::CTSharedObjCreator< CPreprocessorSettings, MT::CMutex >( this )
+    , m_defines( src.m_defines )
+{GUCEF_TRACE;
+
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CPreprocessorSettings::AddDefine( const CORE::CString& define )
+{GUCEF_TRACE;
+
+    m_defines.insert( define );
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CStringSet&
+CPreprocessorSettings::GetDefines( void ) const
+{GUCEF_TRACE;
+
+    return m_defines;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CPreprocessorSettings::Merge( const CPreprocessorSettings& preprocessorSettingsToMergeIn ,
+                              bool onConflictOriginalInfoStays                           )
+{GUCEF_TRACE;
+
+    MergeStringSet( m_defines, preprocessorSettingsToMergeIn.m_defines, false );
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CPreprocessorSettings::Deserialize( const CORE::CDataNode& domRootNode                  ,
+                                    const CORE::CDataNodeSerializableSettings& settings )
+{GUCEF_TRACE;
+
+    const CORE::CDataNode* preprocessorNode = domRootNode.Find( "Preprocessor" );
+    if ( GUCEF_NULL != preprocessorNode )
+    {
+        // Find all the preprocessor definitions
+        CORE::CDataNode::TConstDataNodeSet defines = preprocessorNode->FindChildrenOfType( "Define" );
+        CORE::CDataNode::TConstDataNodeSet::const_iterator i = defines.begin();
+        while ( i != defines.end() )
+        {
+            const CORE::CDataNode* defineNode = (*i);
+            CORE::CString defineValue = defineNode->GetAttributeValue( "String" );
+            if ( !defineValue.IsNULLOrEmpty() )
+            {
+                AddDefine( defineValue );
+            }
+            ++i;
+        }
+    }
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CPreprocessorSettings::Clear( void )
+{GUCEF_TRACE;
+
+    m_defines.clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
 const CORE::CString CModuleMetaData::ClassTypeName = "GUCEF::PROJECTGEN::CModuleMetaData";
 
 /*---------------------------------------------------------------------------*/
@@ -3693,9 +4110,9 @@ CModuleInfo::Clear( void )
     buildChainDependencies.clear();
     considerSubDirs = true;
     hasConsiderSubDirs = false;
-    linkerSettings.linkedLibraries.clear();
-    compilerSettings.languagesUsed.clear();
-    preprocessorSettings.defines.clear();
+    linkerSettings.Clear();
+    compilerSettings.Clear();
+    preprocessorSettings.Clear();
     ignoreModule = false;
     hasIgnoreModule = false;
     metadata.Clear();
@@ -3740,7 +4157,10 @@ CModuleInfo::Merge( CModuleInfoPtr moduleInfoToMergeIn ,
     MergeStringSet( m_namesOfDependencies, moduleInfoToMergeIn->m_namesOfDependencies, true );
     MergeStringSet( dependencyIncludeDirs, moduleInfoToMergeIn->dependencyIncludeDirs, true );
     MergeStringSet( runtimeDependencies, moduleInfoToMergeIn->runtimeDependencies, true );
-        
+
+    totalSuccess = linkerSettings.Merge( moduleInfoToMergeIn->linkerSettings ) && totalSuccess;
+    totalSuccess = compilerSettings.Merge( moduleInfoToMergeIn->compilerSettings ) && totalSuccess;
+    totalSuccess = preprocessorSettings.Merge( moduleInfoToMergeIn->preprocessorSettings ) && totalSuccess;
 
     if ( -1 == buildOrder )
         buildOrder = moduleInfoToMergeIn->buildOrder;

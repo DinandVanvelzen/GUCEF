@@ -822,14 +822,14 @@ GeneratePremake4ModuleLinkerLine( const CModuleInfoPtr& moduleInfo  ,
                                   const CORE::CString& platformName )
 {GUCEF_TRACE;
 
-    if ( !moduleInfo->linkerSettings.linkedLibraries.empty() )
+    if ( !moduleInfo->linkerSettings.GetLinkedLibraries().empty() )
     {
         GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating Premake4 module linker line for module " + moduleName + " and platform " + platformName );
 
         bool first = true;
         CORE::CString sectionContent = "links( {";
-        TLinkedLibrarySettingsMap::const_iterator i = moduleInfo->linkerSettings.linkedLibraries.begin();
-        while ( i != moduleInfo->linkerSettings.linkedLibraries.end() )
+        TLinkedLibrarySettingsPtrMap::const_iterator i = moduleInfo->linkerSettings.GetLinkedLibraries().begin();
+        while ( i != moduleInfo->linkerSettings.GetLinkedLibraries().end() )
         {
             if ( first )
             {
@@ -857,7 +857,7 @@ GeneratePremake4ModuleDefinesLine( const CModuleInfoPtr& moduleInfo  ,
                                    const CORE::CString& platformName )
 {GUCEF_TRACE;
 
-    if ( !moduleInfo->preprocessorSettings.defines.empty() )
+    if ( !moduleInfo->preprocessorSettings.GetDefines().empty() )
     {
         GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating Premake4 module preprocessor defines for module " + moduleName + " and platform " + platformName );
 
@@ -872,8 +872,8 @@ GeneratePremake4ModuleDefinesLine( const CModuleInfoPtr& moduleInfo  ,
         }
 
         bool first = true;
-        TStringSet::const_iterator i = moduleInfo->preprocessorSettings.defines.begin();
-        while ( i != moduleInfo->preprocessorSettings.defines.end() )
+        TStringSet::const_iterator i = moduleInfo->preprocessorSettings.GetDefines().begin();
+        while ( i != moduleInfo->preprocessorSettings.GetDefines().end() )
         {
             if ( first )
             {
@@ -1076,16 +1076,16 @@ GeneratePremake4ModuleTargetNameLine( const CModuleInfoPtr& moduleInfo  ,
                                       const CORE::CString& platformName )
 {GUCEF_TRACE;
 
-    if ( !moduleInfo->linkerSettings.targetName.IsNULLOrEmpty() )
+    if ( !moduleInfo->linkerSettings.GetTargetName().IsNULLOrEmpty() )
     {
         // Name is the target name unless you want something else, so no need to specify unless they are different
-        if ( moduleInfo->linkerSettings.targetName != moduleInfo->name )
+        if ( moduleInfo->linkerSettings.GetTargetName() != moduleInfo->name )
         {
             if ( platformName != AllPlatforms )
             {
-                return "\nconfiguration( { \"" + platformName.Uppercase() + "\" } )\ntargetname( \"" + moduleInfo->linkerSettings.targetName + "\" )\n";
+                return "\nconfiguration( { \"" + platformName.Uppercase() + "\" } )\ntargetname( \"" + moduleInfo->linkerSettings.GetTargetName() + "\" )\n";
             }
-            return "\nconfiguration( {} )\ntargetname( \"" + moduleInfo->linkerSettings.targetName + "\" )\n";
+            return "\nconfiguration( {} )\ntargetname( \"" + moduleInfo->linkerSettings.GetTargetName() + "\" )\n";
         }
     }
     return CORE::CString();
@@ -1380,7 +1380,7 @@ GeneratePremake4ProjectFileContent( const CProjectInfo& projectInfo       ,
     }
 
     // Add the module includes
-    CORE::CString moduleIncludeListSection = "  --\n  -- Includes for all modules in the solution:\n  --\n";
+    CORE::CStringSet orderedIncludeListSection;
     TModuleInfoEntryPtrVector::const_iterator n = projectInfo.modules.begin();
     while ( n != projectInfo.modules.end() )
     {
@@ -1396,10 +1396,20 @@ GeneratePremake4ProjectFileContent( const CProjectInfo& projectInfo       ,
                 fileContent += "  location( os.getenv( \"" + premakeOutputDirEnvVar + "\" ) )\n\n";
             }
             pathToModuleDir = pathToModuleDir.ReplaceChar( '\\', '/' );
-            moduleIncludeListSection += "  include( \"" + pathToModuleDir + "\" )\n";
+            orderedIncludeListSection.insert( "  include( \"" + pathToModuleDir + "\" )\n" );
         }
         ++n;
     }
+
+    // Generate the output section as a second step with each line alphabetically ordered
+    CORE::CString moduleIncludeListSection = "  --\n  -- Includes for all modules in the solution:\n  --\n";
+    CORE::CStringSet::iterator o = orderedIncludeListSection.begin();
+    while ( o != orderedIncludeListSection.end() )
+    {
+        moduleIncludeListSection += (*o);
+        ++o;
+    }
+
     fileContent += moduleIncludeListSection;
 
     return fileContent;
