@@ -133,6 +133,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CLinkedLibrarySettings : public CORE::CTShared
 
     CLinkedLibrarySettings( const CLinkedLibrarySettings& src );
 
+    virtual ~CLinkedLibrarySettings() GUCEF_VIRTUAL_OVERRIDE;
+
     private:
 
     TModuleType m_moduleType;               // Module type of the linked library if already known
@@ -194,6 +196,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CLinkerSettings : public CORE::CTSharedObjCrea
 
     CLinkerSettings( const CLinkerSettings& src );
 
+    virtual ~CLinkerSettings() GUCEF_VIRTUAL_OVERRIDE;
+
     private:
 
     TLinkedLibrarySettingsPtrMap m_linkedLibraries;    // list of all libraries the module links against
@@ -215,6 +219,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CCompilerSettings : public CORE::CTSharedObjCr
     CCompilerSettings( void );
 
     CCompilerSettings( const CCompilerSettings& src );
+
+    virtual ~CCompilerSettings() GUCEF_VIRTUAL_OVERRIDE;
 
     void AddUsedLanguage( const CORE::CString& languageUsed );
 
@@ -269,6 +275,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CPreprocessorSettings : public CORE::CTSharedO
     CPreprocessorSettings( void );
 
     CPreprocessorSettings( const CPreprocessorSettings& src );
+
+    virtual ~CPreprocessorSettings() GUCEF_VIRTUAL_OVERRIDE;
 
     void AddDefine( const CORE::CString& define );
 

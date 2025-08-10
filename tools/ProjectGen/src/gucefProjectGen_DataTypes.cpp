@@ -3165,6 +3165,14 @@ CLinkedLibrarySettings::CLinkedLibrarySettings( const CLinkedLibrarySettings& sr
 
 /*---------------------------------------------------------------------------*/
 
+CLinkedLibrarySettings::~CLinkedLibrarySettings()
+{GUCEF_TRACE;
+
+    Clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
 void
 CLinkedLibrarySettings::Clear( void )
 {GUCEF_TRACE;
@@ -3251,6 +3259,14 @@ CLinkerSettings::CLinkerSettings( const CLinkerSettings& src )
     , m_targetName( src.m_targetName )
 {GUCEF_TRACE;
 
+}
+
+/*---------------------------------------------------------------------------*/
+
+CLinkerSettings::~CLinkerSettings()
+{GUCEF_TRACE;
+
+    Clear();
 }
 
 /*---------------------------------------------------------------------------*/
@@ -3505,6 +3521,14 @@ CCompilerSettings::CCompilerSettings( const CCompilerSettings& src )
 
 /*---------------------------------------------------------------------------*/
 
+CCompilerSettings::~CCompilerSettings()
+{GUCEF_TRACE;
+
+    Clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
 void
 CCompilerSettings::AddUsedLanguage( const CORE::CString& languageUsed )
 {GUCEF_TRACE;
@@ -3611,6 +3635,14 @@ CPreprocessorSettings::CPreprocessorSettings( const CPreprocessorSettings& src )
     , m_defines( src.m_defines )
 {GUCEF_TRACE;
 
+}
+
+/*---------------------------------------------------------------------------*/
+
+CPreprocessorSettings::~CPreprocessorSettings()
+{GUCEF_TRACE;
+
+    Clear();
 }
 
 /*---------------------------------------------------------------------------*/

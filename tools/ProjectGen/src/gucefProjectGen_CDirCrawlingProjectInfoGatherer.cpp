@@ -513,14 +513,14 @@ FindFirstModuleAccordingToBuildOrder( CProjectInfo& projectInfo           ,
 
     CModuleInfoEntryPtr platformEntry = FindModuleAccordingToBuildOrderImp( projectInfo    ,
                                                                           targetPlatform ,
-                                                                          0              );
+                                                                          1              );
     if ( platformEntry.IsNULL() && targetPlatform != AllPlatforms )
     {
         // If we get here we did not find a module with build order 0
         // instead of a platform specific build order check the AllPlatforms build order
         platformEntry = FindModuleAccordingToBuildOrderImp( projectInfo  ,
                                                             AllPlatforms ,
-                                                            0            );
+                                                            1            );
     }
 
     return platformEntry;
