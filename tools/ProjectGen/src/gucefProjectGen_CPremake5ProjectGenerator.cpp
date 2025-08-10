@@ -245,7 +245,7 @@ GeneratePremake5TemplatedAdditionSection( const CModuleInfoEntryPtr& moduleInfoE
 {GUCEF_TRACE;
 
     CModuleInfoPtr moduleInfo;
-    const CORE::CString* moduleName = GetModuleName( moduleInfoEntry, platformName, &moduleInfo );
+    const CORE::CString* moduleName = moduleInfoEntry->GetModuleName( platformName, &moduleInfo );
 
     if ( ( NULL != moduleName ) && ( !moduleInfo.IsNULL() ) )
     {
@@ -759,7 +759,7 @@ GeneratePremake5ModuleDependenciesLine( const CProjectInfo& projectInfo   ,
         {
             // We add all dependencies except for header include locations which are not real modules
             // and Premake5 will not be using a make file for those.
-            const CModuleInfoEntryPtr dependencyModule = GetModuleInfoEntry( projectInfo, (*i), AllPlatforms );
+            const CModuleInfoEntryPtr dependencyModule = projectInfo.GetModuleInfoEntry( (*i), AllPlatforms );
             if ( !dependencyModule.IsNULL() )
             {
                 TModuleType moduleType = GetModuleType( dependencyModule, AllPlatforms );

@@ -1970,7 +1970,7 @@ GetModuleInfo( const CProjectInfo& projectInfo ,
     while ( i != projectInfo.modules.end() )
     {
         CModuleInfoPtr moduleInfo;
-        const CORE::CString* nameOfCurrentModule = GetModuleName( (*i), platform, &moduleInfo );
+        const CORE::CString* nameOfCurrentModule = (*i)->GetModuleName( platform, &moduleInfo );
         if ( NULL != nameOfCurrentModule )
         {
             if ( *nameOfCurrentModule == moduleName )
@@ -2096,7 +2096,7 @@ GenerateModuleDependencyIncludesForPlatform( const CProjectInfo& projectInfo    
     // We know it is already processed since it is a dependency and thus
     // the build order sorting which is dependency based should allow us to iterate
     // based on build order
-    const CModuleInfoEntryPtr dependencyModule = GetModuleInfoEntry( projectInfo, dependencyName, platformName );
+    const CModuleInfoEntryPtr dependencyModule = projectInfo.GetModuleInfoEntry( dependencyName, platformName );
     if ( !dependencyModule.IsNULL() )
     {
         // Includes defined as being for all platforms are always included since other platform definitions
@@ -2124,7 +2124,7 @@ GenerateModuleDependencyIncludesForPlatform( const CProjectInfo& projectInfo    
     // First we grab all the dependencies for this module.
     // We are going to check each of the dependent modules for platform specific includes
     TStringSet dependencies;
-    GetModuleDependencies( moduleInfoEntry, platformName, dependencies, false );
+    projectInfo.GetModuleDependencies( moduleInfoEntry, platformName, dependencies, false );
 
     // Check whether we need to add 'AllPlatforms' includes of dependencies to the includes
     // for this platform instead of relying on them being added via a 'AllPlatforms' version of this module
@@ -2875,8 +2875,8 @@ GetModulePrio( TModuleInfoEntryPrioMap& prioMap    ,
     while ( i != prioMap.end() )
     {
         CModuleInfoEntryPtr moduleInfoEntry = (*i).second;
-        const CORE::CString* currentModuleName = GetModuleName( moduleInfoEntry, targetPlatform );
-        if ( NULL != currentModuleName )
+        const CORE::CString* currentModuleName = moduleInfoEntry->GetModuleName( targetPlatform );
+        if ( GUCEF_NULL != currentModuleName )
         {
             if ( *currentModuleName == moduleName )
             {
@@ -2956,262 +2956,6 @@ GetHighestDependencyCount( TModuleInfoEntryPtrVector& modulesForAllPlatforms ,
         ++i;
     }
     return greatestDependencyCount;
-}
-
-/*---------------------------------------------------------------------------*/
-
-void
-DetermineBuildOrderForAllModules( CProjectInfo& projectInfo            ,
-                                  const CORE::CString& targetPlatform  )
-{GUCEF_TRACE;
-
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Determining the build order for all modules using platform \"" + targetPlatform + "\",..." );
-
-    TModuleInfoEntryPrioMap prioMap;
-
-    // First we make sorting easier by putting all modules in the priority list
-    // in such a way that they are already sorted somewhat based on their dependency count
-    int prioInc=0;
-    CORE::UInt32 highestDependencyCount = GetHighestDependencyCount( projectInfo.modules, targetPlatform );
-    for ( CORE::UInt32 i=0; i<=highestDependencyCount; ++i )
-    {
-        // Grab a list of modules with *i* dependencies
-        TModuleInfoEntryPtrVector modules = GetModulesWithDependencyCountOf( projectInfo.modules, i, targetPlatform );
-        TModuleInfoEntryPtrVector::iterator n = modules.begin();
-        while ( n != modules.end() )
-        {
-            prioMap[ prioInc ] = (*n);
-            ++n;
-            ++prioInc;
-        }
-    }
-    GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Performed initial sorting based on number of dependencies. The target platform is \"" + targetPlatform + "\"" );
-
-    // Now we can bubble sort the priority map, because of the initial sorting done above
-    // the number of iterations should be somewhat reduced.
-    bool changes = true;
-    while ( changes )
-    {
-        changes = false;
-
-        TModuleInfoEntryPrioMap::iterator n = prioMap.begin();
-        while ( n != prioMap.end() )
-        {
-            int modulePrio = (*n).first;
-            CModuleInfoEntryPtr moduleInfoEntry = (*n).second;
-
-            CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( targetPlatform, false );
-            if ( moduleInfo.IsNULL() && targetPlatform != AllPlatforms )
-            {
-                // If no platform specific info is available we will use the info which applies to all platforms
-                moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( AllPlatforms, false );
-                if ( !moduleInfo.IsNULL() )
-                {
-                    GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Using AllPlatforms definition for module " + moduleInfo->name + " for build order determination since no definition was provided for platform \"" + targetPlatform + "\"" );
-                }
-            }
-            else
-            if ( targetPlatform != AllPlatforms )
-            {
-                GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Using platform specific definition for module " + moduleInfo->name + " for build order determination. The target platform is \"" + targetPlatform + "\"" );
-            }
-            if ( !moduleInfo.IsNULL() )
-            {
-                GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Module \"" + moduleInfo->name + "\" currently has build order " + CORE::Int32ToString( moduleInfo->buildOrder ) + ". The target platform is \"" + targetPlatform + "\""  );
-
-                TStringSet::iterator m = moduleInfo->GetNamesOfDependencies().begin();
-                while ( m != moduleInfo->GetNamesOfDependencies().end() )
-                {
-                    // Logically we cannot have a prio higher then the dependency
-                    // so we will ensure it is lower
-                    int dependencyPrio = GetModulePrio( prioMap, (*m), targetPlatform );
-                    if ( dependencyPrio >= modulePrio )
-                    {
-                        GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Module " + moduleInfo->name + " with build order index " + CORE::Int32ToString( modulePrio ) +
-                                    " has dependency " + (*m) + " which has build order index " + CORE::Int32ToString( dependencyPrio ) + ", the dependency should be build before the module that requires it!"  );
-
-                        TModuleInfoEntryPrioMap newPrioMap;
-
-                        // Set the new priority, the priority should be higher then the dependency
-                        // causing it to be build after the dependency (lower prio = builder earlier)
-                        modulePrio = dependencyPrio+1;
-
-                        // Now insert our reprioritized item at this location
-                        newPrioMap[ modulePrio ] = moduleInfoEntry;
-
-                        // Now add everything around the reprioritized item to our
-                        // new prio map
-                        TModuleInfoEntryPrioMap::iterator p = prioMap.begin();
-                        while ( p != prioMap.end() )
-                        {
-                            const CORE::CString* otherName = GetModuleName( (*p).second, targetPlatform );
-                            const CORE::CString* thisName = GetModuleName( moduleInfoEntry, targetPlatform );
-
-                            if ( (*p).first < modulePrio )
-                            {
-                                if ( ( ( NULL != otherName ) && ( NULL != thisName ) ) &&
-                                     ( *otherName != *thisName )                        )
-                                {
-                                    newPrioMap[ (*p).first ] = (*p).second;
-                                }
-                            }
-                            else
-                            if ( (*p).first >= modulePrio )
-                            {
-                                if ( ( ( NULL != otherName ) && ( NULL != thisName ) ) &&
-                                     ( *otherName != *thisName )                        )
-                                {
-                                    newPrioMap[ (*p).first + 1 ] = (*p).second;
-                                    GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Changed build priority for module: " + *otherName +
-                                                " from " + CORE::Int32ToString( (*p).first ) + " to " + CORE::Int32ToString( (*p).first+1 ) );
-                                }
-                            }
-                            ++p;
-                        }
-
-                        // Reindex list to close gap
-                        GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Reindexing the build priority list" );
-                        CORE::Int32 i=0;
-                        TModuleInfoEntryPrioMap newestPrioMap;
-                        p = newPrioMap.begin();
-                        while ( p != newPrioMap.end() )
-                        {
-                            newestPrioMap[ i ] = (*p).second;
-
-                            if ( i != (*p).first )
-                            {
-                                CORE::CString moduleName = GetModuleNameAlways( (*p).second, targetPlatform );
-                                GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Changed build priority for module: " + moduleName +
-                                            " from " + CORE::Int32ToString( (*p).first ) + " to " + CORE::Int32ToString( i ) );
-                            }
-                            ++i; ++p;
-                        }
-
-                        #ifdef GUCEF_CORE_DEBUG_MODE
-
-                        // For debug: output final differeces between the altered list and the original
-                        TModuleInfoEntryPrioMap::iterator q = prioMap.begin();
-                        p = newestPrioMap.begin();
-                        while ( p != newestPrioMap.end() )
-                        {
-                            if ( (*p).second != (*q).second )
-                            {
-                                CORE::CString moduleName1 = GetModuleNameAlways( (*p).second, targetPlatform );
-                                CORE::CString moduleName2 = GetModuleNameAlways( (*q).second, targetPlatform );
-
-                                GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Difference with original build order: module " + moduleName1 +
-                                            " is now at index " + CORE::Int32ToString( (*p).first ) + " where module " + moduleName2 + " used to be" );
-                            }
-                            ++q; ++p;
-                        }
-
-                        #endif
-
-                        // Replace the old map with the new one and start the next bubbling iteration
-                        prioMap = newestPrioMap;
-                        changes = true;
-
-                        GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Completed changing the build priority for module: " + moduleInfo->name + ". The target platform is \"" + targetPlatform + "\"" );
-                        break;
-                    }
-                    ++m;
-                }
-
-                // Restart the process if something had to be changed
-                if ( changes )
-                {
-                    break;
-                }
-            }
-            ++n;
-        }
-    }
-
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Finished determining the correct build order (priority) for all modules, assigning priorities and reordering modules to reflect this" );
-
-    // Assign the determined build order index to the modules
-    TModuleInfoEntryPrioMap::iterator n = prioMap.begin();
-    while ( n != prioMap.end() )
-    {
-        const CORE::CString* moduleName = NULL;
-        CModuleInfoPtr moduleInfo = (*n).second->FindModuleInfoForPlatform( targetPlatform, false );
-        if ( moduleInfo.IsNULL() )
-        {
-            // No module info is available for this platform
-            // We will use the AllPlatforms info but keep in mind we cannot change it's build order since
-            // this sorting is platform specific
-            moduleInfo = (*n).second->FindModuleInfoForPlatform( AllPlatforms, false );
-            if ( NULL != moduleInfo )
-            {
-                moduleName = &moduleInfo->name;
-
-                // We do have a 'AllPlatforms' entry for this module instead of a platform specific one
-                // Lets check if it's existing buildOrder can be used. In order for this to happen the build order
-                // must be identical for 'AllPlatforms' and this target platform
-                if ( ( moduleInfo->buildOrder == -1 )         ||
-                     ( moduleInfo->buildOrder != (*n).first )  )
-                {
-                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "The build order for module " + *moduleName + " needs to be "
-                        + CORE::Int32ToString( (*n).first ) + " for platform \"" + targetPlatform + "\", however no platform specific module definition exists. The build order is "
-                        "different from the AllPlatforms build order which is " + CORE::Int32ToString( moduleInfo->buildOrder )
-                        + " as such we will have to create a platform specific entry for this module to retain the different build order" );
-
-                    // We will have to just create a new entry for this platform because we need to store the platform specific build order
-                    moduleInfo = (*n).second->FindModuleInfoForPlatform( targetPlatform, true );
-                }
-                else
-                {
-                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "The build order for module " + *moduleName + " needs to be "
-                        + CORE::Int32ToString( (*n).first ) + " for platform \"" + targetPlatform + "\", however no platform specific module definition exists."
-                        " Because a 'AllPlatforms' module definition does exist for this module and its build order is the same we can just use the 'AllPlatforms' build order for this module" );
-
-                    // we can use the existing 'AllPlatforms' build order, no need to generate a platform entry
-                    ++n;
-                    continue;
-                }
-            }
-            else
-            {
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Skipping module entry since no 'AllPlatforms' defintion exists nor does a definition exist for the target platform which is \"" + targetPlatform + "\"" );
-                ++n;
-                continue;
-            }
-
-        }
-        else
-        {
-            moduleName = &moduleInfo->name;
-        }
-
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Assigning build order " + CORE::Int32ToString( (*n).first ) + " to module " + *moduleName + " for the target platform which is \"" + targetPlatform + "\"" );
-        moduleInfo->buildOrder = (*n).first;
-        ++n;
-    }
-
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Finished assigning the correct build order for all modules and sorted them accordingly" );
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-DetermineBuildOrderForAllModules( CProjectInfo& projectInfo )
-{GUCEF_TRACE;
-
-    // Important: First determine the build order which applies to all modules
-    // This build order will be used for specific platforms as well unless no 'AllPlatforms'
-    // target is available or if the build order differs
-    // Doing it this way cuts down on the number platform specific entries generated just to store
-    // the build order
-    DetermineBuildOrderForAllModules( projectInfo, AllPlatforms );
-
-    // Now determine the build order for all the other platforms
-    const TStringSet& supportedPlatforms = GetSupportedPlatforms( projectInfo );
-    TStringSet::const_iterator i = supportedPlatforms.begin();
-    while ( i != supportedPlatforms.end() )
-    {
-        DetermineBuildOrderForAllModules( projectInfo, (*i).Lowercase() );
-        ++i;
-    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -3659,7 +3403,7 @@ MergeBinaryPackageLinkerDepsIntoModule( CProjectInfo& projectInfo )
                 // When we find a binary package we need to add its information to the modules that depend on it
                 // its not a module in the same sense as the other modules, its a way to designate a dependency
                 // We now resolved and integrate that dependency
-                CORE::CString moduleName = GetModuleNameAlways( moduleInfoEntry, (*n).first );
+                CORE::CString moduleName = moduleInfoEntry->GetModuleNameAlways( (*n).first );
                 TMutableModuleInfoEntryPairVector links = FindModulesWhichDependOnModule( projectInfo, moduleName );
                 TMutableModuleInfoEntryPairVector::iterator m = links.begin();
                 while ( m != links.end() )
@@ -3861,6 +3605,18 @@ CDirCrawlingProjectInfoGatherer::GatherInfo( const TStringVector& rootDirs      
     // Merge linker dependencies from binary packages into modules
     MergeBinaryPackageLinkerDepsIntoModule( *projectInfo.GetPointerAlways() );
 
+    // In order to avoid bas 'all' platforms links we need to first sanitize the definitions we were given
+    // Incorrect 'all' platforms definitions can mess up the feasibility of a dependency tree
+    projectInfo->SanitizeAllPlatformsUsage();
+
+    // For runtime dependencies we treat them always as 'optional' best effort
+    // We try to retain them where possible, platform specific if need be.
+    // However if unsustainable they are simply dropped
+    projectInfo->SanitizeRuntimeDependencies();
+
+    // Generate the dependency chains which provides an optimized dependency tree going forward
+    projectInfo->UpdateDependencyChains( false );
+
     // By default no modules are ignored but if so specified tags can cause a module to be set to ignore
     // This is just an advisory flag and it is up to the generator backends to not include the module
     // in the output while still ensuring the build remains functional
@@ -3868,7 +3624,7 @@ CDirCrawlingProjectInfoGatherer::GatherInfo( const TStringVector& rootDirs      
 
     // Based on all the information we have gathered we can now determine the correct build order
     // for all platforms
-    DetermineBuildOrderForAllModules( *projectInfo.GetPointerAlways() );
+    projectInfo->DetermineBuildOrderForAllModules();
 
     // Now we can generate all the include paths
     // this functionality relies on the build orders having been determined ahead of time

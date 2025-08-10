@@ -331,7 +331,8 @@ CreateArduinoCLIWindowsSymlinkBatchfiles( const TModuleInfoEntryPairVector& merg
 /*-------------------------------------------------------------------------*/
 
 bool
-CreateArduinoCLILibraryPropertiesFiles( const TModuleInfoEntryPairVector& mergeLinks ,
+CreateArduinoCLILibraryPropertiesFiles( const CProjectInfo& projectInfo              ,
+                                        const TModuleInfoEntryPairVector& mergeLinks ,
                                         const CORE::CString& outputDir               ,
                                         bool onlyConsiderSpecificTags                ,
                                         const CORE::CString::StringSet& validTags    )
@@ -379,10 +380,10 @@ CreateArduinoCLILibraryPropertiesFiles( const TModuleInfoEntryPairVector& mergeL
                     //includes=src/common/include/gucef.h   ?
                 
                     CORE::CString::StringSet dependencies;
-                    GetModuleDependencies( originalModule      ,
-                                           ArduinoPlatformName ,
-                                           dependencies        ,
-                                           false               );                
+                    projectInfo.GetModuleDependencies( originalModule      ,
+                                                       ArduinoPlatformName ,
+                                                       dependencies        ,
+                                                       false               );                
                     content += "depends=" + CORE::StringSetToString( dependencies, CORE::CString::Empty, ',' ) + "\n";
                 
                     if ( CORE::WriteStringAsTextFile( libPropsPath ,
@@ -461,7 +462,7 @@ CArduinoCLIGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
     MergeAllModuleInfoForPlatform( projectInfo.modules, ArduinoPlatformName, mergedInfo, mergeLinks ); 
 
     CreateArduinoCLIWindowsSymlinkBatchfiles( mergeLinks, addGeneratorCompileTimeToOutput, arduinoCLIOutputDir, onlyConsiderSpecificTags, validTags );
-    CreateArduinoCLILibraryPropertiesFiles( mergeLinks, arduinoCLIOutputDir, onlyConsiderSpecificTags, validTags );
+    CreateArduinoCLILibraryPropertiesFiles( projectInfo, mergeLinks, arduinoCLIOutputDir, onlyConsiderSpecificTags, validTags );
 
     return true;
 }

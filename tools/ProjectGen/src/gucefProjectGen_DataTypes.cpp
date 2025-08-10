@@ -326,7 +326,7 @@ GetXmlDStoreCodec( void )
     if ( codecPtr.IsNULL() )
     {
         CORE::CDStoreCodecRegistry* registry = &CORE::CCoreGlobal::Instance()->GetDStoreCodecRegistry();
-        if ( !registry->TryLookup( "XML", codecPtr, false ) )
+        if ( !registry->TryGetXmlCodec( codecPtr ) )
         {
             // No codec is registered to handle XML, try and load a plugin for it
             #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
@@ -1261,7 +1261,7 @@ DeserializeModuleInfo( CModuleInfoPtr& moduleInfo        ,
     // Go through all linker related settings, if any exist    
     moduleInfo->linkerSettings.Deserialize( *moduleInfoNode, serializableSettings );
 
-   // Go through all preprocessor related settings, if any exist
+    // Go through all preprocessor related settings, if any exist
     moduleInfo->preprocessorSettings.Deserialize( *moduleInfoNode, serializableSettings );
 
     // Go through all compiler related settings, if any exist
@@ -1754,53 +1754,6 @@ MergeDirProcessingInstructionsMap( TDirProcessingInstructionsMap& mergedInstruct
 /*---------------------------------------------------------------------------*/
 
 const CORE::CString*
-GetModuleName( const CModuleInfoEntryPtr& moduleInfoEntry ,
-               const CORE::CString& targetPlatform        ,
-               CModuleInfoPtr* outModuleInfo              )
-{GUCEF_TRACE;
-
-    TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().find( targetPlatform );
-    if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
-    {
-        // A module was specified for this platform
-        // Just because we have a module definition doenst mean we have a name
-        if ( !(*n).second->name.IsNULLOrEmpty() )
-        {
-            // We have a name for this specific plaform
-            if ( GUCEF_NULL != outModuleInfo )
-            {
-                *outModuleInfo = (*n).second;
-            }
-            return &( (*n).second->name );
-        }
-    }
-
-    // If no name is specified for a specific platform then there might still be a
-    // default for all platforms
-    if ( targetPlatform != AllPlatforms )
-    {
-        n = moduleInfoEntry->GetModulesPerPlatform().find( AllPlatforms );
-        if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
-        {
-            // An 'AllPlatforms' definition is available for this module
-            // Just because we have a module definition doenst mean we have a name
-            if ( !(*n).second->name.IsNULLOrEmpty() )
-            {
-                // We have a name for this specific plaform
-                if ( GUCEF_NULL != outModuleInfo )
-                {
-                    *outModuleInfo = (*n).second;
-                }
-                return &( (*n).second->name );
-            }
-        }
-    }
-    return GUCEF_NULL;
-}
-
-/*---------------------------------------------------------------------------*/
-
-const CORE::CString*
 GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
                const CORE::CString& targetPlatform          ,
                CModuleInfoPtr* outModuleInfo                )
@@ -1813,7 +1766,7 @@ GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
         const CModuleInfoEntryPtr mainModule = (*i).second.mainModule;
         if ( !mainModule.IsNULL() )
         {
-            return GetModuleName( mainModule, targetPlatform, outModuleInfo );
+            return mainModule->GetModuleName( targetPlatform, outModuleInfo );
         }
     }
 
@@ -1827,7 +1780,7 @@ GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
             const CModuleInfoEntryPtr mainModule = (*i).second.mainModule;
             if ( !mainModule.IsNULL() )
             {
-                return GetModuleName( mainModule, AllPlatforms, outModuleInfo );
+                return mainModule->GetModuleName( AllPlatforms, outModuleInfo );
             }
         }
     }
@@ -1934,22 +1887,6 @@ GetConsensusTargetName( const TProjectTargetInfoMap& targetPlatforms )
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GetModuleNameAlways( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                     const CORE::CString& targetPlatform        ,
-                     CModuleInfoPtr* moduleInfo                 )
-{GUCEF_TRACE;
-
-    const CORE::CString* strPtr = GetModuleName( moduleInfoEntry, targetPlatform, moduleInfo );
-    if ( GUCEF_NULL == strPtr )
-    {
-        return moduleInfoEntry->GetConsensusName( moduleInfo );
-    }
-    return *strPtr;
-}
-
-/*---------------------------------------------------------------------------*/
-
-CORE::CString
 GetModuleTargetName( const CModuleInfoEntryPtr& moduleInfoEntry ,
                      const CORE::CString& targetPlatform        ,
                      bool useModuleNameIfNoTargetName           )
@@ -1976,109 +1913,10 @@ GetModuleTargetName( const CModuleInfoEntryPtr& moduleInfoEntry ,
     // module name. For most projects this is the same thing.
     if ( useModuleNameIfNoTargetName )
     {
-        return GetModuleNameAlways( moduleInfoEntry, targetPlatform );
+        return moduleInfoEntry->GetModuleNameAlways( targetPlatform );
     }
 
     return CORE::CString(); 
-}
-
-/*---------------------------------------------------------------------------*/
-
-void
-GetModuleDependencies( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                       const CORE::CString& targetPlatform        ,
-                       TStringSet& dependencies                   ,
-                       bool includeRuntimeDependencies            )
-{GUCEF_TRACE;
-
-    CModuleInfoEntryPtr mutableModuleInfoEntry = moduleInfoEntry;
-    CModuleInfoPtr moduleInfo = mutableModuleInfoEntry->FindModuleInfoForPlatform( targetPlatform, false );
-    if ( !moduleInfo.IsNULL() )
-    {
-        MergeStringSet( dependencies, moduleInfo->GetNamesOfDependencies(), false );
-        if ( includeRuntimeDependencies )
-            MergeStringSet( dependencies, moduleInfo->runtimeDependencies, false );
-    }
-    if ( targetPlatform != AllPlatforms && !targetPlatform.IsNULLOrEmpty() )
-    {
-        moduleInfo = mutableModuleInfoEntry->FindModuleInfoForPlatform( AllPlatforms, false );
-        if ( !moduleInfo.IsNULL() )
-        {
-            MergeStringSet( dependencies, moduleInfo->GetNamesOfDependencies(), false );
-            if ( includeRuntimeDependencies )
-                MergeStringSet( dependencies, moduleInfo->runtimeDependencies, false );
-        }
-    }
-}
-
-/*---------------------------------------------------------------------------*/
-
-bool
-GetModuleDependencies( const CProjectInfo& projectInfo            ,
-                       const CModuleInfoEntryPtr& moduleInfoEntry ,
-                       const CORE::CString& targetPlatform        ,
-                       TModuleInfoEntryPtrSet& dependencies       ,
-                       bool includeDependenciesOfDependencies     ,
-                       bool includeRuntimeDependencies            )
-{GUCEF_TRACE;
-
-    TStringSet deps;
-    GetModuleDependencies( moduleInfoEntry, targetPlatform, deps, includeRuntimeDependencies );     
-    
-    CORE::CString moduleName = moduleInfoEntry->GetConsensusName();
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GetModuleDependencies: For module " + moduleName + ": found \"" + CORE::ToString( deps.size() ) + "\" dependencies for platform " + targetPlatform );
-
-    TModuleInfoEntryPtrSet depsPtrs;    
-    bool foundAllDeps = true;
-    TStringSet::iterator m = deps.begin();
-    while ( m != deps.end() )
-    {
-        const CModuleInfoEntryPtr dependency = GetModuleInfoEntry( projectInfo, (*m), targetPlatform );
-        if ( GUCEF_NULL != dependency )
-            depsPtrs.insert( dependency );
-        else
-        {
-            foundAllDeps = false; // We cannot satisfy the full dependency chain for the executable for the given platform
-            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GetModuleDependencies: For module " + moduleName + ": Found that for platform \"" + targetPlatform + "\" we cannot satisfy the full dependency chain because of dependency " + (*m) );
-        }
-        ++m;
-    }
-    
-    if ( includeDependenciesOfDependencies )
-    {
-        TModuleInfoEntryPtrSet depsOfdependencies;
-        TModuleInfoEntryPtrSet::iterator i = depsPtrs.begin();
-        while ( i != depsPtrs.end() )
-        {
-            const CModuleInfoEntryPtr entry = (*i);            
-            CORE::CString depModuleName = entry->GetConsensusName();
-
-            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GetModuleDependencies: For module " + moduleName + ": Recursively looking for dependencies of dependency \"" + depModuleName + "\" for platform " + targetPlatform );
-
-            foundAllDeps = foundAllDeps && GetModuleDependencies( projectInfo, 
-                                                                  entry, 
-                                                                  targetPlatform, 
-                                                                  depsOfdependencies, 
-                                                                  includeDependenciesOfDependencies, 
-                                                                  includeRuntimeDependencies ); 
-            ++i;
-        }
-        TModuleInfoEntryPtrSet::iterator n = depsOfdependencies.begin();
-        while ( n != depsOfdependencies.end() )
-        {
-            depsPtrs.insert( (*n) );
-            ++n;
-        }
-    }
-
-    TModuleInfoEntryPtrSet::iterator i = depsPtrs.begin();
-    while ( i != depsPtrs.end() )
-    {
-        dependencies.insert( (*i) );
-        ++i;
-    }
-
-    return foundAllDeps;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2521,7 +2359,7 @@ GetModuleInfoEntry( const TModuleInfoEntryPtrVector& moduleInfoEntries ,
     TModuleInfoEntryPtrVector::const_iterator i = moduleInfoEntries.begin();
     while ( i != moduleInfoEntries.end() )
     {
-        CORE::CString nameOfCurrentModule = GetModuleNameAlways( (*i), platform, moduleInfo );
+        CORE::CString nameOfCurrentModule = (*i)->GetModuleNameAlways( platform, moduleInfo );
         if ( nameOfCurrentModule == moduleName )
         {
             return (*i);
@@ -2529,39 +2367,6 @@ GetModuleInfoEntry( const TModuleInfoEntryPtrVector& moduleInfoEntries ,
         ++i;
     }
     return CModuleInfoEntryPtr();
-}
-
-/*---------------------------------------------------------------------------*/
-
-const CModuleInfoEntryPtr
-GetModuleInfoEntry( const CProjectInfo& projectInfo  ,
-                    const CORE::CString& moduleName  ,
-                    const CORE::CString& platform    ,
-                    CModuleInfoPtr* moduleInfo       )
-{GUCEF_TRACE;
-
-    return GetModuleInfoEntry( projectInfo.modules, moduleName, platform, moduleInfo );
-}
-
-/*---------------------------------------------------------------------------*/
-
-void
-GetAllPlatformsUsed( const CProjectInfo& projectInfo ,
-                     TStringSet& platformList        )
-{GUCEF_TRACE;
-
-    TModuleInfoEntryPtrVector::const_iterator i = projectInfo.modules.begin();
-    while ( i != projectInfo.modules.end() )
-    {
-        const TModuleInfoPtrMap& modulesPerPlatform = (*i)->GetModulesPerPlatform();
-        TModuleInfoPtrMap::const_iterator n = modulesPerPlatform.begin();
-        while ( n != modulesPerPlatform.end() )
-        {
-            platformList.insert( (*n).first );
-            ++n;
-        }
-        ++i;
-    }
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2762,7 +2567,7 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
         while ( i != executables.end() )
         {
             CModuleInfoEntryPtr executable = (*i);
-            CORE::CString targetName = GetModuleNameAlways( executable, (*p) );
+            CORE::CString targetName = executable->GetModuleNameAlways( (*p) );
 
             // Don't bother if the executable itself doesnt have a platform definition for the current platform            
             if ( executable->GetModulesPerPlatform().find( (*p) ) != executable->GetModulesPerPlatform().end() )
@@ -2771,7 +2576,7 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
                     targetName + "\" for platform " + (*p) );
 
                 TModuleInfoEntryPtrSet foundDependencies;
-                if ( GetModuleDependencies( projectInfo, executable, (*p), foundDependencies, true, true ) )
+                if ( projectInfo.GetModuleDependencies( executable, (*p), foundDependencies, true, true ) )
                 {
                     // if we made it here we found the executable and were able to satisfy all dependencies
                     // for the current platform
@@ -2837,7 +2642,7 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
                         // Tagged or not we need to include the dependencies of tagged modules as well
                         // We don't want to make projects that cannot compile
                         TModuleInfoEntryPtrSet foundDependencies;
-                        if ( GetModuleDependencies( projectInfo, taggedModule, (*p), foundDependencies, true, true ) )
+                        if ( projectInfo.GetModuleDependencies( taggedModule, (*p), foundDependencies, true, true ) )
                         {
                             TProjectTargetInfoMap& targetPerPlatform = targets[ projectName ];
                             TProjectTargetInfo& target = targetPerPlatform[ (*p) ];
@@ -2935,7 +2740,7 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
 {GUCEF_TRACE;
 
     TStringSet platformsUsed;
-    GetAllPlatformsUsed( projectInfo, platformsUsed );
+    projectInfo.GetAllPlatformsUsed( platformsUsed );
 
     SplitProjectPerTarget( projectInfo                , 
                            targets                    ,
@@ -3468,6 +3273,15 @@ CLinkerSettings::GetLinkedLibraries( void ) const
 
 /*---------------------------------------------------------------------------*/
 
+bool
+CLinkerSettings::HasLinkerDependency( const CORE::CString& dependencyName ) const
+{GUCEF_TRACE;
+
+    return m_linkedLibraries.find( dependencyName ) != m_linkedLibraries.end();
+}
+
+/*---------------------------------------------------------------------------*/
+
 const TStringSet&
 CLinkerSettings::GetLibraryPaths( void ) const
 {GUCEF_TRACE;
@@ -3627,6 +3441,8 @@ CLinkerSettings::Merge( const CLinkerSettings& linkerSettingsToMergeIn ,
                         bool onConflictOriginalInfoStays               )
 {GUCEF_TRACE;
 
+if ( linkerSettingsToMergeIn.GetLinkedLibraries().find( "glu32.lib" ) != linkerSettingsToMergeIn.GetLinkedLibraries().end() )
+    int sdfdsdsfd =0;
 
     bool totalSuccess = true;
 
@@ -4438,6 +4254,68 @@ CModuleInfo::MergeNamesOfDependencies( const TStringSet& dependenciesToMergeIn )
 
 /*---------------------------------------------------------------------------*/
 
+void
+CModuleInfo::AddNameOfRuntimeDependency( const CORE::CString& dependency )
+{GUCEF_TRACE;
+
+    runtimeDependencies.insert( dependency );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CModuleInfo::RemoveNameOfRuntimeDependency( const CORE::CString& dependency )
+{GUCEF_TRACE;
+
+    runtimeDependencies.erase( dependency );
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleInfo::HasIndependentModuleType( void ) const
+{GUCEF_TRACE;
+
+    switch ( moduleType )
+    {
+        case MODULETYPE_HEADER_INCLUDE_LOCATION:
+        case MODULETYPE_HEADER_INTEGRATE_LOCATION:
+        case MODULETYPE_CODE_INTEGRATE_LOCATION:
+        //case MODULETYPE_BINARY_PACKAGE:
+        case MODULETYPE_UNDEFINED:
+        case MODULETYPE_UNKNOWN:
+        {
+            return false;
+        }
+        default:
+        {
+            return true;
+        }
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleInfo::HasValidModuleType( void ) const
+{GUCEF_TRACE;
+
+    switch ( moduleType )
+    {
+        case MODULETYPE_UNDEFINED:
+        case MODULETYPE_UNKNOWN:
+        {
+            return false;
+        }
+        default:
+        {
+            return true;
+        }
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
 const CORE::CString CModuleInfoEntry::ClassTypeName = "GUCEF::PROJECTGEN::CModuleInfoEntry";
 
 /*---------------------------------------------------------------------------*/
@@ -4449,6 +4327,8 @@ CModuleInfoEntry::CModuleInfoEntry( void )
     , metadata()
     , m_consensusName()
     , m_modulesPerPlatform()
+    , m_flattenedInfoPerPlatform()
+    , m_isBroken( false )
 {GUCEF_TRACE;
 
 }
@@ -4462,6 +4342,8 @@ CModuleInfoEntry::CModuleInfoEntry( const CModuleInfoEntry& src )
     , metadata( src.metadata )
     , m_consensusName( src.m_consensusName )
     , m_modulesPerPlatform( src.m_modulesPerPlatform )
+    , m_flattenedInfoPerPlatform( src.m_flattenedInfoPerPlatform )
+    , m_isBroken( src.m_isBroken )
 {GUCEF_TRACE;
 
 }
@@ -4485,6 +4367,9 @@ CModuleInfoEntry::Clear( void )
 
     m_consensusName.Clear();
     m_modulesPerPlatform.clear();
+    m_flattenedInfoPerPlatform.clear();
+
+    m_isBroken = false;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -4595,6 +4480,67 @@ CModuleInfoEntry::GetConsensusName( CModuleInfoPtr* moduleInfo ,
         }
     }
     return m_consensusName = consensusName;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CString*
+CModuleInfoEntry::GetModuleName( const CORE::CString& targetPlatform ,
+                                 CModuleInfoPtr* outModuleInfo       ) const
+{GUCEF_TRACE;
+
+    TModuleInfoPtrMap::const_iterator n = m_modulesPerPlatform.find( targetPlatform );
+    if ( n != m_modulesPerPlatform.end() )
+    {
+        // A module was specified for this platform
+        // Just because we have a module definition doens't mean we have a name
+        if ( !(*n).second->name.IsNULLOrEmpty() )
+        {
+            // We have a name for this specific platform
+            if ( GUCEF_NULL != outModuleInfo )
+            {
+                *outModuleInfo = (*n).second;
+            }
+            return &( (*n).second->name );
+        }
+    }
+
+    // If no name is specified for a specific platform then there might still be a
+    // default for all platforms
+    if ( targetPlatform != AllPlatforms )
+    {
+        n = m_modulesPerPlatform.find( AllPlatforms );
+        if ( n != m_modulesPerPlatform.end() )
+        {
+            // An 'AllPlatforms' definition is available for this module
+            // Just because we have a module definition doesn't mean we have a name
+            if ( !(*n).second->name.IsNULLOrEmpty() )
+            {
+                // We have a name for this specific platform
+                if ( GUCEF_NULL != outModuleInfo )
+                {
+                    *outModuleInfo = (*n).second;
+                }
+                return &( (*n).second->name );
+            }
+        }
+    }
+    return GUCEF_NULL;
+}
+
+/*---------------------------------------------------------------------------*/
+
+CORE::CString
+CModuleInfoEntry::GetModuleNameAlways( const CORE::CString& targetPlatform ,
+                                       CModuleInfoPtr* moduleInfo          ) const
+{GUCEF_TRACE;
+
+    const CORE::CString* strPtr = GetModuleName( targetPlatform, moduleInfo );
+    if ( GUCEF_NULL == strPtr )
+    {
+        return GetConsensusName( moduleInfo );
+    }
+    return *strPtr;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -4717,6 +4663,338 @@ CModuleInfoEntry::GetModulesPerPlatform( void ) const
 {GUCEF_TRACE;
 
     return m_modulesPerPlatform;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const TModuleInfoPtrMap&
+CModuleInfoEntry::GetFlattenedModulesPerPlatform( void ) const
+{GUCEF_TRACE;
+
+    return m_flattenedInfoPerPlatform;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CModuleInfoEntry::HasDependency( const CORE::CString& platform       ,
+                                 const CORE::CString& dependencyName ,
+                                 bool platformSpecificOnly           ) const
+{GUCEF_TRACE;
+
+    // Check for a platform specific dependency
+    TModuleInfoPtrMap::const_iterator n = m_modulesPerPlatform.find( platform );
+    if ( n != m_modulesPerPlatform.end() )
+    {
+        // This module has info for for this module, check its type
+        const CModuleInfoPtr& moduleInfo = (*n).second;
+        if ( IsStringInList( moduleInfo->GetNamesOfDependencies(), false, dependencyName ) )
+        {
+            return true;
+        }
+    }
+
+    // Alternatively check the 'all platforms' definition
+    if ( !platformSpecificOnly && platform != AllPlatforms && !platform.IsNULLOrEmpty() )
+    {
+        n = m_modulesPerPlatform.find( AllPlatforms );
+        if ( n != m_modulesPerPlatform.end() )
+        {
+            // This module has info for for this module, check its type
+            const CModuleInfoPtr& moduleInfo = (*n).second;
+            if ( IsStringInList( moduleInfo->GetNamesOfDependencies(), false, dependencyName ) )
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CModuleInfoEntry::HasLinkerDependency( const CORE::CString& platform       ,
+                                       const CORE::CString& dependencyName ,
+                                       bool platformSpecificOnly           ) const
+{GUCEF_TRACE;
+
+    // Check for a platform specific dependency
+    TModuleInfoPtrMap::const_iterator n = m_modulesPerPlatform.find( platform );
+    if ( n != m_modulesPerPlatform.end() )
+    {
+        // This module has info for for this module, check its type
+        const CModuleInfoPtr& moduleInfo = (*n).second;
+        if ( moduleInfo->linkerSettings.HasLinkerDependency( dependencyName ) )
+        {
+            return true;
+        }
+    }
+
+    // Alternatively check the 'all platforms' definition
+    if ( !platformSpecificOnly && platform != AllPlatforms && !platform.IsNULLOrEmpty() )
+    {
+        n = m_modulesPerPlatform.find( AllPlatforms );
+        if ( n != m_modulesPerPlatform.end() )
+        {
+            // This module has info for for this module, check its type
+            const CModuleInfoPtr& moduleInfo = (*n).second;
+            if ( moduleInfo->linkerSettings.HasLinkerDependency( dependencyName ) )
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CModuleInfoEntry::IsApplicableForPlatform( const CORE::CString& platform ) const
+{GUCEF_TRACE;
+
+    // Check for a platform specific definition
+    TModuleInfoPtrMap::const_iterator n = m_modulesPerPlatform.find( platform );
+    if ( n != m_modulesPerPlatform.end() )
+    {
+        // This module has info for for this module, check its type
+        const CModuleInfoPtr& moduleInfo = (*n).second;
+        if GUCEF_PREDICT_TRUE( !moduleInfo.IsNULL() )
+        {
+            if ( moduleInfo->HasValidModuleType() )
+            {
+                return true;
+            }
+        }
+    }
+
+    // Alternatively check the 'all platforms' definition
+    if ( platform != AllPlatforms && !platform.IsNULLOrEmpty() )
+    {
+        n = m_modulesPerPlatform.find( AllPlatforms );
+        if ( n != m_modulesPerPlatform.end() )
+        {
+            // This module has info for for this module, check its type
+            const CModuleInfoPtr& moduleInfo = (*n).second;
+            if GUCEF_PREDICT_TRUE( !moduleInfo.IsNULL() )
+            {
+                if ( moduleInfo->HasValidModuleType() )
+                {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CModuleInfoEntry::HasIndependentModuleTypeForPlatform( const CORE::CString& platform ) const
+{GUCEF_TRACE;
+
+    // Check for a platform specific definition
+    TModuleInfoPtrMap::const_iterator n = m_modulesPerPlatform.find( platform );
+    if ( n != m_modulesPerPlatform.end() )
+    {
+        // This module has info for for this module, check its type
+        const CModuleInfoPtr& moduleInfo = (*n).second;
+        if GUCEF_PREDICT_TRUE( !moduleInfo.IsNULL() )
+        {
+            if ( moduleInfo->HasIndependentModuleType() )
+            {
+                return true;
+            }
+        }
+    }
+
+    // Alternatively check the 'all platforms' definition
+    if ( platform != AllPlatforms && !platform.IsNULLOrEmpty() )
+    {
+        n = m_modulesPerPlatform.find( AllPlatforms );
+        if ( n != m_modulesPerPlatform.end() )
+        {
+            // This module has info for for this module, check its type
+            const CModuleInfoPtr& moduleInfo = (*n).second;
+            if GUCEF_PREDICT_TRUE( !moduleInfo.IsNULL() )
+            {
+                if ( moduleInfo->HasIndependentModuleType() )
+                {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CModuleInfoEntry::HasAllPlatformsDefinition( void ) const
+{GUCEF_TRACE;
+
+    // Check for the AllPlatforms definition
+    TModuleInfoPtrMap::const_iterator n = m_modulesPerPlatform.find( AllPlatforms );
+    if ( n != m_modulesPerPlatform.end() )
+    {
+        // Check if its not just a placeholder, it has to be valid
+        const CModuleInfoPtr& allPlatformsDefinition = (*n).second;
+        if ( !allPlatformsDefinition.IsNULL() && allPlatformsDefinition->HasValidModuleType() )
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CModuleInfoEntry::SetIsBroken( bool isBroken )
+{GUCEF_TRACE;
+
+    m_isBroken = isBroken;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CModuleInfoEntry::IsBroken( void ) const
+{GUCEF_TRACE;
+
+    return m_isBroken;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CModuleInfoEntry::GetModuleDependencyNames( const CORE::CString& targetPlatform ,
+                                            TStringSet& dependencies            ) const
+{GUCEF_TRACE;
+
+    CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( targetPlatform );
+    if ( !moduleInfo.IsNULL() )
+    {
+        MergeStringSet( dependencies, moduleInfo->GetNamesOfDependencies(), false );
+    }
+    if ( targetPlatform != AllPlatforms && !targetPlatform.IsNULLOrEmpty() )
+    {
+        moduleInfo = FindModuleInfoForPlatform( AllPlatforms );
+        if ( !moduleInfo.IsNULL() )
+        {
+            MergeStringSet( dependencies, moduleInfo->GetNamesOfDependencies(), false );
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CModuleInfoEntry::GetModuleLinkerDependencyNames( const CORE::CString& targetPlatform ,
+                                                  TStringSet& dependencies            ) const
+{GUCEF_TRACE;
+
+    CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( targetPlatform );
+    if ( !moduleInfo.IsNULL() )
+    {
+        moduleInfo->linkerSettings.GetListOfLinkedLibraries( dependencies );
+    }
+    if ( targetPlatform != AllPlatforms && !targetPlatform.IsNULLOrEmpty() )
+    {
+        moduleInfo = FindModuleInfoForPlatform( AllPlatforms );
+        if ( !moduleInfo.IsNULL() )
+        {
+            moduleInfo->linkerSettings.GetListOfLinkedLibraries( dependencies );
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CModuleInfoEntry::GetModuleRuntimeDependencyNames( const CORE::CString& targetPlatform ,
+                                                   TStringSet& dependencies            ) const
+{GUCEF_TRACE;
+
+    CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( targetPlatform );
+    if ( !moduleInfo.IsNULL() )
+    {
+        MergeStringSet( dependencies, moduleInfo->runtimeDependencies, false );
+    }
+    if ( targetPlatform != AllPlatforms && !targetPlatform.IsNULLOrEmpty() )
+    {
+        moduleInfo = FindModuleInfoForPlatform( AllPlatforms );
+        if ( !moduleInfo.IsNULL() )
+        {
+            MergeStringSet( dependencies, moduleInfo->runtimeDependencies, false );
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CModuleInfoEntry::RemoveRuntimeDependency( const CORE::CString& dependencyName ,
+                                           const CORE::CString& platformName   )
+{GUCEF_TRACE;
+
+    // Check for platform specific definitions
+    TModuleInfoPtrMap::iterator n = m_modulesPerPlatform.find( platformName );
+    if ( n != m_modulesPerPlatform.end() )
+    {
+        // This module has info for for this module, check its type
+        CModuleInfoPtr& platformModuleDefinition = (*n).second;
+        if ( !platformModuleDefinition.IsNULL() )
+        {
+            platformModuleDefinition->RemoveNameOfRuntimeDependency( dependencyName );
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CModuleInfoEntry::RemoveRuntimeDependency( const CORE::CString& dependencyName )
+{GUCEF_TRACE;
+
+    // Check for platform specific definitions
+    TModuleInfoPtrMap::iterator n = m_modulesPerPlatform.begin();
+    while ( n != m_modulesPerPlatform.end() )
+    {
+        // This module has info for for this module, check its type
+        const CORE::CString& platform = (*n).first;
+        CModuleInfoPtr& platformModuleDefinition = (*n).second;
+        if ( !platformModuleDefinition.IsNULL() )
+        {
+            platformModuleDefinition->RemoveNameOfRuntimeDependency( dependencyName );
+        }
+        
+        ++n;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CModuleInfoEntry::GetReferencedPlatforms( TStringSet& platforms ) const
+{GUCEF_TRACE;
+
+    // Check for platform specific definitions
+    TModuleInfoPtrMap::const_iterator n = m_modulesPerPlatform.begin();
+    while ( n != m_modulesPerPlatform.end() )
+    {
+        // This module has info for for this module, check its type
+        const CORE::CString& platform = (*n).first; 
+        platforms.insert( platform );
+        ++n;
+    }
 }
 
 /*---------------------------------------------------------------------------*/
@@ -4883,6 +5161,357 @@ CModuleInfoEntry::GetClassTypeName( void ) const
 
 /*---------------------------------------------------------------------------*/
 
+CModuleDependencyNode::CModuleDependencyNode( void )
+    : CORE::CTSharedObjCreator< CModuleDependencyNode, MT::CMutex >( this )
+    , m_module()
+    , m_dependencies()
+    , m_linkerDependencies()
+    , m_runtimeDependencies()
+    , m_dependents()
+    , m_linkerDependents()
+    , m_runtimeDependents()
+    , m_targetPlatform()
+    , m_hasMissingDependencies( false )
+{GUCEF_TRACE;
+
+}
+
+/*---------------------------------------------------------------------------*/
+
+CModuleDependencyNode::~CModuleDependencyNode()
+{GUCEF_TRACE;
+
+    // By the time we get here clear should have been called already or you might get
+    // memory leaks due to shared ptr chains
+    Clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CModuleDependencyNode::Clear( void )
+{GUCEF_TRACE;
+
+    m_module.Unlink();
+    m_dependencies.clear();
+    m_linkerDependencies.clear();
+    m_runtimeDependencies.clear();
+    m_dependents.clear();
+    m_linkerDependents.clear();
+    m_runtimeDependents.clear();
+    m_targetPlatform.Clear();
+    m_hasMissingDependencies = false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleDependencyNode::HasMissingDependencies( void ) const
+{GUCEF_TRACE;
+
+    return m_hasMissingDependencies;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CModuleDependencyNode::SetHasMissingDependencies( bool hasMissing )
+{GUCEF_TRACE;
+
+    m_hasMissingDependencies = hasMissing;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CModuleDependencyNode::SetTargetPlatform( const CORE::CString& targetPlatform )
+{GUCEF_TRACE;
+
+    m_targetPlatform = targetPlatform;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CString&
+CModuleDependencyNode::GetTargetPlatform( void ) const
+{GUCEF_TRACE;
+
+    return m_targetPlatform;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CModuleDependencyNode::SetModule( const CModuleInfoEntryPtr& module )
+{GUCEF_TRACE;
+
+    m_module = module;
+}
+
+/*---------------------------------------------------------------------------*/
+
+CModuleInfoEntryPtr
+CModuleDependencyNode::GetModule( void ) const
+{GUCEF_TRACE;
+
+    return m_module;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CString&
+CModuleDependencyNode::GetConsensusName( void ) const
+{GUCEF_TRACE;
+
+    if ( !m_module.IsNULL() )
+    {
+        return m_module->GetConsensusName();
+    }
+    return CORE::CString::Empty;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleDependencyNode::SetDependency( CModuleDependencyNodePtr dependency )
+{GUCEF_TRACE;
+
+    if GUCEF_PREDICT_TRUE( !dependency.IsNULL() )
+    {
+        CModuleInfoEntryPtr dependencyModule = dependency->GetModule();
+        if GUCEF_PREDICT_TRUE( !dependencyModule.IsNULL() )
+        {
+            const CORE::CString& consensusName = dependencyModule->GetConsensusName();
+            if GUCEF_PREDICT_TRUE( !consensusName.IsNULLOrEmpty() )
+            {
+                m_dependencies[ consensusName ] = dependency;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void 
+CModuleDependencyNode::SetDependencies( const TModuleDependencyNodePtrMap& dependencies )
+{GUCEF_TRACE;
+
+    m_dependencies = dependencies;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const TModuleDependencyNodePtrMap&
+CModuleDependencyNode::GetDependencies( void ) const
+{GUCEF_TRACE;
+
+    return m_dependencies;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleDependencyNode::SetLinkerDependency( CModuleDependencyNodePtr dependency )
+{GUCEF_TRACE;
+
+    if GUCEF_PREDICT_TRUE( !dependency.IsNULL() )
+    {
+        CModuleInfoEntryPtr dependencyModule = dependency->GetModule();
+        if GUCEF_PREDICT_TRUE( !dependencyModule.IsNULL() )
+        {
+            const CORE::CString& consensusName = dependencyModule->GetConsensusName();
+            if GUCEF_PREDICT_TRUE( !consensusName.IsNULLOrEmpty() )
+            {
+                m_linkerDependencies[ consensusName ] = dependency;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void 
+CModuleDependencyNode::SetLinkerDependencies( const TModuleDependencyNodePtrMap& dependencies )
+{GUCEF_TRACE;
+
+    m_linkerDependencies = dependencies;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const TModuleDependencyNodePtrMap&
+CModuleDependencyNode::GetLinkerDependencies( void ) const
+{GUCEF_TRACE;
+
+    return m_linkerDependencies;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleDependencyNode::SetRuntimeDependency( CModuleDependencyNodePtr dependency )
+{GUCEF_TRACE;
+
+    if GUCEF_PREDICT_TRUE( !dependency.IsNULL() )
+    {
+        CModuleInfoEntryPtr dependencyModule = dependency->GetModule();
+        if GUCEF_PREDICT_TRUE( !dependencyModule.IsNULL() )
+        {
+            const CORE::CString& consensusName = dependencyModule->GetConsensusName();
+            if GUCEF_PREDICT_TRUE( !consensusName.IsNULLOrEmpty() )
+            {
+                m_runtimeDependencies[ consensusName ] = dependency;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void 
+CModuleDependencyNode::SetRuntimeDependencies( const TModuleDependencyNodePtrMap& dependencies )
+{GUCEF_TRACE;
+
+    m_runtimeDependencies = dependencies;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const TModuleDependencyNodePtrMap&
+CModuleDependencyNode::GetRuntimeDependencies( void ) const
+{GUCEF_TRACE;
+
+    return m_runtimeDependencies;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleDependencyNode::SetDependent( CModuleDependencyNodePtr dependent )
+{GUCEF_TRACE;
+
+    if GUCEF_PREDICT_TRUE( !dependent.IsNULL() )
+    {
+        CModuleInfoEntryPtr dependentModule = dependent->GetModule();
+        if GUCEF_PREDICT_TRUE( !dependentModule.IsNULL() )
+        {
+            const CORE::CString& consensusName = dependentModule->GetConsensusName();
+            if GUCEF_PREDICT_TRUE( !consensusName.IsNULLOrEmpty() )
+            {
+                m_dependents[ consensusName ] = dependent;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void 
+CModuleDependencyNode::SetDependents( const TModuleDependencyNodePtrMap& dependents )
+{GUCEF_TRACE;
+
+    m_dependents = dependents;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const TModuleDependencyNodePtrMap&
+CModuleDependencyNode::GetDependents( void ) const
+{GUCEF_TRACE;
+
+    return m_dependents;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleDependencyNode::SetLinkerDependent( CModuleDependencyNodePtr dependent )
+{GUCEF_TRACE;
+
+    if GUCEF_PREDICT_TRUE( !dependent.IsNULL() )
+    {
+        CModuleInfoEntryPtr dependentModule = dependent->GetModule();
+        if GUCEF_PREDICT_TRUE( !dependentModule.IsNULL() )
+        {
+            const CORE::CString& consensusName = dependentModule->GetConsensusName();
+            if GUCEF_PREDICT_TRUE( !consensusName.IsNULLOrEmpty() )
+            {
+                m_linkerDependents[ consensusName ] = dependent;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void 
+CModuleDependencyNode::SetLinkerDependents( const TModuleDependencyNodePtrMap& dependents )
+{GUCEF_TRACE;
+
+    m_linkerDependents = dependents;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const TModuleDependencyNodePtrMap&
+CModuleDependencyNode::GetLinkerDependents( void ) const
+{GUCEF_TRACE;
+
+    return m_linkerDependents;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleDependencyNode::SetRuntimeDependent( CModuleDependencyNodePtr dependent )
+{GUCEF_TRACE;
+
+    if GUCEF_PREDICT_TRUE( !dependent.IsNULL() )
+    {
+        CModuleInfoEntryPtr dependentModule = dependent->GetModule();
+        if GUCEF_PREDICT_TRUE( !dependentModule.IsNULL() )
+        {
+            const CORE::CString& consensusName = dependentModule->GetConsensusName();
+            if GUCEF_PREDICT_TRUE( !consensusName.IsNULLOrEmpty() )
+            {
+                m_runtimeDependents[ consensusName ] = dependent;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void 
+CModuleDependencyNode::SetRuntimeDependents( const TModuleDependencyNodePtrMap& dependents )
+{GUCEF_TRACE;
+
+    m_runtimeDependents = dependents;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const TModuleDependencyNodePtrMap&
+CModuleDependencyNode::GetRuntimeDependents( void ) const
+{GUCEF_TRACE;
+
+    return m_runtimeDependents;
+}
+
+/*---------------------------------------------------------------------------*/
+
 CProjectInfo::CProjectInfo( void ) 
     : CORE::CTSharedObjCreator< CProjectInfo, MT::CMutex >( this )
     , m_rwLock( true )
@@ -4892,6 +5521,7 @@ CProjectInfo::CProjectInfo( void )
     , dirProcessingInstructions()
     , globalDirExcludeList()
     , platforms()
+    , m_moduleDependencyChains()
 {GUCEF_TRACE;
 
 }
@@ -4907,6 +5537,7 @@ CProjectInfo::CProjectInfo( const CProjectInfo& src )
     , dirProcessingInstructions( src.dirProcessingInstructions )
     , globalDirExcludeList( src.globalDirExcludeList )
     , platforms( src.platforms )
+    , m_moduleDependencyChains( src.m_moduleDependencyChains )
 {GUCEF_TRACE;
 
 }
@@ -4922,6 +5553,1164 @@ CProjectInfo::~CProjectInfo()
 /*---------------------------------------------------------------------------*/
 
 void
+CProjectInfo::GetAllPlatformsUsed( TStringSet& platformList ,
+                                   bool okToUseCachedValue  ) const
+{GUCEF_TRACE;
+
+    platformList.clear();
+
+    if ( !m_actualPlatformsUsed.empty() && okToUseCachedValue )
+    {
+        // We have cached the platforms used so we can just return that
+        platformList = m_actualPlatformsUsed;
+        return;
+    }
+
+    // We have no cached value or not allowed to use it so we will have to (re)determine the platforms used
+    TModuleInfoEntryPtrVector::const_iterator i = modules.begin();
+    while ( i != modules.end() )
+    {
+        const TModuleInfoPtrMap& modulesPerPlatform = (*i)->GetModulesPerPlatform();
+        TModuleInfoPtrMap::const_iterator n = modulesPerPlatform.begin();
+        while ( n != modulesPerPlatform.end() )
+        {
+            platformList.insert( (*n).first );
+            ++n;
+        }
+        ++i;
+    }
+
+    m_actualPlatformsUsed = platformList;
+}
+
+/*---------------------------------------------------------------------------*/
+
+CModuleInfoEntryPtr
+CProjectInfo::GetModuleInfoEntry( const CORE::CString& consensusModuleName ) const
+{GUCEF_TRACE;
+
+    TModuleInfoEntryPtrVector::const_iterator m = modules.begin();
+    while ( m != modules.end() )
+    {
+        const CModuleInfoEntryPtr& moduleInfoEntry = (*m);
+        if ( !moduleInfoEntry.IsNULL() )
+        {
+            // We will use the consensus name as the key 
+            const CORE::CString& thisConsensusModuleName = moduleInfoEntry->GetConsensusName();
+            if ( consensusModuleName == thisConsensusModuleName )
+            {
+                return moduleInfoEntry;
+            }
+        }
+        ++m;
+    }
+    return CModuleInfoEntryPtr();
+}
+
+/*---------------------------------------------------------------------------*/
+
+CModuleInfoEntryPtr
+CProjectInfo::GetModuleInfoEntry( const CORE::CString& moduleName    ,
+                                  const CORE::CString& platform      ,
+                                  CModuleInfoPtr* platformModuleInfo ) const
+{GUCEF_TRACE;
+
+    // Check the dependency chains first since its conveniently mapped by platform and module name
+    TStringToModuleDependencyNodePtrMap::const_iterator i = m_moduleDependencyChains.find( platform );
+    if ( i != m_moduleDependencyChains.end() )
+    {
+        // we have chains for this platform, now look for the specific module
+        const TModuleDependencyNodePtrMap& chainsForPlatform = (*i).second;
+        TModuleDependencyNodePtrMap::const_iterator n = chainsForPlatform.find( moduleName );
+        if ( n != chainsForPlatform.end() )
+        {            
+            const CModuleDependencyNodePtr dependencyChain = (*n).second;
+            CModuleInfoEntryPtr moduleInfoEntry = dependencyChain->GetModule();
+            if ( !moduleInfoEntry.IsNULL() && GUCEF_NULL != platformModuleInfo )
+            {
+                *platformModuleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platform );
+            }
+            return moduleInfoEntry;
+        }
+    }
+    if ( platform != AllPlatforms && !platform.IsNULLOrEmpty() )
+    {
+        // Also check for 'all' platforms
+        i = m_moduleDependencyChains.find( AllPlatforms );
+        if ( i != m_moduleDependencyChains.end() )
+        {
+            // we have chains for this platform, now look for the specific module
+            const TModuleDependencyNodePtrMap& chainsForPlatform = (*i).second;
+            TModuleDependencyNodePtrMap::const_iterator n = chainsForPlatform.find( moduleName );
+            if ( n != chainsForPlatform.end() )
+            {            
+                const CModuleDependencyNodePtr dependencyChain = (*n).second;
+                CModuleInfoEntryPtr moduleInfoEntry = dependencyChain->GetModule();
+                if ( !moduleInfoEntry.IsNULL() && GUCEF_NULL != platformModuleInfo )
+                {
+                    *platformModuleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platform );
+                }
+                return moduleInfoEntry;
+            }
+        }
+    }
+
+    // No such reference in the dependency chains
+    // fall back to the flat list of modules
+    CModuleInfoEntryPtr moduleInfoEntry = GetModuleInfoEntry( moduleName );
+    if ( !moduleInfoEntry.IsNULL() )
+    {
+        if ( moduleInfoEntry->IsApplicableForPlatform( platform ) )
+        {
+            if ( GUCEF_NULL != platformModuleInfo )
+                *platformModuleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platform );
+                
+            return moduleInfoEntry;
+        }
+    }
+
+    return CModuleInfoEntryPtr();    
+}
+
+/*---------------------------------------------------------------------------*/
+
+CModuleInfoEntryPtr
+CProjectInfo::GetModuleInfoEntry( const CORE::CString& moduleName    ,
+                                  const CORE::CString& platform      ,
+                                  CModuleInfoPtr* platformModuleInfo ,
+                                  bool createNewIfNoneExists         )
+{GUCEF_TRACE;
+
+    // Check the dependency chains first since its conveniently mapped by platform and module name
+    TStringToModuleDependencyNodePtrMap::iterator i = m_moduleDependencyChains.find( platform );
+    if ( i != m_moduleDependencyChains.end() )
+    {
+        // we have chains for this platform, now look for the specific module
+        const TModuleDependencyNodePtrMap& chainsForPlatform = (*i).second;
+        TModuleDependencyNodePtrMap::const_iterator n = chainsForPlatform.find( moduleName );
+        if ( n != chainsForPlatform.end() )
+        {            
+            const CModuleDependencyNodePtr dependencyChain = (*n).second;
+            CModuleInfoEntryPtr moduleInfoEntry = dependencyChain->GetModule();
+            if ( !moduleInfoEntry.IsNULL() && GUCEF_NULL != platformModuleInfo )
+            {
+                *platformModuleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platform, createNewIfNoneExists );
+            }
+            return moduleInfoEntry;
+        }
+    }
+    if ( platform != AllPlatforms && !platform.IsNULLOrEmpty() )
+    {
+        // Also check for 'all' platforms
+        i = m_moduleDependencyChains.find( AllPlatforms );
+        if ( i != m_moduleDependencyChains.end() )
+        {
+            // we have chains for this platform, now look for the specific module
+            const TModuleDependencyNodePtrMap& chainsForPlatform = (*i).second;
+            TModuleDependencyNodePtrMap::const_iterator n = chainsForPlatform.find( moduleName );
+            if ( n != chainsForPlatform.end() )
+            {            
+                const CModuleDependencyNodePtr dependencyChain = (*n).second;
+                CModuleInfoEntryPtr moduleInfoEntry = dependencyChain->GetModule();
+                if ( !moduleInfoEntry.IsNULL() && GUCEF_NULL != platformModuleInfo )
+                {
+                    *platformModuleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platform, createNewIfNoneExists );
+                }
+                return moduleInfoEntry;
+            }
+        }
+    }
+
+    // No such reference in the dependency chains
+    // fall back to the flat list of modules
+    CModuleInfoEntryPtr moduleInfoEntry = GetModuleInfoEntry( moduleName );
+    if ( !moduleInfoEntry.IsNULL() )
+    {
+        if ( moduleInfoEntry->IsApplicableForPlatform( platform ) )
+        {
+            if ( GUCEF_NULL != platformModuleInfo )
+                *platformModuleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platform, createNewIfNoneExists );
+                
+            return moduleInfoEntry;
+        }
+    }
+
+    return CModuleInfoEntryPtr();    
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::ReduceAllPlatformsDefinitionToSustainablePlatforms( CModuleInfoEntryPtr moduleInfoEntry )
+{GUCEF_TRACE;
+
+    
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::SanitizeRuntimeDependenciesForPlatform( CModuleInfoEntryPtr moduleInfoEntry ,
+                                                      const CORE::CString& targetPlatform )
+{GUCEF_TRACE;
+
+    if ( moduleInfoEntry.IsNULL() )
+        return;
+
+    const CORE::CString& moduleName = moduleInfoEntry->GetConsensusName();
+
+    CORE::CStringSet runtimeDependencyModuleNames;
+    moduleInfoEntry->GetModuleRuntimeDependencyNames( targetPlatform, runtimeDependencyModuleNames );
+
+    CORE::CStringSet::iterator i = runtimeDependencyModuleNames.begin();
+    while ( i != runtimeDependencyModuleNames.end() )
+    {
+        const CORE::CString& dependencyName = (*i);
+
+        // Getting the module for the given entry checks if it exists and if its applicable to the given platform
+        CModuleInfoPtr dependencyModulePlatformSpecifics;
+        CModuleInfoEntryPtr dependencyModule = GetModuleInfoEntry( dependencyName, targetPlatform, &dependencyModulePlatformSpecifics );
+        if ( !dependencyModule.IsNULL() )
+        {
+            if ( !dependencyModule->IsBroken() )
+            {
+
+            }
+            else
+            {
+                // We found a problematic entry
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:SanitizeRuntimeDependencies: Found that module \"" + moduleName +
+                    "\" has broken runtime dependency module definition \"" + dependencyName + "\". Will remove the dependency"  );
+
+                moduleInfoEntry->RemoveRuntimeDependency( dependencyName, targetPlatform );
+            }
+        }
+        else
+        {
+            // We found a problematic entry
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:SanitizeRuntimeDependencies: Found that module \"" + moduleName +
+                "\" has missing runtime dependency module definition \"" + dependencyName + "\" for platform " + targetPlatform + ". Will remove the dependency"  );
+
+            moduleInfoEntry->RemoveRuntimeDependency( dependencyName, targetPlatform );
+
+            if ( targetPlatform == AllPlatforms )
+            {
+                // Just because we cannot satisfy the dependency for 'all' platforms we can still perhaps make it available as an
+                // extention for the specific platforms that the runtime dependency supports
+                dependencyModule = GetModuleInfoEntry( dependencyName );
+                if ( !dependencyModule.IsNULL() && !dependencyModule->IsBroken() )
+                {
+                    CORE::CStringSet supportedPlatforms;
+                    dependencyModule->GetReferencedPlatforms( supportedPlatforms );
+                    supportedPlatforms.erase( AllPlatforms );
+
+                    CORE::CStringSet::iterator s = supportedPlatforms.begin();
+                    while ( s != supportedPlatforms.end() )
+                    {
+                        const CORE::CString& supportedPlatform = (*s);
+                        CModuleInfoPtr platformSpecificDefinition = moduleInfoEntry->FindModuleInfoForPlatform( supportedPlatform, true );
+                        if ( !platformSpecificDefinition.IsNULL() )
+                        {
+                            platformSpecificDefinition->AddNameOfRuntimeDependency( dependencyName );
+
+                            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:SanitizeRuntimeDependencies: Added runtime dependency for module \"" + moduleName +
+                                "\" to module \"" + dependencyName + "\" for platform " + supportedPlatform + " as substitute for All platforms reference to the same"  );
+                        }
+                        ++s;
+                    }
+                }
+            }
+        }
+        ++i;
+    }  
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::SanitizeRuntimeDependencies( CModuleInfoEntryPtr moduleInfoEntry )
+{GUCEF_TRACE;
+
+    if ( moduleInfoEntry.IsNULL() )
+        return;
+
+    // Take care of 'All' platform first since that one does allow reducing down
+    // to platform specific definitions
+    SanitizeRuntimeDependenciesForPlatform( moduleInfoEntry, AllPlatforms );
+
+    CORE::CStringSet referencedPlatforms;
+    moduleInfoEntry->GetReferencedPlatforms( referencedPlatforms );
+    referencedPlatforms.erase( AllPlatforms );
+
+    CORE::CStringSet::iterator p = referencedPlatforms.begin();
+    while ( p != referencedPlatforms.end() )
+    {
+        const CORE::CString& targetPlatform = (*p);
+        SanitizeRuntimeDependenciesForPlatform( moduleInfoEntry, targetPlatform );
+        ++p;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::SanitizeRuntimeDependencies( void )
+{GUCEF_TRACE;
+
+    TModuleInfoEntryPtrVector::iterator m = modules.begin();
+    while ( m != modules.end() )
+    {
+        CModuleInfoEntryPtr& moduleInfoEntry = (*m);
+        if GUCEF_PREDICT_TRUE( !moduleInfoEntry.IsNULL() )
+        {
+            SanitizeRuntimeDependencies( moduleInfoEntry );
+        }
+        ++m;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::SanitizeAllPlatformsUsage( void )
+{GUCEF_TRACE;
+
+    TModuleInfoEntryPtrVector::iterator m = modules.begin();
+    while ( m != modules.end() )
+    {
+        CModuleInfoEntryPtr& moduleInfoEntry = (*m);
+        if GUCEF_PREDICT_TRUE( !moduleInfoEntry.IsNULL() )
+        {
+            if ( moduleInfoEntry->HasAllPlatformsDefinition() )
+            {
+                TModuleInfoEntryPtrSet problemModules;
+                CORE::CStringSet missingModules;
+                if ( !CanModuleSustainAllPlatformsDefinition( moduleInfoEntry, problemModules, missingModules ) )
+                {
+                    const CORE::CString& moduleName = moduleInfoEntry->GetConsensusName();
+
+                    CORE::CStringSet problemModuleNames; 
+                    TModuleInfoEntryPtrSet::iterator p = problemModules.begin();
+                    while ( p != problemModules.end() )
+                    {
+                        const CModuleInfoEntryPtr& problemModule = (*p);
+                        if GUCEF_PREDICT_TRUE( !problemModule.IsNULL() )
+                        {
+                            problemModuleNames.insert( (*p)->GetConsensusName() );
+                        }
+                        ++p;
+                    }
+
+                    // We found a problematic entry
+                    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:SanitizeAllPlatformsUsage: Found that module \"" + moduleName +
+                        "\" cannot sustain an 'all' platforms definition due to its dependencies. There are " +
+                        CORE::ToString( problemModuleNames.size() ) + " problematic dependencies found \"" + CORE::ToString( problemModuleNames ) +
+                        "\" and " + CORE::ToString( missingModules.size() ) + " missing dependencies found \"" + CORE::ToString( missingModules ) + "\""  );
+
+                    if ( missingModules.empty() )
+                    {
+                        ReduceAllPlatformsDefinitionToSustainablePlatforms( moduleInfoEntry );
+                    }
+                    else
+                    {
+                        // we cannot fix this. The user needs to fix the dependencies or definition
+                        moduleInfoEntry->SetIsBroken( true );
+                    }
+                }
+            }
+        }
+        ++m;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::GenerateDependencyChainNodes( const CORE::CString& targetPlatform     ,
+                                            bool okToUseCachedValuesWhereApplicable )
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+    TModuleDependencyNodePtrMap& chainsForPlatform = m_moduleDependencyChains[ targetPlatform ];
+
+    // We should not have an empty chains map given that we are iterating over the platforms used by the modules
+    // This tells us its not initialized yet, which is fine, we will just create it now
+    if ( chainsForPlatform.empty() || !okToUseCachedValuesWhereApplicable )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:UpdateDependencyChains: (re)Building dependency chains for platform " + targetPlatform +
+            ". It currently has " + CORE::ToString( chainsForPlatform.size() ) + " dependency chain nodes" );
+
+        TModuleInfoEntryPtrVector::const_iterator m = modules.begin();
+        while ( m != modules.end() )
+        {
+            const CModuleInfoEntryPtr& moduleInfoEntry = (*m);
+            if GUCEF_PREDICT_TRUE( !moduleInfoEntry.IsNULL() )
+            {
+                // Don't include logical modules in the dependency chains
+                // Only 'real' modules
+                if ( moduleInfoEntry->HasIndependentModuleTypeForPlatform( targetPlatform ) )
+                {
+                    // This dependency chain map is specific to the target platform
+                    // don't include modules that have no relevance to said platform
+                    // Also don't include broken module definitions
+                    if ( moduleInfoEntry->IsApplicableForPlatform( targetPlatform ) && !moduleInfoEntry->IsBroken() )
+                    {
+                        // We will use the consensus name as the key for the chain
+                        const CORE::CString& consensusModuleName = moduleInfoEntry->GetConsensusName();
+
+                        // Check for a pre-existing entry
+                        // With these chain nodes we have to be careful not to create memory leaks due to the bi-directional
+                        // shared ptr linkage
+                        CModuleDependencyNodePtr& dependencyChain = chainsForPlatform[ consensusModuleName ];
+                        if ( !dependencyChain.IsNULL() )
+                        {
+                            dependencyChain->Clear();
+                        }
+
+                        // Now create the new entry
+                        dependencyChain = chainsForPlatform[ consensusModuleName ] = CModuleDependencyNode::CreateSharedObj();
+                        if ( !dependencyChain.IsNULL() )
+                        {
+                            dependencyChain->SetModule( moduleInfoEntry );
+                            dependencyChain->SetTargetPlatform( targetPlatform );
+                        }
+                        else
+                        {
+                            totalSuccess = false;
+                        }
+                    }
+                }
+            }
+            ++m;
+        }
+
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:UpdateDependencyChains: Platform " + targetPlatform + " has " + CORE::ToString( chainsForPlatform.size() ) + " dependency chain nodes" );
+    }
+
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::UpdateDependencyChains( bool okToUseCachedValuesWhereApplicable )
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    // we specifically use a platforms list which is sourced from our flat list of modules
+    // so that we can ensure that we have all platforms used by the modules
+    TStringSet platformList;
+    GetAllPlatformsUsed( platformList, okToUseCachedValuesWhereApplicable );
+
+    // we now access and/or create the map entries for each platform
+    TStringSet::const_iterator i = platformList.begin();
+    while ( i != platformList.end() )
+    {
+        const CORE::CString& targetPlatform = (*i);
+        totalSuccess = GenerateDependencyChainNodes( targetPlatform, okToUseCachedValuesWhereApplicable ) && totalSuccess;
+        ++i;
+    }
+
+    // Now that we know for sure that we have a dependency node entry for every relevant
+    // module we can use the UpdateDependencyChain() function to do the rest of the work
+    i = platformList.begin();
+    while ( i != platformList.end() )
+    {
+        const CORE::CString& targetPlatform = (*i);
+
+        // We do the 'AllPlatforms' platform last so that we can ensure that the chains for the specific platforms
+        // are updated first, this way we can ensure that the 'AllPlatforms' chains will have platform specific chains
+        // available to them when they are updated.
+        if ( targetPlatform != AllPlatforms && !targetPlatform.IsNULLOrEmpty() )
+        {
+            TModuleDependencyNodePtrMap& chainsForPlatform = m_moduleDependencyChains[ targetPlatform ];
+
+            TModuleDependencyNodePtrMap::iterator n = chainsForPlatform.begin();
+            while ( n != chainsForPlatform.end() )
+            {            
+                const CORE::CString& consensusModuleName = (*n).first;
+                CModuleDependencyNodePtr dependencyChain = (*n).second;
+
+                bool chainSuccess = UpdateDependencyChain( dependencyChain );
+                if ( !chainSuccess )
+                {
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:UpdateDependencyChains: Failed to update dependency chain for module \"" + consensusModuleName + "\" and platform " + targetPlatform );
+                    totalSuccess = false;
+                }
+                ++n;
+            }
+        }
+        ++i;
+    }
+
+    // Now do the 'AllPlatforms' platform
+    TModuleDependencyNodePtrMap& chainsForPlatform = m_moduleDependencyChains[ AllPlatforms ];
+
+    TModuleDependencyNodePtrMap::iterator n = chainsForPlatform.begin();
+    while ( n != chainsForPlatform.end() )
+    {            
+        const CORE::CString& consensusModuleName = (*n).first;
+        CModuleDependencyNodePtr dependencyChain = (*n).second;
+
+        bool chainSuccess = UpdateDependencyChain( dependencyChain );
+        if ( !chainSuccess )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:UpdateDependencyChains: Failed to update dependency chain for module \"" + consensusModuleName + "\" and platform " + AllPlatforms );
+            totalSuccess = false;
+        }
+        ++n;
+    }
+
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::CanModuleSustainAllPlatformsDefinition( const CORE::CStringSet& dependencies   ,
+                                                      bool okIfNoSuchDependencyDefined       ,
+                                                      TModuleInfoEntryPtrSet& problemModules ,
+                                                      CORE::CStringSet& missingModules       ) const
+{GUCEF_TRACE;
+
+    bool canSustainAllPlatforms = true;
+
+    CORE::CStringSet::const_iterator i = dependencies.begin();
+    while ( i != dependencies.end() )
+    {
+        const CORE::CString& dependencyName = (*i);
+        CModuleInfoEntryPtr dependencyModuleEntry = GetModuleInfoEntry( dependencyName );
+        if ( !dependencyModuleEntry.IsNULL() )
+        {
+            if ( !CanModuleSustainAllPlatformsDefinition( dependencyModuleEntry, problemModules, missingModules ) )
+            {
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:CanModuleSustainAllPlatformsDefinition: Dependency module \"" + dependencyName + "\" cannot sustain an 'all' platforms definition" );
+                canSustainAllPlatforms = false;
+            }
+        }
+        else
+        {
+            if ( !okIfNoSuchDependencyDefined )
+            {
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:CanModuleSustainAllPlatformsDefinition: Dependency module \"" + dependencyName + "\" cannot be found, no module by that name for ANY platform" );
+                canSustainAllPlatforms = false;
+                missingModules.insert( dependencyName );
+            }
+        }
+        ++i;
+    }
+
+    return canSustainAllPlatforms;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::CanModuleSustainAllPlatformsDefinition( CModuleInfoEntryPtr moduleInfoEntry    ,
+                                                      TModuleInfoEntryPtrSet& problemModules ,
+                                                      CORE::CStringSet& missingModules       ) const
+{GUCEF_TRACE;
+
+    if ( moduleInfoEntry.IsNULL() )
+        return false;
+    bool canSustainAllPlatforms = true;
+
+    const TModuleInfoPtrMap& modulesPerPlatform = moduleInfoEntry->GetModulesPerPlatform();
+    TModuleInfoPtrMap::const_iterator i = modulesPerPlatform.find( AllPlatforms );
+    if ( i != modulesPerPlatform.end() )
+    {
+        const CModuleInfoPtr& allPlatformsDefinition = (*i).second;
+        if ( !allPlatformsDefinition.IsNULL() )
+        {              
+            // Check the build dependencies, used for header include paths and such
+            const CORE::CStringSet& dependencies = allPlatformsDefinition->GetNamesOfDependencies();
+            if ( !CanModuleSustainAllPlatformsDefinition( dependencies, false, problemModules, missingModules ) )
+            {
+                canSustainAllPlatforms = false;
+            }
+
+            // Check the linker dependencies, used for static linking to the given libraries
+            // Keep in mind that for linking you may depend on external binary libraries for which we have no
+            // definition ourselves. We won't consider it an error in the linker case if there is no such module definition
+            CORE::CStringSet linkerDependencies;
+            allPlatformsDefinition->linkerSettings.GetListOfLinkedLibraries( linkerDependencies );
+            if ( !CanModuleSustainAllPlatformsDefinition( linkerDependencies, true, problemModules, missingModules ) )
+            {
+                canSustainAllPlatforms = false;
+            }
+        }
+        ++i;
+    }
+    return canSustainAllPlatforms;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetSupportedPlatformsBasedOnDependencies( CModuleInfoEntryPtr moduleInfoEntry ,
+                                                        CORE::CStringSet& platforms         ) const
+{GUCEF_TRACE;
+
+    if ( moduleInfoEntry.IsNULL() )
+        return;
+
+    const TModuleInfoPtrMap& modulesPerPlatform = moduleInfoEntry->GetModulesPerPlatform();
+    TModuleInfoPtrMap::const_iterator i = modulesPerPlatform.begin();
+    while ( i != modulesPerPlatform.end() )
+    {
+        const CORE::CString& platformName = (*i).first;
+        const CModuleInfoPtr& platformDefinition = (*i).second;
+
+        platformDefinition->GetNamesOfDependencies();
+
+        if ( platformName == AllPlatforms || platformName.IsNULLOrEmpty() )
+        {
+        }
+        else
+        {
+        }
+
+        ++i;
+    }
+
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::SanitizeModulePlatformUsage( CModuleInfoEntryPtr moduleInfoEntry ,
+                                           const CORE::CString& platform       ,
+                                           const TStringSet& dependencies      )
+{GUCEF_TRACE;
+
+    if ( dependencies.empty() )
+        return true;
+
+    bool passedSanityCheck = true;
+
+    // We have dependencies, we need to ensure that they are also defined for all platforms
+    TStringSet::iterator d = dependencies.begin();
+    while ( d != dependencies.end() )
+    {
+        const CORE::CString& dependencyName = (*d);
+        CModuleInfoPtr dependencyPlatformModule;
+        CModuleInfoEntryPtr dependencyModule = GetModuleInfoEntry( dependencyName, platform, &dependencyPlatformModule );
+        if ( dependencyModule.IsNULL() )
+        {
+            // Dependency does not exist at all, let alone for the specific platform
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:SanitizeModulePlatformUsage: Module \"" + moduleInfoEntry->GetConsensusName() +
+                "\" has a dependency on \"" + dependencyName + "\". No such module exists, this is not auto fixable and the module will not be usable. Please change the module specification or supply the dependency" );
+
+            // We cannot fix this
+            CModuleDependencyNodePtr dependencyChain;
+            if ( TryGetModuleDependencyChain( dependencyChain, moduleInfoEntry->GetConsensusName(), platform, true ) )
+            {
+                dependencyChain->SetHasMissingDependencies( true );
+            }
+            passedSanityCheck = false;
+        }
+        else
+        if ( dependencyPlatformModule.IsNULL() )
+        {
+            if ( platform == AllPlatforms || platform.IsNULLOrEmpty()  )
+            {
+                // The dependency is not defined for the platform so we will have to downgrade the dependent module to the platform for which the dependency is defined
+                CORE::CStringSet supportedPlatforms;
+                dependencyModule->GetReferencedPlatforms( supportedPlatforms );
+            }
+
+            ++d;
+        }
+        else
+        {
+            // we have what we need: No issues
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:SanitizeModulePlatformUsage: Module \"" + moduleInfoEntry->GetConsensusName() +
+                "\" has a dependency on \"" + dependencyName + "\". No such module exists" );
+        }
+    }
+
+    return passedSanityCheck;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::SanitizeModulePlatformUsage( CModuleInfoEntryPtr moduleInfoEntry ,
+                                           const CORE::CString& platform       )
+{GUCEF_TRACE;
+
+    bool passedSanityCheck = true;
+    TStringSet dependencies;
+
+    moduleInfoEntry->GetModuleDependencyNames( platform, dependencies );
+    passedSanityCheck = SanitizeModulePlatformUsage( moduleInfoEntry, platform, dependencies ) && passedSanityCheck;
+    dependencies.clear();
+
+    moduleInfoEntry->GetModuleLinkerDependencyNames( platform, dependencies );
+    passedSanityCheck = SanitizeModulePlatformUsage( moduleInfoEntry, platform, dependencies ) && passedSanityCheck;
+    dependencies.clear();
+
+    return passedSanityCheck;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::SanitizeModulePlatformUsage( CModuleInfoEntryPtr moduleInfoEntry )
+{GUCEF_TRACE;
+
+    // Things to check:
+    //      For AllPlatforms: fixable:
+    //          - If present ensure that all the relevant dependencies are also present for all platforms
+    //            If not we need to downgrade the module to the platforms for which the dependencies are present
+    //      For platform specific: not-fixable (thus error and delete):
+    //          - If present ensure that all the relevant dependencies are also present for the platform
+    //                  ie win32->win32 or win32->allPlatforms
+    //                  not allowed would be: win32->win64 or win32->linux
+
+    CORE::CStringSet platforms;
+    moduleInfoEntry->GetReferencedPlatforms( platforms );
+
+    bool passedSanityCheck = true;
+
+    //CORE::CStringSet::const_iterator i = platforms.begin();
+    //while ( i != platforms.end() )
+    //{
+    //    const CORE::CString& platform = (*i);
+    //    passedSanityCheck = SanitizeModulePlatformUsage( moduleInfoEntry, platform ) && passedSanityCheck;
+    //    ++i;
+    //}
+
+    //
+
+    //TStringSet dependencies;
+
+    //moduleInfoEntry->GetModuleDependencyNames( AllPlatforms, dependencies );
+    //SanitizeModulePlatformUsage( moduleInfoEntry, dependencies );
+    //dependencies.clear();
+
+    //moduleInfoEntry->GetModuleLinkerDependencyNames( AllPlatforms, dependencies );
+    //SanitizeModulePlatformUsage( moduleInfoEntry, dependencies );
+    //dependencies.clear();
+
+
+    //const TModuleInfoPtrMap& platformModules = moduleInfoEntry->GetModulesPerPlatform();
+    //TModuleInfoPtrMap::const_iterator i = platformModules.find( AllPlatforms );
+    //if ( i != platformModules.end() )
+    //{
+    //    // the module is defined for all platforms, we need to ensure that all dependencies are also defined for all platforms
+    //    CModuleInfoPtr module = (*i).second;
+    //    if ( module->HasIndependentModuleType() )
+    //    {
+    //        CORE::CStringMap platformSpecificDependencies;
+
+    //        const TStringSet& dependencies = module->GetNamesOfDependencies();
+    //        SanitizeModulePlatformUsage( moduleInfoEntry, dependencies );
+
+    //        dependencies = module->GetNamesOfLinkerDependencies();
+    //        SanitizeModulePlatformUsage( moduleInfoEntry, dependencies );
+    //    }
+    //}
+
+    return passedSanityCheck;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::UpdateDependencyChain( CModuleDependencyNodePtr dependencyChain )
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    if ( !dependencyChain.IsNULL() )
+    {
+        const CORE::CString& targetPlatform = dependencyChain->GetTargetPlatform();
+        const CModuleInfoEntryPtr& moduleInfoEntry = dependencyChain->GetModule();
+
+        if ( !moduleInfoEntry.IsNULL() )
+        {
+            const CORE::CString& consensusModuleName = moduleInfoEntry->GetConsensusName();
+
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:UpdateDependencyChain: Updating chain node for module \"" + consensusModuleName + "\" for target platform " + targetPlatform );
+
+            TStringSet dependencies;
+            moduleInfoEntry->GetModuleDependencyNames( targetPlatform, dependencies );
+
+            TStringSet::iterator d = dependencies.begin();
+            while ( d != dependencies.end() )
+            {
+                const CORE::CString& dependencyName = (*d);
+                CModuleDependencyNodePtr dependencyModule;
+                if ( TryGetModuleDependencyChain( dependencyModule, dependencyName, targetPlatform, false ) && !dependencyModule.IsNULL() )
+                {
+                    totalSuccess = dependencyChain->SetDependency( dependencyModule ) && totalSuccess;
+                }
+                else
+                {
+                    CModuleInfoEntryPtr dependencyModuleInfoEntry = GetModuleInfoEntry( dependencyName );
+                    if ( !dependencyModuleInfoEntry.IsNULL() )
+                    {
+                        if ( dependencyModuleInfoEntry->HasIndependentModuleTypeForPlatform( targetPlatform ) )
+                        {
+                            if ( !dependencyModuleInfoEntry->IsBroken() )
+                            {
+                                bool issueWasFixed = false;
+                                if ( SanitizeModulePlatformUsage( moduleInfoEntry ) )
+                                {
+                                    // try again now that we have sanitized the module
+                                    if ( TryGetModuleDependencyChain( dependencyModule, dependencyName, targetPlatform, false ) && !dependencyModule.IsNULL() )
+                                    {
+                                        issueWasFixed = dependencyChain->SetDependency( dependencyModule );
+                                        totalSuccess = issueWasFixed && totalSuccess;
+                                    }
+                                }
+                                if ( !issueWasFixed )
+                                {
+                                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:UpdateDependencyChain: Failed to obtain actual module for dependency name: \"" +
+                                        dependencyName + "\" for module \"" + consensusModuleName + "\" and platform " + targetPlatform );
+                                    totalSuccess = false;
+                                }
+                            }
+                            else
+                            {
+                                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:UpdateDependencyChain: Ignoring broken dependency with name: \"" +
+                                    dependencyName + "\" for module \"" + consensusModuleName + "\" and platform " + targetPlatform );
+                            }
+                        }
+                    }
+                }
+                ++d;
+            }
+
+            dependencies.clear();
+            moduleInfoEntry->GetModuleLinkerDependencyNames( targetPlatform, dependencies );
+
+            d = dependencies.begin();
+            while ( d != dependencies.end() )
+            {
+                const CORE::CString& dependencyName = (*d);
+                CModuleDependencyNodePtr dependencyModule;
+                if ( TryGetModuleDependencyChain( dependencyModule, dependencyName, targetPlatform, false ) && !dependencyModule.IsNULL() )
+                {
+                    totalSuccess = dependencyChain->SetLinkerDependency( dependencyModule ) && totalSuccess;
+                }
+                else
+                {
+                    CModuleInfoEntryPtr dependencyModuleInfoEntry = GetModuleInfoEntry( dependencyName );
+                    if ( !dependencyModuleInfoEntry.IsNULL() )
+                    {
+                        if ( dependencyModuleInfoEntry->HasIndependentModuleTypeForPlatform( targetPlatform ) )
+                        {
+                            if ( !dependencyModuleInfoEntry->IsBroken() )
+                            {
+                                bool issueWasFixed = false;
+                                if ( SanitizeModulePlatformUsage( moduleInfoEntry ) )
+                                {
+                                    // try again now that we have sanitized the module
+                                    if ( TryGetModuleDependencyChain( dependencyModule, dependencyName, targetPlatform, false ) && !dependencyModule.IsNULL() )
+                                    {
+                                        issueWasFixed = dependencyChain->SetDependency( dependencyModule );
+                                        totalSuccess = issueWasFixed && totalSuccess;
+                                    }
+                                }
+                                if ( !issueWasFixed )
+                                {
+                                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:UpdateDependencyChain: Failed to obtain actual module for linker dependency name: \"" +
+                                        dependencyName + "\" for module \"" + consensusModuleName + "\" and platform " + targetPlatform );
+                                    totalSuccess = false;
+                                }
+                            }
+                            else
+                            {
+                                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:UpdateDependencyChain: Ignoring broken dependency with name: \"" +
+                                    dependencyName + "\" for module \"" + consensusModuleName + "\" and platform " + targetPlatform );
+                            }  
+                        }
+                    }
+                }
+                ++d;
+            }
+
+            dependencies.clear();
+            moduleInfoEntry->GetModuleRuntimeDependencyNames( targetPlatform, dependencies );
+
+            d = dependencies.begin();
+            while ( d != dependencies.end() )
+            {
+                const CORE::CString& dependencyName = (*d);
+                CModuleDependencyNodePtr dependencyModule;
+                if ( TryGetModuleDependencyChain( dependencyModule, dependencyName, targetPlatform, false ) && !dependencyModule.IsNULL() )
+                {
+                    totalSuccess = dependencyChain->SetRuntimeDependency( dependencyModule ) && totalSuccess;
+                }
+                else
+                {
+                    CModuleInfoEntryPtr dependencyModuleInfoEntry = GetModuleInfoEntry( dependencyName );
+                    if ( !dependencyModuleInfoEntry.IsNULL() )
+                    {
+                        if ( dependencyModuleInfoEntry->HasIndependentModuleTypeForPlatform( targetPlatform ) )
+                        {
+                            if ( !dependencyModuleInfoEntry->IsBroken() )
+                            {
+                                bool issueWasFixed = false;
+                                if ( SanitizeModulePlatformUsage( moduleInfoEntry ) )
+                                {
+                                    // try again now that we have sanitized the module
+                                    if ( TryGetModuleDependencyChain( dependencyModule, dependencyName, targetPlatform, false ) && !dependencyModule.IsNULL() )
+                                    {
+                                        issueWasFixed = dependencyChain->SetRuntimeDependency( dependencyModule );
+                                        totalSuccess = issueWasFixed && totalSuccess;
+                                    }
+                                }
+                                if ( !issueWasFixed )
+                                {
+                                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:UpdateDependencyChain: Failed to obtain actual module for runtime dependency name: \"" +
+                                        dependencyName + "\" for module \"" + consensusModuleName + "\" and platform " + targetPlatform );
+                                    totalSuccess = false;
+                                }
+                            }
+                            else
+                            {
+                                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:UpdateDependencyChain: Ignoring broken dependency with name: \"" +
+                                    dependencyName + "\" for module \"" + consensusModuleName + "\" and platform " + targetPlatform );
+                            }                            
+                        }
+                    }
+                }
+                ++d;
+            }
+
+            dependencies.clear();
+            GetNamesOfModulesWhichDependOnModuleForPlatform( targetPlatform, consensusModuleName, dependencies, false );
+
+            d = dependencies.begin();
+            while ( d != dependencies.end() )
+            {
+                const CORE::CString& dependentName = (*d);
+                CModuleDependencyNodePtr dependentModule;
+                if ( TryGetModuleDependencyChain( dependentModule, dependentName, targetPlatform, false ) && !dependentModule.IsNULL() )
+                {
+                    totalSuccess = dependencyChain->SetDependent( dependentModule ) && totalSuccess;
+                }
+                else
+                {
+                    CModuleInfoEntryPtr dependencyModuleInfoEntry = GetModuleInfoEntry( dependentName );
+                    if ( !dependencyModuleInfoEntry.IsNULL() )
+                    {
+                        if ( dependencyModuleInfoEntry->HasIndependentModuleTypeForPlatform( targetPlatform ) )
+                        {
+                            if ( !dependencyModuleInfoEntry->IsBroken() )
+                            {
+                                bool issueWasFixed = false;
+                                if ( SanitizeModulePlatformUsage( moduleInfoEntry ) )
+                                {
+                                    // try again now that we have sanitized the module
+                                    if ( TryGetModuleDependencyChain( dependentModule, dependentName, targetPlatform, false ) && !dependentModule.IsNULL() )
+                                    {
+                                        issueWasFixed = dependencyChain->SetDependent( dependentModule );
+                                        totalSuccess = issueWasFixed && totalSuccess;
+                                    }
+                                }
+                                if ( !issueWasFixed )
+                                {
+                                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:UpdateDependencyChain: Failed to obtain actual module for dependent name: \"" +
+                                        dependentName + "\" for module \"" + consensusModuleName + "\" and platform " + targetPlatform );
+                                    totalSuccess = false;
+                                }
+                            }
+                            else
+                            {
+                                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:UpdateDependencyChain: Ignoring broken dependent with name: \"" +
+                                    dependentName + "\" for module \"" + consensusModuleName + "\" and platform " + targetPlatform );
+                            }
+                        }
+                    }
+                }
+                ++d;
+            }
+
+            dependencies.clear();
+            GetNamesOfModulesWhichLinkerDependOnModuleForPlatform( targetPlatform, consensusModuleName, dependencies, false );
+
+            d = dependencies.begin();
+            while ( d != dependencies.end() )
+            {
+                const CORE::CString& dependentName = (*d);
+                CModuleDependencyNodePtr dependentModule;
+                if ( TryGetModuleDependencyChain( dependentModule, dependentName, targetPlatform, false ) && !dependentModule.IsNULL() )
+                {
+                    totalSuccess = dependencyChain->SetLinkerDependent( dependentModule ) && totalSuccess;
+                }
+                else
+                {
+                    CModuleInfoEntryPtr dependencyModuleInfoEntry = GetModuleInfoEntry( dependentName );
+                    if ( !dependencyModuleInfoEntry.IsNULL() )
+                    {
+                        if ( dependencyModuleInfoEntry->HasIndependentModuleTypeForPlatform( targetPlatform ) )
+                        {
+                            if ( !dependencyModuleInfoEntry->IsBroken() )
+                            {
+                                bool issueWasFixed = false;
+                                if ( SanitizeModulePlatformUsage( moduleInfoEntry ) )
+                                {
+                                    // try again now that we have sanitized the module
+                                    if ( TryGetModuleDependencyChain( dependentModule, dependentName, targetPlatform, false ) && !dependentModule.IsNULL() )
+                                    {
+                                        issueWasFixed = dependencyChain->SetLinkerDependent( dependentModule );
+                                        totalSuccess = issueWasFixed && totalSuccess;
+                                    }
+                                }
+                                if ( !issueWasFixed )
+                                {
+                                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:UpdateDependencyChain: Failed to obtain actual module for linker dependent name: \"" +
+                                        dependentName + "\" for module \"" + consensusModuleName + "\" and platform " + targetPlatform );
+                                    totalSuccess = false;
+                                }
+                            }
+                            else
+                            {
+                                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:UpdateDependencyChain: Ignoring broken linker dependent with name: \"" +
+                                    dependentName + "\" for module \"" + consensusModuleName + "\" and platform " + targetPlatform );
+                            }                                
+                        }
+                    }
+                }
+                ++d;
+            }
+
+            dependencies.clear();
+            GetNamesOfModulesWhichRuntimeDependOnModuleForPlatform( targetPlatform, consensusModuleName, dependencies, false );
+
+            d = dependencies.begin();
+            while ( d != dependencies.end() )
+            {
+                const CORE::CString& dependentName = (*d);
+                CModuleDependencyNodePtr dependentModule;
+                if ( TryGetModuleDependencyChain( dependentModule, dependentName, targetPlatform, false ) && !dependentModule.IsNULL() )
+                {
+                    totalSuccess = dependencyChain->SetRuntimeDependent( dependentModule ) && totalSuccess;
+                }
+                else
+                {
+                    CModuleInfoEntryPtr dependencyModuleInfoEntry = GetModuleInfoEntry( dependentName );
+                    if ( !dependencyModuleInfoEntry.IsNULL() )
+                    {
+                        if ( dependencyModuleInfoEntry->HasIndependentModuleTypeForPlatform( targetPlatform ) )
+                        {
+                            if ( !dependencyModuleInfoEntry->IsBroken() )
+                            {
+                                bool issueWasFixed = false;
+                                if ( SanitizeModulePlatformUsage( moduleInfoEntry ) )
+                                {
+                                    // try again now that we have sanitized the module
+                                    if ( TryGetModuleDependencyChain( dependentModule, dependentName, targetPlatform, false ) && !dependentModule.IsNULL() )
+                                    {
+                                        issueWasFixed = dependencyChain->SetRuntimeDependent( dependentModule );
+                                        totalSuccess = issueWasFixed && totalSuccess;
+                                    }
+                                }
+                                if ( !issueWasFixed )
+                                {
+                                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:UpdateDependencyChain: Failed to obtain actual module for runtime dependent name: \"" +
+                                        dependentName + "\" for module \"" + consensusModuleName + "\" and platform " + targetPlatform );
+                                    totalSuccess = false;
+                                }
+                            }
+                            else
+                            {
+                                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:UpdateDependencyChain: Ignoring broken runtime dependent with name: \"" +
+                                    dependentName + "\" for module \"" + consensusModuleName + "\" and platform " + targetPlatform );
+                            }
+                        }
+                    }
+                }
+                ++d;
+            }
+        }
+        else
+        {
+            totalSuccess = false;
+        }
+    }
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::TryGetModuleDependencyChain( CModuleDependencyNodePtr& dependencyChain ,
+                                           const CORE::CString& consensusModuleName  ,
+                                           const CORE::CString& targetPlatform       ,
+                                           bool onlyCheckPlatformSpecific            ) const
+{GUCEF_TRACE;
+
+    dependencyChain.Unlink();
+
+    TStringToModuleDependencyNodePtrMap::const_iterator i = m_moduleDependencyChains.find( targetPlatform );
+    if ( i != m_moduleDependencyChains.end() )
+    {
+        // we have chains for this platform, now look for the specific module
+        const TModuleDependencyNodePtrMap& chainsForPlatform = (*i).second;
+        TModuleDependencyNodePtrMap::const_iterator n = chainsForPlatform.find( consensusModuleName );
+        if ( n != chainsForPlatform.end() )
+        {
+            // We found a chain for this platform & module consensus name combo
+            dependencyChain = (*n).second;
+            return true;
+        }
+    }
+
+    if ( targetPlatform != AllPlatforms && !onlyCheckPlatformSpecific )
+    {
+        TStringToModuleDependencyNodePtrMap::const_iterator i = m_moduleDependencyChains.find( AllPlatforms );
+        if ( i != m_moduleDependencyChains.end() )
+        {
+            // we have chains for this platform, now look for the specific module
+            const TModuleDependencyNodePtrMap& chainsForPlatform = (*i).second;
+            TModuleDependencyNodePtrMap::const_iterator n = chainsForPlatform.find( consensusModuleName );
+            if ( n != chainsForPlatform.end() )
+            {
+                // We found a chain for this platform & module consensus name combo
+                dependencyChain = (*n).second;
+                return true;
+            }
+        }        
+    }
+
+    return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::ClearDependencyChains( void )
+{GUCEF_TRACE;
+
+    TStringToModuleDependencyNodePtrMap::iterator i = m_moduleDependencyChains.begin();
+    while ( i != m_moduleDependencyChains.end() )
+    {
+        TModuleDependencyNodePtrMap& map = (*i).second;
+        TModuleDependencyNodePtrMap::iterator n = map.begin();
+        while ( n != map.end() )
+        {
+            CModuleDependencyNodePtr& dependency = (*n).second;
+            if ( !dependency.IsNULL() )
+            {
+                dependency->Clear();
+            }
+            ++n;
+        }
+
+        ++i;
+    }
+    m_moduleDependencyChains.clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
 CProjectInfo::Clear( void )
 {GUCEF_TRACE;
 
@@ -4931,6 +6720,487 @@ CProjectInfo::Clear( void )
     dirProcessingInstructions.clear();
     globalDirExcludeList.clear();
     platforms.clear();
+    ClearDependencyChains();
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::DetermineBuildOrderForAllModules( void )
+{GUCEF_TRACE;
+
+    // In order for this functionality to work we need the dependency chains determined ahead of time
+    if ( m_moduleDependencyChains.empty() )
+    {
+        UpdateDependencyChains();
+    }
+
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:DetermineBuildOrderForAllModules: Start determining build order for every platform" );
+
+    // Important: First determine the build order which applies to all modules
+    // This build order will be used for specific platforms as well unless no 'AllPlatforms'
+    // target is available or if the build order differs
+    // Doing it this way cuts down on the number platform specific entries generated just to store
+    // the build order
+    DetermineBuildOrderForAllModulesForPlatform( AllPlatforms );
+
+    TStringToModuleDependencyNodePtrMap::iterator i = m_moduleDependencyChains.begin();
+    while ( i != m_moduleDependencyChains.end() )
+    {
+        const CORE::CString& platformName = (*i).first;
+        if ( platformName != AllPlatforms )
+        {
+            DetermineBuildOrderForAllModulesForPlatform( platformName );
+        }
+        ++i;
+    }
+
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:DetermineBuildOrderForAllModules: Finished determining build order for every platform" );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::DetermineBuildOrderForAllModulesForPlatform( const CORE::CString& targetPlatform )
+{GUCEF_TRACE;
+
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:DetermineBuildOrderForAllModules: Start determining build order for platform " + targetPlatform );
+
+    // Get the initial build leaf nodes
+    // these are nodes which are truly leafs in that things may depend on them but they have no dependencies of their own
+
+    TModuleDependencyNodePtrMap currentLevelNodes;
+    GetBuildLeafNodes( targetPlatform, currentLevelNodes );
+
+    Int32 buildIndex = 1;
+    TStringToInt32Map buildOrderMap;
+
+    // We take advantage of map alphabetic ordering
+    TModuleDependencyNodePtrMap::iterator n = currentLevelNodes.begin();
+    while ( n != currentLevelNodes.end() )
+    {
+        const CORE::CString& consensusName = (*n).first;
+        buildOrderMap[ consensusName ] = buildIndex;
+
+        ++buildIndex;
+        ++n;
+    }
+
+    TModuleDependencyNodePtrMap nextLevelNodesMissingDeps;    
+    do
+    {
+        // Now do a pass building the dependency pyramids for the current set of leaf nodes
+        // As we do this more and more of the nodes with unsatisfied dependencies get their
+        // dependencies fulfilled 
+
+        TModuleDependencyNodePtrMap nextLevelNodes;
+        do
+        {
+            nextLevelNodes.clear();
+            GetNextLevelUpBuildNodes( targetPlatform, currentLevelNodes, buildOrderMap, nextLevelNodes, nextLevelNodesMissingDeps );
+
+            n = nextLevelNodes.begin();
+            while ( n != nextLevelNodes.end() )
+            {
+                const CORE::CString& consensusName = (*n).first;
+
+                // Check if we haven't already assigned a build order
+                // The same module can occur at different depth in the overall tree
+                if ( buildOrderMap.find( consensusName ) == buildOrderMap.end() )
+                {
+                    buildOrderMap[ consensusName ] = buildIndex;
+                    ++buildIndex;
+                    nextLevelNodesMissingDeps.erase( consensusName );
+                }
+
+                ++n;
+            }
+
+            currentLevelNodes = nextLevelNodes;
+        }
+        while ( !nextLevelNodes.empty() );
+
+        if ( !nextLevelNodesMissingDeps.empty() )
+        {
+            // We have gone as high as we can without missing dependencies
+            // Now we reset based on whatever was left over and determine new leaf nodes
+            
+            GetUnprocessedBuildLeafNodes( buildOrderMap, nextLevelNodesMissingDeps, currentLevelNodes );
+
+            TModuleDependencyNodePtrMap::iterator n = currentLevelNodes.begin();
+            while ( n != currentLevelNodes.end() )
+            {
+                const CORE::CString& consensusName = (*n).first;
+
+                // Check if we haven't already assigned a build order
+                // The same module can occur at different depth in the overall tree
+                if ( buildOrderMap.find( consensusName ) == buildOrderMap.end() )
+                {
+                    buildOrderMap[ consensusName ] = buildIndex;                    
+                    ++buildIndex;
+                    nextLevelNodesMissingDeps.erase( consensusName );
+                }
+                ++n;
+            }
+        }
+    }
+    while ( !currentLevelNodes.empty() );
+
+    // Apply the build order information to the modules
+    // Note that we put in extra effort here to avoid defining a platform specific
+    // module definition just for the the sake of preserving the build order
+    // if it matches the 'all' platform we just use that
+    TStringToInt32Map::iterator o = buildOrderMap.begin();
+    while ( o != buildOrderMap.end() )
+    {
+        const CORE::CString& consensusName = (*o).first;
+        Int32 buildIndex = (*o).second; 
+
+        CModuleInfoEntryPtr moduleEntry = GetModuleInfoEntry( consensusName );
+        if GUCEF_PREDICT_TRUE( !moduleEntry.IsNULL() )
+        {
+            bool platformSpecificBuildOrderMatchesAllPlatforms = false;
+            CModuleInfoPtr allPlatformsInfo = moduleEntry->FindModuleInfoForPlatform( AllPlatforms );
+            if ( !allPlatformsInfo.IsNULL() )
+            {
+                if ( targetPlatform == AllPlatforms )
+                {
+                    allPlatformsInfo->buildOrder = buildIndex;
+                    platformSpecificBuildOrderMatchesAllPlatforms = true;
+                }
+                else
+                {
+                    if ( -1 != allPlatformsInfo->buildOrder && allPlatformsInfo->buildOrder == buildIndex )
+                    {
+                        platformSpecificBuildOrderMatchesAllPlatforms = true;
+                    }
+                }                    
+            }
+
+            if ( !platformSpecificBuildOrderMatchesAllPlatforms )
+            {
+                CModuleInfoPtr moduleSpecForPlatform = moduleEntry->FindModuleInfoForPlatform( targetPlatform, true );
+                if GUCEF_PREDICT_TRUE( !moduleSpecForPlatform.IsNULL() )
+                {
+                    moduleSpecForPlatform->buildOrder = (*o).second;
+                }                
+            }
+        }
+        ++o;
+    }
+
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:DetermineBuildOrderForAllModules: Finished determining build order for platform " + targetPlatform );
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetUnprocessedBuildLeafNodes( const TStringToInt32Map& buildOrderMap                      ,
+                                            const TModuleDependencyNodePtrMap& nodesThatWereMissingDeps ,
+                                            TModuleDependencyNodePtrMap& newLeafNodes                   )
+{GUCEF_TRACE;
+
+    TModuleDependencyNodePtrMap::const_iterator i = nodesThatWereMissingDeps.begin();
+    while ( i != nodesThatWereMissingDeps.end() )
+    {
+        const CORE::CString& consensusName = (*i).first;
+        CModuleDependencyNodePtr dependent = (*i).second;
+
+        if GUCEF_PREDICT_TRUE( !dependent.IsNULL() )
+        {
+            // The new leafs are not modules with 0 linker deps but rather those with 0 remaining
+            // unprocessed dependencies
+
+            bool hasUnprocessedDependency = false;
+            const TModuleDependencyNodePtrMap& dependentDependencies = dependent->GetLinkerDependencies();
+            TModuleDependencyNodePtrMap::const_iterator d = dependentDependencies.begin();
+            while ( d != dependentDependencies.end() )
+            {
+                const CORE::CString& dependencyName = (*d).first;
+                if ( buildOrderMap.find( dependencyName ) == buildOrderMap.end() )
+                {
+                    hasUnprocessedDependency = true;
+                    break;
+                }
+
+                ++d;
+            }
+
+            if ( !hasUnprocessedDependency )
+            {
+                newLeafNodes[ consensusName ] = dependent;
+            }
+        }
+        ++i;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetNextLevelUpBuildNodes( const CORE::CString& platform                          ,
+                                        const TModuleDependencyNodePtrMap& currentLevel        ,
+                                        const TStringToInt32Map& buildOrderMap                 ,
+                                        TModuleDependencyNodePtrMap& nextLevelNodes            ,
+                                        TModuleDependencyNodePtrMap& nextLevelNodesMissingDeps )
+{GUCEF_TRACE;
+
+    TModuleDependencyNodePtrMap::const_iterator n = currentLevel.begin();
+    while ( n != currentLevel.end() )
+    {
+        const CORE::CString& consensusName = (*n).first;
+        const CModuleDependencyNodePtr& chainNode = (*n).second;
+        if GUCEF_PREDICT_TRUE( !chainNode.IsNULL() )
+        {
+            const TModuleDependencyNodePtrMap& dependents = chainNode->GetLinkerDependents();
+            TModuleDependencyNodePtrMap::const_iterator i = dependents.begin();
+            while ( i != dependents.end() )
+            {
+                CModuleDependencyNodePtr dependent = (*i).second;
+                if GUCEF_PREDICT_TRUE( !dependent.IsNULL() )
+                {
+                    bool hasUnprocessedDependency = false;
+                    const TModuleDependencyNodePtrMap& dependentDependencies = dependent->GetLinkerDependencies();
+                    TModuleDependencyNodePtrMap::const_iterator d = dependentDependencies.begin();
+                    while ( d != dependentDependencies.end() )
+                    {
+                        const CORE::CString& dependencyName = (*d).first;
+                        if ( buildOrderMap.find( dependencyName ) == buildOrderMap.end() )
+                        {
+                            hasUnprocessedDependency = true;
+                            break;
+                        }
+
+                        ++d;
+                    }
+
+                    if ( hasUnprocessedDependency )
+                    {
+                        nextLevelNodesMissingDeps[ dependent->GetConsensusName() ] = dependent;
+                        nextLevelNodes.erase( dependent->GetConsensusName() );
+                    }
+                    else
+                    {
+                        nextLevelNodes[ dependent->GetConsensusName() ] = dependent;
+                        nextLevelNodesMissingDeps.erase( dependent->GetConsensusName() );
+                    }
+                }
+                ++i;
+            }
+        }
+        ++n;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetBuildLeafNodes( const CORE::CString& platform          ,
+                                 TModuleDependencyNodePtrMap& leafNodes )
+{GUCEF_TRACE;
+
+    TStringToModuleDependencyNodePtrMap::iterator i = m_moduleDependencyChains.find( platform );
+    if ( i != m_moduleDependencyChains.end() )
+    {
+        TModuleDependencyNodePtrMap& chainNodeMap = (*i).second;
+        TModuleDependencyNodePtrMap::iterator n = chainNodeMap.begin();
+        while ( n != chainNodeMap.end() )
+        {
+            CModuleDependencyNodePtr& chainNode = (*n).second;
+            if GUCEF_PREDICT_TRUE( !chainNode.IsNULL() )
+            {
+                if ( chainNode->GetLinkerDependencies().empty() )
+                {
+                    CModuleInfoEntryPtr module = chainNode->GetModule();
+                    if GUCEF_PREDICT_TRUE( !module.IsNULL() )
+                    {
+                        const CORE::CString& consensusName = module->GetConsensusName();
+                        leafNodes[ consensusName ] = chainNode;
+                    }
+                }
+            }
+            ++n;
+        }
+    }
+}
+/*-------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetNamesOfModulesWhichDependOnModuleForPlatform( const CORE::CString& targetPlatform ,
+                                                               const CORE::CString& dependencyName ,
+                                                               CORE::CStringSet& moduleNames       ,
+                                                               bool platformSpecificOnly           ) const
+{GUCEF_TRACE;
+
+    // Loop trough all modules and check if they depend on the given module
+    TMutableModuleInfoEntryPairVector resultList;
+    TModuleInfoEntryPtrVector::const_iterator i = modules.begin();
+    while ( i != modules.end() )
+    {
+        const CModuleInfoEntryPtr& moduleInfoEntry = (*i);
+        if ( !moduleInfoEntry.IsNULL() )
+        {
+            if ( moduleInfoEntry->HasDependency( targetPlatform, dependencyName, platformSpecificOnly ) )
+            {
+                moduleNames.insert( moduleInfoEntry->GetConsensusName() );
+            }
+        }
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetNamesOfModulesWhichLinkerDependOnModuleForPlatform( const CORE::CString& targetPlatform ,
+                                                                     const CORE::CString& dependencyName ,
+                                                                     CORE::CStringSet& moduleNames       ,
+                                                                     bool platformSpecificOnly           ) const
+{GUCEF_TRACE;
+
+    // Loop trough all modules and check if they depend on the given module
+    TMutableModuleInfoEntryPairVector resultList;
+    TModuleInfoEntryPtrVector::const_iterator i = modules.begin();
+    while ( i != modules.end() )
+    {
+        const CModuleInfoEntryPtr& moduleInfoEntry = (*i);
+        if ( !moduleInfoEntry.IsNULL() )
+        {
+            if ( moduleInfoEntry->HasLinkerDependency( targetPlatform, dependencyName, platformSpecificOnly ) )
+            {
+                moduleNames.insert( moduleInfoEntry->GetConsensusName() );
+            }
+        }
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetNamesOfModulesWhichRuntimeDependOnModuleForPlatform( const CORE::CString& targetPlatform ,
+                                                                      const CORE::CString& dependencyName ,
+                                                                      CORE::CStringSet& moduleNames       ,
+                                                                      bool platformSpecificOnly           ) const
+{GUCEF_TRACE;
+
+    // Loop trough all modules and check if they depend on the given module
+    TMutableModuleInfoEntryPairVector resultList;
+    TModuleInfoEntryPtrVector::const_iterator i = modules.begin();
+    while ( i != modules.end() )
+    {
+        const CModuleInfoEntryPtr& moduleInfoEntry = (*i);
+        if ( !moduleInfoEntry.IsNULL() )
+        {
+            if ( moduleInfoEntry->HasDependency( targetPlatform, dependencyName, platformSpecificOnly ) )
+            {
+                moduleNames.insert( moduleInfoEntry->GetConsensusName() );
+            }
+            else
+            if ( moduleInfoEntry->HasLinkerDependency( targetPlatform, dependencyName, platformSpecificOnly ) )
+            {
+                moduleNames.insert( moduleInfoEntry->GetConsensusName() );
+            }
+        }
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::GetModuleDependencies( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                     const CORE::CString& targetPlatform        ,
+                                     TModuleInfoEntryPtrSet& dependencies       ,
+                                     bool includeDependenciesOfDependencies     ,
+                                     bool includeRuntimeDependencies            ) const
+{GUCEF_TRACE;
+
+    TStringSet deps;
+    GetModuleDependencies( moduleInfoEntry, targetPlatform, deps, includeRuntimeDependencies );     
+    
+    CORE::CString moduleName = moduleInfoEntry->GetConsensusName();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GetModuleDependencies: For module " + moduleName + ": found \"" + CORE::ToString( deps.size() ) + "\" dependencies for platform " + targetPlatform );
+
+    TModuleInfoEntryPtrSet depsPtrs;    
+    bool foundAllDeps = true;
+    TStringSet::iterator m = deps.begin();
+    while ( m != deps.end() )
+    {
+        const CModuleInfoEntryPtr dependency = GetModuleInfoEntry( (*m), targetPlatform );
+        if ( GUCEF_NULL != dependency )
+            depsPtrs.insert( dependency );
+        else
+        {
+            foundAllDeps = false; // We cannot satisfy the full dependency chain for the executable for the given platform
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GetModuleDependencies: For module " + moduleName + ": Found that for platform \"" + targetPlatform + "\" we cannot satisfy the full dependency chain because of dependency " + (*m) );
+        }
+        ++m;
+    }
+    
+    if ( includeDependenciesOfDependencies )
+    {
+        TModuleInfoEntryPtrSet depsOfdependencies;
+        TModuleInfoEntryPtrSet::iterator i = depsPtrs.begin();
+        while ( i != depsPtrs.end() )
+        {
+            const CModuleInfoEntryPtr entry = (*i);            
+            CORE::CString depModuleName = entry->GetConsensusName();
+
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GetModuleDependencies: For module " + moduleName + ": Recursively looking for dependencies of dependency \"" + depModuleName + "\" for platform " + targetPlatform );
+
+            foundAllDeps = foundAllDeps && GetModuleDependencies( entry, 
+                                                                  targetPlatform, 
+                                                                  depsOfdependencies, 
+                                                                  includeDependenciesOfDependencies, 
+                                                                  includeRuntimeDependencies ); 
+            ++i;
+        }
+        TModuleInfoEntryPtrSet::iterator n = depsOfdependencies.begin();
+        while ( n != depsOfdependencies.end() )
+        {
+            depsPtrs.insert( (*n) );
+            ++n;
+        }
+    }
+
+    TModuleInfoEntryPtrSet::iterator i = depsPtrs.begin();
+    while ( i != depsPtrs.end() )
+    {
+        dependencies.insert( (*i) );
+        ++i;
+    }
+
+    return foundAllDeps;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetModuleDependencies( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                     const CORE::CString& targetPlatform        ,
+                                     TStringSet& dependencies                   ,
+                                     bool includeRuntimeDependencies            ) const
+{GUCEF_TRACE;
+
+    CModuleInfoEntryPtr mutableModuleInfoEntry = moduleInfoEntry;
+    CModuleInfoPtr moduleInfo = mutableModuleInfoEntry->FindModuleInfoForPlatform( targetPlatform, false );
+    if ( !moduleInfo.IsNULL() )
+    {
+        MergeStringSet( dependencies, moduleInfo->GetNamesOfDependencies(), false );
+        if ( includeRuntimeDependencies )
+            MergeStringSet( dependencies, moduleInfo->runtimeDependencies, false );
+    }
+    if ( targetPlatform != AllPlatforms && !targetPlatform.IsNULLOrEmpty() )
+    {
+        moduleInfo = mutableModuleInfoEntry->FindModuleInfoForPlatform( AllPlatforms, false );
+        if ( !moduleInfo.IsNULL() )
+        {
+            MergeStringSet( dependencies, moduleInfo->GetNamesOfDependencies(), false );
+            if ( includeRuntimeDependencies )
+                MergeStringSet( dependencies, moduleInfo->runtimeDependencies, false );
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------//

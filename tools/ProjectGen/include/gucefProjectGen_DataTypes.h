@@ -77,6 +77,7 @@ namespace PROJECTGEN {
 
 typedef CORE::CString::StringSet TStringSet;
 typedef std::set< CORE::Int32 > TInt32Set;
+typedef std::map< CORE::CString, Int32 >    TStringToInt32Map;
 typedef CORE::CString::StringMapSet TStringSetMap;
 typedef CORE::CString::StringVector TStringVector;
 typedef std::map< CORE::CString, TStringVector > TStringVectorMap;
@@ -159,6 +160,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CLinkerSettings : public CORE::CTSharedObjCrea
     void Clear( void );
 
     const TLinkedLibrarySettingsPtrMap& GetLinkedLibraries( void ) const;
+
+    bool HasLinkerDependency( const CORE::CString& dependencyName ) const;
 
     void GetListOfLinkedLibraries( CORE::CStringSet& linkedLibraries ) const;
 
@@ -311,7 +314,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleMetaData : public CORE::CIDataNodeSeria
 
     CModuleMetaData( const CModuleMetaData& src );
 
-    virtual ~CModuleMetaData();
+    virtual ~CModuleMetaData() GUCEF_VIRTUAL_OVERRIDE;
 
     void Clear( void );
 
@@ -330,7 +333,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleMetaData : public CORE::CIDataNodeSeria
      *  Attempts to serialize the object to a DOM created out of DataNode objects
      *
      *  @param domRootNode Node that acts as root of the DOM data tree from which to deserialize
-     *  @return whether deserializing the object data from the given DOM was successfull.
+     *  @return whether deserializing the object data from the given DOM was successful.
      */
     virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
                               const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
@@ -422,6 +425,21 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo : public CORE::CTSharedObjCreator<
 
     void MergeNamesOfDependencies( const TStringSet& dependenciesToMergeIn );
 
+    void AddNameOfRuntimeDependency( const CORE::CString& dependency );
+
+    void RemoveNameOfRuntimeDependency( const CORE::CString& dependency );
+
+    /**
+     *  Independent modules have relevance in their own right.
+     *  Non-independent modules are logical constructs to aid with project organization
+     */
+    bool HasIndependentModuleType( void ) const;
+
+    /**
+     *  Returns whether a proper module type was set on the module
+     */
+    bool HasValidModuleType( void ) const;
+
     void Clear( void );
 
     bool Merge( CModuleInfoPtr moduleInfoToMergeIn      ,
@@ -429,7 +447,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo : public CORE::CTSharedObjCreator<
     
     CModuleInfo( void );
     CModuleInfo( const CModuleInfo& src );
-    virtual ~CModuleInfo();
+    virtual ~CModuleInfo() GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
@@ -466,7 +484,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
 
     CModuleInfoEntry( const CModuleInfoEntry& src );
 
-    virtual ~CModuleInfoEntry();
+    virtual ~CModuleInfoEntry() GUCEF_VIRTUAL_OVERRIDE;
 
     void Clear( void );
 
@@ -480,6 +498,17 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     const CORE::CString& GetConsensusName( CModuleInfoPtr* moduleInfo = GUCEF_NULL ,
                                            bool dontUseCached = false              ) const;
 
+    const CORE::CString* GetModuleName( const CORE::CString& targetPlatform        ,
+                                        CModuleInfoPtr* outModuleInfo = GUCEF_NULL ) const;
+
+    /**
+     *  Tries to get the properly merged module name first for the given platform
+     *  if this does not yield a module name it will use the general consensus
+     *  module name instead
+     */
+    CORE::CString GetModuleNameAlways( const CORE::CString& targetPlatform     ,
+                                       CModuleInfoPtr* moduleInfo = GUCEF_NULL ) const;
+
     void SetModuleInfo( CModuleInfoPtr moduleInfo     ,
                         const CORE::CString& platform );
 
@@ -488,6 +517,92 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     CModuleInfoPtr FindModuleInfoForPlatform( const CORE::CString& platform, bool createNewIfNoneExists );
 
     const TModuleInfoPtrMap& GetModulesPerPlatform( void ) const;
+
+    const TModuleInfoPtrMap& GetFlattenedModulesPerPlatform( void ) const;
+
+    bool HasDependency( const CORE::CString& platform       ,
+                        const CORE::CString& dependencyName ,
+                        bool platformSpecificOnly = false   ) const;
+
+    bool HasLinkerDependency( const CORE::CString& platform       ,
+                              const CORE::CString& dependencyName ,
+                              bool platformSpecificOnly = false   ) const;
+
+    /**
+     *  Returns whether the given module as configured is applicable for the given platform
+     *  Many modules will only support certain platforms due to depending on platform specifics
+     */
+    bool IsApplicableForPlatform( const CORE::CString& platform ) const;
+
+    /**
+     *  Independent modules have relevance in their own right.
+     *  Non-independent modules are logical constructs to aid with project organization
+     *  Such modules should not be considered actual 'modules' from a build perspective
+     */
+    bool HasIndependentModuleTypeForPlatform( const CORE::CString& platform ) const;
+
+    /**
+     *  If a module is written as generic code, not hard dependent on a given platform(s)
+     *  it should have a valid AllPlatforms definition with potentially platform definitions
+     *  as extensions to said definition for a given platform.
+     */
+    bool HasAllPlatformsDefinition( void ) const;
+
+    /**
+     *  Provides flag whether issues have been detected with the definition such that its considered 'broken'
+     *  Broken modules may be ignored and filtered out by generator backends
+     */
+    void SetIsBroken( bool isBroken );
+
+    /**
+     *  Provides flag whether issues have been detected with the definition such that its considered 'broken'
+     *  Broken modules may be ignored and filtered out by generator backends
+     */
+    bool IsBroken( void ) const;
+
+    /**
+     *  Obtains the module dependencies by flattening the dependencies on-demand
+     *  for the given target platform.
+     *
+     *  These dependencies may or may not be linked to, that is distinct (see GetModuleLinkerDependencyNames() )
+     *  These are used to discern which paths to generate for include headers
+     */
+    void
+    GetModuleDependencyNames( const CORE::CString& targetPlatform ,
+                              TStringSet& dependencies            ) const;
+
+    /**
+     *  Obtains the module linker dependencies by flattening the dependencies on-demand
+     *  for the given target platform. Linker dependencies are what are actually needed by the build process.
+     */
+    void
+    GetModuleLinkerDependencyNames( const CORE::CString& targetPlatform ,
+                                    TStringSet& dependencies            ) const;
+
+    /**
+     *  Obtains the module dependencies by flattening the runtime dependencies on-demand
+     *  for the given target platform
+     */
+    void
+    GetModuleRuntimeDependencyNames( const CORE::CString& targetPlatform ,
+                                     TStringSet& dependencies            ) const;
+
+    /**
+     *  Removes any reference to the a runtime dependency with the given name
+     */
+    void RemoveRuntimeDependency( const CORE::CString& dependencyName );
+
+    /**
+     *  Removes any reference to the a runtime dependency with the given name
+     */
+    void RemoveRuntimeDependency( const CORE::CString& dependencyName ,
+                                  const CORE::CString& platformName   );
+
+    /**
+     *  Obtains the set of platforms for which this module has information
+     */
+    void
+    GetReferencedPlatforms( TStringSet& platforms ) const;
 
     /**
      *  Straightforward upsert style merge
@@ -508,7 +623,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
      *  Attempts to serialize the object to a DOM created out of DataNode objects
      *
      *  @param domRootNode Node that acts as root of the DOM data tree from which to deserialize
-     *  @return whether deserializing the object data from the given DOM was successfull.
+     *  @return whether deserializing the object data from the given DOM was successful.
      */
     virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
                               const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
@@ -519,11 +634,97 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
 
     private:
 
-    mutable CORE::CString m_consensusName;
-    TModuleInfoPtrMap m_modulesPerPlatform;  // ModuleInfo per platform
+    mutable CORE::CString m_consensusName;          // Derived cached info: the consensus name across all platforms
+    TModuleInfoPtrMap m_modulesPerPlatform;         // ModuleInfo per platform
+    TModuleInfoPtrMap m_flattenedInfoPerPlatform;   // Derived cached info: Module overlays per platform applied to the 'all platforms' module info
+    bool m_isBroken;                                // flag whether the module has a broken definition in need of intervention
 };
 
 typedef CModuleInfoEntry::CModuleInfoEntryPtr CModuleInfoEntryPtr;
+
+/*---------------------------------------------------------------------------*/
+
+class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedObjCreator< CModuleDependencyNode, MT::CMutex >
+{
+    public:
+
+    typedef typename CORE::CTSharedObjCreator< CModuleDependencyNode, MT::CMutex >::TBasicSharedPtrType    CModuleDependencyNodePtr;
+    typedef std::map< CORE::CString, CModuleDependencyNodePtr >                                            TModuleDependencyNodePtrMap;
+    typedef std::set< CModuleDependencyNodePtr >                                                           TModuleDependencyNodePtrSet;
+
+    void SetModule( const CModuleInfoEntryPtr& module );
+
+    CModuleInfoEntryPtr GetModule( void ) const;
+
+    const CORE::CString& GetConsensusName( void ) const;
+
+    bool SetDependency( CModuleDependencyNodePtr dependency );
+
+    void SetDependencies( const TModuleDependencyNodePtrMap& dependencies );
+
+    const TModuleDependencyNodePtrMap& GetDependencies( void ) const;
+
+    bool SetLinkerDependency( CModuleDependencyNodePtr dependency );
+
+    void SetLinkerDependencies( const TModuleDependencyNodePtrMap& dependencies );
+
+    const TModuleDependencyNodePtrMap& GetLinkerDependencies( void ) const;
+
+    bool SetRuntimeDependency( CModuleDependencyNodePtr dependency );
+
+    void SetRuntimeDependencies( const TModuleDependencyNodePtrMap& dependencies );
+
+    const TModuleDependencyNodePtrMap& GetRuntimeDependencies( void ) const;
+
+    bool SetDependent( CModuleDependencyNodePtr dependent );
+
+    void SetDependents( const TModuleDependencyNodePtrMap& dependents );
+
+    const TModuleDependencyNodePtrMap& GetDependents( void ) const;
+
+    bool SetLinkerDependent( CModuleDependencyNodePtr dependent );
+
+    void SetLinkerDependents( const TModuleDependencyNodePtrMap& dependents );
+
+    const TModuleDependencyNodePtrMap& GetLinkerDependents( void ) const;
+
+    bool SetRuntimeDependent( CModuleDependencyNodePtr dependent );
+
+    void SetRuntimeDependents( const TModuleDependencyNodePtrMap& dependents );
+
+    const TModuleDependencyNodePtrMap& GetRuntimeDependents( void ) const;
+
+    void SetTargetPlatform( const CORE::CString& targetPlatform );
+
+    const CORE::CString& GetTargetPlatform( void ) const;
+
+    void Clear( void );
+
+    bool HasMissingDependencies( void ) const;
+
+    void SetHasMissingDependencies( bool hasMissing );
+
+    CModuleDependencyNode( void );
+
+    virtual ~CModuleDependencyNode() GUCEF_VIRTUAL_OVERRIDE;
+
+    private:
+
+    CModuleInfoEntryPtr m_module;
+    TModuleDependencyNodePtrMap m_dependencies;
+    TModuleDependencyNodePtrMap m_linkerDependencies;
+    TModuleDependencyNodePtrMap m_runtimeDependencies;
+    TModuleDependencyNodePtrMap m_dependents;
+    TModuleDependencyNodePtrMap m_linkerDependents;
+    TModuleDependencyNodePtrMap m_runtimeDependents;
+    CORE::CString m_targetPlatform;
+    bool m_hasMissingDependencies;
+};
+
+typedef CModuleDependencyNode::CModuleDependencyNodePtr             CModuleDependencyNodePtr;   
+typedef CModuleDependencyNode::TModuleDependencyNodePtrMap          TModuleDependencyNodePtrMap;
+typedef CModuleDependencyNode::TModuleDependencyNodePtrSet          TModuleDependencyNodePtrSet;
+typedef std::map< CORE::CString, TModuleDependencyNodePtrMap >      TStringToModuleDependencyNodePtrMap;
 
 /*---------------------------------------------------------------------------*/
 
@@ -579,7 +780,118 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
     TModuleInfoEntryPtrVector modules;                       // All generated module information
     TDirProcessingInstructionsMap dirProcessingInstructions; // All loaded processing instructions mapped per path
     TStringVector globalDirExcludeList;                      // Dirs that should never be included in processing regardless of path
-    TPlatformDefinitionMap platforms;                        // All supported platforms for this project
+    TPlatformDefinitionMap platforms;                        // All supported platforms for this project    
+
+    CModuleInfoEntryPtr
+    GetModuleInfoEntry( const CORE::CString& consensusModuleName ) const;
+
+    CModuleInfoEntryPtr
+    GetModuleInfoEntry( const CORE::CString& consensusModuleName        ,
+                        const CORE::CString& platform                   ,
+                        CModuleInfoPtr* platformModuleInfo = GUCEF_NULL ) const;
+
+    CModuleInfoEntryPtr GetModuleInfoEntry( const CORE::CString& moduleName    ,
+                                            const CORE::CString& platform      ,
+                                            CModuleInfoPtr* platformModuleInfo ,
+                                            bool createNewIfNoneExists         );
+
+    /**
+     *  Determines which platforms are actually used in the project and returns the 
+     *  names of the platforms in the given platformList
+     */
+    void
+    GetAllPlatformsUsed( TStringSet& platformList       ,
+                         bool okToUseCachedValue = true ) const;
+
+    void
+    GetNamesOfModulesWhichDependOnModuleForPlatform( const CORE::CString& targetPlatform ,
+                                                     const CORE::CString& dependencyName ,
+                                                     CORE::CStringSet& moduleNames       ,
+                                                     bool platformSpecificOnly = false   ) const;
+
+    void
+    GetNamesOfModulesWhichLinkerDependOnModuleForPlatform( const CORE::CString& targetPlatform ,
+                                                           const CORE::CString& dependencyName ,
+                                                           CORE::CStringSet& moduleNames       ,
+                                                           bool platformSpecificOnly = false   ) const;
+
+    void
+    GetNamesOfModulesWhichRuntimeDependOnModuleForPlatform( const CORE::CString& targetPlatform ,
+                                                            const CORE::CString& dependencyName ,
+                                                            CORE::CStringSet& moduleNames       ,
+                                                            bool platformSpecificOnly = false   ) const;
+
+    bool TryGetModuleDependencyChain( CModuleDependencyNodePtr& dependencyChain ,
+                                      const CORE::CString& consensusModuleName  ,
+                                      const CORE::CString& targetPlatform       ,
+                                      bool onlyCheckPlatformSpecific            ) const;
+
+    /**
+     *  Builds or updates dependency chain trees based on the name based module references
+     *  This allows directly traversing dependency trees after the tree has been build
+     *  versus relying on the initial names as used in config, which is a lot slower lookup wise
+     */
+    bool UpdateDependencyChains( bool okToUseCachedValuesWhereApplicable = true );
+
+    /**
+     *  Updates the information contained within a specific dependency chain
+     *  This depends on chain nodes already having been created for every module by
+     *  UpdateDependencyChains()
+     */
+    bool UpdateDependencyChain( CModuleDependencyNodePtr dependencyChain );
+
+    void ClearDependencyChains( void );
+
+    /**
+     *  Sanity check functionality which will verify for all defined modules whether they can sustain
+     *  an 'all' platforms definition. Any module found to be unable to sustain such a definition will be
+     *  reduced to the feasible platforms based on the dependency chain
+     */
+    void SanitizeAllPlatformsUsage( void );
+
+    /**
+     *  Checks a module's dependency tree to verify whether based on dependencies an All platforms
+     *  definition is sustainable. In order for that to be true we cannot have any missing dependencies
+     * 
+     *  Its valid for an 'All' platform definition to have platform specific extensions to allow it to work on a given platform
+     *  Such extensions must from that point forward all support 'All' platform or the given platform for the remainder of that chain.
+     *  The problem comes when an 'All' platforms definition directly depends on a non-all-platforms dependency. That is invalid wrt sustaining
+     *  a 'all' platforms definition. It has to be via a platform specific definition extension, not part of the 'all' platforms definition in that case
+     *  This function looks for such cases throughout the dependency tree and validates that the requirement holds.
+     *  Its all or nothing. It only takes one bad link in the chain to make all dependent modules lose their 'all' platform sustainability.      
+     */
+    bool CanModuleSustainAllPlatformsDefinition( CModuleInfoEntryPtr moduleInfoEntry    ,
+                                                 TModuleInfoEntryPtrSet& problemModules ,
+                                                 CORE::CStringSet& missingModules       ) const;
+
+    /**
+     *  Obtains the list of platforms derived as being supported by checking all the module
+     *  dependencies and finding the actually supported subset of platforms
+     */
+    void
+    GetSupportedPlatformsBasedOnDependencies( CModuleInfoEntryPtr moduleInfoEntry ,
+                                              CORE::CStringSet& platforms         ) const;
+
+    bool SanitizeModulePlatformUsage( CModuleInfoEntryPtr moduleInfoEntry );
+
+    void SanitizeRuntimeDependencies( CModuleInfoEntryPtr moduleInfoEntry );
+
+    void SanitizeRuntimeDependencies( void );
+
+    void DetermineBuildOrderForAllModules( void );
+
+    void DetermineBuildOrderForAllModulesForPlatform( const CORE::CString& targetPlatform );
+
+    bool GetModuleDependencies( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                const CORE::CString& targetPlatform        ,
+                                TModuleInfoEntryPtrSet& dependencies       ,
+                                bool includeDependenciesOfDependencies     ,
+                                bool includeRuntimeDependencies            ) const;
+
+    void GetModuleDependencies( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                const CORE::CString& targetPlatform        ,
+                                TStringSet& dependencies                   ,
+                                bool includeRuntimeDependencies            ) const;
 
     void Clear( void );
     
@@ -591,6 +903,43 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 
     private:
 
+    bool GenerateDependencyChainNodes( const CORE::CString& targetPlatform     ,
+                                       bool okToUseCachedValuesWhereApplicable );
+
+    void ReduceAllPlatformsDefinitionToSustainablePlatforms( CModuleInfoEntryPtr moduleInfoEntry );
+
+    bool CanModuleSustainAllPlatformsDefinition( const CORE::CStringSet& dependencies   ,
+                                                 bool okIfNoSuchDependencyDefined       ,
+                                                 TModuleInfoEntryPtrSet& problemModules ,
+                                                 CORE::CStringSet& missingModules       ) const;
+
+    void SanitizeRuntimeDependenciesForPlatform( CModuleInfoEntryPtr moduleInfoEntry ,
+                                                 const CORE::CString& targetPlatform );
+
+    bool SanitizeModulePlatformUsage( CModuleInfoEntryPtr moduleInfoEntry ,
+                                      const CORE::CString& platform       ,
+                                      const TStringSet& dependencies      );
+
+    bool SanitizeModulePlatformUsage( CModuleInfoEntryPtr moduleInfoEntry ,
+                                      const CORE::CString& platform       );
+
+    void GetBuildLeafNodes( const CORE::CString& platform          ,
+                            TModuleDependencyNodePtrMap& leafNodes );
+
+    void GetUnprocessedBuildLeafNodes( const TStringToInt32Map& buildOrderMap                      ,
+                                       const TModuleDependencyNodePtrMap& nodesThatWereMissingDeps ,
+                                       TModuleDependencyNodePtrMap& newLeafNodes                   );
+
+    void GetNextLevelUpBuildNodes( const CORE::CString& platform                          ,
+                                   const TModuleDependencyNodePtrMap& currentLevel        ,
+                                   const TStringToInt32Map& buildOrderMap                 ,
+                                   TModuleDependencyNodePtrMap& nextLevelNodes            ,
+                                   TModuleDependencyNodePtrMap& nextLevelNodesMissingDeps );
+
+    private:
+
+    mutable TStringSet m_actualPlatformsUsed; // Cached list of platforms actually used in the project, derived from the platforms map and the modules
+    TStringToModuleDependencyNodePtrMap m_moduleDependencyChains;
     MT::CReadWriteLock m_rwLock;
 
     protected:
@@ -636,14 +985,6 @@ ApplyConfigToProject( const CORE::CDataNode& loadedConfig ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 const CORE::CString*
-GetModuleName( const CModuleInfoEntryPtr& moduleInfoEntry ,
-               const CORE::CString& targetPlatform        ,
-               CModuleInfoPtr* moduleInfo = GUCEF_NULL    );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-const CORE::CString*
 GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
                const CORE::CString& targetPlatform          ,
                CModuleInfoPtr* moduleInfo = GUCEF_NULL      );
@@ -670,17 +1011,6 @@ GetConsensusTargetName( const TProjectTargetInfoMap& targetPlatforms ,
 GUCEF_PROJECTGEN_PUBLIC_CPP
 CORE::CString
 GetConsensusTargetName( const TProjectTargetInfoMap& targetPlatforms );
-
-/*-------------------------------------------------------------------------*/
-
-// Tries to get the properly merged module name first for the given platform
-// if this does not yield a module name it will use the general consensus
-// module name instead
-GUCEF_PROJECTGEN_PUBLIC_CPP
-CORE::CString
-GetModuleNameAlways( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                     const CORE::CString& targetPlatform        ,
-                     CModuleInfoPtr* moduleInfo = GUCEF_NULL    );
                      
 /*-------------------------------------------------------------------------*/
                      
@@ -879,26 +1209,6 @@ DeserializeProjectInfo( CProjectInfo& projectInfo            ,
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
-void
-GetModuleDependencies( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                       const CORE::CString& targetPlatform        ,
-                       TStringSet& dependencies                   ,
-                       bool includeRuntimeDependencies            );
-                       
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-bool
-GetModuleDependencies( const CProjectInfo& projectInfo            ,
-                       const CModuleInfoEntryPtr& moduleInfoEntry ,
-                       const CORE::CString& targetPlatform        ,
-                       TModuleInfoEntryPtrSet& dependencies       ,  
-                       bool includeDependenciesOfDependencies     ,
-                       bool includeRuntimeDependencies            );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
 TModuleType
 GetModuleType( const CModuleInfoEntryPtr& moduleInfoEntry ,
                const CORE::CString& targetPlatform        );
@@ -937,15 +1247,6 @@ GetModuleInfoEntry( const TModuleInfoEntryPtrVector& moduleInfoEntries ,
                     const CORE::CString& moduleName                    ,
                     const CORE::CString& platform                      ,
                     CModuleInfoPtr* moduleInfo = GUCEF_NULL            );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-const CModuleInfoEntryPtr
-GetModuleInfoEntry( const CProjectInfo& projectInfo         ,
-                    const CORE::CString& moduleName         ,
-                    const CORE::CString& platform           ,
-                    CModuleInfoPtr* moduleInfo = GUCEF_NULL );
 
 /*-------------------------------------------------------------------------*/
 
@@ -1020,15 +1321,6 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 CORE::CString
 GetShortestRelativePathFromAbsPathToProjectRoot( const CProjectInfo& projectInfo ,
                                                  const CORE::CString& absPath    );
-
-/*-------------------------------------------------------------------------*/
-
-// Determines which platforms are actually used in the project and returns the 
-// names of the platforms in the given platformList
-GUCEF_PROJECTGEN_PUBLIC_CPP
-void
-GetAllPlatformsUsed( const CProjectInfo& projectInfo ,
-                     TStringSet& platformList        );
 
 /*-------------------------------------------------------------------------*/
 

@@ -805,7 +805,7 @@ CCIHelperGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
     
     CORE::CString::StringSet platformFilter = params.GetValueAlways( "cihelpergen:platformFilter" ).AsString( CORE::CString::Empty, true ).ParseUniqueElements( ',', false );
     if ( platformFilter.empty() )
-        GetAllPlatformsUsed( projectInfo, platformFilter );
+        projectInfo.GetAllPlatformsUsed( platformFilter );
 
     if ( targetsOutputDir.IsNULLOrEmpty() )
         targetsOutputDir = outputDir;    

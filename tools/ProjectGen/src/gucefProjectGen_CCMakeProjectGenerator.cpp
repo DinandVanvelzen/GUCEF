@@ -252,7 +252,7 @@ GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntryPtr& moduleInfoEntr
 {GUCEF_TRACE;
 
     CModuleInfoPtr moduleInfo;
-    const CORE::CString* moduleName = GetModuleName( moduleInfoEntry, platformName, &moduleInfo );
+    const CORE::CString* moduleName = moduleInfoEntry->GetModuleName( platformName, &moduleInfo );
 
     if ( ( NULL != moduleName ) && ( !moduleInfo.IsNULL() ) )
     {
@@ -835,7 +835,7 @@ GenerateCMakeModuleDependenciesLine( const CProjectInfo& projectInfo   ,
         {
             // We add all dependencies except for header include locations which are not real modules
             // and CMake will not be using a make file for those.
-            const CModuleInfoEntryPtr dependencyModule = GetModuleInfoEntry( projectInfo, (*i), platformName );
+            const CModuleInfoEntryPtr dependencyModule = projectInfo.GetModuleInfoEntry( (*i), platformName );
             if ( !dependencyModule.IsNULL() )
             {
                 TModuleType moduleType = GetModuleType( dependencyModule, platformName );
@@ -1000,7 +1000,7 @@ GenerateCMakeModuleLinkerLine( const CProjectInfo& projectInfo   ,
         {
             // We add all dependencies except for header include locations which are not real modules
             // and CMake will not be using a make file for those.
-            const CModuleInfoEntryPtr dependencyModule = GetModuleInfoEntry( projectInfo, (*i).first, platformName );
+            const CModuleInfoEntryPtr dependencyModule = projectInfo.GetModuleInfoEntry( (*i).first, platformName );
             if ( !dependencyModule.IsNULL() )
             {
                 TModuleType moduleType = GetModuleType( dependencyModule, platformName );
