@@ -644,6 +644,17 @@ typedef CModuleInfoEntry::CModuleInfoEntryPtr CModuleInfoEntryPtr;
 
 /*---------------------------------------------------------------------------*/
 
+typedef std::vector< CModuleInfoEntryPtr >                           TModuleInfoEntryPtrVector;
+typedef CORE::CTSharedPtr< TModuleInfoEntryPtrVector, MT::CMutex >   TModuleInfoEntryPtrVectorPtr;
+typedef std::pair< const CModuleInfoEntryPtr, const CModuleInfoPtr > TModuleInfoEntryPair;
+typedef std::pair< CModuleInfoEntryPtr, CModuleInfoPtr >             TMutableModuleInfoEntryPair;
+typedef std::vector< TModuleInfoEntryPair >                          TModuleInfoEntryPairVector;
+typedef std::vector< TMutableModuleInfoEntryPair >                   TMutableModuleInfoEntryPairVector;
+typedef std::set< CModuleInfoEntryPtr >                              TModuleInfoEntryPtrSet;
+typedef std::map< int, CModuleInfoEntryPtr >                         TModuleInfoEntryPrioMap;
+
+/*---------------------------------------------------------------------------*/
+
 class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedObjCreator< CModuleDependencyNode, MT::CMutex >
 {
     public:
@@ -664,17 +675,26 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedO
 
     const TModuleDependencyNodePtrMap& GetDependencies( void ) const;
 
+    bool GatherDependencyModules( TModuleInfoEntryPtrSet& dependencies    ,
+                                  bool includeDependenciesOfDependencies  ) const;
+
     bool SetLinkerDependency( CModuleDependencyNodePtr dependency );
 
     void SetLinkerDependencies( const TModuleDependencyNodePtrMap& dependencies );
 
     const TModuleDependencyNodePtrMap& GetLinkerDependencies( void ) const;
 
+    bool GatherLinkerDependencyModules( TModuleInfoEntryPtrSet& dependencies    ,
+                                        bool includeDependenciesOfDependencies  ) const;
+
     bool SetRuntimeDependency( CModuleDependencyNodePtr dependency );
 
     void SetRuntimeDependencies( const TModuleDependencyNodePtrMap& dependencies );
 
     const TModuleDependencyNodePtrMap& GetRuntimeDependencies( void ) const;
+
+    bool GatherRuntimeDependencyModules( TModuleInfoEntryPtrSet& dependencies    ,
+                                         bool includeDependenciesOfDependencies  ) const;
 
     bool SetDependent( CModuleDependencyNodePtr dependent );
 
@@ -725,17 +745,6 @@ typedef CModuleDependencyNode::CModuleDependencyNodePtr             CModuleDepen
 typedef CModuleDependencyNode::TModuleDependencyNodePtrMap          TModuleDependencyNodePtrMap;
 typedef CModuleDependencyNode::TModuleDependencyNodePtrSet          TModuleDependencyNodePtrSet;
 typedef std::map< CORE::CString, TModuleDependencyNodePtrMap >      TStringToModuleDependencyNodePtrMap;
-
-/*---------------------------------------------------------------------------*/
-
-typedef std::vector< CModuleInfoEntryPtr >                           TModuleInfoEntryPtrVector;
-typedef CORE::CTSharedPtr< TModuleInfoEntryPtrVector, MT::CMutex >   TModuleInfoEntryPtrVectorPtr;
-typedef std::pair< const CModuleInfoEntryPtr, const CModuleInfoPtr > TModuleInfoEntryPair;
-typedef std::pair< CModuleInfoEntryPtr, CModuleInfoPtr >             TMutableModuleInfoEntryPair;
-typedef std::vector< TModuleInfoEntryPair >                          TModuleInfoEntryPairVector;
-typedef std::vector< TMutableModuleInfoEntryPair >                   TMutableModuleInfoEntryPairVector;
-typedef std::set< CModuleInfoEntryPtr >                              TModuleInfoEntryPtrSet;
-typedef std::map< int, CModuleInfoEntryPtr >                         TModuleInfoEntryPrioMap;
 
 /*---------------------------------------------------------------------------*/
 

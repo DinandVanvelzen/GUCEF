@@ -1903,9 +1903,12 @@ GetModuleTargetName( const CModuleInfoEntryPtr& moduleInfoEntry ,
     if ( targetPlatform != AllPlatforms && !targetPlatform.IsNULLOrEmpty() )
     {
         moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( AllPlatforms );
-        if ( !moduleInfo->linkerSettings.GetTargetName().IsNULLOrEmpty() )
+        if ( !moduleInfo.IsNULL() )
         {
-            return moduleInfo->linkerSettings.GetTargetName();
+            if ( !moduleInfo->linkerSettings.GetTargetName().IsNULLOrEmpty() )
+            {
+                return moduleInfo->linkerSettings.GetTargetName();
+            }
         }
     }
 
@@ -5313,6 +5316,33 @@ CModuleDependencyNode::GetDependencies( void ) const
 /*---------------------------------------------------------------------------*/
 
 bool
+CModuleDependencyNode::GatherDependencyModules( TModuleInfoEntryPtrSet& dependencies   ,
+                                                bool includeDependenciesOfDependencies ) const
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    TModuleDependencyNodePtrMap::const_iterator i = m_dependencies.begin();
+    while ( i != m_dependencies.end() )
+    {
+        const CModuleDependencyNodePtr& dependencyNode = (*i).second;
+        if GUCEF_PREDICT_TRUE( !dependencyNode.IsNULL() )
+        {
+            dependencies.insert( dependencyNode->GetModule() );
+            if ( includeDependenciesOfDependencies )
+            {
+                totalSuccess = dependencyNode->GatherDependencyModules( dependencies, includeDependenciesOfDependencies ) && totalSuccess;
+            }
+        }
+        ++i;
+    }
+
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
 CModuleDependencyNode::SetLinkerDependency( CModuleDependencyNodePtr dependency )
 {GUCEF_TRACE;
 
@@ -5353,6 +5383,33 @@ CModuleDependencyNode::GetLinkerDependencies( void ) const
 /*---------------------------------------------------------------------------*/
 
 bool
+CModuleDependencyNode::GatherLinkerDependencyModules( TModuleInfoEntryPtrSet& dependencies   ,
+                                                      bool includeDependenciesOfDependencies ) const
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    TModuleDependencyNodePtrMap::const_iterator i = m_linkerDependencies.begin();
+    while ( i != m_linkerDependencies.end() )
+    {
+        const CModuleDependencyNodePtr& dependencyNode = (*i).second;
+        if GUCEF_PREDICT_TRUE( !dependencyNode.IsNULL() )
+        {
+            dependencies.insert( dependencyNode->GetModule() );
+            if ( includeDependenciesOfDependencies )
+            {
+                totalSuccess = dependencyNode->GatherLinkerDependencyModules( dependencies, includeDependenciesOfDependencies ) && totalSuccess;
+            }
+        }
+        ++i;
+    }
+
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
 CModuleDependencyNode::SetRuntimeDependency( CModuleDependencyNodePtr dependency )
 {GUCEF_TRACE;
 
@@ -5388,6 +5445,33 @@ CModuleDependencyNode::GetRuntimeDependencies( void ) const
 {GUCEF_TRACE;
 
     return m_runtimeDependencies;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleDependencyNode::GatherRuntimeDependencyModules( TModuleInfoEntryPtrSet& dependencies   ,
+                                                       bool includeDependenciesOfDependencies ) const
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    TModuleDependencyNodePtrMap::const_iterator i = m_runtimeDependencies.begin();
+    while ( i != m_runtimeDependencies.end() )
+    {
+        const CModuleDependencyNodePtr& dependencyNode = (*i).second;
+        if GUCEF_PREDICT_TRUE( !dependencyNode.IsNULL() )
+        {
+            dependencies.insert( dependencyNode->GetModule() );
+            if ( includeDependenciesOfDependencies )
+            {
+                totalSuccess = dependencyNode->GatherRuntimeDependencyModules( dependencies, includeDependenciesOfDependencies ) && totalSuccess;
+            }
+        }
+        ++i;
+    }
+
+    return totalSuccess;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -7116,62 +7200,34 @@ CProjectInfo::GetModuleDependencies( const CModuleInfoEntryPtr& moduleInfoEntry 
                                      bool includeRuntimeDependencies            ) const
 {GUCEF_TRACE;
 
-    TStringSet deps;
-    GetModuleDependencies( moduleInfoEntry, targetPlatform, deps, includeRuntimeDependencies );     
-    
-    CORE::CString moduleName = moduleInfoEntry->GetConsensusName();
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GetModuleDependencies: For module " + moduleName + ": found \"" + CORE::ToString( deps.size() ) + "\" dependencies for platform " + targetPlatform );
-
-    TModuleInfoEntryPtrSet depsPtrs;    
-    bool foundAllDeps = true;
-    TStringSet::iterator m = deps.begin();
-    while ( m != deps.end() )
+    // In order for this functionality to work we need the dependency chains determined ahead of time
+    if ( m_moduleDependencyChains.empty() )
     {
-        const CModuleInfoEntryPtr dependency = GetModuleInfoEntry( (*m), targetPlatform );
-        if ( GUCEF_NULL != dependency )
-            depsPtrs.insert( dependency );
-        else
-        {
-            foundAllDeps = false; // We cannot satisfy the full dependency chain for the executable for the given platform
-            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GetModuleDependencies: For module " + moduleName + ": Found that for platform \"" + targetPlatform + "\" we cannot satisfy the full dependency chain because of dependency " + (*m) );
-        }
-        ++m;
-    }
-    
-    if ( includeDependenciesOfDependencies )
-    {
-        TModuleInfoEntryPtrSet depsOfdependencies;
-        TModuleInfoEntryPtrSet::iterator i = depsPtrs.begin();
-        while ( i != depsPtrs.end() )
-        {
-            const CModuleInfoEntryPtr entry = (*i);            
-            CORE::CString depModuleName = entry->GetConsensusName();
-
-            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GetModuleDependencies: For module " + moduleName + ": Recursively looking for dependencies of dependency \"" + depModuleName + "\" for platform " + targetPlatform );
-
-            foundAllDeps = foundAllDeps && GetModuleDependencies( entry, 
-                                                                  targetPlatform, 
-                                                                  depsOfdependencies, 
-                                                                  includeDependenciesOfDependencies, 
-                                                                  includeRuntimeDependencies ); 
-            ++i;
-        }
-        TModuleInfoEntryPtrSet::iterator n = depsOfdependencies.begin();
-        while ( n != depsOfdependencies.end() )
-        {
-            depsPtrs.insert( (*n) );
-            ++n;
-        }
+        // We are no longer supporting doing this without dependency chains, it just takes too long
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetModuleDependencies: Determine the dependency chains before using this functionality" );
+        return false;
     }
 
-    TModuleInfoEntryPtrSet::iterator i = depsPtrs.begin();
-    while ( i != depsPtrs.end() )
-    {
-        dependencies.insert( (*i) );
-        ++i;
-    }
+    const CORE::CString& moduleName = moduleInfoEntry->GetConsensusName();
 
-    return foundAllDeps;
+    CModuleDependencyNodePtr dependencyChain;
+    if ( TryGetModuleDependencyChain( dependencyChain  ,
+                                      moduleName       ,
+                                      targetPlatform   ,
+                                      true             ) && !dependencyChain.IsNULL() )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetModuleDependencies: Found dependency chain for module " + moduleName + " for platform " + targetPlatform );
+
+        bool totalSuccess = true;
+
+        totalSuccess = dependencyChain->GatherDependencyModules( dependencies, includeDependenciesOfDependencies ) && totalSuccess;
+        totalSuccess = dependencyChain->GatherLinkerDependencyModules( dependencies, includeDependenciesOfDependencies ) && totalSuccess;
+        if ( includeRuntimeDependencies )
+            totalSuccess = dependencyChain->GatherRuntimeDependencyModules( dependencies, includeDependenciesOfDependencies ) && totalSuccess;
+
+        return totalSuccess;
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
