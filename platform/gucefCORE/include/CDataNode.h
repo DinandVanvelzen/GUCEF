@@ -339,6 +339,9 @@ class GUCEF_CORE_PUBLIC_CPP CDataNode : public CIEnumerable
     TDataNodeSet FindNodesOfType( const CString& name  ,
                                   const bool recursive );
 
+    TConstDataNodeSet FindNodesOfType( const CString& name  ,
+                                       const bool recursive ) const;
+
     CDataNode* FindChild( const CString& name         ,
                           const CString& attribName   ,
                           const CVariant& attribValue );

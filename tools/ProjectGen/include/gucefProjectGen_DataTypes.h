@@ -197,6 +197,12 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CLinkerSettings : public CORE::CTSharedObjCrea
 
     /**
      *  Attempts to serialize the object to a DOM created out of DataNode objects
+     */
+    virtual bool Serialize( CORE::CDataNode& domRootNode                        ,
+                            const CORE::CDataNodeSerializableSettings& settings ) const;
+
+    /**
+     *  Attempts to serialize the object to a DOM created out of DataNode objects
      *
      *  @param domRootNode Node that acts as root of the DOM data tree from which to deserialize
      *  @return whether deserializing the object data from the given DOM was successful.

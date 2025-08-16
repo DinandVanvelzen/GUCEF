@@ -593,32 +593,12 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
             totalSuccess = moduleInfo->metadata.Serialize( *metaDataNode, defaultSettings ) && totalSuccess;
         }
     }
-    //if ( moduleInfo->metadata.HasSemVer() )
-    //{
-    //    moduleInfoNode.SetAttribute( "SemVer", moduleInfo->metadata.GetSemVer().ToString() );
-    //    moduleInfoNode.SetAttribute( "HasSemVer", true );
-    //}
 
     if ( moduleInfo->buildOrder != -1 )
     {
         moduleInfoNode.SetAttribute( "BuildOrder", moduleInfo->buildOrder );
     }
-    //if ( moduleInfo->buildChain != -1 )
-    //{
-    //    moduleInfoNode.SetAttribute( "BuildChain", CORE::Int32ToString( moduleInfo->buildChain ) );
-    //}
-    //if ( !moduleInfo->buildChainDependencies.empty() )
-    //{
-    //    TInt32Set::iterator n = moduleInfo->buildChainDependencies.begin();
-    //    CORE::CString buildChainDepsValue;
-    //    for ( UInt32 i=0; i+1 < moduleInfo->buildChainDependencies.size(); ++i )
-    //    {                     
-    //        buildChainDepsValue += (*n) + ';';
-    //        ++n;
-    //    }
-    //    buildChainDepsValue += (*n);
-    //    moduleInfoNode.SetAttribute( "BuildChainDeps", buildChainDepsValue );
-    //}
+
     if ( moduleInfo->moduleType != MODULETYPE_UNDEFINED )
     {
         moduleInfoNode.SetAttribute( "Type", ModuleTypeToString( moduleInfo->moduleType ) );
@@ -852,87 +832,8 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
         moduleInfoNode.AddChild( preprocessorNode );
     }
 
-    CORE::CDataNode linkerNode;
-    linkerNode.SetName( "Linker" );
-    bool addedLinkedSettings = false;
-
-    // Now Serialize all linker related info
-    // First add all the libraries that are linked but not part of the overall project
-    if ( moduleInfo->linkerSettings.GetLinkedLibraries().size() > 0 )
-    {
-        addedLinkedSettings = true;
-        TLinkedLibrarySettingsPtrMap::const_iterator m = moduleInfo->linkerSettings.GetLinkedLibraries().begin();
-        while ( m != moduleInfo->linkerSettings.GetLinkedLibraries().end() )
-        {
-            CORE::CDataNode libraryNode;
-            libraryNode.SetName( "Dependency" );
-            libraryNode.SetAttribute( "Name", (*m).first );
-
-            TModuleType linkedLibType = (*m).second->GetModuleType();
-            if ( ( MODULETYPE_UNDEFINED == linkedLibType ) ||
-                 ( MODULETYPE_UNKNOWN == linkedLibType )    )
-            {
-                libraryNode.SetAttribute( "Type", ModuleTypeToString( linkedLibType ) );
-            }
-            if ( !(*m).second->GetLibraryPath().IsNULLOrEmpty() )
-            {
-                libraryNode.SetAttribute( "Path", (*m).second->GetLibraryPath() );
-            }
-            linkerNode.AddChild( libraryNode );
-            ++m;
-        }
-
-        m = moduleInfo->linkerSettings.GetLinkedLogicalLibraries().begin();
-        while ( m != moduleInfo->linkerSettings.GetLinkedLogicalLibraries().end() )
-        {
-            CORE::CDataNode libraryNode;
-            libraryNode.SetName( "LogicalDependency" );
-            libraryNode.SetAttribute( "Name", (*m).first );
-
-            TModuleType linkedLibType = (*m).second->GetModuleType();
-            if ( ( MODULETYPE_UNDEFINED == linkedLibType ) ||
-                 ( MODULETYPE_UNKNOWN == linkedLibType )    )
-            {
-                libraryNode.SetAttribute( "Type", ModuleTypeToString( linkedLibType ) );
-            }
-            if ( !(*m).second->GetLibraryPath().IsNULLOrEmpty() )
-            {
-                libraryNode.SetAttribute( "Path", (*m).second->GetLibraryPath() );
-            }
-            linkerNode.AddChild( libraryNode );
-            ++m;
-        }
-    }
-    if ( !moduleInfo->linkerSettings.GetTargetName().IsNULLOrEmpty() )
-    {
-        addedLinkedSettings = true;
-        linkerNode.SetAttribute( "TargetName", moduleInfo->linkerSettings.GetTargetName() ); 
-    }
-
-    if ( !moduleInfo->linkerSettings.GetLibraryPaths().empty() )
-    {
-        CORE::CString libPaths;
-        TStringSet::const_iterator r = moduleInfo->linkerSettings.GetLibraryPaths().begin();
-        while ( r != moduleInfo->linkerSettings.GetLibraryPaths().end() )
-        {
-            if ( libPaths.IsNULLOrEmpty() )
-            {
-                libPaths = (*r);
-            }
-            else
-            {
-                libPaths += ';' + (*r);
-            }
-            ++r;
-        }
-        linkerNode.SetAttribute( "LibPaths", libPaths );
-        addedLinkedSettings = true;
-    }
-
-    if ( addedLinkedSettings )
-    {
-        moduleInfoNode.AddChild( linkerNode );
-    }
+    CORE::CDataNodeSerializableSettings defaultSettings;
+    moduleInfo->linkerSettings.Serialize( moduleInfoNode, defaultSettings );
 
     // Add all the info for this module to the overall project
     parentNode.AddChild( moduleInfoNode );
@@ -3295,6 +3196,98 @@ CLinkerSettings::MoveLinkedLibraryToLogicalLibraries( const CORE::CString& libra
        return true;
     }
     return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CLinkerSettings::Serialize( CORE::CDataNode& domRootNode                        ,
+                            const CORE::CDataNodeSerializableSettings& settings ) const
+{GUCEF_TRACE;
+
+    CORE::CDataNode linkerNode;
+    linkerNode.SetName( "Linker" );
+    bool addedLinkedSettings = false;
+
+    // Now Serialize all linker related info
+    // First add all the libraries that are linked but not part of the overall project
+    if ( m_linkedLibraries.size() > 0 )
+    {
+        addedLinkedSettings = true;
+        TLinkedLibrarySettingsPtrMap::const_iterator m = m_linkedLibraries.begin();
+        while ( m != m_linkedLibraries.end() )
+        {
+            CORE::CDataNode libraryNode;
+            libraryNode.SetName( "Dependency" );
+            libraryNode.SetAttribute( "Name", (*m).first );
+
+            TModuleType linkedLibType = (*m).second->GetModuleType();
+            if ( ( MODULETYPE_UNDEFINED != linkedLibType ) &&
+                 ( MODULETYPE_UNKNOWN != linkedLibType )    )
+            {
+                libraryNode.SetAttribute( "Type", ModuleTypeToString( linkedLibType ) );
+            }
+            if ( !(*m).second->GetLibraryPath().IsNULLOrEmpty() )
+            {
+                libraryNode.SetAttribute( "Path", (*m).second->GetLibraryPath() );
+            }
+            linkerNode.AddChild( libraryNode );
+            ++m;
+        }
+
+        m = m_linkedLogicalLibraries.begin();
+        while ( m != m_linkedLogicalLibraries.end() )
+        {
+            CORE::CDataNode libraryNode;
+            libraryNode.SetName( "LogicalDependency" );
+            libraryNode.SetAttribute( "Name", (*m).first );
+
+            TModuleType linkedLibType = (*m).second->GetModuleType();
+            if ( ( MODULETYPE_UNDEFINED != linkedLibType ) &&
+                 ( MODULETYPE_UNKNOWN != linkedLibType )    )
+            {
+                libraryNode.SetAttribute( "Type", ModuleTypeToString( linkedLibType ) );
+            }
+            if ( !(*m).second->GetLibraryPath().IsNULLOrEmpty() )
+            {
+                libraryNode.SetAttribute( "Path", (*m).second->GetLibraryPath() );
+            }
+            linkerNode.AddChild( libraryNode );
+            ++m;
+        }
+    }
+    if ( !m_targetName.IsNULLOrEmpty() )
+    {
+        addedLinkedSettings = true;
+        linkerNode.SetAttribute( "TargetName", m_targetName ); 
+    }
+
+    if ( !m_libPaths.empty() )
+    {
+        CORE::CString libPaths;
+        TStringSet::const_iterator r = m_libPaths.begin();
+        while ( r != m_libPaths.end() )
+        {
+            if ( libPaths.IsNULLOrEmpty() )
+            {
+                libPaths = (*r);
+            }
+            else
+            {
+                libPaths += ';' + (*r);
+            }
+            ++r;
+        }
+        linkerNode.SetAttribute( "LibPaths", libPaths );
+        addedLinkedSettings = true;
+    }
+
+    if ( addedLinkedSettings )
+    {
+        domRootNode.AddChild( linkerNode );
+    }
+
+    return true;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -8021,7 +8014,7 @@ CProjectInfo::DeserializeModuleEntries( const CORE::CDataNode& domRootNode      
                                         TModuleInfoEntryPtrVector& moduleInfoEntries        )
 {GUCEF_TRACE;
 
-    CORE::CDataNode::TConstDataNodeSet nodeSet = domRootNode.FindChildrenOfType( "ModuleInfoEntry", true );
+    CORE::CDataNode::TConstDataNodeSet nodeSet = domRootNode.FindNodesOfType( "ModuleInfoEntry", true );
     if ( nodeSet.empty() )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:DeserializeModuleEntries: No ModuleInfoEntry nodes were found in the document" );

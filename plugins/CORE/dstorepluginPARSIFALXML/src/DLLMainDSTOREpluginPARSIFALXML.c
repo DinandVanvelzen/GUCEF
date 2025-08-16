@@ -41,6 +41,11 @@
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
 
+#ifndef GUCEF_CORE_C_LOGGING_H
+#include "gucefCORE_c_logging.h"
+#define GUCEF_CORE_C_LOGGING_H
+#endif /* GUCEF_CORE_C_LOGGING_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CONSTANTS                                                          //
@@ -124,6 +129,22 @@ static TGucefCoreCApi g_libApi;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+static void
+LogParsifalError( LPXMLPARSER parser )
+{
+    char fullErrorString[ 256 ];
+
+    if ( GUCEF_NULL == parser )
+        return;
+
+    snprintf( fullErrorString, 256, "Parsifal Error %d at line %d column %d: %s", 
+        parser->ErrorCode, parser->ErrorLine, parser->ErrorColumn, (const char*) parser->ErrorString );
+                                                                  
+    GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, fullErrorString );    
+}
+
+/*---------------------------------------------------------------------------*/
+
 static int
 ParsifalReader( unsigned char* buf ,
                 int cbytes         ,
@@ -139,8 +160,9 @@ ParsifalReader( unsigned char* buf ,
 static void
 ParsifalError( struct tagXMLPARSER *parser )
 {
-        TSrcFileData* sd = (TSrcFileData*) parser->UserData;
-        (*sd->handlers.OnError)( sd->privdata, parser->ErrorCode, parser->ErrorString );
+    TSrcFileData* sd = (TSrcFileData*) parser->UserData;
+    LogParsifalError( sd->parser );
+    (*sd->handlers.OnError)( sd->privdata, parser->ErrorCode, parser->ErrorString );
 }
 
 /*---------------------------------------------------------------------------*/
@@ -959,13 +981,20 @@ DSTOREPLUG_Start_Reading( void** plugdata  ,
         TSrcFileData* sd = (TSrcFileData*) *filedata;
         if ( GUCEF_NULL != sd )
         {
+            /*
+             * Do the actual parsing with Parsifal
+             * Per docs:
+             *      0 failure (parser->ErrorCode was set)
+             *      1 success
+             */
             int result = XMLParser_Parse( sd->parser      ,
                                           &ParsifalReader ,
                                           sd->access      ,
                                           NULL            );
-            if ( XML_OK == result )
+            if ( 1 == result )
                 return 0; /* no errorcode == ok for our API */
 
+            LogParsifalError( sd->parser );
             return (UInt32) sd->parser->ErrorCode;
         }
     }

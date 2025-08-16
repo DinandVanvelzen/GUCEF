@@ -780,6 +780,21 @@ CDataNode::FindChildrenOfType( const CString& name      ,
 
 /*-------------------------------------------------------------------------*/
 
+CDataNode::TConstDataNodeSet
+CDataNode::FindNodesOfType( const CString& name  ,
+                            const bool recursive ) const
+{GUCEF_TRACE;
+
+    TConstDataNodeSet children = FindChildrenOfType( name, recursive );
+    if ( _name == name )
+    {
+        children.insert( this );            
+    }
+    return children;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CDataNode::TDataNodeSet
 CDataNode::FindNodesOfType( const CString& name  ,
                             const bool recursive )
