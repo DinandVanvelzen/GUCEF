@@ -572,13 +572,13 @@ const CModuleInfoPtr
 FindFirstModuleAccordingToBuildOrder( const TModuleInfoEntryPairVector& mergeLinks )
 {GUCEF_TRACE;
 
-    int actualLowestBuildOrderFound = GUCEFCORE_INT32MAX;
+    Int64 actualLowestBuildOrderFound = GUCEFCORE_INT32MAX;
     CModuleInfoPtr candidateModule;
 
     TModuleInfoEntryPairVector::const_iterator i = mergeLinks.begin();
     while ( i != mergeLinks.end() )
     {
-        int candidateBuildOrder = (*i).second->buildOrder;
+        Int64 candidateBuildOrder = (*i).second->buildOrder;
         if ( candidateBuildOrder < actualLowestBuildOrderFound )
         {
             candidateModule = (*i).second;
@@ -596,14 +596,14 @@ FindNextModuleAccordingToBuildOrder( const TModuleInfoEntryPairVector& mergeLink
                                      const CModuleInfoPtr& currentModule          )
 {GUCEF_TRACE;
 
-    int lowestAllowedModuleBuildOrder = currentModule->buildOrder+1;
-    int actualLowestBuildOrderFound = GUCEFCORE_INT32MAX;
+    Int64 lowestAllowedModuleBuildOrder = currentModule->buildOrder+1;
+    Int64 actualLowestBuildOrderFound = GUCEF_INT64MAX;
     CModuleInfoPtr candidateModule;
 
     TModuleInfoEntryPairVector::const_iterator i = mergeLinks.begin();
     while ( i != mergeLinks.end() )
     {
-        int candidateBuildOrder = (*i).second->buildOrder;
+        Int64 candidateBuildOrder = (*i).second->buildOrder;
         if ( candidateBuildOrder >= lowestAllowedModuleBuildOrder && 
              candidateBuildOrder < actualLowestBuildOrderFound     )
         {

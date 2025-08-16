@@ -479,7 +479,7 @@ IsStringInList( const TStringSet& list          ,
 CModuleInfoEntryPtr
 FindModuleAccordingToBuildOrderImp( CProjectInfo& projectInfo           ,
                                     const CORE::CString& targetPlatform ,
-                                    int buildOrderIndex                 )
+                                    Int64 buildOrderIndex               )
 {GUCEF_TRACE;
 
     TModuleInfoEntryPtrVector::iterator i = projectInfo.modules.begin();
@@ -528,7 +528,7 @@ FindFirstModuleAccordingToBuildOrder( CProjectInfo& projectInfo           ,
 
 /*-------------------------------------------------------------------------*/
 
-int
+Int64
 GetModuleBuildOrder( const CModuleInfoEntryPtr& moduleEntry ,
                      const CORE::CString& targetPlatform    )
 {
@@ -567,7 +567,7 @@ CModuleInfoEntryPtr
 FindNextModuleAccordingToBuildOrder( CProjectInfo& projectInfo               ,
                                      CModuleInfoEntryPtr& currentModuleEntry ,
                                      const CORE::CString& targetPlatform     ,
-                                     int desiredBuildOrder = -1              )
+                                     Int64 desiredBuildOrder = -1            )
 {GUCEF_TRACE;
 
     if ( desiredBuildOrder == -1 )
@@ -2006,7 +2006,7 @@ GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoEntry          
         if ( ( dependencyModule->moduleType == MODULETYPE_HEADER_INCLUDE_LOCATION ) ||
              ( dependencyModule->moduleType == MODULETYPE_BINARY_PACKAGE )           )
         {
-            moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platformName, true );
+            moduleInfo = moduleInfoEntry->FindOrCreateModuleInfoForPlatform( platformName, true );
 
             // Determine the relative path to this other module's root
             CORE::CString relativePath = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir       ,
@@ -2036,7 +2036,7 @@ GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoEntry          
             // to that end we will grab this module's definition for this platform or make a
             // new one if no entry exists yet
             if ( NULL == moduleInfo )
-                moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platformName, true );
+                moduleInfo = moduleInfoEntry->FindOrCreateModuleInfoForPlatform( platformName, true );
 
             // Determine the relative path to this other module and subsequently the include dirs
             CORE::CString relativePath = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir       ,
@@ -2206,7 +2206,7 @@ GenerateDependencyIncludes( CProjectInfo& projectInfo )
     TModuleInfoEntryPtrVector::iterator n = projectInfo.modules.begin();
     while ( n != projectInfo.modules.end() )
     {
-        CleanupIncludeDirs( (*n) );
+        (*n)->CleanupIncludeDirs();
         ++n;
     }
 }
@@ -2448,7 +2448,7 @@ FindSubDirsWithHeaders( const CProjectInfo& projectInfo                         
             }
             else
             {
-                CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platform, true );
+                CModuleInfoPtr moduleInfo = moduleInfoEntry->FindOrCreateModuleInfoForPlatform( platform, true );
                 moduleInfo->SetIncludeFiles( fileMap );
             }
         }
@@ -2556,7 +2556,7 @@ FindSubDirsWithSource( const CProjectInfo& projectInfo                          
             }
             else
             {
-                CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platform, true );
+                CModuleInfoPtr moduleInfo = moduleInfoEntry->FindOrCreateModuleInfoForPlatform( platform, true );
                 moduleInfo->SetSourceFiles( fileMap );
             }
         }
@@ -2616,7 +2616,7 @@ LegacyCMakeProcessProjectDir( const CProjectInfo& projectInfo      ,
     {
         // get a platform entry to use
         // this legacy system only supported AllPlatforms via CMake
-        CModuleInfo& moduleInfo = *moduleInfoEntry->FindModuleInfoForPlatform( AllPlatforms, true );
+        CModuleInfo& moduleInfo = *moduleInfoEntry->FindOrCreateModuleInfoForPlatform( AllPlatforms, true );
 
         // Set a project name based off the module sub-dir name
         // Best we can do unless we can get it from the suffix file later
@@ -2663,10 +2663,14 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
 
     if ( CORE::FileExists( pathToModuleInfoFile ) )
     {
+        // temp hack: we need to ensure that the project info is set as user data on the settings object
+        CORE::CDataNodeSerializableSettings settings;
+        settings.SetUserData( projectInfo.GetPointerAlways() );
+
         // load the ModuleInfoEntry entries from the file
         // typically there is only 1 but its possible to have more
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Processing ModuleInfo file " + pathToModuleInfoFile );
-        if ( DeserializeModuleInfo( *projectInfo.GetPointer(), *moduleInfoEntries.GetPointer(), pathToModuleInfoFile ) )
+        if ( projectInfo->DeserializeModuleEntries( pathToModuleInfoFile, settings, *moduleInfoEntries.GetPointer() ) )
         {
             // Do some extra processing which does not apply to the legacy cmake files...
 
@@ -2692,7 +2696,7 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
                             while ( i != moduleInfoEntries->end() )
                             {
                                 CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-                                moduleInfoEntry->metadata.license = detectedLicense;
+                                moduleInfoEntry->SetLicense( detectedLicense, AllPlatforms );
                                 ++i;
                             }
                         }
@@ -2726,7 +2730,7 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
                             while ( i != moduleInfoEntries->end() )
                             {
                                 CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-                                moduleInfoEntry->metadata.semver = detectedSemVer;
+                                moduleInfoEntry->SetSemVer( detectedSemVer, AllPlatforms );
                                 ++i;
                             }
                         }
@@ -2747,7 +2751,7 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
                 // module name set then we shall determine a default which is the based on the directory the
                 // project is in. Note that platform specific info can overwrite this of course but at least
                 // this gives us a default if they don't have a name specified either.
-                CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( AllPlatforms, false );
+                CModuleInfoPtr moduleInfo = moduleInfoEntry->FindOrCreateModuleInfoForPlatform( AllPlatforms, false );
                 if ( !moduleInfo.IsNULL() && moduleInfo->name.IsNULLOrEmpty() )
                 {
                     // Set a project name based off the module sub-dir name
@@ -2862,159 +2866,6 @@ LocateModuleDirsRecursively( const CProjectInfo& projectInfo                    
     }
 }
 
-/*---------------------------------------------------------------------------*/
-
-int
-GetModulePrio( TModuleInfoEntryPrioMap& prioMap    ,
-               const CORE::CString& moduleName     ,
-               const CORE::CString& targetPlatform )
-{GUCEF_TRACE;
-
-    TModuleInfoEntryPrioMap::iterator i = prioMap.begin();
-    while ( i != prioMap.end() )
-    {
-        CModuleInfoEntryPtr moduleInfoEntry = (*i).second;
-        const CORE::CString* currentModuleName = moduleInfoEntry->GetModuleName( targetPlatform );
-        if ( GUCEF_NULL != currentModuleName )
-        {
-            if ( *currentModuleName == moduleName )
-            {
-                return (*i).first;
-            }
-        }
-        ++i;
-    }
-    return -1;
-}
-
-/*---------------------------------------------------------------------------*/
-
-CORE::UInt32
-GetModuleDependencyCount( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                          const CORE::CString& targetPlatform        )
-{GUCEF_TRACE;
-
-    // Get dependencies which apply to all platforms
-    CORE::UInt32 dependencyCount = 0;
-    TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().find( AllPlatforms );
-    if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
-    {
-        dependencyCount = (CORE::UInt32) (*n).second->GetNamesOfDependencies().size();
-    }
-
-    // Get dependencies which are specific for the target platform
-    if ( targetPlatform != AllPlatforms )
-    {
-        n = moduleInfoEntry->GetModulesPerPlatform().find( targetPlatform );
-        if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
-        {
-            dependencyCount += (CORE::UInt32) (*n).second->GetNamesOfDependencies().size();
-        }
-    }
-    return dependencyCount;
-}
-
-/*---------------------------------------------------------------------------*/
-
-TModuleInfoEntryPtrVector
-GetModulesWithDependencyCountOf( TModuleInfoEntryPtrVector& modules  ,
-                                 CORE::UInt32 dependencyCount        ,
-                                 const CORE::CString& targetPlatform )
-{GUCEF_TRACE;
-
-    TModuleInfoEntryPtrVector resultSet;
-    TModuleInfoEntryPtrVector::iterator i = modules.begin();
-    while ( i != modules.end() )
-    {
-        CORE::UInt32 moduleDependencyCount = GetModuleDependencyCount( (*i), targetPlatform );
-        if ( moduleDependencyCount == dependencyCount )
-        {
-            resultSet.push_back( (*i) );
-        }
-        ++i;
-    }
-    return resultSet;
-}
-
-/*---------------------------------------------------------------------------*/
-
-CORE::UInt32
-GetHighestDependencyCount( TModuleInfoEntryPtrVector& modulesForAllPlatforms ,
-                           const CORE::CString& targetPlatform               )
-{GUCEF_TRACE;
-
-    CORE::UInt32 greatestDependencyCount = 0;
-    TModuleInfoEntryPtrVector::iterator i = modulesForAllPlatforms.begin();
-    while ( i != modulesForAllPlatforms.end() )
-    {
-        CORE::UInt32 dependencyCount = GetModuleDependencyCount( (*i), targetPlatform );
-        if ( dependencyCount > greatestDependencyCount )
-        {
-            greatestDependencyCount = dependencyCount;
-        }
-        ++i;
-    }
-    return greatestDependencyCount;
-}
-
-/*-------------------------------------------------------------------------*/
-
-TMutableModuleInfoEntryPairVector
-FindModulesWhichDependOnModuleForPlatform( CProjectInfo& projectInfo           ,
-                                           const CORE::CString& targetPlatform ,
-                                           const CORE::CString& dependencyName )
-{GUCEF_TRACE;
-
-    // Loop trough all modules and check if they depend on the given module
-    TMutableModuleInfoEntryPairVector resultList;
-    TModuleInfoEntryPtrVector::iterator i = projectInfo.modules.begin();
-    while ( i != projectInfo.modules.end() )
-    {
-        CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().find( targetPlatform );
-        if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
-        {
-            // This module has info for for this module, check its type
-            CModuleInfoPtr moduleInfo = (*n).second;
-            if ( IsStringInList( moduleInfo->GetNamesOfDependencies(), false, dependencyName ) )
-            {
-                TMutableModuleInfoEntryPair infoPair( moduleInfoEntry, moduleInfo );
-                resultList.push_back( infoPair );
-            }
-        }
-
-        ++i;
-    }
-
-    return resultList;
-}
-
-/*-------------------------------------------------------------------------*/
-
-TMutableModuleInfoEntryPairVector
-FindModulesWhichDependOnModule( CProjectInfo& projectInfo           ,
-                                const CORE::CString& dependencyName )
-{GUCEF_TRACE;
-
-    // Loop trough all platforms
-    TMutableModuleInfoEntryPairVector results;
-    TStringSet platforms = GetSupportedPlatforms( projectInfo );
-    platforms.insert( AllPlatforms );
-    TStringSet::const_iterator i = platforms.begin();
-    while ( i != platforms.end() )
-    {
-        TMutableModuleInfoEntryPairVector subSet = FindModulesWhichDependOnModuleForPlatform( projectInfo, (*i), dependencyName );
-        TMutableModuleInfoEntryPairVector::iterator n = subSet.begin();
-        while ( n != subSet.end() )
-        {
-            results.push_back( (*n) );
-            ++n;
-        }
-        ++i;
-    }
-    return results;
-}
-
 /*-------------------------------------------------------------------------*/
 
 void
@@ -3026,9 +2877,11 @@ MergeIntegrationLocationsIntoModuleForPlatform( CProjectInfo& projectInfo       
 {GUCEF_TRACE;
 
     // First find all the modules which depend on this integration location
-    TMutableModuleInfoEntryPairVector targetModules = FindModulesWhichDependOnModuleForPlatform( projectInfo               ,
-                                                                                                 targetPlatform            ,
-                                                                                                 moduleInfoToMergeIn->name );
+    TMutableModuleInfoEntryPairVector targetModules;
+    projectInfo.FindModulesWhichDependOnModuleForPlatform( targetModules             ,
+                                                           targetPlatform            ,
+                                                           moduleInfoToMergeIn->name ,
+                                                           false                     );
 
     // Now for each of these modules merge in the files
     TMutableModuleInfoEntryPairVector::iterator i = targetModules.begin();
@@ -3380,65 +3233,6 @@ MergeIntegrationLocationsIntoModule( CProjectInfo& projectInfo )
 
 /*-------------------------------------------------------------------------*/
 
-bool
-MergeBinaryPackageLinkerDepsIntoModule( CProjectInfo& projectInfo )
-{GUCEF_TRACE;
-
-    bool totalSuccess = true;
-
-    // Loop trough all modules and process each code as we go
-    TModuleInfoEntryPtrVector::iterator i = projectInfo.modules.begin();
-    while ( i != projectInfo.modules.end() )
-    {
-        CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().begin();
-        while ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
-        {
-            const CORE::CString& platformName = (*n).first;
-            CModuleInfoPtr moduleInfo = (*n).second;
-
-            if ( MODULETYPE_BINARY_PACKAGE == moduleInfo->moduleType )
-            {
-                // When we find a binary package we need to add its information to the modules that depend on it
-                // its not a module in the same sense as the other modules, its a way to designate a dependency
-                // We now resolved and integrate that dependency
-                CORE::CString moduleName = moduleInfoEntry->GetModuleNameAlways( (*n).first );
-                TMutableModuleInfoEntryPairVector links = FindModulesWhichDependOnModule( projectInfo, moduleName );
-                TMutableModuleInfoEntryPairVector::iterator m = links.begin();
-                while ( m != links.end() )
-                {
-                    CModuleInfoEntryPtr depModuleInfoEntry = (*m).first;
-                    CModuleInfoPtr depModuleInfo = (*m).second;
-
-                    if ( !depModuleInfo.IsNULL() )
-                    {
-                        // For this library replace the binary package reference with the information from said message
-                        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Replacing binary package reference \"" + moduleName +
-                            "\" for platform " + platformName + " with information from said package for module: " + depModuleInfoEntry->GetConsensusName() );
-
-                        depModuleInfo->linkerSettings.DeleteLinkedLibrary( moduleName );
-                        bool mergeSuccess = depModuleInfo->linkerSettings.Merge( moduleInfo->linkerSettings );
-                        if ( !mergeSuccess )
-                        {
-                            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Failed to merge binary package reference \"" + moduleName +
-                                "\" for platform " + platformName + " information into module: " + depModuleInfoEntry->GetConsensusName() );
-                        }
-                        totalSuccess = mergeSuccess && totalSuccess;
-                    }
-                    ++m;
-                }
-            }
-            ++n;
-        }
-
-        ++i;
-    }
-
-    return totalSuccess;
-}
-
-/*-------------------------------------------------------------------------*/
-
 void
 FlagTaggedModulesToIgnoreAsSpecified( CProjectInfo& projectInfo      ,
                                       const CORE::CValueList& params )
@@ -3601,8 +3395,8 @@ CDirCrawlingProjectInfoGatherer::GatherInfo( const TStringVector& rootDirs      
     // Merge headers and code from integration locations into modules
     MergeIntegrationLocationsIntoModule( *projectInfo.GetPointerAlways() );
 
-    // Merge linker dependencies from binary packages into modules
-    MergeBinaryPackageLinkerDepsIntoModule( *projectInfo.GetPointerAlways() );
+    // Merge info from binary packages into modules
+    projectInfo->MergeAllBinaryPackageInfoIntoModules();
 
     // In order to avoid bas 'all' platforms links we need to first sanitize the definitions we were given
     // Incorrect 'all' platforms definitions can mess up the feasibility of a dependency tree

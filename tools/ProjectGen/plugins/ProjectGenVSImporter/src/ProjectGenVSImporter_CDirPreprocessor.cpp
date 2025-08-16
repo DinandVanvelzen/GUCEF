@@ -66,6 +66,14 @@ namespace VSIMPORTER {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      GLOBAL VARS                                                        //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+static const CORE::CString AllPlatforms = "all";
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -561,7 +569,7 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
 
         CORE::CString moduleInfoFilePath = CORE::CombinePath( path, "ModuleInfo.xml" );
 
-        moduleEntry->metadata.lastEditBy = "ProjectGenVSImporter";
+        moduleEntry->SetLastEditBy( "ProjectGenVSImporter", AllPlatforms );
         PROJECTGEN::SerializeModuleInfo( moduleEntry, moduleInfoFilePath );
 
         ++i;

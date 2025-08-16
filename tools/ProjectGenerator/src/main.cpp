@@ -384,7 +384,7 @@ GUCEF_OSMAIN_BEGIN
     if ( useProjectInfoCache )
     {
         CORE::CString cachedInfoPath = CORE::CombinePath( CORE::RelativePath( outputDir ), "Project.xml" );
-        projectInfoLoadedFromCache = DeserializeProjectInfo( *projectInfo.GetPointerAlways(), cachedInfoPath );
+        projectInfoLoadedFromCache = projectInfo->Deserialize( cachedInfoPath );
     }
 
     if ( !projectInfoLoadedFromCache )

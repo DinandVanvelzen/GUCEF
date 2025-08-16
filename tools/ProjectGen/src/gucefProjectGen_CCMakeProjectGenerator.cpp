@@ -626,7 +626,7 @@ GenerateCMakeModuleIncludesSection( const CModuleInfoPtr& moduleInfo ,
             {
                 CORE::CString path = "../" + CORE::LastSubDir( rootDir );
                 path = path.ReplaceSubstr( " ", "\\ " );
-                allRelDependencyPathsSet.insert( path.Trim( true ).Trim( false ) );
+                allRelDependencyPathsSet.insert( path.ReplaceChar( '\\', '/' ).Trim( true ).Trim( false ) );
             }
         }
         ++n;
@@ -1072,11 +1072,11 @@ GenerateCMakeModuleVersionLine( const CModuleInfoEntryPtr& moduleInfoEntry ,
 
     CORE::CString sectionContent;
 
-    if ( !moduleInfoEntry->metadata.semver.IsAllZero() )
+    if ( moduleInfo->metadata.HasSemVer() )
     {
         GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating CMake module preprocessor defines for module " + moduleName + " and platform " + platformName );
 
-        CORE::CString semverStr = moduleInfoEntry->metadata.semver.ToString();
+        CORE::CString semverStr = moduleInfo->metadata.GetSemVer().ToString();
         CORE::CString sectionContent = ConvertEnvVarStrings( "set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION " + semverStr + " )\n" );
 
         TModuleType moduleType = GetModuleType( moduleInfoEntry, platformName );

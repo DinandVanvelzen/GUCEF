@@ -368,7 +368,8 @@ CreateArduinoCLILibraryPropertiesFiles( const CProjectInfo& projectInfo         
                     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Generating library.properties for module \"" + mergedModule->name + "\" at: " + libPropsPath );
 
                     CORE::CString content = "name=" + mergedModule->name + "\n";
-                                 content += "version=" + mergedModule->metadata.semver.ToString( true, true, false ) + "\n";
+                                 if ( mergedModule->metadata.HasSemVer() )
+                                    content += "version=" + mergedModule->metadata.GetSemVer().ToString( true, true, false ) + "\n";
                                  content += "author=" + CORE::StringSetToString( mergedModule->metadata.authors, CORE::CString::Empty, ',' ) + "\n";
                                  content += "maintainer=" + CORE::StringSetToString( mergedModule->metadata.maintainers, CORE::CString::Empty, ',' ) + "\n";
                                  content += "sentence=" + mergedModule->metadata.descriptionHeadline + "\n";

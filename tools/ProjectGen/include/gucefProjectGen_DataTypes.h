@@ -155,12 +155,17 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CLinkerSettings : public CORE::CTSharedObjCrea
 
     typedef typename CORE::CTSharedObjCreator< CLinkerSettings, MT::CMutex >::TBasicSharedPtrType  CLinkerSettingsPtr;
 
+    bool MergeLinkedLibraries( const CLinkerSettings& linkerSettingsToMergeIn ,
+                               bool onConflictOriginalInfoStays               );
+
     bool Merge( const CLinkerSettings& linkerSettingsToMergeIn ,
                 bool onConflictOriginalInfoStays = true        );
 
     void Clear( void );
 
     const TLinkedLibrarySettingsPtrMap& GetLinkedLibraries( void ) const;
+
+    const TLinkedLibrarySettingsPtrMap& GetLinkedLogicalLibraries( void ) const;
 
     bool HasLinkerDependency( const CORE::CString& dependencyName ) const;
 
@@ -174,6 +179,13 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CLinkerSettings : public CORE::CTSharedObjCrea
                               CLinkedLibrarySettingsPtr& linkedLibrary ) const;
 
     void DeleteLinkedLibrary( const CORE::CString& libraryName );
+
+    /**
+     *  A logically linked library only exists as a concept in this code its not a standard
+     *  concept. When a library is determined to be a logical name representing a concept to
+     *  be processed it can be moved to the collection of 'logical' linked libraries
+     */
+    bool MoveLinkedLibraryToLogicalLibraries( const CORE::CString& libraryName );
 
     const TStringSet& GetLibraryPaths( void ) const;
 
@@ -200,9 +212,10 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CLinkerSettings : public CORE::CTSharedObjCrea
 
     private:
 
-    TLinkedLibrarySettingsPtrMap m_linkedLibraries;    // list of all libraries the module links against
-    TStringSet m_libPaths;                             // list of hint paths where to look for libraries
-    CORE::CString m_targetName;                        // optional name for the linker target if desired from the module name
+    TLinkedLibrarySettingsPtrMap m_linkedLibraries;           // list of all libraries the module links against
+    TLinkedLibrarySettingsPtrMap m_linkedLogicalLibraries;    // list of all libraries the module links against
+    TStringSet m_libPaths;                                    // list of hint paths where to look for libraries
+    CORE::CString m_targetName;                               // optional name for the linker target if desired from the module name
 };
 
 typedef CLinkerSettings::CLinkerSettingsPtr  CLinkerSettingsPtr;
@@ -309,10 +322,9 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleMetaData : public CORE::CIDataNodeSeria
 
     static const CORE::CString ClassTypeName;
     
-    CORE::CString  lastEditBy;             // optional info listing who last updated the information
+    CORE::CString lastEditBy;             // optional info listing who last updated the information
     CORE::CString::StringSet authors;
     CORE::CString::StringSet maintainers;
-    CORE::CVersion semver;
     CORE::CString descriptionHeadline;
     CORE::CString descriptionDetails;
     CORE::CString license;
@@ -322,6 +334,14 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleMetaData : public CORE::CIDataNodeSeria
     CModuleMetaData( const CModuleMetaData& src );
 
     virtual ~CModuleMetaData() GUCEF_VIRTUAL_OVERRIDE;
+
+    void SetSemVer( const CORE::CVersion& semVer );
+
+    const CORE::CVersion& GetSemVer( void ) const;
+
+    bool HasSemVer( void ) const;
+
+    bool HasAnyMetaData( void ) const;
 
     void Clear( void );
 
@@ -348,6 +368,11 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleMetaData : public CORE::CIDataNodeSeria
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    private:
+
+    CORE::CVersion m_semver;
+    bool m_hasSemVer;
 };
 
 /*---------------------------------------------------------------------------*/
@@ -365,9 +390,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo : public CORE::CTSharedObjCreator<
     TStringSet dependencyIncludeDirs;            // include directories needed for the headers of the dependencies, paths only no files
     TStringSet runtimeDependencies;              // dependencies not relative for builds but desired to be easily accessible due to runtime dependency, typically plugins
 
-    int buildOrder;                              // order number of this module in the build dependency chain
-    int buildChain;                              // index of the build chain, different build chains can be build independently but may depend on other chains
-    TInt32Set buildChainDependencies;            // other build chains this build chain is dependent on, if any
+    Int64 buildOrder;                            // order number of this module in the build dependency chain
     bool considerSubDirs;                        // Whether only the dir with the ModuleInfo is to be considered or whether subdirs are recursively considered
     bool hasConsiderSubDirs;                     // Whether the considerSubDirs flag is based on an explicit setting or not
 
@@ -384,6 +407,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo : public CORE::CTSharedObjCreator<
     const CORE::CString& GetPlatformName( void ) const;
 
     void AddIncludeDir( const CORE::CString& pathToIncludeDir );
+
+    void AddIncludeDirs( const CORE::CStringSet& pathsToIncludeDirs );
 
     bool RemoveIncludeDir( const CORE::CString& pathToIncludeDir ,
                            bool mustBeEmpty                      );
@@ -430,11 +455,17 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo : public CORE::CTSharedObjCreator<
 
     void RemoveNameOfDependency( const CORE::CString& dependency );
 
+    bool HasDependencyWithName( const CORE::CString& dependency ) const;
+
     void MergeNamesOfDependencies( const TStringSet& dependenciesToMergeIn );
+
+    const TStringSet& GetNamesOfLogicalDependencies( void ) const;
 
     void AddNameOfRuntimeDependency( const CORE::CString& dependency );
 
     void RemoveNameOfRuntimeDependency( const CORE::CString& dependency );
+
+    void AddDependencyIncludeDirs( const CORE::CStringSet& pathsToIncludeDirs );
 
     /**
      *  Independent modules have relevance in their own right.
@@ -451,6 +482,13 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo : public CORE::CTSharedObjCreator<
 
     bool Merge( CModuleInfoPtr moduleInfoToMergeIn      ,
                 bool onConflictOriginalInfoStays = true );
+
+    /**
+     *  If during module information processing a given listed dependency is revealed to be
+     *  a logical module, an integration helper concept, this function can be used to move
+     *  the dependency to the list of 'logical' dependencies which have different meaning
+     */
+    bool MoveDependencyToLogicalDependencies( const CORE::CString& dependency );
     
     CModuleInfo( void );
     CModuleInfo( const CModuleInfo& src );
@@ -460,6 +498,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo : public CORE::CTSharedObjCreator<
 
     CORE::CString m_platformName;
     TStringSet m_namesOfDependencies;
+    TStringSet m_namesOfLogicalDependencies;
+
     TStringSetMap m_includeDirs;                   // include directories of this module's own headers
     TStringSetMap m_sourceDirs;                    // source directories of this module's own source
 
@@ -470,6 +510,7 @@ typedef CModuleInfo::CModuleInfoPtr CModuleInfoPtr;
 /*---------------------------------------------------------------------------*/
 
 typedef std::vector< CModuleInfoPtr > TModuleInfoPtrVector;
+typedef std::set< CModuleInfoPtr > TModuleInfoPtrSet;
 typedef std::map< CORE::CString, TModuleInfoPtrVector > TModuleInfoPtrVectorMap;
 typedef std::map< CORE::CString, CModuleInfoPtr > TModuleInfoPtrMap;
 
@@ -485,7 +526,6 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     static const CORE::CString ClassTypeName;
     
     CORE::CString  rootDir;                // the absolute path to the root of this module's directory tree
-    CModuleMetaData metadata;              // MetaData relating to the module
 
     CModuleInfoEntry( void );
 
@@ -494,6 +534,19 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     virtual ~CModuleInfoEntry() GUCEF_VIRTUAL_OVERRIDE;
 
     void Clear( void );
+
+    bool SetLicense( const CORE::CString& license  ,
+                     const CORE::CString& platform );
+
+    bool IsAnyLicenseDefined( void ) const;
+
+    bool SetSemVer( const CORE::CVersion& semver  ,
+                    const CORE::CString& platform );
+
+    bool HasAnySemVer( void ) const;
+
+    bool SetLastEditBy( const CORE::CString& lastEditBy ,
+                        const CORE::CString& platform   );
 
     /**
      *  The name to use in config files etc can't always be multiple names or defined
@@ -519,9 +572,20 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     void SetModuleInfo( CModuleInfoPtr moduleInfo     ,
                         const CORE::CString& platform );
 
-    const CModuleInfoPtr FindModuleInfoForPlatform( const CORE::CString& platform ) const;
+    const CModuleInfoPtr FindModuleInfoForPlatform( const CORE::CString& platform              ,
+                                                    bool considerAllPlatformAsFallback = false ) const;
 
-    CModuleInfoPtr FindModuleInfoForPlatform( const CORE::CString& platform, bool createNewIfNoneExists );
+    CModuleInfoPtr FindOrCreateModuleInfoForPlatform( const CORE::CString& platform ,
+                                                      bool createNewIfNoneExists    );
+
+    bool HasAnyModuleInfoWithModuleType( TModuleType moduleType ) const;
+
+    bool FindAllModuleInfoWithModuleType( TModuleType moduleType       ,
+                                          TModuleInfoPtrSet& foundInfo ) const;
+
+    CModuleInfoPtr FindModuleInfoWithModuleType( TModuleType moduleType                     ,
+                                                 const CORE::CString& platform              ,
+                                                 bool considerAllPlatformAsFallback = false ) const;
 
     const TModuleInfoPtrMap& GetModulesPerPlatform( void ) const;
 
@@ -635,6 +699,36 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
                               const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /**
+     *  Provides all the include folders and their contents for the given platform
+     *  By default will merge the dirs/files across the 'all' platform and the given platform to the extent applicable
+     */
+    void GetIncludeFilesForPlatform( const CORE::CString& platformName    ,
+                                     TStringSetMap& files                 ,
+                                     bool autoConsiderAllPlatforms = true ) const;
+
+    /**
+     *  Provides all the include folders for the given platform
+     *  By default will merge the dirs across the 'all' platform and the given platform to the extent applicable
+     */
+    void GetIncludeDirsForPlatform( const CORE::CString& platformName    ,
+                                    TStringSet& subDirPaths              ,
+                                    bool autoConsiderAllPlatforms = true ) const;
+
+    /**
+     *  Provides all the paths to include folders for the given platform using the given 'from' path
+     *  By default will merge the dirs across the 'all' platform and the given platform to the extent applicable
+     */
+    void GetPathsToIncludeDirsForPlatform( const CORE::CString& platformName    ,
+                                           const CORE::CString& otherFromPath   ,
+                                           TStringSet& pathsToSubDirPaths       ,
+                                           bool autoConsiderAllPlatforms = true ) const;
+
+    /**
+     *  Function to double check dependency includes vc include file paths etc to remove redundancies
+     */
+    void CleanupIncludeDirs( void );
+
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -709,17 +803,26 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedO
 
     const TModuleDependencyNodePtrMap& GetDependents( void ) const;
 
+    bool GatherDependentModules( TModuleInfoEntryPtrSet& dependents ,
+                                 bool includeDependentsOfDependents ) const;
+
     bool SetLinkerDependent( CModuleDependencyNodePtr dependent );
 
     void SetLinkerDependents( const TModuleDependencyNodePtrMap& dependents );
 
     const TModuleDependencyNodePtrMap& GetLinkerDependents( void ) const;
 
+    bool GatherLinkerDependentModules( TModuleInfoEntryPtrSet& dependents ,
+                                       bool includeDependentsOfDependents ) const;
+
     bool SetRuntimeDependent( CModuleDependencyNodePtr dependent );
 
     void SetRuntimeDependents( const TModuleDependencyNodePtrMap& dependents );
 
     const TModuleDependencyNodePtrMap& GetRuntimeDependents( void ) const;
+
+    bool GatherRuntimeDependentModules( TModuleInfoEntryPtrSet& dependents ,
+                                        bool includeDependentsOfDependents ) const;
 
     void SetTargetPlatform( const CORE::CString& targetPlatform );
 
@@ -787,9 +890,12 @@ typedef CORE::CTSharedPtr< TDirProcessingInstructionsMap, MT::CMutex >      TDir
 /*---------------------------------------------------------------------------*/
 
 class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator< CProjectInfo, MT::CMutex > ,
+                                                 public CORE::CIDataNodeSerializable ,
                                                  public MT::CILockable
 {
     public:
+
+    static const CORE::CString ClassTypeName;
 
     CORE::CString projectName;                               // Name of the overall project
     TStringVector rootDirs;                                  // Root dirs used to gather all project info
@@ -909,13 +1015,73 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
                                 TStringSet& dependencies                   ,
                                 bool includeRuntimeDependencies            ) const;
 
+    bool
+    FindModulesWhichDependOnModuleForPlatform( TMutableModuleInfoEntryPairVector& foundModules ,
+                                               const CORE::CString& targetPlatform             ,
+                                               const CORE::CString& dependencyName             ,
+                                               bool tryToUseDependencyChains                   ) const;
+
+    bool
+    FindModulesWhichDependOnModule( TMutableModuleInfoEntryPairVector& foundModules ,
+                                    const CORE::CString& dependencyName             ,
+                                    bool tryToUseDependencyChains                   ) const;
+
+    bool FindModulesWithModuleType( TModuleType moduleType               ,
+                                    TModuleInfoEntryPtrSet& foundModules ) const;
+
     void Clear( void );
+
+    bool AreDependencyChainsInitialized( void ) const;
+
+    /**
+     *  Binary packages which are taken as dependencies may have various properties that you need merged into the dependent module
+     *  The concept of a binary package is to represent that set of properties such that it can be simplistically referenced
+     *  The actual settings themselves remain centralized and easy to maintain while getting merged in as needed.
+     *  This function takes care of merging in any such dependencies not already merged in
+     */
+    bool MergeAllBinaryPackageInfoIntoModules( void );
+
+    bool MergeBinaryPackageInfoIntoModules( CModuleInfoEntryPtr binaryPackageModule );
+
+    /**
+     *  Attempts to serialize the object to a DOM created out of DataNode objects
+     */
+    virtual bool Serialize( CORE::CDataNode& domRootNode                        ,
+                            const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *  Attempts to serialize the object to a DOM created out of DataNode objects
+     *
+     *  @param domRootNode Node that acts as root of the DOM data tree from which to deserialize
+     *  @return whether deserializing the object data from the given DOM was successful.
+     */
+    virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
+                              const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
+
+
+    bool Deserialize( const CORE::CString& inputFilepath );
+
+    bool DeserializeModuleEntries( const CORE::CDataNode& domRootNode                  ,
+                                   const CORE::CDataNodeSerializableSettings& settings ,
+                                   size_t suggestedNrOfModules = 0                     );
+
+    static bool DeserializeModuleEntries( const CORE::CDataNode& domRootNode                  ,
+                                          const CORE::CDataNodeSerializableSettings& settings ,
+                                          TModuleInfoEntryPtrVector& moduleInfoEntries        );
+
+    static bool DeserializeModuleEntries( const CORE::CString& pathToModuleInfoFile           ,
+                                          const CORE::CDataNodeSerializableSettings& settings ,
+                                          TModuleInfoEntryPtrVector& moduleInfoEntries        );
     
     CProjectInfo( void );
     CProjectInfo( const CProjectInfo& src );
     virtual ~CProjectInfo() GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE {GUCEF_TRACE; return this; };
+
+    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
@@ -1168,12 +1334,6 @@ StringVectorToStringSet( const TStringVector& stringVector );
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
-void
-CleanupIncludeDirs( CModuleInfoEntryPtr& moduleInfoEntry );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
 SerializeModuleInfo( const CModuleInfoEntryPtr& moduleInfo ,
                      const CORE::CString& outputFilepath   );
@@ -1182,45 +1342,8 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleInfo ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
-DeserializeModuleInfo( const CProjectInfo& projectInfo ,  
-                       CModuleInfoEntryPtr& moduleInfo ,
-                       const CORE::CDataNode& rootNode );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-bool
-DeserializeModuleInfo( const CProjectInfo& projectInfo              ,
-                       TModuleInfoEntryPtrVector& moduleInfoEntries ,
-                       const CORE::CString& inputFilepath           );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-bool
-SerializeProjectInfo( const CProjectInfo& projectInfo ,
-                      CORE::CDataNode& rootNodeToBe   );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-bool
-DeserializeProjectInfo( CProjectInfo& projectInfo       ,
-                        const CORE::CDataNode& rootNode );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-bool
 SerializeProjectInfo( const CProjectInfo& projectInfo     ,
                       const CORE::CString& outputFilepath );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-bool
-DeserializeProjectInfo( CProjectInfo& projectInfo            ,
-                        const CORE::CString& projectInfoPath );
 
 /*-------------------------------------------------------------------------*/
 

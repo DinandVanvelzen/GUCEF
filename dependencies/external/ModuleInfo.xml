@@ -9,6 +9,15 @@
             <Dependency Name="dxguid" Type="SharedLibrary" />
         </Linker>
     </Module>
+    <Module Name="DirectInput8" Type="BinaryPackage" Platform="win64">
+        <Includes Source="Self" >
+            <Include Path="#$#ENVVAR:DXSDK_DIR#$#\Include" />
+        </Includes>
+        <Linker LibPaths="#$#ENVVAR:DXSDK_DIR#$#\Lib\x64" >
+            <Dependency Name="dinput8" Type="SharedLibrary" />
+            <Dependency Name="dxguid" Type="SharedLibrary" />
+        </Linker>
+    </Module>	
 </ModuleInfoEntry>
 <ModuleInfoEntry>
     <Module Name="Direct3D8" Type="BinaryPackage" Platform="win32">
