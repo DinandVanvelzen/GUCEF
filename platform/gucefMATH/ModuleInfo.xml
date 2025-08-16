@@ -1,17 +1,17 @@
 <ModuleInfoEntry>
-    <ModuleMetaData>
-        <License>APACHEv2</License>
-        <SemVer>0.1.0.0</SemVer>
-        <DescriptionHeadline>GUCEF module providing basic math classes</DescriptionHeadline>
-        <DescriptionDetails></DescriptionDetails>
-        <Authors>
-            <Author>Dinand Vanvelzen</Author>
-        </Authors>
-        <Maintainers>
-            <Maintainer>Dinand Vanvelzen</Maintainer>
-        </Maintainers>
-    </ModuleMetaData>
     <Module Name="gucefMATH" Type="SharedLibrary" Platform="All" Tags="platform">
+		<ModuleMetaData>
+			<License>APACHEv2</License>
+			<SemVer>0.1.0.0</SemVer>
+			<DescriptionHeadline>GUCEF module providing basic math classes</DescriptionHeadline>
+			<DescriptionDetails></DescriptionDetails>
+			<Authors>
+				<Author>Dinand Vanvelzen</Author>
+			</Authors>
+			<Maintainers>
+				<Maintainer>Dinand Vanvelzen</Maintainer>
+			</Maintainers>
+		</ModuleMetaData>
         <Dependencies>
             <Dependency Name="gucefHeaders" />
             <Dependency Name="gucefMT" />

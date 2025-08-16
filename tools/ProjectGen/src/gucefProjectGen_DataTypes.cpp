@@ -991,21 +991,7 @@ DeserializeModuleInfo( CModuleInfoPtr& moduleInfo        ,
     // Find the overall module properties
     tmpStr = moduleInfoNode->GetAttributeValue( "BuildOrder", "-1" );
     moduleInfo->buildOrder = CORE::StringToInt64( tmpStr );
-    //tmpStr = moduleInfoNode->GetAttributeValue( "BuildChain", "-1" );
-    //moduleInfo->buildChain = CORE::StringToInt32( tmpStr );
-    //tmpStr = moduleInfoNode->GetAttributeValue( "BuildChainDeps" );
-    //if ( !tmpStr.IsNULLOrEmpty() )
-    //{
-    //    TStringVector tmpStrVec = tmpStr.ParseElements( ';', false );
-    //    if ( tmpStrVec.empty() )
-    //    {
-    //        for ( UInt32 i=0; i<tmpStrVec.size(); ++i )
-    //        {
-    //            Int32 chainId = CORE::StringToInt32( tmpStrVec[ i ] );
-    //            moduleInfo->buildChainDependencies.insert( chainId );
-    //        }
-    //    }
-    //}
+
     moduleInfo->tags = StringVectorToStringSet( moduleInfoNode->GetAttributeValue( "Tags" ).AsString().ParseElements( ';', false ) );
     moduleInfo->moduleType = StringToModuleType( moduleInfoNode->GetAttributeValue( "Type" ) );
     
@@ -1290,25 +1276,6 @@ MergeModuleInfo( const CModuleInfoEntryPtr& moduleInfoEntry ,
             // definition for which a build order must be set
             return false;
         }
-        //else
-        //if ( !allPlatformsInfo.IsNULL() && allPlatformsInfo->buildOrder > -1 )
-        //{
-        //    // We only have the 'all' platform which is fine, we will just use that
-        //    mergedModuleInfo = CModuleInfo::CreateSharedObjWithParam( *allPlatformsInfo );
-        //    
-        //    MergeModuleMetaData( moduleInfoEntry, targetPlatform, mergedModuleInfo );
-        //    return true;
-        //}
-        //else
-        //if ( !targetPlatformInfo.IsNULL() && targetPlatformInfo->buildOrder > -1 )
-        //{
-        //    // We only have the target platform which is fine, we will just use that
-        //    // this module apparently is not available for all platforms even in altered form
-        //    mergedModuleInfo = CModuleInfo::CreateSharedObjWithParam( *targetPlatformInfo );
-        //    
-        //    MergeModuleMetaData( moduleInfoEntry, targetPlatform, mergedModuleInfo );
-        //    return true;
-        //}
     }
 
     // This module should not be used since it doesn't have platform specific info

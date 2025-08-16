@@ -1,18 +1,18 @@
 <ModuleInfoEntries>
 <ModuleInfoEntry>
-    <ModuleMetaData>
-        <License>APACHEv2</License>
-        <SemVer>0.1.0.0</SemVer>
-        <DescriptionHeadline>GUCEF module providing multithreading solutions</DescriptionHeadline>
-        <DescriptionDetails></DescriptionDetails>
-        <Authors>
-            <Author>Dinand Vanvelzen</Author>
-        </Authors>
-        <Maintainers>
-            <Maintainer>Dinand Vanvelzen</Maintainer>
-        </Maintainers>
-    </ModuleMetaData>
     <Module Name="gucefMT" Type="SharedLibrary" Platform="All" Tags="platform">
+		<ModuleMetaData>
+			<License>APACHEv2</License>
+			<SemVer>0.1.0.0</SemVer>
+			<DescriptionHeadline>GUCEF module providing multithreading solutions</DescriptionHeadline>
+			<DescriptionDetails></DescriptionDetails>
+			<Authors>
+				<Author>Dinand Vanvelzen</Author>
+			</Authors>
+			<Maintainers>
+				<Maintainer>Dinand Vanvelzen</Maintainer>
+			</Maintainers>
+		</ModuleMetaData>
         <Dependencies>
             <Dependency Name="gucefHeaders" />
         </Dependencies>
@@ -32,19 +32,19 @@
     </Module>
 </ModuleInfoEntry>
 <ModuleInfoEntry>
-    <ModuleMetaData>
-        <License>APACHEv2</License>
-        <SemVer>0.1.0.0</SemVer>
-        <DescriptionHeadline>GUCEF module providing multithreading solutions</DescriptionHeadline>
-        <DescriptionDetails></DescriptionDetails>
-        <Authors>
-            <Author>Dinand Vanvelzen</Author>
-        </Authors>
-        <Maintainers>
-            <Maintainer>Dinand Vanvelzen</Maintainer>
-        </Maintainers>
-    </ModuleMetaData>
     <Module Name="gucefMT_Integrated" Type="CodeIntegrateLocation" Platform="All">
+		<ModuleMetaData>
+			<License>APACHEv2</License>
+			<SemVer>0.1.0.0</SemVer>
+			<DescriptionHeadline>GUCEF module providing multithreading solutions</DescriptionHeadline>
+			<DescriptionDetails></DescriptionDetails>
+			<Authors>
+				<Author>Dinand Vanvelzen</Author>
+			</Authors>
+			<Maintainers>
+				<Maintainer>Dinand Vanvelzen</Maintainer>
+			</Maintainers>
+		</ModuleMetaData>
         <Dependencies>
             <Dependency Name="gucefHeaders" />
         </Dependencies>
