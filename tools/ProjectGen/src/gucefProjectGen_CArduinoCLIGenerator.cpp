@@ -383,6 +383,7 @@ CreateArduinoCLILibraryPropertiesFiles( const CProjectInfo& projectInfo         
                     projectInfo.GetModuleDependencies( originalModule      ,
                                                        ArduinoPlatformName ,
                                                        dependencies        ,
+                                                       false               ,
                                                        false               );                
                     content += "depends=" + CORE::StringSetToString( dependencies, CORE::CString::Empty, ',' ) + "\n";
                 
@@ -391,12 +392,12 @@ CreateArduinoCLILibraryPropertiesFiles( const CProjectInfo& projectInfo         
                                                       true         ,
                                                       GUCEF_EOL    ) )
                     {
-                        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Successfully created Arduino library.propertie file at " + libPropsPath );
+                        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Successfully created Arduino library.properties file at " + libPropsPath );
                     }
                     else
                     {
                         totalSuccess = false;
-                        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Failed to write Arduino library.propertie file at " + libPropsPath );
+                        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Failed to write Arduino library.properties file at " + libPropsPath );
                     }
                 }
                 else

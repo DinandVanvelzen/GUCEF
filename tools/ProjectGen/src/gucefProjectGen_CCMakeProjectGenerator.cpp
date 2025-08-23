@@ -258,7 +258,7 @@ GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntryPtr& moduleInfoEntr
         // Use the module type as the index to find a template.
         // We can make this more advanced later if needed but for now differentiating based on module
         // type provides enough flexibility since you can do the rest in CMake utility functions
-        CORE::CString moduleTypeSttr = ModuleTypeToString( GetModuleType( moduleInfoEntry, platformName ) ).Lowercase();
+        CORE::CString moduleTypeSttr = ModuleTypeToString( moduleInfoEntry->GetModuleType( platformName ) ).Lowercase();
         CORE::CStringMap::iterator i = cmakeAdditionTemplates.find( moduleTypeSttr );
         if ( i != cmakeAdditionTemplates.end() )
         {
@@ -837,7 +837,7 @@ GenerateCMakeModuleDependenciesLine( const CProjectInfo& projectInfo   ,
             const CModuleInfoEntryPtr dependencyModule = projectInfo.GetModuleInfoEntry( (*i), platformName );
             if ( !dependencyModule.IsNULL() )
             {
-                TModuleType moduleType = GetModuleType( dependencyModule, platformName );
+                TModuleType moduleType = dependencyModule->GetModuleType( platformName );
                 if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != moduleType )   &&
                      ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleType ) &&
                      ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleType )   &&
@@ -1002,7 +1002,7 @@ GenerateCMakeModuleLinkerLine( const CProjectInfo& projectInfo   ,
             const CModuleInfoEntryPtr dependencyModule = projectInfo.GetModuleInfoEntry( (*i).first, platformName );
             if ( !dependencyModule.IsNULL() )
             {
-                TModuleType moduleType = GetModuleType( dependencyModule, platformName );
+                TModuleType moduleType = dependencyModule->GetModuleType( platformName );
                 if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != moduleType )   &&
                      ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleType ) &&
                      ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleType )   &&
@@ -1079,7 +1079,7 @@ GenerateCMakeModuleVersionLine( const CModuleInfoEntryPtr& moduleInfoEntry ,
         CORE::CString semverStr = moduleInfo->metadata.GetSemVer().ToString();
         CORE::CString sectionContent = ConvertEnvVarStrings( "set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION " + semverStr + " )\n" );
 
-        TModuleType moduleType = GetModuleType( moduleInfoEntry, platformName );
+        TModuleType moduleType = moduleInfoEntry->GetModuleType( platformName );
         if ( MODULETYPE_SHARED_LIBRARY == moduleInfo->moduleType ||
              MODULETYPE_STATIC_LIBRARY == moduleInfo->moduleType )
         {
@@ -1404,7 +1404,7 @@ WriteCMakeListsFilesToDisk( const CProjectInfo& projectInfo  ,
     while ( i != projectInfo.modules.end() )
     {
         const CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleType allPlatformsType = GetModuleType( moduleInfoEntry, AllPlatforms );
+        TModuleType allPlatformsType = moduleInfoEntry->GetModuleType( AllPlatforms );
         if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != allPlatformsType )   &&
              ( MODULETYPE_HEADER_INTEGRATE_LOCATION != allPlatformsType ) &&
              ( MODULETYPE_CODE_INTEGRATE_LOCATION != allPlatformsType )   &&
@@ -1534,7 +1534,7 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
         {
             const CModuleInfoEntryPtr& moduleInfoEntry = (*i);
 
-            TModuleType moduleType = GetModuleType( moduleInfoEntry, targetPlatform );
+            TModuleType moduleType = moduleInfoEntry->GetModuleType( targetPlatform );
             if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != moduleType )   &&
                  ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleType ) &&
                  ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleType )   &&

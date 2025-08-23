@@ -344,7 +344,7 @@ if ( WIN32 )
   link_directories( $ENV{DXSDK_DIR}/Lib/x86 )
 endif( WIN32 )
 if ( WIN64 )
-  link_directories( $ENV{DXSDK_DIR}/Lib/x86 )
+  link_directories( $ENV{DXSDK_DIR}/Lib/x64 )
 endif( WIN64 )
 
 
@@ -420,7 +420,7 @@ if ( WIN32 )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( includes src/extras/LIRC )
+  include_directories( $ENV{DXSDK_DIR}\Include includes src/extras/LIRC )
 endif( WIN64 )
 
 

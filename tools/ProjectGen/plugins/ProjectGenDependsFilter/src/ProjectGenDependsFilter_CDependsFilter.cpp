@@ -238,7 +238,7 @@ CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
         // we will check using the target name if the module has one
         // Keep in mind that Depends would be using the target name.
         // If no target name is defines we use the module name
-        TModuleType moduleType = GetModuleType( (*i), "win32" );
+        TModuleType moduleType = (*i)->GetModuleType( "win32" );
         if ( moduleType == MODULETYPE_SHARED_LIBRARY    ||
              moduleType == MODULETYPE_EXECUTABLE        ||
              moduleType == MODULETYPE_REFERENCE_LIBRARY  )

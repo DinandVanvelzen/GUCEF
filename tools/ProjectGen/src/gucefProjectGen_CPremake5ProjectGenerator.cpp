@@ -251,7 +251,7 @@ GeneratePremake5TemplatedAdditionSection( const CModuleInfoEntryPtr& moduleInfoE
         // Use the module type as the index to find a template.
         // We can make this more advanced later if needed but for now differentiating based on module
         // type provides enough flexibility since you can do the rest in CMake utility functions
-        CORE::CString moduleTypeSttr = ModuleTypeToString( GetModuleType( moduleInfoEntry, platformName ) ).Lowercase();
+        CORE::CString moduleTypeSttr = ModuleTypeToString( moduleInfoEntry->GetModuleType( platformName ) ).Lowercase();
         CORE::CStringMap::iterator i = premake5AdditionTemplates.find( moduleTypeSttr );
         if ( i != premake5AdditionTemplates.end() )
         {
@@ -761,7 +761,7 @@ GeneratePremake5ModuleDependenciesLine( const CProjectInfo& projectInfo   ,
             const CModuleInfoEntryPtr dependencyModule = projectInfo.GetModuleInfoEntry( (*i), AllPlatforms );
             if ( !dependencyModule.IsNULL() )
             {
-                TModuleType moduleType = GetModuleType( dependencyModule, AllPlatforms );
+                TModuleType moduleType = dependencyModule->GetModuleType( AllPlatforms );
                 if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != moduleType )   &&
                      ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleType ) &&
                      ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleType )    )
@@ -1288,7 +1288,7 @@ WritePremake5ModuleFilesToDisk( const CProjectInfo& projectInfo       ,
     while ( i != projectInfo.modules.end() )
     {
         const CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleType allPlatformsType = GetModuleType( moduleInfoEntry, AllPlatforms );
+        TModuleType allPlatformsType = moduleInfoEntry->GetModuleType( AllPlatforms );
         if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != allPlatformsType )    &&
              ( MODULETYPE_HEADER_INTEGRATE_LOCATION != allPlatformsType )  &&
              ( MODULETYPE_CODE_INTEGRATE_LOCATION != allPlatformsType )    )

@@ -372,12 +372,7 @@ GUCEF_OSMAIN_BEGIN
     }
 
     ApplyConfigToProject( loadedConfig, *projectInfo.GetPointerAlways() );
-
-    // Set any global dir excludes that where passed as cmd parameters
-    projectInfo->globalDirExcludeList = keyValueList.GetValueAlways( "dirsToIgnore" ).AsString().ParseElements( ';', false );
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "There are " + CORE::ToString( projectInfo->globalDirExcludeList.size() ) + " dirs in the global dir ignore list" );
-
-    projectInfo->projectName = keyValueList.GetValueAlways( "projectName" );
+    projectInfo->SetSetttings( keyValueList );
 
     bool useProjectInfoCache = keyValueList.GetValueAlways( "useProjectInfoCache", false ).AsBool( false, true );
     bool projectInfoLoadedFromCache = false;
