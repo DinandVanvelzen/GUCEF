@@ -670,8 +670,10 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
      *  If a module is written as generic code, not hard dependent on a given platform(s)
      *  it should have a valid AllPlatforms definition with potentially platform definitions
      *  as extensions to said definition for a given platform.
+     *
+     *  @param onlyConsiderValidModulesTypes whether to check if the module type is not undefined if an entry does exist
      */
-    bool HasAllPlatformsDefinition( void ) const;
+    bool HasAllPlatformsDefinition( bool onlyConsiderValidModulesTypes = true ) const;
 
     /**
      *  Provides flag whether issues have been detected with the definition such that its considered 'broken'
@@ -1313,7 +1315,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
                                    TModuleDependencyNodePtrMap& nextLevelNodes            ,
                                    TModuleDependencyNodePtrMap& nextLevelNodesMissingDeps );
 
-    static void GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoEntry            ,
+    static bool GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoEntry            ,
                                                   const CModuleInfoEntryPtr dependencyModuleEntry ,
                                                   const CORE::CString& platformName               );
 

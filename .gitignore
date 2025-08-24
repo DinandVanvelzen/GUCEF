@@ -23,7 +23,6 @@ projects/k3s/metrics/statsite
 tools/Kaitai/kaitai-struct-compiler*.deb
 .vs/
 patch.diff
-Project.xml
 scripts/symlinks/gucefCOM_create_symlinks.bat
 scripts/symlinks/gucefCOMCORE_create_symlinks.bat
 scripts/symlinks/gucefCORE_create_symlinks.bat

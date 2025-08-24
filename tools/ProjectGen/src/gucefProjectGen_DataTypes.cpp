@@ -5090,7 +5090,7 @@ CModuleInfoEntry::HasOnlyLogicalModuleType( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CModuleInfoEntry::HasAllPlatformsDefinition( void ) const
+CModuleInfoEntry::HasAllPlatformsDefinition( bool onlyConsiderValidModulesTypes ) const
 {GUCEF_TRACE;
 
     // Check for the AllPlatforms definition
@@ -5099,7 +5099,7 @@ CModuleInfoEntry::HasAllPlatformsDefinition( void ) const
     {
         // Check if its not just a placeholder, it has to be valid
         const CModuleInfoPtr& allPlatformsDefinition = (*n).second;
-        if ( !allPlatformsDefinition.IsNULL() && allPlatformsDefinition->HasValidModuleType() )
+        if ( !allPlatformsDefinition.IsNULL() && ( !onlyConsiderValidModulesTypes || ( onlyConsiderValidModulesTypes && allPlatformsDefinition->HasValidModuleType() ) ) )
         {
             return true;
         }
@@ -9091,7 +9091,7 @@ CProjectInfo::GetModulesMappedByBuildOrderForTarget( const CORE::CString& consen
 
 /*---------------------------------------------------------------------------*/
 
-void
+bool
 CProjectInfo::GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoEntry            ,
                                                 const CModuleInfoEntryPtr dependencyModuleEntry ,
                                                 const CORE::CString& platformName               )
@@ -9188,6 +9188,8 @@ CProjectInfo::GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoE
             }
         }
     }
+
+    return true;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -9209,6 +9211,8 @@ CProjectInfo::GenerateModuleDependencyIncludesForPlatform( CModuleInfoEntryPtr& 
                                       platformName                        ,
                                       true                                ) && !dependencyChain.IsNULL() )
     {
+        bool totalSuccess = true;
+
         // First generate the dependency includes for the regular module includes to regular dependencies
         const TModuleDependencyNodePtrMap& dependencies = dependencyChain->GetDependencies();
         TModuleDependencyNodePtrMap::const_iterator i = dependencies.begin();
@@ -9218,9 +9222,20 @@ CProjectInfo::GenerateModuleDependencyIncludesForPlatform( CModuleInfoEntryPtr& 
             if GUCEF_PREDICT_TRUE( !dependencyChainNode.IsNULL() )
             {
                 const CModuleInfoEntryPtr& dependencyModuleEntry = dependencyChainNode->GetModule();
-                GenerateModuleDependencyIncludes( moduleInfoEntry       ,
-                                                  dependencyModuleEntry ,
-                                                  platformName          );
+                totalSuccess = GenerateModuleDependencyIncludes( moduleInfoEntry       ,
+                                                                 dependencyModuleEntry ,
+                                                                 platformName          ) && totalSuccess;
+
+                // If modules don't have any 'all' platform definitions but has dependencies which are for 'all' platforms
+                // we must merge into the current platform instead
+                if ( platformName != AllPlatforms                       &&
+                     !moduleInfoEntry->HasAllPlatformsDefinition()      &&
+                     dependencyModuleEntry->HasAllPlatformsDefinition() )
+                {
+                    totalSuccess = GenerateModuleDependencyIncludes( moduleInfoEntry       ,
+                                                                     dependencyModuleEntry ,
+                                                                     AllPlatforms          ) && totalSuccess;
+                }
             }
             ++i;
         }
@@ -9238,15 +9253,26 @@ CProjectInfo::GenerateModuleDependencyIncludesForPlatform( CModuleInfoEntryPtr& 
 
                 if ( MODULETYPE_HEADER_INCLUDE_LOCATION == moduleType )
                 {
-                    GenerateModuleDependencyIncludes( moduleInfoEntry       ,
-                                                      dependencyModuleEntry ,
-                                                      platformName          );
+                    totalSuccess = GenerateModuleDependencyIncludes( moduleInfoEntry       ,
+                                                                     dependencyModuleEntry ,
+                                                                     platformName          ) && totalSuccess;
+
+                    // If modules don't have any 'all' platform definitions but has dependencies which are for 'all' platforms
+                    // we must merge into the current platform instead
+                    if ( platformName != AllPlatforms                       &&
+                         !moduleInfoEntry->HasAllPlatformsDefinition()      &&
+                         dependencyModuleEntry->HasAllPlatformsDefinition() )
+                    {
+                        totalSuccess = GenerateModuleDependencyIncludes( moduleInfoEntry       ,
+                                                                         dependencyModuleEntry ,
+                                                                         AllPlatforms          ) && totalSuccess;
+                    }
                 }
             }
             ++i;
         }
 
-        return true;
+        return totalSuccess;
     }
     return false;
 }
