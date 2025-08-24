@@ -75,7 +75,7 @@ if ( WIN32 )
   link_directories( $ENV{DXSDK_DIR}/Lib/x86 )
 endif( WIN32 )
 if ( WIN64 )
-  link_directories( $ENV{DXSDK_DIR}/Lib/x86 )
+  link_directories( $ENV{DXSDK_DIR}/Lib/x64 )
 endif( WIN64 )
 
 

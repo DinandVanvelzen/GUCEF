@@ -285,60 +285,115 @@ GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntryPtr& moduleInfoEntr
 
 {GUCEF_TRACE;
 
-    CORE::CString sectionContent;
-    bool platformAdded = false;
-    bool allPlatformsSectionAdded = false;
-
-    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->GetModulesPerPlatform().begin();
-    while ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
+    // First generate the template addition sections per platform
+    CORE::CStringMap platformTemplateAdditions;
+    const TModuleInfoPtrMap& modulesPerPlatform = moduleInfoEntry->GetModulesPerPlatform();
+    TModuleInfoPtrMap::const_iterator i = modulesPerPlatform.begin();
+    while ( i != modulesPerPlatform.end() )
     {
         const CORE::CString& platformName = (*i).first;
-        if ( AllPlatforms != platformName )
+
+        CORE::CString templatedContent = GenerateCMakeTemplatedAdditionSection( moduleInfoEntry, platformName );
+        if ( !templatedContent.IsNULLOrEmpty() )
         {
-            if ( !platformAdded )
-            {
-                CORE::CString templatedContent = GenerateCMakeTemplatedAdditionSection( moduleInfoEntry, platformName );
-                if ( !templatedContent.IsNULLOrEmpty() )
-                {
-                    sectionContent += "\n\nif (" + platformName.Uppercase() + ")\n" + templatedContent;
-                    platformAdded = true;
-                }
-            }
-            else
-            {
-                CORE::CString templatedContent = GenerateCMakeTemplatedAdditionSection( moduleInfoEntry, platformName );
-                if ( !templatedContent.IsNULLOrEmpty() )
-                {
-                    sectionContent += "\nelseif (" + platformName.Uppercase() + ")\n" + templatedContent;
-                }
-            }
+            platformTemplateAdditions[ platformName ] = templatedContent;
         }
         ++i;
     }
 
-    i = moduleInfoEntry->GetModulesPerPlatform().find( AllPlatforms );
-    if ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
+    // Now we check if we can deduplicate based on an 'all' platforms version
+    // The module must have an 'all' platform definition
+    bool hasOtherPlatforms = false;
+    bool hasAllPlatformsSection = false;
+    CORE::CStringSet platformsToDelete;
+    CORE::CStringMap::iterator n = platformTemplateAdditions.find( AllPlatforms );
+    if ( n != platformTemplateAdditions.end() )
     {
-        CORE::CString templatedContent = GenerateCMakeTemplatedAdditionSection( moduleInfoEntry, AllPlatforms );
-        if ( !templatedContent.IsNULLOrEmpty() )
+        const CORE::CString& allPlatformsSection = (*n).second;
+        hasAllPlatformsSection = true;
+
+        CORE::CStringMap::iterator m = platformTemplateAdditions.begin();
+        while ( m != platformTemplateAdditions.end() )
         {
-            if ( platformAdded )
+            const CORE::CString& otherPlatform = (*m).first;
+            const CORE::CString& otherPlatformsSection = (*m).second;
+
+            if ( otherPlatform != AllPlatforms )
             {
-                sectionContent += "\nelse()\n" + templatedContent;
+                if ( otherPlatformsSection == allPlatformsSection )
+                {
+                    // Nothing new was produced for this platform, its a redundant entry when considering
+                    // the availability of an 'all' platforms section
+                    platformsToDelete.insert( otherPlatform );
+                }
+                else
+                {
+                    hasOtherPlatforms = true;
+                }
+            }
+
+            ++m;
+        }
+    }
+    CORE::CStringSet::iterator s = platformsToDelete.begin();
+    while ( s != platformsToDelete.end() )
+    {
+        platformTemplateAdditions.erase( (*s) );
+        ++s;
+    }
+
+    // Now format the if-else tree based on the unique platform sections
+    CORE::CString sectionContent;
+    bool firstOtherPlatform = true;
+    n = platformTemplateAdditions.begin();
+    while ( n != platformTemplateAdditions.end() )
+    {
+        const CORE::CString& platformName = (*n).first;
+        const CORE::CString& platformSection = (*n).second;
+
+        if ( AllPlatforms != platformName )
+        {
+            if ( firstOtherPlatform )
+            {
+                sectionContent += "\n\nif (" + platformName.Uppercase() + ")\n" + platformSection;
+                firstOtherPlatform = false;
             }
             else
             {
-                sectionContent = templatedContent;
+                sectionContent += "\nelseif (" + platformName.Uppercase() + ")\n" + platformSection;
             }
-            allPlatformsSectionAdded = true;
         }
+
+        ++n;
     }
 
-    if ( platformAdded )
+    // Close up the if-else tree (if any) with the all platforms definition (if any)
+    if ( hasOtherPlatforms && hasAllPlatformsSection )
+    {
+        n = platformTemplateAdditions.find( AllPlatforms );
+        if ( n != platformTemplateAdditions.end() )
+        {
+            const CORE::CString& allPlatformsSection = (*n).second;
+            sectionContent += "\nelse()\n" + allPlatformsSection + "\nendif()\n";
+        }
+    }
+    else
+    if ( hasOtherPlatforms )
     {
         sectionContent += "\nendif()\n";
     }
-    if ( platformAdded || allPlatformsSectionAdded )
+    else
+    if ( hasAllPlatformsSection )
+    {
+        n = platformTemplateAdditions.find( AllPlatforms );
+        if ( n != platformTemplateAdditions.end() )
+        {
+            const CORE::CString& allPlatformsSection = (*n).second;
+            sectionContent = allPlatformsSection;
+        }
+    }
+
+    if ( hasOtherPlatforms || hasAllPlatformsSection )
     {
         sectionContent = GenerateAutoGenertedTemplatedAdditionSeperator( false ) +
                          sectionContent                                          +
@@ -598,7 +653,7 @@ GenerateCMakeModuleIncludesSection( const CModuleInfoPtr& moduleInfo ,
     while ( i != includeDirs.end() )
     {
         // CMake needs spaces in paths to be escaped
-        CORE::CString path = (*i).ReplaceSubstr( " ", "\\ " );        
+        CORE::CString path = (*i).ReplaceChar( '\\', '/' ).ReplaceSubstr( " ", "\\ " );        
         allRelDependencyPathsSet.insert( ConvertEnvVarStrings( path ).Trim( true ).Trim( false ) );
         ++i;
     }
