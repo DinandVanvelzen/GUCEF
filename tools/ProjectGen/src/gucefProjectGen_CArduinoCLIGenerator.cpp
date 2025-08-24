@@ -257,7 +257,7 @@ CreateArduinoCLIWindowsSymlinkBatchfiles( const TModuleInfoEntryPairVector& merg
             CORE::CString& typeBasedOutputDir = MODULETYPE_EXECUTABLE != mergedModule->moduleType ? libraryOutputDir : appsOutputDir;
             CORE::CString typeBasedModuleOutputDir = CORE::RelativePath( CORE::CombinePath( typeBasedOutputDir, mergedModule->name ) );
 
-            CORE::CString content = GenerateContentForArduinoCLIWindowsSymlinkBatchfile( mergeLinks, mergedModule, originalModule->rootDir, addGeneratorCompileTimeToOutput, typeBasedModuleOutputDir );
+            CORE::CString content = GenerateContentForArduinoCLIWindowsSymlinkBatchfile( mergeLinks, mergedModule, originalModule->GetAbsolutePathToModuleRootDir(), addGeneratorCompileTimeToOutput, typeBasedModuleOutputDir );
 
             CORE::CString moduleSymlinksFilePath = CORE::CombinePath( scriptsOutputDir, mergedModule->name + "_create_symlinks.bat" );
 

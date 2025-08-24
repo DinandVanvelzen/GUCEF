@@ -45,6 +45,8 @@ namespace PROJECTGEN {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+class CProjectInfo;
+
 class GUCEF_PROJECTGEN_PUBLIC_CPP CIDirPreprocessor
 {
     public:
@@ -57,7 +59,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CIDirPreprocessor
 
     CIDirPreprocessor& operator=( const CIDirPreprocessor& src );
 
-    virtual bool ProccessDir( const CORE::CString& path ) = 0;
+    virtual bool ProccessDir( const CProjectInfo& projectInfo ,
+                              const CORE::CString& path       ) = 0;
 };
                       
 /*-------------------------------------------------------------------------//

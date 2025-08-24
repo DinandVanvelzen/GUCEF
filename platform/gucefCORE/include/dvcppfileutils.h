@@ -87,9 +87,7 @@ namespace CORE {
 
 /**
  *  Function which resolves an Operating System 'special' directory to a path
- *  The path is written into dest. The dest_size parameter should be the size the destination buffer can hold
- *  The function returns the number of bytes written to dest. If an error occurs 0 is returned.
- *  if dest is NULL then the function will return the number of bytes needed to store the path.
+ *  The path is written into resolvedPath. If an error occurs false is returned.
  */
 GUCEF_CORE_PUBLIC_CPP bool
 TryResolveSpecialDir( TSpecialDirs dir, CString& resolvedPath );

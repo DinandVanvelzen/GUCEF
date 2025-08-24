@@ -22,6 +22,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_DVCPPFILEUTILS_H
+#include "dvcppfileutils.h"
+#define GUCEF_CORE_DVCPPFILEUTILS_H
+#endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
+
 #ifndef GUCEF_CORE_CDSTORECODECPLUGINMANAGER_H
 #include "CDStoreCodecPluginManager.h"
 #define GUCEF_CORE_CDSTORECODECPLUGINMANAGER_H
@@ -748,7 +753,7 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
                 // subdir.
                 if ( 1 < moduleInfo->GetIncludeDirs().size() )
                 {
-                    CORE::CString includeDir = "../" + CORE::LastSubDir( moduleEntry->rootDir ) + " ";
+                    CORE::CString includeDir = "../" + CORE::LastSubDir( moduleEntry->GetAbsolutePathToModuleRootDir() ) + " ";
                     CORE::CDataNode includeNode;
                     includeNode.SetName( "Include" );
                     includeNode.SetAttribute( "Path", includeDir );
@@ -852,6 +857,7 @@ SerializeModuleInfo( const CModuleInfoEntryPtr& moduleEntry ,
     if ( GUCEF_NULL != node )
     {       
         CORE::CDataNodeSerializableSettings defaultSerializableSettings;
+        defaultSerializableSettings.levelOfDetail = CORE::CDataNodeSerializableSettings::DataNodeSerializableLod_AverageDetails;
         if ( moduleEntry->Serialize( *node, defaultSerializableSettings ) )
         {
             return true;
@@ -908,6 +914,7 @@ SerializeProjectInfo( const CProjectInfo& projectInfo     ,
     {
         CORE::CDataNode info;
         CORE::CDataNodeSerializableSettings defaultSettings;
+        defaultSettings.levelOfDetail = CORE::CDataNodeSerializableSettings::DataNodeSerializableLod_AverageDetails;
         if ( projectInfo.Serialize( info, defaultSettings ) )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Successfully generated a data tree with all project information" );
@@ -1605,7 +1612,7 @@ GetAllModuleInfoPaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
     {
         if ( includeModuleRootPath )
         {
-            allPaths.insert( moduleInfoEntry->rootDir );
+            allPaths.insert( moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
         }
         
         const TStringSetMap& includeDirs = (*i).second->GetIncludeDirs(); 
@@ -1615,7 +1622,7 @@ GetAllModuleInfoPaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
             const CORE::CString& includeDir = (*n).first;
             if ( includeModuleRootPath )
             {
-                CORE::CString path = CORE::CombinePath( moduleInfoEntry->rootDir, includeDir );
+                CORE::CString path = CORE::CombinePath( moduleInfoEntry->GetAbsolutePathToModuleRootDir(), includeDir );
                 path = CORE::RelativePath( path, true );
                 path = LocalizeDirSepCharForPlatform( path, platform );
                 allPaths.insert( path );
@@ -1637,7 +1644,7 @@ GetAllModuleInfoPaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
 
             if ( includeModuleRootPath )
             {
-                CORE::CString path = CORE::CombinePath( moduleInfoEntry->rootDir, sourceDir );
+                CORE::CString path = CORE::CombinePath( moduleInfoEntry->GetAbsolutePathToModuleRootDir(), sourceDir );
                 path = CORE::RelativePath( path, true );
                 path = LocalizeDirSepCharForPlatform( path, platform );
                 allPaths.insert( path );
@@ -1659,7 +1666,7 @@ GetAllModuleInfoPaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
             {
                 if ( includeModuleRootPath )
                 {
-                    CORE::CString path = CORE::CombinePath( moduleInfoEntry->rootDir, (*m) );
+                    CORE::CString path = CORE::CombinePath( moduleInfoEntry->GetAbsolutePathToModuleRootDir(), (*m) );
                     path = CORE::RelativePath( path, true );
                     path = LocalizeDirSepCharForPlatform( path, platform );
                     allPaths.insert( path );
@@ -1709,7 +1716,7 @@ GetAllModuleInfoFilePaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
                 CORE::CString path = CORE::CombinePath( includeDir, (*m) );
                 if ( includeModuleRootPath )
                 {
-                    path = CORE::CombinePath( moduleInfoEntry->rootDir, path );
+                    path = CORE::CombinePath( moduleInfoEntry->GetAbsolutePathToModuleRootDir(), path );
                 }
 
                 path = CORE::RelativePath( path, true );
@@ -1733,7 +1740,7 @@ GetAllModuleInfoFilePaths( const CModuleInfoEntryPtr& moduleInfoEntry ,
                 CORE::CString path = CORE::CombinePath( sourceDir, (*m) );
                 if ( includeModuleRootPath )
                 {
-                    path = CORE::CombinePath( moduleInfoEntry->rootDir, path );
+                    path = CORE::CombinePath( moduleInfoEntry->GetAbsolutePathToModuleRootDir(), path );
                 }
 
                 path = CORE::RelativePath( path, true );
@@ -1787,7 +1794,7 @@ GetShortestRelativePathFromModuleToProjectRoot( const CProjectInfo& projectInfo 
                                                 const CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
-    return GetShortestRelativePathFromAbsPathToProjectRoot( projectInfo, moduleInfoEntry->rootDir );
+    return GetShortestRelativePathFromAbsPathToProjectRoot( projectInfo, moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
 }
 
 /*---------------------------------------------------------------------------*/
@@ -4352,11 +4359,13 @@ const CORE::CString CModuleInfoEntry::ClassTypeName = "GUCEF::PROJECTGEN::CModul
 CModuleInfoEntry::CModuleInfoEntry( void ) 
     : CORE::CIDataNodeSerializable()
     , CORE::CTSharedObjCreator< CModuleInfoEntry, MT::CMutex >( this )
-    , rootDir()
     , m_consensusName()
     , m_modulesPerPlatform()
     , m_flattenedInfoPerPlatform()
     , m_isBroken( false )
+    , m_absRootDir()
+    , m_projRelRootDir()
+    , m_definitionFileLastModifiedDt( CORE::CDateTime::PastMax )
 {GUCEF_TRACE;
 
 }
@@ -4366,11 +4375,13 @@ CModuleInfoEntry::CModuleInfoEntry( void )
 CModuleInfoEntry::CModuleInfoEntry( const CModuleInfoEntry& src ) 
     : CORE::CIDataNodeSerializable( src )
     , CORE::CTSharedObjCreator< CModuleInfoEntry, MT::CMutex >( this )
-    , rootDir( src.rootDir )
     , m_consensusName( src.m_consensusName )
     , m_modulesPerPlatform( src.m_modulesPerPlatform )
     , m_flattenedInfoPerPlatform( src.m_flattenedInfoPerPlatform )
     , m_isBroken( src.m_isBroken )
+    , m_absRootDir( src.m_absRootDir )
+    , m_projRelRootDir( src.m_projRelRootDir )
+    , m_definitionFileLastModifiedDt( src.m_definitionFileLastModifiedDt )
 {GUCEF_TRACE;
 
 }
@@ -4388,14 +4399,14 @@ CModuleInfoEntry::~CModuleInfoEntry()
 void
 CModuleInfoEntry::Clear( void ) 
 {GUCEF_TRACE;
-    
-    rootDir.Clear();
 
     m_consensusName.Clear();
     m_modulesPerPlatform.clear();
     m_flattenedInfoPerPlatform.clear();
-
     m_isBroken = false;
+    m_absRootDir.Clear();
+    m_projRelRootDir.Clear();
+    m_definitionFileLastModifiedDt = CORE::CDateTime::PastMax;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -4458,7 +4469,7 @@ CModuleInfoEntry::GetConsensusName( CModuleInfoPtr* moduleInfo ,
         // Given that we have no module definitions for ANY platform and yet have a higher level concept of it...
         // We promised we would always return a module name. The only thing we have at this point is the directory path
         // As such we will assume the dir is named after the module it houses as our last ditch guess
-        return m_consensusName = CORE::LastSubDir( rootDir );
+        return m_consensusName = CORE::LastSubDir( GetAbsolutePathToModuleRootDir() );
     }
 
     // Now that we have the popularity count of each name get the highest count
@@ -4577,9 +4588,12 @@ CModuleInfoEntry::operator=( const CModuleInfoEntry& src )
 
     if ( &src != this )
     {
+        m_isBroken = src.m_isBroken;
         m_modulesPerPlatform = src.m_modulesPerPlatform;
-        rootDir = src.rootDir;
-
+        m_flattenedInfoPerPlatform = src.m_flattenedInfoPerPlatform;
+        m_absRootDir = src.m_absRootDir;
+        m_projRelRootDir = src.m_projRelRootDir;
+        m_definitionFileLastModifiedDt = src.m_definitionFileLastModifiedDt;
         m_consensusName = src.m_consensusName;
     }
     return *this;
@@ -4593,8 +4607,21 @@ CModuleInfoEntry::Serialize( CORE::CDataNode& domRootNode                       
 {GUCEF_TRACE;
 
     bool totalSuccess = true;
-    
-    domRootNode.SetAttribute( "RootDir", rootDir );
+
+    if ( CORE::CDataNodeSerializableSettings::DataNodeSerializableLod_MaximumDetails <= settings.levelOfDetail &&
+         !m_absRootDir.IsNULLOrEmpty()                                                                          )
+    {
+        domRootNode.SetAttribute( "AbsRootDir", m_absRootDir.ReplaceChar( '\\', '/' ) );
+    }
+    if ( !m_projRelRootDir.IsNULLOrEmpty() )
+    {
+        domRootNode.SetAttribute( "ProjRelRootDir", m_projRelRootDir.ReplaceChar( '\\', '/' ) );
+    }
+
+    if ( m_definitionFileLastModifiedDt != CORE::CDateTime::PastMax )
+    {
+        domRootNode.SetAttribute( "DefFileLastModified", m_definitionFileLastModifiedDt.ToIso8601DateTimeString( true, true ) );    
+    }
 
     TModuleInfoPtrMap::const_iterator i = m_modulesPerPlatform.begin();
     while ( i != m_modulesPerPlatform.end() )
@@ -5252,10 +5279,9 @@ CModuleInfoEntry::Deserialize( const CORE::CDataNode& domRootNode               
                                const CORE::CDataNodeSerializableSettings& settings )
 {GUCEF_TRACE;
 
-    if ( rootDir.IsNULLOrEmpty() )
-    {
-        rootDir = domRootNode.GetAttributeValue( "RootDir" );
-    }
+    m_absRootDir = domRootNode.GetAttributeValue( "AbsRootDir", m_absRootDir ).AsString( m_absRootDir, true );
+    m_projRelRootDir = domRootNode.GetAttributeValue( "ProjRelRootDir", m_projRelRootDir ).AsString( m_projRelRootDir, true );
+    m_definitionFileLastModifiedDt = domRootNode.GetAttributeValue( "DefFileLastModified", m_definitionFileLastModifiedDt ).AsDateTime( m_definitionFileLastModifiedDt, true );    
 
     const CORE::CDataNode::TConstDataNodeSet moduleInfoNodes = domRootNode.FindChildrenOfType( "Module" );
     if ( moduleInfoNodes.size() == 0 ) 
@@ -5342,11 +5368,17 @@ CModuleInfoEntry::Merge( const CModuleInfoEntryPtr& infoToMergeIn ,
 
     bool totalSuccess = true;
 
-    if ( rootDir.IsNULLOrEmpty() )
-        rootDir = infoToMergeIn->rootDir;
+    if ( m_absRootDir.IsNULLOrEmpty() )
+        m_absRootDir = infoToMergeIn->m_absRootDir;
     else
-    if ( !onConflictOriginalInfoStays && !infoToMergeIn->rootDir.IsNULLOrEmpty() )
-        rootDir = infoToMergeIn->rootDir;
+    if ( !onConflictOriginalInfoStays && !infoToMergeIn->m_absRootDir.IsNULLOrEmpty() )
+        m_absRootDir = infoToMergeIn->m_absRootDir;
+
+    if ( m_projRelRootDir.IsNULLOrEmpty() )
+        m_projRelRootDir = infoToMergeIn->m_projRelRootDir;
+    else
+    if ( !onConflictOriginalInfoStays && !infoToMergeIn->m_projRelRootDir.IsNULLOrEmpty() )
+        m_projRelRootDir = infoToMergeIn->m_projRelRootDir;
 
     TModuleInfoPtrMap::const_iterator i = infoToMergeIn->m_modulesPerPlatform.begin();
     while ( i != infoToMergeIn->m_modulesPerPlatform.end() )
@@ -5455,7 +5487,7 @@ CModuleInfoEntry::GetPathsToIncludeDirsForPlatform( const CORE::CString& platfor
 
         if ( !CORE::IsAbsolutePath( subPath ) && 0 != subPath.HasSubstr( "#$#ENVVAR:", true ) )
         {
-            CORE::CString fullLocalPath = CORE::CombinePath( rootDir, subPath );
+            CORE::CString fullLocalPath = CORE::CombinePath( m_absRootDir, subPath );
             CORE::CString relativePath = CORE::GetRelativePathToOtherPathRoot( otherFromPath, fullLocalPath, true ); 
             pathsToSubDirPaths.insert( relativePath );
         }
@@ -5522,6 +5554,60 @@ CModuleInfoEntry::CleanupIncludeDirs( void )
                 
         ++i;
     }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CModuleInfoEntry::SetAbsolutePathToModuleRootDir( const CORE::CString& absPathToRootDir )
+{GUCEF_TRACE;
+
+    m_absRootDir = absPathToRootDir;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CString&
+CModuleInfoEntry::GetAbsolutePathToModuleRootDir( void ) const
+{GUCEF_TRACE;
+
+    return m_absRootDir;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CModuleInfoEntry::SetProjectRelativePathToModuleRootDir( const CORE::CString& relPathToRootDir )
+{GUCEF_TRACE;
+
+    m_projRelRootDir = relPathToRootDir;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CString&
+CModuleInfoEntry::GetProjectRelativePathToModuleRootDir( void ) const
+{GUCEF_TRACE;
+
+    return m_projRelRootDir;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CModuleInfoEntry::SetDefinitionFileLastModifiedDt( const CORE::CDateTime& fileLastModifiedDt )
+{GUCEF_TRACE;
+
+    m_definitionFileLastModifiedDt = fileLastModifiedDt;
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CDateTime&
+CModuleInfoEntry::GetDefinitionFileLastModifiedDt( void ) const
+{GUCEF_TRACE;
+
+    return m_definitionFileLastModifiedDt;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -8458,7 +8544,7 @@ CProjectInfo::MergeBinaryPackageInfoIntoModules( CModuleInfoEntryPtr binaryPacka
                     {
                         // we also need to merge in any include paths for any headers provided with the binary                    
                         TStringSet binaryPackagePlatformIncludeDirs;
-                        binaryPackageModule->GetPathsToIncludeDirsForPlatform( targetPlatform, depModuleInfoEntry->rootDir, binaryPackagePlatformIncludeDirs, false );
+                        binaryPackageModule->GetPathsToIncludeDirsForPlatform( targetPlatform, depModuleInfoEntry->GetAbsolutePathToModuleRootDir(), binaryPackagePlatformIncludeDirs, false );
                         depModuleInfo->AddDependencyIncludeDirs( binaryPackagePlatformIncludeDirs );
                         depModuleInfo->MoveDependencyToLogicalDependencies( moduleName );
 
@@ -8467,7 +8553,7 @@ CProjectInfo::MergeBinaryPackageInfoIntoModules( CModuleInfoEntryPtr binaryPacka
                             // Unlikely but if there are any 'all' platforms headers for a binary package put them on the 'all' platforms definition of the dependent
                             // module if there is one
                             TStringSet binaryPackageIncludeDirs;
-                            binaryPackageModule->GetPathsToIncludeDirsForPlatform( AllPlatforms, depModuleInfoEntry->rootDir, binaryPackageIncludeDirs, false );
+                            binaryPackageModule->GetPathsToIncludeDirsForPlatform( AllPlatforms, depModuleInfoEntry->GetAbsolutePathToModuleRootDir(), binaryPackageIncludeDirs, false );
                             if ( !binaryPackageIncludeDirs.empty() )
                             {
                                 if ( targetPlatformOfDependent == AllPlatforms )
@@ -8677,6 +8763,8 @@ CProjectInfo::DeserializeModuleEntries( const CORE::CString& pathToModuleInfoFil
     CORE::CDStoreCodecRegistry::TDStoreCodecPtr codec = GetXmlDStoreCodec();
     if ( !codec.IsNULL() )
     {
+        CORE::CDateTime lastModifiedDt = CORE::GetFileModificationTime( pathToModuleInfoFile );
+
         CORE::CDataNode rootNode;
         if ( codec->BuildDataTree( &rootNode, pathToModuleInfoFile ) )
         {
@@ -8684,7 +8772,17 @@ CProjectInfo::DeserializeModuleEntries( const CORE::CString& pathToModuleInfoFil
 
             if ( DeserializeModuleEntries( rootNode, settings, moduleInfoEntries ) )
             {
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:DeserializeModuleEntries: Successfully deserialized information from file \"" + pathToModuleInfoFile + "\"" );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:DeserializeModuleEntries: Successfully deserialized information from file \"" + pathToModuleInfoFile + "\". File was last modified " + CORE::ToString( lastModifiedDt ) );
+
+                TModuleInfoEntryPtrVector::iterator i = moduleInfoEntries.begin();
+                while ( i != moduleInfoEntries.end() )
+                {
+                    CModuleInfoEntryPtr& module = (*i);
+                    if GUCEF_PREDICT_TRUE( !module.IsNULL() )
+                        module->SetDefinitionFileLastModifiedDt( lastModifiedDt );
+                    ++i;
+                }
+
                 return true;
             }
             else
@@ -8776,6 +8874,8 @@ CProjectInfo::Deserialize( const CORE::CString& inputFilepath )
             if ( Deserialize( rootNode, defaultSerializableSettings ) )
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "DeserializeModuleInfo: Successfully deserialized information from file \"" + inputFilepath + "\"" );
+
+                DeriveAbsModuleRootSubSirsFromProjRelDirs();
                 return true;
             }
             else
@@ -8792,6 +8892,44 @@ CProjectInfo::Deserialize( const CORE::CString& inputFilepath )
     }
     GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DeserializeModuleInfo: Cannot deserialize since no codec is registered that can be used for deserialization" );
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProjectInfo::DeriveAbsModuleRootSubSirsFromProjRelDirs( void )
+{GUCEF_TRACE;
+
+    TModuleInfoEntryPtrVector::iterator i = modules.begin();
+    while ( i != modules.end() )
+    {
+        CModuleInfoEntryPtr& moduleEntry = (*i);
+        if GUCEF_PREDICT_TRUE( !moduleEntry.IsNULL() )
+        {
+            if ( moduleEntry->GetAbsolutePathToModuleRootDir().IsNULLOrEmpty()         &&
+                 !moduleEntry->GetProjectRelativePathToModuleRootDir().IsNULLOrEmpty() )
+            {
+                // We will derive the absolute path from the project root and the project relative path for the given module
+                TStringVector::const_iterator n = rootDirs.begin();
+                while ( n != rootDirs.end() )
+                {
+                    CORE::CString projectRootDir = (*n);
+                    CORE::CString absPath = CORE::CombinePath( projectRootDir, moduleEntry->GetProjectRelativePathToModuleRootDir().ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR ) );
+                    CORE::CString testAbsPath = CORE::CombinePath( absPath, "ModuleInfo.xml" );
+
+                    if ( CORE::FileExists( testAbsPath ) )
+                    {
+                        moduleEntry->SetAbsolutePathToModuleRootDir( absPath );
+                        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:DeriveAbsModuleRootSubSirsFromProjRelDirs: Derived abs module path \"" + absPath +
+                            "\" from project root relative path \"" + moduleEntry->GetProjectRelativePathToModuleRootDir() + "\" for module " + moduleEntry->GetConsensusName() );
+                        break;
+                    }
+                    ++n;
+                }
+            }
+        }
+        ++i;
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -8963,7 +9101,7 @@ CProjectInfo::GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoE
     TModuleInfoPtrMap::const_iterator n = dependencyModuleEntry->GetModulesPerPlatform().find( platformName );
     if ( n != dependencyModuleEntry->GetModulesPerPlatform().end() )
     {
-        // this dependency has module info which is specfic to this platform
+        // this dependency has module info which is specific to this platform
         const CModuleInfoPtr& dependencyModule = (*n).second;
 
         CModuleInfoPtr moduleInfo;
@@ -8978,14 +9116,15 @@ CProjectInfo::GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoE
             moduleInfo = moduleInfoEntry->FindOrCreateModuleInfoForPlatform( platformName, true );
 
             // Determine the relative path to this other module's root
-            CORE::CString relativePath = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir       ,
-                                                                               dependencyModuleEntry->rootDir );
+            CORE::CString relativePath = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->GetAbsolutePathToModuleRootDir()       ,
+                                                                               dependencyModuleEntry->GetAbsolutePathToModuleRootDir() );
             
             // Check for an edge case where both modules are in the same directory
             // In this case we still want an entry to the directory even through the relative path between the 2 roots is empty
-            if ( relativePath.IsNULLOrEmpty() || moduleInfoEntry->rootDir == dependencyModuleEntry->rootDir )
+            if ( relativePath.IsNULLOrEmpty() ||
+                 moduleInfoEntry->GetAbsolutePathToModuleRootDir() == dependencyModuleEntry->GetAbsolutePathToModuleRootDir() )
             {
-                relativePath = "../" + CORE::LastSubDir( moduleInfoEntry->rootDir );
+                relativePath = "../" + CORE::LastSubDir( moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
             }
             else
             {
@@ -9008,8 +9147,8 @@ CProjectInfo::GenerateModuleDependencyIncludes( CModuleInfoEntryPtr& moduleInfoE
                 moduleInfo = moduleInfoEntry->FindOrCreateModuleInfoForPlatform( platformName, true );
 
             // Determine the relative path to this other module and subsequently the include dirs
-            CORE::CString relativePath = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir       ,
-                                                                               dependencyModuleEntry->rootDir );
+            CORE::CString relativePath = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->GetAbsolutePathToModuleRootDir()       ,
+                                                                               dependencyModuleEntry->GetAbsolutePathToModuleRootDir() );
             relativePath = relativePath.ReplaceChar( '\\', '/' );
 
             TStringSetMap::const_iterator n = headerFiles.begin();
@@ -9191,8 +9330,8 @@ CProjectInfo::MergeIntegrationLocationsIntoModuleForPlatform( const CORE::CStrin
         CModuleInfoPtr moduleInfo = (*i).second;
 
         // Determine the relative path to this other module
-        CORE::CString pathToCodeLocation = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir ,
-                                                                                 codeIncludeRoot         );
+        CORE::CString pathToCodeLocation = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->GetAbsolutePathToModuleRootDir() ,
+                                                                                 codeIncludeRoot                                   );
 
         // merge in the content for header integration locations as well as code integration locations
         TStringSetMap::const_iterator n;
@@ -9254,8 +9393,8 @@ CProjectInfo::MergeIntegrationLocationsIntoModuleForAllPlatformsPlatform( const 
         CModuleInfoEntryPtr moduleInfoEntry = (*i);
 
         // Determine the relative path to this other module
-        CORE::CString pathToCodeLocation = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir ,
-                                                                                 codeIncludeRoot         );
+        CORE::CString pathToCodeLocation = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->GetAbsolutePathToModuleRootDir() ,
+                                                                                 codeIncludeRoot                                   );
 
         TModuleInfoPtrMap::const_iterator m = moduleInfoEntry->GetModulesPerPlatform().find( AllPlatforms );
         if ( m != moduleInfoEntry->GetModulesPerPlatform().end() )
@@ -9383,8 +9522,8 @@ CProjectInfo::MergeIntegrationLocationsIntoModuleForAllPlatformsPlatform( void )
             {
                 // We found a code include location, now process it for all modules which proclaim to have a dependency on it
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Processing integration location labeled as \"" + moduleInfo->name + "\" for platform " + AllPlatforms );
-                MergeIntegrationLocationsIntoModuleForAllPlatformsPlatform( moduleInfo               ,
-                                                                            moduleInfoEntry->rootDir );
+                MergeIntegrationLocationsIntoModuleForAllPlatformsPlatform( moduleInfo                                        ,
+                                                                            moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
             }
         }
 
@@ -9403,6 +9542,10 @@ CProjectInfo::MergeIntegrationLocationsIntoModuleForPlatform( const CORE::CStrin
     while ( i != modules.end() )
     {
         CModuleInfoEntryPtr& moduleInfoEntry = (*i);
+
+if ( moduleInfoEntry->GetConsensusName() == "MyGUI.FontViewer" )
+ int assadas =0;
+
         TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().find( targetPlatform );
         if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
@@ -9413,10 +9556,10 @@ CProjectInfo::MergeIntegrationLocationsIntoModuleForPlatform( const CORE::CStrin
             {
                 // We found a code include location, now process it for all modules which proclaim to have a dependency on it
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Processing integration location labeled as \"" + moduleInfo->name + "\" for platform " + targetPlatform );
-                MergeIntegrationLocationsIntoModuleForPlatform( targetPlatform           ,
-                                                                moduleInfo               ,
-                                                                moduleInfoEntry->rootDir ,
-                                                                moduleInfo->moduleType   );
+                MergeIntegrationLocationsIntoModuleForPlatform( targetPlatform                                    ,
+                                                                moduleInfo                                        ,
+                                                                moduleInfoEntry->GetAbsolutePathToModuleRootDir() ,
+                                                                moduleInfo->moduleType                            );
             }
         }
 
@@ -9507,6 +9650,47 @@ CProjectInfo::SetSetttings( const CORE::CValueList& settings )
 
     m_disabledPlatforms = m_settings.GetValueAlways( "disabledPlatforms" ).AsString().ParseUniqueElements( ';', false );
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:SetSetttings: There are " + CORE::ToString( m_disabledPlatforms.size() ) + " ignored platforms: " + CORE::ToString( m_disabledPlatforms ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProjectInfo::SetRootDirs( const TStringVector& newRootDirs )
+{GUCEF_TRACE;
+
+    rootDirs = newRootDirs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProjectInfo::SetRootDir( const CORE::CString& rootDir )
+{GUCEF_TRACE;
+
+    rootDirs.clear();
+    rootDirs.push_back( rootDir );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CProjectInfo::GetRelativePathFromProjectSubDirToProjectRootDir( const CORE::CString& projectSubDir ) const
+{GUCEF_TRACE;
+
+    // We can have multiple root dirs for the overall project so we need to find the right one
+    // The right one is the one where the given subdir is a subdir of said project root
+    TStringVector::const_iterator i = rootDirs.begin();
+    while ( i != rootDirs.end() )
+    {
+        const CORE::CString& projectRoot = (*i);
+        if ( projectSubDir.StartsWith( projectRoot ) )
+        {
+            // this is the root we need
+            return CORE::GetRelativePathToOtherPathRoot( projectRoot, projectSubDir, true );
+        }
+        ++i;
+    }
+    return CORE::CString(); 
 }
 
 /*-------------------------------------------------------------------------*/

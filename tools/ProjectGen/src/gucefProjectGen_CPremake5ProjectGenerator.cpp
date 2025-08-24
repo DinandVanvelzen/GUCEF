@@ -648,7 +648,7 @@ GeneratePremake5ModuleIncludesSection( const CModuleInfoEntryPtr& moduleInfoEntr
     if ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
     {
         sectionContent += "\nconfiguration( {} )\n";
-        sectionContent += GeneratePremake5ModuleIncludesSection( (*i).second, moduleInfoEntry->rootDir );
+        sectionContent += GeneratePremake5ModuleIncludesSection( (*i).second, moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
     }
 
     // Now add the include paths which are platform specific
@@ -658,7 +658,7 @@ GeneratePremake5ModuleIncludesSection( const CModuleInfoEntryPtr& moduleInfoEntr
         const CORE::CString& platformName = (*i).first;
         if ( platformName != AllPlatforms )
         {
-            CORE::CString platformSection = GeneratePremake5ModuleIncludesSection( (*i).second, moduleInfoEntry->rootDir );
+            CORE::CString platformSection = GeneratePremake5ModuleIncludesSection( (*i).second, moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
             if ( platformSection.Length() > 0 )
             {
                 sectionContent += "\nconfiguration( { \"" + platformName.Uppercase() + "\" } )\n" + platformSection;
@@ -1116,7 +1116,7 @@ GeneratePremake5ModuleInfoSection( const CProjectInfo& projectInfo            ,
         }
         else
         {
-            CORE::CString pathToOutputDir = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir, premakeOutputDir );
+            CORE::CString pathToOutputDir = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->GetAbsolutePathToModuleRootDir(), premakeOutputDir );
             pathToOutputDir = pathToOutputDir.ReplaceChar( '\\', '/' );
             sectionContent += "\nconfiguration( {} )\n  location( \"" + pathToOutputDir + "\" )\n";
         }
@@ -1134,7 +1134,7 @@ GeneratePremake5ModuleInfoSection( const CProjectInfo& projectInfo            ,
         }
         else
         {
-            CORE::CString pathToOutputDir = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->rootDir, premakeTargetDir );
+            CORE::CString pathToOutputDir = CORE::GetRelativePathToOtherPathRoot( moduleInfoEntry->GetAbsolutePathToModuleRootDir(), premakeTargetDir );
             sectionContent += "\nconfiguration( {} )\n  targetdir( \"" + pathToOutputDir + "\" )\n";
         }
     }
@@ -1299,16 +1299,16 @@ WritePremake5ModuleFilesToDisk( const CProjectInfo& projectInfo       ,
                 fileContent += "\n-- Generator logfile can be found at: " + logFilename;
             }
 
-            CORE::CString pathToPremake5ModuleFile = moduleInfoEntry->rootDir;
+            CORE::CString pathToPremake5ModuleFile = moduleInfoEntry->GetAbsolutePathToModuleRootDir();
             CORE::AppendToPath( pathToPremake5ModuleFile, "premake5.lua" );
 
             if ( CORE::WriteStringAsTextFile( pathToPremake5ModuleFile, fileContent ) )
             {
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created premake5.lua file for project dir: " + moduleInfoEntry->rootDir );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created premake5.lua file for project dir: " + moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
             }
             else
             {
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to write premake5.lua file content to disk at path " + moduleInfoEntry->rootDir );
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to write premake5.lua file content to disk at path " + moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
             }
         }
         else
@@ -1390,7 +1390,7 @@ GeneratePremake5ProjectFileContent( const CProjectInfo& projectInfo             
             const CModuleInfoEntryPtr& moduleInfo = (*n);
             if ( HasIndependentModuleType( moduleInfo->GetModulesPerPlatform() ) )
             {
-                CORE::CString pathToModuleDir = CORE::GetRelativePathToOtherPathRoot( outputDir, moduleInfo->rootDir );
+                CORE::CString pathToModuleDir = CORE::GetRelativePathToOtherPathRoot( outputDir, moduleInfo->GetAbsolutePathToModuleRootDir() );
 
                 if ( 0 == pathToModuleDir.HasSubstr( "ENVVAR:", true ) )
                 {

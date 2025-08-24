@@ -756,7 +756,7 @@ GenerateCMakeModuleIncludesSection( const CModuleInfoEntryPtr& moduleInfoEntry )
     if ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
     {
         sectionContent += "\n";
-        sectionContent += GenerateCMakeModuleIncludesSection( (*i).second, moduleInfoEntry->rootDir );
+        sectionContent += GenerateCMakeModuleIncludesSection( (*i).second, moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
     }
 
     // Now add the include paths which are platform specific
@@ -766,7 +766,7 @@ GenerateCMakeModuleIncludesSection( const CModuleInfoEntryPtr& moduleInfoEntry )
         const CORE::CString& platformName = (*i).first;
         if ( platformName != AllPlatforms )
         {
-            CORE::CString platformSection = GenerateCMakeModuleIncludesSection( (*i).second, moduleInfoEntry->rootDir );
+            CORE::CString platformSection = GenerateCMakeModuleIncludesSection( (*i).second, moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
             if ( platformSection.Length() > 0 )
             {
                 sectionContent += "\nif ( "+ platformName.Uppercase() + " )\n  ";
@@ -810,7 +810,7 @@ LoadLegacyCMakeListsSuffixFileFromDisk( const CModuleInfoEntryPtr& moduleInfoEnt
     // Archives should be updated to the new way of working which is not CMake
     // specific
 
-    CORE::CString suffixFilePath = moduleInfoEntry->rootDir;
+    CORE::CString suffixFilePath = moduleInfoEntry->GetAbsolutePathToModuleRootDir();
     CORE::AppendToPath( suffixFilePath, "CMakeListsSuffix.txt" );
 
     CORE::CString fileContent;
@@ -824,7 +824,7 @@ CORE::CString
 LoadCMakeListsAdditionFileFromDisk( const CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
-    CORE::CString additionFilePath = moduleInfoEntry->rootDir;
+    CORE::CString additionFilePath = moduleInfoEntry->GetAbsolutePathToModuleRootDir();
     CORE::AppendToPath( additionFilePath, "CMakeListsAddition.txt" );
 
     CORE::CString fileContent;
@@ -1475,16 +1475,16 @@ WriteCMakeListsFilesToDisk( const CProjectInfo& projectInfo  ,
                 fileContent += "\n# Generator logfile can be found at: " + logFilename;
             }
 
-            CORE::CString pathToCMakeListsFile = moduleInfoEntry->rootDir;
+            CORE::CString pathToCMakeListsFile = moduleInfoEntry->GetAbsolutePathToModuleRootDir();
             CORE::AppendToPath( pathToCMakeListsFile, "CMakeLists.txt" );
 
             if ( CORE::WriteStringAsTextFile( pathToCMakeListsFile, fileContent, true, "\n", true ) )
             {
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created CMakeLists.txt file for project dir: " + moduleInfoEntry->rootDir );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created CMakeLists.txt file for project dir: " + moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
             }
             else
             {
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to write CMakeLists.txt file content to disk at path " + moduleInfoEntry->rootDir );
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to write CMakeLists.txt file content to disk at path " + moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
             }
         }
         else
@@ -1600,14 +1600,14 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
                  ( MODULETYPE_BINARY_PACKAGE != moduleType )            &&
                  ( MODULETYPE_UNDEFINED != moduleType )                  )
             {
-                CORE::CString pathToModuleDir = CORE::GetRelativePathToOtherPathRoot( targetOutputDir, moduleInfoEntry->rootDir );
+                CORE::CString pathToModuleDir = CORE::GetRelativePathToOtherPathRoot( targetOutputDir, moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
                     
                 // Check to see if the target output files will be a sub-dir of the module.
                 // If not we have to also specify a binary output as per CMake rules to avoid an error like this:
                 //     "add_subdirectory not given a binary directory but the given source directory "<dir name>" is not
                 //      a subdirectory of "<dir name 2>".
                 //      When specifying an out-of-tree source a binary directory must be explicitly specified."
-                if ( targetOutputDir.HasSubstr( moduleInfoEntry->rootDir, true ) == 0 )
+                if ( targetOutputDir.HasSubstr( moduleInfoEntry->GetAbsolutePathToModuleRootDir(), true ) == 0 )
                 {
                     // The target dir is a sub-dir of the module so no need to specify a binary dir
                     pathToModuleDir = pathToModuleDir.ReplaceChar( '\\', '/' );

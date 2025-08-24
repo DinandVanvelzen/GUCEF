@@ -69,11 +69,12 @@ class GUCEF_HIDDEN CDirPreprocessor : public PROJECTGEN::CIDirPreprocessor
     
     CDirPreprocessor( const CDirPreprocessor& src );
     
-    virtual ~CDirPreprocessor();
+    virtual ~CDirPreprocessor() GUCEF_VIRTUAL_OVERRIDE;
     
     CDirPreprocessor& operator=( const CDirPreprocessor& src );
     
-    virtual bool ProccessDir( const CORE::CString& path );
+    virtual bool ProccessDir( const CProjectInfo& projectInfo ,
+                              const CORE::CString& path       ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
@@ -83,7 +84,8 @@ class GUCEF_HIDDEN CDirPreprocessor : public PROJECTGEN::CIDirPreprocessor
 
     bool FindProjectFiles( const CORE::CString& path, TStringList& list );
 
-    bool ProccessProjectFiles( const CORE::CString& path             ,
+    bool ProccessProjectFiles( const CProjectInfo& projectInfo       ,
+                               const CORE::CString& path             ,
                                TStringList& list                     ,
                                const CORE::CString& buildConfigToUse );
 
@@ -118,13 +120,3 @@ class GUCEF_HIDDEN CDirPreprocessor : public PROJECTGEN::CIDirPreprocessor
 
 #endif /* PROJECTGENVSIMPORTER_CDIRPROCESSOR_H ? */
 
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 06-06-2014 :
-        - Dinand: Initial implementation
-
----------------------------------------------------------------------------*/

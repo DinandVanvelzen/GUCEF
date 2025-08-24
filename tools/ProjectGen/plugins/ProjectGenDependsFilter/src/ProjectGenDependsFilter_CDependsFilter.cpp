@@ -248,7 +248,7 @@ CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
             {
                 // The given module is not in the list of modules we obtained from depends
                 // as such we should filter it out
-                deleteList.insert( (*i)->rootDir + ':' + targetName );
+                deleteList.insert( (*i)->GetAbsolutePathToModuleRootDir() + ':' + targetName );
             }
         }
         else
@@ -265,7 +265,7 @@ CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
         while ( i != moduleInfoList.end() )
         {
             CString targetName = GetModuleTargetName( (*i), "win32", true );
-            TStringSet::iterator n = deleteList.find( (*i)->rootDir + ':' + targetName );
+            TStringSet::iterator n = deleteList.find( (*i)->GetAbsolutePathToModuleRootDir() + ':' + targetName );
             if ( n != deleteList.end() )
             {
                 moduleInfoList.erase( i );

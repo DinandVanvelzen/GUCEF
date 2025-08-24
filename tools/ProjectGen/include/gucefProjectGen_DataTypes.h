@@ -558,9 +558,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
 
     typedef typename CORE::CTSharedObjCreator< CModuleInfoEntry, MT::CMutex >::TBasicSharedPtrType   CModuleInfoEntryPtr;
 
-    static const CORE::CString ClassTypeName;
-    
-    CORE::CString  rootDir;                // the absolute path to the root of this module's directory tree
+    static const CORE::CString ClassTypeName;    
 
     CModuleInfoEntry( void );
 
@@ -797,16 +795,31 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
      */
     void CleanupIncludeDirs( void );
 
+    void SetAbsolutePathToModuleRootDir( const CORE::CString& absPathToRootDir );
+
+    const CORE::CString& GetAbsolutePathToModuleRootDir( void ) const;
+
+    void SetProjectRelativePathToModuleRootDir( const CORE::CString& relPathToRootDir );
+
+    const CORE::CString& GetProjectRelativePathToModuleRootDir( void ) const;
+
+    void SetDefinitionFileLastModifiedDt( const CORE::CDateTime& fileLastModifiedDt );
+
+    const CORE::CDateTime& GetDefinitionFileLastModifiedDt( void ) const;
+
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
-    mutable CORE::CString m_consensusName;          // Derived cached info: the consensus name across all platforms
+    mutable CORE::CString m_consensusName;          // Derived cached info: the consensus name across all platforms    
     TModuleInfoPtrMap m_modulesPerPlatform;         // ModuleInfo per platform
     TModuleInfoPtrMap m_flattenedInfoPerPlatform;   // Derived cached info: Module overlays per platform applied to the 'all platforms' module info
     bool m_isBroken;                                // flag whether the module has a broken definition in need of intervention
+    CORE::CString m_absRootDir;                     // the absolute path to the root of this module's directory tree
+    CORE::CString m_projRelRootDir;                 // the project root relative path to the root of this module's directory tree
+    CORE::CDateTime m_definitionFileLastModifiedDt; // When loaded from a file this has the last modified datetime of said file at the time of load
 };
 
 typedef CModuleInfoEntry::CModuleInfoEntryPtr CModuleInfoEntryPtr;
@@ -1247,6 +1260,12 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 
     void SetSetttings( const CORE::CValueList& settings );
 
+    void SetRootDirs( const TStringVector& rootDirs );
+
+    void SetRootDir( const CORE::CString& rootDir );
+
+    CORE::CString GetRelativePathFromProjectSubDirToProjectRootDir( const CORE::CString& projectSubDir ) const;
+
     CProjectInfo( void );
     CProjectInfo( const CProjectInfo& src );
     virtual ~CProjectInfo() GUCEF_VIRTUAL_OVERRIDE;
@@ -1258,6 +1277,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
+
+    void DeriveAbsModuleRootSubSirsFromProjRelDirs( void );
 
     bool GenerateDependencyChainNodes( const CORE::CString& targetPlatform     ,
                                        bool okToUseCachedValuesWhereApplicable );

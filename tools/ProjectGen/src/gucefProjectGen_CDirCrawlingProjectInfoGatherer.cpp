@@ -1608,10 +1608,10 @@ GetListOfAllModuleDirs( CModuleInfoEntryPtr& moduleInfoEntry ,
     if ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
     {
         CModuleInfoPtr moduleInfo = (*i).second;
-        GetListOfAllModuleDirs( moduleInfo               ,
-                                moduleDirs               ,
-                                relativePaths            ,
-                                moduleInfoEntry->rootDir );
+        GetListOfAllModuleDirs( moduleInfo                                        ,
+                                moduleDirs                                        ,
+                                relativePaths                                     ,
+                                moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
     }
 }
 
@@ -2078,14 +2078,14 @@ FindSubDirsWithHeaders( const CProjectInfo& projectInfo                         
 {GUCEF_TRACE;
 
     TStringSetMap fileMap;
-    FindSubDirsWithFileTypes( projectInfo               ,
-                              fileMap                   ,
-                              GetHeaderFileExtensions() ,
-                              platform                  ,
-                              false                     ,
-                              moduleInfoEntry->rootDir  ,
-                              CORE::CString::Empty      ,
-                              newProcessingInstructions );
+    FindSubDirsWithFileTypes( projectInfo                                       ,
+                              fileMap                                           ,
+                              GetHeaderFileExtensions()                         ,
+                              platform                                          ,
+                              false                                             ,
+                              moduleInfoEntry->GetAbsolutePathToModuleRootDir() ,
+                              CORE::CString::Empty                              ,
+                              newProcessingInstructions                         );
 
     if ( !fileMap.empty() )
     {
@@ -2185,14 +2185,14 @@ FindSubDirsWithSource( const CProjectInfo& projectInfo                          
 {GUCEF_TRACE;
 
     TStringSetMap fileMap;
-    FindSubDirsWithFileTypes( projectInfo               ,
-                              fileMap                   ,
-                              GetSourceFileExtensions() ,
-                              platform                  ,
-                              false                     ,
-                              moduleInfoEntry->rootDir  ,
-                              CORE::CString::Empty      ,
-                              newProcessingInstructions );
+    FindSubDirsWithFileTypes( projectInfo                                       ,
+                              fileMap                                           ,
+                              GetSourceFileExtensions()                         ,
+                              platform                                          ,
+                              false                                             ,
+                              moduleInfoEntry->GetAbsolutePathToModuleRootDir() ,
+                              CORE::CString::Empty                              ,
+                              newProcessingInstructions                         );
 
     if ( !fileMap.empty() )
     {
@@ -2284,7 +2284,7 @@ LegacyCMakeProcessProjectDir( const CProjectInfo& projectInfo      ,
                               CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
-    CORE::CString pathToSuffixFile = moduleInfoEntry->rootDir;
+    CORE::CString pathToSuffixFile = moduleInfoEntry->GetAbsolutePathToModuleRootDir();
     CORE::AppendToPath( pathToSuffixFile, "CMakeListsSuffix.txt" );
 
     CORE::CString cmakeListSuffixFileContent;
@@ -2302,7 +2302,7 @@ LegacyCMakeProcessProjectDir( const CProjectInfo& projectInfo      ,
 
         // Set a project name based off the module sub-dir name
         // Best we can do unless we can get it from the suffix file later
-        moduleInfo.name = CORE::LastSubDir( moduleInfoEntry->rootDir );
+        moduleInfo.name = CORE::LastSubDir( moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
 
         // Fill in the dependencies as specified in the suffix file
         CORE::CString actualModuleName;
@@ -2437,7 +2437,7 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
                 if ( !moduleInfo.IsNULL() && moduleInfo->name.IsNULLOrEmpty() )
                 {
                     // Set a project name based off the module sub-dir name
-                    moduleInfo->name = CORE::LastSubDir( moduleInfoEntry->rootDir );
+                    moduleInfo->name = CORE::LastSubDir( moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
                     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Setting module name to " + moduleInfo->name + " based on the sub-dir name because no other name is available" );
                 }
                 ++i;
@@ -2449,7 +2449,8 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Attempting to process legacy cmake suffix file" );
 
         CModuleInfoEntryPtr moduleInfoEntry = CModuleInfoEntry::CreateSharedObj();
-        moduleInfoEntry->rootDir = rootDir;
+        moduleInfoEntry->SetAbsolutePathToModuleRootDir( rootDir );
+        moduleInfoEntry->SetProjectRelativePathToModuleRootDir( projectInfo->GetRelativePathFromProjectSubDirToProjectRootDir( rootDir ) );
         LegacyCMakeProcessProjectDir( *projectInfo.GetPointer(), moduleInfoEntry );
         moduleInfoEntries->push_back( moduleInfoEntry );
     }
@@ -2460,7 +2461,8 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
         CModuleInfoEntryPtr& moduleInfoEntry = (*i);
 
         // Assign the rootdir to the entry, we don't save this inside the files
-        moduleInfoEntry->rootDir = rootDir;
+        moduleInfoEntry->SetAbsolutePathToModuleRootDir( rootDir );
+        moduleInfoEntry->SetProjectRelativePathToModuleRootDir( projectInfo->GetRelativePathFromProjectSubDirToProjectRootDir( rootDir ) );
 
         FindSubDirsWithHeaders( *projectInfo.GetPointer(), moduleInfoEntry, *newProcessingInstructions.GetPointer() );
         FindSubDirsWithSource( *projectInfo.GetPointer(), moduleInfoEntry, *newProcessingInstructions.GetPointer() );
@@ -2469,7 +2471,7 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
         // we want to be able to see in the log which modules where successfully processed
         CORE::CString consensusModuleName = moduleInfoEntry->GetConsensusName();
 
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Processed module " + consensusModuleName + " from project dir: " + moduleInfoEntry->rootDir );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Processed module " + consensusModuleName + " from project dir: " + moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
 
         ++i;
     }
@@ -2480,7 +2482,8 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
 /*---------------------------------------------------------------------------*/
 
 void
-PreprocessDir( const CORE::CString& path )
+PreprocessDir( const CProjectInfo& projectInfo ,
+               const CORE::CString& path       )
 {GUCEF_TRACE;
 
     CDirPreprocessorManager& dirPreprocessorManager = CProjectGenGlobal::Instance()->GetDirPreprocessorManager();
@@ -2494,7 +2497,7 @@ PreprocessDir( const CORE::CString& path )
     CDirPreprocessorManager::TDirPreprocessorsList::const_iterator i = dirPreprocessorsList.begin();
     while ( i != dirPreprocessorsList.end() )
     {
-        if ( (*i)->ProccessDir( path ) )
+        if ( (*i)->ProccessDir( projectInfo, path ) )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Preprocessed directory " + path );
         }
@@ -2518,7 +2521,7 @@ LocateModuleDirsRecursively( const CProjectInfo& projectInfo                    
     GUCEF_LOG( CORE::LOGLEVEL_EVERYTHING, "Recursively processing directory for module info: " + topLevelDir );
 
     // Run any custom preprocessing logic that's registered
-    PreprocessDir( topLevelDir );
+    PreprocessDir( projectInfo, topLevelDir );
 
     // Is this a project dir or some other dir?
     if ( IsDirAProjectDir( topLevelDir ) )

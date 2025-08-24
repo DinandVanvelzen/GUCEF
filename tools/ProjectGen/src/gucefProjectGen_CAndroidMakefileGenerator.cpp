@@ -551,11 +551,11 @@ CreateAndroidMakefileOnDiskForEachModule( const TModuleInfoEntryPairVector& merg
         const CModuleInfoEntry& moduleInfoEntry = (*(*i).first);
         const CModuleInfo& moduleInfo = (*(*i).second);
 
-        if ( !CreateAndroidMakefileOnDiskForModule( mergeLinks                      ,
-                                                    moduleInfo                      ,
-                                                    moduleInfoEntry.rootDir         ,
-                                                    addGeneratorCompileTimeToOutput ,
-                                                    ndkModulesUsed                  ) )
+        if ( !CreateAndroidMakefileOnDiskForModule( mergeLinks                                       ,
+                                                    moduleInfo                                       ,
+                                                    moduleInfoEntry.GetAbsolutePathToModuleRootDir() ,
+                                                    addGeneratorCompileTimeToOutput                  ,
+                                                    ndkModulesUsed                                   ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Failed to create an Android makefile for all modules because of the following module " + moduleInfo.name );
             return false;
@@ -699,7 +699,7 @@ GenerateContentForAndroidProjectMakefile( const CORE::CString& projectName      
         {
             // Get relative path from the outputDir to the other module
             const CModuleInfoEntryPtr fullModuleInfo = FindModuleInfoEntryForMergedInfo( mergeLinks, currentModule );
-            CORE::CString relativePathToModule = CORE::GetRelativePathToOtherPathRoot( outputDir, fullModuleInfo->rootDir );
+            CORE::CString relativePathToModule = CORE::GetRelativePathToOtherPathRoot( outputDir, fullModuleInfo->GetAbsolutePathToModuleRootDir() );
             relativePathToModule = relativePathToModule.ReplaceChar( '\\', '/' );
 
             // Add entry for this module to the project file

@@ -297,7 +297,8 @@ CDirPreprocessor::ExtractFilename( const CORE::CString& path )
 /*--------------------------------------------------------------------------*/
 
 bool
-CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
+CDirPreprocessor::ProccessProjectFiles( const CProjectInfo& projectInfo       ,
+                                        const CORE::CString& path             ,
                                         TStringList& list                     ,
                                         const CORE::CString& buildConfigToUse )
 {GUCEF_TRACE;
@@ -314,7 +315,8 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Loaded project file from: " + projectFilePath );
         
         PROJECTGEN::CModuleInfoEntryPtr moduleEntry = PROJECTGEN::CModuleInfoEntry::CreateSharedObj();
-        moduleEntry->rootDir = path;
+        moduleEntry->SetAbsolutePathToModuleRootDir( path );
+        moduleEntry->SetProjectRelativePathToModuleRootDir( projectInfo.GetRelativePathFromProjectSubDirToProjectRootDir( path ) );
 
         PROJECTGEN::CModuleInfoPtr moduleInfo = moduleEntry->FindModuleInfoForPlatform( "all" );
         if ( !moduleInfo.IsNULL() )
@@ -581,18 +583,21 @@ CDirPreprocessor::ProccessProjectFiles( const CORE::CString& path             ,
 /*--------------------------------------------------------------------------*/
     
 bool
-CDirPreprocessor::ProccessDir( const CORE::CString& path )
+CDirPreprocessor::ProccessDir( const CProjectInfo& projectInfo ,
+                               const CORE::CString& path       )
 {GUCEF_TRACE;
 
     // Find and and all project files in the dir
     TStringList projectFileList;
-    if ( !FindProjectFiles( path, projectFileList ) ) return true;
+    if ( !FindProjectFiles( path, projectFileList ) )
+        return true;
 
     // Since we found one or more,.. we will need the xml parser
-    if ( !InitXmlParser() ) return false;
+    if ( !InitXmlParser() )
+        return false;
     
     CORE::CString buildConfigToUse = "'$(Configuration)|$(Platform)'=='Release|Win32'";
-    return ProccessProjectFiles( path, projectFileList, buildConfigToUse );
+    return ProccessProjectFiles( projectInfo, path, projectFileList, buildConfigToUse );
 }
 
 /*-------------------------------------------------------------------------//
