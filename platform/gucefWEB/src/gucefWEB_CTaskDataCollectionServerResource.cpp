@@ -97,9 +97,8 @@ CTaskDataCollectionServerResource::CreateResource( const CString& resourcePath  
 {GUCEF_TRACE;
     
     CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
-    CORE::CTaskPtr task;
-    CORE::TTaskStatus taskStatus = taskManager.StartOrQueueTask( input, &task );
-    if ( !CORE::TaskStatusIsAnError( taskStatus ) )
+    CORE::CFutureResult result = taskManager.StartOrQueueTask( input );
+    if ( result.HasAFuture() )
     {
         CDataNodeSerializableHttpServerResourcePtr taskDataResource = CDataNodeSerializableHttpServerResourcePtr( GUCEF_NEW CTDataNodeSerializableHttpServerResourceExpansion< CORE::CDataNodeSerializableDataNode >() ); 
         CORE::CDataNodeSerializableDataNode* taskData = static_cast< CORE::CDataNodeSerializableDataNode* >( taskDataResource->GetSerializable() );
@@ -107,7 +106,7 @@ CTaskDataCollectionServerResource::CreateResource( const CString& resourcePath  
         {
             // Echo back a copy of the task data in the form that it was actually accepted / persisted
             CORE::CDataNodeSerializableSettings serializerSettings;
-            if ( task->GetSerializedTaskDataCopy( *taskData, serializerSettings ) )
+            if ( taskManager.GetSerializedTaskDataCopy( result.GetTaskId(), *taskData, serializerSettings ) )
             {
                 resourceOutput = taskDataResource.StaticCast< CIHTTPServerResource >();
                 supportedRepresentationsOutput = m_serializationReps;
@@ -117,6 +116,7 @@ CTaskDataCollectionServerResource::CreateResource( const CString& resourcePath  
     }
     else
     {
+        CORE::TTaskStatus taskStatus = result.GetResult()->GetTaskStatus();
         switch ( taskStatus )
         {
             case CORE::TTaskStatus::TASKSTATUS_TASKDATA_INVALID: 

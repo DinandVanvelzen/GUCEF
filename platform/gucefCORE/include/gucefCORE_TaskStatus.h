@@ -50,6 +50,7 @@ enum ETaskStatus : UInt8
 {
     TASKSTATUS_UNDEFINED        = 0,    /**< not a real task status but rather an initialization value */
 
+    TASKSTATUS_INVALID_STATUS         ,    /**< the task status reported is invalid for the context and has hence been converted to this status. this is an end state */
     TASKSTATUS_TASKTYPE_INVALID       ,    /**< the task has an invalid task type preventing its execution. this is an end state */
     TASKSTATUS_TASKDATA_INVALID       ,    /**< the task has invalid task data for the task type thus preventing its execution. this is an end state */
     TASKSTATUS_TASK_WITH_TYPE_EXISTS  ,    /**< if the task is intended to be unique and a task of the given type is already executing this signals a refusal to launch another. this is an end state */

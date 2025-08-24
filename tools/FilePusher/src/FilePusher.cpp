@@ -1461,7 +1461,8 @@ FilePushDestination::PushFileUsingVfs( PushEntryPtr entry )
     pushUrlForFile = pushUrlForFile.CompactRepeatingChar( '/' );
 
     // Store the file as an async operation
-    if ( VFS::CVfsGlobal::Instance()->GetVfs().StoreAsFileAsync( pushUrlForFile, slot->buffer, 0, true, GUCEF_NULL, entry->filePath ) )
+    CORE::CFutureResult result = VFS::CVfsGlobal::Instance()->GetVfs().StoreAsFileAsync( pushUrlForFile, slot->buffer, 0, true, GUCEF_NULL, entry->filePath );
+    if ( result.HasAFuture() )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FilePushDestination:PushFileUsingVfs: Commenced async push of content from file \"" +
             filename + "\" to VFS path \"" + pushUrlForFile + "\"" );
@@ -1733,15 +1734,14 @@ FilePushDestination::OnFileEncodeTimerCycle( CORE::CNotifier* notifier    ,
             if ( fileAccess.Open( filePath, "rb" ) )
             {
                 // Encode the file as an async operation
-                if ( VFS::CVfsGlobal::Instance()->GetVfs().EncodeAsFileAsync( fileAccess                              ,
-                                                                              slot->entryInfo->encodedFilepath        ,
-                                                                              true                                    ,
-                                                                              CORE::CoreCodecTypes::CompressionCodec  ,
-                                                                              m_settings.fileCompressionCodecToUse    ,
-                                                                              slot->entryInfo->filePath               ) )
+                CORE::CFutureResult result = VFS::CVfsGlobal::Instance()->GetVfs().EncodeAsFileAsync( fileAccess                              ,
+                                                                                                      slot->entryInfo->encodedFilepath        ,
+                                                                                                      true                                    ,
+                                                                                                      CORE::CoreCodecTypes::CompressionCodec  ,
+                                                                                                      m_settings.fileCompressionCodecToUse    ,
+                                                                                                      slot->entryInfo->filePath               );
+                if ( result.HasAFuture() )
                 {
-                    
-                    
                     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FilePushDestination:OnFileEncodeTimerCycle: Commenced async encode of content from file \"" +
                         filePath + "\" to VFS path \"" + slot->entryInfo->encodedFilepath + "\"" );
                     m_encodeQueue.erase( i );

@@ -300,9 +300,9 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
      *  Note that any task that was setup using SetupTask() still requires to be started via a call to
      *  StartTask()
      */
-    CFutureResult StartTask( CTaskConsumerPtr task                  ,
-                             CICloneable* taskData = GUCEF_NULL     ,
-                             bool assumeOwnershipOfTaskData = false );
+    CFutureResult StartTaskWithConsumer( CTaskConsumerPtr task                  ,
+                                         CICloneable* taskData = GUCEF_NULL     ,
+                                         bool assumeOwnershipOfTaskData = false ); 
     
     /**
      *  Same as other StartTask() variant except it will construct task data from the given DOM

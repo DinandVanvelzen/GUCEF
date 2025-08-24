@@ -283,7 +283,8 @@ CPubSubClientChannel::InitializeChannel( bool force )
         {            
             // Perform task setup
             // This causes a thread delegator to be associated and as such a pulse generator made accessible
-            if ( !threadPool->SetupSingularTask( side ) )
+            CORE::CFutureResult result = threadPool->SetupSingularTask( side );
+            if ( result.HasNoFuture() )
             {
                 // As a fallback we support trying run as part of the channel thread instead
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "PubSubClientChannel:InitializeChannel: Failed to setup dedicated thread for side with id " + side->GetSideId() + ". Falling back to using main channel thread" );
@@ -337,7 +338,8 @@ CPubSubClientChannel::InitializeChannel( bool force )
         }
         else
         {
-            if ( !threadPool->StartTask( side ) )
+            CORE::CFutureResult result = threadPool->StartTaskWithConsumer( side );
+            if ( result.HasNoFuture() )
             {
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "PubSubClientChannel:InitializeChannel: Failed to start dedicated thread for other side. Falling back to a single thread" );
                 

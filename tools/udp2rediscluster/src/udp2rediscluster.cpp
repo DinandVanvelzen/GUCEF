@@ -1437,7 +1437,8 @@ Udp2RedisClusterChannel::OnTaskStart( CORE::CTaskPtr task )
     if ( m_channelSettings.performRedisWritesInDedicatedThread )
     {
         CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetThreadPool();
-        if ( !threadPool->StartTask( m_redisWriter ) )
+        CORE::CFutureResult result = threadPool->StartTaskWithConsumer( m_redisWriter );
+        if ( result.HasNoFuture() )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "Udp2RedisClusterChannel:OnTaskStart: Failed to start dedicated task (dedicated thread) for Redis writes. Falling back to a single thread" );
             m_channelSettings.performRedisWritesInDedicatedThread = false;
@@ -1982,7 +1983,8 @@ Udp2RedisCluster::SetStandbyMode( bool putInStandbyMode )
                     break;
                 }
 
-                if ( !threadPool->StartTask( channel ) )
+                CORE::CFutureResult result = threadPool->StartTaskWithConsumer( channel );
+                if ( result.HasNoFuture() )
                 {
                     GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Udp2RedisCluster::SetStandbyMode( false ): Failed to start task (dedicated thread) for channel " + CORE::Int32ToString( channelId ) );
                     totalSuccess = false;

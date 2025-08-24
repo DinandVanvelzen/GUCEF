@@ -1870,31 +1870,6 @@ CMakeParseModuleProperties( const CORE::CString& fileSuffix ,
 
 /*---------------------------------------------------------------------------*/
 
-const CModuleInfoPtr
-GetModuleInfo( const CProjectInfo& projectInfo ,
-               const CORE::CString& moduleName ,
-               const CORE::CString& platform   )
-{GUCEF_TRACE;
-
-    TModuleInfoEntryPtrVector::const_iterator i = projectInfo.modules.begin();
-    while ( i != projectInfo.modules.end() )
-    {
-        CModuleInfoPtr moduleInfo;
-        const CORE::CString* nameOfCurrentModule = (*i)->GetModuleName( platform, &moduleInfo );
-        if ( NULL != nameOfCurrentModule )
-        {
-            if ( *nameOfCurrentModule == moduleName )
-            {
-                return moduleInfo;
-            }
-        }
-        ++i;
-    }
-    return CModuleInfoPtr();
-}
-
-/*---------------------------------------------------------------------------*/
-
 void
 FindSubDirsWithFileTypes( const CProjectInfo& projectInfo                          ,
                           TStringSetMap& fileMap                                   ,
@@ -2547,90 +2522,6 @@ LocateModuleDirsRecursively( const CProjectInfo& projectInfo                    
         CORE::AppendToPath( subDir, (*i) );
 
         LocateModuleDirsRecursively( projectInfo, subDir, allProjectDirs, newProcessingInstructions );
-        ++i;
-    }
-}
-
-/*-------------------------------------------------------------------------*/
-
-TModuleInfoEntryPtrSet
-FindModulesInfoEntryWhichDependOnModule( CProjectInfo& projectInfo           ,
-                                         const CORE::CString& dependencyName )
-{GUCEF_TRACE;
-
-    // Loop trough all modules and check if they depend on the given module
-    TModuleInfoEntryPtrSet resultList;
-    TModuleInfoEntryPtrVector::iterator i = projectInfo.modules.begin();
-    while ( i != projectInfo.modules.end() )
-    {
-        CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().begin();
-        while ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
-        {
-            // Check if this module depends on the module we are looking for regardless of platform
-            CModuleInfoPtr moduleInfo = (*n).second;
-            if ( IsStringInList( moduleInfo->GetNamesOfDependencies(), false, dependencyName ) )
-            {
-                resultList.insert( moduleInfoEntry );
-            }
-            ++n;
-        }
-
-        ++i;
-    }
-
-    return resultList;
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-RemoveDependencyToModule( CProjectInfo& projectInfo       ,
-                          const CORE::CString& moduleName )
-{GUCEF_TRACE;
-
-    // Loop trough all modules and process each as we go
-    TModuleInfoEntryPtrVector::iterator i = projectInfo.modules.begin();
-    while ( i != projectInfo.modules.end() )
-    {
-        CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().begin();
-        while ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
-        {
-            CModuleInfoPtr moduleInfo = (*n).second;
-            moduleInfo->RemoveNameOfDependency( moduleName );
-            ++n;
-        }
-        ++i;
-    }
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-RemoveDependenciesOnIntegrationLocations( CProjectInfo& projectInfo )
-{GUCEF_TRACE;
-
-    // Loop trough all modules and process each code include as we go
-    TModuleInfoEntryPtrVector::iterator i = projectInfo.modules.begin();
-    while ( i != projectInfo.modules.end() )
-    {
-        CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-        TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().begin();
-        while ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
-        {
-            const CModuleInfoPtr& moduleInfo = (*n).second;
-            if ( ( MODULETYPE_CODE_INTEGRATE_LOCATION == moduleInfo->moduleType ) ||
-                 ( MODULETYPE_HEADER_INTEGRATE_LOCATION == moduleInfo->moduleType ) )
-            {
-                // We found a code include location, now process it for all modules which proclaim to have a dependency on it
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Removing dependency labeled as \"" + moduleInfo->name + "\" for platform " + (*n).first + " because it is an integration location and it has been processed" );
-                RemoveDependencyToModule( projectInfo      ,
-                                          moduleInfo->name );
-            }
-            ++n;
-        }
-
         ++i;
     }
 }

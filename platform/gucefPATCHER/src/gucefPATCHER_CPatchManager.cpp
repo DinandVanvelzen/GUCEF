@@ -105,8 +105,8 @@ CPatchManager::CPatchManager( void )
 /*-------------------------------------------------------------------------*/
 
 CPatchManager::CPatchManager( const CORE::PulseGeneratorPtr& pulseGenerator )
-    : CTSGNotifier( pulseGenerator )                  ,
-      m_taskManager( &CORE::CCoreGlobal::Instance()->GetTaskManager() )
+    : CTSGNotifier( pulseGenerator )                  
+    , m_taskManager( &CORE::CCoreGlobal::Instance()->GetTaskManager() )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -116,6 +116,7 @@ CPatchManager::CPatchManager( const CORE::PulseGeneratorPtr& pulseGenerator )
 
 CPatchManager::CPatchManager( const CPatchManager& src  )
     : CTSGNotifier( src )
+    , m_taskManager( &CORE::CCoreGlobal::Instance()->GetTaskManager() )
 {GUCEF_TRACE;
 
 }
@@ -145,16 +146,18 @@ CPatchManager::StartTask( const CString& taskName                  ,
 
 {GUCEF_TRACE;
 
-    Lock();
+    MT::CObjectScopeLock lock( this );
+
     if ( m_taskMap.find( taskName ) == m_taskMap.end() )
     {
-        Unlock();
+        lock.EarlyUnlock();
+
         CPatchTaskData taskData( *this, patchEngineConfig, taskName );
-        return m_taskManager->GetThreadPool()->StartTask( CPatchTaskConsumer::GetTypeString() ,
-                                                          &taskData                           ,
-                                                          GUCEF_NULL                          );
+        CORE::CFutureResult result = m_taskManager->GetThreadPool()->StartTask( CPatchTaskConsumer::GetTypeString() ,
+                                                                                &taskData                           ,
+                                                                                GUCEF_NULL                          );
+        return result.HasAFuture();
     }
-    Unlock();
     return false;
 }
 

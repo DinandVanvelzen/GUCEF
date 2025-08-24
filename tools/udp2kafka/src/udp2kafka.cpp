@@ -1741,7 +1741,8 @@ Udp2Kafka::Start( void )
                 break;
             }
 
-            if ( !threadPool->StartTask( channel ) )
+            CORE::CFutureResult result = threadPool->StartTaskWithConsumer( channel );
+            if ( result.HasNoFuture() )
             {
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Udp2Kafka:Start: Failed to start task (dedicated thread) for channel " + CORE::Int32ToString( channelId ) );
                 errorOccured = true;

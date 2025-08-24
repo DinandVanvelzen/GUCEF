@@ -47,6 +47,9 @@ namespace CORE {
     if ( GUCEF_NULL == taskStatusStr )
         return ETaskStatus::TASKSTATUS_UNDEFINED;
 
+    if ( 0 == strcmp( taskStatusStr, "INVALID_STATUS" ) )
+        return ETaskStatus::TASKSTATUS_INVALID_STATUS;
+
     if ( 0 == strcmp( taskStatusStr, "TASKTYPE_INVALID" ) )
         return ETaskStatus::TASKSTATUS_TASKTYPE_INVALID;
 
@@ -121,6 +124,7 @@ TaskStatusToTaskStatusString( TTaskStatus taskStatus )
 
     switch ( taskStatus )
     {
+        case ETaskStatus::TASKSTATUS_INVALID_STATUS: return "INVALID_STATUS";
         case ETaskStatus::TASKSTATUS_TASKTYPE_INVALID: return "TASKTYPE_INVALID";
         case ETaskStatus::TASKSTATUS_TASKDATA_INVALID: return "TASKDATA_INVALID";
         case ETaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS: return "TASK_WITH_TYPE_EXISTS";
@@ -156,6 +160,7 @@ TaskStatusIsAnEndState( TTaskStatus taskStatus )
 
     switch ( taskStatus )
     {
+        case ETaskStatus::TASKSTATUS_INVALID_STATUS:
         case ETaskStatus::TASKSTATUS_TASKTYPE_INVALID:
         case ETaskStatus::TASKSTATUS_TASKDATA_INVALID:
         case ETaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS:

@@ -272,7 +272,7 @@ CVFS::UnregisterAllArchiveFactories( void )
 
 /*-------------------------------------------------------------------------*/
 
-bool
+CORE::CFutureResult
 CVFS::StoreAsFileAsync( const CORE::CString& filepath       ,
                         const CORE::CDynamicBuffer& data    ,
                         const CORE::UInt64 offset           ,
@@ -293,7 +293,7 @@ CVFS::StoreAsFileAsync( const CORE::CString& filepath       ,
         operationData.SetRequestorData( requestorData );
 
         CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_asyncOpsThreadpool );
-        return !CORE::TaskStatusIsAnError( threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() ) );
+        return threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() );
     }
     catch ( const timeout_exception& )
     {
@@ -305,12 +305,12 @@ CVFS::StoreAsFileAsync( const CORE::CString& filepath       ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:StoreAsFileAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return false;
+    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
 
-bool
+CORE::CFutureResult
 CVFS::MountArchiveAsync( const CArchiveSettings& settings    ,
                          CORE::CICloneable* requestorData    ,
                          const CORE::CString& asyncRequestId )
@@ -325,7 +325,7 @@ CVFS::MountArchiveAsync( const CArchiveSettings& settings    ,
         operationData.SetRequestorData( requestorData );
 
         CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_asyncOpsThreadpool );
-        return !CORE::TaskStatusIsAnError( threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() ) );
+        return threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() );
     }
     catch ( const timeout_exception& )
     {
@@ -337,7 +337,7 @@ CVFS::MountArchiveAsync( const CArchiveSettings& settings    ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:MountArchiveAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return false;
+    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -690,7 +690,7 @@ CVFS::MoveFile( const CString& oldFilePath ,
 
 /*-------------------------------------------------------------------------*/
 
-bool
+CORE::CFutureResult
 CVFS::MoveFileAsync( const CORE::CString& oldFilePath    ,
                      const CORE::CString& newFilePath    ,
                      const bool overwrite                ,
@@ -707,7 +707,7 @@ CVFS::MoveFileAsync( const CORE::CString& oldFilePath    ,
         operationData.overwrite = overwrite;
 
         CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_asyncOpsThreadpool );
-        return !CORE::TaskStatusIsAnError( threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() ) );
+        return threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() );
     }
     catch ( const timeout_exception& )
     {
@@ -719,7 +719,7 @@ CVFS::MoveFileAsync( const CORE::CString& oldFilePath    ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:MoveFileAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return false;
+    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -776,7 +776,7 @@ CVFS::CopyFileContent( const CORE::CString& originalFilepath ,
 
 /*-------------------------------------------------------------------------*/
 
-bool
+CORE::CFutureResult
 CVFS::CopyFileContentAsync( const CORE::CString& originalFilepath ,
                             const CORE::CString& copyFilepath     ,
                             const bool overwrite                  ,
@@ -793,7 +793,7 @@ CVFS::CopyFileContentAsync( const CORE::CString& originalFilepath ,
         operationData.overwrite = overwrite;
 
         CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_asyncOpsThreadpool );
-        return !CORE::TaskStatusIsAnError( threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() ) );
+        return threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() );
     }
     catch ( const timeout_exception& )
     {
@@ -805,7 +805,7 @@ CVFS::CopyFileContentAsync( const CORE::CString& originalFilepath ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:CopyFileContentAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return false;
+    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -892,7 +892,7 @@ CVFS::CopyFile( const CORE::CString& originalFilepath ,
 
 /*-------------------------------------------------------------------------*/
 
-bool
+CORE::CFutureResult
 CVFS::CopyFileAsync( const CORE::CString& originalFilepath ,
                      const CORE::CString& copyFilepath     ,
                      const bool overwrite                  ,
@@ -909,7 +909,7 @@ CVFS::CopyFileAsync( const CORE::CString& originalFilepath ,
         operationData.overwrite = overwrite;
 
         CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_asyncOpsThreadpool );
-        return !CORE::TaskStatusIsAnError( threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() ) );
+        return threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() );
     }
     catch ( const timeout_exception& )
     {
@@ -921,7 +921,7 @@ CVFS::CopyFileAsync( const CORE::CString& originalFilepath ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:CopyFileAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return false;
+    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -977,7 +977,7 @@ CVFS::EncodeFile( const CORE::CString& originalFilepath ,
 
 /*-------------------------------------------------------------------------*/
 
-bool
+CORE::CFutureResult
 CVFS::EncodeFileAsync( const CORE::CString& originalFilepath ,
                        const CORE::CString& encodedFilepath  ,
                        const bool overwrite                  ,
@@ -998,7 +998,7 @@ CVFS::EncodeFileAsync( const CORE::CString& originalFilepath ,
         operationData.encodeCodec = encodeCodec;
 
         CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_asyncOpsThreadpool );
-        return !CORE::TaskStatusIsAnError( threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() ) );
+        return threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() );
     }
     catch ( const timeout_exception& )
     {
@@ -1010,7 +1010,7 @@ CVFS::EncodeFileAsync( const CORE::CString& originalFilepath ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:EncodeFileAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return false;
+    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1107,7 +1107,7 @@ CVFS::EncodeAsFile( const CORE::CDynamicBuffer& data     ,
 
 /*-------------------------------------------------------------------------*/
 
-bool
+CORE::CFutureResult
 CVFS::EncodeAsFileAsync( const CORE::CDynamicBuffer& data     ,
                          const CORE::UInt64 bufferOffset      ,
                          const CORE::CString& encodedFilepath ,
@@ -1130,7 +1130,7 @@ CVFS::EncodeAsFileAsync( const CORE::CDynamicBuffer& data     ,
         operationData.encodeCodec = encodeCodec;
 
         CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_asyncOpsThreadpool );
-        return !CORE::TaskStatusIsAnError( threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() ) );
+        return threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() );
     }
     catch ( const timeout_exception& )
     {
@@ -1142,7 +1142,7 @@ CVFS::EncodeAsFileAsync( const CORE::CDynamicBuffer& data     ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:EncodeAsFileAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return false;
+    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1166,7 +1166,7 @@ CVFS::EncodeAsFile( CORE::CIOAccess& externalData        ,
 
 /*-------------------------------------------------------------------------*/
 
-bool
+CORE::CFutureResult
 CVFS::EncodeAsFileAsync( CORE::CIOAccess& externalData        ,
                          const CORE::CString& encodedFilepath ,
                          const bool overwrite                 ,
@@ -1237,7 +1237,7 @@ CVFS::DecodeFile( const CORE::CString& originalFilepath ,
 
 /*-------------------------------------------------------------------------*/
 
-bool
+CORE::CFutureResult
 CVFS::DecodeFileAsync( const CORE::CString& originalFilepath ,
                        const CORE::CString& decodedFilepath  ,
                        const bool overwrite                  ,
@@ -1258,7 +1258,7 @@ CVFS::DecodeFileAsync( const CORE::CString& originalFilepath ,
         operationData.decodeCodec = decodeCodec;
 
         CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( m_asyncOpsThreadpool );
-        return !CORE::TaskStatusIsAnError( threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() ) );
+        return threadPool->QueueTask( CAsyncVfsOperation::TaskType, &operationData, GUCEF_NULL, &AsObserver() );
     }
     catch ( const timeout_exception& )
     {
@@ -1270,7 +1270,7 @@ CVFS::DecodeFileAsync( const CORE::CString& originalFilepath ,
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, "VFS:DecodeFileAsync: Failed to queue task due to exception. asyncRequestId=" +
             asyncRequestId + " what=" + CORE::ToString( e.what() ) );
     }
-    return false;
+    return CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
 }
 
 /*-------------------------------------------------------------------------*/

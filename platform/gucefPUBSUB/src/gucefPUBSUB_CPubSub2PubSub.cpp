@@ -1501,7 +1501,8 @@ PubSub2PubSub::SetStandbyMode( bool putInStandbyMode )
                     break;
                 }
 
-                if ( !threadPool->StartTask( channel ) )
+                CORE::CFutureResult result = threadPool->StartTaskWithConsumer( channel );
+                if ( result.HasNoFuture() )
                 {
                     GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSub2PubSub::SetStandbyMode( false ): Failed to start task (dedicated thread) for channel " + CORE::Int32ToString( channelId ) );
                     totalSuccess = false;

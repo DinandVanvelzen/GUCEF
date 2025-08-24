@@ -283,8 +283,9 @@ CPing::Start( const TStringVector& remoteHosts          ,
         m_minimalPingDelta = minimalPingDelta;
 
         CPingTaskConsumer::CPingTaskData taskData( remoteHosts, maxPings, bytesToSend, timeout, minimalPingDelta );
-        return CORE::CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->StartTask( m_pingTaskConsumer ,
-                                                                                           &taskData          );
+        CORE::CFutureResult result = CORE::CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->StartTaskWithConsumer( m_pingTaskConsumer ,
+                                                                                                                             &taskData          );
+        return result.HasAFuture();
     }
     return false;
 }

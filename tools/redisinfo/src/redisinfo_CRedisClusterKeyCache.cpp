@@ -243,8 +243,14 @@ CRedisClusterKeyCache::LazyStartCacheUpdateTask( void )
             return true;
     }
     {
-        MT::CScopeWriterLock lock( g_dataLock );
-        return m_threadPool->StartTask( m_cacheUpdateTask );
+        CORE::ThreadPoolPtr threadPool = m_threadPool;
+        CORE::CTaskConsumerPtr consumer = m_cacheUpdateTask;
+        if ( !threadPool.IsNULL() )
+        {
+            CORE::CFutureResult result = threadPool->StartTaskWithConsumer( consumer );
+            return result.HasAFuture();
+        }
+        return false;
     }
 }
 

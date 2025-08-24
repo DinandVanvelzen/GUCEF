@@ -568,7 +568,7 @@ CLogManager::SetUseLoggingThread( bool useLogThread )
         {
             CLoggingTaskPtr loggingTask( GUCEF_NEW CLoggingTask( *m_loggers ) );
             m_loggingTask = loggingTask;
-            if ( CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->StartTask( loggingTask, GUCEF_NULL ).HasAFuture() )
+            if ( CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->StartTaskWithConsumer( loggingTask, GUCEF_NULL ).HasAFuture() )
                 m_useLogThread = useLogThread;
         }
         else

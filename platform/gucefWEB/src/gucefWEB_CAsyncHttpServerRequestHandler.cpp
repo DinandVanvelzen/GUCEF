@@ -205,14 +205,14 @@ CAsyncHttpServerRequestHandler::OnTaskCycle( CORE::CTaskPtr task )
     CAsyncHttpResponseData* response = GUCEF_NEW CAsyncHttpResponseData( httpRequestData );
     m_requestHandler->OnRequest( *httpRequestData, *response );
 
-    if ( !CORE::CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->QueueTask( CAsyncHttpServerResponseHandler::TaskType,
-                                                                                      response,
-                                                                                      GUCEF_NULL,
-                                                                                      GUCEF_NULL,
-                                                                                      true ) )
+    CORE::CFutureResult futureResult = CORE::CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->QueueTask( CAsyncHttpServerResponseHandler::TaskType,
+                                                                                                                   response,
+                                                                                                                   GUCEF_NULL,
+                                                                                                                   true );
+    if ( futureResult.HasNoFuture() )
     {
         // Failed to queue task to send the response to the client
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AsyncHttpServerRequestHandler(" + CORE::PointerToString( this ) + "):OnTaskCycle: Failed to QueueTask to disptach result to client after request processing" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AsyncHttpServerRequestHandler(" + CORE::ToString( this ) + "):OnTaskCycle: Failed to QueueTask to dispatch result to client after request processing" );
 
         // Use this thread instead as a fallback
         CORE::CDynamicBuffer fullResponse;

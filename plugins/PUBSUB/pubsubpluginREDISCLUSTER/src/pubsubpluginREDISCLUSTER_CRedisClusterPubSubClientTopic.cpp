@@ -379,7 +379,8 @@ CRedisClusterPubSubClientTopic::LoadConfig( const PUBSUB::CPubSubClientTopicConf
             {
                 if ( !m_readerThread->IsActive() )
                 {
-                    if ( !m_client->GetThreadPool()->SetupSingularTask( m_readerThread ) )
+                    CORE::CFutureResult result = m_client->GetThreadPool()->SetupSingularTask( m_readerThread );
+                    if ( result.HasNoFuture() )
                     {
                         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "RedisClusterPubSubClientTopic(" + CORE::ToString( this ) + "):LoadConfig: Failed to start blocking reader thread for async subscription" );
                         return false;
@@ -1201,7 +1202,8 @@ CRedisClusterPubSubClientTopic::SubscribeImpl( const std::string& readOffset )
 
         if ( !m_readerThread.IsNULL() )
         {
-            if ( !m_client->GetThreadPool()->StartTask( m_readerThread ) )
+            CORE::CFutureResult result = m_client->GetThreadPool()->StartTaskWithConsumer( m_readerThread );
+            if ( result.HasNoFuture() )
             {
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "RedisClusterPubSubClientTopic(" + CORE::ToString( this ) + "):SubscribeImpl: Failed to start blocking reader thread for async subscription" );
                 return false;

@@ -623,7 +623,8 @@ CHTTPServer::ASyncProcessReceivedData( COMCORE::CTCPServerConnection* connection
     requestData.httpServer = this;
 
     CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
-    if ( taskManager.GetThreadPool()->QueueTask( CAsyncHttpServerRequestHandler::TaskType, &requestData, GUCEF_NULL, &AsObserver() ) )
+    CORE::CFutureResult futureResult = taskManager.GetThreadPool()->QueueTask( CAsyncHttpServerRequestHandler::TaskType, &requestData, GUCEF_NULL, &AsObserver() ); 
+    if ( futureResult.HasAFuture() )
     {
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CHTTPServer(" + CORE::PointerToString( this ) + "): Queued task to ASync handle the request processing" );
     }

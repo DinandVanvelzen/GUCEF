@@ -36,6 +36,11 @@
 #define GUCEF_MT_CREADWRITELOCK_H
 #endif /* GUCEF_MT_CREADWRITELOCK_H ? */
 
+#ifndef GUCEF_CORE_CFUTURERESULT_H
+#include "gucefCORE_CFutureResult.h"
+#define GUCEF_CORE_CFUTURERESULT_H
+#endif /* GUCEF_CORE_CFUTURERESULT_H ? */
+
 #ifndef GUCEF_CORE_CGLOBALLYCONFIGURABLE_H
 #include "gucefCORE_CGloballyConfigurable.h"
 #define GUCEF_CORE_CGLOBALLYCONFIGURABLE_H
@@ -201,9 +206,9 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
      *  @param requestorData    optional user defined data to pass along for the async request to be provided back in the response
      *  @param asyncRequestId   optional: user defined identifier for the async request to be provided back in the response
      */
-    bool MountArchiveAsync( const CArchiveSettings& settings                           ,
-                            CORE::CICloneable* requestorData = GUCEF_NULL              ,
-                            const CORE::CString& asyncRequestId = CORE::CString::Empty );
+    CORE::CFutureResult MountArchiveAsync( const CArchiveSettings& settings                           ,
+                                           CORE::CICloneable* requestorData = GUCEF_NULL              ,
+                                           const CORE::CString& asyncRequestId = CORE::CString::Empty );
     
     bool MountArchive( const CString& archiveName           ,
                        TBasicVfsResourcePtr archiveResource ,
@@ -271,19 +276,19 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
 
     /**
      *  Attempts to store the provided data as file content
-     *  This is a asyncronous non-blocking call and it returns right after 
+     *  This is a asynchronous non-blocking call and it returns right after 
      *  attempting to queue the storage task.
-     *  Due to this being an async operation you must subscribe to the appropriote events
+     *  Due to this being an async operation you must subscribe to the appropriate events
      *  in order to know if the operation eventually failed or succeeded.
      *
      *  @param asyncRequestId   optional: user defined identifier for the async request to be provided back in the response
      */
-    bool StoreAsFileAsync( const CORE::CString& filepath                              ,
-                           const CORE::CDynamicBuffer& data                           ,
-                           const CORE::UInt64 offset = 0                              ,
-                           const bool overwrite = false                               ,
-                           CORE::CICloneable* requestorData = GUCEF_NULL              ,
-                           const CORE::CString& asyncRequestId = CORE::CString::Empty );
+    CORE::CFutureResult StoreAsFileAsync( const CORE::CString& filepath                              ,
+                                          const CORE::CDynamicBuffer& data                           ,
+                                          const CORE::UInt64 offset = 0                              ,
+                                          const bool overwrite = false                               ,
+                                          CORE::CICloneable* requestorData = GUCEF_NULL              ,
+                                          const CORE::CString& asyncRequestId = CORE::CString::Empty );
 
     /**
      *  Copies a file from one vfs path to another if possible
@@ -309,10 +314,10 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
      *  @param overwrite              whether to overwrite any existing file at the target path if one exists    
      *  @param asyncRequestId         optional: user defined identifier for the async request to be provided back in the response
      */
-    bool CopyFileContentAsync( const CORE::CString& originalFilepath                      ,
-                               const CORE::CString& copyFilepath                          ,
-                               const bool overwrite = false                               ,
-                               const CORE::CString& asyncRequestId = CORE::CString::Empty );
+    CORE::CFutureResult CopyFileContentAsync( const CORE::CString& originalFilepath                      ,
+                                              const CORE::CString& copyFilepath                          ,
+                                              const bool overwrite = false                               ,
+                                              const CORE::CString& asyncRequestId = CORE::CString::Empty );
 
     /**
      *  Copies a file from one vfs path to another if possible
@@ -338,10 +343,10 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
      *  @param overwrite              whether to overwrite any existing file at the target path if one exists    
      *  @param asyncRequestId         optional: user defined identifier for the async request to be provided back in the response
      */
-    bool CopyFileAsync( const CORE::CString& originalFilepath                      ,
-                        const CORE::CString& copyFilepath                          ,
-                        const bool overwrite = false                               ,
-                        const CORE::CString& asyncRequestId = CORE::CString::Empty );
+    CORE::CFutureResult CopyFileAsync( const CORE::CString& originalFilepath                      ,
+                                       const CORE::CString& copyFilepath                          ,
+                                       const bool overwrite = false                               ,
+                                       const CORE::CString& asyncRequestId = CORE::CString::Empty );
 
     /**
      *  Encodes a file from one vfs path to another if possible
@@ -370,12 +375,12 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
      *  @param encodeCodec        which named codec to use when encoding the file
      *  @param asyncRequestId     optional: user defined identifier for the async request to be provided back in the response
      */
-    bool EncodeFileAsync( const CORE::CString& originalFilepath                      ,
-                          const CORE::CString& encodedFilepath                       ,
-                          const bool overwrite                                       ,
-                          const CORE::CString& codecFamily                           ,
-                          const CORE::CString& encodeCodec                           ,
-                          const CORE::CString& asyncRequestId = CORE::CString::Empty );
+    CORE::CFutureResult EncodeFileAsync( const CORE::CString& originalFilepath                      ,
+                                         const CORE::CString& encodedFilepath                       ,
+                                         const bool overwrite                                       ,
+                                         const CORE::CString& codecFamily                           ,
+                                         const CORE::CString& encodeCodec                           ,
+                                         const CORE::CString& asyncRequestId = CORE::CString::Empty );
 
     /**
      *  Encodes a file from the buffer given if possible
@@ -407,13 +412,13 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
      *  @param encodeCodec        which named codec to use when encoding the file
      *  @param asyncRequestId     optional: user defined identifier for the async request to be provided back in the response
      */
-    bool EncodeAsFileAsync( const CORE::CDynamicBuffer& data                           ,
-                            const CORE::UInt64 bufferOffset                            ,
-                            const CORE::CString& encodedFilepath                       ,
-                            const bool overwrite                                       ,
-                            const CORE::CString& codecFamily                           ,
-                            const CORE::CString& encodeCodec                           ,
-                            const CORE::CString& asyncRequestId = CORE::CString::Empty );
+    CORE::CFutureResult EncodeAsFileAsync( const CORE::CDynamicBuffer& data                           ,
+                                           const CORE::UInt64 bufferOffset                            ,
+                                           const CORE::CString& encodedFilepath                       ,
+                                           const bool overwrite                                       ,
+                                           const CORE::CString& codecFamily                           ,
+                                           const CORE::CString& encodeCodec                           ,
+                                           const CORE::CString& asyncRequestId = CORE::CString::Empty );
 
     /**
      *  Encodes data sourced outside the VFS and stored it as a file in the VFS if possible
@@ -442,12 +447,12 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
      *  @param encodeCodec        which named codec to use when encoding the file
      *  @param asyncRequestId     optional: user defined identifier for the async request to be provided back in the response
      */
-    bool EncodeAsFileAsync( CORE::CIOAccess& externalData                              ,
-                            const CORE::CString& encodedFilepath                       ,
-                            const bool overwrite                                       ,
-                            const CORE::CString& codecFamily                           ,
-                            const CORE::CString& encodeCodec                           ,
-                            const CORE::CString& asyncRequestId = CORE::CString::Empty );
+    CORE::CFutureResult EncodeAsFileAsync( CORE::CIOAccess& externalData                              ,
+                                           const CORE::CString& encodedFilepath                       ,
+                                           const bool overwrite                                       ,
+                                           const CORE::CString& codecFamily                           ,
+                                           const CORE::CString& encodeCodec                           ,
+                                           const CORE::CString& asyncRequestId = CORE::CString::Empty );
 
     /**
      *  Decodes a file from one vfs path to another if possible
@@ -476,12 +481,12 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
      *  @param decodeCodec        which named codec to use when decoding the file
      *  @param asyncRequestId     optional: user defined identifier for the async request to be provided back in the response
      */
-    bool DecodeFileAsync( const CORE::CString& originalFilepath                      ,
-                          const CORE::CString& decodedFilepath                       ,
-                          const bool overwrite                                       ,
-                          const CORE::CString& codecFamily                           ,
-                          const CORE::CString& decodeCodec                           ,
-                          const CORE::CString& asyncRequestId = CORE::CString::Empty );
+    CORE::CFutureResult DecodeFileAsync( const CORE::CString& originalFilepath                      ,
+                                         const CORE::CString& decodedFilepath                       ,
+                                         const bool overwrite                                       ,
+                                         const CORE::CString& codecFamily                           ,
+                                         const CORE::CString& decodeCodec                           ,
+                                         const CORE::CString& asyncRequestId = CORE::CString::Empty );
 
     /**
      *  Encodes a file from the buffer given if possible
@@ -523,10 +528,10 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
                    const CString& newFilePath ,
                    const bool overwrite       );
 
-    bool MoveFileAsync( const CString& oldFilePath                                 ,
-                        const CString& newFilePath                                 ,
-                        const bool overwrite                                       ,
-                        const CORE::CString& asyncRequestId = CORE::CString::Empty );
+    CORE::CFutureResult MoveFileAsync( const CString& oldFilePath                                 ,
+                                       const CString& newFilePath                                 ,
+                                       const bool overwrite                                       ,
+                                       const CORE::CString& asyncRequestId = CORE::CString::Empty );
 
     virtual bool GetFileList( TStringVector& outputList                       ,
                               const CString& location                         ,

@@ -3242,7 +3242,8 @@ RedisInfo::SetStandbyMode( bool putInStandbyMode )
             RedisInfoServicePtr redisInfoTarget( new RedisInfoService() );
             if ( redisInfoTarget->LoadConfig( (*i).second ) )
             {
-                if ( threadPool->StartTask( redisInfoTarget ) )
+                CORE::CFutureResult result = threadPool->StartTaskWithConsumer( redisInfoTarget );
+                if ( result.HasAFuture() )
                 {
                     // Check if we have a pre-existing cluster service for a cluster with the same name
                     // If so clean up its links first

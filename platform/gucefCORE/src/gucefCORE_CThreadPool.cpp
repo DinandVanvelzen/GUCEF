@@ -1171,9 +1171,9 @@ CThreadPool::StartTask( CTaskPtr task )
 /*-------------------------------------------------------------------------*/
 
 CFutureResult
-CThreadPool::StartTask( CTaskConsumerPtr taskConsumer  ,
-                        CICloneable* taskData          ,
-                        bool assumeOwnershipOfTaskData )
+CThreadPool::StartTaskWithConsumer( CTaskConsumerPtr taskConsumer  ,
+                                    CICloneable* taskData          ,
+                                    bool assumeOwnershipOfTaskData )
 {GUCEF_TRACE;
 
     if ( taskConsumer.IsNULL() )

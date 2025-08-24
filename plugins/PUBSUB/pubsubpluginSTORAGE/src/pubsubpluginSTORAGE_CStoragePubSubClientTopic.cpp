@@ -1234,7 +1234,8 @@ CStoragePubSubClientTopic::BeginVfsOps( void )
                         return false;
                     }
                 }
-                if ( threadPool->StartTask( m_vfsOpsThread ) )
+                CORE::CFutureResult result = threadPool->StartTaskWithConsumer( m_vfsOpsThread ); 
+                if ( result.HasAFuture() )
                 {
                     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "StoragePubSubClientTopic(" + CORE::ToString( this ) + "):BeginVfsOps: Started dedicated per-topic thread for async VFS ops" );
                 }

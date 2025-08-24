@@ -56,6 +56,12 @@ class GUCEF_CORE_PUBLIC_CPP CFutureResult
 
     CFutureResult( CTaskPtr task );
 
+    /**
+     *  This constructor allows you to create a future result that has no future
+     *  Intended for more convenient error handling. Only error states should use this constructor
+     */
+    CFutureResult( TTaskStatus taskStatus );
+
     CFutureResult( const CFutureResult& src );
 
     /**
@@ -65,6 +71,12 @@ class GUCEF_CORE_PUBLIC_CPP CFutureResult
     const CFutureResult& Await( Int32 timeoutInMs = GUCEF_MT_ULTRA_LONG_LOCK_TIMEOUT ) const;
 
     CTaskPtr GetResult( Int32 timeoutInMs = GUCEF_MT_ULTRA_LONG_LOCK_TIMEOUT ) const;
+
+    /**
+     *  Provides the globally unique numerical id of the task (for the lifespan of the task)
+     *  This id can be used for human feedback/logging and for interaction with the task manager and thread pools
+     */
+    CTask::TIntegerTypeUsedForTaskId GetTaskId( void ) const; 
 
     bool IsReady( void ) const;
 

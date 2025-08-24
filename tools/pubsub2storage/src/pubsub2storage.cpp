@@ -1186,7 +1186,8 @@ CStorageChannel::OnTaskStart( CORE::CTaskPtr task )
     if ( m_channelSettings.performPubSubInDedicatedThread )
     {
         CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetThreadPool();
-        if ( !threadPool->StartTask( m_pubsubClient ) )
+        CORE::CFutureResult result = threadPool->StartTaskWithConsumer( m_pubsubClient );
+        if ( result.HasNoFuture() )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "StorageChannel:OnTaskStart: Failed to start dedicated task (dedicated thread) for pub-sub. Falling back to a single thread" );
             m_channelSettings.performPubSubInDedicatedThread = false;
@@ -2168,7 +2169,8 @@ PubSub2Storage::SetStandbyMode( bool putInStandbyMode )
                     break;
                 }
 
-                if ( !threadPool->StartTask( channel ) )
+                CORE::CFutureResult result = threadPool->StartTaskWithConsumer( channel );
+                if ( result.HasNoFuture() )
                 {
                     GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSub2Storage::SetStandbyMode( false ): Failed to start task (dedicated thread) for channel " + CORE::Int32ToString( channelId ) );
                     totalSuccess = false;

@@ -240,8 +240,9 @@ CDnsCache::StartRefreshingASync( void )
 {GUCEF_TRACE;
 
     CDnsCachePtr thisPtr( CreateSharedPtr() );
-    return CORE::CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->StartTaskIfNoneExists( CDnsCacheRefreshTaskConsumer::TaskType ,
-                                                                                                   &thisPtr                               );
+    CORE::CFutureResult result = CORE::CCoreGlobal::Instance()->GetTaskManager().GetThreadPool()->StartTaskIfNoneExists( CDnsCacheRefreshTaskConsumer::TaskType ,
+                                                                                                                         &thisPtr                               );
+    return result.HasAFuture();
 }
 
 /*-------------------------------------------------------------------------*/

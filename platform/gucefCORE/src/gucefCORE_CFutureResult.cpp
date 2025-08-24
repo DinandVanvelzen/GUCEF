@@ -48,6 +48,20 @@ CFutureResult::CFutureResult( CTaskPtr task )
 
 /*-------------------------------------------------------------------------*/
 
+CFutureResult::CFutureResult( TTaskStatus taskStatus )
+    : m_task()
+{GUCEF_TRACE;
+
+    if GUCEF_PREDICT_FALSE( !TaskStatusIsAnError( taskStatus ) )
+    {
+        taskStatus = TTaskStatus::TASKSTATUS_INVALID_STATUS;
+    }
+
+    m_task = CTask::CreateSharedObjWithParam( taskStatus );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CFutureResult::CFutureResult( const CFutureResult& src )
     : m_task( src.m_task )
 {GUCEF_TRACE;
@@ -115,6 +129,18 @@ CFutureResult::GetResult( Int32 timeoutInMs ) const
 
     Await( timeoutInMs );
     return m_task;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTask::TIntegerTypeUsedForTaskId
+CFutureResult::GetTaskId( void ) const
+{GUCEF_TRACE;
+
+    CTaskPtr task = m_task;
+    if ( !task.IsNULL() )
+        return task->GetTaskId();
+    return 0;
 }
 
 /*-------------------------------------------------------------------------//
