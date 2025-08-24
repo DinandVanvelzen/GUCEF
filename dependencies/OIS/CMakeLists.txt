@@ -420,7 +420,7 @@ if ( WIN32 )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( $ENV{DXSDK_DIR}\Include includes src/extras/LIRC )
+  include_directories( $ENV{DXSDK_DIR}/Include includes src/extras/LIRC )
 endif( WIN64 )
 
 

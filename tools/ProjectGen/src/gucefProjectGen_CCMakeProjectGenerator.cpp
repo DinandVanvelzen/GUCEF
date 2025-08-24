@@ -334,12 +334,16 @@ GenerateCMakeTemplatedAdditionSection( const CModuleInfoEntryPtr& moduleInfoEntr
 
             ++m;
         }
+        CORE::CStringSet::iterator s = platformsToDelete.begin();
+        while ( s != platformsToDelete.end() )
+        {
+            platformTemplateAdditions.erase( (*s) );
+            ++s;
+        }
     }
-    CORE::CStringSet::iterator s = platformsToDelete.begin();
-    while ( s != platformsToDelete.end() )
+    else
     {
-        platformTemplateAdditions.erase( (*s) );
-        ++s;
+        hasOtherPlatforms = !platformTemplateAdditions.empty();
     }
 
     // Now format the if-else tree based on the unique platform sections
