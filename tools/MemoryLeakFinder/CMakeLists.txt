@@ -13,511 +13,7 @@
 
 
 
-if (ANDROID)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (ARDUINO)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "ARDUINO" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "ARDUINO" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (EMSCRIPTEN)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (GLX)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "GLX" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "GLX" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (GTK)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "GTK" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "GTK" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (IOS)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "IOS" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "IOS" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (LINUX32)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "LINUX32" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "LINUX32" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (LINUX64)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "LINUX64" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "LINUX64" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (NACL)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "NACL" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "NACL" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (OSX)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "OSX" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "OSX" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (POSIX)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "POSIX" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "POSIX" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (SDL)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "SDL" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "SDL" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (SYMBIAN)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "SYMBIAN" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "SYMBIAN" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (UNIX)
-  set( PLATFORM_HEADER_FILES 
-    ../../platform/gucefMT/include/gucefMT_CILockable.h
-    ../../platform/gucefMT/include/gucefMT_CMutex.h
-    ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
-    ../../platform/gucefMT/include/gucefMT_CScopeMutex.h
-    ../../platform/gucefMT/include/gucefMT_CScopeRwLock.h
-    ../../platform/gucefMT/include/gucefMT_DVRWLOCK.h
-    ../../platform/gucefMT/include/gucefMT_LockStatus.h
-    ../../platform/gucefMT/include/gucefMT_ThreadStatus.h
-    ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
-    ../../platform/gucefMT/include/gucefMT_mutex.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "UNIX" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    ../../platform/gucefMT/src/gucefMT_CILockable.cpp
-    ../../platform/gucefMT/src/gucefMT_CMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp
-    ../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp
-    ../../platform/gucefMT/src/gucefMT_DVRWLOCK.c
-    ../../platform/gucefMT/src/gucefMT_LockStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_MUTEX.c
-    ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
-    ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "UNIX" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (WIN32)
+if (WIN32)
   set( PLATFORM_HEADER_FILES 
     ../../platform/gucefMT/include/gucefMT_CILockable.h
     ../../platform/gucefMT/include/gucefMT_CMutex.h
@@ -632,70 +128,68 @@ if ( WIN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CALLSTACK_TRACING_DISABLED;GUCEF_CORE_EMBED_CODE;GUCEF_DYNNEWON_DISABLED;GUCEF_MLF_BUILD_MODULE;GUCEF_MT_EMBED_CODE;GUCEF_PLATFORM_LOCK_TRACER_DISABLED;GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI" )
 endif( WIN64 )
 
-include_directories( ../../common/include )
-
 if ( ANDROID )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( ANDROID )
 
 if ( ARDUINO )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( ARDUINO )
 
 if ( EMSCRIPTEN )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( EMSCRIPTEN )
 
 if ( GLX )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( GLX )
 
 if ( GTK )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( GTK )
 
 if ( IOS )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( IOS )
 
 if ( LINUX32 )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( LINUX64 )
 
 if ( NACL )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( NACL )
 
 if ( OSX )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( OSX )
 
 if ( POSIX )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( POSIX )
 
 if ( SDL )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( SDL )
 
 if ( SYMBIAN )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( SYMBIAN )
 
 if ( UNIX )
-  include_directories( ../../platform/gucefMT/include/ )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( UNIX )
 
 if ( WIN32 )
-  include_directories( ../../platform/gucefMT/include/ ../../platform/gucefMT/include/mswin/ include )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ ../../platform/gucefMT/include/mswin/ include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../platform/gucefMT/include/ ../../platform/gucefMT/include/mswin/ include )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ ../../platform/gucefMT/include/mswin/ include )
 endif( WIN64 )
 
 

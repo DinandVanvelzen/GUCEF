@@ -4330,7 +4330,6 @@ CModuleInfo::HasIndependentModuleType( void ) const
         case MODULETYPE_HEADER_INCLUDE_LOCATION:
         case MODULETYPE_HEADER_INTEGRATE_LOCATION:
         case MODULETYPE_CODE_INTEGRATE_LOCATION:
-        //case MODULETYPE_BINARY_PACKAGE:
         case MODULETYPE_UNDEFINED:
         case MODULETYPE_UNKNOWN:
         {
@@ -5445,6 +5444,29 @@ CModuleInfoEntry::Merge( const CModuleInfoEntryPtr& infoToMergeIn ,
 /*---------------------------------------------------------------------------*/
 
 void
+CModuleInfoEntry::GetSourceFilesForPlatform( const CORE::CString& platformName ,
+                                             TStringSetMap& files              ,
+                                             bool autoConsiderAllPlatforms     ) const
+{GUCEF_TRACE;
+
+    CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( platformName );
+    if ( !moduleInfo.IsNULL() )
+    {
+        MergeStringSetMap( files, moduleInfo->GetSourceDirs(), false );
+    }
+    if ( autoConsiderAllPlatforms && ( platformName != AllPlatforms && !platformName.IsNULLOrEmpty() ) )
+    {
+        moduleInfo = FindModuleInfoForPlatform( AllPlatforms );
+        if ( !moduleInfo.IsNULL() )
+        {
+            MergeStringSetMap( files, moduleInfo->GetSourceDirs(), false );
+        }
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
 CModuleInfoEntry::GetIncludeFilesForPlatform( const CORE::CString& platformName ,
                                               TStringSetMap& files              ,
                                               bool autoConsiderAllPlatforms     ) const
@@ -5468,9 +5490,33 @@ CModuleInfoEntry::GetIncludeFilesForPlatform( const CORE::CString& platformName 
 /*---------------------------------------------------------------------------*/
 
 void
+CModuleInfoEntry::GetDependencyIncludeDirsForPlatform( const CORE::CString& platformName ,
+                                                       TStringSet& subDirPaths           ,
+                                                       bool autoConsiderAllPlatforms     ) const
+{GUCEF_TRACE;
+
+    CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( platformName );
+    if ( !moduleInfo.IsNULL() )
+    {
+        subDirPaths.insert( moduleInfo->dependencyIncludeDirs.begin(), moduleInfo->dependencyIncludeDirs.end() );
+    }
+    if ( autoConsiderAllPlatforms && ( platformName != AllPlatforms && !platformName.IsNULLOrEmpty() ) )
+    {
+        moduleInfo = FindModuleInfoForPlatform( AllPlatforms );
+        if ( !moduleInfo.IsNULL() )
+        {
+           subDirPaths.insert( moduleInfo->dependencyIncludeDirs.begin(), moduleInfo->dependencyIncludeDirs.end() );
+        }
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
 CModuleInfoEntry::GetIncludeDirsForPlatform( const CORE::CString& platformName ,
                                              TStringSet& subDirPaths           ,
-                                             bool autoConsiderAllPlatforms     ) const
+                                             bool autoConsiderAllPlatforms     ,
+                                             bool includeDependencyIncludes    ) const
 {GUCEF_TRACE;
 
     CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( platformName );
@@ -5484,6 +5530,9 @@ CModuleInfoEntry::GetIncludeDirsForPlatform( const CORE::CString& platformName ,
             subDirPaths.insert( subPath );
             ++i;
         }
+
+        if ( includeDependencyIncludes )
+            subDirPaths.insert( moduleInfo->dependencyIncludeDirs.begin(), moduleInfo->dependencyIncludeDirs.end() );
     }
     if ( autoConsiderAllPlatforms && ( platformName != AllPlatforms && !platformName.IsNULLOrEmpty() ) )
     {
@@ -5498,6 +5547,9 @@ CModuleInfoEntry::GetIncludeDirsForPlatform( const CORE::CString& platformName ,
                 subDirPaths.insert( subPath );
                 ++i;
             }
+
+            if ( includeDependencyIncludes )
+                subDirPaths.insert( moduleInfo->dependencyIncludeDirs.begin(), moduleInfo->dependencyIncludeDirs.end() );
         }
     }
 }

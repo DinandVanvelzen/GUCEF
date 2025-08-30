@@ -77,14 +77,12 @@ if ( WIN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CEGUIDIRECT3D9RENDERER_EXPORTS" )
 endif( WIN64 )
 
-include_directories( ../../../include )
-
 if ( WIN32 )
-  include_directories( $ENV{DXSDK_DIR}/Include ../../../../../external )
+  include_directories( $ENV{DXSDK_DIR}/Include ../../../include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( $ENV{DXSDK_DIR}/Include ../../../../../external )
+  include_directories( $ENV{DXSDK_DIR}/Include ../../../include )
 endif( WIN64 )
 
 

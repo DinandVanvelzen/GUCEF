@@ -770,22 +770,20 @@ if ( WIN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MYGUI_USE_FREETYPE" )
 endif( WIN64 )
 
-include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../Common ../../Common/FileSystemInfo ../../Common/Input ../../MyGUIEngine/include ../../Platforms/OpenGL/OpenGLPlatform/include ../../Platforms/OpenGL/OpenGLPlatform/include/GL )
-
 if ( LINUX32 )
-  include_directories( ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/OIS ../../Common/ItemBox ../../Common/Tools ../SkinEditor )
+  include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../Common ../../Common/Base ../../Common/Base/OpenGL ../../Common/FileSystemInfo ../../Common/Input ../../Common/Input/OIS ../../Common/ItemBox ../../Common/Tools ../../MyGUIEngine/include ../../Platforms/OpenGL/OpenGLPlatform/include ../../Platforms/OpenGL/OpenGLPlatform/include/GL ../SkinEditor )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/OIS ../../Common/ItemBox ../../Common/Tools ../SkinEditor )
+  include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../Common ../../Common/Base ../../Common/Base/OpenGL ../../Common/FileSystemInfo ../../Common/Input ../../Common/Input/OIS ../../Common/ItemBox ../../Common/Tools ../../MyGUIEngine/include ../../Platforms/OpenGL/OpenGLPlatform/include ../../Platforms/OpenGL/OpenGLPlatform/include/GL ../SkinEditor )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/Win32API ../../Common/ItemBox ../../Common/Tools ../SkinEditor )
+  include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../Common ../../Common/Base ../../Common/Base/OpenGL ../../Common/FileSystemInfo ../../Common/Input ../../Common/Input/Win32API ../../Common/ItemBox ../../Common/Tools ../../MyGUIEngine/include ../../Platforms/OpenGL/OpenGLPlatform/include ../../Platforms/OpenGL/OpenGLPlatform/include/GL ../SkinEditor )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../Common/Base ../../Common/Base/OpenGL ../../Common/Input/Win32API ../../Common/ItemBox ../../Common/Tools ../SkinEditor )
+  include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../Common ../../Common/Base ../../Common/Base/OpenGL ../../Common/FileSystemInfo ../../Common/Input ../../Common/Input/Win32API ../../Common/ItemBox ../../Common/Tools ../../MyGUIEngine/include ../../Platforms/OpenGL/OpenGLPlatform/include ../../Platforms/OpenGL/OpenGLPlatform/include/GL ../SkinEditor )
 endif( WIN64 )
 
 

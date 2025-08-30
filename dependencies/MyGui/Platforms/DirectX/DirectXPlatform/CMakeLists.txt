@@ -100,14 +100,12 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} MyGUI.Engine d3d9 d3dx9 )
 endif( WIN64 )
 
-include_directories( ../../../../freetype/include ../../../../freetype/include/freetype ../../../../freetype/include/freetype/config ../../../../freetype/include/freetype/internal ../../../../freetype/include/freetype/internal/services ../../../../freetype/src ../../../../freetype/src/winfonts ../../../MyGUIEngine/include )
-
 if ( WIN32 )
-  include_directories( $ENV{DXSDK_DIR}/Include ../../../../external ../../../Common/FileSystemInfo include )
+  include_directories( $ENV{DXSDK_DIR}/Include ../../../../freetype/include ../../../../freetype/include/freetype ../../../../freetype/include/freetype/config ../../../../freetype/include/freetype/internal ../../../../freetype/include/freetype/internal/services ../../../../freetype/src ../../../../freetype/src/winfonts ../../../Common/FileSystemInfo ../../../MyGUIEngine/include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( $ENV{DXSDK_DIR}/Include ../../../../external ../../../Common/FileSystemInfo include )
+  include_directories( $ENV{DXSDK_DIR}/Include ../../../../freetype/include ../../../../freetype/include/freetype ../../../../freetype/include/freetype/config ../../../../freetype/include/freetype/internal ../../../../freetype/include/freetype/internal/services ../../../../freetype/src ../../../../freetype/src/winfonts ../../../Common/FileSystemInfo ../../../MyGUIEngine/include include )
 endif( WIN64 )
 
 

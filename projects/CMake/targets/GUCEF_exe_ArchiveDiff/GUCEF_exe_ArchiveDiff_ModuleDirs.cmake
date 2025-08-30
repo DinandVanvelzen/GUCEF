@@ -42,6 +42,4 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMA
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefPATCHER ${CMAKE_BINARY_DIR}/gucefPATCHER )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ArchiveDiff ${CMAKE_BINARY_DIR}/ArchiveDiff )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ArchiveDiffLib ${CMAKE_BINARY_DIR}/ArchiveDiffLib )
-else()
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ArchiveDiff ${CMAKE_BINARY_DIR}/ArchiveDiff )
 endif()

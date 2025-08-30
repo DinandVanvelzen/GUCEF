@@ -146,22 +146,20 @@ if ( WIN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BUILD_GUCEF_INPUT_PLUGIN_DLL;INPUTDRIVEROIS_BUILD_MODULE" )
 endif( WIN64 )
 
-include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include )
-
 if ( LINUX32 )
-  include_directories( ../../../dependencies/OIS/includes ../../../dependencies/OIS/includes/linux ../../../dependencies/OIS/src/extras/LIRC ../../../platform/gucefCORE/include/linux include )
+  include_directories( ../../../common/include ../../../dependencies/OIS/includes ../../../dependencies/OIS/includes/linux ../../../dependencies/OIS/src/extras/LIRC ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../../dependencies/OIS/includes ../../../dependencies/OIS/includes/linux ../../../dependencies/OIS/src/extras/LIRC ../../../platform/gucefCORE/include/linux include )
+  include_directories( ../../../common/include ../../../dependencies/OIS/includes ../../../dependencies/OIS/includes/linux ../../../dependencies/OIS/src/extras/LIRC ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../../dependencies/OIS/$ENV{DXSDK_DIR}/Include ../../../dependencies/OIS/includes ../../../dependencies/OIS/includes/win32 ../../../dependencies/OIS/src/extras/LIRC ../../../dependencies/OIS/src/win32/extras/WiiMote ../../../dependencies/external ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin include )
+  include_directories( ../../../common/include ../../../dependencies/OIS/$ENV{DXSDK_DIR}/Include ../../../dependencies/OIS/includes ../../../dependencies/OIS/includes/win32 ../../../dependencies/OIS/src/extras/LIRC ../../../dependencies/OIS/src/win32/extras/WiiMote ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../../dependencies/OIS/includes ../../../dependencies/OIS/src/extras/LIRC ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin include )
+  include_directories( ../../../common/include ../../../dependencies/OIS/$ENV{DXSDK_DIR}/Include ../../../dependencies/OIS/includes ../../../dependencies/OIS/src/extras/LIRC ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
 endif( WIN64 )
 
 

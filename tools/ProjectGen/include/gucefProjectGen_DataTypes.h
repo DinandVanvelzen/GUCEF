@@ -768,6 +768,14 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
                               const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
+     *  Provides all the source folders and their contents for the given platform
+     *  By default will merge the dirs/files across the 'all' platform and the given platform to the extent applicable
+     */
+    void GetSourceFilesForPlatform( const CORE::CString& platformName    ,
+                                    TStringSetMap& files                 ,
+                                    bool autoConsiderAllPlatforms = true ) const;
+
+    /**
      *  Provides all the include folders and their contents for the given platform
      *  By default will merge the dirs/files across the 'all' platform and the given platform to the extent applicable
      */
@@ -779,9 +787,18 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
      *  Provides all the include folders for the given platform
      *  By default will merge the dirs across the 'all' platform and the given platform to the extent applicable
      */
-    void GetIncludeDirsForPlatform( const CORE::CString& platformName    ,
-                                    TStringSet& subDirPaths              ,
-                                    bool autoConsiderAllPlatforms = true ) const;
+    void GetIncludeDirsForPlatform( const CORE::CString& platformName      ,
+                                    TStringSet& subDirPaths                ,
+                                    bool autoConsiderAllPlatforms = true   ,
+                                    bool includeDependencyIncludes = false ) const;
+
+    /**
+     *  Provides all the dependency based include folders for the given platform
+     *  By default will merge the dirs across the 'all' platform and the given platform to the extent applicable
+     */
+    void GetDependencyIncludeDirsForPlatform( const CORE::CString& platformName    ,
+                                              TStringSet& subDirPaths              ,
+                                              bool autoConsiderAllPlatforms = true ) const;
 
     /**
      *  Provides all the paths to include folders for the given platform using the given 'from' path

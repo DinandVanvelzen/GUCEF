@@ -13,34 +13,7 @@
 
 
 
-if (IOS)
-  set( PLATFORM_HEADER_FILES 
-    includes/iphone/iPhoneAccelerometer.h
-    includes/iphone/iPhoneHelpers.h
-    includes/iphone/iPhoneInputManager.h
-    includes/iphone/iPhoneMultiTouch.h
-    includes/iphone/iPhonePrereqs.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "IOS" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    src/OISEffect.cpp
-    src/OISException.cpp
-    src/OISForceFeedback.cpp
-    src/OISInputManager.cpp
-    src/OISJoyStick.cpp
-    src/OISKeyboard.cpp
-    src/OISObject.cpp
-    src/extras/LIRC/OISLIRC.cpp
-    src/extras/LIRC/OISLIRCFactoryCreator.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "IOS" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (LINUX32)
+if (LINUX32)
   set( PLATFORM_HEADER_FILES 
     includes/OIS.h
     includes/OISConfig.h
@@ -197,37 +170,6 @@ elseif (OSX)
   )
 
   set( PLATFORM_SOURCE_INSTALL "OSX" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (SDL)
-  set( PLATFORM_HEADER_FILES 
-    includes/SDL/SDLInputManager.h
-    includes/SDL/SDLJoyStick.h
-    includes/SDL/SDLKeyboard.h
-    includes/SDL/SDLMouse.h
-    includes/SDL/SDLPrereqs.h
-  )
-
-  set( PLATFORM_HEADER_INSTALL "SDL" )
-  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
-
-  set( PLATFORM_SOURCE_FILES 
-    src/OISEffect.cpp
-    src/OISException.cpp
-    src/OISForceFeedback.cpp
-    src/OISInputManager.cpp
-    src/OISJoyStick.cpp
-    src/OISKeyboard.cpp
-    src/OISObject.cpp
-    src/SDL/SDLInputManager.cpp
-    src/SDL/SDLJoyStick.cpp
-    src/SDL/SDLKeyboard.cpp
-    src/SDL/SDLMouse.cpp
-    src/extras/LIRC/OISLIRC.cpp
-    src/extras/LIRC/OISLIRCFactoryCreator.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "SDL" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (WIN32)
@@ -416,7 +358,7 @@ if ( SDL )
 endif( SDL )
 
 if ( WIN32 )
-  include_directories( $ENV{DXSDK_DIR}/Include ../external includes includes/win32 src/extras/LIRC src/win32/extras/WiiMote )
+  include_directories( $ENV{DXSDK_DIR}/Include includes includes/win32 src/extras/LIRC src/win32/extras/WiiMote )
 endif( WIN32 )
 
 if ( WIN64 )

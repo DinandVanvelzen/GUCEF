@@ -78,7 +78,7 @@ class GUCEF_INPUT_PUBLIC_CPP CInputContext
     private:
     friend class CInputController;
 
-    typedef CORE::CTNumericIDGenerator< CORE::Int32 >::TNumericID TContextId;
+    typedef CORE::CTNumericIDGenerator< CORE::Int32, MT::CMutex >::TNumericID TContextId;
 
     void SetID( TContextId& id );
 

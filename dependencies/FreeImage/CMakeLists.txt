@@ -1585,14 +1585,6 @@ elseif (LINUX64)
   set( PLATFORM_SOURCE_INSTALL "LINUX64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
-elseif (OSX)
-  set( PLATFORM_SOURCE_FILES 
-    Source/LibJPEG/jmemmac.c
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "OSX" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
     Source/CacheFile.h

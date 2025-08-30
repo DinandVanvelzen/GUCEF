@@ -447,10 +447,10 @@ GenerateCMakeListsFileIncludeSection( const CModuleInfoEntryPtr& moduleInfoEntry
 {GUCEF_TRACE;
 
     CORE::CString sectionContent;
-    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->GetModulesPerPlatform().find( AllPlatforms );
-    if ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
+    CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( AllPlatforms );
+    if ( !moduleInfo.IsNULL() && moduleInfo->HasIndependentModuleType() )
     {
-        const TStringSetMap& includeFiles = (*i).second->GetIncludeDirs();
+        const TStringSetMap& includeFiles = moduleInfo->GetIncludeDirs();
         if ( !includeFiles.empty() )
         {
             sectionContent = "set( HEADER_FILES \n";
@@ -473,10 +473,10 @@ GenerateCMakeListsFileSrcSection( const CModuleInfoEntryPtr& moduleInfoEntry ,
 {GUCEF_TRACE;
 
     CORE::CString sectionContent;
-    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->GetModulesPerPlatform().find( AllPlatforms );
-    if ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
+    CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( AllPlatforms );
+    if ( !moduleInfo.IsNULL() && moduleInfo->HasIndependentModuleType() )
     {
-        const TStringSetMap& srcFiles = (*i).second->GetSourceDirs();
+        const TStringSetMap& srcFiles = moduleInfo->GetSourceDirs();
         if ( !srcFiles.empty() )
         {
             sectionContent = "set( SOURCE_FILES \n";
@@ -502,10 +502,12 @@ GenerateCMakeListsFilePlatformFilesSection( const CModuleInfoEntryPtr& moduleInf
                                             bool& hasPlatformSourceFiles               )
 {GUCEF_TRACE;
 
-    TModuleInfoPtrMap::const_iterator m = moduleInfoEntry->GetModulesPerPlatform().find( platformName );
-    if ( m != moduleInfoEntry->GetModulesPerPlatform().end() )
+    bool hasAllPlatformsPlatform = moduleInfoEntry->HasAllPlatformsDefinition();
+
+    if ( moduleInfoEntry->HasIndependentModuleTypeForPlatform( platformName ) )
     {
-        const TStringSetMap& platformHeaderFiles = (*m).second->GetIncludeDirs();
+        TStringSetMap platformHeaderFiles;
+        moduleInfoEntry->GetIncludeFilesForPlatform( platformName, platformHeaderFiles, !hasAllPlatformsPlatform );
         if ( !platformHeaderFiles.empty() )
         {
             hasPlatformHeaderFiles = true;
@@ -546,7 +548,8 @@ GenerateCMakeListsFilePlatformFilesSection( const CModuleInfoEntryPtr& moduleInf
             headerSection += "  source_group( \"Platform Header Files\" FILES ${PLATFORM_HEADER_FILES} )\n\n";
         }
 
-        const TStringSetMap& platformSourceFiles = (*m).second->GetSourceDirs();
+        TStringSetMap platformSourceFiles;
+        moduleInfoEntry->GetSourceFilesForPlatform( platformName, platformSourceFiles, !hasAllPlatformsPlatform );
         if ( !platformSourceFiles.empty() )
         {
             hasPlatformSourceFiles = true;
@@ -645,50 +648,53 @@ GenerateCMakeListsFilePlatformFilesSection( const CModuleInfoEntryPtr& moduleInf
 /*---------------------------------------------------------------------------*/
 
 CORE::CString
-GenerateCMakeModuleIncludesSection( const CModuleInfoPtr& moduleInfo ,
-                                    const CORE::CString& rootDir     )
+GenerateCMakeModuleIncludesSection( const CModuleInfoEntryPtr& moduleInfoEntry ,
+                                    const CORE::CString& platformName          ,
+                                    bool hasAllPlatformsPlatform               )
 {GUCEF_TRACE;
     
     // Add include dirs for each dependency we know about
+    const CORE::CString& rootDir = moduleInfoEntry->GetAbsolutePathToModuleRootDir().IsNULLOrEmpty() ?
+                                            moduleInfoEntry->GetProjectRelativePathToModuleRootDir() : moduleInfoEntry->GetAbsolutePathToModuleRootDir();
+
     CORE::CString allRelDependencyPaths;
     CORE::CStringSet allRelDependencyPathsSet;
-    const TStringSet& includeDirs = moduleInfo->dependencyIncludeDirs;
-    TStringSet::const_iterator i = includeDirs.begin();
-    while ( i != includeDirs.end() )
+    CORE::CStringSet allRelDependencyPathsSetRaw;
+
+    moduleInfoEntry->GetIncludeDirsForPlatform( platformName, allRelDependencyPathsSetRaw, !hasAllPlatformsPlatform, true );
+
+    // CMake needs spaces in paths to be escaped
+    // We use / never \\ in our CMake since we want to keep things consistent across platforms wrt file diffs
+    // We also trim extra spaces plus convert environment variables
+    TStringSet::iterator i = allRelDependencyPathsSetRaw.begin();
+    while ( i != allRelDependencyPathsSetRaw.end() )
     {
-        // CMake needs spaces in paths to be escaped
-        CORE::CString path = (*i).ReplaceChar( '\\', '/' ).ReplaceSubstr( " ", "\\ " );        
-        allRelDependencyPathsSet.insert( ConvertEnvVarStrings( path ).Trim( true ).Trim( false ) );
-        ++i;
-    }
+        CORE::CString path = ConvertEnvVarStrings( (*i) ).ReplaceChar( '\\', '/' ).ReplaceSubstr( " ", "\\ " );
+        path = path.Trim( true ).Trim( false );
 
-    // Add all the regular include dirs for this module
-    TStringSetMap::const_iterator n = moduleInfo->GetIncludeDirs().begin();
-    while ( n != moduleInfo->GetIncludeDirs().end() )
-    {        
-        CORE::CString includeDir = ConvertEnvVarStrings( (*n).first ).ReplaceChar( '\\', '/' ); 
-
-        // CMake needs spaces in paths to be escaped
-        includeDir = includeDir.ReplaceSubstr( " ", "\\ " );
-
-        if ( 0 != includeDir.Length() )
+        if ( !path.IsNULLOrEmpty() )
         {
-            allRelDependencyPathsSet.insert( includeDir.Trim( true ).Trim( false ) );
+            allRelDependencyPathsSet.insert( path );
         }
         else
         {
-            // Check if there is more then one include dir
-            // If so we have create an include for an empty include dir
-            // to ensure files in subdirs can include the file with the zero length
-            // subdir.
-            if ( 1 < moduleInfo->GetIncludeDirs().size() )
+            CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( platformName );
+            if ( !moduleInfo.IsNULL() )
             {
-                CORE::CString path = "../" + CORE::LastSubDir( rootDir );
-                path = path.ReplaceSubstr( " ", "\\ " );
-                allRelDependencyPathsSet.insert( path.ReplaceChar( '\\', '/' ).Trim( true ).Trim( false ) );
+                // If the module has multiple include dirs there may be relationships between them
+                // in such a case they may need the path to the other dir specified
+                // in the case of an empty dir (zero length) we must generate something more explicit to ensure its not dropped
+                // otherwise it would break the cross-dir relationships
+                if ( moduleInfo->GetIncludeDirs().size() > 1 )
+                {
+                    CORE::CString path = "../" + CORE::LastSubDir( rootDir );
+                    path = path.ReplaceSubstr( " ", "\\ " );
+                    allRelDependencyPathsSet.insert( path.ReplaceChar( '\\', '/' ).Trim( true ).Trim( false ) );
+                }
             }
         }
-        ++n;
+        
+        ++i;
     }
 
     // Now that we gathered all the paths, the entire set, we can turn it into a singular
@@ -749,24 +755,28 @@ GenerateCMakeModuleIncludesSection( const CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
     CORE::CString sectionContent;
+    bool hasAllPlatformsPlatform = moduleInfoEntry->HasAllPlatformsDefinition();
 
     // First add the include section which applies to all platforms
     // it should not have an 'if' check around it
-    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->GetModulesPerPlatform().find( AllPlatforms );
-    if ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
+    if ( hasAllPlatformsPlatform )
     {
-        sectionContent += "\n";
-        sectionContent += GenerateCMakeModuleIncludesSection( (*i).second, moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
+        CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( AllPlatforms );
+        if ( !moduleInfo.IsNULL() )
+        {
+            sectionContent += "\n";
+            sectionContent += GenerateCMakeModuleIncludesSection( moduleInfoEntry, AllPlatforms, hasAllPlatformsPlatform );
+        }
     }
 
     // Now add the include paths which are platform specific
-    i = moduleInfoEntry->GetModulesPerPlatform().begin();
+    TModuleInfoPtrMap::const_iterator i = moduleInfoEntry->GetModulesPerPlatform().begin();
     while ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
     {
         const CORE::CString& platformName = (*i).first;
         if ( platformName != AllPlatforms )
         {
-            CORE::CString platformSection = GenerateCMakeModuleIncludesSection( (*i).second, moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
+            CORE::CString platformSection = GenerateCMakeModuleIncludesSection( moduleInfoEntry, platformName, hasAllPlatformsPlatform );
             if ( platformSection.Length() > 0 )
             {
                 sectionContent += "\nif ( "+ platformName.Uppercase() + " )\n  ";
@@ -1395,6 +1405,9 @@ GenerateCMakeListsFileContent( const CProjectInfo& projectInfo            ,
 
     // Determine the general consensus module name
     CORE::CString consensusModuleName = moduleInfoEntry->GetConsensusName();
+
+if ( consensusModuleName.HasSubstr( "guidriverWin32" ) >= 0 )
+    int sdfsfs =0;
 
     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating CMakeLists content for module " + consensusModuleName );
 

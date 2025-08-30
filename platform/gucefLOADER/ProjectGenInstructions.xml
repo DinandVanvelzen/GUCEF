@@ -14,6 +14,8 @@
         <ITEM NAME="../gucefMT/include/gucefMT_CICloneable.h" TYPE="FILE" />
         <ITEM NAME="../gucefMT/src/gucefMT_ThreadStatus.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefMT/include/gucefMT_ThreadStatus.h" TYPE="FILE" />
+        <ITEM NAME="../gucefMT/src/gucefMT_LockStatus.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefMT/include/gucefMT_LockStatus.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/DVOSWRAP.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/DVOSWRAP.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/DVCPPOSWRAP.cpp" TYPE="FILE" />
@@ -51,8 +53,12 @@
         <ITEM NAME="../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/CIOAccess.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/CIOAccess.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/CFileAccess.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/CFileAccess.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/CDynamicBuffer.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/CDynamicBuffer.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/CDynamicBufferAccess.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/CDynamicBufferAccess.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/c_api/gucefCORE_c_variantdata.c" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/c_api/gucefCORE_c_variantdata.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/gucefCORE_CVariant.cpp" TYPE="FILE" />

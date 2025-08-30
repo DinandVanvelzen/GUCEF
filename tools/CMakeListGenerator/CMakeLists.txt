@@ -97,22 +97,20 @@ if ( WIN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CMAKELISTGENERATOR_BUILD_MODULE" )
 endif( WIN64 )
 
-include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include )
-
 if ( LINUX32 )
-  include_directories( ../../platform/gucefCORE/include/linux )
+  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefMT/include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../platform/gucefCORE/include/linux )
+  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefMT/include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
+  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
+  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin )
 endif( WIN64 )
 
 

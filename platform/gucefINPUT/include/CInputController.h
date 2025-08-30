@@ -262,7 +262,7 @@ class GUCEF_INPUT_PUBLIC_CPP CInputController : public CORE::CTSGNotifier
     private:
     typedef std::set< CInputContext* > TContextSet;
     typedef std::map< CString, TInputDriverPtr >    TInputDriverMap;
-    typedef CORE::CTNumericIDGenerator< CORE::Int32 > TIdGenerator;
+    typedef CORE::CTNumericIDGenerator< CORE::Int32, MT::CMutex > TIdGenerator;
         
     static CInputController* m_instance;
     

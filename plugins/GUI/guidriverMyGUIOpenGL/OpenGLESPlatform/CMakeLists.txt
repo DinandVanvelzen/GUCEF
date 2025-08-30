@@ -55,10 +55,8 @@ if ( ANDROID )
   target_link_libraries( ${MODULE_NAME} GLESv1_CM MyGUI.Engine )
 endif( ANDROID )
 
-include_directories( ../../../../dependencies/MyGui/MyGUIEngine/include ../../../../dependencies/freetype/include ../../../../dependencies/freetype/include/freetype ../../../../dependencies/freetype/include/freetype/config ../../../../dependencies/freetype/include/freetype/internal ../../../../dependencies/freetype/include/freetype/internal/services ../../../../dependencies/freetype/src ../../../../dependencies/freetype/src/winfonts )
-
 if ( ANDROID )
-  include_directories( ../../../../dependencies/MyGui/Common/FileSystemInfo include )
+  include_directories( ../../../../dependencies/MyGui/Common/FileSystemInfo ../../../../dependencies/MyGui/MyGUIEngine/include ../../../../dependencies/freetype/include ../../../../dependencies/freetype/include/freetype ../../../../dependencies/freetype/include/freetype/config ../../../../dependencies/freetype/include/freetype/internal ../../../../dependencies/freetype/include/freetype/internal/services ../../../../dependencies/freetype/src ../../../../dependencies/freetype/src/winfonts include )
 endif( ANDROID )
 
 

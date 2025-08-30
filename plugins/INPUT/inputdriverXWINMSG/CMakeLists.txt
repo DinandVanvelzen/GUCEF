@@ -76,14 +76,12 @@ if ( LINUX64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BUILD_GUCEF_INPUT_PLUGIN_DLL;INPUTDRIVERXWINMSG_BUILD_MODULE" )
 endif( LINUX64 )
 
-include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include )
-
 if ( LINUX32 )
-  include_directories( ../../../platform/gucefCORE/include/linux include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../../platform/gucefCORE/include/linux include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
 endif( LINUX64 )
 
 

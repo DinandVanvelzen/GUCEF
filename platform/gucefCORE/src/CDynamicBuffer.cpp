@@ -33,6 +33,11 @@
 #define GUCEF_CORE_CIOACCESS_H
 #endif /* GUCEF_CORE_CIOACCESS_H ? */
 
+#ifndef GUCEF_CORE_CFILEACCESS_H
+#include "CFileAccess.h"
+#define GUCEF_CORE_CFILEACCESS_H
+#endif /* GUCEF_CORE_CFILEACCESS_H ? */
+
 #ifndef GUCEF_CORE_DVFILEUTILS_H
 #include "dvfileutils.h"
 #define GUCEF_CORE_DVFILEUTILS_H

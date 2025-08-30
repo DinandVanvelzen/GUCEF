@@ -86,14 +86,12 @@ if ( WIN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERWIN32GL_BUILD_MODULE" )
 endif( WIN64 )
 
-include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include )
-
 if ( WIN32 )
-  include_directories( ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin ../../../platform/gucefVFS/include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin ../../../platform/gucefVFS/include include )
 endif( WIN64 )
 
 
