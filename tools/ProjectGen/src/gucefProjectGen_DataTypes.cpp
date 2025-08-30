@@ -997,6 +997,36 @@ FindModuleByName( const TModuleInfoEntryPairVector& mergeLinks ,
     return CModuleInfoPtr();
 }
 
+/*---------------------------------------------------------------------------*/
+
+bool
+IsDirALegacyModuleDir( const CORE::CString& dir )
+{GUCEF_TRACE;
+
+    // The dir is a module dir if it has a suffix file in it
+    CORE::CString suffixFilePath = dir;
+    CORE::AppendToPath( suffixFilePath, "CMakeListsSuffix.txt" );
+
+    return CORE::FileExists( suffixFilePath );
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+IsDirAModuleDir( const CORE::CString& dir )
+{GUCEF_TRACE;
+
+    // The dir is a module dir if it has a suffix file in it
+    CORE::CString moduleInfoFilePath = dir;
+    CORE::AppendToPath( moduleInfoFilePath, "ModuleInfo.xml" );
+
+    if ( !CORE::FileExists( moduleInfoFilePath ) )
+    {
+        return IsDirALegacyModuleDir( dir );
+    }
+    return true;
+}
+
 /*-------------------------------------------------------------------------*/
 
 bool
@@ -2078,10 +2108,12 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
     TStringSet::iterator p = platformsUsed.begin();
     while ( p != platformsUsed.end() )
     {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Locating executables (if any) for platform " + (*p) );
+        const CORE::CString& platform = (*p);
+
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Locating executables (if any) for platform " + platform );
 
         TModuleInfoEntryPtrSet executables;
-        GetExecutables( projectInfo, executables, (*p) );
+        GetExecutables( projectInfo, executables, platform );
 
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Located " + CORE::ToString( executables.size() ) + " executable target candidates for platform " + (*p) );
 
@@ -2089,26 +2121,26 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
         while ( i != executables.end() )
         {
             CModuleInfoEntryPtr executable = (*i);
-            CORE::CString targetName = executable->GetModuleNameAlways( (*p) );
+            CORE::CString targetName = executable->GetModuleNameAlways( platform );
 
             // Don't bother if the executable itself doesnt have a platform definition for the current platform            
-            if ( executable->GetModulesPerPlatform().find( (*p) ) != executable->GetModulesPerPlatform().end() )
+            if ( executable->IsApplicableForPlatform( platform ) )
             {            
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Locating dependencies for target candidate \"" + 
                     targetName + "\" for platform " + (*p) );
 
                 TModuleInfoEntryPtrSet foundDependencies;
-                if ( projectInfo.GetModuleDependencies( executable, (*p), foundDependencies, true, true, false ) )
+                if ( projectInfo.GetModuleDependencies( executable, platform, foundDependencies, true, true, false ) )
                 {
                     // if we made it here we found the executable and were able to satisfy all dependencies
                     // for the current platform
 
                     CORE::CString projectName = projectInfo.projectName + "_exe_" + targetName; 
                     TProjectTargetInfoMap& targetPerPlatform = targets[ projectName ];
-                    TProjectTargetInfo& target = targetPerPlatform[ (*p) ];
+                    TProjectTargetInfo& target = targetPerPlatform[ platform ];
 
                     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Located " + CORE::ToString( foundDependencies.size() ) + 
-                        " dependencies for executable target \"" + targetName + "\" for platform " + (*p) );
+                        " dependencies for executable target \"" + targetName + "\" for platform " + platform );
 
                     target.projectName = projectName;
                     target.mainModule = executable;
@@ -2120,18 +2152,18 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
                         ++j;
                     } 
 
-                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Executable Target \"" + targetName + "\" has been defined for platform " + (*p) );                        
+                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Executable Target \"" + targetName + "\" has been defined for platform " + platform );                        
                 }
                 else
                 {
                      GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: We cannot satisfy the full dependency chain for executable \"" + targetName + 
-                        "\" for the given platform \"" + (*p) + "\", it will not be available as a target specific to this platform" );
+                        "\" for the given platform \"" + platform + "\", it will not be available as a target specific to this platform" );
                 }
             }
             else
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: The executable \"" + targetName + "\" has no definition specific to the given platform \"" 
-                    + (*p) + "\" and thus will not be available as a target specific to this platform" ); 
+                    + platform + "\" and thus will not be available as a target specific to this platform" ); 
             }
             ++i;
         }
@@ -2146,11 +2178,13 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
         TStringSet::iterator p = platformsUsed.begin();
         while ( p != platformsUsed.end() )
         {
+            const CORE::CString& platform = (*p);
+            
             TStringSet::iterator i = tagsUsed.begin();
             while ( i != tagsUsed.end() )
             {
                 TModuleInfoEntryPtrSet taggedModules;
-                GetTaggedModules( projectInfo, (*i), taggedModules, (*p) );
+                GetTaggedModules( projectInfo, (*i), taggedModules, platform );
                 CORE::CString projectName = projectInfo.projectName + "_tag_" + (*i);
 
                 TModuleInfoEntryPtrSet::iterator m = taggedModules.begin();
@@ -2159,15 +2193,15 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
                     const CModuleInfoEntryPtr& taggedModule = (*m);
                                             
                     // Don't include this module if it doesnt have a definition for the current platform
-                    if ( taggedModule->GetModulesPerPlatform().find( (*p) ) != taggedModule->GetModulesPerPlatform().end() )
+                    if ( taggedModule->GetModulesPerPlatform().find( platform ) != taggedModule->GetModulesPerPlatform().end() )
                     {                    
                         // Tagged or not we need to include the dependencies of tagged modules as well
                         // We don't want to make projects that cannot compile
                         TModuleInfoEntryPtrSet foundDependencies;
-                        if ( projectInfo.GetModuleDependencies( taggedModule, (*p), foundDependencies, true, true, false ) )
+                        if ( projectInfo.GetModuleDependencies( taggedModule, platform, foundDependencies, true, true, false ) )
                         {
                             TProjectTargetInfoMap& targetPerPlatform = targets[ projectName ];
-                            TProjectTargetInfo& target = targetPerPlatform[ (*p) ];
+                            TProjectTargetInfo& target = targetPerPlatform[ platform ];
 
                             target.projectName = projectName;
                             target.modules.insert( taggedModule );
@@ -2235,10 +2269,10 @@ SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
     }
 
     // In order to facilitate uniform processing we also include the complete project as its own target
-    // This ensures that backend code doesnt need different code to process the complete project vs some
+    // This ensures that backend code doesn't need different code to process the complete project vs some
     // target based subset
-    // Note that the full project is by definition "all" platforms because there is no target differntiation
-    // It relies soley on module level per-platform differenes to be processed
+    // Note that the full project is by definition "all" platforms because there is no target differentiation
+    // It relies solely on module level per-platform differences to be processed
 
     TProjectTargetInfoMap& fullProjectTargets = targets[ projectInfo.projectName ];
     TProjectTargetInfo& fullProjectTarget = fullProjectTargets[ AllPlatforms ];
@@ -5960,8 +5994,9 @@ CModuleDependencyNode::GetDependencies( void ) const
 /*---------------------------------------------------------------------------*/
 
 bool
-CModuleDependencyNode::GatherDependencyModules( TModuleInfoEntryPtrSet& dependencies   ,
-                                                bool includeDependenciesOfDependencies ) const
+CModuleDependencyNode::GatherDependencyModules( TModuleInfoEntryPtrSet& dependencies          ,
+                                                bool includeDependenciesOfDependencies        ,
+                                                bool includeLogicalDependenciesOfDependencies ) const
 {GUCEF_TRACE;
 
     bool totalSuccess = true;
@@ -5975,7 +6010,7 @@ CModuleDependencyNode::GatherDependencyModules( TModuleInfoEntryPtrSet& dependen
             dependencies.insert( dependencyNode->GetModule() );
             if ( includeDependenciesOfDependencies )
             {
-                totalSuccess = dependencyNode->GatherDependencyModules( dependencies, includeDependenciesOfDependencies ) && totalSuccess;
+                totalSuccess = dependencyNode->GatherDependenciesOfDependencies( dependencies, includeLogicalDependenciesOfDependencies ) && totalSuccess;
             }
         }
         ++i;
@@ -6027,8 +6062,9 @@ CModuleDependencyNode::GetLinkerDependencies( void ) const
 /*---------------------------------------------------------------------------*/
 
 bool
-CModuleDependencyNode::GatherLinkerDependencyModules( TModuleInfoEntryPtrSet& dependencies   ,
-                                                      bool includeDependenciesOfDependencies ) const
+CModuleDependencyNode::GatherLinkerDependencyModules( TModuleInfoEntryPtrSet& dependencies          ,
+                                                      bool includeDependenciesOfDependencies        ,
+                                                      bool includeLogicalDependenciesOfDependencies ) const
 {GUCEF_TRACE;
 
     bool totalSuccess = true;
@@ -6042,7 +6078,7 @@ CModuleDependencyNode::GatherLinkerDependencyModules( TModuleInfoEntryPtrSet& de
             dependencies.insert( dependencyNode->GetModule() );
             if ( includeDependenciesOfDependencies )
             {
-                totalSuccess = dependencyNode->GatherLinkerDependencyModules( dependencies, includeDependenciesOfDependencies ) && totalSuccess;
+                totalSuccess = dependencyNode->GatherDependenciesOfDependencies( dependencies, includeLogicalDependenciesOfDependencies ) && totalSuccess;
             }
         }
         ++i;
@@ -6094,8 +6130,9 @@ CModuleDependencyNode::GetRuntimeDependencies( void ) const
 /*---------------------------------------------------------------------------*/
 
 bool
-CModuleDependencyNode::GatherRuntimeDependencyModules( TModuleInfoEntryPtrSet& dependencies   ,
-                                                       bool includeDependenciesOfDependencies ) const
+CModuleDependencyNode::GatherRuntimeDependencyModules( TModuleInfoEntryPtrSet& dependencies          ,
+                                                       bool includeDependenciesOfDependencies        ,
+                                                       bool includeLogicalDependenciesOfDependencies ) const
 {GUCEF_TRACE;
 
     bool totalSuccess = true;
@@ -6109,8 +6146,49 @@ CModuleDependencyNode::GatherRuntimeDependencyModules( TModuleInfoEntryPtrSet& d
             dependencies.insert( dependencyNode->GetModule() );
             if ( includeDependenciesOfDependencies )
             {
-                totalSuccess = dependencyNode->GatherRuntimeDependencyModules( dependencies, includeDependenciesOfDependencies ) && totalSuccess;
+                totalSuccess = dependencyNode->GatherDependenciesOfDependencies( dependencies, includeLogicalDependenciesOfDependencies ) && totalSuccess;
             }
+        }
+        ++i;
+    }
+
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleDependencyNode::GatherDependenciesOfDependencies( TModuleInfoEntryPtrSet& dependencies ,
+                                                         bool includeLogicalDependencies      ) const
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+    totalSuccess = GatherDependenciesOfDependenciesImpl( m_dependencies, dependencies, includeLogicalDependencies ) && totalSuccess;
+    totalSuccess = GatherDependenciesOfDependenciesImpl( m_linkerDependencies, dependencies, includeLogicalDependencies ) && totalSuccess;
+    totalSuccess = GatherDependenciesOfDependenciesImpl( m_runtimeDependencies, dependencies, includeLogicalDependencies ) && totalSuccess;
+    if ( includeLogicalDependencies )
+        totalSuccess = GatherDependenciesOfDependenciesImpl( m_logicalDependencies, dependencies, includeLogicalDependencies ) && totalSuccess;
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleDependencyNode::GatherDependenciesOfDependenciesImpl( const TModuleDependencyNodePtrMap& dependenciesAtLevel ,
+                                                             TModuleInfoEntryPtrSet& dependencies                   ,
+                                                             bool includeLogicalDependencies                        ) const
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    TModuleDependencyNodePtrMap::const_iterator i = dependenciesAtLevel.begin();
+    while ( i != dependenciesAtLevel.end() )
+    {
+        const CModuleDependencyNodePtr& dependencyNode = (*i).second;
+        if GUCEF_PREDICT_TRUE( !dependencyNode.IsNULL() )
+        {
+            dependencies.insert( dependencyNode->GetModule() );
+            totalSuccess = dependencyNode->GatherDependenciesOfDependencies( dependencies, includeLogicalDependencies ) && totalSuccess;
         }
         ++i;
     }
@@ -8850,7 +8928,10 @@ CProjectInfo::Deserialize( const CORE::CDataNode& domRootNode                  ,
     projectName = node->GetAttributeValueOrChildValueByName( "Name" ).AsString( projectName );
     size_t suggestedNrOfModules = node->GetAttributeValueOrChildValueByName( "ModuleCount" ).AsSizeT();
 
-    return DeserializeModuleEntries( *node, settings, suggestedNrOfModules );
+    bool deserializeSuccess = DeserializeModuleEntries( *node, settings, suggestedNrOfModules );
+    DeriveAbsModuleRootSubSirsFromProjRelDirs();
+    bool bulkPostProcessSuccess = BulkPostProcessAllModuleInfo( true );
+    return deserializeSuccess && bulkPostProcessSuccess;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -8874,8 +8955,6 @@ CProjectInfo::Deserialize( const CORE::CString& inputFilepath )
             if ( Deserialize( rootNode, defaultSerializableSettings ) )
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "DeserializeModuleInfo: Successfully deserialized information from file \"" + inputFilepath + "\"" );
-
-                DeriveAbsModuleRootSubSirsFromProjRelDirs();
                 return true;
             }
             else
@@ -8915,9 +8994,7 @@ CProjectInfo::DeriveAbsModuleRootSubSirsFromProjRelDirs( void )
                 {
                     CORE::CString projectRootDir = (*n);
                     CORE::CString absPath = CORE::CombinePath( projectRootDir, moduleEntry->GetProjectRelativePathToModuleRootDir().ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR ) );
-                    CORE::CString testAbsPath = CORE::CombinePath( absPath, "ModuleInfo.xml" );
-
-                    if ( CORE::FileExists( testAbsPath ) )
+                    if ( IsDirAModuleDir( absPath ) )
                     {
                         moduleEntry->SetAbsolutePathToModuleRootDir( absPath );
                         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:DeriveAbsModuleRootSubSirsFromProjRelDirs: Derived abs module path \"" + absPath +
@@ -9569,9 +9646,6 @@ CProjectInfo::MergeIntegrationLocationsIntoModuleForPlatform( const CORE::CStrin
     {
         CModuleInfoEntryPtr& moduleInfoEntry = (*i);
 
-if ( moduleInfoEntry->GetConsensusName() == "MyGUI.FontViewer" )
- int assadas =0;
-
         TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().find( targetPlatform );
         if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
@@ -9725,27 +9799,39 @@ bool
 CProjectInfo::BulkPostProcessAllModuleInfo( void )
 {GUCEF_TRACE;
 
+    return BulkPostProcessAllModuleInfo( false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::BulkPostProcessAllModuleInfo( bool isLoadFromProjectInfo )
+{GUCEF_TRACE;
+
     bool totalSuccess = true;
 
-    // First move all logical dependencies into their own dependency collection
-    // this removes noise from the rest of the processing
-    totalSuccess = DetermineAndRelocateLogicalDependencies() && totalSuccess;
+    if ( !isLoadFromProjectInfo )
+    {
+        // First move all logical dependencies into their own dependency collection
+        // this removes noise from the rest of the processing
+        totalSuccess = DetermineAndRelocateLogicalDependencies() && totalSuccess;
 
-    // Merge headers and code from integration locations into modules
-    // We apply this early on to make sure modules have all the header and source files properly accounted for
-    totalSuccess = MergeIntegrationLocationsIntoModules() && totalSuccess;
+        // Merge headers and code from integration locations into modules
+        // We apply this early on to make sure modules have all the header and source files properly accounted for
+        totalSuccess = MergeIntegrationLocationsIntoModules() && totalSuccess;
 
-    // Merge info from binary packages into modules
-    totalSuccess = MergeAllBinaryPackageInfoIntoModules() && totalSuccess;
+        // Merge info from binary packages into modules
+        totalSuccess = MergeAllBinaryPackageInfoIntoModules() && totalSuccess;
 
-    // In order to avoid bad 'all' platforms links we need to first sanitize the definitions we were given
-    // Incorrect 'all' platforms definitions can mess up the feasibility of a dependency tree
-    totalSuccess = SanitizeAllPlatformsUsage() && totalSuccess;
+        // In order to avoid bad 'all' platforms links we need to first sanitize the definitions we were given
+        // Incorrect 'all' platforms definitions can mess up the feasibility of a dependency tree
+        totalSuccess = SanitizeAllPlatformsUsage() && totalSuccess;
 
-    // For runtime dependencies we treat them always as 'optional' best effort
-    // We try to retain them where possible, platform specific if need be.
-    // However if unsustainable they are simply dropped
-    totalSuccess = SanitizeRuntimeDependencies() && totalSuccess;
+        // For runtime dependencies we treat them always as 'optional' best effort
+        // We try to retain them where possible, platform specific if need be.
+        // However if unsustainable they are simply dropped
+        totalSuccess = SanitizeRuntimeDependencies() && totalSuccess;
+    }
 
     // Generate the dependency chains which provides an optimized dependency tree going forward
     totalSuccess = UpdateDependencyChains( false ) && totalSuccess;
@@ -9755,13 +9841,16 @@ CProjectInfo::BulkPostProcessAllModuleInfo( void )
     // in the output while still ensuring the build remains functional
     totalSuccess = FlagTaggedModulesToIgnoreAsSpecified( m_settings ) && totalSuccess;
 
-    // Based on all the information we have gathered we can now determine the correct build order
-    // for all platforms
-    totalSuccess = DetermineBuildOrderForAllModules() && totalSuccess;
+    if ( !isLoadFromProjectInfo )
+    {
+        // Based on all the information we have gathered we can now determine the correct build order
+        // for all platforms
+        totalSuccess = DetermineBuildOrderForAllModules() && totalSuccess;
 
-    // Now we can generate all the include paths
-    // this functionality relies on the build orders having been determined ahead of time
-    totalSuccess = GenerateDependencyIncludes() && totalSuccess;
+        // Now we can generate all the include paths
+        // this functionality relies on the build orders having been determined ahead of time
+        totalSuccess = GenerateDependencyIncludes() && totalSuccess;
+    }
 
     return totalSuccess;
 }

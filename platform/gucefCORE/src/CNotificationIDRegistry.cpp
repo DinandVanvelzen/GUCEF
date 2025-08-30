@@ -115,7 +115,7 @@ CNotificationIDRegistry::Register( const CString& keyvalue                      
                 m_list[ keyvalue ] = m_lastid;
                 ++m_lastid;
 
-                GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "Event registered with ID " + UInt32ToString( m_lastid-1 ) + " and name \"" + keyvalue + "\"" );
+                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Event registered with ID " + UInt32ToString( m_lastid-1 ) + " and name \"" + keyvalue + "\"" );
 
                 return CEvent( m_lastid-1, keyvalue );
             }

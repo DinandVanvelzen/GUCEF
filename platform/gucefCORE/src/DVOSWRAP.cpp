@@ -1237,6 +1237,11 @@ LoadModuleDynamicly( const char* filename )
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
     modulePtr = (void*) LoadLibrary( fName );
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == modulePtr )
+    {
+        DWORD lastErrorCode = ::GetLastError();
+        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "LoadLibrary() reports error code: " + ToString( (UInt32) lastErrorCode ) );
+    }
 
     #endif
 

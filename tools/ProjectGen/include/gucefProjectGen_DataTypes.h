@@ -861,8 +861,9 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedO
 
     const TModuleDependencyNodePtrMap& GetDependencies( void ) const;
 
-    bool GatherDependencyModules( TModuleInfoEntryPtrSet& dependencies    ,
-                                  bool includeDependenciesOfDependencies  ) const;
+    bool GatherDependencyModules( TModuleInfoEntryPtrSet& dependencies                  ,
+                                  bool includeDependenciesOfDependencies                ,
+                                  bool includeLogicalDependenciesOfDependencies = false ) const;
 
     bool SetLinkerDependency( CModuleDependencyNodePtr dependency );
 
@@ -870,8 +871,9 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedO
 
     const TModuleDependencyNodePtrMap& GetLinkerDependencies( void ) const;
 
-    bool GatherLinkerDependencyModules( TModuleInfoEntryPtrSet& dependencies    ,
-                                        bool includeDependenciesOfDependencies  ) const;
+    bool GatherLinkerDependencyModules( TModuleInfoEntryPtrSet& dependencies                  ,
+                                        bool includeDependenciesOfDependencies                ,
+                                        bool includeLogicalDependenciesOfDependencies = false ) const;
 
     bool SetRuntimeDependency( CModuleDependencyNodePtr dependency );
 
@@ -879,8 +881,9 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedO
 
     const TModuleDependencyNodePtrMap& GetRuntimeDependencies( void ) const;
 
-    bool GatherRuntimeDependencyModules( TModuleInfoEntryPtrSet& dependencies    ,
-                                         bool includeDependenciesOfDependencies  ) const;
+    bool GatherRuntimeDependencyModules( TModuleInfoEntryPtrSet& dependencies                  ,
+                                         bool includeDependenciesOfDependencies                ,
+                                         bool includeLogicalDependenciesOfDependencies = false ) const;
 
     bool SetLogicalDependency( CModuleDependencyNodePtr dependency );
 
@@ -927,6 +930,9 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedO
     bool GatherLogicallyDependentModules( TModuleInfoEntryPtrSet& dependents ,
                                           bool includeDependentsOfDependents ) const;
 
+    bool GatherDependenciesOfDependencies( TModuleInfoEntryPtrSet& dependencies ,
+                                           bool includeLogicalDependencies      ) const;
+
     void SetTargetPlatform( const CORE::CString& targetPlatform );
 
     const CORE::CString& GetTargetPlatform( void ) const;
@@ -946,6 +952,12 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedO
     CModuleDependencyNode( void );
 
     virtual ~CModuleDependencyNode() GUCEF_VIRTUAL_OVERRIDE;
+
+    private:
+
+    bool GatherDependenciesOfDependenciesImpl( const TModuleDependencyNodePtrMap& dependenciesAtLevel ,
+                                               TModuleInfoEntryPtrSet& dependencies                   ,
+                                               bool includeLogicalDependencies                        ) const;
 
     private:
 
@@ -1334,6 +1346,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 
     void MergeIntegrationLocationsIntoModuleForPlatform( const CORE::CString& targetPlatform );
 
+    bool BulkPostProcessAllModuleInfo( bool isLoadFromProjectInfo );
+
     private:
 
     mutable TStringSet m_actualPlatformsUsed;           // Cached list of platforms actually used in the project, derived from the platforms map and the modules
@@ -1695,6 +1709,18 @@ bool
 IsModuleTagged( const CModuleInfoEntryPtr& module    ,
                 const CORE::CString::StringSet& tags ,
                 const CORE::CString& platform        );
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_PROJECTGEN_PUBLIC_CPP
+bool
+IsDirALegacyModuleDir( const CORE::CString& dir );
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_PROJECTGEN_PUBLIC_CPP
+bool
+IsDirAModuleDir( const CORE::CString& dir );
 
 /*-------------------------------------------------------------------------*/
 

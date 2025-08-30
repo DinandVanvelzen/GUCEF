@@ -520,35 +520,6 @@ FilterStringVectorForFilesWithExtensions( TStringVector& outputVector         ,
         ++i;
     }
 }
-/*---------------------------------------------------------------------------*/
-
-bool
-IsDirALegacyProjectDir( const CORE::CString& dir )
-{GUCEF_TRACE;
-
-    // The dir is a module dir if it has a suffix file in it
-    CORE::CString suffixFilePath = dir;
-    CORE::AppendToPath( suffixFilePath, "CMakeListsSuffix.txt" );
-
-    return CORE::FileExists( suffixFilePath );
-}
-
-/*---------------------------------------------------------------------------*/
-
-bool
-IsDirAProjectDir( const CORE::CString& dir )
-{GUCEF_TRACE;
-
-    // The dir is a module dir if it has a suffix file in it
-    CORE::CString moduleInfoFilePath = dir;
-    CORE::AppendToPath( moduleInfoFilePath, "ModuleInfo.xml" );
-
-    if ( !CORE::FileExists( moduleInfoFilePath ) )
-    {
-        return IsDirALegacyProjectDir( dir );
-    }
-    return true;
-}
 
 /*---------------------------------------------------------------------------*/
 
@@ -1939,7 +1910,7 @@ FindSubDirsWithFileTypes( const CProjectInfo& projectInfo                       
         CORE::CString subDir = CORE::CombinePath( curRootDir, (*i) );
 
         // Do not recurse into other module dirs
-        if ( !IsDirAProjectDir( subDir ) )
+        if ( !IsDirAModuleDir( subDir ) )
         {
             CORE::CString subDirSeg = curRootDirSeg;
             subDirSeg = CORE::CombinePath( subDirSeg, (*i) );
@@ -2499,7 +2470,7 @@ LocateModuleDirsRecursively( const CProjectInfo& projectInfo                    
     PreprocessDir( projectInfo, topLevelDir );
 
     // Is this a project dir or some other dir?
-    if ( IsDirAProjectDir( topLevelDir ) )
+    if ( IsDirAModuleDir( topLevelDir ) )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Determined that the following directory is a project directory: " + topLevelDir );
         allProjectDirs.insert( topLevelDir );
