@@ -61,16 +61,16 @@
   #undef min
   #undef max
   #define MAX_DIR_LENGTH MAX_PATH
-  #define GUCEF_DIRSEPCHAROPPOSITE '/'
-  #define GUCEF_DIRSEPCHAR '\\'
 #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
   #include <unistd.h>             /* POSIX utilities */
   #include <limits.h>             /* Linux OS limits */
   #define MAX_DIR_LENGTH PATH_MAX
-  #define GUCEF_DIRSEPCHAROPPOSITE '\\'
-  #define GUCEF_DIRSEPCHAR '/'
   #include <linux/kernel.h>
   #include <linux/string.h>
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+  #include <unistd.h>             /* POSIX utilities */
+  #include <limits.h>             /* Linux OS limits */
+  #define MAX_DIR_LENGTH PATH_MAX
 #else
   #error Unsupported OS
 #endif
@@ -1627,7 +1627,7 @@ IsAbsolutePath( const CString& path )
 
 /*-------------------------------------------------------------------------*/
 
-#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
 // function to calculate UTF8 buffer size with handling for invalid UTF16 sequences
 size_t
@@ -1695,6 +1695,14 @@ Utf16toUtf8( const std::wstring& wstr ,
 
     return false;
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    // Emscripten uses UTF-8 internally for std::string and std::wstring is UTF-32.
+    // A proper conversion would be needed here if std::wstring is used with non-ASCII.
+    // For now, we assume ASCII or that the caller handles UTF-8 in std::string directly.
+    str = std::string( wstr.begin(), wstr.end() );
+    return true;
+
     #else
 
     return false;
@@ -1726,6 +1734,14 @@ Utf8toUtf16( const std::string& str ,
     if ( charsConverted == 0 )
         return false; // Failed converting UTF-8 string to UTF-16
 
+    return true;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    // Emscripten uses UTF-8 internally for std::string and std::wstring is UTF-32.
+    // A proper conversion would be needed here if std::wstring is used with non-ASCII.
+    // For now, we assume ASCII or that the caller handles UTF-8 in std::string directly.
+    wstr = std::wstring( str.begin(), str.end() );
     return true;
 
     #else

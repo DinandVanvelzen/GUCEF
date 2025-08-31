@@ -51,6 +51,9 @@
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     #include <io.h>
     #include <fcntl.h>
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #include <stdlib.h>
+    #include <stdio.h>
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -333,7 +336,7 @@ CFileAccess::Open( const CString& file               ,
         _close( fd );
     }
     
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     #else
 

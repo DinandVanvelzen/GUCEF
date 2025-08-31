@@ -27,6 +27,7 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string>
 #include <stdexcept>
 
 #ifndef GUCEF_CONFIG_H

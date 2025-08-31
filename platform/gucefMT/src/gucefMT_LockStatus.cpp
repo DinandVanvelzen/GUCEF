@@ -22,6 +22,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <cstring>
+
 #include "gucefMT_LockStatus.h"  
 
 /*-------------------------------------------------------------------------//
@@ -92,22 +94,22 @@ LockStatusStringToLockStatus( const char* threadStatusStr )
     if ( GUCEF_NULL == threadStatusStr )
         return LOCKSTATUS_UNDEFINED;
 
-    if ( 0 == strcmp( threadStatusStr, "OPERATION_SUCCESS" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "OPERATION_SUCCESS" ) )
         return LOCKSTATUS_OPERATION_SUCCESS;
 
-    if ( 0 == strcmp( threadStatusStr, "WAIT_TIMEOUT" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "WAIT_TIMEOUT" ) )
         return LOCKSTATUS_WAIT_TIMEOUT;
 
-    if ( 0 == strcmp( threadStatusStr, "ABANDONED" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "ABANDONED" ) )
         return LOCKSTATUS_ABANDONED;
 
-    if ( 0 == strcmp( threadStatusStr, "OPERATION_FAILED" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "OPERATION_FAILED" ) )
         return LOCKSTATUS_OPERATION_FAILED;
 
-    if ( 0 == strcmp( threadStatusStr, "NOT_APPLICABLE" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "NOT_APPLICABLE" ) )
         return LOCKSTATUS_NOT_APPLICABLE;
 
-    if ( 0 == strcmp( threadStatusStr, "UNDEFINED" ) || 0 == strcmp( threadStatusStr, "<UNDEFINED>" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "UNDEFINED" ) || 0 == std::strcmp( threadStatusStr, "<UNDEFINED>" ) )
         return LOCKSTATUS_UNDEFINED;
 
     return LOCKSTATUS_UNDEFINED;

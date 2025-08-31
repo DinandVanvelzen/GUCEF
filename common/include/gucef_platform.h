@@ -48,7 +48,8 @@
 #define GUCEF_PLATFORM_APPLE_IPADOS     6
 #define GUCEF_PLATFORM_APPLE_TVOS       7
 #define GUCEF_PLATFORM_APPLE_VISIONOS   8
-#define GUCEF_PLATFORM_ARDUINO          9
+#define GUCEF_PLATFORM_ARDUINO           9
+#define GUCEF_PLATFORM_WASM_EMSCRIPTEN  10
 
 /*
  *  Legacy platform define remaps
@@ -93,8 +94,8 @@
 #define GUCEF_CPU_ARCHITECTURE_AMD64        4
 #define GUCEF_CPU_ARCHITECTURE_ATMEGA328P   5
 #define GUCEF_CPU_ARCHITECTURE_ATMEGA2560   6
-#define GUCEF_CPU_ARCHITECTURE_ATMEGA4809   7
-
+#define GUCEF_CPU_ARCHITECTURE_ATMEGA4809    7
+#define GUCEF_CPU_ARCHITECTURE_WASM         8
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -131,7 +132,9 @@
 #elif defined( __clang__ )
 #   define GUCEF_COMPILER GUCEF_COMPILER_CLANG
 #   define GUCEF_COMP_VER CLANG_VERSION
-#   if defined( __i386__ ) || defined( __i486__ ) || defined( __i586__ ) || defined( __i686__ )
+#   if defined( __EMSCRIPTEN__ )
+#       define GUCEF_CPU_ARCHITECTURE GUCEF_CPU_ARCHITECTURE_WASM
+#   elif defined( __i386__ ) || defined( __i486__ ) || defined( __i586__ ) || defined( __i686__ )
 #       define GUCEF_CPU_ARCHITECTURE GUCEF_CPU_ARCHITECTURE_X86
 #   elif defined( __amd64__ ) || defined( __amd64 ) || defined( __x86_64__ ) || defined( __x86_64 )
 #       define GUCEF_CPU_ARCHITECTURE GUCEF_CPU_ARCHITECTURE_AMD64
@@ -172,6 +175,8 @@
 #if defined( __WIN32__ ) || defined( _WIN32 )
 #   define GUCEF_PLATFORM GUCEF_PLATFORM_MSWIN
 #   define GUCEF_MSWIN_BUILD
+#elif defined( __EMSCRIPTEN__ )
+#   define GUCEF_PLATFORM GUCEF_PLATFORM_WASM_EMSCRIPTEN
 #elif defined( __APPLE_CC__)
 #   define GUCEF_PLATFORM GUCEF_PLATFORM_MACOS
 #elif defined( __ANDROID__ ) || defined( ANDROID )
@@ -197,7 +202,13 @@
  *  Compile time bitness target detection
  */
 #if !( defined(GUCEF_32BIT) || defined(GUCEF_64BIT) )
-    #if ( ( GUCEF_CPU_ARCHITECTURE == GUCEF_CPU_ARCHITECTURE_AMD64 ) || ( GUCEF_CPU_ARCHITECTURE == GUCEF_CPU_ARCHITECTURE_ARM64 ) )
+    #if defined( __EMSCRIPTEN__ )
+        #if defined( __wasm64__ )
+            #define GUCEF_64BIT GUCEF_BITNESS_64
+        #else /* default to wasm32 */
+            #define GUCEF_32BIT GUCEF_BITNESS_32
+        #endif
+    #elif ( ( GUCEF_CPU_ARCHITECTURE == GUCEF_CPU_ARCHITECTURE_AMD64 ) || ( GUCEF_CPU_ARCHITECTURE == GUCEF_CPU_ARCHITECTURE_ARM64 ) )
         #define GUCEF_64BIT GUCEF_BITNESS_64
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
         #ifdef _WIN64

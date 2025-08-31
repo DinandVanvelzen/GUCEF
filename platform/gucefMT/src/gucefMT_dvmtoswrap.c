@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  gucefMT: GUCEF module providing multithreading solutions
  *
  *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
@@ -51,6 +51,17 @@
   #include <signal.h>
   #include <sys/time.h>
 
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <unistd.h>
+  #include <pthread.h>
+  #include <errno.h>
+  #include <emscripten/threading.h>
+  #include <emscripten/emscripten.h>
+  #include <sys/time.h>
+
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -75,6 +86,14 @@ struct SThreadData
     TThreadFunc func;
     void* data;
     pid_t threadId;
+    pthread_cond_t exitSignal;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    pthread_t thread;
+    pthread_attr_t attr;
+    TThreadFunc func;
+    void* data;
     pthread_cond_t exitSignal;
 
     #endif
@@ -113,6 +132,8 @@ ThreadDelay( UInt32 delay )
     Sleep( delay );
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
     sleep( delay );
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+    usleep( delay * 1000 ); // usleep expects microseconds
     #endif
     GUCEF_END;
 }
@@ -152,6 +173,23 @@ ThreadMain( void* tdvptr )
     return GUCEF_NULL;
 }
 
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+void*
+ThreadMain( void* tdvptr )
+{
+    if ( GUCEF_NULL == tdvptr )
+        return GUCEF_NULL;
+
+    GUCEF_BEGIN;
+    TThreadData* td = (TThreadData*) tdvptr;
+    td->threadStatus = THREADSTATUS_RUNNING;
+    td->returnValue = td->func( td->data );
+    pthread_cond_signal( &td->exitSignal );
+    GUCEF_END;
+    return GUCEF_NULL;
+}
+
 #endif
 
 /*--------------------------------------------------------------------------*/
@@ -180,6 +218,17 @@ ThreadDataReserve( void )
     }
     return td;
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    TThreadData* td = malloc( sizeof( TThreadData ) );
+    if ( GUCEF_NULL != td )
+    {
+        memset( td, 0, sizeof(TThreadData) );
+        pthread_cond_init( &td->exitSignal, GUCEF_NULL );
+        td->threadStatus = THREADSTATUS_UNDEFINED;
+    }
+    return td;
+
     #else
 
     #error unsupported target platform
@@ -197,7 +246,7 @@ ThreadDataCleanup( struct SThreadData* td )
     {
         ThreadKill( td );
 
-        #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+        #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
         pthread_cond_destroy( &td->exitSignal );
         #endif
 
@@ -259,6 +308,33 @@ ThreadCreate( struct SThreadData* td ,
     }
     return 1;
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    int retVal = 0;
+
+    retVal = pthread_attr_init( &td->attr );
+    if ( 0 != retVal )
+    {
+        /* failed to init thread attributes structure */
+        td->threadStatus = THREADSTATUS_CREATION_FAILED;
+        return 0;
+    }
+
+    td->data = data;
+    td->func = func;
+
+    if ( 0 != pthread_create( &td->thread         ,
+                              &td->attr           ,
+                              (void* (*)(void*)) ThreadMain  ,
+                              (void*) td          ) )
+    {
+        pthread_cond_signal( &td->exitSignal );
+        td->threadStatus = THREADSTATUS_CREATION_FAILED;
+        return 0;
+    }
+    td->threadStatus = THREADSTATUS_RUNNING;
+    return 1;
+
     #else
 
     #error unsupported target platform
@@ -279,6 +355,8 @@ ThreadID( struct SThreadData* td )
     return (UInt32) td->threadid;
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
     return (UInt32) td->threadId;
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+    return (UInt32)(uintptr_t)td->thread;
     #else
     #error unsupported target platform
     #endif
@@ -308,9 +386,12 @@ ThreadSuspend( struct SThreadData* td )
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
-    /* TODO: Implement with signals
-       #error unsupported target platform
-    */
+    /* TODO: Implement with signals */
+    return 0;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    /* Thread suspension is not directly supported in Emscripten/pthreads */
     return 0;
 
     #else
@@ -332,9 +413,12 @@ ThreadResume( struct SThreadData* td )
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
-    /* TODO: Implement with signals
-       #error unsupported target platform
-    */
+    /* TODO: Implement with signals */
+    return 0;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    /* Thread resumption is not directly supported in Emscripten/pthreads */
     return 0;
 
     #else
@@ -373,6 +457,15 @@ ThreadKill( struct SThreadData* td )
         pthread_cond_signal( &td->exitSignal );
         pthread_attr_destroy( &td->attr );
         return retval;
+    }
+    return 0;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    if ( NULL != td && 0 != td->thread )
+    {
+        pthread_cond_signal( &td->exitSignal );
+        return 1;
     }
     return 0;
 
@@ -450,6 +543,52 @@ ThreadWait( struct SThreadData* td ,
     }
     return GUCEF_THREAD_WAIT_FAILED;
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    if ( GUCEF_NULL != td && 0 != td->thread )
+    {
+        if ( timeoutInMs < 0 )
+        {
+            int errorCode = pthread_join( td->thread, GUCEF_NULL );
+            if ( 0 == errorCode )
+                return GUCEF_THREAD_WAIT_OK;
+        }
+        else
+        {
+            struct timespec ts;
+            struct timeval tv;
+            gettimeofday( &tv, GUCEF_NULL );
+            
+            ts.tv_sec = tv.tv_sec + timeoutInMs / 1000;
+            ts.tv_nsec = ( tv.tv_usec * 1000 ) + ( ( timeoutInMs % 1000 ) * 1000000 );
+            if ( ts.tv_nsec >= 1000000000L )
+            {
+                ts.tv_sec += ts.tv_nsec / 1000000000L;
+                ts.tv_nsec %= 1000000000L;
+            }
+
+            pthread_mutex_t dummy_mutex;
+            pthread_mutex_init( &dummy_mutex, NULL );
+            pthread_mutex_lock( &dummy_mutex );
+            
+            int errorCode = pthread_cond_timedwait( &td->exitSignal, &dummy_mutex, &ts );
+            
+            pthread_mutex_unlock( &dummy_mutex );
+            pthread_mutex_destroy( &dummy_mutex );
+
+            if ( 0 == errorCode )
+            {
+                pthread_join( td->thread, GUCEF_NULL );
+                return GUCEF_THREAD_WAIT_OK;
+            }
+            else if ( errorCode == ETIMEDOUT )
+            {
+                return GUCEF_THREAD_WAIT_TIMEOUT;
+            }
+        }
+    }
+    return GUCEF_THREAD_WAIT_FAILED;
+    
     #else
 
     #error unsupported target platform
@@ -513,6 +652,10 @@ ThreadSetCpuAffinity( struct SThreadData* td  ,
         if ( 0 == statusCode )
             return 1;
     }
+    return 0;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
     return 0;
 
     #else
@@ -585,6 +728,15 @@ ThreadGetCpuAffinity( struct SThreadData* td        ,
     }
     return 0;
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    /* CPU affinity is not supported in WebAssembly */
+    if ( GUCEF_NULL != affinityMaskSize )
+    {
+        *affinityMaskSize = 0;
+    }
+    return 0;
+
     #else
 
     #error unsupported target platform
@@ -627,6 +779,12 @@ ThreadGetCpuAffinityByCpuId( struct SThreadData* td ,
     *cpuId = (UInt32) GetCurrentProcessorNumber();
     return 1;
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+    
+    /* CPU affinity is not supported in WebAssembly */
+    *cpuId = 0;
+    return 0;
+    
     #else
 
     UInt64 affinityMask = 0;
@@ -664,6 +822,13 @@ GetCurrentTaskID( void )
 
     return (UInt32) pthread_self();
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    if ( emscripten_is_main_runtime_thread() )
+        return 0;
+    else
+        return (UInt32)(uintptr_t)pthread_self();
+
     #else
 
     #error unsupported target platform
@@ -698,6 +863,10 @@ PrecisionTickCount( void )
     return time.tv_usec +    /* Microseconds. */
            time.tv_sec * 1000000; /* Seconds. */
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    return (UInt64)(emscripten_get_now() * 1000.0);
+
     #else
 
     #error unsupported target platform
@@ -726,6 +895,10 @@ PrecisionTimerResolution( void )
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
     return 1000000;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    return 1000000; /* microseconds precision */
 
     #else
 
@@ -819,6 +992,10 @@ PrecisionDelay( UInt32 delayInMs )
 
     usleep( delayInMs * 1000 );
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    usleep( delayInMs * 1000 );
+
     #else
     #error unsupported target platform
     #endif
@@ -888,6 +1065,10 @@ GetProcessID( void )
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
     return (UInt32) getpid();
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    return 1; /* Only a single process in WebAssembly */
 
     #else
 

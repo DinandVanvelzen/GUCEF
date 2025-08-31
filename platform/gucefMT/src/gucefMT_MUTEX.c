@@ -39,11 +39,15 @@
 #include <windows.h>
 #include <processthreadsapi.h>
 
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+
+#ifndef PTHREAD_MUTEX_RECURSIVE
+  #define PTHREAD_MUTEX_RECURSIVE PTHREAD_MUTEX_RECURSIVE_NP 
+#endif
 
 #endif
 
@@ -70,7 +74,7 @@ struct SMutex
     
     #endif
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     pthread_mutex_t id;
 
@@ -123,11 +127,11 @@ MutexCreate( void )
     
     #endif
     
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
     
     pthread_mutexattr_t attr;
     pthread_mutexattr_init( &attr );
-    pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE_NP );
+    pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
 
     TMutex* mutex = malloc( sizeof( TMutex ) );
     mutex->reentrancyCount = 0;
@@ -168,7 +172,7 @@ MutexDestroy( struct SMutex* mutex )
 
     #endif
     
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
     
     GUCEF_TRACE_EXCLUSIVE_LOCK_DESTROY( &mutex->id );
     pthread_mutex_destroy( &mutex->id );
@@ -256,7 +260,7 @@ MutexLock( struct SMutex* mutex, UInt32 timeoutInMs )
 
     #endif
     
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
     
     UInt32 callerThreadId = (UInt32) pthread_self();
     int lockResult = pthread_mutex_lock( &mutex->id );
@@ -351,7 +355,7 @@ MutexUnlock( struct SMutex* mutex )
 
     #endif
     
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
     
     UInt32 callerThreadId = (UInt32) pthread_self();
     if ( mutex->lockedByThread == callerThreadId )

@@ -22,6 +22,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <cstring>
+
 #include "gucefMT_ThreadStatus.h"
 
 /*-------------------------------------------------------------------------//
@@ -70,31 +72,31 @@ ThreadStatusStringToThreadStatus( const char* threadStatusStr )
     if ( GUCEF_NULL == threadStatusStr )
         return THREADSTATUS_UNDEFINED;
 
-    if ( 0 == strcmp( threadStatusStr, "CREATION_FAILED" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "CREATION_FAILED" ) )
         return THREADSTATUS_CREATION_FAILED;
 
-    if ( 0 == strcmp( threadStatusStr, "STARTUP_FAILED" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "STARTUP_FAILED" ) )
         return THREADSTATUS_STARTUP_FAILED;
 
-    if ( 0 == strcmp( threadStatusStr, "RUNNING" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "RUNNING" ) )
         return THREADSTATUS_RUNNING;
 
-    if ( 0 == strcmp( threadStatusStr, "PAUSED" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "PAUSED" ) )
         return THREADSTATUS_PAUSED;
 
-    if ( 0 == strcmp( threadStatusStr, "RESUMED" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "RESUMED" ) )
         return THREADSTATUS_RESUMED;
 
-    if ( 0 == strcmp( threadStatusStr, "STOPPED" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "STOPPED" ) )
         return THREADSTATUS_STOPPED;
 
-    if ( 0 == strcmp( threadStatusStr, "FINISHED" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "FINISHED" ) )
         return THREADSTATUS_FINISHED;        
 
-    if ( 0 == strcmp( threadStatusStr, "KILLED" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "KILLED" ) )
         return THREADSTATUS_KILLED;        
 
-    if ( 0 == strcmp( threadStatusStr, "DEADLOCKED" ) )
+    if ( 0 == std::strcmp( threadStatusStr, "DEADLOCKED" ) )
         return THREADSTATUS_DEADLOCKED; 
 
     return THREADSTATUS_UNDEFINED;
