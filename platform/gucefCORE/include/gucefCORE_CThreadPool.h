@@ -555,11 +555,11 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
     typedef std::map< TIntegerTypeUsedForTaskId, CTaskConsumerPtr > TTaskConsumerMap;
     typedef CTBasicSharedPtr< CTaskDelegator, MT::CMutex >  TTaskDelegatorBasicPtr; 
     typedef std::set< TTaskDelegatorBasicPtr > TTaskDelegatorSet;
-    typedef std::pair< TIntegerTypeUsedForTaskId, CTaskPtr > TTaskIdIntAndTaskPtrPair;
+    typedef std::pair< const TIntegerTypeUsedForTaskId, CTaskPtr > TTaskIdIntAndTaskPtrPair;
     typedef std::map< TIntegerTypeUsedForTaskId, CTaskPtr, std::less< TIntegerTypeUsedForTaskId >, gucef_allocator< TTaskIdIntAndTaskPtrPair > >    TTaskId2TaskPtrMap;
     typedef std::deque< CTaskPtr > TTaskPtrDequeue;
     typedef std::set< CTaskConsumerPtr > CTaskConsumerPtrSet;
-    typedef std::pair< CString, CTaskConsumerPtrSet > TStringAndTaskConsumerSetPair;
+    typedef std::pair< const CString, CTaskConsumerPtrSet > TStringAndTaskConsumerSetPair;
     typedef std::map< CString, CTaskConsumerPtrSet, std::less< CString >, gucef_allocator< TStringAndTaskConsumerSetPair > > TStringToTaskConsumerSetMap;
 
     void EnforceDesiredNrOfThreads( Int32 desiredMaxTotalNrOfThreads   ,

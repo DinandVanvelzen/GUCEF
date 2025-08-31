@@ -28,6 +28,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <limits>
+#include <utility>
 
 #ifndef GUCEF_CONFIG_H
 #include "gucef_config.h"        /* GUCEF configuration */
@@ -95,17 +96,18 @@ public:
     };
 };
 
-template < class T >
+template <class T>
 class gucef_allocator
 {
 public:
-    typedef T                 value_type;
-    typedef value_type&       reference;
-    typedef value_type const& const_reference;
-    typedef value_type*       pointer;
-    typedef value_type const* const_pointer;
-    typedef std::size_t       size_type;
-    typedef std::ptrdiff_t    difference_type;
+
+    typedef T                   value_type;
+    typedef value_type&         reference;
+    typedef const value_type&   const_reference;
+    typedef value_type*         pointer;
+    typedef const value_type*   const_pointer;
+    typedef std::size_t         size_type;
+    typedef std::ptrdiff_t      difference_type;
 
     template <class U>
     struct rebind
@@ -113,8 +115,17 @@ public:
         typedef gucef_allocator<U> other;
     };
 
-    gucef_allocator() GUCEF_NOEXCEPT {}  // not required, unless used
-    template <class U> gucef_allocator( gucef_allocator<U> const& u ) GUCEF_NOEXCEPT 
+    // Ensure rebind works for std::pair<const Key, Value>
+    template <typename Key, typename Value>
+    struct rebind<std::pair<const Key, Value>>
+    {
+        typedef gucef_allocator<std::pair<const Key, Value>> other;
+    };
+
+    gucef_allocator() GUCEF_NOEXCEPT {}
+    
+    template <class U>
+    gucef_allocator( const gucef_allocator<U>& ) GUCEF_NOEXCEPT 
     {GUCEF_TRACE; }
 
     pointer
@@ -123,11 +134,11 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        return static_cast< pointer >( ::operator new ( (n*sizeof(value_type)), __FILE__, __LINE__ ) );
+        return static_cast< pointer >( ::operator new ( n * sizeof( value_type ), __FILE__, __LINE__ ) );
 
         #else
 
-        return static_cast< pointer >( ::operator new ( n*sizeof(value_type)) );
+        return static_cast< pointer >( ::operator new ( n * sizeof( value_type ) ) );
 
         #endif
     }
@@ -142,34 +153,35 @@ public:
 
         #endif
 
-        ::operator delete(p);
+        ::operator delete( p );
     }
 
     void
-    construct( pointer p, value_type const& val )
+    construct( pointer p, const value_type& val )
     {GUCEF_TRACE;
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( val ), p ); 
-        
+        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( val ), p );
+
         #endif
 
-        ::new(p) value_type(val);
+        ::new( static_cast< void* >( p ) ) value_type( val );
     }
 
+    template <typename U>
     void
-    destroy( pointer p )
-    {GUCEF_TRACE;      
+    destroy( U* p )
+    {GUCEF_TRACE;
 
-        p->~value_type();
+        p->~U();
     }
 
     size_type
     max_size() const GUCEF_NOEXCEPT
     {GUCEF_TRACE;
 
-        return std::numeric_limits<size_type>::max() / sizeof(value_type);
+        return std::numeric_limits<size_type>::max() / sizeof( value_type );
     }
 
     pointer
@@ -185,6 +197,110 @@ public:
 
         return &x;
     }
+};
+
+/*-------------------------------------------------------------------------*/
+
+template <typename Key, typename Value>
+class gucef_allocator< std::pair<const Key, Value> >
+{
+public:
+
+    typedef std::pair<const Key, Value> value_type;
+    typedef value_type&                 reference;
+    typedef const value_type&           const_reference;
+    typedef value_type*                 pointer;
+    typedef const value_type*           const_pointer;
+    typedef std::size_t                 size_type;
+    typedef std::ptrdiff_t              difference_type;
+
+    template <class U>
+    struct rebind
+    {
+        typedef gucef_allocator<U> other;
+    };
+
+    gucef_allocator() GUCEF_NOEXCEPT {}
+    
+    template <class U>
+    gucef_allocator( const gucef_allocator<U>& ) GUCEF_NOEXCEPT 
+    {GUCEF_TRACE; }
+
+    pointer
+    allocate( size_type n, gucef_allocator<void>::const_pointer = 0 )
+    {GUCEF_TRACE;
+
+        #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
+
+        return static_cast< pointer >( ::operator new ( n * sizeof( value_type ), __FILE__, __LINE__ ) );
+
+        #else
+
+        return static_cast< pointer >( ::operator new ( n * sizeof( value_type ) ) );
+
+        #endif
+    }
+
+    void
+    deallocate( pointer p, size_type )
+    {GUCEF_TRACE;
+
+        #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
+
+        MEMMAN_SetOwner( __FILE__, __LINE__ );
+
+        #endif
+
+        ::operator delete( p );
+    }
+
+    void
+    construct( pointer p, const value_type& val )
+    {GUCEF_TRACE;
+
+        #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
+
+        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( val ), p );
+
+        #endif
+
+        ::new( static_cast< void* >( p ) ) value_type( val );
+    }
+
+    template <typename U>
+    void
+    destroy( U* p )
+    {GUCEF_TRACE;
+
+        p->~U();
+    }
+
+    size_type
+    max_size() const GUCEF_NOEXCEPT
+    {GUCEF_TRACE;
+
+        return std::numeric_limits<size_type>::max() / sizeof( value_type );
+    }
+
+    pointer
+    address( reference x ) const
+    {GUCEF_TRACE;
+
+        return &x;
+    }
+
+    const_pointer
+    address( const_reference x ) const
+    {GUCEF_TRACE;
+
+        return &x;
+    }
+
+    // Debugging static_assert to verify specialization is used
+    #if __cplusplus >= 201103L  // Only include for C++11 or later
+    static_assert(std::is_same<value_type, std::pair<const Key, Value>>::value,
+                  "Allocator value_type does not match std::pair<const Key, Value>");
+    #endif
 };
 
 /*-------------------------------------------------------------------------*/

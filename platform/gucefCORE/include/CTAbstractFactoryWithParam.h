@@ -140,7 +140,7 @@ class CTAbstractFactoryWithParam : public CAbstractFactoryBase
     void ObtainKeySet( TKeySet& keySet ) const;
 
     private:
-    typedef std::pair< SelectionCriteriaType, TFactory* >   TFactoryEntryPair;
+    typedef std::pair< const SelectionCriteriaType, TFactory* >   TFactoryEntryPair;
     typedef std::map< SelectionCriteriaType, TFactory*, std::less< SelectionCriteriaType >, gucef_allocator< TFactoryEntryPair > >  TFactoryList;
     typedef std::pair< CString, SelectionCriteriaType >   TStringToSCPair;
     typedef std::map< CString, SelectionCriteriaType, std::less< CString >, gucef_allocator< TStringToSCPair > >  TClassTypeNameMap;

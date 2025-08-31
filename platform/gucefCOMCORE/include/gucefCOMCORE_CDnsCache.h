@@ -123,7 +123,7 @@ class GUCEF_COMCORE_EXPORT_CPP CDnsCache : public CORE::CTSGNotifier          ,
     CDnsCache( const CDnsCache& src );              /**< not implemented, not wanted */
     CDnsCache& operator=( const CDnsCache& src );   /**< not implemented, not wanted */
 
-    typedef std::pair< CString, CDnsCacheEntryPtr >   TDnsCacheEntryMapPair;
+    typedef std::pair< const CString, CDnsCacheEntryPtr >   TDnsCacheEntryMapPair;
     typedef std::map< CString, CDnsCacheEntryPtr, std::less< CString >, gucef_allocator< TDnsCacheEntryMapPair > > TDnsCacheEntryMap;
     
     TDnsCacheEntryMap m_dnsEntryCache;

@@ -50,26 +50,41 @@
  */
 #if defined ( __BORLANDC__ ) || defined ( _MSC_VER )
   #define GUCEF_CALLSPEC_C __cdecl
+#elif defined( __EMSCRIPTEN__ ) || defined( __wasm__ )
+    /* Emscripten/WebAssembly does not support cdecl */
+    #define GUCEF_CALLSPEC_C
 #else
   #define GUCEF_CALLSPEC_C cdecl
 #endif
 #if defined ( __BORLANDC__ ) || defined ( _MSC_VER )
   #define GUCEF_CALLSPEC_STD __stdcall
+#elif defined( __EMSCRIPTEN__ ) || defined( __wasm__ )
+    /* Emscripten/WebAssembly does not support stdcall */
+    #define GUCEF_CALLSPEC_STD
 #else
   #define GUCEF_CALLSPEC_STD stdcall
 #endif
 #if defined ( __BORLANDC__ ) || defined ( _MSC_VER )
   #define GUCEF_CALLSPEC_PASCAL __pascal
+#elif defined( __EMSCRIPTEN__ ) || defined( __wasm__ )
+    /* Emscripten/WebAssembly does not support pascal */
+    #define GUCEF_CALLSPEC_PASCAL
 #else
   #define GUCEF_CALLSPEC_PASCAL pascal
 #endif
 #if defined ( __BORLANDC__ ) || defined ( _MSC_VER )
   #define GUCEF_CALLSPEC_FASTCALL __fastcall
+#elif defined( __EMSCRIPTEN__ ) || defined( __wasm__ )
+    /* Emscripten/WebAssembly does not support fastcall */
+    #define GUCEF_CALLSPEC_FASTCALL
 #else
   #define GUCEF_CALLSPEC_FASTCALL fastcall
 #endif
 #if defined ( __BORLANDC__ ) || defined ( _MSC_VER )
   #define GUCEF_CALLSPEC_VECTORCALL __vectorcall
+#elif defined( __EMSCRIPTEN__ ) || defined( __wasm__ )
+    /* Emscripten/WebAssembly does not support vectorcall */
+    #define GUCEF_CALLSPEC_VECTORCALL
 #else
   #define GUCEF_CALLSPEC_VECTORCALL vectorcall
 #endif
@@ -151,7 +166,7 @@
   #define GUCEF_CALLSPEC_SUFFIX
   #define GUCEF_PLUGIN_CALLSPEC_PREFIX GUCEF_PLUGIN_CALLSPEC_TYPE
   #define GUCEF_PLUGIN_CALLSPEC_SUFFIX
-#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCIPTEN )
   #define GUCEF_CALLSPEC_PREFIX
   #define GUCEF_CALLSPEC_SUFFIX
   #define GUCEF_PLUGIN_CALLSPEC_PREFIX

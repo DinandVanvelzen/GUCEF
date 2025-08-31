@@ -238,12 +238,13 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouter : public CORE::CTSGNotifier
     typedef std::pair< const CPubSubClientSide*, TRouteInfoPtrSet >         TPubSubClientRawPtrAndRouteInfoPtrSetPair;
     typedef std::pair< const CPubSubClientSide*, CSpilloverInfo >           TPubSubClientRawPtrAndSpilloverInfoPair;
     typedef std::pair< const CPubSubClientSide*, CSpilloverInfo* >          TPubSubClientRawPtrAndSpilloverInfoRawPtrPair;
+    typedef std::pair< const CORE::CString, CORE::CString >                 TStringPair;
     typedef std::map< CPubSubClientSide*, TRouteInfoVector, std::less< CPubSubClientSide* >, gucef_allocator< TPubSubClientRawPtrAndRouteInfoVectorPair > >         TSidePtrToRouteInfoVectorMap;
     typedef std::map< CPubSubClientSide*, TRouteInfoPtrVector, std::less< CPubSubClientSide* >, gucef_allocator< TPubSubClientRawPtrAndRouteInfoPtrVectorPair > >   TSidePtrToRouteInfoPtrVectorMap;
     typedef std::map< CPubSubClientSide*, TRouteInfoPtrSet, std::less< CPubSubClientSide* >, gucef_allocator< TPubSubClientRawPtrAndRouteInfoPtrSetPair > >         TSidePtrToRouteInfoPtrSetMap;
     typedef std::map< CPubSubClientSide*, CSpilloverInfo, std::less< CPubSubClientSide* >, gucef_allocator< TPubSubClientRawPtrAndSpilloverInfoPair > >             TSidePtrToSpilloverInfoMap;
     typedef std::map< CPubSubClientSide*, CSpilloverInfo*, std::less< CPubSubClientSide* >, gucef_allocator< TPubSubClientRawPtrAndSpilloverInfoRawPtrPair >  >     TSidePtrToSpilloverInfoPtrMap;
-    typedef std::map< CORE::CString, CORE::CString, std::less< CORE::CString >, gucef_allocator< CORE::CString > >  TStringMap;
+    typedef std::map< CORE::CString, CORE::CString, std::less< CORE::CString >, gucef_allocator< TStringPair > >  TStringMap;
 
     bool NormalizeConfig( const CPubSubFlowRouterConfig& originalConfig ,
                           TPubSubClientSidePtrVector& sides             ,

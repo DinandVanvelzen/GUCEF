@@ -1,0 +1,32 @@
+# This .clang-format file is generated to enforce the current code style.
+# Adjust the settings below if needed to better match your preferences.
+
+BasedOnStyle: Google
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+BreakBeforeBraces: Allman
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+ColumnLimit: 0
+NamespaceIndentation: None
+PointerAlignment: Left
+AccessModifierOffset: -4
+AlignAfterOpenBracket: Align
+AlignOperands: true
+AlignTrailingComments: true
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: false
+BinPackParameters: false
+Cpp11BracedListStyle: false
+IncludeBlocks: Preserve
+IndentCaseLabels: true
+IndentPPDirectives: BeforeHash
+SortIncludes: false
+SpaceAfterCStyleCast: true
+SpaceBeforeParens: Always
+SpacesInAngles: true
+SpacesInContainerLiterals: true
+SpacesInParentheses: true
+SpacesInSquareBrackets: true
+Standard: Cpp14

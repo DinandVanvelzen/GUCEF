@@ -516,8 +516,8 @@ template <> inline bool CVariant::TTypeUsesDynamicMemory( const CDateTime* defau
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const std::string* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const std::wstring* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const void* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
-template <> inline bool CVariant::TTypeUsesDynamicMemory( const TDefaultFuncPtr* defaultIfNeeded ) const {GUCEF_TRACE; false; }
-template <> inline bool CVariant::TTypeUsesDynamicMemory( const CDynamicBuffer* defaultIfNeeded ) const {GUCEF_TRACE; true; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const TDefaultFuncPtr* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const CDynamicBuffer* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
 
 /*-------------------------------------------------------------------------*/
 
