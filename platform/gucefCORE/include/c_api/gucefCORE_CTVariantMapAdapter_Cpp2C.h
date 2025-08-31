@@ -235,7 +235,7 @@ CTVariantMapAdapterCpp2C< TK, TV, TKC, AllocType >::insert( void* privdata, TVar
 
             // For an insert we need to check if the key already exists
             // We specifically do NOT want to overwrite existing keys
-            TLinkedMapType::iterator i = api->m_map->find( nativeSearchKey );
+            typename TLinkedMapType::iterator i = api->m_map->find( nativeSearchKey );
             if ( i == api->m_map->end() )
             {
                 CVariant valueToInsertVar;
@@ -279,7 +279,7 @@ CTVariantMapAdapterCpp2C< TK, TV, TKC, AllocType >::set( void* privdata, TVarian
 
             // For a set we need to check if the key already exists
             // We specifically DO want to overwrite existing keys
-            TLinkedMapType::iterator i = api->m_map->find( nativeSearchKey );
+            typename TLinkedMapType::iterator i = api->m_map->find( nativeSearchKey );
             if ( i != api->m_map->end() )
             {
                 CVariant valueToInsertVar;
@@ -354,7 +354,7 @@ CTVariantMapAdapterCpp2C< TK, TV, TKC, AllocType >::at_key( void* privdata, TVar
             searchKeyVar.LinkTo( searchKey );
             TK nativeSearchKey = searchKeyVar.AsTValue< TK >();
 
-            TLinkedMapType::const_iterator i = api->m_constMap->find( nativeSearchKey );
+            typename TLinkedMapType::const_iterator i = api->m_constMap->find( nativeSearchKey );
             if ( i != api->m_constMap->end() )
             {
                 const TV& foundValue = (*i).second;
@@ -396,7 +396,7 @@ CTVariantMapAdapterCpp2C< TK, TV, TKC, AllocType >::at_index( void* privdata, UI
         {
             if ( searchIndex < static_cast< UInt32 >( api->m_constMap->size() ) )
             {
-                TLinkedMapType::const_iterator i = api->m_constMap->begin();
+                typename TLinkedMapType::const_iterator i = api->m_constMap->begin();
                 std::advance( i, searchIndex );
 
                 const TV& foundValue = (*i).second;

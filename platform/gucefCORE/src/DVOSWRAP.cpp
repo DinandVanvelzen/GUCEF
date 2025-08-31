@@ -73,6 +73,14 @@
   #include <unistd.h>
   #define MAX_DIR_LENGTH PATH_MAX
 
+#elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+  #include <emscripten.h>
+  #include <emscripten/threading.h>
+  #include <pthread.h>
+  #include <unistd.h>
+  #include <sys/time.h>
+
 #endif
 
 #ifndef GUCEF_CORE_DVSTRUTILS_H
@@ -1243,6 +1251,11 @@ LoadModuleDynamicly( const char* filename )
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "LoadLibrary() reports error code: " + ToString( (UInt32) lastErrorCode ) );
     }
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    // Dynamic loading is not supported in Emscripten
+    modulePtr = GUCEF_NULL;
+
     #endif
 
     if ( fileExt == NULL )
@@ -1273,6 +1286,11 @@ GetModulePointer( const char* moduleName )
 
     return (void*) GetModuleHandleA( moduleName );
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    // Dynamic loading is not supported in Emscripten
+    return nullptr;
+
     #else
     #error Unsupported target platform
     #endif
@@ -1293,6 +1311,10 @@ UnloadModuleDynamicly( void *sohandle )
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
     FreeLibrary( (HMODULE)sohandle );
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    // Dynamic unloading is not supported in Emscripten
 
     #else
     #error Unsupported target platform
@@ -1375,6 +1397,11 @@ GetFunctionAddress( void *sohandle           ,
         }
 
     }
+    return fptr;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    fptr.funcPtr = nullptr;
     return fptr;
 
     #else
@@ -1614,6 +1641,11 @@ GUCEFSetEnv( const char* key   ,
     free( envstr );
     return retval == 0;
 
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    // Environment variables are not supported in Emscripten
+    return OSWRAP_FALSE;
+
     #else
 
     return setenv( key, value, 1 ) == 0;
@@ -1627,7 +1659,16 @@ const char*
 GUCEFGetEnv( const char* key )
 {GUCEF_TRACE;
 
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    // Environment variables are not supported in Emscripten
+    return GUCEF_NULL;
+
+    #else
+
     return getenv( key );
+
+    #endif
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1650,6 +1691,10 @@ GUCEFGetTickCount( void )
     struct tms timeStorage;
     return (UInt32) times( &timeStorage );
     #endif
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    return static_cast<UInt32>(emscripten_get_now());
 
     #else
     #error unsupported platform
@@ -1739,6 +1784,8 @@ GetLogicalCPUCount( void )
     return systemInfo.dwNumberOfProcessors;
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
     return (UInt32) ::sysconf( _SC_NPROCESSORS_ONLN );
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+    return emscripten_num_logical_cores();
     #else
     return 1;
     #endif
@@ -1750,6 +1797,8 @@ OSWRAP_BOOLINT
 GetProcessList( TProcessId** processList ,
                 UInt32* processCount     )
 {GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     if ( GUCEF_NULL == processCount || GUCEF_NULL == processList )
         return OSWRAP_FALSE;
@@ -1769,6 +1818,9 @@ GetProcessList( TProcessId** processList ,
             OSWRAP_TRUE;
         }
     }
+
+    #endif
+
     return OSWRAP_FALSE;
 }
 
@@ -1778,8 +1830,12 @@ void
 FreeProcessList( TProcessId* processList )
 {GUCEF_TRACE;
 
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
     if ( GUCEF_NULL != processList )
         free( processList );
+
+    #endif
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1789,8 +1845,13 @@ GetProcessIdAtIndex( TProcessId* processList ,
                      UInt32 index            )
 {GUCEF_TRACE;
 
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
     if ( GUCEF_NULL != processList )
         return processList[ index ];
+
+    #endif
+
     return 0;
 }
 
@@ -1799,6 +1860,8 @@ GetProcessIdAtIndex( TProcessId* processList ,
 OSWRAP_BOOLINT
 CheckOnProcessAliveStatus( TProcessId pid, OSWRAP_BOOLINT* status )
 {GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     if ( GUCEF_NULL != status )
     {
@@ -1810,6 +1873,9 @@ CheckOnProcessAliveStatus( TProcessId pid, OSWRAP_BOOLINT* status )
             return OSWRAP_TRUE;
         }
     }
+
+    #endif
+
     return OSWRAP_FALSE;
 }
 
@@ -2066,6 +2132,8 @@ GetExeNameForProcessId( TProcessId pid         ,
                         UInt32* usedBufferSize )
 {GUCEF_TRACE;
 
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
     if ( GUCEF_NULL == outNameBuffer || GUCEF_NULL == usedBufferSize )
         return OSWRAP_FALSE;
 
@@ -2084,6 +2152,8 @@ GetExeNameForProcessId( TProcessId pid         ,
         *usedBufferSize = 0;
         return OSWRAP_TRUE;
     }
+
+    #endif
 
     return OSWRAP_FALSE;
 }
@@ -2290,6 +2360,8 @@ GUCEF_CORE_PUBLIC_C TProcCpuDataPoint*
 CreateProcCpuDataPoint( TProcessId pid )
 {GUCEF_TRACE;
 
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
     if ( 0 == pid )
         return GUCEF_NULL;
 
@@ -2322,6 +2394,12 @@ CreateProcCpuDataPoint( TProcessId pid )
     #endif
 
     return dataPoint;
+
+    #else
+
+    return GUCEF_NULL;
+
+    #endif
 }
 
 /*--------------------------------------------------------------------------*/
@@ -2330,6 +2408,8 @@ GUCEF_CORE_PUBLIC_C TProcCpuDataPoint*
 CopyProcCpuDataPoint( TProcCpuDataPoint* srcCpuDataDataPoint ,
                       TProcessId newProcId                   )
 {GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     if ( GUCEF_NULL == srcCpuDataDataPoint )
         return GUCEF_NULL;
@@ -2375,6 +2455,12 @@ CopyProcCpuDataPoint( TProcCpuDataPoint* srcCpuDataDataPoint ,
     #endif
 
     return dataPoint;
+
+    #else
+
+    return GUCEF_NULL;
+
+    #endif
 }
 
 /*--------------------------------------------------------------------------*/
@@ -2382,6 +2468,8 @@ CopyProcCpuDataPoint( TProcCpuDataPoint* srcCpuDataDataPoint ,
 void
 FreeProcCpuDataPoint( TProcCpuDataPoint* cpuDataDataPoint )
 {GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     if ( GUCEF_NULL != cpuDataDataPoint )
     {
@@ -2395,6 +2483,8 @@ FreeProcCpuDataPoint( TProcCpuDataPoint* cpuDataDataPoint )
 
         free( cpuDataDataPoint );
     }
+
+    #endif
 }
 
 /*--------------------------------------------------------------------------*/
@@ -2404,6 +2494,8 @@ GetProcessCpuUsage( TProcessId pid                              ,
                     TProcCpuDataPoint* previousCpuDataDataPoint ,
                     TProcessCpuUsageInfo* cpuUseInfo            )
 {GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     if ( GUCEF_NULL == previousCpuDataDataPoint || GUCEF_NULL == cpuUseInfo )
         return OSWRAP_FALSE;
@@ -2518,6 +2610,12 @@ GetProcessCpuUsage( TProcessId pid                              ,
     return OSWRAP_FALSE;
 
     #endif
+    #else
+
+    return OSWRAP_FALSE;
+
+    #endif
+
 }
 
 /*--------------------------------------------------------------------------*/
@@ -2525,6 +2623,8 @@ GetProcessCpuUsage( TProcessId pid                              ,
 GUCEF_CORE_PUBLIC_C TCpuDataPoint*
 CreateCpuDataPoint( void )
 {GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     TCpuDataPoint* dataPoint = (TCpuDataPoint*) malloc( sizeof( TCpuDataPoint ) );
     if ( GUCEF_NULL == dataPoint )
@@ -2585,6 +2685,12 @@ CreateCpuDataPoint( void )
     #endif
 
     return dataPoint;
+
+    #else
+
+    return GUCEF_NULL;
+
+    #endif
 }
 
 /*--------------------------------------------------------------------------*/
@@ -2592,6 +2698,8 @@ CreateCpuDataPoint( void )
 void
 FreeCpuDataPoint( TCpuDataPoint* cpuDataPoint )
 {GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     if ( GUCEF_NULL != cpuDataPoint )
     {
@@ -2620,6 +2728,8 @@ FreeCpuDataPoint( TCpuDataPoint* cpuDataPoint )
 
         free( cpuDataPoint );
     }
+
+    #endif
 }
 
 /*--------------------------------------------------------------------------*/
@@ -2628,6 +2738,8 @@ UInt32
 GetCpuStats( TCpuDataPoint* previousCpuDataDataPoint ,
              TCpuStats** cpuStats                    )
 {GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
     if ( GUCEF_NULL == previousCpuDataDataPoint || GUCEF_NULL == cpuStats )
         return OSWRAP_FALSE;
@@ -2765,6 +2877,12 @@ GetCpuStats( TCpuDataPoint* previousCpuDataDataPoint ,
 
     *cpuStats = &previousCpuDataDataPoint->cpuStats;
     return OSWRAP_TRUE;
+
+    #else
+
+    return OSWRAP_FALSE;
+
+    #endif
 }
 
 /*-------------------------------------------------------------------------//

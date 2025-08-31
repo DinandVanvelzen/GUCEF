@@ -1597,7 +1597,8 @@ CThreadPool::PauseTask( const UInt32 taskID          ,
         delegator->Pause( force );                    
 
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Paused task with ID " + ToString( taskID ) );
-        NotifyObserversFromThread( TaskPausedEvent, &TTaskPausedEventData( taskID ) );
+        TTaskPausedEventData eData( taskID );
+        NotifyObserversFromThread( TaskPausedEvent, &eData );
         return true;
     }
     else
@@ -1625,7 +1626,8 @@ CThreadPool::ResumeTask( const UInt32 taskID          ,
         delegator->Resume();
 
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Resumed task with ID " + ToString( taskID ) );
-        NotifyObserversFromThread( TaskResumedEvent, &TTaskResumedEventData( taskID ) );
+        TTaskResumedEventData eData( taskID );
+        NotifyObserversFromThread( TaskResumedEvent, &eData );
         return true;
     }
     else
@@ -1654,7 +1656,8 @@ CThreadPool::RequestTaskToStop( const UInt32 taskID    ,
         delegator->Deactivate( false, callerShouldWait );
 
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Requested task with ID " + ToString( taskID ) + " to stop" );
-        NotifyObserversFromThread( TaskResumedEvent, &TTaskResumedEventData( taskID ) );
+        TTaskResumedEventData eData( taskID );
+        NotifyObserversFromThread( TaskResumedEvent, &eData );
         return true;
     }
     else
@@ -2038,7 +2041,8 @@ CThreadPool::KillThreadWorkingOnTask( const UInt32 taskID )
         delegator->Deactivate( true, true );
 
         GUCEF_SYSTEM_LOG( LOGLEVEL_VERY_IMPORTANT, "ThreadPool(" + m_poolName + "): Killing task with ID " + ToString( taskID ) + " to stop" );
-        NotifyObserversFromThread( TaskKilledEvent, &TTaskKilledEventData( taskID ) );
+        TTaskKilledEventData eData( taskID );
+        NotifyObserversFromThread( TaskKilledEvent, &eData );
         return true;
     }
     else

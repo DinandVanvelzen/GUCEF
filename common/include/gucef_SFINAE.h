@@ -35,6 +35,11 @@
 #define GUCEF_CPP_H
 #endif /* GUCEF_CPP_H ? */
 
+#ifndef GUCEF_BASICHELPERS_H
+#include "gucef_basichelpers.h"
+#define GUCEF_BASICHELPERS_H
+#endif /* GUCEF_BASICHELPERS_H ? */
+
 #if defined(__cplusplus)
 /*-------------------------------------------------------------------------//
 //                                                                         //

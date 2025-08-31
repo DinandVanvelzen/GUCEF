@@ -444,17 +444,3 @@ FreeCpuDataPoint( TCpuDataPoint* cpuDataDataPoint );
 
 #endif /* GUCEF_CORE_DVOSWRAP_H ? */
 
-/*--------------------------------------------------------------------------//
-//                                                                          //
-//      Info & Changes                                                      //
-//                                                                          //
-//--------------------------------------------------------------------------//
-
-- 29-05-2005 :
-        - Debugged StringToClipboard(): it is now operational.
-        - Debugged StringFromClipboard(): it is now operational.
-- 02-02-2004 :
-        - Created this set of functions.
-
-----------------------------------------------------------------------------*/
-

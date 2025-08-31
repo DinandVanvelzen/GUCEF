@@ -41,6 +41,16 @@
 
 #include <stdio.h>
 
+#if defined(__EMSCRIPTEN__)
+    /* Emscripten does not support C11 Annex K bounds-checking interfaces */
+    #undef __STDC_WANT_LIB_EXT1__
+#else
+    /* Define __STDC_WANT_LIB_EXT1__ to enable Annex K functions if needed */
+    #ifndef __STDC_WANT_LIB_EXT1__
+        #define __STDC_WANT_LIB_EXT1__ 1
+    #endif
+#endif
+
 #ifdef __cplusplus
   #include <limits>
   #include <cstddef>

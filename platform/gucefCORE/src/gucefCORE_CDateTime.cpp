@@ -1870,6 +1870,32 @@ CDateTime::ClampToBoundary( TDateTimeComponent boundary ,
             }
             return true;
         }
+        case TDateTimeComponent::DATETIMECOMPONENT_SECONDS:
+        {
+            if ( TBoundaryType::BOUNDARYTYPE_MINIMUM == boundaryType )
+            {
+                clampedDt.SetMilliseconds( 0 );
+            }
+            else
+            if ( TBoundaryType::BOUNDARYTYPE_MAXIMUM == boundaryType )
+            {
+                clampedDt.SetMilliseconds( 999 );
+            }
+            return true;
+        }
+        case TDateTimeComponent::DATETIMECOMPONENT_MILLISECONDS:
+        {
+            // no-op clamp: full precision
+            return true;
+        }
+        
+        case TDateTimeComponent::DATETIMECOMPONENT_TIMEZONEOFFSETINMINS:
+        case TDateTimeComponent::DATETIMECOMPONENT_UNKNOWN:
+        default:
+        {
+            // non-sensical in this context
+            return false;
+        }
     }
 
     return false;

@@ -125,7 +125,7 @@ CTaskInfo::Serialize( CDataNode& domRootNode                        ,
     
     totalSuccess = domRootNode.SetAttribute( "taskId", m_taskId ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "threadId", m_threadId ) && totalSuccess;
-    totalSuccess = domRootNode.SetAttribute( "taskStatusId", (UInt8) m_taskStatus ) && totalSuccess;
+    totalSuccess = domRootNode.SetAttribute( "taskStatusId", (Int32) m_taskStatus ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "hasTaskData", m_hasTaskData ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "customTaskDataIsSerializable", m_customTaskDataIsSerializable ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "taskTypeName", m_taskTypeName ) && totalSuccess;

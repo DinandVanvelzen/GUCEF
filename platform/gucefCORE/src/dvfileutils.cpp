@@ -48,14 +48,16 @@
   #include <io.h>                 /* Dir itteration: findfirst ect. */
   #include <direct.h>             /* dir tools */
   #define MAX_DIR_LENGTH MAX_PATH
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
-  #include <dirent.h>             /* needed for dirent strcture */
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+  #include <dirent.h>             /* needed for dirent structure */
   #include <unistd.h>             /* POSIX utilities */
   #include <limits.h>             /* Linux OS limits */
   #include <sys/stat.h>           /* needed for stat function */
   #include <errno.h>
   #include <fcntl.h>
-  #include <sys/sendfile.h>
+  #if !defined(__EMSCRIPTEN__)
+    #include <sys/sendfile.h>     /* Linux-specific zero-copy file transfer */
+  #endif
   #define MAX_DIR_LENGTH PATH_MAX
 #else
   #error Unsupported OS

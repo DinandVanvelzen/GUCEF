@@ -296,7 +296,7 @@ CConstEnumerator::Compare( const CConstEnumerator& other ) const
         }
         else
         {
-            return memcmp( m_enumerable, other.m_enumerable, sizeof m_enumerable );
+            return memcmp( (const void*) m_enumerable, (const void*) other.m_enumerable, sizeof( CIEnumerable* ) );
         }
     }
     return 0;

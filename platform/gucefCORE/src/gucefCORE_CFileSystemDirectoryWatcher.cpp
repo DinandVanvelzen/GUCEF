@@ -953,7 +953,7 @@ class GUCEF_HIDDEN OSSpecificDirectoryWatcher
 {
     public:
 
-    typedef CDirectoryWatcher::CDirWatchOptions CDirWatchOptions;
+    typedef CFileSystemDirectoryWatcher::CDirWatchOptions CDirWatchOptions;
 
     bool AddDirToWatch( const CString& dirToWatch       ,
                         const CDirWatchOptions& options )
@@ -971,19 +971,24 @@ class GUCEF_HIDDEN OSSpecificDirectoryWatcher
         return false;
     }
 
-    OSSpecificDirectoryWatcher( CDirectoryWatcher* wrapper )
+    bool GetAllWatchedDirs( CString::StringSet& dirs ) const
+    {GUCEF_TRACE;
+        return false;
+    }
+
+    OSSpecificDirectoryWatcher( CFileSystemDirectoryWatcher* wrapper )
     {GUCEF_TRACE;
 
     }
 
-    OSSpecificDirectoryWatcher( CDirectoryWatcher* wrapper      ,
-                                CPulseGenerator& pulseGenerator )
+    OSSpecificDirectoryWatcher( CFileSystemDirectoryWatcher* wrapper ,
+                                PulseGeneratorPtr pulseGenerator     )
     {GUCEF_TRACE;
 
-    }
+    } 
 
     OSSpecificDirectoryWatcher( const OSSpecificDirectoryWatcher& src ,
-                                CDirectoryWatcher* wrapper            )
+                                CFileSystemDirectoryWatcher* wrapper  )
     {GUCEF_TRACE;
 
     }
