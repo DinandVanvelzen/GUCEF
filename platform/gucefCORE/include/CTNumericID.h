@@ -134,7 +134,7 @@ class CTNumericID : public CINumericID
 
 template < typename intType >
 CTNumericID< intType >::CTNumericID( void )
-    : m_idGenerator( GUCEF_NULL ) 
+    : m_idGenerator() 
     , m_id( 0 )              
     , m_initialized( false )
 {GUCEF_TRACE;
@@ -146,7 +146,7 @@ CTNumericID< intType >::CTNumericID( void )
 
 template < typename intType >
 CTNumericID< intType >::CTNumericID( const CTNumericID& src )
-    : m_idGenerator( GUCEF_NULL )  
+    : m_idGenerator()  
     , m_id( 0 )              
     , m_initialized( false )
 {GUCEF_TRACE;
@@ -168,7 +168,7 @@ CTNumericID< intType >::CTNumericID( const CTNumericID& src )
 
 template < typename intType >
 CTNumericID< intType >::CTNumericID( CTNumericID&& src ) GUCEF_NOEXCEPT
-    : m_idGenerator( GUCEF_NULL )  
+    : m_idGenerator()  
     , m_id( 0 )              
     , m_initialized( false )
 {GUCEF_TRACE;

@@ -635,7 +635,7 @@ CThreadPool::QueueCallbackTask( R (*f)() )
 
     CICloneable* taskData = CDeferredTask::Construct( f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return CTask::CreateSharedObj( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
 
     CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
                                       taskData                               ,
@@ -653,7 +653,7 @@ CThreadPool::QueueCallbackTask( R (*f)(A1), A1 a1 )
 
     CICloneable* taskData = CDeferredTask::Construct( f, a1 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return CTask::CreateSharedObj( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
 
     CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
                                       taskData                               ,
@@ -671,7 +671,7 @@ CThreadPool::QueueCallbackTask( R (*f)(A1, A2), A1 a1, A2 a2 )
 
     CICloneable* taskData = CDeferredTask::Construct( f, a1, a2 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return CTask::CreateSharedObj( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
 
     CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
                                       taskData                               ,
@@ -689,7 +689,7 @@ CThreadPool::QueueCallbackTask( R (*f)(A1, A2, A3), A1 a1, A2 a2, A3 a3 )
 
     CICloneable* taskData = CDeferredTask::Construct( f, a1, a2, a3 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return CTask::CreateSharedObj( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
 
     CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
                                       taskData                               ,
@@ -707,7 +707,7 @@ CThreadPool::QueueCallbackTask( R (*f)(A1, A2, A3, A4), A1 a1, A2 a2, A3 a3, A4 
 
     CICloneable* taskData = CDeferredTask::Construct( f, a1, a2, a3, a4 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return CTask::CreateSharedObj( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
 
     CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
                                       taskData                               ,
@@ -724,7 +724,7 @@ CThreadPool::QueueNextCallbackTask( CTaskPtr prereqTask, R (*f)( CTaskPtr ) )
 {GUCEF_TRACE;
 
     if ( prereqTask.IsNULL() )
-        return CTask::CreateSharedObj( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
+        return TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
 
     CTaskPtr task = PrepTaskObj( CGenericCallbackTaskConsumer::TaskType ,
                                  GUCEF_NULL                             ,

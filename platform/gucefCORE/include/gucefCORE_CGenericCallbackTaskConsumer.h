@@ -61,7 +61,7 @@ class GUCEF_CORE_PUBLIC_CPP CGenericCallbackTaskConsumer : public CTaskConsumer
 
     virtual ~CGenericCallbackTaskConsumer() GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual CString GetType( void ) const;
+    virtual CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

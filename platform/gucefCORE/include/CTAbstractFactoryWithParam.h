@@ -142,7 +142,7 @@ class CTAbstractFactoryWithParam : public CAbstractFactoryBase
     private:
     typedef std::pair< const SelectionCriteriaType, TFactory* >   TFactoryEntryPair;
     typedef std::map< SelectionCriteriaType, TFactory*, std::less< SelectionCriteriaType >, gucef_allocator< TFactoryEntryPair > >  TFactoryList;
-    typedef std::pair< CString, SelectionCriteriaType >   TStringToSCPair;
+    typedef std::pair< const CString, SelectionCriteriaType >   TStringToSCPair;
     typedef std::map< CString, SelectionCriteriaType, std::less< CString >, gucef_allocator< TStringToSCPair > >  TClassTypeNameMap;
 
     TFactoryList m_concreteFactoryList;

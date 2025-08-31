@@ -233,10 +233,11 @@ class deferred_invoker<FuncPtr, arity_0> : public CDeferredTask
     typename traits::result_type m_result;
 
     deferred_invoker(FuncPtr f)
-        : m_f(f), m_result(), {}
+        : m_f(f), m_result() {GUCEF_TRACE; }
 
     virtual void Invoke( void ) GUCEF_VIRTUAL_OVERRIDE
-    {
+    {GUCEF_TRACE;
+
         m_result = (*m_f)();
     }
 
@@ -255,10 +256,11 @@ class deferred_invoker< FuncPtr, arity_1 > : public CDeferredTask
     typename traits::arg1_type m_a1;    
 
     deferred_invoker(FuncPtr f, typename traits::arg1_type a1)
-      : m_f(f), m_result(), m_a1(a1) {}
+      : m_f(f), m_result(), m_a1(a1) {GUCEF_TRACE; }
 
     virtual void Invoke( void ) GUCEF_VIRTUAL_OVERRIDE
-    {
+    {GUCEF_TRACE;
+
         m_result = (*m_f)(m_a1);
     }
 

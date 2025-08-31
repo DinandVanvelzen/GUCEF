@@ -85,6 +85,7 @@ class CTNumericIDGenerator : public CINumericIDGeneratorBase ,
 
     typedef CTNumericID< intType >                                                                              TNumericID;
     typedef typename CTSharedObjCreator< CTNumericIDGenerator< intType, LockType >, LockType >::TSharedPtrType  TNumericIDGeneratorTypedPtr;
+    typedef CTSharedObjCreator< CTNumericIDGenerator< intType, LockType >, LockType >                           TSharedObjCreatorBase;
     typedef intType                                                                                             TIntegerTypeUsedForId;
 
     CTNumericIDGenerator( void );
@@ -161,7 +162,7 @@ CTNumericIDGenerator< intType, LockType >::GenerateID( const bool releaseIDOnDes
     if ( m_availableIDs.size() >= m_recycleThreshold )
     {
         // use a recycled Id instead
-        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_availableIDs.back(), releaseIDOnDestruction ? CreateSharedPtr() : CINumericIDGeneratorBasePtr() );
+        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_availableIDs.back(), releaseIDOnDestruction ? TSharedObjCreatorBase::CreateSharedPtr() : CINumericIDGeneratorBasePtr() );
         m_availableIDs.pop_back();
         return id;        
     }
@@ -172,7 +173,7 @@ CTNumericIDGenerator< intType, LockType >::GenerateID( const bool releaseIDOnDes
     if ( m_lastID+1 != m_maxValue )
     {
         ++m_lastID;
-        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_lastID, releaseIDOnDestruction ? CreateSharedPtr() : CINumericIDGeneratorBasePtr() );
+        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_lastID, releaseIDOnDestruction ? TSharedObjCreatorBase::CreateSharedPtr() : CINumericIDGeneratorBasePtr() );
         return id;
     }
 
@@ -181,7 +182,7 @@ CTNumericIDGenerator< intType, LockType >::GenerateID( const bool releaseIDOnDes
     if ( !m_availableIDs.empty() )
     {
         // use a recycled Id instead
-        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_availableIDs.back(), releaseIDOnDestruction ? CreateSharedPtr() : CINumericIDGeneratorBasePtr() );
+        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_availableIDs.back(), releaseIDOnDestruction ? TSharedObjCreatorBase::CreateSharedPtr() : CINumericIDGeneratorBasePtr() );
         m_availableIDs.pop_back();
         return id;
     }
