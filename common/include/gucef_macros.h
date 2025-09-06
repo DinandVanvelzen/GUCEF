@@ -79,6 +79,11 @@
 #define GUCEF_ALLOCATOR_H
 #endif /* GUCEF_ALLOCATOR_H ? */
 
+#ifndef GUCEF_STL_H
+#include "gucef_stl.h"          /* GUCEF platform wrappers of stl containers which by default use GUP's custom allocator */
+#define GUCEF_STL_H
+#endif /* GUCEF_STL_H ? */
+
 #ifndef GUCEF_SHAREDMODULE_H
 #include "gucef_sharedmodule.h"  /* GUCEF platform macros related to the use of shared modules */
 #define GUCEF_SHAREDMODULE_H
