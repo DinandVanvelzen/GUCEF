@@ -83,7 +83,7 @@ CVariantBinarySerializer::Serialize( const CVariant& var, UInt32 currentTargetOf
             if ( nrOfBytesWritten != sizeof(payloadSize) )
             {
                 GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "VariantBinarySerializer:Serialize: payloadSize (" + ToString( payloadSize ) + ") was not written correctly. " + 
-                    ToString( sizeof(payloadSize) ) + " bytes expected, " + ToString( sizeof(nrOfBytesWritten) ) + " bytes written" );
+                    ToString( (UInt32) sizeof(payloadSize) ) + " bytes expected, " + ToString( sizeof(nrOfBytesWritten) ) + " bytes written" );
                 return false;
             }
         }
@@ -95,7 +95,7 @@ CVariantBinarySerializer::Serialize( const CVariant& var, UInt32 currentTargetOf
         if ( nrOfBytesWritten != payloadSize )
         {
             GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "VariantBinarySerializer:Serialize: payload of payloadSize " + ToString( payloadSize ) + " bytes was not written correctly. " + 
-                ToString( sizeof(nrOfBytesWritten) ) + " bytes were written" );
+                ToString( (UInt32) sizeof(nrOfBytesWritten) ) + " bytes were written" );
             return false;
         }
 

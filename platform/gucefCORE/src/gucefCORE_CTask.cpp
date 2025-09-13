@@ -231,6 +231,11 @@ CTask::SetTaskStatus( TTaskStatus newStatus )
                     nextTask->SetTaskStatus( newStatus );
                 break;
             }
+            default:
+            {
+                // by default don't propagate the status
+                break;
+            }
         }        
     }
 }

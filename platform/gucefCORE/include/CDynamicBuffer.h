@@ -561,7 +561,7 @@ CDynamicBuffer::AsType( const UInt32 byteOffset /* = 0 */ )
     }
 
     GUCEF_EMSGTHROW( EIllegalCast, "GUCEF::CORE::CDynamicBuffer::AsType(): Cannot cast to the given type. Need " + 
-        ToString( sizeof( T ) ) + " bytes at offset " + ToString( byteOffset ) + ". Only have " + ToString( GetRemainingDataSize( byteOffset ) ) );
+        ToString( (UInt32) sizeof( T ) ) + " bytes at offset " + ToString( byteOffset ) + ". Only have " + ToString( GetRemainingDataSize( byteOffset ) ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -577,7 +577,7 @@ CDynamicBuffer::AsConstType( const UInt32 byteOffset /* = 0 */ ) const
     }
 
     GUCEF_EMSGTHROW( EIllegalCast, "GUCEF::CORE::CDynamicBuffer::AsConstType(): Cannot cast to the given type. Need " + 
-        ToString( sizeof( T ) ) + " bytes at offset " + ToString( byteOffset ) + ". Only have " + ToString( GetRemainingDataSize( byteOffset ) ) );
+        ToString( (UInt32) sizeof( T ) ) + " bytes at offset " + ToString( byteOffset ) + ". Only have " + ToString( GetRemainingDataSize( byteOffset ) ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -594,7 +594,7 @@ CDynamicBuffer::AsConstTypePtr( const UInt32 byteOffset /* = 0 */ ) const
     }
 
     GUCEF_EMSGTHROW( EIllegalCast, "GUCEF::CORE::CDynamicBuffer::AsConstTypePtr(): Cannot cast to the given type. Need " + 
-        ToString( sizeof( T ) ) + " bytes at offset " + ToString( byteOffset ) + ". Only have " + ToString( GetRemainingDataSize( byteOffset ) ) );
+        ToString( (UInt32) sizeof( T ) ) + " bytes at offset " + ToString( byteOffset ) + ". Only have " + ToString( GetRemainingDataSize( byteOffset ) ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -611,7 +611,7 @@ CDynamicBuffer::AsTypePtr( const UInt32 byteOffset /* = 0 */ )
     }
 
     GUCEF_EMSGTHROW( EIllegalCast, "GUCEF::CORE::CDynamicBuffer::AsTypePtr(): Cannot cast to the given type. Need " + 
-        ToString( sizeof( T ) ) + " bytes at offset " + ToString( byteOffset ) + ". Only have " + ToString( GetRemainingDataSize( byteOffset ) ) );
+        ToString( (UInt32) sizeof( T ) ) + " bytes at offset " + ToString( byteOffset ) + ". Only have " + ToString( GetRemainingDataSize( byteOffset ) ) );
 }
 
 /*-------------------------------------------------------------------------*/

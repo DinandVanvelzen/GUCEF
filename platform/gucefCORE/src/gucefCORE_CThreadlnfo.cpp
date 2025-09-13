@@ -99,7 +99,7 @@ CThreadInfo::Serialize( CDataNode& domRootNode                        ,
     bool totalSuccess = true;
         
     totalSuccess = domRootNode.SetAttribute( "threadId", m_threadId ) && totalSuccess;
-    totalSuccess = domRootNode.SetAttribute( "threadStatusId", (UInt8) m_threadStatus ) && totalSuccess;
+    totalSuccess = domRootNode.SetAttribute( "threadStatusId", (UInt16) m_threadStatus ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "affinityMask", m_affinityMask ) && totalSuccess;
     totalSuccess = domRootNode.SetAttribute( "threadCpuId", m_threadCpuId ) && totalSuccess;
 

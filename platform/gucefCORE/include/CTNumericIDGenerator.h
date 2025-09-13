@@ -162,7 +162,10 @@ CTNumericIDGenerator< intType, LockType >::GenerateID( const bool releaseIDOnDes
     if ( m_availableIDs.size() >= m_recycleThreshold )
     {
         // use a recycled Id instead
-        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_availableIDs.back(), releaseIDOnDestruction ? TSharedObjCreatorBase::CreateSharedPtr() : CINumericIDGeneratorBasePtr() );
+        CINumericIDGeneratorBasePtr idGenerator;
+        if ( releaseIDOnDestruction )
+            idGenerator = TSharedObjCreatorBase::CreateSharedPtr();
+        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_availableIDs.back(), idGenerator );
         m_availableIDs.pop_back();
         return id;        
     }
@@ -173,7 +176,12 @@ CTNumericIDGenerator< intType, LockType >::GenerateID( const bool releaseIDOnDes
     if ( m_lastID+1 != m_maxValue )
     {
         ++m_lastID;
-        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_lastID, releaseIDOnDestruction ? TSharedObjCreatorBase::CreateSharedPtr() : CINumericIDGeneratorBasePtr() );
+
+        CINumericIDGeneratorBasePtr idGenerator;
+        if ( releaseIDOnDestruction )
+            idGenerator = TSharedObjCreatorBase::CreateSharedPtr();
+
+        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_lastID, idGenerator );
         return id;
     }
 
@@ -182,7 +190,12 @@ CTNumericIDGenerator< intType, LockType >::GenerateID( const bool releaseIDOnDes
     if ( !m_availableIDs.empty() )
     {
         // use a recycled Id instead
-        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_availableIDs.back(), releaseIDOnDestruction ? TSharedObjCreatorBase::CreateSharedPtr() : CINumericIDGeneratorBasePtr() );
+
+        CINumericIDGeneratorBasePtr idGenerator;
+        if ( releaseIDOnDestruction )
+            idGenerator = TSharedObjCreatorBase::CreateSharedPtr();
+
+        typename CTNumericIDGenerator< intType, LockType >::TNumericID id( m_availableIDs.back(), idGenerator );
         m_availableIDs.pop_back();
         return id;
     }

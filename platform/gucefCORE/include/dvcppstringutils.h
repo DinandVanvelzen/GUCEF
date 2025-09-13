@@ -174,6 +174,16 @@ StringToBool( const CString& str, bool defaultIfNeeded = false );
 
 /*-------------------------------------------------------------------------*/
 
+GUCEF_CORE_PUBLIC_CPP std::size_t
+StringToSizeT( const CString& str, std::size_t defaultIfNeeded = 0 );
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_CORE_PUBLIC_CPP CString
+SizeTToString( const std::size_t value );
+
+/*-------------------------------------------------------------------------*/
+
 GUCEF_CORE_PUBLIC_CPP UInt64
 StringToUInt64( const CString& str, UInt64 defaultIfNeeded = 0 );
 
@@ -533,7 +543,7 @@ inline CString ToString( const TVersion& value ) { return VersionToString( value
 inline CString ToString( const std::string& value ) { return CString( value ); }
 inline CString ToString( const std::wstring& value ) { std::string out; Utf16toUtf8( value, out ); return out; }
 
-#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 #ifdef GUCEF_32BIT
 inline CString ToString( size_t value ) { return UInt32ToString( (UInt32) value ); }
 #else

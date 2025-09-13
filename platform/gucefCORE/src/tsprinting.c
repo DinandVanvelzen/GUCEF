@@ -23,6 +23,7 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <stdlib.h>
 #include <malloc.h>	     /* memory management */	
 #include <stdarg.h>          /* needed for var argument list */
 #include <string.h>          /* standard string utils */

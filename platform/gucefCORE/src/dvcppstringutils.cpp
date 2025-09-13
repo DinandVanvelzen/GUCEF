@@ -917,6 +917,24 @@ Int64ToString( const Int64 value )
 
 /*-------------------------------------------------------------------------*/
 
+std::size_t
+StringToSizeT( const CString& str, std::size_t defaultIfNeeded )
+{GUCEF_TRACE;
+
+    return (std::size_t) StringToUInt64( str, defaultIfNeeded );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+SizeTToString( const std::size_t value )
+{GUCEF_TRACE;
+
+    return UInt64ToString( value );
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt64
 StringToUInt64( const CString& str, UInt64 defaultIfNeeded )
 {GUCEF_TRACE;

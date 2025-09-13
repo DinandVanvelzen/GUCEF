@@ -51,13 +51,19 @@
     #endif
 #endif
 
+#undef GUCEF_HAS_STDINT
 #ifdef __cplusplus
   #include <limits>
   #include <cstddef>
   #if __cplusplus >= 201103L
     #include <cstdint>
+    #define GUCEF_HAS_STDINT 1
   #endif
 #endif /* __cplusplus ? */
+#if __STDC_VERSION__ >= 199901L
+  #include <stdint.h>
+  #define GUCEF_HAS_STDINT 1
+#endif
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -74,6 +80,31 @@ namespace GUCEF {
 //      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+#ifdef GUCEF_HAS_STDINT
+
+typedef int8_t             Int8;     /* 1 byte, signed */
+typedef int16_t            Int16;    /* 2 bytes, signed */
+typedef int32_t            Int32;    /* 4 bytes, signed */
+typedef int64_t            Int64;    /* 8 bytes, signed */
+typedef uint8_t            UInt8;    /* 1 byte, unsigned */
+typedef uint16_t           UInt16;   /* 2 bytes, unsigned */
+typedef uint32_t           UInt32;   /* 4 bytes, unsigned */
+typedef uint64_t           UInt64;   /* 8 bytes, unsigned */
+
+#ifndef Byte
+typedef Int8               Byte;     /* 1 byte, signed */
+#endif
+
+typedef UInt8              Ubyte;    /* 1 byte, unsigned */
+
+#undef UByte
+#define UByte              Ubyte
+
+typedef float              Float32;  /* 4 bytes, signed, decimal */
+typedef double             Float64;  /* 8 bytes, signed, decimal */
+
+#else
 
 #if GUCEF_COMPILER == GUCEF_COMPILER_MSVC
 
@@ -127,6 +158,8 @@ typedef unsigned __int64 UInt64;  /* 8 bytes, unsigned */
 
 typedef float           Float32;  /* 4 bytes, signed, decimal */
 typedef double          Float64;  /* 8 bytes, signed, decimal */
+
+#endif
 
 #endif
 
