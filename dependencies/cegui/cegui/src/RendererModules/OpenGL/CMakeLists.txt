@@ -82,7 +82,7 @@ set( MODULE_NAME "CEGUI.RendererModule.OpenGL" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} CEGUI glew )
 target_link_libraries( ${MODULE_NAME} CEGUI glew )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CEGUIOPENGLRENDERER_EXPORTS" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CEGUIOPENGLRENDERER_EXPORTS;MODULE_CONSENSUS_NAME=CEGUI_RendererModule_OpenGL;MODULE_NAME=CEGUI_RendererModule_OpenGL" )
 
 include_directories( ../../../../../glew/include ../../../../../glm ../../../include )
 

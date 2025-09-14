@@ -39,7 +39,7 @@ set( MODULE_NAME "guidriverRocketOpenGL" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} RocketControls RocketCore gucefCORE gucefGUI gucefINPUT gucefMT guidriverRocket )
 target_link_libraries( ${MODULE_NAME} RocketControls RocketCore gucefCORE gucefGUI gucefINPUT gucefMT guidriverRocket )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERROCKETGL_BUILD_MODULE" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERROCKETGL_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverRocketOpenGL;MODULE_NAME=guidriverRocketOpenGL" )
 
 if ( ANDROID )
   target_link_libraries( ${MODULE_NAME} EGL GLESv1_CM )

@@ -45,14 +45,6 @@ namespace PROJECTGEN {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      GLOBAL VARS                                                        //
-//                                                                         //
-//-------------------------------------------------------------------------*/         
-
-static const CORE::CString AllPlatforms = "all";
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
 //      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -291,7 +283,7 @@ GenerateGithubActionsWorkflowProjectSection( const CORE::CString& targetName    
     CORE::CString osPathToCMakeTargetsProjectDir;
     CORE::CString workflowRunsOnPlatform;
 
-    if ( "linux32" == targetPlatform || "linux64" == targetPlatform || AllPlatforms == targetPlatform )
+    if ( "linux32" == targetPlatform || "linux64" == targetPlatform || KnownPlatforms::AllPlatforms == targetPlatform )
     {
         // Change cmake relative path dir sep to match linux
         osPathToTargetsOutputDir = pathToTargetsOutputDir.ReplaceChar( '\\', '/' );
@@ -778,9 +770,22 @@ GenerateGlobPatternPathListPerTarget( const CProjectInfo& projectInfo           
 
 /*-------------------------------------------------------------------------*/
 
-CCIHelperGenerator::CCIHelperGenerator( void )
+bool
+CCIHelperGenerator::GetCapabilities( CProjectGeneratorCapabilities& capabilities ) const
 {GUCEF_TRACE;
 
+    capabilities = m_capabilities;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CCIHelperGenerator::CCIHelperGenerator( void )
+    : CIProjectGenerator()
+    , m_capabilities()
+{GUCEF_TRACE;
+
+    m_capabilities.AddSupportedPlatform( KnownPlatforms::AllPlatforms );
 }
 
 /*-------------------------------------------------------------------------*/

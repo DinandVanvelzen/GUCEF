@@ -199,7 +199,7 @@ set( MODULE_NAME "OgreRenderSystem_GL3Plus" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} Ogre )
 target_link_libraries( ${MODULE_NAME} Ogre )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "RenderSystem_GL3Plus_EXPORTS" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=OgreRenderSystem_GL3Plus;MODULE_NAME=OgreRenderSystem_GL3Plus;RenderSystem_GL3Plus_EXPORTS" )
 
 if ( LINUX32 )
   target_link_libraries( ${MODULE_NAME} GL )

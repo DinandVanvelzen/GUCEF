@@ -60,6 +60,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CPremake4ProjectGenerator : public CIProjectGe
 
     virtual ~CPremake4ProjectGenerator();
 
+    virtual bool GetCapabilities( CProjectGeneratorCapabilities& capabilities ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual bool GenerateProject( const CProjectInfo& projectInfo      ,
                                   const CORE::CString& outputDir       ,
                                   bool addGeneratorCompileTimeToOutput ,
@@ -68,6 +70,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CPremake4ProjectGenerator : public CIProjectGe
     private:
 
     CPremake4ProjectGenerator& operator=( const CPremake4ProjectGenerator& src );
+
+    CProjectGeneratorCapabilities m_capabilities;
 };
 
 /*-------------------------------------------------------------------------//

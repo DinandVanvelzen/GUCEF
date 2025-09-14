@@ -63,6 +63,7 @@ if( LINUX32 )
 elseif( LINUX64 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=inputdriverXWINMSG" )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefINPUT gucefMT )

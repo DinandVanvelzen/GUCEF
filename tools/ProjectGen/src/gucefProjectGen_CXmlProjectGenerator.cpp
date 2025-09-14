@@ -65,8 +65,11 @@ namespace PROJECTGEN {
 //-------------------------------------------------------------------------*/
 
 CXmlProjectGenerator::CXmlProjectGenerator( void )
+    : CIProjectGenerator()
+    , m_capabilities()
 {GUCEF_TRACE;
 
+    m_capabilities.AddSupportedPlatform( KnownPlatforms::AllPlatforms );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -74,6 +77,16 @@ CXmlProjectGenerator::CXmlProjectGenerator( void )
 CXmlProjectGenerator::~CXmlProjectGenerator()
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CXmlProjectGenerator::GetCapabilities( CProjectGeneratorCapabilities& capabilities ) const
+{GUCEF_TRACE;
+
+    capabilities = m_capabilities;
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -87,7 +100,9 @@ CXmlProjectGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
 
     // Write all the project information we gathered to disk 
     CORE::CString outputFile = CORE::CombinePath( CORE::RelativePath( outputDir ), "Project.xml" );
-    return SerializeProjectInfo( projectInfo, outputFile );
+    CORE::CDataNodeSerializableSettings defaultSettings;
+    defaultSettings.levelOfDetail = CORE::CDataNodeSerializableSettings::DataNodeSerializableLod_AverageDetails;
+    return projectInfo.Serialize( outputFile, defaultSettings );
 }
 
 /*-------------------------------------------------------------------------//

@@ -37,7 +37,7 @@ else()
 endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} gucefCORE gucefMT )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_MT_TESTAPP_BUILD_MODULE" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_MT_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefMT_TestApp;MODULE_NAME=gucefMT_TestApp" )
 
 include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
 

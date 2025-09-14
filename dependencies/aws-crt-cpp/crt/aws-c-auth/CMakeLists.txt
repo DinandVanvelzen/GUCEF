@@ -57,6 +57,7 @@ set( MODULE_NAME "aws-c-auth" )
 add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} aws-c-common aws-c-http aws-c-io aws-c-sdkutils )
 target_link_libraries( ${MODULE_NAME} aws-c-common aws-c-http aws-c-io aws-c-sdkutils )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=aws_c_auth;MODULE_NAME=aws_c_auth" )
 
 include_directories( ../aws-c-cal/include ../aws-c-common/include ../aws-c-http/include ../aws-c-io/include ../aws-c-io/source ../aws-c-sdkutils/include include )
 

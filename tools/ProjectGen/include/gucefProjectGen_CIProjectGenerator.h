@@ -55,6 +55,35 @@ namespace PROJECTGEN {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectGeneratorCapabilities
+{
+    public:
+
+    virtual bool IsPlatformSpecific( void ) const;
+
+    virtual bool IsPlatformAgnostic( void ) const;
+
+    void AddSupportedPlatform( const CORE::CString& platform );
+
+    void SetSupportedPlatforms( const CORE::CStringSet& platforms );
+
+    const CORE::CStringSet& GetSupportedPlatforms( void ) const;
+
+    CProjectGeneratorCapabilities( void );
+
+    CProjectGeneratorCapabilities( const CProjectGeneratorCapabilities& src );
+
+    virtual ~CProjectGeneratorCapabilities();
+
+    CProjectGeneratorCapabilities& operator=( const CProjectGeneratorCapabilities& src );
+
+    private:
+
+    CORE::CStringSet m_supportedPlatforms;
+};
+
+/*-------------------------------------------------------------------------*/
+
 class GUCEF_PROJECTGEN_PUBLIC_CPP CIProjectGenerator
 {
     public:
@@ -66,6 +95,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CIProjectGenerator
     virtual ~CIProjectGenerator();
     
     CIProjectGenerator& operator=( const CIProjectGenerator& src );
+
+    virtual bool GetCapabilities( CProjectGeneratorCapabilities& capabilities ) const = 0;
     
     virtual bool GenerateProject( const CProjectInfo& projectInfo      ,
                                   const CORE::CString& outputDir       ,
@@ -86,13 +117,3 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CIProjectGenerator
 
 #endif /* GUCEF_PROJECTGEN_CIPROJECTGENERATOR_H ? */
 
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 27-11-2004 :
-        - Dinand: Initial implementation
-
----------------------------------------------------------------------------*/

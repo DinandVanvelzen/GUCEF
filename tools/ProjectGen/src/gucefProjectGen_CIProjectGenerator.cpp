@@ -40,9 +40,111 @@ namespace PROJECTGEN {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      UTILITIES                                                          //
+//      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+CProjectGeneratorCapabilities::CProjectGeneratorCapabilities( void )
+    : m_supportedPlatforms()
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CProjectGeneratorCapabilities::CProjectGeneratorCapabilities( const CProjectGeneratorCapabilities& src )
+    : m_supportedPlatforms( src.m_supportedPlatforms )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CProjectGeneratorCapabilities::~CProjectGeneratorCapabilities()
+{GUCEF_TRACE;
+
+    m_supportedPlatforms.clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CProjectGeneratorCapabilities&
+CProjectGeneratorCapabilities::operator=( const CProjectGeneratorCapabilities& src )
+{GUCEF_TRACE;
+
+    if ( this != &src )
+    {
+        m_supportedPlatforms = src.m_supportedPlatforms;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CProjectGeneratorCapabilities::IsPlatformSpecific( void ) const
+{GUCEF_TRACE;
+
+    if ( m_supportedPlatforms.size() == 1 )
+    {
+        const CORE::CString supportedPlatform = (*m_supportedPlatforms.begin());
+        if ( !supportedPlatform.IsNULLOrEmpty() && supportedPlatform.Lowercase() != KnownPlatforms::AllPlatforms )
+        {
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CProjectGeneratorCapabilities::IsPlatformAgnostic( void ) const
+{GUCEF_TRACE;
+
+    if ( m_supportedPlatforms.size() == 1 )
+    {
+        const CORE::CString supportedPlatform = (*m_supportedPlatforms.begin());
+        if ( supportedPlatform.IsNULLOrEmpty() || supportedPlatform.Lowercase() == KnownPlatforms::AllPlatforms )
+        {
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProjectGeneratorCapabilities::AddSupportedPlatform( const CORE::CString& platform )
+{GUCEF_TRACE;
+
+    m_supportedPlatforms.insert( platform );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProjectGeneratorCapabilities::SetSupportedPlatforms( const CORE::CStringSet& platforms )
+{GUCEF_TRACE;
+
+    m_supportedPlatforms = platforms;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CStringSet&
+CProjectGeneratorCapabilities::GetSupportedPlatforms( void ) const
+{GUCEF_TRACE;
+
+    return m_supportedPlatforms;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/*-------------------------------------------------------------------------*/
 
 CIProjectGenerator::CIProjectGenerator( void )
 {GUCEF_TRACE;

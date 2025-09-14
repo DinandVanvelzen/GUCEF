@@ -56,7 +56,7 @@ class CDynamicBuffer;
 
 /**
  *  Variant binary serializer class
- *  Supports both a proprialitary binary format and a raw binary format
+ *  Supports both a proprietary binary format and a raw binary format
  */
 class GUCEF_CORE_PUBLIC_CPP CVariantBinarySerializer
 {
@@ -83,7 +83,7 @@ class GUCEF_CORE_PUBLIC_CPP CVariantBinarySerializer
 
     /**
      *  Serializes the variant using only the raw bytes of the value type contained within the variant
-     *  If you want to serialize with meta-dta use the Serialize member function instead.
+     *  If you want to serialize with meta-data use the Serialize member function instead.
      */
     static bool SerializeRaw( const CVariant& var        , 
                               UInt32 currentTargetOffset , 

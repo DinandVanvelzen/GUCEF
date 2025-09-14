@@ -1284,10 +1284,10 @@ WritePremake4ModuleFilesToDisk( const CProjectInfo& projectInfo       ,
 {GUCEF_TRACE;
 
     // Write all the premake4 files
-    TModuleInfoEntryPtrVector::const_iterator i = projectInfo.modules.begin();
+    TStringToModuleInfoEntryPtrMap::const_iterator i = projectInfo.modules.begin();
     while ( i != projectInfo.modules.end() )
     {
-        const CModuleInfoEntryPtr& moduleInfoEntry = (*i);
+        const CModuleInfoEntryPtr& moduleInfoEntry = (*i).second;
         TModuleType allPlatformsType = moduleInfoEntry->GetModuleType( AllPlatforms );
         if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != allPlatformsType )    &&
              ( MODULETYPE_HEADER_INTEGRATE_LOCATION != allPlatformsType )  &&
@@ -1380,10 +1380,10 @@ GeneratePremake4ProjectFileContent( const CProjectInfo& projectInfo       ,
 
     // Add the module includes
     CORE::CStringSet orderedIncludeListSection;
-    TModuleInfoEntryPtrVector::const_iterator n = projectInfo.modules.begin();
+    TStringToModuleInfoEntryPtrMap::const_iterator n = projectInfo.modules.begin();
     while ( n != projectInfo.modules.end() )
     {
-        const CModuleInfoEntryPtr& moduleInfo = (*n);
+        const CModuleInfoEntryPtr& moduleInfo = (*n).second;
         if ( HasIndependentModuleType( moduleInfo->GetModulesPerPlatform() ) )
         {
             CORE::CString pathToModuleDir = CORE::GetRelativePathToOtherPathRoot( outputDir, moduleInfo->GetAbsolutePathToModuleRootDir() );
@@ -1440,11 +1440,25 @@ WritePremake4ProjectFileToDisk( const CProjectInfo& projectInfo       ,
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to write ProjectInfo premake4.lua file content to disk at path " + outputDir );
     }
 }
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPremake4ProjectGenerator::GetCapabilities( CProjectGeneratorCapabilities& capabilities ) const
+{GUCEF_TRACE;
+
+    capabilities = m_capabilities;
+    return true;
+}
+
 /*--------------------------------------------------------------------------*/
 
 CPremake4ProjectGenerator::CPremake4ProjectGenerator( void )
+    : CIProjectGenerator()
+    , m_capabilities()
 {GUCEF_TRACE;
 
+    m_capabilities.AddSupportedPlatform( KnownPlatforms::AllPlatforms );
 }
 
 /*--------------------------------------------------------------------------*/

@@ -32,7 +32,7 @@ set( MODULE_NAME "dstorepluginJSONPARSER" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT jsonbuilder jsonparser )
 target_link_libraries( ${MODULE_NAME} jsonbuilder jsonparser )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINJSONPARSER_BUILD_MODULE" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINJSONPARSER_BUILD_MODULE;MODULE_CONSENSUS_NAME=dstorepluginJSONPARSER;MODULE_NAME=dstorepluginJSONPARSER" )
 
 include_directories( ../../../common/include ../../../dependencies/json-builder ../../../dependencies/json-parser ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 

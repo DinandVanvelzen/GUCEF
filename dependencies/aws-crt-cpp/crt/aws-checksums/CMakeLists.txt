@@ -49,6 +49,7 @@ set( MODULE_NAME "aws-checksums" )
 add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} aws-c-common )
 target_link_libraries( ${MODULE_NAME} aws-c-common )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=aws_checksums;MODULE_NAME=aws_checksums" )
 
 include_directories( ../aws-c-common/include include )
 

@@ -37,7 +37,7 @@ else()
 endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefKAITAI gucefMT gucefVFS )
 target_link_libraries( ${MODULE_NAME} gucefCORE gucefKAITAI gucefMT gucefVFS )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_ARCHIVER_BUILD_MODULE" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_ARCHIVER_BUILD_MODULE;MODULE_CONSENSUS_NAME=GucefArchiver;MODULE_NAME=GucefArchiver" )
 
 include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefKAITAI/includes ../../platform/gucefMT/include ../../platform/gucefVFS/include include )
 

@@ -227,7 +227,7 @@ set( MODULE_NAME "CEGUI" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} freetype pcre )
 target_link_libraries( ${MODULE_NAME} freetype pcre )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CEGUIBASE_EXPORTS" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CEGUIBASE_EXPORTS;MODULE_CONSENSUS_NAME=CEGUI;MODULE_NAME=CEGUI" )
 
 if ( WIN32 )
   target_link_libraries( ${MODULE_NAME} Dbghelp Winmm )

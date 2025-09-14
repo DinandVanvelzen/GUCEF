@@ -415,9 +415,22 @@ CreateArduinoCLILibraryPropertiesFiles( const CProjectInfo& projectInfo         
 
 /*-------------------------------------------------------------------------*/
 
-CArduinoCLIGenerator::CArduinoCLIGenerator( void )
+bool
+CArduinoCLIGenerator::GetCapabilities( CProjectGeneratorCapabilities& capabilities ) const
 {GUCEF_TRACE;
 
+    capabilities = m_capabilities;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CArduinoCLIGenerator::CArduinoCLIGenerator( void )
+    : CIProjectGenerator()
+    , m_capabilities()
+{GUCEF_TRACE;
+
+    m_capabilities.AddSupportedPlatform( ArduinoPlatformName );
 }
 
 /*-------------------------------------------------------------------------*/

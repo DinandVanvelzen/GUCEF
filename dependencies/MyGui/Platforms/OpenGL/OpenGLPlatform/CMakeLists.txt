@@ -49,6 +49,7 @@ set( MODULE_NAME "MyGUI.OpenGLPlatform" )
 add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} MyGUI.Engine )
 target_link_libraries( ${MODULE_NAME} MyGUI.Engine )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=MyGUI_OpenGLPlatform;MODULE_NAME=MyGUI_OpenGLPlatform" )
 
 if ( ANDROID )
   target_link_libraries( ${MODULE_NAME} GLESv1_CM )

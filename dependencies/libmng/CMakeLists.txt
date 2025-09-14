@@ -72,7 +72,7 @@ set( MODULE_NAME "libmng" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} lcms2 libjpeg zlib )
 target_link_libraries( ${MODULE_NAME} lcms2 libjpeg zlib )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CMS_DLL;MNG_BUILD_DLL;MNG_BUILD_SO" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CMS_DLL;MNG_BUILD_DLL;MNG_BUILD_SO;MODULE_CONSENSUS_NAME=libmng;MODULE_NAME=libmng" )
 
 include_directories( ../Little-CMS/include ../Little-CMS/src ../libjpeg )
 

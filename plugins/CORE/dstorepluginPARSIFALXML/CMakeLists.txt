@@ -32,7 +32,7 @@ set( MODULE_NAME "dstorepluginPARSIFALXML" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT libparsifal )
 target_link_libraries( ${MODULE_NAME} libparsifal )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINPARSIFALXML_BUILD_MODULE" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINPARSIFALXML_BUILD_MODULE;MODULE_CONSENSUS_NAME=dstorepluginPARSIFALXML;MODULE_NAME=dstorepluginPARSIFALXML" )
 
 include_directories( ../../../common/include ../../../dependencies/libparsifal/include ../../../dependencies/libparsifal/include/libparsifal ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 

@@ -34,7 +34,7 @@ set( MODULE_NAME "codecspluginSTBRUMMEHASH" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT stbrumme-hash )
 target_link_libraries( ${MODULE_NAME} stbrumme-hash )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_CONSENSUS_NAME=codecspluginSTBRUMMEHASH;MODULE_NAME=codecspluginSTBRUMMEHASH" )
 
 include_directories( ../../../common/include ../../../dependencies/stbrumme-hash-library ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 

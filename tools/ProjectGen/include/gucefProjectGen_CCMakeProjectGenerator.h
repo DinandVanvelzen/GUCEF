@@ -59,6 +59,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CCMakeProjectGenerator : public CIProjectGener
     CCMakeProjectGenerator( const CCMakeProjectGenerator& src );
     
     virtual ~CCMakeProjectGenerator();
+
+    virtual bool GetCapabilities( CProjectGeneratorCapabilities& capabilities ) const GUCEF_VIRTUAL_OVERRIDE;
     
     virtual bool GenerateProject( const CProjectInfo& projectInfo      ,
                                   const CORE::CString& outputDir       ,
@@ -68,6 +70,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CCMakeProjectGenerator : public CIProjectGener
     private:
     
     CCMakeProjectGenerator& operator=( const CCMakeProjectGenerator& src );
+
+    CProjectGeneratorCapabilities m_capabilities;
 };
 
 /*-------------------------------------------------------------------------//

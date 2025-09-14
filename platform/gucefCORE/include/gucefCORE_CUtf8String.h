@@ -69,7 +69,7 @@ class CIOAccess;
  *  As such the AsciiString class is also provided for performance limited environments
  *
  *  Note that any reference to a "character" is historical and within the this context
- *  it is intended to be tought of as a synonym for a UTF8 code point of variable length.
+ *  it is intended to be thought of as a synonym for a UTF8 code point of variable length.
  *  Similarly any index or offset is based on code point counts and not on byte offsets
  *  due to the variable length nature of UTF8 code points.
  *  For this reason you are also encouraged to use the member functions provided and not

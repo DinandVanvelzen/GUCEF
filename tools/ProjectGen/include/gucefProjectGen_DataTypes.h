@@ -75,17 +75,38 @@ namespace PROJECTGEN {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      GLOBAL VARS                                                        //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+class GUCEF_PROJECTGEN_PUBLIC_CPP KnownPlatforms
+{    
+    public:
+
+    static const CORE::CString AllPlatforms;
+    static const CORE::CString Win32;
+    static const CORE::CString Win64;
+    static const CORE::CString Linux32;
+    static const CORE::CString Linux64;
+    static const CORE::CString Android32;
+    static const CORE::CString Android64;
+    static const CORE::CString Arduino;
+    static const CORE::CString Emscripten32;
+};
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
 typedef CORE::CString::StringSet TStringSet;
-typedef std::set< CORE::Int32 > TInt32Set;
-typedef std::map< CORE::CString, Int32 >    TStringToInt32Map;
+typedef GUCEF::set< CORE::Int32 > TInt32Set;
+typedef GUCEF::map< CORE::CString, Int32 >    TStringToInt32Map;
 typedef CORE::CString::StringMapSet TStringSetMap;
 typedef CORE::CString::StringVector TStringVector;
-typedef std::map< CORE::CString, TStringVector > TStringVectorMap;
-typedef std::map< CORE::CString, TStringVectorMap > TStringVectorMapMap;
+typedef GUCEF::map< CORE::CString, TStringVector > TStringVectorMap;
+typedef GUCEF::map< CORE::CString, TStringVectorMap > TStringVectorMapMap;
 
 /*---------------------------------------------------------------------------*/
 
@@ -107,7 +128,7 @@ enum EModuleType
 };
 typedef enum EModuleType TModuleType;
 
-typedef std::map< CORE::CString, TModuleType > TModuleTypeMap;
+typedef GUCEF::map< CORE::CString, TModuleType > TModuleTypeMap;
 
 /*---------------------------------------------------------------------------*/
 
@@ -147,7 +168,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CLinkedLibrarySettings : public CORE::CTShared
 };
 
 typedef CLinkedLibrarySettings::CLinkedLibrarySettingsPtr  CLinkedLibrarySettingsPtr;
-typedef std::map< CORE::CString, CLinkedLibrarySettingsPtr > TLinkedLibrarySettingsPtrMap;
+typedef GUCEF::map< CORE::CString, CLinkedLibrarySettingsPtr > TLinkedLibrarySettingsPtrMap;
 
 /*---------------------------------------------------------------------------*/
 
@@ -301,6 +322,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CPreprocessorSettings : public CORE::CTSharedO
     CPreprocessorSettings( const CPreprocessorSettings& src );
 
     virtual ~CPreprocessorSettings() GUCEF_VIRTUAL_OVERRIDE;
+
+    static CORE::CString SanitizeDefine( const CORE::CString& define );
 
     void AddDefine( const CORE::CString& define );
 
@@ -544,10 +567,10 @@ typedef CModuleInfo::CModuleInfoPtr CModuleInfoPtr;
 
 /*---------------------------------------------------------------------------*/
 
-typedef std::vector< CModuleInfoPtr > TModuleInfoPtrVector;
-typedef std::set< CModuleInfoPtr > TModuleInfoPtrSet;
-typedef std::map< CORE::CString, TModuleInfoPtrVector > TModuleInfoPtrVectorMap;
-typedef std::map< CORE::CString, CModuleInfoPtr > TModuleInfoPtrMap;
+typedef GUCEF::vector< CModuleInfoPtr > TModuleInfoPtrVector;
+typedef GUCEF::set< CModuleInfoPtr > TModuleInfoPtrSet;
+typedef GUCEF::map< CORE::CString, TModuleInfoPtrVector > TModuleInfoPtrVectorMap;
+typedef GUCEF::map< CORE::CString, CModuleInfoPtr > TModuleInfoPtrMap;
 
 /*---------------------------------------------------------------------------*/
 
@@ -566,6 +589,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
 
     virtual ~CModuleInfoEntry() GUCEF_VIRTUAL_OVERRIDE;
 
+    bool GeneratePreprocessorDefinesFromModuleInfo( void );
+
     void Clear( void );
 
     bool SetLicense( const CORE::CString& license  ,
@@ -574,6 +599,9 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     bool IsAnyLicenseDefined( void ) const;
 
     bool SetSemVer( const CORE::CVersion& semver  ,
+                    const CORE::CString& platform );
+
+    bool GetSemVer( CORE::CVersion& semver        ,
                     const CORE::CString& platform );
 
     bool HasAnySemVer( void ) const;
@@ -628,6 +656,30 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     const TModuleInfoPtrMap& GetModulesPerPlatform( void ) const;
 
     const TModuleInfoPtrMap& GetFlattenedModulesPerPlatform( void ) const;
+
+    /**
+     *  Obtains the flattened module info for the given platform if any exists
+     *  Note that this is cached info which is generated only as requested via
+     *          GenerateFlattenedModuleInfo()
+     *  The cached flattened info may be out of date if the module info was altered afterwards
+     *
+     *  The 'flattened' module info is a feature provided to allow simpler and more efficient
+     *  logic for generators which only support a singular platform and as such can be spared
+     *  their own platform overlay logic.
+     */
+    const CModuleInfoPtr FindFlattenedModuleInfoForPlatform( const CORE::CString& platform ) const;
+
+    /**
+     *  Obtains the flattened module info for the given platform if any exists or can be generated
+     *  If no flattened info exists it will be generated on the fly via
+     *          GenerateFlattenedModuleInfo()
+     *  The cached flattened info may be out of date if the module info was altered afterwards
+     *
+     *  The 'flattened' module info is a feature provided to allow simpler and more efficient
+     *  logic for generators which only support a singular platform and as such can be spared
+     *  their own platform overlay logic.
+     */
+    const CModuleInfoPtr FindOrCreateFlattenedModuleInfoForPlatform( const CORE::CString& platform );
 
     bool HasDependency( const CORE::CString& platform       ,
                         const CORE::CString& dependencyName ,
@@ -750,6 +802,16 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     bool Merge( const CModuleInfoEntryPtr& infoToMergeIn ,
                 bool onConflictOriginalInfoStays = true  );
 
+    /**
+     *  Will generate the flattened module info for the given target platform which will be retained as a snapshot cache
+     * 
+     *  Note that if you change the module info after this call you will need to call this function again to refresh the flattened info if needed
+     * 
+     *  Note that this function will NOT generate flattened info for all platforms, only the one given and only if a
+     *  valid module definition exists for the given platform and/or the 'all platforms' definition
+     */
+    bool GenerateFlattenedModuleInfo( const CORE::CString& targetPlatform );
+
     CModuleInfoEntry& operator=( const CModuleInfoEntry& src );
 
     /**
@@ -757,6 +819,13 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
      */
     virtual bool Serialize( CORE::CDataNode& domRootNode                        ,
                             const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *  Attempts to serialize the object and write the result to a file at the path given
+     *  Uses XML format
+     */
+    bool Serialize( const CORE::CString& outputFilePath                 ,
+                    const CORE::CDataNodeSerializableSettings& settings ) const;
 
     /**
      *  Attempts to serialize the object to a DOM created out of DataNode objects
@@ -845,14 +914,17 @@ typedef CModuleInfoEntry::CModuleInfoEntryPtr CModuleInfoEntryPtr;
 
 /*---------------------------------------------------------------------------*/
 
-typedef std::vector< CModuleInfoEntryPtr >                           TModuleInfoEntryPtrVector;
-typedef CORE::CTSharedPtr< TModuleInfoEntryPtrVector, MT::CMutex >   TModuleInfoEntryPtrVectorPtr;
-typedef std::pair< const CModuleInfoEntryPtr, const CModuleInfoPtr > TModuleInfoEntryPair;
-typedef std::pair< CModuleInfoEntryPtr, CModuleInfoPtr >             TMutableModuleInfoEntryPair;
-typedef std::vector< TModuleInfoEntryPair >                          TModuleInfoEntryPairVector;
-typedef std::vector< TMutableModuleInfoEntryPair >                   TMutableModuleInfoEntryPairVector;
-typedef std::set< CModuleInfoEntryPtr >                              TModuleInfoEntryPtrSet;
-typedef std::map< Int64, CModuleInfoEntryPtr >                       TModuleInfoEntryPrioMap;
+typedef GUCEF::vector< CModuleInfoEntryPtr >                            TModuleInfoEntryPtrVector;
+typedef GUCEF::map< CORE::CString, CModuleInfoEntryPtr >                TStringToModuleInfoEntryPtrMap;
+typedef CORE::CTSharedPtr< TModuleInfoEntryPtrVector, MT::CMutex >      TModuleInfoEntryPtrVectorPtr;
+typedef CORE::CTSharedPtr< TStringToModuleInfoEntryPtrMap, MT::CMutex > TStringToModuleInfoEntryPtrMapPtr;
+typedef std::pair< const CModuleInfoEntryPtr, const CModuleInfoPtr >    TModuleInfoEntryPair;
+typedef std::pair< CModuleInfoEntryPtr, CModuleInfoPtr >                TMutableModuleInfoEntryPair;
+typedef GUCEF::vector< TModuleInfoEntryPair >                           TModuleInfoEntryPairVector;
+typedef GUCEF::vector< TMutableModuleInfoEntryPair >                    TMutableModuleInfoEntryPairVector;
+typedef GUCEF::set< CModuleInfoEntryPtr >                               TModuleInfoEntryPtrSet;
+typedef GUCEF::map< Int64, CModuleInfoEntryPtr >                        TModuleInfoEntryPrioMap;
+
 
 /*---------------------------------------------------------------------------*/
 
@@ -861,8 +933,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedO
     public:
 
     typedef typename CORE::CTSharedObjCreator< CModuleDependencyNode, MT::CMutex >::TBasicSharedPtrType    CModuleDependencyNodePtr;
-    typedef std::map< CORE::CString, CModuleDependencyNodePtr >                                            TModuleDependencyNodePtrMap;
-    typedef std::set< CModuleDependencyNodePtr >                                                           TModuleDependencyNodePtrSet;
+    typedef GUCEF::map< CORE::CString, CModuleDependencyNodePtr >                                          TModuleDependencyNodePtrMap;
+    typedef GUCEF::set< CModuleDependencyNodePtr >                                                         TModuleDependencyNodePtrSet;
 
     void SetModule( const CModuleInfoEntryPtr& module );
 
@@ -1039,7 +1111,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 
     CORE::CString projectName;                               // Name of the overall project
     TStringVector rootDirs;                                  // Root dirs used to gather all project info
-    TModuleInfoEntryPtrVector modules;                       // All generated module information
+    TStringToModuleInfoEntryPtrMap modules;                  // All generated module information
     TDirProcessingInstructionsMap dirProcessingInstructions; // All loaded processing instructions mapped per path
     TStringVector globalDirExcludeList;                      // Dirs that should never be included in processing regardless of path
     TPlatformDefinitionMap platforms;                        // All supported platforms for this project    
@@ -1240,6 +1312,15 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
                             const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /**
+     *  Attempts to serialize the object to a file in XML format
+     *
+     *  @param outputFilePath Path to the file to write to
+     *  @return whether serializing the object data to the given file was successful.
+     */
+    bool Serialize( const CORE::CString& outputFilePath                 ,
+                    const CORE::CDataNodeSerializableSettings& settings ) const;
+
+    /**
      *  Attempts to serialize the object to a DOM created out of DataNode objects
      *
      *  @param domRootNode Node that acts as root of the DOM data tree from which to deserialize
@@ -1257,11 +1338,11 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 
     static bool DeserializeModuleEntries( const CORE::CDataNode& domRootNode                  ,
                                           const CORE::CDataNodeSerializableSettings& settings ,
-                                          TModuleInfoEntryPtrVector& moduleInfoEntries        );
+                                          TStringToModuleInfoEntryPtrMap& moduleInfoEntries   );
 
     static bool DeserializeModuleEntries( const CORE::CString& pathToModuleInfoFile           ,
                                           const CORE::CDataNodeSerializableSettings& settings ,
-                                          TModuleInfoEntryPtrVector& moduleInfoEntries        );
+                                          TStringToModuleInfoEntryPtrMap& moduleInfoEntries   );
 
     CModuleInfoEntryPtr FindModuleAccordingToBuildOrder( const CORE::CString& targetPlatform ,
                                                          Int64 buildOrderIndex               ) const;
@@ -1271,6 +1352,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
     bool GenerateDependencyIncludes( void );
 
     void GenerateDependencyIncludesForPlatform( const CORE::CString& platformName );
+
+    bool GeneratePreprocessorDefinesFromModuleInfo( void );
 
     bool MergeIntegrationLocationsIntoModules( void );
 
@@ -1501,17 +1584,17 @@ MergeModuleInfoEntry( const CModuleInfoEntryPtr& moduleInfoEntryToMergeIn ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
-MergeModuleInfoEntries( const TModuleInfoEntryPtrVector& moduleInfoEntriesToMergeIn ,
-                        TModuleInfoEntryPtrVector& moduleInfoEntries                );
+MergeModuleInfoEntries( const TStringToModuleInfoEntryPtrMap& moduleInfoEntriesToMergeIn ,
+                        TStringToModuleInfoEntryPtrMap& moduleInfoEntries                );
 
 /*-------------------------------------------------------------------------*/
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
-MergeAllModuleInfoForPlatform( const TModuleInfoEntryPtrVector& allInfo ,
-                               const CORE::CString& platform            ,
-                               TModuleInfoPtrVector& allMergedInfo      ,
-                               TModuleInfoEntryPairVector& mergeLinks   );
+MergeAllModuleInfoForPlatform( const TStringToModuleInfoEntryPtrMap& allInfo ,
+                               const CORE::CString& platform                 ,
+                               TModuleInfoPtrVector& allMergedInfo           ,
+                               TModuleInfoEntryPairVector& mergeLinks        );
 
 
 /*-------------------------------------------------------------------------*/
@@ -1579,20 +1662,6 @@ StringToModuleType( const CORE::CString& moduleTypeStr );
 GUCEF_PROJECTGEN_PUBLIC_CPP
 TStringSet
 StringVectorToStringSet( const TStringVector& stringVector );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-bool
-SerializeModuleInfo( const CModuleInfoEntryPtr& moduleInfo ,
-                     const CORE::CString& outputFilepath   );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-bool
-SerializeProjectInfo( const CProjectInfo& projectInfo     ,
-                      const CORE::CString& outputFilepath );
 
 /*-------------------------------------------------------------------------*/
 
@@ -1840,7 +1909,7 @@ GetPlatformProjectTarget( const TProjectTargetInfoMap& platformTargets ,
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
-IsAnyLicenseDefined( const TModuleInfoEntryPtrVector& moduleInfoEntries );
+IsAnyLicenseDefined( const TStringToModuleInfoEntryPtrMap& moduleInfoEntries );
 
 /*-------------------------------------------------------------------------*/
 
@@ -1878,7 +1947,7 @@ GetKnownSemVerFiles( void );
 
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
-IsAnySemVerDefined( const TModuleInfoEntryPtrVector& moduleInfoEntries );
+IsAnySemVerDefined( const TStringToModuleInfoEntryPtrMap& moduleInfoEntries );
 
 /*-------------------------------------------------------------------------*/;
 

@@ -60,6 +60,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CArduinoCLIGenerator : public CIProjectGenerat
 
     virtual ~CArduinoCLIGenerator();
 
+    virtual bool GetCapabilities( CProjectGeneratorCapabilities& capabilities ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual bool GenerateProject( const CProjectInfo& projectInfo      ,
                                   const CORE::CString& outputDir       ,
                                   bool addGeneratorCompileTimeToOutput ,
@@ -68,6 +70,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CArduinoCLIGenerator : public CIProjectGenerat
     private:
 
     CArduinoCLIGenerator& operator=( const CArduinoCLIGenerator& src );
+
+    CProjectGeneratorCapabilities m_capabilities;
 };
 
 /*-------------------------------------------------------------------------//

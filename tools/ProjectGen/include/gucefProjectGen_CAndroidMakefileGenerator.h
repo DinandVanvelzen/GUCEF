@@ -57,6 +57,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CAndroidMakefileGenerator : public CIProjectGe
     CAndroidMakefileGenerator( void );
     
     virtual ~CAndroidMakefileGenerator();
+
+    virtual bool GetCapabilities( CProjectGeneratorCapabilities& capabilities ) const GUCEF_VIRTUAL_OVERRIDE;
     
     virtual bool GenerateProject( const CProjectInfo& projectInfo      ,
                                   const CORE::CString& outputDir       ,
@@ -68,6 +70,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CAndroidMakefileGenerator : public CIProjectGe
     CAndroidMakefileGenerator( const CAndroidMakefileGenerator& src );
     
     CAndroidMakefileGenerator& operator=( const CAndroidMakefileGenerator& src );
+
+    CProjectGeneratorCapabilities m_capabilities;
 };
 
 /*-------------------------------------------------------------------------//

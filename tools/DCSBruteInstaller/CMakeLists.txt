@@ -32,6 +32,7 @@ else()
 endif()
 add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=DCSBruteInstaller;MODULE_NAME=DCSBruteInstaller" )
 
 include_directories( ../../common/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include )
 

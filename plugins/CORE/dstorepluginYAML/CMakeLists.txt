@@ -32,7 +32,7 @@ set( MODULE_NAME "dstorepluginYAML" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT yaml )
 target_link_libraries( ${MODULE_NAME} yaml )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINYAML_BUILD_MODULE" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINYAML_BUILD_MODULE;MODULE_CONSENSUS_NAME=dstorepluginYAML;MODULE_NAME=dstorepluginYAML" )
 
 include_directories( ../../../common/include ../../../dependencies/libyaml/include ../../../dependencies/libyaml/src ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 

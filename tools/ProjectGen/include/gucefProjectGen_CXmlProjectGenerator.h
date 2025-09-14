@@ -57,6 +57,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CXmlProjectGenerator : public CIProjectGenerat
     CXmlProjectGenerator( void );
     
     virtual ~CXmlProjectGenerator();
+
+    virtual bool GetCapabilities( CProjectGeneratorCapabilities& capabilities ) const GUCEF_VIRTUAL_OVERRIDE;
     
     virtual bool GenerateProject( const CProjectInfo& projectInfo      ,
                                   const CORE::CString& outputDir       ,
@@ -68,6 +70,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CXmlProjectGenerator : public CIProjectGenerat
     CXmlProjectGenerator( const CXmlProjectGenerator& src );
     
     CXmlProjectGenerator& operator=( const CXmlProjectGenerator& src );
+
+    CProjectGeneratorCapabilities m_capabilities;
 };
 
 /*-------------------------------------------------------------------------//

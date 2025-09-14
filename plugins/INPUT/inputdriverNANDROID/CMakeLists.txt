@@ -40,6 +40,7 @@ endif()
 if( ANDROID )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=inputdriverNANDROID" )
 
 if ( ANDROID )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefINPUT gucefMT )

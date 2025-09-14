@@ -39,6 +39,7 @@ set( MODULE_NAME "aws-lambda-runtime" )
 add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} curl )
 target_link_libraries( ${MODULE_NAME} curl )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=aws_lambda_runtime;MODULE_NAME=aws_lambda_runtime" )
 
 include_directories( ../curl/include ../curl/include/curl ../curl/lib ../curl/lib/vauth ../curl/lib/vquic ../curl/lib/vssh ../curl/lib/vtls include include/aws include/aws/http include/aws/lambda-runtime include/aws/logging src )
 

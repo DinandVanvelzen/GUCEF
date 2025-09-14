@@ -858,9 +858,22 @@ WriteAndroidTargetsToDisk( const CProjectInfo& projectInfo         ,
 
 /*-------------------------------------------------------------------------*/
 
-CAndroidMakefileGenerator::CAndroidMakefileGenerator( void )
+bool
+CAndroidMakefileGenerator::GetCapabilities( CProjectGeneratorCapabilities& capabilities ) const
 {GUCEF_TRACE;
 
+    capabilities = m_capabilities;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAndroidMakefileGenerator::CAndroidMakefileGenerator( void )
+    : CIProjectGenerator()
+    , m_capabilities()
+{GUCEF_TRACE;
+
+    m_capabilities.AddSupportedPlatform( "android" );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -34,7 +34,7 @@ set( MODULE_NAME "GucefLogServiceClientPlugin" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} GucefLogServiceLib gucefCOM gucefCOMCORE gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} GucefLogServiceLib gucefCOM gucefCOMCORE gucefCORE gucefMT )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_LOGSERVICECLIENTPLUGIN_BUILD_MODULE" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_LOGSERVICECLIENTPLUGIN_BUILD_MODULE;MODULE_CONSENSUS_NAME=GucefLogServiceClientPlugin;MODULE_NAME=GucefLogServiceClientPlugin" )
 
 include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../GucefLogServiceLib/include include )
 

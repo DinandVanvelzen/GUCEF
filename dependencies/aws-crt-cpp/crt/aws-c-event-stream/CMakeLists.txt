@@ -32,6 +32,7 @@ set( MODULE_NAME "aws-c-event-stream" )
 add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} aws-c-cal aws-c-common aws-c-io aws-checksums )
 target_link_libraries( ${MODULE_NAME} aws-c-cal aws-c-common aws-c-io aws-checksums )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=aws_c_event_stream;MODULE_NAME=aws_c_event_stream" )
 
 include_directories( ../aws-c-cal/include ../aws-c-common/include ../aws-c-io/include ../aws-c-io/source ../aws-checksums/include include )
 

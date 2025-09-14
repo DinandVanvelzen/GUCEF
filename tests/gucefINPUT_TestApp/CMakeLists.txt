@@ -72,6 +72,7 @@ elseif( WIN32 )
 elseif( WIN64 )
   add_executable( ${MODULE_NAME} WIN32 ${ALL_FILES} )
 endif()
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefINPUT_TestApp" )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefINPUT gucefMT )

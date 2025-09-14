@@ -13,7 +13,9 @@
 
 set( HEADER_FILES 
   ../gucefCORE/include/CDynamicBuffer.h
+  ../gucefCORE/include/CDynamicBufferAccess.h
   ../gucefCORE/include/CException.h
+  ../gucefCORE/include/CFileAccess.h
   ../gucefCORE/include/CICloneable.h
   ../gucefCORE/include/CIOAccess.h
   ../gucefCORE/include/CMsgException.h
@@ -44,6 +46,7 @@ set( HEADER_FILES
   ../gucefMT/include/gucefMT_CMutex.h
   ../gucefMT/include/gucefMT_CNoLock.h
   ../gucefMT/include/gucefMT_CScopeMutex.h
+  ../gucefMT/include/gucefMT_LockStatus.h
   ../gucefMT/include/gucefMT_ThreadStatus.h
   ../gucefMT/include/gucefMT_dvmtoswrap.h
   ../gucefMT/include/gucefMT_mutex.h
@@ -55,7 +58,9 @@ set( HEADER_FILES
 
 set( SOURCE_FILES 
   ../gucefCORE/src/CDynamicBuffer.cpp
+  ../gucefCORE/src/CDynamicBufferAccess.cpp
   ../gucefCORE/src/CException.cpp
+  ../gucefCORE/src/CFileAccess.cpp
   ../gucefCORE/src/CICloneable.cpp
   ../gucefCORE/src/CIOAccess.cpp
   ../gucefCORE/src/CMsgException.cpp
@@ -85,6 +90,7 @@ set( SOURCE_FILES
   ../gucefMT/src/gucefMT_CMutex.cpp
   ../gucefMT/src/gucefMT_CNoLock.cpp
   ../gucefMT/src/gucefMT_CScopeMutex.cpp
+  ../gucefMT/src/gucefMT_LockStatus.cpp
   ../gucefMT/src/gucefMT_ThreadStatus.cpp
   ../gucefMT/src/gucefMT_dvmtoswrap.c
   ../gucefMT/src/gucefMT_mutex.c
@@ -96,7 +102,9 @@ set( SOURCE_FILES
 if (ANDROID)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -125,7 +133,9 @@ if (ANDROID)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -136,7 +146,9 @@ if (ANDROID)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -164,7 +176,9 @@ if (ANDROID)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -176,7 +190,9 @@ if (ANDROID)
 elseif (ARDUINO)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -205,7 +221,9 @@ elseif (ARDUINO)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -216,7 +234,9 @@ elseif (ARDUINO)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -244,7 +264,9 @@ elseif (ARDUINO)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -256,7 +278,9 @@ elseif (ARDUINO)
 elseif (EMSCRIPTEN)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -285,7 +309,9 @@ elseif (EMSCRIPTEN)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -296,7 +322,9 @@ elseif (EMSCRIPTEN)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -324,7 +352,9 @@ elseif (EMSCRIPTEN)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -336,7 +366,9 @@ elseif (EMSCRIPTEN)
 elseif (GLX)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -365,7 +397,9 @@ elseif (GLX)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -376,7 +410,9 @@ elseif (GLX)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -404,7 +440,9 @@ elseif (GLX)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -416,7 +454,9 @@ elseif (GLX)
 elseif (GTK)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -445,7 +485,9 @@ elseif (GTK)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -456,7 +498,9 @@ elseif (GTK)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -484,7 +528,9 @@ elseif (GTK)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -496,7 +542,9 @@ elseif (GTK)
 elseif (IOS)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -525,7 +573,9 @@ elseif (IOS)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -536,7 +586,9 @@ elseif (IOS)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -564,7 +616,9 @@ elseif (IOS)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -576,7 +630,9 @@ elseif (IOS)
 elseif (LINUX32)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -605,7 +661,9 @@ elseif (LINUX32)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -616,7 +674,9 @@ elseif (LINUX32)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -644,7 +704,9 @@ elseif (LINUX32)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -656,7 +718,9 @@ elseif (LINUX32)
 elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -685,7 +749,9 @@ elseif (LINUX64)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -696,7 +762,9 @@ elseif (LINUX64)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -724,7 +792,9 @@ elseif (LINUX64)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -736,7 +806,9 @@ elseif (LINUX64)
 elseif (NACL)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -765,7 +837,9 @@ elseif (NACL)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -776,7 +850,9 @@ elseif (NACL)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -804,7 +880,9 @@ elseif (NACL)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -816,7 +894,9 @@ elseif (NACL)
 elseif (OSX)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -845,7 +925,9 @@ elseif (OSX)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -856,7 +938,9 @@ elseif (OSX)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -884,7 +968,9 @@ elseif (OSX)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -896,7 +982,9 @@ elseif (OSX)
 elseif (POSIX)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -925,7 +1013,9 @@ elseif (POSIX)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -936,7 +1026,9 @@ elseif (POSIX)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -964,7 +1056,9 @@ elseif (POSIX)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -976,7 +1070,9 @@ elseif (POSIX)
 elseif (SDL)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -1005,7 +1101,9 @@ elseif (SDL)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -1016,7 +1114,9 @@ elseif (SDL)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -1044,7 +1144,9 @@ elseif (SDL)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -1056,7 +1158,9 @@ elseif (SDL)
 elseif (SYMBIAN)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -1085,7 +1189,9 @@ elseif (SYMBIAN)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -1096,7 +1202,9 @@ elseif (SYMBIAN)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -1124,7 +1232,9 @@ elseif (SYMBIAN)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -1136,7 +1246,9 @@ elseif (SYMBIAN)
 elseif (UNIX)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -1165,7 +1277,9 @@ elseif (UNIX)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -1176,7 +1290,9 @@ elseif (UNIX)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -1204,7 +1320,9 @@ elseif (UNIX)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -1216,7 +1334,9 @@ elseif (UNIX)
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -1246,7 +1366,9 @@ elseif (WIN32)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -1258,7 +1380,9 @@ elseif (WIN32)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -1287,7 +1411,9 @@ elseif (WIN32)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -1300,7 +1426,9 @@ elseif (WIN32)
 elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
     ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
     ../gucefCORE/include/CICloneable.h
     ../gucefCORE/include/CIOAccess.h
     ../gucefCORE/include/CMsgException.h
@@ -1330,7 +1458,9 @@ elseif (WIN64)
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
     ../gucefMT/include/gucefMT_dvmtoswrap.h
     ../gucefMT/include/gucefMT_mutex.h
@@ -1342,7 +1472,9 @@ elseif (WIN64)
 
   set( PLATFORM_SOURCE_FILES 
     ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
     ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
     ../gucefCORE/src/CICloneable.cpp
     ../gucefCORE/src/CIOAccess.cpp
     ../gucefCORE/src/CMsgException.cpp
@@ -1371,7 +1503,9 @@ elseif (WIN64)
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
     ../gucefMT/src/gucefMT_dvmtoswrap.c
     ../gucefMT/src/gucefMT_mutex.c
@@ -1389,7 +1523,7 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "gucefLOADER" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CORE_EMBED_CODE;GUCEF_LOADER_BUILD_MODULE;GUCEF_MT_EMBED_CODE;GUCEF_NO_LOGGING" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CORE_EMBED_CODE;GUCEF_LOADER_BUILD_MODULE;GUCEF_MT_EMBED_CODE;GUCEF_NO_LOGGING;MODULE_CONSENSUS_NAME=gucefLOADER;MODULE_NAME=gucefLOADER;MODULE_SEMVER=0_1_0_0" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 

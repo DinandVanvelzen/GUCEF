@@ -57,6 +57,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CCIHelperGenerator : public CIProjectGenerator
     CCIHelperGenerator( void );
     
     virtual ~CCIHelperGenerator();
+
+    virtual bool GetCapabilities( CProjectGeneratorCapabilities& capabilities ) const GUCEF_VIRTUAL_OVERRIDE;
     
     virtual bool GenerateProject( const CProjectInfo& projectInfo      ,
                                   const CORE::CString& outputDir       ,
@@ -68,6 +70,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CCIHelperGenerator : public CIProjectGenerator
     CCIHelperGenerator( const CCIHelperGenerator& src );
     
     CCIHelperGenerator& operator=( const CCIHelperGenerator& src );
+
+    CProjectGeneratorCapabilities m_capabilities;
 };
 
 /*-------------------------------------------------------------------------//

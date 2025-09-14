@@ -457,7 +457,7 @@ set( MODULE_NAME "aws-cpp-sdk-core" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} aws-c-auth aws-c-cal aws-c-common aws-c-compression aws-c-event-stream aws-c-http aws-c-io aws-c-mqtt aws-c-s3 aws-c-sdkutils aws-checksums aws-crt-cpp curl )
 target_link_libraries( ${MODULE_NAME} aws-c-auth aws-c-cal aws-c-common aws-c-compression aws-c-event-stream aws-c-http aws-c-io aws-c-mqtt aws-c-s3 aws-c-sdkutils aws-checksums aws-crt-cpp curl )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_CORE_EXPORTS=1;USE_IMPORT_EXPORT=1" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_CORE_EXPORTS=1;MODULE_CONSENSUS_NAME=aws_cpp_sdk_core;MODULE_NAME=aws_cpp_sdk_core;USE_IMPORT_EXPORT=1" )
 
 if ( ANDROID )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ENABLE_OPENSSL_ENCRYPTION" )

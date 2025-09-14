@@ -477,7 +477,7 @@ set( MODULE_NAME "OgreRenderSystem_GL" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} Ogre )
 target_link_libraries( ${MODULE_NAME} Ogre )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "OGRE_GLPLUGIN_EXPORTS" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=OgreRenderSystem_GL;MODULE_NAME=OgreRenderSystem_GL;OGRE_GLPLUGIN_EXPORTS" )
 
 if ( LINUX32 )
   target_link_libraries( ${MODULE_NAME} GL GLU )

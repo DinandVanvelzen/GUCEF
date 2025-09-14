@@ -37,6 +37,7 @@ set( MODULE_NAME "tolua" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} lua )
 target_link_libraries( ${MODULE_NAME} lua )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=tolua;MODULE_NAME=tolua" )
 
 if ( WIN32 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "TOLUA5_DLL" )

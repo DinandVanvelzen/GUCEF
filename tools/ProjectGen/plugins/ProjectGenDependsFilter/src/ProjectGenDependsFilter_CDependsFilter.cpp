@@ -229,16 +229,16 @@ CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
     // Mark all the modules from the project which are not in the modules list for deletion
     // Note that not all module types are filtered as they are not compiled into binaries for which Depends can provide a check
     TStringSet deleteList;
-    TModuleInfoEntryPtrVector& moduleInfoList = projectInfo.modules;
-    TModuleInfoEntryPtrVector::iterator i = moduleInfoList.begin(); 
+    TStringToModuleInfoEntryPtrMap& moduleInfoList = projectInfo.modules;
+    TStringToModuleInfoEntryPtrMap::iterator i = moduleInfoList.begin(); 
     while ( i != moduleInfoList.end() )
     {
-        CString targetName = GetModuleTargetName( (*i), "win32", true );
+        CString targetName = GetModuleTargetName( (*i).second, "win32", true );
         
         // we will check using the target name if the module has one
         // Keep in mind that Depends would be using the target name.
         // If no target name is defines we use the module name
-        TModuleType moduleType = (*i)->GetModuleType( "win32" );
+        TModuleType moduleType = (*i).second->GetModuleType( "win32" );
         if ( moduleType == MODULETYPE_SHARED_LIBRARY    ||
              moduleType == MODULETYPE_EXECUTABLE        ||
              moduleType == MODULETYPE_REFERENCE_LIBRARY  )
@@ -248,7 +248,7 @@ CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
             {
                 // The given module is not in the list of modules we obtained from depends
                 // as such we should filter it out
-                deleteList.insert( (*i)->GetAbsolutePathToModuleRootDir() + ':' + targetName );
+                deleteList.insert( (*i).second->GetAbsolutePathToModuleRootDir() + ':' + targetName );
             }
         }
         else
@@ -261,11 +261,11 @@ CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
 
     if ( !deleteList.empty() )
     {
-        TModuleInfoEntryPtrVector::iterator i = moduleInfoList.begin(); 
+        TStringToModuleInfoEntryPtrMap::iterator i = moduleInfoList.begin(); 
         while ( i != moduleInfoList.end() )
         {
-            CString targetName = GetModuleTargetName( (*i), "win32", true );
-            TStringSet::iterator n = deleteList.find( (*i)->GetAbsolutePathToModuleRootDir() + ':' + targetName );
+            CString targetName = GetModuleTargetName( (*i).second, "win32", true );
+            TStringSet::iterator n = deleteList.find( (*i).second->GetAbsolutePathToModuleRootDir() + ':' + targetName );
             if ( n != deleteList.end() )
             {
                 moduleInfoList.erase( i );

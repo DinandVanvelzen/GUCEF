@@ -118,6 +118,7 @@ set( MODULE_NAME "libtiff" )
 add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} libjpeg zlib )
 target_link_libraries( ${MODULE_NAME} libjpeg zlib )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=libtiff;MODULE_NAME=libtiff" )
 
 include_directories( ../../libjpeg )
 

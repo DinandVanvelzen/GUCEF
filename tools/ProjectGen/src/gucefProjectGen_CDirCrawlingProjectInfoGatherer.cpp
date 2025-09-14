@@ -100,14 +100,6 @@ namespace PROJECTGEN {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      GLOBAL VARS                                                        //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-static const CORE::CString AllPlatforms = "all";
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -254,7 +246,7 @@ IsDirAPlatformDir( const CProjectInfo& projectInfo  ,
                 while ( i != instructionStorage->dirIncludeList.end() )
                 {
                     const CORE::CString& platform = (*i).first;
-                    if ( !platform.IsNULLOrEmpty() && platform != AllPlatforms )
+                    if ( !platform.IsNULLOrEmpty() && platform != KnownPlatforms::AllPlatforms )
                     {
                         if ( IsStringInList( (*i).second, true, lastSubDir ) )
                             return true;
@@ -490,11 +482,11 @@ FindNextModuleAccordingToBuildOrder( CProjectInfo& projectInfo               ,
 
     CModuleInfoEntryPtr platformEntry = projectInfo.FindModuleAccordingToBuildOrder( targetPlatform    ,
                                                                                      desiredBuildOrder );
-    if ( platformEntry.IsNULL() && targetPlatform != AllPlatforms )
+    if ( platformEntry.IsNULL() && targetPlatform != KnownPlatforms::AllPlatforms )
     {
         // If we get here we did not find a module with build order 0
         // instead of a platform specific build order check the AllPlatforms build order
-        platformEntry = projectInfo.FindModuleAccordingToBuildOrder( AllPlatforms      ,
+        platformEntry = projectInfo.FindModuleAccordingToBuildOrder( KnownPlatforms::AllPlatforms ,
                                                                      desiredBuildOrder );
     }
 
@@ -741,12 +733,12 @@ ExcludeOrIncludeDirEntriesAsSpecifiedForDir( const CORE::CString& dir           
     if ( !applyPlatformChangesOnly )
     {
         ExcludeOrIncludeEntriesAsSpecifiedForDir( allInstructions ,
-                                                  AllPlatforms    ,
+                                                  KnownPlatforms::AllPlatforms ,
                                                   allEntries      );
 
     }
 
-    if ( !platform.IsNULLOrEmpty() && platform != AllPlatforms )
+    if ( !platform.IsNULLOrEmpty() && platform != KnownPlatforms::AllPlatforms )
     {
         ExcludeOrIncludeEntriesAsSpecifiedForDir( allInstructions ,
                                                   platform        ,
@@ -766,11 +758,11 @@ ExcludeFileEntriesAsSpecifiedForDir( const TDirProcessingInstructions& allInstru
     if ( !applyPlatformChangesOnly )
     {
         ExcludeEntriesAsSpecifiedForFile( allInstructions ,
-                                          AllPlatforms    ,
+                                          KnownPlatforms::AllPlatforms ,
                                           allEntries      );
     }
 
-    if ( !platform.IsNULLOrEmpty() && platform != AllPlatforms )
+    if ( !platform.IsNULLOrEmpty() && platform != KnownPlatforms::AllPlatforms )
     {
         ExcludeEntriesAsSpecifiedForFile( allInstructions ,
                                           platform        ,
@@ -792,13 +784,13 @@ IncludeFileEntriesAsSpecifiedForDir( const TDirProcessingInstructions& allInstru
     if ( !applyPlatformChangesOnly )
     {
         IncludeEntriesAsSpecifiedForFile( allInstructions ,
-                                          AllPlatforms    ,
+                                          KnownPlatforms::AllPlatforms ,
                                           currentPath     ,
                                           allEntries      ,
                                           fileTypes       );
     }
 
-    if ( !platform.IsNULLOrEmpty() && platform != AllPlatforms )
+    if ( !platform.IsNULLOrEmpty() && platform != KnownPlatforms::AllPlatforms )
     {
         IncludeEntriesAsSpecifiedForFile( allInstructions ,
                                           platform        ,
@@ -966,21 +958,21 @@ ParseProcessingInstructions( const CProjectInfo& projectInfo                ,
                                         // Add as non-platform specific
                                         if ( itemName.HasChar( '*' ) != -1 && itemType.IsNULLOrEmpty() )
                                         {
-                                            instructionStorage.dirExcludeList[ AllPlatforms ].push_back( itemName );
+                                            instructionStorage.dirExcludeList[ KnownPlatforms::AllPlatforms ].push_back( itemName );
                                             GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Added wildcard directory exclude entry \"" + itemName + "\" based on the processing instructions for this dir" );
-                                            instructionStorage.fileExcludeList[ AllPlatforms ].push_back( itemName );
+                                            instructionStorage.fileExcludeList[ KnownPlatforms::AllPlatforms ].push_back( itemName );
                                             GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Added wildcard file exclude entry \"" + itemName + "\" based on the processing instructions for this dir" );
                                         }
                                         else
                                         {
                                             if ( itemIsADir )
                                             {
-                                                instructionStorage.dirExcludeList[ AllPlatforms ].push_back( itemName );
+                                                instructionStorage.dirExcludeList[ KnownPlatforms::AllPlatforms ].push_back( itemName );
                                                 GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Added directory exclude entry \"" + itemName + "\" based on the processing instructions for this dir" );
                                             }
                                             else
                                             {
-                                                instructionStorage.fileExcludeList[ AllPlatforms ].push_back( itemName );
+                                                instructionStorage.fileExcludeList[ KnownPlatforms::AllPlatforms ].push_back( itemName );
                                                 GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Added file exclude entry \"" + itemName + "\" based on the processing instructions for this dir" );
                                             }
                                         }
@@ -1055,20 +1047,20 @@ ParseProcessingInstructions( const CProjectInfo& projectInfo                ,
                                         // Add as non-platform specific
                                         if ( itemName.HasChar( '*' ) != -1 && itemType.IsNULLOrEmpty() )
                                         {
-                                            instructionStorage.dirIncludeList[ AllPlatforms ].push_back( itemName );
+                                            instructionStorage.dirIncludeList[ KnownPlatforms::AllPlatforms ].push_back( itemName );
                                             GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Added wildcard directory include entry \"" + itemName + "\" based on the processing instructions for this dir" );
-                                            instructionStorage.fileIncludeList[ AllPlatforms ].push_back( itemName );
+                                            instructionStorage.fileIncludeList[ KnownPlatforms::AllPlatforms ].push_back( itemName );
                                             GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Added wildcard file include entry \"" + itemName + "\" based on the processing instructions for this dir" );
                                         }
                                         else
                                         if ( itemIsADir )
                                         {
-                                            instructionStorage.dirIncludeList[ AllPlatforms ].push_back( itemName );
+                                            instructionStorage.dirIncludeList[ KnownPlatforms::AllPlatforms ].push_back( itemName );
                                             GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Added directory include entry \"" + itemName + "\" based on the processing instructions for this dir" );
                                         }
                                         else
                                         {
-                                            instructionStorage.fileIncludeList[ AllPlatforms ].push_back( itemName );
+                                            instructionStorage.fileIncludeList[ KnownPlatforms::AllPlatforms ].push_back( itemName );
                                             GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Added file include entry \"" + itemName + "\" based on the processing instructions for this dir" );
                                         }
                                     }
@@ -1163,20 +1155,20 @@ GetProcessingInstructions( const CProjectInfo& projectInfo                      
                 if ( entry.HasChar( '*' ) != -1 )
                 {
                     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Determined that the simple exclude list wildcard item \"" + entry + "\" is a directory" );
-                    instructions.dirExcludeList[ AllPlatforms ].push_back( entry );
+                    instructions.dirExcludeList[ KnownPlatforms::AllPlatforms ].push_back( entry );
                     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Determined that the simple exclude list wildcard item \"" + entry + "\" is a file" );
-                    instructions.fileExcludeList[ AllPlatforms ].push_back( entry );
+                    instructions.fileExcludeList[ KnownPlatforms::AllPlatforms ].push_back( entry );
                 }
                 else
                 if ( IsProcessingInstructionsItemADir( dir, entry ) )
                 {
                     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Determined that the simple exclude list item \"" + entry + "\" is a directory" );
-                    instructions.dirExcludeList[ AllPlatforms ].push_back( entry );
+                    instructions.dirExcludeList[ KnownPlatforms::AllPlatforms ].push_back( entry );
                 }
                 else
                 {
                     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Determined that the simple exclude list item \"" + entry + "\" is a file" );
-                    instructions.fileExcludeList[ AllPlatforms ].push_back( entry );
+                    instructions.fileExcludeList[ KnownPlatforms::AllPlatforms ].push_back( entry );
                 }
             }
             ++n;
@@ -1247,7 +1239,7 @@ LoadAllProcessingInstructions( const CProjectInfo& projectInfo                  
                     else
                     if ( NULL != dirInstructions )
                     {
-                        TStringVectorMap::const_iterator i = dirInstructions->dirExcludeList.find( AllPlatforms );
+                        TStringVectorMap::const_iterator i = dirInstructions->dirExcludeList.find( KnownPlatforms::AllPlatforms );
                         if ( i != dirInstructions->dirExcludeList.end() )
                         {
                             skipSubDir = IsStringInList( (*i).second, true, dirName, true );
@@ -1417,7 +1409,7 @@ PopulateFileListFromDir( const CProjectInfo& projectInfo ,
                          const CORE::CString& platform   )
 {GUCEF_TRACE;
 
-    if ( platform.IsNULLOrEmpty() || platform == AllPlatforms )
+    if ( platform.IsNULLOrEmpty() || platform == KnownPlatforms::AllPlatforms )
     {
         // current dir cannot be a platform dir
         if ( IsDirAPlatformDir( projectInfo, path, true ) )
@@ -1462,7 +1454,7 @@ PopulateDirListFromDir( const CProjectInfo& projectInfo ,
                         bool excludeGenericDirs         )
 {GUCEF_TRACE;
 
-    if ( ( platform.IsNULLOrEmpty() || platform == AllPlatforms ) || !excludeGenericDirs )
+    if ( ( platform.IsNULLOrEmpty() || platform == KnownPlatforms::AllPlatforms ) || !excludeGenericDirs )
     {
         // Get a list of all platform dirs
         const TStringSet& platformsDirs = GetSupportedPlatformDirs( projectInfo );
@@ -1489,7 +1481,7 @@ PopulateDirListFromDir( const CProjectInfo& projectInfo ,
         }
     }
 
-    if ( !platform.IsNULLOrEmpty() && platform != AllPlatforms )
+    if ( !platform.IsNULLOrEmpty() && platform != KnownPlatforms::AllPlatforms )
     {
         // We are looking for dirs for the given platform
         const TStringSetMap& platformsDirMap = GetSupportedPlatformDirMap( projectInfo );
@@ -1599,7 +1591,7 @@ GetListOfAllModuleDirs( const CProjectInfo& projectInfo      ,
     GetListOfAllModuleDirs( moduleInfoEntry ,
                             moduleDirs      ,
                             relativePaths   ,
-                            AllPlatforms    );
+                            KnownPlatforms::AllPlatforms );
 
     // Add all platform dirs
     const TStringSet& platforms = GetSupportedPlatforms( projectInfo );
@@ -1989,20 +1981,20 @@ FillHeaderSubDirIncludes( const CProjectInfo& projectInfo      ,
                           CModuleInfoEntryPtr& moduleInfoEntry )
 {GUCEF_TRACE;
 
-    TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().find( AllPlatforms );
+    TModuleInfoPtrMap::const_iterator n = moduleInfoEntry->GetModulesPerPlatform().find( KnownPlatforms::AllPlatforms );
     if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
     {
         TStringSetMap dummy;
         FillHeaderSubDirIncludes( projectInfo     ,
                                   moduleInfoEntry ,
-                                  AllPlatforms    ,
+                                  KnownPlatforms::AllPlatforms ,
                                   dummy           );
 
         CModuleInfoPtr allPlatformsModuleInfo = (*n).second;
         TModuleInfoPtrMap::const_iterator m = moduleInfoEntry->GetModulesPerPlatform().begin();
         while ( m != moduleInfoEntry->GetModulesPerPlatform().end() )
         {
-            if ( !(*m).first.IsNULLOrEmpty() && (*m).first != AllPlatforms )
+            if ( !(*m).first.IsNULLOrEmpty() && (*m).first != KnownPlatforms::AllPlatforms )
             {
                 FillHeaderSubDirIncludes( projectInfo                         ,
                                           moduleInfoEntry                     ,
@@ -2057,7 +2049,7 @@ FindSubDirsWithHeaders( const CProjectInfo& projectInfo                         
             // the files to all platforms for which the module is valid according to
             // its module definition. This is a critical difference between 'AllPlatforms'
             // and specific platforms which is important for proper overrides/merging etc
-            if ( AllPlatforms == platform || platform.IsNULLOrEmpty() )
+            if ( KnownPlatforms::AllPlatforms == platform || platform.IsNULLOrEmpty() )
             {
                 i = moduleInfoEntry->GetModulesPerPlatform().begin();
                 while ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
@@ -2096,7 +2088,7 @@ FindSubDirsWithHeaders( const CProjectInfo& projectInfo                         
     // Add all generic headers
     FindSubDirsWithHeaders( projectInfo               ,
                             moduleInfoEntry           ,
-                            AllPlatforms              ,
+                            KnownPlatforms::AllPlatforms              ,
                             newProcessingInstructions );
 
     // Add platform specific headers
@@ -2164,7 +2156,7 @@ FindSubDirsWithSource( const CProjectInfo& projectInfo                          
             // the files to all platforms for which the module is valid according to
             // its module definition. This is a critical difference between 'AllPlatforms'
             // and specific platforms which is important for proper overrides/merging etc
-            if ( AllPlatforms == platform || platform.IsNULLOrEmpty() )
+            if ( KnownPlatforms::AllPlatforms == platform || platform.IsNULLOrEmpty() )
             {
                 i = moduleInfoEntry->GetModulesPerPlatform().begin();
                 while ( i != moduleInfoEntry->GetModulesPerPlatform().end() )
@@ -2204,7 +2196,7 @@ FindSubDirsWithSource( const CProjectInfo& projectInfo                          
     // Add all generic sources
     FindSubDirsWithSource( projectInfo               ,
                            moduleInfoEntry           ,
-                           AllPlatforms              ,
+                           KnownPlatforms::AllPlatforms ,
                            newProcessingInstructions );
 
     // Add platform specific source
@@ -2244,7 +2236,7 @@ LegacyCMakeProcessProjectDir( const CProjectInfo& projectInfo      ,
     {
         // get a platform entry to use
         // this legacy system only supported AllPlatforms via CMake
-        CModuleInfo& moduleInfo = *moduleInfoEntry->FindOrCreateModuleInfoForPlatform( AllPlatforms, true );
+        CModuleInfo& moduleInfo = *moduleInfoEntry->FindOrCreateModuleInfoForPlatform( KnownPlatforms::AllPlatforms, true );
 
         // Set a project name based off the module sub-dir name
         // Best we can do unless we can get it from the suffix file later
@@ -2280,7 +2272,7 @@ LegacyCMakeProcessProjectDir( const CProjectInfo& projectInfo      ,
 bool
 ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
                    CORE::CString rootDir                                      ,
-                   TModuleInfoEntryPtrVectorPtr moduleInfoEntries             ,
+                   TStringToModuleInfoEntryPtrMapPtr moduleInfoEntries        ,
                    TDirProcessingInstructionsMapPtr newProcessingInstructions )
 {GUCEF_TRACE;
 
@@ -2320,11 +2312,11 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
                         {
                             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Auto detected license: " + detectedLicense );
 
-                            TModuleInfoEntryPtrVector::iterator i = moduleInfoEntries->begin();
+                            TStringToModuleInfoEntryPtrMap::iterator i = moduleInfoEntries->begin();
                             while ( i != moduleInfoEntries->end() )
                             {
-                                CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-                                moduleInfoEntry->SetLicense( detectedLicense, AllPlatforms );
+                                CModuleInfoEntryPtr& moduleInfoEntry = (*i).second;
+                                moduleInfoEntry->SetLicense( detectedLicense, KnownPlatforms::AllPlatforms );
                                 ++i;
                             }
                         }
@@ -2354,11 +2346,11 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
                         {
                             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Auto detected semver: " + detectedSemVer.ToString() );
 
-                            TModuleInfoEntryPtrVector::iterator i = moduleInfoEntries->begin();
+                            TStringToModuleInfoEntryPtrMap::iterator i = moduleInfoEntries->begin();
                             while ( i != moduleInfoEntries->end() )
                             {
-                                CModuleInfoEntryPtr& moduleInfoEntry = (*i);
-                                moduleInfoEntry->SetSemVer( detectedSemVer, AllPlatforms );
+                                CModuleInfoEntryPtr& moduleInfoEntry = (*i).second;
+                                moduleInfoEntry->SetSemVer( detectedSemVer, KnownPlatforms::AllPlatforms );
                                 ++i;
                             }
                         }
@@ -2370,16 +2362,16 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
                 }
             }
 
-            TModuleInfoEntryPtrVector::iterator i = moduleInfoEntries->begin();
+            TStringToModuleInfoEntryPtrMap::iterator i = moduleInfoEntries->begin();
             while ( i != moduleInfoEntries->end() )
             {
-                CModuleInfoEntryPtr& moduleInfoEntry = (*i);
+                CModuleInfoEntryPtr& moduleInfoEntry = (*i).second;
 
                 // If there is any module info specified for 'AllPlatforms' but it does not have a
                 // module name set then we shall determine a default which is the based on the directory the
                 // project is in. Note that platform specific info can overwrite this of course but at least
                 // this gives us a default if they don't have a name specified either.
-                CModuleInfoPtr moduleInfo = moduleInfoEntry->FindOrCreateModuleInfoForPlatform( AllPlatforms, false );
+                CModuleInfoPtr moduleInfo = moduleInfoEntry->FindOrCreateModuleInfoForPlatform( KnownPlatforms::AllPlatforms, false );
                 if ( !moduleInfo.IsNULL() && moduleInfo->name.IsNULLOrEmpty() )
                 {
                     // Set a project name based off the module sub-dir name
@@ -2398,13 +2390,13 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
         moduleInfoEntry->SetAbsolutePathToModuleRootDir( rootDir );
         moduleInfoEntry->SetProjectRelativePathToModuleRootDir( projectInfo->GetRelativePathFromProjectSubDirToProjectRootDir( rootDir ) );
         LegacyCMakeProcessProjectDir( *projectInfo.GetPointer(), moduleInfoEntry );
-        moduleInfoEntries->push_back( moduleInfoEntry );
+        (*moduleInfoEntries)[ moduleInfoEntry->GetConsensusName() ] = moduleInfoEntry;
     }
 
-    TModuleInfoEntryPtrVector::iterator i = moduleInfoEntries->begin();
+    TStringToModuleInfoEntryPtrMap::iterator i = moduleInfoEntries->begin();
     while ( i != moduleInfoEntries->end() )
     {
-        CModuleInfoEntryPtr& moduleInfoEntry = (*i);
+        CModuleInfoEntryPtr& moduleInfoEntry = (*i).second;
 
         // Assign the rootdir to the entry, we don't save this inside the files
         moduleInfoEntry->SetAbsolutePathToModuleRootDir( rootDir );
@@ -2478,7 +2470,7 @@ LocateModuleDirsRecursively( const CProjectInfo& projectInfo                    
 
     // Get all subdir's
     TStringSet dirList;
-    PopulateDirListFromDir( projectInfo, topLevelDir, dirList, AllPlatforms, false );
+    PopulateDirListFromDir( projectInfo, topLevelDir, dirList, KnownPlatforms::AllPlatforms, false );
 
     // Add/subtract dirs from the list based on generator instructions
     // This early application (before module definition) of processing instructions allows us
@@ -2504,7 +2496,7 @@ ProcessModuleInformation_MergeASyncTaskResult( CORE::CTaskPtr processModuleDirTa
                                                bool processModuleDirResult                                ,
                                                CProjectInfoPtr projectInfo                                ,
                                                CORE::CString rootDir                                      ,
-                                               TModuleInfoEntryPtrVectorPtr newModuleInfoEntries          ,
+                                               TStringToModuleInfoEntryPtrMapPtr newModuleInfoEntries     ,
                                                TDirProcessingInstructionsMapPtr newProcessingInstructions )
 {GUCEF_TRACE;
 
@@ -2539,7 +2531,7 @@ ProcessModuleInformation( CORE::ThreadPoolPtr threadPool        ,
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Queueing processing task for module dir: " + moduleDir );
 
         // queue task chain for this module dir
-        TModuleInfoEntryPtrVectorPtr newModuleInfoEntries = TModuleInfoEntryPtrVectorPtr( GUCEF_NEW TModuleInfoEntryPtrVector() );
+        TStringToModuleInfoEntryPtrMapPtr newModuleInfoEntries = TStringToModuleInfoEntryPtrMapPtr( GUCEF_NEW TStringToModuleInfoEntryPtrMap() );
         TDirProcessingInstructionsMapPtr newProcessingInstructions = TDirProcessingInstructionsMapPtr( GUCEF_NEW TDirProcessingInstructionsMap() );
         
         CORE::CFutureResult future = asyncTasks.QueueCallback( &ProcessProjectDir        ,
