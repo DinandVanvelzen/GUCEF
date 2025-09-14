@@ -447,12 +447,14 @@ HandleEscapeCharactersInVariant( const TVariantData* src  ,
             return;
         }
     }
-
-    /* default: replace with empty string */
-    *strLen = 0;
-    if ( *destBufferLength > 0 )
+    else
     {
-        memset( *destBuffer, 0, *destBufferLength );
+        /* default: replace with empty string */
+        *strLen = 0;
+        if ( *destBufferLength > 0 )
+        {
+            memset( *destBuffer, 0, *destBufferLength );
+        }
     }
 }
 
