@@ -203,7 +203,7 @@ class GUCEF_KAITAI_PUBLIC_CPP CKaitaiSchema : public CKaitaiSchemaBaseField ,
                                       const CORE::CDataNodeSerializableSettings& settings ,
                                       CORE::CStringSet& unresolvedImports                 );
 
-    void Clear( void );
+    virtual void Clear( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     bool HasUnresolvedImports( void ) const;
 

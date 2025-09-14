@@ -8,6 +8,8 @@
         <ITEM NAME="../gucefMT/include/gucefMT_CMutex.h" TYPE="FILE" />
         <ITEM NAME="../gucefMT/src/gucefMT_CScopeMutex.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefMT/include/gucefMT_CScopeMutex.h" TYPE="FILE" />
+        <ITEM NAME="../gucefMT/src/gucefMT_CNoLock.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefMT/include/gucefMT_CNoLock.h" TYPE="FILE" />
         <ITEM NAME="../gucefMT/src/gucefMT_dvmtoswrap.c" TYPE="FILE" />
         <ITEM NAME="../gucefMT/include/gucefMT_dvmtoswrap.h" TYPE="FILE" />
         <ITEM NAME="../gucefMT/src/gucefMT_CICloneable.cpp" TYPE="FILE" />

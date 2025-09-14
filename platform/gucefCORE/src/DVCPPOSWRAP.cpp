@@ -72,6 +72,11 @@
 #define GUCEF_CORE_CVARIANT_H
 #endif /* GUCEF_CORE_CVARIANT_H ? */
 
+#ifndef GUCEF_CORE_CTSHAREDPTR_H
+#include "CTSharedPtr.h"
+#define GUCEF_CORE_CTSHAREDPTR_H
+#endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
+
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
   /* Do not use WIN32_LEAN_AND_MEAN because it will remove timeBeginPeriod() etc. */
@@ -124,12 +129,228 @@ typedef CString::StringPair          TStringPair;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      CLASSES                                                            //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+class GUCEF_HIDDEN CLogicModule : public CTSharedObjCreator< CLogicModule, MT::CNoLock >
+{
+    public:
+
+    typedef CORE::CTSharedPtr< CLogicModule, MT::CNoLock >  CLogicModulePtr;
+    typedef GUCEF::map< CString, TAnyPointer >              StringToAnyPointerMap;
+
+    CString m_name;
+    StringToAnyPointerMap m_functions;
+    MT::CMutex m_lock;
+
+    CLogicModule( void )
+        : CTSharedObjCreator< CLogicModule, MT::CNoLock >( this )
+        , m_name()
+        , m_functions()
+        , m_lock()
+    {GUCEF_TRACE;
+        
+    }
+
+    void
+    RegisterFunction( const CString& name        ,
+                      const TAnyPointer& funcPtr )
+    {GUCEF_TRACE;
+
+        MT::CScopeMutex lock( m_lock );
+        m_functions[ name ] = funcPtr;    
+    }
+
+    TAnyPointer
+    GetFunctionAddress( const CString& name )
+    {GUCEF_TRACE;
+
+        MT::CScopeMutex lock( m_lock );
+
+        StringToAnyPointerMap::const_iterator i = m_functions.find( name );
+        if ( i != m_functions.end() )
+        {
+            return (*i).second;
+        }
+
+        TAnyPointer ptr;
+        ptr.funcPtr = 0;
+        return ptr;
+    }
+};
+
+typedef CLogicModule::CLogicModulePtr CLogicModulePtr;
+
+/*--------------------------------------------------------------------------*/
+
+class GUCEF_HIDDEN CModuleRegistry
+{
+    private:
+
+    typedef GUCEF::map< CString, CLogicModulePtr >    StringToLogicModulePtrMap;
+
+    StringToLogicModulePtrMap m_modules;
+    MT::CMutex m_lock;
+
+    public:
+
+    CModuleRegistry( void )
+        : m_modules()
+        , m_lock()
+    {GUCEF_TRACE;
+        
+    }
+
+    void*
+    RegisterModule( const CString& name )
+    {GUCEF_TRACE;
+
+        MT::CScopeMutex lock( m_lock );
+
+        StringToLogicModulePtrMap::iterator i = m_modules.find( name );
+        if ( i != m_modules.end() )
+        {
+            // already registered
+            CLogicModulePtr& module = (*i).second;
+            return module.GetPointerAlways();
+        }
+
+        // no such module yet, create it
+        CLogicModulePtr module = CLogicModule::CreateSharedObj();
+        if ( !module.IsNULL() )
+            m_modules[ name ] = module;
+        return module.GetPointerAlways();
+    }
+
+    void*
+    GetModuleAddress( const CString& name )
+    {GUCEF_TRACE;
+
+        MT::CScopeMutex lock( m_lock );
+
+        StringToLogicModulePtrMap::iterator i = m_modules.find( name );
+        if ( i != m_modules.end() )
+        {
+            CLogicModulePtr& module = (*i).second;
+            return module.GetPointerAlways();
+        }
+        return GUCEF_NULL;
+    }
+
+    CLogicModulePtr
+    GetModuleForAddress( const void* sohandle )
+    {GUCEF_TRACE;
+
+        MT::CScopeMutex lock( m_lock );
+
+        StringToLogicModulePtrMap::const_iterator i = m_modules.begin();
+        while ( i != m_modules.end() )
+        {
+            const CLogicModulePtr& module = (*i).second;
+            if ( module.GetPointerAlways() == sohandle )
+            {
+                return module;
+            }
+            ++i;
+        }
+
+        return CLogicModulePtr();
+    }
+
+    bool
+    RegisterFunction( const void* sohandle             ,
+                      const CString& functionName      ,
+                      const TAnyPointer& staticAddress )
+    {GUCEF_TRACE;
+
+        CLogicModulePtr module = GetModuleForAddress( sohandle );
+        if ( module.IsNULL() )
+        {
+            return false;
+        }
+
+        module->RegisterFunction( functionName, staticAddress );
+        return true;
+    }
+
+    bool
+    RegisterFunction( const CString& moduleName        ,
+                      const CString& functionName      ,
+                      const TAnyPointer& staticAddress )
+    {GUCEF_TRACE;
+
+        MT::CScopeMutex lock( m_lock );
+
+        StringToLogicModulePtrMap::iterator i = m_modules.find( moduleName );
+        if ( i != m_modules.end() )
+        {
+            CLogicModulePtr& module = (*i).second;
+            if ( !module.IsNULL() )
+            {
+                module->RegisterFunction( functionName, staticAddress );
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    TAnyPointer
+    GetFunctionAddress( const void* sohandle         ,
+                        const CString& functionName  )
+    {GUCEF_TRACE;
+
+        MT::CScopeMutex lock( m_lock );
+        
+        CLogicModulePtr module = GetModuleForAddress( sohandle );
+        if ( module.IsNULL() )
+        {
+            TAnyPointer ptr;
+            ptr.funcPtr = 0;
+            return ptr;
+        }
+
+        return module->GetFunctionAddress( functionName );
+    }
+
+    TAnyPointer
+    GetFunctionAddress( const CString& moduleName    ,
+                        const CString& functionName  )
+    {GUCEF_TRACE;
+
+        MT::CScopeMutex lock( m_lock );
+
+        StringToLogicModulePtrMap::iterator i = m_modules.find( moduleName );
+        if ( i != m_modules.end() )
+        {
+            CLogicModulePtr& module = (*i).second;
+            if ( module.IsNULL() )
+            {
+                TAnyPointer ptr;
+                ptr.funcPtr = 0;
+                return ptr;
+            }
+
+            return module->GetFunctionAddress( functionName );
+        }
+
+        TAnyPointer ptr;
+        ptr.funcPtr = 0;
+        return ptr;
+    }
+
+};
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      GLOBAL VARS                                                        //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
 MT::CMutex g_envOverridesLock;
-TStringMap g_envOverrides;
+CStringMap g_envOverrides;
+CModuleRegistry g_moduleRegistry;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -204,6 +425,325 @@ GetEnv( const CString& key )
         }
     }
     return GUCEFGetEnv( key.C_String() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void*
+LoadModuleDynamicly( const CString& filename )
+{GUCEF_TRACE;
+
+    // Check if the module is registered in our override registry
+    void* modulePtr = g_moduleRegistry.GetModuleAddress( filename );
+    if ( GUCEF_NULL != modulePtr )
+    {
+        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Module address obtained from local registry for: " + filename );
+        return modulePtr;
+    }
+
+    CString fName;
+    CString fileExt = ExtractFileExtention( filename );
+
+    /*
+     *  If no module extension was given we will add the O/S default
+     */
+    if ( fileExt.IsNULLOrEmpty() )
+    {
+        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+        fName = filename + ".dll\0";
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+        fName = filename + ".so\0";
+        #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE )
+        fName = filename + ".dylib\0";
+        #endif
+    }
+
+    const CString& theFilename = fName.IsNULLOrEmpty() ? filename : fName; 
+
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+
+    modulePtr = (void*) ::dlopen( theFilename.C_String(), RTLD_NOW );
+    if ( GUCEF_NULL == modulePtr )
+    {
+        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "dlopen() reports error: " + CString( dlerror() ) );
+    }
+    if ( GUCEF_NULL == modulePtr )
+    {
+        // It is possible the load failed due to missing "lib" prefix on linux/android.
+        // Check for this and compensate as needed
+        CString fileOnly = ExtractFilename( theFilename );
+        if ( 0 != fileOnly.HasSubstr( "lib" ) )
+        {
+            // No module name previous "lib" prefix was found, we will add one and try to load again
+            fileOnly = "lib" + fileOnly;
+            CString newFilePath = CombinePath( StripFilename( theFilename ), fileOnly );
+            modulePtr = (void*) ::dlopen( newFilePath.C_String(), RTLD_NOW );
+            if ( GUCEF_NULL == modulePtr )
+            {
+                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "dlopen() reports error: " + CString( dlerror() ) );
+            }
+        }
+    }
+
+    // It is possible that per Linux fashion the module is actually in a /lib/ dir
+    // while the current dir is pointing at a /bin/ dir due to the pattern of allowing
+    // $MODULEDIR$ variable based loading. We check for that here as well.
+    if ( GUCEF_NULL == modulePtr )
+    {
+        CString pathOnly = StripFilename( theFilename );
+        if ( "bin" == LastSubDir( pathOnly ) )
+        {
+            pathOnly = CombinePath( StripLastSubDir( pathOnly ), "lib" );
+            CString fileOnly = ExtractFilename( fName );
+            CString newFilePath = CombinePath( pathOnly, fileOnly );
+
+            modulePtr = (void*) ::dlopen( newFilePath.C_String(), RTLD_NOW );
+
+            if ( GUCEF_NULL == modulePtr )
+            {
+                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "dlopen() reports error: " + CString( dlerror() ) );
+
+                // It is possible the load failed due to missing "lib" prefix on linux/android.
+                // Check for this and compensate as needed
+                if ( 0 != fileOnly.HasSubstr( "lib" ) )
+                {
+                    // No module name previous "lib" prefix was found, we will add one and try to load again
+                    fileOnly = "lib" + fileOnly;
+                    newFilePath = CombinePath( pathOnly, fileOnly );
+
+                    modulePtr = (void*) ::dlopen( newFilePath.C_String(), RTLD_NOW );
+                    if ( GUCEF_NULL == modulePtr )
+                    {
+                        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "dlopen() reports error: " + CString( dlerror() ) );
+                    }
+                }
+            }
+        }
+    }
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    std::wstring wFilename = ToWString( theFilename );
+    modulePtr = (void*) ::LoadLibraryW( wFilename.c_str() );
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == modulePtr )
+    {
+        DWORD lastErrorCode = ::GetLastError();
+        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "LoadLibrary() reports error code: " + ToString( (UInt32) lastErrorCode ) );
+    }
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    // Dynamic loading is not supported in Emscripten
+    modulePtr = GUCEF_NULL;
+
+    #endif
+
+    return modulePtr;
+}
+
+/*--------------------------------------------------------------------------*/
+
+GUCEF_CORE_PUBLIC_C void*
+GetModulePointer( const CString& moduleName )
+{GUCEF_TRACE;
+
+    if ( !moduleName.IsNULLOrEmpty() )
+    {
+        // check our overrides
+        void* modulePtr = g_moduleRegistry.GetModuleAddress( moduleName );
+        if ( GUCEF_NULL != modulePtr )
+            return modulePtr;
+    }
+
+    // If no module name is passed we get the pointer to the main process module
+
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+
+    // On linux the reference count is always incremented so we must decrement again right away to get
+    // the same behaviour as the windows version
+    void* modulePtr = (void*) ::dlopen( moduleName.C_String(), RTLD_NOW );
+    ::dlclose( modulePtr );
+    return modulePtr;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    std::wstring wModuleName = ToWString( moduleName );
+    return (void*) ::GetModuleHandleW( wModuleName.c_str() );
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    // Dynamic loading is not supported in Emscripten
+    return nullptr;
+
+    #else
+    #error Unsupported target platform
+    #endif
+}
+
+/*--------------------------------------------------------------------------*/
+
+void
+UnloadModuleDynamicly( void *sohandle )
+{GUCEF_TRACE;
+
+    if ( NULL == sohandle )
+        return;
+
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+
+    ::dlclose( sohandle );
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    ::FreeLibrary( (HMODULE)sohandle );
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    // Dynamic unloading is not supported in Emscripten
+
+    #else
+    #error Unsupported target platform
+    #endif
+}
+
+/*--------------------------------------------------------------------------*/
+
+TAnyPointer
+GetFunctionAddress( void* sohandle              ,
+                    const CString& functionname ,
+                    UInt32 parambytes           )
+{GUCEF_TRACE;
+
+    /*
+     *      Calling Convention      Internal*       MSVC DLL (w/ DEF)       MSVC DLL (dllexport)  	DMC DLL         MinGW DLL       BCC DLL
+     *      __stdcall               _Function@n  	Function                _Function@n             _Function@n     Function@n      Function
+     *      __cdecl                 _Function       Function                Function                Function        Function        _Function
+     */
+    TAnyPointer fptr;
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == sohandle || functionname.IsNULLOrEmpty() )
+    {
+        fptr.funcPtr = 0;
+        return fptr;
+    }
+
+    // Check if the function is registered in our override registry
+    fptr = g_moduleRegistry.GetFunctionAddress( sohandle, functionname );
+    if ( GUCEF_NULL != fptr.funcPtr )
+    {
+        return fptr;
+    }
+
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+
+    fptr.objPtr = dlsym( sohandle                ,
+                         functionname.C_String() );
+    return fptr;
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
+    // In emscripten you will need dynamic linking enabled. Its not enabled by default
+    // it becomes enabled by passing -s MAIN_MODULE when building
+    // alas emscripten does not provide a good flag for us to key on so we create our own and
+    // assume the build system will provide it as needed
+    #ifdef GUCEF_EMSCRIPTEN_HAS_DYNAMIC_LINKING_SUPPORT
+
+    fptr.objPtr = dlsym( sohandle                ,
+                         functionname.C_String() );
+    return fptr;
+
+    #else
+
+    fptr.objPtr = 0;
+    return fptr;
+
+    #endif
+
+    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    /*
+     *      First we try a normal load using the given
+     *      functionname.
+     *
+     *      Type: Function
+     */
+    fptr.funcPtr = (TDefaultFuncPtr) GetProcAddress( (HMODULE)sohandle       ,
+                                                     functionname.C_String() );
+    if ( fptr.funcPtr == NULL )
+    {
+        char buffer[ 1024 ];
+        UInt32 len = functionname.Length();
+
+        /*
+         *      Maybe without the param bytes then :(
+         *
+         *      Type: _Function
+         */
+        strncpy( buffer+1, functionname.C_String(), len+1 );
+        *buffer = '_';
+        fptr.funcPtr = (TDefaultFuncPtr) GetProcAddress( (HMODULE)sohandle ,
+                                                         buffer            );
+
+        /*
+         *      Try adding the param bytes value
+         *      ... So much for naming conventions :/
+         *
+         *      Type: _Function@n
+         */
+        if ( fptr.funcPtr == NULL )
+        {
+            sprintf( buffer+len+1, "@%d", parambytes );
+            fptr.funcPtr = (TDefaultFuncPtr) GetProcAddress( (HMODULE)sohandle ,
+                                                             buffer            );
+
+            /*
+             *      Last but not least try..
+             *
+             *      Type: Function@n
+             */
+            if ( fptr.funcPtr == NULL )
+            {
+                fptr.funcPtr = (TDefaultFuncPtr) GetProcAddress( (HMODULE)sohandle ,
+                                                                  buffer+1         );
+            }
+        }
+
+    }
+    return fptr;
+
+    #else
+    #error Unsupported target platform
+    #endif
+}
+
+/*--------------------------------------------------------------------------*/
+
+void*
+RegisterStaticModule( const CString& name )
+{GUCEF_TRACE;
+
+    return g_moduleRegistry.RegisterModule( name );
+}
+
+/*--------------------------------------------------------------------------*/
+
+void
+RegisterStaticFunctionAddress( const void* sohandle             ,
+                               const CString& functionName      ,
+                               const TAnyPointer& staticAddress )
+{GUCEF_TRACE;
+
+    g_moduleRegistry.RegisterFunction( sohandle, functionName, staticAddress );
+}
+
+/*--------------------------------------------------------------------------*/
+
+void
+RegisterStaticFunctionAddress( const CString& moduleName        ,
+                               const CString& functionName      ,
+                               const TAnyPointer& staticAddress )
+{GUCEF_TRACE;
+
+    g_moduleRegistry.RegisterFunction( moduleName, functionName, staticAddress );
 }
 
 /*-------------------------------------------------------------------------*/

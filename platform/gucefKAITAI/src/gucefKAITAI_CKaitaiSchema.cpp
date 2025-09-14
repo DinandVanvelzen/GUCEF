@@ -195,6 +195,8 @@ void
 CKaitaiSchema::Clear( void )
 {GUCEF_TRACE;
 
+    CKaitaiSchemaBaseField::Clear();
+
     m_imports.clear();
         
     if ( !m_structure.IsNULL() )

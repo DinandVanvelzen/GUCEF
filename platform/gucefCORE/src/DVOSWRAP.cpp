@@ -1157,113 +1157,9 @@ void*
 LoadModuleDynamicly( const char* filename )
 {GUCEF_TRACE;
 
-    char* fName = (char*) filename;
-    const char* fileExt = Extract_File_Ext( filename );
-    void* modulePtr = NULL;
-
-    /*
-     *  If no module extension was given we will add the O/S default
-     */
-    if ( fileExt == NULL )
-    {
-        UInt32 sLen = (UInt32) strlen( filename );
-        fName = (char*) malloc( sLen + 7 );
-        memcpy( fName, filename, sLen );
-
-        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-        memcpy( fName+sLen, ".dll\0", 5 );
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
-        memcpy( fName+sLen, ".so\0", 4 );
-        #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE )
-        memcpy( fName+sLen, ".dylib\0", 7 );
-        #endif
-    }
-
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
-
-    modulePtr = (void*) dlopen( fName, RTLD_NOW );
-    if ( GUCEF_NULL == modulePtr )
-    {
-        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "dlopen() reports error: " + CString( dlerror() ) );
-    }
-    if ( GUCEF_NULL == modulePtr )
-    {
-        // It is possible the load failed due to missing "lib" prefix on linux/android.
-        // Check for this and compensate as needed
-        CString fileOnly = ExtractFilename( fName );
-        if ( 0 != fileOnly.HasSubstr( "lib" ) )
-        {
-            // No module name previous "lib" prefix was found, we will add one and try to load again
-            fileOnly = "lib" + fileOnly;
-            CString newFilePath = CombinePath( StripFilename( fName ), fileOnly );
-            modulePtr = (void*) dlopen( newFilePath.C_String(), RTLD_NOW );
-            if ( GUCEF_NULL == modulePtr )
-            {
-                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "dlopen() reports error: " + CString( dlerror() ) );
-            }
-        }
-    }
-
-    // It is possible that per Linux fashion the module is actually in a /lib/ dir
-    // while the current dir is pointing at a /bin/ dir due to the pattern of allowing
-    // $MODULEDIR$ variable based loading. We check for that here as well.
-    if ( GUCEF_NULL == modulePtr )
-    {
-        CString pathOnly = StripFilename( fName );
-        if ( "bin" == LastSubDir( pathOnly ) )
-        {
-            pathOnly = CombinePath( StripLastSubDir( pathOnly ), "lib" );
-            CString fileOnly = ExtractFilename( fName );
-            CString newFilePath = CombinePath( pathOnly, fileOnly );
-
-            modulePtr = (void*) dlopen( newFilePath.C_String(), RTLD_NOW );
-
-            if ( GUCEF_NULL == modulePtr )
-            {
-                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "dlopen() reports error: " + CString( dlerror() ) );
-
-                // It is possible the load failed due to missing "lib" prefix on linux/android.
-                // Check for this and compensate as needed
-                if ( 0 != fileOnly.HasSubstr( "lib" ) )
-                {
-                    // No module name previous "lib" prefix was found, we will add one and try to load again
-                    fileOnly = "lib" + fileOnly;
-                    newFilePath = CombinePath( pathOnly, fileOnly );
-
-                    modulePtr = (void*) dlopen( newFilePath.C_String(), RTLD_NOW );
-                    if ( GUCEF_NULL == modulePtr )
-                    {
-                        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "dlopen() reports error: " + CString( dlerror() ) );
-                    }
-                }
-            }
-        }
-    }
-
-
-
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-
-    modulePtr = (void*) LoadLibrary( fName );
-    if GUCEF_PREDICT_FALSE( GUCEF_NULL == modulePtr )
-    {
-        DWORD lastErrorCode = ::GetLastError();
-        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "LoadLibrary() reports error code: " + ToString( (UInt32) lastErrorCode ) );
-    }
-
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
-
-    // Dynamic loading is not supported in Emscripten
-    modulePtr = GUCEF_NULL;
-
-    #endif
-
-    if ( fileExt == NULL )
-    {
-        free( fName );
-    }
-
-    return modulePtr;
+    // redirect to the C++ version
+    CString fName( filename );
+    return LoadModuleDynamicly( fName );
 }
 
 /*--------------------------------------------------------------------------*/
@@ -1272,141 +1168,29 @@ GUCEF_CORE_PUBLIC_C void*
 GetModulePointer( const char* moduleName )
 {GUCEF_TRACE;
 
-    // If no module name is passed we get the pointer to the main process module
-
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
-
-    // On linux the reference count is always incremented so we must decrement again right away to get
-    // the same behaviour as the windows version
-    void* modulePtr = (void*) dlopen( moduleName, RTLD_NOW );
-    dlclose( modulePtr );
-    return modulePtr;
-
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-
-    return (void*) GetModuleHandleA( moduleName );
-
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
-
-    // Dynamic loading is not supported in Emscripten
-    return nullptr;
-
-    #else
-    #error Unsupported target platform
-    #endif
-}
-
-/*--------------------------------------------------------------------------*/
-
-void
-UnloadModuleDynamicly( void *sohandle )
-{GUCEF_TRACE;
-
-    if ( NULL == sohandle ) return;
-
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
-
-    dlclose( sohandle );
-
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-
-    FreeLibrary( (HMODULE)sohandle );
-
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
-
-    // Dynamic unloading is not supported in Emscripten
-
-    #else
-    #error Unsupported target platform
-    #endif
+    // redirect to the C++ version
+    CString mName( moduleName );
+    return GetModulePointer( mName );
 }
 
 /*--------------------------------------------------------------------------*/
 
 TAnyPointer
-GetFunctionAddress( void *sohandle           ,
+GetFunctionAddress( void* sohandle           ,
                     const char* functionname ,
                     UInt32 parambytes        )
 {GUCEF_TRACE;
 
-    /*
-     *      Calling Convention      Internal*       MSVC DLL (w/ DEF)       MSVC DLL (dllexport)  	DMC DLL         MinGW DLL       BCC DLL
-     *      __stdcall               _Function@n  	Function                _Function@n             _Function@n     Function@n      Function
-     *      __cdecl                 _Function       Function                Function                Function        Function        _Function
-     */
     TAnyPointer fptr;
-    if ( NULL == sohandle )
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == sohandle || GUCEF_NULL == functionname )
     {
         fptr.funcPtr = 0;
         return fptr;
     }
 
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
-
-    fptr.objPtr = dlsym( sohandle     ,
-                         functionname );
-    return fptr;
-
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-
-    /*
-     *      First we try a normal load using the given
-     *      functionname.
-     *
-     *      Type: Function
-     */
-    fptr.funcPtr = (TDefaultFuncPtr) GetProcAddress( (HMODULE)sohandle ,
-                                                     functionname      );
-    if ( fptr.funcPtr == NULL )
-    {
-        char buffer[ 1024 ];
-        UInt32 len = (UInt32)strlen( functionname );
-
-        /*
-         *      Maybe without the param bytes then :(
-         *
-         *      Type: _Function
-         */
-        strncpy( buffer+1, functionname, len+1 );
-        *buffer = '_';
-        fptr.funcPtr = (TDefaultFuncPtr) GetProcAddress( (HMODULE)sohandle ,
-                                                         buffer            );
-
-        /*
-         *      Try adding the param bytes value
-         *      ... So much for naming conventions :/
-         *
-         *      Type: _Function@n
-         */
-        if ( fptr.funcPtr == NULL )
-        {
-            sprintf( buffer+len+1, "@%d", parambytes );
-            fptr.funcPtr = (TDefaultFuncPtr) GetProcAddress( (HMODULE)sohandle ,
-                                                             buffer            );
-
-            /*
-             *      Last but not least try..
-             *
-             *      Type: Function@n
-             */
-            if ( fptr.funcPtr == NULL )
-            {
-                fptr.funcPtr = (TDefaultFuncPtr) GetProcAddress( (HMODULE)sohandle ,
-                                                                  buffer+1         );
-            }
-        }
-
-    }
-    return fptr;
-
-    #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
-
-    fptr.funcPtr = nullptr;
-    return fptr;
-
-    #else
-    #error Unsupported target platform
-    #endif
+    // redirect to the C++ version
+    CString funcName( functionname );
+    return GetFunctionAddress( sohandle, funcName, parambytes );
 }
 
 /*--------------------------------------------------------------------------*/

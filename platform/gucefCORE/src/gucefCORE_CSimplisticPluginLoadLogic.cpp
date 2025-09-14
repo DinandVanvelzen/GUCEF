@@ -33,6 +33,11 @@
 #define GUCEF_CORE_DVOSWRAP_H
 #endif /* GUCEF_CORE_DVOSWRAP_H ? */
 
+#ifndef GUCEF_CORE_DVCPPOSWRAP_H
+#include "DVCPPOSWRAP.h"
+#define GUCEF_CORE_DVCPPOSWRAP_H
+#endif /* GUCEF_CORE_DVCPPOSWRAP_H ? */
+
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
@@ -64,7 +69,7 @@ CSimplisticPluginLoadLogic::LoadPlugin( const CString& rootDir        ,
 
     CString fullPluginPath = CombinePath( rootDir, moduleName );
     fullPluginPath = RelativePath( fullPluginPath );
-    return LoadModuleDynamicly( fullPluginPath.C_String() );
+    return LoadModuleDynamicly( fullPluginPath );
 }
 
 /*-------------------------------------------------------------------------*/

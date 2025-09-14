@@ -206,11 +206,6 @@ LoadModuleDynamicly( const char* filename );
 
 /*--------------------------------------------------------------------------*/
 
-GUCEF_CORE_PUBLIC_C void
-UnloadModuleDynamicly( void *sohandle );
-
-/*--------------------------------------------------------------------------*/
-
 /**
  *  Gets a pointer to an already loaded module. This function does NOT
  *  increment the reference count of the module referenced. If you do not know

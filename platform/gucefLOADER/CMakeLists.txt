@@ -42,6 +42,7 @@ set( HEADER_FILES
   ../gucefMT/include/gucefMT_CICloneable.h
   ../gucefMT/include/gucefMT_CILockable.h
   ../gucefMT/include/gucefMT_CMutex.h
+  ../gucefMT/include/gucefMT_CNoLock.h
   ../gucefMT/include/gucefMT_CScopeMutex.h
   ../gucefMT/include/gucefMT_ThreadStatus.h
   ../gucefMT/include/gucefMT_dvmtoswrap.h
@@ -82,6 +83,7 @@ set( SOURCE_FILES
   ../gucefMT/src/gucefMT_CICloneable.cpp
   ../gucefMT/src/gucefMT_CILockable.cpp
   ../gucefMT/src/gucefMT_CMutex.cpp
+  ../gucefMT/src/gucefMT_CNoLock.cpp
   ../gucefMT/src/gucefMT_CScopeMutex.cpp
   ../gucefMT/src/gucefMT_ThreadStatus.cpp
   ../gucefMT/src/gucefMT_dvmtoswrap.c

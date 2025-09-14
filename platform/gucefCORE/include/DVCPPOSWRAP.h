@@ -89,6 +89,83 @@ GetEnv( const CString& key );
 
 /*--------------------------------------------------------------------------*/
 
+/**
+ *  Not all platforms support dynamic loading / plugins or you may wish to perform
+ *  a fully static build inclusive of plugins. In such a case thus function can be used
+ *  to globally register a module using a name.
+ * 
+ *  Registered modules will be transparently supported via
+ *      LoadModuleDynamicly()
+ *      GetModulePointer()
+ */
+GUCEF_CORE_PUBLIC_CPP void*
+RegisterStaticModule( const CString& name );
+
+/*--------------------------------------------------------------------------*/
+
+GUCEF_CORE_PUBLIC_CPP void*
+LoadModuleDynamicly( const CString& filename );
+
+/*--------------------------------------------------------------------------*/
+
+GUCEF_CORE_PUBLIC_C void
+UnloadModuleDynamicly( void* sohandle );
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  Gets a pointer to an already loaded module. This function does NOT
+ *  increment the reference count of the module referenced. If you do not know
+ *  whether the modules is already loaded you should use LoadModuleDynamicly()
+ *  instead of this function.
+ */
+GUCEF_CORE_PUBLIC_CPP void*
+GetModulePointer( const CString& moduleName );
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  Registers a function with the given name and address for the given static module
+ *  Functions registered in the manner will be transparently available for statically registered modules
+ *  via GetFunctionAddress()
+ */
+GUCEF_CORE_PUBLIC_CPP void
+RegisterStaticFunctionAddress( const void* sohandle             ,
+                               const CString& functionName      ,
+                               const TAnyPointer& staticAddress );
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  Registers a function with the given name and address for the given static module
+ *  Same as the other variant of this function but using the module name directly instead
+ *  of the simulated module address
+ */
+GUCEF_CORE_PUBLIC_CPP void
+RegisterStaticFunctionAddress( const CString& moduleName        ,
+                               const CString& functionName      ,
+                               const TAnyPointer& staticAddress );
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *      Attempts to load the function from the module.
+ *
+ *      For MS Windows platform:
+ *      If the function "functionname" isn't found then an attempt will
+ *      be made to locate it using function decorations.
+ *      Although C DLL's can be exchanged between different compilers in theory
+ *      in practice they use different naming conventions. Unlike C++ the C
+ *      exports are compatible if the same calling convention is used but the
+ *      names tend to get mucked up.
+ */
+GUCEF_CORE_PUBLIC_CPP TAnyPointer
+GetFunctionAddress( void* sohandle              ,
+                    const CString& functionname ,
+                    UInt32 parambytes           );
+
+/*--------------------------------------------------------------------------*/
+
 GUCEF_CORE_PUBLIC_CPP bool
 GetExeNameForProcessId( TProcessId pid   ,
                         CString& exeName );

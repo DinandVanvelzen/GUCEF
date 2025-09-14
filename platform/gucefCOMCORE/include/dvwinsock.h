@@ -38,7 +38,7 @@
   #include <Ws2tcpip.h>
   #include <Wspiapi.h>
 
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
   #include <errno.h>
   #include <unistd.h>
@@ -73,7 +73,7 @@ struct timeval;
 
 #define DVSOCKET_EWOULDBLOCK    WSAEWOULDBLOCK
 
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
 typedef struct hostent*         LPHOSTENT;
 typedef struct in_addr*         LPIN_ADDR;
@@ -327,14 +327,3 @@ dvsocket_setsockopt_and_validate( SOCKET s           ,
 /*--------------------------------------------------------------------------*/
 
 #endif /* GUCEF_COMCORE_DVSOCKET_H ? */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 05-02-2004 :
-        - Initial implementation.
-
------------------------------------------------------------------------------*/

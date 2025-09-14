@@ -21,4 +21,7 @@ endif()
 
 set(EMSCRIPTEN 1)
 set(CMAKE_EXECUTABLE_SUFFIX ".html" CACHE STRING "Executable suffix" FORCE)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s WASM=1 -s ALLOW_MEMORY_GROWTH=1" CACHE STRING "" FORCE)
+# For compile flags
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+# For link flags (only applied during final linking)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s WASM=1 -s ALLOW_MEMORY_GROWTH=1" CACHE STRING "" FORCE)
