@@ -48,14 +48,6 @@ if ( EMSCRIPTEN )
   include_directories( ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal )
 endif( EMSCRIPTEN )
 
-if ( GLX )
-  include_directories( ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal )
-endif( GLX )
-
-if ( GTK )
-  include_directories( ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal )
-endif( GTK )
-
 if ( IOS )
   include_directories( ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal )
 endif( IOS )
@@ -68,29 +60,9 @@ if ( LINUX64 )
   include_directories( ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal ../../../dependencies/zlib ../../../platform/gucefCORE/include/linux )
 endif( LINUX64 )
 
-if ( NACL )
-  include_directories( ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal )
-endif( NACL )
-
 if ( OSX )
   include_directories( ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal )
 endif( OSX )
-
-if ( POSIX )
-  include_directories( ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal )
-endif( POSIX )
-
-if ( SDL )
-  include_directories( ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal )
-endif( SDL )
-
-if ( SYMBIAN )
-  include_directories( ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal )
-endif( SYMBIAN )
-
-if ( UNIX )
-  include_directories( ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal )
-endif( UNIX )
 
 if ( WIN32 )
   include_directories( ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal ../../../dependencies/zlib ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )

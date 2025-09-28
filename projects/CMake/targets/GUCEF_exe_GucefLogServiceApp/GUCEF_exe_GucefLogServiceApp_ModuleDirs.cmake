@@ -11,7 +11,6 @@
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/json-builder ${CMAKE_BINARY_DIR}/jsonbuilder )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/json-parser ${CMAKE_BINARY_DIR}/jsonparser )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/libparsifal ${CMAKE_BINARY_DIR}/libparsifal )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOM ${CMAKE_BINARY_DIR}/gucefCOM )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOMCORE ${CMAKE_BINARY_DIR}/gucefCOMCORE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
@@ -24,3 +23,14 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstoreplu
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/GucefLogServiceApp ${CMAKE_BINARY_DIR}/GucefLogServiceApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/GucefLogServiceClientPlugin ${CMAKE_BINARY_DIR}/GucefLogServiceClientPlugin )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/GucefLogServiceLib ${CMAKE_BINARY_DIR}/GucefLogServiceLib )
+
+
+if (LINUX32)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
+elseif (LINUX64)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
+elseif (WIN32)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
+elseif (WIN64)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
+endif()

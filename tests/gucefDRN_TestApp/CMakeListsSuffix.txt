@@ -1,9 +1,0 @@
-
-if (WIN32)
-  add_executable( gucefDRN_TestApp WIN32 ${HEADER_FILES} ${SOURCE_FILES} )
-else()
-  add_executable( gucefDRN_TestApp ${HEADER_FILES} ${SOURCE_FILES} )
-endif()
-add_dependencies( gucefDRN_TestApp gucefDRN gucefCOMCORE gucefCORE gucefMT )
-target_link_libraries( gucefDRN_TestApp gucefDRN gucefCOMCORE gucefCORE gucefMT )
-GUCEF_config_tool( gucefDRN_TestApp )

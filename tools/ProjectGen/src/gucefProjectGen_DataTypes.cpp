@@ -73,6 +73,7 @@ const CORE::CString KnownPlatforms::Android32 = "android32";
 const CORE::CString KnownPlatforms::Android64 = "android64";
 const CORE::CString KnownPlatforms::Arduino = "arduino";
 const CORE::CString KnownPlatforms::Emscripten32 = "emscripten32";
+const CORE::CString KnownPlatforms::Emscripten64 = "emscripten64";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -1297,177 +1298,6 @@ MergeDirProcessingInstructionsMap( TDirProcessingInstructionsMap& mergedInstruct
 
 /*---------------------------------------------------------------------------*/
 
-const CORE::CString*
-GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
-               const CORE::CString& targetPlatform          ,
-               CModuleInfoPtr* outModuleInfo                )
-{GUCEF_TRACE;
-
-
-    TProjectTargetInfoMap::const_iterator i = targetPlatforms.find( targetPlatform );
-    if ( i != targetPlatforms.end() )
-    {
-        const CModuleInfoEntryPtr mainModule = (*i).second.mainModule;
-        if ( !mainModule.IsNULL() )
-        {
-            return mainModule->GetModuleName( targetPlatform, outModuleInfo );
-        }
-    }
-
-    // If no target is specified for a specific platform then there might still be a
-    // default for all platforms
-    if ( targetPlatform != KnownPlatforms::AllPlatforms )
-    {
-        i = targetPlatforms.find( KnownPlatforms::AllPlatforms );
-        if ( i != targetPlatforms.end() )
-        {
-            const CModuleInfoEntryPtr mainModule = (*i).second.mainModule;
-            if ( !mainModule.IsNULL() )
-            {
-                return mainModule->GetModuleName( KnownPlatforms::AllPlatforms, outModuleInfo );
-            }
-        }
-    }
-
-    return GUCEF_NULL;
-}
-
-/*---------------------------------------------------------------------------*/
-
-CORE::CString
-GetConsensusTargetName( const TProjectTargetInfoMap& targetPlatforms ,
-                        const CORE::CString& targetPlatform          )
-{GUCEF_TRACE;
-
-    TProjectTargetInfoMap::const_iterator n = targetPlatforms.find( targetPlatform );
-    if ( n != targetPlatforms.end() )
-    {
-        // A target was specified for this platform which makes our job easy
-        const TProjectTargetInfo& target = (*n).second;
-        if ( GUCEF_NULL != target.mainModule )
-        {
-            return GetModuleTargetName( target.mainModule, targetPlatform, true );
-        }
-    }
-
-    // If no name is specified for all platforms then we will have to
-    // determine the best name to use. We do this by getting the name
-    // for all platforms and counting how often each is used. The most used
-    // name is considered the general consensus name. If the same count applies
-    // to multiple we will try to use a popular platform to improve our 'guess'
-
-    typedef std::map< CORE::CString, CORE::UInt32 > TStringCountMap;
-
-    TStringCountMap countMap;
-    n = targetPlatforms.begin();
-    while ( n != targetPlatforms.end() )
-    {
-        const TProjectTargetInfo& target = (*n).second;
-        if ( GUCEF_NULL != target.mainModule )
-        {
-            CORE::CString targetName = GetModuleTargetName( target.mainModule, targetPlatform, true );
-            TStringCountMap::iterator m = countMap.find( targetName );
-            if ( m != countMap.end() )
-            {
-                ++((*m).second);
-            }
-            else
-            {
-                countMap[ targetName ] = 1;
-            }
-        }
-        ++n;
-    }
-
-    // Not all target origins cause a main module to be defined.
-    // As such its perfectly possible be unable to define a consensus target name because the concept does not apply
-    // to the collection of targets due to the origins of the collection
-    if ( countMap.empty() )
-        return CORE::CString();
-
-    // Now that we have the popularity count of each name get the highest count
-    CORE::UInt32 highestCount = 0;
-    TStringCountMap::iterator i = countMap.begin();
-    while ( i != countMap.end() )
-    {
-        if ( highestCount < (*i).second )
-        {
-            highestCount = (*i).second;
-        }
-        ++i;
-    }
-
-    // Make the list of most popular names
-    TStringSet topNames;
-    i = countMap.begin();
-    while ( i != countMap.end() )
-    {
-        if ( highestCount == (*i).second )
-        {
-            topNames.insert( (*i).first );
-        }
-        ++i;
-    }
-
-    // If we have multiple use a popular platform if
-    // possible, otherwise just grab one
-
-    //@TODO: popular platform check
-
-    CString consensusName = (*topNames.begin());
-    return consensusName;
-}
-
-/*---------------------------------------------------------------------------*/
-
-CORE::CString
-GetConsensusTargetName( const TProjectTargetInfoMap& targetPlatforms )
-{GUCEF_TRACE;
-
-    // an "all platforms" name always counts as the general consensus name
-    return GetConsensusTargetName( targetPlatforms, KnownPlatforms::AllPlatforms );
-}
-
-/*---------------------------------------------------------------------------*/
-
-CORE::CString
-GetModuleTargetName( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                     const CORE::CString& targetPlatform        ,
-                     bool useModuleNameIfNoTargetName           )
-{GUCEF_TRACE;
-
-    CModuleInfoPtr moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( targetPlatform );
-    if ( !moduleInfo.IsNULL() )
-    {
-        if ( !moduleInfo->linkerSettings.GetTargetName().IsNULLOrEmpty() )
-        {
-            return moduleInfo->linkerSettings.GetTargetName();
-        }
-    }
-    if ( targetPlatform != KnownPlatforms::AllPlatforms && !targetPlatform.IsNULLOrEmpty() )
-    {
-        moduleInfo = moduleInfoEntry->FindModuleInfoForPlatform( KnownPlatforms::AllPlatforms );
-        if ( !moduleInfo.IsNULL() )
-        {
-            if ( !moduleInfo->linkerSettings.GetTargetName().IsNULLOrEmpty() )
-            {
-                return moduleInfo->linkerSettings.GetTargetName();
-            }
-        }
-    }
-
-    // If we got here no target name was defined so the only option left is the 
-    // module name. For most projects this is the same thing.
-    if ( useModuleNameIfNoTargetName )
-    {
-        return moduleInfoEntry->GetModuleNameAlways( targetPlatform );
-    }
-
-    return CORE::CString(); 
-}
-
-/*---------------------------------------------------------------------------*/
-
 void
 GetModuleInfoWithUniqueModulesTypes( const CModuleInfoEntryPtr& moduleInfoEntry ,
                                      TModuleInfoPtrMap& moduleMap               )
@@ -1565,11 +1395,13 @@ LocalizeDirSepCharForPlatform( const CORE::CString& path     ,
                                const CORE::CString& platform )
 {GUCEF_TRACE;
 
-    if ( "win32" == platform || "win64" == platform )
+    if ( KnownPlatforms::Win32 == platform || KnownPlatforms::Win64 == platform )
     {
         return path.ReplaceChar( '/', '\\' );
     }
-    if ( "linux32" == platform || "linux64" == platform || "android32" == platform || "android64" == platform  )
+    if ( KnownPlatforms::Linux32 == platform || KnownPlatforms::Linux64 == platform ||
+         KnownPlatforms::Android32 == platform || KnownPlatforms::Android64 == platform ||
+         KnownPlatforms::Emscripten32 == platform || KnownPlatforms::Emscripten64 == platform )
     {
         return path.ReplaceChar( '\\', '/' );
     }
@@ -1875,87 +1707,6 @@ GetModuleInfoEntry( const TModuleInfoEntryPtrVector& moduleInfoEntries ,
 
 /*---------------------------------------------------------------------------*/
 
-void
-GetAllTagsUsed( const CProjectInfo& projectInfo ,
-                TStringSet& tagsUsed            )
-{GUCEF_TRACE;
-
-    TStringToModuleInfoEntryPtrMap::const_iterator i = projectInfo.modules.begin();
-    while ( i != projectInfo.modules.end() )
-    {
-        const TModuleInfoPtrMap& modulesPerPlatform = (*i).second->GetModulesPerPlatform();
-        TModuleInfoPtrMap::const_iterator n = modulesPerPlatform.begin();
-        while ( n != modulesPerPlatform.end() )
-        {
-            MergeStringSet( tagsUsed, (*n).second->tags, true );
-            ++n;
-        }
-        ++i;
-    }
-}
-
-/*---------------------------------------------------------------------------*/
-
-bool
-IsModuleTagged( const CModuleInfoEntryPtr& module ,
-                const CORE::CString& tag          ,
-                const CORE::CString& platform     )
-{GUCEF_TRACE;
-
-    TModuleInfoPtrMap::const_iterator i = module->GetModulesPerPlatform().find( KnownPlatforms::AllPlatforms );
-    if ( i != module->GetModulesPerPlatform().end() )
-    {
-        if ( (*i).second->tags.find( tag ) != (*i).second->tags.end() )
-            return true;
-    }
-    i = module->GetModulesPerPlatform().find( platform );
-    if ( i != module->GetModulesPerPlatform().end() )
-    {
-        if ( (*i).second->tags.find( tag ) != (*i).second->tags.end() )
-            return true;
-    }
-    return false;
-}
-
-/*---------------------------------------------------------------------------*/
-
-bool
-IsModuleTagged( const CModuleInfoEntryPtr& module    ,
-                const CORE::CString::StringSet& tags ,
-                const CORE::CString& platform        )
-{GUCEF_TRACE;
-
-    CORE::CString::StringSet::const_iterator i = tags.begin();
-    while ( i != tags.end() )
-    {
-        if ( IsModuleTagged( module, (*i), platform ) )
-            return true;
-        ++i;
-    }
-    return false;
-}
-
-/*---------------------------------------------------------------------------*/
-
-void
-GetTaggedModules( const CProjectInfo& projectInfo       ,
-                  const CORE::CString& tag              ,
-                  TModuleInfoEntryPtrSet& taggedModules ,
-                  const CORE::CString& platform         )
-{GUCEF_TRACE;
-
-    TStringToModuleInfoEntryPtrMap::const_iterator i = projectInfo.modules.begin();
-    while ( i != projectInfo.modules.end() )
-    {
-        const CModuleInfoEntryPtr& entry = (*i).second;
-        if ( IsModuleTagged( entry, tag, platform ) )
-            taggedModules.insert( entry );
-        ++i;
-    }
-}
-
-/*---------------------------------------------------------------------------*/
-
 bool
 ShouldModuleBeIgnored( const CModuleInfoEntryPtr& moduleInfo ,
                        const CORE::CString& platformName     )
@@ -2026,260 +1777,6 @@ HasIndependentModuleType( const TModuleInfoPtrMap& moduleDefs )
         ++i;
     }
     return false;
-}
-
-/*---------------------------------------------------------------------------*/
-
-void
-GetExecutables( const CProjectInfo& projectInfo           ,
-                TModuleInfoEntryPtrSet& executableTargets ,
-                const CORE::CString& platform             )
-{GUCEF_TRACE;
-
-    TStringToModuleInfoEntryPtrMap::const_iterator i = projectInfo.modules.begin();
-    while ( i != projectInfo.modules.end() )
-    {
-        const CModuleInfoEntryPtr& entry = (*i).second;
-        if ( MODULETYPE_EXECUTABLE == entry->GetModuleType( platform ) )
-            executableTargets.insert( entry );
-        ++i;
-    }
-}
-
-/*---------------------------------------------------------------------------*/
-
-void
-SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
-                       TProjectTargetInfoMapMap& targets  ,
-                       bool tagsAsTargets                 ,
-                       bool collapseRedundantPlatforms    ,
-                       const TStringSet& platformsUsed    )
-{GUCEF_TRACE;
-
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Commencing splitting of the gathered project info into derived targets. Will split among the " + 
-        CORE::ToString( platformsUsed.size() ) + " platforms defined" );
-
-    TStringSet::iterator p = platformsUsed.begin();
-    while ( p != platformsUsed.end() )
-    {
-        const CORE::CString& platform = (*p);
-
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Locating executables (if any) for platform " + platform );
-
-        TModuleInfoEntryPtrSet executables;
-        GetExecutables( projectInfo, executables, platform );
-
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Located " + CORE::ToString( executables.size() ) + " executable target candidates for platform " + (*p) );
-
-        TModuleInfoEntryPtrSet::iterator i = executables.begin();
-        while ( i != executables.end() )
-        {
-            CModuleInfoEntryPtr executable = (*i);
-            CORE::CString targetName = executable->GetModuleNameAlways( platform );
-
-            // Don't bother if the executable itself doesnt have a platform definition for the current platform            
-            if ( executable->IsApplicableForPlatform( platform ) )
-            {            
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Locating dependencies for target candidate \"" + 
-                    targetName + "\" for platform " + (*p) );
-
-                TModuleInfoEntryPtrSet foundDependencies;
-                if ( projectInfo.GetModuleDependencies( executable, platform, foundDependencies, true, true, false ) )
-                {
-                    // if we made it here we found the executable and were able to satisfy all dependencies
-                    // for the current platform
-
-                    CORE::CString projectName = projectInfo.projectName + "_exe_" + targetName; 
-                    TProjectTargetInfoMap& targetPerPlatform = targets[ projectName ];
-                    TProjectTargetInfo& target = targetPerPlatform[ platform ];
-
-                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Located " + CORE::ToString( foundDependencies.size() ) + 
-                        " dependencies for executable target \"" + targetName + "\" for platform " + platform );
-
-                    target.projectName = projectName;
-                    target.mainModule = executable;
-                    target.modules.insert( executable );
-                    TModuleInfoEntryPtrSet::iterator j = foundDependencies.begin();
-                    while ( j != foundDependencies.end() )
-                    {
-                        target.modules.insert( (*j) );
-                        ++j;
-                    } 
-
-                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: Executable Target \"" + targetName + "\" has been defined for platform " + platform );                        
-                }
-                else
-                {
-                     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: We cannot satisfy the full dependency chain for executable \"" + targetName + 
-                        "\" for the given platform \"" + platform + "\", it will not be available as a target specific to this platform" );
-                }
-            }
-            else
-            {
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SplitProjectPerTarget: The executable \"" + targetName + "\" has no definition specific to the given platform \"" 
-                    + platform + "\" and thus will not be available as a target specific to this platform" ); 
-            }
-            ++i;
-        }
-        ++p;
-    }
-
-    if ( tagsAsTargets )
-    {
-        TStringSet tagsUsed;
-        GetAllTagsUsed( projectInfo, tagsUsed );
-
-        TStringSet::iterator p = platformsUsed.begin();
-        while ( p != platformsUsed.end() )
-        {
-            const CORE::CString& platform = (*p);
-            
-            TStringSet::iterator i = tagsUsed.begin();
-            while ( i != tagsUsed.end() )
-            {
-                TModuleInfoEntryPtrSet taggedModules;
-                GetTaggedModules( projectInfo, (*i), taggedModules, platform );
-                CORE::CString projectName = projectInfo.projectName + "_tag_" + (*i);
-
-                TModuleInfoEntryPtrSet::iterator m = taggedModules.begin();
-                while ( m != taggedModules.end() )
-                {
-                    const CModuleInfoEntryPtr& taggedModule = (*m);
-                                            
-                    // Don't include this module if it doesnt have a definition for the current platform
-                    if ( taggedModule->GetModulesPerPlatform().find( platform ) != taggedModule->GetModulesPerPlatform().end() )
-                    {                    
-                        // Tagged or not we need to include the dependencies of tagged modules as well
-                        // We don't want to make projects that cannot compile
-                        TModuleInfoEntryPtrSet foundDependencies;
-                        if ( projectInfo.GetModuleDependencies( taggedModule, platform, foundDependencies, true, true, false ) )
-                        {
-                            TProjectTargetInfoMap& targetPerPlatform = targets[ projectName ];
-                            TProjectTargetInfo& target = targetPerPlatform[ platform ];
-
-                            target.projectName = projectName;
-                            target.modules.insert( taggedModule );
-
-                            // Since many modules can have the same tag there really is no such thing as a 'main' tagged module.
-                            // It may be that there is only 1 in a repo but that is a coincidence and not relevant
-                            target.mainModule.Unlink();
-
-                            TModuleInfoEntryPtrSet::iterator j = foundDependencies.begin();
-                            while ( j != foundDependencies.end() )
-                            {
-                                target.modules.insert( (*j) );
-                                ++j;
-                            }
-                        }
-                    }
-                    ++m;
-                }
-                ++i;
-            }
-            ++p;
-        }
-    }
-
-    if ( collapseRedundantPlatforms )
-    {
-        TProjectTargetInfoMapMap::iterator t = targets.begin();
-        while ( t != targets.end() )
-        {
-            // First check to see if this module has a 'AllPlatforms' definition
-            // Without one we cannot collapse since there is no unifying target to collapse to
-            TProjectTargetInfoMap& targetByPlatform = (*t).second;
-            TProjectTargetInfoMap::iterator a = targetByPlatform.find( KnownPlatforms::AllPlatforms );
-            if ( a != targetByPlatform.end() )
-            {
-                TProjectTargetInfo& allPlatformsTarget = (*a).second;
-                
-                // We now check to see if the modules match across platforms which is all that is needed here
-                // The modules themselves will deal with platform specifics at an intra-module level
-                // The use-case we look for are cases where some platforms have different modules then others
-                // in which case we need to keep them as distinct targets
-                TStringSet redundantPlatforms; 
-                TProjectTargetInfoMap::iterator m = targetByPlatform.begin();
-                while (  m != targetByPlatform.end() )
-                {
-                     const CORE::CString& currentPlatform = (*m).first;
-                     if ( currentPlatform != KnownPlatforms::AllPlatforms )
-                     {
-                         TProjectTargetInfo& somePlatformTarget = (*m).second;
-                         if ( somePlatformTarget.modules == allPlatformsTarget.modules )
-                            redundantPlatforms.insert( (*m).first );
-                    }
-                    ++m;
-                }
-                TStringSet::iterator r = redundantPlatforms.begin();
-                while ( r != redundantPlatforms.end() )
-                {
-                    targetByPlatform.erase( (*r) );
-                    ++r;
-                }
-            }
-            // else: targets that don't have a 'AllPlatforms' target cannot be collapsed
-            ++t;
-        }
-    }
-
-    // In order to facilitate uniform processing we also include the complete project as its own target
-    // This ensures that backend code doesn't need different code to process the complete project vs some
-    // target based subset
-    // Note that the full project is by definition "all" platforms because there is no target differentiation
-    // It relies solely on module level per-platform differences to be processed
-
-    TProjectTargetInfoMap& fullProjectTargets = targets[ projectInfo.projectName ];
-    TProjectTargetInfo& fullProjectTarget = fullProjectTargets[ KnownPlatforms::AllPlatforms ];
-    fullProjectTarget.projectName = projectInfo.projectName;
-    fullProjectTarget.mainModule.Unlink();
-    TStringToModuleInfoEntryPtrMap::const_iterator w = projectInfo.modules.begin();
-    while ( w != projectInfo.modules.end() )
-    {
-        fullProjectTarget.modules.insert( (*w).second );
-        ++w;
-    }
-}
-
-/*---------------------------------------------------------------------------*/
-
-void
-SplitProjectPerTarget( const CProjectInfo& projectInfo    ,
-                       TProjectTargetInfoMapMap& targets  ,
-                       bool tagsAsTargets                 ,
-                       bool collapseRedundantPlatforms    )
-{GUCEF_TRACE;
-
-    TStringSet platformsUsed;
-    projectInfo.GetAllPlatformsUsed( platformsUsed );
-
-    SplitProjectPerTarget( projectInfo                , 
-                           targets                    ,
-                           tagsAsTargets              ,
-                           collapseRedundantPlatforms ,
-                           platformsUsed              );
-}
-
-/*-------------------------------------------------------------------------*/
-
-const TProjectTargetInfo*
-GetPlatformProjectTarget( const TProjectTargetInfoMap& platformTargets ,
-                          const CORE::CString& platformName            )
-{GUCEF_TRACE;
-
-    TProjectTargetInfoMap::const_iterator i = platformTargets.find( platformName );
-    if ( i != platformTargets.end() )
-    {
-        return &(*i).second;
-    }
-    if ( KnownPlatforms::AllPlatforms != platformName )
-    {
-        i = platformTargets.find( KnownPlatforms::AllPlatforms );
-        if ( i != platformTargets.end() )
-        {
-            return &(*i).second;
-        }
-    }
-    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -4598,6 +4095,43 @@ CModuleInfoEntry::GetConsensusName( CModuleInfoPtr* moduleInfo ,
 
 /*---------------------------------------------------------------------------*/
 
+CORE::CString
+CModuleInfoEntry::GetModuleTargetName( const CORE::CString& targetPlatform ,
+                                       bool useModuleNameIfNoTargetName    ) const
+{GUCEF_TRACE;
+
+    CModuleInfoPtr moduleInfo = FindModuleInfoForPlatform( targetPlatform );
+    if ( !moduleInfo.IsNULL() )
+    {
+        if ( !moduleInfo->linkerSettings.GetTargetName().IsNULLOrEmpty() )
+        {
+            return moduleInfo->linkerSettings.GetTargetName();
+        }
+    }
+    if ( targetPlatform != KnownPlatforms::AllPlatforms && !targetPlatform.IsNULLOrEmpty() )
+    {
+        moduleInfo = FindModuleInfoForPlatform( KnownPlatforms::AllPlatforms );
+        if ( !moduleInfo.IsNULL() )
+        {
+            if ( !moduleInfo->linkerSettings.GetTargetName().IsNULLOrEmpty() )
+            {
+                return moduleInfo->linkerSettings.GetTargetName();
+            }
+        }
+    }
+
+    // If we got here no target name was defined so the only option left is the 
+    // module name. For most projects this is the same thing.
+    if ( useModuleNameIfNoTargetName )
+    {
+        return GetModuleNameAlways( targetPlatform );
+    }
+
+    return CORE::CString(); 
+}
+
+/*---------------------------------------------------------------------------*/
+
 const CORE::CString*
 CModuleInfoEntry::GetModuleName( const CORE::CString& targetPlatform ,
                                  CModuleInfoPtr* outModuleInfo       ) const
@@ -5992,6 +5526,45 @@ CModuleInfoEntry::SetLastEditBy( const CORE::CString& lastEditBy ,
 
 /*---------------------------------------------------------------------------*/
 
+bool
+CModuleInfoEntry::HasTag( const CORE::CString& tag      ,
+                          const CORE::CString& platform ) const
+{GUCEF_TRACE;
+
+    TModuleInfoPtrMap::const_iterator i = m_modulesPerPlatform.find( KnownPlatforms::AllPlatforms );
+    if ( i != m_modulesPerPlatform.end() )
+    {
+        if ( (*i).second->tags.find( tag ) != (*i).second->tags.end() )
+            return true;
+    }
+    i = m_modulesPerPlatform.find( platform );
+    if ( i != m_modulesPerPlatform.end() )
+    {
+        if ( (*i).second->tags.find( tag ) != (*i).second->tags.end() )
+            return true;
+    }
+    return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleInfoEntry::HasTag( const CORE::CString::StringSet& tags ,
+                          const CORE::CString& platform        ) const
+{GUCEF_TRACE;
+
+    CORE::CString::StringSet::const_iterator i = tags.begin();
+    while ( i != tags.end() )
+    {
+        if ( HasTag( (*i), platform ) )
+            return true;
+        ++i;
+    }
+    return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
 TModuleType
 CModuleInfoEntry::GetModuleType( const CORE::CString& targetPlatform ) const
 {GUCEF_TRACE;
@@ -6799,13 +6372,388 @@ CModuleDependencyNode::GetDependencyModulesMappedByBuildOrder( TModuleInfoEntryP
 
 /*---------------------------------------------------------------------------*/
 
+bool
+CModuleDependencyNode::GetDependencyNames( CORE::CStringSet& dependencyNames      ,
+                                           bool includeDependenciesOfDependencies ,
+                                           bool addDependencies                   ,
+                                           bool addLinkerDependencies             ,
+                                           bool addRuntimeDependencies            ) const
+{GUCEF_TRACE;
+
+    TModuleInfoEntryPtrSet allDependencies;
+    if ( addDependencies )
+        GatherDependencyModules( allDependencies, includeDependenciesOfDependencies );
+    if ( addLinkerDependencies )
+        GatherLinkerDependencyModules( allDependencies, includeDependenciesOfDependencies );
+    if ( addRuntimeDependencies )
+        GatherRuntimeDependencyModules( allDependencies, includeDependenciesOfDependencies );
+
+    TModuleInfoEntryPtrSet::iterator i = allDependencies.begin();
+    while ( i != allDependencies.end() )
+    {
+        const CModuleInfoEntryPtr& module = (*i);
+        const CORE::CString* dependencyName = module->GetModuleName( m_targetPlatform );
+        if ( GUCEF_NULL != dependencyName )
+            dependencyNames.insert( *dependencyName );
+        else
+            dependencyNames.insert( module->GetConsensusName() );
+
+        ++i;
+    }
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleDependencyNode::GetDependencyDelta( TModuleInfoEntryPtrSet& dependencyDelta  ,
+                                           const CModuleDependencyNodePtr otherTree ,
+                                           bool includeDependenciesOfDependencies   ,
+                                           bool addDependencies                     ,
+                                           bool addLinkerDependencies               ,
+                                           bool addRuntimeDependencies              ) const
+{GUCEF_TRACE;
+
+    if GUCEF_PREDICT_FALSE( otherTree.IsNULL() )
+        return false;
+
+    TModuleInfoEntryPtrSet allThisNodeDependencies;
+    if ( addDependencies )
+        GatherDependencyModules( allThisNodeDependencies, includeDependenciesOfDependencies );
+    if ( addLinkerDependencies )
+        GatherLinkerDependencyModules( allThisNodeDependencies, includeDependenciesOfDependencies );
+    if ( addRuntimeDependencies )
+        GatherRuntimeDependencyModules( allThisNodeDependencies, includeDependenciesOfDependencies );
+
+    TModuleInfoEntryPtrSet allOtherNodeDependencies;
+    if ( addDependencies )
+        otherTree->GatherDependencyModules( allOtherNodeDependencies, includeDependenciesOfDependencies );
+    if ( addLinkerDependencies )
+        otherTree->GatherLinkerDependencyModules( allOtherNodeDependencies, includeDependenciesOfDependencies );
+    if ( addRuntimeDependencies )
+        otherTree->GatherRuntimeDependencyModules( allOtherNodeDependencies, includeDependenciesOfDependencies );
+
+    // Now determine the delta between the two sets
+
+    TModuleInfoEntryPtrSet::iterator i = allThisNodeDependencies.begin();
+    while ( i != allThisNodeDependencies.end() )
+    {
+        const CModuleInfoEntryPtr& module = (*i);
+        const CORE::CString& moduleName = module->GetConsensusName();
+
+        bool foundSameOther = false;
+        TModuleInfoEntryPtrSet::iterator n = allOtherNodeDependencies.begin();
+        while ( n != allOtherNodeDependencies.end() )
+        {
+            const CModuleInfoEntryPtr& otherModule = (*n);
+            const CORE::CString& otherModuleName = otherModule->GetConsensusName();
+
+            if ( moduleName == otherModuleName )
+            {
+                foundSameOther = true;
+                break;
+            }                
+            ++n;
+        }
+
+        if ( !foundSameOther )
+        {
+            dependencyDelta.insert( module );
+        }
+        ++i;
+    }
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
+CProjectTargetInfo::CProjectTargetInfo( void )
+    : CORE::CTSharedObjCreator< CProjectTargetInfo, MT::CMutex >( this )
+    , projectName()
+    , mainModule()
+    , modules()
+{GUCEF_TRACE;
+
+}
+
+/*---------------------------------------------------------------------------*/
+
+CProjectTargetInfo::~CProjectTargetInfo()
+{GUCEF_TRACE;
+
+    Clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectTargetInfo::Clear( void )
+{GUCEF_TRACE;
+
+    projectName.Clear();
+    mainModule.Unlink();
+    modules.clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
+CProjectTargetInfoBundle::CProjectTargetInfoBundle( void )
+    : CORE::CTSharedObjCreator< CProjectTargetInfoBundle, MT::CMutex >( this )
+    , m_targets()
+{GUCEF_TRACE;
+
+    Clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
+CProjectTargetInfoBundle::~CProjectTargetInfoBundle()
+{GUCEF_TRACE;
+
+    Clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectTargetInfoBundle::Clear( void )
+{GUCEF_TRACE;
+
+    m_targets.clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap&
+CProjectTargetInfoBundle::GetAllTargets( void ) const
+{GUCEF_TRACE;
+
+    return m_targets;
+}
+
+/*---------------------------------------------------------------------------*/
+
+CProjectTargetInfoPtr
+CProjectTargetInfoBundle::GetPlatformProjectTarget( const CORE::CString& targetName   ,
+                                                    const CORE::CString& platformName ) const
+{GUCEF_TRACE;
+
+    TProjectTargetInfoPtrMapMap::const_iterator i = m_targets.find( targetName );
+    if ( i != m_targets.end() )
+    {
+        const TProjectTargetInfoPtrMap& targetDefsPerPlatform = (*i).second;
+        TProjectTargetInfoPtrMap::const_iterator n = targetDefsPerPlatform.find( platformName );
+        if ( n != targetDefsPerPlatform.end() )
+        {
+            return (*n).second;
+        }
+    }
+
+    return CProjectTargetInfoPtr();
+}
+
+/*---------------------------------------------------------------------------*/
+
+CProjectTargetInfoPtr
+CProjectTargetInfoBundle::GetOrCreatePlatformProjectTarget( const CORE::CString& targetName   ,
+                                                            const CORE::CString& platformName )
+{GUCEF_TRACE;
+
+    TProjectTargetInfoPtrMap& targetDefsPerPlatform = m_targets[ targetName ];
+    CProjectTargetInfoPtr& projectTarget = targetDefsPerPlatform[ platformName ];
+    if ( projectTarget.IsNULL() )
+    {
+        projectTarget = CProjectTargetInfo::CreateSharedObj();
+        projectTarget->projectName = targetName;
+    }
+
+    return projectTarget;
+}
+
+/*---------------------------------------------------------------------------*/
+
+CProjectTargetInfoBundle::TProjectTargetInfoPtrMap&
+CProjectTargetInfoBundle::GetOrCreateTargetEntry( const CORE::CString& targetName )
+{GUCEF_TRACE;
+
+    return m_targets[ targetName ];
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CString*
+CProjectTargetInfoBundle::GetTargetMainModuleName( const CORE::CString& targetName     ,
+                                                   const CORE::CString& targetPlatform ,
+                                                   CModuleInfoPtr* outModuleInfo       ) const
+{GUCEF_TRACE;
+
+
+    CProjectTargetInfoPtr target = GetPlatformProjectTarget( targetName, targetPlatform );
+    if ( !target.IsNULL() )
+    {        
+        if ( !target->mainModule.IsNULL() )
+        {
+            return target->mainModule->GetModuleName( targetPlatform, outModuleInfo );
+        }
+    }
+
+    // If no target is specified for a specific platform then there might still be a
+    // default for all platforms
+    if ( targetPlatform != KnownPlatforms::AllPlatforms )
+    {
+        target = GetPlatformProjectTarget( targetName, KnownPlatforms::AllPlatforms );
+        if ( !target.IsNULL() )
+        {        
+            if ( !target->mainModule.IsNULL() )
+            {
+                return target->mainModule->GetModuleName( targetPlatform, outModuleInfo );
+            }
+        }
+    }
+
+    return GUCEF_NULL;
+}
+
+/*---------------------------------------------------------------------------*/
+
+CORE::CString
+CProjectTargetInfoBundle::GetConsensusTargetName( const TProjectTargetInfoPtrMap& targetPlatforms ,
+                                                  const CORE::CString& targetPlatform             )
+{GUCEF_TRACE;
+
+    TProjectTargetInfoPtrMap::const_iterator n = targetPlatforms.find( targetPlatform );
+    if ( n != targetPlatforms.end() )
+    {
+        // A target was specified for this platform which makes our job easy
+        const CProjectTargetInfoPtr& target = (*n).second;
+        if ( !target->mainModule.IsNULL() )
+        {
+            return target->mainModule->GetModuleTargetName( targetPlatform, true );
+        }
+    }
+
+    // If no name is specified for all platforms then we will have to
+    // determine the best name to use. We do this by getting the name
+    // for all platforms and counting how often each is used. The most used
+    // name is considered the general consensus name. If the same count applies
+    // to multiple we will try to use a popular platform to improve our 'guess'
+
+    typedef std::map< CORE::CString, CORE::UInt32 > TStringCountMap;
+
+    TStringCountMap countMap;
+    n = targetPlatforms.begin();
+    while ( n != targetPlatforms.end() )
+    {
+        CProjectTargetInfoPtr target = (*n).second;
+        if ( GUCEF_NULL != target->mainModule )
+        {
+            CORE::CString targetName = target->mainModule->GetModuleTargetName( targetPlatform, true );
+            TStringCountMap::iterator m = countMap.find( targetName );
+            if ( m != countMap.end() )
+            {
+                ++((*m).second);
+            }
+            else
+            {
+                countMap[ targetName ] = 1;
+            }
+        }
+        ++n;
+    }
+
+    // Not all target origins cause a main module to be defined.
+    // As such its perfectly possible be unable to define a consensus target name because the concept does not apply
+    // to the collection of targets due to the origins of the collection
+    if ( countMap.empty() )
+        return CORE::CString();
+
+    // Now that we have the popularity count of each name get the highest count
+    CORE::UInt32 highestCount = 0;
+    TStringCountMap::iterator i = countMap.begin();
+    while ( i != countMap.end() )
+    {
+        if ( highestCount < (*i).second )
+        {
+            highestCount = (*i).second;
+        }
+        ++i;
+    }
+
+    // Make the list of most popular names
+    TStringSet topNames;
+    i = countMap.begin();
+    while ( i != countMap.end() )
+    {
+        if ( highestCount == (*i).second )
+        {
+            topNames.insert( (*i).first );
+        }
+        ++i;
+    }
+
+    // If we have multiple use a popular platform if
+    // possible, otherwise just grab one
+
+    //@TODO: popular platform check
+
+    CString consensusName = (*topNames.begin());
+    return consensusName;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectTargetInfoBundle::CollapseRedundantPlatformTargets( void )
+{GUCEF_TRACE;
+
+    TProjectTargetInfoPtrMapMap::iterator t = m_targets.begin();
+    while ( t != m_targets.end() )
+    {
+        // First check to see if this module has a 'AllPlatforms' definition
+        // Without one we cannot collapse since there is no unifying target to collapse to
+        TProjectTargetInfoPtrMap& targetByPlatform = (*t).second;
+        TProjectTargetInfoPtrMap::iterator a = targetByPlatform.find( KnownPlatforms::AllPlatforms );
+        if ( a != targetByPlatform.end() )
+        {
+            CProjectTargetInfoPtr& allPlatformsTarget = (*a).second;
+                
+            // We now check to see if the modules match across platforms which is all that is needed here
+            // The modules themselves will deal with platform specifics at an intra-module level
+            // The use-case we look for are cases where some platforms have different modules then others
+            // in which case we need to keep them as distinct targets
+            TStringSet redundantPlatforms; 
+            TProjectTargetInfoPtrMap::iterator m = targetByPlatform.begin();
+            while (  m != targetByPlatform.end() )
+            {
+                const CORE::CString& currentPlatform = (*m).first;
+                if ( currentPlatform != KnownPlatforms::AllPlatforms )
+                {
+                    CProjectTargetInfoPtr& somePlatformTarget = (*m).second;
+                    if ( somePlatformTarget->modules == allPlatformsTarget->modules )
+                        redundantPlatforms.insert( (*m).first );
+                }
+                ++m;
+            }
+            TStringSet::iterator r = redundantPlatforms.begin();
+            while ( r != redundantPlatforms.end() )
+            {
+                targetByPlatform.erase( (*r) );
+                ++r;
+            }
+        }
+        // else: targets that don't have a 'AllPlatforms' target cannot be collapsed
+        ++t;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
 const CORE::CString CProjectInfo::ClassTypeName = "GUCEF::PROJECTGEN::CProjectInfo";
 
 /*---------------------------------------------------------------------------*/
 
 CProjectInfo::CProjectInfo( void ) 
     : CORE::CTSharedObjCreator< CProjectInfo, MT::CMutex >( this )
-    , projectName()
     , rootDirs()
     , modules()
     , dirProcessingInstructions()
@@ -6815,6 +6763,7 @@ CProjectInfo::CProjectInfo( void )
     , m_actualPlatformsUsed()
     , m_settings()
     , m_disabledPlatforms()
+    , m_projectName()
     , m_rwLock( true )
 {GUCEF_TRACE;
 
@@ -6824,7 +6773,6 @@ CProjectInfo::CProjectInfo( void )
 
 CProjectInfo::CProjectInfo( const CProjectInfo& src ) 
     : CORE::CTSharedObjCreator< CProjectInfo, MT::CMutex >( this )
-    , projectName( src.projectName )
     , rootDirs( src.rootDirs )
     , modules( src.modules )
     , dirProcessingInstructions( src.dirProcessingInstructions )
@@ -6834,6 +6782,7 @@ CProjectInfo::CProjectInfo( const CProjectInfo& src )
     , m_actualPlatformsUsed( src.m_actualPlatformsUsed )
     , m_settings( src.m_settings )
     , m_disabledPlatforms( src.m_disabledPlatforms )
+    , m_projectName( src.m_projectName )
     , m_rwLock( true )
 {GUCEF_TRACE;
 
@@ -6845,6 +6794,339 @@ CProjectInfo::~CProjectInfo()
 {GUCEF_TRACE;
 
     Clear();
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetExecutables( TModuleInfoEntryPtrSet& executableTargets ,
+                              const CORE::CString& platform             ) const
+{GUCEF_TRACE;
+
+    TStringToModuleInfoEntryPtrMap::const_iterator i = modules.begin();
+    while ( i != modules.end() )
+    {
+        const CModuleInfoEntryPtr& entry = (*i).second;
+        if ( MODULETYPE_EXECUTABLE == entry->GetModuleType( platform ) )
+            executableTargets.insert( entry );
+        ++i;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::GetAllTargets( CProjectTargetInfoBundle& targets     ,
+                             bool tagsAsTargets                    ,
+                             bool deltaFormatForSpecificPlatforms  ,
+                             const TStringSet& platformsToConsider ) const
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Commencing splitting of the gathered project info into derived targets. Will split among the " + 
+        CORE::ToString( platformsToConsider.size() ) + " platforms defined" );
+
+    // sanity check
+    if ( deltaFormatForSpecificPlatforms &&
+         ( platformsToConsider.find( KnownPlatforms::AllPlatforms ) == platformsToConsider.end() ||
+           platformsToConsider.size() < 2 ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Cannot perform delta determination without 'all' platform and at least 2 platforms" );
+        return false;
+    }
+    if ( deltaFormatForSpecificPlatforms &&
+         !AreDependencyChainsInitialized() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Cannot perform delta determination without dependency chains being initialized" );
+        return false;
+    }
+
+    // Go through the platforms we were asked to consider (less platforms = less work)
+    // For each determine what the valid targets are
+    TStringSet::iterator p = platformsToConsider.begin();
+    while ( p != platformsToConsider.end() )
+    {
+        const CORE::CString& platform = (*p);
+
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Locating executables (if any) for platform " + platform );
+
+        // First let's process all the executables for the given platform as the obvious targets
+
+        TModuleInfoEntryPtrSet executables;
+        GetExecutables( executables, platform );
+
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Located " + CORE::ToString( executables.size() ) + " executable target candidates for platform " + (*p) );
+
+        TModuleInfoEntryPtrSet::iterator i = executables.begin();
+        while ( i != executables.end() )
+        {
+            CModuleInfoEntryPtr executable = (*i);
+            CORE::CString targetName = executable->GetModuleNameAlways( platform );
+            bool hasAllPlatformsDef = executable->HasAllPlatformsDefinition();
+            bool determineDeltaForSpecificPlatforms = hasAllPlatformsDef && deltaFormatForSpecificPlatforms;
+
+            // Don't bother if the executable itself doesn't have a platform definition for the current platform            
+            if ( executable->IsApplicableForPlatform( platform ) )
+            {            
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Locating dependencies for target candidate \"" + 
+                    targetName + "\" for platform " + (*p) );
+
+                CORE::CString projectName = m_projectName + "_exe_" + targetName;                        
+                CProjectTargetInfoPtr target = targets.GetOrCreatePlatformProjectTarget( projectName, platform );
+
+                target->projectName = projectName;
+                target->mainModule = executable;
+
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Executable Target \"" + targetName + "\" has been defined for platform " + platform ); 
+
+                if ( !determineDeltaForSpecificPlatforms )
+                {
+                    target->modules.insert( executable );
+
+                    TModuleInfoEntryPtrSet foundDependencies;
+                    if ( GetModuleDependencies( executable, platform, foundDependencies, true, true, false ) )
+                    {
+                        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Located " + CORE::ToString( foundDependencies.size() ) + 
+                            " dependencies for executable target \"" + targetName + "\" for platform " + platform );
+
+                        TModuleInfoEntryPtrSet::iterator j = foundDependencies.begin();
+                        while ( j != foundDependencies.end() )
+                        {
+                            const CModuleInfoEntryPtr& dependency = (*j);
+                            target->modules.insert( dependency );
+
+                            ++j;
+                        }
+                    }
+                    else
+                    {
+                        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: We cannot satisfy the full dependency chain for executable \"" + targetName + 
+                        "\" for the given platform \"" + platform + "\", it will not be available as a target specific to this platform" );
+                    }
+                }
+                else
+                {
+                    if ( platform != KnownPlatforms::AllPlatforms )
+                    {
+                        bool createdDelta = GetModuleDependencyDeltaAcrossPlatforms( target->modules              ,
+                                                                                     targetName                   ,
+                                                                                     KnownPlatforms::AllPlatforms ,
+                                                                                     platform                     ,
+                                                                                     true                         ,
+                                                                                     true                         ,
+                                                                                     true                         ,
+                                                                                     true                         );
+                        if ( createdDelta )
+                        {
+                            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Generated module dependency delta for executable \"" + targetName + 
+                                "\" for the given platform \"" + platform + "\". There are " + CORE::ToString( target->modules.size() ) + " modules specific to this platform" );
+                        }
+                        else
+                        {
+                            totalSuccess = false;
+                            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Cannot obtain dependency delta for executable \"" + targetName + 
+                                "\" for the given platform \"" + platform + "\"" );
+                        }
+                    }
+                    else
+                    {
+                        target->modules.insert( executable );
+
+                        TModuleInfoEntryPtrSet foundDependencies;
+                        if ( GetModuleDependencies( executable, platform, foundDependencies, true, true, false ) )
+                        {
+                            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Located " + CORE::ToString( foundDependencies.size() ) + 
+                                " dependencies for executable target \"" + targetName + "\" for platform " + platform );
+
+                            TModuleInfoEntryPtrSet::iterator j = foundDependencies.begin();
+                            while ( j != foundDependencies.end() )
+                            {
+                                const CModuleInfoEntryPtr& dependency = (*j);
+                                target->modules.insert( dependency );
+
+                                ++j;
+                            }
+
+                            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Generated module dependency listing for executable \"" + targetName + 
+                                "\" for the 'All' platform which has " + CORE::ToString( target->modules.size() ) + " baseline modules. Specific platforms may add their own platform delta" );
+                        }
+                        else
+                        {
+                             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: We cannot satisfy the full dependency chain for executable \"" + targetName + 
+                                "\" for the given platform \"" + platform + "\", it will not be available as a target specific to this platform" );
+                        }
+                    }
+                }
+            }
+            else
+            {
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: The executable \"" + targetName + "\" has no definition specific to the given platform \"" 
+                    + platform + "\" and thus will not be available as a target specific to this platform" ); 
+            }
+            ++i;
+        }
+        ++p;
+    }
+
+    if ( tagsAsTargets )
+    {
+        // As requested: Next we will also look for tagged modules
+        // The tags themselves will make them part of a 'tag' group target
+
+        TStringSet tagsUsed;
+        GetAllTagsUsed( tagsUsed );
+
+        TStringSet::iterator p = platformsToConsider.begin();
+        while ( p != platformsToConsider.end() )
+        {
+            const CORE::CString& platform = (*p);
+            
+            TStringSet::iterator i = tagsUsed.begin();
+            while ( i != tagsUsed.end() )
+            {
+                const CORE::CString& tag = (*i);
+
+                TModuleInfoEntryPtrSet taggedModules;
+                GetTaggedModules( tag, taggedModules, platform );
+                CORE::CString projectName = m_projectName + "_tag_" + tag;
+                CProjectTargetInfoPtr target = targets.GetOrCreatePlatformProjectTarget( projectName, platform );
+
+                TModuleInfoEntryPtrSet::iterator m = taggedModules.begin();
+                while ( m != taggedModules.end() )
+                {
+                    const CModuleInfoEntryPtr& taggedModule = (*m);
+                                            
+                    // Don't include this module if it doesn't apply for the current platform
+                    if ( taggedModule->IsApplicableForPlatform( platform ) )
+                    {                    
+                        const CORE::CString& taggedModuleName = taggedModule->GetConsensusName();
+                        bool hasAllPlatformsDef = taggedModule->HasAllPlatformsDefinition();
+                        bool determineDeltaForSpecificPlatforms = hasAllPlatformsDef && deltaFormatForSpecificPlatforms;
+
+                        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Tagged module \"" + taggedModuleName +
+                            "\" is relevant to tag target " + projectName + " for platform " + platform ); 
+
+                        if ( !determineDeltaForSpecificPlatforms )
+                        {
+                            // Tagged or not we need to include the dependencies of tagged modules as well
+                            // We don't want to make projects that cannot compile
+                            TModuleInfoEntryPtrSet foundDependencies;
+                            if ( GetModuleDependencies( taggedModule, platform, foundDependencies, true, true, false ) )
+                            {
+                                target->projectName = projectName;
+                                target->modules.insert( taggedModule );
+
+                                // Since many modules can have the same tag there really is no such thing as a 'main' tagged module.
+                                // It may be that there is only 1 in a repo but that is a coincidence and not relevant
+                                target->mainModule.Unlink();
+
+                                TModuleInfoEntryPtrSet::iterator j = foundDependencies.begin();
+                                while ( j != foundDependencies.end() )
+                                {
+                                    const CModuleInfoEntryPtr& dependency = (*j);
+                                    target->modules.insert( dependency );
+
+                                    ++j;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if ( platform != KnownPlatforms::AllPlatforms )
+                            {
+                                bool createdDelta = GetModuleDependencyDeltaAcrossPlatforms( target->modules              ,
+                                                                                             taggedModuleName             ,
+                                                                                             KnownPlatforms::AllPlatforms ,
+                                                                                             platform                     ,
+                                                                                             true                         ,
+                                                                                             true                         ,
+                                                                                             true                         ,
+                                                                                             true                         );
+                                if ( createdDelta )
+                                {
+                                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Generated module dependency delta for tagged module  \"" + taggedModuleName + 
+                                        "\" for the given platform \"" + platform + "\". There are " + CORE::ToString( target->modules.size() ) + " modules specific to this platform" );
+                                }
+                                else
+                                {
+                                    totalSuccess = false;
+                                    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Cannot obtain dependency delta for tagged module \"" + taggedModuleName + 
+                                        "\" for the given platform \"" + platform + "\"" );
+                                }
+                            }
+                            else
+                            {
+                                target->modules.insert( taggedModule );
+
+                                TModuleInfoEntryPtrSet foundDependencies;
+                                if ( GetModuleDependencies( taggedModule, platform, foundDependencies, true, true, false ) )
+                                {
+                                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Located " + CORE::ToString( foundDependencies.size() ) + 
+                                        " dependencies for tagged module \"" + taggedModuleName + "\" for platform " + platform );
+
+                                    TModuleInfoEntryPtrSet::iterator j = foundDependencies.begin();
+                                    while ( j != foundDependencies.end() )
+                                    {
+                                        const CModuleInfoEntryPtr& dependency = (*j);
+                                        target->modules.insert( dependency );
+
+                                        ++j;
+                                    }
+
+                                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Generated module dependency listing for tagged module \"" + taggedModuleName + 
+                                        "\" for the 'All' platform which has " + CORE::ToString( target->modules.size() ) + " baseline modules. Specific platforms may add their own platform delta" );
+                                }
+                                else
+                                {
+                                     GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: We cannot satisfy the full dependency chain for tagged module \"" + taggedModuleName + 
+                                        "\" for the given platform \"" + platform + "\", it will not be available as part of the overall tag target specific to this platform" );
+                                }
+                            }
+                        }
+                    }
+                    ++m;
+                }
+                ++i;
+            }
+            ++p;
+        }
+    }
+
+    if ( platformsToConsider.find( KnownPlatforms::AllPlatforms ) != platformsToConsider.end() )
+    {
+        // In order to facilitate uniform processing we also include the complete project as its own target
+        // This ensures that backend code doesn't need different code to process the complete project vs some
+        // target based subset
+        // Note that the full project is by definition "all" platforms because there is no target differentiation
+        // It relies solely on module level per-platform differences to be processed
+
+        CProjectTargetInfoPtr fullProjectTarget = targets.GetOrCreatePlatformProjectTarget( GetProjectName(), KnownPlatforms::AllPlatforms );
+        fullProjectTarget->projectName = GetProjectName();
+        fullProjectTarget->mainModule.Unlink();
+        TStringToModuleInfoEntryPtrMap::const_iterator w = modules.begin();
+        while ( w != modules.end() )
+        {
+            fullProjectTarget->modules.insert( (*w).second );
+            ++w;
+        }
+    }
+
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::GetAllTargets( CProjectTargetInfoBundle& targets    ,
+                             bool tagsAsTargets                   ,
+                             bool deltaFormatForSpecificPlatforms ) const
+{GUCEF_TRACE;
+
+    TStringSet platformList;
+    GetAllEnabledPlatformsUsed( platformList, true );
+
+    return GetAllTargets( targets, tagsAsTargets, deltaFormatForSpecificPlatforms, platformList );
 }
 
 /*---------------------------------------------------------------------------*/
@@ -6891,7 +7173,13 @@ CProjectInfo::GetAllEnabledPlatformsUsed( TStringSet& platformList ,
     GetAllPlatformsUsed( platformList, okToUseCachedValue );
 
     // Now we erase the ones that are disabled from the 'actually used' list
-    platformList.erase( m_disabledPlatforms.begin(), m_disabledPlatforms.end() );
+    CORE::CStringSet::const_iterator i = m_disabledPlatforms.begin();
+    while ( i != m_disabledPlatforms.end() )
+    {
+        const CORE::CString& disabledPlatform = (*i); 
+        platformList.erase( disabledPlatform );
+        ++i;
+    }
 }
 
 /*---------------------------------------------------------------------------*/
@@ -7484,6 +7772,45 @@ CProjectInfo::GetSupportedPlatformsBasedOnDependencies( CModuleInfoEntryPtr modu
         ++i;
     }
 
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::GetModuleDependencyDeltaAcrossPlatforms( TModuleInfoEntryPtrSet& dependencyDelta  ,
+                                                       const CORE::CString& moduleName          ,
+                                                       const CORE::CString& basePlatform        ,
+                                                       const CORE::CString& deltaPlatform       ,
+                                                       bool includeDependenciesOfDependencies   ,
+                                                       bool addDependencies                     ,
+                                                       bool addLinkerDependencies               ,
+                                                       bool addRuntimeDependencies              ) const
+{GUCEF_TRACE;
+
+    // This functionality requires dependency chains to be built
+    if ( !AreDependencyChainsInitialized() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:GetModuleDependencyDeltaAcrossPlatforms: Dependency chains are not initialized, cannot determine dependency delta" );
+        return false;
+    }
+
+    CModuleDependencyNodePtr baseTree;
+    if ( !TryGetModuleDependencyChain( baseTree, moduleName, basePlatform, true ) || baseTree.IsNULL() )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetModuleDependencyDeltaAcrossPlatforms: No dependency chain found for module \"" + moduleName + "\" on platform " + basePlatform );
+        return false;
+    }
+
+    CModuleDependencyNodePtr otherTree;
+    if ( !TryGetModuleDependencyChain( otherTree, moduleName, deltaPlatform, true ) || otherTree.IsNULL() )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetModuleDependencyDeltaAcrossPlatforms: No dependency chain found for module \"" + moduleName + "\" on platform " + deltaPlatform );
+        return false;
+    }
+
+    // Note that the directionality of the delta is important
+    // ie it matters which tree you call the function on relative to the other tree
+    return otherTree->GetDependencyDelta( dependencyDelta, baseTree, includeDependenciesOfDependencies, addDependencies, addLinkerDependencies, addRuntimeDependencies );        
 }
 
 /*---------------------------------------------------------------------------*/
@@ -8122,7 +8449,7 @@ void
 CProjectInfo::Clear( void )
 {GUCEF_TRACE;
 
-    projectName.Clear();
+    m_projectName.Clear();
     rootDirs.clear();
     modules.clear();
     dirProcessingInstructions.clear();
@@ -8137,7 +8464,7 @@ bool
 CProjectInfo::AreDependencyChainsInitialized( void ) const
 {GUCEF_TRACE;
 
-    return !m_actualPlatformsUsed.empty() && ( m_moduleDependencyChains.size() == m_actualPlatformsUsed.size() );
+    return !m_actualPlatformsUsed.empty() && ( ( m_moduleDependencyChains.size() + m_disabledPlatforms.size() ) == m_actualPlatformsUsed.size() );
 }
 
 /*---------------------------------------------------------------------------*/
@@ -9001,7 +9328,7 @@ CProjectInfo::Serialize( CORE::CDataNode& domRootNode                        ,
     // Add project info
     domRootNode.SetName( "Project" );
     domRootNode.SetAttribute( "ModuleCount", CORE::ToString( modules.size() ) );
-    domRootNode.SetAttribute( "Name", projectName );
+    domRootNode.SetAttribute( "Name", m_projectName );
 
     // Add info for each module
     TStringToModuleInfoEntryPtrMap::const_iterator i = modules.begin();
@@ -9194,7 +9521,7 @@ CProjectInfo::Deserialize( const CORE::CDataNode& domRootNode                  ,
         return false;
     }
 
-    projectName = node->GetAttributeValueOrChildValueByName( "Name" ).AsString( projectName );
+    m_projectName = node->GetAttributeValueOrChildValueByName( "Name" ).AsString( m_projectName );
     size_t suggestedNrOfModules = node->GetAttributeValueOrChildValueByName( "ModuleCount" ).AsSizeT();
 
     bool deserializeSuccess = DeserializeModuleEntries( *node, settings, suggestedNrOfModules );
@@ -10018,6 +10345,53 @@ CProjectInfo::FlagTaggedModulesToIgnoreAsSpecified( const CORE::CValueList& para
     return true;
 }
 
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetAllTagsUsed( TStringSet& tagsUsed ) const
+{GUCEF_TRACE;
+
+    TStringToModuleInfoEntryPtrMap::const_iterator i = modules.begin();
+    while ( i != modules.end() )
+    {
+        const TModuleInfoPtrMap& modulesPerPlatform = (*i).second->GetModulesPerPlatform();
+        TModuleInfoPtrMap::const_iterator n = modulesPerPlatform.begin();
+        while ( n != modulesPerPlatform.end() )
+        {
+            MergeStringSet( tagsUsed, (*n).second->tags, true );
+            ++n;
+        }
+        ++i;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetTaggedModules( const CORE::CString& tag              ,
+                                TModuleInfoEntryPtrSet& taggedModules ,
+                                const CORE::CString& platform         ) const
+{GUCEF_TRACE;
+
+    TStringToModuleInfoEntryPtrMap::const_iterator i = modules.begin();
+    while ( i != modules.end() )
+    {
+        const CModuleInfoEntryPtr& entry = (*i).second;
+        if ( entry->HasTag( tag, platform ) )
+            taggedModules.insert( entry );
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CProjectInfo::GetProjectName( void ) const
+{GUCEF_TRACE;
+
+    return m_projectName;
+}
+
 /*-------------------------------------------------------------------------*/
 
 const CORE::CValueList&
@@ -10035,7 +10409,7 @@ CProjectInfo::SetSetttings( const CORE::CValueList& settings )
 
     m_settings = settings;
 
-    projectName = m_settings.GetValueAlways( "projectName" );
+    m_projectName = m_settings.GetValueAlways( "projectName" );
 
     // Set any global dir excludes per the settings
     globalDirExcludeList = m_settings.GetValueAlways( "dirsToIgnore" ).AsString().ParseElements( ';', false );

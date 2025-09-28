@@ -393,7 +393,7 @@ GenerateGithubActionsWorkflowProjectSection( const CORE::CString& targetName    
 
 void
 GenerateGithubActionsWorkflowTargetsYml( const CProjectInfo& projectInfo                  ,
-                                         const TProjectTargetInfoMapMap& targets          ,
+                                         const CProjectTargetInfoBundle& targets          ,
                                          const CORE::CString::StringSet& platformFilter   ,
                                          const CORE::CString& targetsOutputDir            ,
                                          const CORE::CString& cmakeTargetsOutputDir       ,
@@ -422,11 +422,11 @@ GenerateGithubActionsWorkflowTargetsYml( const CProjectInfo& projectInfo        
         ++m;
     }
 
-    TProjectTargetInfoMapMap::const_iterator i = targets.begin();
-    while ( i != targets.end() )
+    CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap::const_iterator i = targets.GetAllTargets().begin();
+    while ( i != targets.GetAllTargets().end() )
     {
         const CORE::CString& targetName = (*i).first;
-        const TProjectTargetInfoMap& targetsPerPlatform = (*i).second;
+        const CProjectTargetInfoBundle::TProjectTargetInfoPtrMap& targetsPerPlatform = (*i).second;
 
         CORE::CString githubActionsWorkflowTargetContent;
         if ( useWorkflowEventDispatch )
@@ -460,35 +460,35 @@ GenerateGithubActionsWorkflowTargetsYml( const CProjectInfo& projectInfo        
                 "\n";
         }
 
-        TProjectTargetInfoMap::const_iterator n = targetsPerPlatform.begin();
+        CProjectTargetInfoBundle::TProjectTargetInfoPtrMap::const_iterator n = targetsPerPlatform.begin();
         while ( n != targetsPerPlatform.end() )
         {
             const CORE::CString& platformName = (*n).first;
             if ( platformFilter.find( platformName ) != platformFilter.end() )
             {
-                const TProjectTargetInfo& targetInfo = (*n).second;
+                const CProjectTargetInfoPtr& targetInfo = (*n).second;
 
                 CORE::CString productName;
-                if ( GUCEF_NULL == targetInfo.mainModule )
+                if ( targetInfo->mainModule.IsNULL() )
                 {
-                    productName = targetInfo.projectName;
+                    productName = targetInfo->projectName;
                 }
                 else
                 {
-                    productName = targetInfo.mainModule->GetConsensusName();
+                    productName = targetInfo->mainModule->GetConsensusName();
                 }
             
                 CORE::CString runsOnPlatform = useSelfHostedRunner ? "self-hosted" : CORE::CString::Empty;
-                CORE::CString section = GenerateGithubActionsWorkflowProjectSection( targetInfo.projectName, platformName, runsOnPlatform, productName, pathToTargetsOutputDir, pathToCMakeTargetsOutputDir, useWorkflowEventDispatch ); 
+                CORE::CString section = GenerateGithubActionsWorkflowProjectSection( targetInfo->projectName, platformName, runsOnPlatform, productName, pathToTargetsOutputDir, pathToCMakeTargetsOutputDir, useWorkflowEventDispatch ); 
                 if ( !section.IsNULLOrEmpty() )
                 {
                     githubActionsWorkflowTargetContent += section;
-                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GenerateGithubActionsWorkflowProjectsYml: Generated Github Actions Workflow job to build target \"" + targetName + "\" with project name \"" + targetInfo.projectName + "\" and platform \"" + platformName + "\"" );
+                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GenerateGithubActionsWorkflowProjectsYml: Generated Github Actions Workflow job to build target \"" + targetName + "\" with project name \"" + targetInfo->projectName + "\" and platform \"" + platformName + "\"" );
                 }
                 else
                 {
                     // not supported atm
-                    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "GenerateGithubActionsWorkflowProjectsYml: Could not generate Github Actions Workflow job to build target \"" + targetName + "\" with project name \"" + targetInfo.projectName + "\" and platform \"" + platformName + "\"" );
+                    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "GenerateGithubActionsWorkflowProjectsYml: Could not generate Github Actions Workflow job to build target \"" + targetName + "\" with project name \"" + targetInfo->projectName + "\" and platform \"" + platformName + "\"" );
                 }
             }
             ++n;
@@ -528,28 +528,28 @@ GenerateGithubActionsWorkflowTargetsYml( const CProjectInfo& projectInfo        
 
 void
 GenerateFilePathListPerTarget( const CProjectInfo& projectInfo                ,
-                               const TProjectTargetInfoMapMap& targets        ,
+                               const CProjectTargetInfoBundle& targets        ,
                                const CORE::CString::StringSet& platformFilter ,
                                const CORE::CString& targetsOutputDir          )
 {GUCEF_TRACE;
 
-    TProjectTargetInfoMapMap::const_iterator i = targets.begin();
-    while ( i != targets.end() )
+    CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap::const_iterator i = targets.GetAllTargets().begin();
+    while ( i != targets.GetAllTargets().end() )
     {
         const CORE::CString& targetName = (*i).first;
-        const TProjectTargetInfoMap& targetsPerPlatform = (*i).second;
+        const CProjectTargetInfoBundle::TProjectTargetInfoPtrMap& targetsPerPlatform = (*i).second;
 
-        TProjectTargetInfoMap::const_iterator n = targetsPerPlatform.begin();
+        CProjectTargetInfoBundle::TProjectTargetInfoPtrMap::const_iterator n = targetsPerPlatform.begin();
         while ( n != targetsPerPlatform.end() )
         {
             const CORE::CString& platformName = (*n).first;
             if ( platformFilter.find( platformName ) != platformFilter.end() )
             {
-                const TProjectTargetInfo& targetInfo = (*n).second;
+                const CProjectTargetInfoPtr& targetInfo = (*n).second;
 
                 CORE::CString::StringSet allPaths;
-                TModuleInfoEntryPtrSet::const_iterator m = targetInfo.modules.begin();
-                while ( m != targetInfo.modules.end() )
+                TModuleInfoEntryPtrSet::const_iterator m = targetInfo->modules.begin();
+                while ( m != targetInfo->modules.end() )
                 {
                     const TModuleInfoPtrMap& moduleInfoPerPlatform = (*m)->GetModulesPerPlatform();
 
@@ -598,28 +598,28 @@ GenerateFilePathListPerTarget( const CProjectInfo& projectInfo                ,
 
 void
 GeneratePathListPerTarget( const CProjectInfo& projectInfo                ,
-                           const TProjectTargetInfoMapMap& targets        ,
+                           const CProjectTargetInfoBundle& targets        ,
                            const CORE::CString::StringSet& platformFilter ,
                            const CORE::CString targetsOutputDir           )
 {GUCEF_TRACE;
 
-    TProjectTargetInfoMapMap::const_iterator i = targets.begin();
-    while ( i != targets.end() )
+    CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap::const_iterator i = targets.GetAllTargets().begin();
+    while ( i != targets.GetAllTargets().end() )
     {
         const CORE::CString& targetName = (*i).first;
-        const TProjectTargetInfoMap& targetsPerPlatform = (*i).second;
+        const CProjectTargetInfoBundle::TProjectTargetInfoPtrMap& targetsPerPlatform = (*i).second;
 
-        TProjectTargetInfoMap::const_iterator n = targetsPerPlatform.begin();
+        CProjectTargetInfoBundle::TProjectTargetInfoPtrMap::const_iterator n = targetsPerPlatform.begin();
         while ( n != targetsPerPlatform.end() )
         {
             const CORE::CString& platformName = (*n).first;
             if ( platformFilter.find( platformName ) != platformFilter.end() )
             {
-                const TProjectTargetInfo& targetInfo = (*n).second;
+                const CProjectTargetInfoPtr& targetInfo = (*n).second;
 
                 CORE::CString::StringSet allPaths;
-                TModuleInfoEntryPtrSet::const_iterator m = targetInfo.modules.begin();
-                while ( m != targetInfo.modules.end() )
+                TModuleInfoEntryPtrSet::const_iterator m = targetInfo->modules.begin();
+                while ( m != targetInfo->modules.end() )
                 {
                     const TModuleInfoPtrMap& moduleInfoPerPlatform = (*m)->GetModulesPerPlatform();
 
@@ -668,28 +668,28 @@ GeneratePathListPerTarget( const CProjectInfo& projectInfo                ,
 
 void
 GenerateGlobPatternPathListPerTarget( const CProjectInfo& projectInfo                ,
-                                      const TProjectTargetInfoMapMap& targets        ,
+                                      const CProjectTargetInfoBundle& targets        ,
                                       const CORE::CString::StringSet& platformFilter ,
                                       const CORE::CString targetsOutputDir           )
 {GUCEF_TRACE;
 
-    TProjectTargetInfoMapMap::const_iterator i = targets.begin();
-    while ( i != targets.end() )
+    CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap::const_iterator i = targets.GetAllTargets().begin();
+    while ( i != targets.GetAllTargets().end() )
     {
         const CORE::CString& targetName = (*i).first;
-        const TProjectTargetInfoMap& targetsPerPlatform = (*i).second;
+        const CProjectTargetInfoBundle::TProjectTargetInfoPtrMap& targetsPerPlatform = (*i).second;
 
-        TProjectTargetInfoMap::const_iterator n = targetsPerPlatform.begin();
+        CProjectTargetInfoBundle::TProjectTargetInfoPtrMap::const_iterator n = targetsPerPlatform.begin();
         while ( n != targetsPerPlatform.end() )
         {
             const CORE::CString& platformName = (*n).first;
             if ( platformFilter.find( platformName ) != platformFilter.end() )
             {
-                const TProjectTargetInfo& targetInfo = (*n).second;
+                const CProjectTargetInfoPtr& targetInfo = (*n).second;
 
                 CORE::CString::StringSet allPaths;
-                TModuleInfoEntryPtrSet::const_iterator m = targetInfo.modules.begin();
-                while ( m != targetInfo.modules.end() )
+                TModuleInfoEntryPtrSet::const_iterator m = targetInfo->modules.begin();
+                while ( m != targetInfo->modules.end() )
                 {
                     const TModuleInfoPtrMap& moduleInfoPerPlatform = (*m)->GetModulesPerPlatform();
 
@@ -817,8 +817,8 @@ CCIHelperGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
     if ( !CORE::CreateDirs( targetsOutputDir ) )
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to create CI Helper project targets output folder: " + targetsOutputDir );
 
-    TProjectTargetInfoMapMap targets;
-    SplitProjectPerTarget( projectInfo, targets, treatTagsAsTargets, true ); 
+    CProjectTargetInfoBundle targets;
+    projectInfo.GetAllTargets( targets, treatTagsAsTargets, true ); 
 
     bool generateFilePathListPerTarget = CORE::StringToBool( params.GetValueAlways( "cihelpergen:GenerateFilePathListPerTarget" ), false );
     bool generatePathListPerTarget = CORE::StringToBool( params.GetValueAlways( "cihelpergen:GeneratePathListPerTarget" ), false );

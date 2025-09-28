@@ -1526,7 +1526,7 @@ WriteCMakeOptionsListToDisk( const CProjectInfo& projectInfo       ,
     if ( treatTagsAsOptions )
     {
         TStringSet tagsUsed;
-        GetAllTagsUsed( projectInfo, tagsUsed );
+        projectInfo.GetAllTagsUsed( tagsUsed );
         if ( !tagsUsed.empty() )
         {
             hasOptions = true;
@@ -1558,7 +1558,7 @@ WriteCMakeOptionsListToDisk( const CProjectInfo& projectInfo       ,
     {        
         fileContent = GetCMakeListsFileHeader( addCompileDate ) + "\n\n" + fileContent;
 
-        CORE::CString pathToOptionsListFile = CORE::CombinePath( targetsOutputDir, projectInfo.projectName + "_OptionsList.cmake" );
+        CORE::CString pathToOptionsListFile = CORE::CombinePath( targetsOutputDir, projectInfo.GetProjectName() + "_OptionsList.cmake" );
         if ( CORE::WriteStringAsTextFile( pathToOptionsListFile, fileContent, true, "\n", true ) )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created OptionsList.cmake file in output dir: " + outputDir );
@@ -1576,7 +1576,7 @@ void
 WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
                          const CORE::CString& projectName             ,
                          const CORE::CString& targetName              ,
-                         const TProjectTargetInfoMap& targetPlatforms ,
+                         const CProjectTargetInfoBundle::TProjectTargetInfoPtrMap& targetPlatforms ,
                          const CORE::CString& outputDir               ,
                          const CORE::CString& targetsOutputDir        ,
                          bool addCompileDate                          )
@@ -1584,14 +1584,13 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
 
     CORE::CString fileContent = GetCMakeListsFileHeader( addCompileDate );
     CORE::CString targetOutputDir = CORE::CombinePath( targetsOutputDir, projectName );
-
-    bool firstPlatform = true;
-    CORE::CString allPlatformsSection;
-    TProjectTargetInfoMap::const_iterator p = targetPlatforms.begin();
+    
+    CORE::CStringMap platformSections;
+    CProjectTargetInfoBundle::TProjectTargetInfoPtrMap::const_iterator p = targetPlatforms.begin();
     while ( p != targetPlatforms.end() )
     {
         const CORE::CString& targetPlatform = (*p).first;
-        const TProjectTargetInfo& targetProjectInfo = (*p).second;
+        const CProjectTargetInfoPtr targetProjectInfo = (*p).second;
         CORE::CString platformSection;
 
         // We want the ordering to stay consistent in the output file
@@ -1600,8 +1599,8 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
 
         CORE::CStringSet cmakeLines;
 
-        TModuleInfoEntryPtrSet::const_iterator i = targetProjectInfo.modules.begin();
-        while ( i != targetProjectInfo.modules.end() )
+        TModuleInfoEntryPtrSet::const_iterator i = targetProjectInfo->modules.begin();
+        while ( i != targetProjectInfo->modules.end() )
         {
             const CModuleInfoEntryPtr& moduleInfoEntry = (*i);
 
@@ -1646,40 +1645,48 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
             platformSection += (*c);
             ++c;
         }
-
         if ( !platformSection.IsNULLOrEmpty() )
+            platformSections[ targetPlatform ] = platformSection;
+
+        ++p;
+    }
+
+    // Anything that applies to all platforms comes first before the platform specific sections and thus clutter
+    CORE::CStringMap::iterator s = platformSections.find( KnownPlatforms::AllPlatforms );
+    if ( s != platformSections.end() )
+    {
+        const CORE::CString& allPlatformsSection = (*s).second;
+        fileContent += allPlatformsSection;
+    }
+
+    // Now add the platform specific sections if any
+    bool specificPlatformsAdded = false;
+    bool firstSpecificPlatform = true;
+    s = platformSections.begin();
+    while ( s != platformSections.end() )
+    {
+        const CORE::CString& targetPlatform = (*s).first;
+        const CORE::CString& platformSection = (*s).second;
+
+        if ( targetPlatform != KnownPlatforms::AllPlatforms )
         {
-            if ( targetPlatform == KnownPlatforms::AllPlatforms )
+            if ( firstSpecificPlatform )
             {
-                allPlatformsSection = platformSection;
+                fileContent += "\n\nif (" + targetPlatform.Uppercase() + ")\n" + platformSection;
+                firstSpecificPlatform = false;
             }
             else
             {
-                if ( firstPlatform )
-                {
-                    platformSection = "\n\nif (" + targetPlatform.Uppercase() + ")\n" + platformSection;
-                    firstPlatform = false;
-                }
-                else
-                {
-                    platformSection = "elseif (" + targetPlatform.Uppercase() + ")\n" + platformSection;
-                }                
-                fileContent += platformSection;
+                fileContent += "elseif (" + targetPlatform.Uppercase() + ")\n" + platformSection;
             }                
+            specificPlatformsAdded = true;
         }
-        ++p;
+
+        ++s;
     }
-    if ( !firstPlatform )
+    if ( specificPlatformsAdded )
     {
-        if ( !allPlatformsSection.IsNULLOrEmpty() )
-        {
-            fileContent += "else()\n" + allPlatformsSection;
-        }
         fileContent += "endif()\n";
-    }
-    else
-    {
-        fileContent += allPlatformsSection;
     }
         
     if ( CORE::CreateDirs( targetOutputDir ) )
@@ -1766,7 +1773,7 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo              ,
 
 void
 WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo         ,
-                         const TProjectTargetInfoMapMap& targets ,
+                         const CProjectTargetInfoBundle& targets ,
                          const CORE::CString& outputDir          ,
                          const CORE::CString& targetsOutputDir   ,
                          bool addCompileDate                     ,
@@ -1775,10 +1782,10 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo         ,
 
     if ( splitCMakeTargets )
     {
-        TProjectTargetInfoMapMap::const_iterator t = targets.begin();
-        while ( t != targets.end() )
+        CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap::const_iterator t = targets.GetAllTargets().begin();
+        while ( t != targets.GetAllTargets().end() )
         {
-            CORE::CString targetName = GetConsensusTargetName( (*t).second );
+            CORE::CString targetName = CProjectTargetInfoBundle::GetConsensusTargetName( (*t).second );
             if ( targetName.IsNULLOrEmpty() )
                 targetName = (*t).first;
             
@@ -1794,16 +1801,16 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo         ,
     }
     else
     {
-        TProjectTargetInfoMapMap::const_iterator t = targets.find( projectInfo.projectName );
-        if ( t != targets.end() )
+        CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap::const_iterator t = targets.GetAllTargets().find( projectInfo.GetProjectName() );
+        if ( t != targets.GetAllTargets().end() )
         {
-            WriteCMakeTargetsToDisk( projectInfo             ,
-                                     projectInfo.projectName ,
-                                     projectInfo.projectName ,
-                                     (*t).second             ,
-                                     outputDir               ,
-                                     outputDir               ,
-                                     addCompileDate          );
+            WriteCMakeTargetsToDisk( projectInfo                  ,
+                                     projectInfo.GetProjectName() ,
+                                     projectInfo.GetProjectName() ,
+                                     (*t).second                  ,
+                                     outputDir                    ,
+                                     outputDir                    ,
+                                     addCompileDate               );
         }
     }
 }
@@ -1876,7 +1883,7 @@ CCMakeProjectGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
     // Now we tie the different modules together into different CMake projects as targets
     // This next step is especially usefull for large codebases where various projects are intertwined but
     // someone who obtained the code repository might only be interested in a much smaller subset
-    // This functionality allows this audiance to only have to deal with the smaller crosssection
+    // This functionality allows this audience to only have to deal with the smaller cross section
 
     CORE::CString targetsOutputDir = params.GetValueAlways( "cmakegen:TargetsDir" ).AsString( CORE::CString::Empty, true );
     if ( targetsOutputDir.IsNULLOrEmpty() )
@@ -1892,8 +1899,8 @@ CCMakeProjectGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
                                  treatTagsAsOptions              , 
                                  taggedOptionsEnabledDefault     );
 
-    TProjectTargetInfoMapMap targets;
-    SplitProjectPerTarget( projectInfo, targets, treatTagsAsTargets, true ); 
+    CProjectTargetInfoBundle targets;
+    projectInfo.GetAllTargets( targets, treatTagsAsTargets, true );
 
     WriteCMakeTargetsToDisk( projectInfo                     , 
                              targets                         ,

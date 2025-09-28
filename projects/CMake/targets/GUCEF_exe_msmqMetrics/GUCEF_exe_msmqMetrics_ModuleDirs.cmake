@@ -48,6 +48,4 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstoreplu
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstorepluginPARSIFALXML ${CMAKE_BINARY_DIR}/dstorepluginPARSIFALXML )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstorepluginYAML ${CMAKE_BINARY_DIR}/dstorepluginYAML )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/msmqMetrics ${CMAKE_BINARY_DIR}/MsmqMetrics )
-else()
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/msmqMetrics ${CMAKE_BINARY_DIR}/MsmqMetrics )
 endif()

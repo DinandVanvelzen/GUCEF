@@ -34,6 +34,4 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/MyGui/Pla
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/MyGui/Tools/FontViewer ${CMAKE_BINARY_DIR}/MyGUI.FontViewer )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/freetype ${CMAKE_BINARY_DIR}/freetype )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
-else()
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/MyGui/Tools/FontViewer ${CMAKE_BINARY_DIR}/MyGUI.FontViewer )
 endif()

@@ -233,12 +233,13 @@ CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
     TStringToModuleInfoEntryPtrMap::iterator i = moduleInfoList.begin(); 
     while ( i != moduleInfoList.end() )
     {
-        CString targetName = GetModuleTargetName( (*i).second, "win32", true );
+        CModuleInfoEntryPtr module = (*i).second;
+        CString targetName = module->GetModuleTargetName( KnownPlatforms::Win32, true );
         
         // we will check using the target name if the module has one
         // Keep in mind that Depends would be using the target name.
         // If no target name is defines we use the module name
-        TModuleType moduleType = (*i).second->GetModuleType( "win32" );
+        TModuleType moduleType = module->GetModuleType( KnownPlatforms::Win32 );
         if ( moduleType == MODULETYPE_SHARED_LIBRARY    ||
              moduleType == MODULETYPE_EXECUTABLE        ||
              moduleType == MODULETYPE_REFERENCE_LIBRARY  )
@@ -248,7 +249,7 @@ CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
             {
                 // The given module is not in the list of modules we obtained from depends
                 // as such we should filter it out
-                deleteList.insert( (*i).second->GetAbsolutePathToModuleRootDir() + ':' + targetName );
+                deleteList.insert( module->GetAbsolutePathToModuleRootDir() + ':' + targetName );
             }
         }
         else
@@ -264,7 +265,8 @@ CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
         TStringToModuleInfoEntryPtrMap::iterator i = moduleInfoList.begin(); 
         while ( i != moduleInfoList.end() )
         {
-            CString targetName = GetModuleTargetName( (*i).second, "win32", true );
+            CModuleInfoEntryPtr module = (*i).second;
+            CString targetName = module->GetModuleTargetName( KnownPlatforms::Win32, true );
             TStringSet::iterator n = deleteList.find( (*i).second->GetAbsolutePathToModuleRootDir() + ':' + targetName );
             if ( n != deleteList.end() )
             {
@@ -277,7 +279,7 @@ CDependsFilter::ProccessProjects( CProjectInfo& projectInfo      ,
         }
 
         // Since we deleted modules we should reindex the build order for the modules to remove gaps
-        // @TODO
+        projectInfo.DetermineBuildOrderForAllModules();
     }
     return true;
 }

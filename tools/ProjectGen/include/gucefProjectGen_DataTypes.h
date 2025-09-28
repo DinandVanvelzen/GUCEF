@@ -92,6 +92,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP KnownPlatforms
     static const CORE::CString Android64;
     static const CORE::CString Arduino;
     static const CORE::CString Emscripten32;
+    static const CORE::CString Emscripten64;
 };
 
 /*-------------------------------------------------------------------------//
@@ -609,6 +610,14 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     bool SetLastEditBy( const CORE::CString& lastEditBy ,
                         const CORE::CString& platform   );
 
+    bool
+    HasTag( const CORE::CString& tag      ,
+            const CORE::CString& platform ) const;
+
+    bool
+    HasTag( const CORE::CString::StringSet& tags ,
+            const CORE::CString& platform        ) const;
+
     TModuleType GetModuleType( const CORE::CString& platform ) const;
 
     Int64 GetBuildOrder( const CORE::CString& platform        ,
@@ -634,6 +643,9 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
      */
     CORE::CString GetModuleNameAlways( const CORE::CString& targetPlatform     ,
                                        CModuleInfoPtr* moduleInfo = GUCEF_NULL ) const;
+
+    CORE::CString GetModuleTargetName( const CORE::CString& targetPlatform ,
+                                       bool useModuleNameIfNoTargetName    ) const;
 
     void SetModuleInfo( CModuleInfoPtr moduleInfo     ,
                         const CORE::CString& platform );
@@ -916,6 +928,7 @@ typedef CModuleInfoEntry::CModuleInfoEntryPtr CModuleInfoEntryPtr;
 
 typedef GUCEF::vector< CModuleInfoEntryPtr >                            TModuleInfoEntryPtrVector;
 typedef GUCEF::map< CORE::CString, CModuleInfoEntryPtr >                TStringToModuleInfoEntryPtrMap;
+typedef GUCEF::map< CORE::CString, TModuleInfoEntryPtrVector >          TStringToModuleInfoEntryPtrVectorMap;
 typedef CORE::CTSharedPtr< TModuleInfoEntryPtrVector, MT::CMutex >      TModuleInfoEntryPtrVectorPtr;
 typedef CORE::CTSharedPtr< TStringToModuleInfoEntryPtrMap, MT::CMutex > TStringToModuleInfoEntryPtrMapPtr;
 typedef std::pair< const CModuleInfoEntryPtr, const CModuleInfoPtr >    TModuleInfoEntryPair;
@@ -1038,6 +1051,25 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedO
                                                  bool addLinkerDependencies                         ,
                                                  bool addRuntimeDependencies                        ) const;
 
+    bool GetDependencyNames( CORE::CStringSet& dependencyNames      ,
+                             bool includeDependenciesOfDependencies ,
+                             bool addDependencies                   ,
+                             bool addLinkerDependencies             ,
+                             bool addRuntimeDependencies            ) const;
+
+    /**
+     *  Determines the delta module wise between the aggregate selected dependency sets
+     * 
+     *  Note that delta directionality matters so invoke this function on the appropriate chain to use as base
+     *  relative to the other platform (the 'otherTree')
+     */
+    bool GetDependencyDelta( TModuleInfoEntryPtrSet& dependencyDelta  ,
+                             const CModuleDependencyNodePtr otherTree ,
+                             bool includeDependenciesOfDependencies   ,
+                             bool addDependencies                     ,
+                             bool addLinkerDependencies               ,
+                             bool addRuntimeDependencies              ) const;
+
     CModuleDependencyNode( void );
 
     virtual ~CModuleDependencyNode() GUCEF_VIRTUAL_OVERRIDE;
@@ -1066,7 +1098,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedO
 typedef CModuleDependencyNode::CModuleDependencyNodePtr             CModuleDependencyNodePtr;   
 typedef CModuleDependencyNode::TModuleDependencyNodePtrMap          TModuleDependencyNodePtrMap;
 typedef CModuleDependencyNode::TModuleDependencyNodePtrSet          TModuleDependencyNodePtrSet;
-typedef std::map< CORE::CString, TModuleDependencyNodePtrMap >      TStringToModuleDependencyNodePtrMap;
+typedef GUCEF::map< CORE::CString, TModuleDependencyNodePtrMap >    TStringToModuleDependencyNodePtrMap;
 
 /*---------------------------------------------------------------------------*/
 
@@ -1076,7 +1108,7 @@ struct SPlatformDefinition
     TStringSet platformDirs;                               // Directory names which will be considered holders of platform specific files
 };
 typedef struct SPlatformDefinition TPlatformDefinition;
-typedef std::map< CORE::CString, TPlatformDefinition > TPlatformDefinitionMap;
+typedef GUCEF::map< CORE::CString, TPlatformDefinition > TPlatformDefinitionMap;
 
 /*---------------------------------------------------------------------------*/
 
@@ -1096,8 +1128,96 @@ typedef struct SDirProcessingInstructions TDirProcessingInstructions;
 
 /*---------------------------------------------------------------------------*/
 
-typedef std::map< CORE::CString, TDirProcessingInstructions >               TDirProcessingInstructionsMap;
+typedef GUCEF::map< CORE::CString, TDirProcessingInstructions >             TDirProcessingInstructionsMap;
 typedef CORE::CTSharedPtr< TDirProcessingInstructionsMap, MT::CMutex >      TDirProcessingInstructionsMapPtr;
+
+/*---------------------------------------------------------------------------*/
+
+/**
+ *  Class which hold the information to provide a 'target' oriented view on the overall project info
+ *  A project can potentially hold many targets and backends may need to organize data in a 'target' view
+ *  to generate the needed resources to denote the targets for the given backend
+ */
+class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectTargetInfo : public CORE::CTSharedObjCreator< CProjectTargetInfo, MT::CMutex >
+{
+    public:
+
+    typedef typename CORE::CTSharedObjCreator< CProjectTargetInfo, MT::CMutex >::TBasicSharedPtrType    CProjectTargetInfoPtr;
+
+
+    CORE::CString projectName;              // Name of the overall project (bundling target)
+    CModuleInfoEntryPtr mainModule;         // Reference to the main module for the project if applicable
+    TModuleInfoEntryPtrSet modules;         // all relevant modules mapped per platform
+
+    void Clear( void );
+
+    CProjectTargetInfo( void );
+
+    virtual ~CProjectTargetInfo();
+};
+
+typedef CProjectTargetInfo::CProjectTargetInfoPtr CProjectTargetInfoPtr;
+
+
+/*---------------------------------------------------------------------------*/
+
+/**
+ *  Class which holds a bundle of information related to all denoted 'targets' in the overall source project
+ *  
+ */
+class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectTargetInfoBundle : public CORE::CTSharedObjCreator< CProjectTargetInfoBundle, MT::CMutex >
+{
+    public:
+
+    typedef GUCEF::map< CORE::CString, CProjectTargetInfoPtr >      TProjectTargetInfoPtrMap;     // maps a given target platform name, for example 'win32' to everything linked/needed for a given auto-generated target
+    typedef GUCEF::map< CORE::CString, TProjectTargetInfoPtrMap >   TProjectTargetInfoPtrMapMap;  // maps a auto-generated target project name to another map which maps on a per target platform basis
+
+    /**
+     *  Attempts to retrieve the project target for with the given name for the given platform
+     */
+    CProjectTargetInfoPtr
+    GetPlatformProjectTarget( const CORE::CString& targetName   ,
+                              const CORE::CString& platformName ) const;
+
+    CProjectTargetInfoPtr
+    GetOrCreatePlatformProjectTarget( const CORE::CString& targetName   ,
+                                      const CORE::CString& platformName );
+
+    TProjectTargetInfoPtrMap&
+    GetOrCreateTargetEntry( const CORE::CString& targetName );
+
+    const TProjectTargetInfoPtrMapMap& GetAllTargets( void ) const;
+
+    const CORE::CString*
+    GetTargetMainModuleName( const CORE::CString& targetName            ,
+                             const CORE::CString& targetPlatform        ,
+                             CModuleInfoPtr* outModuleInfo = GUCEF_NULL ) const;
+
+    void CollapseRedundantPlatformTargets( void );
+
+    void Clear( void );
+
+    CProjectTargetInfoBundle( void );
+
+    virtual ~CProjectTargetInfoBundle();
+
+    /**
+     *  Across multiple platforms targets can have multiple names                                                                                                                                                                                                 
+     *  This allows for coming up with a consensus name across the various platforms
+     *  for a given target.
+     *  Note that this considers module linker target names and module names
+     *
+     *  Not all target origins cause a main module to be defined.
+     *  As such its perfectly possible be unable to define a consensus target name because the concept does not apply
+     *  to the collection of targets due to the origins of the collection
+     */ 
+    static CORE::CString GetConsensusTargetName( const TProjectTargetInfoPtrMap& targetPlatforms                    ,
+                                                 const CORE::CString& targetPlatform = KnownPlatforms::AllPlatforms );
+
+    private:
+
+    TProjectTargetInfoPtrMapMap m_targets;
+};
 
 /*---------------------------------------------------------------------------*/
 
@@ -1109,7 +1229,6 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 
     static const CORE::CString ClassTypeName;
 
-    CORE::CString projectName;                               // Name of the overall project
     TStringVector rootDirs;                                  // Root dirs used to gather all project info
     TStringToModuleInfoEntryPtrMap modules;                  // All generated module information
     TDirProcessingInstructionsMap dirProcessingInstructions; // All loaded processing instructions mapped per path
@@ -1261,6 +1380,23 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
     GetSupportedPlatformsBasedOnDependencies( CModuleInfoEntryPtr moduleInfoEntry ,
                                               CORE::CStringSet& platforms         ) const;
 
+    /**
+     *  Obtains the delta in dependencies between two platforms for a given module
+     *  This allows for denoting any platform specifics relative to a base platform
+     *
+     *  Note that delta directionality matters so for the typical use case of wanting to know
+     *  which dependencies are added on a given platform relative to the 'all' platforms base platform
+     *  you should invoke this the with 'all' platform as the base and the specific platform as the delta platform
+     */
+    bool GetModuleDependencyDeltaAcrossPlatforms( TModuleInfoEntryPtrSet& dependencyDelta  ,
+                                                  const CORE::CString& moduleName          ,
+                                                  const CORE::CString& basePlatform        ,
+                                                  const CORE::CString& deltaPlatform       ,
+                                                  bool includeDependenciesOfDependencies   ,
+                                                  bool addDependencies                     ,
+                                                  bool addLinkerDependencies               ,
+                                                  bool addRuntimeDependencies              ) const;
+
     bool SanitizeModulePlatformUsage( CModuleInfoEntryPtr moduleInfoEntry );
 
     bool SanitizeRuntimeDependencies( CModuleInfoEntryPtr moduleInfoEntry );
@@ -1370,6 +1506,37 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 
     bool FlagTaggedModulesToIgnoreAsSpecified( const CORE::CValueList& params );
 
+    void GetAllTagsUsed( TStringSet& tagsUsed ) const;
+
+    void
+    GetTaggedModules( const CORE::CString& tag              ,
+                      TModuleInfoEntryPtrSet& taggedModules ,
+                      const CORE::CString& platform         ) const;
+
+    /**
+     *  Obtains the subset of modules that represent executables for the given platform
+     */
+    void GetExecutables( TModuleInfoEntryPtrSet& executableTargets ,
+                         const CORE::CString& platform             ) const;
+
+    /**
+     *  Reduced the total set of modules in the project to just the ones that can act as top level 'targets'
+     *  Same as GetPlatformTargets() except that all known platforms are considered
+     */
+    bool GetAllTargets( CProjectTargetInfoBundle& targets     ,
+                        bool tagsAsTargets                    ,
+                        bool deltaFormatForSpecificPlatforms  ,
+                        const TStringSet& platformsToConsider ) const;
+
+    /**
+     *  Same as other GetAllTargets() except that all used platforms are considered
+     */
+    bool GetAllTargets( CProjectTargetInfoBundle& targets    ,
+                        bool tagsAsTargets                   ,
+                        bool deltaFormatForSpecificPlatforms ) const;
+
+    const CORE::CString& GetProjectName( void ) const;
+
     const CORE::CValueList& GetSettings( void ) const;
 
     void SetSetttings( const CORE::CValueList& settings );
@@ -1454,6 +1621,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
     TStringToModuleDependencyNodePtrMap m_moduleDependencyChains;
     CORE::CValueList m_settings;
     CORE::CStringSet m_disabledPlatforms; // platforms which we will ignore for processing
+    CORE::CString m_projectName;          // Name of the overall project
     MT::CReadWriteLock m_rwLock;
 
     protected:
@@ -1465,18 +1633,6 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 };
 
 typedef CProjectInfo::TSharedPtrType    CProjectInfoPtr;
-
-/*---------------------------------------------------------------------------*/
-
-struct SProjectTargetInfo
-{
-    CORE::CString projectName;                               // Name of the overall project (bundling target)
-    CModuleInfoEntryPtr mainModule;                          // Reference to the main module for the project if applicable
-    TModuleInfoEntryPtrSet modules;                          // All generated module information
-};
-typedef struct SProjectTargetInfo TProjectTargetInfo;
-typedef std::map< CORE::CString, TProjectTargetInfo > TProjectTargetInfoMap;        // maps a given target platform name, for example 'win32' to everything linked/needed for a given auto-generated target
-typedef std::map< CORE::CString, TProjectTargetInfoMap > TProjectTargetInfoMapMap;  // maps a auto-generated target project name to another map which maps on a per target platform basis
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -1494,37 +1650,6 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 void
 ApplyConfigToProject( const CORE::CDataNode& loadedConfig , 
                       CProjectInfo& projectInfo           );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-const CORE::CString*
-GetModuleName( const TProjectTargetInfoMap& targetPlatforms ,
-               const CORE::CString& targetPlatform          ,
-               CModuleInfoPtr* moduleInfo = GUCEF_NULL      );
-
-/*-------------------------------------------------------------------------*/
-
-// Across multiple platforms targets can have multiple names
-// This allows for coming up with a consensus name across the various platforms
-// for a given target.
-// Note that this considers module linker target names and module names
-//
-// Not all target origins cause a main module to be defined.
-// As such its perfectly possible be unable to define a consensus target name because the concept does not apply
-// to the collection of targets due to the origins of the collection
-GUCEF_PROJECTGEN_PUBLIC_CPP
-CORE::CString
-GetConsensusTargetName( const TProjectTargetInfoMap& targetPlatforms ,
-                        const CORE::CString& targetPlatform          );
-
-/*-------------------------------------------------------------------------*/
-
-// Same as GetConsensusTargetName( targetPlatforms, targetPlatform ) 
-// Always uses AllPlatforms as the target platform
-GUCEF_PROJECTGEN_PUBLIC_CPP
-CORE::CString
-GetConsensusTargetName( const TProjectTargetInfoMap& targetPlatforms );
                      
 /*-------------------------------------------------------------------------*/
                      
@@ -1665,14 +1790,6 @@ StringVectorToStringSet( const TStringVector& stringVector );
 
 /*-------------------------------------------------------------------------*/
 
-GUCEF_PROJECTGEN_PUBLIC_CPP
-CORE::CString
-GetModuleTargetName( const CModuleInfoEntryPtr& moduleInfoEntry ,
-                     const CORE::CString& targetPlatform        ,
-                     bool useModuleNameIfNoTargetName           );
-
-/*-------------------------------------------------------------------------*/
-
 // Determines a list of module types and how they relate to the plaforms
 // This functions has some smarts because it filters non-deviating info wrt
 // a AllPlatforms definition or cases where a platform specific module definition
@@ -1774,30 +1891,6 @@ GetShortestRelativePathFromAbsPathToProjectRoot( const CProjectInfo& projectInfo
 
 /*-------------------------------------------------------------------------*/
 
-// Collects a list of all unique tag values used
-GUCEF_PROJECTGEN_PUBLIC_CPP
-void
-GetAllTagsUsed( const CProjectInfo& projectInfo ,
-                TStringSet& tagsUsed            );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-bool
-IsModuleTagged( const CModuleInfoEntryPtr& module ,
-                const CORE::CString& tag          ,
-                const CORE::CString& platform     );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-bool
-IsModuleTagged( const CModuleInfoEntryPtr& module    ,
-                const CORE::CString::StringSet& tags ,
-                const CORE::CString& platform        );
-
-/*-------------------------------------------------------------------------*/
-
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
 IsDirALegacyModuleDir( const CORE::CString& dir );
@@ -1807,15 +1900,6 @@ IsDirALegacyModuleDir( const CORE::CString& dir );
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
 IsDirAModuleDir( const CORE::CString& dir );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-void
-GetTaggedModules( const CProjectInfo& projectInfo       ,
-                  const CORE::CString& tag              ,
-                  TModuleInfoEntryPtrSet& taggedModules ,
-                  const CORE::CString& platform         );
 
 /*-------------------------------------------------------------------------*/
 
@@ -1847,63 +1931,7 @@ ResolveMultiPlatformName( const CORE::CString& platformName          ,
 GUCEF_PROJECTGEN_PUBLIC_CPP
 bool
 ShouldModuleBeIgnored( const CModuleInfoEntryPtr& moduleInfo ,
-                       const CORE::CString& platformName  );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-bool
-IsModuleTaggedWith( const CModuleInfoEntryPtr& moduleInfo ,
-                    const CORE::CString& platformName     ,
-                    const CORE::CString& tag              );
-
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP
-void
-GetExecutables( const CProjectInfo& projectInfo           ,
-                TModuleInfoEntryPtrSet& executableTargets ,
-                const CORE::CString& platform             );
-
-/*-------------------------------------------------------------------------*/
-
-/**
- *  Splits out the projectInfo into different projects per platform
- *  Will only consider the platforms requested in "platformsUsed"
- */
-GUCEF_PROJECTGEN_PUBLIC_CPP
-void
-SplitProjectPerTarget( const CProjectInfo& projectInfo   ,
-                       TProjectTargetInfoMapMap& targets ,
-                       bool tagsAsTargets                ,
-                       bool collapseRedundantPlatforms   ,
-                       const TStringSet& platformsUsed   );
-
-/*-------------------------------------------------------------------------*/
-
-/**
- *  Splits out the projectInfo into different projects per platform
- *  Same as the other variant of SplitProjectPerTarget() except that all known
- *  platforms are considered
- */
-GUCEF_PROJECTGEN_PUBLIC_CPP
-void
-SplitProjectPerTarget( const CProjectInfo& projectInfo   ,
-                       TProjectTargetInfoMapMap& targets ,
-                       bool tagsAsTargets                ,
-                       bool collapseRedundantPlatforms   );
-
-/*-------------------------------------------------------------------------*/
-
-/**
- *  Attempts to retrieve the project target for the given platform
- *  Note that not find a result even if the project exists can be a valid result
- *  because not all project targets need support the various platforms that other project targets support
- */
-GUCEF_PROJECTGEN_PUBLIC_CPP
-const TProjectTargetInfo*
-GetPlatformProjectTarget( const TProjectTargetInfoMap& platformTargets ,
-                          const CORE::CString& platformName            );
+                       const CORE::CString& platformName     );
 
 /*-------------------------------------------------------------------------*/
 

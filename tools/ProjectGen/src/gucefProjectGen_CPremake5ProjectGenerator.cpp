@@ -1324,7 +1324,7 @@ CORE::CString
 GeneratePremake5ProjectFileContent( const CProjectInfo& projectInfo              ,
                                     const CORE::CString& projectName             ,
                                     const CORE::CString& targetName              ,
-                                    const TProjectTargetInfoMap& targetPlatforms ,
+                                    const CProjectTargetInfoBundle::TProjectTargetInfoPtrMap& targetPlatforms ,
                                     const CORE::CString& outputDir               ,
                                     const CORE::CString& premakeOutputDir        )
 {
@@ -1339,7 +1339,7 @@ GeneratePremake5ProjectFileContent( const CProjectInfo& projectInfo             
     // Generate the section which defines all platforms available for this Premake5 workspace
     CORE::CString platformsSection = "  platforms( {";
     bool first = true;
-    TProjectTargetInfoMap::const_iterator i = targetPlatforms.begin();
+    CProjectTargetInfoBundle::TProjectTargetInfoPtrMap::const_iterator i = targetPlatforms.begin();
     while ( i != targetPlatforms.end() )
     {
         if ( first )
@@ -1379,12 +1379,12 @@ GeneratePremake5ProjectFileContent( const CProjectInfo& projectInfo             
     i = targetPlatforms.begin();
     while ( i != targetPlatforms.end() )
     {        
-        const TProjectTargetInfo& targetInfo = (*i).second;
+        const CProjectTargetInfoPtr& targetInfo = (*i).second;
 
         // First generate all the include lines for this platform
         CORE::CStringSet orderedIncludeListSection;
-        TModuleInfoEntryPtrSet::const_iterator n = targetInfo.modules.begin();
-        while ( n != targetInfo.modules.end() )
+        TModuleInfoEntryPtrSet::const_iterator n = targetInfo->modules.begin();
+        while ( n != targetInfo->modules.end() )
         {
             const CModuleInfoEntryPtr& moduleInfo = (*n);
             if ( HasIndependentModuleType( moduleInfo->GetModulesPerPlatform() ) )
@@ -1426,7 +1426,7 @@ void
 WritePremake5ProjectFileToDisk( const CProjectInfo& projectInfo              ,
                                 const CORE::CString& projectName             ,
                                 const CORE::CString& targetName              ,
-                                const TProjectTargetInfoMap& targetPlatforms ,
+                                const CProjectTargetInfoBundle::TProjectTargetInfoPtrMap& targetPlatforms ,
                                 const CORE::CString& outputDir               ,
                                 const CORE::CString& targetsOutputDir        ,
                                 const CORE::CString& logFilename             ,
@@ -1466,7 +1466,7 @@ WritePremake5ProjectFileToDisk( const CProjectInfo& projectInfo              ,
 
 void
 WritePremake5TargetsToDisk( const CProjectInfo& projectInfo         ,
-                            const TProjectTargetInfoMapMap& targets ,
+                            const CProjectTargetInfoBundle& targets ,
                             const CORE::CString& outputDir          ,
                             const CORE::CString& targetsOutputDir   ,
                             bool addCompileDate                     ,
@@ -1481,10 +1481,10 @@ WritePremake5TargetsToDisk( const CProjectInfo& projectInfo         ,
     
     if ( splitPremakeTargets )
     {
-        TProjectTargetInfoMapMap::const_iterator t = targets.begin();
-        while ( t != targets.end() )
+        CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap::const_iterator t = targets.GetAllTargets().begin();
+        while ( t != targets.GetAllTargets().end() )
         {
-            CORE::CString targetName = GetConsensusTargetName( (*t).second );
+            CORE::CString targetName = CProjectTargetInfoBundle::GetConsensusTargetName( (*t).second );
             if ( targetName.IsNULLOrEmpty() )
                 targetName = (*t).first;
 
@@ -1501,17 +1501,17 @@ WritePremake5TargetsToDisk( const CProjectInfo& projectInfo         ,
     }
     else
     {
-        TProjectTargetInfoMapMap::const_iterator t = targets.find( projectInfo.projectName );
-        if ( t != targets.end() )
+        CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap::const_iterator t = targets.GetAllTargets().find( projectInfo.GetProjectName() );
+        if ( t != targets.GetAllTargets().end() )
         {
-            WritePremake5ProjectFileToDisk( projectInfo             ,
-                                            projectInfo.projectName ,
-                                            projectInfo.projectName ,
-                                            (*t).second             ,
-                                            outputDir               ,
-                                            outputDir               ,
-                                            logfile                 ,
-                                            addCompileDate          );
+            WritePremake5ProjectFileToDisk( projectInfo                  ,
+                                            projectInfo.GetProjectName() ,
+                                            projectInfo.GetProjectName() ,
+                                            (*t).second                  ,
+                                            outputDir                    ,
+                                            outputDir                    ,
+                                            logfile                      ,
+                                            addCompileDate               );
         }
     }
 }
@@ -1586,8 +1586,8 @@ CPremake5ProjectGenerator::GenerateProject( const CProjectInfo& projectInfo     
     if ( !CORE::CreateDirs( targetsOutputDir ) )
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to create Premake5 project targets output folder: " + targetsOutputDir );
 
-    TProjectTargetInfoMapMap targets;
-    SplitProjectPerTarget( projectInfo, targets, treatTagsAsTargets, true ); 
+    CProjectTargetInfoBundle targets;
+    projectInfo.GetAllTargets( targets, treatTagsAsTargets, false );
 
     WritePremake5TargetsToDisk( projectInfo                     , 
                                 targets                         ,

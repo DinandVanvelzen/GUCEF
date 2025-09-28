@@ -8,9 +8,6 @@
 # free to make use of it in any way you like.
 #-------------------------------------------------------------------
 #
-
-
-if (LINUX32)
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOM ${CMAKE_BINARY_DIR}/gucefCOM )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOMCORE ${CMAKE_BINARY_DIR}/gucefCOMCORE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
@@ -18,28 +15,3 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMA
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefPATCHER ${CMAKE_BINARY_DIR}/gucefPATCHER )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ArchiveDiff ${CMAKE_BINARY_DIR}/ArchiveDiff )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ArchiveDiffLib ${CMAKE_BINARY_DIR}/ArchiveDiffLib )
-elseif (LINUX64)
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOM ${CMAKE_BINARY_DIR}/gucefCOM )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOMCORE ${CMAKE_BINARY_DIR}/gucefCOMCORE )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefPATCHER ${CMAKE_BINARY_DIR}/gucefPATCHER )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ArchiveDiff ${CMAKE_BINARY_DIR}/ArchiveDiff )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ArchiveDiffLib ${CMAKE_BINARY_DIR}/ArchiveDiffLib )
-elseif (WIN32)
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOM ${CMAKE_BINARY_DIR}/gucefCOM )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOMCORE ${CMAKE_BINARY_DIR}/gucefCOMCORE )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefPATCHER ${CMAKE_BINARY_DIR}/gucefPATCHER )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ArchiveDiff ${CMAKE_BINARY_DIR}/ArchiveDiff )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ArchiveDiffLib ${CMAKE_BINARY_DIR}/ArchiveDiffLib )
-elseif (WIN64)
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOM ${CMAKE_BINARY_DIR}/gucefCOM )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOMCORE ${CMAKE_BINARY_DIR}/gucefCOMCORE )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefPATCHER ${CMAKE_BINARY_DIR}/gucefPATCHER )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ArchiveDiff ${CMAKE_BINARY_DIR}/ArchiveDiff )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ArchiveDiffLib ${CMAKE_BINARY_DIR}/ArchiveDiffLib )
-endif()

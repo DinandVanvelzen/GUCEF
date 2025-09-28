@@ -114,6 +114,4 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/IMAGE/imgplugi
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/IMAGE/imgpluginFreeImage ${CMAKE_BINARY_DIR}/imgpluginFreeImage )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/IMAGE/imgpluginITV ${CMAKE_BINARY_DIR}/imgpluginITV )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefIMAGE_TestApp ${CMAKE_BINARY_DIR}/gucefIMAGE_TestApp )
-else()
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefIMAGE_TestApp ${CMAKE_BINARY_DIR}/gucefIMAGE_TestApp )
 endif()

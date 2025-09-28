@@ -90,14 +90,6 @@ if ( EMSCRIPTEN )
   include_directories( ../../../../Ogre ../../../../Ogre/RenderSystems ../../../../Ogre/RenderSystems/GLES2 ../../../../Ogre/RenderSystems/GLES2/include ../../../../Ogre/RenderSystems/GLES2/include/EGL ../../../../Ogre/RenderSystems/GLES2/include/EGL/Emscripten ../../../../hiredis )
 endif( EMSCRIPTEN )
 
-if ( GLX )
-  include_directories( ../../../../hiredis )
-endif( GLX )
-
-if ( GTK )
-  include_directories( ../../../../hiredis )
-endif( GTK )
-
 if ( IOS )
   include_directories( ../../../../hiredis )
 endif( IOS )
@@ -110,29 +102,9 @@ if ( LINUX64 )
   include_directories( ../../../../hiredis )
 endif( LINUX64 )
 
-if ( NACL )
-  include_directories( ../../../../Ogre ../../../../Ogre/RenderSystems ../../../../Ogre/RenderSystems/GLES2 ../../../../Ogre/RenderSystems/GLES2/include ../../../../Ogre/RenderSystems/GLES2/include/NaCl ../../../../hiredis )
-endif( NACL )
-
 if ( OSX )
   include_directories( ../../../../hiredis ../../../../libRocket ../../../../libRocket/Samples ../../../../libRocket/Samples/shell ../../../../libRocket/Samples/shell/include ../../../../libRocket/Samples/shell/include/macosx )
 endif( OSX )
-
-if ( POSIX )
-  include_directories( ../../../../hiredis )
-endif( POSIX )
-
-if ( SDL )
-  include_directories( ../../../../hiredis )
-endif( SDL )
-
-if ( SYMBIAN )
-  include_directories( ../../../../hiredis )
-endif( SYMBIAN )
-
-if ( UNIX )
-  include_directories( ../../../../hiredis )
-endif( UNIX )
 
 if ( WIN32 )
   include_directories( ../../../../Ogre ../../../../Ogre/RenderSystems ../../../../Ogre/RenderSystems/GLES2 ../../../../Ogre/RenderSystems/GLES2/include ../../../../Ogre/RenderSystems/GLES2/include/EGL ../../../../Ogre/RenderSystems/GLES2/include/EGL/WIN32 ../../../../berkelium ../../../../berkelium/win32 ../../../../berkelium/win32/demo ../../../../berkelium/win32/demo/GL ../../../../hiredis ../../../../libRocket ../../../../libRocket/Samples ../../../../libRocket/Samples/shell ../../../../libRocket/Samples/shell/include ../../../../libRocket/Samples/shell/include/win32 )

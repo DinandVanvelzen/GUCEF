@@ -1,0 +1,23 @@
+<ModuleInfoEntry>
+    <Module Name="gucefDRN_TestApp" Type="Executable" Platform="mswin;linux" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+			<Dependency Name="gucefCOMCORE" />
+			<Dependency Name="gucefDRN" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+			<Dependency Name="gucefCOMCORE" />
+			<Dependency Name="gucefDRN" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_DRN_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+		<RuntimeDependencies>
+			<RuntimeDependency Name="dstorepluginJSONPARSER" />
+			<RuntimeDependency Name="dstorepluginPARSIFALXML" />
+		</RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

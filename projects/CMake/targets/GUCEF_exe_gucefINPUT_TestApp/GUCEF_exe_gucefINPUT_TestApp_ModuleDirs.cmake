@@ -64,6 +64,4 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/INPUT/inputdri
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/INPUT/inputdriverMSWINMSG ${CMAKE_BINARY_DIR}/inputdriverMSWINMSG )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/INPUT/inputdriverOIS ${CMAKE_BINARY_DIR}/inputdriverOIS )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefINPUT_TestApp ${CMAKE_BINARY_DIR}/gucefINPUT_TestApp )
-else()
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefINPUT_TestApp ${CMAKE_BINARY_DIR}/gucefINPUT_TestApp )
 endif()

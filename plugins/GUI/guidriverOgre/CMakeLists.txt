@@ -57,14 +57,6 @@ if ( EMSCRIPTEN )
   include_directories( ../../../dependencies/Ogre/OgreMain/include/Emscripten )
 endif( EMSCRIPTEN )
 
-if ( GLX )
-  include_directories( ../../../dependencies/Ogre/OgreMain/src/GLX )
-endif( GLX )
-
-if ( GTK )
-  include_directories( ../../../dependencies/Ogre/OgreMain/include/gtk ../../../dependencies/Ogre/OgreMain/src/gtk )
-endif( GTK )
-
 if ( IOS )
   include_directories( ../../../dependencies/Ogre/OgreMain/include/iOS )
 endif( IOS )

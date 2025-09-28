@@ -20,6 +20,4 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${C
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/MemoryLeakFinder_TestApp ${CMAKE_BINARY_DIR}/MemoryLeakFinder_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/MemoryLeakFinder ${CMAKE_BINARY_DIR}/MemoryLeakFinder )
-else()
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/MemoryLeakFinder_TestApp ${CMAKE_BINARY_DIR}/MemoryLeakFinder_TestApp )
 endif()

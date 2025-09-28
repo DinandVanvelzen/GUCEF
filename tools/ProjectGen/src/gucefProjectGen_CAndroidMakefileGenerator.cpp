@@ -764,21 +764,21 @@ CreateAndroidProjectMakefileOnDisk( const CORE::CString& projectName            
 /*--------------------------------------------------------------------------*/
 
 void
-WriteAndroidTargetsToDisk( const CProjectInfo& projectInfo          ,
-                           const CORE::CString& projectName         ,
-                           const CORE::CString& targetName          ,
-                           const TProjectTargetInfo& targetInfo     ,
-                           const CORE::CString& outputDir           ,
-                           const CORE::CString& targetsOutputDir    ,
-                           bool addCompileDate                      ,
-                           const TStringSet& ndkModulesUsed         )
+WriteAndroidTargetsToDisk( const CProjectInfo& projectInfo               ,
+                           const CORE::CString& projectName              ,
+                           const CORE::CString& targetName               ,
+                           const CProjectTargetInfoPtr projectTargetInfo ,
+                           const CORE::CString& outputDir                ,
+                           const CORE::CString& targetsOutputDir         ,
+                           bool addCompileDate                           ,
+                           const TStringSet& ndkModulesUsed              )
 {GUCEF_TRACE;
 
     // Merge all the module info to give us a complete module definition for the Android platform
     // per module. This makes is easy for us to process as we don't care about other platforms
     TModuleInfoPtrVector mergedInfo;
     TModuleInfoEntryPairVector mergeLinks;
-    MergeAllModuleInfoForPlatform( targetInfo.modules, "android", mergedInfo, mergeLinks ); 
+    MergeAllModuleInfoForPlatform( projectTargetInfo->modules, "android", mergedInfo, mergeLinks ); 
 
     CORE::CString targetOutputDir = CORE::CombinePath( targetsOutputDir, projectName );
     if ( CORE::CreateDirs( targetOutputDir ) )
@@ -801,7 +801,7 @@ WriteAndroidTargetsToDisk( const CProjectInfo& projectInfo          ,
 
 void
 WriteAndroidTargetsToDisk( const CProjectInfo& projectInfo         ,
-                           const TProjectTargetInfoMapMap& targets ,
+                           const CProjectTargetInfoBundle& targets ,
                            const CORE::CString& outputDir          ,
                            const CORE::CString& targetsOutputDir   ,
                            bool addCompileDate                     ,
@@ -811,46 +811,52 @@ WriteAndroidTargetsToDisk( const CProjectInfo& projectInfo         ,
 
     if ( splitAndroidTargets )
     {
-        TProjectTargetInfoMapMap::const_iterator t = targets.begin();
-        while ( t != targets.end() )
+        CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap::const_iterator t = targets.GetAllTargets().begin();
+        while ( t != targets.GetAllTargets().end() )
         {
             const CORE::CString& projectName = (*t).first;
 
-            CORE::CString targetName = GetConsensusTargetName( (*t).second, "android" );
+            CORE::CString targetName = CProjectTargetInfoBundle::GetConsensusTargetName( (*t).second, "android" );
             if ( targetName.IsNULLOrEmpty() )
                 targetName = projectName;
             
-            const TProjectTargetInfo* projectTargetInfo = GetPlatformProjectTarget( (*t).second, "android" );
+            CProjectTargetInfoPtr projectTargetInfo = targets.GetPlatformProjectTarget( targetName, "android" );
             if ( GUCEF_NULL != projectTargetInfo )
             {
-                WriteAndroidTargetsToDisk( projectInfo        ,
-                                           projectName        ,
-                                           targetName         ,
-                                           *projectTargetInfo ,   
-                                           outputDir          ,
-                                           targetsOutputDir   ,
-                                           addCompileDate     ,
-                                           ndkModulesUsed     );
+                WriteAndroidTargetsToDisk( projectInfo       ,
+                                           projectName       ,
+                                           targetName        ,
+                                           projectTargetInfo ,   
+                                           outputDir         ,
+                                           targetsOutputDir  ,
+                                           addCompileDate    ,
+                                           ndkModulesUsed    );
             }
             ++t;
         }
     }
     else
     {
-        TProjectTargetInfoMapMap::const_iterator t = targets.find( projectInfo.projectName );
-        if ( t != targets.end() )
+        CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap::const_iterator t = targets.GetAllTargets().find( projectInfo.GetProjectName() );
+        if ( t != targets.GetAllTargets().end() )
         {
-            const TProjectTargetInfo* projectTargetInfo = GetPlatformProjectTarget( (*t).second, "all" );
+            const CORE::CString& projectName = (*t).first;
+
+            CORE::CString targetName = CProjectTargetInfoBundle::GetConsensusTargetName( (*t).second, KnownPlatforms::AllPlatforms );
+            if ( targetName.IsNULLOrEmpty() )
+                targetName = projectName;
+
+            const CProjectTargetInfoPtr projectTargetInfo = targets.GetPlatformProjectTarget( targetName, KnownPlatforms::AllPlatforms );
             if ( GUCEF_NULL != projectTargetInfo )
             {
-                WriteAndroidTargetsToDisk( projectInfo             ,
-                                           projectInfo.projectName ,
-                                           projectInfo.projectName ,
-                                           *projectTargetInfo      ,
-                                           outputDir               ,
-                                           outputDir               ,
-                                           addCompileDate          ,
-                                           ndkModulesUsed          );
+                WriteAndroidTargetsToDisk( projectInfo                  ,
+                                           projectInfo.GetProjectName() ,
+                                           projectInfo.GetProjectName() ,
+                                           projectTargetInfo            ,
+                                           outputDir                    ,
+                                           outputDir                    ,
+                                           addCompileDate               ,
+                                           ndkModulesUsed               );
             }
         }
     }
@@ -917,10 +923,12 @@ CAndroidMakefileGenerator::GenerateProject( const CProjectInfo& projectInfo     
         // Now we can create the overall project files per target which refer to each of the make files
         // we just created per module.
 
-        TStringSet platformsUsed;
-        platformsUsed.insert( "android" );
-        TProjectTargetInfoMapMap targets;
-        SplitProjectPerTarget( projectInfo, targets, treatTagsAsTargets, true, platformsUsed );
+        TStringSet platformsToUse;
+        platformsToUse.insert( KnownPlatforms::AllPlatforms );
+        platformsToUse.insert( KnownPlatforms::Android32 );
+        platformsToUse.insert( KnownPlatforms::Android64 );
+        CProjectTargetInfoBundle targets;
+        projectInfo.GetAllTargets( targets, treatTagsAsTargets, true, platformsToUse ); 
 
         WriteAndroidTargetsToDisk( projectInfo                     ,
                                    targets                         ,

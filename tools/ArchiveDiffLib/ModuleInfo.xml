@@ -1,19 +1,17 @@
 <ModuleInfoEntry>
-    <Module Name="ArchiveDiff" Type="Executable" Platform="All" Tags="tools">
+    <Module Name="ArchiveDiffLib" Type="SharedLibrary" Platform="All" >
         <Dependencies>
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefPATCHER" />
-            <Dependency Name="ArchiveDiffLib" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefPATCHER" />
-            <Dependency Name="ArchiveDiffLib" />
         </Linker>
         <Preprocessor>
-            <Define String="ARCHIVEDIFF_BUILD_MODULE" />
+            <Define String="ARCHIVEDIFFLIB_BUILD_MODULE" />
         </Preprocessor>
     </Module>
 </ModuleInfoEntry>

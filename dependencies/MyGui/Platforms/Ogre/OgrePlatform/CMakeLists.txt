@@ -137,18 +137,16 @@ if ( WIN32 )
   target_link_libraries( ${MODULE_NAME} MyGUI.Engine Ogre )
 endif( WIN32 )
 
-include_directories( ../../../../Ogre/OgreMain/include ../../../../Ogre/OgreMain/include/Hash ../../../../Ogre/OgreMain/include/Threading ../../../../Ogre/OgreMain/src ../../../../Ogre/OgreMain/src/nedmalloc ../../../../Ogre/OgreMain/src/stbi ../../../../Ogre/include ../../../../freetype/include ../../../../freetype/include/freetype ../../../../freetype/include/freetype/config ../../../../freetype/include/freetype/internal ../../../../freetype/include/freetype/internal/services ../../../../freetype/src ../../../../freetype/src/winfonts ../../../MyGUIEngine/include )
-
 if ( LINUX32 )
-  include_directories( ../../../Common/FileSystemInfo include )
+  include_directories( ../../../../Ogre/OgreMain/include ../../../../Ogre/OgreMain/include/Hash ../../../../Ogre/OgreMain/include/Threading ../../../../Ogre/OgreMain/src ../../../../Ogre/OgreMain/src/nedmalloc ../../../../Ogre/OgreMain/src/stbi ../../../../Ogre/include ../../../../freetype/include ../../../../freetype/include/freetype ../../../../freetype/include/freetype/config ../../../../freetype/include/freetype/internal ../../../../freetype/include/freetype/internal/services ../../../../freetype/src ../../../../freetype/src/winfonts ../../../Common/FileSystemInfo ../../../MyGUIEngine/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../../Common/FileSystemInfo include )
+  include_directories( ../../../../Ogre/OgreMain/include ../../../../Ogre/OgreMain/include/Hash ../../../../Ogre/OgreMain/include/Threading ../../../../Ogre/OgreMain/src ../../../../Ogre/OgreMain/src/nedmalloc ../../../../Ogre/OgreMain/src/stbi ../../../../Ogre/include ../../../../freetype/include ../../../../freetype/include/freetype ../../../../freetype/include/freetype/config ../../../../freetype/include/freetype/internal ../../../../freetype/include/freetype/internal/services ../../../../freetype/src ../../../../freetype/src/winfonts ../../../Common/FileSystemInfo ../../../MyGUIEngine/include include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../../../Ogre/OgreMain/include/WIN32 ../../../../Ogre/OgreMain/src/WIN32 ../../../Common/FileSystemInfo include )
+  include_directories( ../../../../Ogre/OgreMain/include ../../../../Ogre/OgreMain/include/Hash ../../../../Ogre/OgreMain/include/Threading ../../../../Ogre/OgreMain/include/WIN32 ../../../../Ogre/OgreMain/src ../../../../Ogre/OgreMain/src/WIN32 ../../../../Ogre/OgreMain/src/nedmalloc ../../../../Ogre/OgreMain/src/stbi ../../../../Ogre/include ../../../../freetype/include ../../../../freetype/include/freetype ../../../../freetype/include/freetype/config ../../../../freetype/include/freetype/internal ../../../../freetype/include/freetype/internal/services ../../../../freetype/src ../../../../freetype/src/winfonts ../../../Common/FileSystemInfo ../../../MyGUIEngine/include include )
 endif( WIN32 )
 
 

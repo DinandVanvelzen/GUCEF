@@ -48,14 +48,6 @@ if ( EMSCRIPTEN )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( EMSCRIPTEN )
 
-if ( GLX )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( GLX )
-
-if ( GTK )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( GTK )
-
 if ( IOS )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( IOS )
@@ -68,29 +60,9 @@ if ( LINUX64 )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/linux ../../platform/gucefMT/include/ )
 endif( LINUX64 )
 
-if ( NACL )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( NACL )
-
 if ( OSX )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( OSX )
-
-if ( POSIX )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( POSIX )
-
-if ( SDL )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( SDL )
-
-if ( SYMBIAN )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( SYMBIAN )
-
-if ( UNIX )
-  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( UNIX )
 
 if ( WIN32 )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/ ../../platform/gucefMT/include/mswin )

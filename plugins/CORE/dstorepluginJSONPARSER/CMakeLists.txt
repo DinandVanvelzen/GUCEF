@@ -48,14 +48,6 @@ if ( EMSCRIPTEN )
   include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
 endif( EMSCRIPTEN )
 
-if ( GLX )
-  include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
-endif( GLX )
-
-if ( GTK )
-  include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
-endif( GTK )
-
 if ( IOS )
   include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
 endif( IOS )
@@ -68,29 +60,9 @@ if ( LINUX64 )
   include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser ../../../platform/gucefCORE/include/linux )
 endif( LINUX64 )
 
-if ( NACL )
-  include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
-endif( NACL )
-
 if ( OSX )
   include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
 endif( OSX )
-
-if ( POSIX )
-  include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
-endif( POSIX )
-
-if ( SDL )
-  include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
-endif( SDL )
-
-if ( SYMBIAN )
-  include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
-endif( SYMBIAN )
-
-if ( UNIX )
-  include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
-endif( UNIX )
 
 if ( WIN32 )
   include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )

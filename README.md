@@ -15,6 +15,7 @@ GUC stood for "Galaxy Unlimited Client".
 GU is still the abbreviation for "Galaxy Unlimited".
 At this time GUCEF and GUCE have merged together and some parts of GUC and GU have been incorporated as well.
 Instead of being client-side focused at lot of the new development has focused on supporting services and generally back end development.
+At this time the generic code in this repo is often refered to as the Galaxy Unlimited Platform (GUP).
 
 ## A bit of history
 Throughout the years various codebases were created and lessons learned  by the author. Slowly but surely a common core of code emerged that started growing organically.
@@ -112,11 +113,11 @@ If you get into trouble for whatever reason with stale/bad output files (disk is
 - pubsubpluginMSMQ: gucefPUBSUB plugin: Adds a pub-sub concept compatible backend for MSMQ. Uses the Windows Operating system MSMQ subsystem which needs to be installed.
 - pubsubpluginREDISCLUSTER: gucefPUBSUB plugin: Adds a pub-sub concept compatible backend for Redis streams. Uses redis++ and hiredis dependencies.
 - pubsubpluginSTORAGE: gucefPUBSUB plugin: Adds a pub-sub concept compatible backend that allows easy interaction with the VFS and its capabilities
-- pubsubpluginUDP: gucefPUBSUB plugin: Adds a pub-sub concept compatible backend for basic UDP
+- pubsubpluginUDP: gucefPUBSUB plugin: Adds a pub-sub concept compatible backend for UDP pub/sub via unicast or multicast
 - pubsubpluginWEB: gucefPUBSUB plugin: Adds a pub-sub concept compatible backend for Web concepts like HTTP/REST/WebSockets
 - ProjectGenDependsFilter: ProjectGen plugin: Allows filtering of libraries in a repo based on a depends.exe tool output report
 - ProjectGenVSImporter: ProjectGen plugin: Imports Visual Studio project files to generate a ModuleInfo.xml starting point for a new repo
-- comcorepluginDBL: gucefCOMCORE plugin which attempts to provide information from the Myricom DBL network driver
+- comcorepluginDBL: gucefCOMCORE plugin which attempts to provide information from the reverse engineered Myricom DBL network driver
 - comcorepluginGEOOSM: gucefCOMCORE plugin which adds Open Street Maps based geo location lookup capabilities
 
 ## Contained Services
@@ -148,6 +149,10 @@ If you get into trouble for whatever reason with stale/bad output files (disk is
 - ProjectGen: Library that holds all the logic of the ProjectGenerator tool. Its supports plugins to expand functionality.
 
 ## TODO list
+- IN PROGRESS: Performance improvements for ProjectGenerator
+- IN PROGRESS: Add web assembly support via emscripten
+- IN PROGRESS: Add support for 'static' plugins (needed for monolithic WASM builds)
+
 - Short term: Add basic websocket support native to the platform
 - Short term: Add proper parameter support for codecs
 - Short term: Add StringView support
@@ -155,6 +160,8 @@ If you get into trouble for whatever reason with stale/bad output files (disk is
 - Short term: Complete initial pass at pubsub2pubsub 'aws sns' plugin
 - Short term: Complete initial pass at pubsub2pubsub 'aws sqs' plugin
 - Short term: Add config driven CodecChain class
+- Mid term: Add gRPC plugin based on API registry and data driven codecs
+- Mid term: Add JSON RPC plugin based on API registry and data driven codecs
 - Mid term: Fix the GitHub CI integration. The auto build trigger link is broken.
 - Mid term: Add DataNode schema system
 - Mid term: Add config driven message transform engine
@@ -166,11 +173,12 @@ If you get into trouble for whatever reason with stale/bad output files (disk is
 - Mid term: Add GitLab CI support via ProjectGenerator
 - Mid term: Complete renaming platform source files to all have module prefix
 - Mid term: Remove dead code as part of a larger revitalization effort of projects contained within the mono-repo. Determine which other apps contained herein is worth saving.
-- Mid term: Add stream support to logging system using pre-allocated output buffers per thread as an optimization
+- Mid term: Add variant stream support to logging system using pre-allocated output buffers per thread as an optimization
 - Mid term: Recreate the platform console client functionality
 - Mid term: Add native secure socket support for the supported platforms
-- Long term: Add web assembly support
-- Long term: Add Jenkins CI support via ProjectGenerator
+- Mid term: Add OTEL support to gucefCOM
+- Long term: rename gucefCOM to gucefCOMM
+- Long term: Add Jenkins CI support via ProjectGen's CI Helper backend
 - One day: Deprecate/undo the classic MFC style 'C' prefix for classes. This would be a huge change breaking everything which is why it has not occured yet. 
 - Ongoing: Evaluate need to update various dependencies considering plethora of constraints
 - Ongoing: Refine logging/metrics

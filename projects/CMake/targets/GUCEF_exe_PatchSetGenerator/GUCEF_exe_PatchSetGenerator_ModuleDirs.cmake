@@ -24,6 +24,4 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${C
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefPATCHER ${CMAKE_BINARY_DIR}/gucefPATCHER )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/PatchSetGenerator ${CMAKE_BINARY_DIR}/PatchSetGenerator )
-else()
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/PatchSetGenerator ${CMAKE_BINARY_DIR}/PatchSetGenerator )
 endif()

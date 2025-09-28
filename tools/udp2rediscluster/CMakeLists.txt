@@ -55,14 +55,6 @@ if ( EMSCRIPTEN )
   include_directories( ../../dependencies/hiredis )
 endif( EMSCRIPTEN )
 
-if ( GLX )
-  include_directories( ../../dependencies/hiredis )
-endif( GLX )
-
-if ( GTK )
-  include_directories( ../../dependencies/hiredis )
-endif( GTK )
-
 if ( IOS )
   include_directories( ../../dependencies/hiredis )
 endif( IOS )
@@ -75,29 +67,9 @@ if ( LINUX64 )
   include_directories( ../../dependencies/hiredis ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include/linux )
 endif( LINUX64 )
 
-if ( NACL )
-  include_directories( ../../dependencies/hiredis )
-endif( NACL )
-
 if ( OSX )
   include_directories( ../../dependencies/hiredis )
 endif( OSX )
-
-if ( POSIX )
-  include_directories( ../../dependencies/hiredis )
-endif( POSIX )
-
-if ( SDL )
-  include_directories( ../../dependencies/hiredis )
-endif( SDL )
-
-if ( SYMBIAN )
-  include_directories( ../../dependencies/hiredis )
-endif( SYMBIAN )
-
-if ( UNIX )
-  include_directories( ../../dependencies/hiredis )
-endif( UNIX )
 
 if ( WIN32 )
   include_directories( ../../dependencies/hiredis ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )

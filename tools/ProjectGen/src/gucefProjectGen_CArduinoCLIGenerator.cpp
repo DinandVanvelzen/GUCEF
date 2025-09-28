@@ -209,7 +209,7 @@ IsArduinoCompilationTarget( const CModuleInfoEntryPtr& moduleInfoEntry ,
 {GUCEF_TRACE;
 
     if ( !onlyConsiderSpecificTags ||
-            ( onlyConsiderSpecificTags && IsModuleTagged( moduleInfoEntry, validTags, ArduinoPlatformName ) ) )
+            ( onlyConsiderSpecificTags && moduleInfoEntry->HasTag( validTags, ArduinoPlatformName ) ) )
     {
         if ( ( !moduleInfo->hasIgnoreModule || ( moduleInfo->hasIgnoreModule && !moduleInfo->ignoreModule ) )  &&
             ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleInfo->moduleType ) &&

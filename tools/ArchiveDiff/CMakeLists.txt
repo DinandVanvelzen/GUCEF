@@ -11,107 +11,49 @@
 
 # Configuration for module: ArchiveDiff
 
-
-
-if (LINUX32)
-  set( PLATFORM_SOURCE_FILES 
-    src/ArchiveDiff_main.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "LINUX32" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (LINUX64)
-  set( PLATFORM_SOURCE_FILES 
-    src/ArchiveDiff_main.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "LINUX64" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (WIN32)
-  set( PLATFORM_SOURCE_FILES 
-    src/ArchiveDiff_main.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "WIN32" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-elseif (WIN64)
-  set( PLATFORM_SOURCE_FILES 
-    src/ArchiveDiff_main.cpp
-  )
-
-  set( PLATFORM_SOURCE_INSTALL "WIN64" )
-  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
-
-endif ()
+set( SOURCE_FILES 
+  src/ArchiveDiff_main.cpp
+)
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
  set( PLATFORM_HEADER_FILES "" )
 
+# Make sure the PLATFORM_SOURCE_FILES variable is always defined
+ set( PLATFORM_SOURCE_FILES "" )
+
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
+set( MODULE_NAME "ArchiveDiff" )
+if ( WIN32 )
+  add_executable( ${MODULE_NAME} WIN32 ${ALL_FILES} )
+else()
+  add_executable( ${MODULE_NAME} ${ALL_FILES} )
+endif()
+add_dependencies( ${MODULE_NAME} ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
+target_link_libraries( ${MODULE_NAME} ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ARCHIVEDIFF_BUILD_MODULE;MODULE_CONSENSUS_NAME=ArchiveDiff;MODULE_NAME=ArchiveDiff" )
 
-if( LINUX32 )
-  set( MODULE_NAME "ArchiveDiff" )
-elseif( LINUX64 )
-  set( MODULE_NAME "ArchiveDiff" )
-elseif( WIN32 )
-  set( MODULE_NAME "ArchiveDiff" )
-elseif( WIN64 )
-  set( MODULE_NAME "ArchiveDiff" )
-endif()
-if( LINUX32 )
-  add_executable( ${MODULE_NAME} ${ALL_FILES} )
-elseif( LINUX64 )
-  add_executable( ${MODULE_NAME} ${ALL_FILES} )
-elseif( WIN32 )
-  add_executable( ${MODULE_NAME} WIN32 ${ALL_FILES} )
-elseif( WIN64 )
-  add_executable( ${MODULE_NAME} WIN32 ${ALL_FILES} )
-endif()
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=ArchiveDiff" )
+include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefPATCHER/include ../ArchiveDiffLib/include )
+
+if ( ANDROID )
+  include_directories( ../../platform/gucefCORE/include/android )
+endif( ANDROID )
 
 if ( LINUX32 )
-  add_dependencies( ${MODULE_NAME} ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
-  target_link_libraries( ${MODULE_NAME} ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ARCHIVEDIFF_BUILD_MODULE" )
+  include_directories( ../../platform/gucefCORE/include/linux )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  add_dependencies( ${MODULE_NAME} ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
-  target_link_libraries( ${MODULE_NAME} ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ARCHIVEDIFF_BUILD_MODULE" )
+  include_directories( ../../platform/gucefCORE/include/linux )
 endif( LINUX64 )
 
 if ( WIN32 )
-  add_dependencies( ${MODULE_NAME} ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
-  target_link_libraries( ${MODULE_NAME} ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ARCHIVEDIFF_BUILD_MODULE" )
+  include_directories( ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
 endif( WIN32 )
 
 if ( WIN64 )
-  add_dependencies( ${MODULE_NAME} ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
-  target_link_libraries( ${MODULE_NAME} ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ARCHIVEDIFF_BUILD_MODULE" )
-endif( WIN64 )
-
-if ( LINUX32 )
-  include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefMT/include ../../platform/gucefPATCHER/include ../ArchiveDiffLib/include )
-endif( LINUX32 )
-
-if ( LINUX64 )
-  include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefMT/include ../../platform/gucefPATCHER/include ../ArchiveDiffLib/include )
-endif( LINUX64 )
-
-if ( WIN32 )
-  include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefPATCHER/include ../ArchiveDiffLib/include )
-endif( WIN32 )
-
-if ( WIN64 )
-  include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefPATCHER/include ../ArchiveDiffLib/include )
+  include_directories( ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
 endif( WIN64 )
 
 
@@ -119,18 +61,7 @@ endif( WIN64 )
 #******** START OF AUTOGENERATED TEMPLATED ADDITION CONTENT ********
 
 
-
-
-if (LINUX32)
 GUCEF_config_app( ${MODULE_NAME} )
-elseif (LINUX64)
-GUCEF_config_app( ${MODULE_NAME} )
-elseif (WIN32)
-GUCEF_config_app( ${MODULE_NAME} )
-elseif (WIN64)
-GUCEF_config_app( ${MODULE_NAME} )
-endif()
-
 
 
 #******** END OF AUTOGENERATED TEMPLATED ADDITION CONTENT ********

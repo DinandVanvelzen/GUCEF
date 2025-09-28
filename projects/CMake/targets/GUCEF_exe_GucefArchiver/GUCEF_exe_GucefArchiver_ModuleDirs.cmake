@@ -30,7 +30,6 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/libparsif
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/libyaml ${CMAKE_BINARY_DIR}/yaml )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/protobuf/src ${CMAKE_BINARY_DIR}/libprotobuf )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/stbrumme-hash-library ${CMAKE_BINARY_DIR}/stbrumme-hash )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zziplib ${CMAKE_BINARY_DIR}/zziplib )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefKAITAI ${CMAKE_BINARY_DIR}/gucefKAITAI )
@@ -49,3 +48,14 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/VFS/vfspluginI
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/VFS/vfspluginVP ${CMAKE_BINARY_DIR}/vfspluginVP )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/VFS/vfspluginZIP ${CMAKE_BINARY_DIR}/vfspluginZIP )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/GucefArchiver ${CMAKE_BINARY_DIR}/GucefArchiver )
+
+
+if (LINUX32)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
+elseif (LINUX64)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
+elseif (WIN32)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
+elseif (WIN64)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
+endif()

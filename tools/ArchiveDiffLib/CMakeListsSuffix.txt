@@ -1,6 +1,0 @@
-
-add_library( ArchiveDiffLib ${ALL_FILES} )
-add_dependencies( ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
-target_link_libraries( ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
-set_target_properties( ArchiveDiffLib PROPERTIES COMPILE_DEFINITIONS ARCHIVEDIFFLIB_BUILD_MODULE )
-GUCEF_config_lib( ArchiveDiffLib )

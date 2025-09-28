@@ -383,6 +383,4 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/VFS/vfspluginI
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/VFS/vfspluginVP ${CMAKE_BINARY_DIR}/vfspluginVP )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/VFS/vfspluginZIP ${CMAKE_BINARY_DIR}/vfspluginZIP )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefGUI_TestApp ${CMAKE_BINARY_DIR}/gucefGUI_TestApp )
-else()
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefGUI_TestApp ${CMAKE_BINARY_DIR}/gucefGUI_TestApp )
 endif()

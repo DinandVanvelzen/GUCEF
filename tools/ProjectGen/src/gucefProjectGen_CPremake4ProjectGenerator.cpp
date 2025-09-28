@@ -1329,7 +1329,7 @@ GeneratePremake4ProjectFileContent( const CProjectInfo& projectInfo       ,
     CORE::CString fileContent = GetPremake4FileHeader( false );
 
     // Define the start and name of a new project (aka solution)
-    fileContent += "\n\nsolution( \"" + projectInfo.projectName + "\" )\n\n";
+    fileContent += "\n\nsolution( \"" + projectInfo.GetProjectName() + "\" )\n\n";
 
     // Generate the section which defines all configurations available for this Premake4 project
     TStringSet platformsUsed;
