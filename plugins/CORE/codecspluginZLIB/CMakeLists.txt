@@ -35,9 +35,13 @@ add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT zlib )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_CONSENSUS_NAME=codecspluginZLIB;MODULE_NAME=codecspluginZLIB" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   target_link_libraries( ${MODULE_NAME} z )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  target_link_libraries( ${MODULE_NAME} z )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} zlib )
@@ -61,9 +65,13 @@ endif( WIN64 )
 
 include_directories( ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../../platform/gucefCORE/include/android )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../../../dependencies/zlib ../../../platform/gucefCORE/include/linux )

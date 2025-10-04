@@ -129,17 +129,25 @@ if ( WIN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CALLSTACK_TRACING_DISABLED;GUCEF_CORE_EMBED_CODE;GUCEF_DYNNEWON_DISABLED;GUCEF_MLF_BUILD_MODULE;GUCEF_MT_EMBED_CODE;GUCEF_PLATFORM_LOCK_TRACER_DISABLED;GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI" )
 endif( WIN64 )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../common/include ../../platform/gucefMT/include/ )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
+endif( ANDROID64 )
 
 if ( ARDUINO )
   include_directories( ../../common/include ../../platform/gucefMT/include/ )
 endif( ARDUINO )
 
-if ( EMSCRIPTEN )
+if ( EMSCRIPTEN32 )
   include_directories( ../../common/include ../../platform/gucefMT/include/ )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../common/include ../../platform/gucefMT/include/ )
+endif( EMSCRIPTEN64 )
 
 if ( GLX )
   include_directories( ../../common/include ../../platform/gucefMT/include/ )

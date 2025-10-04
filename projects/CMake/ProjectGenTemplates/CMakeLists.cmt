@@ -208,7 +208,49 @@ include(ConfigureBuild)
 # Now setup targets
 ##################################################################
 
+# Add all relevant modules for the target
 include( $#$PROJECTNAME$#$_ModuleDirs.cmake )
 
 # Provide CPack packaging target
 include( $#$PROJECTNAME$#$_Packaging.cmake )
+
+##################################################################
+# Add documentation capability if feasible
+##################################################################
+
+# Add documentation generation if Doxygen is available
+option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ON)
+
+if(BUILD_DOCUMENTATION)
+    find_package(Doxygen)
+    if(DOXYGEN_FOUND)
+        # Add a documentation target that generates docs for the entire solution
+        set(DOXYGEN_INPUT_DIR "${GUCEF_SOURCE_DIR}")
+        set(DOXYGEN_OUTPUT_DIR "${GUCEF_BINARY_DIR}/docs/$#$PROJECTNAME$#$")
+        set(DOXYGEN_CONFIG_IN "${GUCEF_SOURCE_DIR}/projects/CMake/Templates/Doxyfile.in")
+        set(DOXYGEN_CONFIG_OUT "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
+        
+        # Create docs directory
+        file(MAKE_DIRECTORY ${DOXYGEN_OUTPUT_DIR})
+        
+        # Configure the Doxyfile
+        configure_file(${DOXYGEN_CONFIG_IN} ${DOXYGEN_CONFIG_OUT} @ONLY)
+
+        # Add the main documentation target
+        add_custom_target($#$PROJECTNAME$#$_Docs
+            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIG_OUT}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "Generating API documentation with Doxygen for $#$PROJECTNAME$#$"
+            VERBATIM
+        )
+
+        # Set target properties to organize in IDE
+        set_target_properties($#$PROJECTNAME$#$_Docs PROPERTIES
+            FOLDER "Documentation"
+        )
+        
+        message(STATUS "Documentation target '$#$PROJECTNAME$#$_Docs' will be available")
+    else()
+        message(WARNING "Doxygen not found: Documentation will not be available")
+    endif()
+endif()

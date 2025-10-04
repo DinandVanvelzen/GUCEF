@@ -133,7 +133,7 @@ set( SOURCE_FILES
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_SOURCE_FILES 
     src/autofit/autofit.c
     src/base/ftbase.c
@@ -167,7 +167,44 @@ if (ANDROID)
     src/type42/type42.c
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_SOURCE_FILES 
+    src/autofit/autofit.c
+    src/base/ftbase.c
+    src/base/ftbitmap.c
+    src/base/ftglyph.c
+    src/base/ftinit.c
+    src/base/ftsystem.c
+    src/bdf/bdf.c
+    src/cache/ftcache.c
+    src/cff/cff.c
+    src/cid/cidgload.c
+    src/cid/cidload.c
+    src/cid/cidobjs.c
+    src/cid/cidparse.c
+    src/cid/cidriver.c
+    src/gxvalid/gxvalid.c
+    src/gzip/ftgzip.c
+    src/lzw/ftlzw.c
+    src/otvalid/otvalid.c
+    src/pcf/pcf.c
+    src/pfr/pfr.c
+    src/psaux/psaux.c
+    src/pshinter/pshinter.c
+    src/psnames/psnames.c
+    src/raster/raster.c
+    src/sfnt/sfnt.c
+    src/smooth/ftgrays.c
+    src/smooth/ftsmooth.c
+    src/truetype/truetype.c
+    src/type1/type1.c
+    src/type42/type42.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (ARDUINO)
@@ -207,7 +244,7 @@ elseif (ARDUINO)
   set( PLATFORM_SOURCE_INSTALL "ARDUINO" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
-elseif (EMSCRIPTEN)
+elseif (EMSCRIPTEN32)
   set( PLATFORM_SOURCE_FILES 
     src/autofit/autofit.c
     src/base/ftbase.c
@@ -241,7 +278,44 @@ elseif (EMSCRIPTEN)
     src/type42/type42.c
   )
 
-  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN64)
+  set( PLATFORM_SOURCE_FILES 
+    src/autofit/autofit.c
+    src/base/ftbase.c
+    src/base/ftbitmap.c
+    src/base/ftglyph.c
+    src/base/ftinit.c
+    src/base/ftsystem.c
+    src/bdf/bdf.c
+    src/cache/ftcache.c
+    src/cff/cff.c
+    src/cid/cidgload.c
+    src/cid/cidload.c
+    src/cid/cidobjs.c
+    src/cid/cidparse.c
+    src/cid/cidriver.c
+    src/gxvalid/gxvalid.c
+    src/gzip/ftgzip.c
+    src/lzw/ftlzw.c
+    src/otvalid/otvalid.c
+    src/pcf/pcf.c
+    src/pfr/pfr.c
+    src/psaux/psaux.c
+    src/pshinter/pshinter.c
+    src/psnames/psnames.c
+    src/raster/raster.c
+    src/sfnt/sfnt.c
+    src/smooth/ftgrays.c
+    src/smooth/ftsmooth.c
+    src/truetype/truetype.c
+    src/type1/type1.c
+    src/type42/type42.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (GLX)
@@ -737,9 +811,13 @@ set( MODULE_NAME "freetype" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "FT2_BUILD_LIBRARY;FT_CONFIG_OPTION_SYSTEM_ZLIB;FT_CONFIG_OPTION_USE_ZLIB;FT_DVEDIT_BUILD_DLL;FT_DVEDIT_DLL_API;MODULE_CONSENSUS_NAME=freetype;MODULE_NAME=freetype" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   target_link_libraries( ${MODULE_NAME} z )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  target_link_libraries( ${MODULE_NAME} z )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} zlib )

@@ -44,10 +44,15 @@ add_dependencies( ${MODULE_NAME} MyGUI.Engine freetype gucefCORE gucefGUI gucefI
 target_link_libraries( ${MODULE_NAME} MyGUI.Engine freetype gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverMyGUI )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERMYGUIOPENGL_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverMyGUIOpenGL;MODULE_NAME=guidriverMyGUIOpenGL" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} MyGUI.OpenGLESPlatform )
   target_link_libraries( ${MODULE_NAME} GLESv1_CM MyGUI.OpenGLESPlatform )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  add_dependencies( ${MODULE_NAME} MyGUI.OpenGLESPlatform )
+  target_link_libraries( ${MODULE_NAME} GLESv1_CM MyGUI.OpenGLESPlatform )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} MyGUI.OpenGLPlatform )
@@ -71,9 +76,13 @@ endif( WIN64 )
 
 include_directories( ../../../common/include ../../../dependencies/MyGui/MyGUIEngine/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../guidriverMyGUI/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../../dependencies/MyGui/Common/FileSystemInfo ../../../platform/gucefCORE/include/android OpenGLESPlatform/include )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../../dependencies/MyGui/Common/FileSystemInfo ../../../platform/gucefCORE/include/android OpenGLESPlatform/include )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../../../platform/gucefCORE/include/linux )

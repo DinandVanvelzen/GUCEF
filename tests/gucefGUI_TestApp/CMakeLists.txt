@@ -13,12 +13,20 @@
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_SOURCE_FILES 
     src/gucefGUI_TestApp.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_SOURCE_FILES 
+    src/gucefGUI_TestApp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (LINUX32)
@@ -62,7 +70,9 @@ endif ()
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 
-if( ANDROID )
+if( ANDROID32 )
+  set( MODULE_NAME "gucefGUI_TestApp" )
+elseif( ANDROID64 )
   set( MODULE_NAME "gucefGUI_TestApp" )
 elseif( LINUX32 )
   set( MODULE_NAME "gucefGUI_TestApp" )
@@ -73,7 +83,9 @@ elseif( WIN32 )
 elseif( WIN64 )
   set( MODULE_NAME "gucefGUI_TestApp" )
 endif()
-if( ANDROID )
+if( ANDROID32 )
+  add_executable( ${MODULE_NAME} ${ALL_FILES} )
+elseif( ANDROID64 )
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 elseif( LINUX32 )
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
@@ -86,11 +98,17 @@ elseif( WIN64 )
 endif()
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefGUI_TestApp" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
   target_link_libraries( ${MODULE_NAME} gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUI_TESTAPP_BUILD_MODULE" )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
+  target_link_libraries( ${MODULE_NAME} gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUI_TESTAPP_BUILD_MODULE" )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS )
@@ -116,9 +134,13 @@ if ( WIN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUI_TESTAPP_BUILD_MODULE" )
 endif( WIN64 )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefVFS/include )
@@ -143,7 +165,9 @@ endif( WIN64 )
 
 
 
-if (ANDROID)
+if (ANDROID32)
+GUCEF_config_app( ${MODULE_NAME} )
+elseif (ANDROID64)
 GUCEF_config_app( ${MODULE_NAME} )
 elseif (LINUX32)
 GUCEF_config_app( ${MODULE_NAME} )

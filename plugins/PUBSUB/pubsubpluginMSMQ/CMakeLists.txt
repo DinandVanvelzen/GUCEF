@@ -11,59 +11,94 @@
 
 # Configuration for module: pubsubpluginMSMQ
 
-set( HEADER_FILES 
-  include/pubsubpluginMSMQ.h
-  include/pubsubpluginMSMQ_CMsmqPubSubClient.h
-  include/pubsubpluginMSMQ_CMsmqPubSubClientConfig.h
-  include/pubsubpluginMSMQ_CMsmqPubSubClientTopic.h
-  include/pubsubpluginMSMQ_CMsmqPubSubClientTopicConfig.h
-  include/pubsubpluginMSMQ_config.h
-  include/pubsubpluginMSMQ_macros.h
-)
 
-set( SOURCE_FILES 
-  src/pubsubpluginMSMQ.cpp
-  src/pubsubpluginMSMQ_CMsmqPubSubClient.cpp
-  src/pubsubpluginMSMQ_CMsmqPubSubClientConfig.cpp
-  src/pubsubpluginMSMQ_CMsmqPubSubClientTopic.cpp
-  src/pubsubpluginMSMQ_CMsmqPubSubClientTopicConfig.cpp
-)
 
-# Make sure the PLATFORM_HEADER_FILES variable is always defined
- set( PLATFORM_HEADER_FILES "" )
+if (WIN32)
+  set( PLATFORM_HEADER_FILES 
+    include/pubsubpluginMSMQ.h
+    include/pubsubpluginMSMQ_CMsmqPubSubClient.h
+    include/pubsubpluginMSMQ_CMsmqPubSubClientConfig.h
+    include/pubsubpluginMSMQ_CMsmqPubSubClientTopic.h
+    include/pubsubpluginMSMQ_CMsmqPubSubClientTopicConfig.h
+    include/pubsubpluginMSMQ_config.h
+    include/pubsubpluginMSMQ_macros.h
+  )
 
-# Make sure the PLATFORM_SOURCE_FILES variable is always defined
- set( PLATFORM_SOURCE_FILES "" )
+  set( PLATFORM_HEADER_INSTALL "WIN32" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/pubsubpluginMSMQ.cpp
+    src/pubsubpluginMSMQ_CMsmqPubSubClient.cpp
+    src/pubsubpluginMSMQ_CMsmqPubSubClientConfig.cpp
+    src/pubsubpluginMSMQ_CMsmqPubSubClientTopic.cpp
+    src/pubsubpluginMSMQ_CMsmqPubSubClientTopicConfig.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "WIN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (WIN64)
+  set( PLATFORM_HEADER_FILES 
+    include/pubsubpluginMSMQ.h
+    include/pubsubpluginMSMQ_CMsmqPubSubClient.h
+    include/pubsubpluginMSMQ_CMsmqPubSubClientConfig.h
+    include/pubsubpluginMSMQ_CMsmqPubSubClientTopic.h
+    include/pubsubpluginMSMQ_CMsmqPubSubClientTopicConfig.h
+    include/pubsubpluginMSMQ_config.h
+    include/pubsubpluginMSMQ_macros.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "WIN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/pubsubpluginMSMQ.cpp
+    src/pubsubpluginMSMQ_CMsmqPubSubClient.cpp
+    src/pubsubpluginMSMQ_CMsmqPubSubClientConfig.cpp
+    src/pubsubpluginMSMQ_CMsmqPubSubClientTopic.cpp
+    src/pubsubpluginMSMQ_CMsmqPubSubClientTopicConfig.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "WIN64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+endif ()
 
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
-set( MODULE_NAME "pubsubpluginMSMQ" )
-add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT gucefPUBSUB )
-target_link_libraries( ${MODULE_NAME} Mqrt.lib gucefCOMCORE gucefCORE gucefMT gucefPUBSUB )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=pubsubpluginMSMQ;MODULE_NAME=pubsubpluginMSMQ;PUBSUBPLUGIN_MSMQ_BUILD_PLUGIN_DLL" )
 
-include_directories( ../../../common/include ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../platform/gucefPUBSUB/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include include )
-
-if ( ANDROID )
-  include_directories( ../../../platform/gucefCORE/include/android )
-endif( ANDROID )
-
-if ( LINUX32 )
-  include_directories( ../../../platform/gucefCOMCORE/include/linux ../../../platform/gucefCORE/include/linux )
-endif( LINUX32 )
-
-if ( LINUX64 )
-  include_directories( ../../../platform/gucefCOMCORE/include/linux ../../../platform/gucefCORE/include/linux )
-endif( LINUX64 )
+if( WIN32 )
+  set( MODULE_NAME "pubsubpluginMSMQ" )
+elseif( WIN64 )
+  set( MODULE_NAME "pubsubpluginMSMQ" )
+endif()
+if( WIN32 )
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+elseif( WIN64 )
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+endif()
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=pubsubpluginMSMQ" )
 
 if ( WIN32 )
-  include_directories( ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
+  add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT gucefPUBSUB )
+  target_link_libraries( ${MODULE_NAME} Mqrt.lib gucefCOMCORE gucefCORE gucefMT gucefPUBSUB )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "PUBSUBPLUGIN_MSMQ_BUILD_PLUGIN_DLL" )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include/mswin )
+  add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT gucefPUBSUB )
+  target_link_libraries( ${MODULE_NAME} Mqrt.lib gucefCOMCORE gucefCORE gucefMT gucefPUBSUB )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "PUBSUBPLUGIN_MSMQ_BUILD_PLUGIN_DLL" )
+endif( WIN64 )
+
+if ( WIN32 )
+  include_directories( ../../../common/include ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin ../../../platform/gucefPUBSUB/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include include )
+endif( WIN32 )
+
+if ( WIN64 )
+  include_directories( ../../../common/include ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCOMCORE/include/mswin ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin ../../../platform/gucefPUBSUB/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include include )
 endif( WIN64 )
 
 
@@ -71,7 +106,14 @@ endif( WIN64 )
 #******** START OF AUTOGENERATED TEMPLATED ADDITION CONTENT ********
 
 
+
+
+if (WIN32)
 GUCEF_config_lib( ${MODULE_NAME} )
+elseif (WIN64)
+GUCEF_config_lib( ${MODULE_NAME} )
+endif()
+
 
 
 #******** END OF AUTOGENERATED TEMPLATED ADDITION CONTENT ********

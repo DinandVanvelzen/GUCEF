@@ -319,12 +319,12 @@ set( SOURCE_FILES
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     include/aws/core/utils/logging/android/LogcatLogSystem.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -337,7 +337,28 @@ if (ANDROID)
     source/platform/android/Time.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    include/aws/core/utils/logging/android/LogcatLogSystem.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    source/platform/android/Environment.cpp
+    source/platform/android/FileSystem.cpp
+    source/platform/android/LogcatLogSystem.cpp
+    source/platform/android/OSVersionInfo.cpp
+    source/platform/android/Platform.cpp
+    source/platform/android/Security.cpp
+    source/platform/android/Time.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (LINUX32)
@@ -459,9 +480,13 @@ add_dependencies( ${MODULE_NAME} aws-c-auth aws-c-cal aws-c-common aws-c-compres
 target_link_libraries( ${MODULE_NAME} aws-c-auth aws-c-cal aws-c-common aws-c-compression aws-c-event-stream aws-c-http aws-c-io aws-c-mqtt aws-c-s3 aws-c-sdkutils aws-checksums aws-crt-cpp curl )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_CORE_EXPORTS=1;MODULE_CONSENSUS_NAME=aws_cpp_sdk_core;MODULE_NAME=aws_cpp_sdk_core;USE_IMPORT_EXPORT=1" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ENABLE_OPENSSL_ENCRYPTION" )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ENABLE_OPENSSL_ENCRYPTION" )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR;ENABLE_OPENSSL_ENCRYPTION;PLATFORM_LINUX;_POSIX_C_SOURCE=200809L;_XOPEN_SOURCE=500" )
@@ -487,9 +512,13 @@ endif( WIN64 )
 
 include_directories( ../aws-crt-cpp/crt/aws-c-auth/include ../aws-crt-cpp/crt/aws-c-cal/include ../aws-crt-cpp/crt/aws-c-common/include ../aws-crt-cpp/crt/aws-c-compression/include ../aws-crt-cpp/crt/aws-c-event-stream/include ../aws-crt-cpp/crt/aws-c-http/include ../aws-crt-cpp/crt/aws-c-io/include ../aws-crt-cpp/crt/aws-c-io/source ../aws-crt-cpp/crt/aws-c-mqtt/include ../aws-crt-cpp/crt/aws-c-s3/include ../aws-crt-cpp/crt/aws-c-sdkutils/include ../aws-crt-cpp/crt/aws-checksums/include ../aws-crt-cpp/include ../curl/include ../curl/include/curl ../curl/lib ../curl/lib/vauth ../curl/lib/vquic ../curl/lib/vssh ../curl/lib/vtls include include/aws include/aws/core include/aws/core/auth include/aws/core/auth/bearer-token-provider include/aws/core/auth/signer include/aws/core/auth/signer-provider include/aws/core/client include/aws/core/config include/aws/core/config/defaults include/aws/core/endpoint include/aws/core/endpoint/internal include/aws/core/external include/aws/core/external/cjson include/aws/core/external/tinyxml2 include/aws/core/http include/aws/core/http/curl include/aws/core/http/standard include/aws/core/internal include/aws/core/monitoring include/aws/core/net include/aws/core/platform include/aws/core/platform/refs include/aws/core/utils include/aws/core/utils/base64 include/aws/core/utils/crypto include/aws/core/utils/crypto/bcrypt include/aws/core/utils/crypto/commoncrypto include/aws/core/utils/crypto/openssl include/aws/core/utils/event include/aws/core/utils/json include/aws/core/utils/logging include/aws/core/utils/memory include/aws/core/utils/memory/stl include/aws/core/utils/ratelimiter include/aws/core/utils/stream include/aws/core/utils/threading include/aws/core/utils/xml )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( include/aws/core/utils/logging/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( include/aws/core/utils/logging/android )
+endif( ANDROID64 )
 
 if ( WIN32 )
   include_directories( ../curl/lib include/aws/core/http/windows )

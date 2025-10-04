@@ -13,12 +13,20 @@
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_SOURCE_FILES 
     main.c
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_SOURCE_FILES 
+    main.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 endif ()
@@ -30,22 +38,35 @@ endif ()
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 
-if( ANDROID )
+if( ANDROID32 )
+  set( MODULE_NAME "main" )
+elseif( ANDROID64 )
   set( MODULE_NAME "main" )
 endif()
-if( ANDROID )
+if( ANDROID32 )
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+elseif( ANDROID64 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=main" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} gucefLOADER )
   target_link_libraries( ${MODULE_NAME} android android_native_app_glue )
-endif( ANDROID )
+endif( ANDROID32 )
 
-if ( ANDROID )
+if ( ANDROID64 )
+  add_dependencies( ${MODULE_NAME} gucefLOADER )
+  target_link_libraries( ${MODULE_NAME} android android_native_app_glue )
+endif( ANDROID64 )
+
+if ( ANDROID32 )
   include_directories( ../../.. ../../../../common/include ../../../gucefCORE ../../../gucefCORE/include ../../../gucefCORE/include/android ../../../gucefCORE/include/c_api ../../../gucefLOADER/include ../../../gucefMT ../../../gucefMT/include )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../.. ../../../../common/include ../../../gucefCORE ../../../gucefCORE/include ../../../gucefCORE/include/android ../../../gucefCORE/include/c_api ../../../gucefLOADER/include ../../../gucefMT ../../../gucefMT/include )
+endif( ANDROID64 )
 
 
 
@@ -54,7 +75,9 @@ endif( ANDROID )
 
 
 
-if (ANDROID)
+if (ANDROID32)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (ANDROID64)
 GUCEF_config_lib( ${MODULE_NAME} )
 endif()
 

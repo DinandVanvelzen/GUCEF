@@ -42,10 +42,15 @@ add_dependencies( ${MODULE_NAME} CEGUI gucefCORE gucefGUI gucefIMAGE gucefINPUT 
 target_link_libraries( ${MODULE_NAME} CEGUI gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverCEGUI )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GUIDRIVERCEGUIGL_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverCEGUIOpenGL;MODULE_NAME=guidriverCEGUIOpenGL" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} CEGUI.RendererModule.OpenGLES )
   target_link_libraries( ${MODULE_NAME} CEGUI.RendererModule.OpenGLES GLESv1_CM )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  add_dependencies( ${MODULE_NAME} CEGUI.RendererModule.OpenGLES )
+  target_link_libraries( ${MODULE_NAME} CEGUI.RendererModule.OpenGLES GLESv1_CM )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} CEGUI.RendererModule.OpenGL )
@@ -69,9 +74,13 @@ endif( WIN64 )
 
 include_directories( ../../../common/include ../../../dependencies/cegui/cegui/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../guidriverCEGUI/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../../platform/gucefCORE/include/android )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../../../platform/gucefCORE/include/linux )

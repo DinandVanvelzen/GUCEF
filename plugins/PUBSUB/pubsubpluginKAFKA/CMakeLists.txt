@@ -46,9 +46,13 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( ../../../common/include ../../../dependencies/librdkafka ../../../dependencies/librdkafka/src ../../../dependencies/librdkafka/src-cpp ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../platform/gucefPUBSUB/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../../platform/gucefCORE/include/android )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../../../platform/gucefCOMCORE/include/linux ../../../platform/gucefCORE/include/linux )

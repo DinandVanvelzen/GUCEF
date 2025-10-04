@@ -38,13 +38,21 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( ../../../../../Ogre/OgreMain/include ../../../../../Ogre/OgreMain/include/Hash ../../../../../Ogre/OgreMain/include/Threading ../../../../../Ogre/OgreMain/src ../../../../../Ogre/OgreMain/src/nedmalloc ../../../../../Ogre/OgreMain/src/stbi ../../../../../Ogre/include ../../../../../freetype/include ../../../../../freetype/include/freetype ../../../../../freetype/include/freetype/config ../../../../../freetype/include/freetype/internal ../../../../../freetype/include/freetype/internal/services ../../../../../freetype/src ../../../../../freetype/src/winfonts ../../../include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../../../../Ogre/OgreMain/include/Android )
-endif( ANDROID )
+endif( ANDROID32 )
 
-if ( EMSCRIPTEN )
+if ( ANDROID64 )
+  include_directories( ../../../../../Ogre/OgreMain/include/Android )
+endif( ANDROID64 )
+
+if ( EMSCRIPTEN32 )
   include_directories( ../../../../../Ogre/OgreMain/include/Emscripten )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../../../../Ogre/OgreMain/include/Emscripten )
+endif( EMSCRIPTEN64 )
 
 if ( IOS )
   include_directories( ../../../../../Ogre/OgreMain/include/iOS )

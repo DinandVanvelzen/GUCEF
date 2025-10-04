@@ -52,6 +52,16 @@
 #define GUCEF_CORE_DVOSWRAP_H
 #endif /* GUCEF_CORE_DVOSWRAP_H ? */
 
+#ifndef GUCEF_PROJECTGEN_CPROJECTINFO_H
+#include "gucefProjectGen_CProjectInfo.h"
+#define GUCEF_PROJECTGEN_CPROJECTINFO_H
+#endif /* GUCEF_PROJECTGEN_CPROJECTINFO_H ? */
+
+#ifndef GUCEF_PROJECTGEN_CMODULEINFOENTRY_H
+#include "gucefProjectGen_CModuleInfoEntry.h"
+#define GUCEF_PROJECTGEN_CMODULEINFOENTRY_H
+#endif /* GUCEF_PROJECTGEN_CMODULEINFOENTRY_H ? */
+
 #include "ProjectGenVSImporter_CDirPreprocessor.h"
 
 /*-------------------------------------------------------------------------//
@@ -109,7 +119,7 @@ CDirPreprocessor::InitXmlParser( void )
     if ( m_xmlCodec.IsNULL() )
     {
         CORE::CDStoreCodecRegistry* registry = &CORE::CCoreGlobal::Instance()->GetDStoreCodecRegistry();
-        if ( registry->TryLookup( "XML", m_xmlCodec, false ) )
+        if ( registry->TryGetXmlCodec( m_xmlCodec ) && !m_xmlCodec.IsNULL() )
         {
             GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "Requested for data storage codec for xml file, succesfully obtained codec" );
         }

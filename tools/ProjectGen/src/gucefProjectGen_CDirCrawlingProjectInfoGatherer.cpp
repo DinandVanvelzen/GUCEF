@@ -87,6 +87,11 @@
 #define GUCEF_PROJECTGEN_CDIRPREPROCESSORMANAGER_H
 #endif /* GUCEF_PROJECTGEN_CDIRPREPROCESSORMANAGER_H ? */
 
+#ifndef GUCEF_PROJECTGEN_CPROJECTINFO_H
+#include "gucefProjectGen_CProjectInfo.h"
+#define GUCEF_PROJECTGEN_CPROJECTINFO_H
+#endif /* GUCEF_PROJECTGEN_CPROJECTINFO_H ? */
+
 #include "gucefProjectGen_CDirCrawlingProjectInfoGatherer.h"
 
 /*-------------------------------------------------------------------------//
@@ -109,13 +114,6 @@ namespace PROJECTGEN {
 const TDirProcessingInstructions*
 GetProcessingInstructions( const CProjectInfo& projectInfo ,
                            const CORE::CString& dir        );
-
-
-bool
-IsStringInList( const TStringVector& list       ,
-                bool caseSensitive              ,
-                const CORE::CString& testString ,
-                bool wildcardMatching = false   );
 
 /*---------------------------------------------------------------------------*/
 
@@ -408,62 +406,6 @@ RemoveString( TStringSet& list               ,
         }
     }
     return removedString;
-}
-
-/*---------------------------------------------------------------------------*/
-
-bool
-IsStringInList( const TStringVector& list       ,
-                bool caseSensitive              ,
-                const CORE::CString& testString ,
-                bool wildcardMatching           )
-{GUCEF_TRACE;
-
-    TStringVector::const_iterator i = list.begin();
-    while ( i != list.end() )
-    {
-        if ( (*i).Equals( testString, caseSensitive ) )
-        {
-            return true;
-        }
-        if ( wildcardMatching )
-        {
-            if ( testString.WildcardEquals( (*i), '*', caseSensitive ) )
-            {
-                return true;
-            }
-        }
-        ++i;
-    }
-    return false;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static bool
-IsStringInList( const TStringSet& list          ,
-                bool caseSensitive              ,
-                const CORE::CString& testString ,
-                bool wildcardMatching = false   )
-{GUCEF_TRACE;
-
-    TStringSet::const_iterator i = list.begin();
-    while ( i != list.end() )
-    {
-        if ( (*i).Equals( testString, caseSensitive ) )
-        {
-            return true;
-        }
-        if ( wildcardMatching )
-        {
-            if ( testString.WildcardEquals( (*i), '*', caseSensitive ) )
-            {
-                return true;
-            }
-        }
-        ++i;
-    }
-    return false;
 }
 
 /*-------------------------------------------------------------------------*/

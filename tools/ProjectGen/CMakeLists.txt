@@ -12,6 +12,7 @@
 # Configuration for module: ProjectGen
 
 set( HEADER_FILES 
+  include/gucefProjectGen.h
   include/gucefProjectGen_CAndroidMakefileGenerator.h
   include/gucefProjectGen_CArduinoCLIGenerator.h
   include/gucefProjectGen_CCIHelperGenerator.h
@@ -22,10 +23,17 @@ set( HEADER_FILES
   include/gucefProjectGen_CIProjectGenerator.h
   include/gucefProjectGen_CIProjectInfoGatherer.h
   include/gucefProjectGen_CIProjectPreprocessor.h
+  include/gucefProjectGen_CModuleDependencyNode.h
+  include/gucefProjectGen_CModuleInfo.h
+  include/gucefProjectGen_CModuleInfoEntry.h
+  include/gucefProjectGen_CModuleMetaData.h
   include/gucefProjectGen_CPremake4ProjectGenerator.h
   include/gucefProjectGen_CPremake5ProjectGenerator.h
   include/gucefProjectGen_CProjectGenGlobal.h
+  include/gucefProjectGen_CProjectInfo.h
   include/gucefProjectGen_CProjectPreprocessorManager.h
+  include/gucefProjectGen_CProjectTargetInfo.h
+  include/gucefProjectGen_CProjectTargetInfoBundle.h
   include/gucefProjectGen_CXmlProjectGenerator.h
   include/gucefProjectGen_DataTypes.h
   include/gucefProjectGen_ETypes.h
@@ -44,10 +52,17 @@ set( SOURCE_FILES
   src/gucefProjectGen_CIProjectGenerator.cpp
   src/gucefProjectGen_CIProjectInfoGatherer.cpp
   src/gucefProjectGen_CIProjectPreprocessor.cpp
+  src/gucefProjectGen_CModuleDependencyNode.cpp
+  src/gucefProjectGen_CModuleInfo.cpp
+  src/gucefProjectGen_CModuleInfoEntry.cpp
+  src/gucefProjectGen_CModuleMetaData.cpp
   src/gucefProjectGen_CPremake4ProjectGenerator.cpp
   src/gucefProjectGen_CPremake5ProjectGenerator.cpp
   src/gucefProjectGen_CProjectGenGlobal.cpp
+  src/gucefProjectGen_CProjectInfo.cpp
   src/gucefProjectGen_CProjectPreprocessorManager.cpp
+  src/gucefProjectGen_CProjectTargetInfo.cpp
+  src/gucefProjectGen_CProjectTargetInfoBundle.cpp
   src/gucefProjectGen_CXmlProjectGenerator.cpp
   src/gucefProjectGen_DataTypes.cpp
 )
@@ -69,9 +84,13 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../platform/gucefCORE/include/android )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../../platform/gucefCORE/include/linux )

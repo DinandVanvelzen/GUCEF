@@ -546,19 +546,34 @@ set( SOURCE_FILES
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     include/android/gucefCORE_CAndroidSystemLogger.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
     src/android/gucefCORE_CAndroidSystemLogger.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    include/android/gucefCORE_CAndroidSystemLogger.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/android/gucefCORE_CAndroidSystemLogger.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (LINUX32)
@@ -674,9 +689,13 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-if ( ANDROID )
+if ( ANDROID32 )
   target_link_libraries( ${MODULE_NAME} dl )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  target_link_libraries( ${MODULE_NAME} dl )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   target_link_libraries( ${MODULE_NAME} X11 dl rt )
@@ -696,9 +715,13 @@ endif( WIN64 )
 
 include_directories( ../../common/include ../gucefMT/include include include/c_api )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( include/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( include/android )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( include/linux )

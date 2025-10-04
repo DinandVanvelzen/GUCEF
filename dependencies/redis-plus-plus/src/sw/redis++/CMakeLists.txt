@@ -78,17 +78,25 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( ../../ ../../../../ ../../../../hiredis ../redis++ cxx11 cxx11/sw cxx11/sw/redis++ no_tls no_tls/sw no_tls/sw/redis++ patterns )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../../../Ogre ../../../../Ogre/RenderSystems ../../../../Ogre/RenderSystems/GLES2 ../../../../Ogre/RenderSystems/GLES2/include ../../../../Ogre/RenderSystems/GLES2/include/EGL ../../../../Ogre/RenderSystems/GLES2/include/EGL/Android ../../../../hiredis )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../../../Ogre ../../../../Ogre/RenderSystems ../../../../Ogre/RenderSystems/GLES2 ../../../../Ogre/RenderSystems/GLES2/include ../../../../Ogre/RenderSystems/GLES2/include/EGL ../../../../Ogre/RenderSystems/GLES2/include/EGL/Android ../../../../hiredis )
+endif( ANDROID64 )
 
 if ( ARDUINO )
   include_directories( ../../../../hiredis )
 endif( ARDUINO )
 
-if ( EMSCRIPTEN )
+if ( EMSCRIPTEN32 )
   include_directories( ../../../../Ogre ../../../../Ogre/RenderSystems ../../../../Ogre/RenderSystems/GLES2 ../../../../Ogre/RenderSystems/GLES2/include ../../../../Ogre/RenderSystems/GLES2/include/EGL ../../../../Ogre/RenderSystems/GLES2/include/EGL/Emscripten ../../../../hiredis )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../../../Ogre ../../../../Ogre/RenderSystems ../../../../Ogre/RenderSystems/GLES2 ../../../../Ogre/RenderSystems/GLES2/include ../../../../Ogre/RenderSystems/GLES2/include/EGL ../../../../Ogre/RenderSystems/GLES2/include/EGL/Emscripten ../../../../hiredis )
+endif( EMSCRIPTEN64 )
 
 if ( IOS )
   include_directories( ../../../../hiredis )

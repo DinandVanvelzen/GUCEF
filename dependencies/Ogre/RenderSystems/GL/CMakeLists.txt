@@ -150,13 +150,13 @@ set( SOURCE_FILES
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
     src/StateCacheManager/OgreGLNullUniformCacheImp.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -164,7 +164,24 @@ if (ANDROID)
     src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
+    src/StateCacheManager/OgreGLNullUniformCacheImp.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp
+    src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (ARDUINO)
@@ -184,13 +201,13 @@ elseif (ARDUINO)
   set( PLATFORM_SOURCE_INSTALL "ARDUINO" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
-elseif (EMSCRIPTEN)
+elseif (EMSCRIPTEN32)
   set( PLATFORM_HEADER_FILES 
     src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
     src/StateCacheManager/OgreGLNullUniformCacheImp.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -198,7 +215,24 @@ elseif (EMSCRIPTEN)
     src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN64)
+  set( PLATFORM_HEADER_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.h
+    src/StateCacheManager/OgreGLNullUniformCacheImp.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp
+    src/StateCacheManager/OgreGLNullUniformCacheImp.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (GLX)
@@ -497,24 +531,32 @@ endif( WIN64 )
 
 include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../OgreMain/include ../../OgreMain/include/Hash ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/nedmalloc ../../OgreMain/src/stbi ../../include include include/GL src src/GLSL src/GLSL/include src/StateCacheManager src/atifs src/atifs/include src/nvparse src/nvparse/winheaders )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../OgreMain/include/Android src/StateCacheManager )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../OgreMain/include/Android src/StateCacheManager )
+endif( ANDROID64 )
 
 if ( ARDUINO )
   include_directories( src/StateCacheManager )
 endif( ARDUINO )
 
-if ( EMSCRIPTEN )
+if ( EMSCRIPTEN32 )
   include_directories( ../../OgreMain/include/Emscripten src/StateCacheManager )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../OgreMain/include/Emscripten src/StateCacheManager )
+endif( EMSCRIPTEN64 )
 
 if ( GLX )
-  include_directories( ../../OgreMain/src/GLX include/GLX src/GLX src/StateCacheManager )
+  include_directories( include/GLX src/GLX src/StateCacheManager )
 endif( GLX )
 
 if ( GTK )
-  include_directories( ../../OgreMain/include/gtk ../../OgreMain/src/gtk include/gtk src/StateCacheManager src/gtk )
+  include_directories( include/gtk src/StateCacheManager src/gtk )
 endif( GTK )
 
 if ( IOS )

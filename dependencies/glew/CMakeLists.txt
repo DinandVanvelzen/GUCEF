@@ -29,9 +29,13 @@ set( MODULE_NAME "glew" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GLEW_BUILD;MODULE_CONSENSUS_NAME=glew;MODULE_NAME=glew" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   target_link_libraries( ${MODULE_NAME} GLESv1_CM )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  target_link_libraries( ${MODULE_NAME} GLESv1_CM )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   target_link_libraries( ${MODULE_NAME} GL )

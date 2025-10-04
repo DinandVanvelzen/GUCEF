@@ -226,9 +226,13 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( ../aws-cpp-sdk-core/include ../aws-cpp-sdk-core/include/aws ../aws-cpp-sdk-core/include/aws/core ../aws-cpp-sdk-core/include/aws/core/auth ../aws-cpp-sdk-core/include/aws/core/auth/bearer-token-provider ../aws-cpp-sdk-core/include/aws/core/auth/signer ../aws-cpp-sdk-core/include/aws/core/auth/signer-provider ../aws-cpp-sdk-core/include/aws/core/client ../aws-cpp-sdk-core/include/aws/core/config ../aws-cpp-sdk-core/include/aws/core/config/defaults ../aws-cpp-sdk-core/include/aws/core/endpoint ../aws-cpp-sdk-core/include/aws/core/endpoint/internal ../aws-cpp-sdk-core/include/aws/core/external ../aws-cpp-sdk-core/include/aws/core/external/cjson ../aws-cpp-sdk-core/include/aws/core/external/tinyxml2 ../aws-cpp-sdk-core/include/aws/core/http ../aws-cpp-sdk-core/include/aws/core/http/curl ../aws-cpp-sdk-core/include/aws/core/http/standard ../aws-cpp-sdk-core/include/aws/core/internal ../aws-cpp-sdk-core/include/aws/core/monitoring ../aws-cpp-sdk-core/include/aws/core/net ../aws-cpp-sdk-core/include/aws/core/platform ../aws-cpp-sdk-core/include/aws/core/platform/refs ../aws-cpp-sdk-core/include/aws/core/utils ../aws-cpp-sdk-core/include/aws/core/utils/base64 ../aws-cpp-sdk-core/include/aws/core/utils/crypto ../aws-cpp-sdk-core/include/aws/core/utils/crypto/bcrypt ../aws-cpp-sdk-core/include/aws/core/utils/crypto/commoncrypto ../aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl ../aws-cpp-sdk-core/include/aws/core/utils/event ../aws-cpp-sdk-core/include/aws/core/utils/json ../aws-cpp-sdk-core/include/aws/core/utils/logging ../aws-cpp-sdk-core/include/aws/core/utils/memory ../aws-cpp-sdk-core/include/aws/core/utils/memory/stl ../aws-cpp-sdk-core/include/aws/core/utils/ratelimiter ../aws-cpp-sdk-core/include/aws/core/utils/stream ../aws-cpp-sdk-core/include/aws/core/utils/threading ../aws-cpp-sdk-core/include/aws/core/utils/xml ../aws-crt-cpp/crt/aws-c-auth/include ../aws-crt-cpp/crt/aws-c-cal/include ../aws-crt-cpp/crt/aws-c-common/include ../aws-crt-cpp/crt/aws-c-compression/include ../aws-crt-cpp/crt/aws-c-event-stream/include ../aws-crt-cpp/crt/aws-c-http/include ../aws-crt-cpp/crt/aws-c-io/include ../aws-crt-cpp/crt/aws-c-io/source ../aws-crt-cpp/crt/aws-c-mqtt/include ../aws-crt-cpp/crt/aws-c-s3/include ../aws-crt-cpp/crt/aws-c-sdkutils/include ../aws-crt-cpp/crt/aws-checksums/include ../aws-crt-cpp/include ../curl/include ../curl/include/curl ../curl/lib ../curl/lib/vauth ../curl/lib/vquic ../curl/lib/vssh ../curl/lib/vtls include include/aws include/aws/sns include/aws/sns/model )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../aws-cpp-sdk-core/include/aws/core/utils/logging/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../aws-cpp-sdk-core/include/aws/core/utils/logging/android )
+endif( ANDROID64 )
 
 if ( WIN32 )
   include_directories( ../aws-cpp-sdk-core/include/aws/core/http/windows ../curl/lib )

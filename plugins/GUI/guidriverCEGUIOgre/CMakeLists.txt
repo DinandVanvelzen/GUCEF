@@ -44,13 +44,21 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( ../../../common/include ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Hash ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/nedmalloc ../../../dependencies/Ogre/OgreMain/src/stbi ../../../dependencies/Ogre/include ../../../dependencies/cegui/cegui/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../guidriverCEGUI/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../../dependencies/Ogre/OgreMain/include/Android ../../../platform/gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
 
-if ( EMSCRIPTEN )
+if ( ANDROID64 )
+  include_directories( ../../../dependencies/Ogre/OgreMain/include/Android ../../../platform/gucefCORE/include/android )
+endif( ANDROID64 )
+
+if ( EMSCRIPTEN32 )
   include_directories( ../../../dependencies/Ogre/OgreMain/include/Emscripten )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../../dependencies/Ogre/OgreMain/include/Emscripten )
+endif( EMSCRIPTEN64 )
 
 if ( IOS )
   include_directories( ../../../dependencies/Ogre/OgreMain/include/iOS )

@@ -40,9 +40,13 @@ add_dependencies( ${MODULE_NAME} gucefCORE gucefMT gucefVFS zziplib )
 target_link_libraries( ${MODULE_NAME} gucefCORE gucefMT gucefVFS zziplib )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_VFSPLUGIN_ZIP_BUILD_MODULE;MODULE_CONSENSUS_NAME=vfspluginZIP;MODULE_NAME=vfspluginZIP;ZZIP_HAVE_STDINT_H" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   target_link_libraries( ${MODULE_NAME} z )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  target_link_libraries( ${MODULE_NAME} z )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} zlib )
@@ -66,9 +70,13 @@ endif( WIN64 )
 
 include_directories( ../../../common/include ../../../dependencies/zziplib ../../../dependencies/zziplib/zzip ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../platform/gucefVFS/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../../platform/gucefCORE/include/android )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../../../dependencies/zlib ../../../platform/gucefCORE/include/linux )

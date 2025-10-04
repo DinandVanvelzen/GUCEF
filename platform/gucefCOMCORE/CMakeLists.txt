@@ -196,9 +196,13 @@ endif( WIN64 )
 
 include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../gucefCORE/include/android )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../gucefCORE/include/linux include/linux )

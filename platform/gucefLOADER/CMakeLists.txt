@@ -99,7 +99,7 @@ set( SOURCE_FILES
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
     ../gucefCORE/include/CDynamicBufferAccess.h
@@ -141,7 +141,7 @@ if (ANDROID)
     ../gucefMT/include/gucefMT_mutex.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -184,7 +184,95 @@ if (ANDROID)
     ../gucefMT/src/gucefMT_mutex.c
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
+    ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
+    ../gucefCORE/include/CICloneable.h
+    ../gucefCORE/include/CIOAccess.h
+    ../gucefCORE/include/CMsgException.h
+    ../gucefCORE/include/DVCPPOSWRAP.h
+    ../gucefCORE/include/DVOSWRAP.h
+    ../gucefCORE/include/MFILE.h
+    ../gucefCORE/include/PAFILE.h
+    ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/dvcppstringutils.h
+    ../gucefCORE/include/dvfileutils.h
+    ../gucefCORE/include/dvmd5utils.h
+    ../gucefCORE/include/dvstrutils.h
+    ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDate.h
+    ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CIDate.h
+    ../gucefCORE/include/gucefCORE_CITime.h
+    ../gucefCORE/include/gucefCORE_CResourceMetaData.h
+    ../gucefCORE/include/gucefCORE_CString.h
+    ../gucefCORE/include/gucefCORE_CTime.h
+    ../gucefCORE/include/gucefCORE_CUtf8String.h
+    ../gucefCORE/include/gucefCORE_CVariant.h
+    ../gucefCORE/include/md5.h
+    ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
+    ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
+    ../gucefMT/include/gucefMT_CICloneable.h
+    ../gucefMT/include/gucefMT_CILockable.h
+    ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
+    ../gucefMT/include/gucefMT_ThreadStatus.h
+    ../gucefMT/include/gucefMT_dvmtoswrap.h
+    ../gucefMT/include/gucefMT_mutex.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
+    ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
+    ../gucefCORE/src/CICloneable.cpp
+    ../gucefCORE/src/CIOAccess.cpp
+    ../gucefCORE/src/CMsgException.cpp
+    ../gucefCORE/src/DVCPPOSWRAP.cpp
+    ../gucefCORE/src/DVOSWRAP.cpp
+    ../gucefCORE/src/IOACCESS.c
+    ../gucefCORE/src/MFILE.c
+    ../gucefCORE/src/PAFILE.c
+    ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/dvcppstringutils.cpp
+    ../gucefCORE/src/dvfileutils.cpp
+    ../gucefCORE/src/dvmd5utils.c
+    ../gucefCORE/src/dvstrutils.cpp
+    ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDate.cpp
+    ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CIDate.cpp
+    ../gucefCORE/src/gucefCORE_CITime.cpp
+    ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
+    ../gucefCORE/src/gucefCORE_CTime.cpp
+    ../gucefCORE/src/gucefCORE_CUtf8String.cpp
+    ../gucefCORE/src/gucefCORE_CVariant.cpp
+    ../gucefCORE/src/md5.c
+    ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
+    ../gucefMT/src/gucefMT_CICloneable.cpp
+    ../gucefMT/src/gucefMT_CILockable.cpp
+    ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
+    ../gucefMT/src/gucefMT_ThreadStatus.cpp
+    ../gucefMT/src/gucefMT_dvmtoswrap.c
+    ../gucefMT/src/gucefMT_mutex.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (ARDUINO)
@@ -275,7 +363,7 @@ elseif (ARDUINO)
   set( PLATFORM_SOURCE_INSTALL "ARDUINO" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
-elseif (EMSCRIPTEN)
+elseif (EMSCRIPTEN32)
   set( PLATFORM_HEADER_FILES 
     ../gucefCORE/include/CDynamicBuffer.h
     ../gucefCORE/include/CDynamicBufferAccess.h
@@ -317,7 +405,7 @@ elseif (EMSCRIPTEN)
     ../gucefMT/include/gucefMT_mutex.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -360,7 +448,95 @@ elseif (EMSCRIPTEN)
     ../gucefMT/src/gucefMT_mutex.c
   )
 
-  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN64)
+  set( PLATFORM_HEADER_FILES 
+    ../gucefCORE/include/CDynamicBuffer.h
+    ../gucefCORE/include/CDynamicBufferAccess.h
+    ../gucefCORE/include/CException.h
+    ../gucefCORE/include/CFileAccess.h
+    ../gucefCORE/include/CICloneable.h
+    ../gucefCORE/include/CIOAccess.h
+    ../gucefCORE/include/CMsgException.h
+    ../gucefCORE/include/DVCPPOSWRAP.h
+    ../gucefCORE/include/DVOSWRAP.h
+    ../gucefCORE/include/MFILE.h
+    ../gucefCORE/include/PAFILE.h
+    ../gucefCORE/include/dvcppfileutils.h
+    ../gucefCORE/include/dvcppstringutils.h
+    ../gucefCORE/include/dvfileutils.h
+    ../gucefCORE/include/dvmd5utils.h
+    ../gucefCORE/include/dvstrutils.h
+    ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDate.h
+    ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CIDate.h
+    ../gucefCORE/include/gucefCORE_CITime.h
+    ../gucefCORE/include/gucefCORE_CResourceMetaData.h
+    ../gucefCORE/include/gucefCORE_CString.h
+    ../gucefCORE/include/gucefCORE_CTime.h
+    ../gucefCORE/include/gucefCORE_CUtf8String.h
+    ../gucefCORE/include/gucefCORE_CVariant.h
+    ../gucefCORE/include/md5.h
+    ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
+    ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
+    ../gucefMT/include/gucefMT_CICloneable.h
+    ../gucefMT/include/gucefMT_CILockable.h
+    ../gucefMT/include/gucefMT_CMutex.h
+    ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CScopeMutex.h
+    ../gucefMT/include/gucefMT_LockStatus.h
+    ../gucefMT/include/gucefMT_ThreadStatus.h
+    ../gucefMT/include/gucefMT_dvmtoswrap.h
+    ../gucefMT/include/gucefMT_mutex.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../gucefCORE/src/CDynamicBuffer.cpp
+    ../gucefCORE/src/CDynamicBufferAccess.cpp
+    ../gucefCORE/src/CException.cpp
+    ../gucefCORE/src/CFileAccess.cpp
+    ../gucefCORE/src/CICloneable.cpp
+    ../gucefCORE/src/CIOAccess.cpp
+    ../gucefCORE/src/CMsgException.cpp
+    ../gucefCORE/src/DVCPPOSWRAP.cpp
+    ../gucefCORE/src/DVOSWRAP.cpp
+    ../gucefCORE/src/IOACCESS.c
+    ../gucefCORE/src/MFILE.c
+    ../gucefCORE/src/PAFILE.c
+    ../gucefCORE/src/dvcppfileutils.cpp
+    ../gucefCORE/src/dvcppstringutils.cpp
+    ../gucefCORE/src/dvfileutils.cpp
+    ../gucefCORE/src/dvmd5utils.c
+    ../gucefCORE/src/dvstrutils.cpp
+    ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDate.cpp
+    ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CIDate.cpp
+    ../gucefCORE/src/gucefCORE_CITime.cpp
+    ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
+    ../gucefCORE/src/gucefCORE_CTime.cpp
+    ../gucefCORE/src/gucefCORE_CUtf8String.cpp
+    ../gucefCORE/src/gucefCORE_CVariant.cpp
+    ../gucefCORE/src/md5.c
+    ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
+    ../gucefMT/src/gucefMT_CICloneable.cpp
+    ../gucefMT/src/gucefMT_CILockable.cpp
+    ../gucefMT/src/gucefMT_CMutex.cpp
+    ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CScopeMutex.cpp
+    ../gucefMT/src/gucefMT_LockStatus.cpp
+    ../gucefMT/src/gucefMT_ThreadStatus.cpp
+    ../gucefMT/src/gucefMT_dvmtoswrap.c
+    ../gucefMT/src/gucefMT_mutex.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (GLX)
@@ -1527,9 +1703,13 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-if ( ANDROID )
+if ( ANDROID32 )
   target_link_libraries( ${MODULE_NAME} dl log )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  target_link_libraries( ${MODULE_NAME} dl log )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   target_link_libraries( ${MODULE_NAME} dl rt )
@@ -1549,17 +1729,25 @@ endif( WIN64 )
 
 include_directories( .. ../../common/include ../gucefCORE ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT ../gucefMT/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../gucefCORE/include/ ../gucefCORE/include/android ../gucefCORE/include/c_api/ ../gucefMT/include/ )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../gucefCORE/include/ ../gucefCORE/include/android ../gucefCORE/include/c_api/ ../gucefMT/include/ )
+endif( ANDROID64 )
 
 if ( ARDUINO )
   include_directories( ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefMT/include/ )
 endif( ARDUINO )
 
-if ( EMSCRIPTEN )
+if ( EMSCRIPTEN32 )
   include_directories( ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefMT/include/ )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefMT/include/ )
+endif( EMSCRIPTEN64 )
 
 if ( GLX )
   include_directories( ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefMT/include/ )

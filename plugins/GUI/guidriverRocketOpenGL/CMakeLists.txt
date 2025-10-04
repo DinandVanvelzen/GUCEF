@@ -41,9 +41,13 @@ add_dependencies( ${MODULE_NAME} RocketControls RocketCore gucefCORE gucefGUI gu
 target_link_libraries( ${MODULE_NAME} RocketControls RocketCore gucefCORE gucefGUI gucefINPUT gucefMT guidriverRocket )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERROCKETGL_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverRocketOpenGL;MODULE_NAME=guidriverRocketOpenGL" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   target_link_libraries( ${MODULE_NAME} EGL GLESv1_CM )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  target_link_libraries( ${MODULE_NAME} EGL GLESv1_CM )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   target_link_libraries( ${MODULE_NAME} GL )
@@ -63,9 +67,13 @@ endif( WIN64 )
 
 include_directories( ../../../common/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../dependencies/libRocket/Include ../../../dependencies/libRocket/Include/Rocket ../../../dependencies/libRocket/Include/Rocket/Controls ../../../dependencies/libRocket/Include/Rocket/Core ../../../dependencies/libRocket/Include/Rocket/Core/Python ../../../dependencies/libRocket/Include/Rocket/Debugger ../../../dependencies/libRocket/Source/Controls ../../../dependencies/libRocket/Source/Core ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../guidriverRocket/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../../platform/gucefCORE/include/android )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../../../platform/gucefCORE/include/linux )

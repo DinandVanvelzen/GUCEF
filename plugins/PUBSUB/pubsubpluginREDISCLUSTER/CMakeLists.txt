@@ -43,14 +43,14 @@ set( SOURCE_FILES
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
     ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
     ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -59,7 +59,26 @@ if (ANDROID)
     ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (ARDUINO)
@@ -81,14 +100,14 @@ elseif (ARDUINO)
   set( PLATFORM_SOURCE_INSTALL "ARDUINO" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
-elseif (EMSCRIPTEN)
+elseif (EMSCRIPTEN32)
   set( PLATFORM_HEADER_FILES 
     ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
     ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
     ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -97,7 +116,26 @@ elseif (EMSCRIPTEN)
     ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN64)
+  set( PLATFORM_HEADER_FILES 
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h
+    ../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp
+    ../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (GLX)
@@ -360,24 +398,32 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( .. ../.. ../../.. ../../../common/include ../../../dependencies/ ../../../dependencies/hiredis ../../../dependencies/redis-plus-plus/src/ ../../../dependencies/redis-plus-plus/src/sw/redis++ ../../../dependencies/redis-plus-plus/src/sw/redis++/cxx11 ../../../dependencies/redis-plus-plus/src/sw/redis++/cxx11/sw ../../../dependencies/redis-plus-plus/src/sw/redis++/cxx11/sw/redis++ ../../../dependencies/redis-plus-plus/src/sw/redis++/no_tls ../../../dependencies/redis-plus-plus/src/sw/redis++/no_tls/sw ../../../dependencies/redis-plus-plus/src/sw/redis++/no_tls/sw/redis++ ../../../dependencies/redis-plus-plus/src/sw/redis++/patterns ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../platform/gucefPUBSUB/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include ../../../tools ../../../tools/redisinfo ../../../tools/redisinfo/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../../dependencies/hiredis ../../../platform/gucefCORE/include/android ../../../tools/redisinfo/include/ )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../../dependencies/hiredis ../../../platform/gucefCORE/include/android ../../../tools/redisinfo/include/ )
+endif( ANDROID64 )
 
 if ( ARDUINO )
   include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
 endif( ARDUINO )
 
-if ( EMSCRIPTEN )
+if ( EMSCRIPTEN32 )
   include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+endif( EMSCRIPTEN64 )
 
 if ( GLX )
-  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+  include_directories( ../../../tools/redisinfo/include/ )
 endif( GLX )
 
 if ( GTK )
-  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+  include_directories( ../../../tools/redisinfo/include/ )
 endif( GTK )
 
 if ( IOS )
@@ -393,7 +439,7 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( NACL )
-  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+  include_directories( ../../../tools/redisinfo/include/ )
 endif( NACL )
 
 if ( OSX )
@@ -401,19 +447,19 @@ if ( OSX )
 endif( OSX )
 
 if ( POSIX )
-  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+  include_directories( ../../../tools/redisinfo/include/ )
 endif( POSIX )
 
 if ( SDL )
-  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+  include_directories( ../../../tools/redisinfo/include/ )
 endif( SDL )
 
 if ( SYMBIAN )
-  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+  include_directories( ../../../tools/redisinfo/include/ )
 endif( SYMBIAN )
 
 if ( UNIX )
-  include_directories( ../../../dependencies/hiredis ../../../tools/redisinfo/include/ )
+  include_directories( ../../../tools/redisinfo/include/ )
 endif( UNIX )
 
 if ( WIN32 )

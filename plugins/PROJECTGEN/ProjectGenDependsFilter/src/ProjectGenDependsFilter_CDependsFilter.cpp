@@ -57,6 +57,16 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_PROJECTGEN_CPROJECTINFO_H
+#include "gucefProjectGen_CProjectInfo.h"
+#define GUCEF_PROJECTGEN_CPROJECTINFO_H
+#endif /* GUCEF_PROJECTGEN_CPROJECTINFO_H ? */
+
+#ifndef GUCEF_PROJECTGEN_CMODULEINFOENTRY_H
+#include "gucefProjectGen_CModuleInfoEntry.h"
+#define GUCEF_PROJECTGEN_CMODULEINFOENTRY_H
+#endif /* GUCEF_PROJECTGEN_CMODULEINFOENTRY_H ? */
+
 #include "ProjectGenDependsFilter_CDependsFilter.h"
 
 /*-------------------------------------------------------------------------//

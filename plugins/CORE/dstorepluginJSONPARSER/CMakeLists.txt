@@ -36,17 +36,25 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( ../../../common/include ../../../dependencies/json-builder ../../../dependencies/json-parser ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser ../../../platform/gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser ../../../platform/gucefCORE/include/android )
+endif( ANDROID64 )
 
 if ( ARDUINO )
   include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
 endif( ARDUINO )
 
-if ( EMSCRIPTEN )
+if ( EMSCRIPTEN32 )
   include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )
+endif( EMSCRIPTEN64 )
 
 if ( IOS )
   include_directories( ../../../dependencies/json-builder ../../../dependencies/json-parser )

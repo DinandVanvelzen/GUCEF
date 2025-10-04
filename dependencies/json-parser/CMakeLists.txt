@@ -21,19 +21,34 @@ set( SOURCE_FILES
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     json.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
     json.c
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    json.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    json.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (ARDUINO)
@@ -51,19 +66,34 @@ elseif (ARDUINO)
   set( PLATFORM_SOURCE_INSTALL "ARDUINO" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
-elseif (EMSCRIPTEN)
+elseif (EMSCRIPTEN32)
   set( PLATFORM_HEADER_FILES 
     json.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
     json.c
   )
 
-  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN64)
+  set( PLATFORM_HEADER_FILES 
+    json.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    json.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (GLX)

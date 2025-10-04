@@ -477,14 +477,14 @@ set( SOURCE_FILES
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     include/Android/OgreAPKFileSystemArchive.h
     include/Android/OgreAPKZipArchive.h
     include/Android/OgreAndroidLogListener.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -499,22 +499,62 @@ if (ANDROID)
     src/Threading/OgreThreadsPThreads.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
-elseif (EMSCRIPTEN)
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    include/Android/OgreAPKFileSystemArchive.h
+    include/Android/OgreAPKZipArchive.h
+    include/Android/OgreAndroidLogListener.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/Android/OgreAPKFileSystemArchive.cpp
+    src/Android/OgreAPKZipArchive.cpp
+    src/Android/OgreAndroidLogListener.cpp
+    src/Android/OgreFileSystemLayer.cpp
+    src/Android/JNI/OgreActivityJNI.cpp
+    src/Threading/OgreBarrierPThreads.cpp
+    src/Threading/OgreDefaultWorkQueueStandard.cpp
+    src/Threading/OgreLightweightMutexPThreads.cpp
+    src/Threading/OgreThreadsPThreads.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN32)
   set( PLATFORM_HEADER_FILES 
     include/Emscripten/OgreTimerImp.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
     src/Emscripten/OgreTimer.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN" )
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN64)
+  set( PLATFORM_HEADER_FILES 
+    include/Emscripten/OgreTimerImp.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/Emscripten/OgreTimer.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (GLX)
@@ -653,9 +693,13 @@ add_dependencies( ${MODULE_NAME} freetype )
 target_link_libraries( ${MODULE_NAME} freetype )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=Ogre;MODULE_NAME=Ogre;OGRE_NONCLIENT_BUILD;OGRE_NO_CONFIG_DIALOG" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   target_link_libraries( ${MODULE_NAME} atomic dl )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  target_link_libraries( ${MODULE_NAME} atomic dl )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   target_link_libraries( ${MODULE_NAME} atomic dl )
@@ -667,13 +711,21 @@ endif( LINUX64 )
 
 include_directories( ../../freetype/include ../../freetype/include/freetype ../../freetype/include/freetype/config ../../freetype/include/freetype/internal ../../freetype/include/freetype/internal/services ../../freetype/src ../../freetype/src/winfonts ../include include include/Hash include/Threading src src/nedmalloc src/stbi )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( include/Android )
-endif( ANDROID )
+endif( ANDROID32 )
 
-if ( EMSCRIPTEN )
+if ( ANDROID64 )
+  include_directories( include/Android )
+endif( ANDROID64 )
+
+if ( EMSCRIPTEN32 )
   include_directories( include/Emscripten )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( include/Emscripten )
+endif( EMSCRIPTEN64 )
 
 if ( GLX )
   include_directories( src/GLX )

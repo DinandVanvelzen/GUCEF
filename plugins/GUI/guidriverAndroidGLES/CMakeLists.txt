@@ -13,7 +13,7 @@
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     include/guidriverAndroidGLES.h
     include/guidriverAndroidGLES_CAndroidGLESWindowContext.h
@@ -23,7 +23,7 @@ if (ANDROID)
     include/guidriverAndroidGLES_pluginAPI.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -32,7 +32,29 @@ if (ANDROID)
     src/guidriverAndroidGLES_pluginAPI.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    include/guidriverAndroidGLES.h
+    include/guidriverAndroidGLES_CAndroidGLESWindowContext.h
+    include/guidriverAndroidGLES_CAndroidWindowManagerImp.h
+    include/guidriverAndroidGLES_config.h
+    include/guidriverAndroidGLES_macros.h
+    include/guidriverAndroidGLES_pluginAPI.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/guidriverAndroidGLES_CAndroidGLESWindowContext.cpp
+    src/guidriverAndroidGLES_CAndroidWindowManagerImp.cpp
+    src/guidriverAndroidGLES_pluginAPI.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 endif ()
@@ -41,23 +63,37 @@ endif ()
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 
-if( ANDROID )
+if( ANDROID32 )
+  set( MODULE_NAME "guidriverAndroidGLES" )
+elseif( ANDROID64 )
   set( MODULE_NAME "guidriverAndroidGLES" )
 endif()
-if( ANDROID )
+if( ANDROID32 )
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+elseif( ANDROID64 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=guidriverAndroidGLES" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefMT )
   target_link_libraries( ${MODULE_NAME} EGL GLESv1_CM android android_native_app_glue gucefCORE gucefGUI gucefMT )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERANDROIDGLES_BUILD_MODULE" )
-endif( ANDROID )
+endif( ANDROID32 )
 
-if ( ANDROID )
+if ( ANDROID64 )
+  add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefMT )
+  target_link_libraries( ${MODULE_NAME} EGL GLESv1_CM android android_native_app_glue gucefCORE gucefGUI gucefMT )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERANDROIDGLES_BUILD_MODULE" )
+endif( ANDROID64 )
+
+if ( ANDROID32 )
   include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include include )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include include )
+endif( ANDROID64 )
 
 
 
@@ -66,7 +102,9 @@ endif( ANDROID )
 
 
 
-if (ANDROID)
+if (ANDROID32)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (ANDROID64)
 GUCEF_config_lib( ${MODULE_NAME} )
 endif()
 

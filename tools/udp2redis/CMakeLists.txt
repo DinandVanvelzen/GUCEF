@@ -41,17 +41,25 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( ../../common/include ../../dependencies/hiredis ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../dependencies/hiredis ../../platform/gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../dependencies/hiredis ../../platform/gucefCORE/include/android )
+endif( ANDROID64 )
 
 if ( ARDUINO )
   include_directories( ../../dependencies/hiredis )
 endif( ARDUINO )
 
-if ( EMSCRIPTEN )
+if ( EMSCRIPTEN32 )
   include_directories( ../../dependencies/hiredis )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../dependencies/hiredis )
+endif( EMSCRIPTEN64 )
 
 if ( IOS )
   include_directories( ../../dependencies/hiredis )

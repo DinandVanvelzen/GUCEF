@@ -1,5 +1,5 @@
 <ModuleInfoEntry>
-    <Module Name="pubsubpluginMSMQ" Type="SharedLibrary" Platform="all" Tags="plugin">
+    <Module Name="pubsubpluginMSMQ" Type="SharedLibrary" Platform="mswin" Tags="plugin">
         <Dependencies>
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />

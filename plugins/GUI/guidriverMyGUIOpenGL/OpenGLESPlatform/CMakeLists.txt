@@ -13,7 +13,7 @@
 
 
 
-if (ANDROID)
+if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
     ../../../../dependencies/MyGui/Common/FileSystemInfo/FileSystemInfo.h
     include/MyGUI_OpenGLDiagnostic.h
@@ -24,7 +24,7 @@ if (ANDROID)
     include/MyGUI_OpenGLVertexBuffer.h
   )
 
-  set( PLATFORM_HEADER_INSTALL "ANDROID" )
+  set( PLATFORM_HEADER_INSTALL "ANDROID32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
@@ -34,7 +34,31 @@ if (ANDROID)
     src/MyGUI_OpenGLVertexBuffer.cpp
   )
 
-  set( PLATFORM_SOURCE_INSTALL "ANDROID" )
+  set( PLATFORM_SOURCE_INSTALL "ANDROID32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (ANDROID64)
+  set( PLATFORM_HEADER_FILES 
+    ../../../../dependencies/MyGui/Common/FileSystemInfo/FileSystemInfo.h
+    include/MyGUI_OpenGLDiagnostic.h
+    include/MyGUI_OpenGLImageLoader.h
+    include/MyGUI_OpenGLRTTexture.h
+    include/MyGUI_OpenGLRenderManager.h
+    include/MyGUI_OpenGLTexture.h
+    include/MyGUI_OpenGLVertexBuffer.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "ANDROID64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/MyGUI_OpenGLRTTexture.cpp
+    src/MyGUI_OpenGLRenderManager.cpp
+    src/MyGUI_OpenGLTexture.cpp
+    src/MyGUI_OpenGLVertexBuffer.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "ANDROID64" )
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 endif ()
@@ -43,22 +67,35 @@ endif ()
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 
-if( ANDROID )
+if( ANDROID32 )
+  set( MODULE_NAME "MyGUI.OpenGLESPlatform" )
+elseif( ANDROID64 )
   set( MODULE_NAME "MyGUI.OpenGLESPlatform" )
 endif()
-if( ANDROID )
+if( ANDROID32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( ANDROID64 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 endif()
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=MyGUI_OpenGLESPlatform" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} MyGUI.Engine )
   target_link_libraries( ${MODULE_NAME} GLESv1_CM MyGUI.Engine )
-endif( ANDROID )
+endif( ANDROID32 )
 
-if ( ANDROID )
+if ( ANDROID64 )
+  add_dependencies( ${MODULE_NAME} MyGUI.Engine )
+  target_link_libraries( ${MODULE_NAME} GLESv1_CM MyGUI.Engine )
+endif( ANDROID64 )
+
+if ( ANDROID32 )
   include_directories( ../../../../dependencies/MyGui/Common/FileSystemInfo ../../../../dependencies/MyGui/MyGUIEngine/include ../../../../dependencies/freetype/include ../../../../dependencies/freetype/include/freetype ../../../../dependencies/freetype/include/freetype/config ../../../../dependencies/freetype/include/freetype/internal ../../../../dependencies/freetype/include/freetype/internal/services ../../../../dependencies/freetype/src ../../../../dependencies/freetype/src/winfonts include )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../../../dependencies/MyGui/Common/FileSystemInfo ../../../../dependencies/MyGui/MyGUIEngine/include ../../../../dependencies/freetype/include ../../../../dependencies/freetype/include/freetype ../../../../dependencies/freetype/include/freetype/config ../../../../dependencies/freetype/include/freetype/internal ../../../../dependencies/freetype/include/freetype/internal/services ../../../../dependencies/freetype/src ../../../../dependencies/freetype/src/winfonts include )
+endif( ANDROID64 )
 
 
 
@@ -67,7 +104,9 @@ endif( ANDROID )
 
 
 
-if (ANDROID)
+if (ANDROID32)
+GUCEF_config_lib( ${MODULE_NAME} )
+elseif (ANDROID64)
 GUCEF_config_lib( ${MODULE_NAME} )
 endif()
 

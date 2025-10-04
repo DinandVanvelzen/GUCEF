@@ -49,9 +49,13 @@ GUCEF_config_tool( SVNMagicMerge )
 
 include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefPATCHER/include ../ArchiveDiffLib/include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../platform/gucefCORE/include/android )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../../platform/gucefCORE/include/linux )

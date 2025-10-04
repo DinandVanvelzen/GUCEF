@@ -36,17 +36,25 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( ../../common/include ../../platform ../../platform/gucefCORE ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefLOADER/include ../../platform/gucefMT ../../platform/gucefMT/include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
+endif( ANDROID64 )
 
 if ( ARDUINO )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
 endif( ARDUINO )
 
-if ( EMSCRIPTEN )
+if ( EMSCRIPTEN32 )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )
+endif( EMSCRIPTEN64 )
 
 if ( IOS )
   include_directories( ../../platform/gucefCORE/include/ ../../platform/gucefCORE/include/c_api/ ../../platform/gucefMT/include/ )

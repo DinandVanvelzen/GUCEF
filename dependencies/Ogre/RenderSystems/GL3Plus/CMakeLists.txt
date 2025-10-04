@@ -219,20 +219,28 @@ endif( WIN64 )
 
 include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../OgreMain/include ../../OgreMain/include/Hash ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/nedmalloc ../../OgreMain/src/stbi ../../include include include/GL include/GLSL )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../../OgreMain/include/Android )
-endif( ANDROID )
+endif( ANDROID32 )
 
-if ( EMSCRIPTEN )
+if ( ANDROID64 )
+  include_directories( ../../OgreMain/include/Android )
+endif( ANDROID64 )
+
+if ( EMSCRIPTEN32 )
   include_directories( ../../OgreMain/include/Emscripten )
-endif( EMSCRIPTEN )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../OgreMain/include/Emscripten )
+endif( EMSCRIPTEN64 )
 
 if ( GLX )
-  include_directories( ../../OgreMain/src/GLX include/windowing include/windowing/GLX src src/windowing src/windowing/GLX )
+  include_directories( include/windowing include/windowing/GLX src src/windowing src/windowing/GLX )
 endif( GLX )
 
 if ( GTK )
-  include_directories( ../../OgreMain/include/gtk ../../OgreMain/src/gtk include/windowing include/windowing/gtk src src/windowing src/windowing/gtk )
+  include_directories( include/windowing include/windowing/gtk src src/windowing src/windowing/gtk )
 endif( GTK )
 
 if ( IOS )

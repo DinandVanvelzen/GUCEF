@@ -37,6 +37,11 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_PROJECTGEN_CPROJECTINFO_H
+#include "gucefProjectGen_CProjectInfo.h"
+#define GUCEF_PROJECTGEN_CPROJECTINFO_H
+#endif /* GUCEF_PROJECTGEN_CPROJECTINFO_H ? */
+
 #include "gucefProjectGen_CArduinoCLIGenerator.h"
 
 /*-------------------------------------------------------------------------//
@@ -215,7 +220,7 @@ IsArduinoCompilationTarget( const CModuleInfoEntryPtr& moduleInfoEntry ,
             ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleInfo->moduleType ) &&
             ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleInfo->moduleType )   &&
             ( MODULETYPE_REFERENCE_LIBRARY != moduleInfo->moduleType )         &&
-            ( MODULETYPE_EXECUTABLE != moduleInfo->moduleType || ( MODULETYPE_EXECUTABLE == moduleInfo->moduleType && HasPlatformDefinition( moduleInfoEntry, "arduino" ) ) ) )
+            ( MODULETYPE_EXECUTABLE != moduleInfo->moduleType || ( MODULETYPE_EXECUTABLE == moduleInfo->moduleType && moduleInfoEntry->IsApplicableForPlatform( KnownPlatforms::Arduino ) ) ) )
         {
             return true;
         }

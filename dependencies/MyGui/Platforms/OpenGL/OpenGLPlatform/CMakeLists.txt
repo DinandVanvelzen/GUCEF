@@ -51,9 +51,13 @@ add_dependencies( ${MODULE_NAME} MyGUI.Engine )
 target_link_libraries( ${MODULE_NAME} MyGUI.Engine )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=MyGUI_OpenGLPlatform;MODULE_NAME=MyGUI_OpenGLPlatform" )
 
-if ( ANDROID )
+if ( ANDROID32 )
   target_link_libraries( ${MODULE_NAME} GLESv1_CM )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  target_link_libraries( ${MODULE_NAME} GLESv1_CM )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   target_link_libraries( ${MODULE_NAME} GL )

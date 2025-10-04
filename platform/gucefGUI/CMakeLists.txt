@@ -119,9 +119,13 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
 include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefIMAGE/include ../gucefMT/include ../gucefVFS/include include )
 
-if ( ANDROID )
+if ( ANDROID32 )
   include_directories( ../gucefCORE/include/android )
-endif( ANDROID )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
+  include_directories( ../gucefCORE/include/android )
+endif( ANDROID64 )
 
 if ( LINUX32 )
   include_directories( ../gucefCORE/include/linux )

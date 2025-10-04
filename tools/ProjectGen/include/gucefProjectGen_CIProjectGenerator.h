@@ -40,6 +40,11 @@
 #define GUCEF_PROJECTGEN_MACROS_H
 #endif /* GUCEF_PROJECTGEN_MACROS_H ? */
 
+#ifndef GUCEF_PROJECTGEN_CPROJECTINFO_H
+#include "gucefProjectGen_CProjectInfo.h"
+#define GUCEF_PROJECTGEN_CPROJECTINFO_H
+#endif /* GUCEF_PROJECTGEN_CPROJECTINFO_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

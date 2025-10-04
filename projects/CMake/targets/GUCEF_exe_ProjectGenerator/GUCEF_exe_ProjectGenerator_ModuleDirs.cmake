@@ -13,6 +13,6 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${C
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefMT ${CMAKE_BINARY_DIR}/gucefMT )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstorepluginPARSIFALXML ${CMAKE_BINARY_DIR}/dstorepluginPARSIFALXML )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ProjectGen ${CMAKE_BINARY_DIR}/ProjectGen )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ProjectGen/plugins/ProjectGenDependsFilter ${CMAKE_BINARY_DIR}/ProjectGenDependsFilter )
-add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ProjectGen/plugins/ProjectGenVSImporter ${CMAKE_BINARY_DIR}/ProjectGenVSImporter )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PROJECTGEN/ProjectGenDependsFilter ${CMAKE_BINARY_DIR}/ProjectGenDependsFilter )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PROJECTGEN/ProjectGenVSImporter ${CMAKE_BINARY_DIR}/ProjectGenVSImporter )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ProjectGenerator ${CMAKE_BINARY_DIR}/ProjectGenerator )
