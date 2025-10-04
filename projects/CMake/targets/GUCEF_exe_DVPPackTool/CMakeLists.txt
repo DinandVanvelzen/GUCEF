@@ -108,26 +108,62 @@ if (NOT APPLE)
   set(CMAKE_DEBUG_POSTFIX "_d")
 endif ()
 
-# Add an option to enable/disable SIMD
-option(USE_SIMD "Enable SIMD optimizations (SSE/NEON)" ON)
+# ---- SIMD Options ----
+option(USE_SIMD "Enable SIMD optimizations (SSE/NEON/WASM)" ON)
+option(TUNE_FOR_LOCAL "Tune for local CPU (may reduce portability)" OFF)
+
+include(CheckCXXCompilerFlag)
 
 if (USE_SIMD)
   if (MSVC)
     add_compile_options(/fp:fast)
+
   elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
           CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+
     if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-      message(STATUS "Enabling WebAssembly SIMD")
-      add_compile_options(-msimd128)
+      # WebAssembly SIMD
+      check_cxx_compiler_flag("-msimd128" HAS_WASM_SIMD)
+      if (HAS_WASM_SIMD)
+        message(STATUS "Enabling WebAssembly SIMD")
+        add_compile_options(-msimd128)
+        add_definitions(-DHAVE_WASM_SIMD)
+      endif()
+
     elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i.86")
-      message(STATUS "Enabling SSE on x86/x64")
-      add_compile_options(-msse)
-    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "armv7" OR
-            CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
-      message(STATUS "Enabling NEON on ARM")
-      add_compile_options(-mfpu=neon)
-      # or: add_compile_options(-march=armv8-a+simd)
+      # x86/x64 SSE
+      check_cxx_compiler_flag("-msse" HAS_SSE)
+      if (HAS_SSE)
+        message(STATUS "Enabling SSE on x86/x64")
+        add_compile_options(-msse)
+        add_definitions(-DHAVE_SSE)
+      endif()
+
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "armv7")
+      # 32-bit ARM NEON
+      check_cxx_compiler_flag("-mfpu=neon" HAS_NEON)
+      if (HAS_NEON)
+        message(STATUS "Enabling NEON on 32-bit ARM")
+        add_compile_options(-mfpu=neon)
+        add_definitions(-DHAVE_NEON)
+      endif()
+
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+      # 64-bit ARM (NEON is mandatory)
+      message(STATUS "AArch64: NEON always available")
+      add_compile_options(-march=armv8-a)
+      add_definitions(-DHAVE_NEON)
+
+      if (TUNE_FOR_LOCAL)
+        # Optional tuning for your local board (e.g. Rockchip RK3588S big cores)
+        check_cxx_compiler_flag("-mcpu=cortex-a76" HAS_A76)
+        if (HAS_A76)
+          message(STATUS "Tuning for Cortex-A76 (local build)")
+          add_compile_options(-mcpu=cortex-a76)
+        endif()
+      endif()
     endif()
+
   endif()
 else()
   message(STATUS "SIMD optimizations disabled")
