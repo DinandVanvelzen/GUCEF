@@ -208,7 +208,49 @@ include(ConfigureBuild)
 # Now setup targets
 ##################################################################
 
+# Add all relevant modules for the target
 include( GUCEF_exe_UdpTransformer_ModuleDirs.cmake )
 
 # Provide CPack packaging target
 include( GUCEF_exe_UdpTransformer_Packaging.cmake )
+
+##################################################################
+# Add documentation capability if feasible
+##################################################################
+
+# Add documentation generation if Doxygen is available
+option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ON)
+
+if(BUILD_DOCUMENTATION)
+    find_package(Doxygen)
+    if(DOXYGEN_FOUND)
+        # Add a documentation target that generates docs for the entire solution
+        set(DOXYGEN_INPUT_DIR "${GUCEF_SOURCE_DIR}")
+        set(DOXYGEN_OUTPUT_DIR "${GUCEF_BINARY_DIR}/docs/doxygen")
+        set(DOXYGEN_CONFIG_IN "${GUCEF_SOURCE_DIR}/projects/CMake/Templates/Doxyfile.in")
+        set(DOXYGEN_CONFIG_OUT "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
+        
+        # Create docs directory
+        file(MAKE_DIRECTORY ${DOXYGEN_OUTPUT_DIR})
+        
+        # Configure the Doxyfile
+        configure_file(${DOXYGEN_CONFIG_IN} ${DOXYGEN_CONFIG_OUT} @ONLY)
+
+        # Add the main documentation target
+        add_custom_target(DOCS
+            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIG_OUT}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "Generating API documentation with Doxygen for GUCEF_exe_UdpTransformer"
+            VERBATIM
+        )
+
+        # Set target properties to organize in IDE
+        set_target_properties(DOCS PROPERTIES
+            FOLDER "Documentation"
+        )
+        
+        message(STATUS "Documentation target 'DOCS' will be available for GUCEF_exe_UdpTransformer")
+    else()
+        message(WARNING "Doxygen not found: Documentation will not be available")
+    endif()
+endif()

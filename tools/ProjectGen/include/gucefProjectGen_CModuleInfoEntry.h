@@ -223,7 +223,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
      *  Returns whether the given module as configured is applicable for the given platform
      *  Many modules will only support certain platforms due to depending on platform specifics
      */
-    bool IsApplicableForPlatform( const CORE::CString& platform ) const;
+    bool IsApplicableForPlatform( const CORE::CString& platform        ,
+                                  bool autoConsiderAllPlatforms = true ) const;
 
     /**
      *  Independent modules have relevance in their own right.

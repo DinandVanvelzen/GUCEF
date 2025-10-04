@@ -311,16 +311,34 @@ CProjectInfo::GetAllTargets( CProjectTargetInfoBundle& targets     ,
             // First establish the baseline superset
             // We want to do this once since its the same set for every non-'all'-platform we compare against
 
-            CORE::CStringSet taggedModuleNames;
-            GetTaggedModulesByName( tag, taggedModuleNames, KnownPlatforms::AllPlatforms );
+            CORE::CStringSet allPlatTaggedModuleNames;
+            GetTaggedModulesByName( tag, allPlatTaggedModuleNames, KnownPlatforms::AllPlatforms );
 
             CProjectTargetInfoPtr allPlatformsTarget = targets.GetOrCreatePlatformProjectTarget( projectName, KnownPlatforms::AllPlatforms );
             if ( !allPlatformsTarget.IsNULL() )
             {
-                bool collectedBaseSet = GetModuleInfoEntries( taggedModuleNames            ,
-                                                              KnownPlatforms::AllPlatforms ,
-                                                              true                         ,
-                                                              allPlatformsTarget->modules  );
+                TModuleDependencyNodePtrSet allPlatformsDependencyChains;
+                bool collectedBaseSet = TryGetDependencyChainsForModules( allPlatformsDependencyChains ,
+                                                                          allPlatTaggedModuleNames     ,
+                                                                          KnownPlatforms::AllPlatforms ,
+                                                                          true                         );
+
+                allPlatformsTarget->modules.clear();
+                TModuleDependencyNodePtrSet::iterator d = allPlatformsDependencyChains.begin();
+                while ( d != allPlatformsDependencyChains.end() )
+                {
+                    const CModuleDependencyNodePtr& dependencyChain = (*d);
+                    CModuleInfoEntryPtr moduleInfoEntry = dependencyChain->GetModule();
+                    if ( !moduleInfoEntry.IsNULL() )
+                    {
+                        allPlatformsTarget->modules.insert( moduleInfoEntry );
+                        totalSuccess = dependencyChain->GatherDependenciesOfDependencies( allPlatformsTarget->modules, false ) && totalSuccess;
+                    }
+                    ++d;
+                }
+
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Tag \"" + tag + "\" for the platform 'all' has " +
+                    CORE::ToString( allPlatformsTarget->modules.size() ) + " modules. This will serve as a baseline for platforms" );
 
                 TStringSet::iterator p = platformsToConsider.begin();
                 while ( p != platformsToConsider.end() )
@@ -333,12 +351,13 @@ CProjectInfo::GetAllTargets( CProjectTargetInfoBundle& targets     ,
                         CProjectTargetInfoPtr platformTarget = targets.GetOrCreatePlatformProjectTarget( projectName, platform );
                         if ( !platformTarget.IsNULL() )
                         {
-                            CORE::CStringSet taggedModuleNames;
-                            GetTaggedModulesByName( tag, taggedModuleNames, platform );
+                            CORE::CStringSet platformTaggedModuleNames;
+                            GetTaggedModulesByName( tag, platformTaggedModuleNames, platform );
 
+                            platformTarget->modules.clear();
                             bool createdDelta = GetAllModuleDependenciesDeltaAcrossPlatforms( platformTarget->modules      ,
-                                                                                              taggedModuleNames            ,
-                                                                                              KnownPlatforms::AllPlatforms ,
+                                                                                              allPlatformsDependencyChains ,
+                                                                                              platformTaggedModuleNames    ,
                                                                                               platform                     ,
                                                                                               true                         ,
                                                                                               true                         ,
@@ -1228,6 +1247,51 @@ CProjectInfo::GetModuleDependencyDeltaAcrossPlatforms( TModuleInfoEntryPtrSet& d
 /*---------------------------------------------------------------------------*/
 
 bool
+CProjectInfo::GetAllModuleDependenciesDeltaAcrossPlatforms( TModuleInfoEntryPtrSet& dependencyDelta      ,
+                                                            const TModuleDependencyNodePtrSet& baseTrees ,
+                                                            const CORE::CStringSet& moduleNames          ,
+                                                            const CORE::CString& deltaPlatform           ,
+                                                            bool includeDependenciesOfDependencies       ,
+                                                            bool addDependencies                         ,
+                                                            bool addLinkerDependencies                   ,
+                                                            bool addRuntimeDependencies                  ) const
+{GUCEF_TRACE;
+
+    // This functionality requires dependency chains to be built
+    if GUCEF_PREDICT_FALSE( !AreDependencyChainsInitialized() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:GetAllModuleDependenciesDeltaAcrossPlatforms: Dependency chains are not initialized, cannot determine dependency delta" );
+        return false;
+    }
+
+    bool totalSuccess = true;
+
+    TModuleDependencyNodePtrSet otherTreeNodes;
+    CORE::CStringSet::const_iterator i = moduleNames.begin();
+    while ( i != moduleNames.end() )
+    {
+        const CORE::CString& moduleName = (*i);
+
+        CModuleDependencyNodePtr otherTree;
+        if ( TryGetModuleDependencyChain( otherTree, moduleName, deltaPlatform, true ) || otherTree.IsNULL() )
+        {
+            otherTreeNodes.insert( otherTree );
+        }
+        else
+        {
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllModuleDependenciesDeltaAcrossPlatforms: No dependency chain found for module \"" + moduleName + "\" on platform " + deltaPlatform );
+        }
+        ++i;
+    }
+
+    // Note that the directionality of the delta is important
+    // ie it matters which tree you call the function on relative to the other tree
+    return CModuleDependencyNode::GetSetDependencyDelta( dependencyDelta, baseTrees, otherTreeNodes, includeDependenciesOfDependencies, addDependencies, addLinkerDependencies, addRuntimeDependencies ) && totalSuccess;     
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
 CProjectInfo::GetAllModuleDependenciesDeltaAcrossPlatforms( TModuleInfoEntryPtrSet& dependencyDelta  ,
                                                             const CORE::CStringSet& moduleNames      ,
                                                             const CORE::CString& basePlatform        ,
@@ -1239,7 +1303,7 @@ CProjectInfo::GetAllModuleDependenciesDeltaAcrossPlatforms( TModuleInfoEntryPtrS
 {GUCEF_TRACE;
 
     // This functionality requires dependency chains to be built
-    if ( !AreDependencyChainsInitialized() )
+    if GUCEF_PREDICT_FALSE( !AreDependencyChainsInitialized() )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:GetAllModuleDependenciesDeltaAcrossPlatforms: Dependency chains are not initialized, cannot determine dependency delta" );
         return false;
@@ -1252,14 +1316,14 @@ CProjectInfo::GetAllModuleDependenciesDeltaAcrossPlatforms( TModuleInfoEntryPtrS
         const CORE::CString& moduleName = (*i);
 
         CModuleDependencyNodePtr baseTree;
-        if ( !TryGetModuleDependencyChain( baseTree, moduleName, basePlatform, true ) || baseTree.IsNULL() )
+        if ( TryGetModuleDependencyChain( baseTree, moduleName, basePlatform, true ) || baseTree.IsNULL() )
+        {
+            baseTreeNodes.insert( baseTree );
+        }
+        else
         {
             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllModuleDependenciesDeltaAcrossPlatforms: No dependency chain found for module \"" + moduleName + "\" on platform " + basePlatform );
-            return false;
         }
-
-        baseTreeNodes.insert( baseTree );
-
         ++i;
     }
 
@@ -1270,14 +1334,14 @@ CProjectInfo::GetAllModuleDependenciesDeltaAcrossPlatforms( TModuleInfoEntryPtrS
         const CORE::CString& moduleName = (*i);
 
         CModuleDependencyNodePtr otherTree;
-        if ( !TryGetModuleDependencyChain( otherTree, moduleName, basePlatform, true ) || otherTree.IsNULL() )
+        if ( TryGetModuleDependencyChain( otherTree, moduleName, deltaPlatform, true ) || otherTree.IsNULL() )
         {
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllModuleDependenciesDeltaAcrossPlatforms: No dependency chain found for module \"" + moduleName + "\" on platform " + basePlatform );
-            return false;
+            otherTreeNodes.insert( otherTree );
         }
-
-        otherTreeNodes.insert( otherTree );
-
+        else
+        {
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllModuleDependenciesDeltaAcrossPlatforms: No dependency chain found for module \"" + moduleName + "\" on platform " + deltaPlatform );
+        }
         ++i;
     }
 
@@ -1899,8 +1963,28 @@ CProjectInfo::TryGetDependencyChainsForModules( TModuleDependencyNodePtrSet& dep
                                                 bool onlyCheckPlatformSpecific                ) const
 {GUCEF_TRACE;
 
-    
-    return false;
+    bool totalSuccess = true;
+
+    CORE::CStringSet::const_iterator i = moduleNames.begin();
+    while ( i != moduleNames.end() )
+    {
+        const CORE::CString& moduleName = (*i);
+
+        CModuleDependencyNodePtr dependencyChain;
+        if ( TryGetModuleDependencyChain( dependencyChain, moduleName, targetPlatform, onlyCheckPlatformSpecific ) && !dependencyChain.IsNULL() )
+        {
+            dependencyChains.insert( dependencyChain );
+        }
+        else
+        {
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_IMPORTANT, "ProjectInfo:TryGetDependencyChainsForModules: Failed to obtain actual module for module name: \"" +
+                moduleName + "\" for platform " + targetPlatform );
+            totalSuccess = false;
+        }
+        ++i;
+    }
+
+    return totalSuccess;
 }
 
 /*---------------------------------------------------------------------------*/

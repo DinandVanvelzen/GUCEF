@@ -874,7 +874,7 @@ CModuleDependencyNode::GetDependencyDelta( TModuleInfoEntryPtrSet& dependencyDel
     // the same base set of ModuleInfoEntry objects is used to construct the different dependency trees.
     // as such the pointers to said objects can be directly compared.
     // Do note to change this to a consensus name string compare should that assumption no longer hold for some reason in the future
-    #if 1
+    #if 0
 
     TModuleInfoEntryPtrSet::iterator i = allThisNodeDependencies.begin();
     while ( i != allThisNodeDependencies.end() )
@@ -946,14 +946,23 @@ CModuleDependencyNode::GetSetDependencyDelta( TModuleInfoEntryPtrSet& dependency
     while ( b != baseTrees.end() )
     {
         const CModuleDependencyNodePtr& oneTree = (*b);
+        if ( !oneTree.IsNULL() )
+        {
+            const CORE::CString& platform = oneTree->GetTargetPlatform();
+            const CModuleInfoEntryPtr& module = oneTree->GetModule();
 
-        if ( addDependencies )
-            oneTree->GatherDependencyModules( allBaseDependencies, includeDependenciesOfDependencies );
-        if ( addLinkerDependencies )
-            oneTree->GatherLinkerDependencyModules( allBaseDependencies, includeDependenciesOfDependencies );
-        if ( addRuntimeDependencies )
-            oneTree->GatherRuntimeDependencyModules( allBaseDependencies, includeDependenciesOfDependencies );
+            if ( !module.IsNULL() && module->IsApplicableForPlatform( platform ) )
+            {
+                allBaseDependencies.insert( module );
 
+                if ( addDependencies )
+                    oneTree->GatherDependencyModules( allBaseDependencies, includeDependenciesOfDependencies );
+                if ( addLinkerDependencies )
+                    oneTree->GatherLinkerDependencyModules( allBaseDependencies, includeDependenciesOfDependencies );
+                if ( addRuntimeDependencies )
+                    oneTree->GatherRuntimeDependencyModules( allBaseDependencies, includeDependenciesOfDependencies );
+            }
+        }
         ++b;
     }
 
@@ -963,15 +972,24 @@ CModuleDependencyNode::GetSetDependencyDelta( TModuleInfoEntryPtrSet& dependency
     while ( o != otherTrees.end() )
     {
         const CModuleDependencyNodePtr& oneTree = (*o);
+        if ( !oneTree.IsNULL() )
+        {
+            const CORE::CString& platform = oneTree->GetTargetPlatform();
+            const CModuleInfoEntryPtr& module = oneTree->GetModule();
 
-        if ( addDependencies )
-            oneTree->GatherDependencyModules( allOtherDependencies, includeDependenciesOfDependencies );
-        if ( addLinkerDependencies )
-            oneTree->GatherLinkerDependencyModules( allOtherDependencies, includeDependenciesOfDependencies );
-        if ( addRuntimeDependencies )
-            oneTree->GatherRuntimeDependencyModules( allOtherDependencies, includeDependenciesOfDependencies );
+            if ( !module.IsNULL() && module->IsApplicableForPlatform( platform ) )
+            {
+                allOtherDependencies.insert( module );
 
-        ++b;
+                if ( addDependencies )
+                    oneTree->GatherDependencyModules( allOtherDependencies, includeDependenciesOfDependencies );
+                if ( addLinkerDependencies )
+                    oneTree->GatherLinkerDependencyModules( allOtherDependencies, includeDependenciesOfDependencies );
+                if ( addRuntimeDependencies )
+                    oneTree->GatherRuntimeDependencyModules( allOtherDependencies, includeDependenciesOfDependencies );
+            }
+        }
+        ++o;
     }
 
     // Now determine the delta between the two sets
@@ -980,12 +998,13 @@ CModuleDependencyNode::GetSetDependencyDelta( TModuleInfoEntryPtrSet& dependency
     // the same base set of ModuleInfoEntry objects is used to construct the different dependency trees.
     // as such the pointers to said objects can be directly compared.
     // Do note to change this to a consensus name string compare should that assumption no longer hold for some reason in the future
-    #if 1 
-    TModuleInfoEntryPtrSet::iterator i = allBaseDependencies.begin();
-    while ( i != allBaseDependencies.end() )
+    #if 1
+
+    TModuleInfoEntryPtrSet::iterator i = allOtherDependencies.begin();
+    while ( i != allOtherDependencies.end() )
     {
         const CModuleInfoEntryPtr& module = (*i);
-        bool foundSameOther = allOtherDependencies.find( module ) != allOtherDependencies.end();
+        bool foundSameOther = allBaseDependencies.find( module ) != allBaseDependencies.end();
         if ( !foundSameOther )
         {
             dependencyDelta.insert( module );
@@ -995,15 +1014,15 @@ CModuleDependencyNode::GetSetDependencyDelta( TModuleInfoEntryPtrSet& dependency
 
     #else
 
-    TModuleInfoEntryPtrSet::iterator i = allBaseDependencies.begin();
-    while ( i != allBaseDependencies.end() )
+    TModuleInfoEntryPtrSet::iterator i = allOtherDependencies.begin();
+    while ( i != allOtherDependencies.end() )
     {
         const CModuleInfoEntryPtr& module = (*i);
         const CORE::CString& moduleName = module->GetConsensusName();
 
         bool foundSameOther = false;
-        TModuleInfoEntryPtrSet::iterator n = allOtherDependencies.begin();
-        while ( n != allOtherDependencies.end() )
+        TModuleInfoEntryPtrSet::iterator n = allBaseDependencies.begin();
+        while ( n != allBaseDependencies.end() )
         {
             const CModuleInfoEntryPtr& otherModule = (*n);
             const CORE::CString& otherModuleName = otherModule->GetConsensusName();

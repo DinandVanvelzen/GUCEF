@@ -1,5 +1,5 @@
 <ModuleInfoEntry>
-    <Module Name="ProjectGenDependsFilter" Type="SharedLibrary" Platform="All">
+    <Module Name="ProjectGenDependsFilter" Type="SharedLibrary" Platform="All" Tags="plugin">
         <Dependencies>
             <Dependency Name="gucefHeaders" />
             <Dependency Name="gucefMT" />

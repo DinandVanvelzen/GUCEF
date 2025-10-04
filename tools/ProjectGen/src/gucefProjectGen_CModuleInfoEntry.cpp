@@ -1036,7 +1036,8 @@ CModuleInfoEntry::HasLinkerDependency( const CORE::CString& platform       ,
 /*-------------------------------------------------------------------------*/
 
 bool
-CModuleInfoEntry::IsApplicableForPlatform( const CORE::CString& platform ) const
+CModuleInfoEntry::IsApplicableForPlatform( const CORE::CString& platform ,
+                                           bool autoConsiderAllPlatforms ) const
 {GUCEF_TRACE;
 
     // Check for a platform specific definition
@@ -1055,7 +1056,7 @@ CModuleInfoEntry::IsApplicableForPlatform( const CORE::CString& platform ) const
     }
 
     // Alternatively check the 'all platforms' definition
-    if ( platform != KnownPlatforms::AllPlatforms && !platform.IsNULLOrEmpty() )
+    if ( autoConsiderAllPlatforms && ( platform != KnownPlatforms::AllPlatforms && !platform.IsNULLOrEmpty() ) )
     {
         n = m_modulesPerPlatform.find( KnownPlatforms::AllPlatforms );
         if ( n != m_modulesPerPlatform.end() )

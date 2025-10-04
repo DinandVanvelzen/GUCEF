@@ -320,6 +320,30 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
      *
      *  Note that this is a module delta NOT a platform delta. Meaning that an 'all' platforms module could
      *  be listed as a delta vs an 'all' baseline if it happened to only be pulled in on the specific platform
+     *
+     *  Note that if you already have the dependency trees for the base platform you can provide them here
+     *  and use this variant to avoid having to look them up again for combo with the delta platforms
+     */
+    bool
+    GetAllModuleDependenciesDeltaAcrossPlatforms( TModuleInfoEntryPtrSet& dependencyDelta      ,
+                                                  const TModuleDependencyNodePtrSet& baseTrees ,
+                                                  const CORE::CStringSet& moduleNames          ,
+                                                  const CORE::CString& deltaPlatform           ,
+                                                  bool includeDependenciesOfDependencies       ,
+                                                  bool addDependencies                         ,
+                                                  bool addLinkerDependencies                   ,
+                                                  bool addRuntimeDependencies                  ) const;
+
+    /**
+     *  Obtains the delta in dependencies between two platforms for a given set of modules
+     *  This allows for denoting any platform specifics relative to a base platform
+     *
+     *  Note that delta directionality matters so for the typical use case of wanting to know
+     *  which dependencies are added on a given platform relative to the 'all' platforms base platform
+     *  you should invoke this the with 'all' platform as the base and the specific platform as the delta platform
+     *
+     *  Note that this is a module delta NOT a platform delta. Meaning that an 'all' platforms module could
+     *  be listed as a delta vs an 'all' baseline if it happened to only be pulled in on the specific platform
      */
     bool
     GetAllModuleDependenciesDeltaAcrossPlatforms( TModuleInfoEntryPtrSet& dependencyDelta  ,

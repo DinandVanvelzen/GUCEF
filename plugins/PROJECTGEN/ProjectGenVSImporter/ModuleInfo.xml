@@ -1,5 +1,5 @@
 <ModuleInfoEntry>
-    <Module Name="ProjectGenVSImporter" Type="SharedLibrary" Platform="All">
+    <Module Name="ProjectGenVSImporter" Type="SharedLibrary" Platform="All" Tags="plugin">
         <Dependencies>
             <Dependency Name="gucefHeaders" />
             <Dependency Name="gucefMT" />

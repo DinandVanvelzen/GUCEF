@@ -226,7 +226,7 @@ if(BUILD_DOCUMENTATION)
     if(DOXYGEN_FOUND)
         # Add a documentation target that generates docs for the entire solution
         set(DOXYGEN_INPUT_DIR "${GUCEF_SOURCE_DIR}")
-        set(DOXYGEN_OUTPUT_DIR "${GUCEF_BINARY_DIR}/docs/$#$PROJECTNAME$#$")
+        set(DOXYGEN_OUTPUT_DIR "${GUCEF_BINARY_DIR}/docs/doxygen")
         set(DOXYGEN_CONFIG_IN "${GUCEF_SOURCE_DIR}/projects/CMake/Templates/Doxyfile.in")
         set(DOXYGEN_CONFIG_OUT "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
         
@@ -237,7 +237,7 @@ if(BUILD_DOCUMENTATION)
         configure_file(${DOXYGEN_CONFIG_IN} ${DOXYGEN_CONFIG_OUT} @ONLY)
 
         # Add the main documentation target
-        add_custom_target($#$PROJECTNAME$#$_Docs
+        add_custom_target(DOCS
             COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIG_OUT}
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             COMMENT "Generating API documentation with Doxygen for $#$PROJECTNAME$#$"
@@ -245,11 +245,11 @@ if(BUILD_DOCUMENTATION)
         )
 
         # Set target properties to organize in IDE
-        set_target_properties($#$PROJECTNAME$#$_Docs PROPERTIES
+        set_target_properties(DOCS PROPERTIES
             FOLDER "Documentation"
         )
         
-        message(STATUS "Documentation target '$#$PROJECTNAME$#$_Docs' will be available")
+        message(STATUS "Documentation target 'DOCS' will be available for $#$PROJECTNAME$#$")
     else()
         message(WARNING "Doxygen not found: Documentation will not be available")
     endif()
