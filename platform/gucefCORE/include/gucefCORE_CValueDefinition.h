@@ -70,7 +70,7 @@ class GUCEF_CORE_PUBLIC_CPP CValueDefinition : public CIDataNodeSerializable
 
     static const CString ClassTypeName;
     
-    typedef std::vector< CValueDefinition >  ValueDefinitionVector;
+    typedef GUCEF::vector< CValueDefinition >  ValueDefinitionVector;
 
     CVariant defaultValue;
     bool isRequired;

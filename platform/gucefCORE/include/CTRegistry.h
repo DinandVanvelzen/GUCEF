@@ -97,7 +97,7 @@ class CTRegistry : public MT::CILockable
     public:
     typedef CTBasicSharedPtr< T, LockType >                                        TRegisteredObjPtr;
     typedef CTSharedPtr< T, LockType >                                             TRegisteredObjTypedPtr;
-    typedef std::vector< TRegisteredObjPtr, gucef_allocator< TRegisteredObjPtr > > TRegisteredObjPtrVector;
+    typedef GUCEF::vector< TRegisteredObjPtr, gucef_allocator< TRegisteredObjPtr > > TRegisteredObjPtrVector;
 
     CTRegistry( void );
 
@@ -146,7 +146,7 @@ class CTRegistry : public MT::CILockable
 
     private:
 
-    typedef std::map< CString, TRegisteredObjPtr* > TRegisteredObjMap;
+    typedef GUCEF::map< CString, TRegisteredObjPtr* > TRegisteredObjMap;
 
     TRegisteredObjMap m_list;
 };

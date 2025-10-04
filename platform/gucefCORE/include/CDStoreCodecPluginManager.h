@@ -93,7 +93,7 @@ class GUCEF_HIDDEN CDStoreCodecPluginManager : public CPluginManager
 
     private:
 
-    typedef std::set< TDStoreCodecPluginPtr > TDStoreCodecPluginSet;
+    typedef GUCEF::set< TDStoreCodecPluginPtr > TDStoreCodecPluginSet;
 
     bool IsPluginLoaded( const CString& path );
 

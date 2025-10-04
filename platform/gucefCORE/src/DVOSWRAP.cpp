@@ -206,7 +206,7 @@ class GUCEF_HIDDEN LinuxSysDevicesCpuFreqReader
 {
     public:
 
-    typedef std::vector< LinuxCpuFreqInfo, gucef_allocator< LinuxCpuFreqInfo > >   TLinuxCpuFreqInfoVector;
+    typedef GUCEF::vector< LinuxCpuFreqInfo, gucef_allocator< LinuxCpuFreqInfo > >   TLinuxCpuFreqInfoVector;
 
     TLinuxCpuFreqInfoVector cpuFreqInfos;
 
@@ -319,7 +319,7 @@ class GUCEF_HIDDEN AllLinuxProcCpuInfo
 {
     public:
 
-    typedef std::vector< LinuxLogicalCpuInfo >     LinuxLogicalCpuInfoVector;
+    typedef GUCEF::vector< LinuxLogicalCpuInfo >     LinuxLogicalCpuInfoVector;
 
     LinuxLogicalCpuInfoVector allCpuInfo;
 
@@ -546,7 +546,7 @@ class GUCEF_HIDDEN LinuxCpuUtilization
 {
     public:
 
-    typedef std::vector< LinuxCpuUsageBreakdown, gucef_allocator< LinuxCpuUsageBreakdown > >  TLinuxCpuUsageBreakdownVector;
+    typedef GUCEF::vector< LinuxCpuUsageBreakdown, gucef_allocator< LinuxCpuUsageBreakdown > >  TLinuxCpuUsageBreakdownVector;
 
     LinuxCpuUsageBreakdown globalCpuUsage;
     TLinuxCpuUsageBreakdownVector perCoreCpuUsage;

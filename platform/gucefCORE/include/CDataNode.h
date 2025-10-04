@@ -82,17 +82,17 @@ class GUCEF_CORE_PUBLIC_CPP CDataNode : public CIEnumerable
 {
     public:
 
-    typedef CString::StringVector                                                                               TStringVector;
-    typedef CString::StringSet                                                                                  TStringSet;
-    typedef std::pair< const CString, CVariant >                                                                TKeyValuePair;
-    typedef std::set< CDataNode*, std::less< CDataNode* >, gucef_allocator< CDataNode* > >                      TDataNodeSet;
-    typedef std::list< CDataNode*, gucef_allocator< CDataNode* > >                                              TDataNodeList;
-    typedef std::vector< CDataNode*, gucef_allocator< CDataNode* > >                                            TDataNodeVector;
-    typedef std::set< const CDataNode*, std::less< const CDataNode* >, gucef_allocator< const CDataNode* > >    TConstDataNodeSet;
-    typedef std::map< CString, CVariant, std::less< CString >, gucef_allocator< TKeyValuePair >  >              TAttributeMap;
-    typedef CVariant::VariantMap                                                                                TVariantMap;
-    typedef CVariant::VariantVector                                                                             TVariantVector;
-    typedef CVariant::VariantSet                                                                                TVariantSet;
+    typedef CString::StringVector                                       TStringVector;
+    typedef CString::StringSet                                          TStringSet;
+    typedef std::pair< const CString, CVariant >                        TKeyValuePair;
+    typedef GUCEF::set< CDataNode* >                                    TDataNodeSet;
+    typedef std::list< CDataNode*, gucef_allocator< CDataNode* > >      TDataNodeList;
+    typedef GUCEF::vector< CDataNode* >                                 TDataNodeVector;
+    typedef GUCEF::set< const CDataNode* >                              TConstDataNodeSet;
+    typedef GUCEF::map< CString, CVariant >                             TAttributeMap;
+    typedef CVariant::VariantMap                                        TVariantMap;
+    typedef CVariant::VariantVector                                     TVariantVector;
+    typedef CVariant::VariantSet                                        TVariantSet;
 
     CDataNode( int nodeType = GUCEF_DATATYPE_OBJECT );
 

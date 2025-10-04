@@ -180,7 +180,7 @@ class GUCEF_CORE_PUBLIC_CPP CRollingFileAccess : public CIOAccess
 
     private:
 
-    typedef std::map< UInt64, CString > UInt64ToStringMap;
+    typedef GUCEF::map< UInt64, CString > UInt64ToStringMap;
 
     CString GenerateCurrentFilename( const CString& baseName, UInt32& fileIndex, bool asWildcardFilter ) const;
 

@@ -138,7 +138,7 @@ class GUCEF_CORE_PUBLIC_CPP CStateMachine
         UInt32 _initialstate;
         CMachineState* _curstate;
         bool _updatestate;
-        std::vector< CMachineState* > _states;
+        GUCEF::vector< CMachineState* > _states;
 };
 
 /*-------------------------------------------------------------------------//

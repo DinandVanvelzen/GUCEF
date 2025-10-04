@@ -115,7 +115,7 @@ class GUCEF_CORE_PUBLIC_CPP CPluginControl : public CTSGNotifier          ,
 
     public:
 
-    typedef std::vector< CString > TStringVector;
+    typedef GUCEF::vector< CString > TStringVector;
 
     bool LoadAll( bool registerAll = true                   ,
                   bool loadOnlyIfLoadImmediatelySet = false );
@@ -274,10 +274,10 @@ class GUCEF_CORE_PUBLIC_CPP CPluginControl : public CTSGNotifier          ,
 
     private:
 
-    typedef std::map< CString, CIPluginLoadLogic* > TPluginLoadLogicMap;
-    typedef std::map< CString, TPluginGroupPtr > TStringToPluginGroupMap;
-    typedef std::map< UInt32, TStringToPluginGroupMap > TPluginGroupMap;
-    typedef std::set< CPluginManager* > TPluginManagerSet;    
+    typedef GUCEF::map< CString, CIPluginLoadLogic* > TPluginLoadLogicMap;
+    typedef GUCEF::map< CString, TPluginGroupPtr > TStringToPluginGroupMap;
+    typedef GUCEF::map< UInt32, TStringToPluginGroupMap > TPluginGroupMap;
+    typedef GUCEF::set< CPluginManager* > TPluginManagerSet;    
 
     CPluginControl( const CPluginControl& src );
 

@@ -97,14 +97,14 @@ class GUCEF_CORE_PUBLIC_CPP CWindowMsgHook
                                       LPARAM lParam );
 
     private:
-    typedef std::map< CWindowMsgHook*, void* > TWindowMsgHookList;
+    typedef GUCEF::map< CWindowMsgHook*, void* > TWindowMsgHookList;
     struct SWindowData
     {
         TWindowMsgHookList hookList;
         WNDPROC orgWinProc;
     };
     typedef struct SWindowData TWindowData;
-    typedef std::map< HWND, TWindowData > TMappedWindowHookList;
+    typedef GUCEF::map< HWND, TWindowData > TMappedWindowHookList;
 
     static MT::CMutex s_globalDataLock;
     static TMappedWindowHookList s_list;

@@ -59,7 +59,7 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-typedef std::vector< TProcessId, gucef_allocator< TProcessId > >    TProcessIdVector;
+typedef GUCEF::vector< TProcessId, gucef_allocator< TProcessId > >    TProcessIdVector;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

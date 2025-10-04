@@ -81,9 +81,7 @@ class GUCEF_CORE_PUBLIC_CPP CValueList : public CIConfigurable          ,
 
     typedef CVariant::VariantVector                         TVariantVector;
     typedef CString::StringVector                           TStringVector;
-    //typedef std::pair< const CVariant, TVariantVector >     TVariantAndVariantVectorPair;
-    //typedef std::map< CVariant, TVariantVector, std::less< CVariant >, gucef_allocator< TVariantAndVariantVectorPair > >   TValueMap;
-    typedef std::map< CVariant, TVariantVector >   TValueMap;
+    typedef GUCEF::map< CVariant, TVariantVector >   TValueMap;
 
     CValueList( void );
 

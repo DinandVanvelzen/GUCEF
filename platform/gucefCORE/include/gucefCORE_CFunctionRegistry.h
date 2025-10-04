@@ -84,7 +84,7 @@ class GUCEF_CORE_PUBLIC_CPP CFunctionRegistry
 
     private:
 
-    typedef std::map< CString, CIFunction* > TStringToFunctionMap;
+    typedef GUCEF::map< CString, CIFunction* > TStringToFunctionMap;
     
     TStringToFunctionMap m_functions;
     MT::CReadWriteLock m_lock;

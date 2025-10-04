@@ -112,7 +112,7 @@ class GUCEF_CORE_PUBLIC_CPP CCodecChain
                             CICodec* codec                  ) const;
 
         private:
-        typedef std::vector< CICodec* > TCodecList;
+        typedef GUCEF::vector< CICodec* > TCodecList;
 
         TDynamicBufferList m_bufferA;
         TDynamicBufferList m_bufferB;

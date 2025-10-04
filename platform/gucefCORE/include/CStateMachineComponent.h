@@ -99,8 +99,8 @@ class GUCEF_CORE_PUBLIC_CPP CStateMachineComponent : public CObservingNotifier
     CStateMachineComponent( void );
 
     private:
-    typedef std::map< UInt32, UInt32 > TEventTransitions;
-    typedef std::map< UInt32, TEventTransitions > TTransitionTable;
+    typedef GUCEF::map< UInt32, UInt32 > TEventTransitions;
+    typedef GUCEF::map< UInt32, TEventTransitions > TTransitionTable;
 
     TTransitionTable m_transitions;
     UInt32 m_currentState;

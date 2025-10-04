@@ -1,5 +1,5 @@
 /*
- *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
+ *  gucefCORE_TestApp: GUCEF test application for the CORE module
  *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
@@ -17,69 +17,71 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
  */
 
-#ifndef GUCEF_CORE_NUMERICIDS_H
-#define GUCEF_CORE_NUMERICIDS_H
-
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      INCLUDES                                                           //
 //                                                                         //
-//-------------------------------------------------------------------------*/ 
+//-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MT_CMUTEX_H
-#include "gucefMT_CMutex.h"
-#define GUCEF_MT_CMUTEX_H
-#endif /* GUCEF_MT_CMUTEX_H ? */
+#include <iostream>
 
-#ifndef GUCEF_CORE_ETYPES_H
-#include "gucefCORE_ETypes.h"
-#define GUCEF_CORE_ETYPES_H
-#endif /* GUCEF_CORE_ETYPES_H ? */
+#ifndef GUCEF_CORE_CASYNC_H
+#include "gucefCORE_CASync.h"
+#define GUCEF_CORE_CASYNC_H
+#endif /* GUCEF_CORE_CASYNC_H ? */
 
-#ifndef GUCEF_CORE_CTNUMERICID_H
-#include "CTNumericID.h"
-#define GUCEF_CORE_CTNUMERICID_H
-#endif /* GUCEF_CORE_CTNUMERICID_H ? */
+#include "TestASync.h"
 
-#ifndef GUCEF_CORE_CTNUMERICIDGENERATOR_H
-#include "CTNumericIDGenerator.h"
-#define GUCEF_CORE_CTNUMERICIDGENERATOR_H
-#endif /* GUCEF_CORE_CTNUMERICIDGENERATOR_H ? */
+using namespace GUCEF;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      NAMESPACE                                                          //
+//      MACROS                                                             //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-namespace GUCEF {
-namespace CORE {
+#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
+  #define DEBUGBREAK __builtin_trap()
+#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
+  #define DEBUGBREAK DebugBreak()
+#else
+  #define DEBUGBREAK
+#endif
+
+#define ERRORHERE { std::cout << "Test failed @ " << __FILE__ << "(" << __LINE__ << ")\n"; DEBUGBREAK; }
+#define ASSERT_TRUE( test ) if ( !(test) ) { ERRORHERE; } 
+#define ASSERT_FALSE( test ) if ( (test) ) { ERRORHERE; }
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      CONSTANTS                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-typedef CTNumericIDGenerator< UInt8, MT::CMutex >    T8BitNumericIDGenerator;
-typedef CTNumericIDGenerator< UInt16, MT::CMutex >   T16BitNumericIDGenerator;
-typedef CTNumericIDGenerator< UInt32, MT::CMutex >   T32BitNumericIDGenerator;
-typedef CTNumericIDGenerator< UInt64, MT::CMutex >   T64BitNumericIDGenerator;
-
-typedef CTNumericID< UInt8 >    T8BitNumericID;
-typedef CTNumericID< UInt16 >   T16BitNumericID;
-typedef CTNumericID< UInt32 >   T32BitNumericID;
-typedef CTNumericID< UInt64 >   T64BitNumericID;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      NAMESPACE                                                          //
+//      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace CORE */
-}; /* namespace GUCEF */
+void
+PerformASyncTests( void )
+{
+    std::cout << "\n\n**** COMMENCING ASync TESTS ****\n";
+    
+    try
+    {
+        CORE::CAsync async;
+
+        
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+
+    std::cout << "\n\n**** FINISHED ASync TESTS ****\n";
+}
 
 /*-------------------------------------------------------------------------*/
-
-#endif /* GUCEF_CORE_NUMERICIDS_H ? */

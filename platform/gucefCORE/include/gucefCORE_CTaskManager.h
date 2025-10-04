@@ -106,12 +106,12 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
 
     public:
 
-    typedef CThreadPool::TTaskConsumerFactory                               TTaskConsumerFactory;
-    typedef CThreadPool::TTaskDataFactory                                   TTaskDataFactory;
-    typedef CThreadPool::TTaskInfoMap                                       TTaskInfoMap;
-    typedef CThreadPool::TThreadInfoMap                                     TThreadInfoMap;
-    typedef std::map< CString, CThreadPoolInfo >                            TThreadPoolInfoMap;
-    typedef std::vector< ThreadPoolPtr, gucef_allocator< ThreadPoolPtr > >  ThreadPoolVector;
+    typedef CThreadPool::TTaskConsumerFactory               TTaskConsumerFactory;
+    typedef CThreadPool::TTaskDataFactory                   TTaskDataFactory;
+    typedef CThreadPool::TTaskInfoMap                       TTaskInfoMap;
+    typedef CThreadPool::TThreadInfoMap                     TThreadInfoMap;
+    typedef GUCEF::map< CString, CThreadPoolInfo >          TThreadPoolInfoMap;
+    typedef GUCEF::vector< ThreadPoolPtr >                  ThreadPoolVector;
 
     static const CString ClassTypeName;
     static const CString DefaultThreadPoolName; 
@@ -367,7 +367,7 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManager : public CTSGNotifier
 
     private:
 
-    typedef std::map< CString, ThreadPoolPtr > ThreadPoolMap;
+    typedef GUCEF::map< CString, ThreadPoolPtr > ThreadPoolMap;
     typedef CTAbstractFactory< CString, CTaskConsumer, MT::CMutex > TAbstractTaskConsumerFactory;
     typedef CTAbstractFactory< CString, CIDataNodeSerializableTaskData, MT::CMutex > TAbstractTaskDataFactory;
     typedef CTask::TTaskIdGenerator TTaskIdGenerator;

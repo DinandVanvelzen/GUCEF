@@ -71,10 +71,10 @@ class GUCEF_CORE_PUBLIC_CPP CICodecPlugin : public CIPlugin
     public:
 
     typedef CTSharedPtr< CICodec, MT::CMutex > CCodecPtr;
-    typedef std::map< CString, CCodecPtr > CCodecFamilySet;
-    typedef std::map< CString, CCodecFamilySet > CCodecSet;
-    typedef std::vector< CString > CCodecFamilyList;
-    typedef std::map< CString, CCodecFamilyList > CCodecList;
+    typedef GUCEF::map< CString, CCodecPtr > CCodecFamilySet;
+    typedef GUCEF::map< CString, CCodecFamilySet > CCodecSet;
+    typedef GUCEF::vector< CString > CCodecFamilyList;
+    typedef GUCEF::map< CString, CCodecFamilyList > CCodecList;
 
     public:
 

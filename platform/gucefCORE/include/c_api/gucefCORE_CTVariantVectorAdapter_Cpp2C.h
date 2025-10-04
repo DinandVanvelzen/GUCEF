@@ -77,7 +77,7 @@ class CTVariantVectorApi
 {
     public:
     
-    typedef std::vector< T, AllocType >      TLinkedVectorType;
+    typedef GUCEF::vector< T, AllocType >      TLinkedVectorType;
     
     CTVariantVectorApi( void );
     ~CTVariantVectorApi();

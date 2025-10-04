@@ -89,7 +89,7 @@ class GUCEF_CORE_PUBLIC_CPP CExclusiveActivationManager
     CExclusiveActivationManager& operator=( const CExclusiveActivationManager& src );
 
     private:
-    typedef std::map< CString, CExclusiveActiveObj* >   TTypedObjList;
+    typedef GUCEF::map< CString, CExclusiveActiveObj* >   TTypedObjList;
     struct SExclusiveObjList
     {
         TTypedObjList objList;
@@ -97,7 +97,7 @@ class GUCEF_CORE_PUBLIC_CPP CExclusiveActivationManager
         CExclusiveActiveObj* activeObj;
     };
     typedef struct SExclusiveObjList                    TExclusiveObjList;
-    typedef std::map< CString, TExclusiveObjList >      TObjTypeList;
+    typedef GUCEF::map< CString, TExclusiveObjList >    TObjTypeList;
 
     TObjTypeList m_typeList;
 

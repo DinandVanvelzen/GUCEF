@@ -124,8 +124,8 @@ class GUCEF_CORE_PUBLIC_CPP CTransactionEventControl : public CForwardingNotifie
     };
     typedef struct SFilterData TFilterData;
 
-    typedef std::map< CEvent, TFilterData > TFilterMap;
-    typedef std::map< const CNotifier*, TFilterMap > TSenderFilterMap;
+    typedef GUCEF::map< CEvent, TFilterData > TFilterMap;
+    typedef GUCEF::map< const CNotifier*, TFilterMap > TSenderFilterMap;
 
     private:
 

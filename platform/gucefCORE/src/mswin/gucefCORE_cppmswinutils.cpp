@@ -215,8 +215,8 @@ class GUCEF_HIDDEN CPdhDevicePerfStatAccessImpl
         CounterInfo( void );
     };
 
-    typedef std::vector< CounterInfo, gucef_allocator< CounterInfo > > TCounterInfoVector;
-    typedef std::map< CString, TCounterInfoVector >                    TVolumePathToCounterInfoVector;
+    typedef GUCEF::vector< CounterInfo, gucef_allocator< CounterInfo > > TCounterInfoVector;
+    typedef GUCEF::map< CString, TCounterInfoVector >                    TVolumePathToCounterInfoVector;
     
     TVolumePathToCounterInfoVector m_counters;
     UInt64 m_lastCounterUpdateTimeInTicks;
@@ -271,7 +271,7 @@ class GUCEF_HIDDEN CPdhVolumePerfStatAccessImpl
         CounterInfo( void );
     };
 
-    typedef std::vector< CounterInfo, gucef_allocator< CounterInfo > > TCounterInfoVector;
+    typedef GUCEF::vector< CounterInfo, gucef_allocator< CounterInfo > > TCounterInfoVector;
     
     TCounterInfoVector m_counters;
     UInt64 m_lastCounterUpdateTimeInTicks;

@@ -212,7 +212,7 @@ CProjectTargetInfoBundle::GetConsensusTargetName( const TProjectTargetInfoPtrMap
     // name is considered the general consensus name. If the same count applies
     // to multiple we will try to use a popular platform to improve our 'guess'
 
-    typedef std::map< CORE::CString, CORE::UInt32 > TStringCountMap;
+    typedef GUCEF::map< CORE::CString, CORE::UInt32 > TStringCountMap;
 
     TStringCountMap countMap;
     n = targetPlatforms.begin();

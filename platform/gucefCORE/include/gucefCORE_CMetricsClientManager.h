@@ -145,7 +145,7 @@ class GUCEF_CORE_PUBLIC_CPP CMetricsClientManager : public CIMetricsSystemClient
     CMetricsClientManager& operator=( const CMetricsClientManager& src );   /**< not implemented, don't use */
 
     private:
-    typedef std::map< CString, CIMetricsSystemClientPtr > TMetricsSystemClientPtrMap;
+    typedef GUCEF::map< CString, CIMetricsSystemClientPtr > TMetricsSystemClientPtrMap;
 
     TMetricsSystemClientPtrMap m_clients;
     MT::CReadWriteLock m_rwDataLock;

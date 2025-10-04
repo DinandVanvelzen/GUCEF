@@ -85,7 +85,7 @@ class CMachineState
         CMachineState( const CMachineState& src );    
         CMachineState& operator=( const CMachineState& src );    
                 
-        std::vector< struct SStateTransition* > _transitions;
+        GUCEF::vector< struct SStateTransition* > _transitions;
         CStateHandler* _handler;
         UInt32 _state;
 };

@@ -85,9 +85,9 @@ class GUCEF_CORE_PUBLIC_CPP CIOAccess : public CICloneable
 {
     public:
 
-    typedef CTSharedPtr< CIOAccess, MT::CNoLock >                                   IOAccessNoLockPtr;     
-    typedef std::set< IOAccessNoLockPtr, gucef_allocator< IOAccessNoLockPtr > >     IOAccessNoLockPtrSet;
-    typedef CTSharedPtr< CIOAccess, MT::CMutex >                                    IOAccessPtr;          /**< threadsafe pointer to a resource accessor */
+    typedef CTSharedPtr< CIOAccess, MT::CNoLock >   IOAccessNoLockPtr;     
+    typedef GUCEF::set< IOAccessNoLockPtr >         IOAccessNoLockPtrSet;
+    typedef CTSharedPtr< CIOAccess, MT::CMutex >    IOAccessPtr;          /**< threadsafe pointer to a resource accessor */
 
     CIOAccess( void );
 

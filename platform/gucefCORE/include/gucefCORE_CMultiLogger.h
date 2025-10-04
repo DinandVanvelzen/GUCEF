@@ -110,10 +110,10 @@ class GUCEF_CORE_PUBLIC_CPP CMultiLogger : public CILogger
 
     private:
 
-    typedef std::set< CILogger* > TLoggerList;
+    typedef GUCEF::set< CILogger* > TLoggerList;
 
     TLoggerList m_loggers;
-    std::map< TLogMsgType, bool > m_msgTypeEnablers;
+    GUCEF::map< TLogMsgType, bool > m_msgTypeEnablers;
     Int32 m_minLogLevel;
 };
 

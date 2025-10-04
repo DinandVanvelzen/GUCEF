@@ -108,13 +108,30 @@ if (NOT APPLE)
   set(CMAKE_DEBUG_POSTFIX "_d")
 endif ()
 
-# Set compiler specific build flags
-if (CMAKE_COMPILER_IS_GNUCXX)
-  add_definitions(-msse)
-endif ()
-if (MSVC)
-  add_definitions(/fp:fast)
-endif ()
+# Add an option to enable/disable SIMD
+option(USE_SIMD "Enable SIMD optimizations (SSE/NEON)" ON)
+
+if (USE_SIMD)
+  if (MSVC)
+    add_compile_options(/fp:fast)
+  elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
+          CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+      message(STATUS "Enabling WebAssembly SIMD")
+      add_compile_options(-msimd128)
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i.86")
+      message(STATUS "Enabling SSE on x86/x64")
+      add_compile_options(-msse)
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "armv7" OR
+            CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+      message(STATUS "Enabling NEON on ARM")
+      add_compile_options(-mfpu=neon)
+      # or: add_compile_options(-march=armv8-a+simd)
+    endif()
+  endif()
+else()
+  message(STATUS "SIMD optimizations disabled")
+endif()
 
 if (CMAKE_COMPILER_IS_GNUCXX)
   # Test for GCC visibility

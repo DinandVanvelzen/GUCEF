@@ -177,9 +177,9 @@ class GUCEF_CORE_PUBLIC_CPP CForwardingNotifier : public CObservingNotifier
     };
     typedef struct SForwardState TForwardState;
 
-    typedef std::map< CNotifier*, TForwardState > TNotifierMap;
-    typedef std::map< CEvent, TNotifierMap > TEventNotifierMap;
-    typedef std::map< CEvent, TForwardState > TEventMap;
+    typedef GUCEF::map< CNotifier*, TForwardState > TNotifierMap;
+    typedef GUCEF::map< CEvent, TNotifierMap > TEventNotifierMap;
+    typedef GUCEF::map< CEvent, TForwardState > TEventMap;
 
     TEventMap m_forwardAllList;
     TNotifierMap m_forwardAllForNotifierList;

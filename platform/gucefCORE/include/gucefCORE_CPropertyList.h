@@ -81,7 +81,7 @@
 //
 //    typedef CVariant::VariantVector                 TVariantVector;
 //    typedef CString::StringVector                   TStringVector;
-//    typedef std::map< CString, TVariantVector >     TValueMap;
+//    typedef GUCEF::map< CString, TVariantVector >     TValueMap;
 //
 //    CPropertyList( void );
 //

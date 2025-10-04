@@ -78,7 +78,7 @@ class GUCEF_HIDDEN CDirPreprocessor : public PROJECTGEN::CIDirPreprocessor
 
     private:
 
-    typedef std::vector< CORE::CString > TStringList;
+    typedef GUCEF::vector< CORE::CString > TStringList;
 
     bool InitXmlParser( void );
 

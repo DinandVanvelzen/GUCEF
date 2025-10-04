@@ -168,7 +168,7 @@ class GUCEF_CORE_PUBLIC_CPP CPulseGenerator : public CNotifier ,
 
     private:
 
-    typedef std::map< void*, UInt32 > TPeriodicPulseRequestorMap;
+    typedef GUCEF::map< void*, UInt32 > TPeriodicPulseRequestorMap;
 
     UInt64 m_lastCycleTickCount;
     UInt32 m_updateDeltaInMilliSecs;

@@ -995,7 +995,7 @@ TimezoneOffsetInMinsFromIso8601DateTimeStringRemnant( const char* sourceBuffer, 
 /*-------------------------------------------------------------------------*/
 
 bool
-TimezoneOffsetInMinsFromIso8601DateTimeStringParts( const std::vector< Int32 >& dtParts , 
+TimezoneOffsetInMinsFromIso8601DateTimeStringParts( const GUCEF::vector< Int32 >& dtParts , 
                                                     bool isNegativeTzOffset             ,
                                                     Int16& tzOffset                     )
 {GUCEF_TRACE;
@@ -1082,8 +1082,8 @@ CDateTime::FromIso8601DateTimeString( const void* sourceBuffer, UInt32 sourceBuf
         // That is Ok, we treat it as a set of numbers separated by delimiters whatever those may be, 
         // trying to parse as much as possible beyond strict ISO8601 due to pragmatically the need to deal with non-compliant strings
 
-        std::vector< Int32 > dtParts;
-        std::vector< char > dtDelims;
+        GUCEF::vector< Int32 > dtParts;
+        GUCEF::vector< char > dtDelims;
         dtParts.reserve( 8 );
         dtDelims.reserve( 8 );
     

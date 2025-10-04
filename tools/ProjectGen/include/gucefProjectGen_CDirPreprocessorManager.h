@@ -56,7 +56,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CDirPreprocessorManager
 {
     public:
 
-    typedef std::set< CIDirPreprocessor* >   TDirPreprocessorsList;
+    typedef GUCEF::set< CIDirPreprocessor* >   TDirPreprocessorsList;
        
     void RegisterDirPreprocessor( CIDirPreprocessor* preprocessor );
 

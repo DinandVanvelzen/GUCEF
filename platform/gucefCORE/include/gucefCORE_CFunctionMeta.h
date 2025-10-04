@@ -75,7 +75,7 @@ class GUCEF_CORE_PUBLIC_CPP CFunctionMeta
 {
     public:
 
-    typedef std::vector< CFunctionParamMeta, gucef_allocator< CFunctionParamMeta > >    TFunctionParamMetaVector;
+    typedef GUCEF::vector< CFunctionParamMeta >    TFunctionParamMetaVector;
 
     CFunctionMeta( void );
 

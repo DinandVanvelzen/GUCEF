@@ -62,7 +62,7 @@ class GUCEF_CORE_PUBLIC_CPP CMsWin32Editbox : public CMsWin32Window
     
     public:
     
-    typedef std::vector< CString > TStringVector;
+    typedef GUCEF::vector< CString > TStringVector;
     
     CMsWin32Editbox();
 

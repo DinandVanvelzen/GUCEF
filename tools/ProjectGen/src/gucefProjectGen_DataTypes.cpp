@@ -1413,7 +1413,7 @@ GetShortestRelativePathFromAbsPathToProjectRoot( const CProjectInfo& projectInfo
                                                  const CORE::CString& absPath    )
 {GUCEF_TRACE;
 
-    typedef std::map< CORE::UInt32, CORE::CString > TUInt32ToStringMap;
+    typedef GUCEF::map< CORE::UInt32, CORE::CString > TUInt32ToStringMap;
 
     TUInt32ToStringMap lengthMap;
 

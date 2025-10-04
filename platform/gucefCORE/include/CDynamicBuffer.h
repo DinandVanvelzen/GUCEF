@@ -76,7 +76,7 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
 {
     public:
 
-    typedef std::vector< CDynamicBuffer, gucef_allocator< CDynamicBuffer > >        TDynamicBufferVector;
+    typedef GUCEF::vector< CDynamicBuffer >        TDynamicBufferVector;
 
     CDynamicBuffer( CIOAccess& ioAccess );
 

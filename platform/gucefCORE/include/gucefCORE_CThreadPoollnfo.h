@@ -135,7 +135,7 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPoolInfo : public CIDataNodeSerializable
 
     private:
 
-    typedef std::map< CString, CString::StringSet > StringToStringSetMap;
+    typedef GUCEF::map< CString, CString::StringSet > StringToStringSetMap;
 
     CString m_threadPoolName;
     Int32 m_desiredMaxNrOfThreads;

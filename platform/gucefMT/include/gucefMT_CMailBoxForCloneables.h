@@ -71,7 +71,7 @@ class GUCEF_MT_PUBLIC_CPP CMailboxForCloneables : public MT::CILockable
 {
     public:
 
-    typedef std::vector< CICloneable* >     TMailVector;
+    typedef GUCEF::vector< CICloneable* >   TMailVector;
     typedef std::deque< CICloneable* >      TMailQueue;
 
     CMailboxForCloneables( void );

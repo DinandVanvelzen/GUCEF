@@ -56,7 +56,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectPreprocessorManager
 {
     public:
 
-    typedef std::set< CIProjectPreprocessor* >   TProjectPreprocessorsList;
+    typedef GUCEF::set< CIProjectPreprocessor* >   TProjectPreprocessorsList;
        
     void RegisterProjectPreprocessor( CIProjectPreprocessor* preprocessor );
 

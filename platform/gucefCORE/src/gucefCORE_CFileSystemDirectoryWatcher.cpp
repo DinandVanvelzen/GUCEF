@@ -125,7 +125,7 @@ class GUCEF_HIDDEN OSSpecificDirectoryWatcher : public CObserver
         }
     };
 
-    typedef std::map< std::wstring, OverlappedIOCallbackObj > OverlappedIOCallbackObjMap;
+    typedef GUCEF::map< std::wstring, OverlappedIOCallbackObj > OverlappedIOCallbackObjMap;
 
     CTimer m_osPollingTimer;
     CFileSystemDirectoryWatcher* m_wrapper;
@@ -482,8 +482,8 @@ class GUCEF_HIDDEN OSSpecificDirectoryWatcher : public CObserver
         {GUCEF_TRACE;
         }
     };
-    typedef std::map< Int32, WatchEntry > TWatchEntryMap;
-    typedef std::map< CUtf8String, Int32 > TWatchDescriptorMap;
+    typedef GUCEF::map< Int32, WatchEntry > TWatchEntryMap;
+    typedef GUCEF::map< CUtf8String, Int32 > TWatchDescriptorMap;
 
     struct inotify_event_stub
     {
@@ -506,7 +506,7 @@ class GUCEF_HIDDEN OSSpecificDirectoryWatcher : public CObserver
             memset( &m_event, 0, sizeof m_event );
         }
     };
-    typedef std::map< UInt32, WatchCookieEntry > TWatchCookieEntryMap;
+    typedef GUCEF::map< UInt32, WatchCookieEntry > TWatchCookieEntryMap;
 
     CTimer m_osPollingTimer;
     CFileSystemDirectoryWatcher* m_wrapper;

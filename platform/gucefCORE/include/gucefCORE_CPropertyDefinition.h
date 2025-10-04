@@ -70,7 +70,7 @@ class GUCEF_CORE_PUBLIC_CPP CPropertyDefinition : public CIDataNodeSerializable
 
     static const CString ClassTypeName;
 
-    typedef std::vector< CPropertyDefinition >  PropertyDefinitionVector;
+    typedef GUCEF::vector< CPropertyDefinition >  PropertyDefinitionVector;
 
     CValueDefinition name;
     CValueDefinition id;

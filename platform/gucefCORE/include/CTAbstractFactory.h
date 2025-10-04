@@ -98,7 +98,7 @@ class CTAbstractFactory : public CAbstractFactoryBase
     typedef SelectionCriteriaType                                                                                           TSelectionCriteriaType;
     typedef CTCloneableObj< SelectionCriteriaType >                                                                         TKeyContainer;
     typedef CTFactoryBase< BaseClassType, LockType >                                                                        TFactory;
-    typedef std::set< SelectionCriteriaType, std::less< SelectionCriteriaType >, gucef_allocator< SelectionCriteriaType > > TKeySet;
+    typedef GUCEF::set< SelectionCriteriaType, std::less< SelectionCriteriaType >, gucef_allocator< SelectionCriteriaType > > TKeySet;
     typedef typename CTFactoryBase< BaseClassType, LockType >::TProductPtr                                                  TProductPtr;
 
     explicit CTAbstractFactory( const bool assumeFactoryOwnership = false ,
@@ -155,9 +155,9 @@ class CTAbstractFactory : public CAbstractFactoryBase
 
     private:
     typedef std::pair< const SelectionCriteriaType, TFactory* >   TFactoryEntryPair;
-    typedef std::map< SelectionCriteriaType, TFactory*, std::less< SelectionCriteriaType >, gucef_allocator< TFactoryEntryPair > >  TFactoryList;
+    typedef GUCEF::map< SelectionCriteriaType, TFactory*, std::less< SelectionCriteriaType >, gucef_allocator< TFactoryEntryPair > >  TFactoryList;
     typedef std::pair< const CString, SelectionCriteriaType >   TStringToSCPair;
-    typedef std::map< CString, SelectionCriteriaType, std::less< CString >, gucef_allocator< TStringToSCPair > >  TClassTypeNameMap;
+    typedef GUCEF::map< CString, SelectionCriteriaType, std::less< CString >, gucef_allocator< TStringToSCPair > >  TClassTypeNameMap;
 
     TFactoryList m_concreteFactoryList;
     TClassTypeNameMap m_concreteFactoryTypeMap;

@@ -73,7 +73,7 @@ class CTNotifyingMap : public CNotifier           ,
     typedef indexType key_type;       /**< 	The map's key type, Key. */
     typedef mappedType data_type;     /**< The type of object associated with the keys. */
 
-    typedef typename std::map< indexType, mappedType > TWrappedMap;
+    typedef typename GUCEF::map< indexType, mappedType > TWrappedMap;
     typedef typename TWrappedMap::value_type value_type;
     typedef typename TWrappedMap::const_iterator const_iterator;
     typedef typename TWrappedMap::const_reverse_iterator const_reverse_iterator;
@@ -127,7 +127,7 @@ class CTNotifyingMap : public CNotifier           ,
 
     private:
 
-    std::map< indexType, mappedType > m_map;
+    GUCEF::map< indexType, mappedType > m_map;
 };
 
 /*-------------------------------------------------------------------------//

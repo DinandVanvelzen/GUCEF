@@ -86,9 +86,9 @@ class GUCEF_CORE_PUBLIC_CPP CTokenizer
         typedef enum ETokenSeqElementType TTokenSeqElementType;
 
         typedef typename CTSharedObjCreator< CTokenSequence, MT::CNoLock >::TSharedPtrType     CTokenSequencePtr;
-        typedef std::vector< CTokenSequencePtr, gucef_allocator< CTokenSequencePtr > >         TTokenSequencePtrVector;
+        typedef GUCEF::vector< CTokenSequencePtr >                                             TTokenSequencePtrVector;
         typedef std::pair< TTokenSeqElementType, size_t >                                      TTokenSequencePair;
-        typedef std::vector< TTokenSequencePair, gucef_allocator< TTokenSequencePair > >       TTokenSequencePairVector;
+        typedef GUCEF::vector< TTokenSequencePair >                                            TTokenSequencePairVector;
         
         CTokenSequence( void );
 
@@ -119,10 +119,10 @@ class GUCEF_CORE_PUBLIC_CPP CTokenizer
 
     private:
 
-    typedef std::pair< Int32, Int32 >                               Int32Pair;
-    typedef std::vector< Int32Pair, gucef_allocator< Int32Pair > >  Int32PairVector;
-    typedef std::vector< Int32, gucef_allocator< Int32 > >          Int32Vector;
-    typedef std::map< Int32Pair, CTokenSequencePtr >                Int32Pair2TokenGroupPtrMap;
+    typedef std::pair< Int32, Int32 >                       Int32Pair;
+    typedef GUCEF::vector< Int32Pair >                      Int32PairVector;
+    typedef GUCEF::vector< Int32 >                          Int32Vector;
+    typedef GUCEF::map< Int32Pair, CTokenSequencePtr >      Int32Pair2TokenGroupPtrMap;
 
     static bool ParseTokens( const CString& inputString                    , 
                              const CString::StringVector& predefinedTokens ,

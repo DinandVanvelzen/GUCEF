@@ -157,15 +157,15 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
 
     public:
     
-    typedef typename CTSharedPtrCreator< CThreadPool, MT::CMutex >::TBasicSharedPtrType             ThreadPoolPtr;
-    typedef typename CTSharedPtrCreator< CThreadPool, MT::CMutex >::TSharedPtrType                  ThreadPoolTypedPtr;
-    typedef CTask::TIntegerTypeUsedForTaskId                                                        TIntegerTypeUsedForTaskId;
-    typedef CTFactoryBase< CTaskConsumer, MT::CMutex >                                              TTaskConsumerFactory;
-    typedef CTFactoryBase< CIDataNodeSerializableTaskData, MT::CMutex >                             TTaskDataFactory;
-    typedef std::map< UInt32, CTaskInfo >                                                           TTaskInfoMap;
-    typedef std::map< UInt32, CThreadInfo >                                                         TThreadInfoMap;
-    typedef std::vector< TIntegerTypeUsedForTaskId, gucef_allocator< TIntegerTypeUsedForTaskId > >  TTaskIdVector;
-    typedef std::vector< UInt32, gucef_allocator< UInt32 > >                                        TThreadIdVector;
+    typedef typename CTSharedPtrCreator< CThreadPool, MT::CMutex >::TBasicSharedPtrType     ThreadPoolPtr;
+    typedef typename CTSharedPtrCreator< CThreadPool, MT::CMutex >::TSharedPtrType          ThreadPoolTypedPtr;
+    typedef CTask::TIntegerTypeUsedForTaskId                                                TIntegerTypeUsedForTaskId;
+    typedef CTFactoryBase< CTaskConsumer, MT::CMutex >                                      TTaskConsumerFactory;
+    typedef CTFactoryBase< CIDataNodeSerializableTaskData, MT::CMutex >                     TTaskDataFactory;
+    typedef GUCEF::map< UInt32, CTaskInfo >                                                 TTaskInfoMap;
+    typedef GUCEF::map< UInt32, CThreadInfo >                                               TThreadInfoMap;
+    typedef GUCEF::vector< TIntegerTypeUsedForTaskId >                                      TTaskIdVector;
+    typedef GUCEF::vector< UInt32 >                                                         TThreadIdVector;
 
     typedef TCloneableUInt32                                    TThreadKilledEventData;
     typedef TCloneableUInt32                                    TThreadStartedEventData;
@@ -552,15 +552,15 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
     typedef CTAbstractFactory< CString, CTaskConsumer, MT::CMutex > TAbstractTaskConsumerFactory;
     typedef CTAbstractFactory< CString, CIDataNodeSerializableTaskData, MT::CMutex > TAbstractTaskDataFactory;
     typedef MT::CTMailBox< CTaskPtr > TTaskMailbox;
-    typedef std::map< TIntegerTypeUsedForTaskId, CTaskConsumerPtr > TTaskConsumerMap;
+    typedef GUCEF::map< TIntegerTypeUsedForTaskId, CTaskConsumerPtr > TTaskConsumerMap;
     typedef CTBasicSharedPtr< CTaskDelegator, MT::CMutex >  TTaskDelegatorBasicPtr; 
-    typedef std::set< TTaskDelegatorBasicPtr > TTaskDelegatorSet;
+    typedef GUCEF::set< TTaskDelegatorBasicPtr > TTaskDelegatorSet;
     typedef std::pair< const TIntegerTypeUsedForTaskId, CTaskPtr > TTaskIdIntAndTaskPtrPair;
-    typedef std::map< TIntegerTypeUsedForTaskId, CTaskPtr, std::less< TIntegerTypeUsedForTaskId >, gucef_allocator< TTaskIdIntAndTaskPtrPair > >    TTaskId2TaskPtrMap;
+    typedef GUCEF::map< TIntegerTypeUsedForTaskId, CTaskPtr >    TTaskId2TaskPtrMap;
     typedef std::deque< CTaskPtr > TTaskPtrDequeue;
-    typedef std::set< CTaskConsumerPtr > CTaskConsumerPtrSet;
+    typedef GUCEF::set< CTaskConsumerPtr > CTaskConsumerPtrSet;
     typedef std::pair< const CString, CTaskConsumerPtrSet > TStringAndTaskConsumerSetPair;
-    typedef std::map< CString, CTaskConsumerPtrSet, std::less< CString >, gucef_allocator< TStringAndTaskConsumerSetPair > > TStringToTaskConsumerSetMap;
+    typedef GUCEF::map< CString, CTaskConsumerPtrSet > TStringToTaskConsumerSetMap;
 
     void EnforceDesiredNrOfThreads( Int32 desiredMaxTotalNrOfThreads   ,
                                     UInt32 desiredMinNrOfWorkerThreads ,

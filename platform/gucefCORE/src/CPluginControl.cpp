@@ -1485,9 +1485,9 @@ CPluginControl::SaveConfig( CDataNode& tree ) const
 
 /*-------------------------------------------------------------------------*/
 
-typedef std::vector< TPluginMetaDataStoragePtr, gucef_allocator< TPluginMetaDataStoragePtr > >  TPluginLoadEntryVector;
-typedef std::map< CString, TPluginLoadEntryVector >                                             TStringToPluginLoadEntryVectorMap;
-typedef std::map< UInt32, TStringToPluginLoadEntryVectorMap >                                   TPluginLoadEntryMap;
+typedef GUCEF::vector< TPluginMetaDataStoragePtr, gucef_allocator< TPluginMetaDataStoragePtr > >  TPluginLoadEntryVector;
+typedef GUCEF::map< CString, TPluginLoadEntryVector >                                             TStringToPluginLoadEntryVectorMap;
+typedef GUCEF::map< UInt32, TStringToPluginLoadEntryVectorMap >                                   TPluginLoadEntryMap;
 
 /*-------------------------------------------------------------------------*/
 

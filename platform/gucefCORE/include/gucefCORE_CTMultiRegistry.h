@@ -125,7 +125,7 @@ class CTMultiRegistry : public MT::CILockable
 
     private:
 
-    typedef std::map< CString, TSubRegistryPtr > TRegistryList;
+    typedef GUCEF::map< CString, TSubRegistryPtr > TRegistryList;
 
     TRegistryList m_list;
     LockType m_lock;

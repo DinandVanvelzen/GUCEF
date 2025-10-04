@@ -124,7 +124,7 @@ class GUCEF_CORE_PUBLIC_CPP CTaskManagerInfo : public CIDataNodeSerializable
 
     private:
 
-    typedef std::map< CString, CString::StringSet > StringToStringSetMap;
+    typedef GUCEF::map< CString, CString::StringSet > StringToStringSetMap;
 
     CString::StringSet m_threadPoolNames;
     UInt32 m_desiredGlobalNrOfThreads;

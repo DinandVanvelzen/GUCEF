@@ -61,8 +61,8 @@ class GUCEF_CORE_PRIVATE_CPP CPluginGroup : public CTSharedObjCreator< CPluginGr
 {
     public:
 
-    typedef std::set< TPluginPtr > TPluginSet;
-    typedef std::set< TPluginMetaDataStoragePtr > TPluginMetaDataSet;
+    typedef GUCEF::set< TPluginPtr > TPluginSet;
+    typedef GUCEF::set< TPluginMetaDataStoragePtr > TPluginMetaDataSet;
     typedef typename CTSharedObjCreator< CPluginGroup, MT::CMutex >::TSharedPtrType TPluginGroupPtr;
     
     CPluginGroup( void );

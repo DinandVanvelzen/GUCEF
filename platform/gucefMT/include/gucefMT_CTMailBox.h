@@ -112,7 +112,7 @@ class CTMailBox : public virtual MT::CILockable
     };
 
     typedef T                                                   value_type;
-    typedef std::vector< Mail, gucef_allocator< Mail > >        TMailVector;
+    typedef GUCEF::vector< Mail >                               TMailVector;
     typedef std::deque< Mail, gucef_allocator< Mail > >         TMailQueue;
     typedef typename std::deque< Mail >::iterator               iterator;
     typedef typename std::deque< Mail >::const_iterator         const_iterator;

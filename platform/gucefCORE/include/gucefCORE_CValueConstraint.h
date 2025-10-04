@@ -71,7 +71,7 @@ class GUCEF_CORE_PUBLIC_CPP CValueConstraint : public CIDataNodeSerializable
 
     static const CString ClassTypeName;
 
-    typedef std::vector< CValueConstraint >            ValueConstraintVector;
+    typedef GUCEF::vector< CValueConstraint >            ValueConstraintVector;
 
     /**
      *  This is what it is all about. This is the member function that will carry out the constraint check

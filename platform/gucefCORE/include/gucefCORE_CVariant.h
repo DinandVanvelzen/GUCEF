@@ -88,10 +88,10 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
 {
     public:
 
-    typedef std::vector< CVariant, gucef_allocator< CVariant > >                                    VariantVector;
-    typedef std::set< CVariant, std::less< CVariant >, gucef_allocator< CVariant > >                VariantSet;
-    typedef std::pair< const CVariant, CVariant >                                                   VariantPair;
-    typedef std::map< CVariant, CVariant, std::less< CVariant >, gucef_allocator< VariantPair > >   VariantMap;
+    typedef GUCEF::vector< CVariant >               VariantVector;
+    typedef GUCEF::set< CVariant >                  VariantSet;
+    typedef std::pair< const CVariant, CVariant >   VariantPair;
+    typedef GUCEF::map< CVariant, CVariant >        VariantMap;
 
     static const CVariant           Empty;
     static const VariantVector      EmptyVector;

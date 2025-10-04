@@ -55,8 +55,8 @@ class GUCEF_CORE_PUBLIC_CPP CUri
 {
     public:
 
-    typedef std::vector< CUri, gucef_allocator< CUri > >    UriVector;
-    typedef std::set< CUri, gucef_allocator< CUri > >       UriSet;
+    typedef GUCEF::vector< CUri >    UriVector;
+    typedef GUCEF::set< CUri >       UriSet;
 
     CUri( void );
 

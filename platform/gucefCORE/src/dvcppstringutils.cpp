@@ -1764,7 +1764,7 @@ Utf8toUtf16( const std::string& str ,
 
     #else
 
-    std::vector<wchar_t> utf16_str;
+    GUCEF::vector<wchar_t> utf16_str;
     size_t i = 0;
     while ( i < str.size() )
     {

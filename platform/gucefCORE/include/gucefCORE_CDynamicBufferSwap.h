@@ -219,7 +219,7 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBufferSwap : public MT::CILockable
         CBufferEntry( const CBufferEntry& src );
     };
 
-    typedef std::vector< CBufferEntry > TBufferEntryVector;
+    typedef GUCEF::vector< CBufferEntry > TBufferEntryVector;
     
     TBufferEntryVector m_buffers;
     Int32 m_currentReaderBufferIndex;

@@ -1336,7 +1336,7 @@ class GUCEF_HIDDEN CLinuxProcMountsInfo
 
 };
 
-typedef std::vector< CLinuxProcMountsInfo, gucef_allocator< CLinuxProcMountsInfo > >  TLinuxProcMountsInfoVector;
+typedef GUCEF::vector< CLinuxProcMountsInfo, gucef_allocator< CLinuxProcMountsInfo > >  TLinuxProcMountsInfoVector;
 
 /*-------------------------------------------------------------------------*/
 

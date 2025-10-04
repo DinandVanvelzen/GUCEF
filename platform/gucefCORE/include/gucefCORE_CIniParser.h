@@ -79,7 +79,7 @@ class GUCEF_CORE_PUBLIC_CPP CIniParser
     };
     typedef struct SIniSection TIniSection;
     
-    typedef std::vector< TIniSection > TIniData;
+    typedef GUCEF::vector< TIniSection > TIniData;
     
     CIniParser( void );
     

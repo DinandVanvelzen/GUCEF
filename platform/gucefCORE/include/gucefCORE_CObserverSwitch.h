@@ -94,8 +94,8 @@ class GUCEF_CORE_PUBLIC_CPP CObserverSwitch : public CObservingNotifier
 
     private:
 
-    typedef std::set< CObserver* > TObserverSet;
-    typedef std::map< CString, TObserverSet > TObserverGroupMap;
+    typedef GUCEF::set< CObserver* > TObserverSet;
+    typedef GUCEF::map< CString, TObserverSet > TObserverGroupMap;
 
     TObserverGroupMap m_observerGroups;
     CString m_activeGroupName;

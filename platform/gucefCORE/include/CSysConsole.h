@@ -171,7 +171,7 @@ class GUCEF_CORE_PUBLIC_CPP CSysConsole : public CGloballyConfigurable  ,
         CString function;
     };
     typedef struct SAliasData TAliasData;
-    typedef std::map< CString, TAliasData > TAliasList;
+    typedef GUCEF::map< CString, TAliasData > TAliasList;
 
     CSysConsole( const CSysConsole& src );
 

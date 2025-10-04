@@ -209,7 +209,7 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
         CDateTime timestamp;
     };
     typedef struct SBootstrapLogEntry TBootstrapLogEntry;
-    typedef std::vector< TBootstrapLogEntry > TBootstrapLogVector;
+    typedef GUCEF::vector< TBootstrapLogEntry > TBootstrapLogVector;
     typedef CTBasicSharedPtr< CLoggingTask, MT::CMutex > CLoggingTaskBasePtr;
 
     CMultiLogger* m_loggers;

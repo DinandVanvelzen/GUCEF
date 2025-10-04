@@ -163,7 +163,7 @@ class GUCEF_CORE_PUBLIC_CPP CConfigStore : public CTSGNotifier
 
     private:
 
-    typedef std::set< CGloballyConfigurable* > TConfigurableSet;
+    typedef GUCEF::set< CGloballyConfigurable* > TConfigurableSet;
 
     CString _codectype;
     CString m_bootstrapConfigFile;

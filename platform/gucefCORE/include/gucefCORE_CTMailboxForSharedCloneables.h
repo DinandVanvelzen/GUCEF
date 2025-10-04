@@ -67,7 +67,7 @@ class CTMailboxForSharedCloneables : public MT::CMailboxForCloneables
     typedef CloneableType                                           TCloneableType;
     typedef PtrLockType                                             TSharedPtrLockType;
     typedef CTSharedPtr< CloneableType, PtrLockType >               TMailSPtr;
-    typedef std::vector< TMailSPtr, gucef_allocator< TMailSPtr > >  TMailSPtrList;
+    typedef GUCEF::vector< TMailSPtr >                              TMailSPtrList;
 
     CTMailboxForSharedCloneables( void );
 

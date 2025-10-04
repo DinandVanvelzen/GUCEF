@@ -204,7 +204,7 @@ CModuleInfoEntry::GetConsensusName( CModuleInfoPtr* moduleInfo ,
     // name is considered the general consensus name. If the same count applies
     // to multiple we will try to use a popular platform to improve our 'guess'
 
-    typedef std::map< CORE::CString, CORE::UInt32 > TStringCountMap;
+    typedef GUCEF::map< CORE::CString, CORE::UInt32 > TStringCountMap;
 
     TStringCountMap countMap;
     n = m_modulesPerPlatform.begin();
@@ -2058,7 +2058,7 @@ CModuleInfoEntry::GetModuleType( const CORE::CString& targetPlatform ) const
 
     // Since there is no specific info for the given platform and no AllPlatform info
     // we will see if we can derive from another if there is consensus
-    std::set< TModuleType > typeSet;
+    GUCEF::set< TModuleType > typeSet;
     TModuleInfoPtrMap::const_iterator i = m_modulesPerPlatform.begin();
     while ( i != m_modulesPerPlatform.end() )
     {

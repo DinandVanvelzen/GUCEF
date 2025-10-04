@@ -308,15 +308,15 @@ class GUCEF_HIDDEN CNotifierImplementor : public MT::CILockable
     
     private:
     
-    typedef std::vector< CIEventHandlerFunctorBase*, gucef_allocator< CIEventHandlerFunctorBase* > > TEventHandlerFunctorInterfaceVector;
+    typedef GUCEF::vector< CIEventHandlerFunctorBase*, gucef_allocator< CIEventHandlerFunctorBase* > > TEventHandlerFunctorInterfaceVector;
     typedef std::pair< CObserver* const, TEventHandlerFunctorInterfaceVector > TObserverRawPtrAndFuncInterfVecPair;
-    typedef std::map< CObserver* const, TEventHandlerFunctorInterfaceVector, std::less< CObserver* const >, gucef_allocator< TObserverRawPtrAndFuncInterfVecPair > > TEventNotificationMap;
+    typedef GUCEF::map< CObserver* const, TEventHandlerFunctorInterfaceVector, std::less< CObserver* const >, gucef_allocator< TObserverRawPtrAndFuncInterfVecPair > > TEventNotificationMap;
     
-    typedef std::set< CObserver*, std::less< CObserver* >, gucef_allocator< CObserver* >  > TObserverSet;
+    typedef GUCEF::set< CObserver*, std::less< CObserver* >, gucef_allocator< CObserver* >  > TObserverSet;
     typedef std::pair< const CEvent, TEventNotificationMap > TEventAndEventNotificationMapPair;
-    typedef std::map< CEvent, TEventNotificationMap, std::less< CEvent >, gucef_allocator< TEventAndEventNotificationMapPair > > TNotificationList;
+    typedef GUCEF::map< CEvent, TEventNotificationMap, std::less< CEvent >, gucef_allocator< TEventAndEventNotificationMapPair > > TNotificationList;
     typedef std::pair< CObserver* const, bool >   TObserverRawPtrAndBoolPair;
-    typedef std::map< CObserver* const, bool, std::less< CObserver* const >, gucef_allocator< TObserverRawPtrAndBoolPair > > TObserverList;
+    typedef GUCEF::map< CObserver* const, bool, std::less< CObserver* const >, gucef_allocator< TObserverRawPtrAndBoolPair > > TObserverList;
 
     struct SEventMailElement
     {
@@ -347,8 +347,8 @@ class GUCEF_HIDDEN CNotifierImplementor : public MT::CILockable
     };
     typedef struct SCmdMailElement TCmdMailElement;
 
-    typedef std::vector< TEventMailElement, gucef_allocator< TEventMailElement > > TEventMailVector;
-    typedef std::vector< TCmdMailElement, gucef_allocator< TCmdMailElement > >     TCmdMailVector;
+    typedef GUCEF::vector< TEventMailElement, gucef_allocator< TEventMailElement > > TEventMailVector;
+    typedef GUCEF::vector< TCmdMailElement, gucef_allocator< TCmdMailElement > >     TCmdMailVector;
 
     private:
     

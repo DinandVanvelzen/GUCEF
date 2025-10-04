@@ -90,7 +90,7 @@ class GUCEF_CORE_PUBLIC_CPP CEventAggregateTrigger : public CTSGNotifier
 
     private:
     
-    typedef std::map< CEvent, bool >                            TEventCritereaMap;
+    typedef GUCEF::map< CEvent, bool >                            TEventCritereaMap;
     typedef CTEventHandlerFunctor< CEventAggregateTrigger >     TEventCallback;
 
     TEventCritereaMap m_eventCritereaMap;
