@@ -40,6 +40,10 @@ links( { "gucefCOMCORE", "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=DCSBruteInstaller", "MODULE_NAME=DCSBruteInstaller" } )
+
+
+configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/main.cpp"
@@ -49,7 +53,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

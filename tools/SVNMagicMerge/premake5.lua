@@ -40,6 +40,10 @@ links( { "ArchiveDiffLib", "gucefCORE", "gucefMT", "gucefPATCHER" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=SVNMagicMerge", "MODULE_NAME=SVNMagicMerge" } )
+
+
+configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/SVNMagicMerge_main.cpp"
@@ -49,7 +53,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefPATCHER/include", "../ArchiveDiffLib/include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

@@ -23,6 +23,16 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { EMSCRIPTEN32 } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { EMSCRIPTEN64 } )
+kind( "StaticLib" )
 
 
 configuration( {} )
@@ -33,8 +43,17 @@ links( { "gucefCORE", "gucefMT", "zlib" } )
 
 
 configuration( {} )
-defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE" } )
+defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_CONSENSUS_NAME=codecspluginZLIB", "MODULE_IS_PLUGIN=1", "MODULE_NAME=codecspluginZLIB" } )
   links( { "z" } )
+  links( { "z" } )
+  
+
+configuration( { EMSCRIPTEN32 } )
+defines( { "MODULE_API_PREFIX=codecspluginZLIB" } )
+  
+
+configuration( { EMSCRIPTEN64 } )
+defines( { "MODULE_API_PREFIX=codecspluginZLIB" } )
   
 configuration( { LINUX32 } )
 links( { "zlib" } )
@@ -71,10 +90,19 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "include" } )
+includedirs( { "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../../../dependencies/zlib" } )
+
+configuration( { "EMSCRIPTEN64" } )
+includedirs( { "../../../dependencies/zlib" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../../dependencies/zlib", "../../../platform/gucefCORE/include/linux" } )

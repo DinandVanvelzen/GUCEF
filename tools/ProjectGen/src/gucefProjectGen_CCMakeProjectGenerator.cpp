@@ -1281,7 +1281,7 @@ GenerateCMakeModuleDescriptionSection( const CModuleInfoEntryPtr& moduleInfoEntr
             if ( moduleInfo->moduleType == MODULETYPE_EXECUTABLE )
             {
                 sectionContent += "if ( WIN32 )\n  " +
-                                    GenerateCMakeModuleDescriptionLine( moduleInfo, consensusModuleName, "win32" ) +
+                                    GenerateCMakeModuleDescriptionLine( moduleInfo, consensusModuleName, KnownPlatforms::Win32 ) +
                                   "else()\n  " +
                                     GenerateCMakeModuleDescriptionLine( moduleInfo, consensusModuleName, KnownPlatforms::AllPlatforms ) +
                                   "endif()\n";

@@ -34,6 +34,10 @@ links( { "libjpeg", "zlib" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=libtiff", "MODULE_NAME=libtiff" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "t4.h",
@@ -135,6 +139,12 @@ configuration( { "WIN64" } )
 
 configuration( {} )
 includedirs( { "../../libjpeg" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../../zlib" } )
+
+configuration( { "EMSCRIPTEN64" } )
+includedirs( { "../../zlib" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../zlib" } )

@@ -40,6 +40,10 @@ links( { "RdKafka", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefWE
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=udp2kafka", "MODULE_NAME=udp2kafka" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/udp2kafka.h"
@@ -58,7 +62,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../dependencies/librdkafka", "../../dependencies/librdkafka/src", "../../dependencies/librdkafka/src-cpp", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

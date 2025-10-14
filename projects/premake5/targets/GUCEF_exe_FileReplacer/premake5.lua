@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_FileReplacer" )
 
-  platforms( { "ALL" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -21,6 +21,61 @@ workspace( "GUCEF_exe_FileReplacer" )
   --
 
 filter "ALL"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "ANDROID32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "ANDROID64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "ARDUINO"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "EMSCRIPTEN32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "EMSCRIPTEN64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "IOS"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "LINUX32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "LINUX64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "OSX"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "WIN32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileReplacer" )
+
+filter "WIN64"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/FileReplacer" )

@@ -29,10 +29,24 @@ set( SOURCE_FILES
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 set( MODULE_NAME "dstorepluginPARSIFALXML" )
-add_library( ${MODULE_NAME} ${ALL_FILES} )
+if( EMSCRIPTEN32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+else()
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT libparsifal )
 target_link_libraries( ${MODULE_NAME} libparsifal )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINPARSIFALXML_BUILD_MODULE;MODULE_CONSENSUS_NAME=dstorepluginPARSIFALXML;MODULE_NAME=dstorepluginPARSIFALXML" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINPARSIFALXML_BUILD_MODULE;MODULE_CONSENSUS_NAME=dstorepluginPARSIFALXML;MODULE_IS_PLUGIN=1;MODULE_NAME=dstorepluginPARSIFALXML" )
+
+if ( EMSCRIPTEN32 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=dstorepluginPARSIFALXML" )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=dstorepluginPARSIFALXML" )
+endif( EMSCRIPTEN64 )
 
 include_directories( ../../../common/include ../../../dependencies/libparsifal/include ../../../dependencies/libparsifal/include/libparsifal ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 

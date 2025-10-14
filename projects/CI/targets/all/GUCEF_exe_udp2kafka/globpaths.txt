@@ -3,7 +3,6 @@ dependencies/json-builder/*
 dependencies/json-parser/*
 dependencies/libparsifal/*
 dependencies/librdkafka/*
-dependencies/zlib/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefMT/*

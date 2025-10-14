@@ -34,7 +34,7 @@ links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS" } )
 
 
 configuration( {} )
-defines( { "GUCEF_GUI_BUILD_MODULE" } )
+defines( { "GUCEF_GUI_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefGUI", "MODULE_NAME=gucefGUI", "MODULE_SEMVER=0_1_0_0" } )
 
 
 configuration( {} )
@@ -136,7 +136,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefIMAGE/include", "../gucefMT/include", "../gucefVFS/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

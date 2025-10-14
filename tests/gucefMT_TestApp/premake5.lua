@@ -40,7 +40,7 @@ links( { "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "GUCEF_MT_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_MT_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefMT_TestApp", "MODULE_NAME=gucefMT_TestApp" } )
 
 
 configuration( {} )
@@ -62,7 +62,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

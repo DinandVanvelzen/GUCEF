@@ -33,7 +33,7 @@ links( { "gucefCORE", "gucefIMAGE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE" } )
+defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_CONSENSUS_NAME=imgpluginITV", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgpluginITV" } )
 
 
 configuration( {} )
@@ -54,7 +54,10 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefIMAGE/include", "../../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

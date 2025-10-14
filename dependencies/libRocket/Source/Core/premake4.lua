@@ -34,7 +34,7 @@ links( { "freetype" } )
 
 
 configuration( {} )
-defines( { "RocketCore_EXPORTS" } )
+defines( { "MODULE_CONSENSUS_NAME=RocketCore", "MODULE_NAME=RocketCore", "RocketCore_EXPORTS" } )
 
 
 configuration( {} )

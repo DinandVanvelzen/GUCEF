@@ -23,6 +23,16 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { EMSCRIPTEN32 } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { EMSCRIPTEN64 } )
+kind( "StaticLib" )
 
 
 configuration( {} )
@@ -30,11 +40,16 @@ kind( "SharedLib" )
 
 
 configuration( {} )
-defines( { "ZZIP_DLL" } )
+defines( { "MODULE_CONSENSUS_NAME=zziplib", "MODULE_NAME=zziplib", "ZZIP_DLL" } )
   links( { "z" } )
   
 
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
+defines( { "ZZIP_HAVE_STDINT_H" } )
+  links( { "z" } )
+  
+
+configuration( { ANDROID64 } )
 defines( { "ZZIP_HAVE_STDINT_H" } )
   
 configuration( { LINUX32 } )

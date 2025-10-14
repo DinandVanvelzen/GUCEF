@@ -34,7 +34,7 @@ links( { "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "GUCEF_COMCORE_BUILD_MODULE" } )
+defines( { "GUCEF_COMCORE_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefCOMCORE", "MODULE_NAME=gucefCOMCORE", "MODULE_SEMVER=0_1_0_0" } )
   links( { "Advapi32.lib", "Iphlpapi.lib", "Ws2_32.lib" } )
   
 
@@ -207,7 +207,10 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "../../common/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

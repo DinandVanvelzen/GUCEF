@@ -243,6 +243,14 @@ endif( LINUX64 )
 
 include_directories( ../librdkafka src src-cpp )
 
+if ( EMSCRIPTEN32 )
+  include_directories( ../zlib )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../zlib )
+endif( EMSCRIPTEN64 )
+
 if ( LINUX32 )
   include_directories( ../zlib )
 endif( LINUX32 )

@@ -40,7 +40,7 @@ links( { "gucefCORE", "gucefKAITAI", "gucefMT", "gucefPUBSUB", "gucefVFS" } )
 
 
 configuration( {} )
-defines( { "PUBSUBSTORAGETOOL_BUILD_MODULE" } )
+defines( { "MODULE_CONSENSUS_NAME=PubSubStorageTool", "MODULE_NAME=PubSubStorageTool", "PUBSUBSTORAGETOOL_BUILD_MODULE" } )
 
 
 configuration( {} )
@@ -62,7 +62,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefKAITAI/includes", "../../platform/gucefMT/include", "../../platform/gucefPUBSUB/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

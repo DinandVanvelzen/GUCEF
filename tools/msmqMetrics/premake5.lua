@@ -48,9 +48,17 @@ configuration( { WIN32 } )
 links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefVFS", "gucefWEB" } )
   links( { "Mqrt.lib", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefVFS", "gucefWEB" } )
   
+
+configuration( { WIN32 } )
+defines( { "MODULE_NAME=MsmqMetrics" } )
+  
 configuration( { WIN64 } )
 links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefVFS", "gucefWEB" } )
   links( { "Mqrt.lib", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefVFS", "gucefWEB" } )
+  
+
+configuration( { WIN64 } )
+defines( { "MODULE_NAME=MsmqMetrics" } )
 
 
 configuration( { "WIN32" } )

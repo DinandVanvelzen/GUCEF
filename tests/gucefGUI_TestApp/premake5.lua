@@ -12,7 +12,10 @@
 -- Configuration for module: gucefGUI_TestApp
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+  project( "gucefGUI_TestApp" )
+
+configuration( { "ANDROID64" } )
   project( "gucefGUI_TestApp" )
 
 configuration( { "LINUX32" } )
@@ -36,7 +39,10 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+language( "C++" )
+
+configuration( { "ANDROID64" } )
 language( "C++" )
 
 configuration( { "LINUX32" } )
@@ -51,10 +57,15 @@ language( "C++" )
 configuration( { "WIN64" } )
 language( "C++" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
+kind( "ConsoleApp" )
+configuration( { "ANDROID64" } )
+
+
+configuration( { ANDROID64 } )
 kind( "ConsoleApp" )
 configuration( { "LINUX32" } )
 
@@ -77,13 +88,21 @@ configuration( { "WIN64" } )
 configuration( { WIN64 } )
 kind( "WindowedApp" )
   
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
 links( { "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
   links( { "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
   
 
-configuration( { ANDROID } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE" } )
+configuration( { ANDROID32 } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
+  
+configuration( { ANDROID64 } )
+links( { "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
+  links( { "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
+  
+
+configuration( { ANDROID64 } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
   
 configuration( { LINUX32 } )
 links( { "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
@@ -91,7 +110,7 @@ links( { "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefV
   
 
 configuration( { LINUX32 } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
   
 configuration( { LINUX64 } )
 links( { "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
@@ -99,7 +118,7 @@ links( { "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefV
   
 
 configuration( { LINUX64 } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
   
 configuration( { WIN32 } )
 links( { "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
@@ -107,7 +126,7 @@ links( { "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefV
   
 
 configuration( { WIN32 } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
   
 configuration( { WIN64 } )
 links( { "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefVFS" } )
@@ -115,10 +134,18 @@ links( { "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT", "gucefV
   
 
 configuration( { WIN64 } )
-defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/gucefGUI_TestApp.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/gucefGUI_TestApp.cpp"
@@ -160,7 +187,10 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

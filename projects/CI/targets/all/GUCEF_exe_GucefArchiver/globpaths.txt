@@ -10,7 +10,6 @@ dependencies/libparsifal/*
 dependencies/libyaml/*
 dependencies/protobuf/src/*
 dependencies/stbrumme-hash-library/*
-dependencies/zlib/*
 dependencies/zziplib/*
 platform/gucefCORE/*
 platform/gucefKAITAI/*

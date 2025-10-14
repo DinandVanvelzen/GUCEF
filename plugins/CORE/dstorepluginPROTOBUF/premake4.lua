@@ -23,6 +23,16 @@ configuration( {} )
 configuration( {} )
 language( "C++" )
 
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { EMSCRIPTEN32 } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { EMSCRIPTEN64 } )
+kind( "StaticLib" )
 
 
 configuration( {} )
@@ -34,7 +44,15 @@ links( { "libprotobuf" } )
 
 
 configuration( {} )
-defines( { "DSTOREPLUGINPROTOBUF_BUILD_MODULE", "PROTOBUF_USE_DLLS" } )
+defines( { "DSTOREPLUGINPROTOBUF_BUILD_MODULE", "MODULE_CONSENSUS_NAME=dstorepluginPROTOBUF", "MODULE_IS_PLUGIN=1", "MODULE_NAME=dstorepluginPROTOBUF", "PROTOBUF_USE_DLLS" } )
+  
+
+configuration( { EMSCRIPTEN32 } )
+defines( { "MODULE_API_PREFIX=dstorepluginPROTOBUF" } )
+  
+
+configuration( { EMSCRIPTEN64 } )
+defines( { "MODULE_API_PREFIX=dstorepluginPROTOBUF" } )
 
 
 configuration( {} )
@@ -55,19 +73,19 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../dependencies/protobuf/src", "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal", "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal", "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "ARDUINO" } )
 includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
 includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal" } )
 
-configuration( { "GLX" } )
-includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal" } )
-
-configuration( { "GTK" } )
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal" } )
 
 configuration( { "IOS" } )
@@ -79,22 +97,7 @@ includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependenci
 configuration( { "LINUX64" } )
 includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal", "../../../dependencies/zlib", "../../../platform/gucefCORE/include/linux" } )
 
-configuration( { "NACL" } )
-includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal" } )
-
 configuration( { "OSX" } )
-includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal" } )
-
-configuration( { "POSIX" } )
-includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal" } )
-
-configuration( { "SDL" } )
-includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal" } )
-
-configuration( { "SYMBIAN" } )
-includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal" } )
-
-configuration( { "UNIX" } )
 includedirs( { "../../../dependencies/protobuf/src/google", "../../../dependencies/protobuf/src/google/protobuf", "../../../dependencies/protobuf/src/google/protobuf/compiler", "../../../dependencies/protobuf/src/google/protobuf/io", "../../../dependencies/protobuf/src/google/protobuf/stubs", "../../../dependencies/protobuf/src/google/protobuf/util", "../../../dependencies/protobuf/src/google/protobuf/util/internal" } )
 
 configuration( { "WIN32" } )

@@ -34,6 +34,10 @@ links( { "aws-c-common" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=aws_c_cal", "MODULE_NAME=aws_c_cal" } )
+
+
+configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "source/cal.c",

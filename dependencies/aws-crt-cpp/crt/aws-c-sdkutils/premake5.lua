@@ -34,6 +34,10 @@ links( { "aws-c-common" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=aws_c_sdkutils", "MODULE_NAME=aws_c_sdkutils" } )
+
+
+configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "source/aws_profile.c",

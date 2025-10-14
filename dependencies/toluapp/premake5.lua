@@ -34,6 +34,10 @@ links( { "lua", "tolua" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=toluapp", "MODULE_NAME=toluapp" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/tolua++.h",

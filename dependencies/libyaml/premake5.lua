@@ -23,6 +23,16 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { EMSCRIPTEN32 } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { EMSCRIPTEN64 } )
+kind( "StaticLib" )
 
 
 configuration( {} )
@@ -30,7 +40,7 @@ kind( "SharedLib" )
 
 
 configuration( {} )
-defines( { "HAVE_CONFIG_H", "YAML_DECLARE_EXPORT" } )
+defines( { "HAVE_CONFIG_H", "MODULE_CONSENSUS_NAME=yaml", "MODULE_NAME=yaml", "YAML_DECLARE_EXPORT" } )
 
 
 configuration( {} )

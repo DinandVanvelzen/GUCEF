@@ -34,12 +34,13 @@ links( { "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "GUCEF_PROJECTGEN_BUILD_MODULE" } )
+defines( { "GUCEF_PROJECTGEN_BUILD_MODULE", "MODULE_CONSENSUS_NAME=ProjectGen", "MODULE_NAME=ProjectGen" } )
 
 
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
+  "include/gucefProjectGen.h",
   "include/gucefProjectGen_CAndroidMakefileGenerator.h",
   "include/gucefProjectGen_CArduinoCLIGenerator.h",
   "include/gucefProjectGen_CCIHelperGenerator.h",
@@ -50,10 +51,17 @@ files( {
   "include/gucefProjectGen_CIProjectGenerator.h",
   "include/gucefProjectGen_CIProjectInfoGatherer.h",
   "include/gucefProjectGen_CIProjectPreprocessor.h",
+  "include/gucefProjectGen_CModuleDependencyNode.h",
+  "include/gucefProjectGen_CModuleInfo.h",
+  "include/gucefProjectGen_CModuleInfoEntry.h",
+  "include/gucefProjectGen_CModuleMetaData.h",
   "include/gucefProjectGen_CPremake4ProjectGenerator.h",
   "include/gucefProjectGen_CPremake5ProjectGenerator.h",
   "include/gucefProjectGen_CProjectGenGlobal.h",
+  "include/gucefProjectGen_CProjectInfo.h",
   "include/gucefProjectGen_CProjectPreprocessorManager.h",
+  "include/gucefProjectGen_CProjectTargetInfo.h",
+  "include/gucefProjectGen_CProjectTargetInfoBundle.h",
   "include/gucefProjectGen_CXmlProjectGenerator.h",
   "include/gucefProjectGen_DataTypes.h",
   "include/gucefProjectGen_ETypes.h",
@@ -76,10 +84,17 @@ files( {
   "src/gucefProjectGen_CIProjectGenerator.cpp",
   "src/gucefProjectGen_CIProjectInfoGatherer.cpp",
   "src/gucefProjectGen_CIProjectPreprocessor.cpp",
+  "src/gucefProjectGen_CModuleDependencyNode.cpp",
+  "src/gucefProjectGen_CModuleInfo.cpp",
+  "src/gucefProjectGen_CModuleInfoEntry.cpp",
+  "src/gucefProjectGen_CModuleMetaData.cpp",
   "src/gucefProjectGen_CPremake4ProjectGenerator.cpp",
   "src/gucefProjectGen_CPremake5ProjectGenerator.cpp",
   "src/gucefProjectGen_CProjectGenGlobal.cpp",
+  "src/gucefProjectGen_CProjectInfo.cpp",
   "src/gucefProjectGen_CProjectPreprocessorManager.cpp",
+  "src/gucefProjectGen_CProjectTargetInfo.cpp",
+  "src/gucefProjectGen_CProjectTargetInfoBundle.cpp",
   "src/gucefProjectGen_CXmlProjectGenerator.cpp",
   "src/gucefProjectGen_DataTypes.cpp"
  } )
@@ -88,7 +103,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_DVPPackTool" )
 
-  platforms( { "ALL" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -21,6 +21,72 @@ workspace( "GUCEF_exe_DVPPackTool" )
   --
 
 filter "ALL"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "ANDROID32"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "ANDROID64"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "ARDUINO"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "EMSCRIPTEN32"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "EMSCRIPTEN64"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "IOS"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "LINUX32"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "LINUX64"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "OSX"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "WIN32"
+  include( "dependencies/DVPACKSYS" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/DVPPackTool" )
+
+filter "WIN64"
   include( "dependencies/DVPACKSYS" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )

@@ -1,6 +1,0 @@
-common/include/*
-platform/gucefCOM/*
-platform/gucefCORE/*
-platform/gucefMT/*
-platform/gucefPATCHER/*
-tools/ArchiveDiff/*

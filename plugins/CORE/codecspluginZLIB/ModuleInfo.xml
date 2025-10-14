@@ -22,4 +22,6 @@
             <Dependency Name="z" />
         </Linker>
     </Module>
+    <Module Type="StaticLibrary" Platform="Emscripten" >
+    </Module>
 </ModuleInfoEntry>

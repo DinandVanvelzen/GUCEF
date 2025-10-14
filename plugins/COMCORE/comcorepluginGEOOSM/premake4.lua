@@ -34,7 +34,7 @@ links( { "curl", "gucefCOMCORE", "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "COMCOREPLUGIN_GEOOSM_BUILD_PLUGIN_DLL" } )
+defines( { "COMCOREPLUGIN_GEOOSM_BUILD_PLUGIN_DLL", "MODULE_CONSENSUS_NAME=comcorepluginGEOOSM", "MODULE_IS_PLUGIN=1", "MODULE_NAME=comcorepluginGEOOSM" } )
 
 
 configuration( {} )
@@ -59,7 +59,10 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../dependencies/curl/include", "../../../dependencies/curl/include/curl", "../../../dependencies/curl/lib", "../../../dependencies/curl/lib/vauth", "../../../dependencies/curl/lib/vquic", "../../../dependencies/curl/lib/vssh", "../../../dependencies/curl/lib/vtls", "../../../platform/gucefCOMCORE/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

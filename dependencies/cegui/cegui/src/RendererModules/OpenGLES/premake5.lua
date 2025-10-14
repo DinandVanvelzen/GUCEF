@@ -34,7 +34,7 @@ links( { "CEGUI" } )
 
 
 configuration( {} )
-defines( { "CEGUIOPENGLESRENDERER_EXPORTS" } )
+defines( { "CEGUIOPENGLESRENDERER_EXPORTS", "MODULE_CONSENSUS_NAME=CEGUI_RendererModule_OpenGLES", "MODULE_NAME=CEGUI_RendererModule_OpenGLES" } )
 
 
 configuration( {} )

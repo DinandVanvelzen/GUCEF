@@ -12,16 +12,13 @@
 
 workspace( "GUCEF_exe_MyGUI.SkinEditor" )
 
-  platforms( { "ALL", "LINUX32", "LINUX64", "WIN32", "WIN64" } )
+  platforms( { "LINUX32", "LINUX64", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
   --
   -- Includes for all modules in the solution:
   --
-
-filter "ALL"
-  include( "dependencies/MyGui/Tools/SkinEditor" )
 
 filter "LINUX32"
   include( "dependencies/MyGui/MyGUIEngine" )

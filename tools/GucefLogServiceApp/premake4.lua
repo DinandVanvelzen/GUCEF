@@ -40,7 +40,7 @@ links( { "GucefLogServiceLib", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT
 
 
 configuration( {} )
-defines( { "GUCEFLOGSERVICE_BUILD_MODULE" } )
+defines( { "GUCEFLOGSERVICE_BUILD_MODULE", "MODULE_CONSENSUS_NAME=GucefLogServiceApp", "MODULE_NAME=GucefLogServiceApp" } )
 
 
 configuration( {} )
@@ -53,7 +53,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "../GucefLogServiceLib/include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

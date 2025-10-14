@@ -33,6 +33,10 @@ links( { "jsonparser" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=jsonbuilder", "MODULE_NAME=jsonbuilder" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "json-builder.h"
@@ -48,7 +52,20 @@ files( {
 
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "json-builder.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "json-builder.c"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "json-builder.h"
@@ -74,7 +91,20 @@ configuration( { "ARDUINO" } )
 
 
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "json-builder.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "json-builder.c"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "json-builder.h"
@@ -258,19 +288,19 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "../json-parser" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../json-parser" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../json-parser" } )
 
 configuration( { "ARDUINO" } )
 includedirs( { "../json-parser" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
 includedirs( { "../json-parser" } )
 
-configuration( { "GLX" } )
-includedirs( { "../json-parser" } )
-
-configuration( { "GTK" } )
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "../json-parser" } )
 
 configuration( { "IOS" } )
@@ -282,22 +312,7 @@ includedirs( { "../json-parser" } )
 configuration( { "LINUX64" } )
 includedirs( { "../json-parser" } )
 
-configuration( { "NACL" } )
-includedirs( { "../json-parser" } )
-
 configuration( { "OSX" } )
-includedirs( { "../json-parser" } )
-
-configuration( { "POSIX" } )
-includedirs( { "../json-parser" } )
-
-configuration( { "SDL" } )
-includedirs( { "../json-parser" } )
-
-configuration( { "SYMBIAN" } )
-includedirs( { "../json-parser" } )
-
-configuration( { "UNIX" } )
 includedirs( { "../json-parser" } )
 
 configuration( { "WIN32" } )

@@ -34,7 +34,7 @@ links( { "freetype", "pcre" } )
 
 
 configuration( {} )
-defines( { "CEGUIBASE_EXPORTS" } )
+defines( { "CEGUIBASE_EXPORTS", "MODULE_CONSENSUS_NAME=CEGUI", "MODULE_NAME=CEGUI" } )
   links( { "Dbghelp", "Winmm" } )
   links( { "Dbghelp", "Winmm" } )
 
@@ -205,7 +205,15 @@ files( {
 
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/IconvStringTranscoder.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/IconvStringTranscoder.cpp"

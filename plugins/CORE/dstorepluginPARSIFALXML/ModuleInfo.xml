@@ -13,4 +13,6 @@
             <Define String="DSTOREPLUGINPARSIFALXML_BUILD_MODULE" />
         </Preprocessor>
     </Module>
+    <Module Type="StaticLibrary" Platform="Emscripten" >
+    </Module>
 </ModuleInfoEntry>

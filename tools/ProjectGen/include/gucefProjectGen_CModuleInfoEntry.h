@@ -428,6 +428,11 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
 
     private:
 
+    bool GeneratePreprocessorDefinesFromModuleInfo( const CORE::CString& platform ,
+                                                    CORE::CStringMap& defines     );
+
+    private:
+
     mutable CORE::CString m_consensusName;          // Derived cached info: the consensus name across all platforms    
     TModuleInfoPtrMap m_modulesPerPlatform;         // ModuleInfo per platform
     TModuleInfoPtrMap m_flattenedInfoPerPlatform;   // Derived cached info: Module overlays per platform applied to the 'all platforms' module info

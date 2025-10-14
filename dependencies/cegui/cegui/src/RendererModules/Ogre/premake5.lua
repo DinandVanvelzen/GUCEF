@@ -34,7 +34,7 @@ links( { "CEGUI", "Ogre" } )
 
 
 configuration( {} )
-defines( { "CEGUIOGRERENDERER_EXPORTS" } )
+defines( { "CEGUIOGRERENDERER_EXPORTS", "MODULE_CONSENSUS_NAME=CEGUI_RendererModule_Ogre", "MODULE_NAME=CEGUI_RendererModule_Ogre" } )
 
 
 configuration( {} )
@@ -53,17 +53,17 @@ files( {
 configuration( {} )
 includedirs( { "../../../../../Ogre/OgreMain/include", "../../../../../Ogre/OgreMain/include/Hash", "../../../../../Ogre/OgreMain/include/Threading", "../../../../../Ogre/OgreMain/src", "../../../../../Ogre/OgreMain/src/nedmalloc", "../../../../../Ogre/OgreMain/src/stbi", "../../../../../Ogre/include", "../../../../../freetype/include", "../../../../../freetype/include/freetype", "../../../../../freetype/include/freetype/config", "../../../../../freetype/include/freetype/internal", "../../../../../freetype/include/freetype/internal/services", "../../../../../freetype/src", "../../../../../freetype/src/winfonts", "../../../include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 includedirs( { "../../../../../Ogre/OgreMain/include/Android" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+includedirs( { "../../../../../Ogre/OgreMain/include/Android" } )
+
+configuration( { "EMSCRIPTEN32" } )
 includedirs( { "../../../../../Ogre/OgreMain/include/Emscripten" } )
 
-configuration( { "GLX" } )
-includedirs( { "../../../../../Ogre/OgreMain/src/GLX" } )
-
-configuration( { "GTK" } )
-includedirs( { "../../../../../Ogre/OgreMain/include/gtk", "../../../../../Ogre/OgreMain/src/gtk" } )
+configuration( { "EMSCRIPTEN64" } )
+includedirs( { "../../../../../Ogre/OgreMain/include/Emscripten" } )
 
 configuration( { "IOS" } )
 includedirs( { "../../../../../Ogre/OgreMain/include/iOS" } )

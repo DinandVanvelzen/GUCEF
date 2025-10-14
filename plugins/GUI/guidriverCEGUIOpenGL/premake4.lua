@@ -34,9 +34,13 @@ links( { "CEGUI", "gucefCORE", "gucefGUI", "gucefIMAGE", "gucefINPUT", "gucefMT"
 
 
 configuration( {} )
-defines( { "GUCEF_GUIDRIVERCEGUIGL_BUILD_MODULE" } )
+defines( { "GUCEF_GUIDRIVERCEGUIGL_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverCEGUIOpenGL", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverCEGUIOpenGL" } )
   
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
+links( { "CEGUI.RendererModule.OpenGLES" } )
+  links( { "CEGUI.RendererModule.OpenGLES", "GLESv1_CM" } )
+  
+configuration( { ANDROID64 } )
 links( { "CEGUI.RendererModule.OpenGLES" } )
   links( { "CEGUI.RendererModule.OpenGLES", "GLESv1_CM" } )
   
@@ -83,7 +87,10 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../dependencies/cegui/cegui/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../guidriverCEGUI/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

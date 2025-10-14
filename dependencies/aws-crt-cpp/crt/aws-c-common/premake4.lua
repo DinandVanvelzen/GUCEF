@@ -30,7 +30,7 @@ kind( "StaticLib" )
 
 
 configuration( {} )
-defines( { "AWS_CORE_EXPORTS", "CJSON_AS4CPP_EXPORT_SYMBOLS", "HAVE_BUILTIN_CPU_SUPPORTS", "USE_IMPORT_EXPORT" } )
+defines( { "AWS_CORE_EXPORTS", "CJSON_AS4CPP_EXPORT_SYMBOLS", "HAVE_BUILTIN_CPU_SUPPORTS", "MODULE_CONSENSUS_NAME=aws_c_common", "MODULE_NAME=aws_c_common", "USE_IMPORT_EXPORT" } )
   
 
 configuration( { LINUX32 } )
@@ -91,7 +91,15 @@ files( {
 
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "source/android/logging.c"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "source/android/logging.c"

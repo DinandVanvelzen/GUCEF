@@ -5,7 +5,6 @@ dependencies/FreeImage/*
 dependencies/Little-CMS/*
 dependencies/MyGui/Common/FileSystemInfo/*
 dependencies/MyGui/MyGUIEngine/*
-dependencies/MyGui/Platforms/Ogre/OgrePlatform/*
 dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/*
 dependencies/OIS/*
 dependencies/Ogre/OgreMain/*
@@ -15,7 +14,6 @@ dependencies/aws-cpp-sdk-s3/*
 dependencies/aws-crt-cpp/*
 dependencies/cegui/cegui/*
 dependencies/curl/*
-dependencies/external/*
 dependencies/flic/*
 dependencies/freetype/*
 dependencies/glew/*

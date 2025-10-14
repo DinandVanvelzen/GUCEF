@@ -34,7 +34,7 @@ links( { "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB", "hiredis", "redi
 
 
 configuration( {} )
-defines( { "PUBSUBPLUGIN_REDISCLUSTER_BUILD_PLUGIN_DLL" } )
+defines( { "MODULE_CONSENSUS_NAME=pubsubpluginREDISCLUSTER", "MODULE_IS_PLUGIN=1", "MODULE_NAME=pubsubpluginREDISCLUSTER", "PUBSUBPLUGIN_REDISCLUSTER_BUILD_PLUGIN_DLL" } )
 
 
 configuration( {} )
@@ -75,7 +75,24 @@ files( {
 
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h",
+      "../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h",
+      "../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp",
+      "../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp",
+      "../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h",
@@ -109,7 +126,24 @@ configuration( { "ARDUINO" } )
 
 
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h",
+      "../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCacheUpdateTask.h",
+      "../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyPrunerTask.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCache.cpp",
+      "../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyCacheUpdateTask.cpp",
+      "../../../tools/redisinfo/src/redisinfo_CRedisClusterKeyPrunerTask.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../../../tools/redisinfo/include/redisinfo_CRedisClusterKeyCache.h",
@@ -349,20 +383,26 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "..", "../..", "../../..", "../../../common/include", "../../../dependencies/", "../../../dependencies/hiredis", "../../../dependencies/redis-plus-plus/src/", "../../../dependencies/redis-plus-plus/src/sw/redis++", "../../../dependencies/redis-plus-plus/src/sw/redis++/cxx11", "../../../dependencies/redis-plus-plus/src/sw/redis++/cxx11/sw", "../../../dependencies/redis-plus-plus/src/sw/redis++/cxx11/sw/redis++", "../../../dependencies/redis-plus-plus/src/sw/redis++/no_tls", "../../../dependencies/redis-plus-plus/src/sw/redis++/no_tls/sw", "../../../dependencies/redis-plus-plus/src/sw/redis++/no_tls/sw/redis++", "../../../dependencies/redis-plus-plus/src/sw/redis++/patterns", "../../../platform/gucefCOM/include", "../../../platform/gucefCOMCORE/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "../../../platform/gucefPUBSUB/include", "../../../platform/gucefVFS/include", "../../../platform/gucefWEB/include", "../../../tools", "../../../tools/redisinfo", "../../../tools/redisinfo/include", "../../../tools/redisinfo/include/", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../dependencies/hiredis", "../../../platform/gucefCORE/include/android", "../../../tools/redisinfo/include/" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../dependencies/hiredis", "../../../platform/gucefCORE/include/android", "../../../tools/redisinfo/include/" } )
 
 configuration( { "ARDUINO" } )
 includedirs( { "../../../dependencies/hiredis", "../../../tools/redisinfo/include/" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../../../dependencies/hiredis", "../../../tools/redisinfo/include/" } )
+
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "../../../dependencies/hiredis", "../../../tools/redisinfo/include/" } )
 
 configuration( { "GLX" } )
-includedirs( { "../../../dependencies/hiredis", "../../../tools/redisinfo/include/" } )
+includedirs( { "../../../tools/redisinfo/include/" } )
 
 configuration( { "GTK" } )
-includedirs( { "../../../dependencies/hiredis", "../../../tools/redisinfo/include/" } )
+includedirs( { "../../../tools/redisinfo/include/" } )
 
 configuration( { "IOS" } )
 includedirs( { "../../../dependencies/hiredis", "../../../tools/redisinfo/include/" } )
@@ -374,22 +414,22 @@ configuration( { "LINUX64" } )
 includedirs( { "../../../dependencies/hiredis", "../../../platform/gucefCOMCORE/include/linux", "../../../platform/gucefCORE/include/linux", "../../../tools/redisinfo/include/" } )
 
 configuration( { "NACL" } )
-includedirs( { "../../../dependencies/hiredis", "../../../tools/redisinfo/include/" } )
+includedirs( { "../../../tools/redisinfo/include/" } )
 
 configuration( { "OSX" } )
 includedirs( { "../../../dependencies/hiredis", "../../../tools/redisinfo/include/" } )
 
 configuration( { "POSIX" } )
-includedirs( { "../../../dependencies/hiredis", "../../../tools/redisinfo/include/" } )
+includedirs( { "../../../tools/redisinfo/include/" } )
 
 configuration( { "SDL" } )
-includedirs( { "../../../dependencies/hiredis", "../../../tools/redisinfo/include/" } )
+includedirs( { "../../../tools/redisinfo/include/" } )
 
 configuration( { "SYMBIAN" } )
-includedirs( { "../../../dependencies/hiredis", "../../../tools/redisinfo/include/" } )
+includedirs( { "../../../tools/redisinfo/include/" } )
 
 configuration( { "UNIX" } )
-includedirs( { "../../../dependencies/hiredis", "../../../tools/redisinfo/include/" } )
+includedirs( { "../../../tools/redisinfo/include/" } )
 
 configuration( { "WIN32" } )
 includedirs( { "../../../dependencies/hiredis", "../../../platform/gucefCOMCORE/include/mswin", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin", "../../../tools/redisinfo/include/" } )

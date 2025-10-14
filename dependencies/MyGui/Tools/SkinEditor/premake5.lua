@@ -72,7 +72,7 @@ links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
   
 
 configuration( { LINUX32 } )
-defines( { "MYGUI_USE_FREETYPE" } )
+defines( { "MODULE_NAME=MyGUI_SkinEditor", "MYGUI_USE_FREETYPE" } )
   
 configuration( { LINUX64 } )
 links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
@@ -80,7 +80,7 @@ links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
   
 
 configuration( { LINUX64 } )
-defines( { "MYGUI_USE_FREETYPE" } )
+defines( { "MODULE_NAME=MyGUI_SkinEditor", "MYGUI_USE_FREETYPE" } )
   
 configuration( { WIN32 } )
 links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
@@ -88,7 +88,7 @@ links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
   
 
 configuration( { WIN32 } )
-defines( { "MYGUI_USE_FREETYPE" } )
+defines( { "MODULE_NAME=MyGUI_SkinEditor", "MYGUI_USE_FREETYPE" } )
   
 configuration( { WIN64 } )
 links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
@@ -96,7 +96,7 @@ links( { "MyGUI.Engine", "MyGUI.OpenGLPlatform", "freetype" } )
   
 
 configuration( { WIN64 } )
-defines( { "MYGUI_USE_FREETYPE" } )
+defines( { "MODULE_NAME=MyGUI_SkinEditor", "MYGUI_USE_FREETYPE" } )
 
 
 configuration( { "LINUX32" } )

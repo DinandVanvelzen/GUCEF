@@ -30,6 +30,10 @@ kind( "StaticLib" )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=fliclib", "MODULE_NAME=fliclib" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "flic.h",

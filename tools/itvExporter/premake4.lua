@@ -40,7 +40,7 @@ links( { "gucefCORE", "gucefIMAGE", "gucefMT", "gucefVFS" } )
 
 
 configuration( {} )
-defines( { "ITVEXPORTER_BUILD_MODULE" } )
+defines( { "ITVEXPORTER_BUILD_MODULE", "MODULE_CONSENSUS_NAME=itvExporter", "MODULE_NAME=itvExporter" } )
 
 
 configuration( {} )
@@ -53,7 +53,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefIMAGE/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

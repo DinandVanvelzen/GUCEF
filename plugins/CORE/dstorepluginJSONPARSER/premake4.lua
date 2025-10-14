@@ -23,6 +23,16 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { EMSCRIPTEN32 } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { EMSCRIPTEN64 } )
+kind( "StaticLib" )
 
 
 configuration( {} )
@@ -34,7 +44,15 @@ links( { "jsonbuilder", "jsonparser" } )
 
 
 configuration( {} )
-defines( { "DSTOREPLUGINJSONPARSER_BUILD_MODULE" } )
+defines( { "DSTOREPLUGINJSONPARSER_BUILD_MODULE", "MODULE_CONSENSUS_NAME=dstorepluginJSONPARSER", "MODULE_IS_PLUGIN=1", "MODULE_NAME=dstorepluginJSONPARSER" } )
+  
+
+configuration( { EMSCRIPTEN32 } )
+defines( { "MODULE_API_PREFIX=dstorepluginJSONPARSER" } )
+  
+
+configuration( { EMSCRIPTEN64 } )
+defines( { "MODULE_API_PREFIX=dstorepluginJSONPARSER" } )
 
 
 configuration( {} )
@@ -55,19 +73,19 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../dependencies/json-builder", "../../../dependencies/json-parser", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser", "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser", "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "ARDUINO" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
 
-configuration( { "GLX" } )
-includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
-
-configuration( { "GTK" } )
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
 
 configuration( { "IOS" } )
@@ -79,22 +97,7 @@ includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json
 configuration( { "LINUX64" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser", "../../../platform/gucefCORE/include/linux" } )
 
-configuration( { "NACL" } )
-includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
-
 configuration( { "OSX" } )
-includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
-
-configuration( { "POSIX" } )
-includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
-
-configuration( { "SDL" } )
-includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
-
-configuration( { "SYMBIAN" } )
-includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
-
-configuration( { "UNIX" } )
 includedirs( { "../../../dependencies/json-builder", "../../../dependencies/json-parser" } )
 
 configuration( { "WIN32" } )

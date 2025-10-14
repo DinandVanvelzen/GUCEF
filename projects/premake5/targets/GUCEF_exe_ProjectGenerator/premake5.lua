@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_ProjectGenerator" )
 
-  platforms( { "ALL" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -25,7 +25,117 @@ filter "ALL"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "plugins/PROJECTGEN/ProjectGenDependsFilter" )
+  include( "plugins/PROJECTGEN/ProjectGenVSImporter" )
   include( "tools/ProjectGen" )
-  include( "tools/ProjectGen/plugins/ProjectGenDependsFilter" )
-  include( "tools/ProjectGen/plugins/ProjectGenVSImporter" )
+  include( "tools/ProjectGenerator" )
+
+filter "ANDROID32"
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "plugins/PROJECTGEN/ProjectGenDependsFilter" )
+  include( "plugins/PROJECTGEN/ProjectGenVSImporter" )
+  include( "tools/ProjectGen" )
+  include( "tools/ProjectGenerator" )
+
+filter "ANDROID64"
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "plugins/PROJECTGEN/ProjectGenDependsFilter" )
+  include( "plugins/PROJECTGEN/ProjectGenVSImporter" )
+  include( "tools/ProjectGen" )
+  include( "tools/ProjectGenerator" )
+
+filter "ARDUINO"
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "plugins/PROJECTGEN/ProjectGenDependsFilter" )
+  include( "plugins/PROJECTGEN/ProjectGenVSImporter" )
+  include( "tools/ProjectGen" )
+  include( "tools/ProjectGenerator" )
+
+filter "EMSCRIPTEN32"
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "plugins/PROJECTGEN/ProjectGenDependsFilter" )
+  include( "plugins/PROJECTGEN/ProjectGenVSImporter" )
+  include( "tools/ProjectGen" )
+  include( "tools/ProjectGenerator" )
+
+filter "EMSCRIPTEN64"
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "plugins/PROJECTGEN/ProjectGenDependsFilter" )
+  include( "plugins/PROJECTGEN/ProjectGenVSImporter" )
+  include( "tools/ProjectGen" )
+  include( "tools/ProjectGenerator" )
+
+filter "IOS"
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "plugins/PROJECTGEN/ProjectGenDependsFilter" )
+  include( "plugins/PROJECTGEN/ProjectGenVSImporter" )
+  include( "tools/ProjectGen" )
+  include( "tools/ProjectGenerator" )
+
+filter "LINUX32"
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "plugins/PROJECTGEN/ProjectGenDependsFilter" )
+  include( "plugins/PROJECTGEN/ProjectGenVSImporter" )
+  include( "tools/ProjectGen" )
+  include( "tools/ProjectGenerator" )
+
+filter "LINUX64"
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "plugins/PROJECTGEN/ProjectGenDependsFilter" )
+  include( "plugins/PROJECTGEN/ProjectGenVSImporter" )
+  include( "tools/ProjectGen" )
+  include( "tools/ProjectGenerator" )
+
+filter "OSX"
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "plugins/PROJECTGEN/ProjectGenDependsFilter" )
+  include( "plugins/PROJECTGEN/ProjectGenVSImporter" )
+  include( "tools/ProjectGen" )
+  include( "tools/ProjectGenerator" )
+
+filter "WIN32"
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "plugins/PROJECTGEN/ProjectGenDependsFilter" )
+  include( "plugins/PROJECTGEN/ProjectGenVSImporter" )
+  include( "tools/ProjectGen" )
+  include( "tools/ProjectGenerator" )
+
+filter "WIN64"
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "plugins/PROJECTGEN/ProjectGenDependsFilter" )
+  include( "plugins/PROJECTGEN/ProjectGenVSImporter" )
+  include( "tools/ProjectGen" )
   include( "tools/ProjectGenerator" )

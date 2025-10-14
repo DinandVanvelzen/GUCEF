@@ -40,7 +40,7 @@ links( { "gucefCOMCORE", "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "SERVERPORTEXTENDER_BUILD_MODULE" } )
+defines( { "MODULE_CONSENSUS_NAME=ServerPortExtender", "MODULE_NAME=ServerPortExtender", "SERVERPORTEXTENDER_BUILD_MODULE" } )
 
 
 configuration( {} )
@@ -65,7 +65,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

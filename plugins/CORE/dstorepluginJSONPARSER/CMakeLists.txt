@@ -29,10 +29,24 @@ set( SOURCE_FILES
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 set( MODULE_NAME "dstorepluginJSONPARSER" )
-add_library( ${MODULE_NAME} ${ALL_FILES} )
+if( EMSCRIPTEN32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+else()
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT jsonbuilder jsonparser )
 target_link_libraries( ${MODULE_NAME} jsonbuilder jsonparser )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINJSONPARSER_BUILD_MODULE;MODULE_CONSENSUS_NAME=dstorepluginJSONPARSER;MODULE_NAME=dstorepluginJSONPARSER" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINJSONPARSER_BUILD_MODULE;MODULE_CONSENSUS_NAME=dstorepluginJSONPARSER;MODULE_IS_PLUGIN=1;MODULE_NAME=dstorepluginJSONPARSER" )
+
+if ( EMSCRIPTEN32 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=dstorepluginJSONPARSER" )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=dstorepluginJSONPARSER" )
+endif( EMSCRIPTEN64 )
 
 include_directories( ../../../common/include ../../../dependencies/json-builder ../../../dependencies/json-parser ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 

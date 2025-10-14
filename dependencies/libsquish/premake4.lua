@@ -30,6 +30,10 @@ kind( "StaticLib" )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=squish", "MODULE_NAME=squish" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "alpha.h",

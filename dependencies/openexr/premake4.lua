@@ -31,6 +31,10 @@ kind( "SharedLib" )
 configuration( {} )
 links( { "zlib" } )
 links( { "zlib" } )
+
+
+configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=OpenEXR", "MODULE_NAME=OpenEXR" } )
   
 
 configuration( { WIN32 } )
@@ -369,6 +373,12 @@ files( {
 
 configuration( {} )
 includedirs( { "IlmBase", "OpenEXR", "IlmBase/Half", "IlmBase/Iex", "IlmBase/IexMath", "IlmBase/IlmThread", "IlmBase/Imath", "IlmBase/config.windows", "OpenEXR/IlmImf", "OpenEXR/IlmImfUtil", "OpenEXR/config.windows" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../zlib" } )
+
+configuration( { "EMSCRIPTEN64" } )
+includedirs( { "../zlib" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../zlib" } )

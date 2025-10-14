@@ -34,7 +34,7 @@ links( { "aws-c-common", "aws-c-http", "aws-c-io" } )
 
 
 configuration( {} )
-defines( { "AWS_MQTT_WITH_WEBSOCKETS" } )
+defines( { "AWS_MQTT_WITH_WEBSOCKETS", "MODULE_CONSENSUS_NAME=aws_c_mqtt", "MODULE_NAME=aws_c_mqtt" } )
 
 
 configuration( {} )

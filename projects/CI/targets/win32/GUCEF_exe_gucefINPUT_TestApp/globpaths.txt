@@ -1,6 +1,5 @@
 common/include/*
 dependencies/OIS/*
-dependencies/external/*
 dependencies/json-builder/*
 dependencies/json-parser/*
 dependencies/libparsifal/*

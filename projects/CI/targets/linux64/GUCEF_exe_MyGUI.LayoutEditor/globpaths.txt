@@ -2,5 +2,6 @@ dependencies/MyGui/Common/*
 dependencies/MyGui/MyGUIEngine/*
 dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/*
 dependencies/MyGui/Tools/LayoutEditor/*
+dependencies/OIS/*
 dependencies/freetype/*
 dependencies/zlib/*

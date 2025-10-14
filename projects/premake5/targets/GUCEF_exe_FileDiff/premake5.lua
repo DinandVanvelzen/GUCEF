@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_FileDiff" )
 
-  platforms( { "ALL" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -21,6 +21,61 @@ workspace( "GUCEF_exe_FileDiff" )
   --
 
 filter "ALL"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "ANDROID32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "ANDROID64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "ARDUINO"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "EMSCRIPTEN32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "EMSCRIPTEN64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "IOS"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "LINUX32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "LINUX64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "OSX"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "WIN32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/FileDiff" )
+
+filter "WIN64"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/FileDiff" )

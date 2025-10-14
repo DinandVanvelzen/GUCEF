@@ -34,7 +34,8 @@ links( { "freetype" } )
 
 
 configuration( {} )
-defines( { "OGRE_NONCLIENT_BUILD", "OGRE_NO_CONFIG_DIALOG" } )
+defines( { "MODULE_CONSENSUS_NAME=Ogre", "MODULE_NAME=Ogre", "OGRE_NONCLIENT_BUILD", "OGRE_NO_CONFIG_DIALOG" } )
+  links( { "atomic", "dl" } )
   links( { "atomic", "dl" } )
   links( { "atomic", "dl" } )
   links( { "atomic", "dl" } )
@@ -512,7 +513,7 @@ files( {
 
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/Android/OgreAPKFileSystemArchive.h",
@@ -535,7 +536,43 @@ configuration( { "ANDROID" } )
 
 
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/Android/OgreAPKFileSystemArchive.h",
+      "include/Android/OgreAPKZipArchive.h",
+      "include/Android/OgreAndroidLogListener.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/Android/OgreAPKFileSystemArchive.cpp",
+      "src/Android/OgreAPKZipArchive.cpp",
+      "src/Android/OgreAndroidLogListener.cpp",
+      "src/Android/OgreFileSystemLayer.cpp",
+      "src/Android/JNI/OgreActivityJNI.cpp",
+      "src/Threading/OgreBarrierPThreads.cpp",
+      "src/Threading/OgreDefaultWorkQueueStandard.cpp",
+      "src/Threading/OgreLightweightMutexPThreads.cpp",
+      "src/Threading/OgreThreadsPThreads.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/Emscripten/OgreTimerImp.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/Emscripten/OgreTimer.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/Emscripten/OgreTimerImp.h"
@@ -667,10 +704,16 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "../../freetype/include", "../../freetype/include/freetype", "../../freetype/include/freetype/config", "../../freetype/include/freetype/internal", "../../freetype/include/freetype/internal/services", "../../freetype/src", "../../freetype/src/winfonts", "../include", "include", "include/Hash", "include/Threading", "src", "src/nedmalloc", "src/stbi" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 includedirs( { "include/Android" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+includedirs( { "include/Android" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "include/Emscripten" } )
+
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "include/Emscripten" } )
 
 configuration( { "GLX" } )

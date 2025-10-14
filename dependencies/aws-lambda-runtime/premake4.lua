@@ -34,6 +34,10 @@ links( { "curl" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=aws_lambda_runtime", "MODULE_NAME=aws_lambda_runtime" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/aws/http/response.h",

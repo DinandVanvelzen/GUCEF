@@ -1,6 +1,4 @@
 common/include/*
-platform/gucefCOM/*
-platform/gucefCORE/*
-platform/gucefMT/*
-tests/gucefCOM_TestApp/*
+platform/gucefMT/include//*
+platform/gucefMT/src//*
 tools/MemoryLeakFinder/*

@@ -50,7 +50,7 @@ links( { "MemoryLeakFinder", "gucefCORE", "gucefMT" } )
   
 
 configuration( { WIN32 } )
-defines( { "GUCEF_MLF_TESTAPP_BUILD_MODULE", "MEMCHECK_OLEAPI" } )
+defines( { "GUCEF_MLF_TESTAPP_BUILD_MODULE", "MEMCHECK_OLEAPI", "MODULE_NAME=MemoryLeakFinder_TestApp" } )
   
 configuration( { WIN64 } )
 links( { "MemoryLeakFinder", "gucefCORE", "gucefMT" } )
@@ -58,7 +58,7 @@ links( { "MemoryLeakFinder", "gucefCORE", "gucefMT" } )
   
 
 configuration( { WIN64 } )
-defines( { "GUCEF_MLF_TESTAPP_BUILD_MODULE", "MEMCHECK_OLEAPI" } )
+defines( { "GUCEF_MLF_TESTAPP_BUILD_MODULE", "MEMCHECK_OLEAPI", "MODULE_NAME=MemoryLeakFinder_TestApp" } )
 
 
 configuration( { "WIN32" } )

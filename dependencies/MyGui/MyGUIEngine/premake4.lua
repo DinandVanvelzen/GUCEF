@@ -34,7 +34,7 @@ links( { "freetype" } )
 
 
 configuration( {} )
-defines( { "MYGUI_BUILD", "MYGUI_BUILD_DLL", "MYGUI_USE_FREETYPE" } )
+defines( { "MODULE_CONSENSUS_NAME=MyGUI_Engine", "MODULE_NAME=MyGUI_Engine", "MYGUI_BUILD", "MYGUI_BUILD_DLL", "MYGUI_USE_FREETYPE" } )
 
 
 configuration( {} )

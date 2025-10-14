@@ -34,6 +34,10 @@ links( { "aws-c-common", "aws-c-compression", "aws-c-io" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=aws_c_http", "MODULE_NAME=aws_c_http" } )
+
+
+configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "source/connection.c",

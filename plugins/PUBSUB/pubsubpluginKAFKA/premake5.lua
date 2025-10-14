@@ -34,7 +34,7 @@ links( { "RdKafka", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
 
 
 configuration( {} )
-defines( { "PUBSUBPLUGIN_KAFKA_BUILD_PLUGIN_DLL" } )
+defines( { "MODULE_CONSENSUS_NAME=pubsubpluginKAFKA", "MODULE_IS_PLUGIN=1", "MODULE_NAME=pubsubpluginKAFKA", "PUBSUBPLUGIN_KAFKA_BUILD_PLUGIN_DLL" } )
 
 
 configuration( {} )
@@ -65,7 +65,10 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../dependencies/librdkafka", "../../../dependencies/librdkafka/src", "../../../dependencies/librdkafka/src-cpp", "../../../platform/gucefCOM/include", "../../../platform/gucefCOMCORE/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "../../../platform/gucefPUBSUB/include", "../../../platform/gucefVFS/include", "../../../platform/gucefWEB/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

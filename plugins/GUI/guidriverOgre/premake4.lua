@@ -34,7 +34,7 @@ links( { "Ogre", "gucefCORE", "gucefGUI", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "GUIDRIVEROGRE_BUILD_MODULE" } )
+defines( { "GUIDRIVEROGRE_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverOgre", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverOgre" } )
 
 
 configuration( {} )
@@ -68,17 +68,17 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../dependencies/Ogre/OgreMain/include", "../../../dependencies/Ogre/OgreMain/include/Hash", "../../../dependencies/Ogre/OgreMain/include/Threading", "../../../dependencies/Ogre/OgreMain/src", "../../../dependencies/Ogre/OgreMain/src/nedmalloc", "../../../dependencies/Ogre/OgreMain/src/stbi", "../../../dependencies/Ogre/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 includedirs( { "../../../dependencies/Ogre/OgreMain/include/Android", "../../../platform/gucefCORE/include/android" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+includedirs( { "../../../dependencies/Ogre/OgreMain/include/Android", "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "EMSCRIPTEN32" } )
 includedirs( { "../../../dependencies/Ogre/OgreMain/include/Emscripten" } )
 
-configuration( { "GLX" } )
-includedirs( { "../../../dependencies/Ogre/OgreMain/src/GLX" } )
-
-configuration( { "GTK" } )
-includedirs( { "../../../dependencies/Ogre/OgreMain/include/gtk", "../../../dependencies/Ogre/OgreMain/src/gtk" } )
+configuration( { "EMSCRIPTEN64" } )
+includedirs( { "../../../dependencies/Ogre/OgreMain/include/Emscripten" } )
 
 configuration( { "IOS" } )
 includedirs( { "../../../dependencies/Ogre/OgreMain/include/iOS" } )

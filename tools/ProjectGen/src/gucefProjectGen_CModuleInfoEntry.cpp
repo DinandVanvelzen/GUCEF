@@ -123,35 +123,107 @@ CModuleInfoEntry::~CModuleInfoEntry()
 /*---------------------------------------------------------------------------*/
 
 bool
-CModuleInfoEntry::GeneratePreprocessorDefinesFromModuleInfo( void )
+CModuleInfoEntry::GeneratePreprocessorDefinesFromModuleInfo( const CORE::CString& platform ,
+                                                             CORE::CStringMap& defines     )
 {GUCEF_TRACE;
 
-    CModuleInfoPtr allPlatformsDef = FindOrCreateModuleInfoForPlatform( KnownPlatforms::AllPlatforms, true );
-    if ( allPlatformsDef.IsNULL() )
+    CModuleInfoPtr platformsDef = FindModuleInfoForPlatform( platform );
+    if ( platformsDef.IsNULL() )
         return false;
 
-    const CORE::CString* moduleName = GetModuleName( KnownPlatforms::AllPlatforms );
+    const CORE::CString* moduleApiPrefix = GUCEF_NULL;
+    const CORE::CString* moduleName = GetModuleName( platform );
     if ( GUCEF_NULL != moduleName )
     {
-        allPlatformsDef->preprocessorSettings.AddDefine( "MODULE_NAME=" + *moduleName );
+        defines[ "MODULE_NAME" ] = *moduleName;
+        moduleApiPrefix = moduleName;
     }
 
-    const CORE::CString& moduleConsensusName = GetConsensusName();
-    if ( !moduleConsensusName.IsNULLOrEmpty() )
+    if ( platform == KnownPlatforms::AllPlatforms )
     {
-        allPlatformsDef->preprocessorSettings.AddDefine( "MODULE_CONSENSUS_NAME=" + moduleConsensusName );
+        const CORE::CString& moduleConsensusName = GetConsensusName();
+        if ( !moduleConsensusName.IsNULLOrEmpty() )
+        {
+            defines[ "MODULE_CONSENSUS_NAME" ] = moduleConsensusName;
+            moduleApiPrefix = &moduleConsensusName;
+        }
     }
 
     CORE::CVersion semver;
-    if ( GetSemVer( semver, KnownPlatforms::AllPlatforms ) )
+    if ( GetSemVer( semver, platform ) )
     {
         CORE::CString semverStr = semver.ToString();
-        allPlatformsDef->preprocessorSettings.AddDefine( "MODULE_SEMVER=" + semverStr );
+        defines[ "MODULE_SEMVER" ] = semverStr;
     }
 
-    if ( !allPlatformsDef->linkerSettings.GetTargetName().IsNULLOrEmpty() )
+    if ( !platformsDef->linkerSettings.GetTargetName().IsNULLOrEmpty() )
     {
-        allPlatformsDef->preprocessorSettings.AddDefine( "MODULE_TARGET_NAME=" + allPlatformsDef->linkerSettings.GetTargetName() );
+        defines[ "MODULE_TARGET_NAME" ] = platformsDef->linkerSettings.GetTargetName();
+    }
+
+    bool isPlugin = HasTag( "plugin", platform );
+    if ( isPlugin )
+    {
+        defines[ "MODULE_IS_PLUGIN" ] = "1";
+        TModuleType moduleType = GetModuleType( platform );
+        if ( GUCEF_NULL != moduleApiPrefix && moduleType == MODULETYPE_STATIC_LIBRARY )
+        {
+            // static plugins are provided with an auto generated API prefix
+            defines[ "MODULE_API_PREFIX" ] = *moduleApiPrefix;
+        }
+    }
+
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CModuleInfoEntry::GeneratePreprocessorDefinesFromModuleInfo( void )
+{GUCEF_TRACE;
+
+    CORE::CStringMap allPlatformDefines;
+    GeneratePreprocessorDefinesFromModuleInfo( KnownPlatforms::AllPlatforms, allPlatformDefines );
+    CModuleInfoPtr allPlatform = FindModuleInfoForPlatform( KnownPlatforms::AllPlatforms );
+    if ( !allPlatform.IsNULL() )
+    {
+        CORE::CStringMap::iterator n = allPlatformDefines.begin();
+        while ( n != allPlatformDefines.end() )
+        {
+            const CORE::CString& platformDefineKey = (*n).first;
+            const CORE::CString& platformDefineValue = (*n).second;
+            CORE::CString platformDefine = platformDefineKey + '=' + platformDefineValue;
+            allPlatform->preprocessorSettings.AddDefine( platformDefine );
+            ++n;
+        }
+    }
+
+    TModuleInfoPtrMap::iterator i = m_modulesPerPlatform.begin();
+    while ( i != m_modulesPerPlatform.end() )
+    {
+        const CORE::CString& platform = (*i).first;
+        CModuleInfoPtr& moduleInfo = (*i).second;
+
+        if ( KnownPlatforms::AllPlatforms != platform )
+        {
+            CORE::CStringMap platformDefines;
+            GeneratePreprocessorDefinesFromModuleInfo( platform, platformDefines );
+
+            CORE::CStringMap::iterator m = platformDefines.begin();
+            while ( m != platformDefines.end() )
+            {
+                const CORE::CString& platformDefineKey = (*m).first;
+                const CORE::CString& platformDefineValue = (*m).second;
+                if ( allPlatformDefines.find( platformDefineKey ) == allPlatformDefines.end() )
+                {
+                    // This platform has a define that isnt present for the 'all' platform
+                    CORE::CString platformDefine = platformDefineKey + '=' + platformDefineValue;
+                    moduleInfo->preprocessorSettings.AddDefine( platformDefine );
+                }
+                ++m;
+            }
+        }
+        ++i;
     }
 
     return true;

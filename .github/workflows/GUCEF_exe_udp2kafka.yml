@@ -51,3 +51,115 @@ jobs:
           name: tar.xz packages
           path: |
             ./common/bin/GUCEF_exe_udp2kafka-all/packages/*udp2kafka*.tar.xz
+  GUCEF_exe_udp2kafka-linux32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_udp2kafka
+      TARGET_PLATFORM: linux32
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_udp2kafka
+      PRODUCT_NAME: udp2kafka
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build udp2kafka for platform linux32
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_udp2kafka-linux32/packages/*udp2kafka*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_udp2kafka-linux32/packages/*udp2kafka*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_udp2kafka-linux32/packages/*udp2kafka*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_udp2kafka-linux32/packages/*udp2kafka*.tar.xz
+  GUCEF_exe_udp2kafka-linux64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_udp2kafka
+      TARGET_PLATFORM: linux64
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_udp2kafka
+      PRODUCT_NAME: udp2kafka
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build udp2kafka for platform linux64
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_udp2kafka-linux64/packages/*udp2kafka*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_udp2kafka-linux64/packages/*udp2kafka*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_udp2kafka-linux64/packages/*udp2kafka*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_udp2kafka-linux64/packages/*udp2kafka*.tar.xz
+  GUCEF_exe_udp2kafka-win32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_udp2kafka
+      TARGET_PLATFORM: win32
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_exe_udp2kafka
+      PRODUCT_NAME: udp2kafka
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build udp2kafka for platform win32
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_exe_udp2kafka-win32/packages/*udp2kafka*.zip
+  GUCEF_exe_udp2kafka-win64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_udp2kafka
+      TARGET_PLATFORM: win64
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_exe_udp2kafka
+      PRODUCT_NAME: udp2kafka
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build udp2kafka for platform win64
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_exe_udp2kafka-win64/packages/*udp2kafka*.zip

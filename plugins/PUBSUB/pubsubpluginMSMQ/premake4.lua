@@ -12,7 +12,11 @@
 -- Configuration for module: pubsubpluginMSMQ
 
 
-project( "pubsubpluginMSMQ" )
+configuration( { "WIN32" } )
+  project( "pubsubpluginMSMQ" )
+
+configuration( { "WIN64" } )
+  project( "pubsubpluginMSMQ" )
 
 configuration( {} )
   location( os.getenv( "PM4OUTPUTDIR" ) )
@@ -23,18 +27,36 @@ configuration( {} )
 configuration( {} )
 language( "C++" )
 
+configuration( { "WIN32" } )
 
 
-configuration( {} )
+configuration( { WIN32 } )
+kind( "SharedLib" )
+configuration( { "WIN64" } )
+
+
+configuration( { WIN64 } )
 kind( "SharedLib" )
 
+
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=pubsubpluginMSMQ" } )
+  
+configuration( { WIN32 } )
 links( { "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
-links( { "Mqrt.lib", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
+  links( { "Mqrt.lib", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
+  
 
+configuration( { WIN32 } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=pubsubpluginMSMQ", "PUBSUBPLUGIN_MSMQ_BUILD_PLUGIN_DLL" } )
+  
+configuration( { WIN64 } )
+links( { "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
+  links( { "Mqrt.lib", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB" } )
+  
 
-configuration( {} )
-defines( { "PUBSUBPLUGIN_MSMQ_BUILD_PLUGIN_DLL" } )
+configuration( { WIN64 } )
+defines( { "MODULE_IS_PLUGIN=1", "MODULE_NAME=pubsubpluginMSMQ", "PUBSUBPLUGIN_MSMQ_BUILD_PLUGIN_DLL" } )
 
 
 configuration( {} )
@@ -64,15 +86,6 @@ files( {
 
 configuration( {} )
 includedirs( { "../../../common/include", "../../../platform/gucefCOM/include", "../../../platform/gucefCOMCORE/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "../../../platform/gucefPUBSUB/include", "../../../platform/gucefVFS/include", "../../../platform/gucefWEB/include", "include" } )
-
-configuration( { "ANDROID" } )
-includedirs( { "../../../platform/gucefCORE/include/android" } )
-
-configuration( { "LINUX32" } )
-includedirs( { "../../../platform/gucefCOMCORE/include/linux", "../../../platform/gucefCORE/include/linux" } )
-
-configuration( { "LINUX64" } )
-includedirs( { "../../../platform/gucefCOMCORE/include/linux", "../../../platform/gucefCORE/include/linux" } )
 
 configuration( { "WIN32" } )
 includedirs( { "../../../platform/gucefCOMCORE/include/mswin", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )

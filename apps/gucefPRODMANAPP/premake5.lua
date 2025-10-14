@@ -34,7 +34,7 @@ links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPRODMAN" } )
 
 
 configuration( {} )
-defines( { "GUCEF_PRODMANAPP_BUILD_MODULE" } )
+defines( { "GUCEF_PRODMANAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefPRODMANAPP", "MODULE_NAME=gucefPRODMANAPP" } )
 
 
 configuration( {} )
@@ -57,7 +57,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefPATCHER/include", "../../platform/gucefPRODMAN/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

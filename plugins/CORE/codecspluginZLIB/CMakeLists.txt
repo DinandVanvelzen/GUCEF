@@ -31,9 +31,15 @@ set( SOURCE_FILES
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 set( MODULE_NAME "codecspluginZLIB" )
-add_library( ${MODULE_NAME} ${ALL_FILES} )
+if( EMSCRIPTEN32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+else()
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT zlib )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_CONSENSUS_NAME=codecspluginZLIB;MODULE_NAME=codecspluginZLIB" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_CONSENSUS_NAME=codecspluginZLIB;MODULE_IS_PLUGIN=1;MODULE_NAME=codecspluginZLIB" )
 
 if ( ANDROID32 )
   target_link_libraries( ${MODULE_NAME} z )
@@ -42,6 +48,14 @@ endif( ANDROID32 )
 if ( ANDROID64 )
   target_link_libraries( ${MODULE_NAME} z )
 endif( ANDROID64 )
+
+if ( EMSCRIPTEN32 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=codecspluginZLIB" )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=codecspluginZLIB" )
+endif( EMSCRIPTEN64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} zlib )
@@ -72,6 +86,14 @@ endif( ANDROID32 )
 if ( ANDROID64 )
   include_directories( ../../../platform/gucefCORE/include/android )
 endif( ANDROID64 )
+
+if ( EMSCRIPTEN32 )
+  include_directories( ../../../dependencies/zlib )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../../dependencies/zlib )
+endif( EMSCRIPTEN64 )
 
 if ( LINUX32 )
   include_directories( ../../../dependencies/zlib ../../../platform/gucefCORE/include/linux )

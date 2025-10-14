@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_gucefLOADER_TestApp" )
 
-  platforms( { "ALL" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -21,6 +21,72 @@ workspace( "GUCEF_exe_gucefLOADER_TestApp" )
   --
 
 filter "ALL"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefLOADER" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefLOADER_TestApp" )
+
+filter "ANDROID32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefLOADER" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefLOADER_TestApp" )
+
+filter "ANDROID64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefLOADER" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefLOADER_TestApp" )
+
+filter "ARDUINO"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefLOADER" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefLOADER_TestApp" )
+
+filter "EMSCRIPTEN32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefLOADER" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefLOADER_TestApp" )
+
+filter "EMSCRIPTEN64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefLOADER" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefLOADER_TestApp" )
+
+filter "IOS"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefLOADER" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefLOADER_TestApp" )
+
+filter "LINUX32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefLOADER" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefLOADER_TestApp" )
+
+filter "LINUX64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefLOADER" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefLOADER_TestApp" )
+
+filter "OSX"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefLOADER" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefLOADER_TestApp" )
+
+filter "WIN32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefLOADER" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefLOADER_TestApp" )
+
+filter "WIN64"
   include( "platform/gucefCORE" )
   include( "platform/gucefLOADER" )
   include( "platform/gucefMT" )

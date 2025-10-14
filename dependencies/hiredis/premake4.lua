@@ -27,6 +27,10 @@ language( "C" )
 
 configuration( {} )
 kind( "StaticLib" )
+
+
+configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=hiredis", "MODULE_NAME=hiredis" } )
   links( { "ws2_32" } )
   links( { "ws2_32" } )
 
@@ -61,7 +65,34 @@ files( {
 
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "alloc.h",
+      "async.h",
+      "dict.h",
+      "hiredis.h",
+      "net.h",
+      "read.h",
+      "sds.h",
+      "sockcompat.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "alloc.c",
+      "async.c",
+      "dict.c",
+      "hiredis.c",
+      "net.c",
+      "read.c",
+      "sds.c",
+      "sockcompat.c"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "alloc.h",
@@ -115,7 +146,34 @@ configuration( { "ARDUINO" } )
 
 
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "alloc.h",
+      "async.h",
+      "dict.h",
+      "hiredis.h",
+      "net.h",
+      "read.h",
+      "sds.h",
+      "sockcompat.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "alloc.c",
+      "async.c",
+      "dict.c",
+      "hiredis.c",
+      "net.c",
+      "read.c",
+      "sds.c",
+      "sockcompat.c"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "alloc.h",

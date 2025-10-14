@@ -34,7 +34,7 @@ links( { "Ogre" } )
 
 
 configuration( {} )
-defines( { "RenderSystem_GL3Plus_EXPORTS" } )
+defines( { "MODULE_CONSENSUS_NAME=OgreRenderSystem_GL3Plus", "MODULE_NAME=OgreRenderSystem_GL3Plus", "RenderSystem_GL3Plus_EXPORTS" } )
   links( { "GL" } )
   links( { "GL" } )
   links( { "opengl32" } )
@@ -220,17 +220,23 @@ configuration( { "WIN32" } )
 configuration( {} )
 includedirs( { "../../../freetype/include", "../../../freetype/include/freetype", "../../../freetype/include/freetype/config", "../../../freetype/include/freetype/internal", "../../../freetype/include/freetype/internal/services", "../../../freetype/src", "../../../freetype/src/winfonts", "../../OgreMain/include", "../../OgreMain/include/Hash", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/nedmalloc", "../../OgreMain/src/stbi", "../../include", "include", "include/GL", "include/GLSL" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 includedirs( { "../../OgreMain/include/Android" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "ANDROID64" } )
+includedirs( { "../../OgreMain/include/Android" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../../OgreMain/include/Emscripten" } )
+
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "../../OgreMain/include/Emscripten" } )
 
 configuration( { "GLX" } )
-includedirs( { "../../OgreMain/src/GLX", "include/windowing", "src", "src/windowing", "include/windowing/GLX", "src/windowing/GLX" } )
+includedirs( { "include/windowing", "src", "src/windowing", "include/windowing/GLX", "src/windowing/GLX" } )
 
 configuration( { "GTK" } )
-includedirs( { "../../OgreMain/include/gtk", "../../OgreMain/src/gtk", "include/windowing", "src", "src/windowing", "include/windowing/gtk", "src/windowing/gtk" } )
+includedirs( { "include/windowing", "src", "src/windowing", "include/windowing/gtk", "src/windowing/gtk" } )
 
 configuration( { "IOS" } )
 includedirs( { "../../OgreMain/include/iOS" } )

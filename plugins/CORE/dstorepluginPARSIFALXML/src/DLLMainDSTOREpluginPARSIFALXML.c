@@ -501,7 +501,7 @@ ParsifalElementEnd( void* userdata         ,
 /*---------------------------------------------------------------------------*/
 
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Init( void** plugdata, TGucefCoreCApi* libApi ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Init )( void** plugdata, TGucefCoreCApi* libApi ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     /* parsifal itself does not require global initialization */
     if ( GUCEF_NULL != plugdata )
@@ -517,7 +517,7 @@ DSTOREPLUG_Init( void** plugdata, TGucefCoreCApi* libApi ) GUCEF_PLUGIN_CALLSPEC
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Shutdown( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Shutdown )( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     /* parsifal itself does not require global cleanup */
 
@@ -527,9 +527,9 @@ DSTOREPLUG_Shutdown( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 /*---------------------------------------------------------------------------*/
 
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Dest_File_Open( void** plugdata    ,
-                           void** filedata    ,
-                           TIOAccess* outFile ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Dest_File_Open )( void** plugdata    ,
+                                                  void** filedata    ,
+                                                  TIOAccess* outFile ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     if ( GUCEF_NULL == filedata )
         return 0;    
@@ -565,8 +565,8 @@ DSTOREPLUG_Dest_File_Open( void** plugdata    ,
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Dest_File_Close( void** plugdata ,
-                            void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Dest_File_Close )( void** plugdata ,
+                                                   void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     if ( filedata )
     {
@@ -700,12 +700,12 @@ NodeNameFromType( Int32 type )
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
-                             void** filedata      ,
-                             const char* nodename ,
-                             Int32 nodeType       ,
-                             UInt32 attscount     ,
-                             UInt32 haschildren   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Begin_Node_Store )( void** plugdata      ,
+                                                    void** filedata      ,
+                                                    const char* nodename ,
+                                                    Int32 nodeType       ,
+                                                    UInt32 attscount     ,
+                                                    UInt32 haschildren   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     TDestFileData* fd = (TDestFileData*)*filedata;
     UInt32 max, len, strLen=0;
@@ -755,11 +755,11 @@ DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_End_Node_Store( void** plugdata      ,
-                           void** filedata      ,
-                           const char* nodename ,
-                           UInt32 attscount     ,
-                           UInt32 haschildren   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_End_Node_Store )( void** plugdata      ,
+                                                  void** filedata      ,
+                                                  const char* nodename ,
+                                                  UInt32 attscount     ,
+                                                  UInt32 haschildren   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     TDestFileData* fd = (TDestFileData*) *filedata;
 
@@ -792,14 +792,14 @@ DSTOREPLUG_End_Node_Store( void** plugdata      ,
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Store_Node_Att( void** plugdata              ,
-                           void** filedata              ,
-                           const char* nodename         ,
-                           UInt32 attscount             ,
-                           UInt32 attindex              ,
-                           const char* attname          ,
-                           const TVariantData* attvalue ,
-                           UInt32 haschildren           ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Store_Node_Att )( void** plugdata              ,
+                                                  void** filedata              ,
+                                                  const char* nodename         ,
+                                                  UInt32 attscount             ,
+                                                  UInt32 attindex              ,
+                                                  const char* attname          ,
+                                                  const TVariantData* attvalue ,
+                                                  UInt32 haschildren           ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     TDestFileData* fd = (TDestFileData*)*filedata;
     UInt32 linelen = (UInt32)strlen( fd->line ); 
@@ -882,9 +882,9 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Begin_Node_Children( void** plugdata      ,
-                                void** filedata      ,
-                                const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Begin_Node_Children )( void** plugdata      ,
+                                                       void** filedata      ,
+                                                       const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     TDestFileData* fd = (TDestFileData*)*filedata;
     fd->indent += NODE_STORE_INDENT;
@@ -893,9 +893,9 @@ DSTOREPLUG_Begin_Node_Children( void** plugdata      ,
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_End_Node_Children( void** plugdata      ,
-                              void** filedata      ,
-                              const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_End_Node_Children )( void** plugdata      ,
+                                                     void** filedata      ,
+                                                     const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     TDestFileData* fd = (TDestFileData*)*filedata;
     fd->indent -= NODE_STORE_INDENT;
@@ -904,10 +904,10 @@ DSTOREPLUG_End_Node_Children( void** plugdata      ,
 /*---------------------------------------------------------------------------*/
 
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Src_File_Open( void** plugdata  ,
-                          void** codecdata ,
-                          void** filedata  ,
-                          TIOAccess* file  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Src_File_Open )( void** plugdata  ,
+                                                 void** codecdata ,
+                                                 void** filedata  ,
+                                                 TIOAccess* file  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     TSrcFileData* sd;
     *plugdata = NULL;
@@ -942,9 +942,9 @@ DSTOREPLUG_Src_File_Open( void** plugdata  ,
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Src_File_Close( void** plugdata  ,
-                           void** codecdata ,
-                           void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Src_File_Close )( void** plugdata  ,
+                                                  void** codecdata ,
+                                                  void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
         if ( *filedata )
         {
@@ -957,11 +957,11 @@ DSTOREPLUG_Src_File_Close( void** plugdata  ,
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Set_Read_Handlers( void** plugdata                ,
-                              void** codecdata               ,
-                              void** filedata                ,
-                              const TReadHandlers* rhandlers ,
-                              void* privdata                 ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Set_Read_Handlers )( void** plugdata                ,
+                                                     void** codecdata               ,
+                                                     void** filedata                ,
+                                                     const TReadHandlers* rhandlers ,
+                                                     void* privdata                 ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
         if ( *filedata )
         {
@@ -974,9 +974,9 @@ DSTOREPLUG_Set_Read_Handlers( void** plugdata                ,
 /*---------------------------------------------------------------------------*/
 
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Start_Reading( void** plugdata  ,
-                          void** codecdata ,
-                          void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Start_Reading )( void** plugdata  ,
+                                                 void** codecdata ,
+                                                 void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     if ( GUCEF_NULL != filedata )
     {
@@ -1006,7 +1006,7 @@ DSTOREPLUG_Start_Reading( void** plugdata  ,
 /*---------------------------------------------------------------------------*/
 
 const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Type( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Type )( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     return "xml";
 }
@@ -1014,7 +1014,7 @@ DSTOREPLUG_Type( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 /*---------------------------------------------------------------------------*/
 
 const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Name( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Name )( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
         static char buffer[ 164 ];
         sprintf( buffer, "gucefCORE DSTORE codec plugin with XML writing code and utilizing the Parsifal XML parser %s for reading", XMLParser_GetVersionString() );
@@ -1024,7 +1024,7 @@ DSTOREPLUG_Name( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 /*---------------------------------------------------------------------------*/
 
 const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Copyright( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Copyright )( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
         return "Copyright (C) Dinand Vanvelzen. 2002 - 2005. LGPLv3.";
 }
@@ -1032,7 +1032,7 @@ DSTOREPLUG_Copyright( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 /*---------------------------------------------------------------------------*/
 
 const TVersion* GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Version( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Version )( const void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
         static TVersion version;
         version.major = VERSION_MAJOR_FIELD;

@@ -34,7 +34,7 @@ links( { "CEGUI", "lua", "tolua", "toluapp" } )
 
 
 configuration( {} )
-defines( { "CEGUILUASCRIPTMODULE_EXPORTS", "LUA_BUILD_AS_DLL" } )
+defines( { "CEGUILUASCRIPTMODULE_EXPORTS", "LUA_BUILD_AS_DLL", "MODULE_CONSENSUS_NAME=CEGUI_ScriptModule_Lua", "MODULE_NAME=CEGUI_ScriptModule_Lua" } )
 
 
 configuration( {} )

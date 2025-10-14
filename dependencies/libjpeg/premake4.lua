@@ -30,7 +30,7 @@ kind( "SharedLib" )
 
 
 configuration( {} )
-defines( { "JPEG_NO_CONFIG_H", "LIBJPEG_EXPORTS" } )
+defines( { "JPEG_NO_CONFIG_H", "LIBJPEG_EXPORTS", "MODULE_CONSENSUS_NAME=libjpeg", "MODULE_NAME=libjpeg" } )
 
 
 configuration( {} )

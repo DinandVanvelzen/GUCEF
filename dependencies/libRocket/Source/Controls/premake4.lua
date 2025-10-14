@@ -34,6 +34,10 @@ links( { "RocketCore", "freetype" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=RocketControls", "MODULE_NAME=RocketControls" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "ElementTextSelection.h",

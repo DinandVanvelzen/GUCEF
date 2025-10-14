@@ -30,7 +30,8 @@ kind( "SharedLib" )
 
 
 configuration( {} )
-defines( { "GLEW_BUILD" } )
+defines( { "GLEW_BUILD", "MODULE_CONSENSUS_NAME=glew", "MODULE_NAME=glew" } )
+  links( { "GLESv1_CM" } )
   links( { "GLESv1_CM" } )
   links( { "GL" } )
   links( { "GL" } )

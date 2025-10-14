@@ -34,6 +34,10 @@ links( { "aws-c-common" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=aws_checksums", "MODULE_NAME=aws_checksums" } )
+
+
+configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "source/crc.c",

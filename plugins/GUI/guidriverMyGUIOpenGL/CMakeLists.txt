@@ -42,7 +42,7 @@ set( MODULE_NAME "guidriverMyGUIOpenGL" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} MyGUI.Engine freetype gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverMyGUI )
 target_link_libraries( ${MODULE_NAME} MyGUI.Engine freetype gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverMyGUI )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERMYGUIOPENGL_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverMyGUIOpenGL;MODULE_NAME=guidriverMyGUIOpenGL" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERMYGUIOPENGL_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverMyGUIOpenGL;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverMyGUIOpenGL" )
 
 if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} MyGUI.OpenGLESPlatform )

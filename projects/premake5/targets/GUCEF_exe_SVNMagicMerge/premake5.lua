@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_SVNMagicMerge" )
 
-  platforms( { "ALL" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -21,6 +21,105 @@ workspace( "GUCEF_exe_SVNMagicMerge" )
   --
 
 filter "ALL"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "ANDROID32"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "ANDROID64"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "ARDUINO"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "EMSCRIPTEN32"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "EMSCRIPTEN64"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "IOS"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "LINUX32"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "LINUX64"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "OSX"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "WIN32"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiffLib" )
+  include( "tools/SVNMagicMerge" )
+
+filter "WIN64"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )

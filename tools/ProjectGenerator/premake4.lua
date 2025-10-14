@@ -40,7 +40,7 @@ links( { "ProjectGen", "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "GUCEF_PROJECTGENERATOR_BUILD_MODULE" } )
+defines( { "GUCEF_PROJECTGENERATOR_BUILD_MODULE", "MODULE_CONSENSUS_NAME=ProjectGenerator", "MODULE_NAME=ProjectGenerator" } )
 
 
 configuration( {} )
@@ -53,7 +53,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../ProjectGen/include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

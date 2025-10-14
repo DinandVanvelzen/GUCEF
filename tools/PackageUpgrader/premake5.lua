@@ -40,6 +40,10 @@ links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=PackageUpgrader", "MODULE_NAME=PackageUpgrader" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/PackageUpgrader.h"
@@ -58,7 +62,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

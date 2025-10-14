@@ -36,7 +36,7 @@ set( MODULE_NAME "ProjectGenVSImporter" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} ProjectGen gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} ProjectGen gucefCORE gucefMT )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=ProjectGenVSImporter;MODULE_NAME=ProjectGenVSImporter;PROJECTGENVSIMPORTER_BUILD_MODULE" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=ProjectGenVSImporter;MODULE_IS_PLUGIN=1;MODULE_NAME=ProjectGenVSImporter;PROJECTGENVSIMPORTER_BUILD_MODULE" )
 
 include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../tools/ProjectGen/include include )
 

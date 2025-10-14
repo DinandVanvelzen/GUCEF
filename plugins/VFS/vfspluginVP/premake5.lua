@@ -34,7 +34,7 @@ links( { "gucefCORE", "gucefMT", "gucefVFS" } )
 
 
 configuration( {} )
-defines( { "GUCEF_VFSPLUGIN_VP_BUILD_MODULE" } )
+defines( { "GUCEF_VFSPLUGIN_VP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=vfspluginVP", "MODULE_IS_PLUGIN=1", "MODULE_NAME=vfspluginVP" } )
 
 
 configuration( {} )
@@ -59,7 +59,10 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

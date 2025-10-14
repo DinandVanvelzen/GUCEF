@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_ServerPortExtender" )
 
-  platforms( { "ALL" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -21,6 +21,72 @@ workspace( "GUCEF_exe_ServerPortExtender" )
   --
 
 filter "ALL"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "ANDROID32"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "ANDROID64"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "ARDUINO"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "EMSCRIPTEN32"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "EMSCRIPTEN64"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "IOS"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "LINUX32"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "LINUX64"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "OSX"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "WIN32"
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/ServerPortExtender" )
+
+filter "WIN64"
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )

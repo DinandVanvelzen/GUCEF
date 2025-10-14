@@ -12,7 +12,10 @@
 -- Configuration for module: main
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+  project( "main" )
+
+configuration( { "ANDROID64" } )
   project( "main" )
 
 configuration( {} )
@@ -24,18 +27,43 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
+kind( "SharedLib" )
+configuration( { "ANDROID64" } )
+
+
+configuration( { ANDROID64 } )
 kind( "SharedLib" )
   
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
 links( { "gucefLOADER" } )
   links( { "android", "android_native_app_glue" } )
+  
+
+configuration( { ANDROID32 } )
+defines( { "MODULE_NAME=main" } )
+  
+configuration( { ANDROID64 } )
+links( { "gucefLOADER" } )
+  links( { "android", "android_native_app_glue" } )
+  
+
+configuration( { ANDROID64 } )
+defines( { "MODULE_NAME=main" } )
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "main.c"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "main.c"
@@ -45,5 +73,8 @@ configuration( { "ANDROID" } )
 configuration( {} )
 includedirs( { "../../..", "../../../../common/include", "../../../gucefCORE", "../../../gucefCORE/include", "../../../gucefCORE/include/", "../../../gucefCORE/include/c_api", "../../../gucefCORE/include/c_api/", "../../../gucefLOADER/include", "../../../gucefMT", "../../../gucefMT/include", "../../../gucefMT/include/" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../gucefCORE/include/", "../../../gucefCORE/include/android", "../../../gucefCORE/include/c_api/", "../../../gucefMT/include/" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../gucefCORE/include/", "../../../gucefCORE/include/android", "../../../gucefCORE/include/c_api/", "../../../gucefMT/include/" } )

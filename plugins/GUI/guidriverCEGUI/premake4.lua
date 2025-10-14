@@ -34,7 +34,7 @@ links( { "CEGUI", "freetype", "gucefCORE", "gucefGUI", "gucefINPUT", "gucefMT", 
 
 
 configuration( {} )
-defines( { "GUIDRIVERCEGUI_BUILD_MODULE" } )
+defines( { "GUIDRIVERCEGUI_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverCEGUI", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverCEGUI" } )
 
 
 configuration( {} )
@@ -128,7 +128,10 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../dependencies/cegui/cegui/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

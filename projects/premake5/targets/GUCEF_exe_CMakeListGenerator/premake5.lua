@@ -12,16 +12,13 @@
 
 workspace( "GUCEF_exe_CMakeListGenerator" )
 
-  platforms( { "ALL", "LINUX32", "LINUX64", "WIN32", "WIN64" } )
+  platforms( { "LINUX32", "LINUX64", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
   --
   -- Includes for all modules in the solution:
   --
-
-filter "ALL"
-  include( "tools/CMakeListGenerator" )
 
 filter "LINUX32"
   include( "platform/gucefCORE" )

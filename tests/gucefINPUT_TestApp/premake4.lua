@@ -33,7 +33,10 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+language( "C++" )
+
+configuration( { "ANDROID64" } )
 language( "C++" )
 
 configuration( { "LINUX32" } )
@@ -75,7 +78,7 @@ links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
   
 
 configuration( { LINUX32 } )
-defines( { "GUCEF_INPUT_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_INPUT_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefINPUT_TestApp" } )
   
 configuration( { LINUX64 } )
 links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
@@ -83,7 +86,7 @@ links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
   
 
 configuration( { LINUX64 } )
-defines( { "GUCEF_INPUT_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_INPUT_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefINPUT_TestApp" } )
   
 configuration( { WIN32 } )
 links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
@@ -91,7 +94,7 @@ links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
   
 
 configuration( { WIN32 } )
-defines( { "GUCEF_INPUT_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_INPUT_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefINPUT_TestApp" } )
   
 configuration( { WIN64 } )
 links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
@@ -99,10 +102,18 @@ links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
   
 
 configuration( { WIN64 } )
-defines( { "GUCEF_INPUT_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_INPUT_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefINPUT_TestApp" } )
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/gucefINPUT_TestApp.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/gucefINPUT_TestApp.cpp"

@@ -14,43 +14,6 @@ on:
 
 jobs:
 
-  GUCEF_exe_MyGUI_ImageSetViewer-all:
-    runs-on: self-hosted
-    env:
-      TARGET_NAME: GUCEF_exe_MyGUI.ImageSetViewer
-      TARGET_PLATFORM: all
-      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_MyGUI.ImageSetViewer
-      PRODUCT_NAME: MyGUI.ImageSetViewer
-      CI_TOOL: GITHUB-ACTIONS
-      BUILD_TOOL: CMAKE
-    steps:
-      - uses: actions/checkout@master
-      - name: Build MyGUI.ImageSetViewer for platform all
-        run: ./projects/CI/targets/ci_build.sh
-      - name: Archive Debian build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: Debian packages
-          path: |
-            ./common/bin/GUCEF_exe_MyGUI.ImageSetViewer-all/packages/*MyGUI.ImageSetViewer*.deb
-      - name: Archive RPM build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: RPM packages
-          path: |
-            ./common/bin/GUCEF_exe_MyGUI.ImageSetViewer-all/packages/*MyGUI.ImageSetViewer*.rpm
-      - name: Archive Tarball - bz2 compressed build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: tar.bz2 packages
-          path: |
-            ./common/bin/GUCEF_exe_MyGUI.ImageSetViewer-all/packages/*MyGUI.ImageSetViewer*.tar.bz2
-      - name: Archive Tarball - Xz compressed build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: tar.xz packages
-          path: |
-            ./common/bin/GUCEF_exe_MyGUI.ImageSetViewer-all/packages/*MyGUI.ImageSetViewer*.tar.xz
   GUCEF_exe_MyGUI_ImageSetViewer-linux32:
     runs-on: self-hosted
     env:

@@ -34,7 +34,7 @@ links( { "aws-cpp-sdk-core", "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "GUCEF_PLUGINGLUE_AWSSDK_BUILD_MODULE" } )
+defines( { "GUCEF_PLUGINGLUE_AWSSDK_BUILD_MODULE", "MODULE_CONSENSUS_NAME=pluginglueAWSSDK", "MODULE_NAME=pluginglueAWSSDK" } )
   
 
 configuration( { WIN32 } )
@@ -73,7 +73,10 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../dependencies/aws-cpp-sdk-core/include", "../../../dependencies/aws-cpp-sdk-core/include/aws", "../../../dependencies/aws-cpp-sdk-core/include/aws/core", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/auth", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/auth/bearer-token-provider", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/auth/signer", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/auth/signer-provider", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/client", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/config", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/config/defaults", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/endpoint", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/endpoint/internal", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/external", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/external/cjson", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/external/tinyxml2", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/http", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/http/curl", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/http/standard", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/internal", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/monitoring", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/net", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/platform", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/platform/refs", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/base64", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/crypto", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/crypto/bcrypt", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/crypto/commoncrypto", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/crypto/openssl", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/event", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/json", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/logging", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/memory", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/memory/stl", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/ratelimiter", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/stream", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/threading", "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/xml", "../../../dependencies/aws-crt-cpp/crt/aws-c-auth/include", "../../../dependencies/aws-crt-cpp/crt/aws-c-cal/include", "../../../dependencies/aws-crt-cpp/crt/aws-c-common/include", "../../../dependencies/aws-crt-cpp/crt/aws-c-compression/include", "../../../dependencies/aws-crt-cpp/crt/aws-c-event-stream/include", "../../../dependencies/aws-crt-cpp/crt/aws-c-http/include", "../../../dependencies/aws-crt-cpp/crt/aws-c-io/include", "../../../dependencies/aws-crt-cpp/crt/aws-c-io/source", "../../../dependencies/aws-crt-cpp/crt/aws-c-mqtt/include", "../../../dependencies/aws-crt-cpp/crt/aws-c-s3/include", "../../../dependencies/aws-crt-cpp/crt/aws-c-sdkutils/include", "../../../dependencies/aws-crt-cpp/crt/aws-checksums/include", "../../../dependencies/aws-crt-cpp/include", "../../../dependencies/curl/include", "../../../dependencies/curl/include/curl", "../../../dependencies/curl/lib", "../../../dependencies/curl/lib/vauth", "../../../dependencies/curl/lib/vquic", "../../../dependencies/curl/lib/vssh", "../../../dependencies/curl/lib/vtls", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/logging/android", "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../dependencies/aws-cpp-sdk-core/include/aws/core/utils/logging/android", "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
@@ -83,7 +86,7 @@ configuration( { "LINUX64" } )
 includedirs( { "../../../platform/gucefCORE/include/linux" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../../dependencies/aws-cpp-sdk-core/include/aws/core/http/windows", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../../dependencies/aws-cpp-sdk-core/include/aws/core/http/windows", "../../../dependencies/curl/lib", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../../dependencies/aws-cpp-sdk-core/include/aws/core/http/windows", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../../dependencies/aws-cpp-sdk-core/include/aws/core/http/windows", "../../../dependencies/curl/lib", "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )

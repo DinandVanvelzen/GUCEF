@@ -40,6 +40,10 @@ links( { "DVPACKSYS", "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=DVPPackTool", "MODULE_NAME=DVPPackTool" } )
+
+
+configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/DVP_Pack_Tool.c"
@@ -49,7 +53,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../dependencies/DVPACKSYS/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

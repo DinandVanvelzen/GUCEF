@@ -355,6 +355,14 @@ endif( WIN64 )
 
 include_directories( IlmBase IlmBase/Half IlmBase/Iex IlmBase/IexMath IlmBase/IlmThread IlmBase/Imath IlmBase/config.windows OpenEXR OpenEXR/IlmImf OpenEXR/IlmImfUtil OpenEXR/config.windows )
 
+if ( EMSCRIPTEN32 )
+  include_directories( ../zlib )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../zlib )
+endif( EMSCRIPTEN64 )
+
 if ( LINUX32 )
   include_directories( ../zlib )
 endif( LINUX32 )

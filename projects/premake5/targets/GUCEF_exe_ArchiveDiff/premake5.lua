@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_ArchiveDiff" )
 
-  platforms( { "ALL", "LINUX32", "LINUX64", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -21,7 +21,67 @@ workspace( "GUCEF_exe_ArchiveDiff" )
   --
 
 filter "ALL"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
   include( "tools/ArchiveDiff" )
+  include( "tools/ArchiveDiffLib" )
+
+filter "ANDROID32"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiff" )
+  include( "tools/ArchiveDiffLib" )
+
+filter "ANDROID64"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiff" )
+  include( "tools/ArchiveDiffLib" )
+
+filter "ARDUINO"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiff" )
+  include( "tools/ArchiveDiffLib" )
+
+filter "EMSCRIPTEN32"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiff" )
+  include( "tools/ArchiveDiffLib" )
+
+filter "EMSCRIPTEN64"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiff" )
+  include( "tools/ArchiveDiffLib" )
+
+filter "IOS"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiff" )
+  include( "tools/ArchiveDiffLib" )
 
 filter "LINUX32"
   include( "platform/gucefCOM" )
@@ -33,6 +93,15 @@ filter "LINUX32"
   include( "tools/ArchiveDiffLib" )
 
 filter "LINUX64"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "platform/gucefPATCHER" )
+  include( "tools/ArchiveDiff" )
+  include( "tools/ArchiveDiffLib" )
+
+filter "OSX"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )

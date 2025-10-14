@@ -83,32 +83,26 @@ kind( "SharedLib" )
   
 
 configuration( { LINUX32 } )
-defines( { "OIS_DYNAMIC_LIB", "OIS_LINUX_PLATFORM", "OIS_NONCLIENT_BUILD" } )
+defines( { "MODULE_NAME=OIS", "OIS_DYNAMIC_LIB", "OIS_LINUX_PLATFORM", "OIS_NONCLIENT_BUILD" } )
   links( { "X11" } )
   
 
 configuration( { LINUX64 } )
-defines( { "OIS_DYNAMIC_LIB", "OIS_LINUX_PLATFORM", "OIS_NONCLIENT_BUILD" } )
+defines( { "MODULE_NAME=OIS", "OIS_DYNAMIC_LIB", "OIS_LINUX_PLATFORM", "OIS_NONCLIENT_BUILD" } )
   
 
 configuration( { OSX } )
-defines( { "OIS_APPLE_PLATFORM", "OIS_DYNAMIC_LIB", "OIS_NONCLIENT_BUILD" } )
-  
-configuration( { WIN32 } )
-links( { "DirectInput8" } )
+defines( { "MODULE_NAME=OIS", "OIS_APPLE_PLATFORM", "OIS_DYNAMIC_LIB", "OIS_NONCLIENT_BUILD" } )
   links( { "dinput8", "dxguid" } )
   
 
 configuration( { WIN32 } )
-defines( { "OIS_DYNAMIC_LIB", "OIS_NONCLIENT_BUILD" } )
-  
-configuration( { WIN64 } )
-links( { "DirectInput8" } )
+defines( { "MODULE_NAME=OIS", "OIS_DYNAMIC_LIB", "OIS_NONCLIENT_BUILD" } )
   links( { "dinput8", "dxguid" } )
   
 
 configuration( { WIN64 } )
-defines( { "OIS_DYNAMIC_LIB", "OIS_NONCLIENT_BUILD" } )
+defines( { "MODULE_NAME=OIS", "OIS_DYNAMIC_LIB", "OIS_NONCLIENT_BUILD" } )
 
 
 configuration( { "IOS" } )
@@ -433,7 +427,7 @@ configuration( { "SDL" } )
 includedirs( { "includes/SDL" } )
 
 configuration( { "WIN32" } )
-includedirs( { "#$#ENVVAR:DXSDK_DIR#$#/Include", "../external", "includes", "includes/win32", "src/extras/LIRC", "src/win32/extras/WiiMote" } )
+includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include", "includes", "includes/win32", "src/extras/LIRC", "src/win32/extras/WiiMote" } )
 
 configuration( { "WIN64" } )
-includedirs( { "includes", "src/extras/LIRC" } )
+includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include", "includes", "src/extras/LIRC" } )

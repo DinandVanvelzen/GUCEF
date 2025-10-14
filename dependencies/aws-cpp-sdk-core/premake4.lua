@@ -34,10 +34,14 @@ links( { "aws-c-auth", "aws-c-cal", "aws-c-common", "aws-c-compression", "aws-c-
 
 
 configuration( {} )
-defines( { "AWS_CORE_EXPORTS=1", "USE_IMPORT_EXPORT=1" } )
+defines( { "AWS_CORE_EXPORTS=1", "MODULE_CONSENSUS_NAME=aws_cpp_sdk_core", "MODULE_NAME=aws_cpp_sdk_core", "USE_IMPORT_EXPORT=1" } )
   
 
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
+defines( { "ENABLE_OPENSSL_ENCRYPTION" } )
+  
+
+configuration( { ANDROID64 } )
 defines( { "ENABLE_OPENSSL_ENCRYPTION" } )
   
 
@@ -377,7 +381,26 @@ files( {
 
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/aws/core/utils/logging/android/LogcatLogSystem.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "source/platform/android/Environment.cpp",
+      "source/platform/android/FileSystem.cpp",
+      "source/platform/android/LogcatLogSystem.cpp",
+      "source/platform/android/OSVersionInfo.cpp",
+      "source/platform/android/Platform.cpp",
+      "source/platform/android/Security.cpp",
+      "source/platform/android/Time.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/aws/core/utils/logging/android/LogcatLogSystem.h"
@@ -502,7 +525,10 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "../aws-crt-cpp/crt/aws-c-auth/include", "../aws-crt-cpp/crt/aws-c-cal/include", "../aws-crt-cpp/crt/aws-c-common/include", "../aws-crt-cpp/crt/aws-c-compression/include", "../aws-crt-cpp/crt/aws-c-event-stream/include", "../aws-crt-cpp/crt/aws-c-http/include", "../aws-crt-cpp/crt/aws-c-io/include", "../aws-crt-cpp/crt/aws-c-io/source", "../aws-crt-cpp/crt/aws-c-mqtt/include", "../aws-crt-cpp/crt/aws-c-s3/include", "../aws-crt-cpp/crt/aws-c-sdkutils/include", "../aws-crt-cpp/crt/aws-checksums/include", "../aws-crt-cpp/include", "../curl/include", "../curl/include/curl", "../curl/lib", "../curl/lib/vauth", "../curl/lib/vquic", "../curl/lib/vssh", "../curl/lib/vtls", "include", "include/aws", "include/aws/core", "include/aws/core/auth", "include/aws/core/auth/bearer-token-provider", "include/aws/core/auth/signer", "include/aws/core/auth/signer-provider", "include/aws/core/client", "include/aws/core/config", "include/aws/core/config/defaults", "include/aws/core/endpoint", "include/aws/core/endpoint/internal", "include/aws/core/external", "include/aws/core/external/cjson", "include/aws/core/external/tinyxml2", "include/aws/core/http", "include/aws/core/http/curl", "include/aws/core/http/standard", "include/aws/core/internal", "include/aws/core/monitoring", "include/aws/core/net", "include/aws/core/platform", "include/aws/core/platform/refs", "include/aws/core/utils", "include/aws/core/utils/base64", "include/aws/core/utils/crypto", "include/aws/core/utils/crypto/bcrypt", "include/aws/core/utils/crypto/commoncrypto", "include/aws/core/utils/crypto/openssl", "include/aws/core/utils/event", "include/aws/core/utils/json", "include/aws/core/utils/logging", "include/aws/core/utils/memory", "include/aws/core/utils/memory/stl", "include/aws/core/utils/ratelimiter", "include/aws/core/utils/stream", "include/aws/core/utils/threading", "include/aws/core/utils/xml" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "include/aws/core/utils/logging/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "include/aws/core/utils/logging/android" } )
 
 configuration( { "WIN32" } )

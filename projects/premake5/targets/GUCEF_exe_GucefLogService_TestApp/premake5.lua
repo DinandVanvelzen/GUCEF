@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_GucefLogService_TestApp" )
 
-  platforms( { "ALL" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -21,6 +21,94 @@ workspace( "GUCEF_exe_GucefLogService_TestApp" )
   --
 
 filter "ALL"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/GucefLogServiceLib" )
+  include( "tools/GucefLogService_TestApp" )
+
+filter "ANDROID32"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/GucefLogServiceLib" )
+  include( "tools/GucefLogService_TestApp" )
+
+filter "ANDROID64"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/GucefLogServiceLib" )
+  include( "tools/GucefLogService_TestApp" )
+
+filter "ARDUINO"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/GucefLogServiceLib" )
+  include( "tools/GucefLogService_TestApp" )
+
+filter "EMSCRIPTEN32"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/GucefLogServiceLib" )
+  include( "tools/GucefLogService_TestApp" )
+
+filter "EMSCRIPTEN64"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/GucefLogServiceLib" )
+  include( "tools/GucefLogService_TestApp" )
+
+filter "IOS"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/GucefLogServiceLib" )
+  include( "tools/GucefLogService_TestApp" )
+
+filter "LINUX32"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/GucefLogServiceLib" )
+  include( "tools/GucefLogService_TestApp" )
+
+filter "LINUX64"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/GucefLogServiceLib" )
+  include( "tools/GucefLogService_TestApp" )
+
+filter "OSX"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/GucefLogServiceLib" )
+  include( "tools/GucefLogService_TestApp" )
+
+filter "WIN32"
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/GucefLogServiceLib" )
+  include( "tools/GucefLogService_TestApp" )
+
+filter "WIN64"
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )

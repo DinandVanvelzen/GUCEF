@@ -50,7 +50,7 @@ links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPATCHER", "gu
   
 
 configuration( { WIN32 } )
-defines( { "_AFXDLL" } )
+defines( { "MODULE_NAME=MFCPatcherGUI", "_AFXDLL" } )
   
 configuration( { WIN64 } )
 links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPATCHER", "gucefVFS" } )
@@ -58,7 +58,7 @@ links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPATCHER", "gu
   
 
 configuration( { WIN64 } )
-defines( { "_AFXDLL" } )
+defines( { "MODULE_NAME=MFCPatcherGUI", "_AFXDLL" } )
 
 
 configuration( { "WIN32" } )

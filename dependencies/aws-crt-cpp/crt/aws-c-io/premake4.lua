@@ -31,6 +31,10 @@ kind( "StaticLib" )
 configuration( {} )
 links( { "aws-c-cal", "aws-c-common" } )
 links( { "aws-c-cal", "aws-c-common" } )
+
+
+configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=aws_c_io", "MODULE_NAME=aws_c_io" } )
   
 
 configuration( { WIN32 } )

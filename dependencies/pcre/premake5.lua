@@ -30,10 +30,14 @@ kind( "SharedLib" )
 
 
 configuration( {} )
-defines( { "HAVE_CONFIG_H" } )
+defines( { "HAVE_CONFIG_H", "MODULE_CONSENSUS_NAME=pcre", "MODULE_NAME=pcre" } )
   
 
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
+defines( { "HAVE_STDLIB_H", "HAVE_SYS_STAT_H", "HAVE_SYS_TYPES_H" } )
+  
+
+configuration( { ANDROID64 } )
 defines( { "HAVE_STDLIB_H", "HAVE_SYS_STAT_H", "HAVE_SYS_TYPES_H" } )
   
 

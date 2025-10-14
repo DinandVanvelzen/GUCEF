@@ -34,7 +34,8 @@ links( { "gucefMT" } )
 
 
 configuration( {} )
-defines( { "GUCEF_CORE_BUILD_MODULE" } )
+defines( { "GUCEF_CORE_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefCORE", "MODULE_NAME=gucefCORE", "MODULE_SEMVER=0_1_0_0" } )
+  links( { "dl" } )
   links( { "dl" } )
   links( { "X11", "dl", "rt" } )
   links( { "X11", "dl", "rt" } )
@@ -583,7 +584,20 @@ files( {
 
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/android/gucefCORE_CAndroidSystemLogger.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/android/gucefCORE_CAndroidSystemLogger.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/android/gucefCORE_CAndroidSystemLogger.h"
@@ -690,7 +704,10 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "../../common/include", "../gucefMT/include", "include", "include/c_api" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "include/android" } )
 
 configuration( { "LINUX32" } )

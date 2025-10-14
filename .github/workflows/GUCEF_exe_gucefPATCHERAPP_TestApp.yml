@@ -51,3 +51,115 @@ jobs:
           name: tar.xz packages
           path: |
             ./common/bin/GUCEF_exe_gucefPATCHERAPP_TestApp-all/packages/*gucefPATCHERAPP_TestApp*.tar.xz
+  GUCEF_exe_gucefPATCHERAPP_TestApp-linux32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_gucefPATCHERAPP_TestApp
+      TARGET_PLATFORM: linux32
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_gucefPATCHERAPP_TestApp
+      PRODUCT_NAME: gucefPATCHERAPP_TestApp
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build gucefPATCHERAPP_TestApp for platform linux32
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefPATCHERAPP_TestApp-linux32/packages/*gucefPATCHERAPP_TestApp*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefPATCHERAPP_TestApp-linux32/packages/*gucefPATCHERAPP_TestApp*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefPATCHERAPP_TestApp-linux32/packages/*gucefPATCHERAPP_TestApp*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefPATCHERAPP_TestApp-linux32/packages/*gucefPATCHERAPP_TestApp*.tar.xz
+  GUCEF_exe_gucefPATCHERAPP_TestApp-linux64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_gucefPATCHERAPP_TestApp
+      TARGET_PLATFORM: linux64
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_gucefPATCHERAPP_TestApp
+      PRODUCT_NAME: gucefPATCHERAPP_TestApp
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build gucefPATCHERAPP_TestApp for platform linux64
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefPATCHERAPP_TestApp-linux64/packages/*gucefPATCHERAPP_TestApp*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefPATCHERAPP_TestApp-linux64/packages/*gucefPATCHERAPP_TestApp*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefPATCHERAPP_TestApp-linux64/packages/*gucefPATCHERAPP_TestApp*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefPATCHERAPP_TestApp-linux64/packages/*gucefPATCHERAPP_TestApp*.tar.xz
+  GUCEF_exe_gucefPATCHERAPP_TestApp-win32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_gucefPATCHERAPP_TestApp
+      TARGET_PLATFORM: win32
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_exe_gucefPATCHERAPP_TestApp
+      PRODUCT_NAME: gucefPATCHERAPP_TestApp
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build gucefPATCHERAPP_TestApp for platform win32
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefPATCHERAPP_TestApp-win32/packages/*gucefPATCHERAPP_TestApp*.zip
+  GUCEF_exe_gucefPATCHERAPP_TestApp-win64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_gucefPATCHERAPP_TestApp
+      TARGET_PLATFORM: win64
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_exe_gucefPATCHERAPP_TestApp
+      PRODUCT_NAME: gucefPATCHERAPP_TestApp
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build gucefPATCHERAPP_TestApp for platform win64
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefPATCHERAPP_TestApp-win64/packages/*gucefPATCHERAPP_TestApp*.zip

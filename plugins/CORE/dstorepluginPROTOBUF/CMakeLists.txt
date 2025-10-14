@@ -29,10 +29,24 @@ set( SOURCE_FILES
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 set( MODULE_NAME "dstorepluginPROTOBUF" )
-add_library( ${MODULE_NAME} ${ALL_FILES} )
+if( EMSCRIPTEN32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+else()
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT libprotobuf )
 target_link_libraries( ${MODULE_NAME} libprotobuf )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINPROTOBUF_BUILD_MODULE;MODULE_CONSENSUS_NAME=dstorepluginPROTOBUF;MODULE_NAME=dstorepluginPROTOBUF;PROTOBUF_USE_DLLS" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINPROTOBUF_BUILD_MODULE;MODULE_CONSENSUS_NAME=dstorepluginPROTOBUF;MODULE_IS_PLUGIN=1;MODULE_NAME=dstorepluginPROTOBUF;PROTOBUF_USE_DLLS" )
+
+if ( EMSCRIPTEN32 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=dstorepluginPROTOBUF" )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=dstorepluginPROTOBUF" )
+endif( EMSCRIPTEN64 )
 
 include_directories( ../../../common/include ../../../dependencies/protobuf/src ../../../dependencies/protobuf/src/google ../../../dependencies/protobuf/src/google/protobuf ../../../dependencies/protobuf/src/google/protobuf/compiler ../../../dependencies/protobuf/src/google/protobuf/io ../../../dependencies/protobuf/src/google/protobuf/stubs ../../../dependencies/protobuf/src/google/protobuf/util ../../../dependencies/protobuf/src/google/protobuf/util/internal ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 

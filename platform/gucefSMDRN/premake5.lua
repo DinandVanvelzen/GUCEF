@@ -34,7 +34,7 @@ links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "GUCEF_SMDRN_BUILD_MODULE" } )
+defines( { "GUCEF_SMDRN_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefSMDRN", "MODULE_NAME=gucefSMDRN", "MODULE_SEMVER=0_1_0_0" } )
 
 
 configuration( {} )
@@ -76,7 +76,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../gucefCOM/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefDRN/include", "../gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

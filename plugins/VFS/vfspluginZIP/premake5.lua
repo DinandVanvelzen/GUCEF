@@ -23,6 +23,16 @@ configuration( {} )
 configuration( {} )
 language( "C++" )
 
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { EMSCRIPTEN32 } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { EMSCRIPTEN64 } )
+kind( "StaticLib" )
 
 
 configuration( {} )
@@ -34,8 +44,17 @@ links( { "gucefCORE", "gucefMT", "gucefVFS", "zziplib" } )
 
 
 configuration( {} )
-defines( { "GUCEF_VFSPLUGIN_ZIP_BUILD_MODULE", "ZZIP_HAVE_STDINT_H" } )
+defines( { "GUCEF_VFSPLUGIN_ZIP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=vfspluginZIP", "MODULE_IS_PLUGIN=1", "MODULE_NAME=vfspluginZIP", "ZZIP_HAVE_STDINT_H" } )
   links( { "z" } )
+  links( { "z" } )
+  
+
+configuration( { EMSCRIPTEN32 } )
+defines( { "MODULE_API_PREFIX=vfspluginZIP" } )
+  
+
+configuration( { EMSCRIPTEN64 } )
+defines( { "MODULE_API_PREFIX=vfspluginZIP" } )
   
 configuration( { LINUX32 } )
 links( { "zlib" } )
@@ -78,7 +97,10 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../dependencies/zziplib", "../../../dependencies/zziplib/zzip", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

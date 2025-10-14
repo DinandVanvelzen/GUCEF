@@ -34,7 +34,7 @@ links( { "fliclib" } )
 
 
 configuration( {} )
-defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE" } )
+defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_CONSENSUS_NAME=imgpluginFLIC", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgpluginFLIC" } )
 
 
 configuration( {} )
@@ -55,7 +55,10 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../dependencies/flic", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefIMAGE/include", "../../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

@@ -31,6 +31,11 @@ kind( "StaticLib" )
 configuration( {} )
 links( { "MyGUI.Engine" } )
 links( { "MyGUI.Engine" } )
+
+
+configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=MyGUI_OpenGLPlatform", "MODULE_NAME=MyGUI_OpenGLPlatform" } )
+  links( { "GLESv1_CM" } )
   links( { "GLESv1_CM" } )
   links( { "GL" } )
   links( { "GL" } )

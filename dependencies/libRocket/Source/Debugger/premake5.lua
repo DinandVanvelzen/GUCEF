@@ -34,6 +34,10 @@ links( { "RocketCore", "freetype" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=RocketDebugger", "MODULE_NAME=RocketDebugger" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "BeaconSource.h",

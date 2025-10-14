@@ -31,6 +31,10 @@ kind( "SharedLib" )
 configuration( {} )
 links( { "lua" } )
 links( { "lua" } )
+
+
+configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=tolua", "MODULE_NAME=tolua" } )
   
 
 configuration( { WIN32 } )

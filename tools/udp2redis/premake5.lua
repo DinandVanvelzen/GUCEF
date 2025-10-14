@@ -40,6 +40,10 @@ links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefWEB", "hiredi
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=udp2redis", "MODULE_NAME=udp2redis" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/udp2redis.h"
@@ -58,19 +62,19 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../dependencies/hiredis", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../dependencies/hiredis", "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../dependencies/hiredis", "../../platform/gucefCORE/include/android" } )
 
 configuration( { "ARDUINO" } )
 includedirs( { "../../dependencies/hiredis" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
 includedirs( { "../../dependencies/hiredis" } )
 
-configuration( { "GLX" } )
-includedirs( { "../../dependencies/hiredis" } )
-
-configuration( { "GTK" } )
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "../../dependencies/hiredis" } )
 
 configuration( { "IOS" } )
@@ -82,22 +86,7 @@ includedirs( { "../../dependencies/hiredis", "../../platform/gucefCOMCORE/includ
 configuration( { "LINUX64" } )
 includedirs( { "../../dependencies/hiredis", "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
 
-configuration( { "NACL" } )
-includedirs( { "../../dependencies/hiredis" } )
-
 configuration( { "OSX" } )
-includedirs( { "../../dependencies/hiredis" } )
-
-configuration( { "POSIX" } )
-includedirs( { "../../dependencies/hiredis" } )
-
-configuration( { "SDL" } )
-includedirs( { "../../dependencies/hiredis" } )
-
-configuration( { "SYMBIAN" } )
-includedirs( { "../../dependencies/hiredis" } )
-
-configuration( { "UNIX" } )
 includedirs( { "../../dependencies/hiredis" } )
 
 configuration( { "WIN32" } )

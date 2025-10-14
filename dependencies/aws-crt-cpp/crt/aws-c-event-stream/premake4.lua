@@ -34,6 +34,10 @@ links( { "aws-c-cal", "aws-c-common", "aws-c-io", "aws-checksums" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=aws_c_event_stream", "MODULE_NAME=aws_c_event_stream" } )
+
+
+configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "source/event_stream.c",

@@ -30,7 +30,7 @@ kind( "SharedLib" )
 
 
 configuration( {} )
-defines( { "GUCEF_MT_BUILD_MODULE" } )
+defines( { "GUCEF_MT_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefMT", "MODULE_NAME=gucefMT", "MODULE_SEMVER=0_1_0_0" } )
   links( { "pthread" } )
   links( { "pthread" } )
   links( { "Winmm" } )

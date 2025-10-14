@@ -34,7 +34,7 @@ links( { "libjpeg" } )
 
 
 configuration( {} )
-defines( { "JAS_BUILDING_DLL", "JAS_DLL", "JAS_ENABLE_SHARED", "JAS_HAVE_VISIBILITY" } )
+defines( { "JAS_BUILDING_DLL", "JAS_DLL", "JAS_ENABLE_SHARED", "JAS_HAVE_VISIBILITY", "MODULE_CONSENSUS_NAME=jasper", "MODULE_NAME=jasper" } )
 
 
 configuration( {} )

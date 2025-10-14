@@ -12,6 +12,12 @@
 -- Configuration for module: zlib
 
 
+configuration( { "EMSCRIPTEN32" } )
+  project( "" )
+
+configuration( { "EMSCRIPTEN64" } )
+  project( "" )
+
 configuration( { "LINUX32" } )
   project( "zlib" )
 
@@ -30,6 +36,12 @@ configuration( {} )
 configuration( {} )
   targetdir( os.getenv( "PM4TARGETDIR" ) )
 
+configuration( { "EMSCRIPTEN32" } )
+language( "C" )
+
+configuration( { "EMSCRIPTEN64" } )
+language( "C" )
+
 configuration( { "LINUX32" } )
 language( "C" )
 
@@ -42,6 +54,16 @@ language( "C" )
 configuration( { "WIN64" } )
 language( "C" )
 
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { EMSCRIPTEN32 } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { EMSCRIPTEN64 } )
+kind( "StaticLib" )
 configuration( { "LINUX32" } )
 
 
@@ -65,19 +87,87 @@ kind( "SharedLib" )
   
 
 configuration( { LINUX32 } )
-defines( { "ZLIB_DLL", "ZLIB_INTERNAL", "ZZIP_HAVE_STDINT_H" } )
+defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZLIB_INTERNAL", "ZZIP_HAVE_STDINT_H" } )
   
 
 configuration( { LINUX64 } )
-defines( { "ZLIB_DLL", "ZLIB_INTERNAL", "ZZIP_HAVE_STDINT_H" } )
+defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZLIB_INTERNAL", "ZZIP_HAVE_STDINT_H" } )
   
 
 configuration( { WIN32 } )
-defines( { "ZLIB_DLL", "ZLIB_INTERNAL", "ZZIP_HAVE_STDINT_H" } )
+defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZLIB_INTERNAL", "ZZIP_HAVE_STDINT_H" } )
   
 
 configuration( { WIN64 } )
-defines( { "ZLIB_DLL", "ZLIB_INTERNAL", "ZZIP_HAVE_STDINT_H" } )
+defines( { "MODULE_NAME=zlib", "ZLIB_DLL", "ZLIB_INTERNAL", "ZZIP_HAVE_STDINT_H" } )
+
+
+configuration( { "EMSCRIPTEN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "crc32.h",
+      "deflate.h",
+      "inffast.h",
+      "inffixed.h",
+      "inflate.h",
+      "inftrees.h",
+      "trees.h",
+      "zconf.h",
+      "zconf.in.h",
+      "zlib.h",
+      "zutil.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "adler32.c",
+      "compress.c",
+      "crc32.c",
+      "deflate.c",
+      "gzio.c",
+      "infback.c",
+      "inffast.c",
+      "inflate.c",
+      "inftrees.c",
+      "trees.c",
+      "uncompr.c",
+      "zutil.c"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "crc32.h",
+      "deflate.h",
+      "inffast.h",
+      "inffixed.h",
+      "inflate.h",
+      "inftrees.h",
+      "trees.h",
+      "zconf.h",
+      "zconf.in.h",
+      "zlib.h",
+      "zutil.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "adler32.c",
+      "compress.c",
+      "crc32.c",
+      "deflate.c",
+      "gzio.c",
+      "infback.c",
+      "inffast.c",
+      "inflate.c",
+      "inftrees.c",
+      "trees.c",
+      "uncompr.c",
+      "zutil.c"
+    } )
+
 
 
 configuration( { "LINUX32" } )

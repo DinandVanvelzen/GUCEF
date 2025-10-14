@@ -34,9 +34,13 @@ links( { "MyGUI.Engine", "freetype", "gucefCORE", "gucefGUI", "gucefIMAGE", "guc
 
 
 configuration( {} )
-defines( { "GUIDRIVERMYGUIOPENGL_BUILD_MODULE" } )
+defines( { "GUIDRIVERMYGUIOPENGL_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverMyGUIOpenGL", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverMyGUIOpenGL" } )
   
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
+links( { "MyGUI.OpenGLESPlatform" } )
+  links( { "GLESv1_CM", "MyGUI.OpenGLESPlatform" } )
+  
+configuration( { ANDROID64 } )
 links( { "MyGUI.OpenGLESPlatform" } )
   links( { "GLESv1_CM", "MyGUI.OpenGLESPlatform" } )
   
@@ -83,9 +87,12 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/MyGui/Common/FileSystemInfo", "../../../dependencies/MyGui/MyGUIEngine/include", "../../../dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/include", "../../../dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/include/GL", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../guidriverMyGUI/include", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/MyGui/MyGUIEngine/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../guidriverMyGUI/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../dependencies/MyGui/Common/FileSystemInfo", "../../../platform/gucefCORE/include/android", "OpenGLESPlatform/include" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../dependencies/MyGui/Common/FileSystemInfo", "../../../platform/gucefCORE/include/android", "OpenGLESPlatform/include" } )
 
 configuration( { "LINUX32" } )

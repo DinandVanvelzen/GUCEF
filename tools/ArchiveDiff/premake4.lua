@@ -12,17 +12,7 @@
 -- Configuration for module: ArchiveDiff
 
 
-configuration( { "LINUX32" } )
-  project( "ArchiveDiff" )
-
-configuration( { "LINUX64" } )
-  project( "ArchiveDiff" )
-
-configuration( { "WIN32" } )
-  project( "ArchiveDiff" )
-
-configuration( { "WIN64" } )
-  project( "ArchiveDiff" )
+project( "ArchiveDiff" )
 
 configuration( {} )
   location( os.getenv( "PM4OUTPUTDIR" ) )
@@ -31,107 +21,43 @@ configuration( {} )
   targetdir( os.getenv( "PM4TARGETDIR" ) )
 
 configuration( {} )
-language( "C" )
-
-configuration( { "LINUX32" } )
 language( "C++" )
 
-configuration( { "LINUX64" } )
-language( "C++" )
-
-configuration( { "WIN32" } )
-language( "C++" )
-
-configuration( { "WIN64" } )
-language( "C++" )
-
-configuration( { "LINUX32" } )
-
-
-configuration( { LINUX32 } )
-kind( "ConsoleApp" )
-configuration( { "LINUX64" } )
-
-
-configuration( { LINUX64 } )
-kind( "ConsoleApp" )
 configuration( { "WIN32" } )
 
 
 configuration( { WIN32 } )
 kind( "WindowedApp" )
-configuration( { "WIN64" } )
-
-
-configuration( { WIN64 } )
-kind( "WindowedApp" )
+configuration( { "NOT WIN32" } )
   
-configuration( { LINUX32 } )
+
+configuration( {} )
+kind( "ConsoleApp" )
+
+configuration( {} )
 links( { "ArchiveDiffLib", "gucefCORE", "gucefMT", "gucefPATCHER" } )
-  links( { "ArchiveDiffLib", "gucefCORE", "gucefMT", "gucefPATCHER" } )
-  
-
-configuration( { LINUX32 } )
-defines( { "ARCHIVEDIFF_BUILD_MODULE" } )
-  
-configuration( { LINUX64 } )
 links( { "ArchiveDiffLib", "gucefCORE", "gucefMT", "gucefPATCHER" } )
-  links( { "ArchiveDiffLib", "gucefCORE", "gucefMT", "gucefPATCHER" } )
-  
-
-configuration( { LINUX64 } )
-defines( { "ARCHIVEDIFF_BUILD_MODULE" } )
-  
-configuration( { WIN32 } )
-links( { "ArchiveDiffLib", "gucefCORE", "gucefMT", "gucefPATCHER" } )
-  links( { "ArchiveDiffLib", "gucefCORE", "gucefMT", "gucefPATCHER" } )
-  
-
-configuration( { WIN32 } )
-defines( { "ARCHIVEDIFF_BUILD_MODULE" } )
-  
-configuration( { WIN64 } )
-links( { "ArchiveDiffLib", "gucefCORE", "gucefMT", "gucefPATCHER" } )
-  links( { "ArchiveDiffLib", "gucefCORE", "gucefMT", "gucefPATCHER" } )
-  
-
-configuration( { WIN64 } )
-defines( { "ARCHIVEDIFF_BUILD_MODULE" } )
 
 
-configuration( { "LINUX32" } )
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/ArchiveDiff_main.cpp"
-    } )
+configuration( {} )
+defines( { "ARCHIVEDIFF_BUILD_MODULE", "MODULE_CONSENSUS_NAME=ArchiveDiff", "MODULE_NAME=ArchiveDiff" } )
 
 
-
-configuration( { "LINUX64" } )
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/ArchiveDiff_main.cpp"
-    } )
-
-
-
-configuration( { "WIN32" } )
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/ArchiveDiff_main.cpp"
-    } )
-
-
-
-configuration( { "WIN64" } )
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/ArchiveDiff_main.cpp"
-    } )
+configuration( {} )
+vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+files( {
+  "src/ArchiveDiff_main.cpp"
+ } )
 
 
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefPATCHER/include", "../ArchiveDiffLib/include" } )
+
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../platform/gucefCORE/include/linux" } )

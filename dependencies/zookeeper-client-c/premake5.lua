@@ -30,6 +30,10 @@ kind( "StaticLib" )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=zookeeper", "MODULE_NAME=zookeeper" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "generated/zookeeper.jute.h",

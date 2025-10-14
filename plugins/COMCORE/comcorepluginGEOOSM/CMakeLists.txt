@@ -36,7 +36,7 @@ set( MODULE_NAME "comcorepluginGEOOSM" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} curl gucefCOMCORE gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} curl gucefCOMCORE gucefCORE gucefMT )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "COMCOREPLUGIN_GEOOSM_BUILD_PLUGIN_DLL;MODULE_CONSENSUS_NAME=comcorepluginGEOOSM;MODULE_NAME=comcorepluginGEOOSM" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "COMCOREPLUGIN_GEOOSM_BUILD_PLUGIN_DLL;MODULE_CONSENSUS_NAME=comcorepluginGEOOSM;MODULE_IS_PLUGIN=1;MODULE_NAME=comcorepluginGEOOSM" )
 
 include_directories( ../../../common/include ../../../dependencies/curl/include ../../../dependencies/curl/include/curl ../../../dependencies/curl/lib ../../../dependencies/curl/lib/vauth ../../../dependencies/curl/lib/vquic ../../../dependencies/curl/lib/vssh ../../../dependencies/curl/lib/vtls ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 

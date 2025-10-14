@@ -34,7 +34,7 @@ links( { "CEGUI" } )
 
 
 configuration( {} )
-defines( { "CEGUICOMMONDIALOGS_EXPORTS" } )
+defines( { "CEGUICOMMONDIALOGS_EXPORTS", "MODULE_CONSENSUS_NAME=CEGUI_CommonDialogs", "MODULE_NAME=CEGUI_CommonDialogs" } )
 
 
 configuration( {} )

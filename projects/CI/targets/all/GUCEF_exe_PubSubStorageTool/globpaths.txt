@@ -9,7 +9,6 @@ dependencies/json-parser/*
 dependencies/libparsifal/*
 dependencies/libyaml/*
 dependencies/stbrumme-hash-library/*
-dependencies/zlib/*
 dependencies/zziplib/*
 platform/gucefCOM/*
 platform/gucefCORE/*

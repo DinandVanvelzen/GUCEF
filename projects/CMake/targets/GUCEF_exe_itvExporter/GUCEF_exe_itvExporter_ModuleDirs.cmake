@@ -29,7 +29,15 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/VFS/vfspluginI
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/itvExporter ${CMAKE_BINARY_DIR}/itvExporter )
 
 
-if (LINUX32)
+if (EMSCRIPTEN32)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/IMAGE/imgpluginDEVIL ${CMAKE_BINARY_DIR}/imgpluginDEVIL )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/IMAGE/imgpluginFreeImage ${CMAKE_BINARY_DIR}/imgpluginFreeImage )
+elseif (EMSCRIPTEN64)
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/zlib ${CMAKE_BINARY_DIR}/zlib )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/IMAGE/imgpluginDEVIL ${CMAKE_BINARY_DIR}/imgpluginDEVIL )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/IMAGE/imgpluginFreeImage ${CMAKE_BINARY_DIR}/imgpluginFreeImage )
+elseif (LINUX32)
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/DevIL/DevIL ${CMAKE_BINARY_DIR}/DevIL2 )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/FreeImage ${CMAKE_BINARY_DIR}/FreeImage )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/Little-CMS ${CMAKE_BINARY_DIR}/lcms2 )

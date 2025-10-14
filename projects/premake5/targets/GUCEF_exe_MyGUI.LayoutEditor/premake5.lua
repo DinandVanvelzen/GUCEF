@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_MyGUI.LayoutEditor" )
 
-  platforms( { "ALL", "LINUX32", "LINUX64", "WIN32", "WIN64" } )
+  platforms( { "LINUX32", "LINUX64", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -20,13 +20,11 @@ workspace( "GUCEF_exe_MyGUI.LayoutEditor" )
   -- Includes for all modules in the solution:
   --
 
-filter "ALL"
-  include( "dependencies/MyGui/Tools/LayoutEditor" )
-
 filter "LINUX32"
   include( "dependencies/MyGui/MyGUIEngine" )
   include( "dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform" )
   include( "dependencies/MyGui/Tools/LayoutEditor" )
+  include( "dependencies/OIS" )
   include( "dependencies/freetype" )
   include( "dependencies/zlib" )
 
@@ -34,6 +32,7 @@ filter "LINUX64"
   include( "dependencies/MyGui/MyGUIEngine" )
   include( "dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform" )
   include( "dependencies/MyGui/Tools/LayoutEditor" )
+  include( "dependencies/OIS" )
   include( "dependencies/freetype" )
   include( "dependencies/zlib" )
 

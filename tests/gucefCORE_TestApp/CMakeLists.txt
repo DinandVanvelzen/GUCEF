@@ -12,6 +12,7 @@
 # Configuration for module: gucefCORE_TestApp
 
 set( HEADER_FILES 
+  include/TestASync.h
   include/TestCyclicDynamicBuffer.h
   include/TestDataDrivenDStoreCodecs.h
   include/TestDataNodeBinarySerializer.h
@@ -31,6 +32,7 @@ set( HEADER_FILES
 )
 
 set( SOURCE_FILES 
+  src/TestASync.cpp
   src/TestCyclicDynamicBuffer.cpp
   src/TestDataDrivenDStoreCodecs.cpp
   src/TestDataNodeBinarySerializer.cpp

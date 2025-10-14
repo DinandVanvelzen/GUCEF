@@ -72,7 +72,7 @@ links( { "gucefCORE", "gucefMT" } )
   
 
 configuration( { LINUX32 } )
-defines( { "CMAKELISTGENERATOR_BUILD_MODULE" } )
+defines( { "CMAKELISTGENERATOR_BUILD_MODULE", "MODULE_NAME=CMakeListGenerator" } )
   
 configuration( { LINUX64 } )
 links( { "gucefCORE", "gucefMT" } )
@@ -80,7 +80,7 @@ links( { "gucefCORE", "gucefMT" } )
   
 
 configuration( { LINUX64 } )
-defines( { "CMAKELISTGENERATOR_BUILD_MODULE" } )
+defines( { "CMAKELISTGENERATOR_BUILD_MODULE", "MODULE_NAME=CMakeListGenerator" } )
   
 configuration( { WIN32 } )
 links( { "gucefCORE", "gucefMT" } )
@@ -88,7 +88,7 @@ links( { "gucefCORE", "gucefMT" } )
   
 
 configuration( { WIN32 } )
-defines( { "CMAKELISTGENERATOR_BUILD_MODULE" } )
+defines( { "CMAKELISTGENERATOR_BUILD_MODULE", "MODULE_NAME=CMakeListGenerator" } )
   
 configuration( { WIN64 } )
 links( { "gucefCORE", "gucefMT" } )
@@ -96,7 +96,7 @@ links( { "gucefCORE", "gucefMT" } )
   
 
 configuration( { WIN64 } )
-defines( { "CMAKELISTGENERATOR_BUILD_MODULE" } )
+defines( { "CMAKELISTGENERATOR_BUILD_MODULE", "MODULE_NAME=CMakeListGenerator" } )
 
 
 configuration( { "LINUX32" } )

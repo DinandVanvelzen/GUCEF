@@ -55,6 +55,14 @@ target_link_libraries( ${MODULE_NAME} zlib )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=libpng;MODULE_NAME=libpng;PNG_NO_CONFIG_H;PNG_USE_DLL" )
 
 
+if ( EMSCRIPTEN32 )
+  include_directories( ../zlib )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../zlib )
+endif( EMSCRIPTEN64 )
+
 if ( LINUX32 )
   include_directories( ../zlib )
 endif( LINUX32 )

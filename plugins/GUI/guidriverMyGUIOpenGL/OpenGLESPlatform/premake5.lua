@@ -12,7 +12,10 @@
 -- Configuration for module: MyGUI.OpenGLESPlatform
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+  project( "MyGUI.OpenGLESPlatform" )
+
+configuration( { "ANDROID64" } )
   project( "MyGUI.OpenGLESPlatform" )
 
 configuration( {} )
@@ -24,21 +27,63 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 language( "C++" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID64" } )
+language( "C++" )
+
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
+kind( "StaticLib" )
+configuration( { "ANDROID64" } )
+
+
+configuration( { ANDROID64 } )
 kind( "StaticLib" )
   
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
 links( { "MyGUI.Engine" } )
   links( { "GLESv1_CM", "MyGUI.Engine" } )
+  
+
+configuration( { ANDROID32 } )
+defines( { "MODULE_NAME=MyGUI_OpenGLESPlatform" } )
+  
+configuration( { ANDROID64 } )
+links( { "MyGUI.Engine" } )
+  links( { "GLESv1_CM", "MyGUI.Engine" } )
+  
+
+configuration( { ANDROID64 } )
+defines( { "MODULE_NAME=MyGUI_OpenGLESPlatform" } )
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "../../../../dependencies/MyGui/Common/FileSystemInfo/FileSystemInfo.h",
+      "include/MyGUI_OpenGLDiagnostic.h",
+      "include/MyGUI_OpenGLImageLoader.h",
+      "include/MyGUI_OpenGLRTTexture.h",
+      "include/MyGUI_OpenGLRenderManager.h",
+      "include/MyGUI_OpenGLTexture.h",
+      "include/MyGUI_OpenGLVertexBuffer.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/MyGUI_OpenGLRTTexture.cpp",
+      "src/MyGUI_OpenGLRenderManager.cpp",
+      "src/MyGUI_OpenGLTexture.cpp",
+      "src/MyGUI_OpenGLVertexBuffer.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../../../../dependencies/MyGui/Common/FileSystemInfo/FileSystemInfo.h",
@@ -62,5 +107,8 @@ configuration( { "ANDROID" } )
 configuration( {} )
 includedirs( { "../../../../dependencies/MyGui/MyGUIEngine/include", "../../../../dependencies/freetype/include", "../../../../dependencies/freetype/include/freetype", "../../../../dependencies/freetype/include/freetype/config", "../../../../dependencies/freetype/include/freetype/internal", "../../../../dependencies/freetype/include/freetype/internal/services", "../../../../dependencies/freetype/src", "../../../../dependencies/freetype/src/winfonts" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../../dependencies/MyGui/Common/FileSystemInfo", "include" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../../dependencies/MyGui/Common/FileSystemInfo", "include" } )

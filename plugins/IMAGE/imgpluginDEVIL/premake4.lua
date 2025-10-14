@@ -12,6 +12,12 @@
 -- Configuration for module: imgpluginDEVIL
 
 
+configuration( { "EMSCRIPTEN32" } )
+  project( "" )
+
+configuration( { "EMSCRIPTEN64" } )
+  project( "" )
+
 configuration( { "LINUX32" } )
   project( "imgpluginDEVIL" )
 
@@ -33,6 +39,16 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { EMSCRIPTEN32 } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { EMSCRIPTEN64 } )
+kind( "StaticLib" )
 configuration( { "LINUX32" } )
 
 
@@ -53,102 +69,70 @@ configuration( { "WIN64" } )
 
 configuration( { WIN64 } )
 kind( "SharedLib" )
-  
-configuration( { LINUX32 } )
-links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
-  links( { "DevIL2" } )
-  
-
-configuration( { LINUX32 } )
-defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE" } )
-  
-configuration( { LINUX64 } )
-links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
-  links( { "DevIL2" } )
-  
-
-configuration( { LINUX64 } )
-defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE" } )
-  
-configuration( { WIN32 } )
-links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
-  links( { "DevIL2" } )
-  
-
-configuration( { WIN32 } )
-defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE" } )
-  
-configuration( { WIN64 } )
-links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
-  links( { "DevIL2" } )
-  
-
-configuration( { WIN64 } )
-defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE" } )
-
-
-configuration( { "LINUX32" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/imgpluginDEVIL.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/imgpluginDEVIL.c"
-    } )
-
-
-
-configuration( { "LINUX64" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/imgpluginDEVIL.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/imgpluginDEVIL.c"
-    } )
-
-
-
-configuration( { "WIN32" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/imgpluginDEVIL.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/imgpluginDEVIL.c"
-    } )
-
-
-
-configuration( { "WIN64" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/imgpluginDEVIL.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/imgpluginDEVIL.c"
-    } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/DevIL/DevIL/include", "../../../dependencies/DevIL/DevIL/include/IL", "../../../dependencies/DevIL/DevIL/src-IL", "../../../dependencies/DevIL/DevIL/src-IL/include", "../../../dependencies/DevIL/DevIL/src-ILU", "../../../dependencies/DevIL/DevIL/src-ILU/include", "../../../dependencies/DevIL/DevIL/src-ILU/include/ilu_error", "../../../dependencies/DevIL/DevIL/src-ILUT", "../../../dependencies/DevIL/DevIL/src-ILUT/include", "../../../dependencies/Little-CMS/include", "../../../dependencies/Little-CMS/src", "../../../dependencies/jasper/src/libjasper/bmp", "../../../dependencies/jasper/src/libjasper/include", "../../../dependencies/jasper/src/libjasper/include/jasper", "../../../dependencies/jasper/src/libjasper/jp2", "../../../dependencies/jasper/src/libjasper/jpc", "../../../dependencies/jasper/src/libjasper/jpg", "../../../dependencies/jasper/src/libjasper/mif", "../../../dependencies/jasper/src/libjasper/pgx", "../../../dependencies/jasper/src/libjasper/pnm", "../../../dependencies/jasper/src/libjasper/ras", "../../../dependencies/libjpeg", "../../../dependencies/libmng", "../../../dependencies/libpng", "../../../dependencies/libsquish", "../../../dependencies/openexr/IlmBase", "../../../dependencies/openexr/IlmBase/Half", "../../../dependencies/openexr/IlmBase/Iex", "../../../dependencies/openexr/IlmBase/IexMath", "../../../dependencies/openexr/IlmBase/IlmThread", "../../../dependencies/openexr/IlmBase/Imath", "../../../dependencies/openexr/IlmBase/config.windows", "../../../dependencies/openexr/OpenEXR", "../../../dependencies/openexr/OpenEXR/IlmImf", "../../../dependencies/openexr/OpenEXR/IlmImfUtil", "../../../dependencies/openexr/OpenEXR/config.windows", "../../../dependencies/tiff/libtiff", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefIMAGE/include", "../../../platform/gucefMT/include" } )
+defines( { "MODULE_CONSENSUS_NAME=imgpluginDEVIL" } )
+  
+configuration( { LINUX32 } )
+links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
+  links( { "DevIL2" } )
+  
+
+configuration( { LINUX32 } )
+defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgpluginDEVIL" } )
+  
+configuration( { LINUX64 } )
+links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
+  links( { "DevIL2" } )
+  
+
+configuration( { LINUX64 } )
+defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgpluginDEVIL" } )
+  
+configuration( { WIN32 } )
+links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
+  links( { "DevIL2" } )
+  
+
+configuration( { WIN32 } )
+defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgpluginDEVIL" } )
+  
+configuration( { WIN64 } )
+links( { "DevIL2", "gucefCORE", "gucefIMAGE", "gucefMT" } )
+  links( { "DevIL2" } )
+  
+
+configuration( { WIN64 } )
+defines( { "GUCEF_CODECPLUGIN_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=imgpluginDEVIL" } )
+
+
+configuration( {} )
+vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+files( {
+  "include/imgpluginDEVIL.h"
+ } )
+
+
+
+configuration( {} )
+vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+files( {
+  "src/imgpluginDEVIL.c"
+ } )
+
+
+configuration( {} )
+includedirs( { "../../../common/include", "../../../dependencies/DevIL/DevIL/include", "../../../dependencies/DevIL/DevIL/include/IL", "../../../dependencies/DevIL/DevIL/src-IL", "../../../dependencies/DevIL/DevIL/src-IL/include", "../../../dependencies/DevIL/DevIL/src-ILU", "../../../dependencies/DevIL/DevIL/src-ILU/include", "../../../dependencies/DevIL/DevIL/src-ILU/include/ilu_error", "../../../dependencies/DevIL/DevIL/src-ILUT", "../../../dependencies/DevIL/DevIL/src-ILUT/include", "../../../dependencies/Little-CMS/include", "../../../dependencies/Little-CMS/src", "../../../dependencies/jasper/src/libjasper/bmp", "../../../dependencies/jasper/src/libjasper/include", "../../../dependencies/jasper/src/libjasper/include/jasper", "../../../dependencies/jasper/src/libjasper/jp2", "../../../dependencies/jasper/src/libjasper/jpc", "../../../dependencies/jasper/src/libjasper/jpg", "../../../dependencies/jasper/src/libjasper/mif", "../../../dependencies/jasper/src/libjasper/pgx", "../../../dependencies/jasper/src/libjasper/pnm", "../../../dependencies/jasper/src/libjasper/ras", "../../../dependencies/libjpeg", "../../../dependencies/libmng", "../../../dependencies/libpng", "../../../dependencies/libsquish", "../../../dependencies/openexr/IlmBase", "../../../dependencies/openexr/IlmBase/Half", "../../../dependencies/openexr/IlmBase/Iex", "../../../dependencies/openexr/IlmBase/IexMath", "../../../dependencies/openexr/IlmBase/IlmThread", "../../../dependencies/openexr/IlmBase/Imath", "../../../dependencies/openexr/IlmBase/config.windows", "../../../dependencies/openexr/OpenEXR", "../../../dependencies/openexr/OpenEXR/IlmImf", "../../../dependencies/openexr/OpenEXR/IlmImfUtil", "../../../dependencies/openexr/OpenEXR/config.windows", "../../../dependencies/tiff/libtiff", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefIMAGE/include", "../../../platform/gucefMT/include", "include" } )
 
 configuration( { "LINUX32" } )
-includedirs( { "../../../platform/gucefCORE/include/linux", "include" } )
+includedirs( { "../../../platform/gucefCORE/include/linux" } )
 
 configuration( { "LINUX64" } )
-includedirs( { "../../../platform/gucefCORE/include/linux", "include" } )
+includedirs( { "../../../platform/gucefCORE/include/linux" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin", "include" } )
+includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin", "include" } )
+includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )

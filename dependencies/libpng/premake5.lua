@@ -34,7 +34,7 @@ links( { "zlib" } )
 
 
 configuration( {} )
-defines( { "PNG_NO_CONFIG_H", "PNG_USE_DLL" } )
+defines( { "MODULE_CONSENSUS_NAME=libpng", "MODULE_NAME=libpng", "PNG_NO_CONFIG_H", "PNG_USE_DLL" } )
 
 
 configuration( {} )
@@ -73,6 +73,12 @@ files( {
 
 
 configuration( {} )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../zlib" } )
+
+configuration( { "EMSCRIPTEN64" } )
+includedirs( { "../zlib" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../zlib" } )

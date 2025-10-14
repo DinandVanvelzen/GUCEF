@@ -3,4 +3,6 @@
         <Preprocessor>
         </Preprocessor>
     </Module>
+    <Module Type="StaticLibrary" Platform="emscripten" >
+    </Module>
 </ModuleInfoEntry>

@@ -76,6 +76,14 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( ../Little-CMS/include ../Little-CMS/src ../libjpeg )
 
+if ( EMSCRIPTEN32 )
+  include_directories( ../zlib )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../zlib )
+endif( EMSCRIPTEN64 )
+
 if ( LINUX32 )
   include_directories( ../zlib )
 endif( LINUX32 )

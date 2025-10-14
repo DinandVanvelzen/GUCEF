@@ -34,7 +34,7 @@ links( { "CEGUI" } )
 
 
 configuration( {} )
-defines( { "CEGUICOREWINDOWRENDERERSET_EXPORTS" } )
+defines( { "CEGUICOREWINDOWRENDERERSET_EXPORTS", "MODULE_CONSENSUS_NAME=CEGUI_WindowRendererSets_Core", "MODULE_NAME=CEGUI_WindowRendererSets_Core" } )
 
 
 configuration( {} )

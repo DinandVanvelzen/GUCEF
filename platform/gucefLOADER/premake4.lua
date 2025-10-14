@@ -33,7 +33,8 @@ links( { "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "GUCEF_CORE_EMBED_CODE", "GUCEF_LOADER_BUILD_MODULE", "GUCEF_MT_EMBED_CODE", "GUCEF_NO_LOGGING" } )
+defines( { "GUCEF_CORE_EMBED_CODE", "GUCEF_LOADER_BUILD_MODULE", "GUCEF_MT_EMBED_CODE", "GUCEF_NO_LOGGING", "MODULE_CONSENSUS_NAME=gucefLOADER", "MODULE_NAME=gucefLOADER", "MODULE_SEMVER=0_1_0_0" } )
+  links( { "dl", "log" } )
   links( { "dl", "log" } )
   links( { "dl", "rt" } )
   links( { "dl", "rt" } )
@@ -45,7 +46,9 @@ configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "../gucefCORE/include/CDynamicBuffer.h",
+  "../gucefCORE/include/CDynamicBufferAccess.h",
   "../gucefCORE/include/CException.h",
+  "../gucefCORE/include/CFileAccess.h",
   "../gucefCORE/include/CICloneable.h",
   "../gucefCORE/include/CIOAccess.h",
   "../gucefCORE/include/CMsgException.h",
@@ -74,7 +77,9 @@ files( {
   "../gucefMT/include/gucefMT_CICloneable.h",
   "../gucefMT/include/gucefMT_CILockable.h",
   "../gucefMT/include/gucefMT_CMutex.h",
+  "../gucefMT/include/gucefMT_CNoLock.h",
   "../gucefMT/include/gucefMT_CScopeMutex.h",
+  "../gucefMT/include/gucefMT_LockStatus.h",
   "../gucefMT/include/gucefMT_ThreadStatus.h",
   "../gucefMT/include/gucefMT_dvmtoswrap.h",
   "../gucefMT/include/gucefMT_mutex.h",
@@ -90,7 +95,9 @@ configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "../gucefCORE/src/CDynamicBuffer.cpp",
+  "../gucefCORE/src/CDynamicBufferAccess.cpp",
   "../gucefCORE/src/CException.cpp",
+  "../gucefCORE/src/CFileAccess.cpp",
   "../gucefCORE/src/CICloneable.cpp",
   "../gucefCORE/src/CIOAccess.cpp",
   "../gucefCORE/src/CMsgException.cpp",
@@ -118,7 +125,9 @@ files( {
   "../gucefMT/src/gucefMT_CICloneable.cpp",
   "../gucefMT/src/gucefMT_CILockable.cpp",
   "../gucefMT/src/gucefMT_CMutex.cpp",
+  "../gucefMT/src/gucefMT_CNoLock.cpp",
   "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+  "../gucefMT/src/gucefMT_LockStatus.cpp",
   "../gucefMT/src/gucefMT_ThreadStatus.cpp",
   "../gucefMT/src/gucefMT_dvmtoswrap.c",
   "../gucefMT/src/gucefMT_mutex.c",
@@ -127,11 +136,13 @@ files( {
 
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -160,7 +171,9 @@ configuration( { "ANDROID" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -169,7 +182,9 @@ configuration( { "ANDROID" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -197,7 +212,95 @@ configuration( { "ANDROID" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
+      "../gucefMT/src/gucefMT_ThreadStatus.cpp",
+      "../gucefMT/src/gucefMT_dvmtoswrap.c",
+      "../gucefMT/src/gucefMT_mutex.c"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
+      "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
+      "../gucefCORE/include/CICloneable.h",
+      "../gucefCORE/include/CIOAccess.h",
+      "../gucefCORE/include/CMsgException.h",
+      "../gucefCORE/include/DVCPPOSWRAP.h",
+      "../gucefCORE/include/DVOSWRAP.h",
+      "../gucefCORE/include/MFILE.h",
+      "../gucefCORE/include/PAFILE.h",
+      "../gucefCORE/include/dvcppfileutils.h",
+      "../gucefCORE/include/dvcppstringutils.h",
+      "../gucefCORE/include/dvfileutils.h",
+      "../gucefCORE/include/dvmd5utils.h",
+      "../gucefCORE/include/dvstrutils.h",
+      "../gucefCORE/include/gucefCORE_CAsciiString.h",
+      "../gucefCORE/include/gucefCORE_CDate.h",
+      "../gucefCORE/include/gucefCORE_CDateTime.h",
+      "../gucefCORE/include/gucefCORE_CIDate.h",
+      "../gucefCORE/include/gucefCORE_CITime.h",
+      "../gucefCORE/include/gucefCORE_CResourceMetaData.h",
+      "../gucefCORE/include/gucefCORE_CString.h",
+      "../gucefCORE/include/gucefCORE_CTime.h",
+      "../gucefCORE/include/gucefCORE_CUtf8String.h",
+      "../gucefCORE/include/gucefCORE_CVariant.h",
+      "../gucefCORE/include/md5.h",
+      "../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h",
+      "../gucefCORE/include/c_api/gucefCORE_c_variantdata.h",
+      "../gucefMT/include/gucefMT_CICloneable.h",
+      "../gucefMT/include/gucefMT_CILockable.h",
+      "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
+      "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
+      "../gucefMT/include/gucefMT_ThreadStatus.h",
+      "../gucefMT/include/gucefMT_dvmtoswrap.h",
+      "../gucefMT/include/gucefMT_mutex.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
+      "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
+      "../gucefCORE/src/CICloneable.cpp",
+      "../gucefCORE/src/CIOAccess.cpp",
+      "../gucefCORE/src/CMsgException.cpp",
+      "../gucefCORE/src/DVCPPOSWRAP.cpp",
+      "../gucefCORE/src/DVOSWRAP.cpp",
+      "../gucefCORE/src/IOACCESS.c",
+      "../gucefCORE/src/MFILE.c",
+      "../gucefCORE/src/PAFILE.c",
+      "../gucefCORE/src/dvcppfileutils.cpp",
+      "../gucefCORE/src/dvcppstringutils.cpp",
+      "../gucefCORE/src/dvfileutils.cpp",
+      "../gucefCORE/src/dvmd5utils.c",
+      "../gucefCORE/src/dvstrutils.cpp",
+      "../gucefCORE/src/gucefCORE_CAsciiString.cpp",
+      "../gucefCORE/src/gucefCORE_CDate.cpp",
+      "../gucefCORE/src/gucefCORE_CDateTime.cpp",
+      "../gucefCORE/src/gucefCORE_CIDate.cpp",
+      "../gucefCORE/src/gucefCORE_CITime.cpp",
+      "../gucefCORE/src/gucefCORE_CResourceMetaData.cpp",
+      "../gucefCORE/src/gucefCORE_CTime.cpp",
+      "../gucefCORE/src/gucefCORE_CUtf8String.cpp",
+      "../gucefCORE/src/gucefCORE_CVariant.cpp",
+      "../gucefCORE/src/md5.c",
+      "../gucefCORE/src/c_api/gucefCORE_c_variantdata.c",
+      "../gucefMT/src/gucefMT_CICloneable.cpp",
+      "../gucefMT/src/gucefMT_CILockable.cpp",
+      "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
+      "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -209,7 +312,9 @@ configuration( { "ARDUINO" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -238,7 +343,9 @@ configuration( { "ARDUINO" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -247,7 +354,9 @@ configuration( { "ARDUINO" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -275,7 +384,9 @@ configuration( { "ARDUINO" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -283,11 +394,13 @@ configuration( { "ARDUINO" } )
 
 
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -316,7 +429,9 @@ configuration( { "EMSCRIPTEN" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -325,7 +440,9 @@ configuration( { "EMSCRIPTEN" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -353,7 +470,95 @@ configuration( { "EMSCRIPTEN" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
+      "../gucefMT/src/gucefMT_ThreadStatus.cpp",
+      "../gucefMT/src/gucefMT_dvmtoswrap.c",
+      "../gucefMT/src/gucefMT_mutex.c"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
+      "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
+      "../gucefCORE/include/CICloneable.h",
+      "../gucefCORE/include/CIOAccess.h",
+      "../gucefCORE/include/CMsgException.h",
+      "../gucefCORE/include/DVCPPOSWRAP.h",
+      "../gucefCORE/include/DVOSWRAP.h",
+      "../gucefCORE/include/MFILE.h",
+      "../gucefCORE/include/PAFILE.h",
+      "../gucefCORE/include/dvcppfileutils.h",
+      "../gucefCORE/include/dvcppstringutils.h",
+      "../gucefCORE/include/dvfileutils.h",
+      "../gucefCORE/include/dvmd5utils.h",
+      "../gucefCORE/include/dvstrutils.h",
+      "../gucefCORE/include/gucefCORE_CAsciiString.h",
+      "../gucefCORE/include/gucefCORE_CDate.h",
+      "../gucefCORE/include/gucefCORE_CDateTime.h",
+      "../gucefCORE/include/gucefCORE_CIDate.h",
+      "../gucefCORE/include/gucefCORE_CITime.h",
+      "../gucefCORE/include/gucefCORE_CResourceMetaData.h",
+      "../gucefCORE/include/gucefCORE_CString.h",
+      "../gucefCORE/include/gucefCORE_CTime.h",
+      "../gucefCORE/include/gucefCORE_CUtf8String.h",
+      "../gucefCORE/include/gucefCORE_CVariant.h",
+      "../gucefCORE/include/md5.h",
+      "../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h",
+      "../gucefCORE/include/c_api/gucefCORE_c_variantdata.h",
+      "../gucefMT/include/gucefMT_CICloneable.h",
+      "../gucefMT/include/gucefMT_CILockable.h",
+      "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
+      "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
+      "../gucefMT/include/gucefMT_ThreadStatus.h",
+      "../gucefMT/include/gucefMT_dvmtoswrap.h",
+      "../gucefMT/include/gucefMT_mutex.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
+      "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
+      "../gucefCORE/src/CICloneable.cpp",
+      "../gucefCORE/src/CIOAccess.cpp",
+      "../gucefCORE/src/CMsgException.cpp",
+      "../gucefCORE/src/DVCPPOSWRAP.cpp",
+      "../gucefCORE/src/DVOSWRAP.cpp",
+      "../gucefCORE/src/IOACCESS.c",
+      "../gucefCORE/src/MFILE.c",
+      "../gucefCORE/src/PAFILE.c",
+      "../gucefCORE/src/dvcppfileutils.cpp",
+      "../gucefCORE/src/dvcppstringutils.cpp",
+      "../gucefCORE/src/dvfileutils.cpp",
+      "../gucefCORE/src/dvmd5utils.c",
+      "../gucefCORE/src/dvstrutils.cpp",
+      "../gucefCORE/src/gucefCORE_CAsciiString.cpp",
+      "../gucefCORE/src/gucefCORE_CDate.cpp",
+      "../gucefCORE/src/gucefCORE_CDateTime.cpp",
+      "../gucefCORE/src/gucefCORE_CIDate.cpp",
+      "../gucefCORE/src/gucefCORE_CITime.cpp",
+      "../gucefCORE/src/gucefCORE_CResourceMetaData.cpp",
+      "../gucefCORE/src/gucefCORE_CTime.cpp",
+      "../gucefCORE/src/gucefCORE_CUtf8String.cpp",
+      "../gucefCORE/src/gucefCORE_CVariant.cpp",
+      "../gucefCORE/src/md5.c",
+      "../gucefCORE/src/c_api/gucefCORE_c_variantdata.c",
+      "../gucefMT/src/gucefMT_CICloneable.cpp",
+      "../gucefMT/src/gucefMT_CILockable.cpp",
+      "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
+      "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -365,7 +570,9 @@ configuration( { "GLX" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -394,7 +601,9 @@ configuration( { "GLX" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -403,7 +612,9 @@ configuration( { "GLX" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -431,7 +642,9 @@ configuration( { "GLX" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -443,7 +656,9 @@ configuration( { "GTK" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -472,7 +687,9 @@ configuration( { "GTK" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -481,7 +698,9 @@ configuration( { "GTK" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -509,7 +728,9 @@ configuration( { "GTK" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -521,7 +742,9 @@ configuration( { "IOS" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -550,7 +773,9 @@ configuration( { "IOS" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -559,7 +784,9 @@ configuration( { "IOS" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -587,7 +814,9 @@ configuration( { "IOS" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -599,7 +828,9 @@ configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -628,7 +859,9 @@ configuration( { "LINUX32" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -637,7 +870,9 @@ configuration( { "LINUX32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -665,7 +900,9 @@ configuration( { "LINUX32" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -677,7 +914,9 @@ configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -706,7 +945,9 @@ configuration( { "LINUX64" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -715,7 +956,9 @@ configuration( { "LINUX64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -743,7 +986,9 @@ configuration( { "LINUX64" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -755,7 +1000,9 @@ configuration( { "NACL" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -784,7 +1031,9 @@ configuration( { "NACL" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -793,7 +1042,9 @@ configuration( { "NACL" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -821,7 +1072,9 @@ configuration( { "NACL" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -833,7 +1086,9 @@ configuration( { "OSX" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -862,7 +1117,9 @@ configuration( { "OSX" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -871,7 +1128,9 @@ configuration( { "OSX" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -899,7 +1158,9 @@ configuration( { "OSX" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -911,7 +1172,9 @@ configuration( { "POSIX" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -940,7 +1203,9 @@ configuration( { "POSIX" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -949,7 +1214,9 @@ configuration( { "POSIX" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -977,7 +1244,9 @@ configuration( { "POSIX" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -989,7 +1258,9 @@ configuration( { "SDL" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -1018,7 +1289,9 @@ configuration( { "SDL" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -1027,7 +1300,9 @@ configuration( { "SDL" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -1055,7 +1330,9 @@ configuration( { "SDL" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -1067,7 +1344,9 @@ configuration( { "SYMBIAN" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -1096,7 +1375,9 @@ configuration( { "SYMBIAN" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -1105,7 +1386,9 @@ configuration( { "SYMBIAN" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -1133,7 +1416,9 @@ configuration( { "SYMBIAN" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -1145,7 +1430,9 @@ configuration( { "UNIX" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -1174,7 +1461,9 @@ configuration( { "UNIX" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h"
@@ -1183,7 +1472,9 @@ configuration( { "UNIX" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -1211,7 +1502,9 @@ configuration( { "UNIX" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c"
@@ -1223,7 +1516,9 @@ configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -1253,7 +1548,9 @@ configuration( { "WIN32" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h",
@@ -1263,7 +1560,9 @@ configuration( { "WIN32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -1292,7 +1591,9 @@ configuration( { "WIN32" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c",
@@ -1305,7 +1606,9 @@ configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../gucefCORE/include/CDynamicBuffer.h",
+      "../gucefCORE/include/CDynamicBufferAccess.h",
       "../gucefCORE/include/CException.h",
+      "../gucefCORE/include/CFileAccess.h",
       "../gucefCORE/include/CICloneable.h",
       "../gucefCORE/include/CIOAccess.h",
       "../gucefCORE/include/CMsgException.h",
@@ -1335,7 +1638,9 @@ configuration( { "WIN64" } )
       "../gucefMT/include/gucefMT_CICloneable.h",
       "../gucefMT/include/gucefMT_CILockable.h",
       "../gucefMT/include/gucefMT_CMutex.h",
+      "../gucefMT/include/gucefMT_CNoLock.h",
       "../gucefMT/include/gucefMT_CScopeMutex.h",
+      "../gucefMT/include/gucefMT_LockStatus.h",
       "../gucefMT/include/gucefMT_ThreadStatus.h",
       "../gucefMT/include/gucefMT_dvmtoswrap.h",
       "../gucefMT/include/gucefMT_mutex.h",
@@ -1345,7 +1650,9 @@ configuration( { "WIN64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "../gucefCORE/src/CDynamicBuffer.cpp",
+      "../gucefCORE/src/CDynamicBufferAccess.cpp",
       "../gucefCORE/src/CException.cpp",
+      "../gucefCORE/src/CFileAccess.cpp",
       "../gucefCORE/src/CICloneable.cpp",
       "../gucefCORE/src/CIOAccess.cpp",
       "../gucefCORE/src/CMsgException.cpp",
@@ -1374,7 +1681,9 @@ configuration( { "WIN64" } )
       "../gucefMT/src/gucefMT_CICloneable.cpp",
       "../gucefMT/src/gucefMT_CILockable.cpp",
       "../gucefMT/src/gucefMT_CMutex.cpp",
+      "../gucefMT/src/gucefMT_CNoLock.cpp",
       "../gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../gucefMT/src/gucefMT_LockStatus.cpp",
       "../gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../gucefMT/src/gucefMT_dvmtoswrap.c",
       "../gucefMT/src/gucefMT_mutex.c",
@@ -1385,13 +1694,19 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "..", "../../common/include", "../gucefCORE", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMT", "../gucefMT/include", "../gucefCORE/include/", "../gucefCORE/include/c_api/", "../gucefMT/include/", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../gucefCORE/include/android", "../gucefCORE/include/", "../gucefCORE/include/c_api/", "../gucefMT/include/" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../gucefCORE/include/android", "../gucefCORE/include/", "../gucefCORE/include/c_api/", "../gucefMT/include/" } )
 
 configuration( { "ARDUINO" } )
 includedirs( { "../gucefCORE/include/", "../gucefCORE/include/c_api/", "../gucefMT/include/" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../gucefCORE/include/", "../gucefCORE/include/c_api/", "../gucefMT/include/" } )
+
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "../gucefCORE/include/", "../gucefCORE/include/c_api/", "../gucefMT/include/" } )
 
 configuration( { "GLX" } )

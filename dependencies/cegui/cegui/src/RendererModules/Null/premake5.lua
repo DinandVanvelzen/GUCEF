@@ -34,7 +34,7 @@ links( { "CEGUI" } )
 
 
 configuration( {} )
-defines( { "CEGUINULLRENDERER_EXPORTS" } )
+defines( { "CEGUINULLRENDERER_EXPORTS", "MODULE_CONSENSUS_NAME=CEGUI_RendererModule_Null", "MODULE_NAME=CEGUI_RendererModule_Null" } )
 
 
 configuration( {} )

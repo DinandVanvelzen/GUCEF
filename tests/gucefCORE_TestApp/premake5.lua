@@ -40,12 +40,13 @@ links( { "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "GUCEF_CORE_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_CORE_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefCORE_TestApp", "MODULE_NAME=gucefCORE_TestApp" } )
 
 
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
+  "include/TestASync.h",
   "include/TestCyclicDynamicBuffer.h",
   "include/TestDataDrivenDStoreCodecs.h",
   "include/TestDataNodeBinarySerializer.h",
@@ -69,6 +70,7 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/TestASync.cpp",
   "src/TestCyclicDynamicBuffer.cpp",
   "src/TestDataDrivenDStoreCodecs.cpp",
   "src/TestDataNodeBinarySerializer.cpp",
@@ -92,7 +94,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

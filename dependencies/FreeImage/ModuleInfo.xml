@@ -21,4 +21,6 @@
             <Define String="_CRT_SECURE_NO_WARNINGS" />
         </Preprocessor>
     </Module>
+    <Module Type="StaticLibrary" Platform="emscripten" >
+    </Module>
 </ModuleInfoEntry>

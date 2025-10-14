@@ -1,5 +1,5 @@
 common/include/*
-dependencies/*
+dependencies//*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefMT/*

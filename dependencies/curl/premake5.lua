@@ -30,7 +30,7 @@ kind( "SharedLib" )
 
 
 configuration( {} )
-defines( { "BUILDING_LIBCURL", "HAVE_BUILTIN_CPU_SUPPORTS" } )
+defines( { "BUILDING_LIBCURL", "HAVE_BUILTIN_CPU_SUPPORTS", "MODULE_CONSENSUS_NAME=curl", "MODULE_NAME=curl" } )
   
 
 configuration( { LINUX32 } )

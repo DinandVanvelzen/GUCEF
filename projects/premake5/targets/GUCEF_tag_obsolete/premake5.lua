@@ -12,13 +12,27 @@
 
 workspace( "GUCEF_tag_obsolete" )
 
-  platforms( { "LINUX32", "LINUX64", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
   --
   -- Includes for all modules in the solution:
   --
+
+filter "ALL"
+
+filter "ANDROID32"
+
+filter "ANDROID64"
+
+filter "ARDUINO"
+
+filter "EMSCRIPTEN32"
+
+filter "EMSCRIPTEN64"
+
+filter "IOS"
 
 filter "LINUX32"
   include( "platform/gucefCORE" )
@@ -29,6 +43,8 @@ filter "LINUX64"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/CMakeListGenerator" )
+
+filter "OSX"
 
 filter "WIN32"
   include( "platform/gucefCORE" )

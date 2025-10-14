@@ -197,6 +197,14 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 include_directories( ../../Little-CMS/include ../../Little-CMS/src ../../jasper/src/libjasper/bmp ../../jasper/src/libjasper/include ../../jasper/src/libjasper/include/jasper ../../jasper/src/libjasper/jp2 ../../jasper/src/libjasper/jpc ../../jasper/src/libjasper/jpg ../../jasper/src/libjasper/mif ../../jasper/src/libjasper/pgx ../../jasper/src/libjasper/pnm ../../jasper/src/libjasper/ras ../../libjpeg ../../libmng ../../libpng ../../libsquish ../../openexr/IlmBase ../../openexr/IlmBase/Half ../../openexr/IlmBase/Iex ../../openexr/IlmBase/IexMath ../../openexr/IlmBase/IlmThread ../../openexr/IlmBase/Imath ../../openexr/IlmBase/config.windows ../../openexr/OpenEXR ../../openexr/OpenEXR/IlmImf ../../openexr/OpenEXR/IlmImfUtil ../../openexr/OpenEXR/config.windows ../../tiff/libtiff include include/IL src-IL src-IL/include src-ILU src-ILU/include src-ILU/include/ilu_error src-ILUT src-ILUT/include )
 
+if ( EMSCRIPTEN32 )
+  include_directories( ../../zlib )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../zlib )
+endif( EMSCRIPTEN64 )
+
 if ( LINUX32 )
   include_directories( ../../zlib include/IL/linux )
 endif( LINUX32 )

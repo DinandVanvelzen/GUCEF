@@ -34,7 +34,7 @@ links( { "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "DVPACKSYS_BUILD_MODULE" } )
+defines( { "DVPACKSYS_BUILD_MODULE", "MODULE_CONSENSUS_NAME=DVPACKSYS", "MODULE_NAME=DVPACKSYS" } )
 
 
 configuration( {} )
@@ -56,7 +56,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

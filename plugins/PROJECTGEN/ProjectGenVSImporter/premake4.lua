@@ -34,7 +34,7 @@ links( { "ProjectGen", "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "PROJECTGENVSIMPORTER_BUILD_MODULE" } )
+defines( { "MODULE_CONSENSUS_NAME=ProjectGenVSImporter", "MODULE_IS_PLUGIN=1", "MODULE_NAME=ProjectGenVSImporter", "PROJECTGENVSIMPORTER_BUILD_MODULE" } )
 
 
 configuration( {} )
@@ -57,19 +57,22 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../../../common/include", "../../../../platform/gucefCORE/include", "../../../../platform/gucefCORE/include/c_api", "../../../../platform/gucefMT/include", "../../include", "include" } )
+includedirs( { "../../../common/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "../../../tools/ProjectGen/include", "include" } )
 
-configuration( { "ANDROID" } )
-includedirs( { "../../../../platform/gucefCORE/include/android" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
-includedirs( { "../../../../platform/gucefCORE/include/linux" } )
+includedirs( { "../../../platform/gucefCORE/include/linux" } )
 
 configuration( { "LINUX64" } )
-includedirs( { "../../../../platform/gucefCORE/include/linux" } )
+includedirs( { "../../../platform/gucefCORE/include/linux" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../../../platform/gucefCORE/include/mswin", "../../../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../../../platform/gucefCORE/include/mswin", "../../../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )

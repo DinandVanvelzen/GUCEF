@@ -34,7 +34,7 @@ links( { "CEGUI", "glew" } )
 
 
 configuration( {} )
-defines( { "CEGUIOPENGLRENDERER_EXPORTS" } )
+defines( { "CEGUIOPENGLRENDERER_EXPORTS", "MODULE_CONSENSUS_NAME=CEGUI_RendererModule_OpenGL", "MODULE_NAME=CEGUI_RendererModule_OpenGL" } )
 
 
 configuration( {} )

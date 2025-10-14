@@ -12,16 +12,13 @@
 
 workspace( "GUCEF_exe_MemoryLeakFinder_TestApp" )
 
-  platforms( { "ALL", "WIN32", "WIN64" } )
+  platforms( { "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
   --
   -- Includes for all modules in the solution:
   --
-
-filter "ALL"
-  include( "tests/MemoryLeakFinder_TestApp" )
 
 filter "WIN32"
   include( "platform/gucefCORE" )

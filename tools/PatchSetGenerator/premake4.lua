@@ -50,7 +50,7 @@ links( { "gucefCORE", "gucefMT", "gucefPATCHER" } )
   
 
 configuration( { WIN32 } )
-defines( { "PATCHSETGENERATOR_BUILD_MODULE" } )
+defines( { "MODULE_NAME=PatchSetGenerator", "PATCHSETGENERATOR_BUILD_MODULE" } )
   
 configuration( { WIN64 } )
 links( { "gucefCORE", "gucefMT", "gucefPATCHER" } )
@@ -58,7 +58,7 @@ links( { "gucefCORE", "gucefMT", "gucefPATCHER" } )
   
 
 configuration( { WIN64 } )
-defines( { "PATCHSETGENERATOR_BUILD_MODULE" } )
+defines( { "MODULE_NAME=PatchSetGenerator", "PATCHSETGENERATOR_BUILD_MODULE" } )
 
 
 configuration( { "WIN32" } )

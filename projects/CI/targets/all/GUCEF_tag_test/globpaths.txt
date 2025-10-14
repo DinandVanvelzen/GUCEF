@@ -1,6 +1,6 @@
 /*
 common/include/*
-dependencies/*
+dependencies//*
 platform/*
 plugins/*
 tests/gucefCOMCORE_TestApp/*

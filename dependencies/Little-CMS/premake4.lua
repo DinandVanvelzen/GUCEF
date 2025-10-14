@@ -30,7 +30,7 @@ kind( "SharedLib" )
 
 
 configuration( {} )
-defines( { "CMS_DLL_BUILD" } )
+defines( { "CMS_DLL_BUILD", "MODULE_CONSENSUS_NAME=lcms2", "MODULE_NAME=lcms2" } )
   
 
 configuration( { WIN32 } )

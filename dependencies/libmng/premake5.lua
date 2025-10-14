@@ -34,7 +34,7 @@ links( { "lcms2", "libjpeg", "zlib" } )
 
 
 configuration( {} )
-defines( { "CMS_DLL", "MNG_BUILD_DLL", "MNG_BUILD_SO" } )
+defines( { "CMS_DLL", "MNG_BUILD_DLL", "MNG_BUILD_SO", "MODULE_CONSENSUS_NAME=libmng", "MODULE_NAME=libmng" } )
 
 
 configuration( {} )
@@ -94,6 +94,12 @@ files( {
 
 configuration( {} )
 includedirs( { "../Little-CMS/include", "../Little-CMS/src", "../libjpeg" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../zlib" } )
+
+configuration( { "EMSCRIPTEN64" } )
+includedirs( { "../zlib" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../zlib" } )

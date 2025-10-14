@@ -7,6 +7,8 @@
         <Dependencies>
         </Dependencies>
         <Linker>
-        </Linker>		
+        </Linker>
+    </Module>
+    <Module Type="StaticLibrary" Platform="emscripten" >
     </Module>
 </ModuleInfoEntry>

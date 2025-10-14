@@ -31,10 +31,24 @@ set( SOURCE_FILES
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 set( MODULE_NAME "codecspluginSTBRUMMEHASH" )
-add_library( ${MODULE_NAME} ${ALL_FILES} )
+if( EMSCRIPTEN32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+else()
+  add_library( ${MODULE_NAME} ${ALL_FILES} )
+endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT stbrumme-hash )
 target_link_libraries( ${MODULE_NAME} stbrumme-hash )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_CONSENSUS_NAME=codecspluginSTBRUMMEHASH;MODULE_NAME=codecspluginSTBRUMMEHASH" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_CONSENSUS_NAME=codecspluginSTBRUMMEHASH;MODULE_IS_PLUGIN=1;MODULE_NAME=codecspluginSTBRUMMEHASH" )
+
+if ( EMSCRIPTEN32 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=codecspluginSTBRUMMEHASH" )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_API_PREFIX=codecspluginSTBRUMMEHASH" )
+endif( EMSCRIPTEN64 )
 
 include_directories( ../../../common/include ../../../dependencies/stbrumme-hash-library ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
 

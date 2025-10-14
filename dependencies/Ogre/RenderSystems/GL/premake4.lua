@@ -34,7 +34,7 @@ links( { "Ogre" } )
 
 
 configuration( {} )
-defines( { "OGRE_GLPLUGIN_EXPORTS" } )
+defines( { "MODULE_CONSENSUS_NAME=OgreRenderSystem_GL", "MODULE_NAME=OgreRenderSystem_GL", "OGRE_GLPLUGIN_EXPORTS" } )
   links( { "GL", "GLU" } )
   links( { "GL", "GLU" } )
   links( { "glu32.lib", "opengl32" } )
@@ -186,7 +186,22 @@ files( {
 
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
@@ -216,7 +231,22 @@ configuration( { "ARDUINO" } )
 
 
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/StateCacheManager/OgreGLNullStateCacheManagerImp.cpp",
+      "src/StateCacheManager/OgreGLNullUniformCacheImp.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "src/StateCacheManager/OgreGLNullStateCacheManagerImp.h",
@@ -474,20 +504,26 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "../../../freetype/include", "../../../freetype/include/freetype", "../../../freetype/include/freetype/config", "../../../freetype/include/freetype/internal", "../../../freetype/include/freetype/internal/services", "../../../freetype/src", "../../../freetype/src/winfonts", "../../OgreMain/include", "../../OgreMain/include/Hash", "../../OgreMain/include/Threading", "../../OgreMain/src", "../../OgreMain/src/nedmalloc", "../../OgreMain/src/stbi", "../../include", "src", "src/GLSL", "src/atifs", "include", "include/GL", "src/GLSL/include", "src/StateCacheManager", "src/atifs/include", "src/nvparse", "src/nvparse/winheaders" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../OgreMain/include/Android", "src/StateCacheManager" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../OgreMain/include/Android", "src/StateCacheManager" } )
 
 configuration( { "ARDUINO" } )
 includedirs( { "src/StateCacheManager" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../../OgreMain/include/Emscripten", "src/StateCacheManager" } )
+
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "../../OgreMain/include/Emscripten", "src/StateCacheManager" } )
 
 configuration( { "GLX" } )
-includedirs( { "../../OgreMain/src/GLX", "include/GLX", "src/GLX", "src/StateCacheManager" } )
+includedirs( { "include/GLX", "src/GLX", "src/StateCacheManager" } )
 
 configuration( { "GTK" } )
-includedirs( { "../../OgreMain/include/gtk", "../../OgreMain/src/gtk", "include/gtk", "src/StateCacheManager", "src/gtk" } )
+includedirs( { "include/gtk", "src/StateCacheManager", "src/gtk" } )
 
 configuration( { "IOS" } )
 includedirs( { "../../OgreMain/include/iOS", "src/StateCacheManager" } )

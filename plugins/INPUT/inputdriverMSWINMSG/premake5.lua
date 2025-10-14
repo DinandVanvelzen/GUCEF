@@ -25,12 +25,6 @@ configuration( {} )
   targetdir( os.getenv( "PM5TARGETDIR" ) )
 
 configuration( {} )
-language( "C" )
-
-configuration( { "WIN32" } )
-language( "C++" )
-
-configuration( { "WIN64" } )
 language( "C++" )
 
 configuration( { "WIN32" } )
@@ -43,52 +37,46 @@ configuration( { "WIN64" } )
 
 configuration( { WIN64 } )
 kind( "SharedLib" )
-  
-configuration( { WIN32 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
-
-configuration( { WIN32 } )
-defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERMSWINMSG_BUILD_MODULE" } )
-  
-configuration( { WIN64 } )
-links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
-  
-
-configuration( { WIN64 } )
-defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERMSWINMSG_BUILD_MODULE" } )
-
-
-configuration( { "WIN32" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/DLLMainInputDriverMSWINMSG.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/DLLMainInputDriverMSWINMSG.cpp"
-    } )
-
-
-
-configuration( { "WIN64" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/DLLMainInputDriverMSWINMSG.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/DLLMainInputDriverMSWINMSG.cpp"
-    } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include" } )
+defines( { "MODULE_CONSENSUS_NAME=inputdriverMSWINMSG" } )
+  
+configuration( { WIN32 } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+  
+
+configuration( { WIN32 } )
+defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERMSWINMSG_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverMSWINMSG" } )
+  
+configuration( { WIN64 } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+  
+
+configuration( { WIN64 } )
+defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERMSWINMSG_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverMSWINMSG" } )
+
+
+configuration( {} )
+vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+files( {
+  "include/DLLMainInputDriverMSWINMSG.h"
+ } )
+
+
+
+configuration( {} )
+vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+files( {
+  "src/DLLMainInputDriverMSWINMSG.cpp"
+ } )
+
+
+configuration( {} )
+includedirs( { "../../../common/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin", "include" } )
+includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin", "include" } )
+includedirs( { "../../../platform/gucefCORE/include/mswin", "../../../platform/gucefMT/include/mswin" } )

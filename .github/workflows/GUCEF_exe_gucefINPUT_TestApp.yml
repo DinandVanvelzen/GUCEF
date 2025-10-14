@@ -14,43 +14,6 @@ on:
 
 jobs:
 
-  GUCEF_exe_gucefINPUT_TestApp-all:
-    runs-on: self-hosted
-    env:
-      TARGET_NAME: GUCEF_exe_gucefINPUT_TestApp
-      TARGET_PLATFORM: all
-      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_gucefINPUT_TestApp
-      PRODUCT_NAME: gucefINPUT_TestApp
-      CI_TOOL: GITHUB-ACTIONS
-      BUILD_TOOL: CMAKE
-    steps:
-      - uses: actions/checkout@master
-      - name: Build gucefINPUT_TestApp for platform all
-        run: ./projects/CI/targets/ci_build.sh
-      - name: Archive Debian build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: Debian packages
-          path: |
-            ./common/bin/GUCEF_exe_gucefINPUT_TestApp-all/packages/*gucefINPUT_TestApp*.deb
-      - name: Archive RPM build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: RPM packages
-          path: |
-            ./common/bin/GUCEF_exe_gucefINPUT_TestApp-all/packages/*gucefINPUT_TestApp*.rpm
-      - name: Archive Tarball - bz2 compressed build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: tar.bz2 packages
-          path: |
-            ./common/bin/GUCEF_exe_gucefINPUT_TestApp-all/packages/*gucefINPUT_TestApp*.tar.bz2
-      - name: Archive Tarball - Xz compressed build artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: tar.xz packages
-          path: |
-            ./common/bin/GUCEF_exe_gucefINPUT_TestApp-all/packages/*gucefINPUT_TestApp*.tar.xz
   GUCEF_exe_gucefINPUT_TestApp-linux32:
     runs-on: self-hosted
     env:

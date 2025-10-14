@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_HDFiller" )
 
-  platforms( { "ALL" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -21,6 +21,61 @@ workspace( "GUCEF_exe_HDFiller" )
   --
 
 filter "ALL"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/HDFiller" )
+
+filter "ANDROID32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/HDFiller" )
+
+filter "ANDROID64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/HDFiller" )
+
+filter "ARDUINO"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/HDFiller" )
+
+filter "EMSCRIPTEN32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/HDFiller" )
+
+filter "EMSCRIPTEN64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/HDFiller" )
+
+filter "IOS"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/HDFiller" )
+
+filter "LINUX32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/HDFiller" )
+
+filter "LINUX64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/HDFiller" )
+
+filter "OSX"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/HDFiller" )
+
+filter "WIN32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tools/HDFiller" )
+
+filter "WIN64"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tools/HDFiller" )

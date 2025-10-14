@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_gucefMT_TestApp" )
 
-  platforms( { "ALL", "WIN32", "WIN64" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -21,6 +21,51 @@ workspace( "GUCEF_exe_gucefMT_TestApp" )
   --
 
 filter "ALL"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "ANDROID32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "ANDROID64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "ARDUINO"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "EMSCRIPTEN32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "EMSCRIPTEN64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "IOS"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "LINUX32"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "LINUX64"
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "tests/gucefMT_TestApp" )
+
+filter "OSX"
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
   include( "tests/gucefMT_TestApp" )

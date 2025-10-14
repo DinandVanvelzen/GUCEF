@@ -34,6 +34,10 @@ links( { "aws-c-common", "aws-c-http", "aws-c-io", "aws-c-sdkutils" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=aws_c_auth", "MODULE_NAME=aws_c_auth" } )
+
+
+configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "source/auth.c",

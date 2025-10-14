@@ -15,7 +15,6 @@ dependencies/aws-cpp-sdk-s3/*
 dependencies/aws-crt-cpp/*
 dependencies/cegui/cegui/*
 dependencies/curl/*
-dependencies/external/*
 dependencies/flic/*
 dependencies/freetype/*
 dependencies/glew/*

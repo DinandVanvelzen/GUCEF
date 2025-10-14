@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_PackageUpgrader" )
 
-  platforms( { "ALL" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -21,6 +21,138 @@ workspace( "GUCEF_exe_PackageUpgrader" )
   --
 
 filter "ALL"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/PackageUpgrader" )
+
+filter "ANDROID32"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/PackageUpgrader" )
+
+filter "ANDROID64"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/PackageUpgrader" )
+
+filter "ARDUINO"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/PackageUpgrader" )
+
+filter "EMSCRIPTEN32"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/PackageUpgrader" )
+
+filter "EMSCRIPTEN64"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/PackageUpgrader" )
+
+filter "IOS"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/PackageUpgrader" )
+
+filter "LINUX32"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/PackageUpgrader" )
+
+filter "LINUX64"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/PackageUpgrader" )
+
+filter "OSX"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/PackageUpgrader" )
+
+filter "WIN32"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOM" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tools/PackageUpgrader" )
+
+filter "WIN64"
   include( "dependencies/json-builder" )
   include( "dependencies/json-parser" )
   include( "dependencies/libparsifal" )

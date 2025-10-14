@@ -77,16 +77,17 @@ if( ANDROID32 )
 elseif( ANDROID64 )
   add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 endif()
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=MyGUI_OpenGLESPlatform" )
 
 if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} MyGUI.Engine )
   target_link_libraries( ${MODULE_NAME} GLESv1_CM MyGUI.Engine )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=MyGUI_OpenGLESPlatform" )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
   add_dependencies( ${MODULE_NAME} MyGUI.Engine )
   target_link_libraries( ${MODULE_NAME} GLESv1_CM MyGUI.Engine )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=MyGUI_OpenGLESPlatform" )
 endif( ANDROID64 )
 
 if ( ANDROID32 )

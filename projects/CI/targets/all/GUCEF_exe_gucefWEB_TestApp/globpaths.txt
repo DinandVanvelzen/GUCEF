@@ -4,7 +4,6 @@ dependencies/json-parser/*
 dependencies/libparsifal/*
 dependencies/libyaml/*
 dependencies/stbrumme-hash-library/*
-dependencies/zlib/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefMT/*

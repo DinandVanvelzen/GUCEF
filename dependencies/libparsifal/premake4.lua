@@ -23,6 +23,16 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { EMSCRIPTEN32 } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { EMSCRIPTEN64 } )
+kind( "StaticLib" )
 
 
 configuration( {} )
@@ -30,7 +40,7 @@ kind( "SharedLib" )
 
 
 configuration( {} )
-defines( { "PARSIFAL_BUILD_MODULE", "PARSIFAL_CUSTOM_GUCEF_BUILD" } )
+defines( { "MODULE_CONSENSUS_NAME=libparsifal", "MODULE_NAME=libparsifal", "MODULE_SEMVER=1_1_0_0", "PARSIFAL_BUILD_MODULE", "PARSIFAL_CUSTOM_GUCEF_BUILD" } )
 
 
 configuration( {} )

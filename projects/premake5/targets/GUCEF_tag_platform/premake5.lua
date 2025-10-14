@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_tag_platform" )
 
-  platforms( { "ALL", "ARDUINO", "EMSCRIPTEN", "GLX", "GTK", "IOS", "NACL", "POSIX", "SDL", "SYMBIAN", "UNIX" } )
+  platforms( { "ALL", "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -40,52 +40,24 @@ filter "ALL"
   include( "platform/gucefVFS" )
   include( "platform/gucefWEB" )
 
+filter "ANDROID32"
+
+filter "ANDROID64"
+
 filter "ARDUINO"
-  include( "platform/gucefCORE" )
-  include( "platform/gucefLOADER" )
-  include( "platform/gucefMT" )
 
-filter "EMSCRIPTEN"
-  include( "platform/gucefCORE" )
-  include( "platform/gucefLOADER" )
-  include( "platform/gucefMT" )
+filter "EMSCRIPTEN32"
 
-filter "GLX"
-  include( "platform/gucefCORE" )
-  include( "platform/gucefLOADER" )
-  include( "platform/gucefMT" )
-
-filter "GTK"
-  include( "platform/gucefCORE" )
-  include( "platform/gucefLOADER" )
-  include( "platform/gucefMT" )
+filter "EMSCRIPTEN64"
 
 filter "IOS"
-  include( "platform/gucefCORE" )
-  include( "platform/gucefLOADER" )
-  include( "platform/gucefMT" )
 
-filter "NACL"
-  include( "platform/gucefCORE" )
-  include( "platform/gucefLOADER" )
-  include( "platform/gucefMT" )
+filter "LINUX32"
 
-filter "POSIX"
-  include( "platform/gucefCORE" )
-  include( "platform/gucefLOADER" )
-  include( "platform/gucefMT" )
+filter "LINUX64"
 
-filter "SDL"
-  include( "platform/gucefCORE" )
-  include( "platform/gucefLOADER" )
-  include( "platform/gucefMT" )
+filter "OSX"
 
-filter "SYMBIAN"
-  include( "platform/gucefCORE" )
-  include( "platform/gucefLOADER" )
-  include( "platform/gucefMT" )
+filter "WIN32"
 
-filter "UNIX"
-  include( "platform/gucefCORE" )
-  include( "platform/gucefLOADER" )
-  include( "platform/gucefMT" )
+filter "WIN64"

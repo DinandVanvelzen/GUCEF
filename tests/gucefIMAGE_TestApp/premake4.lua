@@ -72,7 +72,7 @@ links( { "gucefCORE", "gucefIMAGE", "gucefMT" } )
   
 
 configuration( { LINUX32 } )
-defines( { "GUCEF_IMAGE_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_IMAGE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefIMAGE_TestApp" } )
   
 configuration( { LINUX64 } )
 links( { "gucefCORE", "gucefIMAGE", "gucefMT" } )
@@ -80,7 +80,7 @@ links( { "gucefCORE", "gucefIMAGE", "gucefMT" } )
   
 
 configuration( { LINUX64 } )
-defines( { "GUCEF_IMAGE_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_IMAGE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefIMAGE_TestApp" } )
   
 configuration( { WIN32 } )
 links( { "gucefCORE", "gucefIMAGE", "gucefMT" } )
@@ -88,7 +88,7 @@ links( { "gucefCORE", "gucefIMAGE", "gucefMT" } )
   
 
 configuration( { WIN32 } )
-defines( { "GUCEF_IMAGE_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_IMAGE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefIMAGE_TestApp" } )
   
 configuration( { WIN64 } )
 links( { "gucefCORE", "gucefIMAGE", "gucefMT" } )
@@ -96,7 +96,7 @@ links( { "gucefCORE", "gucefIMAGE", "gucefMT" } )
   
 
 configuration( { WIN64 } )
-defines( { "GUCEF_IMAGE_TESTAPP_BUILD_MODULE" } )
+defines( { "GUCEF_IMAGE_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefIMAGE_TestApp" } )
 
 
 configuration( { "LINUX32" } )

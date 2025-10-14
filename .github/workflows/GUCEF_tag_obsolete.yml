@@ -14,6 +14,43 @@ on:
 
 jobs:
 
+  GUCEF_tag_obsolete-all:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_tag_obsolete
+      TARGET_PLATFORM: all
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_tag_obsolete
+      PRODUCT_NAME: GUCEF_tag_obsolete
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build GUCEF_tag_obsolete for platform all
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_tag_obsolete-all/packages/*GUCEF_tag_obsolete*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_tag_obsolete-all/packages/*GUCEF_tag_obsolete*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_tag_obsolete-all/packages/*GUCEF_tag_obsolete*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_tag_obsolete-all/packages/*GUCEF_tag_obsolete*.tar.xz
   GUCEF_tag_obsolete-linux32:
     runs-on: self-hosted
     env:

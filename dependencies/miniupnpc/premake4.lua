@@ -30,10 +30,14 @@ kind( "SharedLib" )
 
 
 configuration( {} )
-defines( { "MINIUPNP_EXPORTS" } )
+defines( { "MINIUPNP_EXPORTS", "MODULE_CONSENSUS_NAME=miniupnpc", "MODULE_NAME=miniupnpc" } )
   
 
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
+defines( { "__sun" } )
+  
+
+configuration( { ANDROID64 } )
 defines( { "__sun" } )
   links( { "WS2_32.lib" } )
   links( { "WS2_32.lib" } )

@@ -3,4 +3,6 @@ dependencies/libparsifal/*
 platform/gucefCORE/*
 platform/gucefMT/*
 plugins/CORE/dstorepluginPARSIFALXML/*
+plugins/PROJECTGEN/ProjectGenDependsFilter/*
+plugins/PROJECTGEN/ProjectGenVSImporter/*
 tools/ProjectGen/*

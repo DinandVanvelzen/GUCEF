@@ -34,7 +34,7 @@ links( { "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefPUBSUB", "gucefVFS", "guc
 
 
 configuration( {} )
-defines( { "PUBSUBPLUGIN_STORAGE_EMBED_CODE", "PUBSUBPLUGIN_TEST_BUILD_PLUGIN_DLL" } )
+defines( { "MODULE_CONSENSUS_NAME=pubsubpluginTEST", "MODULE_IS_PLUGIN=1", "MODULE_NAME=pubsubpluginTEST", "PUBSUBPLUGIN_STORAGE_EMBED_CODE", "PUBSUBPLUGIN_TEST_BUILD_PLUGIN_DLL" } )
 
 
 configuration( {} )
@@ -79,7 +79,10 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../platform/gucefCOM/include", "../../../platform/gucefCOMCORE/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "../../../platform/gucefPUBSUB/include", "../../../platform/gucefVFS/include", "../../../platform/gucefWEB/include", "../pubsubpluginSTORAGE/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

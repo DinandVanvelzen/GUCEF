@@ -34,7 +34,7 @@ links( { "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "GUCEF_MATH_BUILD_MODULE" } )
+defines( { "GUCEF_MATH_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefMATH", "MODULE_NAME=gucefMATH", "MODULE_SEMVER=0_1_0_0" } )
 
 
 configuration( {} )
@@ -71,7 +71,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

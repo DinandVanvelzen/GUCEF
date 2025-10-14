@@ -13,7 +13,37 @@
 
 
 
-if (LINUX32)
+if (EMSCRIPTEN32)
+  set( PLATFORM_HEADER_FILES 
+    include/imgpluginDEVIL.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/imgpluginDEVIL.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN64)
+  set( PLATFORM_HEADER_FILES 
+    include/imgpluginDEVIL.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/imgpluginDEVIL.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (LINUX32)
   set( PLATFORM_HEADER_FILES 
     include/imgpluginDEVIL.h
   )
@@ -79,7 +109,11 @@ endif ()
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 
-if( LINUX32 )
+if( EMSCRIPTEN32 )
+  set( MODULE_NAME "" )
+elseif( EMSCRIPTEN64 )
+  set( MODULE_NAME "" )
+elseif( LINUX32 )
   set( MODULE_NAME "imgpluginDEVIL" )
 elseif( LINUX64 )
   set( MODULE_NAME "imgpluginDEVIL" )
@@ -88,7 +122,11 @@ elseif( WIN32 )
 elseif( WIN64 )
   set( MODULE_NAME "imgpluginDEVIL" )
 endif()
-if( LINUX32 )
+if( EMSCRIPTEN32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( LINUX32 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 elseif( LINUX64 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
@@ -102,26 +140,34 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} DevIL2 gucefCORE gucefIMAGE gucefMT )
   target_link_libraries( ${MODULE_NAME} DevIL2 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=imgpluginDEVIL" )
 endif( LINUX32 )
 
 if ( LINUX64 )
   add_dependencies( ${MODULE_NAME} DevIL2 gucefCORE gucefIMAGE gucefMT )
   target_link_libraries( ${MODULE_NAME} DevIL2 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=imgpluginDEVIL" )
 endif( LINUX64 )
 
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} DevIL2 gucefCORE gucefIMAGE gucefMT )
   target_link_libraries( ${MODULE_NAME} DevIL2 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=imgpluginDEVIL" )
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} DevIL2 gucefCORE gucefIMAGE gucefMT )
   target_link_libraries( ${MODULE_NAME} DevIL2 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=imgpluginDEVIL" )
 endif( WIN64 )
+
+if ( EMSCRIPTEN32 )
+  include_directories( ../../../common/include ../../../dependencies/DevIL/DevIL/include ../../../dependencies/DevIL/DevIL/include/IL ../../../dependencies/DevIL/DevIL/src-IL ../../../dependencies/DevIL/DevIL/src-IL/include ../../../dependencies/DevIL/DevIL/src-ILU ../../../dependencies/DevIL/DevIL/src-ILU/include ../../../dependencies/DevIL/DevIL/src-ILU/include/ilu_error ../../../dependencies/DevIL/DevIL/src-ILUT ../../../dependencies/DevIL/DevIL/src-ILUT/include ../../../dependencies/Little-CMS/include ../../../dependencies/Little-CMS/src ../../../dependencies/jasper/src/libjasper/bmp ../../../dependencies/jasper/src/libjasper/include ../../../dependencies/jasper/src/libjasper/include/jasper ../../../dependencies/jasper/src/libjasper/jp2 ../../../dependencies/jasper/src/libjasper/jpc ../../../dependencies/jasper/src/libjasper/jpg ../../../dependencies/jasper/src/libjasper/mif ../../../dependencies/jasper/src/libjasper/pgx ../../../dependencies/jasper/src/libjasper/pnm ../../../dependencies/jasper/src/libjasper/ras ../../../dependencies/libjpeg ../../../dependencies/libmng ../../../dependencies/libpng ../../../dependencies/libsquish ../../../dependencies/openexr/IlmBase ../../../dependencies/openexr/IlmBase/Half ../../../dependencies/openexr/IlmBase/Iex ../../../dependencies/openexr/IlmBase/IexMath ../../../dependencies/openexr/IlmBase/IlmThread ../../../dependencies/openexr/IlmBase/Imath ../../../dependencies/openexr/IlmBase/config.windows ../../../dependencies/openexr/OpenEXR ../../../dependencies/openexr/OpenEXR/IlmImf ../../../dependencies/openexr/OpenEXR/IlmImfUtil ../../../dependencies/openexr/OpenEXR/config.windows ../../../dependencies/tiff/libtiff ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include include )
+endif( EMSCRIPTEN32 )
+
+if ( EMSCRIPTEN64 )
+  include_directories( ../../../common/include ../../../dependencies/DevIL/DevIL/include ../../../dependencies/DevIL/DevIL/include/IL ../../../dependencies/DevIL/DevIL/src-IL ../../../dependencies/DevIL/DevIL/src-IL/include ../../../dependencies/DevIL/DevIL/src-ILU ../../../dependencies/DevIL/DevIL/src-ILU/include ../../../dependencies/DevIL/DevIL/src-ILU/include/ilu_error ../../../dependencies/DevIL/DevIL/src-ILUT ../../../dependencies/DevIL/DevIL/src-ILUT/include ../../../dependencies/Little-CMS/include ../../../dependencies/Little-CMS/src ../../../dependencies/jasper/src/libjasper/bmp ../../../dependencies/jasper/src/libjasper/include ../../../dependencies/jasper/src/libjasper/include/jasper ../../../dependencies/jasper/src/libjasper/jp2 ../../../dependencies/jasper/src/libjasper/jpc ../../../dependencies/jasper/src/libjasper/jpg ../../../dependencies/jasper/src/libjasper/mif ../../../dependencies/jasper/src/libjasper/pgx ../../../dependencies/jasper/src/libjasper/pnm ../../../dependencies/jasper/src/libjasper/ras ../../../dependencies/libjpeg ../../../dependencies/libmng ../../../dependencies/libpng ../../../dependencies/libsquish ../../../dependencies/openexr/IlmBase ../../../dependencies/openexr/IlmBase/Half ../../../dependencies/openexr/IlmBase/Iex ../../../dependencies/openexr/IlmBase/IexMath ../../../dependencies/openexr/IlmBase/IlmThread ../../../dependencies/openexr/IlmBase/Imath ../../../dependencies/openexr/IlmBase/config.windows ../../../dependencies/openexr/OpenEXR ../../../dependencies/openexr/OpenEXR/IlmImf ../../../dependencies/openexr/OpenEXR/IlmImfUtil ../../../dependencies/openexr/OpenEXR/config.windows ../../../dependencies/tiff/libtiff ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include include )
+endif( EMSCRIPTEN64 )
 
 if ( LINUX32 )
   include_directories( ../../../common/include ../../../dependencies/DevIL/DevIL/include ../../../dependencies/DevIL/DevIL/include/IL ../../../dependencies/DevIL/DevIL/src-IL ../../../dependencies/DevIL/DevIL/src-IL/include ../../../dependencies/DevIL/DevIL/src-ILU ../../../dependencies/DevIL/DevIL/src-ILU/include ../../../dependencies/DevIL/DevIL/src-ILU/include/ilu_error ../../../dependencies/DevIL/DevIL/src-ILUT ../../../dependencies/DevIL/DevIL/src-ILUT/include ../../../dependencies/Little-CMS/include ../../../dependencies/Little-CMS/src ../../../dependencies/jasper/src/libjasper/bmp ../../../dependencies/jasper/src/libjasper/include ../../../dependencies/jasper/src/libjasper/include/jasper ../../../dependencies/jasper/src/libjasper/jp2 ../../../dependencies/jasper/src/libjasper/jpc ../../../dependencies/jasper/src/libjasper/jpg ../../../dependencies/jasper/src/libjasper/mif ../../../dependencies/jasper/src/libjasper/pgx ../../../dependencies/jasper/src/libjasper/pnm ../../../dependencies/jasper/src/libjasper/ras ../../../dependencies/libjpeg ../../../dependencies/libmng ../../../dependencies/libpng ../../../dependencies/libsquish ../../../dependencies/openexr/IlmBase ../../../dependencies/openexr/IlmBase/Half ../../../dependencies/openexr/IlmBase/Iex ../../../dependencies/openexr/IlmBase/IexMath ../../../dependencies/openexr/IlmBase/IlmThread ../../../dependencies/openexr/IlmBase/Imath ../../../dependencies/openexr/IlmBase/config.windows ../../../dependencies/openexr/OpenEXR ../../../dependencies/openexr/OpenEXR/IlmImf ../../../dependencies/openexr/OpenEXR/IlmImfUtil ../../../dependencies/openexr/OpenEXR/config.windows ../../../dependencies/tiff/libtiff ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefIMAGE/include ../../../platform/gucefMT/include include )

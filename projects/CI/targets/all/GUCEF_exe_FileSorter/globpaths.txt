@@ -8,7 +8,6 @@ dependencies/json-parser/*
 dependencies/libparsifal/*
 dependencies/libyaml/*
 dependencies/stbrumme-hash-library/*
-dependencies/zlib/*
 dependencies/zziplib/*
 platform/gucefCOM/*
 platform/gucefCORE/*
@@ -22,7 +21,6 @@ plugins/CORE/codecspluginZLIB/*
 plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/dstorepluginPARSIFALXML/*
 plugins/CORE/dstorepluginYAML/*
-plugins/IMAGE/imgpluginFreeImage/*
 plugins/SHARED/pluginglueAWSSDK/*
 plugins/VFS/vfspluginAWSS3/*
 plugins/VFS/vfspluginZIP/*

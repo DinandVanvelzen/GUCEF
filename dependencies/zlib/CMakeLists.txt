@@ -13,7 +13,79 @@
 
 
 
-if (LINUX32)
+if (EMSCRIPTEN32)
+  set( PLATFORM_HEADER_FILES 
+    crc32.h
+    deflate.h
+    inffast.h
+    inffixed.h
+    inflate.h
+    inftrees.h
+    trees.h
+    zconf.h
+    zconf.in.h
+    zlib.h
+    zutil.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    adler32.c
+    compress.c
+    crc32.c
+    deflate.c
+    gzio.c
+    infback.c
+    inffast.c
+    inflate.c
+    inftrees.c
+    trees.c
+    uncompr.c
+    zutil.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (EMSCRIPTEN64)
+  set( PLATFORM_HEADER_FILES 
+    crc32.h
+    deflate.h
+    inffast.h
+    inffixed.h
+    inflate.h
+    inftrees.h
+    trees.h
+    zconf.h
+    zconf.in.h
+    zlib.h
+    zutil.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "EMSCRIPTEN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    adler32.c
+    compress.c
+    crc32.c
+    deflate.c
+    gzio.c
+    infback.c
+    inffast.c
+    inflate.c
+    inftrees.c
+    trees.c
+    uncompr.c
+    zutil.c
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "EMSCRIPTEN64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (LINUX32)
   set( PLATFORM_HEADER_FILES 
     crc32.h
     deflate.h
@@ -163,7 +235,11 @@ endif ()
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
 
-if( LINUX32 )
+if( EMSCRIPTEN32 )
+  set( MODULE_NAME "" )
+elseif( EMSCRIPTEN64 )
+  set( MODULE_NAME "" )
+elseif( LINUX32 )
   set( MODULE_NAME "zlib" )
 elseif( LINUX64 )
   set( MODULE_NAME "zlib" )
@@ -172,7 +248,11 @@ elseif( WIN32 )
 elseif( WIN64 )
   set( MODULE_NAME "zlib" )
 endif()
-if( LINUX32 )
+if( EMSCRIPTEN32 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( EMSCRIPTEN64 )
+  add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
+elseif( LINUX32 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 elseif( LINUX64 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
@@ -181,22 +261,21 @@ elseif( WIN32 )
 elseif( WIN64 )
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=zlib" )
 
 if ( LINUX32 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ZLIB_DLL;ZLIB_INTERNAL;ZZIP_HAVE_STDINT_H" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZLIB_INTERNAL;ZZIP_HAVE_STDINT_H" )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ZLIB_DLL;ZLIB_INTERNAL;ZZIP_HAVE_STDINT_H" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZLIB_INTERNAL;ZZIP_HAVE_STDINT_H" )
 endif( LINUX64 )
 
 if ( WIN32 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ZLIB_DLL;ZLIB_INTERNAL;ZZIP_HAVE_STDINT_H" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZLIB_INTERNAL;ZZIP_HAVE_STDINT_H" )
 endif( WIN32 )
 
 if ( WIN64 )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ZLIB_DLL;ZLIB_INTERNAL;ZZIP_HAVE_STDINT_H" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=zlib;ZLIB_DLL;ZLIB_INTERNAL;ZZIP_HAVE_STDINT_H" )
 endif( WIN64 )
 
 

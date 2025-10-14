@@ -34,7 +34,8 @@ links( { "RocketControls", "RocketCore", "gucefCORE", "gucefGUI", "gucefINPUT", 
 
 
 configuration( {} )
-defines( { "GUIDRIVERROCKETGL_BUILD_MODULE" } )
+defines( { "GUIDRIVERROCKETGL_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverRocketOpenGL", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverRocketOpenGL" } )
+  links( { "EGL", "GLESv1_CM" } )
   links( { "EGL", "GLESv1_CM" } )
   links( { "GL" } )
   links( { "GL" } )
@@ -67,7 +68,10 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../dependencies/libRocket/Include", "../../../dependencies/libRocket/Include/Rocket", "../../../dependencies/libRocket/Include/Rocket/Controls", "../../../dependencies/libRocket/Include/Rocket/Core", "../../../dependencies/libRocket/Include/Rocket/Core/Python", "../../../dependencies/libRocket/Include/Rocket/Debugger", "../../../dependencies/libRocket/Source/Controls", "../../../dependencies/libRocket/Source/Core", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../guidriverRocket/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

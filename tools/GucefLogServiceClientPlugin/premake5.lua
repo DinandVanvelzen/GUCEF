@@ -34,7 +34,7 @@ links( { "GucefLogServiceLib", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT
 
 
 configuration( {} )
-defines( { "GUCEF_LOGSERVICECLIENTPLUGIN_BUILD_MODULE" } )
+defines( { "GUCEF_LOGSERVICECLIENTPLUGIN_BUILD_MODULE", "MODULE_CONSENSUS_NAME=GucefLogServiceClientPlugin", "MODULE_NAME=GucefLogServiceClientPlugin" } )
 
 
 configuration( {} )
@@ -57,7 +57,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../GucefLogServiceLib/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

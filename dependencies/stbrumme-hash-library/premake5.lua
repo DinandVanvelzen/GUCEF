@@ -30,6 +30,10 @@ kind( "StaticLib" )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=stbrumme_hash", "MODULE_NAME=stbrumme_hash" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "crc32.h",

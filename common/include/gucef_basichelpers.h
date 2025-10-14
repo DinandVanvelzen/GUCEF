@@ -114,6 +114,11 @@
 
 /*-------------------------------------------------------------------------*/
 
+#define _GUCEF_CONCAT( a, b ) a##_##b
+#define GUCEF_CONCAT( a, b ) _GUCEF_CONCAT( a, b )
+
+/*-------------------------------------------------------------------------*/
+
 #undef NULL
 #if defined(__cplusplus)
   #ifndef __CPP09NULLPTRSUPPORTED

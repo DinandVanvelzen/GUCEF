@@ -12,7 +12,10 @@
 -- Configuration for module: inputdriverNANDROID
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+  project( "inputdriverNANDROID" )
+
+configuration( { "ANDROID64" } )
   project( "inputdriverNANDROID" )
 
 configuration( {} )
@@ -24,35 +27,58 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
 
 
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
 kind( "SharedLib" )
+configuration( { "ANDROID64" } )
+
+
+configuration( { ANDROID64 } )
+kind( "SharedLib" )
+
+
+configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=inputdriverNANDROID" } )
   
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
 links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
   links( { "android", "android_native_app_glue", "gucefCORE", "gucefINPUT", "gucefMT" } )
   
 
-configuration( { ANDROID } )
-defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERANDROID_BUILD_MODULE" } )
+configuration( { ANDROID32 } )
+defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERANDROID_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverNANDROID" } )
+  
+configuration( { ANDROID64 } )
+links( { "gucefCORE", "gucefINPUT", "gucefMT" } )
+  links( { "android", "android_native_app_glue", "gucefCORE", "gucefINPUT", "gucefMT" } )
+  
 
-
-configuration( { "ANDROID" } )
-    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-    files( {
-      "include/inputdriverNANDROID.h"
-    } )
-
-    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-    files( {
-      "src/inputdriverNANDROID.c"
-    } )
+configuration( { ANDROID64 } )
+defines( { "BUILD_GUCEF_INPUT_PLUGIN_DLL", "INPUTDRIVERANDROID_BUILD_MODULE", "MODULE_IS_PLUGIN=1", "MODULE_NAME=inputdriverNANDROID" } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include" } )
+vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+files( {
+  "include/inputdriverNANDROID.h"
+ } )
 
-configuration( { "ANDROID" } )
-includedirs( { "../../../platform/gucefCORE/include/android", "include" } )
+
+
+configuration( {} )
+vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+files( {
+  "src/inputdriverNANDROID.c"
+ } )
+
+
+configuration( {} )
+includedirs( { "../../../common/include", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "include" } )
+
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )

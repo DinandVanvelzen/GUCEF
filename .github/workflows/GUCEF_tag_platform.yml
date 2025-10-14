@@ -51,3 +51,115 @@ jobs:
           name: tar.xz packages
           path: |
             ./common/bin/GUCEF_tag_platform-all/packages/*GUCEF_tag_platform*.tar.xz
+  GUCEF_tag_platform-linux32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_tag_platform
+      TARGET_PLATFORM: linux32
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_tag_platform
+      PRODUCT_NAME: GUCEF_tag_platform
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build GUCEF_tag_platform for platform linux32
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_tag_platform-linux32/packages/*GUCEF_tag_platform*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_tag_platform-linux32/packages/*GUCEF_tag_platform*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_tag_platform-linux32/packages/*GUCEF_tag_platform*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_tag_platform-linux32/packages/*GUCEF_tag_platform*.tar.xz
+  GUCEF_tag_platform-linux64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_tag_platform
+      TARGET_PLATFORM: linux64
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_tag_platform
+      PRODUCT_NAME: GUCEF_tag_platform
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build GUCEF_tag_platform for platform linux64
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_tag_platform-linux64/packages/*GUCEF_tag_platform*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_tag_platform-linux64/packages/*GUCEF_tag_platform*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_tag_platform-linux64/packages/*GUCEF_tag_platform*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_tag_platform-linux64/packages/*GUCEF_tag_platform*.tar.xz
+  GUCEF_tag_platform-win32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_tag_platform
+      TARGET_PLATFORM: win32
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_tag_platform
+      PRODUCT_NAME: GUCEF_tag_platform
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build GUCEF_tag_platform for platform win32
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_tag_platform-win32/packages/*GUCEF_tag_platform*.zip
+  GUCEF_tag_platform-win64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_tag_platform
+      TARGET_PLATFORM: win64
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_tag_platform
+      PRODUCT_NAME: GUCEF_tag_platform
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build GUCEF_tag_platform for platform win64
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_tag_platform-win64/packages/*GUCEF_tag_platform*.zip

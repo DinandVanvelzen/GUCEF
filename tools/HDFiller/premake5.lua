@@ -40,7 +40,7 @@ links( { "gucefCORE", "gucefMT" } )
 
 
 configuration( {} )
-defines( { "HDFILLER_BUILD_MODULE" } )
+defines( { "HDFILLER_BUILD_MODULE", "MODULE_CONSENSUS_NAME=HDFiller", "MODULE_NAME=HDFiller" } )
 
 
 configuration( {} )
@@ -53,7 +53,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

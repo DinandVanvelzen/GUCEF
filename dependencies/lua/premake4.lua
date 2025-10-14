@@ -30,7 +30,7 @@ kind( "SharedLib" )
 
 
 configuration( {} )
-defines( { "LUA_BUILD_AS_DLL" } )
+defines( { "LUA_BUILD_AS_DLL", "MODULE_CONSENSUS_NAME=lua", "MODULE_NAME=lua" } )
 
 
 configuration( {} )

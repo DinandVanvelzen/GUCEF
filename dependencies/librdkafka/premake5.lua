@@ -34,7 +34,7 @@ links( { "zlib" } )
 
 
 configuration( {} )
-defines( { "LIBRDKAFKACPP_EXPORTS", "LIBRDKAFKA_EXPORTS" } )
+defines( { "LIBRDKAFKACPP_EXPORTS", "LIBRDKAFKA_EXPORTS", "MODULE_CONSENSUS_NAME=RdKafka", "MODULE_NAME=RdKafka" } )
   links( { "dl" } )
   
 
@@ -260,6 +260,12 @@ configuration( { "WIN64" } )
 
 configuration( {} )
 includedirs( { "../librdkafka", "src", "src-cpp" } )
+
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../zlib" } )
+
+configuration( { "EMSCRIPTEN64" } )
+includedirs( { "../zlib" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../zlib" } )

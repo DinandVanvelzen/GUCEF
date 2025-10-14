@@ -34,10 +34,14 @@ links( { "aws-c-auth", "aws-c-cal", "aws-c-common", "aws-c-compression", "aws-c-
 
 
 configuration( {} )
-defines( { "AWS_CRT_CPP_EXPORTS", "CJSON_AS4CPP_HIDE_SYMBOLS", "CJSON_HIDE_SYMBOLS", "USE_IMPORT_EXPORT=1" } )
+defines( { "AWS_CRT_CPP_EXPORTS", "CJSON_AS4CPP_HIDE_SYMBOLS", "CJSON_HIDE_SYMBOLS", "MODULE_CONSENSUS_NAME=aws_crt_cpp", "MODULE_NAME=aws_crt_cpp", "MODULE_SEMVER=0_18_16_0", "USE_IMPORT_EXPORT=1" } )
   
 
-configuration( { ANDROID } )
+configuration( { ANDROID32 } )
+defines( { "ENABLE_OPENSSL_ENCRYPTION" } )
+  
+
+configuration( { ANDROID64 } )
 defines( { "ENABLE_OPENSSL_ENCRYPTION" } )
   
 

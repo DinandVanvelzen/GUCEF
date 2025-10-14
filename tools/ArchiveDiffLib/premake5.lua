@@ -34,6 +34,10 @@ links( { "gucefCORE", "gucefMT", "gucefPATCHER" } )
 
 
 configuration( {} )
+defines( { "ARCHIVEDIFFLIB_BUILD_MODULE", "MODULE_CONSENSUS_NAME=ArchiveDiffLib", "MODULE_NAME=ArchiveDiffLib" } )
+
+
+configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/ArchiveDiffLib.h",
@@ -53,7 +57,10 @@ files( {
 configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefPATCHER/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

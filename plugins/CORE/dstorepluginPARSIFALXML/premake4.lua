@@ -23,6 +23,16 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
+configuration( { "EMSCRIPTEN32" } )
+
+
+configuration( { EMSCRIPTEN32 } )
+kind( "StaticLib" )
+configuration( { "EMSCRIPTEN64" } )
+
+
+configuration( { EMSCRIPTEN64 } )
+kind( "StaticLib" )
 
 
 configuration( {} )
@@ -34,7 +44,15 @@ links( { "libparsifal" } )
 
 
 configuration( {} )
-defines( { "DSTOREPLUGINPARSIFALXML_BUILD_MODULE" } )
+defines( { "DSTOREPLUGINPARSIFALXML_BUILD_MODULE", "MODULE_CONSENSUS_NAME=dstorepluginPARSIFALXML", "MODULE_IS_PLUGIN=1", "MODULE_NAME=dstorepluginPARSIFALXML" } )
+  
+
+configuration( { EMSCRIPTEN32 } )
+defines( { "MODULE_API_PREFIX=dstorepluginPARSIFALXML" } )
+  
+
+configuration( { EMSCRIPTEN64 } )
+defines( { "MODULE_API_PREFIX=dstorepluginPARSIFALXML" } )
 
 
 configuration( {} )
@@ -55,7 +73,10 @@ files( {
 configuration( {} )
 includedirs( { "../../../common/include", "../../../dependencies/libparsifal/include", "../../../dependencies/libparsifal/include/libparsifal", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefMT/include", "include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../../platform/gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )

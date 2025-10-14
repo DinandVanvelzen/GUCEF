@@ -51,6 +51,80 @@ jobs:
           name: tar.xz packages
           path: |
             ./common/bin/GUCEF_exe_pubsub2pubsub-all/packages/*pubsub2pubsub*.tar.xz
+  GUCEF_exe_pubsub2pubsub-linux32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_pubsub2pubsub
+      TARGET_PLATFORM: linux32
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_pubsub2pubsub
+      PRODUCT_NAME: pubsub2pubsub
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build pubsub2pubsub for platform linux32
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_pubsub2pubsub-linux32/packages/*pubsub2pubsub*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_pubsub2pubsub-linux32/packages/*pubsub2pubsub*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_pubsub2pubsub-linux32/packages/*pubsub2pubsub*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_pubsub2pubsub-linux32/packages/*pubsub2pubsub*.tar.xz
+  GUCEF_exe_pubsub2pubsub-linux64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_pubsub2pubsub
+      TARGET_PLATFORM: linux64
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_pubsub2pubsub
+      PRODUCT_NAME: pubsub2pubsub
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build pubsub2pubsub for platform linux64
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_pubsub2pubsub-linux64/packages/*pubsub2pubsub*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_pubsub2pubsub-linux64/packages/*pubsub2pubsub*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_pubsub2pubsub-linux64/packages/*pubsub2pubsub*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_pubsub2pubsub-linux64/packages/*pubsub2pubsub*.tar.xz
   GUCEF_exe_pubsub2pubsub-win32:
     runs-on: self-hosted
     env:

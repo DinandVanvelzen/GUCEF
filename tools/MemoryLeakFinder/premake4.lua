@@ -27,13 +27,19 @@ configuration( {} )
 configuration( {} )
 language( "C" )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+language( "C++" )
+
+configuration( { "ANDROID64" } )
 language( "C++" )
 
 configuration( { "ARDUINO" } )
 language( "C++" )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
+language( "C++" )
+
+configuration( { "EMSCRIPTEN64" } )
 language( "C++" )
 
 configuration( { "GLX" } )
@@ -89,15 +95,49 @@ kind( "SharedLib" )
   
 
 configuration( { WIN32 } )
-defines( { "GUCEF_CALLSTACK_TRACING_DISABLED", "GUCEF_CORE_EMBED_CODE", "GUCEF_DYNNEWON_DISABLED", "GUCEF_MLF_BUILD_MODULE", "GUCEF_MT_EMBED_CODE", "GUCEF_PLATFORM_LOCK_TRACER_DISABLED", "GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI" } )
+defines( { "GUCEF_CALLSTACK_TRACING_DISABLED", "GUCEF_CORE_EMBED_CODE", "GUCEF_DYNNEWON_DISABLED", "GUCEF_MLF_BUILD_MODULE", "GUCEF_MT_EMBED_CODE", "GUCEF_PLATFORM_LOCK_TRACER_DISABLED", "GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI", "MODULE_NAME=MemoryLeakFinder" } )
   links( { "Winmm" } )
   
 
 configuration( { WIN64 } )
-defines( { "GUCEF_CALLSTACK_TRACING_DISABLED", "GUCEF_CORE_EMBED_CODE", "GUCEF_DYNNEWON_DISABLED", "GUCEF_MLF_BUILD_MODULE", "GUCEF_MT_EMBED_CODE", "GUCEF_PLATFORM_LOCK_TRACER_DISABLED", "GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI" } )
+defines( { "GUCEF_CALLSTACK_TRACING_DISABLED", "GUCEF_CORE_EMBED_CODE", "GUCEF_DYNNEWON_DISABLED", "GUCEF_MLF_BUILD_MODULE", "GUCEF_MT_EMBED_CODE", "GUCEF_PLATFORM_LOCK_TRACER_DISABLED", "GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI", "MODULE_NAME=MemoryLeakFinder" } )
 
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "../../platform/gucefMT/include/gucefMT_CILockable.h",
+      "../../platform/gucefMT/include/gucefMT_CMutex.h",
+      "../../platform/gucefMT/include/gucefMT_CReadWriteLock.h",
+      "../../platform/gucefMT/include/gucefMT_CScopeMutex.h",
+      "../../platform/gucefMT/include/gucefMT_CScopeRwLock.h",
+      "../../platform/gucefMT/include/gucefMT_DVRWLOCK.h",
+      "../../platform/gucefMT/include/gucefMT_LockStatus.h",
+      "../../platform/gucefMT/include/gucefMT_ThreadStatus.h",
+      "../../platform/gucefMT/include/gucefMT_dvmtoswrap.h",
+      "../../platform/gucefMT/include/gucefMT_mutex.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../../platform/gucefMT/src/gucefMT_CILockable.cpp",
+      "../../platform/gucefMT/src/gucefMT_CMutex.cpp",
+      "../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp",
+      "../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp",
+      "../../platform/gucefMT/src/gucefMT_DVRWLOCK.c",
+      "../../platform/gucefMT/src/gucefMT_LockStatus.cpp",
+      "../../platform/gucefMT/src/gucefMT_MUTEX.c",
+      "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
+      "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
+      "src/gucefMLF_MemoryManager.cpp",
+      "src/gucefMLF_callstack.cpp",
+      "src/gucefMLF_locktrace.cpp"
+    } )
+
+
+
+configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../../platform/gucefMT/include/gucefMT_CILockable.h",
@@ -165,7 +205,41 @@ configuration( { "ARDUINO" } )
 
 
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "../../platform/gucefMT/include/gucefMT_CILockable.h",
+      "../../platform/gucefMT/include/gucefMT_CMutex.h",
+      "../../platform/gucefMT/include/gucefMT_CReadWriteLock.h",
+      "../../platform/gucefMT/include/gucefMT_CScopeMutex.h",
+      "../../platform/gucefMT/include/gucefMT_CScopeRwLock.h",
+      "../../platform/gucefMT/include/gucefMT_DVRWLOCK.h",
+      "../../platform/gucefMT/include/gucefMT_LockStatus.h",
+      "../../platform/gucefMT/include/gucefMT_ThreadStatus.h",
+      "../../platform/gucefMT/include/gucefMT_dvmtoswrap.h",
+      "../../platform/gucefMT/include/gucefMT_mutex.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "../../platform/gucefMT/src/gucefMT_CILockable.cpp",
+      "../../platform/gucefMT/src/gucefMT_CMutex.cpp",
+      "../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp",
+      "../../platform/gucefMT/src/gucefMT_CScopeMutex.cpp",
+      "../../platform/gucefMT/src/gucefMT_CScopeRwLock.cpp",
+      "../../platform/gucefMT/src/gucefMT_DVRWLOCK.c",
+      "../../platform/gucefMT/src/gucefMT_LockStatus.cpp",
+      "../../platform/gucefMT/src/gucefMT_MUTEX.c",
+      "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
+      "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
+      "src/gucefMLF_MemoryManager.cpp",
+      "src/gucefMLF_callstack.cpp",
+      "src/gucefMLF_locktrace.cpp"
+    } )
+
+
+
+configuration( { "EMSCRIPTEN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "../../platform/gucefMT/include/gucefMT_CILockable.h",
@@ -659,13 +733,19 @@ configuration( { "WIN64" } )
 configuration( {} )
 includedirs( { "../../common/include" } )
 
-configuration( { "ANDROID" } )
+configuration( { "ANDROID32" } )
+includedirs( { "../../platform/gucefMT/include/" } )
+
+configuration( { "ANDROID64" } )
 includedirs( { "../../platform/gucefMT/include/" } )
 
 configuration( { "ARDUINO" } )
 includedirs( { "../../platform/gucefMT/include/" } )
 
-configuration( { "EMSCRIPTEN" } )
+configuration( { "EMSCRIPTEN32" } )
+includedirs( { "../../platform/gucefMT/include/" } )
+
+configuration( { "EMSCRIPTEN64" } )
 includedirs( { "../../platform/gucefMT/include/" } )
 
 configuration( { "GLX" } )

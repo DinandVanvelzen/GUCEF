@@ -34,6 +34,10 @@ links( { "aws-c-common" } )
 
 
 configuration( {} )
+defines( { "MODULE_CONSENSUS_NAME=aws_c_compression", "MODULE_NAME=aws_c_compression" } )
+
+
+configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "source/compression.c",

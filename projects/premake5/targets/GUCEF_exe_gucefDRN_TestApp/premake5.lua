@@ -12,7 +12,7 @@
 
 workspace( "GUCEF_exe_gucefDRN_TestApp" )
 
-  platforms( { "ALL" } )
+  platforms( { "LINUX32", "LINUX64", "WIN32", "WIN64" } )
 
   location( "projects\premake5\targets" )
 
@@ -20,9 +20,50 @@ workspace( "GUCEF_exe_gucefDRN_TestApp" )
   -- Includes for all modules in the solution:
   --
 
-filter "ALL"
+filter "LINUX32"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefDRN" )
   include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tests/gucefDRN_TestApp" )
+
+filter "LINUX64"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefDRN" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tests/gucefDRN_TestApp" )
+
+filter "WIN32"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefDRN" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
+  include( "tests/gucefDRN_TestApp" )
+
+filter "WIN64"
+  include( "dependencies/json-builder" )
+  include( "dependencies/json-parser" )
+  include( "dependencies/libparsifal" )
+  include( "platform/gucefCOMCORE" )
+  include( "platform/gucefCORE" )
+  include( "platform/gucefDRN" )
+  include( "platform/gucefMT" )
+  include( "plugins/CORE/dstorepluginJSONPARSER" )
+  include( "plugins/CORE/dstorepluginPARSIFALXML" )
   include( "tests/gucefDRN_TestApp" )

@@ -12,7 +12,17 @@
 -- Configuration for module: gucefDRN_TestApp
 
 
-project( "gucefDRN_TestApp" )
+configuration( { "LINUX32" } )
+  project( "gucefDRN_TestApp" )
+
+configuration( { "LINUX64" } )
+  project( "gucefDRN_TestApp" )
+
+configuration( { "WIN32" } )
+  project( "gucefDRN_TestApp" )
+
+configuration( { "WIN64" } )
+  project( "gucefDRN_TestApp" )
 
 configuration( {} )
   location( os.getenv( "PM4OUTPUTDIR" ) )
@@ -21,54 +31,140 @@ configuration( {} )
   targetdir( os.getenv( "PM4TARGETDIR" ) )
 
 configuration( {} )
+language( "C" )
+
+configuration( { "LINUX32" } )
 language( "C++" )
 
+configuration( { "LINUX64" } )
+language( "C++" )
+
+configuration( { "WIN32" } )
+language( "C++" )
+
+configuration( { "WIN64" } )
+language( "C++" )
+
+configuration( { "LINUX32" } )
+
+
+configuration( { LINUX32 } )
+kind( "ConsoleApp" )
+configuration( { "LINUX64" } )
+
+
+configuration( { LINUX64 } )
+kind( "ConsoleApp" )
 configuration( { "WIN32" } )
 
 
 configuration( { WIN32 } )
 kind( "WindowedApp" )
-configuration( { "NOT WIN32" } )
+configuration( { "WIN64" } )
+
+
+configuration( { WIN64 } )
+kind( "WindowedApp" )
+  
+configuration( { LINUX32 } )
+links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
+  links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
   
 
-configuration( {} )
-kind( "ConsoleApp" )
-
-configuration( {} )
+configuration( { LINUX32 } )
+defines( { "GUCEF_DRN_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRN_TestApp" } )
+  
+configuration( { LINUX64 } )
 links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
+  links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
+  
+
+configuration( { LINUX64 } )
+defines( { "GUCEF_DRN_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRN_TestApp" } )
+  
+configuration( { WIN32 } )
 links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
+  links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
+  
 
+configuration( { WIN32 } )
+defines( { "GUCEF_DRN_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRN_TestApp" } )
+  
+configuration( { WIN64 } )
+links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
+  links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
+  
 
-configuration( {} )
-vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
-files( {
-  "include/TestCode_PeerToPeer.h"
- } )
+configuration( { WIN64 } )
+defines( { "GUCEF_DRN_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRN_TestApp" } )
 
-
-
-configuration( {} )
-vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
-files( {
-  "src/TestCode_PeerToPeer.cpp",
-  "src/gucefDRN_TestApp.cpp"
- } )
-
-
-configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefMT/include", "include" } )
-
-configuration( { "ANDROID" } )
-includedirs( { "../../platform/gucefCORE/include/android" } )
 
 configuration( { "LINUX32" } )
-includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestCode_PeerToPeer.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/TestCode_PeerToPeer.cpp",
+      "src/gucefDRN_TestApp.cpp"
+    } )
+
+
 
 configuration( { "LINUX64" } )
-includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestCode_PeerToPeer.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/TestCode_PeerToPeer.cpp",
+      "src/gucefDRN_TestApp.cpp"
+    } )
+
+
 
 configuration( { "WIN32" } )
-includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestCode_PeerToPeer.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/TestCode_PeerToPeer.cpp",
+      "src/gucefDRN_TestApp.cpp"
+    } )
+
+
 
 configuration( { "WIN64" } )
-includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestCode_PeerToPeer.h"
+    } )
+
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/TestCode_PeerToPeer.cpp",
+      "src/gucefDRN_TestApp.cpp"
+    } )
+
+
+configuration( {} )
+includedirs( { "../../common/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefMT/include" } )
+
+configuration( { "LINUX32" } )
+includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "include" } )
+
+configuration( { "LINUX64" } )
+includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "include" } )
+
+configuration( { "WIN32" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "include" } )
+
+configuration( { "WIN64" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "include" } )
