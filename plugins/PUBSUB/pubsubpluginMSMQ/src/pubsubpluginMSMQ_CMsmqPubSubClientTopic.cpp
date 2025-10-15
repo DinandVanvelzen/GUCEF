@@ -2277,6 +2277,7 @@ CMsmqPubSubClientTopic::OnMsmqMsgReceived( const MQMSGPROPS& msg, CORE::UInt32 m
 
                     // IMPORTANT: For the peek cycle to work we need to obtain the lookup id and retain it as state so that
                     //            we can use it to iterate to the next message
+                    UInt64 priorLastLookupId = m_msmqLastLookupId;
                     m_msmqLastLookupId = ValueVar.AsUInt64();
 
                     // Retain as meta-data
@@ -2284,6 +2285,18 @@ CMsmqPubSubClientTopic::OnMsmqMsgReceived( const MQMSGPROPS& msg, CORE::UInt32 m
                         translatedMsg.AddLinkedMetaDataKeyValuePair( keyVar, ValueVar );
                     else
                         translatedMsg.AddMetaDataKeyValuePair( keyVar, ValueVar );
+
+                    // Also retain the prior lookup id as meta-data for handling gaps in the lookup id sequence.
+                    // Note that there is no MSMQ property ID for such a thing. As such as a somewhat safe hack
+                    // we will use a negative value since prop ids are all unsigned ints hence no risk of conflict.
+                    // 
+                    // Even under normal conditions for simplistic scenarios it was found that the lookup id
+                    // has a high incidence of gaps in the numbering. As such we need the 'prior' number as well from
+                    // the consuming app's perspective as a 'gap fill' such that the lookup id can serve as a sequence
+                    // number 
+                    CORE::CVariant keyForPriorLookupId( keyVar.AsInt32() * -1 );
+                    CORE::CVariant valueOfPriorLookupId( priorLastLookupId ); 
+                    translatedMsg.AddMetaDataKeyValuePair( keyForPriorLookupId, valueOfPriorLookupId );
                 }
                 else
                 {
