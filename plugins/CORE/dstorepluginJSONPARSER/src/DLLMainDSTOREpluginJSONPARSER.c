@@ -374,7 +374,7 @@ DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
                 memset( &var, 0, sizeof var );
                 var.containedType = nodeType;
                 var.union_data.heap_data.union_data.char_heap_data = (char*) nodename;
-                var.union_data.heap_data.heap_data_size = (UInt32) strlen( nodename );
+                var.union_data.heap_data.heap_data_size = (UInt32) ( GUCEF_NULL != nodename ? strlen( nodename ) : 0 );
                 
                 DSTOREPLUG_Store_Node_Att( plugdata, filedata, GUCEF_NULL, 1, 0, GUCEF_NULL, &var, haschildren );
             }
@@ -783,7 +783,7 @@ process_value( TSrcFileData* sd    ,
     memset( &key, 0, sizeof( key ) );
     key.containedType = GUCEF_DATATYPE_UTF8_STRING; 
     key.union_data.heap_data.heap_data_is_linked = 1;
-    key.union_data.heap_data.heap_data_size = (UInt32) strlen( name );
+    key.union_data.heap_data.heap_data_size = (UInt32) ( GUCEF_NULL != name ? strlen( name ) : 0 );
     key.union_data.heap_data.union_data.const_char_heap_data = name;
 
     switch ( value->type )
