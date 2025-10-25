@@ -54,7 +54,7 @@ class GUCEF_COMCORE_EXPORT_CPP CIDiscoveryCapability
 {
     public:
 
-    typedef std::set< CORE::CString > TStringSet;
+    typedef GUCEF::set< CORE::CString > TStringSet;
 
     CIDiscoveryCapability( void );
 

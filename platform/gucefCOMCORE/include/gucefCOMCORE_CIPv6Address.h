@@ -59,7 +59,7 @@ class GUCEF_COMCORE_EXPORT_CPP CIPv6Address
 {
     public:
 
-    typedef std::vector< CIPv6Address, gucef_allocator< CIPv6Address > > TIPv6AddressVector;
+    typedef GUCEF::vector< CIPv6Address, gucef_allocator< CIPv6Address > > TIPv6AddressVector;
 
 
     // Default constructor initializes to :: (all zeroes)

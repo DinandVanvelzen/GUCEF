@@ -229,7 +229,7 @@ class GUCEF_COMCORE_EXPORT_CPP CUDPMasterSocket : public CORE::CObservingNotifie
     
     private:
 
-    typedef std::map< CIPv4Address, CUDPChannel* > TChannelMap;
+    typedef GUCEF::map< CIPv4Address, CUDPChannel* > TChannelMap;
     
     CUDPSocket m_udpSocket;
     TChannelMap m_channelMap;

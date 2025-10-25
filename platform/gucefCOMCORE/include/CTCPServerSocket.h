@@ -235,8 +235,8 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     
     private :
     
-    typedef std::vector< CTCPServerConnection*, gucef_allocator< CTCPServerConnection* > > TConnectionVector;
-    typedef std::set< CTCPServerConnection*, std::less< CTCPServerConnection* >, gucef_allocator< CTCPServerConnection* > > TConnectionSet;
+    typedef GUCEF::vector< CTCPServerConnection*, gucef_allocator< CTCPServerConnection* > > TConnectionVector;
+    typedef GUCEF::set< CTCPServerConnection*, std::less< CTCPServerConnection* >, gucef_allocator< CTCPServerConnection* > > TConnectionSet;
     typedef std::queue< CTCPServerConnection* > TConnectionQueue;
     
     struct STCPServerSockData* _data;

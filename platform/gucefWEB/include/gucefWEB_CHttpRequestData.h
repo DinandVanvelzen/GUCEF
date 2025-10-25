@@ -73,7 +73,7 @@ class GUCEF_WEB_PUBLIC_CPP CHttpRequestData : public CORE::CICloneable
     public:
 
     typedef CORE::CString::StringVector                TStringVector;
-    typedef std::map< CORE::CString, CORE::CString >   TStringMap;
+    typedef GUCEF::map< CORE::CString, CORE::CString >   TStringMap;
 
     TStringVector resourceRepresentations;
     TStringVector encodingRepresentations;

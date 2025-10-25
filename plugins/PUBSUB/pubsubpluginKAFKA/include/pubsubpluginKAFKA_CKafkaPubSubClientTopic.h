@@ -212,8 +212,8 @@ class PUBSUBPLUGIN_KAFKA_PLUGIN_PRIVATE_CPP CKafkaPubSubClientTopic : public PUB
     typedef struct SPartitionOffset TPartitionOffset;
     #pragma pack(pop)
 
-    typedef std::vector< TPartitionOffset > TPartitionOffsetVector;
-    typedef std::map< CORE::Int32, TPartitionOffset > TPartitionOffsetMap;
+    typedef GUCEF::vector< TPartitionOffset > TPartitionOffsetVector;
+    typedef GUCEF::map< CORE::Int32, TPartitionOffset > TPartitionOffsetMap;
 
     static bool VariantToPartitionOffsets( const CORE::CVariant& indexBookmarkBlob, TPartitionOffsetMap& offsets );
     static bool VariantToPartitionOffset( const CORE::CVariant& partitionOffsetBlob, TPartitionOffset& offset );
@@ -302,13 +302,13 @@ class PUBSUBPLUGIN_KAFKA_PLUGIN_PRIVATE_CPP CKafkaPubSubClientTopic : public PUB
     typedef CORE::CTEventHandlerFunctor< CKafkaPubSubClientTopic > TEventCallback;
    
     // Types to implement/hook-up topic interface
-    typedef std::vector< PUBSUB::CBasicPubSubMsg, gucef_allocator< PUBSUB::CBasicPubSubMsg > >                      TPubSubMsgsVector;
-    typedef std::vector< RdKafka::Message*, gucef_allocator< RdKafka::Message* > >                                  TRdKafkaMsgPtrVector;
+    typedef GUCEF::vector< PUBSUB::CBasicPubSubMsg, gucef_allocator< PUBSUB::CBasicPubSubMsg > >                      TPubSubMsgsVector;
+    typedef GUCEF::vector< RdKafka::Message*, gucef_allocator< RdKafka::Message* > >                                  TRdKafkaMsgPtrVector;
     typedef std::pair< CORE::CDynamicBuffer, CORE::CDynamicBuffer >     TBufferPair;
-    typedef std::vector< TBufferPair, gucef_allocator< TBufferPair > >                                              TBufferVector;
-    typedef std::set< CORE::Int64, std::less< CORE::Int64 >, gucef_allocator< CORE::Int64 >  >                      TInt64Set;
-    typedef std::map< CORE::Int32, CORE::Int64 >                        TInt32ToInt64Map;
-    typedef std::map< CORE::Int32, TInt64Set >                          TInt32ToInt64SetMap;
+    typedef GUCEF::vector< TBufferPair, gucef_allocator< TBufferPair > >                                              TBufferVector;
+    typedef GUCEF::set< CORE::Int64, std::less< CORE::Int64 >, gucef_allocator< CORE::Int64 >  >                      TInt64Set;
+    typedef GUCEF::map< CORE::Int32, CORE::Int64 >                        TInt32ToInt64Map;
+    typedef GUCEF::map< CORE::Int32, TInt64Set >                          TInt32ToInt64SetMap;
     typedef std::vector< RdKafka::TopicPartition* >                                                                 TRdKafkaTopicPartitionPtrVector;
 
     CKafkaPubSubClient* m_client;

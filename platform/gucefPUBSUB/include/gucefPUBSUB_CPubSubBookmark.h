@@ -65,7 +65,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubBookmark
 {
     public:
 
-    typedef std::vector< CPubSubBookmark >  TPubSubBookmarkVector;
+    typedef GUCEF::vector< CPubSubBookmark >  TPubSubBookmarkVector;
 
     enum EBookmarkType : Int32
     {

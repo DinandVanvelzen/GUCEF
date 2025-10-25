@@ -75,8 +75,8 @@ class GUCEF_COMCORE_EXPORT_CPP CDiscoveryManager : public virtual CORE::CGloball
 {
     public:
 
-    typedef std::set< CORE::CString > TStringSet;
-    typedef std::set< CIDiscoveryClientPtr > TDiscoveryClientSet;
+    typedef GUCEF::set< CORE::CString > TStringSet;
+    typedef GUCEF::set< CIDiscoveryClientPtr > TDiscoveryClientSet;
 
     bool RegisterDiscoveryClient( CIDiscoveryClientPtr discoveryClient );
 

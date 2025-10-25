@@ -77,7 +77,7 @@ class PUBSUBPLUGIN_KAFKA_PLUGIN_PRIVATE_CPP CKafkaPubSubClient : public PUBSUB::
 
     static const CORE::CString TypeName; 
 
-    typedef std::map< CKafkaPubSubClientTopicConfigPtr , CORE::CString::StringSet > TTopicConfigPtrToStringSetMap;
+    typedef GUCEF::map< CKafkaPubSubClientTopicConfigPtr , CORE::CString::StringSet > TTopicConfigPtrToStringSetMap;
 
     CKafkaPubSubClient( const PUBSUB::CPubSubClientConfig& config );
 
@@ -205,7 +205,7 @@ class PUBSUBPLUGIN_KAFKA_PLUGIN_PRIVATE_CPP CKafkaPubSubClient : public PUBSUB::
     private:
 
     typedef CORE::CTEventHandlerFunctor< CKafkaPubSubClient > TEventCallback;
-    typedef std::map< CORE::CString, CKafkaPubSubClientTopicPtr > TTopicMap;
+    typedef GUCEF::map< CORE::CString, CKafkaPubSubClientTopicPtr > TTopicMap;
 
     RdKafka::Conf* m_kafkaProducerConf;
     RdKafka::Producer* m_kafkaProducer;

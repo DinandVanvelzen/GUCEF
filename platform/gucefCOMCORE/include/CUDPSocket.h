@@ -89,7 +89,7 @@ class GUCEF_COMCORE_EXPORT_CPP CUDPSocket : public CSocket
         CORE::TConstLinkedCloneableBuffer dataBuffer;  /**< the received packet data */
     };
     typedef struct SPacketEntry TPacketEntry;
-    typedef std::vector< TPacketEntry > TPacketEntryVector;
+    typedef GUCEF::vector< TPacketEntry > TPacketEntryVector;
 
     struct SUdpPacketsRecievedEventData
     {
@@ -464,7 +464,7 @@ class GUCEF_COMCORE_EXPORT_CPP CUDPSocket : public CSocket
 
     struct SUDPSockData;            /**< forward declaration of platform data storage structure */
     typedef struct CUDPSocket::SUDPSockData TUDPSockData;
-    typedef std::vector< CORE::CDynamicBuffer > TDynamicBufferVector;
+    typedef GUCEF::vector< CORE::CDynamicBuffer > TDynamicBufferVector;
 
     bool m_autoReopenOnError;       /**< flag for feature to auto re-open the socket when after a socket error occurred */
     bool _blocking;                 /**< is this socket blocking ? */

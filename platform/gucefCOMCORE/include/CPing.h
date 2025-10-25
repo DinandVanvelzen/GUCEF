@@ -116,7 +116,7 @@ class GUCEF_COMCORE_EXPORT_CPP CPing : public CORE::CTSGNotifier
     
     public:
     
-    typedef std::vector< CString > TStringVector;
+    typedef GUCEF::vector< CString > TStringVector;
     
     CPing( void );
     

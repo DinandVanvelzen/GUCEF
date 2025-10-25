@@ -94,7 +94,7 @@ class PUBSUBPLUGIN_REDISCLUSTER_PLUGIN_PRIVATE_CPP CRedisClusterPubSubClientTopi
     public:
 
     typedef std::pair< sw::redis::StringView, sw::redis::StringView >      TRedisArgPair;
-    typedef std::vector< TRedisArgPair, gucef_allocator< TRedisArgPair > > TRedisArgs;
+    typedef GUCEF::vector< TRedisArgPair, gucef_allocator< TRedisArgPair > > TRedisArgs;
 
     CRedisClusterPubSubClientTopic( CRedisClusterPubSubClient* client );
 
@@ -241,17 +241,17 @@ class PUBSUBPLUGIN_REDISCLUSTER_PLUGIN_PRIVATE_CPP CRedisClusterPubSubClientTopi
     
     // Types to read from redis-plus-plus
     typedef std::pair< std::string, std::string > TRedisMsgAttribute;
-    typedef std::vector< TRedisMsgAttribute, gucef_allocator< TRedisMsgAttribute > > TRedisMsgAttributes;
+    typedef GUCEF::vector< TRedisMsgAttribute, gucef_allocator< TRedisMsgAttribute > > TRedisMsgAttributes;
     typedef std::pair< std::string, TRedisMsgAttributes > TRedisMsg;
-    typedef std::vector< TRedisMsg, gucef_allocator< TRedisMsg > > TRedisMsgVector;
+    typedef GUCEF::vector< TRedisMsg, gucef_allocator< TRedisMsg > > TRedisMsgVector;
     typedef std::pair< const std::string, TRedisMsgAttributes > TStringRedisMsgVectorPair;
     typedef std::unordered_map< std::string, TRedisMsgVector, std::hash< std::string >, std::equal_to< std::string >, gucef_allocator< TStringRedisMsgVectorPair > > TRedisMsgByStream;
     typedef std::insert_iterator< TRedisMsgByStream > TRedisMsgByStreamInserter;
 
     // Types to implement/hook-up topic interface
-    typedef std::vector< PUBSUB::CBasicPubSubMsg, gucef_allocator< PUBSUB::CBasicPubSubMsg > > TPubSubMsgsVector;
+    typedef GUCEF::vector< PUBSUB::CBasicPubSubMsg, gucef_allocator< PUBSUB::CBasicPubSubMsg > > TPubSubMsgsVector;
     typedef std::pair< CORE::CDynamicBuffer, CORE::CDynamicBuffer > TBufferPair;
-    typedef std::vector< TBufferPair, gucef_allocator< TBufferPair > > TBufferVector;
+    typedef GUCEF::vector< TBufferPair, gucef_allocator< TBufferPair > > TBufferVector;
 
     class RedisTopicVarsForReading
     {

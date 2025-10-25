@@ -77,7 +77,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouteTopicConfig : public CORE::CIConfi
     public:
 
     typedef CORE::CTSharedPtr< CPubSubFlowRouteTopicConfig, MT::CMutex >                                       CPubSubFlowRouteTopicConfigPtr;
-    typedef std::vector< CPubSubFlowRouteTopicConfigPtr, gucef_allocator< CPubSubFlowRouteTopicConfigPtr > >   PubSubFlowRouteTopicConfigPtrVector;
+    typedef GUCEF::vector< CPubSubFlowRouteTopicConfigPtr, gucef_allocator< CPubSubFlowRouteTopicConfigPtr > >   PubSubFlowRouteTopicConfigPtrVector;
 
     CORE::CString fromSideTopicName;        /**< primary 'from' side topic for this route */
     CORE::CString toSideTopicName;          /**< primary 'to' side topic for this route */
@@ -115,7 +115,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouteConfig : public CORE::CIConfigurab
     public:
                                                                             
     typedef CORE::CTSharedPtr< CPubSubFlowRouteConfig, MT::CMutex >                                 CPubSubFlowRouteConfigPtr;
-    typedef std::vector< CPubSubFlowRouteConfigPtr, gucef_allocator< CPubSubFlowRouteConfigPtr > >  PubSubFlowRouteConfigPtrVector;                                                
+    typedef GUCEF::vector< CPubSubFlowRouteConfigPtr, gucef_allocator< CPubSubFlowRouteConfigPtr > >  PubSubFlowRouteConfigPtrVector;                                                
     typedef CPubSubFlowRouteTopicConfig::CPubSubFlowRouteTopicConfigPtr                             CPubSubFlowRouteTopicConfigPtr;
     typedef CPubSubFlowRouteTopicConfig::PubSubFlowRouteTopicConfigPtrVector                        PubSubFlowRouteTopicConfigPtrVector;
 

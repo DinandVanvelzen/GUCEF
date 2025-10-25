@@ -58,8 +58,8 @@ class GUCEF_COMCORE_EXPORT_CPP CIPv4Address
 {
     public:
 
-    typedef std::vector< CIPv4Address, gucef_allocator< CIPv4Address > >                            TIPv4AddressVector;
-    typedef std::set< CIPv4Address, std::less< CIPv4Address >, gucef_allocator< CIPv4Address > >    TIPv4AddressSet;
+    typedef GUCEF::vector< CIPv4Address, gucef_allocator< CIPv4Address > >                            TIPv4AddressVector;
+    typedef GUCEF::set< CIPv4Address, std::less< CIPv4Address >, gucef_allocator< CIPv4Address > >    TIPv4AddressSet;
     
     static const CIPv4Address Any;
     static const CIPv4Address None;

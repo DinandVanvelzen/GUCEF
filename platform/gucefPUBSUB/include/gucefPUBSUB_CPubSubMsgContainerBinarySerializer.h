@@ -62,7 +62,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubMsgContainerBinarySerializer
 {
     public:
     
-    typedef std::vector< UInt32 >                   TMsgOffsetIndex;
+    typedef GUCEF::vector< UInt32 >                   TMsgOffsetIndex;
     typedef CBasicPubSubMsg::TBasicPubSubMsgVector  TBasicPubSubMsgVector;
 
     static const CORE::CString  MagicText;

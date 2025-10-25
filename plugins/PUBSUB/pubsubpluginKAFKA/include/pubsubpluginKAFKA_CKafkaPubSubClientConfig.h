@@ -61,7 +61,7 @@ class PUBSUBPLUGIN_KAFKA_PLUGIN_PRIVATE_CPP CKafkaPubSubClientConfig : public PU
 {
     public:
 
-    typedef std::map< CORE::CString, CORE::CString >   StringMap;
+    typedef GUCEF::map< CORE::CString, CORE::CString >   StringMap;
 
     StringMap kafkaProducerGlobalConfigSettings;
     StringMap kafkaConsumerGlobalConfigSettings;

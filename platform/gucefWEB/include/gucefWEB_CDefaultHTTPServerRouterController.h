@@ -82,7 +82,7 @@ class GUCEF_WEB_PUBLIC_CPP CDefaultHTTPServerRouterController : public CIHTTPSer
     
     private:
     
-    typedef std::map< CString, CIHTTPServerRouter* > TRouterMap;
+    typedef GUCEF::map< CString, CIHTTPServerRouter* > TRouterMap;
     
     TRouterMap m_routerMap;
 };

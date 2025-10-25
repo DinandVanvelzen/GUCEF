@@ -163,7 +163,7 @@ class PUBSUBPLUGIN_WEB_PLUGIN_PRIVATE_CPP CWebPubSubClient : public PUBSUB::CPub
     private:
 
     typedef CORE::CTEventHandlerFunctor< CWebPubSubClient > TEventCallback;
-    typedef std::map< CORE::CString, CWebPubSubClientTopicPtr > TTopicMap;
+    typedef GUCEF::map< CORE::CString, CWebPubSubClientTopicPtr > TTopicMap;
 
     CWebPubSubClientConfig m_config;
     CORE::CTimer* m_metricsTimer;

@@ -97,7 +97,7 @@ class GUCEF_WEB_PUBLIC_CPP CDefaultHTTPServerRouter : public CIHTTPServerRouter
 
     protected:
 
-    typedef std::map< CString, THTTPServerResourcePtr > TStringToResourcePtrMap;
+    typedef GUCEF::map< CString, THTTPServerResourcePtr > TStringToResourcePtrMap;
     
     CString m_mountPath;
     CString m_serviceRoot;

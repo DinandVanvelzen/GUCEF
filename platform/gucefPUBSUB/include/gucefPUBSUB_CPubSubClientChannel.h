@@ -218,7 +218,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientChannel : public CORE::CTaskConsumer
     
     private:
 
-    typedef std::vector< CPubSubClientSidePtr, gucef_allocator< CPubSubClientSidePtr > > TPubSubClientSidePtrVector;
+    typedef GUCEF::vector< CPubSubClientSidePtr, gucef_allocator< CPubSubClientSidePtr > > TPubSubClientSidePtrVector;
 
     TPubSubClientSidePtrVector m_sides;
     CPubSubFlowRouter m_flowRouter;

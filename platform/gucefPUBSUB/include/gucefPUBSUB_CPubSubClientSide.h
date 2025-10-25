@@ -125,7 +125,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientSide : public CORE::CTaskConsumer
     typedef CPubSubClientPtr                TPubSubClientInstantiationEventData;    /**< shared pointer to the pubsub client */
 
     typedef CORE::CTEventHandlerFunctor< CPubSubClientSide >                            TEventCallback;
-    typedef std::vector< CPubSubClientSide*, gucef_allocator< CPubSubClientSide* > >    TPubSubClientSideVector;
+    typedef GUCEF::vector< CPubSubClientSide*, gucef_allocator< CPubSubClientSide* > >    TPubSubClientSideVector;
 
     class CPubSubClientSideMetrics : public CORE::CTSharedObjCreator< CPubSubClientSideMetrics, MT::CMutex > 
     {
@@ -146,7 +146,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientSide : public CORE::CTaskConsumer
         virtual ~CPubSubClientSideMetrics();
     };
     typedef CPubSubClientSideMetrics::PubSubClientSideMetricsPtr    PubSubClientSideMetricsPtr;
-    typedef std::map< CORE::CString, PubSubClientSideMetricsPtr >   StringToPubSubClientSideMetricsMap;
+    typedef GUCEF::map< CORE::CString, PubSubClientSideMetricsPtr >   StringToPubSubClientSideMetricsMap;
 
     CPubSubClientSide( const CORE::CString& sideId                ,
                        CPubSubFlowRouter* flowRouter = GUCEF_NULL );
@@ -474,9 +474,9 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientSide : public CORE::CTaskConsumer
         };
 
         typedef MT::CTMailBox< CIPubSubMsg::TNoLockSharedPtr >                      TPubSubMsgPtrMailbox;
-        typedef std::map< CORE::UInt64, MsgTrackingEntry >                          TUInt64ToMsgTrackingEntryMap;
-        typedef std::map< CORE::UInt64, CPubSubBookmark >                           TUInt64ToBookmarkMap;
-        typedef std::set< CORE::UInt64 >                                            TUInt64Set;
+        typedef GUCEF::map< CORE::UInt64, MsgTrackingEntry >                          TUInt64ToMsgTrackingEntryMap;
+        typedef GUCEF::map< CORE::UInt64, CPubSubBookmark >                           TUInt64ToBookmarkMap;
+        typedef GUCEF::set< CORE::UInt64 >                                            TUInt64Set;
         typedef CORE::CTEventHandlerFunctor< TopicLink >                            TEventCallback;
 
         CPubSubClientTopicBasicPtr topic;                                       /**< the actual backend topic access object */
@@ -510,9 +510,9 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientSide : public CORE::CTaskConsumer
     typedef TopicLink::TSharedPtrType  TopicLinkPtr;
 
     typedef std::pair< const CPubSubClientTopic*, TopicLinkPtr >   TPubSubClientTopicRawPtrAndTopicLinkPair;
-    typedef std::map< CPubSubClientTopic*, TopicLinkPtr, std::less< CPubSubClientTopic* >, gucef_allocator< TPubSubClientTopicRawPtrAndTopicLinkPair > > TopicPtrMap;
-    typedef std::map< CORE::CString, TopicLinkPtr, std::less< CORE::CString >, gucef_allocator< TPubSubClientTopicRawPtrAndTopicLinkPair > >             TopicNameMap;
-    typedef std::set< CPubSubClientTopicBasicPtr, std::less< CPubSubClientTopicBasicPtr >, gucef_allocator< CPubSubClientTopicBasicPtr > >               TopicSet;
+    typedef GUCEF::map< CPubSubClientTopic*, TopicLinkPtr, std::less< CPubSubClientTopic* >, gucef_allocator< TPubSubClientTopicRawPtrAndTopicLinkPair > > TopicPtrMap;
+    typedef GUCEF::map< CORE::CString, TopicLinkPtr, std::less< CORE::CString >, gucef_allocator< TPubSubClientTopicRawPtrAndTopicLinkPair > >             TopicNameMap;
+    typedef GUCEF::set< CPubSubClientTopicBasicPtr, std::less< CPubSubClientTopicBasicPtr >, gucef_allocator< CPubSubClientTopicBasicPtr > >               TopicSet;
 
     CPubSubClientPtr m_pubsubClient;
     CPubSubClientFeatures m_clientFeatures;
@@ -540,7 +540,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientSide : public CORE::CTaskConsumer
 /*-------------------------------------------------------------------------*/
 
 typedef CORE::CTSharedPtr< CPubSubClientSide, MT::CMutex >  CPubSubClientSidePtr;
-typedef std::vector< CPubSubClientSidePtr, gucef_allocator< CPubSubClientSidePtr > >    TPubSubClientSidePtrVector;
+typedef GUCEF::vector< CPubSubClientSidePtr, gucef_allocator< CPubSubClientSidePtr > >    TPubSubClientSidePtrVector;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

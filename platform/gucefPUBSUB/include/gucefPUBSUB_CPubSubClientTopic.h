@@ -149,9 +149,9 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientTopic : public CORE::CTSGNotifier
     typedef CIPubSubMsg::TIPubSubMsgRawPtrVector                            TIPubSubMsgRawPtrVector;
     typedef CIPubSubMsg::TIPubSubMsgSPtrVector                              TIPubSubMsgSPtrVector;
     typedef CIPubSubMsg*                                                                                         TPubSubMsgRef;
-    typedef CORE::CTCloneableExpansion< std::vector< TPubSubMsgRef, gucef_allocator< TPubSubMsgRef > > >         TPubSubMsgsRefVector;    
+    typedef CORE::CTCloneableExpansion< GUCEF::vector< TPubSubMsgRef, gucef_allocator< TPubSubMsgRef > > >         TPubSubMsgsRefVector;    
     typedef UInt64                                                                                               TPublishActionId;
-    typedef CORE::CTCloneableExpansion< std::vector< TPublishActionId, gucef_allocator< TPublishActionId > > >   TPublishActionIdVector;        
+    typedef CORE::CTCloneableExpansion< GUCEF::vector< TPublishActionId, gucef_allocator< TPublishActionId > > >   TPublishActionIdVector;        
 
     static const CORE::CEvent ConnectedEvent;
     static const CORE::CEvent DisconnectedEvent;

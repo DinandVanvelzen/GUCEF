@@ -121,7 +121,7 @@ class PUBSUBPLUGIN_MSMQ_PLUGIN_PRIVATE_CPP CMsmqPubSubClientTopic : public PUBSU
 {
     public:
 
-    typedef std::vector< CORE::UInt32 > UInt32Vector;
+    typedef GUCEF::vector< CORE::UInt32 > UInt32Vector;
 
     CMsmqPubSubClientTopic( CMsmqPubSubClient* client );
 
@@ -252,14 +252,14 @@ class PUBSUBPLUGIN_MSMQ_PLUGIN_PRIVATE_CPP CMsmqPubSubClientTopic : public PUBSU
     typedef CORE::CTEventHandlerFunctor< CMsmqPubSubClientTopic > TEventCallback;
 
     // Types to implement/hook-up topic interface
-    typedef std::vector< PUBSUB::CBasicPubSubMsg > TPubSubMsgsVector;
+    typedef GUCEF::vector< PUBSUB::CBasicPubSubMsg > TPubSubMsgsVector;
     
     // Types used as caches to prevent ongoing memory allocations
-    typedef std::vector< MQPROPVARIANT >    MQPROPVARIANTVector;
-    typedef std::vector< MSGPROPID >        MSGPROPIDVector;
-    typedef std::vector< PROPVARIANT >      PROPVARIANTVector;
-    typedef std::vector< HRESULT >          HRESULTVector;    
-    typedef std::map< MSGPROPID, CORE::CDynamicBuffer > MSGPROPIDToBufferMap;
+    typedef GUCEF::vector< MQPROPVARIANT >    MQPROPVARIANTVector;
+    typedef GUCEF::vector< MSGPROPID >        MSGPROPIDVector;
+    typedef GUCEF::vector< PROPVARIANT >      PROPVARIANTVector;
+    typedef GUCEF::vector< HRESULT >          HRESULTVector;    
+    typedef GUCEF::map< MSGPROPID, CORE::CDynamicBuffer > MSGPROPIDToBufferMap;
 
     typedef CMsmqPubSubClientTopicConfig::MSGPROPIDMapVector    MSGPROPIDMapVector;
 
@@ -272,8 +272,8 @@ class PUBSUBPLUGIN_MSMQ_PLUGIN_PRIVATE_CPP CMsmqPubSubClientTopic : public PUBSU
         MSGPROPIDToBufferMap propBuffers;
     };
     typedef struct SMsmqMsg TMsmqMsg;
-    typedef std::vector< TMsmqMsg >         MsmqMsgVector;
-    typedef std::map< MSGPROPID, CORE::UInt32 > MSGPROPIDToUInt32Map;
+    typedef GUCEF::vector< TMsmqMsg >         MsmqMsgVector;
+    typedef GUCEF::map< MSGPROPID, CORE::UInt32 > MSGPROPIDToUInt32Map;
 
     private:
 
@@ -376,7 +376,7 @@ class PUBSUBPLUGIN_MSMQ_PLUGIN_PRIVATE_CPP CMsmqPubSubClientTopic : public PUBSU
 
         MsmqQueue( void );
     };
-    typedef std::vector< MsmqQueue >    MsmqQueueVector;
+    typedef GUCEF::vector< MsmqQueue >    MsmqQueueVector;
     
     static const std::wstring& GetMsmqQueueFormatName( MsmqQueue& q );
     

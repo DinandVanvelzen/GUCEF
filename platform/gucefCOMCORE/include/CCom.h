@@ -249,12 +249,12 @@ class GUCEF_COMCORE_EXPORT_CPP CCom
         bool active;
     };
     typedef struct SProxyServer TProxyServer;
-    typedef std::map< CORE::CString, TProxyServer > TProxyList;
+    typedef GUCEF::map< CORE::CString, TProxyServer > TProxyList;
 
-    typedef std::set< CSocket* > TSocketSet;
+    typedef GUCEF::set< CSocket* > TSocketSet;
 
-    typedef std::map< CORE::CString, CICommunicationInterfacePtr > TPortMap;
-    typedef std::map< CORE::CString, TPortMap > TPortIndex;
+    typedef GUCEF::map< CORE::CString, CICommunicationInterfacePtr > TPortMap;
+    typedef GUCEF::map< CORE::CString, TPortMap > TPortIndex;
     
     TSocketSet m_sockets;    /** our socket object heap */
     MT::CMutex _mutex; 

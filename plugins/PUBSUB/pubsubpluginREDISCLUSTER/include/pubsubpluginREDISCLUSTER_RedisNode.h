@@ -65,7 +65,7 @@ class PUBSUBPLUGIN_REDISCLUSTER_PLUGIN_PRIVATE_CPP RedisNode
     RedisNode( void );
 };
 
-typedef std::map< CORE::UInt32, RedisNode > RedisNodeMap;
+typedef GUCEF::map< CORE::UInt32, RedisNode > RedisNodeMap;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

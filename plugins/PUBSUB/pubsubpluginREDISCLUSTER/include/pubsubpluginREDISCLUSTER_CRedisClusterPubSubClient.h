@@ -88,7 +88,7 @@ class PUBSUBPLUGIN_REDISCLUSTER_PLUGIN_PRIVATE_CPP CRedisClusterPubSubClient : p
 
     static const CORE::CString TypeName;
     
-    typedef std::map< CRedisClusterPubSubClientTopicConfigPtr , CORE::CString::StringSet > TTopicConfigPtrToStringSetMap;
+    typedef GUCEF::map< CRedisClusterPubSubClientTopicConfigPtr , CORE::CString::StringSet > TTopicConfigPtrToStringSetMap;
 
     CRedisClusterPubSubClient( const PUBSUB::CPubSubClientConfig& config );
 
@@ -252,7 +252,7 @@ class PUBSUBPLUGIN_REDISCLUSTER_PLUGIN_PRIVATE_CPP CRedisClusterPubSubClient : p
     private:
 
     typedef CORE::CTEventHandlerFunctor< CRedisClusterPubSubClient > TEventCallback;
-    typedef std::map< CORE::CString, CRedisClusterPubSubClientTopicPtr > TTopicMap;
+    typedef GUCEF::map< CORE::CString, CRedisClusterPubSubClientTopicPtr > TTopicMap;
 
     CRedisClusterPubSubClientConfig m_config;
     PUBSUB::CIPubSubJournalBasicPtr m_journal;

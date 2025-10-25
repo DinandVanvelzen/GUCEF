@@ -111,7 +111,7 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubClientTopic : public
 {
     public:
 
-    typedef std::vector< CORE::UInt32, gucef_allocator< CORE::UInt32 > >    UInt32Vector;
+    typedef GUCEF::vector< CORE::UInt32, gucef_allocator< CORE::UInt32 > >    UInt32Vector;
 
     class CStorageBookmarkInfo
     {
@@ -157,7 +157,7 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubClientTopic : public
 
     typedef CORE::CTBasicSharedPtr< CContainerRangeInfo, MT::CNoLock >              TCContainerRangeInfoPtr;
     typedef CORE::CTBasicSharedPtrObjOperators< CContainerRangeInfo, MT::CNoLock >  TCContainerRangeInfoReference;
-    typedef std::set< TCContainerRangeInfoReference >                               TCContainerRangeInfoReferenceSet;
+    typedef GUCEF::set< TCContainerRangeInfoReference >                               TCContainerRangeInfoReferenceSet;
 
     CStoragePubSubClientTopic( CStoragePubSubClient* client           ,
                                CORE::PulseGeneratorPtr pulseGenerator );
@@ -288,7 +288,7 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubClientTopic : public
     typedef CORE::CTEventHandlerFunctor< CStoragePubSubClientTopic > TEventCallback;
 
     // Types to implement/hook-up topic interface
-    typedef std::vector< PUBSUB::CBasicPubSubMsg > TPubSubMsgsVector;
+    typedef GUCEF::vector< PUBSUB::CBasicPubSubMsg > TPubSubMsgsVector;
 
     class StorageToPubSubRequest : public CORE::CIConfigurable
     {
@@ -317,7 +317,7 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubClientTopic : public
     };
     typedef std::deque< StorageToPubSubRequest, gucef_allocator< StorageToPubSubRequest > > StorageToPubSubRequestDeque;
     
-    typedef std::vector< bool, gucef_allocator< bool > > TBoolVector;
+    typedef GUCEF::vector< bool, gucef_allocator< bool > > TBoolVector;
     
     class StorageBufferMetaData
     {
@@ -342,7 +342,7 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubClientTopic : public
 
         StorageBufferMetaData( void );
     };
-    typedef std::map< CORE::CDynamicBuffer*, StorageBufferMetaData > TStorageBufferMetaDataMap;
+    typedef GUCEF::map< CORE::CDynamicBuffer*, StorageBufferMetaData > TStorageBufferMetaDataMap;
 
     static bool SyncBookmarkInfoToBookmark( const CStorageBookmarkInfo& info  , 
                                             PUBSUB::CPubSubBookmark& bookmark );
@@ -363,7 +363,7 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubClientTopic : public
 
     template < typename T >
     bool PublishViaMsgPtrs( TPublishActionIdVector& publishActionIds           , 
-                            const std::vector< T, gucef_allocator< T > >& msgs , 
+                            const GUCEF::vector< T, gucef_allocator< T > >& msgs , 
                             bool notify                                        );
 
     void NotifyPublishResults( void );

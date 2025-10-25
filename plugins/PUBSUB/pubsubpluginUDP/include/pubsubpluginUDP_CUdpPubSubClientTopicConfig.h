@@ -69,7 +69,7 @@ class PUBSUBPLUGIN_UDP_PLUGIN_PRIVATE_CPP CUdpPubSubClientTopicConfig : public P
 {
     public:
 
-    typedef std::vector< COMCORE::CHostAddress > HostAddressVector;
+    typedef GUCEF::vector< COMCORE::CHostAddress > HostAddressVector;
 
     CUdpPubSubClientTopicConfig( void );
     

@@ -149,7 +149,7 @@ class GUCEF_HIDDEN CS3BucketArchive : public VFS::CArchive
 
     private:
 
-    typedef std::map< CORE::CString, Aws::S3::Model::Object >   TObjectMap;
+    typedef GUCEF::map< CORE::CString, Aws::S3::Model::Object >   TObjectMap;
     typedef CORE::CTEventHandlerFunctor< CS3BucketArchive >     TEventCallback;
     
     CS3BucketArchive( const CS3BucketArchive& src );

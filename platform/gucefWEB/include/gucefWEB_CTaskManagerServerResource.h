@@ -182,7 +182,7 @@ class GUCEF_WEB_PUBLIC_CPP CTaskManagerServerResource : public CORE::CTSGNotifie
     typedef CTDataNodeSerializableMapHttpServerResource< UInt32, CORE::CThreadInfo >    TThreadInfoMapRsc;
     typedef CORE::CTSharedPtr< TThreadInfoMapRsc, MT::CMutex >                          TThreadInfoMapRscPtr;
     typedef CORE::CTaskManager::TThreadPoolInfoMap                                      TThreadPoolInfoMap;
-    typedef std::map< CString, CORE::CIDataNodeSerializableTaskDataBasicPtr >           TStringToDataNodeSerializableTaskDataPtrMap;
+    typedef GUCEF::map< CString, CORE::CIDataNodeSerializableTaskDataBasicPtr >         TStringToDataNodeSerializableTaskDataPtrMap;
     typedef CTDataNodeSerializableMapHttpServerResource< CString, CORE::CIDataNodeSerializableTaskDataBasicPtr >    TStringToDataNodeSerializableTaskDataPtrMapRsc;
     typedef CORE::CTSharedPtr< TStringToDataNodeSerializableTaskDataPtrMapRsc, MT::CMutex >                         TStringToDataNodeSerializableTaskDataPtrMapRscPtr;
 
@@ -206,11 +206,11 @@ class GUCEF_WEB_PUBLIC_CPP CTaskManagerServerResource : public CORE::CTSGNotifie
 
     typedef CTDataNodeSerializableMapHttpServerResource< CORE::CString, CORE::CThreadPoolInfo >     TThreadPoolInfoMapRsc;
     typedef CORE::CTSharedPtr< TThreadPoolInfoMapRsc, MT::CMutex >                                  TThreadPoolInfoMapRscPtr;
-    typedef std::map< CORE::CString, CThreadPoolMetaData >                                          TThreadPoolMetaDataMap; 
-    typedef std::map< UInt32, CORE::CThreadInfo* >                                                  TThreadInfoRawPtrMap;    
+    typedef GUCEF::map< CORE::CString, CThreadPoolMetaData >                                        TThreadPoolMetaDataMap; 
+    typedef GUCEF::map< UInt32, CORE::CThreadInfo* >                                                TThreadInfoRawPtrMap;    
     typedef CTDataNodeSerializableMapHttpServerResource< UInt32, CORE::CThreadInfo* >               TThreadInfoRawPtrMapRsc;
     typedef CORE::CTSharedPtr< TThreadInfoRawPtrMapRsc, MT::CMutex >                                TThreadInfoRawPtrMapRscPtr;
-    typedef std::map< UInt32, CORE::CTaskInfo* >                                                    TTaskInfoRawPtrMap;    
+    typedef GUCEF::map< UInt32, CORE::CTaskInfo* >                                                  TTaskInfoRawPtrMap;    
     typedef CTDataNodeSerializableMapHttpServerResource< UInt32, CORE::CTaskInfo* >                 TTaskInfoRawPtrMapRsc;
     typedef CORE::CTSharedPtr< TTaskInfoRawPtrMapRsc, MT::CMutex >                                  TTaskInfoRawPtrMapRscPtr;
 

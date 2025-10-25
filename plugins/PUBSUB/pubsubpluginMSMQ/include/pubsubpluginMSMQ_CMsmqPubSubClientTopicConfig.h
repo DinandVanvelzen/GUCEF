@@ -66,8 +66,8 @@ class PUBSUBPLUGIN_MSMQ_PLUGIN_PRIVATE_CPP CMsmqPubSubClientTopicConfig : public
 {
     public:
 
-    typedef std::vector< MSGPROPID >                  MSGPROPIDVector;
-    typedef std::map< MSGPROPID, MSGPROPIDVector >    MSGPROPIDMapVector;
+    typedef GUCEF::vector< MSGPROPID >                  MSGPROPIDVector;
+    typedef GUCEF::map< MSGPROPID, MSGPROPIDVector >    MSGPROPIDMapVector;
 
     CMsmqPubSubClientTopicConfig( void );
     

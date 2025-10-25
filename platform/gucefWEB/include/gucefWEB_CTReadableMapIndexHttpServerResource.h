@@ -73,7 +73,7 @@ class CTReadableMapIndexHttpServerResource : public CCodecBasedHTTPServerResourc
 {
     public:
 
-    typedef std::map< CollectionKeyType, SomeValueClass > TCollectionMap;
+    typedef GUCEF::map< CollectionKeyType, SomeValueClass > TCollectionMap;
 
     CTReadableMapIndexHttpServerResource( const CORE::CString& collectionName      ,
                                           const CORE::CString& collectionEntryName ,

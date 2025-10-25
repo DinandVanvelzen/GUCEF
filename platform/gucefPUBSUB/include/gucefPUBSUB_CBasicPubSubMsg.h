@@ -57,7 +57,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CBasicPubSubMsg : public CIPubSubMsg
 {
     public:
 
-    typedef std::vector< CBasicPubSubMsg, gucef_allocator< CBasicPubSubMsg > >  TBasicPubSubMsgVector;
+    typedef GUCEF::vector< CBasicPubSubMsg, gucef_allocator< CBasicPubSubMsg > >  TBasicPubSubMsgVector;
 
     static const CString ClassTypeName;
 

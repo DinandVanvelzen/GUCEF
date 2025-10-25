@@ -278,7 +278,7 @@ class GUCEF_PUBSUB_EXPORT_CPP PubSub2PubSubConfig : public CORE::CIConfigurable
     {
         public:
 
-        typedef std::vector< ExplicitChannelSideTopicOverlayConfig >   ExplicitChannelSideTopicOverlayConfigVector;
+        typedef GUCEF::vector< ExplicitChannelSideTopicOverlayConfig >   ExplicitChannelSideTopicOverlayConfigVector;
         typedef CPubSubClientConfig::THostAddressVector                THostAddressVector;
 
         CORE::CString sideId;
@@ -301,7 +301,7 @@ class GUCEF_PUBSUB_EXPORT_CPP PubSub2PubSubConfig : public CORE::CIConfigurable
     {
         public:
 
-        typedef std::vector< ExplicitChannelSideOverlayConfig >   ExplicitChannelSideOverlayConfigVector;
+        typedef GUCEF::vector< ExplicitChannelSideOverlayConfig >   ExplicitChannelSideOverlayConfigVector;
 
         CORE::CString usingTemplate;
         CORE::Int32 channelId;
@@ -324,7 +324,7 @@ class GUCEF_PUBSUB_EXPORT_CPP PubSub2PubSubConfig : public CORE::CIConfigurable
     {
         public:
 
-        typedef std::vector< ExplicitChannelSideOverlayConfig >   ExplicitChannelSideOverlayConfigVector;
+        typedef GUCEF::vector< ExplicitChannelSideOverlayConfig >   ExplicitChannelSideOverlayConfigVector;
 
         CORE::CString usingTemplate;
         UInt32 channelCount;
@@ -343,10 +343,10 @@ class GUCEF_PUBSUB_EXPORT_CPP PubSub2PubSubConfig : public CORE::CIConfigurable
 
     };
 
-    typedef std::map< CORE::CString, CPubSubChannelSettings >   StringToPubSubChannelConfigMap;
-    typedef std::map< Int32, CPubSubChannelSettings >           Int32ToPubSubChannelConfigMap;
-    typedef std::vector< ExplicitChannelOverlayConfig >         ExplicitChannelOverlayConfigVector;
-    typedef std::set< CORE::Int32 >                             Int32Set;
+    typedef GUCEF::map< CORE::CString, CPubSubChannelSettings >   StringToPubSubChannelConfigMap;
+    typedef GUCEF::map< Int32, CPubSubChannelSettings >           Int32ToPubSubChannelConfigMap;
+    typedef GUCEF::vector< ExplicitChannelOverlayConfig >         ExplicitChannelOverlayConfigVector;
+    typedef GUCEF::set< CORE::Int32 >                             Int32Set;
 
     StringToPubSubChannelConfigMap channelConfigTemplates;
     ExplicitChannelOverlayConfigVector explicitOverlayChannels;
@@ -440,7 +440,7 @@ class GUCEF_PUBSUB_EXPORT_CPP PubSub2PubSub : public CORE::CObserver            
     
     private:
 
-    typedef std::map< CORE::Int32, CPubSubClientChannelPtr > PubSubClientChannelMap;
+    typedef GUCEF::map< CORE::Int32, CPubSubClientChannelPtr >                                             PubSubClientChannelMap;
     typedef WEB::CTDataNodeSerializableMapHttpServerResource< CORE::Int32, CPubSubChannelSettings >        TWebChannelCfgMapIndexMap;
 
     bool m_isInStandby;

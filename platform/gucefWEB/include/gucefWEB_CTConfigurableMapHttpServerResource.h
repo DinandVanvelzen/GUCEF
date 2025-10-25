@@ -68,7 +68,7 @@ class CTConfigurableMapHttpServerResource : public CCodecBasedHTTPServerResource
 {
     public:
 
-    typedef std::map< CollectionKeyType, ConfigurableDerivedClass > TConfigurableCollectionMap;
+    typedef GUCEF::map< CollectionKeyType, ConfigurableDerivedClass > TConfigurableCollectionMap;
 
     CTConfigurableMapHttpServerResource( const CORE::CString& collectionName    ,
                                          const CORE::CString& keyPropertyName   ,

@@ -149,7 +149,7 @@ class GUCEF_WEB_PUBLIC_CPP CCodecBasedHTTPServerResource : public CDefaultHTTPSe
 
     protected:
 
-    typedef std::map< CORE::CString, CORE::CDStoreCodecRegistry::TDStoreCodecPtr >  TStringToCodecMap;    
+    typedef GUCEF::map< CORE::CString, CORE::CDStoreCodecRegistry::TDStoreCodecPtr >  TStringToCodecMap;    
 
     virtual void OnGlobalMimeCodecsChanged( CORE::CNotifier* notifier    ,
                                             const CORE::CEvent& eventId  ,

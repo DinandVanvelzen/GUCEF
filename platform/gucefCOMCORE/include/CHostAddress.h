@@ -69,7 +69,7 @@ class GUCEF_COMCORE_EXPORT_CPP CHostAddress
 {
     public:
 
-    typedef std::vector< CHostAddress, gucef_allocator< CHostAddress > >    THostAddressVector;
+    typedef GUCEF::vector< CHostAddress, gucef_allocator< CHostAddress > >    THostAddressVector;
 
     CHostAddress( void );
 

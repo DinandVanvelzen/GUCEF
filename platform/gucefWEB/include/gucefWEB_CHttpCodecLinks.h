@@ -110,8 +110,8 @@ class GUCEF_WEB_PUBLIC_CPP CHttpCodecLinks : public MT::CILockable
 
     protected:
 
-    typedef std::map< CORE::CString, TMimeTypeCodecPtr > TStringToMimeTypeCodecMap;
-    typedef std::map< CORE::CString, TEncodingCodecPtr > TStringToEncodingCodecMap;
+    typedef GUCEF::map< CORE::CString, TMimeTypeCodecPtr > TStringToMimeTypeCodecMap;
+    typedef GUCEF::map< CORE::CString, TEncodingCodecPtr > TStringToEncodingCodecMap;
 
     TStringToMimeTypeCodecMap m_serializeRepToCodecMap;
     TStringToMimeTypeCodecMap m_deserializeRepToCodecMap;

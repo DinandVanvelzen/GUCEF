@@ -60,8 +60,8 @@ class GUCEF_COMCORE_EXPORT_CPP CIPv6Info
 {
     public:
 
-    typedef std::vector< CIPv6Info, gucef_allocator< CIPv6Info > >                       TIPv6InfoVector;
-    typedef std::set< CIPv6Info, std::less< CIPv6Info >, gucef_allocator< CIPv6Info > >  TIPv6InfoSet;
+    typedef GUCEF::vector< CIPv6Info, gucef_allocator< CIPv6Info > >                       TIPv6InfoVector;
+    typedef GUCEF::set< CIPv6Info, std::less< CIPv6Info >, gucef_allocator< CIPv6Info > >  TIPv6InfoSet;
 
     CIPv6Address ip;
     CIPv6Address subnet;

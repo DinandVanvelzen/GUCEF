@@ -170,7 +170,7 @@ class PUBSUBPLUGIN_UDP_PLUGIN_PRIVATE_CPP CUdpPubSubClient : public PUBSUB::CPub
     private:
 
     typedef CORE::CTEventHandlerFunctor< CUdpPubSubClient > TEventCallback;
-    typedef std::map< CORE::CString, CUdpPubSubClientTopicPtr > TTopicMap;
+    typedef GUCEF::map< CORE::CString, CUdpPubSubClientTopicPtr > TTopicMap;
 
     CUdpPubSubClientConfig m_config;
     CORE::CTimer* m_metricsTimer;

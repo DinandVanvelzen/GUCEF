@@ -62,7 +62,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubChannelConfig : public CORE::CIConfigurable
 {
     public:
 
-    typedef std::map< CORE::CString, CPubSubSideChannelSettingsPtr > TStringToPubSubSideChannelSettingsMap;
+    typedef GUCEF::map< CORE::CString, CPubSubSideChannelSettingsPtr > TStringToPubSubSideChannelSettingsMap;
 
     CPubSubChannelConfig( void );
     CPubSubChannelConfig( const CPubSubChannelConfig& src );

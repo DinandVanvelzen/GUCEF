@@ -92,7 +92,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientConfig : public CORE::CIConfigurable
 {
     public:
 
-    typedef std::vector< CPubSubClientTopicConfigPtr > TPubSubClientTopicConfigPtrVector;
+    typedef GUCEF::vector< CPubSubClientTopicConfigPtr > TPubSubClientTopicConfigPtrVector;
     typedef COMCORE::CHostAddress::THostAddressVector  THostAddressVector;
     
     // The following are runtime and config time available:

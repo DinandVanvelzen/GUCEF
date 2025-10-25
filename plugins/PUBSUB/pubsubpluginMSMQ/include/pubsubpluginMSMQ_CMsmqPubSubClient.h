@@ -157,7 +157,7 @@ class PUBSUBPLUGIN_MSMQ_PLUGIN_PRIVATE_CPP CMsmqPubSubClient : public PUBSUB::CP
 
     private:
 
-    typedef std::vector< std::wstring > TWStringVector;
+    typedef GUCEF::vector< std::wstring > TWStringVector;
 
     static bool GetPrivateQueues( const std::wstring& computerName ,
                                   TWStringVector& queuePathNames   );
@@ -194,7 +194,7 @@ class PUBSUBPLUGIN_MSMQ_PLUGIN_PRIVATE_CPP CMsmqPubSubClient : public PUBSUB::CP
     private:
 
     typedef CORE::CTEventHandlerFunctor< CMsmqPubSubClient > TEventCallback;
-    typedef std::map< CORE::CString, CMsmqPubSubClientTopicPtr > TTopicMap;
+    typedef GUCEF::map< CORE::CString, CMsmqPubSubClientTopicPtr > TTopicMap;
 
     CMsmqPubSubClientConfig m_config;
     CORE::CTimer* m_metricsTimer;

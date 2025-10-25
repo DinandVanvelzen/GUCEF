@@ -116,7 +116,7 @@ class CTDataNodeSerializableMapHttpServerResource : public CCodecBasedHTTPServer
 {
     public:
 
-    typedef std::map< CollectionKeyType, SerializableObj > TSerializableCollectionMap;
+    typedef GUCEF::map< CollectionKeyType, SerializableObj > TSerializableCollectionMap;
 
     /**
      *  Default constructor generates a placeholder resource which is not yet usable.

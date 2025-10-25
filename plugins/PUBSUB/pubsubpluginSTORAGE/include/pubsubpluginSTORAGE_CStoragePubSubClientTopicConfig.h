@@ -80,7 +80,7 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubClientTopicConfig : 
 {
     public:
 
-    typedef std::vector< PUBSUB::CPubSubClientTopicConfig, gucef_allocator< PUBSUB::CPubSubClientTopicConfig > > TTopicConfigVector;
+    typedef GUCEF::vector< PUBSUB::CPubSubClientTopicConfig, gucef_allocator< PUBSUB::CPubSubClientTopicConfig > > TTopicConfigVector;
 
     PUBSUB::CPubSubMsgBinarySerializerOptions pubsubBinarySerializerOptions;
     PUBSUB::CPubSubMsgSerializerOptions pubsubSerializerOptions;

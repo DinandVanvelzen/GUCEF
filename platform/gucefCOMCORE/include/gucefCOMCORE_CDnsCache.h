@@ -124,7 +124,7 @@ class GUCEF_COMCORE_EXPORT_CPP CDnsCache : public CORE::CTSGNotifier          ,
     CDnsCache& operator=( const CDnsCache& src );   /**< not implemented, not wanted */
 
     typedef std::pair< const CString, CDnsCacheEntryPtr >   TDnsCacheEntryMapPair;
-    typedef std::map< CString, CDnsCacheEntryPtr, std::less< CString >, gucef_allocator< TDnsCacheEntryMapPair > > TDnsCacheEntryMap;
+    typedef GUCEF::map< CString, CDnsCacheEntryPtr, std::less< CString >, gucef_allocator< TDnsCacheEntryMapPair > > TDnsCacheEntryMap;
     
     TDnsCacheEntryMap m_dnsEntryCache;
     UInt32 m_asyncRefreshIntervalInMs;

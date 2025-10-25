@@ -68,10 +68,10 @@ class GUCEF_PUBSUB_EXPORT_CPP CIPubSubMsg : public COMCORE::CIMessage
 {
     public:
 
-    typedef std::vector< CIPubSubMsg*, gucef_allocator< CIPubSubMsg* > >                TIPubSubMsgRawPtrVector;
-    typedef std::vector< const CIPubSubMsg*, gucef_allocator< const CIPubSubMsg* > >    TIPubSubMsgConstRawPtrVector;
+    typedef GUCEF::vector< CIPubSubMsg*, gucef_allocator< CIPubSubMsg* > >                TIPubSubMsgRawPtrVector;
+    typedef GUCEF::vector< const CIPubSubMsg*, gucef_allocator< const CIPubSubMsg* > >    TIPubSubMsgConstRawPtrVector;
     typedef CORE::CTSharedPtr< CIPubSubMsg, MT::CNoLock >                               TNoLockSharedPtr;
-    typedef std::vector< TNoLockSharedPtr, gucef_allocator< TNoLockSharedPtr > >        TIPubSubMsgSPtrVector;
+    typedef GUCEF::vector< TNoLockSharedPtr, gucef_allocator< TNoLockSharedPtr > >        TIPubSubMsgSPtrVector;
     typedef CORE::CTBasicSharedPtr< CPubSubClientTopic, MT::CMutex >                    CPubSubClientTopicBasicPtr;
 
     CIPubSubMsg( void );

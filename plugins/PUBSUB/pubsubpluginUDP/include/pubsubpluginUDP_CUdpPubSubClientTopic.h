@@ -73,7 +73,7 @@ class PUBSUBPLUGIN_UDP_PLUGIN_PRIVATE_CPP CUdpPubSubClientTopic : public PUBSUB:
 {
     public:
 
-    typedef std::vector< CORE::UInt32 > UInt32Vector;
+    typedef GUCEF::vector< CORE::UInt32 > UInt32Vector;
 
     CUdpPubSubClientTopic( CUdpPubSubClient* client );
 
@@ -177,7 +177,7 @@ class PUBSUBPLUGIN_UDP_PLUGIN_PRIVATE_CPP CUdpPubSubClientTopic : public PUBSUB:
     typedef CORE::CTEventHandlerFunctor< CUdpPubSubClientTopic > TEventCallback;
 
     // Types to implement/hook-up topic interface
-    typedef std::vector< PUBSUB::CBasicPubSubMsg > TPubSubMsgsVector;    
+    typedef GUCEF::vector< PUBSUB::CBasicPubSubMsg > TPubSubMsgsVector;    
 
     private:
 

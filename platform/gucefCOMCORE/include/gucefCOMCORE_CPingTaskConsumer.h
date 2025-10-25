@@ -94,7 +94,7 @@ class GUCEF_COMCORE_EXPORT_CPP CPingTaskConsumer : public CORE::CTaskConsumer
     
     public:
     
-    typedef std::vector< CString > TStringVector;
+    typedef GUCEF::vector< CString > TStringVector;
     
     class GUCEF_COMCORE_EXPORT_CPP CPingTaskData : public CORE::CICloneable
     {
@@ -184,7 +184,7 @@ class GUCEF_COMCORE_EXPORT_CPP CPingTaskConsumer : public CORE::CTaskConsumer
         UInt32 echoSize;
     };
     typedef struct SPingEntry TPingEntry;
-    typedef std::map< CHostAddress, TPingEntry > TPingCounters;
+    typedef GUCEF::map< CHostAddress, TPingEntry > TPingCounters;
 
     void* m_platformData;
     bool m_notDone;

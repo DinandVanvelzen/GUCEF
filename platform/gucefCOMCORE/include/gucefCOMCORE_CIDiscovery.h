@@ -72,7 +72,7 @@ class GUCEF_COMCORE_EXPORT_CPP CIDiscovery
 {
     public:
 
-    typedef std::set< CIDiscoveryEntryPtr > TIDiscoveryEntrySet;
+    typedef GUCEF::set< CIDiscoveryEntryPtr > TIDiscoveryEntrySet;
 
     CIDiscovery( void );
 

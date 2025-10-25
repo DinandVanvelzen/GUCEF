@@ -101,7 +101,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClient : public CORE::CTSGNotifier         
     static const CORE::CEvent TopicDiscoveryEndedEvent;                /**< backend signaling that as far as its concerned the discovery of available topics has ended and you should not expect more TopicDiscoveryEvent events. Requires the 'supportsDiscoveryOfAvailableTopics' feature to be supported and enabled */
     static const CORE::CEvent HealthStatusChangeEvent;                 /**< event msg sent if the health status changes for the topic */
 
-    typedef std::set< CPubSubClientTopicBasicPtr >                  PubSubClientTopicSet;
+    typedef GUCEF::set< CPubSubClientTopicBasicPtr >                  PubSubClientTopicSet;
     typedef CORE::TCloneableString                                  TopicAccessCreatedEventData;            /**< name of the topic is passed as event relevant data */
     typedef CORE::TCloneableString                                  TopicAccessDestroyedEventData;          /**< name of the topic is passed as event relevant data */
     typedef CORE::CTCloneableObj< PubSubClientTopicSet >            TopicsAccessAutoCreatedEventData;       /**< access to the topics is passed as event relevant data */
