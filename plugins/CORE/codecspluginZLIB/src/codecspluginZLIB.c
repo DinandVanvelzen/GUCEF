@@ -24,8 +24,11 @@
 
 #include <stdlib.h>               /* for memory utils */
 
-#include "codecspluginZLIB.h"     /* function prototypes for this plugin */
 #include "zlib.h"
+
+#define GUCEF_DONT_TYPEDEF_BYTE
+#include "codecspluginZLIB.h"     /* function prototypes for this plugin */
+
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -60,12 +63,12 @@
 static char* supportedCompressionTypes[] = {
     "zlib", "deflate", "inflate", "gzip"
 };
-static const Int32 compressionCodecCount = (Int32) ( sizeof( supportedCompressionTypes ) / sizeof(char*) ); 
+static const Int32 compressionCodecCount = (Int32) ( sizeof( supportedCompressionTypes ) / sizeof(char*) );
 
 static char* supportedChecksumTypes[] = {
     "crc-32", "adler-32"
 };
-static const Int32 checksumCodecCount = (Int32) ( sizeof( supportedChecksumTypes ) / sizeof(char*) ); 
+static const Int32 checksumCodecCount = (Int32) ( sizeof( supportedChecksumTypes ) / sizeof(char*) );
 
 static const int WINDOW_BITS_RAW_DEFLATE        =   -15;
 static const int WINDOW_BITS_ZLIB_WRAPPER       =   15;
@@ -78,7 +81,7 @@ static const int WINDOW_BITS_GZIP_OR_ZLIB_AUTO  =   47;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-UInt32 
+UInt32
 ZLibCompress( TIOAccess* input  ,
               TIOAccess* output ,
               int windowBits    )
@@ -103,7 +106,7 @@ ZLibCompress( TIOAccess* input  ,
             free( tempInputBuffer );
         return 0;
     }
-        
+
     strm.zalloc = Z_NULL;
     strm.zfree = Z_NULL;
     strm.opaque = Z_NULL;
@@ -122,7 +125,7 @@ ZLibCompress( TIOAccess* input  ,
 
     /* read blocks of data from input and encode them and write them to the output */
     inputBytesRead = input->read( input, tempInputBuffer, 1, TEMP_READ_BUFFER_SIZE );
-    strm.avail_in = inputBytesRead; 
+    strm.avail_in = inputBytesRead;
     while ( 0 != inputBytesRead )
     {
         do
@@ -150,13 +153,13 @@ ZLibCompress( TIOAccess* input  ,
         while ( 0 != strm.avail_in );
 
         inputBytesRead = input->read( input, tempInputBuffer, 1, TEMP_READ_BUFFER_SIZE );
-        
+
         /* make the max nr of bytes read available again in the read buffer as we have filled it with new data and moved back the cursor */
         strm.next_in = tempInputBuffer;
         strm.avail_in = inputBytesRead;
     }
     outputBytesWritten = output->write( output, tempOutputBuffer, 1, ( TEMP_INPROCESS_BUFFER_SIZE - strm.avail_out ) );
-                
+
     /* make the full output buffer available again as we have written everything to the output */
     strm.next_out = tempOutputBuffer;
     strm.avail_out = TEMP_INPROCESS_BUFFER_SIZE;
@@ -170,7 +173,7 @@ ZLibCompress( TIOAccess* input  ,
         if ( 0 == strm.avail_out )
         {
             output->write( output, tempOutputBuffer, 1, TEMP_INPROCESS_BUFFER_SIZE );
-                
+
             strm.next_out = tempOutputBuffer;
             strm.avail_out = TEMP_INPROCESS_BUFFER_SIZE;
         }
@@ -180,7 +183,7 @@ ZLibCompress( TIOAccess* input  ,
         outputBytesWritten += availOutBefore - strm.avail_out;
     }
     output->write( output, tempOutputBuffer, 1, outputBytesWritten );
-    
+
     deflateEnd( &strm );
 
     free( tempInputBuffer );
@@ -191,7 +194,7 @@ ZLibCompress( TIOAccess* input  ,
 
 /*---------------------------------------------------------------------------*/
 
-UInt32 
+UInt32
 ZLibDecompress( TIOAccess* input  ,
                 TIOAccess* output ,
                 int windowBits    )
@@ -216,7 +219,7 @@ ZLibDecompress( TIOAccess* input  ,
             free( tempInputBuffer );
         return 0;
     }
-    
+
     strm.zalloc = Z_NULL;
     strm.zfree = Z_NULL;
     strm.opaque = Z_NULL;
@@ -235,7 +238,7 @@ ZLibDecompress( TIOAccess* input  ,
 
     /* read blocks of data from input and encode them and write them to the output */
     inputBytesRead = input->read( input, tempInputBuffer, 1, TEMP_READ_BUFFER_SIZE );
-    strm.avail_in = inputBytesRead; 
+    strm.avail_in = inputBytesRead;
     while ( 0 != inputBytesRead )
     {
         do
@@ -263,13 +266,13 @@ ZLibDecompress( TIOAccess* input  ,
         while ( 0 != strm.avail_in );
 
         inputBytesRead = input->read( input, tempInputBuffer, 1, TEMP_READ_BUFFER_SIZE );
-        
+
         /* make the max nr of bytes read available again in the read buffer as we have filled it with new data and moved back the cursor */
         strm.next_in = tempInputBuffer;
         strm.avail_in = inputBytesRead;
     }
     outputBytesWritten = output->write( output, tempOutputBuffer, 1, ( TEMP_INPROCESS_BUFFER_SIZE - strm.avail_out ) );
-                
+
     /* make the full output buffer available again as we have written everything to the output */
     strm.next_out = tempOutputBuffer;
     strm.avail_out = TEMP_INPROCESS_BUFFER_SIZE;
@@ -282,7 +285,7 @@ ZLibDecompress( TIOAccess* input  ,
         if ( 0 == strm.avail_out )
         {
             output->write( output, tempOutputBuffer, 1, TEMP_INPROCESS_BUFFER_SIZE );
-                
+
             strm.next_out = tempOutputBuffer;
             strm.avail_out = TEMP_INPROCESS_BUFFER_SIZE;
         }
@@ -292,7 +295,7 @@ ZLibDecompress( TIOAccess* input  ,
         outputBytesWritten += availOutBefore - strm.avail_out;
     }
     output->write( output, tempOutputBuffer, 1, outputBytesWritten );
-    
+
     inflateEnd( &strm );
 
     free( tempInputBuffer );
@@ -309,14 +312,14 @@ GenerateCRC32Checksum( TIOAccess* input  ,
 {
     UInt32 inputBytesRead = 0;
     UInt8 tempInputBuffer[ TEMP_READ_CHECKSUM_BUFFER_SIZE ];
-    
+
     /* init the checksum */
     UInt32 finalChecksum = 0;
     uLong checksum = crc32( 0L, Z_NULL, 0 );
 
     /* checksum the input in chunks */
     while ( 0 == input->eof( input ) )
-    {        
+    {
         inputBytesRead = input->read( input, tempInputBuffer, 1, TEMP_READ_CHECKSUM_BUFFER_SIZE );
         checksum = crc32( checksum, tempInputBuffer, inputBytesRead );
     }
@@ -336,14 +339,14 @@ GenerateAdler32Checksum( TIOAccess* input  ,
 {
     UInt32 inputBytesRead = 0;
     UInt8 tempInputBuffer[ TEMP_READ_CHECKSUM_BUFFER_SIZE ];
-    
+
     /* init the checksum */
     UInt32 finalChecksum = 0;
     uLong checksum = adler32( 0L, Z_NULL, 0 );
 
     /* checksum the input in chunks */
     while ( 0 == input->eof( input ) )
-    {        
+    {
         inputBytesRead = input->read( input, tempInputBuffer, 1, TEMP_READ_CHECKSUM_BUFFER_SIZE );
         checksum = adler32( checksum, tempInputBuffer, inputBytesRead );
     }
@@ -419,19 +422,19 @@ CODECPLUGIN_Encode( void* plugdata         ,
 {
     if ( 0 == strcmp( "CompressionCodec", familyType ) )
     {
-        if ( 0 == strcmp( "deflate", codecType ) )        
+        if ( 0 == strcmp( "deflate", codecType ) )
             return ZLibCompress( input, output, WINDOW_BITS_RAW_DEFLATE );
-        if ( 0 == strcmp( "zlib", codecType ) )        
+        if ( 0 == strcmp( "zlib", codecType ) )
             return ZLibCompress( input, output, WINDOW_BITS_ZLIB_WRAPPER );
-        if ( 0 == strcmp( "gzip", codecType ) )        
+        if ( 0 == strcmp( "gzip", codecType ) )
             return ZLibCompress( input, output, WINDOW_BITS_GZIP_WRAPPER );
     }
     if ( 0 == strcmp( "ChecksumCodec", familyType ) )
     {
-        if ( 0 == strcmp( "crc-32", codecType ) )        
+        if ( 0 == strcmp( "crc-32", codecType ) )
             return GenerateCRC32Checksum( input, output );
-        if ( 0 == strcmp( "adler-32", codecType ) )        
-            return GenerateAdler32Checksum( input, output );            
+        if ( 0 == strcmp( "adler-32", codecType ) )
+            return GenerateAdler32Checksum( input, output );
     }
     return 0;
 }
@@ -448,11 +451,11 @@ CODECPLUGIN_Decode( void* pluginData       ,
 {
     if ( 0 == strcmp( "CompressionCodec", familyType ) )
     {
-        if ( 0 == strcmp( "zlib", codecType ) || 0 == strcmp( "gzip", codecType ) )        
+        if ( 0 == strcmp( "zlib", codecType ) || 0 == strcmp( "gzip", codecType ) )
             return ZLibDecompress( input, output, WINDOW_BITS_GZIP_OR_ZLIB_AUTO );
-        
+
         /* the algo name is "deflate" but what we are doing here is "inflate", as such we will accept both terms for the same for now */
-        if ( 0 == strcmp( "deflate", codecType ) || 0 == strcmp( "inflate", codecType ) )        
+        if ( 0 == strcmp( "deflate", codecType ) || 0 == strcmp( "inflate", codecType ) )
             return ZLibDecompress( input, output, WINDOW_BITS_RAW_DEFLATE );
     }
     return 0;
@@ -507,7 +510,7 @@ CODECPLUGIN_GetCodecLink( void* plugdata               ,
         (*codecLink)->decode = CODECPLUGIN_Decode;
         return 1;
     }
-    
+
     /* There is no codec with the given index */
     *codecLink = GUCEF_NULL;
     return 0;

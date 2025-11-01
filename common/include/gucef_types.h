@@ -92,11 +92,13 @@ typedef uint16_t           UInt16;   /* 2 bytes, unsigned */
 typedef uint32_t           UInt32;   /* 4 bytes, unsigned */
 typedef uint64_t           UInt64;   /* 8 bytes, unsigned */
 
-#ifndef Byte
+#if !defined( Byte ) && !defined( GUCEF_DONT_TYPEDEF_BYTE )
 typedef Int8               Byte;     /* 1 byte, signed */
 #endif
 
+#if !defined( Ubyte ) && !defined( GUCEF_DONT_TYPEDEF_UBYTE )
 typedef UInt8              Ubyte;    /* 1 byte, unsigned */
+#endif
 
 #undef UByte
 #define UByte              Ubyte

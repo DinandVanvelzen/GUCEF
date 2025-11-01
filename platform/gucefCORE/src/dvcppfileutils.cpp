@@ -146,7 +146,7 @@ class GUCEF_HIDDEN CStorageDeviceInfoOSDataImpl
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
     CPdhAccess::CPdhDevicePerfStatAccess devicePerfStatAccess;
-    
+
     #endif
 
     CStorageDeviceInfoOSDataImpl( void )
@@ -170,7 +170,7 @@ class GUCEF_HIDDEN CStorageVolumeInfoOSDataImpl
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
     CPdhAccess::CPdhVolumePerfStatAccess volumePerfStatAccess;
-    
+
     #endif
 
     CStorageVolumeInfoOSDataImpl( void )
@@ -1491,7 +1491,7 @@ FileSize( const CString& filename )
 
 /*-------------------------------------------------------------------------*/
 
-#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ) 
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
 CString
 ConvertGuidToDeviceName( const CString& volumeGuid )
@@ -1618,7 +1618,7 @@ ConvertGuidToVolumePath( const CString& volumeGuid )
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
 std::wstring GUCEF_HIDDEN
-FormatPathForQueryDosDevice( const std::wstring& path ) 
+FormatPathForQueryDosDevice( const std::wstring& path )
 {
     std::wstring formattedPath = path;
 
@@ -1648,11 +1648,11 @@ FormatPathForQueryDosDevice( const std::wstring& path )
 
 bool GUCEF_HIDDEN
 GetKernelLevelSymlinkForPath( const CString& path ,
-                              CString& devicePath ) 
+                              CString& devicePath )
 {GUCEF_TRACE;
-    
+
     if ( path.IsNULLOrEmpty() )
-        return false;    
+        return false;
 
     wchar_t deviceInfo[ MAX_PATH ] = {0};
 
@@ -1662,8 +1662,8 @@ GetKernelLevelSymlinkForPath( const CString& path ,
     // Call QueryDosDeviceW to get the device information. The path needs to be formatted just right
     std::wstring wPath = FormatPathForQueryDosDevice( ToWString( path ) );
     DWORD result = ::QueryDosDeviceW( wPath.c_str(), deviceInfo, MAX_PATH );
-    if ( 0 != result ) 
-    {                        
+    if ( 0 != result )
+    {
         CString foundDeviceInfo = ToString( deviceInfo );
         Int32 offset = foundDeviceInfo.HasSubstr( "HarddiskVolume" );
         if ( offset > 0 )
@@ -1678,28 +1678,28 @@ GetKernelLevelSymlinkForPath( const CString& path ,
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "GetPhysicalDriveFromGUID: QueryDosDeviceW error code: " + ToString( errorCode ) );
     }
 
-    return false;    
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool GUCEF_HIDDEN
-Win32GetDiskGeometryFromDriver( CStorageDeviceInformation& info ) 
+Win32GetDiskGeometryFromDriver( CStorageDeviceInformation& info )
 {GUCEF_TRACE;
 
     if ( info.deviceId.IsNULLOrEmpty() )
-        return false;    
+        return false;
 
     if ( info.hasGeometry )
         return true; // already has the geometry info
 
     std::wstring wDeviceId = ToWString( info.deviceId );
 
-    HANDLE hDevice = ::CreateFileW( wDeviceId.c_str(), GENERIC_READ, 
-                                FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, 
+    HANDLE hDevice = ::CreateFileW( wDeviceId.c_str(), GENERIC_READ,
+                                FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                                 OPEN_EXISTING, 0, NULL);
-    
-    if ( hDevice == INVALID_HANDLE_VALUE ) 
+
+    if ( hDevice == INVALID_HANDLE_VALUE )
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Win32GetDiskGeometry: Failed to open device with id: " + info.deviceId );
         return false;
@@ -1708,10 +1708,10 @@ Win32GetDiskGeometryFromDriver( CStorageDeviceInformation& info )
     ::DISK_GEOMETRY dg;
     memset( &dg, 0, sizeof(dg) ); // Initialize the structure to zero
     DWORD bytesReturned = 0;
-    
-    BOOL success = ::DeviceIoControl( hDevice, IOCTL_DISK_GET_DRIVE_GEOMETRY, NULL, 0, 
-                             &dg, sizeof(dg), &bytesReturned, NULL); 
-    if ( 0 != success ) 
+
+    BOOL success = ::DeviceIoControl( hDevice, IOCTL_DISK_GET_DRIVE_GEOMETRY, NULL, 0,
+                             &dg, sizeof(dg), &bytesReturned, NULL);
+    if ( 0 != success )
     {
         info.geometry.hasCylinderCount = true;
         info.geometry.cylinderCount = dg.Cylinders.QuadPart;
@@ -1726,8 +1726,8 @@ Win32GetDiskGeometryFromDriver( CStorageDeviceInformation& info )
 
         info.hasGeometry = true;
 
-    } 
-    else 
+    }
+    else
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Win32GetDiskGeometry: DeviceIoControl failed to get disk geometry for device with id: " + info.deviceId );
     }
@@ -1742,7 +1742,7 @@ Win32GetDiskGeometryFromDriver( CStorageDeviceInformation& info )
 
 bool GUCEF_HIDDEN
 Win32GetDiskGeometry( CStorageDeviceInfoOSData& osData ,
-                      CStorageDeviceInformation& info  ) 
+                      CStorageDeviceInformation& info  )
 {GUCEF_TRACE;
 
     if ( IsRunningAsElevatedAdmin() )
@@ -1753,16 +1753,16 @@ Win32GetDiskGeometry( CStorageDeviceInfoOSData& osData ,
 
 /*-------------------------------------------------------------------------*/
 
-bool 
+bool
 Win32GetStoragePerfStatsFromDriver( const std::wstring& filePath ,
-                                    CStoragePerfStats& perfStats ) 
+                                    CStoragePerfStats& perfStats )
 {GUCEF_TRACE;
 
-    HANDLE hDevice = ::CreateFileW( filePath.c_str(), GENERIC_READ, 
-                                FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, 
+    HANDLE hDevice = ::CreateFileW( filePath.c_str(), GENERIC_READ,
+                                FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                                 OPEN_EXISTING, 0, NULL);
 
-    if ( hDevice == INVALID_HANDLE_VALUE ) 
+    if ( hDevice == INVALID_HANDLE_VALUE )
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Win32GetDiskPerfStats: Failed to open device : " + ToString( filePath ) );
         return false;
@@ -1771,12 +1771,12 @@ Win32GetStoragePerfStatsFromDriver( const std::wstring& filePath ,
     ::DISK_PERFORMANCE diskPerformance;
     memset( &diskPerformance, 0, sizeof(diskPerformance) ); // Initialize the structure to zero
     DWORD bytesReturned;
-    
-    BOOL success = ::DeviceIoControl( hDevice, IOCTL_DISK_PERFORMANCE, NULL, 0, 
-                                        &diskPerformance, sizeof(diskPerformance), 
+
+    BOOL success = ::DeviceIoControl( hDevice, IOCTL_DISK_PERFORMANCE, NULL, 0,
+                                        &diskPerformance, sizeof(diskPerformance),
                                         &bytesReturned, NULL );
-    
-    if ( 0 != success ) 
+
+    if ( 0 != success )
     {
         perfStats.hasBytesRead = true;
         perfStats.bytesRead = diskPerformance.BytesRead.QuadPart;
@@ -1792,55 +1792,55 @@ Win32GetStoragePerfStatsFromDriver( const std::wstring& filePath ,
         perfStats.requestQueueDepth = diskPerformance.QueueDepth;
         perfStats.hasRequestSplitCount = true;
         perfStats.requestSplitCount = diskPerformance.SplitCount;
-    } 
-    else 
+    }
+    else
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Win32GetDiskGeometry: DeviceIoControl failed to get disk performance for device with path: " + ToString( filePath ) );
     }
-    
+
     ::CloseHandle( hDevice );
     hDevice = INVALID_HANDLE_VALUE;
-    
+
     return 0 != success;
 }
 
 /*-------------------------------------------------------------------------*/
 
-bool 
+bool
 Win32GetDiskPerfStatsFromDriver( CStorageDeviceInfoOSData& osData ,
-                                 CStorageDeviceInformation& info  ) 
+                                 CStorageDeviceInformation& info  )
 {GUCEF_TRACE;
 
     // For a device we use the device id for DeviceIoControl
-    
-    if ( osData.GetDeviceId().IsNULLOrEmpty() )
-        return false;    
 
-    std::wstring wDeviceId = ToWString( osData.GetDeviceId() );    
+    if ( osData.GetDeviceId().IsNULLOrEmpty() )
+        return false;
+
+    std::wstring wDeviceId = ToWString( osData.GetDeviceId() );
     return info.hasPerfStats = Win32GetStoragePerfStatsFromDriver( wDeviceId, info.perfStats );
 }
 
 /*-------------------------------------------------------------------------*/
 
-bool 
+bool
 Win32GetVolumePerfStatsFromDriver( CStorageVolumeInfoOSData& osData ,
-                                   CStorageVolumeInformation& info  ) 
+                                   CStorageVolumeInformation& info  )
 {GUCEF_TRACE;
 
     // For a volume we use the volume guid for DeviceIoControl
-    
-    if ( osData.GetVolumeId().IsNULLOrEmpty() )
-        return false;    
 
-    std::wstring wVolumeId = ToWString( osData.GetVolumeId() );    
+    if ( osData.GetVolumeId().IsNULLOrEmpty() )
+        return false;
+
+    std::wstring wVolumeId = ToWString( osData.GetVolumeId() );
     return info.hasPerfStats = Win32GetStoragePerfStatsFromDriver( wVolumeId, info.perfStats );
 }
 
 /*-------------------------------------------------------------------------*/
 
-bool 
+bool
 Win32GetDiskPerfStats( CStorageDeviceInfoOSData& osData ,
-                       CStorageDeviceInformation& info  ) 
+                       CStorageDeviceInformation& info  )
 {GUCEF_TRACE;
 
     bool totalSuccess = true;
@@ -1849,7 +1849,7 @@ Win32GetDiskPerfStats( CStorageDeviceInfoOSData& osData ,
     {
         // Running as an elevated admin user providers the highest performance and most accurate data
         // It negates the need to use any fallbacks
-        totalSuccess = Win32GetDiskPerfStatsFromDriver( osData, info ) && totalSuccess; 
+        totalSuccess = Win32GetDiskPerfStatsFromDriver( osData, info ) && totalSuccess;
     }
 
     // Query the PDH API
@@ -1859,7 +1859,7 @@ Win32GetDiskPerfStats( CStorageDeviceInfoOSData& osData ,
     CWindowsComponentAccess* winComponentAccess = CWindowsComponentAccess::Instance();
     CPdhAccess* pdhApi = winComponentAccess->GetPdhAccess();
     if ( GUCEF_NULL != pdhApi && pdhApi->IsValid() )
-    {        
+    {
         bool hasNewStats = false;
         Int32 errorCode = pdhApi->GetPhysicalDevicePerfStats( osData.GetOsData()->devicePerfStatAccess, info, hasNewStats );
         totalSuccess = ( 0 == errorCode ) && totalSuccess;
@@ -1870,9 +1870,9 @@ Win32GetDiskPerfStats( CStorageDeviceInfoOSData& osData ,
 
 /*-------------------------------------------------------------------------*/
 
-bool 
+bool
 Win32GetVolumePerfStats( CStorageVolumeInfoOSData& osData ,
-                         CStorageVolumeInformation& info  ) 
+                         CStorageVolumeInformation& info  )
 {GUCEF_TRACE;
 
     bool totalSuccess = true;
@@ -1881,7 +1881,7 @@ Win32GetVolumePerfStats( CStorageVolumeInfoOSData& osData ,
     {
         // Running as an elevated admin user providers the highest performance and most accurate data
         // It negates the need to use any fallbacks
-        totalSuccess = Win32GetVolumePerfStatsFromDriver( osData, info ) && totalSuccess; 
+        totalSuccess = Win32GetVolumePerfStatsFromDriver( osData, info ) && totalSuccess;
     }
 
     // Query the PDH API
@@ -1891,7 +1891,7 @@ Win32GetVolumePerfStats( CStorageVolumeInfoOSData& osData ,
     CWindowsComponentAccess* winComponentAccess = CWindowsComponentAccess::Instance();
     CPdhAccess* pdhApi = winComponentAccess->GetPdhAccess();
     if ( GUCEF_NULL != pdhApi && pdhApi->IsValid() )
-    {        
+    {
         bool hasNewStats = false;
         Int32 errorCode = pdhApi->GetLogicalVolumePerfStats( osData.GetOsData()->volumePerfStatAccess, info, hasNewStats );
         totalSuccess = ( 0 == errorCode ) && totalSuccess;
@@ -1904,15 +1904,15 @@ Win32GetVolumePerfStats( CStorageVolumeInfoOSData& osData ,
 
 /*-------------------------------------------------------------------------*/
 
-bool 
+bool
 GetPhysicalDeviceIdsForVolumeId( const CString& guid                    ,
-                                 CStringMap& partitionId2physicalDiskId ) 
+                                 CStringMap& partitionId2physicalDiskId )
 {GUCEF_TRACE;
 
     partitionId2physicalDiskId.clear();
-    
+
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-    
+
     // On Windows we can use WMI to get the device IDs
     // Do note that even WMI has a higher probability of not requiring admin rights its not garantueed
     // part of the success will depend on the user account control settings
@@ -1992,7 +1992,7 @@ CStoragePerfStats::Clear( void )
     hasRequestSplitCount = false;
     requestSplitCount = 0;
     hasRequestSplitCountPerSec = false;
-    requestSplitCountPerSec = 0;    
+    requestSplitCountPerSec = 0;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2080,7 +2080,7 @@ CStorageVolumeInfoOSData::~CStorageVolumeInfoOSData()
 
 /*-------------------------------------------------------------------------*/
 
-CStorageVolumeInfoOSDataImpl* 
+CStorageVolumeInfoOSDataImpl*
 CStorageVolumeInfoOSData::GetOsData( void ) const
 {GUCEF_TRACE;
 
@@ -2089,7 +2089,7 @@ CStorageVolumeInfoOSData::GetOsData( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-void 
+void
 CStorageVolumeInfoOSData::SetVolumeId( const CString& volumeId )
 {GUCEF_TRACE;
 
@@ -2098,7 +2098,7 @@ CStorageVolumeInfoOSData::SetVolumeId( const CString& volumeId )
 
 /*-------------------------------------------------------------------------*/
 
-void 
+void
 CStorageVolumeInfoOSData::SetAnyPathForVolume( const CString& anyPathForVolume )
 {GUCEF_TRACE;
 
@@ -2107,7 +2107,7 @@ CStorageVolumeInfoOSData::SetAnyPathForVolume( const CString& anyPathForVolume )
 
 /*-------------------------------------------------------------------------*/
 
-const CString& 
+const CString&
 CStorageVolumeInfoOSData::GetVolumeId( void ) const
 {GUCEF_TRACE;
 
@@ -2116,7 +2116,7 @@ CStorageVolumeInfoOSData::GetVolumeId( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-const CString& 
+const CString&
 CStorageVolumeInfoOSData::GetAnyPathForVolume( void ) const
 {GUCEF_TRACE;
 
@@ -2141,7 +2141,7 @@ CStorageDeviceInfoOSData::~CStorageDeviceInfoOSData()
 
 /*-------------------------------------------------------------------------*/
 
-CStorageDeviceInfoOSDataImpl* 
+CStorageDeviceInfoOSDataImpl*
 CStorageDeviceInfoOSData::GetOsData( void ) const
 {GUCEF_TRACE;
 
@@ -2150,7 +2150,7 @@ CStorageDeviceInfoOSData::GetOsData( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-const CString& 
+const CString&
 CStorageDeviceInfoOSData::GetDeviceId( void ) const
 {GUCEF_TRACE;
 
@@ -2166,9 +2166,9 @@ GetStorageDeviceInformationByDeviceId( CStorageDeviceInfoOSData& osData ,
 
     if GUCEF_PREDICT_FALSE( osData.GetDeviceId().IsNULLOrEmpty() )
         return false;
-    
+
     bool totalSuccess = true;
-    
+
     if ( !info.hasDeviceId || info.deviceId.IsNULLOrEmpty() )
     {
         info.deviceId = osData.GetDeviceId();
@@ -2353,7 +2353,7 @@ GetFileSystemStorageVolumeInformationByDirPath_NoClear( CStorageVolumeInfoOSData
             osData.SetVolumeId( info.volumeId );
         }
     }
-    
+
     if ( !info.hasPartitionId2deviceIdMapping && info.hasVolumeId )
     {
         info.hasPartitionId2deviceIdMapping = GetPhysicalDeviceIdsForVolumeId( info.volumeId, info.partitionId2deviceId );
@@ -2430,7 +2430,7 @@ GetVolumePathForVolumeId( const CString& volumeId ,
     #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
     // The volume id is a GUID for which the O/S has a device path concept/convention
-    volumePath = ConvertGuidToDirPath( volumeId );
+    volumePath = ConvertGuidToVolumePath( volumeId, true );
     return true;
 
     #else
@@ -2443,7 +2443,7 @@ GetVolumePathForVolumeId( const CString& volumeId ,
 /*-------------------------------------------------------------------------*/
 
 bool
-GetFileSystemStorageVolumeInformationByVolumeId_NoClear( CORE::CStorageVolumeInfoOSData& volumeInfoOSData , 
+GetFileSystemStorageVolumeInformationByVolumeId_NoClear( CORE::CStorageVolumeInfoOSData& volumeInfoOSData ,
                                                          CStorageVolumeInformation& info                  )
 {GUCEF_TRACE;
 
@@ -2469,7 +2469,7 @@ GetFileSystemStorageVolumeInformationByVolumeId_NoClear( CORE::CStorageVolumeInf
         {
             // even if the list is empty we have a valid object because it can truly be a volume with no paths
             // regardless we did the work to gather the info
-            info.hasPaths = true; 
+            info.hasPaths = true;
             if ( !info.paths.empty() )
                 volumeInfoOSData.SetAnyPathForVolume( *info.paths.begin() );
         }
@@ -2482,13 +2482,13 @@ GetFileSystemStorageVolumeInformationByVolumeId_NoClear( CORE::CStorageVolumeInf
 
     if ( !info.hasPaths )
     {
-        info.hasPaths = GetAllFileSystemPathNamesForVolume( volumeId, info.paths );
+        info.hasPaths = GetAllFileSystemPathNamesForVolume( info.volumeId, info.paths );
         if ( info.hasPaths && !info.paths.empty() )
             volumeInfoOSData.SetAnyPathForVolume( *info.paths.begin() );
     }
-    
+
     // Now that we have the paths we can use the path based version of the function
-    return GetFileSystemStorageVolumeInformationByDirPath_NoClear( info, path );
+    return GetFileSystemStorageVolumeInformationByDirPath_NoClear( volumeInfoOSData, info );
 
     #else
 
@@ -2502,7 +2502,7 @@ GetFileSystemStorageVolumeInformationByVolumeId_NoClear( CORE::CStorageVolumeInf
 /*-------------------------------------------------------------------------*/
 
 bool
-GetFileSystemTotalStorageVolumeInformation( CStorageVolumeInfoOSData& volumeInfoOSData , 
+GetFileSystemTotalStorageVolumeInformation( CStorageVolumeInfoOSData& volumeInfoOSData ,
                                             CStorageVolumeInformation& info            )
 {GUCEF_TRACE;
 
@@ -2513,7 +2513,7 @@ GetFileSystemTotalStorageVolumeInformation( CStorageVolumeInfoOSData& volumeInfo
     CWindowsComponentAccess* winComponentAccess = CWindowsComponentAccess::Instance();
     CPdhAccess* pdhApi = winComponentAccess->GetPdhAccess();
     if ( GUCEF_NULL != pdhApi && pdhApi->IsValid() )
-    {        
+    {
         bool hasNewStats = false;
         Int32 errorCode = pdhApi->GetTotalLogicalVolumePerfStats( volumeInfoOSData.GetOsData()->volumePerfStatAccess, info, hasNewStats );
         return 0 == errorCode;
@@ -2532,21 +2532,21 @@ GetFileSystemTotalStorageVolumeInformation( CStorageVolumeInfoOSData& volumeInfo
 /*-------------------------------------------------------------------------*/
 
 bool GUCEF_CORE_PRIVATE_CPP
-GetFileSystemStorageVolumeInformation_NoClear( CStorageVolumeInfoOSData& volumeInfoOSData , 
+GetFileSystemStorageVolumeInformation_NoClear( CStorageVolumeInfoOSData& volumeInfoOSData ,
                                                CStorageVolumeInformation& info            )
 {GUCEF_TRACE;
 
     // Prefer the path version if we have a path to work with
-    if ( !volumeInfoOSData.GetAnyPathForVolume().IsNULLOrEmpty() )  
+    if ( !volumeInfoOSData.GetAnyPathForVolume().IsNULLOrEmpty() )
         return GetFileSystemStorageVolumeInformationByDirPath_NoClear( volumeInfoOSData, info );
     else
-        return GetFileSystemStorageVolumeInformationByVolumeId_NoClear( volumeInfoOSData, info );    
+        return GetFileSystemStorageVolumeInformationByVolumeId_NoClear( volumeInfoOSData, info );
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-GetFileSystemStorageVolumeInformation( CStorageVolumeInfoOSData& volumeInfoOSData , 
+GetFileSystemStorageVolumeInformation( CStorageVolumeInfoOSData& volumeInfoOSData ,
                                        CStorageVolumeInformation& info            )
 {GUCEF_TRACE;
 
@@ -2554,7 +2554,7 @@ GetFileSystemStorageVolumeInformation( CStorageVolumeInfoOSData& volumeInfoOSDat
 }
 
 /*-------------------------------------------------------------------------*/
-                                                                           
+
 bool
 GetFileSystemStorageVolumeInformationByVolumeId( CStorageVolumeInformation& info, const CString& volumeId )
 {GUCEF_TRACE;
