@@ -60,6 +60,7 @@ enum ETaskStatus : UInt8
     TASKSTATUS_QUEUEING_FAILED        ,    /**< the task could not be placed in a queue */
     TASKSTATUS_SETUP_FAILED           ,    /**< the task setup phase failed */
     TASKSTATUS_STARTUP_FAILED         ,    /**< the task was started by a thread but the startup handler for the task reported an error and no further processing occurred */
+    TASKSTATUS_EXCEPTION_DURING_RUN   ,    /**< an exception was raised during the task run phase which allowed to bubble up. this is an end state */
 
     TASKSTATUS_SETUP            = 100 ,    /**< the task is in the setup phase and being defined */    
     TASKSTATUS_QUEUED                 ,    /**< the task is sitting in a queue waiting for a worker thread to pick it up, currently no thread is assigned */

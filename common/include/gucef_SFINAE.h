@@ -112,24 +112,38 @@ struct TypesAreExactlySame<T, T>
 
 /*-------------------------------------------------------------------------*/
 
+template < typename T >
+struct IsCharPtr
+{
+    enum { value = TypesAreExactlySame< T, char* >::value ||
+                   TypesAreExactlySame< T, const char* >::value };
+};
+
+template < typename T >
+struct IsWCharPtr
+{
+    enum { value = TypesAreExactlySame< T, wchar_t* >::value ||
+                   TypesAreExactlySame< T, const wchar_t* >::value };
+};
+
+template < typename T >
+struct IsVoidPtr
+{
+    enum { value = TypesAreExactlySame< T, void* >::value ||
+                   TypesAreExactlySame< T, const void* >::value };
+};
+
+/*-------------------------------------------------------------------------*/
+
 /**
  *  C++98 compatible SFINAE template helper
  *  Allows checking if T is itself a pointer type
- *  In >= C++11 the analog would be std::is_pointer_type< T >
+ *  In >= C++11 the analog would be std::is_pointer< T >
  */
 template < class T >
 struct TypeIsPointerType
 {
-    // For the compile time comparison.
-    typedef char    yes[1];
-    typedef yes     no[2];
-
-    template < typename TestPtrType > static yes& test( typename remove_cv< TestPtrType >::type* /*unused*/ ) { static yes result; return result; }
-    template < typename TestPtrType > static yes& test( void* /*unused*/ ) { static yes result; return result; }
-    template < typename TestPtrType > static no&  test( ... ) { static no result; return result; }
-
-    // The constant used as a return value for the test.
-    enum { value = sizeof( test< T >( T() ) ) == sizeof( yes ) };
+    enum { value = GUCEF::is_unqualified_pointer< typename GUCEF::remove_cv< T >::type >::value };
 };
 
 /*-------------------------------------------------------------------------*/
@@ -204,31 +218,31 @@ struct TypeHasDefaultConstructor
 /**
  *  C++98 compatible SFINAE template helper
  *  Allows checking if T is an unsigned type
+ *
+ *  Note:
+ *  - Works with cv-qualified types via remove_cv.
+ *  - Covers both built-in unsigned types and the platform's UInt{8,16,32,64}.
  */
 template < class T >
 struct TypeIsUnsigned
 {
-    // For the compile time comparison.
-    typedef char    yes[1];
-    typedef yes     no[2];
+    typedef typename remove_cv< T >::type no_cv_t;
 
-    template < typename TestPtrType >
-    static yes& test(typename EnableIf<sizeof(TestPtrType) == sizeof(UInt8), UInt8>::type* /* unused */) { static yes result; return result; }
-
-    template < typename TestPtrType >
-    static yes& test(typename EnableIf<sizeof(TestPtrType) == sizeof(UInt16), UInt16>::type* /* unused */) { static yes result; return result; }
-
-    template < typename TestPtrType >
-    static yes& test(typename EnableIf<sizeof(TestPtrType) == sizeof(UInt32), UInt32>::type* /* unused */) { static yes result; return result; }
-
-    template < typename TestPtrType >
-    static yes& test(typename EnableIf<sizeof(TestPtrType) == sizeof(UInt64), UInt64>::type* /* unused */) { static yes result; return result; }
-
-    template < typename TestPtrType >
-    static no& test(...) { static no result; return result; }
-
-    // The constant used as a return value for the test.
-    enum { value = sizeof( test< T >( T() ) ) == sizeof( yes ) };
+    enum { value =
+           /* Built-in unsigneds (excluding bool and char) */
+           TypesAreExactlySame< no_cv_t, unsigned char >::value  ||
+           TypesAreExactlySame< no_cv_t, unsigned short >::value ||
+           TypesAreExactlySame< no_cv_t, unsigned int >::value   ||
+           TypesAreExactlySame< no_cv_t, unsigned long >::value
+        #if defined(_MSC_VER) || defined(__GNUC__)
+           || TypesAreExactlySame< no_cv_t, unsigned long long >::value
+        #endif
+           /* Project fixed-width unsigned aliases */
+           || TypesAreExactlySame< no_cv_t, UInt8  >::value
+           || TypesAreExactlySame< no_cv_t, UInt16 >::value
+           || TypesAreExactlySame< no_cv_t, UInt32 >::value
+           || TypesAreExactlySame< no_cv_t, UInt64 >::value
+    };
 };
 
 /*-------------------------------------------------------------------------//

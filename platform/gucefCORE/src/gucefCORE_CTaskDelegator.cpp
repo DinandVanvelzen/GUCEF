@@ -327,8 +327,11 @@ CTaskDelegator::OnThreadCycle( void* )
         }
         catch ( const std::exception& e )
         {
-            GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, "TaskDelegator:OnThreadCycle: caught std exception while attempting to process task of type " + m_task->GetTaskType() +
-                " with id " + ToString(m_task->GetTaskId()) + " - std what = " + CString( e.what() ) );
+            CString errorMessage = "TaskDelegator:OnThreadCycle: caught std exception while attempting to process task of type " + m_task->GetTaskType() +
+                " with id " + ToString( m_task->GetTaskId() ) + " - std what = " + CString( e.what() );
+            GUCEF_EXCEPTION_LOG( LOGLEVEL_NORMAL, errorMessage );
+            m_task->SetTaskStatus( TASKSTATUS_EXCEPTION_DURING_RUN );
+            m_task->SetTaskStatusExtraInfo( errorMessage );
         }
 
         TaskCleanup( m_task );

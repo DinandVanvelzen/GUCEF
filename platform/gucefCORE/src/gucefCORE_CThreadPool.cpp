@@ -1396,19 +1396,49 @@ CThreadPool::TaskCleanup( CTaskPtr task )
         taskConsumer->SetTaskDelegator( TTaskDelegatorBasicPtr() );
     }
 
-    MT::CObjectScopeLock lock( this );
-
     // Update our 'free lists' administration for the task
+    // If there is only one task its always the last in the chain
     if ( task->IsLastTaskInAChain() )
     {
-        m_inUseTaskObjs.erase( task->GetTaskId() );
-        m_freeTaskObjs.push_back( task );
+        if ( task->IsTaskPartOfAChain() )
+        {
+            // first locally gather all tasks in the chain
+            // we need this local copy since we are about to break the chain apart
+            CTask::TTaskPtrSet chainTasks;
+            task->GetAllTasksInChain( chainTasks );
+
+            // break apart the chain to avoid dangling references
+            // the chain is complete and the task objects will be recycled individually
+            CTask::BreakApartTaskChain( task );
+
+            MT::CObjectScopeLock lock( this );
+
+            // now process the individual tasks
+            CTask::TTaskPtrSet::iterator i = chainTasks.begin();
+            while ( i != chainTasks.end() )
+            {
+                CTaskPtr chainedTask = (*i);
+                m_inUseTaskObjs.erase( chainedTask->GetTaskId() );
+                chainedTask->Clear();
+                m_freeTaskObjs.push_back( chainedTask );
+                ++i;
+            }
+        }
+        else
+        {
+            MT::CObjectScopeLock lock( this );
+
+            m_inUseTaskObjs.erase( task->GetTaskId() );
+            task->Clear();
+            m_freeTaskObjs.push_back( task );
+        }
     }
     // else: for a chain its all or nothing, so we do not add it to the free list
 
     // Update our 'free lists' administration for the task consumer
     if ( !taskConsumer.IsNULL() && taskConsumer->IsOwnedByThreadPool() )
     {
+        MT::CObjectScopeLock lock( this );
         m_freeTaskConsumers[ taskConsumer->GetType() ].insert( taskConsumer );
     }
 }

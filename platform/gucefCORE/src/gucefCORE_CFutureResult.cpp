@@ -127,8 +127,10 @@ CTaskPtr
 CFutureResult::GetResult( Int32 timeoutInMs ) const
 {GUCEF_TRACE;
 
-    Await( timeoutInMs );
-    return m_task;
+    CFutureResult waitResult = Await( timeoutInMs );
+    if ( waitResult.IsReady() )
+        return m_task;
+    return CTaskPtr();
 }
 
 /*-------------------------------------------------------------------------*/

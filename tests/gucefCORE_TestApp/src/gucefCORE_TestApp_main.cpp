@@ -113,6 +113,11 @@
 #define GUCEF_CORE_TESTAPP_TESTDATADRIVENDSTORECODECS_H
 #endif /* GUCEF_CORE_TESTAPP_TESTDATADRIVENDSTORECODECS_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTASYNC_H
+#include "TestASync.h"
+#define GUCEF_CORE_TESTAPP_TESTASYNC_H
+#endif /* GUCEF_CORE_TESTAPP_TESTASYNC_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //

@@ -86,6 +86,9 @@ namespace CORE {
     if ( 0 == strcmp( taskStatusStr, "STARTUP_FAILED" ) )
         return ETaskStatus::TASKSTATUS_STARTUP_FAILED;
 
+    if ( 0 == strcmp( taskStatusStr, "EXCEPTION_DURING_RUN" ) )
+        return ETaskStatus::TASKSTATUS_EXCEPTION_DURING_RUN;
+
     if ( 0 == strcmp( taskStatusStr, "RUNNING" ) )
         return ETaskStatus::TASKSTATUS_RUNNING;
 
@@ -137,6 +140,7 @@ TaskStatusToTaskStatusString( TTaskStatus taskStatus )
         case ETaskStatus::TASKSTATUS_QUEUED: return "QUEUED";
         case ETaskStatus::TASKSTATUS_STARTUP: return "STARTUP";
         case ETaskStatus::TASKSTATUS_STARTUP_FAILED: return "STARTUP_FAILED";
+        case ETaskStatus::TASKSTATUS_EXCEPTION_DURING_RUN: return "EXCEPTION_DURING_RUN";
         case ETaskStatus::TASKSTATUS_RUNNING: return "RUNNING";
         case ETaskStatus::TASKSTATUS_PAUSED: return "PAUSED";
         case ETaskStatus::TASKSTATUS_RESUMED: return "RESUMED";
@@ -166,8 +170,11 @@ TaskStatusIsAnEndState( TTaskStatus taskStatus )
         case ETaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS:
         case ETaskStatus::TASKSTATUS_TASK_CHAINING_FAILED:
         case ETaskStatus::TASKSTATUS_QUEUEING_FAILED:
+        case ETaskStatus::TASKSTATUS_SETUP_FAILED:
+        case ETaskStatus::TASKSTATUS_STARTUP_FAILED:
         case ETaskStatus::TASKSTATUS_STOPPED:
         case ETaskStatus::TASKSTATUS_KILLED:
+        case ETaskStatus::TASKSTATUS_EXCEPTION_DURING_RUN:
         case ETaskStatus::TASKSTATUS_FINISHED:
             return true;
 

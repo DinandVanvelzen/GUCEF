@@ -69,6 +69,11 @@
 #define GUCEF_CPP_H
 #endif /* GUCEF_CPP_H ? */
 
+#ifndef GUCEF_SFINAE_H
+#include "gucef_SFINAE.h"        /* GUCEF platform C++ template SFINAE utilities, C++98 compatible */
+#define GUCEF_SFINAE_H
+#endif /* GUCEF_SFINAE_H ? */
+
 #ifndef GUCEF_MEMORY_H
 #include "gucef_memory.h"        /* GUCEF platform macros related to memory management */
 #define GUCEF_MEMORY_H

@@ -152,6 +152,15 @@ CASync::GetLastTask( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+CASync::TASyncChainStatePtr
+CASync::GetChainState( void ) const
+{GUCEF_TRACE;
+
+    return m_state;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CASync&
 CASync::QueueCallbackCommonImpl( CICloneable* taskData )
 {GUCEF_TRACE;
@@ -289,22 +298,47 @@ CASync::Submit( void )
             return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
     }
 
-    CTaskPtr firstTask = m_state->m_lastTask->GetFirstTaskInChain();
-    if ( m_state->m_startRightAwayOnSubmit )
+    if ( !m_state->m_chainHasBeenSubmitted )
     {
-        // Use the StartTask() set of functions to force a start of the task chain right away
-        CFutureResult future = m_state->m_threadPool->StartTask( firstTask );
-        if ( future.HasAFuture() )
-            m_state->m_chainHasBeenSubmitted = true;
-        return future;
+        // this chain has not been submitted yet (not a redundant Submit() call)
+        // We will attempt to submit the task now
+
+        CTaskPtr firstTask = m_state->m_lastTask->GetFirstTaskInChain();
+        if ( m_state->m_startRightAwayOnSubmit )
+        {
+            // Use the StartTask() set of functions to force a start of the task chain right away
+            CFutureResult future = m_state->m_threadPool->StartTask( firstTask );
+            if ( future.HasAFuture() )
+            {
+                m_state->m_chainHasBeenSubmitted = true;
+                return CFutureResult( m_state->m_lastTask );
+            }
+            else
+            {
+                // There was an error starting the task chain
+                return future;
+            }
+        }
+        else
+        {
+            // Use the QueueTask() set of functions to queue a start to the task chain        
+            CFutureResult future = m_state->m_threadPool->QueueTask( firstTask );
+            if ( future.HasAFuture() )
+            {
+                m_state->m_chainHasBeenSubmitted = true;
+                return CFutureResult( m_state->m_lastTask );
+            }
+            else
+            {
+                // There was an error starting the task chain
+                return future;
+            }
+        }
     }
     else
     {
-        // Use the QueueTask() set of functions to queue a start to the task chain        
-        CFutureResult future = m_state->m_threadPool->QueueTask( firstTask );
-        if ( future.HasAFuture() )
-            m_state->m_chainHasBeenSubmitted = true;
-        return future;
+        // Chain has already been submitted, return the existing future result
+        return CFutureResult( m_state->m_lastTask );
     }
 }
 

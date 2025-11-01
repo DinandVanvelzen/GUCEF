@@ -61,6 +61,7 @@ CTask::CTask( TTaskStatus taskStatus )
     , m_assumedOwnershipOfTaskData( false )
     , m_taskId()
     , m_taskStatus( taskStatus )
+    , m_taskStatusExtraInfo()
     , m_nextTask()
     , m_priorTask()
 {GUCEF_TRACE;
@@ -198,6 +199,21 @@ CTask::IsLastTaskInAChain( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
+CTask::GetAllTasksInChain( TTaskPtrSet& taskSet ) const
+{GUCEF_TRACE;
+
+    taskSet.clear();
+    CTaskPtr task = GetFirstTaskInChain();
+    while ( !task.IsNULL() )
+    {
+        taskSet.insert( task );
+        task = task->GetNextTask();
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CTask::SetTaskStatus( TTaskStatus newStatus )
 {GUCEF_TRACE;
 
@@ -256,6 +272,24 @@ CTask::GetTaskStatusString( void ) const
 {GUCEF_TRACE;
 
     return TaskStatusToTaskStatusString( m_taskStatus );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTask::SetTaskStatusExtraInfo( const CString& extraInfo )
+{GUCEF_TRACE;
+
+    m_taskStatusExtraInfo = extraInfo;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CTask::GetTaskStatusExtraInfo( void ) const
+{GUCEF_TRACE;
+
+    return m_taskStatusExtraInfo;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -329,6 +363,7 @@ CTask::Clear( void )
     m_taskData = GUCEF_NULL;
     m_assumedOwnershipOfTaskData = false;
     m_taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED;
+    m_taskStatusExtraInfo.Clear();
     m_serializedTaskData.Clear();
     m_serializedTaskData.SetNodeType( GUCEF_DATATYPE_UNKNOWN );
 }
@@ -389,7 +424,7 @@ CTask::WaitForTaskToFinish( Int32 timeoutInMs ) const
 {GUCEF_TRACE;
 
     UInt64 startTicks = MT::PrecisionTickCount();
-    while ( !m_taskConsumer.IsNULL() && !IsTaskInEndState() )
+    while ( !IsTaskInEndState() )
     {
         MT::PrecisionDelay( 10 );
 

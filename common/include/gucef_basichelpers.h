@@ -138,4 +138,17 @@
 
 /*-------------------------------------------------------------------------*/
 
+/* Portable deprecation message macro */
+#ifndef GUCEF_DEPRECATED
+  #if defined(_MSC_VER)
+    #define GUCEF_DEPRECATED(msg) __declspec(deprecated(msg))
+  #elif defined(__GNUC__) || defined(__clang__)
+    #define GUCEF_DEPRECATED(msg) __attribute__((deprecated(msg)))
+  #else
+    #define GUCEF_DEPRECATED(msg)
+  #endif
+#endif
+
+/*-------------------------------------------------------------------------*/
+
 #endif /* GUCEF_BASICHELPERS_H ? */

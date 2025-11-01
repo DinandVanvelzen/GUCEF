@@ -103,7 +103,9 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
     typedef CTNumericIDGenerator< UInt32, MT::CMutex >                               TTaskIdGenerator;
     typedef TTaskIdGenerator::TNumericID                                             TTaskId;
     typedef TTaskIdGenerator::TIntegerTypeUsedForId                                  TIntegerTypeUsedForTaskId;
-    typedef CTBasicSharedPtr< CTaskDelegator, MT::CMutex >                           TTaskDelegatorBasicPtr; 
+    typedef CTBasicSharedPtr< CTaskDelegator, MT::CMutex >                           TTaskDelegatorBasicPtr;
+    typedef GUCEF::set< CTaskPtr >                                                   TTaskPtrSet;
+    typedef GUCEF::vector< CTaskPtr >                                                TTaskPtrVector;
 
     CTask( TTaskStatus taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED );
 
@@ -153,6 +155,20 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
      *  Helper function which does the same thing as GetTaskStatus() except adds a string conversion
      */
     CString GetTaskStatusString( void ) const;
+
+    /**
+     *  Extra info associated with the current task status
+     *  This can be used to provide human readable context on errors or other status changes
+     *  Usually set by the task consumer executing the task for diagnostic purposes when entering terminal states
+     */
+    void SetTaskStatusExtraInfo( const CString& extraInfo );
+
+    /**
+     *  Extra info associated with the current task status
+     *  This can be used to provide human readable context on errors or other status changes
+     *  Usually set by the task consumer executing the task for diagnostic purposes when entering terminal states
+     */
+    CString GetTaskStatusExtraInfo( void ) const;
 
     /**
      *  If the task with the given id was provided with any 'work' data AND said data is serializable this can be used to 
@@ -227,6 +243,8 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
 
     CTaskPtr GetLastTaskInChain( void ) const;
 
+    void GetAllTasksInChain( TTaskPtrSet& taskSet ) const;
+
     static void BreakApartTaskChain( CTaskPtr task );
 
     private:
@@ -238,6 +256,7 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
     TTaskId m_taskId;
     bool m_assumedOwnershipOfTaskData;
     TTaskStatus m_taskStatus;
+    CString m_taskStatusExtraInfo;
     CTaskPtr m_nextTask;
     CTaskPtr m_priorTask;
 };

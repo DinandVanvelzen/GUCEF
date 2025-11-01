@@ -253,8 +253,6 @@ class GUCEF_CORE_PUBLIC_CPP CASync
 
     CTaskPtr GetLastTask( void ) const;
 
-    private:
-
     class GUCEF_CORE_PRIVATE_CPP CASyncChainState : public CTSharedObjCreator< CASyncChainState, MT::CNoLock >
     {
         public:
@@ -274,6 +272,10 @@ class GUCEF_CORE_PUBLIC_CPP CASync
     };
 
     typedef CASyncChainState::TASyncChainStatePtr TASyncChainStatePtr;
+
+    TASyncChainStatePtr GetChainState( void ) const;
+
+    private:
 
     TASyncChainStatePtr m_state;
 };
@@ -681,6 +683,154 @@ CASyncChainStepArity1< R, A1, plain_false >::ThenPassToCallback( R (*f)( CTaskPt
 
     // Build a callback invoker as task data of the forwarding variety
     CICloneable* taskData = CDeferredTask::ResultFwdConstruct< CTaskPtr, TPriorDeferredInvoker, TGivenCallBackFunc >( lastTask, priorInvoker, f );
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+
+    return ThenCallbackCommonImpl( taskData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename R, typename A1, typename A2 >
+CASyncChainStepArity2< R, A1, A2, plain_true >::CASyncChainStepArity2( CASync& thisChain )
+    : CASync( thisChain )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename R, typename A1, typename A2 >
+CASyncChainStepArity2< R, CTaskPtr, A2 >
+CASyncChainStepArity2< R, A1, A2, plain_true >::ThenPassToCallback( R (*f)( CTaskPtr, R, A2 ) )
+{GUCEF_TRACE;
+
+    typedef R (*TGivenCallBackFunc)( CTaskPtr, R, A2 );
+    typedef R (*TPriorGivenCallBackFunc)( A1, A2 );
+    typedef deferred_invoker< TPriorGivenCallBackFunc, arity_2 >      TPriorDeferredInvoker;
+
+    // Obtain access to prior invoker
+    CTaskPtr lastTask = GetLastTask();
+    if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+    CICloneable* opaqueTaskData = lastTask->GetTaskData();
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+    TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
+
+    // Build a callback invoker as task data of the forwarding variety
+    CICloneable* taskData = CDeferredTask::ResultFwdConstruct< CTaskPtr, TPriorDeferredInvoker, TGivenCallBackFunc >( lastTask, priorInvoker, f );
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+
+    return ThenCallbackCommonImpl( taskData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename R, typename A1, typename A2 >
+CASyncChainStepArity2< R, A1, A2, plain_false >::CASyncChainStepArity2( CASync& thisChain )
+    : CASync( thisChain )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename R, typename A1, typename A2 >
+CASyncChainStepArity3< R, CTaskPtr, A1, A2 >
+CASyncChainStepArity2< R, A1, A2, plain_false >::ThenPassToCallback( R (*f)( CTaskPtr, R, A1, A2 ) )
+{GUCEF_TRACE;
+
+    typedef R (*TGivenCallBackFunc)( CTaskPtr, R, A1, A2 );
+    typedef R (*TPriorGivenCallBackFunc)( A1, A2 );
+    typedef deferred_invoker< TPriorGivenCallBackFunc, arity_2 >      TPriorDeferredInvoker;
+
+    // Obtain access to prior invoker
+    CTaskPtr lastTask = GetLastTask();
+    if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+    CICloneable* opaqueTaskData = lastTask->GetTaskData();
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+    TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
+
+    // Build a callback invoker as task data of the forwarding variety
+    CICloneable* taskData = CDeferredTask::ResultFwdConstruct( lastTask, priorInvoker, f );
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+
+    return ThenCallbackCommonImpl( taskData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename R, typename A1, typename A2, typename A3 >
+CASyncChainStepArity3< R, A1, A2, A3, plain_true >::CASyncChainStepArity3( CASync& thisChain )
+    : CASync( thisChain )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename R, typename A1, typename A2, typename A3 >
+CASyncChainStepArity3< R, CTaskPtr, A2, A3 >
+CASyncChainStepArity3< R, A1, A2, A3, plain_true >::ThenPassToCallback( R (*f)( CTaskPtr, R, A2, A3 ) )
+{GUCEF_TRACE;
+
+    typedef R (*TGivenCallBackFunc)( CTaskPtr, R, A2, A3 );
+    typedef R (*TPriorGivenCallBackFunc)( A1, A2, A3 );
+    typedef deferred_invoker< TPriorGivenCallBackFunc, arity_3 >      TPriorDeferredInvoker;
+
+    // Obtain access to prior invoker
+    CTaskPtr lastTask = GetLastTask();
+    if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+    CICloneable* opaqueTaskData = lastTask->GetTaskData();
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+    TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
+
+    // Build a callback invoker as task data of the forwarding variety
+    CICloneable* taskData = CDeferredTask::ResultFwdConstruct< CTaskPtr, TPriorDeferredInvoker, TGivenCallBackFunc >( lastTask, priorInvoker, f );
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
+
+    return ThenCallbackCommonImpl( taskData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename R, typename A1, typename A2, typename A3 >
+CASyncChainStepArity3< R, A1, A2, A3, plain_false >::CASyncChainStepArity3( CASync& thisChain )
+    : CASync( thisChain )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename R, typename A1, typename A2, typename A3 >
+CASyncChainStepArity4< R, CTaskPtr, A1, A2, A3 >
+CASyncChainStepArity3< R, A1, A2, A3, plain_false >::ThenPassToCallback( R (*f)( CTaskPtr, R, A1, A2, A3 ) )
+{GUCEF_TRACE;
+
+    typedef R (*TGivenCallBackFunc)( CTaskPtr, R, A1, A2, A3 );
+    typedef R (*TPriorGivenCallBackFunc)( A1, A2, A3 );
+    typedef deferred_invoker< TPriorGivenCallBackFunc, arity_3 >      TPriorDeferredInvoker;
+
+    // Obtain access to prior invoker
+    CTaskPtr lastTask = GetLastTask();
+    if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+    CICloneable* opaqueTaskData = lastTask->GetTaskData();
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == opaqueTaskData )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASKDATA_INVALID );
+    TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
+
+    // Build a callback invoker as task data of the forwarding variety
+    CICloneable* taskData = CDeferredTask::ResultFwdConstruct( lastTask, priorInvoker, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
         return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 

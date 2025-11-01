@@ -172,7 +172,7 @@ class Settings : public CORE::CIConfigurable
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 };
 
-typedef std::map< CORE::CString, Settings > TStringToSettingsMap;
+typedef GUCEF::map< CORE::CString, Settings > TStringToSettingsMap;
 
 /*-------------------------------------------------------------------------*/
 
@@ -182,7 +182,7 @@ class RedisNode : public CORE::CIDataNodeSerializable
 
     static const CORE::CString ClassTypeName;
 
-    typedef std::vector< RedisNode > RedisNodeVector;
+    typedef GUCEF::vector< RedisNode > RedisNodeVector;
 
     COMCORE::CHostAddress host;
     CORE::CString nodeId;
@@ -221,7 +221,7 @@ class RedisNode : public CORE::CIDataNodeSerializable
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 };
 
-typedef std::map< CORE::UInt32, RedisNode > RedisNodeMap;
+typedef GUCEF::map< CORE::UInt32, RedisNode > RedisNodeMap;
 
 /*-------------------------------------------------------------------------*/
 
@@ -245,7 +245,7 @@ class RedisNodeWithPipe : public RedisNode
     CORE::UInt32 GetRedisTimeoutRepliesCounter( bool resetCounter );
 };
 
-typedef std::map< CORE::UInt32, RedisNodeWithPipe > RedisNodeWithPipeMap;
+typedef GUCEF::map< CORE::UInt32, RedisNodeWithPipe > RedisNodeWithPipeMap;
 
 /*-------------------------------------------------------------------------*/
 
@@ -255,7 +255,7 @@ class RedisInfoService : public CORE::CTaskConsumer
 
     typedef CORE::CTEventHandlerFunctor< RedisInfoService >     TEventCallback;
     typedef CORE::CString::StringSet                            TStringSet;
-    typedef std::map< CORE::UInt32, TStringSet >                TUInt32ToStringSetMap;
+    typedef GUCEF::map< CORE::UInt32, TStringSet >                TUInt32ToStringSetMap;
 
     static const CORE::CString HashSlotFileCodec;
 
@@ -417,10 +417,10 @@ class RedisInfoService : public CORE::CTaskConsumer
 
     RedisInfoService( const RedisInfoService& src ); // not implemented
 
-    typedef std::vector< std::pair< sw::redis::StringView, sw::redis::StringView > >    TRedisArgs;
-    typedef std::vector< GUCEF::WEB::CIHTTPServerRouter::THTTPServerResourcePtr >       THttpResourceVector;
-    typedef std::map< CORE::CString, CORE::CValueList >                                 TStringToValueListMap;
-    typedef std::map< CORE::CString, CORE::UInt8 >                                      TStringToUInt8Map;
+    typedef GUCEF::vector< std::pair< sw::redis::StringView, sw::redis::StringView > >    TRedisArgs;
+    typedef GUCEF::vector< GUCEF::WEB::CIHTTPServerRouter::THTTPServerResourcePtr >       THttpResourceVector;
+    typedef GUCEF::map< CORE::CString, CORE::CValueList >                                 TStringToValueListMap;
+    typedef GUCEF::map< CORE::CString, CORE::UInt8 >                                      TStringToUInt8Map;
     typedef GUCEF::WEB::CTDataNodeSerializableMapHttpServerResource< CORE::CString, CORE::CValueList >  TStringToValueListMapHttpResource;
     typedef GUCEF::WEB::CTDataNodeSerializableMapHttpServerResource< CORE::UInt32, RedisNodeWithPipe >  TUInt32ToRedisNodeMapHttpResource;    
     typedef GUCEF::WEB::CTDataNodeSerializableMapHttpServerResource< CORE::UInt32, TStringSet >         TUInt32ToStringSetMapHttpResource;    
@@ -531,7 +531,7 @@ class RedisInfo : public CORE::CObserver
     private:
 
     typedef CORE::CTEventHandlerFunctor< RedisInfo > TEventCallback;
-    typedef std::map< CORE::CString, RedisInfoServicePtr > TStringToInfoServiceMap;
+    typedef GUCEF::map< CORE::CString, RedisInfoServicePtr > TStringToInfoServiceMap;
     typedef GUCEF::WEB::CTReadableMapIndexHttpServerResource< CORE::CString, RedisInfoServicePtr > TStringToInfoServiceMapWebResource;
 
     private:

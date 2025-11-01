@@ -136,7 +136,7 @@ class CRedisClusterKeyCache : public CORE::CObservingNotifier
     private:
     friend class CRedisClusterKeyCacheUpdateTask;
 
-    typedef std::set< RedisClusterPtr > RedisClusterPtrSet;
+    typedef GUCEF::set< RedisClusterPtr > RedisClusterPtrSet;
 
     bool GetRedisClusterAccess( RedisClusterPtrSet& set );
 
@@ -155,8 +155,8 @@ class CRedisClusterKeyCache : public CORE::CObservingNotifier
     
     private:
 
-    typedef std::map< CORE::CString, CORE::CString::StringSet > TStringToStringSetMap;
-    typedef std::map< RedisClusterPtr, TStringToStringSetMap >  TRedisClusterPtrToTypeKeysMap;
+    typedef GUCEF::map< CORE::CString, CORE::CString::StringSet > TStringToStringSetMap;
+    typedef GUCEF::map< RedisClusterPtr, TStringToStringSetMap >  TRedisClusterPtrToTypeKeysMap;
 
     static void RegisterEvents( void );
 

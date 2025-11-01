@@ -54,6 +54,9 @@ class GUCEF_CORE_PUBLIC_CPP CFutureResult
 {
     public:
 
+    typedef GUCEF::set< CFutureResult >             TFutureResultSet;
+    typedef GUCEF::vector< CFutureResult >          TFutureResultVector;
+
     CFutureResult( CTaskPtr task );
 
     /**

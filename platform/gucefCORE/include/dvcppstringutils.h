@@ -58,7 +58,7 @@ namespace CORE {
 /**
  *  Turns the given relative path into an absolute path
  *  You can use this function to implement support for variables in path names
- *  This function will also unify the dir seperators to the O/S standard.
+ *  This function will also unify the dir separators to the O/S standard.
  *
  *  Note that if 'resolveVars' is false only dir segments are processed
  *  this function uses ResolveVars(), see it's documentation on supported variables
@@ -538,18 +538,72 @@ inline CString ToString( Float64 value ) { return DoubleToString( value ); }
 inline CString ToString( bool value ) { return BoolToString( value ); }
 inline CString ToString( const char* value ) { return CString( value ); }
 inline CString ToString( const wchar_t* value ) { return CString( value ); }
-inline CString ToString( const void* value ) { return PointerToString( value ); }
 inline CString ToString( const TVersion& value ) { return VersionToString( value ); }
 inline CString ToString( const std::string& value ) { return CString( value ); }
 inline CString ToString( const std::wstring& value ) { std::string out; Utf16toUtf8( value, out ); return out; }
 
-#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
-#ifdef GUCEF_32BIT
-inline CString ToString( size_t value ) { return UInt32ToString( (UInt32) value ); }
-#else
-inline CString ToString( size_t value ) { return UInt64ToString( (UInt64) value ); }
-#endif
-#endif
+/*-------------------------------------------------------------------------*/
+
+// Catch-all for any other pointer type (including void*)
+template <typename T>
+inline CString ToString( T* pointer )
+{GUCEF_TRACE;
+    return PointerToString( static_cast<const void*>( pointer ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+// Portable size_t routing:
+// Enabled only when size_t is not the same type as UInt32/UInt64 or unsigned long
+template < typename T >
+inline CString ToString( const T value,
+                         typename ::GUCEF::EnableIf<
+                             ::GUCEF::TypesAreExactlySame< T, size_t >::value &&
+                            !::GUCEF::TypesAreExactlySame< size_t, ::GUCEF::UInt32 >::value &&
+                            !::GUCEF::TypesAreExactlySame< size_t, ::GUCEF::UInt64 >::value &&
+                            !::GUCEF::TypesAreExactlySame< size_t, unsigned long >::value,
+                             int
+                         >::type* /*sfinae*/ = 0 )
+{GUCEF_TRACE;
+    return SizeTToString( static_cast<size_t>( value ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+// Portable unsigned long routing:
+// Enabled only when unsigned long is not the same type as UInt32/UInt64 or size_t
+template < typename T >
+inline CString ToString( const T value,
+                         typename ::GUCEF::EnableIf<
+                             ::GUCEF::TypesAreExactlySame< T, unsigned long >::value &&
+                            !::GUCEF::TypesAreExactlySame< unsigned long, ::GUCEF::UInt32 >::value &&
+                            !::GUCEF::TypesAreExactlySame< unsigned long, ::GUCEF::UInt64 >::value &&
+                            !::GUCEF::TypesAreExactlySame< unsigned long, size_t >::value,
+                             long
+                         >::type* /*sfinae*/ = 0 )
+{GUCEF_TRACE;
+    return sizeof(unsigned long) == sizeof(::GUCEF::UInt64)
+        ? UInt64ToString( static_cast< ::GUCEF::UInt64 >( value ) )
+        : UInt32ToString( static_cast< ::GUCEF::UInt32 >( value ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+// Portable signed long routing:
+// Enabled only when long is not the same type as Int32/Int64
+template < typename T >
+inline CString ToString( const T value,
+                         typename ::GUCEF::EnableIf<
+                             ::GUCEF::TypesAreExactlySame< T, long >::value &&
+                            !::GUCEF::TypesAreExactlySame< long, ::GUCEF::Int32 >::value &&
+                            !::GUCEF::TypesAreExactlySame< long, ::GUCEF::Int64 >::value,
+                             short
+                         >::type* /*sfinae*/ = 0 )
+{GUCEF_TRACE;
+    return sizeof(long) == sizeof(::GUCEF::Int64)
+        ? Int64ToString( static_cast< ::GUCEF::Int64 >( value ) )
+        : Int32ToString( static_cast< ::GUCEF::Int32 >( value ) );
+}
 
 /*-------------------------------------------------------------------------*/
 
