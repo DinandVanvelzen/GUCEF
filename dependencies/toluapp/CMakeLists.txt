@@ -36,7 +36,7 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "toluapp" )
 add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} lua tolua )
-target_link_libraries( ${MODULE_NAME} lua tolua )
+target_link_libraries( ${MODULE_NAME} PUBLIC lua tolua )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=toluapp;MODULE_NAME=toluapp" )
 
 include_directories( ../lua/src ../tolua/include ../tolua/src ../tolua/src/lib include src src/lib )

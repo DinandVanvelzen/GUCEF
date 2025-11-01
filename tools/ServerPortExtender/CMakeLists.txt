@@ -39,7 +39,7 @@ else()
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT )
-target_link_libraries( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMCORE gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=ServerPortExtender;MODULE_NAME=ServerPortExtender;SERVERPORTEXTENDER_BUILD_MODULE" )
 
 include_directories( ../../common/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )

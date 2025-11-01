@@ -36,7 +36,7 @@ else()
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefKAITAI gucefMT gucefVFS )
-target_link_libraries( ${MODULE_NAME} gucefCORE gucefKAITAI gucefMT gucefVFS )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefKAITAI gucefMT gucefVFS )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_KAITAI_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefKAITAI_TestApp;MODULE_NAME=gucefKAITAI_TestApp" )
 
 include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefKAITAI/includes ../../platform/gucefMT/include ../../platform/gucefVFS/include include )

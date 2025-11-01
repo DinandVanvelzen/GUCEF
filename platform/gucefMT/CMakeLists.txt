@@ -107,19 +107,19 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
 if ( LINUX32 )
-  target_link_libraries( ${MODULE_NAME} pthread )
+  target_link_libraries( ${MODULE_NAME} PRIVATE pthread )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  target_link_libraries( ${MODULE_NAME} pthread )
+  target_link_libraries( ${MODULE_NAME} PRIVATE pthread )
 endif( LINUX64 )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} Winmm )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Winmm )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} Winmm )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Winmm )
 endif( WIN64 )
 
 include_directories( ../../common/include include )

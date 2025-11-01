@@ -1704,27 +1704,27 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
 if ( ANDROID32 )
-  target_link_libraries( ${MODULE_NAME} dl log )
+  target_link_libraries( ${MODULE_NAME} PRIVATE dl log )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  target_link_libraries( ${MODULE_NAME} dl log )
+  target_link_libraries( ${MODULE_NAME} PRIVATE dl log )
 endif( ANDROID64 )
 
 if ( LINUX32 )
-  target_link_libraries( ${MODULE_NAME} dl rt )
+  target_link_libraries( ${MODULE_NAME} PRIVATE dl rt )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  target_link_libraries( ${MODULE_NAME} dl rt )
+  target_link_libraries( ${MODULE_NAME} PRIVATE dl rt )
 endif( LINUX64 )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} PowrProf.lib Ws2_32.lib winmm.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE PowrProf.lib Ws2_32.lib winmm.lib )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} PowrProf.lib Ws2_32.lib winmm.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE PowrProf.lib Ws2_32.lib winmm.lib )
 endif( WIN64 )
 
 include_directories( .. ../../common/include ../gucefCORE ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT ../gucefMT/include include )

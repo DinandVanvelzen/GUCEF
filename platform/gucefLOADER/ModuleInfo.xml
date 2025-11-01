@@ -26,21 +26,21 @@
     </Module>
     <Module Platform="mswin">
         <Linker>
-            <Dependency Name="Ws2_32.lib" />
-			<Dependency Name="winmm.lib" />
-			<Dependency Name="PowrProf.lib" />			
+            <Dependency Name="Ws2_32.lib" Scope="private" />
+			<Dependency Name="winmm.lib" Scope="private" />
+			<Dependency Name="PowrProf.lib" Scope="private" />			
         </Linker>
     </Module>  	
     <Module Platform="Linux">
         <Linker>
-            <Dependency Name="dl" />
-            <Dependency Name="rt" />
+            <Dependency Name="dl" Scope="private" />
+            <Dependency Name="rt" Scope="private" />
         </Linker>
     </Module>
     <Module Platform="Android">
         <Linker>
-            <Dependency Name="dl" />
-            <Dependency Name="log" />
+            <Dependency Name="dl" Scope="private" />
+            <Dependency Name="log" Scope="private" />
         </Linker>
     </Module>
 </ModuleInfoEntry>

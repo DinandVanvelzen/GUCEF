@@ -18,9 +18,9 @@
             <Dependency Name="gucefCOMCORE" />
         </Dependencies>
         <Linker>
-            <Dependency Name="gucefMT" />
-            <Dependency Name="gucefCORE" />
-            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefMT" Scope="public" />
+            <Dependency Name="gucefCORE" Scope="public" />
+            <Dependency Name="gucefCOMCORE" Scope="public" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_COM_BUILD_MODULE" />

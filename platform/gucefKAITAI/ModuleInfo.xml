@@ -19,9 +19,9 @@
             <Dependency Name="gucefVFS" />
         </Dependencies>
         <Linker>
-            <Dependency Name="gucefMT" />
-            <Dependency Name="gucefCORE" />
-            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefMT" Scope="public" />
+            <Dependency Name="gucefCORE" Scope="public" />
+            <Dependency Name="gucefVFS" Scope="public" />
         </Linker>	
         <Preprocessor>
             <Define String="GUCEF_KAITAI_BUILD_MODULE" />

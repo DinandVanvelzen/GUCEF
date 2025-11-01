@@ -35,7 +35,7 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "ProjectGenDependsFilter" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} ProjectGen gucefCORE gucefMT )
-target_link_libraries( ${MODULE_NAME} ProjectGen gucefCORE gucefMT )
+target_link_libraries( ${MODULE_NAME} PUBLIC ProjectGen gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=ProjectGenDependsFilter;MODULE_IS_PLUGIN=1;MODULE_NAME=ProjectGenDependsFilter;PROJECTGENDEPFILTER_BUILD_MODULE" )
 
 include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../tools/ProjectGen/include include )

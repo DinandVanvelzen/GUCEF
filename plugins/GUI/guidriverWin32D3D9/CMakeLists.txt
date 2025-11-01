@@ -85,14 +85,16 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefMT )
-  target_link_libraries( ${MODULE_NAME} d3d9 d3dx9 gucefCORE gucefGUI gucefMT )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERWIN32D3D9_BUILD_MODULE" )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefMT )
+target_link_libraries( ${MODULE_NAME} PRIVATE d3d9 d3dx9 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERWIN32D3D9_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverWin32D3D9" )
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefMT )
-  target_link_libraries( ${MODULE_NAME} d3d9 d3dx9 gucefCORE gucefGUI gucefMT )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERWIN32D3D9_BUILD_MODULE" )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefMT )
+target_link_libraries( ${MODULE_NAME} PRIVATE d3d9 d3dx9 )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERWIN32D3D9_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverWin32D3D9" )
 endif( WIN64 )
 
 if ( WIN32 )

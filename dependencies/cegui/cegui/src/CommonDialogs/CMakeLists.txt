@@ -31,7 +31,7 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "CEGUI.CommonDialogs" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} CEGUI )
-target_link_libraries( ${MODULE_NAME} CEGUI )
+target_link_libraries( ${MODULE_NAME} PUBLIC CEGUI )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CEGUICOMMONDIALOGS_EXPORTS;MODULE_CONSENSUS_NAME=CEGUI_CommonDialogs;MODULE_NAME=CEGUI_CommonDialogs" )
 
 include_directories( ../../include )

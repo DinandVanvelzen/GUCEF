@@ -398,7 +398,8 @@ ModuleTypeToString( const TModuleType moduleType )
 
 TModuleType
 StringToModuleType( const CORE::CString& moduleTypeStr )
-{
+{GUCEF_TRACE;
+
     CORE::CString moduleTypeString = moduleTypeStr.Lowercase();
     if ( moduleTypeString == "" ) return MODULETYPE_UNDEFINED;
     if ( moduleTypeString == "executable" ) return MODULETYPE_EXECUTABLE;
@@ -411,6 +412,40 @@ StringToModuleType( const CORE::CString& moduleTypeStr )
     if ( moduleTypeString == "binarypackage" ) return MODULETYPE_BINARY_PACKAGE;
     if ( moduleTypeString == "unknown" ) return MODULETYPE_UNKNOWN;
     return MODULETYPE_UNDEFINED;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+LinkedDependencyScopeToString( const TLinkedDependencyScope scope )
+{GUCEF_TRACE;
+
+    switch ( scope )
+    {        
+        case TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_PRIVATE: return "private";
+        case TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_PUBLIC: return "public";
+        case TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_AUTO: return "auto";
+
+        case TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED:
+        default:
+        {
+            return "undefined";
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+TLinkedDependencyScope
+StringToLinkedDependencyScope( const CORE::CString& linkedDependencyScopeStr )
+{GUCEF_TRACE;
+
+    CORE::CString scopeStr = linkedDependencyScopeStr.Lowercase();
+    if ( scopeStr == "private" ) return TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_PRIVATE;
+    if ( scopeStr == "public" ) return TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_PUBLIC;
+    if ( scopeStr == "auto" ) return TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_AUTO;
+
+    return TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1984,6 +2019,7 @@ TryAutoSemVerDetection( const CORE::CString& fileContent ,
 CLinkedLibrarySettings::CLinkedLibrarySettings( void )
     : CORE::CTSharedObjCreator< CLinkedLibrarySettings, MT::CMutex >( this )
     , m_moduleType( TModuleType::MODULETYPE_UNDEFINED )
+    , m_linkedDependencyScope( TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED )
     , m_libPath()
 {GUCEF_TRACE;
 
@@ -1994,6 +2030,7 @@ CLinkedLibrarySettings::CLinkedLibrarySettings( void )
 CLinkedLibrarySettings::CLinkedLibrarySettings( const CLinkedLibrarySettings& src )
     : CORE::CTSharedObjCreator< CLinkedLibrarySettings, MT::CMutex >( this )
     , m_moduleType( src.m_moduleType )
+    , m_linkedDependencyScope( src.m_linkedDependencyScope )
     , m_libPath( src.m_libPath )
 {GUCEF_TRACE;
 
@@ -2055,6 +2092,24 @@ CLinkedLibrarySettings::GetLibraryPath( void ) const
 
 /*---------------------------------------------------------------------------*/
 
+void
+CLinkedLibrarySettings::SetLinkedDependecyScope( TLinkedDependencyScope linkedDependencyScope )
+{GUCEF_TRACE;
+
+    m_linkedDependencyScope = linkedDependencyScope;
+}
+
+/*---------------------------------------------------------------------------*/
+
+TLinkedDependencyScope
+CLinkedLibrarySettings::GetLinkedDependencyScope( void ) const
+{GUCEF_TRACE;
+
+    return m_linkedDependencyScope;
+}
+
+/*---------------------------------------------------------------------------*/
+
 bool
 CLinkedLibrarySettings::Merge( const CLinkedLibrarySettings& linkedLibrarySettingsToMergeIn ,
                                bool onConflictOriginalInfoStays                             )
@@ -2071,6 +2126,12 @@ CLinkedLibrarySettings::Merge( const CLinkedLibrarySettings& linkedLibrarySettin
     else
     if ( !onConflictOriginalInfoStays && !( TModuleType::MODULETYPE_UNDEFINED == linkedLibrarySettingsToMergeIn.m_moduleType || TModuleType::MODULETYPE_UNKNOWN == linkedLibrarySettingsToMergeIn.m_moduleType ) )
         m_moduleType = linkedLibrarySettingsToMergeIn.m_moduleType;
+
+    if ( TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED == m_linkedDependencyScope || ( TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED == m_linkedDependencyScope && TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED != linkedLibrarySettingsToMergeIn.m_linkedDependencyScope ) )
+        m_linkedDependencyScope = linkedLibrarySettingsToMergeIn.m_linkedDependencyScope;
+    else
+    if ( !onConflictOriginalInfoStays && !( TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED == linkedLibrarySettingsToMergeIn.m_linkedDependencyScope || TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_UNDEFINED == linkedLibrarySettingsToMergeIn.m_linkedDependencyScope ) )
+        m_linkedDependencyScope = linkedLibrarySettingsToMergeIn.m_linkedDependencyScope;
 
     return true;
 }
@@ -2371,19 +2432,29 @@ CLinkerSettings::Serialize( CORE::CDataNode& domRootNode                        
         TLinkedLibrarySettingsPtrMap::const_iterator m = m_linkedLibraries.begin();
         while ( m != m_linkedLibraries.end() )
         {
+            const CORE::CString& linkedLibName = (*m).first;
+            const CLinkedLibrarySettingsPtr& linkedLibSettings = (*m).second;
+
             CORE::CDataNode libraryNode;
             libraryNode.SetName( "Dependency" );
-            libraryNode.SetAttribute( "Name", (*m).first );
+            libraryNode.SetAttribute( "Name", linkedLibName );
 
-            TModuleType linkedLibType = (*m).second->GetModuleType();
+            TModuleType linkedLibType = linkedLibSettings->GetModuleType();
             if ( ( MODULETYPE_UNDEFINED != linkedLibType ) &&
                  ( MODULETYPE_UNKNOWN != linkedLibType )    )
             {
                 libraryNode.SetAttribute( "Type", ModuleTypeToString( linkedLibType ) );
             }
-            if ( !(*m).second->GetLibraryPath().IsNULLOrEmpty() )
+
+            TLinkedDependencyScope linkedDependencyScope = linkedLibSettings->GetLinkedDependencyScope();
+            if ( LINKEDDEPENDENCYSCOPE_UNDEFINED != linkedDependencyScope )
             {
-                libraryNode.SetAttribute( "Path", (*m).second->GetLibraryPath() );
+                libraryNode.SetAttribute( "Scope", LinkedDependencyScopeToString( linkedDependencyScope ) );
+            }
+
+            if ( !linkedLibSettings->GetLibraryPath().IsNULLOrEmpty() )
+            {
+                libraryNode.SetAttribute( "Path", linkedLibSettings->GetLibraryPath() );
             }
             linkerNode.AddChild( libraryNode );
             ++m;
@@ -2482,6 +2553,16 @@ CLinkerSettings::Deserialize( const CORE::CDataNode& domRootNode                
                     else
                     {
                         linkedLibrary->SetModuleType( MODULETYPE_UNDEFINED );
+                    }
+
+                    CORE::CString linkedDependencyScope = linkedLibNode->GetAttributeValue( "Scope" );
+                    if ( !linkedDependencyScope.IsNULLOrEmpty() )
+                    {
+                        linkedLibrary->SetLinkedDependecyScope( StringToLinkedDependencyScope( linkedDependencyScope ) );
+                    }
+                    else
+                    {
+                        linkedLibrary->SetLinkedDependecyScope( LINKEDDEPENDENCYSCOPE_UNDEFINED );
                     }
 
                     linkedLibrary->SetLibraryPath( linkedLibNode->GetAttributeValue( "Path" ) );

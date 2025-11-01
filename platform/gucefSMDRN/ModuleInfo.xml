@@ -21,11 +21,11 @@
             <Dependency Name="gucefDRN" />
         </Dependencies>
         <Linker>
-            <Dependency Name="gucefMT" />
-            <Dependency Name="gucefCORE" />
-            <Dependency Name="gucefCOMCORE" />
-            <Dependency Name="gucefCOM" />
-            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefMT" Scope="public" />
+            <Dependency Name="gucefCORE" Scope="public" />
+            <Dependency Name="gucefCOMCORE" Scope="public" />
+            <Dependency Name="gucefCOM" Scope="public" />
+            <Dependency Name="gucefDRN" Scope="public" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_SMDRN_BUILD_MODULE" />

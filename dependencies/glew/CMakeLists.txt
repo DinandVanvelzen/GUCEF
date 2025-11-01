@@ -30,27 +30,27 @@ add_library( ${MODULE_NAME} ${ALL_FILES} )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GLEW_BUILD;MODULE_CONSENSUS_NAME=glew;MODULE_NAME=glew" )
 
 if ( ANDROID32 )
-  target_link_libraries( ${MODULE_NAME} GLESv1_CM )
+  target_link_libraries( ${MODULE_NAME} PRIVATE GLESv1_CM )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  target_link_libraries( ${MODULE_NAME} GLESv1_CM )
+  target_link_libraries( ${MODULE_NAME} PRIVATE GLESv1_CM )
 endif( ANDROID64 )
 
 if ( LINUX32 )
-  target_link_libraries( ${MODULE_NAME} GL )
+  target_link_libraries( ${MODULE_NAME} PRIVATE GL )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  target_link_libraries( ${MODULE_NAME} GL )
+  target_link_libraries( ${MODULE_NAME} PRIVATE GL )
 endif( LINUX64 )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} opengl32 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE opengl32 )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} opengl32 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE opengl32 )
 endif( WIN64 )
 
 include_directories( include )

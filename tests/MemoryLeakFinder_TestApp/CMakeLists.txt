@@ -51,13 +51,13 @@ endif()
 
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} MemoryLeakFinder gucefCORE gucefMT )
-  target_link_libraries( ${MODULE_NAME} gucefCORE gucefMT )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_MLF_TESTAPP_BUILD_MODULE;MEMCHECK_OLEAPI;MODULE_NAME=MemoryLeakFinder_TestApp" )
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} MemoryLeakFinder gucefCORE gucefMT )
-  target_link_libraries( ${MODULE_NAME} gucefCORE gucefMT )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_MLF_TESTAPP_BUILD_MODULE;MEMCHECK_OLEAPI;MODULE_NAME=MemoryLeakFinder_TestApp" )
 endif( WIN64 )
 

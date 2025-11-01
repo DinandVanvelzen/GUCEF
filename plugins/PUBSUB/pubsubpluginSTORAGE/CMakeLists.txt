@@ -43,7 +43,7 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "pubsubpluginSTORAGE" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT gucefPUBSUB gucefVFS )
-target_link_libraries( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT gucefPUBSUB gucefVFS )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMCORE gucefCORE gucefMT gucefPUBSUB gucefVFS )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=pubsubpluginSTORAGE;MODULE_IS_PLUGIN=1;MODULE_NAME=pubsubpluginSTORAGE;PUBSUBPLUGIN_STORAGE_BUILD_PLUGIN_DLL" )
 
 include_directories( ../../../common/include ../../../platform/gucefCOM/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../platform/gucefPUBSUB/include ../../../platform/gucefVFS/include ../../../platform/gucefWEB/include include )

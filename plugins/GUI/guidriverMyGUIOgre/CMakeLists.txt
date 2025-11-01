@@ -41,7 +41,8 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "guidriverMyGUIOgre" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} MyGUI.Engine MyGUI.OgrePlatform Ogre freetype gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverMyGUI )
-target_link_libraries( ${MODULE_NAME} MyGUI.Engine MyGUI.OgrePlatform Ogre freetype gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverMyGUI )
+target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.Engine Ogre freetype gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefVFS guidriverMyGUI )
+target_link_libraries( ${MODULE_NAME} PRIVATE MyGUI.OgrePlatform )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERMYGUIOGRE_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverMyGUIOgre;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverMyGUIOgre" )
 
 include_directories( ../../../common/include ../../../dependencies/MyGui/MyGUIEngine/include ../../../dependencies/Ogre/OgreMain/include ../../../dependencies/Ogre/OgreMain/include/Hash ../../../dependencies/Ogre/OgreMain/include/Threading ../../../dependencies/Ogre/OgreMain/src ../../../dependencies/Ogre/OgreMain/src/nedmalloc ../../../dependencies/Ogre/OgreMain/src/stbi ../../../dependencies/Ogre/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../guidriverMyGUI/include include )

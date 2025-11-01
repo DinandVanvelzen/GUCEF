@@ -22,12 +22,12 @@
     </Module>
     <Module Platform="mswin">
         <Linker>
-            <Dependency Name="Winmm" />
+            <Dependency Name="Winmm" Scope="private" />
         </Linker>
     </Module>
     <Module Platform="linux">
         <Linker>
-            <Dependency Name="pthread" />
+            <Dependency Name="pthread" Scope="private" />
         </Linker>
     </Module>
 </ModuleInfoEntry>

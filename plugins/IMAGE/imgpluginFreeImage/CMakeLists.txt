@@ -139,25 +139,25 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} FreeImage gucefCORE gucefIMAGE gucefMT )
-  target_link_libraries( ${MODULE_NAME} FreeImage )
+  target_link_libraries( ${MODULE_NAME} PUBLIC FreeImage )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=imgpluginFreeImage" )
 endif( LINUX32 )
 
 if ( LINUX64 )
   add_dependencies( ${MODULE_NAME} FreeImage gucefCORE gucefIMAGE gucefMT )
-  target_link_libraries( ${MODULE_NAME} FreeImage )
+  target_link_libraries( ${MODULE_NAME} PUBLIC FreeImage )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=imgpluginFreeImage" )
 endif( LINUX64 )
 
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} FreeImage gucefCORE gucefIMAGE gucefMT )
-  target_link_libraries( ${MODULE_NAME} FreeImage )
+  target_link_libraries( ${MODULE_NAME} PUBLIC FreeImage )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=imgpluginFreeImage" )
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} FreeImage gucefCORE gucefIMAGE gucefMT )
-  target_link_libraries( ${MODULE_NAME} FreeImage )
+  target_link_libraries( ${MODULE_NAME} PUBLIC FreeImage )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=imgpluginFreeImage" )
 endif( WIN64 )
 

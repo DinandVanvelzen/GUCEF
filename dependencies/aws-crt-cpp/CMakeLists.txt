@@ -55,7 +55,7 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "aws-crt-cpp" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} aws-c-auth aws-c-cal aws-c-common aws-c-compression aws-c-event-stream aws-c-http aws-c-io aws-c-mqtt aws-c-s3 aws-c-sdkutils aws-checksums )
-target_link_libraries( ${MODULE_NAME} aws-c-auth aws-c-cal aws-c-common aws-c-compression aws-c-event-stream aws-c-http aws-c-io aws-c-mqtt aws-c-s3 aws-c-sdkutils aws-checksums )
+target_link_libraries( ${MODULE_NAME} PUBLIC aws-c-auth aws-c-cal aws-c-common aws-c-compression aws-c-event-stream aws-c-http aws-c-io aws-c-mqtt aws-c-s3 aws-c-sdkutils aws-checksums )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_CRT_CPP_EXPORTS;CJSON_AS4CPP_HIDE_SYMBOLS;CJSON_HIDE_SYMBOLS;MODULE_CONSENSUS_NAME=aws_crt_cpp;MODULE_NAME=aws_crt_cpp;MODULE_SEMVER=0_18_16_0;USE_IMPORT_EXPORT=1" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.18.16.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.18.16.0 )
@@ -81,12 +81,12 @@ if ( OSX )
 endif( OSX )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} Secur32.lib Shlwapi.lib Userenv.lib Version.lib WindowsApp.lib Winhttp.lib Wininet.lib msxml6.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Secur32.lib Shlwapi.lib Userenv.lib Version.lib WindowsApp.lib Winhttp.lib Wininet.lib msxml6.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_CRT_CPP_EXPORTS;AWS_CRT_CPP_USE_IMPORT_EXPORT;BYPASS_DEFAULT_PROXY;ENABLE_BCRYPT_ENCRYPTION;ENABLE_WINDOWS_CLIENT;ENABLE_WINDOWS_IXML_HTTP_REQUEST_2_CLIENT;PLATFORM_WINDOWS;USE_WINDOWS_DLL_SEMANTICS" )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} Secur32.lib Shlwapi.lib Userenv.lib Version.lib WindowsApp.lib Winhttp.lib Wininet.lib msxml6.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Secur32.lib Shlwapi.lib Userenv.lib Version.lib WindowsApp.lib Winhttp.lib Wininet.lib msxml6.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_CRT_CPP_EXPORTS;AWS_CRT_CPP_USE_IMPORT_EXPORT;BYPASS_DEFAULT_PROXY;ENABLE_BCRYPT_ENCRYPTION;ENABLE_WINDOWS_CLIENT;ENABLE_WINDOWS_IXML_HTTP_REQUEST_2_CLIENT;PLATFORM_WINDOWS;USE_WINDOWS_DLL_SEMANTICS" )
 endif( WIN64 )
 

@@ -31,7 +31,7 @@ else()
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 add_dependencies( ${MODULE_NAME} ProjectGen gucefCORE gucefMT )
-target_link_libraries( ${MODULE_NAME} ProjectGen gucefCORE gucefMT )
+target_link_libraries( ${MODULE_NAME} PUBLIC ProjectGen gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_PROJECTGENERATOR_BUILD_MODULE;MODULE_CONSENSUS_NAME=ProjectGenerator;MODULE_NAME=ProjectGenerator" )
 
 include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../ProjectGen/include )

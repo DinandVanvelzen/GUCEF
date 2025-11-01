@@ -21,12 +21,12 @@
 			<Dependency Name="gucefWEB" />			
         </Dependencies>
         <Linker>
-            <Dependency Name="gucefMT" />
-            <Dependency Name="gucefCORE" />
-			<Dependency Name="gucefCOMCORE" />
-			<Dependency Name="gucefCOM" />
-			<Dependency Name="gucefVFS" />
-			<Dependency Name="gucefWEB" />			
+            <Dependency Name="gucefMT" Scope="public" />
+            <Dependency Name="gucefCORE" Scope="public" />
+			<Dependency Name="gucefCOMCORE" Scope="public" />
+			<Dependency Name="gucefCOM" Scope="public" />
+			<Dependency Name="gucefVFS" Scope="public" />
+			<Dependency Name="gucefWEB" Scope="public" />			
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_PUBSUB_BUILD_MODULE" />

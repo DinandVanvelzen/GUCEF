@@ -314,12 +314,12 @@ elseif( WIN64 )
 endif()
 
 if ( LINUX32 )
-  target_link_libraries( ${MODULE_NAME} X11 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE X11 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OIS;OIS_DYNAMIC_LIB;OIS_LINUX_PLATFORM;OIS_NONCLIENT_BUILD" )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  target_link_libraries( ${MODULE_NAME} X11 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE X11 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OIS;OIS_DYNAMIC_LIB;OIS_LINUX_PLATFORM;OIS_NONCLIENT_BUILD" )
 endif( LINUX64 )
 
@@ -328,12 +328,12 @@ if ( OSX )
 endif( OSX )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} dinput8 dxguid )
+  target_link_libraries( ${MODULE_NAME} PRIVATE dinput8 dxguid )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OIS;OIS_DYNAMIC_LIB;OIS_NONCLIENT_BUILD" )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} dinput8 dxguid )
+  target_link_libraries( ${MODULE_NAME} PRIVATE dinput8 dxguid )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=OIS;OIS_DYNAMIC_LIB;OIS_NONCLIENT_BUILD" )
 endif( WIN64 )
 

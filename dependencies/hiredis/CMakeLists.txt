@@ -567,11 +567,11 @@ add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=hiredis;MODULE_NAME=hiredis" )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} ws2_32 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE ws2_32 )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} ws2_32 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE ws2_32 )
 endif( WIN64 )
 
 

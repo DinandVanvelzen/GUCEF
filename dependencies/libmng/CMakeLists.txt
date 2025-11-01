@@ -71,7 +71,8 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "libmng" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} lcms2 libjpeg zlib )
-target_link_libraries( ${MODULE_NAME} lcms2 libjpeg zlib )
+target_link_libraries( ${MODULE_NAME} PUBLIC lcms2 libjpeg )
+target_link_libraries( ${MODULE_NAME} PRIVATE zlib )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CMS_DLL;MNG_BUILD_DLL;MNG_BUILD_SO;MODULE_CONSENSUS_NAME=libmng;MODULE_NAME=libmng" )
 
 include_directories( ../Little-CMS/include ../Little-CMS/src ../libjpeg )

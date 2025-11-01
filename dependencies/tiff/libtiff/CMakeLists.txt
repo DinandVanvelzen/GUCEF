@@ -117,7 +117,8 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "libtiff" )
 add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} libjpeg zlib )
-target_link_libraries( ${MODULE_NAME} libjpeg zlib )
+target_link_libraries( ${MODULE_NAME} PUBLIC libjpeg )
+target_link_libraries( ${MODULE_NAME} PRIVATE zlib )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=libtiff;MODULE_NAME=libtiff" )
 
 include_directories( ../../libjpeg )

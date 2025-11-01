@@ -17,7 +17,7 @@
             <Dependency Name="gucefMT" />
         </Dependencies>
         <Linker>
-            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefMT" Scope="public" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEF_CORE_BUILD_MODULE" />
@@ -25,20 +25,20 @@
     </Module>
     <Module Platform="mswin">
         <Linker>
-            <Dependency Name="Ws2_32.lib" />
-			<Dependency Name="PowrProf.lib" />
+            <Dependency Name="Ws2_32.lib" Scope="private" />
+			<Dependency Name="PowrProf.lib" Scope="private" />
         </Linker>
     </Module>  
     <Module Platform="Linux">
         <Linker>
-            <Dependency Name="dl" />
-            <Dependency Name="rt" />
-            <Dependency Name="X11" />
+            <Dependency Name="dl" Scope="private" />
+            <Dependency Name="rt" Scope="private" />
+            <Dependency Name="X11" Scope="private" />
         </Linker>
     </Module>
     <Module Platform="Android">
         <Linker>
-            <Dependency Name="dl" />
+            <Dependency Name="dl" Scope="private" />
         </Linker>
     </Module>
 </ModuleInfoEntry>

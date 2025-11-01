@@ -37,7 +37,7 @@ else()
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT jsonbuilder jsonparser )
-target_link_libraries( ${MODULE_NAME} jsonbuilder jsonparser )
+target_link_libraries( ${MODULE_NAME} PUBLIC jsonbuilder jsonparser )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINJSONPARSER_BUILD_MODULE;MODULE_CONSENSUS_NAME=dstorepluginJSONPARSER;MODULE_IS_PLUGIN=1;MODULE_NAME=dstorepluginJSONPARSER" )
 
 if ( EMSCRIPTEN32 )

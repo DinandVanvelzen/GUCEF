@@ -62,11 +62,11 @@ if ( ANDROID64 )
 endif( ANDROID64 )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} WS2_32.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE WS2_32.lib )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} WS2_32.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE WS2_32.lib )
 endif( WIN64 )
 
 

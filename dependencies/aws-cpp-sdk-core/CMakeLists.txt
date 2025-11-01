@@ -477,7 +477,7 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "aws-cpp-sdk-core" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} aws-c-auth aws-c-cal aws-c-common aws-c-compression aws-c-event-stream aws-c-http aws-c-io aws-c-mqtt aws-c-s3 aws-c-sdkutils aws-checksums aws-crt-cpp curl )
-target_link_libraries( ${MODULE_NAME} aws-c-auth aws-c-cal aws-c-common aws-c-compression aws-c-event-stream aws-c-http aws-c-io aws-c-mqtt aws-c-s3 aws-c-sdkutils aws-checksums aws-crt-cpp curl )
+target_link_libraries( ${MODULE_NAME} PUBLIC aws-c-auth aws-c-cal aws-c-common aws-c-compression aws-c-event-stream aws-c-http aws-c-io aws-c-mqtt aws-c-s3 aws-c-sdkutils aws-checksums aws-crt-cpp curl )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "AWS_CORE_EXPORTS=1;MODULE_CONSENSUS_NAME=aws_cpp_sdk_core;MODULE_NAME=aws_cpp_sdk_core;USE_IMPORT_EXPORT=1" )
 
 if ( ANDROID32 )
@@ -501,12 +501,12 @@ if ( OSX )
 endif( OSX )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} Userenv.lib Version.lib WindowsApp.lib Winhttp.lib Wininet.lib msxml6.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Userenv.lib Version.lib WindowsApp.lib Winhttp.lib Wininet.lib msxml6.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BYPASS_DEFAULT_PROXY;ENABLE_BCRYPT_ENCRYPTION;ENABLE_WINDOWS_CLIENT;ENABLE_WINDOWS_IXML_HTTP_REQUEST_2_CLIENT;NTDDI_VERSION=NTDDI_WIN7;PLATFORM_WINDOWS" )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} Userenv.lib Version.lib WindowsApp.lib Winhttp.lib Wininet.lib msxml6.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Userenv.lib Version.lib WindowsApp.lib Winhttp.lib Wininet.lib msxml6.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BYPASS_DEFAULT_PROXY;ENABLE_BCRYPT_ENCRYPTION;ENABLE_WINDOWS_CLIENT;ENABLE_WINDOWS_IXML_HTTP_REQUEST_2_CLIENT;NTDDI_VERSION=NTDDI_WIN7;PLATFORM_WINDOWS" )
 endif( WIN64 )
 

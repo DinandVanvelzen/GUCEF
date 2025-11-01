@@ -1064,33 +1064,91 @@ GenerateCMakeModuleLinkerLine( const CProjectInfo& projectInfo   ,
     }
         
     if ( !moduleInfo->linkerSettings.GetLinkedLibraries().empty() )
-    {
-        sectionContent += "target_link_libraries( ${MODULE_NAME}";
-
+    {       
+        CORE::CStringSet publicScopeLibs;
+        CORE::CStringSet privateScopeLibs;
         TLinkedLibrarySettingsPtrMap::const_iterator i = moduleInfo->linkerSettings.GetLinkedLibraries().begin();
         while ( i != moduleInfo->linkerSettings.GetLinkedLibraries().end() )
         {
-            // We add all dependencies except for header include locations which are not real modules
-            // and CMake will not be using a make file for those.
-            const CModuleInfoEntryPtr dependencyModule = projectInfo.GetModuleInfoEntry( (*i).first, platformName );
-            if ( !dependencyModule.IsNULL() )
+            const CString& rawLibName = (*i).first;
+            CORE::CString libName = ConvertEnvVarStrings( rawLibName );
+            const CLinkedLibrarySettingsPtr& linkedLibSettings = (*i).second;
+
+            if ( !linkedLibSettings.IsNULL() )
             {
-                TModuleType moduleType = dependencyModule->GetModuleType( platformName );
-                if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != moduleType )   &&
-                     ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleType ) &&
-                     ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleType )   &&
-                     ( MODULETYPE_BINARY_PACKAGE != moduleType )             )
+                TLinkedDependencyScope linkedLibScope = linkedLibSettings->GetLinkedDependencyScope();
+
+                // We add all dependencies except for header include locations which are not real modules
+                // and CMake will not be using a make file for those.
+                const CModuleInfoEntryPtr dependencyModule = projectInfo.GetModuleInfoEntry( libName, platformName );
+                if ( !dependencyModule.IsNULL() )
                 {
-                    sectionContent += ' ' + ConvertEnvVarStrings( (*i).first );
+                    TModuleType moduleType = dependencyModule->GetModuleType( platformName );
+                    if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != moduleType )   &&
+                         ( MODULETYPE_HEADER_INTEGRATE_LOCATION != moduleType ) &&
+                         ( MODULETYPE_CODE_INTEGRATE_LOCATION != moduleType )   &&
+                         ( MODULETYPE_BINARY_PACKAGE != moduleType )             )
+                    {
+                        if ( TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_PRIVATE != linkedLibScope )
+                        {
+                            // Considering its one module we control in the project depending on another module we control
+                            // we will treat unknown / auto as public. Can create bulkier linkage but safer that way wrt at least getting a working build
+                            // you can always explicitly set private if needed
+                            publicScopeLibs.insert( libName );
+                        }
+                        else
+                        {                            
+                            // Adhere to the explicit private scope
+                            privateScopeLibs.insert( libName );
+                        }
+                    }
+                }
+                else
+                {
+                    if ( TLinkedDependencyScope::LINKEDDEPENDENCYSCOPE_PUBLIC == linkedLibScope )
+                    {
+                        publicScopeLibs.insert( libName );
+                    }
+                    else
+                    {
+                        // unknown / auto treat as private
+                        privateScopeLibs.insert( libName );
+                    }
                 }
             }
             else
             {
-                sectionContent += ' ' + ConvertEnvVarStrings( (*i).first );
+                privateScopeLibs.insert( libName );
             }
+
             ++i;
         }
-        sectionContent += " )\n";
+
+        if ( !publicScopeLibs.empty() )
+        {
+            CORE::CString targetLinkLine = "target_link_libraries( ${MODULE_NAME} PUBLIC";
+            CORE::CStringSet::iterator n = publicScopeLibs.begin();
+            while ( n != publicScopeLibs.end() )
+            {
+                targetLinkLine += " " + (*n);
+                ++n;
+            }
+            targetLinkLine += " )\n";
+            sectionContent += targetLinkLine;
+        }
+
+        if ( !privateScopeLibs.empty() )
+        {
+            CORE::CString targetLinkLine = "target_link_libraries( ${MODULE_NAME} PRIVATE";
+            CORE::CStringSet::iterator n = privateScopeLibs.begin();
+            while ( n != privateScopeLibs.end() )
+            {
+                targetLinkLine += " " + (*n);
+                ++n;
+            }
+            targetLinkLine += " )\n";
+            sectionContent += targetLinkLine;
+        }
     }
 
     return sectionContent;

@@ -18,8 +18,8 @@
             <Dependency Name="gucefCORE" />
         </Dependencies>
         <Linker>
-            <Dependency Name="gucefMT" />
-            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" Scope="public" />
+            <Dependency Name="gucefCORE" Scope="public" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEFIMAGE_BUILD_MODULE" />

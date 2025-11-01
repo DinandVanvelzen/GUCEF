@@ -63,13 +63,15 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefINPUT gucefMT )
-  target_link_libraries( ${MODULE_NAME} android android_native_app_glue gucefCORE gucefINPUT gucefMT )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefINPUT gucefMT )
+target_link_libraries( ${MODULE_NAME} PRIVATE android android_native_app_glue )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BUILD_GUCEF_INPUT_PLUGIN_DLL;INPUTDRIVERANDROID_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=inputdriverNANDROID" )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefINPUT gucefMT )
-  target_link_libraries( ${MODULE_NAME} android android_native_app_glue gucefCORE gucefINPUT gucefMT )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefINPUT gucefMT )
+target_link_libraries( ${MODULE_NAME} PRIVATE android android_native_app_glue )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BUILD_GUCEF_INPUT_PLUGIN_DLL;INPUTDRIVERANDROID_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=inputdriverNANDROID" )
 endif( ANDROID64 )
 

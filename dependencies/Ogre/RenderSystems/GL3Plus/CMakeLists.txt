@@ -198,23 +198,23 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "OgreRenderSystem_GL3Plus" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} Ogre )
-target_link_libraries( ${MODULE_NAME} Ogre )
+target_link_libraries( ${MODULE_NAME} PUBLIC Ogre )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=OgreRenderSystem_GL3Plus;MODULE_NAME=OgreRenderSystem_GL3Plus;RenderSystem_GL3Plus_EXPORTS" )
 
 if ( LINUX32 )
-  target_link_libraries( ${MODULE_NAME} GL )
+  target_link_libraries( ${MODULE_NAME} PRIVATE GL )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  target_link_libraries( ${MODULE_NAME} GL )
+  target_link_libraries( ${MODULE_NAME} PRIVATE GL )
 endif( LINUX64 )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} opengl32 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE opengl32 )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} opengl32 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE opengl32 )
 endif( WIN64 )
 
 include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../OgreMain/include ../../OgreMain/include/Hash ../../OgreMain/include/Threading ../../OgreMain/src ../../OgreMain/src/nedmalloc ../../OgreMain/src/stbi ../../include include include/GL include/GLSL )

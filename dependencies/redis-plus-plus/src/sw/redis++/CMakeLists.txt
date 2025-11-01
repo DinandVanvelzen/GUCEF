@@ -73,7 +73,7 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "redis-plus-plus" )
 add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} hiredis )
-target_link_libraries( ${MODULE_NAME} hiredis )
+target_link_libraries( ${MODULE_NAME} PUBLIC hiredis )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=redis_plus_plus;MODULE_NAME=redis_plus_plus;REDIS_PLUS_PLUS_BUILD_TEST=OFF;REDIS_PLUS_PLUS_CXX_STANDARD=11" )
 
 include_directories( ../../ ../../../../ ../../../../hiredis ../redis++ cxx11 cxx11/sw cxx11/sw/redis++ no_tls no_tls/sw no_tls/sw/redis++ patterns )

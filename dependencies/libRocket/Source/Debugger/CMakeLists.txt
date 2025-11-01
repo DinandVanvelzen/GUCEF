@@ -48,7 +48,7 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "RocketDebugger" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} RocketCore freetype )
-target_link_libraries( ${MODULE_NAME} RocketCore freetype )
+target_link_libraries( ${MODULE_NAME} PUBLIC RocketCore freetype )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=RocketDebugger;MODULE_NAME=RocketDebugger" )
 
 include_directories( ../../../freetype/include ../../../freetype/include/freetype ../../../freetype/include/freetype/config ../../../freetype/include/freetype/internal ../../../freetype/include/freetype/internal/services ../../../freetype/src ../../../freetype/src/winfonts ../../Include ../../Include/Rocket ../../Include/Rocket/Controls ../../Include/Rocket/Core ../../Include/Rocket/Core/Python ../../Include/Rocket/Debugger ../Core )

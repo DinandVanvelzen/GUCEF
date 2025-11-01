@@ -812,31 +812,31 @@ add_library( ${MODULE_NAME} ${ALL_FILES} )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "FT2_BUILD_LIBRARY;FT_CONFIG_OPTION_SYSTEM_ZLIB;FT_CONFIG_OPTION_USE_ZLIB;FT_DVEDIT_BUILD_DLL;FT_DVEDIT_DLL_API;MODULE_CONSENSUS_NAME=freetype;MODULE_NAME=freetype" )
 
 if ( ANDROID32 )
-  target_link_libraries( ${MODULE_NAME} z )
+  target_link_libraries( ${MODULE_NAME} PRIVATE z )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  target_link_libraries( ${MODULE_NAME} z )
+  target_link_libraries( ${MODULE_NAME} PRIVATE z )
 endif( ANDROID64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} zlib )
-  target_link_libraries( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
 endif( LINUX32 )
 
 if ( LINUX64 )
   add_dependencies( ${MODULE_NAME} zlib )
-  target_link_libraries( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
 endif( LINUX64 )
 
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} zlib )
-  target_link_libraries( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} zlib )
-  target_link_libraries( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
 endif( WIN64 )
 
 include_directories( include include/freetype include/freetype/config include/freetype/internal include/freetype/internal/services src src/winfonts )

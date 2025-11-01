@@ -39,7 +39,7 @@ else()
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT stbrumme-hash )
-target_link_libraries( ${MODULE_NAME} stbrumme-hash )
+target_link_libraries( ${MODULE_NAME} PUBLIC stbrumme-hash )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CODECPLUGIN_BUILD_MODULE;MODULE_CONSENSUS_NAME=codecspluginSTBRUMMEHASH;MODULE_IS_PLUGIN=1;MODULE_NAME=codecspluginSTBRUMMEHASH" )
 
 if ( EMSCRIPTEN32 )

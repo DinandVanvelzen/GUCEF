@@ -234,15 +234,15 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "CEGUI" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} freetype pcre )
-target_link_libraries( ${MODULE_NAME} freetype pcre )
+target_link_libraries( ${MODULE_NAME} PUBLIC freetype pcre )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CEGUIBASE_EXPORTS;MODULE_CONSENSUS_NAME=CEGUI;MODULE_NAME=CEGUI" )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} Dbghelp Winmm )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Dbghelp Winmm )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} Dbghelp Winmm )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Dbghelp Winmm )
 endif( WIN64 )
 
 include_directories( ../../freetype/include ../../freetype/include/freetype ../../freetype/include/freetype/config ../../freetype/include/freetype/internal ../../freetype/include/freetype/internal/services ../../freetype/src ../../freetype/src/winfonts ../../pcre include )

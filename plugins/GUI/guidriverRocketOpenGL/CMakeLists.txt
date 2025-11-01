@@ -38,31 +38,31 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "guidriverRocketOpenGL" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} RocketControls RocketCore gucefCORE gucefGUI gucefINPUT gucefMT guidriverRocket )
-target_link_libraries( ${MODULE_NAME} RocketControls RocketCore gucefCORE gucefGUI gucefINPUT gucefMT guidriverRocket )
+target_link_libraries( ${MODULE_NAME} PUBLIC RocketControls RocketCore gucefCORE gucefGUI gucefINPUT gucefMT guidriverRocket )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERROCKETGL_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverRocketOpenGL;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverRocketOpenGL" )
 
 if ( ANDROID32 )
-  target_link_libraries( ${MODULE_NAME} EGL GLESv1_CM )
+  target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv1_CM )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  target_link_libraries( ${MODULE_NAME} EGL GLESv1_CM )
+  target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv1_CM )
 endif( ANDROID64 )
 
 if ( LINUX32 )
-  target_link_libraries( ${MODULE_NAME} GL )
+  target_link_libraries( ${MODULE_NAME} PRIVATE GL )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  target_link_libraries( ${MODULE_NAME} GL )
+  target_link_libraries( ${MODULE_NAME} PRIVATE GL )
 endif( LINUX64 )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} OpenGL32.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE OpenGL32.lib )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} OpenGL32.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE OpenGL32.lib )
 endif( WIN64 )
 
 include_directories( ../../../common/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../dependencies/libRocket/Include ../../../dependencies/libRocket/Include/Rocket ../../../dependencies/libRocket/Include/Rocket/Controls ../../../dependencies/libRocket/Include/Rocket/Core ../../../dependencies/libRocket/Include/Rocket/Core/Python ../../../dependencies/libRocket/Include/Rocket/Debugger ../../../dependencies/libRocket/Source/Controls ../../../dependencies/libRocket/Source/Core ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../guidriverRocket/include include )

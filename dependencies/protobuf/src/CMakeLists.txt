@@ -3959,31 +3959,31 @@ endif()
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "LIBPROTOBUF_EXPORTS;LIBPROTOC_EXPORTS;MODULE_CONSENSUS_NAME=libprotobuf;MODULE_NAME=libprotobuf;PROTOBUF_USE_DLLS" )
 
 if ( ANDROID32 )
-  target_link_libraries( ${MODULE_NAME} log z )
+  target_link_libraries( ${MODULE_NAME} PRIVATE log z )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  target_link_libraries( ${MODULE_NAME} log z )
+  target_link_libraries( ${MODULE_NAME} PRIVATE log z )
 endif( ANDROID64 )
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} zlib )
-  target_link_libraries( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
 endif( LINUX32 )
 
 if ( LINUX64 )
   add_dependencies( ${MODULE_NAME} zlib )
-  target_link_libraries( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
 endif( LINUX64 )
 
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} zlib )
-  target_link_libraries( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} zlib )
-  target_link_libraries( ${MODULE_NAME} zlib )
+  target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
 endif( WIN64 )
 
 include_directories( ../src google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )

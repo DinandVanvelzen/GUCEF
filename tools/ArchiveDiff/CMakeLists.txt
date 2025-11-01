@@ -31,7 +31,7 @@ else()
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 add_dependencies( ${MODULE_NAME} ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
-target_link_libraries( ${MODULE_NAME} ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
+target_link_libraries( ${MODULE_NAME} PUBLIC ArchiveDiffLib gucefCORE gucefMT gucefPATCHER )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ARCHIVEDIFF_BUILD_MODULE;MODULE_CONSENSUS_NAME=ArchiveDiff;MODULE_NAME=ArchiveDiff" )
 
 include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefPATCHER/include ../ArchiveDiffLib/include )

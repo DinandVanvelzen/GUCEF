@@ -37,7 +37,7 @@ else()
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT libparsifal )
-target_link_libraries( ${MODULE_NAME} libparsifal )
+target_link_libraries( ${MODULE_NAME} PUBLIC libparsifal )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINPARSIFALXML_BUILD_MODULE;MODULE_CONSENSUS_NAME=dstorepluginPARSIFALXML;MODULE_IS_PLUGIN=1;MODULE_NAME=dstorepluginPARSIFALXML" )
 
 if ( EMSCRIPTEN32 )

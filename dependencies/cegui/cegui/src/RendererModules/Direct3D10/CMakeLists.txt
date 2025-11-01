@@ -67,13 +67,15 @@ endif()
 
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} CEGUI )
-  target_link_libraries( ${MODULE_NAME} CEGUI d3d10 d3dx10 )
+  target_link_libraries( ${MODULE_NAME} PUBLIC CEGUI )
+target_link_libraries( ${MODULE_NAME} PRIVATE d3d10 d3dx10 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CEGUIDIRECT3D10RENDERER_EXPORTS;MODULE_NAME=CEGUI_RendererModule_Direct3D10" )
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} CEGUI )
-  target_link_libraries( ${MODULE_NAME} CEGUI d3d10 d3dx10 )
+  target_link_libraries( ${MODULE_NAME} PUBLIC CEGUI )
+target_link_libraries( ${MODULE_NAME} PRIVATE d3d10 d3dx10 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CEGUIDIRECT3D10RENDERER_EXPORTS;MODULE_NAME=CEGUI_RendererModule_Direct3D10" )
 endif( WIN64 )
 

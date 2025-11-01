@@ -86,13 +86,13 @@ endif()
 
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT gucefPATCHER gucefVFS )
-  target_link_libraries( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT gucefPATCHER gucefVFS )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefMT gucefPATCHER gucefVFS )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=MFCPatcherGUI;_AFXDLL" )
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT gucefPATCHER gucefVFS )
-  target_link_libraries( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT gucefPATCHER gucefVFS )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefMT gucefPATCHER gucefVFS )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=MFCPatcherGUI;_AFXDLL" )
 endif( WIN64 )
 

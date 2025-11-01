@@ -192,7 +192,8 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "DevIL2" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} OpenEXR jasper lcms2 libjpeg libmng libpng libtiff squish zlib )
-target_link_libraries( ${MODULE_NAME} OpenEXR jasper lcms2 libjpeg libmng libpng libtiff squish zlib )
+target_link_libraries( ${MODULE_NAME} PUBLIC OpenEXR jasper lcms2 libjpeg libmng libpng libtiff squish )
+target_link_libraries( ${MODULE_NAME} PRIVATE zlib )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CMS_DLL;HAVE_CONFIG_H;JAS_DLL;MNG_DLL;MNG_USE_DLL;MODULE_CONSENSUS_NAME=DevIL2;MODULE_NAME=DevIL2" )
 
 include_directories( ../../Little-CMS/include ../../Little-CMS/src ../../jasper/src/libjasper/bmp ../../jasper/src/libjasper/include ../../jasper/src/libjasper/include/jasper ../../jasper/src/libjasper/jp2 ../../jasper/src/libjasper/jpc ../../jasper/src/libjasper/jpg ../../jasper/src/libjasper/mif ../../jasper/src/libjasper/pgx ../../jasper/src/libjasper/pnm ../../jasper/src/libjasper/ras ../../libjpeg ../../libmng ../../libpng ../../libsquish ../../openexr/IlmBase ../../openexr/IlmBase/Half ../../openexr/IlmBase/Iex ../../openexr/IlmBase/IexMath ../../openexr/IlmBase/IlmThread ../../openexr/IlmBase/Imath ../../openexr/IlmBase/config.windows ../../openexr/OpenEXR ../../openexr/OpenEXR/IlmImf ../../openexr/OpenEXR/IlmImfUtil ../../openexr/OpenEXR/config.windows ../../tiff/libtiff include include/IL src-IL src-IL/include src-ILU src-ILU/include src-ILU/include/ilu_error src-ILUT src-ILUT/include )

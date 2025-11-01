@@ -80,13 +80,15 @@ endif()
 
 if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} MyGUI.Engine )
-  target_link_libraries( ${MODULE_NAME} GLESv1_CM MyGUI.Engine )
+  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.Engine )
+target_link_libraries( ${MODULE_NAME} PRIVATE GLESv1_CM )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=MyGUI_OpenGLESPlatform" )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
   add_dependencies( ${MODULE_NAME} MyGUI.Engine )
-  target_link_libraries( ${MODULE_NAME} GLESv1_CM MyGUI.Engine )
+  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.Engine )
+target_link_libraries( ${MODULE_NAME} PRIVATE GLESv1_CM )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=MyGUI_OpenGLESPlatform" )
 endif( ANDROID64 )
 

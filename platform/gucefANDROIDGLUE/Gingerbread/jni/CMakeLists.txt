@@ -51,13 +51,13 @@ endif()
 
 if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} gucefLOADER )
-  target_link_libraries( ${MODULE_NAME} android android_native_app_glue )
+  target_link_libraries( ${MODULE_NAME} PRIVATE android android_native_app_glue )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=main" )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
   add_dependencies( ${MODULE_NAME} gucefLOADER )
-  target_link_libraries( ${MODULE_NAME} android android_native_app_glue )
+  target_link_libraries( ${MODULE_NAME} PRIVATE android android_native_app_glue )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=main" )
 endif( ANDROID64 )
 

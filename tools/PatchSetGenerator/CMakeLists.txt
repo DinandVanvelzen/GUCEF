@@ -51,13 +51,13 @@ endif()
 
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefMT gucefPATCHER )
-  target_link_libraries( ${MODULE_NAME} gucefCORE gucefMT gucefPATCHER )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT gucefPATCHER )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=PatchSetGenerator;PATCHSETGENERATOR_BUILD_MODULE" )
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefMT gucefPATCHER )
-  target_link_libraries( ${MODULE_NAME} gucefCORE gucefMT gucefPATCHER )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT gucefPATCHER )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=PatchSetGenerator;PATCHSETGENERATOR_BUILD_MODULE" )
 endif( WIN64 )
 

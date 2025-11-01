@@ -77,13 +77,15 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefMT )
-  target_link_libraries( ${MODULE_NAME} GL X11 gucefCORE gucefGUI gucefMT )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefMT )
+target_link_libraries( ${MODULE_NAME} PRIVATE GL X11 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERXWINGL_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverXWinGL" )
 endif( LINUX32 )
 
 if ( LINUX64 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefMT )
-  target_link_libraries( ${MODULE_NAME} GL X11 gucefCORE gucefGUI gucefMT )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefMT )
+target_link_libraries( ${MODULE_NAME} PRIVATE GL X11 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERXWINGL_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverXWinGL" )
 endif( LINUX64 )
 

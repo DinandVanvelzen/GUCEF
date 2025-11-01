@@ -37,7 +37,7 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "comcorepluginDBL" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT )
-target_link_libraries( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMCORE gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "COMCOREPLUGIN_DBL_BUILD_PLUGIN_DLL;MODULE_CONSENSUS_NAME=comcorepluginDBL;MODULE_IS_PLUGIN=1;MODULE_NAME=comcorepluginDBL" )
 
 include_directories( ../../../common/include ../../../platform/gucefCOMCORE/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )

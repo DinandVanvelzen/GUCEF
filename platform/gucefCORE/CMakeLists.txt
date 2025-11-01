@@ -684,33 +684,33 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "gucefCORE" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} gucefMT )
-target_link_libraries( ${MODULE_NAME} gucefMT )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CORE_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefCORE;MODULE_NAME=gucefCORE;MODULE_SEMVER=0_1_0_0" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
 if ( ANDROID32 )
-  target_link_libraries( ${MODULE_NAME} dl )
+  target_link_libraries( ${MODULE_NAME} PRIVATE dl )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  target_link_libraries( ${MODULE_NAME} dl )
+  target_link_libraries( ${MODULE_NAME} PRIVATE dl )
 endif( ANDROID64 )
 
 if ( LINUX32 )
-  target_link_libraries( ${MODULE_NAME} X11 dl rt )
+  target_link_libraries( ${MODULE_NAME} PRIVATE X11 dl rt )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  target_link_libraries( ${MODULE_NAME} X11 dl rt )
+  target_link_libraries( ${MODULE_NAME} PRIVATE X11 dl rt )
 endif( LINUX64 )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} PowrProf.lib Ws2_32.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE PowrProf.lib Ws2_32.lib )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} PowrProf.lib Ws2_32.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE PowrProf.lib Ws2_32.lib )
 endif( WIN64 )
 
 include_directories( ../../common/include ../gucefMT/include include include/c_api )

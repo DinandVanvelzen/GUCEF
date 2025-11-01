@@ -20,10 +20,10 @@
             <Dependency Name="gucefCOM" />
         </Dependencies>
         <Linker>
-            <Dependency Name="gucefMT" />
-            <Dependency Name="gucefCORE" />
-            <Dependency Name="gucefCOMCORE" />
-            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefMT" Scope="public" />
+            <Dependency Name="gucefCORE" Scope="public" />
+            <Dependency Name="gucefCOMCORE" Scope="public" />
+            <Dependency Name="gucefCOM" Scope="public" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEFPATCHER_BUILD_MODULE" />

@@ -45,7 +45,7 @@ else()
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT gucefVFS gucefWEB hiredis redis-plus-plus )
-target_link_libraries( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT gucefVFS gucefWEB hiredis redis-plus-plus )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefMT gucefVFS gucefWEB hiredis redis-plus-plus )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=redisinfo;MODULE_NAME=redisinfo" )
 
 include_directories( ../../common/include ../../dependencies/ ../../dependencies/hiredis ../../dependencies/redis-plus-plus/src/ ../../dependencies/redis-plus-plus/src/sw/redis++ ../../dependencies/redis-plus-plus/src/sw/redis++/cxx11 ../../dependencies/redis-plus-plus/src/sw/redis++/cxx11/sw ../../dependencies/redis-plus-plus/src/sw/redis++/cxx11/sw/redis++ ../../dependencies/redis-plus-plus/src/sw/redis++/no_tls ../../dependencies/redis-plus-plus/src/sw/redis++/no_tls/sw ../../dependencies/redis-plus-plus/src/sw/redis++/no_tls/sw/redis++ ../../dependencies/redis-plus-plus/src/sw/redis++/patterns ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include include )

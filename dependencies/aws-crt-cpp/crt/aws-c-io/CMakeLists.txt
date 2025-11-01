@@ -105,7 +105,7 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "aws-c-io" )
 add_library( ${MODULE_NAME} STATIC ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} aws-c-cal aws-c-common )
-target_link_libraries( ${MODULE_NAME} aws-c-cal aws-c-common )
+target_link_libraries( ${MODULE_NAME} PUBLIC aws-c-cal aws-c-common )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=aws_c_io;MODULE_NAME=aws_c_io" )
 
 if ( WIN32 )

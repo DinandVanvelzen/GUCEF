@@ -690,23 +690,23 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "Ogre" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} freetype )
-target_link_libraries( ${MODULE_NAME} freetype )
+target_link_libraries( ${MODULE_NAME} PUBLIC freetype )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=Ogre;MODULE_NAME=Ogre;OGRE_NONCLIENT_BUILD;OGRE_NO_CONFIG_DIALOG" )
 
 if ( ANDROID32 )
-  target_link_libraries( ${MODULE_NAME} atomic dl )
+  target_link_libraries( ${MODULE_NAME} PRIVATE atomic dl )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  target_link_libraries( ${MODULE_NAME} atomic dl )
+  target_link_libraries( ${MODULE_NAME} PRIVATE atomic dl )
 endif( ANDROID64 )
 
 if ( LINUX32 )
-  target_link_libraries( ${MODULE_NAME} atomic dl )
+  target_link_libraries( ${MODULE_NAME} PRIVATE atomic dl )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  target_link_libraries( ${MODULE_NAME} atomic dl )
+  target_link_libraries( ${MODULE_NAME} PRIVATE atomic dl )
 endif( LINUX64 )
 
 include_directories( ../../freetype/include ../../freetype/include/freetype ../../freetype/include/freetype/config ../../freetype/include/freetype/internal ../../freetype/include/freetype/internal/services ../../freetype/src ../../freetype/src/winfonts ../include include include/Hash include/Threading src src/nedmalloc src/stbi )

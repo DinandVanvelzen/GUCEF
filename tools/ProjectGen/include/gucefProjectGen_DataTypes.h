@@ -183,6 +183,19 @@ typedef GUCEF::map< CORE::CString, TModuleType > TModuleTypeMap;
 
 /*---------------------------------------------------------------------------*/
 
+enum ELinkedDependencyScope
+{
+    LINKEDDEPENDENCYSCOPE_UNDEFINED       = 0 ,    // <- this is an initialization value
+
+    LINKEDDEPENDENCYSCOPE_AUTO            = 1,     // <- let the generator decide if feasible
+    LINKEDDEPENDENCYSCOPE_PUBLIC          = 2,     // <- public linker dependency which also propagates to modules that depend on us
+    LINKEDDEPENDENCYSCOPE_PRIVATE         = 3,     // <- private linker dependency which does not propagate to modules that depend on us
+
+};
+typedef enum ELinkedDependencyScope TLinkedDependencyScope;
+
+/*---------------------------------------------------------------------------*/
+
 /**
  *  Class where all linker related information should be stored
  *  for a specific linked library
@@ -201,6 +214,10 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CLinkedLibrarySettings : public CORE::CTShared
 
     const CORE::CString& GetLibraryPath( void ) const;
 
+    void SetLinkedDependecyScope( TLinkedDependencyScope linkedDependencyScope );
+
+    TLinkedDependencyScope GetLinkedDependencyScope( void ) const;
+
     bool Merge( const CLinkedLibrarySettings& linkedLibrarySettingsToMergeIn ,
                 bool onConflictOriginalInfoStays = true                      );
 
@@ -214,8 +231,9 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CLinkedLibrarySettings : public CORE::CTShared
 
     private:
 
-    TModuleType m_moduleType;               // Module type of the linked library if already known
-    CORE::CString m_libPath;                // optional extra path for the linker to search for the given library
+    TModuleType m_moduleType;                       // Module type of the linked library if already known
+    TLinkedDependencyScope m_linkedDependencyScope; // scope of the linked dependency
+    CORE::CString m_libPath;                        // optional extra path for the linker to search for the given library
 };
 
 typedef CLinkedLibrarySettings::CLinkedLibrarySettingsPtr  CLinkedLibrarySettingsPtr;
@@ -585,6 +603,19 @@ ModuleTypeToString( const TModuleType moduleType );
 GUCEF_PROJECTGEN_PUBLIC_CPP
 TModuleType
 StringToModuleType( const CORE::CString& moduleTypeStr );
+
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_PROJECTGEN_PUBLIC_CPP
+CORE::CString
+LinkedDependencyScopeToString( const TLinkedDependencyScope scope );
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_PROJECTGEN_PUBLIC_CPP
+TLinkedDependencyScope
+StringToLinkedDependencyScope( const CORE::CString& linkedDependencyScopeStr );
 
 /*-------------------------------------------------------------------------*/
 

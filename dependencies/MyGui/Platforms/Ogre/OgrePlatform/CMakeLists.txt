@@ -123,19 +123,19 @@ endif()
 
 if ( LINUX32 )
   add_dependencies( ${MODULE_NAME} MyGUI.Engine Ogre )
-  target_link_libraries( ${MODULE_NAME} MyGUI.Engine Ogre )
+  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.Engine Ogre )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=MyGUI_OgrePlatform" )
 endif( LINUX32 )
 
 if ( LINUX64 )
   add_dependencies( ${MODULE_NAME} MyGUI.Engine Ogre )
-  target_link_libraries( ${MODULE_NAME} MyGUI.Engine Ogre )
+  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.Engine Ogre )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=MyGUI_OgrePlatform" )
 endif( LINUX64 )
 
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} MyGUI.Engine Ogre )
-  target_link_libraries( ${MODULE_NAME} MyGUI.Engine Ogre )
+  target_link_libraries( ${MODULE_NAME} PUBLIC MyGUI.Engine Ogre )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_NAME=MyGUI_OgrePlatform" )
 endif( WIN32 )
 

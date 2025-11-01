@@ -355,12 +355,12 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} Advapi32.lib CRYPT32.lib Wldap32.lib Ws2_32.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Advapi32.lib CRYPT32.lib Wldap32.lib Ws2_32.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CURL_DISABLE_LDAP;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE" )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} Advapi32.lib CRYPT32.lib Wldap32.lib Ws2_32.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Advapi32.lib CRYPT32.lib Wldap32.lib Ws2_32.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "CURL_DISABLE_LDAP;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_DEPRECATE" )
 endif( WIN64 )
 

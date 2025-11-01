@@ -37,7 +37,7 @@ else()
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT libprotobuf )
-target_link_libraries( ${MODULE_NAME} libprotobuf )
+target_link_libraries( ${MODULE_NAME} PUBLIC libprotobuf )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINPROTOBUF_BUILD_MODULE;MODULE_CONSENSUS_NAME=dstorepluginPROTOBUF;MODULE_IS_PLUGIN=1;MODULE_NAME=dstorepluginPROTOBUF;PROTOBUF_USE_DLLS" )
 
 if ( EMSCRIPTEN32 )

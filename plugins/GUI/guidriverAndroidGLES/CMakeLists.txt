@@ -77,13 +77,15 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 if ( ANDROID32 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefMT )
-  target_link_libraries( ${MODULE_NAME} EGL GLESv1_CM android android_native_app_glue gucefCORE gucefGUI gucefMT )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefMT )
+target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv1_CM android android_native_app_glue )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERANDROIDGLES_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverAndroidGLES" )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
   add_dependencies( ${MODULE_NAME} gucefCORE gucefGUI gucefMT )
-  target_link_libraries( ${MODULE_NAME} EGL GLESv1_CM android android_native_app_glue gucefCORE gucefGUI gucefMT )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefGUI gucefMT )
+target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv1_CM android android_native_app_glue )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERANDROIDGLES_BUILD_MODULE;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverAndroidGLES" )
 endif( ANDROID64 )
 

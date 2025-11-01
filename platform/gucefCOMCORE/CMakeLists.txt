@@ -179,18 +179,18 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "gucefCOMCORE" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT )
-target_link_libraries( ${MODULE_NAME} gucefCORE gucefMT )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_COMCORE_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefCOMCORE;MODULE_NAME=gucefCOMCORE;MODULE_SEMVER=0_1_0_0" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} Advapi32.lib Iphlpapi.lib Ws2_32.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Advapi32.lib Iphlpapi.lib Ws2_32.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "_WINSOCK_DEPRECATED_NO_WARNINGS" )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} Advapi32.lib Iphlpapi.lib Ws2_32.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Advapi32.lib Iphlpapi.lib Ws2_32.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "_WINSOCK_DEPRECATED_NO_WARNINGS" )
 endif( WIN64 )
 

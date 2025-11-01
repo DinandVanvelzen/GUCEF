@@ -83,13 +83,15 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 
 if ( WIN32 )
   add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT gucefPUBSUB )
-  target_link_libraries( ${MODULE_NAME} Mqrt.lib gucefCOMCORE gucefCORE gucefMT gucefPUBSUB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMCORE gucefCORE gucefMT gucefPUBSUB )
+target_link_libraries( ${MODULE_NAME} PRIVATE Mqrt.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_IS_PLUGIN=1;MODULE_NAME=pubsubpluginMSMQ;PUBSUBPLUGIN_MSMQ_BUILD_PLUGIN_DLL" )
 endif( WIN32 )
 
 if ( WIN64 )
   add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT gucefPUBSUB )
-  target_link_libraries( ${MODULE_NAME} Mqrt.lib gucefCOMCORE gucefCORE gucefMT gucefPUBSUB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMCORE gucefCORE gucefMT gucefPUBSUB )
+target_link_libraries( ${MODULE_NAME} PRIVATE Mqrt.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_IS_PLUGIN=1;MODULE_NAME=pubsubpluginMSMQ;PUBSUBPLUGIN_MSMQ_BUILD_PLUGIN_DLL" )
 endif( WIN64 )
 

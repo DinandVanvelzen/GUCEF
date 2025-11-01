@@ -31,7 +31,7 @@ else()
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 add_dependencies( ${MODULE_NAME} gucefLOADER )
-target_link_libraries( ${MODULE_NAME} gucefLOADER )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefLOADER )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefPATCHERAPP_TestApp;MODULE_NAME=gucefPATCHERAPP_TestApp" )
 
 include_directories( ../../common/include ../../platform ../../platform/gucefCORE ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefLOADER/include ../../platform/gucefMT ../../platform/gucefMT/include )

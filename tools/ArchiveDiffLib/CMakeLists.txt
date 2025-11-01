@@ -33,7 +33,7 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 set( MODULE_NAME "ArchiveDiffLib" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT gucefPATCHER )
-target_link_libraries( ${MODULE_NAME} gucefCORE gucefMT gucefPATCHER )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT gucefPATCHER )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "ARCHIVEDIFFLIB_BUILD_MODULE;MODULE_CONSENSUS_NAME=ArchiveDiffLib;MODULE_NAME=ArchiveDiffLib" )
 
 include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefPATCHER/include include )

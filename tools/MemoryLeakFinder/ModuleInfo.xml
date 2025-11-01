@@ -4,7 +4,7 @@
             <Dependency Name="gucefHeaders" />		
         </Dependencies>
         <Linker>
-            <Dependency Name="Winmm" />
+            <Dependency Name="Winmm" Scope="private" />
         </Linker>
         <Preprocessor>
           <Define String="GUCEF_MLF_BUILD_MODULE" />

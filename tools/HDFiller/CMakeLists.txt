@@ -31,7 +31,7 @@ else()
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT )
-target_link_libraries( ${MODULE_NAME} gucefCORE gucefMT )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "HDFILLER_BUILD_MODULE;MODULE_CONSENSUS_NAME=HDFiller;MODULE_NAME=HDFiller" )
 
 include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include )

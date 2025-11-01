@@ -37,7 +37,7 @@ else()
   add_library( ${MODULE_NAME} ${ALL_FILES} )
 endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT yaml )
-target_link_libraries( ${MODULE_NAME} yaml )
+target_link_libraries( ${MODULE_NAME} PUBLIC yaml )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "DSTOREPLUGINYAML_BUILD_MODULE;MODULE_CONSENSUS_NAME=dstorepluginYAML;MODULE_IS_PLUGIN=1;MODULE_NAME=dstorepluginYAML" )
 
 if ( EMSCRIPTEN32 )
