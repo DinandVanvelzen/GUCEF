@@ -1,0 +1,7 @@
+# Example configuration for k3s-discover
+# You can set environment variables instead of using a file.
+# K3S_DISCOVER_INTERVAL - seconds between main polls (default 60)
+
+[advertise]
+# Multicast address (by default we use the mDNS multicast address: 224.0.0.251:5353)
+multicast = "224.0.0.251:5353"

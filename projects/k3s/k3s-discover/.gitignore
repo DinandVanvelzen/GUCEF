@@ -1,0 +1,13 @@
+# Ignore cargo build output
+/target/
+
+# Ignore out-of-source build dir used by this project
+# The project redirects cargo's target-dir to the repo-root common/bin/k3s-discover
+**/common/bin/k3s-discover/
+
+# Ignore editor/OS files
+/.vscode/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store

@@ -1,0 +1,12 @@
+[Unit]
+Description=k3s-discover lightweight advertiser for k3s node discovery
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/k3s-discover
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

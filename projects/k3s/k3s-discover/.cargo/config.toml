@@ -1,0 +1,5 @@
+[build]
+# Place all cargo build artifacts outside the source tree under the repo root
+# This path is relative to this config file's directory (k3s-discover/.cargo), so
+# "../../../common/bin/k3s-discover" resolves to <repo-root>/common/bin/k3s-discover
+target-dir = "../../../common/bin/k3s-discover"
