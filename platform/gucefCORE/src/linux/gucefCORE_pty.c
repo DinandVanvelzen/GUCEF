@@ -40,6 +40,7 @@
 extern int grantpt( int __fd );
 extern int unlockpt( int __fd );
 extern char *ptsname( int __fd );
+extern int posix_openpt( int flags );
 
 #if ( _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600 )
 
@@ -53,7 +54,12 @@ GUCEF_pty_open( int* fdm, int* fds )
      *  O_RDWR = Open the device for both reading and writing. It is usual to specify this flag.
      *  O_NOCTTY = Do not make this device the controlling terminal for the process.
      */
-    masterfd = posix_openpt( O_RDWR | O_NOCTTY );
+    int masterfd = posix_openpt( O_RDWR | O_NOCTTY );
+    if ( masterfd < 0 ) 
+    {
+        /* fallback to /dev/ptmx if posix_openpt not available */
+        masterfd = open( "/dev/ptmx", O_RDWR | O_NOCTTY );
+    }
 
     if ( masterfd == -1 ||
          grantpt (masterfd) == -1 ||

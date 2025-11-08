@@ -2427,7 +2427,13 @@ GetVolumePathForVolumeId( const CString& volumeId ,
     if ( volumeId.IsNULLOrEmpty() )
         return false;
 
-    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    // The volume id is a GUID for which the O/S has a device path concept/convention
+    volumePath = ConvertGuidToDirPath( volumeId );
+    return true;
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
     // The volume id is a GUID for which the O/S has a device path concept/convention
     volumePath = ConvertGuidToVolumePath( volumeId, true );

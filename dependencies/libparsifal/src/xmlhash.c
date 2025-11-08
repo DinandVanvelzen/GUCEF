@@ -218,7 +218,7 @@ void XMLAPI *XMLHTable_Insert(LPXMLHTABLE table, XMLCH *key, void *data)
 
 void XMLAPI *XMLHTable_Lookup(LPXMLHTABLE table, XMLCH *key)
 {
-	unsigned val = hash(key, table->size, (size_t)NULL);
+	unsigned val = hash(key, table->size, (size_t*)NULL);
 	if (!(table->table)[val]) return NULL;
 
 	for (table->bucket = (table->table)[val]; table->bucket; table->bucket = BUCK3T->next) {
@@ -232,7 +232,7 @@ void XMLAPI *XMLHTable_Lookup(LPXMLHTABLE table, XMLCH *key)
 
 void XMLAPI *XMLHTable_Remove(LPXMLHTABLE table, XMLCH *key)
 {
-	unsigned val = hash(key, table->size, (size_t)NULL);
+	unsigned val = hash(key, table->size, (size_t*)NULL);
 	XMLHTABLEBUCKET *last = NULL;
 
 	if (!(table->table)[val]) return NULL;
