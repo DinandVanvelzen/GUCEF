@@ -301,6 +301,16 @@ class GUCEF_CORE_PUBLIC_CPP CDataNode : public CIEnumerable
      */
     TVariantVector GetChildrenValues( void ) const;
 
+    bool SetValuesOfChildByName( const CString& name                       ,
+                                 const CDataNode::TVariantVector& values   ,
+                                 bool linkIfPossible = false               ,
+                                 const CString& childName = CString::Empty );
+
+    bool SetValuesOfChildByName( const CString& name                       ,
+                                 const CString::StringSet& values          ,
+                                 bool linkIfPossible = false               ,
+                                 const CString& childName = CString::Empty );
+
     bool GetValuesOfChildByName( const CString& name                  ,
                                  CDataNode::TVariantVector& outValues ,
                                  bool linkIfPossible = false          ) const;
@@ -353,16 +363,23 @@ class GUCEF_CORE_PUBLIC_CPP CDataNode : public CIEnumerable
     const CDataNode* FindSibling( const CString& name ) const;
 
     /**
-     *      Searches the entire tree starting at the current level
-     *      for an node with the given name
+     *  Searches the entire tree starting at the current level (current node and siblings)
+     *  for any node with the given name
      */
     const CDataNode* Find( const CString& name ) const;
 
     /**
-     *      Searches the entire tree starting at the current level
-     *      for an node with the given name
+     *  Searches the entire tree starting at the current level (current node and siblings)
+     *  for any node with the given name
      */
     CDataNode* Find( const CString& name );
+
+    /**
+     *  Searches the entire tree starting at the current level (current node and siblings)
+     *  for any node with the given name.
+     *  If nothing is found a child is added with the given name with the node type provided
+     */
+    CDataNode* FindOrAdd( const CString& name, int typeOfNode = GUCEF_DATATYPE_OBJECT );
 
     /**
      *      If the given node structure does not exists starting
@@ -508,10 +525,10 @@ class GUCEF_CORE_PUBLIC_CPP CDataNode : public CIEnumerable
                                   const TVariantData& nodeValue        ,
                                   int nodeType = GUCEF_DATATYPE_OBJECT );
 
-    CDataNode* AddValueAsChild( const CVariant& nodeValue );
-    CDataNode* AddValueAsChild( const TVariantData& nodeValue );
-    CDataNode* AddValueAsChild( const CString& nodeValue );
-    CDataNode* AddValueAsChild( const char* nodeValue, int valueType = GUCEF_DATATYPE_STRING );
+    CDataNode* AddValueAsChild( const CVariant& nodeValue, bool linkIfPossible = false, const CString& childName = CString::Empty );
+    CDataNode* AddValueAsChild( const TVariantData& nodeValue, bool linkIfPossible = false, const CString& childName = CString::Empty );
+    CDataNode* AddValueAsChild( const CString& nodeValue, bool linkIfPossible = false, const CString& childName = CString::Empty );
+    CDataNode* AddValueAsChild( const char* nodeValue, int valueType = GUCEF_DATATYPE_STRING, bool linkIfPossible = false, const CString& childName = CString::Empty );
 
     template < class ChildValueTypeCollection >
     bool AddAllValuesAsChildren( const ChildValueTypeCollection& collection, const CString& childNodeName = CString::Empty );

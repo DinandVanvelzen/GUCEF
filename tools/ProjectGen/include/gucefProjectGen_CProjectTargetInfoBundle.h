@@ -93,12 +93,16 @@ namespace PROJECTGEN {
  *  Class which holds a bundle of information related to all denoted 'targets' in the overall source project
  *  
  */
-class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectTargetInfoBundle : public CORE::CTSharedObjCreator< CProjectTargetInfoBundle, MT::CMutex >
+class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectTargetInfoBundle : public CORE::CIDataNodeSerializable ,
+                                                             public CORE::CTSharedObjCreator< CProjectTargetInfoBundle, MT::CMutex >
 {
     public:
 
+    static const CORE::CString ClassTypeName;
+
     typedef GUCEF::map< CORE::CString, CProjectTargetInfoPtr >      TProjectTargetInfoPtrMap;     // maps a given target platform name, for example 'win32' to everything linked/needed for a given auto-generated target
     typedef GUCEF::map< CORE::CString, TProjectTargetInfoPtrMap >   TProjectTargetInfoPtrMapMap;  // maps a auto-generated target project name to another map which maps on a per target platform basis
+    typedef typename CORE::CTSharedObjCreator< CProjectTargetInfoBundle, MT::CMutex >::TBasicSharedPtrType    CProjectTargetInfoBundlePtr;
 
     /**
      *  Attempts to retrieve the project target for with the given name for the given platform
@@ -127,6 +131,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectTargetInfoBundle : public CORE::CTShar
 
     CProjectTargetInfoBundle( void );
 
+    CProjectTargetInfoBundle( const CProjectTargetInfoBundle& src );
+
     virtual ~CProjectTargetInfoBundle();
 
     /**
@@ -142,10 +148,35 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectTargetInfoBundle : public CORE::CTShar
     static CORE::CString GetConsensusTargetName( const TProjectTargetInfoPtrMap& targetPlatforms                    ,
                                                  const CORE::CString& targetPlatform = KnownPlatforms::AllPlatforms );
 
+    /**
+     *  Attempts to serialize the object to a DOM created out of DataNode objects
+     */
+    virtual bool Serialize( CORE::CDataNode& domRootNode                        ,
+                            const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *  Attempts to serialize the object to a DOM created out of DataNode objects
+     *
+     *  @param domRootNode Node that acts as root of the DOM data tree from which to deserialize
+     *  @return whether deserializing the object data from the given DOM was successful.
+     */
+    virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
+                              const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    void SyncObjectsToNames( void );
+
+    void SyncNamesToObjects( const CProjectInfo& projectInfo );
+
     private:
 
-    TProjectTargetInfoPtrMapMap m_targets;
+    TProjectTargetInfoPtrMapMap m_projects;
 };
+
+typedef CProjectTargetInfoBundle::CProjectTargetInfoBundlePtr CProjectTargetInfoBundlePtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

@@ -1076,7 +1076,7 @@ CDataNode::GetPathToRoot( char nodeNameSeperator ,
                           bool includeThisNode   ) const
 {GUCEF_TRACE;
 
-    if ( NULL != _pparent )
+    if ( GUCEF_NULL != _pparent )
     {
         return _pparent->GetPathToRoot( nodeNameSeperator, includeThisNode ) + nodeNameSeperator + _name;
     }
@@ -1090,7 +1090,7 @@ CDataNode::Find( const CString& name )
 {GUCEF_TRACE;    
 
     CDataNode* n = FindSibling( name );
-    if ( nullptr != n ) 
+    if ( GUCEF_NULL != n ) 
     {
         return n;
     }                
@@ -1099,13 +1099,40 @@ CDataNode::Find( const CString& name )
     while ( m != m_children.end() )
     {
         n = (*m)->Find( name );
-        if ( nullptr != n )
+        if ( GUCEF_NULL != n )
         {
             return n;
         }
         ++m;
     }
-    return nullptr;       
+    return GUCEF_NULL;       
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDataNode* 
+CDataNode::FindOrAdd( const CString& name, int typeOfNode )
+{GUCEF_TRACE;    
+
+    CDataNode* n = FindSibling( name );
+    if ( GUCEF_NULL != n ) 
+    {
+        return n;
+    }                
+
+    TDataNodeList::iterator m = m_children.begin();
+    while ( m != m_children.end() )
+    {
+        n = (*m)->Find( name );
+        if ( GUCEF_NULL != n )
+        {
+            return n;
+        }
+        ++m;
+    }
+
+    // nothing find so add
+    return AddChild( name, typeOfNode );       
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1115,7 +1142,7 @@ CDataNode::Find( const CString& name ) const
 {GUCEF_TRACE;    
 
     const CDataNode* n = FindSibling( name );
-    if ( nullptr != n ) 
+    if ( GUCEF_NULL != n ) 
     {
         return n;
     }                
@@ -1124,13 +1151,13 @@ CDataNode::Find( const CString& name ) const
     while ( m != m_children.cend() )
     {
         n = (*m)->Find( name );
-        if ( nullptr != n )
+        if ( GUCEF_NULL != n )
         {
             return n;
         }
         ++m;
     }
-    return nullptr;       
+    return GUCEF_NULL;       
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1726,46 +1753,66 @@ CDataNode::AddChildWithValue( const CString& nodeName       ,
 /*-------------------------------------------------------------------------*/
 
 CDataNode*
-CDataNode::AddValueAsChild( const CVariant& nodeValue )
+CDataNode::AddValueAsChild( const CVariant& nodeValue ,
+                            bool linkIfPossible       ,
+                            const CString& childName   )
 {GUCEF_TRACE;
 
-    CDataNode newNode( CString::Empty, nodeValue.GetTypeId() );
-    newNode.SetValue( nodeValue );
-    return AddChild( newNode );
-}
-
-
-/*-------------------------------------------------------------------------*/
-
-CDataNode*
-CDataNode::AddValueAsChild( const TVariantData& nodeValue )
-{GUCEF_TRACE;
-
-    CDataNode newNode( CString::Empty, nodeValue.containedType );
-    newNode.SetValue( nodeValue );
-    return AddChild( newNode );
+    CDataNode* newNode = AddChild( childName, nodeValue.GetTypeId() );
+    if ( linkIfPossible )
+        newNode->GetValue().LinkTo( nodeValue );
+    else
+        newNode->SetValue( nodeValue );
+    return newNode;
 }
 
 /*-------------------------------------------------------------------------*/
 
 CDataNode*
-CDataNode::AddValueAsChild( const CString& nodeValue )
+CDataNode::AddValueAsChild( const TVariantData& nodeValue ,
+                            bool linkIfPossible           ,
+                            const CString& childName      )
 {GUCEF_TRACE;
 
-    CDataNode newNode( CString::Empty, GUCEF_DATATYPE_STRING );
-    newNode.SetValue( nodeValue );
-    return AddChild( newNode );
+    CDataNode* newNode = AddChild( childName, nodeValue.containedType );
+    if ( linkIfPossible )
+        newNode->GetValue().LinkTo( nodeValue );
+    else
+        newNode->SetValue( nodeValue );
+    return newNode;
 }
 
 /*-------------------------------------------------------------------------*/
 
 CDataNode*
-CDataNode::AddValueAsChild( const char* nodeValue, int valueType )
+CDataNode::AddValueAsChild( const CString& nodeValue ,
+                            bool linkIfPossible      ,
+                            const CString& childName )
 {GUCEF_TRACE;
 
-    CDataNode newNode( CString::Empty, valueType );
-    newNode.SetValue( nodeValue );
-    return AddChild( newNode );
+    CDataNode* newNode = AddChild( childName, GUCEF_DATATYPE_STRING );
+    if ( linkIfPossible )
+        newNode->GetValue().LinkTo( nodeValue );
+    else
+        newNode->SetValue( nodeValue );
+    return newNode;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDataNode*
+CDataNode::AddValueAsChild( const char* nodeValue    ,
+                            int valueType            ,
+                            bool linkIfPossible      ,
+                            const CString& childName )
+{GUCEF_TRACE;
+
+    CDataNode* newNode = AddChild( childName, valueType );
+    if ( linkIfPossible )
+        newNode->GetValue().LinkTo( nodeValue );
+    else
+        newNode->SetValue( nodeValue );
+    return newNode;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1889,6 +1936,56 @@ CDataNode::GetChildrenValues( void ) const
     }
 
     return results;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::SetValuesOfChildByName( const CString& name                     , 
+                                   const CDataNode::TVariantVector& values ,
+                                   bool linkIfPossible                     ,
+                                   const CString& childName                )
+{GUCEF_TRACE;
+
+    CDataNode* collectionNode = FindOrAddChild( name, GUCEF_DATATYPE_ARRAY );
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != collectionNode )
+    {
+        CDataNode::TVariantVector::const_iterator i = values.begin();
+        while ( i != values.end() )
+        {
+            const CVariant& var = (*i);
+            collectionNode->AddValueAsChild( var, linkIfPossible );
+            ++i;
+        }
+
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::SetValuesOfChildByName( const CString& name              , 
+                                   const CString::StringSet& values ,
+                                   bool linkIfPossible              ,
+                                   const CString& childName         )
+{GUCEF_TRACE;
+
+    CDataNode* collectionNode = FindOrAddChild( name, GUCEF_DATATYPE_ARRAY );
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != collectionNode )
+    {
+        CString::StringSet::const_iterator i = values.begin();
+        while ( i != values.end() )
+        {
+            const CString& str = (*i);
+            collectionNode->AddValueAsChild( str, linkIfPossible );
+            ++i;
+        }
+
+        return true;
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/

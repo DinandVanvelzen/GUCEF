@@ -426,6 +426,9 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 
     bool Deserialize( const CORE::CString& inputFilepath );
 
+    bool DeserializeProjectTargets( const CORE::CDataNode& domRootNode                  ,
+                                    const CORE::CDataNodeSerializableSettings& settings );
+
     bool DeserializeModuleEntries( const CORE::CDataNode& domRootNode                  ,
                                    const CORE::CDataNodeSerializableSettings& settings ,
                                    size_t suggestedNrOfModules = 0                     );
@@ -497,6 +500,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
     bool GetAllTargets( CProjectTargetInfoBundle& targets    ,
                         bool tagsAsTargets                   ,
                         bool deltaFormatForSpecificPlatforms ) const;
+
+    bool GenerateAllProjectTargetInfo( bool okToUseCachedData );
 
     const CORE::CString& GetProjectName( void ) const;
 
@@ -585,6 +590,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
     CORE::CValueList m_settings;
     CORE::CStringSet m_disabledPlatforms; // platforms which we will ignore for processing
     CORE::CString m_projectName;          // Name of the overall project
+    CProjectTargetInfoBundlePtr m_projectTargets; 
     MT::CReadWriteLock m_rwLock;
 
     protected:

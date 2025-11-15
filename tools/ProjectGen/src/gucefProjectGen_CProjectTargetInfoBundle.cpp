@@ -64,6 +64,7 @@ namespace PROJECTGEN {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+const CORE::CString CProjectTargetInfoBundle::ClassTypeName = "GUCEF::PROJECTGEN::CProjectTargetInfoBundle";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -72,11 +73,22 @@ namespace PROJECTGEN {
 //-------------------------------------------------------------------------*/
 
 CProjectTargetInfoBundle::CProjectTargetInfoBundle( void )
-    : CORE::CTSharedObjCreator< CProjectTargetInfoBundle, MT::CMutex >( this )
-    , m_targets()
+    : CORE::CIDataNodeSerializable()
+    , CORE::CTSharedObjCreator< CProjectTargetInfoBundle, MT::CMutex >( this )
+    , m_projects()
 {GUCEF_TRACE;
 
-    Clear();
+}
+
+
+/*---------------------------------------------------------------------------*/
+
+CProjectTargetInfoBundle::CProjectTargetInfoBundle( const CProjectTargetInfoBundle& src )
+    : CORE::CIDataNodeSerializable( src )
+    , CORE::CTSharedObjCreator< CProjectTargetInfoBundle, MT::CMutex >( this )
+    , m_projects( src.m_projects )
+{GUCEF_TRACE;
+
 }
 
 /*---------------------------------------------------------------------------*/
@@ -93,7 +105,7 @@ void
 CProjectTargetInfoBundle::Clear( void )
 {GUCEF_TRACE;
 
-    m_targets.clear();
+    m_projects.clear();
 }
 
 /*---------------------------------------------------------------------------*/
@@ -102,7 +114,7 @@ const CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap&
 CProjectTargetInfoBundle::GetAllTargets( void ) const
 {GUCEF_TRACE;
 
-    return m_targets;
+    return m_projects;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -112,8 +124,8 @@ CProjectTargetInfoBundle::GetPlatformProjectTarget( const CORE::CString& targetN
                                                     const CORE::CString& platformName ) const
 {GUCEF_TRACE;
 
-    TProjectTargetInfoPtrMapMap::const_iterator i = m_targets.find( targetName );
-    if ( i != m_targets.end() )
+    TProjectTargetInfoPtrMapMap::const_iterator i = m_projects.find( targetName );
+    if ( i != m_projects.end() )
     {
         const TProjectTargetInfoPtrMap& targetDefsPerPlatform = (*i).second;
         TProjectTargetInfoPtrMap::const_iterator n = targetDefsPerPlatform.find( platformName );
@@ -133,12 +145,16 @@ CProjectTargetInfoBundle::GetOrCreatePlatformProjectTarget( const CORE::CString&
                                                             const CORE::CString& platformName )
 {GUCEF_TRACE;
 
-    TProjectTargetInfoPtrMap& targetDefsPerPlatform = m_targets[ targetName ];
+    TProjectTargetInfoPtrMap& targetDefsPerPlatform = m_projects[ targetName ];
     CProjectTargetInfoPtr& projectTarget = targetDefsPerPlatform[ platformName ];
     if ( projectTarget.IsNULL() )
     {
         projectTarget = CProjectTargetInfo::CreateSharedObj();
-        projectTarget->projectName = targetName;
+        if ( !projectTarget.IsNULL() )
+        {
+            projectTarget->projectName = targetName;
+            projectTarget->SetPlatformName( platformName );
+        }
     }
 
     return projectTarget;
@@ -150,7 +166,7 @@ CProjectTargetInfoBundle::TProjectTargetInfoPtrMap&
 CProjectTargetInfoBundle::GetOrCreateTargetEntry( const CORE::CString& targetName )
 {GUCEF_TRACE;
 
-    return m_targets[ targetName ];
+    return m_projects[ targetName ];
 }
 
 /*---------------------------------------------------------------------------*/
@@ -160,7 +176,6 @@ CProjectTargetInfoBundle::GetTargetMainModuleName( const CORE::CString& targetNa
                                                    const CORE::CString& targetPlatform ,
                                                    CModuleInfoPtr* outModuleInfo       ) const
 {GUCEF_TRACE;
-
 
     CProjectTargetInfoPtr target = GetPlatformProjectTarget( targetName, targetPlatform );
     if ( !target.IsNULL() )
@@ -280,8 +295,8 @@ void
 CProjectTargetInfoBundle::CollapseRedundantPlatformTargets( void )
 {GUCEF_TRACE;
 
-    TProjectTargetInfoPtrMapMap::iterator t = m_targets.begin();
-    while ( t != m_targets.end() )
+    TProjectTargetInfoPtrMapMap::iterator t = m_projects.begin();
+    while ( t != m_projects.end() )
     {
         // First check to see if this module has a 'AllPlatforms' definition
         // Without one we cannot collapse since there is no unifying target to collapse to
@@ -304,7 +319,7 @@ CProjectTargetInfoBundle::CollapseRedundantPlatformTargets( void )
                 {
                     CProjectTargetInfoPtr& somePlatformTarget = (*m).second;
                     if ( somePlatformTarget->modules == allPlatformsTarget->modules )
-                        redundantPlatforms.insert( (*m).first );
+                        redundantPlatforms.insert( currentPlatform );
                 }
                 ++m;
             }
@@ -317,6 +332,184 @@ CProjectTargetInfoBundle::CollapseRedundantPlatformTargets( void )
         }
         // else: targets that don't have a 'AllPlatforms' target cannot be collapsed
         ++t;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+               
+bool 
+CProjectTargetInfoBundle::Serialize( CORE::CDataNode& domRootNode                        ,
+                                     const CORE::CDataNodeSerializableSettings& settings ) const
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    CORE::CDataNode* projectsNode = domRootNode.FindOrAdd( "Targets", GUCEF_DATATYPE_ARRAY );
+    if ( GUCEF_NULL == projectsNode )
+        return false;
+
+    TProjectTargetInfoPtrMapMap::const_iterator i = m_projects.begin();
+    while ( i != m_projects.end() )
+    {
+        const CORE::CString& targetProjectName = (*i).first;
+        const TProjectTargetInfoPtrMap& platformsForProject = (*i).second;
+
+        CORE::CDataNode* targetNode = projectsNode->AddChild( "Target", GUCEF_DATATYPE_OBJECT );
+        if ( GUCEF_NULL == targetNode )
+            return false;
+
+        totalSuccess = targetNode->SetAttribute( "name", targetProjectName ) && totalSuccess;
+
+        TProjectTargetInfoPtrMap::const_iterator n = platformsForProject.begin();
+        while ( n != platformsForProject.end() )
+        {
+            const CORE::CString& platformName = (*n).first;
+            const CProjectTargetInfoPtr& project = (*n).second;
+
+            if ( !project.IsNULL() )
+            {
+                // We should only serialize platform targets that have content to avoid clutter which doesnt add value
+                if ( !project->modules.empty() || !project->mainModule.IsNULL() )
+                {
+                    CORE::CDataNode* platformTargetInfoNode = targetNode->AddChild( "PlatformTargetInfo", GUCEF_DATATYPE_OBJECT );
+                    if ( GUCEF_NULL == platformTargetInfoNode )
+                        return false;
+
+                    totalSuccess = project->Serialize( *platformTargetInfoNode, settings ) && totalSuccess;
+                }
+            }
+            ++n;
+        }
+
+        ++i;
+    }
+    
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectTargetInfoBundle::Deserialize( const CORE::CDataNode& domRootNode                  ,
+                                       const CORE::CDataNodeSerializableSettings& settings )
+{GUCEF_TRACE;
+
+    bool totalSuccess = true;
+
+    const CORE::CDataNode* targetsNode = domRootNode.Find( "Targets" );
+    if ( GUCEF_NULL == targetsNode )
+        return true; // simply doesn't have project info which is allowable
+
+    CORE::CDataNode::const_iterator i = targetsNode->ConstBegin();
+    while ( i != targetsNode->ConstEnd() )
+    {
+        const CORE::CDataNode* targetNode = (*i);
+        if GUCEF_PREDICT_TRUE( GUCEF_NULL != targetNode )
+        {
+            CORE::CString targetProjectName = targetNode->GetAttributeValueOrChildValueByName( "name" ).AsString();
+
+            CORE::CDataNode::TConstDataNodeSet platformNodes = targetNode->FindChildrenOfType( "PlatformTargetInfo" );
+            CORE::CDataNode::TConstDataNodeSet::const_iterator n = platformNodes.begin();
+            while ( n != platformNodes.end() )
+            {
+                const CORE::CDataNode* platformTargetInfoNode = (*n);
+                if GUCEF_PREDICT_TRUE( GUCEF_NULL != platformTargetInfoNode )
+                {
+                    CProjectTargetInfoPtr projectTargetInfo = CProjectTargetInfo::CreateSharedObj();
+                    if GUCEF_PREDICT_TRUE( !projectTargetInfo.IsNULL() )
+                    {
+                        bool deserializeTargetSuccess = projectTargetInfo->Deserialize( *platformTargetInfoNode, settings );
+                        if ( deserializeTargetSuccess )
+                        {
+                            const CORE::CString& platformName = projectTargetInfo->GetPlatformName();
+                            m_projects[ targetProjectName ][ platformName ] = projectTargetInfo;
+                        }
+                        else
+                        {
+                            totalSuccess = false;
+                        }
+                    }
+                    else
+                    {
+                        totalSuccess = false;
+                    }
+                }
+                else
+                {
+                    totalSuccess = false;
+                }
+            }
+        }
+        ++i;
+    }
+
+    return totalSuccess;
+}
+
+/*---------------------------------------------------------------------------*/
+
+CORE::CICloneable* 
+CProjectTargetInfoBundle::Clone( void ) const 
+{GUCEF_TRACE;
+
+    return new CProjectTargetInfoBundle( *this );
+}
+
+/*---------------------------------------------------------------------------*/
+
+const CORE::CString& 
+CProjectTargetInfoBundle::GetClassTypeName( void ) const 
+{GUCEF_TRACE;
+
+    return ClassTypeName;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectTargetInfoBundle::SyncObjectsToNames( void )
+{GUCEF_TRACE;
+
+    TProjectTargetInfoPtrMapMap::iterator i = m_projects.begin();
+    while ( i != m_projects.end() )
+    {
+        TProjectTargetInfoPtrMap& projectPerPlatform = (*i).second;
+        TProjectTargetInfoPtrMap::iterator n = projectPerPlatform.begin();
+        while ( n != projectPerPlatform.end() )
+        {
+            CProjectTargetInfoPtr& projectTargetInfo = (*n).second;
+            if ( !projectTargetInfo.IsNULL() )
+            {
+                projectTargetInfo->SyncObjectsToNames();
+            }
+            ++n;
+        }
+
+        ++i;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectTargetInfoBundle::SyncNamesToObjects( const CProjectInfo& projectInfo )
+{GUCEF_TRACE;
+
+    TProjectTargetInfoPtrMapMap::iterator i = m_projects.begin();
+    while ( i != m_projects.end() )
+    {
+        TProjectTargetInfoPtrMap& projectPerPlatform = (*i).second;
+        TProjectTargetInfoPtrMap::iterator n = projectPerPlatform.begin();
+        while ( n != projectPerPlatform.end() )
+        {
+            CProjectTargetInfoPtr& projectTargetInfo = (*n).second;
+            if ( !projectTargetInfo.IsNULL() )
+            {
+                projectTargetInfo->SyncNamesToObjects( projectInfo );
+            }
+            ++n;
+        }
+        ++i;
     }
 }
 

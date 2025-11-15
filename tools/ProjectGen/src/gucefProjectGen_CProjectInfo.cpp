@@ -89,6 +89,7 @@ CProjectInfo::CProjectInfo( void )
     , m_settings()
     , m_disabledPlatforms()
     , m_projectName()
+    , m_projectTargets()
     , m_rwLock( true )
 {GUCEF_TRACE;
 
@@ -108,6 +109,7 @@ CProjectInfo::CProjectInfo( const CProjectInfo& src )
     , m_settings( src.m_settings )
     , m_disabledPlatforms( src.m_disabledPlatforms )
     , m_projectName( src.m_projectName )
+    , m_projectTargets( src.m_projectTargets )
     , m_rwLock( true )
 {GUCEF_TRACE;
 
@@ -153,7 +155,7 @@ CProjectInfo::GetAllTargets( CProjectTargetInfoBundle& targets     ,
         CORE::ToString( platformsToConsider.size() ) + " platforms defined" );
 
     // sanity check
-    if ( deltaFormatForSpecificPlatforms &&
+    if GUCEF_PREDICT_FALSE( deltaFormatForSpecificPlatforms &&
          ( platformsToConsider.find( KnownPlatforms::AllPlatforms ) == platformsToConsider.end() ||
            platformsToConsider.size() < 2 ) )
     {
@@ -199,14 +201,20 @@ CProjectInfo::GetAllTargets( CProjectTargetInfoBundle& targets     ,
 
                 CORE::CString projectName = m_projectName + "_exe_" + targetName;                        
                 CProjectTargetInfoPtr target = targets.GetOrCreatePlatformProjectTarget( projectName, platform );
+                if GUCEF_PREDICT_FALSE( target.IsNULL() )
+                {
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Failed to create target for executable \"" + targetName + "\" for platform " + platform );
+                    totalSuccess = false;
+                    ++i; continue;
+                }
 
                 target->projectName = projectName;
-                target->mainModule = executable;
 
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:GetAllTargets: Executable Target \"" + targetName + "\" has been defined for platform " + platform ); 
 
                 if ( !determineDeltaForSpecificPlatforms )
                 {
+                    target->mainModule = executable;
                     target->modules.insert( executable );
 
                     TModuleInfoEntryPtrSet foundDependencies;
@@ -256,6 +264,7 @@ CProjectInfo::GetAllTargets( CProjectTargetInfoBundle& targets     ,
                     }
                     else
                     {
+                        target->mainModule = executable;
                         target->modules.insert( executable );
 
                         TModuleInfoEntryPtrSet foundDependencies;
@@ -417,6 +426,28 @@ CProjectInfo::GetAllTargets( CProjectTargetInfoBundle& targets    ,
     GetAllEnabledPlatformsUsed( platformList, true );
 
     return GetAllTargets( targets, tagsAsTargets, deltaFormatForSpecificPlatforms, platformList );
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
+CProjectInfo::GenerateAllProjectTargetInfo( bool okToUseCachedData )
+{GUCEF_TRACE;
+
+    if ( m_projectTargets.IsNULL() || !okToUseCachedData )
+    {
+        CProjectTargetInfoBundlePtr info = CProjectTargetInfoBundle::CreateSharedObj();
+        if ( info.IsNULL() )
+            return false;
+
+        if ( GetAllTargets( *info, true, true ) )
+        {
+            m_projectTargets = info;
+            return true;
+        }
+        return false;
+    }
+    return true;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -2025,6 +2056,7 @@ CProjectInfo::Clear( void )
     dirProcessingInstructions.clear();
     globalDirExcludeList.clear();
     platforms.clear();
+    m_projectTargets.Unlink();
     ClearDependencyChains();
 }
 
@@ -2905,7 +2937,7 @@ CProjectInfo::Serialize( CORE::CDataNode& domRootNode                        ,
     while ( i != modules.end() )
     {
         CORE::CDataNode* moduleNode = domRootNode.AddChild( "ModuleInfoEntry" );
-        if ( GUCEF_NULL != moduleNode )
+        if GUCEF_PREDICT_TRUE( GUCEF_NULL != moduleNode )
         {       
             const CModuleInfoEntryPtr& moduleEntry = (*i).second;
             if ( !moduleEntry->Serialize( *moduleNode, settings ) )
@@ -2914,6 +2946,19 @@ CProjectInfo::Serialize( CORE::CDataNode& domRootNode                        ,
             }
         }
         ++i;
+    }
+
+    // Now add project target info
+    if ( !m_projectTargets.IsNULL() )
+    {
+        CProjectTargetInfoBundlePtr projectTargets = m_projectTargets;
+        projectTargets->SyncObjectsToNames();
+
+        CORE::CDataNode* projectTargetsNode = domRootNode.AddChild( "Targets" );
+        if GUCEF_PREDICT_TRUE( GUCEF_NULL != projectTargetsNode )
+        {
+            totalSuccess = projectTargets->Serialize( *projectTargetsNode, settings ) && totalSuccess;
+        }
     }
 
     return totalSuccess;
@@ -3080,6 +3125,37 @@ CProjectInfo::DeserializeModuleEntries( const CORE::CDataNode& domRootNode      
 /*---------------------------------------------------------------------------*/
 
 bool
+CProjectInfo::DeserializeProjectTargets( const CORE::CDataNode& domRootNode                  ,
+                                         const CORE::CDataNodeSerializableSettings& settings )
+{GUCEF_TRACE;
+
+    m_projectTargets.Unlink();
+
+    const CORE::CDataNode* projectTargetsNode = domRootNode.Find( "ProjectTargets" );
+    if ( GUCEF_NULL == projectTargetsNode )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "DeserializeProjectTargets: Failed locate project targets data node" );
+        return false;
+    }
+
+    CProjectTargetInfoBundlePtr projectTargets = CProjectTargetInfoBundle::CreateSharedObj();
+    if ( projectTargets.IsNULL() )
+        return false;
+
+    if ( !projectTargets->Deserialize( *projectTargetsNode, settings ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DeserializeProjectTargets: Failed to deserialize project targets from data node" );
+        return false;
+    }
+
+    m_projectTargets = projectTargets;
+
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
+bool
 CProjectInfo::Deserialize( const CORE::CDataNode& domRootNode                  ,
                            const CORE::CDataNodeSerializableSettings& settings )
 {GUCEF_TRACE;
@@ -3096,6 +3172,7 @@ CProjectInfo::Deserialize( const CORE::CDataNode& domRootNode                  ,
 
     bool deserializeSuccess = DeserializeModuleEntries( *node, settings, suggestedNrOfModules );
     DeriveAbsModuleRootSubSirsFromProjRelDirs();
+    DeserializeProjectTargets( *node, settings );
     bool bulkPostProcessSuccess = BulkPostProcessAllModuleInfo( true );
     return deserializeSuccess && bulkPostProcessSuccess;
 }
@@ -4114,6 +4191,9 @@ CProjectInfo::BulkPostProcessAllModuleInfo( bool isLoadFromProjectInfo )
         // this functionality relies on the build orders having been determined ahead of time
         totalSuccess = GenerateDependencyIncludes() && totalSuccess;
     }
+
+    // Generate project target info as a derivative from all the module info
+    totalSuccess = GenerateAllProjectTargetInfo( isLoadFromProjectInfo ) && totalSuccess;
 
     return totalSuccess;
 }
