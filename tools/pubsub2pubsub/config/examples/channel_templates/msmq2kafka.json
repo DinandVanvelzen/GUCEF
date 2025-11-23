@@ -27,29 +27,27 @@
                 },
                 "Topics": [],
                 "defaultTopicConfig": {
-                    "PubSubClientTopicConfig": {
-                        "isOptional": false,
-                        "needPublishSupport": false,
-                        "needSubscribeSupport": true,
-                        "preferDedicatedConnection": false,
-						"topicName": ".\\PRIVATE$\\test",
-                        "CustomConfig": {
-                            "convertMsmqClsIdToString": true,
-                            "convertMsmqMsgIdToString": true,
-                            "defaultMsmqBodyBufferSizeInBytes": 4096,
-                            "gatherMsmqTransitTimeOnReceiveMetric": true,
-                            "maxMsmqMsgsToReadPerSyncCycle": 500,
-                            "minPayloadFieldGrowthPercOnBufferTooSmall": 50,
-                            "msmqMsgPropIdToMapToMsgIdOnReceive": 30,
-                            "msmqPropIdsToReceive": "2,8,9,20,21,22,30,31,32,33,34,35,36",
-                            "msmqPropIdsToSend": "",
-                            "retainMsmqSentTimeAsMetaData": true,
-                            "addMsgReadFromMsmqTimeAsMetaData": true,
-                            "metadataKeyForMsgReadFromMsmqTime": 10001,
-                            "topicNameIsMsmqFormatName": false,
-                            "maxMsmqErrorsOnAckToBeHealthy": 0,
-                            "maxMsmqErrorsOnReceiveToBeHealthy": 0
-                        }
+                    "isOptional": false,
+                    "needPublishSupport": false,
+                    "needSubscribeSupport": true,
+                    "preferDedicatedConnection": false,
+                    "topicName": ".\\PRIVATE$\test",
+                    "CustomConfig": {
+                        "convertMsmqClsIdToString": true,
+                        "convertMsmqMsgIdToString": true,
+                        "defaultMsmqBodyBufferSizeInBytes": 4096,
+                        "gatherMsmqTransitTimeOnReceiveMetric": true,
+                        "maxMsmqMsgsToReadPerSyncCycle": 500,
+                        "minPayloadFieldGrowthPercOnBufferTooSmall": 50,
+                        "msmqMsgPropIdToMapToMsgIdOnReceive": 30,
+                        "msmqPropIdsToReceive": "2,8,9,20,21,22,30,31,32,33,34,35,36",
+                        "msmqPropIdsToSend": "",
+                        "retainMsmqSentTimeAsMetaData": true,
+                        "addMsgReadFromMsmqTimeAsMetaData": true,
+                        "metadataKeyForMsgReadFromMsmqTime": 10001,
+                        "topicNameIsMsmqFormatName": false,
+                        "maxMsmqErrorsOnAckToBeHealthy": 0,
+                        "maxMsmqErrorsOnReceiveToBeHealthy": 0
                     }
                 },
                 "DesiredFeatures": {
@@ -141,7 +139,7 @@
                         "stripPrefixForMetaDataKvPairs": false,
                         "useKafkaMsgHeadersForConsumerFiltering": false,
                         "maxKafkaErrorsToBeHealthy": 0,
-                        "addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader": false,
+                        "addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader": true,
                         "readyToTransmitTimeStampMetaDataKey": "readyForKafkaTransmitTimestamp",
                         "KafkaProducerGlobalConfig": {
                             "auto.offset.reset": "largest",
