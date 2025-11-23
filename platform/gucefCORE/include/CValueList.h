@@ -171,6 +171,14 @@ class GUCEF_CORE_PUBLIC_CPP CValueList : public CIConfigurable          ,
     const CVariant& GetValue( const CVariant& key ) const;
 
     /**
+     *  Returns the first value associated with the
+     *  given key.
+     *
+     *  @exception EUnknownKey thrown if the given key is unknown
+     */
+    const CVariant& GetValue( const char* key ) const;
+
+    /**
      *  Attempt to assign or link the first value associated with the given key.
      *  Note that this non-const version will be potentially more performant since its able to link data vs a deep copy
      */

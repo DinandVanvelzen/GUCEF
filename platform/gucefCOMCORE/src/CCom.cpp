@@ -599,13 +599,13 @@ CCom::LazyInitNetworkInterfaces( void ) const
 
         CWin32NetworkInterface::EnumNetworkAdapters( m_nics );
 
-        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
         CLinuxNetworkInterface::EnumNetworkAdapters( m_nics );
 
         #else
 
-        GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "Com:LazyInitNetworkInterfaces: Platform has no supported implementation" );
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "Com:LazyInitNetworkInterfaces: Platform has no supported implementation" );
 
         #endif
     }

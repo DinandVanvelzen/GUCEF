@@ -711,6 +711,17 @@ CValueList::GetValue( const CVariant& key ) const
 
 /*-------------------------------------------------------------------------*/
 
+const CVariant&
+CValueList::GetValue( const char* key ) const
+{GUCEF_TRACE;
+
+    CORE::CVariant charBuffer;
+    charBuffer.LinkTo( key, (UInt8) GUCEF_DATATYPE_STRING );
+    return GetValue( charBuffer );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CVariant&
 CValueList::GetValue( const CString& key )
 {GUCEF_TRACE;

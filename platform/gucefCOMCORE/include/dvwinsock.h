@@ -46,7 +46,16 @@
   #include <sys/types.h>
   #include <netdb.h>
   #include <arpa/inet.h>
+  #include <netinet/tcp.h>
 
+#endif
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+    /* TCP_NODELAY is not supported in Emscripten/WebAssembly environment
+       WebAssembly uses WebSockets instead of raw TCP sockets */
+    #ifndef TCP_NODELAY
+    #define TCP_NODELAY 1  /* Define as a placeholder to avoid compilation errors */
+    #endif
 #endif
 
 /*-------------------------------------------------------------------------//

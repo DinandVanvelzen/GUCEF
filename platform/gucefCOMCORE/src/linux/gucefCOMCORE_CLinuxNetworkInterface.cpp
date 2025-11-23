@@ -22,7 +22,7 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
 #include <fstream>
 #include <ifaddrs.h>
@@ -1295,4 +1295,4 @@ CLinuxNetworkInterface::Unlock( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN ? */
+#endif /* GUCEF_PLATFORM ? */

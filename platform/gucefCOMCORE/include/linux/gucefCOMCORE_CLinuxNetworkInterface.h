@@ -30,7 +30,7 @@
 #define GUCEF_COMCORE_CINETWORKINTERFACE_H
 #endif /* GUCEF_COMCORE_CINETWORKINTERFACE_H ? */
 
-#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
 #ifndef GUCEF_MT_CMUTEX_H
 #include "gucefMT_CMutex.h"
@@ -159,7 +159,7 @@ typedef CLinuxNetworkInterface::CLinuxNetworkInterfacePtr  CLinuxNetworkInterfac
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) ) ? */
+#endif /* ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) ) ? */
 
 /*-------------------------------------------------------------------------*/
 

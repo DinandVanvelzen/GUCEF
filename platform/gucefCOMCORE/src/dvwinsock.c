@@ -23,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <assert.h>
+#include <string.h>
 
 #ifndef GUCEF_COMCORE_MACROS_H
 #include "gucefCOMCORE_macros.h"       /* library build defines & macros */
@@ -81,7 +82,7 @@ static WSADATA wsadata;
 #define LastSocketError WSAGetLastError()
 #define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
 
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
 #define LastSocketError errno
 #define closesocket close

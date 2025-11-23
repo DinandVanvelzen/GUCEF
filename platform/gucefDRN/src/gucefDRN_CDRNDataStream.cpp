@@ -28,11 +28,6 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
-#ifndef GUCEF_CORE_CTRACER_H
-#include "CTracer.h"
-#define GUCEF_CORE_CTRACER_H
-#endif /* GUCEF_CORE_CTRACER_H ? */
-
 #ifndef GUCEF_DRN_CDRNPEERLINK_H
 #include "gucefDRN_CDRNPeerLink.h"
 #define GUCEF_DRN_CDRNPEERLINK_H

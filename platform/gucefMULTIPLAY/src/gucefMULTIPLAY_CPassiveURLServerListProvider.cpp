@@ -85,11 +85,11 @@ CPassiveURLServerListProvider::Start( const CORE::CValueList& params )
         // may have already been set
         if ( params.HasKey( "URL" ) )
         {
-            m_url.SetURL( params.GetValue( "URL" ) );
+            m_url.SetURL( params.GetValue( CORE::CString( "URL" ) ) );
         }
         if ( params.HasKey( "CodecType" ) )
         {
-            m_codecType = params.GetValue( "CodecType" );
+            m_codecType = params.GetValue( CORE::CString( "CodecType" ) );
         }
 
         // Active the URL mechanism

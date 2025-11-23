@@ -79,10 +79,6 @@
   #endif /* GUCEF_NEW_ON_H ? */
 #endif /* ACTIVATE_MEMORY_MANAGER ? */
 
-#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
-    #include <netinet/tcp.h>
-#endif
-
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -146,7 +142,11 @@ CTCPClientSocket::CTCPClientSocket( CORE::PulseGeneratorPtr pulseGenerator ,
     , m_ipv4Target()
     , m_isConnecting( false )
     , m_pulseGenerator( pulseGenerator )
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
     , m_coaleseDataSends( true )
+    #else
+    , m_coaleseDataSends( false )
+    #endif
     , m_maxUpdatesPerCycle( 10 )
     , m_autoReconnectOnError( false )
     , m_lastConnFailed( false )
@@ -182,7 +182,11 @@ CTCPClientSocket::CTCPClientSocket( bool blocking )
     , m_hostAddress()
     , m_isConnecting( false )
     , m_pulseGenerator( CORE::CCoreGlobal::Instance()->GetPulseGenerator() )
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
     , m_coaleseDataSends( true )
+    #else
+    , m_coaleseDataSends( false )
+    #endif
     , m_maxUpdatesPerCycle( 10 )
     , m_autoReconnectOnError( false )
     , m_lastConnFailed( false )
@@ -395,17 +399,25 @@ CTCPClientSocket::Connect( bool blocking )
      */
 	_data->serverinfo.sin_port = m_ipv4Target.GetPort();
 
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+
     int noDelayFlag = (m_coaleseDataSends ? 1 : 0);
     if ( 0 > dvsocket_setsockopt( _data->sockid, IPPROTO_TCP, TCP_NODELAY, (char*) &noDelayFlag, sizeof(noDelayFlag), &errorCode ) )
     {
         _active = m_lastConnFailed = false;
 
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Failed to set no delay mode \"" + CORE::BoolToString( m_coaleseDataSends )
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::ToString( this ) + "): Failed to set no delay mode \"" + CORE::BoolToString( m_coaleseDataSends )
             + "\" on socket. Error code: " + CORE::UInt32ToString( errorCode ) );
         Unlock();
         return false;
     }
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Successfully set no delay mode \"" + CORE::BoolToString( m_coaleseDataSends ) + "\" on socket" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CTCPClientSocket(" + CORE::ToString( this ) + "): Successfully set no delay mode \"" + CORE::BoolToString( m_coaleseDataSends ) + "\" on socket" );
+
+    #else
+        // TCP_NODELAY is not supported in Emscripten/WebAssembly
+        // WebSockets don't have the concept of Nagle's algorithm
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CTCPClientSocket(" + CORE::ToString( this ) + "): TCP_NODELAY not supported in WebAssembly environment, skipping" );
+    #endif
 
     int allowAddressReuse = 1;
     if ( 0 > dvsocket_setsockopt( _data->sockid, SOL_SOCKET, SO_REUSEADDR, (const char*) &allowAddressReuse, sizeof(int), &errorCode ) )
@@ -1024,28 +1036,41 @@ CTCPClientSocket::GetClassTypeName( void ) const
 
 bool
 CTCPClientSocket::SetUseTcpSendCoalescing( bool coaleseData )
-{
+{GUCEF_TRACE;
+
+    #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_WASM_EMSCRIPTEN  )
+
     if ( _active )
     {
         int errorCode = 0;
         int flag = (coaleseData ? 1 : 0);
         if ( 0 > dvsocket_setsockopt( _data->sockid, IPPROTO_TCP, TCP_NODELAY, (char*) &flag, sizeof(flag), &errorCode ) )
         {
-            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Failed to apply data coalescing (TCP_NODELAY) setting \""
-                + CORE::BoolToString( coaleseData ) + "\" to active socket. ErrorCode: " + CORE::Int32ToString( errorCode ) );
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::ToString( this ) + "): Failed to apply data coalescing (TCP_NODELAY) setting \""
+                + CORE::ToString( coaleseData ) + "\" to active socket. ErrorCode: " + CORE::ToString( errorCode ) );
             return false;
         }
     }
 
     m_coaleseDataSends = coaleseData;
     return true;
+
+    #else
+
+    // TCP_NODELAY is not supported in Emscripten/WebAssembly
+    // WebSockets don't have the concept of Nagle's algorithm
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CTCPClientSocket(" + CORE::ToString( this ) + "): TCP_NODELAY not supported in WebAssembly environment, skipping" );
+    return false;
+
+    #endif
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
 CTCPClientSocket::GetUseTcpSendCoalescing( void ) const
-{
+{GUCEF_TRACE;
+
     return m_coaleseDataSends;
 }
 
