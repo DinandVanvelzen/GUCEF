@@ -152,7 +152,7 @@ const char BREAK_ON_REALLOC = 0x2;
 const int  HASH_SIZE        = 1024;
 int   NumAllocations        = 0;
 char  LOGFILE[2048]           = "GUCEF_memlog.txt"; 
-const char* const s_allocationTypes[] = { "Unknown", "new", "new[]", "malloc", "calloc",
+const char* const s_allocationTypes[] = { "Unknown", "new", "new(addr)", "new[]", "malloc", "calloc",
                                           "realloc", "delete", "delete[]", "free", "OLESysAlloc", "OLESysFree" };
 
 
@@ -160,9 +160,10 @@ const char* const s_allocationTypes[] = { "Unknown", "new", "new[]", "malloc", "
 // ***** Here are the containers that make up the memory manager.  
 
 struct StackNode 
-{                  // This struct is used to hold the file name and line
-    const char *fileName;             // number of the file that is requesting a deallocation.
+{ 
+    const char* fileName;             // number of the file that is requesting a deallocation.
     unsigned short lineNumber;        // Only deallocations are recorded since the allocation
+    const char* typeName;             // type relevant for current scope, applicable for C++ only.
     StackNode *next;                  // routines accept these additional parameters.
 };
 
@@ -195,11 +196,30 @@ class MemoryNode
     TCallStack*    deallocCallstack;
     MemoryNode*    next;
     MemoryNode*    prev;
+    bool           hadSubNodeUsage;
 
     void InitializeMemory( long body = BODY ) ; // Initailize the nodes memory for interrogation.
     void InitializeReallocMemory( long body, size_t originalContentSize );
 
     MemoryNode( void );
+};
+
+class SubMemoryNode                    
+{
+    public:
+
+    size_t         reportedSize;        
+    void*          reportedAddress;
+    char           sourceFile[64];
+    unsigned short sourceLine;
+    ALLOC_TYPE     allocationType;
+    TCallStack*    allocCallstack;
+    TCallStack*    deallocCallstack;
+    SubMemoryNode* next;
+    SubMemoryNode* prev;
+    MemoryNode*    parentNode;
+
+    SubMemoryNode( void );
 };
 
 // This class implements a basic stack for record keeping.  It is necessary to use this class
@@ -245,18 +265,21 @@ private:
 class MemoryManager
 {
     public:
-    typedef std::map< UInt64, MemoryNode* > TUInt64ToMemoryNodeMap;
+    typedef std::map< UInt64, MemoryNode* >     TUInt64ToMemoryNodeMap;
+    typedef std::map< UInt64, SubMemoryNode* >  TUInt64ToSubMemoryNodeMap;
 
-  MemoryManager( void );    // Default Constructor.
-  ~MemoryManager( void );    // Destructor.
+    MemoryManager( void );    // Default Constructor.
+    ~MemoryManager( void );    // Destructor.
 
     void initialize( void );      // Initailize internal memory.
     void release( void );         // Release internal memory.
 
     // Hash Table Routines
     void insertMemoryNode( MemoryNode *node );      // Insert a new memory node.
-    MemoryNode *getMemoryNode( const void *address );     // Retrieve a memory node.
-    MemoryNode *removeMemoryNode( void *address );  // Remove a memory node.
+    MemoryNode* getMemoryNode( const void *address );     // Retrieve a memory node.
+    MemoryNode* removeMemoryNode( void *address );  // Remove a memory node.
+    SubMemoryNode* getSubMemoryNode( const void *address );     // Retrieve a memory node.
+    SubMemoryNode* removeSubMemoryNode( void *address );  // Remove a memory node.
     bool validateMemoryUnit( MemoryNode *node );    // Validate a memory node's memory.
     
     bool ValidateMemory( void );
@@ -265,12 +288,18 @@ class MemoryManager
     void deallocateMemory( MemoryNode *node );
     MemoryNode* allocateMemory( void );
 
+    SubMemoryNode* registerSubMemoryUsage( MemoryNode* parentNode, UInt32 blocksize, const void* subAddress );
+    void deregisterSubMemoryNodeUsage( SubMemoryNode* node );
+
     // Error Reporting Routines
     void dumpLogReport( void );
     void dumpLogReport( FILE* fp );
     void dumpMemoryAllocations( void );
     void dumpMemoryAllocations( FILE* fp );
+    void dumpMemoryNode( FILE* fp, SubMemoryNode* node );
+    void dumpMemoryNode( SubMemoryNode* node );
     void dumpMemoryNode( FILE* fp, MemoryNode* node );
+    void dumpMemoryNode( MemoryNode* node );
     void dumpExceptionLogReport( FILE* fp, void* faultAddress );
 
     void dumpExceptionLogReport( const void* faultAddress           , 
@@ -315,6 +344,7 @@ class MemoryManager
     unsigned int m_peakOverHeadMemoryCost;  // The peak overhead memory cost.
     unsigned int m_totalOverHeadMemoryCost; // The total overhead memory cost. 
     unsigned int m_allocatedMemory;         // The current amount of allocated memory.
+    unsigned int m_allocatedSubMemory;      // The current amount of allocated sub memory.
     unsigned int m_numBoundsViolations;     // The number of memory bounds violations.
     
     bool extremetest;
@@ -323,6 +353,7 @@ class MemoryManager
     myStack m_topStack;
 
     unsigned int m_numAllocations;      // The number of entries within the hash table.
+    unsigned int m_numSubAllocations;   // The number of entries within the sub hash table.
 
     bool m_initialized;
     bool m_shutdownCalled;
@@ -335,7 +366,8 @@ private:
     int getHashIndex( const void *address );  // Given an address this returns the hash table index
     int calculateUnAllocatedMemory();   // Return the amount of unallocated memory.
 
-    MemoryNode* m_hashTable[HASH_SIZE]; // Hash Table container for tracking memory allocations.
+    MemoryNode* m_hashTable[ HASH_SIZE ]; // Hash Table container for tracking memory allocations.
+    SubMemoryNode* m_hashTableForSubs[ HASH_SIZE ]; // Hash Table container for tracking sub-memory allocations.
 
     MemoryNode* m_deallocatedNodes;     // not actively in-use but 'recently' deallocated nodes
     MemoryNode* m_lastDeallocatedNode;
@@ -375,6 +407,7 @@ MemoryManager::MemoryManager( void )
     , m_datalock( true ) 
     , m_mutex()
     , m_hashTable()
+    , m_hashTableForSubs()
     , m_deallocatedNodes( GUCEF_NULL )
     , m_lastDeallocatedNode( GUCEF_NULL )
     , m_deallocatedNodeCount( 0 )
@@ -390,6 +423,7 @@ MemoryManager::MemoryManager( void )
 
 {
     memset( m_hashTable, 0, HASH_SIZE * sizeof( MemoryNode* ) );
+    memset( m_hashTableForSubs, 0, HASH_SIZE * sizeof( SubMemoryNode* ) );
     manager_is_constructed = true;
 }
 
@@ -420,7 +454,12 @@ MemoryManager::~MemoryManager()
  *  	ALLOC_TYPE type	     : The type of reallocation being performed.
  */
 void*
-MEMMAN_AllocateMemory( const char *file, int line, size_t size, ALLOC_TYPE type, void* address ) 
+MEMMAN_AllocateMemory( const char* file     ,
+                       int line             ,
+                       size_t size          ,
+                       ALLOC_TYPE allocType ,
+                       void* address        ,
+                       const char* typeName ) 
 {
     MemoryNode* memory = GUCEF_NULL;
 
@@ -456,16 +495,57 @@ MEMMAN_AllocateMemory( const char *file, int line, size_t size, ALLOC_TYPE type,
     // If the type is UNKNOWN then this allocation was made from a source not set up to 
     // use memory tracking, include the MemoryManager header within the source to elimate
     // this error.
-    m_assert( type != MM_UNKNOWN );
+    m_assert( allocType != MM_UNKNOWN );
 
     size_t originalReportedSize = 0;
-    if (type == MM_NEW && GUCEF_NULL != address )
+    if (allocType == MM_NEW && GUCEF_NULL != address )
     {
-        // currently not tracking placement new (yet)
-        return address;
+        // type is actually placement new
+        allocType = MM_PLACEMENT_NEW;
+    }
+
+    if ( allocType == MM_PLACEMENT_NEW && GUCEF_NULL != address )
+    {
+        // A placement new must be located within an already allocated memory block.
+        MemoryNode* placementNewUnderlyingMemory = GUCEF_NULL;
+        MemoryNode* placementNewUnderlyingMemoryDeallocd = GUCEF_NULL;                      
+        bool wouldHaveFitInDeallocatedNode = false;
+        if ( g_manager.ValidateAddressIsAccessableViaAnyMemoryNode( address, (UInt32)size, &placementNewUnderlyingMemory, &placementNewUnderlyingMemoryDeallocd, wouldHaveFitInDeallocatedNode ) )
+        {
+            // The placement new is valid wrt there being a block allocated that contains the address and can fit the given size
+            SubMemoryNode* subMemoryNode = g_manager.registerSubMemoryUsage( placementNewUnderlyingMemory, (UInt32)size, address );
+            if ( GUCEF_NULL != subMemoryNode )
+            {
+                if ( g_manager.m_logAlways ) 
+                {
+                    g_manager.log( "MEMMAN: Placement New %-34s %8s(0x%08p) : %s", formatOwnerString( file, line ),
+                            s_allocationTypes[allocType], address, memorySizeString( size ) );
+                }
+                return address;
+            }
+            else
+            {
+                g_manager.log( "MEMMAN: Request to placement new failed due to inability to track sub-memory." );
+                g_manager.log( "\tRequested Address : 0x%08p", address );
+                g_manager.log( "\tRequested Size    : %s", memorySizeString( size ) );
+                return GUCEF_NULL;     
+            }
+        }
+        else
+        {
+            g_manager.log( "MEMMAN: Request to placement new into unallocated memory." );
+            g_manager.log( "\tRequested Address : 0x%08p", address );
+            g_manager.log( "\tRequested Size    : %s", memorySizeString( size ) );
+            if ( GUCEF_NULL != placementNewUnderlyingMemoryDeallocd )
+            {
+                g_manager.log( "\tNote: There is a recently deallocated memory block that would have fit the request." );
+                g_manager.dumpMemoryNode( placementNewUnderlyingMemoryDeallocd );
+            }
+            return GUCEF_NULL;     
+        }
     }
     else
-    if ( type == MM_REALLOC && GUCEF_NULL != address ) 
+    if ( allocType == MM_REALLOC && GUCEF_NULL != address ) 
     {
         memory = g_manager.removeMemoryNode( address );
 
@@ -525,7 +605,7 @@ MEMMAN_AllocateMemory( const char *file, int line, size_t size, ALLOC_TYPE type,
     memory->reportedAddress   = (char*)memory->actualAddress + g_manager.m_paddingSize * sizeof(long);
     memory->sourceLine        = (UInt16)line;
     memory->paddingSize       = (UInt16)g_manager.m_paddingSize;
-    memory->allocationType    = type;
+    memory->allocationType    = allocType;
     strncpy( memory->sourceFile, sourceFileStripper( file ), 30 );
     memory->sourceFile[29]=0;
     
@@ -539,7 +619,7 @@ MEMMAN_AllocateMemory( const char *file, int line, size_t size, ALLOC_TYPE type,
     if ( g_manager.m_logAlways ) 
     {
         g_manager.log( "MEMMAN: Allocation %-40s %8s(0x%08p) : %s", formatOwnerString( file, line ),
-                s_allocationTypes[type], memory->reportedAddress, memorySizeString( size ) );
+                s_allocationTypes[allocType], memory->reportedAddress, memorySizeString( size ) );
     }
 
     // Validate the memory allocated
@@ -550,7 +630,7 @@ MEMMAN_AllocateMemory( const char *file, int line, size_t size, ALLOC_TYPE type,
     }
 
     // Initialize the memory allocated for tracking upon deallocation
-    switch ( type )
+    switch ( allocType )
     {
         case MM_CALLOC: 
         {
@@ -587,7 +667,9 @@ MEMMAN_AllocateMemory( const char *file, int line, size_t size, ALLOC_TYPE type,
  *  	ALLOC_TYPE type	     : The type of deallocation being performed.
  */
 void 
-MEMMAN_DeAllocateMemory( void *address, ALLOC_TYPE type ) 
+MEMMAN_DeAllocateMemory( void* address        ,
+                         ALLOC_TYPE allocType ,
+                         const char* typeName ) 
 {
     if ( manager_is_destructed ) 
     {
@@ -652,31 +734,32 @@ MEMMAN_DeAllocateMemory( void *address, ALLOC_TYPE type )
         {
             g_manager.log( "MEMMAN: Deallocation %-40s %8s(0x%08p) : %s", 
                             formatOwnerString( info->fileName, info->lineNumber ),
-                            s_allocationTypes[type], address, memorySizeString( memory->reportedSize ) );
+                            s_allocationTypes[allocType], address, memorySizeString( memory->reportedSize ) );
         }
         else
         {
             g_manager.log( "MEMMAN: Deallocation %8s(0x%08p) : %s", 
-                            s_allocationTypes[type], address, memorySizeString( memory->reportedSize ) );
+                            s_allocationTypes[allocType], address, memorySizeString( memory->reportedSize ) );
         }
     }
 
     // If the type is UNKNOWN then this allocation was made from a source not set up to 
     // use memory tracking, include the MemoryManager header within the source to elimate
     // this error.
-    m_assert( type != MM_UNKNOWN );
+    m_assert( allocType != MM_UNKNOWN );
 
     // Validate that no memory errors occured.  If any errors have occured they will be written to the log 
     // file by the validateMemoryUnit() method.
     g_manager.validateMemoryUnit( memory );
 
     // Validate that there is not a allocation/deallocation mismatch
-    m_assert( type == MM_DELETE       && memory->allocationType == MM_NEW       ||
-            type == MM_DELETE_ARRAY && memory->allocationType == MM_NEW_ARRAY ||
-            type == MM_FREE         && memory->allocationType == MM_MALLOC    ||
-            type == MM_FREE         && memory->allocationType == MM_CALLOC    ||
-            type == MM_FREE         && memory->allocationType == MM_REALLOC ||
-            type == MM_OLE_FREE     && memory->allocationType == MM_OLE_ALLOC );
+    m_assert( allocType == MM_DELETE       && memory->allocationType == MM_NEW       ||
+              allocType == MM_DELETE       && memory->allocationType == MM_PLACEMENT_NEW ||
+              allocType == MM_DELETE_ARRAY && memory->allocationType == MM_NEW_ARRAY ||
+              allocType == MM_FREE         && memory->allocationType == MM_MALLOC    ||
+              allocType == MM_FREE         && memory->allocationType == MM_CALLOC    ||
+              allocType == MM_FREE         && memory->allocationType == MM_REALLOC ||
+              allocType == MM_OLE_FREE     && memory->allocationType == MM_OLE_ALLOC );
 
     // Validate that a break on deallocate was not set
     m_assert( (memory->options & BREAK_ON_DEALLOC) == 0x0 );
@@ -705,10 +788,11 @@ MEMMAN_DeAllocateMemory( void *address, ALLOC_TYPE type )
 }
 
 void
-MEMMAN_DeAllocateMemoryEx( const char *file ,
-                           int line         ,
-                           void *address    ,
-                           char type        )
+MEMMAN_DeAllocateMemoryEx( const char* file     ,
+                           int line             ,
+                           void* address        ,
+                           char allocType       ,
+                           const char* typeName )
 {
     if ( manager_is_destructed ) 
     {
@@ -733,8 +817,8 @@ MEMMAN_DeAllocateMemoryEx( const char *file ,
 
     MT::CScopeWriterLock writerLock( g_manager.m_datalock );
     
-    MEMMAN_SetOwner( file, line );
-    MEMMAN_DeAllocateMemory( address, type );
+    MEMMAN_SetOwner( file, line, typeName );
+    MEMMAN_DeAllocateMemory( address, allocType, typeName );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -866,12 +950,18 @@ void MemoryManager::initialize( void )
     extremetest = false;
 
     m_totalMemoryAllocated = m_totalMemoryUsed         = m_totalMemoryAllocations  = 0;
-    m_peakMemoryAllocation = m_numAllocations          = m_peakTotalNumAllocations = 0;   
+    m_peakMemoryAllocation = m_numAllocations          = m_peakTotalNumAllocations = 0;
+    m_numSubAllocations = 0;
     m_overheadMemoryCost   = m_totalOverHeadMemoryCost = m_peakOverHeadMemoryCost  = 0;
-    m_allocatedMemory      = m_numBoundsViolations     = 0;	
+    m_allocatedMemory      = m_numBoundsViolations     = 0;
+    m_allocatedSubMemory = 0;
 
     for (int ii = 0; ii < HASH_SIZE; ++ii) {
         m_hashTable[ii] = NULL;
+    }
+
+    for (int ii = 0; ii < HASH_SIZE; ++ii) {
+        m_hashTableForSubs[ii] = NULL;
     }
 
     m_topStack.init();
@@ -906,6 +996,15 @@ void MemoryManager::release( void )
     // If there are memory leaks, be sure to clean up memory that the memory manager allocated.
     // It would really look bad if the memory manager created memory leaks!!!
     if (m_numAllocations != 0) {
+
+        for (int ii = 0; ii < HASH_SIZE; ++ii) {
+            while (m_hashTableForSubs[ii]) {
+                SubMemoryNode *ptr = m_hashTableForSubs[ii];
+                m_hashTableForSubs[ii] = m_hashTableForSubs[ii]->next;
+                free( ptr );                     // Free the memory used to create the sub-Memory Node.
+            }
+        }
+
         for (int ii = 0; ii < HASH_SIZE; ++ii) {
             while (m_hashTable[ii]) {
                 MemoryNode *ptr = m_hashTable[ii];
@@ -987,6 +1086,62 @@ void MemoryManager::insertMemoryNode( MemoryNode *node )
     m_totalMemoryAllocations++;
 }
 
+SubMemoryNode*
+MemoryManager::registerSubMemoryUsage( MemoryNode* parentNode, UInt32 blocksize, const void* subAddress )
+{
+    if ( GUCEF_NULL == parentNode || 0 == blocksize || GUCEF_NULL == subAddress )
+        return GUCEF_NULL;
+
+    SubMemoryNode* preExisting = getSubMemoryNode( subAddress );                           
+    if ( GUCEF_NULL != preExisting )
+    {
+        log( "MEMMAN: Sanity check failed! Attempt to register usage of sub-memory block which is already in use" );
+        dumpMemoryNode( preExisting );
+        return GUCEF_NULL;
+    }
+
+    // @TODO: add free list management for sub memory nodes
+    SubMemoryNode* newSubNode = new SubMemoryNode();
+    if ( GUCEF_NULL == newSubNode )
+        return GUCEF_NULL;
+
+    int hashIndex = getHashIndex( subAddress );
+
+    newSubNode->parentNode = parentNode; 
+    newSubNode->reportedSize = blocksize;
+    newSubNode->reportedAddress = const_cast< void* >( subAddress );
+
+    newSubNode->next = m_hashTableForSubs[ hashIndex ];
+    newSubNode->prev = GUCEF_NULL;
+
+    // Insert into the hash table
+
+    if ( GUCEF_NULL != m_hashTableForSubs[ hashIndex ] ) 
+        m_hashTableForSubs[ hashIndex ]->prev = newSubNode;
+
+    m_hashTableForSubs[ hashIndex ] = newSubNode;
+
+    // Collect Statistic Information.
+    m_numSubAllocations++;
+
+    parentNode->hadSubNodeUsage = true;
+
+    return newSubNode;
+}
+
+void
+MemoryManager::deregisterSubMemoryNodeUsage( SubMemoryNode* node )
+{
+    if GUCEF_PREDICT_FALSE( GUCEF_NULL == node )
+        return;
+
+    SubMemoryNode* removedNode = removeSubMemoryNode( node->reportedAddress );
+
+    // @TODO
+    // for now just delete the node, we can optimize this later
+    delete removedNode;
+}
+
 /*******************************************************************************************/
 
 /**
@@ -998,9 +1153,20 @@ void MemoryManager::insertMemoryNode( MemoryNode *node )
  *  Arguments   : 
  *  	void *address	: The address of the memory to be retrieved.
  */
-MemoryNode* MemoryManager::getMemoryNode( const void *address )
-{
+MemoryNode*
+MemoryManager::getMemoryNode( const void*address )
+{                                         
     MemoryNode *ptr = m_hashTable[getHashIndex( address )];
+    while (ptr && ptr->reportedAddress != address) {
+        ptr = ptr->next;
+    }
+    return ptr;
+}
+
+SubMemoryNode*
+MemoryManager::getSubMemoryNode( const void* address )
+{
+    SubMemoryNode *ptr = m_hashTableForSubs[ getHashIndex( address ) ];
     while (ptr && ptr->reportedAddress != address) {
         ptr = ptr->next;
     }
@@ -1192,26 +1358,60 @@ MemoryManager::ValidateAddressIsAccessableViaAnyMemoryNode( const void* address 
  *  Arguments   : 
  *  	void *address	: The address of the memory to be retrieved.
  */
-MemoryNode* MemoryManager::removeMemoryNode( void *address )
+MemoryNode*
+MemoryManager::removeMemoryNode( void *address )
 {
+    if ( GUCEF_NULL == address )
+        return GUCEF_NULL;    
+
     int hashIndex = getHashIndex( address );
-    
-    //if (hashIndex == 17) 
-    //	int ttt = 0;
     
     MemoryNode *ptr = m_hashTable[hashIndex];
     while (ptr && ptr->reportedAddress != address) {
         ptr = ptr->next;
     }
 
-    if (ptr) {
-        if (ptr->next) ptr->next->prev = ptr->prev;
-        if (ptr->prev) ptr->prev->next = ptr->next;
-        else           m_hashTable[hashIndex] = ptr->next;
+    if ( GUCEF_NULL != ptr )
+    {
+        if ( GUCEF_NULL != ptr->next )
+            ptr->next->prev = ptr->prev;
+        if ( GUCEF_NULL != ptr->prev )
+            ptr->prev->next = ptr->next;
+        else
+            m_hashTable[ hashIndex ] = ptr->next;
 
         // Update Statistical Information.
         m_numAllocations--;
         m_allocatedMemory -= (UInt32)ptr->reportedSize;
+    }
+    return ptr;
+}
+
+SubMemoryNode*
+MemoryManager::removeSubMemoryNode( void* address )
+{
+    if ( GUCEF_NULL == address )
+        return GUCEF_NULL;
+
+    int hashIndex = getHashIndex( address );
+    
+    SubMemoryNode *ptr = m_hashTableForSubs[ hashIndex ];
+    while (ptr && ptr->reportedAddress != address) {
+        ptr = ptr->next;
+    }
+
+    if ( GUCEF_NULL != ptr )
+    {
+        if ( GUCEF_NULL != ptr->next )
+            ptr->next->prev = ptr->prev;
+        if ( GUCEF_NULL != ptr->prev )
+            ptr->prev->next = ptr->next;
+        else
+            m_hashTableForSubs[ hashIndex ] = ptr->next;
+
+        // Update Statistical Information.
+        m_numSubAllocations--;
+        m_allocatedSubMemory -= (UInt32)ptr->reportedSize;
     }
     return ptr;
 }
@@ -1720,8 +1920,46 @@ void MemoryManager::dumpLogReport( void )
 }
 
 void 
+MemoryManager::dumpMemoryNode( FILE* fp, SubMemoryNode* node )
+{
+    if ( GUCEF_NULL == node || GUCEF_NULL == fp )
+        return;
+
+    fprintf( fp, "Total Memory Size : %s\r\n", memorySizeString( (UInt32)node->reportedSize, false ) );
+    fprintf( fp, "Source File       : %s\r\n", node->sourceFile );
+    fprintf( fp, "Source Line       : %d\r\n", node->sourceLine );
+    fprintf( fp, "Allocation Type   : %s\r\n", s_allocationTypes[node->allocationType] );
+    if ( GUCEF_NULL != node->parentNode )
+    {
+        fprintf( fp, " --- \r\n" );
+        fprintf( fp, "Parent Memory Node:\r\n" );
+        dumpMemoryNode( fp, node->parentNode );
+        fprintf( fp, " --- \r\n" );
+    }
+    if ( GUCEF_NULL != node->allocCallstack )
+    {
+        fprintf( fp, "Allocation Call Stack   :\r\n" );
+        for ( UInt32 s=0; s<node->allocCallstack->items; ++s )
+        {
+            fprintf( fp, "  %s:%d\r\n", node->allocCallstack->file[ s ], node->allocCallstack->linenr[ s ] );
+        }
+    }
+    if ( GUCEF_NULL != node->deallocCallstack )
+    {
+        fprintf( fp, "Deallocation Call Stack   :\r\n" );
+        for ( UInt32 s=0; s<node->deallocCallstack->items; ++s )
+        {
+            fprintf( fp, "  %s:%d\r\n", node->deallocCallstack->file[ s ], node->deallocCallstack->linenr[ s ] );
+        }
+    }
+}
+
+void 
 MemoryManager::dumpMemoryNode( FILE* fp, MemoryNode* node )
 {
+    if ( GUCEF_NULL == node || GUCEF_NULL == fp )
+        return;
+
     fprintf( fp, "Total Memory Size : %s\r\n", memorySizeString( (UInt32)node->reportedSize, false ) );
     fprintf( fp, "Source File       : %s\r\n", node->sourceFile );
     fprintf( fp, "Source Line       : %d\r\n", node->sourceLine );
@@ -1744,6 +1982,33 @@ MemoryManager::dumpMemoryNode( FILE* fp, MemoryNode* node )
     }
 }
 
+void 
+MemoryManager::dumpMemoryNode( MemoryNode* node )
+{
+    if ( GUCEF_NULL == node )
+        return;
+
+    FILE* fp = fopen( LOGFILE, "ab" );  // Open the log file
+    if ( NULL == fp ) 
+        return;
+
+    dumpMemoryNode( fp, node );
+
+    fclose( fp );                        // Close the file
+}
+
+void 
+MemoryManager::dumpMemoryNode( SubMemoryNode* node )
+{
+    FILE* fp = fopen( LOGFILE, "ab" );  // Open the log file
+    if ( NULL == fp ) 
+        return;
+
+    dumpMemoryNode( fp, node );
+
+    fclose( fp );                        // Close the file
+}
+
 /*******************************************************************************************/
 
 void MemoryManager::dumpMemoryAllocations( FILE* fp )
@@ -1759,6 +2024,23 @@ void MemoryManager::dumpMemoryAllocations( FILE* fp )
         for (MemoryNode *ptr = m_hashTable[ii]; ptr; ptr = ptr->next) 
         {
             fprintf( fp, "** Allocation # %2d\r\n", cnt++ );
+            dumpMemoryNode( fp, ptr );
+            fprintf( fp, "\r\n");
+        }
+    }
+
+    fprintf( fp, "------------------------------------------------------------------------------- \r\n" );
+    fprintf( fp, "******************************************************************************* \r\n" );
+    fprintf( fp, "\r\n" );
+
+    fprintf( fp, "              C U R R E N T L Y  U S E D  M E M O R Y  S U B - P A R T S        \r\n" );
+    fprintf( fp, "------------------------------------------------------------------------------- \r\n" );
+
+    for (int ii = 0, cnt = 1; ii < HASH_SIZE; ++ii) 
+    {
+        for (SubMemoryNode *ptr = m_hashTableForSubs[ii]; ptr; ptr = ptr->next) 
+        {
+            fprintf( fp, "** Usage # %2d\r\n", cnt++ );
             dumpMemoryNode( fp, ptr );
             fprintf( fp, "\r\n");
         }
@@ -1898,7 +2180,9 @@ MemoryNode::MemoryNode( void )
     , deallocCallstack( GUCEF_NULL )
     , next( GUCEF_NULL )
     , prev( GUCEF_NULL )
+    , hadSubNodeUsage( false )
 {
+    memset( sourceFile, 0, sizeof(sourceFile) );
 }
 
 /**
@@ -2003,6 +2287,21 @@ MemoryNode::InitializeReallocMemory( long bodyInitValue, size_t originalContentS
     }
 
     predefinedBody = bodyInitValue;
+}
+
+SubMemoryNode::SubMemoryNode( void )
+    : reportedSize( 0 )
+    , reportedAddress( NULL )
+    , sourceFile()
+    , sourceLine( 0 )
+    , allocationType( MM_UNKNOWN )
+    , allocCallstack( GUCEF_NULL )
+    , deallocCallstack( GUCEF_NULL )
+    , next( GUCEF_NULL )
+    , prev( GUCEF_NULL )
+    , parentNode( GUCEF_NULL )
+{
+    memset( sourceFile, 0, sizeof(sourceFile) );
 }
 
 
@@ -2586,7 +2885,7 @@ MEMMAN_ValidateAccessibility( const void* address ,
 {
     MT::CScopeReaderLock readerLock( g_manager.m_datalock );
 
-    if ( !g_manager.m_initialized || !address ) 
+    if ( !g_manager.m_initialized || GUCEF_NULL == address ) 
         return;
         
     if ( g_manager.extremetest )
@@ -2625,6 +2924,88 @@ MEMMAN_ValidateAccessibility( const void* address ,
 
 /*-------------------------------------------------------------------------*/
 
+void
+MEMMAN_ValidatePendingDestructor( const char* file     ,
+                                  int line             ,
+                                  const void* address  ,
+                                  size_t size          ,
+                                  const char* typeName )
+{
+    // for now simply forward to the normal validation
+    // one should be able to assume that for an object of a given size that the entire sizeof() block of the given
+    // type is accessible during destruction, we check that here
+    // If this is incorrect perhaps you are performing an invalid cast or using a corruped pointer to the object
+    MEMMAN_ValidateAccessibility( address, (UInt32)size, file, line );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+MEMMAN_ValidateFinishedDestructor( const char* file     ,
+                                   int line             ,
+                                   const void* address  ,
+                                   size_t size          ,
+                                   const char* typeName )
+{
+    if ( !g_manager.m_initialized || GUCEF_NULL == address ) 
+        return;
+
+    MT::CScopeReaderLock readerLock( g_manager.m_datalock );
+
+    MemoryNode* node = g_manager.getMemoryNode( address );
+    if ( GUCEF_NULL == node )
+    {
+        // This could still be a valid operation since the object might have been part of a larger allocation
+        // typically due to usage of placement new or similar constructs
+        SubMemoryNode* node = g_manager.getSubMemoryNode( address );
+        if ( GUCEF_NULL != node )
+        {
+            // we need to deregister the usage
+            // in the case of a placement new the main allocation will be deallocated in an unassociated way
+            // this is where we clean up the sub-allocation tracking
+            g_manager.deregisterSubMemoryNodeUsage( node );
+        }
+        else
+        {
+            g_manager.log( "MEMMAN: Sanity check failed! Destructor finished using unknown address %p @ %s:%d", address, file, line );
+            GUCEF_SETBREAKPOINT;
+            return;
+        }
+
+    }
+    else
+    {        
+        if ( node->hadSubNodeUsage )
+        {
+            // If there were sub-nodes allocated, we need to ensure they are properly deallocated
+            // The first sub-node in a memory block will have the same address as the main node
+            SubMemoryNode* subNode = g_manager.getSubMemoryNode( address );
+            if ( GUCEF_NULL != subNode )
+            {
+                // this will only match the parent node if there is a currently allocated sub-node
+                // with the same address as the main node
+                g_manager.deregisterSubMemoryNodeUsage( subNode );
+            }
+        }
+
+        // After a destructor we would expect the memory to be deallocated as the next step
+        // that will be checked during deallocation hence there is nothing more to check here
+    }
+
+    if ( g_manager.extremetest )
+    {
+        // Check if any corruption happened during destruction
+        if ( !g_manager.ValidateMemory() )
+        {
+            g_manager.log( "MEMMAN: Memory integrity check failed @ %s:%d\n", file, line );
+            GUCEF_SETBREAKPOINT;
+            return;
+        }                 
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 /**
  * setOwner():
  *  This method is only called by the delete macro defined within the MemoryManager.h header.
@@ -2637,7 +3018,9 @@ MEMMAN_ValidateAccessibility( const void* address ,
  *  	int line	       : The line number within the file.
  */
 __int32 
-MEMMAN_SetOwner( const char *file, int line )
+MEMMAN_SetOwner( const char* file     ,
+                 int line             ,
+                 const char* typeName )
 {
     MT::CScopeWriterLock writerLock( g_manager.m_datalock );
 
@@ -2646,8 +3029,12 @@ MEMMAN_SetOwner( const char *file, int line )
         StackNode* n = (StackNode*)malloc( sizeof(StackNode) );
         if ( GUCEF_NULL != n )
         {
+            // Note that the core here assumes that the file string passed in is valid for the lifetime of the program
+            // this is a fair assumption since these strings are typically string literals compiled into the binary
+            // Same thing for the typeName string if applicable
             n->fileName = file;
             n->lineNumber = (UInt16)line;
+            n->typeName = typeName;
             g_manager.m_topStack.push( n );
             return 1;
         }
@@ -2673,7 +3060,7 @@ MEMMAN_SysAllocString( const char* file   ,
     while ( str[ i ] != 0 ) 
         ++i;
 
-    char* buffer = (char*) MEMMAN_AllocateMemory( file, line, 4+(i*sizeof(wchar_t)), MM_OLE_ALLOC, NULL );
+    char* buffer = (char*) MEMMAN_AllocateMemory( file, line, 4+(i*sizeof(wchar_t)), MM_OLE_ALLOC, GUCEF_NULL, GUCEF_NULL );
     if ( NULL != buffer )
     {
         unsigned int* bufferPrefix = (unsigned int*) buffer;
@@ -2695,7 +3082,7 @@ MEMMAN_SysAllocStringByteLen( const char* file        ,
 {
     MT::CScopeWriterLock writerLock( g_manager.m_datalock );
     
-    char* buffer = (char*) MEMMAN_AllocateMemory( file, line, (size_t)4+bufferSize, MM_OLE_ALLOC, NULL );
+    char* buffer = (char*) MEMMAN_AllocateMemory( file, line, (size_t)4+bufferSize, MM_OLE_ALLOC, GUCEF_NULL, GUCEF_NULL );
     if ( GUCEF_NULL != buffer )
     {
         unsigned int* bufferPrefix = (unsigned int*) buffer;
@@ -2728,7 +3115,7 @@ MEMMAN_SysAllocStringLen( const char* file         ,
     MT::CScopeWriterLock writerLock( g_manager.m_datalock );
     
     int bufferSize = (charsToCopy+1)*2;
-    char* buffer = (char*) MEMMAN_AllocateMemory( file, line, 4+bufferSize, MM_OLE_ALLOC, NULL );
+    char* buffer = (char*) MEMMAN_AllocateMemory( file, line, 4+bufferSize, MM_OLE_ALLOC, GUCEF_NULL, GUCEF_NULL );
     if ( NULL != buffer )
     {
         unsigned int* bufferPrefix = (unsigned int*) buffer;
@@ -2770,7 +3157,7 @@ MEMMAN_SysFreeString( const char *file    ,
 
     char* buffer = ( (char*) bstrString ) - 4;
 
-    MEMMAN_DeAllocateMemoryEx( file, line, buffer, MM_OLE_FREE );
+    MEMMAN_DeAllocateMemoryEx( file, line, buffer, MM_OLE_FREE, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2803,7 +3190,7 @@ MEMMAN_SysReAllocString( const char *file    ,
     unsigned int pszBufferSize = *bufferPrefix;
     
     char* buffer = ((char*)(*pbstr))-4;
-    buffer = (char*) MEMMAN_AllocateMemory( file, line, 4+pszBufferSize, MM_OLE_ALLOC, buffer );
+    buffer = (char*) MEMMAN_AllocateMemory( file, line, 4+pszBufferSize, MM_OLE_ALLOC, buffer, GUCEF_NULL );
     if ( NULL != buffer )
     {
         // set the new size in the size prefix
@@ -2850,7 +3237,7 @@ MEMMAN_SysReAllocStringLen( const char *file    ,
     }
 
     char* buffer = ((char*)(*pbstr))-4;
-    buffer = (char*) MEMMAN_AllocateMemory( file, line, 4+len, MM_OLE_ALLOC, buffer );
+    buffer = (char*) MEMMAN_AllocateMemory( file, line, 4+len, MM_OLE_ALLOC, buffer, GUCEF_NULL );
     if ( NULL != buffer )
     {
         // set the new size in the size prefix

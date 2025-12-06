@@ -112,6 +112,7 @@ class CTMailBox : public virtual MT::CILockable
     };
 
     typedef T                                                   value_type;
+    typedef GUCEF::set< T >                                     TMailIdSet;
     typedef GUCEF::vector< Mail >                               TMailVector;
     typedef std::deque< Mail, gucef_allocator< Mail > >         TMailQueue;
     typedef typename std::deque< Mail >::iterator               iterator;
@@ -185,6 +186,8 @@ class CTMailBox : public virtual MT::CILockable
     bool ClearAllExcept( const T& eventid );
 
     bool Delete( const T& eventid );
+
+    bool Delete( const TMailIdSet& ids );
 
     bool HasMail( void ) const;
 
@@ -507,6 +510,51 @@ CTMailBox< T >::Delete( const T& eventid )
     #endif
     
     return true;
+}
+
+/*--------------------------------------------------------------------------*/
+
+template< typename T >
+bool
+CTMailBox< T >::Delete( const TMailIdSet& ids )
+{GUCEF_TRACE;
+
+    CScopeMutex lock( m_lock );
+
+    #if __cplusplus >= 201103L
+
+    // C++11 added the erase()
+    typename TMailQueue::iterator i( m_mailQueue.begin() );
+    while ( i != m_mailQueue.end() )
+    {
+        typename TMailIdSet::const_iterator idIt = ids.find( (*i).eventid );
+        if ( idIt != ids.end() )
+        {
+            GUCEF_DELETE (*i).data;
+            i = m_mailQueue.erase( i );
+            continue;
+        }
+        ++i;
+    }
+
+    #else
+
+    TMailQueue copyQueue;
+    while ( !m_mailQueue.empty() )
+    {
+        typename TMailIdSet::const_iterator idIt = ids.find( m_mailQueue.front().eventid );
+        if ( idIt != ids.end() )
+            copyQueue.push_back( m_mailQueue.front() );
+        else
+            GUCEF_DELETE m_mailQueue.front().data;
+        m_mailQueue.pop_front();
+    }
+    m_mailQueue = copyQueue;
+
+    #endif
+    
+    return true;
+
 }
 
 /*--------------------------------------------------------------------------*/

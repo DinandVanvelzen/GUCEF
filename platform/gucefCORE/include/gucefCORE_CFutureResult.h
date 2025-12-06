@@ -96,6 +96,13 @@ class GUCEF_CORE_PUBLIC_CPP CFutureResult
      */
     bool HasAFuture( void ) const;
 
+    /**
+     *  Allows the requester to signal that they wish to cancel the task (chain?)
+     *  Note that cancellation is not guaranteed, it depends on the task implementation
+     *  and the state of the task at the time of the cancellation request
+     */
+    bool RequestCancellation( void ) const;
+
     private:
 
     CFutureResult( void ); /**< not implemented, you need a task reference */

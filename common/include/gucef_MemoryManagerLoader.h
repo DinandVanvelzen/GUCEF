@@ -30,6 +30,11 @@
 #define GUCEF_CONFIG_H
 #endif /* GUCEF_CONFIG_H ? */
 
+#ifndef GUCEF_TYPES_H
+#include "gucef_types.h"
+#define GUCEF_TYPES_H
+#endif /* GUCEF_TYPES_H ? */
+
 #ifndef GUCEF_BASICHELPERS_H
 #include "gucef_basichelpers.h"
 #define GUCEF_BASICHELPERS_H
@@ -87,14 +92,15 @@
 #undef MM_OLE_FREE
 #define MM_UNKNOWN        0
 #define MM_NEW            1
-#define MM_NEW_ARRAY      2
-#define MM_MALLOC         3
-#define MM_CALLOC         4
-#define MM_REALLOC        5
-#define MM_DELETE         6
-#define MM_DELETE_ARRAY   7
-#define MM_FREE           8
-#define MM_OLE_ALLOC      9
+#define MM_PLACEMENT_NEW  2
+#define MM_NEW_ARRAY      3
+#define MM_MALLOC         4
+#define MM_CALLOC         5
+#define MM_REALLOC        6
+#define MM_DELETE         7
+#define MM_DELETE_ARRAY   8
+#define MM_FREE           9
+#define MM_OLE_ALLOC      10
 #define MM_OLE_FREE       10
 
 #endif /* defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) ? */
@@ -141,6 +147,8 @@ typedef void ( *TFP_MEMMAN_ValidateKnownAllocPtr )( const void* address, const c
 typedef void ( *TFP_MEMMAN_ValidateKnownAllocBlock )( const void* address, unsigned __int32 blocksize, const char* file, int line );
 typedef void ( *TFP_MEMMAN_ValidateAccessibility )( const void* address, unsigned __int32 blocksize, const char* file, int line );
 typedef void ( *TFP_MEMMAN_ValidateChunk )( const void* address, const void* chunk, unsigned __int32 blocksize, const char* file, int line );
+typedef void ( *TFP_MEMMAN_ValidatePendingDestructor )( const char* file, int line, const void* address, size_t size, const char* typeName );
+typedef void ( *TFP_MEMMAN_ValidateFinishedDestructor )( const char* file, int line, const void* address, size_t size, const char* typeName );
 
 /*-------------------------------------------------------------------------*/
 
@@ -148,10 +156,10 @@ typedef void ( *TFP_MEMMAN_ValidateChunk )( const void* address, const void* chu
  *  Memory tracking functions which are invoked by the memory allocation overrides
  */
 
-typedef void* ( *TFP_MEMMAN_AllocateMemory )( const char *file, int line, size_t size, char type, void *address );
-typedef void ( *TFP_MEMMAN_DeAllocateMemory )( void *address, char type );
-typedef void ( *TFP_MEMMAN_DeAllocateMemoryEx )( const char *file, int line, void *address, char type );
-typedef MEMMAN_Int32 ( *TFP_MEMMAN_SetOwner )( const char *file, int line );
+typedef void* ( *TFP_MEMMAN_AllocateMemory )( const char *file, int line, size_t size, char allocType, void* address, const char* typeName );
+typedef void ( *TFP_MEMMAN_DeAllocateMemory )( void *address, char allocType, const char* typeName );
+typedef void ( *TFP_MEMMAN_DeAllocateMemoryEx )( const char *file, int line, void *address, char allocType, const char* typeName );
+typedef MEMMAN_Int32 ( *TFP_MEMMAN_SetOwner )( const char *file, int line, const char* typeName );
 
 /*-------------------------------------------------------------------------*/
 
@@ -236,6 +244,8 @@ static TFP_MEMMAN_ValidateKnownAllocPtr fp_MEMMAN_ValidateKnownAllocPtr = 0;
 static TFP_MEMMAN_ValidateKnownAllocBlock fp_MEMMAN_ValidateKnownAllocBlock = 0;
 static TFP_MEMMAN_ValidateAccessibility fp_MEMMAN_ValidateAccessibility = 0;
 static TFP_MEMMAN_ValidateChunk fp_MEMMAN_ValidateChunk = 0;
+static TFP_MEMMAN_ValidatePendingDestructor fp_MEMMAN_ValidatePendingDestructor = 0;
+static TFP_MEMMAN_ValidateFinishedDestructor fp_MEMMAN_ValidateFinishedDestructor = 0;
 
 /*-------------------------------------------------------------------------*/
 
@@ -413,24 +423,28 @@ MEMMAN_LazyLoadMemoryManager( void )
     fp_MEMMAN_ValidateKnownAllocBlock = (TFP_MEMMAN_ValidateKnownAllocBlock) GetProcAddress( (HMODULE) g_memoryManagerModulePtr, "MEMMAN_ValidateKnownAllocBlock" );
     fp_MEMMAN_ValidateAccessibility = (TFP_MEMMAN_ValidateAccessibility) GetProcAddress( (HMODULE) g_memoryManagerModulePtr, "MEMMAN_ValidateAccessibility" );
     fp_MEMMAN_ValidateChunk = (TFP_MEMMAN_ValidateChunk) GetProcAddress( (HMODULE) g_memoryManagerModulePtr, "MEMMAN_ValidateChunk" );
+    fp_MEMMAN_ValidatePendingDestructor = (TFP_MEMMAN_ValidatePendingDestructor) GetProcAddress( (HMODULE) g_memoryManagerModulePtr, "MEMMAN_ValidatePendingDestructor" );
+    fp_MEMMAN_ValidateFinishedDestructor = (TFP_MEMMAN_ValidateFinishedDestructor) GetProcAddress( (HMODULE) g_memoryManagerModulePtr, "MEMMAN_ValidateFinishedDestructor" );
     fp_MEMMAN_AllocateMemory = (TFP_MEMMAN_AllocateMemory) GetProcAddress( (HMODULE) g_memoryManagerModulePtr, "MEMMAN_AllocateMemory" );
     fp_MEMMAN_DeAllocateMemory = (TFP_MEMMAN_DeAllocateMemory) GetProcAddress( (HMODULE) g_memoryManagerModulePtr, "MEMMAN_DeAllocateMemory" );
     fp_MEMMAN_DeAllocateMemoryEx = (TFP_MEMMAN_DeAllocateMemoryEx) GetProcAddress( (HMODULE) g_memoryManagerModulePtr, "MEMMAN_DeAllocateMemoryEx" );
     fp_MEMMAN_SetOwner = (TFP_MEMMAN_SetOwner) GetProcAddress( (HMODULE) g_memoryManagerModulePtr, "MEMMAN_SetOwner" );
 
-    if ( 0 == fp_MEMMAN_DumpMemoryAllocations    ||
-         0 == fp_MEMMAN_SetExhaustiveTesting     ||
-         0 == fp_MEMMAN_SetPaddingSize           || 
-         0 == fp_MEMMAN_BreakOnAllocation        ||
-         0 == fp_MEMMAN_BreakOnDeallocation      ||
-         0 == fp_MEMMAN_BreakOnReallocation      ||
-         0 == fp_MEMMAN_ValidateKnownAllocPtr    ||
-         0 == fp_MEMMAN_ValidateKnownAllocBlock  ||
-         0 == fp_MEMMAN_ValidateAccessibility    ||
-         0 == fp_MEMMAN_ValidateChunk            ||
-         0 == fp_MEMMAN_AllocateMemory           ||
-         0 == fp_MEMMAN_DeAllocateMemory         ||
-         0 == fp_MEMMAN_SetOwner                  ) 
+    if ( 0 == fp_MEMMAN_DumpMemoryAllocations      ||
+         0 == fp_MEMMAN_SetExhaustiveTesting       ||
+         0 == fp_MEMMAN_SetPaddingSize             || 
+         0 == fp_MEMMAN_BreakOnAllocation          ||
+         0 == fp_MEMMAN_BreakOnDeallocation        ||
+         0 == fp_MEMMAN_BreakOnReallocation        ||
+         0 == fp_MEMMAN_ValidateKnownAllocPtr      ||
+         0 == fp_MEMMAN_ValidateKnownAllocBlock    ||
+         0 == fp_MEMMAN_ValidateAccessibility      ||
+         0 == fp_MEMMAN_ValidateChunk              ||
+         0 == fp_MEMMAN_ValidatePendingDestructor  ||
+         0 == fp_MEMMAN_ValidateFinishedDestructor ||
+         0 == fp_MEMMAN_AllocateMemory             ||
+         0 == fp_MEMMAN_DeAllocateMemory           ||
+         0 == fp_MEMMAN_SetOwner                    ) 
     {
         FreeLibrary( (HMODULE) g_memoryManagerModulePtr );
         g_memoryManagerModulePtr = 0;
@@ -570,10 +584,10 @@ MEMMAN_SetPaddingSize( unsigned __int32 clean )
 
 inline
 MEMMAN_Int32
-MEMMAN_SetOwner( const char *file, int line  )
+MEMMAN_SetOwner( const char *file, int line, const char* typeName )
 {
     if ( 0 != MEMMAN_LazyLoadMemoryManager() )
-        return fp_MEMMAN_SetOwner( file, line );    
+        return fp_MEMMAN_SetOwner( file, line, typeName );    
     return 0;
 }
 
@@ -583,17 +597,17 @@ inline
 void*
 MEMMAN_malloc( const char *file, int line, size_t size )
 {
-    return ( 0 == MEMMAN_LazyLoadMemoryManager() ? malloc( size ) : fp_MEMMAN_AllocateMemory( file, line, size, MM_MALLOC, NULL ) );    
+    return ( 0 == MEMMAN_LazyLoadMemoryManager() ? malloc( size ) : fp_MEMMAN_AllocateMemory( file, line, size, MM_MALLOC, GUCEF_NULL, GUCEF_NULL ) );    
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void*
-MEMMAN_placement_new( const char *file, int line, size_t size, void* address )
+MEMMAN_placement_new( const char *file, int line, size_t size, void* address, const char* typeName )
 {
     if ( 0 != MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_AllocateMemory( file, line, size, MM_NEW, address );    
+        fp_MEMMAN_AllocateMemory( file, line, size, MM_PLACEMENT_NEW, address, typeName );    
     return address;
 }
 
@@ -603,7 +617,7 @@ inline
 void*
 MEMMAN_calloc( const char *file, int line, size_t num, size_t size )
 {
-    return ( 0 == MEMMAN_LazyLoadMemoryManager() ? calloc( num, size ) : fp_MEMMAN_AllocateMemory( file, line, size*num, MM_CALLOC, NULL ) );    
+    return ( 0 == MEMMAN_LazyLoadMemoryManager() ? calloc( num, size ) : fp_MEMMAN_AllocateMemory( file, line, size*num, MM_CALLOC, NULL, GUCEF_NULL ) );    
 }
 
 /*-------------------------------------------------------------------------*/
@@ -612,7 +626,7 @@ inline
 void*
 MEMMAN_realloc( const char *file, int line, void* ptr, size_t size )
 {
-    return ( 0 == MEMMAN_LazyLoadMemoryManager() ? realloc( ptr, size ) : ( ptr ? fp_MEMMAN_AllocateMemory( file, line, size, MM_REALLOC, ptr ) : fp_MEMMAN_AllocateMemory( file, line, size, MM_MALLOC, NULL ) ) );
+    return ( 0 == MEMMAN_LazyLoadMemoryManager() ? realloc( ptr, size ) : ( ptr ? fp_MEMMAN_AllocateMemory( file, line, size, MM_REALLOC, ptr, GUCEF_NULL ) : fp_MEMMAN_AllocateMemory( file, line, size, MM_MALLOC, GUCEF_NULL, GUCEF_NULL ) ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -621,7 +635,7 @@ inline
 void
 MEMMAN_free( const char *file, int line, void* ptr )
 {
-    ( 0 == MEMMAN_LazyLoadMemoryManager() ? free( ptr ) : fp_MEMMAN_DeAllocateMemoryEx( file, line, ptr, MM_FREE  ) );
+    ( 0 == MEMMAN_LazyLoadMemoryManager() ? free( ptr ) : fp_MEMMAN_DeAllocateMemoryEx( file, line, ptr, MM_FREE, GUCEF_NULL ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -632,6 +646,26 @@ MEMMAN_ValidateAccessibility( const void* address, unsigned __int32 blocksize, c
 {
     if ( 0 != MEMMAN_LazyLoadMemoryManager() )
         fp_MEMMAN_ValidateAccessibility( address, blocksize, file, line );
+}
+
+/*-------------------------------------------------------------------------*/
+
+inline
+void
+MEMMAN_ValidatePendingDestructor( const char* file, int line, const void* address, size_t blocksize, const char* typeName )
+{
+    if ( 0 != MEMMAN_LazyLoadMemoryManager() )
+        fp_MEMMAN_ValidatePendingDestructor( file, line, address, blocksize, typeName );
+}
+
+/*-------------------------------------------------------------------------*/
+
+inline
+void
+MEMMAN_ValidateFinishedDestructor( const char* file, int line, const void* address, size_t blocksize, const char* typeName )
+{
+    if ( 0 != MEMMAN_LazyLoadMemoryManager() )
+        fp_MEMMAN_ValidateFinishedDestructor( file, line, address, blocksize, typeName );
 }
 
 /*-------------------------------------------------------------------------*/

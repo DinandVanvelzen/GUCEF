@@ -87,6 +87,10 @@ class GUCEF_MT_PUBLIC_CPP CMutex : public CILockable
 
     CMutex( void );
 
+    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    CMutex( CMutex&& src ) GUCEF_NOEXCEPT;
+    #endif
+
     virtual ~CMutex();
 
     private:

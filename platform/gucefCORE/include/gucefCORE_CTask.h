@@ -89,6 +89,8 @@ class CThreadPool;
 class CTaskManager;
 class CASync;
 
+typedef CTBasicSharedPtr< CThreadPool, MT::CMutex >    CThreadPoolPtr;
+
 /**
  *  class which provides access to all the information used to formulate a 'task'
  *  A task is a unit of work to be executed by a thread using a task consumer to provide the
@@ -109,6 +111,10 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
 
     CTask( TTaskStatus taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED );
 
+    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    CTask( CTask&& src ) GUCEF_NOEXCEPT;
+    #endif
+
     virtual ~CTask() GUCEF_VIRTUAL_OVERRIDE;
 
     /**
@@ -116,6 +122,12 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
      *  This represents a snapshot in time only
      */
     CTaskConsumerPtr GetTaskConsumer( void ) const;
+
+    /**
+     *  The thread pool currently associated with the task if any
+     *  This represents a snapshot in time only
+     */
+    CThreadPoolPtr GetThreadPool( void ) const;
 
     /**
      *  The type name of the task
@@ -201,6 +213,28 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
      */
     MT::TLockStatus WaitForTaskToFinish( Int32 timeoutInMs ) const;
 
+    /**
+     *  Allows the requester to signal that they wish to cancel the task (chain?)
+     *  Note that cancellation is not guaranteed, it depends on the task implementation
+     *  and the state of the task at the time of the cancellation request
+     */
+    bool RequestCancellation( void ) const;
+
+    /**
+     *  Operator to allow comparison of tasks based on their unique task id
+     */
+    bool operator==( const CTask& other ) const;
+
+    /**
+     *  Operator to allow comparison of tasks based on their unique task id
+     */
+    bool operator!=( const CTask& other ) const;
+
+    /**
+     *  Operator to allow ordering of tasks based on their unique task id
+     */
+    bool operator<( const CTask& other ) const;
+
     private:
     friend class CTaskDelegator;
     friend class CSingleTaskDelegator;
@@ -244,6 +278,8 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
     CTaskPtr GetLastTaskInChain( void ) const;
 
     void GetAllTasksInChain( TTaskPtrSet& taskSet ) const;
+
+    void GetAllUpcomingTasksInChain( TTaskPtrSet& taskSet ) const;
 
     static void BreakApartTaskChain( CTaskPtr task );
 

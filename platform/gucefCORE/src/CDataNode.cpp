@@ -1954,7 +1954,7 @@ CDataNode::SetValuesOfChildByName( const CString& name                     ,
         while ( i != values.end() )
         {
             const CVariant& var = (*i);
-            collectionNode->AddValueAsChild( var, linkIfPossible );
+            collectionNode->AddValueAsChild( var, linkIfPossible, childName );
             ++i;
         }
 
@@ -1979,7 +1979,7 @@ CDataNode::SetValuesOfChildByName( const CString& name              ,
         while ( i != values.end() )
         {
             const CString& str = (*i);
-            collectionNode->AddValueAsChild( str, linkIfPossible );
+            collectionNode->AddValueAsChild( str, linkIfPossible, childName );
             ++i;
         }
 

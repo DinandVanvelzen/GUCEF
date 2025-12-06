@@ -81,6 +81,31 @@ CTask::CTask( TTaskStatus taskStatus )
 
 /*-------------------------------------------------------------------------*/
 
+#ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+
+CTask::CTask( CTask&& src ) GUCEF_NOEXCEPT
+    : CNotifier( std::move( src ) )
+    , CTSharedObjCreator< CTask, MT::CMutex >( std::move( src ) )
+    , m_taskData( src.m_taskData )
+    , m_serializedTaskData( std::move( src.m_serializedTaskData ) )
+    , m_taskType( std::move( src.m_taskType ) )
+    , m_taskConsumer( std::move( src.m_taskConsumer ) )
+    , m_assumedOwnershipOfTaskData( src.m_assumedOwnershipOfTaskData )
+    , m_taskId( src.m_taskId )
+    , m_taskStatus( src.m_taskStatus )
+    , m_taskStatusExtraInfo( std::move( src.m_taskStatusExtraInfo ) )
+    , m_nextTask( std::move( src.m_nextTask ) )
+    , m_priorTask( std::move( src.m_priorTask ) )
+{GUCEF_TRACE;
+
+    // Leave the source in a valid state
+    src.m_taskData = GUCEF_NULL;
+    src.m_assumedOwnershipOfTaskData = false;
+}
+#endif
+
+/*-------------------------------------------------------------------------*/
+
 CTask::~CTask()
 {GUCEF_TRACE;
 
@@ -204,6 +229,21 @@ CTask::GetAllTasksInChain( TTaskPtrSet& taskSet ) const
 
     taskSet.clear();
     CTaskPtr task = GetFirstTaskInChain();
+    while ( !task.IsNULL() )
+    {
+        taskSet.insert( task );
+        task = task->GetNextTask();
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTask::GetAllUpcomingTasksInChain( TTaskPtrSet& taskSet ) const
+{GUCEF_TRACE;
+
+    taskSet.clear();
+    CTaskPtr task = m_nextTask;
     while ( !task.IsNULL() )
     {
         taskSet.insert( task );
@@ -601,6 +641,60 @@ CTask::GetPriorTask( void ) const
 {GUCEF_TRACE;
 
     return m_priorTask;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CThreadPoolPtr
+CTask::GetThreadPool( void ) const
+{GUCEF_TRACE;
+
+    CTaskConsumerPtr taskConsumer = m_taskConsumer;
+    if ( !taskConsumer.IsNULL() )
+    {
+        return taskConsumer->GetThreadPool();
+    }
+    return CThreadPoolPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTask::RequestCancellation( void ) const
+{GUCEF_TRACE;
+
+    TIntegerTypeUsedForTaskId taskId = GetTaskId();
+    CThreadPoolPtr threadPool = GetThreadPool();
+    if ( !threadPool.IsNULL() )
+        return threadPool->RequestTaskCancellation( taskId, false, true );
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTask::operator==( const CTask& other ) const
+{GUCEF_TRACE;
+
+    return m_taskId == other.m_taskId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTask::operator!=( const CTask& other ) const
+{GUCEF_TRACE;
+
+    return m_taskId != other.m_taskId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTask::operator<( const CTask& other ) const
+{GUCEF_TRACE;
+
+    return m_taskId < other.m_taskId;
 }
 
 /*-------------------------------------------------------------------------//

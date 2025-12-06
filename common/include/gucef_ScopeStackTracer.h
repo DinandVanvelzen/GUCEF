@@ -118,7 +118,12 @@ class GUCEF_HIDDEN ScopeStackTracer
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* __cplusplus ? */
+#else /* __cplusplus ? */
+
+/* for headers included in C code just define an empty macro */
+#define GUCEF_TRACE
+
+#endif
 
 #endif /* GUCEF_SCOPESTACKTRACER_H ? */
 

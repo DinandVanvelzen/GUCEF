@@ -62,6 +62,15 @@ CReadWriteLock::CReadWriteLock( const CReadWriteLock& src )
 
 /*--------------------------------------------------------------------------*/
 
+CReadWriteLock::CReadWriteLock( CReadWriteLock&& src ) GUCEF_NOEXCEPT      
+    : _rwlock( src._rwlock )
+{GUCEF_TRACE;
+
+    src._rwlock = GUCEF_NULL;
+}
+
+/*--------------------------------------------------------------------------*/
+
 CReadWriteLock::~CReadWriteLock()
 {GUCEF_TRACE;
 

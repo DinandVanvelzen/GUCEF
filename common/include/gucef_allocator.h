@@ -29,6 +29,9 @@
 
 #include <limits>
 #include <utility>
+#if __cplusplus >= 201103L
+#include <type_traits>  // for std::is_same used in C++11 static_assert
+#endif
 
 #ifndef GUCEF_CONFIG_H
 #include "gucef_config.h"        /* GUCEF configuration */
@@ -149,7 +152,7 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_SetOwner( __FILE__, __LINE__ );
+        MEMMAN_SetOwner( __FILE__, __LINE__, typeid( value_type ).name() );
 
         #endif
 
@@ -162,19 +165,67 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( val ), p );
+        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( val ), p, typeid( value_type ).name() );
 
         #endif
 
         ::new( static_cast< void* >( p ) ) value_type( val );
     }
 
+    #if defined( GUCEF_RVALUE_REFERENCES_SUPPORTED )
+    void
+    construct( pointer p, value_type&& val )
+    {GUCEF_TRACE;
+
+        #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
+
+        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( val ), p, typeid( value_type ).name() );
+
+        #endif
+
+        ::new( static_cast< void* >( p ) ) value_type( GUCEF_MOVE( val ) );
+    }
+    #endif
+
+    #if ( __cplusplus >= 201103L ) || ( defined( _MSC_VER ) && _MSC_VER >= 1800 )
+    template <class... Args>
+    void
+    construct( pointer p, Args&&... args )
+    {GUCEF_TRACE;
+
+        #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
+
+        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( value_type ), p, typeid( value_type ).name() );
+
+        #endif
+
+        ::new( static_cast< void* >( p ) ) value_type( std::forward<Args>(args)... );
+    }
+    #endif
+
     template <typename U>
     void
     destroy( U* p )
     {GUCEF_TRACE;
 
+        if ( GUCEF::IsTriviallyDestructible<U>::value )
+        {
+            return; // no-op for trivial types
+        }
+
+        #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
+
+        MEMMAN_ValidatePendingDestructor( __FILE__, __LINE__, p, sizeof(U), typeid( U ).name() );
+
+        #endif
+
         p->~U();
+
+        #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
+
+        MEMMAN_ValidateFinishedDestructor( __FILE__, __LINE__, p, sizeof(U), typeid( U ).name() );
+
+        #endif
     }
 
     size_type
@@ -260,19 +311,64 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( val ), p );
+        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( val ), p, typeid( value_type ).name() );
 
         #endif
 
         ::new( static_cast< void* >( p ) ) value_type( val );
     }
 
+    #if defined( GUCEF_RVALUE_REFERENCES_SUPPORTED )
+    void
+    construct( pointer p, value_type&& val )
+    {GUCEF_TRACE;
+
+        #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
+
+        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( val ), p, typeid( value_type ).name() );
+
+        #endif
+
+        // Note: key is const, so it cannot move; value part can still move when provided in the pair.
+        ::new( static_cast< void* >( p ) ) value_type( GUCEF_MOVE( val ) );
+    }
+    #endif
+
+    #if ( __cplusplus >= 201103L ) || ( defined( _MSC_VER ) && _MSC_VER >= 1800 )
+    template <class... Args>
+    void
+    construct( pointer p, Args&&... args )
+    {GUCEF_TRACE;
+
+        #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
+
+        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( value_type ), p, typeid( value_type ).name() );
+
+        #endif
+
+        ::new( static_cast< void* >( p ) ) value_type( std::forward<Args>(args)... );
+    }
+    #endif
+
     template <typename U>
     void
     destroy( U* p )
     {GUCEF_TRACE;
 
+        if ( GUCEF::IsTriviallyDestructible<U>::value )
+        {
+            return; // no-op for trivial types
+        }
+
+        #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
+        MEMMAN_ValidatePendingDestructor( __FILE__, __LINE__, p, sizeof(U), typeid(U).name() );
+        #endif
+
         p->~U();
+
+        #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
+        MEMMAN_ValidateFinishedDestructor( __FILE__, __LINE__, p, sizeof(U), typeid(U).name() );
+        #endif
     }
 
     size_type

@@ -159,6 +159,15 @@ CMutex::CMutex( void )
 
 /*--------------------------------------------------------------------------*/
 
+CMutex::CMutex( CMutex&& src ) GUCEF_NOEXCEPT
+    : _mutexdata( src._mutexdata )
+{GUCEF_TRACE;
+
+    src._mutexdata = GUCEF_NULL;
+}
+
+/*--------------------------------------------------------------------------*/
+
 CMutex::~CMutex()
 {GUCEF_TRACE;
 

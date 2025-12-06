@@ -212,6 +212,20 @@ MEMMAN_ValidateAccessibility( const void* address ,
                               const char *file    ,
                               int line            );
 
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_ValidatePendingDestructor( const char* file     ,
+                                  int line             ,
+                                  const void* address  ,
+                                  size_t size          ,
+                                  const char* typeName );
+
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_ValidateFinishedDestructor( const char* file     ,
+                                   int line             ,
+                                   const void* address  ,
+                                   size_t size          ,
+                                   const char* typeName );
+
 /*-------------------------------------------------------------------------*/
 
 /*
@@ -235,6 +249,7 @@ MEMMAN_ValidateAccessibility( const void* address ,
  */
 #undef MM_UNKNOWN
 #undef MM_NEW
+#undef MM_PLACEMENT_NEW
 #undef MM_NEW_ARRAY
 #undef MM_MALLOC
 #undef MM_CALLOC
@@ -246,15 +261,16 @@ MEMMAN_ValidateAccessibility( const void* address ,
 #undef MM_OLE_FREE
 #define MM_UNKNOWN        0
 #define MM_NEW            1
-#define MM_NEW_ARRAY      2
-#define MM_MALLOC         3
-#define MM_CALLOC         4
-#define MM_REALLOC        5
-#define MM_DELETE         6
-#define MM_DELETE_ARRAY   7
-#define MM_FREE           8
-#define MM_OLE_ALLOC      9
-#define MM_OLE_FREE       10
+#define MM_PLACEMENT_NEW  2
+#define MM_NEW_ARRAY      3
+#define MM_MALLOC         4
+#define MM_CALLOC         5
+#define MM_REALLOC        6
+#define MM_DELETE         7
+#define MM_DELETE_ARRAY   8
+#define MM_FREE           9
+#define MM_OLE_ALLOC      10
+#define MM_OLE_FREE       11
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -268,11 +284,12 @@ MEMMAN_ValidateAccessibility( const void* address ,
  *      memory allocation routines to allocate and track memory.
  */
 GUCEF_MLF_PUBLIC_C void*
-MEMMAN_AllocateMemory( const char *file ,
-                       int line         ,
-                       size_t size      ,
-                       char type        ,
-                       void *address    );
+MEMMAN_AllocateMemory( const char* file     , 
+                       int line             ,
+                       size_t size          ,
+                       char allocType       ,
+                       void* address        ,
+                       const char* typeName );
 
 /*-------------------------------------------------------------------------*/
 
@@ -283,8 +300,9 @@ MEMMAN_AllocateMemory( const char *file ,
  *      for de-allocating and tracking memory.
  */
 GUCEF_MLF_PUBLIC_C void
-MEMMAN_DeAllocateMemory( void *address   ,
-                         char type       );
+MEMMAN_DeAllocateMemory( void* address        ,
+                         char allocType       ,
+                         const char* typeName );
 
 /*-------------------------------------------------------------------------*/
 
@@ -295,10 +313,11 @@ MEMMAN_DeAllocateMemory( void *address   ,
  *      for de-allocating and tracking memory.
  */
 GUCEF_MLF_PUBLIC_C void
-MEMMAN_DeAllocateMemoryEx( const char *file ,
-                           int line         ,
-                           void *address    ,
-                           char type        );
+MEMMAN_DeAllocateMemoryEx( const char* file     ,
+                           int line             ,
+                           void* address        ,
+                           char allocType       ,
+                           const char* typeName );
 
 /*-------------------------------------------------------------------------*/
 
@@ -310,8 +329,9 @@ MEMMAN_DeAllocateMemoryEx( const char *file ,
  *      the delete methods like we do with the new methods.
  */
 GUCEF_MLF_PUBLIC_C __int32
-MEMMAN_SetOwner( const char *file ,
-                 int line         );
+MEMMAN_SetOwner( const char* file     ,
+                 int line             ,
+                 const char* typeName );
 
 /*-------------------------------------------------------------------------*/
 
@@ -410,14 +430,3 @@ MEMMAN_SysReAllocStringLen( const char *file    ,
 /*--------------------------------------------------------------------------*/
 
 #endif /* GUCEF_MLF_MEMORYMANAGER_H */
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 11-04-2005 :
-       - Initial version of this file.
-
------------------------------------------------------------------------------*/

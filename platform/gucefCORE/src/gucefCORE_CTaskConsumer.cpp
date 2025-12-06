@@ -267,7 +267,7 @@ CTaskConsumer::SetTaskDelegator( const TTaskDelegatorBasicPtr& delegator )
 /*-------------------------------------------------------------------------*/
 
 void
-CTaskConsumer::SetThreadPool( const TThreadPoolBasicPtr& threadPool )
+CTaskConsumer::SetThreadPool( const ThreadPoolPtr& threadPool )
 {GUCEF_TRACE;
 
     m_threadPool = threadPool;
@@ -458,6 +458,15 @@ CTaskConsumer::GetTaskStatus( void ) const
         return task->GetTaskStatus();
     }
     return TTaskStatus::TASKSTATUS_UNDEFINED;
+}
+
+/*-------------------------------------------------------------------------*/
+
+ThreadPoolPtr
+CTaskConsumer::GetThreadPool( void ) const
+{GUCEF_TRACE;
+
+    return m_threadPool;
 }
 
 /*-------------------------------------------------------------------------//

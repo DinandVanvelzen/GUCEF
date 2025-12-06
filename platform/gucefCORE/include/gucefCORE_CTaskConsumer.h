@@ -73,7 +73,8 @@ class CTaskDelegator;
 class CPulseGenerator;
 class CTask;
 
-typedef CTBasicSharedPtr< CTask, MT::CMutex >  CTaskPtr;
+typedef CTBasicSharedPtr< CTask, MT::CMutex >           CTaskPtr;
+typedef CTBasicSharedPtr< CThreadPool, MT::CMutex >     ThreadPoolPtr;
 
 /*-------------------------------------------------------------------------*/
 
@@ -223,12 +224,15 @@ class GUCEF_CORE_PUBLIC_CPP CTaskConsumer : public CTSGNotifier
     bool HasTaskData( void ) const;
 
     TTaskStatus GetTaskStatus( void ) const;
+
+    /**
+     *  Provides access to the thread pool that is hosting this task consumer
+     */
+    ThreadPoolPtr GetThreadPool( void ) const;
     
     private:
     friend class CThreadPool;
     friend class CTaskDelegator;
-
-    typedef CTBasicSharedPtr< CThreadPool, MT::CMutex >     TThreadPoolBasicPtr;
 
     void SetIsOwnedByThreadPool( bool ownedByThreadPool );
 
@@ -236,7 +240,7 @@ class GUCEF_CORE_PUBLIC_CPP CTaskConsumer : public CTSGNotifier
 
     bool GetIsInPhasedSetup( void ) const;
 
-    void SetThreadPool( const TThreadPoolBasicPtr& threadPool );
+    void SetThreadPool( const ThreadPoolPtr& threadPool );
 
     bool SetTaskStatus( TTaskStatus newStatus );
 
@@ -252,7 +256,7 @@ class GUCEF_CORE_PUBLIC_CPP CTaskConsumer : public CTSGNotifier
     private:
 
     CTaskPtr m_currentTask;
-    TThreadPoolBasicPtr m_threadPool;
+    ThreadPoolPtr m_threadPool;
     TTaskDelegatorBasicPtr m_delegator;
     bool m_ownedByThreadPool;
     bool m_inPhasedSetup;

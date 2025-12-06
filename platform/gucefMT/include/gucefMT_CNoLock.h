@@ -73,6 +73,11 @@ class GUCEF_MT_PUBLIC_CPP CNoLock : public CILockable
     virtual const CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     CNoLock( void );
+
+    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    CNoLock( CNoLock&& src ) GUCEF_NOEXCEPT;
+    #endif
+
     virtual ~CNoLock();
 
     private:

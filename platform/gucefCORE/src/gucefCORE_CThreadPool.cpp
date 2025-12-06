@@ -147,7 +147,7 @@ CThreadPool::CThreadPool( PulseGeneratorPtr threadPoolPulseContext ,
     , m_desiredMinNrOfWorkerThreads( 0 )
     , m_taskQueue()
     , m_inUseTaskObjs()
-    , m_freeTaskObjs()
+    , m_allTaskObjs( TTaskObjFreeList::REUSE_OBJECT_VIA_CLEAR_METHOD_IF_AVAILABLE )
     , m_freeTaskConsumers()
     , m_taskDedicatedDelegators()
     , m_taskGenericDelegators()
@@ -815,37 +815,24 @@ bool
 CThreadPool::GetOrCreateTaskObj( CTaskPtr& taskObj )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
-
     // Free list concept
     // re-use a task object previously used if any are available, avoiding the setup costs
-    if ( !m_freeTaskObjs.empty() )
+    taskObj = m_allTaskObjs.Acquire();
+    if GUCEF_PREDICT_FALSE( taskObj.IsNULL() )
     {
-        taskObj = m_freeTaskObjs.front();
-        m_freeTaskObjs.pop_front();
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):GetOrCreateTaskObj: Failed to create a new task object" );
+        return false;
+    }
 
+    if ( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED != taskObj->GetTaskStatus() )
+    {
+        MT::CObjectScopeLock lock( this );
         m_inUseTaskObjs[ taskObj->GetTaskId() ] = taskObj;
         return true;
     }
-
-    // Create a new task object
-    taskObj = CTask::CreateSharedObj();
-    if ( !taskObj.IsNULL() )
-    {
-        if ( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED != taskObj->GetTaskStatus() )
-        {
-            m_inUseTaskObjs[ taskObj->GetTaskId() ] = taskObj;
-            return true;
-        }
-        else
-        {
-            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):GetOrCreateTaskObj: Failed to create a new task object due to task internal resource limit" );
-            return false;
-        }
-    }
     else
     {
-        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):GetOrCreateTaskObj: Failed to create a new task object" );
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):GetOrCreateTaskObj: Failed to create a new task object due to task internal resource limit" );
         return false;
     }
 }
@@ -1419,18 +1406,17 @@ CThreadPool::TaskCleanup( CTaskPtr task )
             {
                 CTaskPtr chainedTask = (*i);
                 m_inUseTaskObjs.erase( chainedTask->GetTaskId() );
-                chainedTask->Clear();
-                m_freeTaskObjs.push_back( chainedTask );
+                m_allTaskObjs.MarkDormant( chainedTask );
                 ++i;
             }
+            m_allTaskObjs.MarkDormant( task );
         }
         else
         {
             MT::CObjectScopeLock lock( this );
 
             m_inUseTaskObjs.erase( task->GetTaskId() );
-            task->Clear();
-            m_freeTaskObjs.push_back( task );
+            m_allTaskObjs.MarkDormant( task );
         }
     }
     // else: for a chain its all or nothing, so we do not add it to the free list
@@ -1714,6 +1700,48 @@ CThreadPool::RequestTaskToStop( CTaskConsumerPtr taskConsumer ,
 
     if ( !taskConsumer.IsNULL() )
         return RequestTaskToStop( taskConsumer->GetCurrentTaskId(), callerShouldWait );
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CThreadPool::RequestTaskCancellation( const UInt32 taskId    , 
+                                      bool callerShouldWait  ,
+                                      bool okIfTaskIsUnknown )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeReadOnlyLock readLock( this );
+
+    //TTaskId2TaskPtrMap::const_iterator i = m_inUseTaskObjs.find( taskId );
+    //if ( i != m_inUseTaskObjs.end() )
+    //{
+    //    CTaskPtr primaryTask = (*i).second;
+    //    if ( !primaryTask.IsNULL() )
+    //    {
+    //        CTask::TTaskPtrSet upcomingTasks;
+    //        primaryTask->GetAllUpcomingTasksInChain( upcomingTasks );
+    //        m_taskQueue.Delete( upcomingTasks );
+
+    //        m_inUseTaskObjs.erase( i );
+    //        m_taskQueue.Delete( task ); 
+    //    }
+
+
+    //    readLock.EarlyReaderUnlock();
+
+    //    if ( !task.IsNULL() )
+    //    {
+    //        taskExists = true;
+    //        CTaskConsumerPtr taskConsumer = task->GetTaskConsumer();
+    //        if ( !taskConsumer.IsNULL() )
+    //        {
+    //            TTaskDelegatorBasicPtr delegator = taskConsumer->GetTaskDelegator();
+    //            return delegator;
+    //        }
+    //    }
+    //}
+
     return false;
 }
 

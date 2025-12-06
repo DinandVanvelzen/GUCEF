@@ -473,18 +473,19 @@ GenerateGithubActionsWorkflowTargetsYml( const CProjectInfo& projectInfo        
             {
                 const CProjectTargetInfoPtr& targetInfo = (*n).second;
 
-                CORE::CString productName;
-                if ( targetInfo->mainModule.IsNULL() )
+                const CORE::CString* mainModuleName = targets.GetTargetMainModuleName( targetName, platformName );
+                const CORE::CString* productName = GUCEF_NULL;
+                if ( GUCEF_NULL == mainModuleName )
                 {
-                    productName = targetInfo->projectName;
+                    productName = &targetInfo->projectName;
                 }
                 else
                 {
-                    productName = targetInfo->mainModule->GetConsensusName();
+                    productName = mainModuleName;
                 }
             
                 CORE::CString runsOnPlatform = useSelfHostedRunner ? "self-hosted" : CORE::CString::Empty;
-                CORE::CString section = GenerateGithubActionsWorkflowProjectSection( targetInfo->projectName, platformName, runsOnPlatform, productName, pathToTargetsOutputDir, pathToCMakeTargetsOutputDir, useWorkflowEventDispatch ); 
+                CORE::CString section = GenerateGithubActionsWorkflowProjectSection( targetInfo->projectName, platformName, runsOnPlatform, *productName, pathToTargetsOutputDir, pathToCMakeTargetsOutputDir, useWorkflowEventDispatch ); 
                 if ( !section.IsNULLOrEmpty() )
                 {
                     githubActionsWorkflowTargetContent += section;
@@ -582,7 +583,7 @@ GenerateFilePathListPerTarget( const CProjectInfo& projectInfo                ,
                 }
 
                 pathListOutputPath = CORE::CombinePath( pathListOutputPath, "filepaths.txt" );
-
+                   
                 if ( CORE::WriteStringAsTextFile( pathListOutputPath, pathListFileContent ) )
                 {
                     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GenerateFilePathListPerTarget: Successfully wrote list of relevant file paths for target \"" + targetName + "\" and platform \"" + platformName + "\" to: " + pathListOutputPath );

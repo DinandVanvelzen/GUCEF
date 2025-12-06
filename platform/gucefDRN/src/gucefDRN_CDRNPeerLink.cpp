@@ -332,8 +332,8 @@ CDRNPeerLink::SendData( const void* dataSource                   ,
          IsUDPPossible()  )
     {
         // Send the data using UDP
-        COMCORE::CIPv4Address ip( m_peerTCPConnectBackInfo.GetAddress() ,
-                                  m_peerUDPPort                         );
+        COMCORE::CIPv4Address ip( m_peerTCPConnectBackInfo.GetFirstAddressAsString() ,
+                                  m_peerUDPPort                                      );
         return m_udpSocket->SendPacketTo( ip         ,
                                           dataSource ,
                                           dataSize   ) >= 0;

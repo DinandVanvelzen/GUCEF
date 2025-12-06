@@ -46,6 +46,17 @@ CNoLock::CNoLock( void )
 
 /*--------------------------------------------------------------------------*/
 
+#ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+
+CNoLock::CNoLock( CNoLock&& src ) GUCEF_NOEXCEPT
+{GUCEF_TRACE;
+
+}
+
+#endif
+
+/*--------------------------------------------------------------------------*/
+
 CNoLock::~CNoLock()
 {GUCEF_TRACE;
 

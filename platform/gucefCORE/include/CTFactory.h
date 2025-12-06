@@ -219,8 +219,8 @@ CTFactory< BaseClassType, ConcreteClassType, LockType >::Clone( void ) const
      *  In contrast to normal cloning we do not need to use the copy constructor
      *  here because a factory is meta data and has no attributes.
      *
-     *  Decending classes can offcourse override this if additional criteria are
-     *  to be considdered.
+     *  Descending classes can of course override this if additional criteria are
+     *  to be considered.
      */
     return GUCEF_NEW CTFactory< BaseClassType, ConcreteClassType, LockType >();
 }

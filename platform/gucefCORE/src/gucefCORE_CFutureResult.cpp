@@ -23,6 +23,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CCOREGLOBAL_H
+#include "gucefCORE_CCoreGlobal.h"
+#define GUCEF_CORE_CCOREGLOBAL_H
+#endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
+
 #include "gucefCORE_CFutureResult.h"
 
 /*-------------------------------------------------------------------------//
@@ -143,6 +148,18 @@ CFutureResult::GetTaskId( void ) const
     if ( !task.IsNULL() )
         return task->GetTaskId();
     return 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFutureResult::RequestCancellation( void ) const
+{GUCEF_TRACE;
+
+    CTaskPtr task = m_task;
+    if ( !task.IsNULL() )
+        return task->RequestCancellation();
+    return true; // if there is no task, its as good as cancelled
 }
 
 /*-------------------------------------------------------------------------//

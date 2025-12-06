@@ -1,6 +1,6 @@
 /*
- *  gucefCORE_TestApp: GUCEF test application for the CORE module
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
+ *  Copyright (C) 2002 - 2025.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -14,24 +14,18 @@
  *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-
-#ifndef GUCEF_CORE_TESTAPP_TESTASYNC_H
-#define GUCEF_CORE_TESTAPP_TESTASYNC_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      UTILITIES                                                          //
+//      INCLUDES                                                           //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- *  Test the 'ASync' class and its associated functionality
- */
-void
-PerformASyncTests( void );
+#ifndef GUCEF_CORE_CTFREELIST_H
+#include "gucefCORE_CTFreeList.h"
+#define GUCEF_CORE_CTFREELIST_H
+#endif
 
 /*-------------------------------------------------------------------------*/
-
-#endif /* GUCEF_CORE_TESTAPP_TESTASYNC_H ? */

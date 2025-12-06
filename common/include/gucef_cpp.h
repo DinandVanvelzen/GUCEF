@@ -198,6 +198,22 @@ struct true_type : true_or_false_type< T >
     enum { value = true };
 };
 
+template<bool B>
+struct BoolToType;
+
+template<>
+struct BoolToType< true >
+{
+    typedef plain_true type;
+};
+
+template<>
+struct BoolToType< false >
+{
+    typedef plain_false type;
+};
+
+
 template <typename T>
 struct remove_const
 {

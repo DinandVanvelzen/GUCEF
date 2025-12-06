@@ -99,14 +99,14 @@
  *  	const char *file : The file responsible for requesting the allocation.
  *  	int line	       : The line number within the file requesting the allocation.
  */
-inline void* operator new( size_t size, const char *file, int line ) 
+inline void* operator new( size_t size, const char* file, int line ) 
 {
     if ( 0 == MEMMAN_LazyLoadMemoryManager() ) 
     { 
         //GUCEF_ASSERT_ALWAYS; 
         return malloc( size ); 
     }
-    return fp_MEMMAN_AllocateMemory( file, line, size, MM_NEW, GUCEF_NULL ); 
+    return fp_MEMMAN_AllocateMemory( file, line, size, MM_NEW, GUCEF_NULL, GUCEF_NULL ); 
 }
 
 /*-------------------------------------------------------------------------*/
@@ -122,14 +122,14 @@ inline void* operator new( size_t size, const char *file, int line )
  *  	const char *file : The file responsible for requesting the allocation.
  *  	int line	       : The line number within the file requesting the allocation.
  */
-inline void* operator new[]( size_t size, const char *file, int line )
+inline void* operator new[]( size_t size, const char* file, int line )
 {
     if ( 0 == MEMMAN_LazyLoadMemoryManager() ) 
     { 
         //GUCEF_ASSERT_ALWAYS; 
         return malloc( size ); 
     }
-    return fp_MEMMAN_AllocateMemory( file, line, size, MM_NEW_ARRAY, GUCEF_NULL );
+    return fp_MEMMAN_AllocateMemory( file, line, size, MM_NEW_ARRAY, GUCEF_NULL, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -151,7 +151,7 @@ inline void operator delete( void *address )
         //GUCEF_ASSERT_ALWAYS; 
         return free( address ); 
     }
-    fp_MEMMAN_DeAllocateMemory( address, MM_DELETE );
+    fp_MEMMAN_DeAllocateMemory( address, MM_DELETE, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -173,7 +173,7 @@ inline void operator delete[]( void *address )
         //GUCEF_ASSERT_ALWAYS; 
         return free( address ); 
     }
-    fp_MEMMAN_DeAllocateMemory( address, MM_DELETE_ARRAY );
+    fp_MEMMAN_DeAllocateMemory( address, MM_DELETE_ARRAY, GUCEF_NULL );
 }
 
 // ***** These two routines should never get called, unless an error occures during the 
@@ -206,6 +206,7 @@ inline void operator delete[]( void *address, const char *file, int line ) { if 
  */
 
 #ifdef __cplusplus
+
 #undef new
 #undef delete
 #undef GUCEF_NEW
@@ -217,15 +218,25 @@ inline void operator delete[]( void *address, const char *file, int line ) { if 
 
 #endif /* __cplusplus ? */
 
+#undef GUCEF_MALLOC
+#undef GUCEF_CALLOC
+#undef GUCEF_REALLOC
+#undef GUCEF_FREE
+
+#define GUCEF_MALLOC( size )            MEMMAN_malloc( __FILE__, __LINE__, size )
+#define GUCEF_CALLOC( num, sz )         MEMMAN_calloc( __FILE__, __LINE__, num, sz )
+#define GUCEF_REALLOC( ptr, sz )        MEMMAN_realloc( __FILE__, __LINE__, ptr, sz )
+#define GUCEF_FREE( ptr )               MEMMAN_free( __FILE__, __LINE__, ptr )
+
 #undef malloc
 #undef calloc
 #undef realloc
 #undef free
 
-#define malloc(size)     MEMMAN_malloc( __FILE__, __LINE__, size )
-#define calloc(num, sz)  MEMMAN_calloc( __FILE__, __LINE__, num, sz )
-#define realloc(ptr, sz) MEMMAN_realloc( __FILE__, __LINE__, ptr, sz )
-#define free(ptr)        MEMMAN_free( __FILE__, __LINE__, ptr )
+#define malloc( size )     GUCEF_MALLOC( size )
+#define calloc( num, sz )  GUCEF_CALLOC( num, sz )
+#define realloc( ptr, sz ) GUCEF_REALLOC( ptr, sz )
+#define free( ptr )        GUCEF_FREE( ptr )
 
 #undef GUCEF_CHECKALLOCPTR
 #undef GUCEF_CHECKMEM

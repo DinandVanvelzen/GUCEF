@@ -43,6 +43,11 @@
 #define GUCEF_CORE_CTABSTRACTFACTORY_H
 #endif /* GUCEF_CORE_CTABSTRACTFACTORY_H ? */
 
+#ifndef GUCEF_CORE_CTFREELIST_H
+#include "gucefCORE_CTFreeList.h"
+#define GUCEF_CORE_CTFREELIST_H
+#endif /* GUCEF_CORE_CTFREELIST_H ? */
+
 #ifndef GUCEF_CORE_CTASKCONSUMER_H
 #include "gucefCORE_CTaskConsumer.h"
 #define GUCEF_CORE_CIASKCONSUMER_H
@@ -346,6 +351,14 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
     bool RequestTaskToStop( CTaskConsumerPtr taskConsumer ,
                             bool callerShouldWait         );
 
+    /**
+     *  If the task is currently running this will request it to stop
+     *  If the task is queued it will be removed from the queue thus canceling it
+     */
+    bool RequestTaskCancellation( const UInt32 taskId           , 
+                                  bool callerShouldWait         ,
+                                  bool okIfTaskIsUnknown = true );
+
     bool WaitForTaskToFinish( const UInt32 taskId, Int32 timeoutInMs );
 
     bool WaitForTaskToFinish( CTaskConsumerPtr taskConsumer, Int32 timeoutInMs );
@@ -557,7 +570,7 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
     typedef GUCEF::set< TTaskDelegatorBasicPtr > TTaskDelegatorSet;
     typedef std::pair< const TIntegerTypeUsedForTaskId, CTaskPtr > TTaskIdIntAndTaskPtrPair;
     typedef GUCEF::map< TIntegerTypeUsedForTaskId, CTaskPtr >    TTaskId2TaskPtrMap;
-    typedef std::deque< CTaskPtr > TTaskPtrDequeue;
+    typedef CTFreeList< CTask, MT::CMutex > TTaskObjFreeList;
     typedef GUCEF::set< CTaskConsumerPtr > CTaskConsumerPtrSet;
     typedef std::pair< const CString, CTaskConsumerPtrSet > TStringAndTaskConsumerSetPair;
     typedef GUCEF::map< CString, CTaskConsumerPtrSet > TStringToTaskConsumerSetMap;
@@ -609,7 +622,7 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
     UInt32 m_desiredMinNrOfWorkerThreads;
     TTaskMailbox m_taskQueue;
     TTaskId2TaskPtrMap m_inUseTaskObjs;
-    TTaskPtrDequeue m_freeTaskObjs;
+    TTaskObjFreeList m_allTaskObjs;
     TStringToTaskConsumerSetMap m_freeTaskConsumers;
     TTaskDelegatorSet m_taskDedicatedDelegators;
     TTaskDelegatorSet m_taskGenericDelegators;    

@@ -245,6 +245,66 @@ struct TypeIsUnsigned
     };
 };
 
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  C++98 compatible helper: Check if T is an arithmetic type
+ *  Covers signed/unsigned integral types and floating point types.
+ */
+template < class T >
+struct TypeIsArithmetic
+{
+    typedef typename remove_cv< T >::type no_cv_t;
+
+    enum { value =
+           /* Signed integrals */
+           TypesAreExactlySame< no_cv_t, signed char >::value   ||
+           TypesAreExactlySame< no_cv_t, short >::value         ||
+           TypesAreExactlySame< no_cv_t, int >::value           ||
+           TypesAreExactlySame< no_cv_t, long >::value
+        #if defined(_MSC_VER) || defined(__GNUC__)
+           || TypesAreExactlySame< no_cv_t, long long >::value
+        #endif
+           /* Unsigned integrals */
+           || TypeIsUnsigned< no_cv_t >::value
+           /* Char and bool as arithmetic */
+           || TypesAreExactlySame< no_cv_t, char >::value       ||
+           TypesAreExactlySame< no_cv_t, bool >::value
+           /* Floating point */
+           || TypesAreExactlySame< no_cv_t, float >::value      ||
+           TypesAreExactlySame< no_cv_t, double >::value
+        #if defined(__GNUC__) || defined(_MSC_VER)
+           || TypesAreExactlySame< no_cv_t, long double >::value
+        #endif
+    };
+};
+
+/*--------------------------------------------------------------------------*/
+
+/**
+ *  Unified trait: IsTriviallyDestructible<T>
+ *  - In C++11 and later uses std::is_trivially_destructible
+ *  - In C++98 uses conservative detection: pointers, void/char/wchar pointers,
+ *    and arithmetic types are considered trivially destructible.
+ */
+template < class T >
+struct IsTriviallyDestructible
+{
+    #if (__cplusplus >= 201103L) || (defined(_MSC_VER) && _MSC_VER >= 1800)
+    enum { value = std::is_trivially_destructible< typename remove_cv<T>::type >::value };
+    #else
+    enum { value =
+           /* Pointers (including cv-qualified) */
+           TypeIsPointerType< T >::value ||
+           IsCharPtr< T >::value         ||
+           IsWCharPtr< T >::value        ||
+           IsVoidPtr< T >::value         ||
+           /* Arithmetic types */
+           TypeIsArithmetic< T >::value
+    };
+    #endif
+};
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -254,7 +314,10 @@ struct TypeIsUnsigned
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
-#endif /* __cplusplus */
+
+#endif /* __cplusplus ? */
+
+/*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_SFINAE_H ? */
 

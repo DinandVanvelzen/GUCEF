@@ -17,8 +17,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
  */
 
-#ifndef GUCEF_CORE_TESTAPP_TESTASYNC_H
-#define GUCEF_CORE_TESTAPP_TESTASYNC_H
+#ifndef GUCEFCORE_TESTAPP_TESTFREELIST_H
+#define GUCEFCORE_TESTAPP_TESTFREELIST_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -26,12 +26,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/**
- *  Test the 'ASync' class and its associated functionality
- */
-void
-PerformASyncTests( void );
+void PerformFreeListTests( void );
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_CORE_TESTAPP_TESTASYNC_H ? */
+#endif /* GUCEFCORE_TESTAPP_TESTFREELIST_H */

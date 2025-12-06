@@ -60,6 +60,10 @@ class CTDynamicDestructor : public CTDynamicDestructorBase< T >
      *  
      */
     CTDynamicDestructor( const bool destroySelfOnDestroyObject = false );
+
+    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    CTDynamicDestructor( CTDynamicDestructor&& src ) GUCEF_NOEXCEPT;
+    #endif
   
     virtual void DestroyObject( T* objectToBeDestroyed ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -95,6 +99,10 @@ class CTTypeNamedDynamicDestructor : public CTTypeNamedDynamicDestructorBase< T 
     CTTypeNamedDynamicDestructor( const CString& classTypeName                                    , 
                                   const CTTypeNamedDynamicDestructorBase< T >* externalDestructor ,
                                   const bool destroySelfOnDestroyObject = false                   );
+
+    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    CTTypeNamedDynamicDestructor( CTTypeNamedDynamicDestructor&& src ) GUCEF_NOEXCEPT;
+    #endif
   
     virtual void DestroyObject( T* objectToBeDestroyed, const CString& classTypeName ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -127,6 +135,20 @@ CTDynamicDestructor< T >::CTDynamicDestructor( const bool destroySelfOnDestroyOb
 {GUCEF_TRACE;
 
 }
+
+/*-------------------------------------------------------------------------*/
+
+#ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+
+template< typename T >
+CTDynamicDestructor< T >::CTDynamicDestructor( CTDynamicDestructor&& src ) GUCEF_NOEXCEPT
+    : CTDynamicDestructorBase< T >( GUCEF_MOVE( src ) )
+    , m_destroySelfOnDestroyObject( src.m_destroySelfOnDestroyObject )
+{GUCEF_TRACE;
+
+}
+
+#endif
 
 /*-------------------------------------------------------------------------*/
    
@@ -166,6 +188,23 @@ CTTypeNamedDynamicDestructor< T >::CTTypeNamedDynamicDestructor( const CString& 
 {GUCEF_TRACE;
 
 }
+
+/*-------------------------------------------------------------------------*/
+
+#ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+
+template< typename T >
+CTTypeNamedDynamicDestructor< T >::CTTypeNamedDynamicDestructor( CTTypeNamedDynamicDestructor&& src ) GUCEF_NOEXCEPT
+    : CTDynamicDestructorBase< T >( GUCEF_MOVE( src ) )
+    , m_destroySelfOnDestroyObject( src.m_destroySelfOnDestroyObject )
+    , m_classTypeName( GUCEF_MOVE( src.m_classTypeName ) )
+    , m_externalDestructor( src.m_externalDestructor )
+{GUCEF_TRACE;
+
+    src.m_externalDestructor = GUCEF_NULL;
+}
+
+#endif
 
 /*-------------------------------------------------------------------------*/
    

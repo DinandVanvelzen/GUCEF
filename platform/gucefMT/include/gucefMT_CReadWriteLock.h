@@ -94,6 +94,10 @@ class GUCEF_MT_PUBLIC_CPP CReadWriteLock : public CILockable
      */
     CReadWriteLock( const CReadWriteLock& src );
 
+    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    CReadWriteLock( CReadWriteLock&& src ) GUCEF_NOEXCEPT;
+    #endif
+
     /**
      *      Cleans up the lock.
      *      The destructor will block untill all readers and writers are

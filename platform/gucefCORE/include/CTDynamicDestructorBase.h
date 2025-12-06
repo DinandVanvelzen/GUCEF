@@ -74,6 +74,10 @@ class CTDynamicDestructorBase : public CIDynamicVoidDestructor
 
     CTDynamicDestructorBase( void );
 
+    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    CTDynamicDestructorBase( CTDynamicDestructorBase&& src ) GUCEF_NOEXCEPT;
+    #endif
+
     virtual ~CTDynamicDestructorBase();
 
     virtual void DestroyObject( T* objectToBeDestroyed ) const = 0;
@@ -103,6 +107,10 @@ class CTTypeNamedDynamicDestructorBase
 
     CTTypeNamedDynamicDestructorBase( void );
 
+    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    CTTypeNamedDynamicDestructorBase( CTTypeNamedDynamicDestructorBase&& src ) GUCEF_NOEXCEPT;
+    #endif
+
     virtual ~CTTypeNamedDynamicDestructorBase();
 
     virtual void DestroyObject( T* objectToBeDestroyed, const CString& classTypeName ) const = 0;
@@ -122,15 +130,26 @@ class CTTypeNamedDynamicDestructorBase
 
 template< typename T >
 CTDynamicDestructorBase< T >::CTDynamicDestructorBase( void )
-{
+    : CIDynamicVoidDestructor()
+{GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
 template< typename T >
+CTDynamicDestructorBase< T >::CTDynamicDestructorBase( CTDynamicDestructorBase&& src ) GUCEF_NOEXCEPT
+    : CIDynamicVoidDestructor()
+{GUCEF_TRACE;
+
+    // Nothing to move at this time
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T >
 CTDynamicDestructorBase< T >::~CTDynamicDestructorBase()
-{
+{GUCEF_TRACE;
 
 }
 
@@ -138,15 +157,24 @@ CTDynamicDestructorBase< T >::~CTDynamicDestructorBase()
 
 template< typename T >
 CTTypeNamedDynamicDestructorBase< T >::CTTypeNamedDynamicDestructorBase( void )
-{
+{GUCEF_TRACE;
 
 }
 
 /*-------------------------------------------------------------------------*/
 
 template< typename T >
+CTTypeNamedDynamicDestructorBase< T >::CTTypeNamedDynamicDestructorBase( CTTypeNamedDynamicDestructorBase&& src ) GUCEF_NOEXCEPT
+{GUCEF_TRACE;
+
+    // Nothing to move at this time
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T >
 CTTypeNamedDynamicDestructorBase< T >::~CTTypeNamedDynamicDestructorBase()
-{
+{GUCEF_TRACE;
 
 }
 

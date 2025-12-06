@@ -46,10 +46,20 @@
  *      As a rule always include this file BEFORE any STL headers !!!.
  */
 
+#undef GUCEF_MALLOC
+#undef GUCEF_CALLOC
+#undef GUCEF_REALLOC
+#undef GUCEF_FREE
+
 #undef malloc
 #undef calloc
 #undef realloc
 #undef free
+
+#define GUCEF_MALLOC( size )        malloc( size )
+#define GUCEF_CALLOC( num, sz )     calloc( num, sz )
+#define GUCEF_REALLOC( ptr, sz )    realloc( ptr, sz )
+#define GUCEF_FREE( ptr )           free( ptr )
 
 #ifdef GUCEF_MEMCHECK_OLEAPI
 
