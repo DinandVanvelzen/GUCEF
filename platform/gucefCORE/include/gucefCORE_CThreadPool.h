@@ -493,6 +493,14 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
                       const CDataNodeSerializableSettings* taskDataSerializerSettings = GUCEF_NULL ) const;
 
     /**
+     *  Obtains task totals in a single lock protected call
+     */
+    bool GetTaskTotals( UInt32& nrOfInUseTasks   ,
+                        UInt32& nrOfActiveTasks  ,
+                        UInt32& nrOfDormantTasks ,
+                        UInt32& nrOfFreeTaskObjs ) const;
+
+    /**
      *  Obtains a coherent snapshot of all task information in a single lock protected call
      */
     bool GetAllTaskInfo( TTaskInfoMap& info                                                           ,
@@ -594,6 +602,8 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
      *  Shared internal function to validate a task for processing ingress
      */
     TTaskStatus ValidateTaskForIngress( CTaskPtr& task ) const;
+
+    bool PerformTaskFailureChainCleanup( CTaskPtr task );
 
     /**
      *  Increases or decreases the number of threads in the pool to meet the desired nr of threads in the given range

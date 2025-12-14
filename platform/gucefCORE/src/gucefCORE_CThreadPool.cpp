@@ -1656,13 +1656,13 @@ CThreadPool::TaskCleanup( CTaskPtr task )
         {
             // first locally gather all tasks in the chain
             // we need this local copy since we are about to break the chain apart
-            CTask::TTaskPtrSet chainTasks;
+            CTask::TTaskPtrVector chainTasks;
             task->GetAllTasksInChain( chainTasks );
 
             MT::CObjectScopeLock lock( this );
 
             // now process the individual tasks
-            CTask::TTaskPtrSet::iterator i = chainTasks.begin();
+            CTask::TTaskPtrVector::iterator i = chainTasks.begin();
             while ( i != chainTasks.end() )
             {
                 CTaskPtr chainedTask = (*i);
@@ -1670,7 +1670,6 @@ CThreadPool::TaskCleanup( CTaskPtr task )
                 m_allTaskObjs.MarkDormant( chainedTask );
                 ++i;
             }
-            m_allTaskObjs.MarkDormant( task );
         }
         // else: for a chain its all or nothing, so we do not add it to the free list
     }
@@ -1694,11 +1693,54 @@ CThreadPool::TaskCleanup( CTaskPtr task )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CThreadPool::PerformTaskFailureChainCleanup( CTaskPtr task )
+{GUCEF_TRACE;
+
+    if GUCEF_PREDICT_FALSE( task.IsNULL() )
+        return false;
+
+    if ( task->IsTaskPartOfAChain() )
+    {
+        // get all the chain tasks in order
+        CTask::TTaskPtrVector chainTasks;
+        bool obtainedAllTasks = task->GetAllTasksInChain( chainTasks );
+
+        // mark all subsequent tasks as failed due to prerequisite failure
+        for ( size_t i=0; i<chainTasks.size(); ++i )
+        {
+            CTaskPtr& chainedTask = chainTasks[ i ];
+            if ( chainedTask == task )
+            {
+                for ( size_t j=i+1; j<chainTasks.size(); ++j )
+                {
+                    CTaskPtr& subsequentTask = chainTasks[ j ];
+                    subsequentTask->SetTaskStatus( TTaskStatus::TASKSTATUS_CHAIN_PREREQ_FAILED );
+                }
+            }
+        }
+
+        // Remove all tasks in the chain from our in-use list
+        MT::CObjectScopeLock lock( this );
+        for ( size_t i=0; i<chainTasks.size(); ++i )
+        {
+            CTaskPtr& chainedTask = chainTasks[ i ];
+            m_inUseTaskObjs.erase( chainedTask->GetTaskId() );
+            m_allTaskObjs.MarkDormant( chainedTask );
+        }
+
+        return obtainedAllTasks;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CThreadPool::OnTaskStartup( CTaskPtr task )
 {GUCEF_TRACE;
 
-    if ( !task.IsNULL() )
+    if GUCEF_PREDICT_TRUE( !task.IsNULL() )
     {
         TTaskStartupEventData eData( task->GetTaskId() ); 
         NotifyObserversFromThread( TaskStartupEvent, &eData ); 
@@ -1711,7 +1753,7 @@ void
 CThreadPool::OnTaskStarted( CTaskPtr task )
 {GUCEF_TRACE;
 
-    if ( !task.IsNULL() )
+    if GUCEF_PREDICT_TRUE( !task.IsNULL() )
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task with ID " + ToString( task->GetTaskId() ) + " started" );
 
@@ -1726,12 +1768,14 @@ void
 CThreadPool::OnTaskStartupFailed( CTaskPtr task )
 {GUCEF_TRACE;
 
-    if ( !task.IsNULL() )
+    if GUCEF_PREDICT_TRUE( !task.IsNULL() )
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task with ID " + ToString( task->GetTaskId() ) + " failed startup" );
 
         TTaskStartupFailedEventData eData( task->GetTaskId() ); 
-        NotifyObserversFromThread( TaskStartupFailedEvent, &eData ); 
+        NotifyObserversFromThread( TaskStartupFailedEvent, &eData );
+
+        PerformTaskFailureChainCleanup( task );
     }
 }
 
@@ -1741,12 +1785,14 @@ void
 CThreadPool::OnTaskKilled( CTaskPtr task )
 {GUCEF_TRACE;
 
-    if ( !task.IsNULL() )
+    if GUCEF_PREDICT_TRUE( !task.IsNULL() )
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task with ID " + ToString( task->GetTaskId() ) + " was killed" );
 
         TTaskKilledEventData eData( task->GetTaskId() ); 
-        NotifyObserversFromThread( TaskKilledEvent, &eData ); 
+        NotifyObserversFromThread( TaskKilledEvent, &eData );
+
+        PerformTaskFailureChainCleanup( task );
     }
 }
 
@@ -1756,7 +1802,7 @@ void
 CThreadPool::OnTaskStopped( CTaskPtr task )
 {GUCEF_TRACE;
 
-    if ( !task.IsNULL() )
+    if GUCEF_PREDICT_TRUE( !task.IsNULL() )
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task with ID " + ToString( task->GetTaskId() ) + " was stopped" );
 
@@ -1771,7 +1817,7 @@ void
 CThreadPool::OnTaskPaused( CTaskPtr task )
 {GUCEF_TRACE;
 
-    if ( !task.IsNULL() )
+    if GUCEF_PREDICT_TRUE( !task.IsNULL() )
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task with ID " + ToString( task->GetTaskId() ) + " was paused" );
 
@@ -1786,7 +1832,7 @@ void
 CThreadPool::OnTaskResumed( CTaskPtr task )
 {GUCEF_TRACE;
 
-    if ( !task.IsNULL() )
+    if GUCEF_PREDICT_TRUE( !task.IsNULL() )
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task with ID " + ToString( task->GetTaskId() ) + " has resumed" );
 
@@ -1801,7 +1847,7 @@ void
 CThreadPool::OnTaskFinished( CTaskPtr task )
 {GUCEF_TRACE;
 
-    if ( !task.IsNULL() )
+    if GUCEF_PREDICT_TRUE( !task.IsNULL() )
     {
         GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): Task with ID " + ToString( task->GetTaskId() ) + " has finished" );
 
@@ -2595,6 +2641,39 @@ CThreadPool::GetTaskInfo( UInt32 taskId                                         
     }
 
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CThreadPool::GetTaskTotals( UInt32& nrOfInUseTasks   ,
+                            UInt32& nrOfActiveTasks  ,
+                            UInt32& nrOfDormantTasks ,
+                            UInt32& nrOfFreeTaskObjs ) const
+{GUCEF_TRACE;
+
+    nrOfInUseTasks = 0;
+    nrOfActiveTasks = 0;
+    nrOfDormantTasks = 0;
+    nrOfFreeTaskObjs = 0;
+
+    try
+    {
+        MT::CObjectScopeReadOnlyLock lock( this );
+
+        // Count in use tasks
+        nrOfInUseTasks = (UInt32) m_inUseTaskObjs.size();
+        nrOfActiveTasks = m_allTaskObjs.GetActiveCount();
+        nrOfDormantTasks = m_allTaskObjs.GetDormantCount();
+        nrOfFreeTaskObjs = m_allTaskObjs.GetFreedCount();
+
+        return true;
+    }
+    catch ( timeout_exception& )
+    {
+        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "):GetTaskTotals: Timeout occurred while trying to obtain task totals" );
+        return false;
+    }
 }
 
 /*-------------------------------------------------------------------------*/

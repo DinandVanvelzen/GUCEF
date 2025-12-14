@@ -69,6 +69,8 @@ class GUCEF_CORE_PUBLIC_CPP CDeferredTask : public CICloneable
 
     virtual void Invoke( void ) = 0;
 
+    virtual ~CDeferredTask() GUCEF_VIRTUAL_OVERRIDE {GUCEF_TRACE; }
+
     template< typename R >
     static CDeferredTask* Construct( R (*f)() );
 
@@ -113,112 +115,6 @@ class GUCEF_CORE_PUBLIC_CPP CDeferredTask : public CICloneable
 
 /*-------------------------------------------------------------------------*/
 
-/** 
- *  Arity tags (number of arguments) for function_traits.
- */
-struct arity_0 {};
-struct arity_1 {};
-struct arity_2 {};
-struct arity_3 {};
-struct arity_4 {};
-struct arity_5 {};
-struct arity_6 {};
-struct arity_7 {};
-struct arity_8 {};
-struct arity_9 {};
-struct arity_10 {};
-
-/*-------------------------------------------------------------------------*/
-
-//— function_traits for free functions (arity 0…2)
-template< typename Sig >     struct function_traits;
-
-// arity 0
-template<typename R>
-struct function_traits<R()> {
-    typedef R       result_type;
-    typedef arity_0 tag;
-};
-
-// arity 1
-template<typename R, typename A1>
-struct function_traits<R(A1)> {
-    typedef R       result_type;
-    typedef A1      arg1_type;
-    typedef arity_1 tag;
-};
-
-// arity 2
-template<typename R, typename A1, typename A2>
-struct function_traits<R(A1, A2)> {
-    typedef R       result_type;
-    typedef A1      arg1_type;
-    typedef A2      arg2_type;
-    typedef arity_2 tag;
-};
-
-// arity 3
-template<typename R, typename A1, typename A2, typename A3>
-struct function_traits<R(A1, A2, A3)> {
-    typedef R       result_type;
-    typedef A1      arg1_type;
-    typedef A2      arg2_type;
-    typedef A3      arg3_type;
-    typedef arity_3 tag;
-};
-
-// arity 4
-template<typename R, typename A1, typename A2, typename A3, typename A4>
-struct function_traits<R(A1, A2, A3, A4)> {
-    typedef R       result_type;
-    typedef A1      arg1_type;
-    typedef A2      arg2_type;
-    typedef A3      arg3_type;
-    typedef A4      arg4_type;
-    typedef arity_4 tag;
-};
-
-// arity 5
-template<typename R, typename A1, typename A2, typename A3, typename A4, typename A5>
-struct function_traits<R(A1, A2, A3, A4, A5)> {
-    typedef R       result_type;
-    typedef A1      arg1_type;
-    typedef A2      arg2_type;
-    typedef A3      arg3_type;
-    typedef A4      arg4_type;
-    typedef A5      arg5_type;
-    typedef arity_5 tag;
-};
-
-// arity 6
-template<typename R, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
-struct function_traits<R(A1, A2, A3, A4, A5, A6)> {
-    typedef R       result_type;
-    typedef A1      arg1_type;
-    typedef A2      arg2_type;
-    typedef A3      arg3_type;
-    typedef A4      arg4_type;
-    typedef A5      arg5_type;
-    typedef A6      arg6_type;
-    typedef arity_6 tag;
-};
-
-// arity 7
-template<typename R, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7>
-struct function_traits<R(A1, A2, A3, A4, A5, A6, A7)> {
-    typedef R       result_type;
-    typedef A1      arg1_type;
-    typedef A2      arg2_type;
-    typedef A3      arg3_type;
-    typedef A4      arg4_type;
-    typedef A5      arg5_type;
-    typedef A6      arg6_type;
-    typedef A7      arg7_type;
-    typedef arity_7 tag;
-};
-
-/*-------------------------------------------------------------------------*/
-
 //— deferred_invoker specializations
 template< typename FuncPtr, typename Tag > struct deferred_invoker;
 
@@ -241,6 +137,11 @@ class deferred_invoker<FuncPtr, arity_0> : public CDeferredTask
         m_result = (*m_f)();
     }
 
+    virtual ~deferred_invoker() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+    }
+
     virtual CICloneable* Clone() const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NEW deferred_invoker(m_f); }
 };
 
@@ -255,8 +156,19 @@ class deferred_invoker< FuncPtr, arity_1 > : public CDeferredTask
     typename traits::result_type m_result;
     typename traits::arg1_type m_a1;    
 
-    deferred_invoker(FuncPtr f, typename traits::arg1_type a1)
-      : m_f(f), m_result(), m_a1(a1) {GUCEF_TRACE; }
+    deferred_invoker( FuncPtr f                     ,
+                      typename traits::arg1_type a1 )
+      : m_f(f)
+      , m_result()
+      , m_a1(a1)
+    {GUCEF_TRACE;
+
+    }
+
+    virtual ~deferred_invoker() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+    }
 
     virtual void Invoke( void ) GUCEF_VIRTUAL_OVERRIDE
     {GUCEF_TRACE;
@@ -286,6 +198,11 @@ class deferred_invoker< FuncPtr, arity_2 > : public CDeferredTask
       , m_result()
       , m_a1( a1 )
       , m_a2( a2 )
+    {GUCEF_TRACE;
+
+    }
+
+    virtual ~deferred_invoker() GUCEF_VIRTUAL_OVERRIDE
     {GUCEF_TRACE;
 
     }
@@ -329,6 +246,11 @@ class deferred_invoker< FuncPtr, arity_3 > : public CDeferredTask
 
     }
 
+    virtual ~deferred_invoker() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+    }
+
     virtual void Invoke( void ) GUCEF_VIRTUAL_OVERRIDE
     {GUCEF_TRACE;
 
@@ -367,6 +289,11 @@ class deferred_invoker< FuncPtr, arity_4 > : public CDeferredTask
       , m_a2( a2 )
       , m_a3( a3 )
       , m_a4( a4 )
+    {GUCEF_TRACE;
+
+    }
+
+    virtual ~deferred_invoker() GUCEF_VIRTUAL_OVERRIDE
     {GUCEF_TRACE;
 
     }
@@ -416,6 +343,11 @@ class deferred_invoker< FuncPtr, arity_5 > : public CDeferredTask
 
     }
 
+    virtual ~deferred_invoker() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+    }
+
     virtual void Invoke( void ) GUCEF_VIRTUAL_OVERRIDE
     {GUCEF_TRACE;
 
@@ -455,7 +387,14 @@ class deferred_fwd_invoker< StateLifeCycle, Prior, FuncPtr, arity_0> : public CD
         , m_prior( prior )
         , m_f( f )
         , m_result()
-    {GUCEF_TRACE;  }
+    {GUCEF_TRACE;
+
+    }
+
+    virtual ~deferred_fwd_invoker() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+    }
 
     virtual void Invoke( void ) GUCEF_VIRTUAL_OVERRIDE
     {
@@ -493,7 +432,14 @@ class deferred_fwd_invoker< StateLifeCycle, Prior, FuncPtr, arity_1> : public CD
         , m_prior( prior )
         , m_f( f )
         , m_result()
-    {GUCEF_TRACE;  }
+    {GUCEF_TRACE;
+
+    }
+
+    virtual ~deferred_fwd_invoker() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+    }
 
     virtual void Invoke( void ) GUCEF_VIRTUAL_OVERRIDE
     {
@@ -532,7 +478,14 @@ class deferred_fwd_invoker< StateLifeCycle, Prior, FuncPtr, arity_2> : public CD
         , m_prior( prior )
         , m_f( f )
         , m_result()
-    {GUCEF_TRACE;  }
+    {GUCEF_TRACE;
+
+    }
+
+    virtual ~deferred_fwd_invoker() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+    }
 
     virtual void Invoke( void ) GUCEF_VIRTUAL_OVERRIDE
     {
@@ -573,7 +526,14 @@ class deferred_fwd_invoker< StateLifeCycle, Prior, FuncPtr, arity_3> : public CD
         , m_prior( prior )
         , m_f( f )
         , m_result()
-    {GUCEF_TRACE;  }
+    {GUCEF_TRACE;
+
+    }
+
+    virtual ~deferred_fwd_invoker() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+    }
 
     virtual void Invoke( void ) GUCEF_VIRTUAL_OVERRIDE
     {
@@ -616,7 +576,14 @@ class deferred_fwd_invoker< StateLifeCycle, Prior, FuncPtr, arity_4> : public CD
         , m_prior( prior )
         , m_f( f )
         , m_result()
-    {GUCEF_TRACE;  }
+    {GUCEF_TRACE;
+
+    }
+
+    virtual ~deferred_fwd_invoker() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+    }
 
     virtual void Invoke( void ) GUCEF_VIRTUAL_OVERRIDE
     {
@@ -661,7 +628,14 @@ class deferred_fwd_invoker< StateLifeCycle, Prior, FuncPtr, arity_5> : public CD
         , m_prior( prior )
         , m_f( f )
         , m_result()
-    {GUCEF_TRACE;  }
+    {GUCEF_TRACE;
+
+    }
+
+    virtual ~deferred_fwd_invoker() GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+    }
 
     virtual void Invoke( void ) GUCEF_VIRTUAL_OVERRIDE
     {

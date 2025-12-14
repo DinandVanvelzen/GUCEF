@@ -642,6 +642,43 @@ CTaskManager::GetGlobalNrOfQueuedTasks( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CTaskManager::GetTaskTotals( UInt32& nrOfInUseTasks   ,
+                             UInt32& nrOfActiveTasks  ,
+                             UInt32& nrOfDormantTasks ,
+                             UInt32& nrOfFreeTaskObjs ) const
+{GUCEF_TRACE;
+
+    nrOfInUseTasks = 0;
+    nrOfActiveTasks = 0;
+    nrOfDormantTasks = 0;
+    nrOfFreeTaskObjs = 0;
+
+    UInt32 poolNrOfInUseTasks = 0;
+    UInt32 poolNrOfActiveTasks = 0;
+    UInt32 poolNrOfDormantTasks = 0;
+    UInt32 poolNrOfFreeTaskObjs = 0;
+
+    MT::CObjectScopeReadOnlyLock lock( this, GUCEF_MT_LONG_LOCK_TIMEOUT );
+
+    bool totalSuccess = true;
+    ThreadPoolMap::const_iterator i = m_threadPools.begin();
+    while ( i != m_threadPools.end() )
+    {
+        totalSuccess = (*i).second->GetTaskTotals( poolNrOfInUseTasks, poolNrOfActiveTasks, poolNrOfDormantTasks, poolNrOfFreeTaskObjs ) && totalSuccess;
+
+        nrOfInUseTasks += poolNrOfInUseTasks;
+        nrOfActiveTasks += poolNrOfActiveTasks;
+        nrOfDormantTasks += poolNrOfDormantTasks;
+        nrOfFreeTaskObjs += poolNrOfFreeTaskObjs;
+
+        ++i;
+    }
+    return totalSuccess;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void 
 CTaskManager::GetAllThreadPools( ThreadPoolVector& threadPools ) const
 {GUCEF_TRACE;

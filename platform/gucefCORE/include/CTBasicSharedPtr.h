@@ -378,7 +378,7 @@ class CTBasicSharedPtrCreator
     public:
 
     typedef T                                   TBasicSharedPtrContainedType;
-    typedef TypeWhenAllocated                           TBasicSharedPtrTypeWhenAllocatedype;
+    typedef TypeWhenAllocated                   TBasicSharedPtrTypeWhenAllocatedype;
     typedef LockType                            TBasicSharedPtrLockType;
     typedef CTBasicSharedPtr< T, LockType >     TBasicSharedPtrType;
     typedef void                                IsBasicSharedPtrCreatorTag;

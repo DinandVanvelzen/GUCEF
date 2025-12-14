@@ -236,6 +236,14 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
      */
     bool operator<( const CTask& other ) const;
 
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    protected:
+
+    virtual MT::TLockStatus Lock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual MT::TLockStatus Unlock( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     private:
     friend class CTaskDelegator;
     friend class CSingleTaskDelegator;
@@ -283,6 +291,8 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
 
     bool GetAllTasksInChain( TTaskPtrSet& taskSet ) const;
 
+    bool GetAllTasksInChain( TTaskPtrVector& taskSet ) const;
+
     bool GetAllUpcomingTasksInChain( TTaskPtrSet& taskSet ) const;
 
     private:
@@ -297,6 +307,7 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
     TTaskStatus m_taskStatus;
     CString m_taskStatusExtraInfo;
     TTaskIdVector m_chainTasks;
+    MT::CMutex m_lock;
 };
 
 typedef CTask::CTaskPtr     CTaskPtr;

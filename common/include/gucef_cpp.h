@@ -260,6 +260,160 @@ template< class T > struct remove_pointer<T* const>          {typedef T type;};
 template< class T > struct remove_pointer<T* volatile>       {typedef T type;};
 template< class T > struct remove_pointer<T* const volatile> {typedef T type;};
 
+/*-------------------------------------------------------------------------*/
+
+/** 
+ *  Arity tags (number of arguments) for function_traits.
+ */
+struct arity_0 {};
+struct arity_1 {};
+struct arity_2 {};
+struct arity_3 {};
+struct arity_4 {};
+struct arity_5 {};
+struct arity_6 {};
+struct arity_7 {};
+struct arity_8 {};
+struct arity_9 {};
+struct arity_10 {};
+
+/*-------------------------------------------------------------------------*/
+
+//— function_traits for free functions (arity 0…10)
+template< typename Sig >     struct function_traits;
+
+// arity 0
+template<typename R>
+struct function_traits<R()> {
+    typedef R       result_type;
+    typedef arity_0 tag;
+};
+
+// arity 1
+template<typename R, typename A1>
+struct function_traits<R(A1)> {
+    typedef R       result_type;
+    typedef A1      arg1_type;
+    typedef arity_1 tag;
+};
+
+// arity 2
+template<typename R, typename A1, typename A2>
+struct function_traits<R(A1, A2)> {
+    typedef R       result_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef arity_2 tag;
+};
+
+// arity 3
+template<typename R, typename A1, typename A2, typename A3>
+struct function_traits<R(A1, A2, A3)> {
+    typedef R       result_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef arity_3 tag;
+};
+
+// arity 4
+template<typename R, typename A1, typename A2, typename A3, typename A4>
+struct function_traits<R(A1, A2, A3, A4)> {
+    typedef R       result_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef arity_4 tag;
+};
+
+// arity 5
+template<typename R, typename A1, typename A2, typename A3, typename A4, typename A5>
+struct function_traits<R(A1, A2, A3, A4, A5)> {
+    typedef R       result_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef arity_5 tag;
+};
+
+// arity 6
+template<typename R, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
+struct function_traits<R(A1, A2, A3, A4, A5, A6)> {
+    typedef R       result_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef A6      arg6_type;
+    typedef arity_6 tag;
+};
+
+// arity 7
+template<typename R, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7>
+struct function_traits<R(A1, A2, A3, A4, A5, A6, A7)> {
+    typedef R       result_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef A6      arg6_type;
+    typedef A7      arg7_type;
+    typedef arity_7 tag;
+};
+
+// arity 8
+template<typename R, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7, typename A8>
+struct function_traits<R(A1, A2, A3, A4, A5, A6, A7, A8)> {
+    typedef R       result_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef A6      arg6_type;
+    typedef A7      arg7_type;
+    typedef A8      arg8_type;
+    typedef arity_8 tag;
+};
+
+// arity 9
+template<typename R, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7, typename A8, typename A9>
+struct function_traits<R(A1, A2, A3, A4, A5, A6, A7, A8, A9)> {
+    typedef R       result_type;
+    typedef A1      arg1_type;
+    typedef A2      arg2_type;
+    typedef A3      arg3_type;
+    typedef A4      arg4_type;
+    typedef A5      arg5_type;
+    typedef A6      arg6_type;
+    typedef A7      arg7_type;
+    typedef A8      arg8_type;
+    typedef A9      arg9_type;
+    typedef arity_9 tag;
+};
+
+// arity 10
+template<typename R, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6, typename A7, typename A8, typename A9, typename A10>
+struct function_traits<R(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10)> {
+    typedef R        result_type;
+    typedef A1       arg1_type;
+    typedef A2       arg2_type;
+    typedef A3       arg3_type;
+    typedef A4       arg4_type;
+    typedef A5       arg5_type;
+    typedef A6       arg6_type;
+    typedef A7       arg7_type;
+    typedef A8       arg8_type;
+    typedef A9       arg9_type;
+    typedef A10      arg10_type;
+    typedef arity_10 tag;
+};
+
 #endif /* defined(__cplusplus) */
 
 /*-------------------------------------------------------------------------//

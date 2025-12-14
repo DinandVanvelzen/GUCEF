@@ -64,6 +64,7 @@ CTask::CTask( TTaskStatus taskStatus )
     , m_taskStatus( taskStatus )
     , m_taskStatusExtraInfo()
     , m_chainTasks()
+    , m_lock()
 {GUCEF_TRACE;
 
     // Obtain a globally unique task id
@@ -96,6 +97,7 @@ CTask::CTask( CTask&& src ) GUCEF_NOEXCEPT
     , m_taskStatus( src.m_taskStatus )
     , m_taskStatusExtraInfo( GUCEF_MOVE( src.m_taskStatusExtraInfo ) )
     , m_chainTasks( GUCEF_MOVE( src.m_chainTasks ) )
+    , m_lock( GUCEF_MOVE( src.m_lock ) )
 {GUCEF_TRACE;
 
     // Leave the source in a valid state
@@ -109,7 +111,7 @@ CTask::CTask( CTask&& src ) GUCEF_NOEXCEPT
 CTask::~CTask()
 {GUCEF_TRACE;
 
-    m_serializedTaskData.Clear();
+    Clear();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -117,6 +119,9 @@ CTask::~CTask()
 void
 CTask::SetTaskConsumer( CTaskConsumerPtr taskConsumer )
 {GUCEF_TRACE;
+
+    // shared pointers have their own assignment locks so copying them is thread safe
+    // no need for extra locks here
 
     m_taskConsumer = taskConsumer;
 }
@@ -126,7 +131,10 @@ CTask::SetTaskConsumer( CTaskConsumerPtr taskConsumer )
 CTaskConsumerPtr
 CTask::GetTaskConsumer( void ) const
 {GUCEF_TRACE;
-                 
+
+    // shared pointers have their own assignment locks so copying them is thread safe
+    // no need for extra locks here
+
     return m_taskConsumer;
 }
 
@@ -136,6 +144,9 @@ const CString&
 CTask::GetTaskType( void ) const
 {GUCEF_TRACE;
 
+    // for performance this is designed to be immutable after construction so no lock needed
+    // obviously the task object itself needs to remain alive for this to be valid
+
     return m_taskType;
 }
 
@@ -144,6 +155,8 @@ CTask::GetTaskType( void ) const
 void
 CTask::SetTaskData( CICloneable* taskData, bool assumeOwnershipOfTaskData )
 {GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
 
     // First clean up what we had before
     if ( GUCEF_NULL != m_taskData && m_assumedOwnershipOfTaskData )
@@ -170,6 +183,7 @@ CICloneable*
 CTask::GetTaskData( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
     return m_taskData;
 }
 
@@ -188,6 +202,7 @@ CTask::TIntegerTypeUsedForTaskId
 CTask::GetTaskId( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
     return m_taskId;
 }
 
@@ -206,6 +221,7 @@ bool
 CTask::IsTaskPartOfAChain( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
     return !m_chainTasks.empty();
 }
 
@@ -214,6 +230,8 @@ CTask::IsTaskPartOfAChain( void ) const
 bool
 CTask::IsLastTaskInAChain( void ) const
 {GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
 
     if ( !m_chainTasks.empty() )
     {
@@ -228,16 +246,18 @@ CTask::IsLastTaskInAChain( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CTask::GetAllTasksInChain( TTaskPtrSet& taskSet ) const
+CTask::GetAllTasksInChain( TTaskPtrVector& tasks ) const
 {GUCEF_TRACE;
 
-    taskSet.clear();
+    tasks.clear();
+
+    MT::CScopeMutex lock( m_lock );
 
     // first check if this is even a chained task
     // if not we can just return ourselves
     if ( m_chainTasks.empty() )
     {
-        taskSet.insert( CreateBasicSharedPtr() );
+        tasks.push_back( CreateBasicSharedPtr() );
         return true;
     }
     else
@@ -250,7 +270,7 @@ CTask::GetAllTasksInChain( TTaskPtrSet& taskSet ) const
             CTaskPtr task = threadPool->GetTaskObjById( m_chainTasks[ i ] );
             if ( !task.IsNULL() )
             {
-                taskSet.insert( task );
+                tasks.push_back( task );
             }
             else
             {
@@ -265,10 +285,27 @@ CTask::GetAllTasksInChain( TTaskPtrSet& taskSet ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CTask::GetAllTasksInChain( TTaskPtrSet& taskSet ) const
+{GUCEF_TRACE;
+
+    TTaskPtrVector tasks;
+    bool success = GetAllTasksInChain( tasks );
+    for ( UInt32 i=0; i<tasks.size(); ++i )
+    {
+        taskSet.insert( tasks[ i ] );
+    }
+    return success;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CTask::GetAllUpcomingTasksInChain( TTaskPtrSet& taskSet ) const
 {GUCEF_TRACE;
 
     taskSet.clear();
+
+    MT::CScopeMutex lock( m_lock );
 
     // first check if this is even a chained task
     // if not we can just return ourselves
@@ -312,7 +349,10 @@ void
 CTask::SetTaskStatus( TTaskStatus newStatus )
 {GUCEF_TRACE;
 
-    m_taskStatus = newStatus;
+    {
+        MT::CScopeMutex lock( m_lock );
+        m_taskStatus = newStatus;
+    }
 
     CTaskPtr nextTask = GetNextTask();
     if ( !nextTask.IsNULL() )
@@ -357,6 +397,7 @@ TTaskStatus
 CTask::GetTaskStatus( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
     return m_taskStatus;
 }
 
@@ -366,6 +407,7 @@ CString
 CTask::GetTaskStatusString( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );    
     return TaskStatusToTaskStatusString( m_taskStatus );
 }
 
@@ -374,7 +416,8 @@ CTask::GetTaskStatusString( void ) const
 void
 CTask::SetTaskStatusExtraInfo( const CString& extraInfo )
 {GUCEF_TRACE;
-
+                                
+    MT::CScopeMutex lock( m_lock );
     m_taskStatusExtraInfo = extraInfo;
 }
 
@@ -384,6 +427,7 @@ CString
 CTask::GetTaskStatusExtraInfo( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
     return m_taskStatusExtraInfo;
 }
 
@@ -392,6 +436,9 @@ CTask::GetTaskStatusExtraInfo( void ) const
 UInt32
 CTask::GetThreadId( void ) const
 {GUCEF_TRACE;
+
+    // shared pointers have their own assignment locks so copying them is thread safe
+    // no need for extra locks here
 
     CTaskConsumerPtr taskConsumer = m_taskConsumer;
     if ( !taskConsumer.IsNULL() )
@@ -406,6 +453,9 @@ CTask::GetThreadId( void ) const
 CTask::TTaskDelegatorBasicPtr
 CTask::GetDelegator( void ) const
 {GUCEF_TRACE;
+
+    // shared pointers have their own assignment locks so copying them is thread safe
+    // no need for extra locks here
 
     CTaskConsumerPtr taskConsumer = m_taskConsumer;
     if ( !taskConsumer.IsNULL() )
@@ -433,6 +483,8 @@ CTask::Init( const CString& taskType         ,
         return false;
     }
 
+    MT::CScopeMutex lock( m_lock );
+
     m_taskType = taskType;
     m_taskConsumer = taskConsumer;
     SetTaskData( taskData, assumedOwnershipOfTaskData );
@@ -455,16 +507,17 @@ void
 CTask::Clear( void )
 {GUCEF_TRACE;
 
-    m_taskType.Clear();
-    m_taskConsumer.Unlink();
-    m_threadPool.Unlink();
-    m_taskData = GUCEF_NULL;
-    m_assumedOwnershipOfTaskData = false;
+    MT::CScopeMutex lock( m_lock );
+
+    SetTaskData( GUCEF_NULL, false );
     m_taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED;
     m_taskStatusExtraInfo.Clear();
     m_serializedTaskData.Clear();
     m_serializedTaskData.SetNodeType( GUCEF_DATATYPE_UNKNOWN );
     m_chainTasks.clear();
+    m_taskType.Clear();
+    m_taskConsumer.Unlink();
+    m_threadPool.Unlink();        
 }
                                                                                                                                                                                                                                      
 /*-------------------------------------------------------------------------*/
@@ -473,6 +526,8 @@ bool
 CTask::GetSerializedTaskDataCopy( CDataNode& domNode                                      ,
                                   const CDataNodeSerializableSettings& serializerSettings ) const
 {GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
 
     if ( m_serializedTaskData.GetNodeType() != GUCEF_DATATYPE_UNKNOWN )
     {
@@ -504,6 +559,7 @@ bool
 CTask::IsTaskInEndState( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
     return TaskStatusIsAnEndState( m_taskStatus );
 }
 
@@ -513,6 +569,7 @@ bool
 CTask::IsTaskInErrorState( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
     return TaskStatusIsAnError( m_taskStatus );
 }
 
@@ -540,6 +597,8 @@ CTask::WaitForTaskToFinish( Int32 timeoutInMs ) const
 CTaskPtr
 CTask::GetFirstTaskInChain( void ) const
 {GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
 
     if ( !m_chainTasks.empty() )
     {
@@ -569,6 +628,8 @@ CTaskPtr
 CTask::GetLastTaskInChain( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
+
     if ( !m_chainTasks.empty() )
     {
         CThreadPoolPtr threadPool = GetThreadPool();
@@ -597,6 +658,9 @@ CTaskPtr
 CTask::GetFirstErrorStateTask( void ) const
 {GUCEF_TRACE;
 
+    // shared pointers have their own assignment locks so copying them is thread safe
+    // no need for extra locks here
+
     CTaskPtr task = GetFirstTaskInChain();
     if ( task.IsNULL() )
         return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
@@ -618,6 +682,7 @@ bool
 CTask::UpdateTaskChainIds( const TTaskIdVector& taskIds )
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
     m_chainTasks = taskIds;
     return true;
 }
@@ -653,6 +718,8 @@ CTaskPtr
 CTask::GetNextTask( void ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
+
     if ( !m_chainTasks.empty() )
     {
         CThreadPoolPtr threadPool = GetThreadPool();
@@ -685,6 +752,8 @@ CTask::GetNextTask( void ) const
 CTaskPtr
 CTask::GetPriorTask( void ) const
 {GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
 
     if ( !m_chainTasks.empty() )
     {
@@ -719,6 +788,9 @@ CThreadPoolPtr
 CTask::GetThreadPool( void ) const
 {GUCEF_TRACE;
 
+    // shared pointers have their own assignment locks so copying them is thread safe
+    // no need for extra locks here
+
     ThreadPoolPtr pool = m_threadPool;
     if ( !pool.IsNULL() )
     {
@@ -739,6 +811,9 @@ CTask::GetThreadPool( void ) const
 bool
 CTask::RequestCancellation( void ) const
 {GUCEF_TRACE;
+
+    // shared pointers have their own assignment locks so copying them is thread safe
+    // no need for extra locks here
 
     TIntegerTypeUsedForTaskId taskId = GetTaskId();
     CThreadPoolPtr threadPool = GetThreadPool();
@@ -772,6 +847,33 @@ CTask::operator<( const CTask& other ) const
 {GUCEF_TRACE;
 
     return m_taskId < other.m_taskId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const MT::CILockable* 
+CTask::AsLockable( void ) const
+{GUCEF_TRACE;
+
+    return &m_lock;
+}
+
+/*-------------------------------------------------------------------------*/
+
+MT::TLockStatus
+CTask::Lock( UInt32 lockWaitTimeoutInMs ) const
+{GUCEF_TRACE;
+
+    return m_lock.Lock( lockWaitTimeoutInMs );
+}
+
+/*-------------------------------------------------------------------------*/
+
+MT::TLockStatus
+CTask::Unlock( void ) const
+{GUCEF_TRACE;
+
+    return m_lock.Unlock();
 }
 
 /*-------------------------------------------------------------------------//

@@ -428,39 +428,14 @@ CASync::Submit( void )
 
     // this chain has not been submitted yet (not a redundant Submit() call)
     // We will attempt to submit the task now
-    if ( !m_state->m_chainHasBeenSubmitted )
-    {
-        //// First sync up the task chain ids
-        //bool totalIdSyncSuccess = true;
-        //TTaskIdVector taskIds;
-        //if GUCEF_PREDICT_TRUE( GetTaskIdsInChain( taskIds ) )
-        //{            
-        //    CASyncChainState::TTaskPtrVector::iterator i = m_state->m_tasks.begin();
-        //    while ( i != m_state->m_tasks.end() )
-        //    {
-        //        CTaskPtr& task = (*i);
-        //        if GUCEF_PREDICT_FALSE( !task->UpdateTaskChainIds( taskIds ) )
-        //        {
-        //            totalIdSyncSuccess = false;
-        //            task->SetTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
-        //        }
-        //        ++i;
-        //    }
-        //}
-        //else
-        //{
-        //    totalIdSyncSuccess = false;
-        //}
-        //if ( !totalIdSyncSuccess )
-        //{
-        //    GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ASync: Failed to sync task Ids in chain prior to submission" );
-        //    return TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED;
-        //}
-        
+    if ( !m_state->m_chainHasBeenSubmitted && !m_state->m_tasks.empty() )
+    {        
         if ( m_state->m_startRightAwayOnSubmit )
         {
             // Use the StartTaskChain() set of functions to force a start of the task chain right away
-            CFutureResult future = m_state->m_threadPool->StartTaskChain( m_state->m_tasks );
+            CFutureResult future = m_state->m_tasks.size() > 1 ?
+                                   m_state->m_threadPool->StartTaskChain( m_state->m_tasks ) :
+                                   m_state->m_threadPool->StartTask( m_state->m_tasks.front() );
             if ( future.HasAFuture() )
             {
                 m_state->m_chainHasBeenSubmitted = true;
@@ -477,7 +452,9 @@ CASync::Submit( void )
         else
         {
             // Use the QueueTaskChain() set of functions to queue a start to the task chain        
-            CFutureResult future = m_state->m_threadPool->QueueTaskChain( m_state->m_tasks );
+            CFutureResult future = m_state->m_tasks.size() > 1 ?
+                                   m_state->m_threadPool->QueueTaskChain( m_state->m_tasks ) :
+                                   m_state->m_threadPool->QueueTask( m_state->m_tasks.front() );
             if ( future.HasAFuture() )
             {
                 m_state->m_chainHasBeenSubmitted = true;
