@@ -298,7 +298,8 @@ class CTFreeList : public MT::CILockable
     {GUCEF_TRACE;
 
         // There is no clear so we revert back to using the constructor
-        new (obj) CTBasicSharedPtrCreator< T, LockType >( obj, &m_destructor );
+        // Always use placement new to (re)init the object
+        m_allocator.construct( obj, TSharedPtrCreator( obj, &m_destructor ) );
     }
 
     void ReconstructIfNoClearIsAvailable( TSharedPtrCreator* obj )
@@ -500,7 +501,7 @@ CTFreeList< T, LockType >::Reserve( UInt32 count )
     UInt32 nrOfBlocksToAdd = (shortage + m_blockSize - 1) / m_blockSize;
     for ( UInt32 i=0; i<nrOfBlocksToAdd; ++i )
     {
-        void* base = GUCEF_MALLOC( m_blockSize * sizeof( TSharedPtrCreator ) );
+        void* base = GUCEF_CALLOC( m_blockSize, sizeof( TSharedPtrCreator ) );
         if ( GUCEF_NULL == base )
             return false;
 

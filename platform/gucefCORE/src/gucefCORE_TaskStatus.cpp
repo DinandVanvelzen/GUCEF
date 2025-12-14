@@ -60,7 +60,10 @@ namespace CORE {
         return ETaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS;    
 
     if ( 0 == strcmp( taskStatusStr, "TASK_CHAINING_FAILED" ) )
-        return ETaskStatus::TASKSTATUS_TASK_CHAINING_FAILED; 
+        return ETaskStatus::TASKSTATUS_TASK_CHAINING_FAILED;
+
+    if ( 0 == strcmp( taskStatusStr, "CHAIN_PREREQ_FAILED" ) )
+        return ETaskStatus::TASKSTATUS_CHAIN_PREREQ_FAILED;
     
     if ( 0 == strcmp( taskStatusStr, "RESOURCE_NOT_AVAILABLE" ) )
         return ETaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
@@ -79,6 +82,9 @@ namespace CORE {
 
     if ( 0 == strcmp( taskStatusStr, "QUEUED" ) )
         return ETaskStatus::TASKSTATUS_QUEUED;
+
+    if ( 0 == strcmp( taskStatusStr, "CHAIN_PREREQ_QUEUED" ) )
+        return ETaskStatus::TASKSTATUS_CHAIN_PREREQ_QUEUED;    
 
     if ( 0 == strcmp( taskStatusStr, "STARTUP" ) )
         return ETaskStatus::TASKSTATUS_STARTUP;
@@ -132,12 +138,14 @@ TaskStatusToTaskStatusString( TTaskStatus taskStatus )
         case ETaskStatus::TASKSTATUS_TASKDATA_INVALID: return "TASKDATA_INVALID";
         case ETaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS: return "TASK_WITH_TYPE_EXISTS";
         case ETaskStatus::TASKSTATUS_TASK_CHAINING_FAILED: return "TASK_CHAINING_FAILED";
+        case ETaskStatus::TASKSTATUS_CHAIN_PREREQ_FAILED: return "CHAIN_PREREQ_FAILED";
         case ETaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE: return "RESOURCE_NOT_AVAILABLE";
         case ETaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED: return "RESOURCE_LIMIT_REACHED";
         case ETaskStatus::TASKSTATUS_QUEUEING_FAILED: return "QUEUEING_FAILED";
         case ETaskStatus::TASKSTATUS_SETUP_FAILED: return "SETUP_FAILED";
         case ETaskStatus::TASKSTATUS_SETUP: return "SETUP";
         case ETaskStatus::TASKSTATUS_QUEUED: return "QUEUED";
+        case ETaskStatus::TASKSTATUS_CHAIN_PREREQ_QUEUED: return "CHAIN_PREREQ_QUEUED";
         case ETaskStatus::TASKSTATUS_STARTUP: return "STARTUP";
         case ETaskStatus::TASKSTATUS_STARTUP_FAILED: return "STARTUP_FAILED";
         case ETaskStatus::TASKSTATUS_EXCEPTION_DURING_RUN: return "EXCEPTION_DURING_RUN";
@@ -169,6 +177,7 @@ TaskStatusIsAnEndState( TTaskStatus taskStatus )
         case ETaskStatus::TASKSTATUS_TASKDATA_INVALID:
         case ETaskStatus::TASKSTATUS_TASK_WITH_TYPE_EXISTS:
         case ETaskStatus::TASKSTATUS_TASK_CHAINING_FAILED:
+        case ETaskStatus::TASKSTATUS_CHAIN_PREREQ_FAILED:
         case ETaskStatus::TASKSTATUS_QUEUEING_FAILED:
         case ETaskStatus::TASKSTATUS_SETUP_FAILED:
         case ETaskStatus::TASKSTATUS_STARTUP_FAILED:

@@ -157,9 +157,6 @@ static void TestReserveBlocksAndAcquire()
         objs[ i ].Unlink();
     AssertTrue( pool.GetActiveCount() == 0, "All released" );
     AssertTrue( pool.GetFreedCount() == blockSize, "Freed replenished" );
-
-    //pool.PurgeBlocks();
-    //AssertTrue( pool.GetFreedCount() <= 7, "After PurgeBlocks freed entries adjusted" );
 }
 
 static void TestReserveBlocksAndAcquireWithPtrCreator()
@@ -210,34 +207,45 @@ static void TestClearPolicy()
     AssertTrue( b->value == 0, "Acquire after Clear-policy ensures cleared state" );
 }
 
-static void TestNoClearPolicyGraceful()
+static void TestNoClearPolicyGracefulFallback()
 {
+    // test to check if the container gracefully falls back to reconstruct when Clear() is not available
+    // even when the Clear()-based-policy is requested. It says 'if available' after all.
+
     CTFreeList< TestObjNoClear, TNoLock > pool( CTFreeList< TestObjNoClear, TNoLock >::REUSE_OBJECT_VIA_CLEAR_METHOD_IF_AVAILABLE );
 
     pool.Reserve( 2 );
-    AssertTrue( pool.GetFreedCount() == 2, "Reserve without Clear() still works" );
+    UInt32 freeItems = pool.GetFreedCount();
+    AssertTrue( freeItems >= 2, "Reserve without Clear() still works" );
 
     TestObjNoClearPtr a = pool.Acquire();
-    AssertTrue( a->value == 123, "State preserved for type without Clear()" );
-    a = CTFreeList< TestObjNoClear, TNoLock >::TSharedPtr();
-    AssertTrue( pool.GetFreedCount() == 2, "Release back to freed list" );
+    AssertTrue( a->value == 123, "Basic assignment of state works with missing Clear()" );
+    a.Unlink();
+    AssertTrue( pool.GetFreedCount() == freeItems, "Release back to freed list" );
 }
 
 static void TestDormantTransitions()
 {
     CTFreeList< TestObj, TNoLock > pool;
     CTFreeList< TestObj, TNoLock >::TSharedPtr a = pool.Acquire();
+    UInt32 freeItems = pool.GetFreedCount();
+    AssertTrue( pool.GetActiveCount() == 1, "Active count is accurate" );
 
     bool moved = pool.MarkDormant( a );
     AssertTrue( moved, "MarkDormant returns true for active object" );
     AssertTrue( pool.GetDormantCount() == 1, "Dormant count increments" );
+    AssertTrue( pool.GetActiveCount() == 0, "Active count was decremented" );
+    AssertTrue( pool.GetFreedCount() == freeItems, "Free count was not impacted" );    
 
     bool back = pool.MarkActive( a );
     AssertTrue( back, "MarkActive returns true for dormant object" );
     AssertTrue( pool.GetActiveCount() == 1, "Active count restored" );
+    AssertTrue( pool.GetDormantCount() == 0, "Dormant count was restored" );
+    AssertTrue( pool.GetFreedCount() == freeItems, "Free count was not impacted" );
 
-    a = CTFreeList< TestObj, TNoLock >::TSharedPtr();
-    AssertTrue( pool.GetActiveCount() == 0, "Released active to freed" );
+    a.Unlink();
+    AssertTrue( pool.GetActiveCount() == 0, "Releasing item moves active to freed" );
+    AssertTrue( pool.GetFreedCount() > freeItems, "Free count was incremented" );
 }
 
 }; /* namespace CORE */
@@ -252,7 +260,7 @@ void PerformFreeListTests( void )
     GUCEF::CORE::TestReserveBlocksAndAcquire();
     GUCEF::CORE::TestReserveBlocksAndAcquireWithPtrCreator();
     GUCEF::CORE::TestClearPolicy();
-    GUCEF::CORE::TestNoClearPolicyGraceful();
+    GUCEF::CORE::TestNoClearPolicyGracefulFallback();
     GUCEF::CORE::TestDormantTransitions();
 
     GUCEF_LOG( GUCEF::CORE::LOGLEVEL_NORMAL, "CTFreeList tests completed" );

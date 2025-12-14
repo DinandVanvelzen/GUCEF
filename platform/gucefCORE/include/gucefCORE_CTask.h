@@ -108,6 +108,7 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
     typedef CTBasicSharedPtr< CTaskDelegator, MT::CMutex >                           TTaskDelegatorBasicPtr;
     typedef GUCEF::set< CTaskPtr >                                                   TTaskPtrSet;
     typedef GUCEF::vector< CTaskPtr >                                                TTaskPtrVector;
+    typedef GUCEF::vector< TIntegerTypeUsedForTaskId >                               TTaskIdVector;
 
     CTask( TTaskStatus taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED );
 
@@ -256,16 +257,19 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
                CICloneable* taskData           ,
                bool assumedOwnershipOfTaskData ,
                CDataNode* serializedTaskData   ,
-               TTaskStatus taskStatus          );
+               TTaskStatus taskStatus          ,
+               ThreadPoolPtr threadPool        );
 
     void Clear( void );
 
     /**
-     *  Sets the next task in a chain to be executed
-     *  The chain will be checked against loops or repeat tasks either will invalidate the
-     *  operation and cause it to fail
+     *  Updates the chain task ids associated with this task
+     *  The order of the task ids in the vector represents the execution order of tasks in the chain
+     *  All tasks in the chain must have unique ids and the current task id must be part of the provided list
      */
-    bool SetNextTask( CTaskPtr nextTask );
+    bool UpdateTaskChainIds( const TTaskIdVector& taskIds );
+
+    static bool ValidateTaskChainIdSequence( const TTaskIdVector& taskIds );
 
     CTaskPtr GetNextTask( void ) const;
 
@@ -277,24 +281,22 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
 
     CTaskPtr GetLastTaskInChain( void ) const;
 
-    void GetAllTasksInChain( TTaskPtrSet& taskSet ) const;
+    bool GetAllTasksInChain( TTaskPtrSet& taskSet ) const;
 
-    void GetAllUpcomingTasksInChain( TTaskPtrSet& taskSet ) const;
-
-    static void BreakApartTaskChain( CTaskPtr task );
+    bool GetAllUpcomingTasksInChain( TTaskPtrSet& taskSet ) const;
 
     private:
 
     CICloneable* m_taskData;
     CDataNode m_serializedTaskData; /**< Serialized task data if any, used for serialization of task data to DOM */
     CString m_taskType;
+    CThreadPoolPtr m_threadPool;
     CTaskConsumerPtr m_taskConsumer;
     TTaskId m_taskId;
     bool m_assumedOwnershipOfTaskData;
     TTaskStatus m_taskStatus;
     CString m_taskStatusExtraInfo;
-    CTaskPtr m_nextTask;
-    CTaskPtr m_priorTask;
+    TTaskIdVector m_chainTasks;
 };
 
 typedef CTask::CTaskPtr     CTaskPtr;

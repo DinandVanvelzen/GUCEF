@@ -118,6 +118,11 @@
 #define GUCEF_CORE_TESTAPP_TESTASYNC_H
 #endif /* GUCEF_CORE_TESTAPP_TESTASYNC_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTFREELIST_H
+#include "TestFreeList.h"
+#define GUCEF_CORE_TESTAPP_TESTFREELIST_H
+#endif /* GUCEF_CORE_TESTAPP_TESTFREELIST_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //

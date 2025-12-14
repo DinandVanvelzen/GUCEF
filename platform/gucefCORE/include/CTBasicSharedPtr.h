@@ -108,6 +108,8 @@ class TBasicSharedPtrSharedData : public MT::CILockable
     bool InitSharedDataDestructor( CIDynamicVoidDestructor* voidedDestructor );
     bool InitSharedDataOrgAddr( void* originalAddressAsCreated );
 
+    void OverrideSharedData( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidedDestructor );
+
     /**
      *  Actual locking behaviour depends on the LockType passed to the template
      */
@@ -413,6 +415,8 @@ class CTBasicSharedPtrCreator
     bool InitializeSharedPtrCreatorData( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor );
     bool InitializeSharedPtrCreatorDataDestructor( CIDynamicVoidDestructor* voidedDestructor );
     bool InitializeSharedPtrCreatorDataOrgAddr( void* originalAddressAsCreated );
+
+    void OverrideSharedPtrCreatorData( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor );
 
     const TBasicSharedPtrSharedData< LockType >& GetBasicSharedPtrData( void ) const;
 
@@ -1475,6 +1479,19 @@ TBasicSharedPtrSharedData< LockType >::InitSharedDataOrgAddr( void* originalAddr
 /*-------------------------------------------------------------------------*/
 
 template< class LockType >
+void
+TBasicSharedPtrSharedData< LockType >::OverrideSharedData( void* originalAddressAsCreated            ,
+                                                           CIDynamicVoidDestructor* voidedDestructor )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    m_originalAddressAsCreated = originalAddressAsCreated;
+    m_voidDestructor = voidedDestructor;
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< class LockType >
 MT::TLockStatus
 TBasicSharedPtrSharedData< LockType >::Lock( UInt32 lockWaitTimeoutInMs ) const
 {GUCEF_TRACE;
@@ -1589,6 +1606,16 @@ CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::InitializeSharedPtrCr
 {GUCEF_TRACE;
 
     return m_shared.InitSharedDataOrgAddr( originalAddressAsCreated );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T, class LockType, typename TypeWhenAllocated >
+void
+CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::OverrideSharedPtrCreatorData( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor )
+{GUCEF_TRACE;
+
+    return m_shared.OverrideSharedData( originalAddressAsCreated, voidDestructor );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1725,7 +1752,7 @@ CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >::CTBasicSharedPtrCrea
     : T()
 {GUCEF_TRACE;
 
-    InitializeSharedPtrCreatorData( originalAddressAsCreated, voidDestructor );
+    OverrideSharedPtrCreatorData( originalAddressAsCreated, voidDestructor );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1739,7 +1766,7 @@ CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >::CTBasicSharedPtrCrea
     GUCEF_ASSERT( 0 == srcBasicSharedPtrData.m_refCounter );
     if GUCEF_PREDICT_TRUE( 0 == srcBasicSharedPtrData.m_refCounter )
     {
-        InitializeSharedPtrCreatorData( srcBasicSharedPtrData.m_originalAddressAsCreated, srcBasicSharedPtrData.m_voidDestructor );
+        OverrideSharedPtrCreatorData( srcBasicSharedPtrData.m_originalAddressAsCreated, srcBasicSharedPtrData.m_voidDestructor );
     }
     else
     {

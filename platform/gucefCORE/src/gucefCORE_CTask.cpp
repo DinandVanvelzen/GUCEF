@@ -57,13 +57,13 @@ CTask::CTask( TTaskStatus taskStatus )
     , m_taskData( GUCEF_NULL )
     , m_serializedTaskData()
     , m_taskType()
+    , m_threadPool()
     , m_taskConsumer()
     , m_assumedOwnershipOfTaskData( false )
     , m_taskId()
     , m_taskStatus( taskStatus )
     , m_taskStatusExtraInfo()
-    , m_nextTask()
-    , m_priorTask()
+    , m_chainTasks()
 {GUCEF_TRACE;
 
     // Obtain a globally unique task id
@@ -84,18 +84,18 @@ CTask::CTask( TTaskStatus taskStatus )
 #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
 
 CTask::CTask( CTask&& src ) GUCEF_NOEXCEPT
-    : CNotifier( std::move( src ) )
-    , CTSharedObjCreator< CTask, MT::CMutex >( std::move( src ) )
+    : CNotifier( GUCEF_MOVE( src ) )
+    , CTSharedObjCreator< CTask, MT::CMutex >( GUCEF_MOVE( src ) )
     , m_taskData( src.m_taskData )
-    , m_serializedTaskData( std::move( src.m_serializedTaskData ) )
-    , m_taskType( std::move( src.m_taskType ) )
-    , m_taskConsumer( std::move( src.m_taskConsumer ) )
+    , m_serializedTaskData( GUCEF_MOVE( src.m_serializedTaskData ) )
+    , m_taskType( GUCEF_MOVE( src.m_taskType ) )
+    , m_threadPool( GUCEF_MOVE( src.m_threadPool ) )
+    , m_taskConsumer( GUCEF_MOVE( src.m_taskConsumer ) )
     , m_assumedOwnershipOfTaskData( src.m_assumedOwnershipOfTaskData )
     , m_taskId( src.m_taskId )
     , m_taskStatus( src.m_taskStatus )
-    , m_taskStatusExtraInfo( std::move( src.m_taskStatusExtraInfo ) )
-    , m_nextTask( std::move( src.m_nextTask ) )
-    , m_priorTask( std::move( src.m_priorTask ) )
+    , m_taskStatusExtraInfo( GUCEF_MOVE( src.m_taskStatusExtraInfo ) )
+    , m_chainTasks( GUCEF_MOVE( src.m_chainTasks ) )
 {GUCEF_TRACE;
 
     // Leave the source in a valid state
@@ -206,7 +206,7 @@ bool
 CTask::IsTaskPartOfAChain( void ) const
 {GUCEF_TRACE;
 
-    return !m_nextTask.IsNULL() || !m_priorTask.IsNULL();
+    return !m_chainTasks.empty();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -215,39 +215,94 @@ bool
 CTask::IsLastTaskInAChain( void ) const
 {GUCEF_TRACE;
 
-    if ( IsTaskPartOfAChain() )
-        return m_nextTask.IsNULL() && !m_priorTask.IsNULL();
-    else
-        return true;
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CTask::GetAllTasksInChain( TTaskPtrSet& taskSet ) const
-{GUCEF_TRACE;
-
-    taskSet.clear();
-    CTaskPtr task = GetFirstTaskInChain();
-    while ( !task.IsNULL() )
+    if ( !m_chainTasks.empty() )
     {
-        taskSet.insert( task );
-        task = task->GetNextTask();
+        return m_taskId == m_chainTasks.back();
+    }
+    else
+    {
+        return true;
     }
 }
 
 /*-------------------------------------------------------------------------*/
 
-void
+bool
+CTask::GetAllTasksInChain( TTaskPtrSet& taskSet ) const
+{GUCEF_TRACE;
+
+    taskSet.clear();
+
+    // first check if this is even a chained task
+    // if not we can just return ourselves
+    if ( m_chainTasks.empty() )
+    {
+        taskSet.insert( CreateBasicSharedPtr() );
+        return true;
+    }
+    else
+    {
+        bool totalSuccess = true;
+
+        CThreadPoolPtr threadPool = GetThreadPool();  
+        for ( UInt32 i=0; i<m_chainTasks.size(); ++i )
+        {
+            CTaskPtr task = threadPool->GetTaskObjById( m_chainTasks[ i ] );
+            if ( !task.IsNULL() )
+            {
+                taskSet.insert( task );
+            }
+            else
+            {
+                totalSuccess = false;
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "Task:GetAllTasksInChain: Failed to resolve chain task obj from id " + ToString( m_chainTasks[i] ) + " in chain for task with id " + ToString( m_taskId ) );
+            }
+        }
+        return totalSuccess;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CTask::GetAllUpcomingTasksInChain( TTaskPtrSet& taskSet ) const
 {GUCEF_TRACE;
 
     taskSet.clear();
-    CTaskPtr task = m_nextTask;
-    while ( !task.IsNULL() )
+
+    // first check if this is even a chained task
+    // if not we can just return ourselves
+    if ( m_chainTasks.empty() )
     {
-        taskSet.insert( task );
-        task = task->GetNextTask();
+        // no chain, so no upcoming tasks
+        return true;
+    }
+    else
+    {
+        bool totalSuccess = true;
+
+        CThreadPoolPtr threadPool = GetThreadPool();  
+        for ( UInt32 i=0; i<m_chainTasks.size(); ++i )
+        {
+            if ( m_taskId == m_chainTasks[ i ] )
+            {
+                for ( UInt32 n=i+1; n<m_chainTasks.size(); ++n )
+                {
+                    CTaskPtr task = threadPool->GetTaskObjById( m_chainTasks[ i ] );
+                    if ( !task.IsNULL() )
+                    {
+                        taskSet.insert( task );
+                    }
+                    else
+                    {
+                        totalSuccess = false;
+                        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "Task:GetAllUpcomingTasksInChain: Failed to resolve chain task obj from id " + ToString( m_chainTasks[i] ) + " in chain for task with id " + ToString( m_taskId ) );
+                    }
+                }
+                break;
+            }
+        }
+        return totalSuccess;
     }
 }
 
@@ -259,7 +314,7 @@ CTask::SetTaskStatus( TTaskStatus newStatus )
 
     m_taskStatus = newStatus;
 
-    CTaskPtr nextTask = m_nextTask;
+    CTaskPtr nextTask = GetNextTask();
     if ( !nextTask.IsNULL() )
     {
         // Propagate the status change to the next task in the chain
@@ -368,7 +423,8 @@ CTask::Init( const CString& taskType         ,
              CICloneable* taskData           ,
              bool assumedOwnershipOfTaskData ,
              CDataNode* serializedTaskData   ,
-             TTaskStatus taskStatus          )
+             TTaskStatus taskStatus          ,
+             ThreadPoolPtr threadPool        )
 {GUCEF_TRACE;
 
     // Sanity check
@@ -381,6 +437,7 @@ CTask::Init( const CString& taskType         ,
     m_taskConsumer = taskConsumer;
     SetTaskData( taskData, assumedOwnershipOfTaskData );
     m_taskStatus = taskStatus;
+    m_threadPool = threadPool; 
 
     if ( GUCEF_NULL != serializedTaskData )
     {
@@ -400,14 +457,16 @@ CTask::Clear( void )
 
     m_taskType.Clear();
     m_taskConsumer.Unlink();
+    m_threadPool.Unlink();
     m_taskData = GUCEF_NULL;
     m_assumedOwnershipOfTaskData = false;
     m_taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED;
     m_taskStatusExtraInfo.Clear();
     m_serializedTaskData.Clear();
     m_serializedTaskData.SetNodeType( GUCEF_DATATYPE_UNKNOWN );
+    m_chainTasks.clear();
 }
-
+                                                                                                                                                                                                                                     
 /*-------------------------------------------------------------------------*/
 
 bool
@@ -482,16 +541,26 @@ CTaskPtr
 CTask::GetFirstTaskInChain( void ) const
 {GUCEF_TRACE;
 
-    if ( m_priorTask.IsNULL() )
-        return CreateSharedPtr(); // return this as a shared pointer
-
-    CTaskPtr rootTask = CreateSharedPtr();
-    while ( !rootTask.IsNULL() && !rootTask->m_priorTask.IsNULL() )
+    if ( !m_chainTasks.empty() )
     {
-        rootTask = rootTask->m_priorTask;
+        CThreadPoolPtr threadPool = GetThreadPool();
+        if ( !threadPool.IsNULL() )
+        {
+            TIntegerTypeUsedForTaskId firstTaskId = m_chainTasks.front();
+            if ( GetTaskId() != firstTaskId )
+            {
+                CTaskPtr task = threadPool->GetTaskObjById( firstTaskId );
+                return task;
+            }
+
+            // This task is the first in the chain
+            return CreateSharedPtr();
+        }
+        return CTaskPtr();
     }
 
-    return rootTask;
+    // this task is alone in its chain hence always the first
+    return CreateSharedPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -500,39 +569,26 @@ CTaskPtr
 CTask::GetLastTaskInChain( void ) const
 {GUCEF_TRACE;
 
-    if ( m_nextTask.IsNULL() )
-        return CreateSharedPtr(); // return this as a shared pointer
-
-    CTaskPtr finalTask = CreateSharedPtr();
-    while ( !finalTask.IsNULL() && !finalTask->m_nextTask.IsNULL() )
+    if ( !m_chainTasks.empty() )
     {
-        finalTask = finalTask->m_nextTask;
+        CThreadPoolPtr threadPool = GetThreadPool();
+        if ( !threadPool.IsNULL() )
+        {
+            TIntegerTypeUsedForTaskId lastTaskId = m_chainTasks.back();
+            if ( GetTaskId() != lastTaskId )
+            {
+                CTaskPtr task = threadPool->GetTaskObjById( lastTaskId );
+                return task;
+            }
+
+            // This task is the last in the chain
+            return CreateSharedPtr();
+        }
+        return CTaskPtr();
     }
 
-    return finalTask;
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CTask::BreakApartTaskChain( CTaskPtr task )
-{GUCEF_TRACE;
-
-    // Break the double linked list
-    // This should only leave the individual references outstanding which helps advance towards deletion
-
-    if ( task.IsNULL() )
-        return;
-
-    task = task->GetFirstTaskInChain();
-
-    while ( !task->m_nextTask.IsNULL() )
-    {
-        CTaskPtr nextTask = task->m_nextTask;
-        task->m_nextTask.Unlink();
-        nextTask->m_priorTask.Unlink();
-        task = nextTask;
-    }
+    // this task is alone in its chain hence always the last
+    return CreateSharedPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -559,69 +615,35 @@ CTask::GetFirstErrorStateTask( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CTask::SetNextTask( CTaskPtr nextTask )
+CTask::UpdateTaskChainIds( const TTaskIdVector& taskIds )
 {GUCEF_TRACE;
 
-    if ( nextTask.IsNULL() )
+    m_chainTasks = taskIds;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTask::ValidateTaskChainIdSequence( const TTaskIdVector& taskIds )
+{GUCEF_TRACE;
+
+    // Validate that all task ids only exist a single time in the chain
+    // this is to prevent loops and duplicate tasks in a chain
+    for ( UInt32 i=0; i<taskIds.size(); ++i )
     {
-        if ( !m_nextTask.IsNULL() && !m_nextTask->m_nextTask.IsNULL() )
+        for ( UInt32 n=i+1; n<taskIds.size(); ++n )
         {
-            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Task:SetNextTask: Illegal attempt to break chain since next task (id=" +
-                ToString( m_nextTask->GetTaskId() ) + ") has a 'next' task (id=" +
-                ToString( m_nextTask->m_nextTask->GetTaskId() ) + ")" );
-            return false;
+            if ( taskIds[ i ] == taskIds[ n ] )
+            {
+                // duplicate found
+                GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Task:ValidateTaskChainIdSequence: Illegal attempt to create a task chain with duplicate task id " +
+                    ToString( taskIds[ i ] ) );
+                return false;
+            }
         }
-
-        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Task:SetNextTask: Removing last link in the chain (id=" +
-            ToString( m_nextTask->GetTaskId() ) + ") which was linked to this task (id=" +
-            ToString( GetTaskId() ) + ")" );
-
-        m_nextTask->m_priorTask.Unlink();
-        m_nextTask.Unlink();
-        return true;
     }
 
-    // Sanity check on the next task being eligible to be next in a chain
-    if ( !nextTask->m_priorTask.IsNULL() )
-    {
-        // the task is already part of a chain, it has a prior segment
-        // you are not allowed to fork chains
-        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Task:SetNextTask: Illegal attempt to add a task as 'next' (id=" +
-            ToString( nextTask->GetTaskId() ) + ") which already has 'prior' tasks itself (id=" +
-            ToString( nextTask->m_priorTask->GetTaskId() ) + ")" );
-        return false;
-    }
-
-    if ( !nextTask->m_nextTask.IsNULL() )
-    {
-        // Currently not allowed to add more than 1 segment at a time
-        GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Task:SetNextTask: Unsupported attempt to add a task as 'next' (id=" +
-            ToString( nextTask->GetTaskId() ) + ") which already has 'next' tasks itself" );
-        return false;
-    }
-
-    // Validate that adding the new task to the chain does not create a loop
-    CTaskPtr task = GetFirstTaskInChain();
-    while ( !task.IsNULL() )
-    {
-        if ( task->m_taskId == nextTask->m_taskId )
-        {
-            // not allowed as this creates a loop
-            // all tasks in the chain must be uniquely linked
-            GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Task:SetNextTask: Illegal attempt to add a task as 'next' (id=" +
-                ToString( nextTask->GetTaskId() ) + ") even though there is already such a task in the chain" );
-            return false;
-        }
-
-        task = task->m_nextTask;
-    }
-
-    GUCEF_DEBUG_LOG( LOGLEVEL_NORMAL, "Task:SetNextTask: Set next link in the chain (id=" +
-        ToString( nextTask->GetTaskId() ) + ") linked to this task (id=" +
-        ToString( GetTaskId() ) + ")" );
-
-    m_nextTask = nextTask;
-    m_nextTask->m_priorTask = CreateSharedPtr();
     return true;
 }
 
@@ -631,7 +653,31 @@ CTaskPtr
 CTask::GetNextTask( void ) const
 {GUCEF_TRACE;
 
-    return m_nextTask;
+    if ( !m_chainTasks.empty() )
+    {
+        CThreadPoolPtr threadPool = GetThreadPool();
+        if ( !threadPool.IsNULL() )
+        {
+            for ( UInt32 i=0; i<m_chainTasks.size(); ++i )
+            {
+                if ( m_taskId == m_chainTasks[ i ] )
+                {
+                    if ( i+1 < m_chainTasks.size() )
+                    {
+                        CTaskPtr nextTask = threadPool->GetTaskObjById( m_chainTasks[ i+1 ] );
+                        return nextTask;
+                    }
+                    else
+                    {
+                        // this is already the last task in the chain
+                        return CTaskPtr();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    return CTaskPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -640,7 +686,31 @@ CTaskPtr
 CTask::GetPriorTask( void ) const
 {GUCEF_TRACE;
 
-    return m_priorTask;
+    if ( !m_chainTasks.empty() )
+    {
+        CThreadPoolPtr threadPool = GetThreadPool();
+        if ( !threadPool.IsNULL() )
+        {
+            for ( UInt32 i=0; i<m_chainTasks.size(); ++i )
+            {
+                if ( m_taskId == m_chainTasks[ i ] )
+                {
+                    if ( i > 0 )
+                    {
+                        CTaskPtr priorTask = threadPool->GetTaskObjById( m_chainTasks[ i-1 ] );
+                        return priorTask;
+                    }
+                    else
+                    {
+                        // this is already the first task in the chain
+                        return CTaskPtr();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    return CTaskPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -649,11 +719,18 @@ CThreadPoolPtr
 CTask::GetThreadPool( void ) const
 {GUCEF_TRACE;
 
+    ThreadPoolPtr pool = m_threadPool;
+    if ( !pool.IsNULL() )
+    {
+        return pool;
+    }
+
     CTaskConsumerPtr taskConsumer = m_taskConsumer;
     if ( !taskConsumer.IsNULL() )
     {
         return taskConsumer->GetThreadPool();
     }
+
     return CThreadPoolPtr();
 }
 

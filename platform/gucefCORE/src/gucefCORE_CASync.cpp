@@ -58,7 +58,7 @@ namespace CORE {
 CASync::CASyncChainState::CASyncChainState( const CString& threadPoolName )
     : CTSharedObjCreator< CASyncChainState, MT::CNoLock >( this )
     , m_threadPool()
-    , m_lastTask()
+    , m_tasks()
     , m_chainIsHealthy( true )
     , m_startRightAwayOnSubmit( false )
     , m_chainHasBeenSubmitted( false )
@@ -73,7 +73,7 @@ CASync::CASyncChainState::CASyncChainState( const CString& threadPoolName )
 CASync::CASyncChainState::CASyncChainState( ThreadPoolPtr threadPool )
     : CTSharedObjCreator< CASyncChainState, MT::CNoLock >( this )
     , m_threadPool( threadPool )
-    , m_lastTask()
+    , m_tasks()
     , m_chainIsHealthy( !threadPool.IsNULL() )
     , m_startRightAwayOnSubmit( false )
     , m_chainHasBeenSubmitted( false )
@@ -113,11 +113,9 @@ void
 CASync::ClearChain( void )
 {GUCEF_TRACE;
 
-    if ( !m_state->m_lastTask.IsNULL() )
+    if ( !m_state.IsNULL() )
     {
-        if ( !m_state->m_chainHasBeenSubmitted )
-            CTask::BreakApartTaskChain( m_state->m_lastTask );
-        m_state->m_lastTask.Unlink();
+        m_state->m_tasks.clear();
         m_state->m_chainIsHealthy = true;
         m_state->m_startRightAwayOnSubmit = false;
         m_state->m_chainHasBeenSubmitted = false;
@@ -130,15 +128,53 @@ CASync&
 CASync::SetLastTaskStatus( TTaskStatus taskStatus )
 {GUCEF_TRACE;
 
-    if ( m_state->m_lastTask.IsNULL() )
+    CTaskPtr lastTask = GetLastTask();
+    if ( !lastTask.IsNULL() )
     {
-        m_state->m_lastTask = CTask::CreateSharedObjWithParam( taskStatus );
+        lastTask->SetTaskStatus( taskStatus );
     }
     else
     {
-        m_state->m_lastTask->SetTaskStatus( taskStatus );
+        m_state->m_tasks.push_back( CTask::CreateSharedObjWithParam( taskStatus ) );
     }
     return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTaskPtr
+CASync::GetFirstErrorStateTask( void ) const
+{GUCEF_TRACE;
+    
+    if ( !m_state.IsNULL() )
+    {
+        if ( !m_state->m_tasks.empty() )
+        {
+            for ( UInt32 i=0; i<m_state->m_tasks.size(); ++i )
+            {
+                const CTaskPtr& task = m_state->m_tasks[ i ];
+                if ( task->IsTaskInErrorState() )
+                {
+                    return task;
+                }
+            }
+        }
+    }
+    return CTaskPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTaskPtr
+CASync::GetFirstTask( void ) const
+{GUCEF_TRACE;
+
+    if ( !m_state.IsNULL() )
+    {
+        if ( !m_state->m_tasks.empty() )
+            return m_state->m_tasks.front();
+    }
+    return CTaskPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -147,7 +183,79 @@ CTaskPtr
 CASync::GetLastTask( void ) const
 {GUCEF_TRACE;
 
-    return m_state->m_lastTask;
+    if ( !m_state.IsNULL() )
+    {
+        if ( !m_state->m_tasks.empty() )
+            return m_state->m_tasks.back();
+    }
+    return CTaskPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CASync::GetTaskIdsInChain( TTaskIdVector& taskIds ) const
+{GUCEF_TRACE;
+
+    taskIds.clear();
+
+    if ( !m_state.IsNULL() )
+    {
+        bool totalSuccess = true;
+        if ( !m_state->m_tasks.empty() )
+        {
+            for ( size_t i=0; i<m_state->m_tasks.size(); ++i )
+            {
+                const CTaskPtr& task = m_state->m_tasks[ i ];
+                if ( !task.IsNULL() )
+                {
+                    taskIds.push_back( task->GetTaskId() );
+                }
+                else
+                {
+                    totalSuccess = false;
+                }
+            }
+        }
+        return totalSuccess;
+    }
+    return false;    
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CASync::SetNextTask( CTaskPtr& nextTask )
+{GUCEF_TRACE;
+
+    if ( !nextTask.IsNULL() )
+    {
+        TTaskIdVector taskIds;
+        if ( GetTaskIdsInChain( taskIds ) )
+        {
+            taskIds.push_back( nextTask->GetTaskId() );
+
+            if ( !CTask::ValidateTaskChainIdSequence( taskIds ) )
+            {
+                GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "ASync: Detected invalid task chain sequence when trying to set next task with Id " + ToString( taskIds.back() )
+                               + " chain starts with task " + ToString( taskIds.front() ) ); 
+                return false;
+            }
+
+            m_state->m_tasks.push_back( nextTask );
+
+            CASyncChainState::TTaskPtrVector::iterator i = m_state->m_tasks.begin();
+            while ( i != m_state->m_tasks.end() )
+            {
+                CTaskPtr& task = (*i);
+                task->UpdateTaskChainIds( taskIds );
+                ++i;
+            }
+
+            return true;
+        }
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -177,17 +285,17 @@ CASync::ThenCallbackCommonImpl( CICloneable* taskData )
 {GUCEF_TRACE;
 
     // In the context of a 'then' there should always be a prior task already
-    if ( m_state->m_lastTask.IsNULL() )
+    CTaskPtr lastTask = GetLastTask();
+    if ( lastTask.IsNULL() )
     {
         GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "ASync: Calling ThenCallback() as the initial call is invalid" );
-        CTask::BreakApartTaskChain( m_state->m_lastTask );
-        m_state->m_lastTask.Unlink();
+        m_state->m_tasks.clear();
         m_state->m_chainIsHealthy = false;
 
         GUCEF_DELETE taskData;
         taskData = GUCEF_NULL;
 
-        m_state->m_lastTask = CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        m_state->m_tasks.push_back( CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED ) );
         return *this;
     }
 
@@ -198,19 +306,28 @@ CASync::ThenCallbackCommonImpl( CICloneable* taskData )
                                                                true                                   );
     if ( !newLastTask->IsTaskInErrorState() )
     {
-        if ( m_state->m_lastTask->SetNextTask( newLastTask ) )
+        if ( SetNextTask( newLastTask ) )
         {
-            // Update our own reference to the tail end of the chain for further additions
             GUCEF_DEBUG_LOG( LOGLEVEL_BELOW_NORMAL, "ASync: Will chain task " + ToString( newLastTask->GetTaskId() ) +
-                " to execute after task " + ToString( m_state->m_lastTask->GetTaskId() ) );
-
-            m_state->m_lastTask = newLastTask;
+                " to execute after task " + ToString( lastTask->GetTaskId() ) );
         }
         else
         {
-            GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "ASync: Failed setting ThenCallback() next task in chain" );
-            m_state->m_lastTask->SetTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+            GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "ASync: Failed setting ThenCallback() based next task in chain with id " + ToString( newLastTask->GetTaskId() ) );
+            SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+            newLastTask->SetTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+
+            GUCEF_DELETE taskData;
+            taskData = GUCEF_NULL;
         }
+    }
+    else
+    {
+        GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "ASync: Failed preparing ThenCallback() task object: " + newLastTask->GetTaskStatusString() );
+        SetLastTaskStatus( newLastTask->GetTaskStatus() );
+
+        GUCEF_DELETE taskData;
+        taskData = GUCEF_NULL;
     }
     return *this;
 }
@@ -258,7 +375,8 @@ CASync::StartChain( const CString& taskType        ,
                     bool startRightAwayOnSubmit    )
 {GUCEF_TRACE;
 
-    if ( !m_state->m_lastTask.IsNULL() )
+    CTaskPtr lastTask = GetLastTask();
+    if ( !lastTask.IsNULL() )
     {
         if ( !m_state->m_chainHasBeenSubmitted )
             GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "ASync: resetting chain with new Queue() call" );
@@ -271,12 +389,15 @@ CASync::StartChain( const CString& taskType        ,
     m_state->m_startRightAwayOnSubmit = startRightAwayOnSubmit;
 
     // the task object will take ownership of the task data going forward
-    CTaskPtr newChainTask = m_state->m_threadPool->PrepTaskObj( CGenericCallbackTaskConsumer::TaskType ,
-                                                                taskData                               ,
-                                                                GUCEF_NULL                             ,
-                                                                true                                   );
+    CTaskPtr newChainTask = m_state->m_threadPool->PrepTaskObj( taskType   ,
+                                                                taskData   ,
+                                                                GUCEF_NULL ,
+                                                                true       );
 
-    m_state->m_lastTask = newChainTask;
+    m_state->m_tasks.push_back( newChainTask );
+
+    GUCEF_DEBUG_LOG( LOGLEVEL_BELOW_NORMAL, "ASync: Starting a new chain with first task " + ToString( newChainTask->GetTaskId() ) +
+        " with startRightAwayOnSubmit=" + ToString( startRightAwayOnSubmit ) );
 
     return *this;
 }
@@ -292,45 +413,81 @@ CASync::Submit( void )
         // There was an error during the formulation of the chain
         // as such we want the future result to reflect the earliest error that occurred
         // we will not actually submit the chain, it has 'no future'
-        if ( !m_state->m_lastTask.IsNULL() )
-            return m_state->m_lastTask->GetFirstErrorStateTask();
-        else
-            return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
+
+        if ( !m_state->m_tasks.empty() )
+        {
+            CTaskPtr errorTask = GetFirstErrorStateTask();
+            if ( !errorTask.IsNULL() )
+            {
+                return errorTask;
+            }
+        }
+
+        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
     }
 
+    // this chain has not been submitted yet (not a redundant Submit() call)
+    // We will attempt to submit the task now
     if ( !m_state->m_chainHasBeenSubmitted )
     {
-        // this chain has not been submitted yet (not a redundant Submit() call)
-        // We will attempt to submit the task now
-
-        CTaskPtr firstTask = m_state->m_lastTask->GetFirstTaskInChain();
+        //// First sync up the task chain ids
+        //bool totalIdSyncSuccess = true;
+        //TTaskIdVector taskIds;
+        //if GUCEF_PREDICT_TRUE( GetTaskIdsInChain( taskIds ) )
+        //{            
+        //    CASyncChainState::TTaskPtrVector::iterator i = m_state->m_tasks.begin();
+        //    while ( i != m_state->m_tasks.end() )
+        //    {
+        //        CTaskPtr& task = (*i);
+        //        if GUCEF_PREDICT_FALSE( !task->UpdateTaskChainIds( taskIds ) )
+        //        {
+        //            totalIdSyncSuccess = false;
+        //            task->SetTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+        //        }
+        //        ++i;
+        //    }
+        //}
+        //else
+        //{
+        //    totalIdSyncSuccess = false;
+        //}
+        //if ( !totalIdSyncSuccess )
+        //{
+        //    GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ASync: Failed to sync task Ids in chain prior to submission" );
+        //    return TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED;
+        //}
+        
         if ( m_state->m_startRightAwayOnSubmit )
         {
-            // Use the StartTask() set of functions to force a start of the task chain right away
-            CFutureResult future = m_state->m_threadPool->StartTask( firstTask );
+            // Use the StartTaskChain() set of functions to force a start of the task chain right away
+            CFutureResult future = m_state->m_threadPool->StartTaskChain( m_state->m_tasks );
             if ( future.HasAFuture() )
             {
                 m_state->m_chainHasBeenSubmitted = true;
-                return CFutureResult( m_state->m_lastTask );
+                GUCEF_DEBUG_LOG( LOGLEVEL_BELOW_NORMAL, "ASync: Chain has been submitted to threadpool for immediate start" );
+                return GetLastTask();
             }
             else
             {
                 // There was an error starting the task chain
+                GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ASync: Chain failed to submit to threadpool for immediate start" );
                 return future;
             }
         }
         else
         {
-            // Use the QueueTask() set of functions to queue a start to the task chain        
-            CFutureResult future = m_state->m_threadPool->QueueTask( firstTask );
+            // Use the QueueTaskChain() set of functions to queue a start to the task chain        
+            CFutureResult future = m_state->m_threadPool->QueueTaskChain( m_state->m_tasks );
             if ( future.HasAFuture() )
             {
                 m_state->m_chainHasBeenSubmitted = true;
-                return CFutureResult( m_state->m_lastTask );
+                GUCEF_DEBUG_LOG( LOGLEVEL_BELOW_NORMAL, "ASync: Chain has been submitted to threadpool for queueing" );
+                return GetLastTask();
             }
             else
             {
                 // There was an error starting the task chain
+                GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "ASync: Chain failed to submit to threadpool for queueing" );
                 return future;
             }
         }
@@ -338,7 +495,7 @@ CASync::Submit( void )
     else
     {
         // Chain has already been submitted, return the existing future result
-        return CFutureResult( m_state->m_lastTask );
+        return GetLastTask();
     }
 }
 

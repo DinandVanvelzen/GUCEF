@@ -244,6 +244,12 @@ class CASyncTestAccess : public CORE::CASync
     {
         return GetChainState();
     }
+
+    CORE::ThreadPoolPtr GetThreadPoolPublic() const
+    {
+        TASyncChainStatePtr state = GetChainState();
+        return state ? state->m_threadPool : CORE::ThreadPoolPtr();
+    }
 };
 
 /*-------------------------------------------------------------------------//
@@ -373,144 +379,157 @@ void TestSimpleCallbacks()
 
 void TestTaskChaining()
 {
-    //std::cout << "\n=== Testing Task Chaining ===\n";
-    //
-    //try
-    //{
-    //    g_testResults.clear();
-    //    
-    //    // Test simple chain
-    //    {
-    //        CORE::CASync async;
-    //        CORE::CFutureResult result = async.QueueCallback(SimpleCallback0)
-    //                                          .ThenCallback(ChainCallback1)
-    //                                          .ThenCallback(ChainCallback2, 3)
-    //                                          .ThenCallback(ChainCallback3, 10, 20);
-    // 
-    //        ASSERT_TRUE(result.HasAFuture());
-    //        CORE::CTaskPtr task = result.GetResult(10000);
-    //        ASSERT_TRUE(!task.IsNULL());
-    //        ASSERT_TRUE(task->IsTaskInEndState());
-    //        
-    //        // Wait a bit for all chained tasks to complete
-    //        MT::PrecisionDelay(1000);
+    std::cout << "\n=== Testing Task Chaining ===\n";
+    
+    try
+    {
+        g_testResults.clear();
+        
+        // Test simple chain
+        {
+            CORE::CASync async;
+            CORE::CFutureResult result = async.QueueCallback(SimpleCallback0)
+                                              .ThenCallback(ChainCallback1)
+                                              .ThenCallback(ChainCallback2, 3)
+                                              .ThenCallback(ChainCallback3, 10, 20);
+     
+            ASSERT_TRUE(result.HasAFuture());
+            CORE::CTaskPtr task = result.GetResult(10000);
+            ASSERT_TRUE(!task.IsNULL());
+            ASSERT_TRUE(task->IsTaskInEndState());
+            
+            // Wait a bit for all chained tasks to complete
+            //MT::PrecisionDelay(1000);
 
-    //        // Verify the chain executed in order
-    //        MT::CScopeMutex lock(g_testMutex);
-    //        ASSERT_TRUE(g_testResults.size() == 3);
-    //        ASSERT_TRUE(g_testResults[0] == 1);
-    //        ASSERT_TRUE(g_testResults[1] == 2);
-    //        ASSERT_TRUE(g_testResults[2] == 3);
-    //        std::cout << "Task chaining test passed\n";
-    //}
-    //  
-    //    g_testResults.clear();
-    //}
-    //catch(const std::exception& e)
-    //{
-    //    std::cout << "Exception in TestTaskChaining: " << e.what() << "\n";
-    //    ERRORHERE;
-    //}
+            // Verify the chain executed in order
+            MT::CScopeMutex lock(g_testMutex);
+            ASSERT_TRUE(g_testResults.size() == 3);
+            ASSERT_TRUE(g_testResults[0] == 1);
+            ASSERT_TRUE(g_testResults[1] == 2);
+            ASSERT_TRUE(g_testResults[2] == 3);
+            std::cout << "Task chaining test passed\n";
+    }
+      
+        g_testResults.clear();
+    }
+    catch(const timeout_exception& e)
+    {
+        std::cout << "Timeout Exception in TestTaskChaining: " << e.what() << "\n";
+        ERRORHERE;
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << "Exception in TestTaskChaining: " << e.what() << "\n";
+        ERRORHERE;
+    }
 }
 
 void TestMemoryManagement()
 {
-    //std::cout << "\n=== Testing Memory Management ===\n";
-    //
-    //try
-    //{
-    //    int initialCount = TaskMemoryTracker::GetTaskCount();
-    //    std::cout << "Initial tracker count: " << initialCount << "\n";
+    std::cout << "\n=== Testing Memory Management ===\n";
+    
+    try
+    {
+        int initialCount = TaskMemoryTracker::GetTaskCount();
+        std::cout << "Initial tracker count: " << initialCount << "\n";
    
-    //    // Test simple callback memory management
-    //    {
-    //        CORE::CASync async;
-    //        CORE::CFutureResult result = async.QueueCallback(MemoryTrackingCallback);
-    //    
-    //        ASSERT_TRUE(result.HasAFuture());
-    //        CORE::CTaskPtr task = result.GetResult(5000);
-    //        ASSERT_TRUE(!task.IsNULL());
-    //        ASSERT_TRUE(task->IsTaskInEndState());
-    //    }
-    //    
-    //    // Give time for cleanup
-    //    MT::PrecisionDelay(500);
-    //    
-    //    // Test chained callback memory management
-    //    {
-    //        CORE::CASync async;
-    //        CORE::CFutureResult result = async.QueueCallback(MemoryTrackingCallback)
-    //                                          .ThenCallback(MemoryTrackingChainCallback)
-    //                                          .ThenCallback(MemoryTrackingChainCallback)
-    //                                          .ThenCallback(MemoryTrackingChainCallback);
-    //        
-    //        ASSERT_TRUE(result.HasAFuture());
-    //        CORE::CTaskPtr task = result.GetResult(10000);
-    //        ASSERT_TRUE(!task.IsNULL());
-    //        ASSERT_TRUE(task->IsTaskInEndState());
-    //    }
-    //
-    //    // Give time for all cleanup to complete
-    //    MT::PrecisionDelay(2000);
-    //    
-    //    int finalCount = TaskMemoryTracker::GetTaskCount();
-    //    std::cout << "Final tracker count: " << finalCount << "\n";
-    //    
-    //    // Check for memory leaks - this is the critical test for the known issue
-    //    ASSERT_TRUE(finalCount == initialCount);
-    //  
-    //    std::cout << "Memory management test passed - no leaks detected\n";
-    //}
-    //catch(const std::exception& e)
-    //{
-    //    std::cout << "Exception in TestMemoryManagement: " << e.what() << "\n";
-    //    ERRORHERE;
-    //}
+        // Test simple callback memory management
+        {
+            CORE::CASync async;
+            CORE::CFutureResult result = async.QueueCallback(MemoryTrackingCallback);
+        
+            ASSERT_TRUE(result.HasAFuture());
+            CORE::CTaskPtr task = result.GetResult(5000);
+            ASSERT_TRUE(!task.IsNULL());
+            ASSERT_TRUE(task->IsTaskInEndState());
+        }
+        
+        // Give time for cleanup
+        MT::PrecisionDelay(500);
+        
+        // Test chained callback memory management
+        {
+            CORE::CASync async;
+            CORE::CFutureResult result = async.QueueCallback(MemoryTrackingCallback)
+                                              .ThenCallback(MemoryTrackingChainCallback)
+                                              .ThenCallback(MemoryTrackingChainCallback)
+                                              .ThenCallback(MemoryTrackingChainCallback);
+            
+            ASSERT_TRUE(result.HasAFuture());
+            CORE::CTaskPtr task = result.GetResult(10000);
+            ASSERT_TRUE(!task.IsNULL());
+            ASSERT_TRUE(task->IsTaskInEndState());
+        }
+    
+        // Give time for all cleanup to complete
+        MT::PrecisionDelay(2000);
+        
+        int finalCount = TaskMemoryTracker::GetTaskCount();
+        std::cout << "Final tracker count: " << finalCount << "\n";
+        
+        // Check for memory leaks - this is the critical test for the known issue
+        ASSERT_TRUE(finalCount == initialCount);
+      
+        std::cout << "Memory management test passed - no leaks detected\n";
+    }
+    catch(const timeout_exception& e)
+    {
+        std::cout << "Timeout Exception in TestTaskChaining: " << e.what() << "\n";
+        ERRORHERE;
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << "Exception in TestMemoryManagement: " << e.what() << "\n";
+        ERRORHERE;
+    }
 }
 
 void TestTaskChainCleanup()
 {
-    //std::cout << "\n=== Testing Task Chain Cleanup ===\n";
-    //
-    //try
-    //{
-    //    // This test specifically targets the chain reference cleanup issue mentioned
-    //    std::vector<CORE::CFutureResult> futures;
-    //    
-    //    // Create multiple chains that should be cleaned up properly
-    //    for (int i = 0; i < 10; ++i)
-    //    {
-    //        CORE::CASync async;
-    //        CORE::CFutureResult result = async.QueueCallback(SimpleCallback0)
-    //        .ThenCallback(ChainCallback1)
-    //        .ThenCallback(ChainCallback2, i)
-    //        .ThenCallback(ChainCallback3, i, i+1);
+    std::cout << "\n=== Testing Task Chain Cleanup ===\n";
+    
+    try
+    {
+        // This test specifically targets the chain reference cleanup issue mentioned
+        GUCEF::vector< CORE::CFutureResult > futures;
+        
+        // Create multiple chains that should be cleaned up properly
+        for (int i = 0; i < 10; ++i)
+        {
+            CORE::CASync async;
+            CORE::CFutureResult result = async.QueueCallback(SimpleCallback0)
+                                                .ThenCallback(ChainCallback1)
+                                                .ThenCallback(ChainCallback2, i)
+                                                .ThenCallback(ChainCallback3, i, i+1);
  
-    //        futures.push_back(result);
-    //    }
-    //    
-    //    // Wait for all chains to complete
-    //    for (auto& future : futures)
-    //    {
-    //        ASSERT_TRUE(future.HasAFuture());
-    //        CORE::CTaskPtr task = future.GetResult(15000);
-    //        ASSERT_TRUE(!task.IsNULL());
-    //        ASSERT_TRUE(task->IsTaskInEndState());
-    //    }
-    //    
-    //    // Clear futures to release references
-    //    futures.clear();
-    //  
-    //    // Give time for cleanup
-    //    MT::PrecisionDelay(2000);
-    //  
-    //    std::cout << "Task chain cleanup test completed\n";
-    //}
-    //catch(const std::exception& e)
-    //{
-    //    std::cout << "Exception in TestTaskChainCleanup: " << e.what() << "\n";
-    //    ERRORHERE;
-    //}
+            futures.push_back(result);
+        }
+        
+        // Wait for all chains to complete
+        GUCEF::vector< CORE::CFutureResult >::iterator it = futures.begin();
+        for ( ; it != futures.end(); ++it )
+        {
+            CORE::CFutureResult& future = *it;
+
+            ASSERT_TRUE(future.HasAFuture());
+            CORE::CTaskPtr task = future.GetResult(15000);
+            ASSERT_TRUE(!task.IsNULL());
+            ASSERT_TRUE(task->IsTaskInEndState());
+        }
+        
+        // Clear futures to release references
+        futures.clear();
+      
+        // Give time for cleanup
+        //MT::PrecisionDelay(2000);
+      
+        std::cout << "Task chain cleanup test completed\n";
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << "Exception in TestTaskChainCleanup: " << e.what() << "\n";
+        ERRORHERE;
+    }
 }
 
 void TestErrorHandling()
@@ -645,6 +664,7 @@ void TestClearChain()
         ASSERT_TRUE( !state.IsNULL() );
         UInt64 lastTaskId = lastTask->GetTaskId();
         ASSERT_TRUE( 0 != lastTaskId );
+        CORE::ThreadPoolPtr threadPool = async.GetThreadPoolPublic();
 
         // Clear the chain
         async.ClearChain();
@@ -673,37 +693,37 @@ void TestClearChain()
 
 void TestTaskTypeOperations()
 {
-    //std::cout << "\n=== Testing Task Type Operations ===\n";
-    //
-    //try
-    //{
-    //    // Test Start() method
-    //    {
-    //        CORE::CASync async;
-    //        CORE::CFutureResult result = async.Start(CORE::CGenericCallbackTaskConsumer::TaskType);
-    //
-    //        ASSERT_TRUE(result.HasAFuture());
-    //        CORE::CTaskPtr task = result.GetResult(5000);
-    //        ASSERT_TRUE(!task.IsNULL());
-    //        std::cout << "Start() method test passed\n";
-    //    }
-    //  
-    //    // Test Queue() method
-    //    {
-    //        CORE::CASync async;
-    //        CORE::CFutureResult result = async.Queue(CORE::CGenericCallbackTaskConsumer::TaskType);
-    //
-    //        ASSERT_TRUE(result.HasAFuture());
-    //        CORE::CTaskPtr task = result.GetResult(5000);
-    //        ASSERT_TRUE(!task.IsNULL());
-    //        std::cout << "Queue() method test passed\n";
-    //    }
-    //}
-    //catch(const std::exception& e)
-    //{
-    //    std::cout << "Exception in TestTaskTypeOperations: " << e.what() << "\n";
-    //    ERRORHERE;
-    //}
+    std::cout << "\n=== Testing Task Type Operations ===\n";
+    
+    try
+    {
+        // Test Start() method
+        {
+            CORE::CASync async;
+            CORE::CFutureResult result = async.Start(CORE::CGenericCallbackTaskConsumer::TaskType);
+    
+            ASSERT_TRUE(result.HasAFuture());
+            CORE::CTaskPtr task = result.GetResult(5000);
+            ASSERT_TRUE(!task.IsNULL());
+            std::cout << "Start() method test passed\n";
+        }
+      
+        // Test Queue() method
+        {
+            CORE::CASync async;
+            CORE::CFutureResult result = async.Queue(CORE::CGenericCallbackTaskConsumer::TaskType);
+    
+            ASSERT_TRUE(result.HasAFuture());
+            CORE::CTaskPtr task = result.GetResult(5000);
+            ASSERT_TRUE(!task.IsNULL());
+            std::cout << "Queue() method test passed\n";
+        }
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << "Exception in TestTaskTypeOperations: " << e.what() << "\n";
+        ERRORHERE;
+    }
 }
 
 void TestSubmitMethod()

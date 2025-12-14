@@ -55,6 +55,7 @@ enum ETaskStatus : UInt8
     TASKSTATUS_TASKDATA_INVALID       ,    /**< the task has invalid task data for the task type thus preventing its execution. this is an end state */
     TASKSTATUS_TASK_WITH_TYPE_EXISTS  ,    /**< if the task is intended to be unique and a task of the given type is already executing this signals a refusal to launch another. this is an end state */
     TASKSTATUS_TASK_CHAINING_FAILED   ,    /**< failed to create a chain of tasks. this is an end state */
+    TASKSTATUS_CHAIN_PREREQ_FAILED    ,    /**< the task is part of a chain and its prerequisite task experienced an error and failed to finish hence the rest of the chain cannot be processed */
     TASKSTATUS_RESOURCE_NOT_AVAILABLE ,    /**< the task depends on a resource for the task type which is not available thus preventing its execution */
     TASKSTATUS_RESOURCE_LIMIT_REACHED ,    /**< the task depends on a resource who's finite limit has been reached thus preventing its execution */
     TASKSTATUS_QUEUEING_FAILED        ,    /**< the task could not be placed in a queue */
@@ -64,6 +65,7 @@ enum ETaskStatus : UInt8
 
     TASKSTATUS_SETUP            = 100 ,    /**< the task is in the setup phase and being defined */    
     TASKSTATUS_QUEUED                 ,    /**< the task is sitting in a queue waiting for a worker thread to pick it up, currently no thread is assigned */
+    TASKSTATUS_CHAIN_PREREQ_QUEUED    ,    /**< the task is part of a chain and is waiting for its prerequisite tasks to finish before it can be queued for execution */
     TASKSTATUS_STARTUP                ,    /**< the task is going through its setup phase with the newly assigned thread */
     TASKSTATUS_RUNNING                ,    /**< the task has been successfully started and a thread is currently working the task */
     TASKSTATUS_PAUSED                 ,    /**< the task is currently paused, startup had completed and work had started but subsequently the work was put on hold */

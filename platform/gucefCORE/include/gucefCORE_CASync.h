@@ -238,6 +238,8 @@ class GUCEF_CORE_PUBLIC_CPP CASync
 
     protected:
 
+    typedef CTask::TTaskIdVector    TTaskIdVector;
+
     CASync( const CASync& thisChain );
 
     CASync& SetLastTaskStatus( TTaskStatus taskStatus );
@@ -251,7 +253,15 @@ class GUCEF_CORE_PUBLIC_CPP CASync
                         bool assumeOwnershipOfTaskData ,
                         bool startRightAwayOnSubmit    );
 
+    bool SetNextTask( CTaskPtr& nextTask );
+
+    CTaskPtr GetFirstTask( void ) const;
+
     CTaskPtr GetLastTask( void ) const;
+
+    CTaskPtr GetFirstErrorStateTask( void ) const;
+
+    bool GetTaskIdsInChain( TTaskIdVector& taskIds ) const;
 
     class GUCEF_CORE_PRIVATE_CPP CASyncChainState : public CTSharedObjCreator< CASyncChainState, MT::CNoLock >
     {
@@ -259,9 +269,10 @@ class GUCEF_CORE_PUBLIC_CPP CASync
 
         typedef CTSharedObjCreator< CASyncChainState, MT::CNoLock > TSharedObjCreator;
         typedef TSharedObjCreator::TBasicSharedPtrType              TASyncChainStatePtr;
+        typedef CTask::TTaskPtrVector                               TTaskPtrVector;
 
         ThreadPoolPtr m_threadPool;
-        CTaskPtr m_lastTask;
+        TTaskPtrVector m_tasks;
         bool m_chainIsHealthy;
         bool m_startRightAwayOnSubmit;
         bool m_chainHasBeenSubmitted;
@@ -580,7 +591,11 @@ CASyncChainStepArity1< R, CTaskPtr >
 CASync::ThenCallback( R (*f)( CTaskPtr ) )
 {GUCEF_TRACE;
 
-    CICloneable* taskData = CDeferredTask::Construct( f, GetLastTask() );
+    CTaskPtr lastTask = GetLastTask();
+    if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+
+    CICloneable* taskData = CDeferredTask::Construct( f, lastTask );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
         return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
@@ -594,7 +609,11 @@ CASyncChainStepArity2< R, CTaskPtr, A2 >
 CASync::ThenCallback( R (*f)( CTaskPtr, A2 ), A2 a2 )
 {GUCEF_TRACE;
 
-    CICloneable* taskData = CDeferredTask::Construct( f, GetLastTask(), a2 );
+    CTaskPtr lastTask = GetLastTask();
+    if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+
+    CICloneable* taskData = CDeferredTask::Construct( f, lastTask, a2 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
         return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 
@@ -608,7 +627,11 @@ CASyncChainStepArity3< R, CTaskPtr, A2, A3 >
 CASync::ThenCallback( R (*f)( CTaskPtr, A2, A3 ), A2 a2, A3 a3 )
 {GUCEF_TRACE;
 
-    CICloneable* taskData = CDeferredTask::Construct( f, GetLastTask(), a2, a3 );
+    CTaskPtr lastTask = GetLastTask();
+    if GUCEF_PREDICT_FALSE( lastTask.IsNULL() )
+        return SetLastTaskStatus( TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED );
+
+    CICloneable* taskData = CDeferredTask::Construct( f, lastTask, a2, a3 );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
         return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 

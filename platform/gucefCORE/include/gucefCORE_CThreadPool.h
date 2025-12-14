@@ -169,7 +169,8 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
     typedef CTFactoryBase< CIDataNodeSerializableTaskData, MT::CMutex >                     TTaskDataFactory;
     typedef GUCEF::map< UInt32, CTaskInfo >                                                 TTaskInfoMap;
     typedef GUCEF::map< UInt32, CThreadInfo >                                               TThreadInfoMap;
-    typedef GUCEF::vector< TIntegerTypeUsedForTaskId >                                      TTaskIdVector;
+    typedef CTask::TTaskIdVector                                                            TTaskIdVector;
+    typedef CTask::TTaskPtrVector                                                           TTaskPtrVector;
     typedef GUCEF::vector< UInt32 >                                                         TThreadIdVector;
 
     typedef TCloneableUInt32                                    TThreadKilledEventData;
@@ -550,9 +551,18 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
                           CObserver* taskObserver = GUCEF_NULL   ,
                           bool assumeOwnershipOfTaskData = false );
 
+    CFutureResult StartTaskChain( const TTaskPtrVector& tasks );
+
     CFutureResult StartTask( CTaskPtr task );
 
+    CFutureResult QueueTaskChain( const TTaskPtrVector& tasks );
+
     CFutureResult QueueTask( CTaskPtr task );
+
+    private:
+    friend class CTask;
+
+    CTaskPtr GetTaskObjById( TIntegerTypeUsedForTaskId taskId ) const;
 
     private:
     friend class CTaskManager;
@@ -575,9 +585,26 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
     typedef std::pair< const CString, CTaskConsumerPtrSet > TStringAndTaskConsumerSetPair;
     typedef GUCEF::map< CString, CTaskConsumerPtrSet > TStringToTaskConsumerSetMap;
 
-    void EnforceDesiredNrOfThreads( Int32 desiredMaxTotalNrOfThreads   ,
-                                    UInt32 desiredMinNrOfWorkerThreads ,
-                                    bool gracefullEnforcement          );
+    /**
+     *  Shared internal function to validate a task chain for processing ingress
+     */
+    TTaskStatus ValidateTaskChainForIngress( const TTaskPtrVector& tasks ) const;
+
+    /**
+     *  Shared internal function to validate a task for processing ingress
+     */
+    TTaskStatus ValidateTaskForIngress( CTaskPtr& task ) const;
+
+    /**
+     *  Increases or decreases the number of threads in the pool to meet the desired nr of threads in the given range
+     *  If gracefullEnforcement is true then existing threads will be allowed to finish their work as they are merely requested to stop
+     *  If gracefullEnforcement is false then existing threads will be killed off if need be to meet the desired nr of threads
+     *
+     *  @return the delta in threads that was determined to be necessary to meet the desired state. 0 means already in the desired state
+     */
+    Int32 EnforceDesiredNrOfThreads( Int32 desiredMaxTotalNrOfThreads   ,
+                                     UInt32 desiredMinNrOfWorkerThreads ,
+                                     bool gracefullEnforcement          );
 
     /**
      *  For task consumers that are not owned by the thread pool there is the issue of an independent lifecycle
