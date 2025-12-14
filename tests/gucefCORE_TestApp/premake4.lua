@@ -62,7 +62,8 @@ files( {
   "include/TestUri.h",
   "include/TestVariant.h",
   "include/TestVariantBinarySerializer.h",
-  "include/TestVars.h"
+  "include/TestVars.h",
+  "src/TestFreeList.h"
  } )
 
 
@@ -78,6 +79,7 @@ files( {
   "src/TestDynamicBufferStringStream.cpp",
   "src/TestDynamicBufferSwap.cpp",
   "src/TestFileUtils.cpp",
+  "src/TestFreeList.cpp",
   "src/TestIniParser.cpp",
   "src/TestNotifierObserver.cpp",
   "src/TestSharedPtr.cpp",
@@ -92,7 +94,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
+includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include", "src" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )

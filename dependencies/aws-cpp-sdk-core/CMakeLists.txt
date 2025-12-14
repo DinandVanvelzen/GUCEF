@@ -501,12 +501,12 @@ if ( OSX )
 endif( OSX )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE Userenv.lib Version.lib WindowsApp.lib Winhttp.lib Wininet.lib msxml6.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Secur32.lib Userenv.lib Version.lib WindowsApp.lib Winhttp.lib Wininet.lib msxml6.lib shlwapi.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BYPASS_DEFAULT_PROXY;ENABLE_BCRYPT_ENCRYPTION;ENABLE_WINDOWS_CLIENT;ENABLE_WINDOWS_IXML_HTTP_REQUEST_2_CLIENT;NTDDI_VERSION=NTDDI_WIN7;PLATFORM_WINDOWS" )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE Userenv.lib Version.lib WindowsApp.lib Winhttp.lib Wininet.lib msxml6.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE Secur32.lib Userenv.lib Version.lib WindowsApp.lib Winhttp.lib Wininet.lib msxml6.lib shlwapi.lib )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "BYPASS_DEFAULT_PROXY;ENABLE_BCRYPT_ENCRYPTION;ENABLE_WINDOWS_CLIENT;ENABLE_WINDOWS_IXML_HTTP_REQUEST_2_CLIENT;NTDDI_VERSION=NTDDI_WIN7;PLATFORM_WINDOWS" )
 endif( WIN64 )
 

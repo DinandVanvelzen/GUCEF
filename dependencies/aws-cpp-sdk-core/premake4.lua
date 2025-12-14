@@ -55,12 +55,12 @@ defines( { "AWS_AFFINITY_METHOD=AWS_AFFINITY_METHOD_PTHREAD_ATTR", "ENABLE_OPENS
 
 configuration( { OSX } )
 defines( { "ENABLE_COMMONCRYPTO_ENCRYPTION" } )
-  links( { "Userenv.lib", "Version.lib", "WindowsApp.lib", "Winhttp.lib", "Wininet.lib", "msxml6.lib" } )
+  links( { "Secur32.lib", "Userenv.lib", "Version.lib", "WindowsApp.lib", "Winhttp.lib", "Wininet.lib", "msxml6.lib", "shlwapi.lib" } )
   
 
 configuration( { WIN32 } )
 defines( { "BYPASS_DEFAULT_PROXY", "ENABLE_BCRYPT_ENCRYPTION", "ENABLE_WINDOWS_CLIENT", "ENABLE_WINDOWS_IXML_HTTP_REQUEST_2_CLIENT", "NTDDI_VERSION=NTDDI_WIN7", "PLATFORM_WINDOWS" } )
-  links( { "Userenv.lib", "Version.lib", "WindowsApp.lib", "Winhttp.lib", "Wininet.lib", "msxml6.lib" } )
+  links( { "Secur32.lib", "Userenv.lib", "Version.lib", "WindowsApp.lib", "Winhttp.lib", "Wininet.lib", "msxml6.lib", "shlwapi.lib" } )
   
 
 configuration( { WIN64 } )

@@ -93,7 +93,7 @@ CTask::CTask( CTask&& src ) GUCEF_NOEXCEPT
     , m_threadPool( GUCEF_MOVE( src.m_threadPool ) )
     , m_taskConsumer( GUCEF_MOVE( src.m_taskConsumer ) )
     , m_assumedOwnershipOfTaskData( src.m_assumedOwnershipOfTaskData )
-    , m_taskId( src.m_taskId )
+    , m_taskId( GUCEF_MOVE( src.m_taskId ) )
     , m_taskStatus( src.m_taskStatus )
     , m_taskStatusExtraInfo( GUCEF_MOVE( src.m_taskStatusExtraInfo ) )
     , m_chainTasks( GUCEF_MOVE( src.m_chainTasks ) )

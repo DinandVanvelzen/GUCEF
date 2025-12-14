@@ -63,6 +63,8 @@
 			<Dependency Name="Version.lib" />
 			<Dependency Name="msxml6.lib" />
 			<Dependency Name="WindowsApp.lib" />
+			<Dependency Name="shlwapi.lib" />
+			<Dependency Name="Secur32.lib" />
         </Linker>
     </Module>
     <Module Platform="linux">

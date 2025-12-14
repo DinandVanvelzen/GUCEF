@@ -29,6 +29,7 @@ set( HEADER_FILES
   include/TestVariant.h
   include/TestVariantBinarySerializer.h
   include/TestVars.h
+  src/TestFreeList.h
 )
 
 set( SOURCE_FILES 
@@ -40,6 +41,7 @@ set( SOURCE_FILES
   src/TestDynamicBufferStringStream.cpp
   src/TestDynamicBufferSwap.cpp
   src/TestFileUtils.cpp
+  src/TestFreeList.cpp
   src/TestIniParser.cpp
   src/TestNotifierObserver.cpp
   src/TestSharedPtr.cpp
@@ -71,7 +73,7 @@ add_dependencies( ${MODULE_NAME} gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CORE_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefCORE_TestApp;MODULE_NAME=gucefCORE_TestApp" )
 
-include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
+include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include src )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/android )

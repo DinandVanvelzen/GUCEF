@@ -19143,7 +19143,7 @@
 		<Module BuildOrder="37" Platform="win32" />
 		<Module BuildOrder="37" Platform="win64" />
 	</ModuleInfoEntry>
-	<ModuleInfoEntry DefFileLastModified="2023-01-25T20:55:24.726Z" ProjRelRootDir="dependencies/aws-cpp-sdk-core" >
+	<ModuleInfoEntry DefFileLastModified="2025-12-22T18:47:12.930Z" ProjRelRootDir="dependencies/aws-cpp-sdk-core" >
 		<Module BuildOrder="194" Name="aws-cpp-sdk-core" Platform="all" Type="SharedLibrary" >
 			<Files DirCount="36" Type="Headers" >
 				<Dir FileCount="12" Path="include/aws/core" >
@@ -19854,12 +19854,14 @@
 				<Define String="PLATFORM_WINDOWS" />
 			</Preprocessor>
 			<Linker>
+				<Dependency Name="Secur32.lib" />
 				<Dependency Name="Userenv.lib" />
 				<Dependency Name="Version.lib" />
 				<Dependency Name="WindowsApp.lib" />
 				<Dependency Name="Winhttp.lib" />
 				<Dependency Name="Wininet.lib" />
 				<Dependency Name="msxml6.lib" />
+				<Dependency Name="shlwapi.lib" />
 			</Linker>
 		</Module>
 		<Module BuildOrder="233" Platform="win64" >
@@ -19914,12 +19916,14 @@
 				<Define String="PLATFORM_WINDOWS" />
 			</Preprocessor>
 			<Linker>
+				<Dependency Name="Secur32.lib" />
 				<Dependency Name="Userenv.lib" />
 				<Dependency Name="Version.lib" />
 				<Dependency Name="WindowsApp.lib" />
 				<Dependency Name="Winhttp.lib" />
 				<Dependency Name="Wininet.lib" />
 				<Dependency Name="msxml6.lib" />
+				<Dependency Name="shlwapi.lib" />
 			</Linker>
 		</Module>
 	</ModuleInfoEntry>
@@ -25609,7 +25613,7 @@
 				</Maintainers>
 			</ModuleMetaData>
 			<Files DirCount="2" Type="Headers" >
-				<Dir FileCount="274" Path="include" >
+				<Dir FileCount="275" Path="include" >
 					<File Name="CBlockStack.h" />
 					<File Name="CCPPWrapFileAccess.h" />
 					<File Name="CCodecChain.h" />
@@ -25829,6 +25833,7 @@
 					<File Name="gucefCORE_CTEventHandlerFunctor.h" />
 					<File Name="gucefCORE_CTEventHandlerFunctorProxy.h" />
 					<File Name="gucefCORE_CTFraction.h" />
+					<File Name="gucefCORE_CTFreeList.h" />
 					<File Name="gucefCORE_CTGlobalONRegistry.h" />
 					<File Name="gucefCORE_CTIOAccessToStlStream.h" />
 					<File Name="gucefCORE_CTIOAccessToStlStreambuff.h" />
@@ -25907,7 +25912,7 @@
 				</Dir>
 			</Files>
 			<Files DirCount="2" Type="Source" >
-				<Dir FileCount="234" Path="src" >
+				<Dir FileCount="235" Path="src" >
 					<File Name="CBlockStack.cpp" />
 					<File Name="CCPPWrapFileAccess.cpp" />
 					<File Name="CCodecChain.cpp" />
@@ -26105,6 +26110,7 @@
 					<File Name="gucefCORE_CTEventHandlerFunctor.cpp" />
 					<File Name="gucefCORE_CTEventHandlerFunctorProxy.cpp" />
 					<File Name="gucefCORE_CTFraction.cpp" />
+					<File Name="gucefCORE_CTFreeList.cpp" />
 					<File Name="gucefCORE_CTGlobalONRegistry.cpp" />
 					<File Name="gucefCORE_CTIOAccessToStlStream.cpp" />
 					<File Name="gucefCORE_CTIOAccessToStlStreambuff.cpp" />
@@ -26346,7 +26352,7 @@
 				</Maintainers>
 			</ModuleMetaData>
 			<Files DirCount="2" Type="Headers" >
-				<Dir FileCount="274" Path="include" >
+				<Dir FileCount="275" Path="include" >
 					<File Name="CBlockStack.h" />
 					<File Name="CCPPWrapFileAccess.h" />
 					<File Name="CCodecChain.h" />
@@ -26566,6 +26572,7 @@
 					<File Name="gucefCORE_CTEventHandlerFunctor.h" />
 					<File Name="gucefCORE_CTEventHandlerFunctorProxy.h" />
 					<File Name="gucefCORE_CTFraction.h" />
+					<File Name="gucefCORE_CTFreeList.h" />
 					<File Name="gucefCORE_CTGlobalONRegistry.h" />
 					<File Name="gucefCORE_CTIOAccessToStlStream.h" />
 					<File Name="gucefCORE_CTIOAccessToStlStreambuff.h" />
@@ -26644,7 +26651,7 @@
 				</Dir>
 			</Files>
 			<Files DirCount="2" Type="Source" >
-				<Dir FileCount="234" Path="src" >
+				<Dir FileCount="235" Path="src" >
 					<File Name="CBlockStack.cpp" />
 					<File Name="CCPPWrapFileAccess.cpp" />
 					<File Name="CCodecChain.cpp" />
@@ -26842,6 +26849,7 @@
 					<File Name="gucefCORE_CTEventHandlerFunctor.cpp" />
 					<File Name="gucefCORE_CTEventHandlerFunctorProxy.cpp" />
 					<File Name="gucefCORE_CTFraction.cpp" />
+					<File Name="gucefCORE_CTFreeList.cpp" />
 					<File Name="gucefCORE_CTGlobalONRegistry.cpp" />
 					<File Name="gucefCORE_CTIOAccessToStlStream.cpp" />
 					<File Name="gucefCORE_CTIOAccessToStlStreambuff.cpp" />
@@ -27137,7 +27145,7 @@
 	</ModuleInfoEntry>
 	<ModuleInfoEntry DefFileLastModified="2025-03-31T17:14:08.637Z" ProjRelRootDir="tests/gucefCORE_TestApp" >
 		<Module BuildOrder="111" Name="gucefCORE_TestApp" Platform="all" Tags="test" Type="Executable" >
-			<Files DirCount="1" Type="Headers" >
+			<Files DirCount="2" Type="Headers" >
 				<Dir FileCount="17" Path="include" >
 					<File Name="TestASync.h" />
 					<File Name="TestCyclicDynamicBuffer.h" />
@@ -27157,9 +27165,12 @@
 					<File Name="TestVariantBinarySerializer.h" />
 					<File Name="TestVars.h" />
 				</Dir>
+				<Dir FileCount="1" Path="src" >
+					<File Name="TestFreeList.h" />
+				</Dir>
 			</Files>
 			<Files DirCount="1" Type="Source" >
-				<Dir FileCount="18" Path="src" >
+				<Dir FileCount="19" Path="src" >
 					<File Name="TestASync.cpp" />
 					<File Name="TestCyclicDynamicBuffer.cpp" />
 					<File Name="TestDataDrivenDStoreCodecs.cpp" />
@@ -27168,6 +27179,7 @@
 					<File Name="TestDynamicBufferStringStream.cpp" />
 					<File Name="TestDynamicBufferSwap.cpp" />
 					<File Name="TestFileUtils.cpp" />
+					<File Name="TestFreeList.cpp" />
 					<File Name="TestIniParser.cpp" />
 					<File Name="TestNotifierObserver.cpp" />
 					<File Name="TestSharedPtr.cpp" />
@@ -27186,8 +27198,9 @@
 				<Include Path="../../platform/gucefCORE/include/c_api" />
 				<Include Path="../../platform/gucefMT/include" />
 			</Includes>
-			<Includes Count="1" Source="Self" >
+			<Includes Count="2" Source="Self" >
 				<Include Path="include" />
+				<Include Path="src" />
 			</Includes>
 			<Dependencies Count="2" >
 				<Dependency Name="gucefCORE" />
