@@ -16565,8 +16565,14 @@
 	</ModuleInfoEntry>
 	<ModuleInfoEntry DefFileLastModified="2021-11-24T01:10:12.009Z" ProjRelRootDir="tools/ProjectGenerator" >
 		<Module BuildOrder="123" Name="ProjectGenerator" Platform="all" Tags="tools" Type="Executable" >
+			<Files DirCount="1" Type="Headers" >
+				<Dir FileCount="1" Path="include" >
+					<File Name="ProjectGenerator.h" />
+				</Dir>
+			</Files>
 			<Files DirCount="1" Type="Source" >
-				<Dir FileCount="1" Path="src" >
+				<Dir FileCount="2" Path="src" >
+					<File Name="ProjectGenerator.cpp" />
 					<File Name="main.cpp" />
 				</Dir>
 			</Files>
@@ -16576,6 +16582,9 @@
 				<Include Path="../../platform/gucefCORE/include/c_api" />
 				<Include Path="../../platform/gucefMT/include" />
 				<Include Path="../ProjectGen/include" />
+			</Includes>
+			<Includes Count="1" Source="Self" >
+				<Include Path="include" />
 			</Includes>
 			<Dependencies Count="3" >
 				<Dependency Name="ProjectGen" />

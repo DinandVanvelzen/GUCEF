@@ -25,15 +25,30 @@
 
 #include <stdio.h>
 
-#ifndef GUCEF_CORE_LOGGING_H
-#include "gucefCORE_Logging.h"
-#define GUCEF_CORE_LOGGING_H
-#endif /* GUCEF_CORE_LOGGING_H ? */
-
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
+
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
+
+#ifndef GUCEF_CORE_CONFIGSTORE_H
+#include "CConfigStore.h"
+#define GUCEF_CORE_CONFIGSTORE_H
+#endif /* GUCEF_CORE_CONFIGSTORE_H ? */
+
+#ifndef GUCEF_CORE_CGUCEFAPPLICATION_H
+#include "CGUCEFApplication.h"
+#define GUCEF_CORE_CGUCEFAPPLICATION_H
+#endif /* GUCEF_CORE_CGUCEFAPPLICATION_H ? */
+
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
 
 #ifndef GUCEF_CORE_DVCPPOSWRAP_H
 #include "DVCPPOSWRAP.h"
@@ -50,80 +65,20 @@
 #define GUCEF_CORE_CFILEACCESS_H
 #endif /* GUCEF_CORE_CFILEACCESS_H ? */
 
-#ifndef GUCEF_CORE_CONFIGSTORE_H
-#include "CConfigStore.h"
-#define GUCEF_CORE_CONFIGSTORE_H
-#endif /* GUCEF_CORE_CONFIGSTORE_H ? */
-
 #ifndef GUCEF_CORE_CGLOBALCONFIGVALUELIST_H
 #include "gucefCORE_CGlobalConfigValueList.h"
 #define GUCEF_CORE_CGLOBALCONFIGVALUELIST_H
 #endif /* GUCEF_CORE_CGLOBALCONFIGVALUELIST_H ? */
-
-#ifndef GUCEF_PROJECTGEN_DATATYPES_H
-#include "gucefProjectGen_DataTypes.h"
-#define GUCEF_PROJECTGEN_DATATYPES_H
-#endif /* GUCEF_PROJECTGEN_DATATYPES_H ? */
-
-#ifndef GUCEF_PROJECTGEN_CIPROJECTGENERATOR_H
-#include "gucefProjectGen_CIProjectGenerator.h"
-#define GUCEF_PROJECTGEN_CIPROJECTGENERATOR_H
-#endif /* GUCEF_PROJECTGEN_CIPROJECTGENERATOR_H ? */
-
-#ifndef GUCEF_PROJECTGEN_CIPROJECTINFOGATHERER_H
-#include "gucefProjectGen_CIProjectInfoGatherer.h"
-#define GUCEF_PROJECTGEN_CIPROJECTINFOGATHERER_H
-#endif /* GUCEF_PROJECTGEN_CIPROJECTINFOGATHERER_H ? */
-
-#ifndef GUCEF_PROJECTGEN_CDIRCRAWLINGPROJECTINFOGATHERER_H
-#include "gucefProjectGen_CDirCrawlingProjectInfoGatherer.h"
-#define GUCEF_PROJECTGEN_CDIRCRAWLINGPROJECTINFOGATHERER_H
-#endif /* GUCEF_PROJECTGEN_CDIRCRAWLINGPROJECTINFOGATHERER_H ? */
-
-#ifndef GUCEF_PROJECTGEN_CXMLPROJECTGENERATOR_H
-#include "gucefProjectGen_CXmlProjectGenerator.h"
-#define GUCEF_PROJECTGEN_CXMLPROJECTGENERATOR_H
-#endif /* GUCEF_PROJECTGEN_CXMLPROJECTGENERATOR_H ? */
-
-#ifndef GUCEF_PROJECTGEN_CCMAKEPROJECTGENERATOR_H
-#include "gucefProjectGen_CCMakeProjectGenerator.h"
-#define GUCEF_PROJECTGEN_CCMAKEPROJECTGENERATOR_H
-#endif /* GUCEF_PROJECTGEN_CCMAKEPROJECTGENERATOR_H ? */
-
-#ifndef GUCEF_PROJECTGEN_CANDROIDMAKEFILEGENERATOR_H
-#include "gucefProjectGen_CAndroidMakefileGenerator.h"
-#define GUCEF_PROJECTGEN_CANDROIDMAKEFILEGENERATOR_H
-#endif /* GUCEF_PROJECTGEN_CANDROIDMAKEFILEGENERATOR_H ? */
-
-#ifndef GUCEF_PROJECTGEN_CPREMAKE4PROJECTGENERATOR_H
-#include "gucefProjectGen_CPremake4ProjectGenerator.h"
-#define GUCEF_PROJECTGEN_CPREMAKE4PROJECTGENERATOR_H
-#endif /* GUCEF_PROJECTGEN_CPREMAKE4PROJECTGENERATOR_H ? */
-
-#ifndef GUCEF_PROJECTGEN_CPREMAKE5PROJECTGENERATOR_H
-#include "gucefProjectGen_CPremake5ProjectGenerator.h"
-#define GUCEF_PROJECTGEN_CPREMAKE5PROJECTGENERATOR_H
-#endif /* GUCEF_PROJECTGEN_CPREMAKE5PROJECTGENERATOR_H ? */
-
-#ifndef GUCEF_PROJECTGEN_CARDUINOCLIGENERATOR_H
-#include "gucefProjectGen_CArduinoCLIGenerator.h"
-#define GUCEF_PROJECTGEN_CARDUINOCLIGENERATOR_H
-#endif /* GUCEF_PROJECTGEN_CARDUINOCLIGENERATOR_H ? */
-
-#ifndef GUCEF_PROJECTGEN_CCHIHELPERGENERATOR_H
-#include "gucefProjectGen_CCIHelperGenerator.h"
-#define GUCEF_PROJECTGEN_CCHIHELPERGENERATOR_H
-#endif /* GUCEF_PROJECTGEN_CCHIHELPERGENERATOR_H ? */
 
 #ifndef GUCEF_PROJECTGEN_CPROJECTGENGLOBAL_H
 #include "gucefProjectGen_CProjectGenGlobal.h"
 #define GUCEF_PROJECTGEN_CPROJECTGENGLOBAL_H
 #endif /* GUCEF_PROJECTGEN_CPROJECTGENGLOBAL_H ? */
 
-#ifndef GUCEF_PROJECTGEN_CPROJECTPREPROCESSORMANAGER_H
-#include "gucefProjectGen_CProjectPreprocessorManager.h"
-#define GUCEF_PROJECTGEN_CPROJECTPREPROCESSORMANAGER_H
-#endif /* GUCEF_PROJECTGEN_CPROJECTPREPROCESSORMANAGER_H ? */
+#ifndef PROJECTGENERATOR_H
+#include "ProjectGenerator.h"
+#define PROJECTGENERATOR_H
+#endif /* PROJECTGENERATOR_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -132,7 +87,6 @@
 //-------------------------------------------------------------------------*/
 
 using namespace GUCEF;
-using namespace GUCEF::PROJECTGEN;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -288,6 +242,8 @@ GUCEF_OSMAIN_BEGIN
     CORE::CCoreGlobal::Instance();
     PROJECTGEN::CProjectGenGlobal::Instance();
 
+    ProjectGenerator projectGenerator;
+
     // Check for config param first
     CORE::CValueList keyValueList;
     ParseParams( argc, argv, keyValueList );
@@ -326,6 +282,7 @@ GUCEF_OSMAIN_BEGIN
         outputDir = CORE::RelativePath( "$CURWORKDIR$" );
     }
     CORE::CreateDirs( outputDir );
+    keyValueList.Set( "outputDir", outputDir );
 
     CORE::CString logFilename = CORE::CombinePath( outputDir, "ProjectGenerator_Log.txt" );
 
@@ -338,154 +295,20 @@ GUCEF_OSMAIN_BEGIN
     CORE::CPlatformNativeConsoleLogger console;
     if ( GUCEF_APP_TYPE == GUCEF_APP_TYPE_CONSOLE )
         CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( console.GetLogger() );
+    projectGenerator.SetConsoleAccess( console );
 
     CORE::CCoreGlobal::Instance()->GetLogManager().FlushBootstrapLogEntriesToLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Flushed to log @ " + logFilename );
 
-    CORE::CValueList::TStringVector rootDirs;
-    try
-    {
-        rootDirs = keyValueList.GetValueStringVector( "rootDir" );
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Number of rootDir arguments passed from command line: " + CORE::ToString( rootDirs.size() ) );
-    }
-    catch ( CORE::CValueList::EUnknownKey& )
-    {
-        rootDirs.push_back( CORE::RelativePath( "$CURWORKDIR$" ) );
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Using current working directory since no rootDir arguments where passed from the command line" );
-    }
-
-    bool addToolCompileTimeToOutput = CORE::StringToBool( keyValueList.GetValueAlways( "addToolCompileTimeToOutput" ) );
-
-    // Get the generators to use
-    TStringVector generatorList = keyValueList.GetValueAlways( "generators" ).AsString().ParseElements( ';', false );
-    if ( generatorList.size() == 0  )
-    {
-        // No specific generators where specified, defaulting...
-        generatorList.push_back( "xml" );
-    }
-
-    CProjectInfoPtr projectInfo = CProjectInfo::CreateSharedObj();
-    if ( projectInfo.IsNULL() )
-    {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Failed to create ProjectInfo" );
-        return -1;
-    }
-
-    ApplyConfigToProject( loadedConfig, *projectInfo.GetPointerAlways() );
-    projectInfo->SetSetttings( keyValueList );
-
-    bool useProjectInfoCache = keyValueList.GetValueAlways( "useProjectInfoCache", false ).AsBool( false, true );
-    bool projectInfoLoadedFromCache = false;
-    if ( useProjectInfoCache )
-    {
-        CORE::CString cachedInfoPath = CORE::CombinePath( CORE::RelativePath( outputDir ), "Project.xml" );
-        if ( CORE::FileExists( cachedInfoPath ) )
-        {
-            projectInfo->SetRootDir( outputDir );
-            projectInfoLoadedFromCache = projectInfo->Deserialize( cachedInfoPath );
-        }
-    }
-
-    if ( !projectInfoLoadedFromCache )
-    {
-        // Use an info gatherer to get all the project information for us
-        CDirCrawlingProjectInfoGatherer infoGatherer;
-        infoGatherer.GatherInfo( rootDirs     ,
-                                 projectInfo  ,
-                                 keyValueList );
-    }
-
-    // Before we hand the data we collected and generated to the generator(s) for the desired output we will check
-    // for preprocessors which can be executed before any output generator. These apply changes to the project data
-    // that will apply to all output generators
-    const CProjectPreprocessorManager::TProjectPreprocessorsList& projectPreProcessors = CProjectGenGlobal::Instance()->GetProjectPreprocessorManager().GetProjectPreprocessors();
-    CProjectPreprocessorManager::TProjectPreprocessorsList::const_iterator n = projectPreProcessors.begin();
-    while ( n != projectPreProcessors.end() )
-    {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Invoking project preprocessor" );
-        (*n)->ProccessProjects( *projectInfo.GetPointerAlways()  ,
-                                outputDir    ,
-                                keyValueList );
-        ++n;
-    }
-
-    // Now we output the project info using all generators specified
-    TStringVector::iterator i = generatorList.begin();
-    while ( i != generatorList.end() )
-    {
-        if ( (*i).Lowercase() == "xml" )
-        {
-            if ( !projectInfoLoadedFromCache )
-            {
-                CXmlProjectGenerator xmlGenerator;
-                xmlGenerator.GenerateProject( *projectInfo.GetPointerAlways()                ,
-                                              outputDir                  ,
-                                              addToolCompileTimeToOutput ,
-                                              keyValueList               );
-            }
-        }
-        else
-        if ( (*i).Lowercase() == "androidmake" )
-        {
-            CAndroidMakefileGenerator androidMakefileGenerator;
-            androidMakefileGenerator.GenerateProject( *projectInfo.GetPointerAlways()                ,
-                                                      outputDir                  ,
-                                                      addToolCompileTimeToOutput ,
-                                                      keyValueList               );
-        }
-        else
-        if ( (*i).Lowercase() == "cmake" )
-        {
-            CCMakeProjectGenerator cmakeGenerator;
-            cmakeGenerator.GenerateProject( *projectInfo.GetPointerAlways()                ,
-                                            outputDir                  ,
-                                            addToolCompileTimeToOutput ,
-                                            keyValueList               );
-        }
-        else
-        if ( (*i).Lowercase() == "premake4" )
-        {
-            CPremake4ProjectGenerator premake4Generator;
-            premake4Generator.GenerateProject( *projectInfo.GetPointerAlways()                ,
-                                               outputDir                  ,
-                                               addToolCompileTimeToOutput ,
-                                               keyValueList               );
-        }
-        else
-        if ( (*i).Lowercase() == "premake5" )
-        {
-            CPremake5ProjectGenerator premake5Generator;
-            premake5Generator.GenerateProject( *projectInfo.GetPointerAlways()                ,
-                                               outputDir                  ,
-                                               addToolCompileTimeToOutput ,
-                                               keyValueList               );
-        }
-        else
-        if ( (*i).Lowercase() == "cihelper" )
-        {
-            CCIHelperGenerator ciHelper;
-            ciHelper.GenerateProject( *projectInfo.GetPointerAlways()                ,
-                                      outputDir                  ,
-                                      addToolCompileTimeToOutput ,
-                                      keyValueList               );
-        }
-        else
-        if ( (*i).Lowercase() == "arduinocli" )
-        {
-            CArduinoCLIGenerator cliHelper;
-            cliHelper.GenerateProject( *projectInfo.GetPointerAlways()                ,
-                                       outputDir                  ,
-                                       addToolCompileTimeToOutput ,
-                                       keyValueList               );
-        }        
-        ++i;
-    }
+    projectGenerator.SetConfig( loadedConfig );
+    projectGenerator.SetParams( keyValueList );
+    int returnValue = CORE::CCoreGlobal::Instance()->GetApplication().main( argc, argv, true );
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Wrote log file to: " + logFilename );
 
     CORE::CCoreGlobal::Instance()->GetLogManager().ClearLoggers();
 
-    return 0;
+    return returnValue;
 }
 GUCEF_OSMAIN_END
 
