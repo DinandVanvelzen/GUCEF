@@ -47082,7 +47082,7 @@
 			</Preprocessor>
 		</Module>
 	</ModuleInfoEntry>
-	<ModuleInfoEntry DefFileLastModified="2023-04-23T22:49:01.524Z" ProjRelRootDir="tools/pubsub2pubsub" >
+	<ModuleInfoEntry DefFileLastModified="2025-12-27T05:12:16.004Z" ProjRelRootDir="tools/pubsub2pubsub" >
 		<Module BuildOrder="186" Name="pubsub2pubsub" Platform="all" Tags="services" Type="Executable" >
 			<Files DirCount="1" Type="Source" >
 				<Dir FileCount="1" Path="src" >
@@ -47109,11 +47109,12 @@
 				<Dependency Name="gucefVFS" />
 				<Dependency Name="gucefWEB" />
 			</Dependencies>
-			<RuntimeDependencies Count="13" >
+			<RuntimeDependencies Count="14" >
 				<RuntimeDependency Name="codecspluginSTBRUMMEHASH" />
 				<RuntimeDependency Name="codecspluginZLIB" />
 				<RuntimeDependency Name="dstorepluginJSONPARSER" />
 				<RuntimeDependency Name="dstorepluginPARSIFALXML" />
+				<RuntimeDependency Name="dstorepluginPROTOBUF" />
 				<RuntimeDependency Name="dstorepluginYAML" />
 				<RuntimeDependency Name="pubsubpluginAWSSQS" />
 				<RuntimeDependency Name="pubsubpluginKAFKA" />
@@ -53221,6 +53222,7 @@
 					<ModuleName>curl</ModuleName>
 					<ModuleName>dstorepluginJSONPARSER</ModuleName>
 					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
+					<ModuleName>dstorepluginPROTOBUF</ModuleName>
 					<ModuleName>dstorepluginYAML</ModuleName>
 					<ModuleName>gucefCOM</ModuleName>
 					<ModuleName>gucefCOMCORE</ModuleName>
@@ -53233,6 +53235,7 @@
 					<ModuleName>jsonbuilder</ModuleName>
 					<ModuleName>jsonparser</ModuleName>
 					<ModuleName>libparsifal</ModuleName>
+					<ModuleName>libprotobuf</ModuleName>
 					<ModuleName>pluginglueAWSSDK</ModuleName>
 					<ModuleName>pubsub2pubsub</ModuleName>
 					<ModuleName>pubsubpluginAWSSQS</ModuleName>
@@ -53903,6 +53906,7 @@
 					<ModuleName>curl</ModuleName>
 					<ModuleName>dstorepluginJSONPARSER</ModuleName>
 					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
+					<ModuleName>dstorepluginPROTOBUF</ModuleName>
 					<ModuleName>dstorepluginYAML</ModuleName>
 					<ModuleName>gucefCOM</ModuleName>
 					<ModuleName>gucefCOMCORE</ModuleName>
@@ -53916,6 +53920,7 @@
 					<ModuleName>jsonbuilder</ModuleName>
 					<ModuleName>jsonparser</ModuleName>
 					<ModuleName>libparsifal</ModuleName>
+					<ModuleName>libprotobuf</ModuleName>
 					<ModuleName>pluginglueAWSSDK</ModuleName>
 					<ModuleName>pubsub2pubsub</ModuleName>
 					<ModuleName>pubsub2storage</ModuleName>

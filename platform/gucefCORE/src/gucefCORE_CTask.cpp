@@ -82,11 +82,32 @@ CTask::CTask( TTaskStatus taskStatus )
 
 /*-------------------------------------------------------------------------*/
 
+CTask::CTask( const CTask& src )
+    : CNotifier( src )
+    , CTSharedObjCreator< CTask, MT::CMutex >( src , this )
+    , m_taskData( GUCEF_NULL )
+    , m_serializedTaskData( src.m_serializedTaskData )
+    , m_taskType( src.m_taskType )
+    , m_threadPool( src.m_threadPool )
+    , m_taskConsumer( src.m_taskConsumer )
+    , m_assumedOwnershipOfTaskData( false )
+    , m_taskId()
+    , m_taskStatus( src.m_taskStatus )
+    , m_taskStatusExtraInfo( src.m_taskStatusExtraInfo )
+    , m_chainTasks( src.m_chainTasks )
+    , m_lock()
+{GUCEF_TRACE;
+
+    SetTaskData( src.m_taskData, false );
+}
+
+/*-------------------------------------------------------------------------*/
+
 #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
 
 CTask::CTask( CTask&& src ) GUCEF_NOEXCEPT
     : CNotifier( GUCEF_MOVE( src ) )
-    , CTSharedObjCreator< CTask, MT::CMutex >( GUCEF_MOVE( src ) )
+    , CTSharedObjCreator< CTask, MT::CMutex >( GUCEF_MOVE( src ), this )
     , m_taskData( src.m_taskData )
     , m_serializedTaskData( GUCEF_MOVE( src.m_serializedTaskData ) )
     , m_taskType( GUCEF_MOVE( src.m_taskType ) )
@@ -263,6 +284,7 @@ CTask::GetAllTasksInChain( TTaskPtrVector& tasks ) const
     else
     {
         bool totalSuccess = true;
+        tasks.reserve( m_chainTasks.size() );
 
         CThreadPoolPtr threadPool = GetThreadPool();  
         for ( UInt32 i=0; i<m_chainTasks.size(); ++i )

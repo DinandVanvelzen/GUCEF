@@ -141,7 +141,7 @@ class CTFreeListSharedObjectDestructor : public CTDynamicDestructorBase< CTBasic
  *             called so the raw memory block contains an unconstructed object which can be
  *             reconstructed with placement new when re-acquired.
  *
- *  Thread safety behaviour is dependent on the LockType template argument identical to
+ *  Thread safety behavior is dependent on the LockType template argument identical to
  *  CTBasicSharedPtr semantics.
  */
 template< typename T, class LockType >
@@ -299,7 +299,8 @@ class CTFreeList : public MT::CILockable
 
         // There is no clear so we revert back to using the constructor
         // Always use placement new to (re)init the object
-        m_allocator.construct( obj, TSharedPtrCreator( obj, &m_destructor ) );
+        m_allocator.construct( obj );
+        obj->InitializeSharedPtrCreatorData( obj, &m_destructor );
     }
 
     void ReconstructIfNoClearIsAvailable( TSharedPtrCreator* obj )
@@ -308,8 +309,8 @@ class CTFreeList : public MT::CILockable
         ReconstructIfNoClearIsAvailableImpl< TSharedPtrCreator >( obj );
     }
 
-    CTFreeList( const CTFreeList& );
-    CTFreeList& operator=( const CTFreeList& );
+    CTFreeList( const CTFreeList& ) GUCEF_DELETED_MEMBER;
+    CTFreeList& operator=( const CTFreeList& ) GUCEF_DELETED_MEMBER;
 
     private:
 
@@ -432,7 +433,8 @@ CTFreeList< T, LockType >::Acquire( void )
                 default:
                 {
                     // Always use placement new to (re)init the object
-                    m_allocator.construct( raw, TSharedPtrCreator( raw, &m_destructor ) );
+                    m_allocator.construct( raw );
+                    raw->InitializeSharedPtrCreatorData( raw, &m_destructor );
                     break;
                 }
             }
@@ -513,7 +515,8 @@ CTFreeList< T, LockType >::Reserve( UInt32 count )
 
             // Use placement new to do the very first construction always
             // Reuse policy only applies to subsequent reuses
-            m_allocator.construct( slot, TSharedPtrCreator( slot, &m_destructor ) );
+            m_allocator.construct( slot );
+            slot->InitializeSharedPtrCreatorData( slot, &m_destructor );
 
             m_freed.push_back( slot );
 

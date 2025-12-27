@@ -112,7 +112,7 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
 
     CTask( TTaskStatus taskStatus = TTaskStatus::TASKSTATUS_UNDEFINED );
 
-    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
     CTask( CTask&& src ) GUCEF_NOEXCEPT;
     #endif
 
@@ -294,6 +294,17 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
     bool GetAllTasksInChain( TTaskPtrVector& taskSet ) const;
 
     bool GetAllUpcomingTasksInChain( TTaskPtrSet& taskSet ) const;
+
+    protected:
+
+    /**
+     *  Copy constructor intended for use by derived classes only in legacy allocator scenarios
+     */
+    CTask( const CTask& src );
+
+    private:
+
+    CTask& operator=( const CTask& src ) GUCEF_DELETED_MEMBER;  /**< copying doesnt make sense */
 
     private:
 

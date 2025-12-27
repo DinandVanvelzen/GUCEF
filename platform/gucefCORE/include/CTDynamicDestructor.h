@@ -61,7 +61,7 @@ class CTDynamicDestructor : public CTDynamicDestructorBase< T >
      */
     CTDynamicDestructor( const bool destroySelfOnDestroyObject = false );
 
-    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
     CTDynamicDestructor( CTDynamicDestructor&& src ) GUCEF_NOEXCEPT;
     #endif
   

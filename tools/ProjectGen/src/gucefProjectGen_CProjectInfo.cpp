@@ -2035,9 +2035,11 @@ CProjectInfo::ClearDependencyChains( void )
             if ( !dependency.IsNULL() )
             {
                 dependency->Clear();
+                dependency.Unlink();
             }
             ++n;
         }
+        map.clear();
 
         ++i;
     }

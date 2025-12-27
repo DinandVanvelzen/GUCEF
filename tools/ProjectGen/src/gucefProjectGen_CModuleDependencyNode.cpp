@@ -90,6 +90,30 @@ CModuleDependencyNode::CModuleDependencyNode( void )
 
 /*---------------------------------------------------------------------------*/
 
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
+CModuleDependencyNode::CModuleDependencyNode( CModuleDependencyNode&& src ) GUCEF_NOEXCEPT
+    : CORE::CTSharedObjCreator< CModuleDependencyNode, MT::CMutex >( GUCEF_MOVE( src ), this )
+    , m_module( GUCEF_MOVE( src.m_module ) )
+    , m_dependencies( GUCEF_MOVE( src.m_dependencies ) )
+    , m_linkerDependencies( GUCEF_MOVE( src.m_linkerDependencies ) )
+    , m_runtimeDependencies( GUCEF_MOVE( src.m_runtimeDependencies ) )
+    , m_logicalDependencies( GUCEF_MOVE( src.m_logicalDependencies ) )
+    , m_dependents( GUCEF_MOVE( src.m_dependents ) )
+    , m_linkerDependents( GUCEF_MOVE( src.m_linkerDependents ) )
+    , m_runtimeDependents( GUCEF_MOVE( src.m_runtimeDependents ) )
+    , m_logicalDependents( GUCEF_MOVE( src.m_logicalDependents ) )
+    , m_targetPlatform( GUCEF_MOVE( src.m_targetPlatform ) )
+    , m_hasMissingDependencies( src.m_hasMissingDependencies )
+{GUCEF_TRACE;
+
+    src.m_hasMissingDependencies = false;
+}
+
+#endif
+
+/*---------------------------------------------------------------------------*/
+
 CModuleDependencyNode::~CModuleDependencyNode()
 {GUCEF_TRACE;
 

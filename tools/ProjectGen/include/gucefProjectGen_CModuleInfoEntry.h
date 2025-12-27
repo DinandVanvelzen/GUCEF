@@ -102,6 +102,10 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
 
     CModuleInfoEntry( const CModuleInfoEntry& src );
 
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+    CModuleInfoEntry( CModuleInfoEntry&& src ) GUCEF_NOEXCEPT;
+    #endif
+
     virtual ~CModuleInfoEntry() GUCEF_VIRTUAL_OVERRIDE;
 
     bool GeneratePreprocessorDefinesFromModuleInfo( void );

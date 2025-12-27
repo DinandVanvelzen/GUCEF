@@ -227,7 +227,13 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo : public CORE::CTSharedObjCreator<
                               const CORE::CDataNodeSerializableSettings& settings );
     
     CModuleInfo( void );
+
     CModuleInfo( const CModuleInfo& src );
+
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+    CModuleInfo( CModuleInfo&& src ) GUCEF_NOEXCEPT;
+    #endif 
+
     virtual ~CModuleInfo() GUCEF_VIRTUAL_OVERRIDE;
 
     private:

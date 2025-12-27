@@ -29,6 +29,7 @@
 
 #include <limits>
 #include <utility>
+#include <memory>
 #if __cplusplus >= 201103L
 #include <type_traits>  // for std::is_same used in C++11 static_assert
 #endif
@@ -80,10 +81,10 @@ namespace GUCEF {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-template < class T > class gucef_allocator;
+template < class T > class gucef_platform_diagnostic_allocator;
 
 template <>
-class gucef_allocator<void>
+class gucef_platform_diagnostic_allocator<void>
 {
 public:
     typedef void              value_type;
@@ -95,12 +96,12 @@ public:
     template <class U>
     struct rebind
     {
-        typedef gucef_allocator<U> other;
+        typedef gucef_platform_diagnostic_allocator<U> other;
     };
 };
 
 template <class T>
-class gucef_allocator
+class gucef_platform_diagnostic_allocator
 {
 public:
 
@@ -115,24 +116,24 @@ public:
     template <class U>
     struct rebind
     {
-        typedef gucef_allocator<U> other;
+        typedef gucef_platform_diagnostic_allocator<U> other;
     };
 
     // Ensure rebind works for std::pair<const Key, Value>
     template <typename Key, typename Value>
-    struct rebind<std::pair<const Key, Value>>
+    struct rebind< std::pair< const Key, Value > >
     {
-        typedef gucef_allocator<std::pair<const Key, Value>> other;
+        typedef gucef_platform_diagnostic_allocator< std::pair< const Key, Value > > other;
     };
 
-    gucef_allocator() GUCEF_NOEXCEPT {}
+    gucef_platform_diagnostic_allocator() GUCEF_NOEXCEPT {}
     
     template <class U>
-    gucef_allocator( const gucef_allocator<U>& ) GUCEF_NOEXCEPT 
+    gucef_platform_diagnostic_allocator( const gucef_platform_diagnostic_allocator< U >& ) GUCEF_NOEXCEPT 
     {GUCEF_TRACE; }
 
     pointer
-    allocate( size_type n, gucef_allocator<void>::const_pointer = 0 )
+    allocate( size_type n, gucef_platform_diagnostic_allocator< void >::const_pointer = 0 )
     {GUCEF_TRACE;
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
@@ -172,7 +173,7 @@ public:
         ::new( static_cast< void* >( p ) ) value_type( val );
     }
 
-    #if defined( GUCEF_RVALUE_REFERENCES_SUPPORTED )
+    #if defined( GUCEF_MOVE_SEMANTICS_SUPPORTED )
     void
     construct( pointer p, value_type&& val )
     {GUCEF_TRACE;
@@ -187,7 +188,7 @@ public:
     }
     #endif
 
-    #if ( __cplusplus >= 201103L ) || ( defined( _MSC_VER ) && _MSC_VER >= 1800 )
+    #if defined( GUCEF_MOVE_SEMANTICS_SUPPORTED )
     template <class... Args>
     void
     construct( pointer p, Args&&... args )
@@ -253,7 +254,7 @@ public:
 /*-------------------------------------------------------------------------*/
 
 template <typename Key, typename Value>
-class gucef_allocator< std::pair<const Key, Value> >
+class gucef_platform_diagnostic_allocator< std::pair< const Key, Value > >
 {
 public:
 
@@ -268,17 +269,17 @@ public:
     template <class U>
     struct rebind
     {
-        typedef gucef_allocator<U> other;
+        typedef gucef_platform_diagnostic_allocator<U> other;
     };
 
-    gucef_allocator() GUCEF_NOEXCEPT {}
+    gucef_platform_diagnostic_allocator() GUCEF_NOEXCEPT {}
     
     template <class U>
-    gucef_allocator( const gucef_allocator<U>& ) GUCEF_NOEXCEPT 
+    gucef_platform_diagnostic_allocator( const gucef_platform_diagnostic_allocator<U>& ) GUCEF_NOEXCEPT 
     {GUCEF_TRACE; }
 
     pointer
-    allocate( size_type n, gucef_allocator<void>::const_pointer = 0 )
+    allocate( size_type n, gucef_platform_diagnostic_allocator<void>::const_pointer = 0 )
     {GUCEF_TRACE;
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
@@ -318,7 +319,7 @@ public:
         ::new( static_cast< void* >( p ) ) value_type( val );
     }
 
-    #if defined( GUCEF_RVALUE_REFERENCES_SUPPORTED )
+    #if defined( GUCEF_MOVE_SEMANTICS_SUPPORTED )
     void
     construct( pointer p, value_type&& val )
     {GUCEF_TRACE;
@@ -334,7 +335,7 @@ public:
     }
     #endif
 
-    #if ( __cplusplus >= 201103L ) || ( defined( _MSC_VER ) && _MSC_VER >= 1800 )
+    #if defined( GUCEF_MOVE_SEMANTICS_SUPPORTED )
     template <class... Args>
     void
     construct( pointer p, Args&&... args )
@@ -403,7 +404,7 @@ public:
 
 template <class T, class U>
 bool
-operator==( gucef_allocator<T> const&, gucef_allocator<U> const& )
+operator==( gucef_platform_diagnostic_allocator<T> const&, gucef_platform_diagnostic_allocator<U> const& )
 {GUCEF_TRACE;
 
     return true;
@@ -413,11 +414,81 @@ operator==( gucef_allocator<T> const&, gucef_allocator<U> const& )
 
 template <class T, class U>
 bool
-operator!=( gucef_allocator<T> const& x, gucef_allocator<U> const& y )
+operator!=( gucef_platform_diagnostic_allocator<T> const& x, gucef_platform_diagnostic_allocator<U> const& y )
 {GUCEF_TRACE;
 
     return !(x == y);
 }
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      BUILD SWITCHES                                                     //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+// C++11+ allocator alias
+//#ifdef GUCEF_USING_KEYWORD_IS_SUPPORTED
+//
+//  template < typename T >
+//  using gucef_allocator =
+//  #if ( GUCEF_ALLOCATOR_TYPE == GUCEF_ALLOCATOR_TYPE_PLATFORM_DIAGNOSTIC )
+//      GUCEF::gucef_platform_diagnostic_allocator< T >;
+//  #else
+//      std::allocator< T >;
+//  #endif
+//
+//// C++98 fallback: wrapper struct that derives from the chosen allocator
+//#else
+
+  template < typename T >
+  class gucef_allocator
+  #if ( GUCEF_ALLOCATOR_TYPE == GUCEF_ALLOCATOR_TYPE_PLATFORM_DIAGNOSTIC )
+      : public GUCEF::gucef_platform_diagnostic_allocator< T >
+  {
+public:
+    typedef GUCEF::gucef_platform_diagnostic_allocator< T > base_type;
+  #else
+      : public std::allocator< T >
+  {
+public:
+    typedef std::allocator< T > base_type;
+
+    // When base_type is std::allocator<...>, allow construction from std::allocator<U> as well.
+    template <typename U>
+    gucef_allocator( const std::allocator<U>& src ) GUCEF_NOEXCEPT
+        : base_type( src ) { GUCEF_TRACE; }
+
+  #endif
+
+    typedef typename base_type::value_type      value_type;
+    typedef typename base_type::pointer         pointer;
+    typedef typename base_type::const_pointer   const_pointer;
+    typedef typename base_type::size_type       size_type;
+    typedef typename base_type::difference_type difference_type;
+
+    // rebind (required by older STL)
+    template <class U>
+    struct rebind
+    {
+        typedef gucef_allocator<U> other;
+    };
+
+    gucef_allocator() GUCEF_NOEXCEPT
+        : base_type() { GUCEF_TRACE; }
+
+    gucef_allocator( const gucef_allocator& src ) GUCEF_NOEXCEPT
+        : base_type( static_cast<const base_type&>( src ) ) { GUCEF_TRACE; }
+
+    template < typename U >
+    gucef_allocator( const gucef_allocator< U >& src ) GUCEF_NOEXCEPT
+        : base_type( static_cast<const typename gucef_allocator<U>::base_type&>( src ) ) { GUCEF_TRACE; }
+
+    // Allow construction from the underlying base allocator (std::allocator<T> or gucef_platform_diagnostic_allocator<T>)
+    gucef_allocator( const base_type& src ) GUCEF_NOEXCEPT
+        : base_type( src ) { GUCEF_TRACE; }
+  };
+
+//#endif
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

@@ -98,8 +98,17 @@ class TBasicSharedPtrSharedData : public MT::CILockable
 
     TBasicSharedPtrSharedData( bool hasIndependentLifeCycle );
 
-    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
-    TBasicSharedPtrSharedData( TBasicSharedPtrSharedData&& src ) GUCEF_NOEXCEPT;
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
+    /**
+     *  Non-default move constructor that also takes the original address and destructor
+     *  Allows you to move the pieces that can be moved while still keeping the correct memory references
+     *  for the non-independent lifecycle management via the shared data and dynamic destructor which are incorporated into the object memory footprint
+     */
+    TBasicSharedPtrSharedData( TBasicSharedPtrSharedData&& src           ,
+                               void* originalAddressAsCreated            ,
+                               CIDynamicVoidDestructor* voidedDestructor ) GUCEF_NOEXCEPT;
+
     #endif
 
     virtual ~TBasicSharedPtrSharedData() GUCEF_VIRTUAL_OVERRIDE;
@@ -111,12 +120,12 @@ class TBasicSharedPtrSharedData : public MT::CILockable
     void OverrideSharedData( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidedDestructor );
 
     /**
-     *  Actual locking behaviour depends on the LockType passed to the template
+     *  Actual locking behavior depends on the LockType passed to the template
      */
     virtual MT::TLockStatus Lock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /**
-     *  Actual locking behaviour depends on the LockType passed to the template
+     *  Actual locking behavior depends on the LockType passed to the template
      */
     virtual MT::TLockStatus Unlock( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -172,8 +181,10 @@ class CTBasicSharedPtr : public MT::CILockable ,
      */
     CTBasicSharedPtr( void );
 
-    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
     CTBasicSharedPtr( CTBasicSharedPtr&& src ) GUCEF_NOEXCEPT;
+
     #endif
 
     CTBasicSharedPtr( T* ptr                                    ,
@@ -214,13 +225,19 @@ class CTBasicSharedPtr : public MT::CILockable ,
 
         // The static cast below is performed as a compile time validation
         // of the type passed.
-        T* relatedClass = static_cast< T* >( const_cast< RelatedClass* >( other.GetPointerAlways() ) );
-        if ( GUCEF_NULL != relatedClass )
+        T* relatedClassAsT = static_cast< T* >( const_cast< RelatedClass* >( other.GetPointerAlways() ) );
+        if ( GUCEF_NULL != relatedClassAsT )
         {
-            m_ptr = relatedClass;
-            m_shared = const_cast< TBasicSharedPtrSharedData< LockType >* >( other.GetSharedData() );
-            ++(m_shared->m_refCounter);
-            return true;
+            // We only allow the creation of copies if a destructor has been set
+            // init your shared pointer creator correctly first. this is to prevent creating dangling pointers
+            const TBasicSharedPtrSharedData< LockType >* otherSharedData = other.GetSharedData();
+            if ( GUCEF_NULL != otherSharedData->m_voidDestructor )
+            {
+                m_ptr = relatedClassAsT;
+                m_shared = const_cast< TBasicSharedPtrSharedData< LockType >* >( otherSharedData );
+                ++(m_shared->m_refCounter);
+                return true;
+            }
         }
         return false;
     }
@@ -383,48 +400,95 @@ class CTBasicSharedPtrCreator
     typedef CTBasicSharedPtr< T, LockType >     TBasicSharedPtrType;
     typedef void                                IsBasicSharedPtrCreatorTag;
 
+    /**
+     *  Adding this member function is the entire point of this class
+     *  We can use the shared data incorporated into the object footprint thus avoiding an extra memory allocation
+     *  Plus it allows us to later create additional shared pointers to the same object that share the same shared data from an independent location
+     *
+     *  Note that you will receive null-d pointers if you attempt to use this function before properly initializing the shared ptr creator
+     */
     virtual CTBasicSharedPtr< T, LockType > CreateBasicSharedPtr( T* dummyForCppNameMangling = GUCEF_NULL ) const;
 
-    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
-    CTBasicSharedPtrCreator( CTBasicSharedPtrCreator&& src );
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
+    /**
+     *  Non-default move constructor that also takes the original address and destructor
+     *  Allows you to move the pieces that can be moved while still keeping the correct memory references
+     *  for the non-independent lifecycle management via the shared data and dynamic destructor which are incorporated into the object memory footprint
+     *
+     *  Note that it is not possible to provide a default move constructor as the original address (and potentially also the destructor) would not be valid
+     */
+    CTBasicSharedPtrCreator( CTBasicSharedPtrCreator&& src               ,
+                             TypeWhenAllocated* originalAddressAsCreated ,
+                             CIDynamicVoidDestructor* voidDestructor     ) GUCEF_NOEXCEPT;
+
     #endif
 
     /**
+     *  Default constructor creates an uninitialized shared ptr creator
+     *  You must use InitializeSharedPtrCreatorData() soon thereafter as part of your construction process
+     *  Failure to do so will result in exceptions being thrown when attempting to create shared pointers
+     */
+    CTBasicSharedPtrCreator( void  );
+
+    /**
      *  If you pass null for originalAddressAsCreated you must use InitializeSharedPtrCreatorData() soon thereafter as
      *  part of your construction process
+     *  You must also call InitializeSharedPtrCreatorDataDestructor() to set the destructor
      */
-    CTBasicSharedPtrCreator( void* originalAddressAsCreated );
+    CTBasicSharedPtrCreator( TypeWhenAllocated* originalAddressAsCreated );
 
     /**
      *  If you pass null for originalAddressAsCreated you must use InitializeSharedPtrCreatorData() soon thereafter as
      *  part of your construction process
      */
-    CTBasicSharedPtrCreator( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor );
+    CTBasicSharedPtrCreator( TypeWhenAllocated* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor );
 
     virtual ~CTBasicSharedPtrCreator();
-
-    protected:
-
-    CTBasicSharedPtrCreator( void  );
 
     /**
      *  Use these functions to initialize the shared ptr creator data if you passed null
      *  for originalAddressAsCreated in the constructor. Useful if you dont know which base class
      *  is the templated shared ptr creator using template parameters at the time of construction.
+     *
+     *  Note that only a singular invocation of one of these functions is allowed
+     *  Note that you can only use one of these functions, not a combination which initialized the same data member
      */
-    bool InitializeSharedPtrCreatorData( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor );
-    bool InitializeSharedPtrCreatorDataDestructor( CIDynamicVoidDestructor* voidedDestructor );
-    bool InitializeSharedPtrCreatorDataOrgAddr( void* originalAddressAsCreated );
+    bool InitializeSharedPtrCreatorData( TypeWhenAllocated* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor );
 
-    void OverrideSharedPtrCreatorData( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor );
+    /**
+     *  Use these functions to initialize the shared ptr creator data if you passed null
+     *  for originalAddressAsCreated in the constructor. Useful if you dont know which base class
+     *  is the templated shared ptr creator using template parameters at the time of construction.
+     *
+     *  Note that only a singular invocation of one of these functions is allowed
+     *  Note that you can only use one of these functions, not a combination which initialized the same data member
+     */
+    bool InitializeSharedPtrCreatorDataDestructor( CIDynamicVoidDestructor* voidedDestructor );
+
+    /**
+     *  Use these functions to initialize the shared ptr creator data if you passed null
+     *  for originalAddressAsCreated in the constructor. Useful if you dont know which base class
+     *  is the templated shared ptr creator using template parameters at the time of construction.
+     *
+     *  Note that only a singular invocation of one of these functions is allowed
+     *  Note that you can only use one of these functions, not a combination which initialized the same data member
+     */
+    bool InitializeSharedPtrCreatorDataOrgAddr( TypeWhenAllocated* originalAddressAsCreated );
+
+    protected:
+
+    void OverrideSharedPtrCreatorData( TypeWhenAllocated* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor );
 
     const TBasicSharedPtrSharedData< LockType >& GetBasicSharedPtrData( void ) const;
 
     private:
 
-                                               /**< dont use */
-    CTBasicSharedPtrCreator( const CTBasicSharedPtrCreator& src );              /**< dont use */
-    CTBasicSharedPtrCreator& operator=( const CTBasicSharedPtrCreator& src );   /**< dont use */
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+    CTBasicSharedPtrCreator( CTBasicSharedPtrCreator&& src ) GUCEF_NOEXCEPT GUCEF_DELETED_MEMBER;    /**< dont use, not possible due to memory address dependencies */
+    #endif
+    CTBasicSharedPtrCreator( const CTBasicSharedPtrCreator& src ) GUCEF_DELETED_MEMBER;              /**< dont use, not possible due to memory address dependencies */
+    CTBasicSharedPtrCreator& operator=( const CTBasicSharedPtrCreator& src ) GUCEF_DELETED_MEMBER;   /**< dont use, non sensical */
 
     TBasicSharedPtrSharedData< LockType > m_shared;
 };
@@ -443,26 +507,35 @@ class CTBasicSharedPtrCreatorExpansion : public T,
     public:
 
     typedef T                                   TBasicSharedPtrContainedType;
-    typedef TypeWhenAllocated                           TBasicSharedPtrTypeWhenAllocatedype;
+    typedef TypeWhenAllocated                   TBasicSharedPtrTypeWhenAllocatedType;
     typedef LockType                            TBasicSharedPtrLockType;
     typedef CTBasicSharedPtr< T, LockType >     TBasicSharedPtrType;
     typedef void                                IsBasicSharedPtrCreatorTag;
 
     CTBasicSharedPtrCreatorExpansion( void );
 
-    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
-    CTBasicSharedPtrCreatorExpansion( CTBasicSharedPtrCreatorExpansion&& src ) GUCEF_NOEXCEPT;
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
+    /**
+     *  Non-default move constructor that also takes the original address and destructor
+     *  Allows you to move the pieces that can be moved while still keeping the correct memory references
+     *  for the non-independent lifecycle management via the shared data and dynamic destructor which are incorporated into the object memory footprint
+     */
+    CTBasicSharedPtrCreatorExpansion( CTBasicSharedPtrCreatorExpansion&& src      ,
+                                      TypeWhenAllocated* originalAddressAsCreated ,
+                                      CIDynamicVoidDestructor* voidDestructor     ) GUCEF_NOEXCEPT;
     #endif
 
-    CTBasicSharedPtrCreatorExpansion( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor = GUCEF_NULL );
+    CTBasicSharedPtrCreatorExpansion( TypeWhenAllocated* originalAddressAsCreated          ,
+                                      CIDynamicVoidDestructor* voidDestructor = GUCEF_NULL );
 
     virtual CTBasicSharedPtr< T, LockType > CreateBasicSharedPtr( T* dummyForCppNameMangling = GUCEF_NULL ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual ~CTBasicSharedPtrCreatorExpansion() GUCEF_VIRTUAL_OVERRIDE;
 
     private:
-    CTBasicSharedPtrCreatorExpansion( const CTBasicSharedPtrCreatorExpansion& src );              /**< dont use */
-    CTBasicSharedPtrCreatorExpansion& operator=( const CTBasicSharedPtrCreatorExpansion& src );   /**< dont use */
+    CTBasicSharedPtrCreatorExpansion( const CTBasicSharedPtrCreatorExpansion& src ) GUCEF_DELETED_MEMBER;              /**< dont use */
+    CTBasicSharedPtrCreatorExpansion& operator=( const CTBasicSharedPtrCreatorExpansion& src ) GUCEF_DELETED_MEMBER;   /**< dont use */
 };
 
 /*-------------------------------------------------------------------------*/
@@ -536,9 +609,23 @@ class CTBasicSharedPtrCreatorAccessor< T, LockType, plain_false > : public CTBas
     typedef CTBasicSharedPtrCreator< T, LockType >                                                  TBasicSharedPtrCreatorType;
     typedef CTBasicSharedPtrCreatorAccessor< T, LockType, plain_false >                             TBasicSharedPtrCreatorAccessorType;
     typedef CTBasicSharedPtrCreatorExpansion< T, LockType, TBasicSharedPtrCreatorAccessorType >     TBasicSharedPtrCreatorAccessorBaseType;
+    typedef TBasicSharedPtrCreatorAccessorType                                                      TypeWhenAllocated;
 
-    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
-    CTBasicSharedPtrCreatorAccessor( CTBasicSharedPtrCreatorAccessor&& src ) GUCEF_NOEXCEPT;
+    /**
+     *  Default constructor creates an uninitialized shared ptr creator, meaning you must use InitializeSharedPtrCreatorData() soon thereafter
+     */
+    CTBasicSharedPtrCreatorAccessor( void );
+
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
+    /**
+     *  Non-default move constructor that also takes the original address and destructor
+     *  Allows you to move the pieces that can be moved while still keeping the correct memory references
+     *  for the non-independent lifecycle management via the shared data and dynamic destructor which are incorporated into the object memory footprint
+     */
+    CTBasicSharedPtrCreatorAccessor( CTBasicSharedPtrCreatorAccessor&& src       ,
+                                     TypeWhenAllocated* originalAddressAsCreated ,
+                                     CIDynamicVoidDestructor* voidDestructor     ) GUCEF_NOEXCEPT;
     #endif
 
     /**
@@ -547,17 +634,17 @@ class CTBasicSharedPtrCreatorAccessor< T, LockType, plain_false > : public CTBas
      *  Typically this would be 'this' from the most derived class. If you do not derived from this class but rather use it directly
      *  the more typical usage would be to pass the address used for a placement new operation's address for an object of this class to be the value passed here
      */
-    CTBasicSharedPtrCreatorAccessor( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor = GUCEF_NULL );
+    CTBasicSharedPtrCreatorAccessor( TypeWhenAllocated* originalAddressAsCreated          ,
+                                     CIDynamicVoidDestructor* voidDestructor = GUCEF_NULL );
 
     virtual ~CTBasicSharedPtrCreatorAccessor() GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CTBasicSharedPtr< T, LockType > CreateBasicSharedPtr( T* dummyForCppNameMangling = GUCEF_NULL ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
-    friend class gucef_allocator< TBasicSharedPtrCreatorAccessorType >;
 
-    CTBasicSharedPtrCreatorAccessor( const CTBasicSharedPtrCreatorAccessor& src );              /**< dont use */
-    CTBasicSharedPtrCreatorAccessor& operator=( const CTBasicSharedPtrCreatorAccessor& src );   /**< dont use */
+    CTBasicSharedPtrCreatorAccessor( const CTBasicSharedPtrCreatorAccessor& src ) GUCEF_DELETED_MEMBER;              /**< dont use, nonsensical copy */
+    CTBasicSharedPtrCreatorAccessor& operator=( const CTBasicSharedPtrCreatorAccessor& src ) GUCEF_DELETED_MEMBER;   /**< dont use, nonsensical copy */
 };
 
 /**
@@ -577,9 +664,23 @@ class CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true > : public T
     typedef CTBasicSharedPtrCreator< T, LockType >                      TBasicSharedPtrCreatorType;
     typedef CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >  TBasicSharedPtrCreatorAccessorType;
     typedef T                                                           TBasicSharedPtrCreatorAccessorBaseType;
+    typedef TBasicSharedPtrCreatorAccessorType                          TypeWhenAllocated;
 
-    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
-    CTBasicSharedPtrCreatorAccessor( CTBasicSharedPtrCreatorAccessor&& src ) GUCEF_NOEXCEPT;
+    /**
+     *  Default constructor creates an uninitialized shared ptr creator, meaning you must use InitializeSharedPtrCreatorData() soon thereafter
+     */
+    CTBasicSharedPtrCreatorAccessor( void );
+
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
+    /**
+     *  Non-default move constructor that also takes the original address and destructor
+     *  Allows you to move the pieces that can be moved while still keeping the correct memory references
+     *  for the non-independent lifecycle management via the shared data and dynamic destructor which are incorporated into the object memory footprint
+     */
+    CTBasicSharedPtrCreatorAccessor( CTBasicSharedPtrCreatorAccessor&& src       ,
+                                     TypeWhenAllocated* originalAddressAsCreated ,
+                                     CIDynamicVoidDestructor* voidDestructor     ) GUCEF_NOEXCEPT;
     #endif
 
     /**
@@ -588,17 +689,17 @@ class CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true > : public T
      *  Typically this would be 'this' from the most derived class. If you do not derived from this class but rather use it directly
      *  the more typical usage would be to pass the address used for a placement new operation's address for an object of this class to be the value passed here
      */
-    CTBasicSharedPtrCreatorAccessor( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor = GUCEF_NULL );
+    CTBasicSharedPtrCreatorAccessor( TypeWhenAllocated* originalAddressAsCreated          ,
+                                     CIDynamicVoidDestructor* voidDestructor = GUCEF_NULL );
 
     virtual ~CTBasicSharedPtrCreatorAccessor() GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CTBasicSharedPtr< T, LockType > CreateBasicSharedPtr( T* dummyForCppNameMangling = GUCEF_NULL ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:
-    friend class gucef_allocator< TBasicSharedPtrCreatorAccessorType >;
 
-    CTBasicSharedPtrCreatorAccessor( const CTBasicSharedPtrCreatorAccessor& src );              /**< dont use */
-    CTBasicSharedPtrCreatorAccessor& operator=( const CTBasicSharedPtrCreatorAccessor& src );   /**< dont use */
+    CTBasicSharedPtrCreatorAccessor( const CTBasicSharedPtrCreatorAccessor& src ) GUCEF_DELETED_MEMBER;              /**< dont use, nonsensical copy */
+    CTBasicSharedPtrCreatorAccessor& operator=( const CTBasicSharedPtrCreatorAccessor& src ) GUCEF_DELETED_MEMBER;   /**< dont use, nonsensical copy */
 };
 
 /*-------------------------------------------------------------------------//
@@ -679,7 +780,7 @@ CTBasicSharedPtr< T, LockType >::CTBasicSharedPtr( const CTBasicSharedPtr< T, Lo
 
 /*-------------------------------------------------------------------------*/
 
-#ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
 
 template< typename T, class LockType >
 CTBasicSharedPtr< T, LockType >::CTBasicSharedPtr( CTBasicSharedPtr< T, LockType >&& src ) GUCEF_NOEXCEPT
@@ -850,18 +951,10 @@ CTBasicSharedPtr< T, LockType >&
 CTBasicSharedPtr< T, LockType >::operator=( const CTBasicSharedPtr< T, LockType >& src )
 {GUCEF_TRACE;
 
+    // guard against self assignment
     if ( this != &src && m_shared != src.m_shared )
     {
-        Unlink();
-
-        if ( GUCEF_NULL != src.m_shared )
-        {
-            MT::CObjectScopeLock lockSrc( src );
-
-            m_shared = src.m_shared;
-            ++m_shared->m_refCounter;
-            m_ptr = src.m_ptr;
-        }
+        InitializeUsingRelatedType( src );
     }
     return *this;
 }
@@ -1115,7 +1208,7 @@ CTBasicSharedPtr< T, LockType >::operator*( void )
 
     MT::CObjectScopeLock lock( this );
 
-    if ( GUCEF_NULL != m_ptr )
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_ptr )
     {
         return *(m_ptr);
     }
@@ -1133,7 +1226,7 @@ CTBasicSharedPtr< T, LockType >::operator*( void ) const
 
     MT::CObjectScopeLock lock( this );
 
-    if ( GUCEF_NULL != m_ptr )
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_ptr )
     {
         return *m_ptr;
     }
@@ -1182,7 +1275,7 @@ CTBasicSharedPtr< T, LockType >::GetPointer( void )
 
     MT::CObjectScopeLock lock( this );
 
-    if ( GUCEF_NULL != m_ptr )
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_ptr )
     {
         return m_ptr;
     }
@@ -1200,7 +1293,7 @@ CTBasicSharedPtr< T, LockType >::GetPointer( void ) const
 
     MT::CObjectScopeLock lock( this );
 
-    if ( GUCEF_NULL != m_ptr )
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_ptr )
     {
         return m_ptr;
     }
@@ -1359,7 +1452,8 @@ CTBasicSharedPtr< T, LockType >::Clone( void ) const
 
 template< class LockType >
 TBasicSharedPtrSharedData< LockType >::TBasicSharedPtrSharedData( bool hasIndependentLifeCycle )
-    : m_refCounter( 0 )
+    : MT::CILockable()
+    , m_refCounter( 0 )
     , m_lock()
     , m_hasIndependentLifeCycle( hasIndependentLifeCycle )
     , m_voidDestructor( GUCEF_NULL )
@@ -1370,15 +1464,18 @@ TBasicSharedPtrSharedData< LockType >::TBasicSharedPtrSharedData( bool hasIndepe
 
 /*-------------------------------------------------------------------------*/
 
-#ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
 
 template< class LockType >
-TBasicSharedPtrSharedData< LockType >::TBasicSharedPtrSharedData( TBasicSharedPtrSharedData&& src ) GUCEF_NOEXCEPT
-    : m_refCounter( src.m_refCounter )
+TBasicSharedPtrSharedData< LockType >::TBasicSharedPtrSharedData( TBasicSharedPtrSharedData&& src           ,
+                                                                  void* originalAddressAsCreated            ,
+                                                                  CIDynamicVoidDestructor* voidedDestructor ) GUCEF_NOEXCEPT
+    : MT::CILockable()
+    , m_refCounter( src.m_refCounter )
     , m_lock( GUCEF_MOVE( src.m_lock ) )
     , m_hasIndependentLifeCycle( src.m_hasIndependentLifeCycle )
-    , m_voidDestructor( src.m_voidDestructor )
-    , m_originalAddressAsCreated( src.m_originalAddressAsCreated)
+    , m_voidDestructor( voidedDestructor )
+    , m_originalAddressAsCreated( originalAddressAsCreated )
 {GUCEF_TRACE;
 
     src.m_refCounter = 0;
@@ -1531,16 +1628,7 @@ CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::CTBasicSharedPtrCreat
 /*-------------------------------------------------------------------------*/
 
 template< typename T, class LockType, typename TypeWhenAllocated >
-CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::CTBasicSharedPtrCreator( CTBasicSharedPtrCreator&& src )
-    : m_shared( GUCEF_MOVE( src.m_shared ) )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-template< typename T, class LockType, typename TypeWhenAllocated >
-CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::CTBasicSharedPtrCreator( void* originalAddressAsCreated )
+CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::CTBasicSharedPtrCreator( TypeWhenAllocated* originalAddressAsCreated )
     : m_shared( false )
 {GUCEF_TRACE;
 
@@ -1550,12 +1638,28 @@ CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::CTBasicSharedPtrCreat
 /*-------------------------------------------------------------------------*/
 
 template< typename T, class LockType, typename TypeWhenAllocated >
-CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::CTBasicSharedPtrCreator( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor )
+CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::CTBasicSharedPtrCreator( TypeWhenAllocated* originalAddressAsCreated ,
+                                                                                    CIDynamicVoidDestructor* voidDestructor     )
     : m_shared( false )
 {GUCEF_TRACE;
 
     InitializeSharedPtrCreatorData( originalAddressAsCreated, voidDestructor );
 }
+
+/*-------------------------------------------------------------------------*/
+
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
+template< typename T, class LockType, typename TypeWhenAllocated >
+CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::CTBasicSharedPtrCreator( CTBasicSharedPtrCreator&& src               ,
+                                                                                    TypeWhenAllocated* originalAddressAsCreated ,
+                                                                                    CIDynamicVoidDestructor* voidDestructor     ) GUCEF_NOEXCEPT
+    : m_shared( GUCEF_MOVE( src.m_shared ), originalAddressAsCreated, voidDestructor )
+{GUCEF_TRACE;
+
+}
+
+#endif
 
 /*-------------------------------------------------------------------------*/
 
@@ -1582,7 +1686,7 @@ CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::CreateBasicSharedPtr(
 
 template< typename T, class LockType, typename TypeWhenAllocated >
 bool
-CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::InitializeSharedPtrCreatorData( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor )
+CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::InitializeSharedPtrCreatorData( TypeWhenAllocated* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor )
 {GUCEF_TRACE;
 
     return m_shared.InitSharedData( originalAddressAsCreated, voidDestructor );
@@ -1602,7 +1706,7 @@ CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::InitializeSharedPtrCr
 
 template< typename T, class LockType, typename TypeWhenAllocated >
 bool
-CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::InitializeSharedPtrCreatorDataOrgAddr( void* originalAddressAsCreated )
+CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::InitializeSharedPtrCreatorDataOrgAddr( TypeWhenAllocated* originalAddressAsCreated )
 {GUCEF_TRACE;
 
     return m_shared.InitSharedDataOrgAddr( originalAddressAsCreated );
@@ -1612,7 +1716,7 @@ CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::InitializeSharedPtrCr
 
 template< typename T, class LockType, typename TypeWhenAllocated >
 void
-CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::OverrideSharedPtrCreatorData( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor )
+CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >::OverrideSharedPtrCreatorData( TypeWhenAllocated* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor )
 {GUCEF_TRACE;
 
     return m_shared.OverrideSharedData( originalAddressAsCreated, voidDestructor );
@@ -1640,12 +1744,14 @@ CTBasicSharedPtrCreatorExpansion< T, LockType, TypeWhenAllocated >::CTBasicShare
 
 /*-------------------------------------------------------------------------*/
 
-#ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
 
 template< typename T, class LockType, typename TypeWhenAllocated >
-CTBasicSharedPtrCreatorExpansion< T, LockType, TypeWhenAllocated >::CTBasicSharedPtrCreatorExpansion( CTBasicSharedPtrCreatorExpansion&& src ) GUCEF_NOEXCEPT
+CTBasicSharedPtrCreatorExpansion< T, LockType, TypeWhenAllocated >::CTBasicSharedPtrCreatorExpansion( CTBasicSharedPtrCreatorExpansion&& src      ,
+                                                                                                      TypeWhenAllocated* originalAddressAsCreated ,
+                                                                                                      CIDynamicVoidDestructor* voidDestructor     ) GUCEF_NOEXCEPT
     : T( GUCEF_MOVE( src ) )
-    , CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >( GUCEF_MOVE( src ) )
+    , CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >( GUCEF_MOVE( src ), originalAddressAsCreated, voidDestructor )
 {GUCEF_TRACE;
 
 }
@@ -1655,8 +1761,8 @@ CTBasicSharedPtrCreatorExpansion< T, LockType, TypeWhenAllocated >::CTBasicShare
 /*-------------------------------------------------------------------------*/
 
 template< typename T, class LockType, typename TypeWhenAllocated >
-CTBasicSharedPtrCreatorExpansion< T, LockType, TypeWhenAllocated >::CTBasicSharedPtrCreatorExpansion( void* originalAddressAsCreated          ,
-                                                                                              CIDynamicVoidDestructor* voidDestructor )
+CTBasicSharedPtrCreatorExpansion< T, LockType, TypeWhenAllocated >::CTBasicSharedPtrCreatorExpansion( TypeWhenAllocated* originalAddressAsCreated ,
+                                                                                                      CIDynamicVoidDestructor* voidDestructor     )
     : T()
     , CTBasicSharedPtrCreator< T, LockType, TypeWhenAllocated >( originalAddressAsCreated, voidDestructor )
 {GUCEF_TRACE;
@@ -1685,7 +1791,17 @@ CTBasicSharedPtrCreatorExpansion< T, LockType, TypeWhenAllocated >::CreateBasicS
 /*-------------------------------------------------------------------------*/
 
 template< typename T, class LockType >
-CTBasicSharedPtrCreatorAccessor< T, LockType, plain_false >::CTBasicSharedPtrCreatorAccessor( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor )
+CTBasicSharedPtrCreatorAccessor< T, LockType, plain_false >::CTBasicSharedPtrCreatorAccessor( void )
+    : CTBasicSharedPtrCreatorExpansion< T, LockType, TBasicSharedPtrCreatorAccessorType >()
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T, class LockType >
+CTBasicSharedPtrCreatorAccessor< T, LockType, plain_false >::CTBasicSharedPtrCreatorAccessor( TypeWhenAllocated* originalAddressAsCreated ,
+                                                                                              CIDynamicVoidDestructor* voidDestructor     )
     : CTBasicSharedPtrCreatorExpansion< T, LockType, TBasicSharedPtrCreatorAccessorType >( originalAddressAsCreated, voidDestructor )
 {GUCEF_TRACE;
 
@@ -1693,34 +1809,21 @@ CTBasicSharedPtrCreatorAccessor< T, LockType, plain_false >::CTBasicSharedPtrCre
 
 /*-------------------------------------------------------------------------*/
 
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
 template< typename T, class LockType >
-CTBasicSharedPtrCreatorAccessor< T, LockType, plain_false >::CTBasicSharedPtrCreatorAccessor( const CTBasicSharedPtrCreatorAccessor& src )
-    : CTBasicSharedPtrCreatorExpansion< T, LockType, TBasicSharedPtrCreatorAccessorType >()
+CTBasicSharedPtrCreatorAccessor< T, LockType, plain_false >::CTBasicSharedPtrCreatorAccessor( CTBasicSharedPtrCreatorAccessor&& src       ,
+                                                                                              TypeWhenAllocated* originalAddressAsCreated ,
+                                                                                              CIDynamicVoidDestructor* voidDestructor     ) GUCEF_NOEXCEPT
+    : CTBasicSharedPtrCreatorExpansion< T, LockType, TBasicSharedPtrCreatorAccessorType >( GUCEF_MOVE( src ), originalAddressAsCreated, voidDestructor )
 {GUCEF_TRACE;
 
+    #ifdef GUCEF_DEBUG_MODE
+    // If you get an assert here you should check your code flow as this constructor is not allowed to 'move' when there are active references
+    // its only intended to be used during initial construction 
     const TBasicSharedPtrSharedData< LockType >& srcBasicSharedPtrData = src.GetBasicSharedPtrData();
     GUCEF_ASSERT( 0 == srcBasicSharedPtrData.m_refCounter );
-    if GUCEF_PREDICT_TRUE( 0 == srcBasicSharedPtrData.m_refCounter )
-    {
-        InitializeSharedPtrCreatorData( srcBasicSharedPtrData.m_originalAddressAsCreated, srcBasicSharedPtrData.m_voidDestructor );
-    }
-    else
-    {
-        // If you get here you should check your code flow as this constructor is not allowed to copy when there are active references
-        // it is intended to be used to create new independent instances only especially via placement new constructs
-        GUCEF_EMSGTHROW( CMsgException, "CTBasicSharedPtrCreatorAccessor< T, LockType, plain_false >::CTBasicSharedPtrCreatorAccessor( const CTBasicSharedPtrCreatorAccessor& src ): cannot copy construct when there are active shared pointer references" );
-    }    
-}
-
-/*-------------------------------------------------------------------------*/
-
-#ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
-
-template< typename T, class LockType >
-CTBasicSharedPtrCreatorAccessor< T, LockType, plain_false >::CTBasicSharedPtrCreatorAccessor( CTBasicSharedPtrCreatorAccessor&& src ) GUCEF_NOEXCEPT
-    : CTBasicSharedPtrCreatorExpansion< T, LockType, TBasicSharedPtrCreatorAccessorType >( GUCEF_MOVE( src ) )
-{GUCEF_TRACE;
-   
+    #endif
 }
 
 #endif
@@ -1748,7 +1851,21 @@ CTBasicSharedPtrCreatorAccessor< T, LockType, plain_false  >::CreateBasicSharedP
 /*-------------------------------------------------------------------------*/
 
 template< typename T, class LockType >
-CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >::CTBasicSharedPtrCreatorAccessor( void* originalAddressAsCreated, CIDynamicVoidDestructor* voidDestructor )
+CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >::CTBasicSharedPtrCreatorAccessor( void )
+    : T()
+{GUCEF_TRACE;
+
+    // When using this constructor we specifically mandate a subsequent call to InitializeSharedPtrCreatorData()
+    // We want to keep the behavior consistent across the case where T is or is not derived from CTBasicSharedPtrCreator
+    // Hence one can always call InitializeSharedPtrCreatorData() after default construction with an CTBasicSharedPtrCreatorAccessor
+    OverrideSharedPtrCreatorData( GUCEF_NULL, GUCEF_NULL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename T, class LockType >
+CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >::CTBasicSharedPtrCreatorAccessor( TypeWhenAllocated* originalAddressAsCreated ,
+                                                                                             CIDynamicVoidDestructor* voidDestructor     )
     : T()
 {GUCEF_TRACE;
 
@@ -1757,34 +1874,23 @@ CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >::CTBasicSharedPtrCrea
 
 /*-------------------------------------------------------------------------*/
 
-template< typename T, class LockType >
-CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >::CTBasicSharedPtrCreatorAccessor( const CTBasicSharedPtrCreatorAccessor& src )
-    : T()
-{GUCEF_TRACE;
-
-    const TBasicSharedPtrSharedData< LockType >& srcBasicSharedPtrData = src.GetBasicSharedPtrData();
-    GUCEF_ASSERT( 0 == srcBasicSharedPtrData.m_refCounter );
-    if GUCEF_PREDICT_TRUE( 0 == srcBasicSharedPtrData.m_refCounter )
-    {
-        OverrideSharedPtrCreatorData( srcBasicSharedPtrData.m_originalAddressAsCreated, srcBasicSharedPtrData.m_voidDestructor );
-    }
-    else
-    {
-        // If you get here you should check your code flow as this constructor is not allowed to copy when there are active references
-        // it is intended to be used to create new independent instances only especially via placement new constructs
-        GUCEF_EMSGTHROW( CMsgException, "CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >::CTBasicSharedPtrCreatorAccessor( const CTBasicSharedPtrCreatorAccessor& src ): cannot copy construct when there are active shared pointer references" );
-    } 
-}
-
-/*-------------------------------------------------------------------------*/
-
-#ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
 
 template< typename T, class LockType >
-CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >::CTBasicSharedPtrCreatorAccessor( CTBasicSharedPtrCreatorAccessor&& src ) GUCEF_NOEXCEPT
+CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >::CTBasicSharedPtrCreatorAccessor( CTBasicSharedPtrCreatorAccessor&& src       ,
+                                                                                             TypeWhenAllocated* originalAddressAsCreated ,
+                                                                                             CIDynamicVoidDestructor* voidDestructor     ) GUCEF_NOEXCEPT
     : T( GUCEF_MOVE( src ) )
 {GUCEF_TRACE;
-   
+
+    #ifdef GUCEF_DEBUG_MODE
+    // If you get an assert here you should check your code flow as this constructor is not allowed to 'move' when there are active references
+    // its only intended to be used during initial construction 
+    const TBasicSharedPtrSharedData< LockType >& srcBasicSharedPtrData = src.GetBasicSharedPtrData();
+    GUCEF_ASSERT( 0 == srcBasicSharedPtrData.m_refCounter );
+    #endif
+
+    OverrideSharedPtrCreatorData( originalAddressAsCreated, voidDestructor );
 }
 
 #endif

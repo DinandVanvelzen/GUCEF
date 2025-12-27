@@ -234,6 +234,10 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleDependencyNode : public CORE::CTSharedO
 
     CModuleDependencyNode( void );
 
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+    CModuleDependencyNode( CModuleDependencyNode&& src ) GUCEF_NOEXCEPT;
+    #endif
+
     virtual ~CModuleDependencyNode() GUCEF_VIRTUAL_OVERRIDE;
 
     private:

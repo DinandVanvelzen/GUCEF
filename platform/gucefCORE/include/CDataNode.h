@@ -113,7 +113,7 @@ class GUCEF_CORE_PUBLIC_CPP CDataNode : public CIEnumerable
      */
     CDataNode( const CDataNode& src );
 
-    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
     CDataNode( CDataNode&& src ) GUCEF_NOEXCEPT;
     #endif
 

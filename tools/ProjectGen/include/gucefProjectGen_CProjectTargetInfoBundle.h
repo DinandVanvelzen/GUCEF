@@ -133,7 +133,11 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectTargetInfoBundle : public CORE::CIData
 
     CProjectTargetInfoBundle( const CProjectTargetInfoBundle& src );
 
-    virtual ~CProjectTargetInfoBundle();
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+    CProjectTargetInfoBundle( CProjectTargetInfoBundle&& src ) GUCEF_NOEXCEPT;
+    #endif
+
+    virtual ~CProjectTargetInfoBundle() GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *  Across multiple platforms targets can have multiple names                                                                                                                                                                                                 

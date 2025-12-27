@@ -108,6 +108,25 @@ CProjectTargetInfo::CProjectTargetInfo( const CProjectTargetInfo& src )
 
 /*---------------------------------------------------------------------------*/
 
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
+CProjectTargetInfo::CProjectTargetInfo( CProjectTargetInfo&& src ) GUCEF_NOEXCEPT
+    : CORE::CIDataNodeSerializable( GUCEF_MOVE( src ) )
+    , CORE::CTSharedObjCreator< CProjectTargetInfo, MT::CMutex >( GUCEF_MOVE( src ), this )
+    , projectName( GUCEF_MOVE( src.projectName ) )
+    , mainModule( GUCEF_MOVE( src.mainModule ) )
+    , mainModuleName( GUCEF_MOVE( src.mainModuleName ) )
+    , modules( GUCEF_MOVE( src.modules ) )
+    , moduleNames( GUCEF_MOVE( src.moduleNames ) )
+    , m_platformName( GUCEF_MOVE( src.m_platformName ) )
+{GUCEF_TRACE;
+
+}
+
+#endif
+
+/*---------------------------------------------------------------------------*/
+
 CProjectTargetInfo::~CProjectTargetInfo()
 {GUCEF_TRACE;
 

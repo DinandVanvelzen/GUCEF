@@ -44,14 +44,23 @@ defines( { "GUCEF_PROJECTGENERATOR_BUILD_MODULE", "MODULE_CONSENSUS_NAME=Project
 
 
 configuration( {} )
+vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+files( {
+  "include/ProjectGenerator.h"
+ } )
+
+
+
+configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/ProjectGenerator.cpp",
   "src/main.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../ProjectGen/include" } )
+includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../ProjectGen/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCORE/include/android" } )

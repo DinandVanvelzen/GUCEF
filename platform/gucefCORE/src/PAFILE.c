@@ -151,6 +151,11 @@ pacreate( const char *filename ,
          *      Initialize the control center
          */
         control = malloc( sizeof( TPAFILEControl ) );
+        if ( GUCEF_NULL == control )
+        {
+            fclose( fptr );
+            return NULL;
+        }
         control->fptr = fptr;
         control->refs = NULL;
         control->controllock = MutexCreate();

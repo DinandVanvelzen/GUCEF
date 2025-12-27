@@ -166,6 +166,8 @@ GUCEF_OSMAIN_BEGIN
         PerformCyclicDynamicBufferTests();
         PerformNotifierObserverTests();
         PerformDataDrivenDStoreCodecsTests();
+        PerformFreeListTests();
+        PerformASyncTests();
 
         return 1;
     }

@@ -118,6 +118,37 @@ CModuleInfo::CModuleInfo( const CModuleInfo& src )
 
 /*---------------------------------------------------------------------------*/
 
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
+CModuleInfo::CModuleInfo( CModuleInfo&& src ) GUCEF_NOEXCEPT
+    : CORE::CTSharedObjCreator< CModuleInfo, MT::CMutex >( GUCEF_MOVE( src ), this )
+    , name( GUCEF_MOVE( src.name ) )
+    , moduleType( src.moduleType )
+    , tags( GUCEF_MOVE( src.tags ) )
+    , dependencyIncludeDirs( GUCEF_MOVE( src.dependencyIncludeDirs ) )
+    , runtimeDependencies( GUCEF_MOVE( src.runtimeDependencies ) )
+    , buildOrder( src.buildOrder )
+    , considerSubDirs( src.considerSubDirs )
+    , hasConsiderSubDirs( src.hasConsiderSubDirs )
+    , linkerSettings( GUCEF_MOVE( src.linkerSettings ) )
+    , compilerSettings( GUCEF_MOVE( src.compilerSettings ) )
+    , preprocessorSettings( GUCEF_MOVE( src.preprocessorSettings ) )
+    , ignoreModule( src.ignoreModule )
+    , hasIgnoreModule( src.hasIgnoreModule )
+    , metadata( GUCEF_MOVE( src.metadata ) )
+    , m_platformName( GUCEF_MOVE( src.m_platformName ) )
+    , m_namesOfDependencies( GUCEF_MOVE( src.m_namesOfDependencies ) )
+    , m_namesOfLogicalDependencies( GUCEF_MOVE( src.m_namesOfLogicalDependencies ) )
+    , m_includeDirs( GUCEF_MOVE( src.m_includeDirs ) )
+    , m_sourceDirs( GUCEF_MOVE( src.m_sourceDirs ) )
+{GUCEF_TRACE;
+
+}
+
+#endif /* GUCEF_MOVE_SEMANTICS_SUPPORTED ? */
+
+/*---------------------------------------------------------------------------*/
+
 CModuleInfo::~CModuleInfo() 
 {GUCEF_TRACE;
 

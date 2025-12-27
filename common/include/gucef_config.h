@@ -96,4 +96,16 @@
 
 /*-------------------------------------------------------------------------*/
 
+/*
+ *  Options for the platform allocator to use
+ */
+#define GUCEF_ALLOCATOR_TYPE_STANDARD_STL               1
+#define GUCEF_ALLOCATOR_TYPE_PLATFORM_DIAGNOSTIC        2
+
+#ifndef GUCEF_ALLOCATOR_TYPE
+  #define GUCEF_ALLOCATOR_TYPE GUCEF_ALLOCATOR_TYPE_STANDARD_STL
+#endif 
+
+/*-------------------------------------------------------------------------*/
+
 #endif /* GUCEF_CONFIG_H */

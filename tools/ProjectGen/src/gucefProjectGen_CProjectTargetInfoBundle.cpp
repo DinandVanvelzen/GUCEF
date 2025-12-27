@@ -93,6 +93,20 @@ CProjectTargetInfoBundle::CProjectTargetInfoBundle( const CProjectTargetInfoBund
 
 /*---------------------------------------------------------------------------*/
 
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
+CProjectTargetInfoBundle::CProjectTargetInfoBundle( CProjectTargetInfoBundle&& src ) GUCEF_NOEXCEPT
+    : CORE::CIDataNodeSerializable( GUCEF_MOVE( src ) )
+    , CORE::CTSharedObjCreator< CProjectTargetInfoBundle, MT::CMutex >( GUCEF_MOVE( src ), this )
+    , m_projects( GUCEF_MOVE( src.m_projects ) )
+{GUCEF_TRACE;
+
+}
+
+#endif
+
+/*---------------------------------------------------------------------------*/
+
 CProjectTargetInfoBundle::~CProjectTargetInfoBundle()
 {GUCEF_TRACE;
 

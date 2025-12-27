@@ -118,6 +118,10 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectTargetInfo : public CORE::CIDataNodeSe
 
     CProjectTargetInfo( const CProjectTargetInfo& src );
 
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+    CProjectTargetInfo( CProjectTargetInfo&& src ) GUCEF_NOEXCEPT;
+    #endif
+
     virtual ~CProjectTargetInfo();
 
     void SetPlatformName( const CORE::CString& platformName );

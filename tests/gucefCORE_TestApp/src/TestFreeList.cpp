@@ -63,6 +63,7 @@ struct TestObj
 {
     Int32 value;
     TestObj() : value( 0 ) {}
+    TestObj( const TestObj& src ) : value( src.value ) {}
     void Clear() { value = 0; }
 };
 
@@ -73,7 +74,8 @@ typedef CTFreeList< TestObj, TNoLock >::TSharedPtr TestObjPtr;
 struct TestObjWithPtrCreator : CORE::CTBasicSharedPtrCreator< TestObjWithPtrCreator, TNoLock >
 {
     Int32 value;
-    TestObjWithPtrCreator() : CORE::CTBasicSharedPtrCreator< TestObjWithPtrCreator, TNoLock >( this ), value( 321 ) {}
+    TestObjWithPtrCreator( void ) : CORE::CTBasicSharedPtrCreator< TestObjWithPtrCreator, TNoLock >( this ), value( 321 ) {}
+    TestObjWithPtrCreator( const TestObjWithPtrCreator& src ) : CORE::CTBasicSharedPtrCreator< TestObjWithPtrCreator, TNoLock >( this ), value( src.value ) {}
     void Clear() { value = 0; }
 };
 
@@ -83,7 +85,8 @@ typedef CTFreeList< TestObjWithPtrCreator, TNoLock >::TSharedPtr TestObjWithPtrC
 struct TestObjNoClear
 {
     Int32 value;
-    TestObjNoClear() : value( 123 ) {}
+    TestObjNoClear( void ) : value( 123 ) {}
+    TestObjNoClear( const TestObjNoClear& src ) : value( src.value ) {}
 };
 
 typedef CTFreeList< TestObjNoClear, TNoLock >::TSharedPtr TestObjNoClearPtr;

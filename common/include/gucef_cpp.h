@@ -59,16 +59,16 @@ namespace GUCEF {
 #if defined(__cplusplus)
     #undef GUCEF_RVALUE_REFERENCES_SUPPORTED
     #if defined( _MSC_VER )  /* MS visual studio */
-        #if _MSC_VER >= 1600  /* Visual Studio 2010 */
+        #if _MSC_VER >= 1600  /* Visual Studio 2010 and beyond support the feature regardless of configured C++ version */
             #define GUCEF_RVALUE_REFERENCES_SUPPORTED 1
         #endif
     #elif defined( __GNUG__ )  /* GNU C++ compiler */
-        #if __cpp_rvalue_references >= 200610
+        #if __cpp_rvalue_references >= 200610 /* Earlier Clang versions may support the feature regardless of configured C++ version */
             #define GUCEF_RVALUE_REFERENCES_SUPPORTED 1
         #endif
     #else
         /* Unknown compiler, fall back to cpp version check */
-        #if __cplusplus > 201103L  /* >= C++ 11 : This is not fullproof since not every compiler truly supports the spec */
+        #if __cplusplus >= 201103L  /* >= C++ 11 : This is not fullproof since not every compiler truly supports the spec */
             #define GUCEF_RVALUE_REFERENCES_SUPPORTED 1
         #endif
     #endif
@@ -76,17 +76,28 @@ namespace GUCEF {
 
 /*-------------------------------------------------------------------------*/
 
+#undef GUCEF_MOVE_SEMANTICS_SUPPORTED
 #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
-    #define GUCEF_MOVE( m ) std::move( m )
-#else
-    #define GUCEF_MOVE( m ) m
+  #define GUCEF_MOVE_SEMANTICS_SUPPORTED 1
+#endif
+
+/*-------------------------------------------------------------------------*/
+
+#if defined(__cplusplus)
+  #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+      #define GUCEF_MOVE( m ) std::move( m )
+      #define GUCEF_FORWARD( T, m ) std::forward< T >( m )
+  #else
+      #define GUCEF_MOVE( m ) m
+      #define GUCEF_FORWARD( T, m ) m
+  #endif
 #endif
 
 /*-------------------------------------------------------------------------*/
 
 #if defined(__cplusplus)
     #undef GUCEF_NOEXCEPT_IS_SUPPORTED
-    #if __cplusplus > 201103L /* >= C++ 11 : This is not fullproof since not every compiler truly supports the spec */
+    #if __cplusplus >= 201103L /* >= C++ 11 : This is not fullproof since not every compiler truly supports the spec */
         #if defined( __GNUG__ )  /* GNU C++ compiler */
             #if ( GCC_VERSION > 40600 )
                 #define GUCEF_NOEXCEPT_IS_SUPPORTED 1
@@ -115,6 +126,34 @@ namespace GUCEF {
   #else
     #define GUCEF_NOEXCEPT
   #endif
+#endif
+
+/*-------------------------------------------------------------------------*/
+
+#if defined(__cplusplus)
+    #undef GUCEF_COPY_CONSTRUCTABLE_CHECK_IS_SUPPORTED
+    #if __cplusplus >= 201103L /* std::is_copy_constructible is C++11 and newer only */
+        #define GUCEF_COPY_CONSTRUCTABLE_CHECK_IS_SUPPORTED 1
+    #endif
+#endif
+
+/*-------------------------------------------------------------------------*/
+
+#if defined(__cplusplus)
+  #undef GUCEF_USING_KEYWORD_IS_SUPPORTED
+
+  /* Standard-compliant C++11 and later (all compilers, including GCC/Clang) */
+  #if ( __cplusplus >= 201103L )
+    #define GUCEF_USING_KEYWORD_IS_SUPPORTED 1
+
+  /* Older MSVC: use _MSC_VER guard because it reports __cplusplus poorly */
+  #elif defined( _MSC_VER ) && ( _MSC_VER >= 1600 )
+
+    /* VS2010+ have `using` type alias support in C++11-ish mode */
+    #define GUCEF_USING_KEYWORD_IS_SUPPORTED 1
+
+  #endif
+
 #endif
 
 /*-------------------------------------------------------------------------*/
@@ -163,6 +202,14 @@ namespace GUCEF {
 #else
   #define GUCEF_PREDICT_TRUE( x ) ( x )
   #define GUCEF_PREDICT_FALSE( x ) ( x )
+#endif
+
+/*-------------------------------------------------------------------------*/
+
+#if __cplusplus >= 201103L
+    #define GUCEF_DELETED_MEMBER = delete
+#else
+    #define GUCEF_DELETED_MEMBER
 #endif
 
 /*-------------------------------------------------------------------------//

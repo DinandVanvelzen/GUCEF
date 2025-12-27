@@ -74,7 +74,7 @@ class CTDynamicDestructorBase : public CIDynamicVoidDestructor
 
     CTDynamicDestructorBase( void );
 
-    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
     CTDynamicDestructorBase( CTDynamicDestructorBase&& src ) GUCEF_NOEXCEPT;
     #endif
 
@@ -107,7 +107,7 @@ class CTTypeNamedDynamicDestructorBase
 
     CTTypeNamedDynamicDestructorBase( void );
 
-    #ifdef GUCEF_RVALUE_REFERENCES_SUPPORTED
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
     CTTypeNamedDynamicDestructorBase( CTTypeNamedDynamicDestructorBase&& src ) GUCEF_NOEXCEPT;
     #endif
 
@@ -163,12 +163,16 @@ CTTypeNamedDynamicDestructorBase< T >::CTTypeNamedDynamicDestructorBase( void )
 
 /*-------------------------------------------------------------------------*/
 
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
 template< typename T >
 CTTypeNamedDynamicDestructorBase< T >::CTTypeNamedDynamicDestructorBase( CTTypeNamedDynamicDestructorBase&& src ) GUCEF_NOEXCEPT
 {GUCEF_TRACE;
 
     // Nothing to move at this time
 }
+
+#endif /* GUCEF_MOVE_SEMANTICS_SUPPORTED ? */
 
 /*-------------------------------------------------------------------------*/
 

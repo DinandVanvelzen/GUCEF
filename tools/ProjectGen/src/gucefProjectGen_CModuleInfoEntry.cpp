@@ -114,6 +114,26 @@ CModuleInfoEntry::CModuleInfoEntry( const CModuleInfoEntry& src )
 
 /*---------------------------------------------------------------------------*/
 
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
+CModuleInfoEntry::CModuleInfoEntry( CModuleInfoEntry&& src ) GUCEF_NOEXCEPT
+    : CORE::CIDataNodeSerializable( GUCEF_MOVE( src ) )
+    , CORE::CTSharedObjCreator< CModuleInfoEntry, MT::CMutex >( GUCEF_MOVE( src ), this )
+    , m_consensusName( GUCEF_MOVE( src.m_consensusName ) )
+    , m_modulesPerPlatform( GUCEF_MOVE( src.m_modulesPerPlatform ) )
+    , m_flattenedInfoPerPlatform( GUCEF_MOVE( src.m_flattenedInfoPerPlatform ) )
+    , m_isBroken( src.m_isBroken )
+    , m_absRootDir( GUCEF_MOVE( src.m_absRootDir ) )
+    , m_projRelRootDir( GUCEF_MOVE( src.m_projRelRootDir ) )
+    , m_definitionFileLastModifiedDt( GUCEF_MOVE( src.m_definitionFileLastModifiedDt ) )
+{GUCEF_TRACE;
+
+}
+
+#endif
+
+/*---------------------------------------------------------------------------*/
+
 CModuleInfoEntry::~CModuleInfoEntry() 
 {GUCEF_TRACE;
 
@@ -236,7 +256,25 @@ CModuleInfoEntry::Clear( void )
 {GUCEF_TRACE;
 
     m_consensusName.Clear();
+    TModuleInfoPtrMap::iterator i = m_modulesPerPlatform.begin();
+    while ( i != m_modulesPerPlatform.end() )
+    {
+        CModuleInfoPtr& moduleInfo = (*i).second;
+        if ( !moduleInfo.IsNULL() )
+            moduleInfo->Clear();
+        moduleInfo.Unlink();
+        ++i;
+    }
     m_modulesPerPlatform.clear();
+    i = m_flattenedInfoPerPlatform.begin();
+    while ( i != m_flattenedInfoPerPlatform.end() )
+    {
+        CModuleInfoPtr& moduleInfo = (*i).second;
+        if ( !moduleInfo.IsNULL() )
+            moduleInfo->Clear();
+        moduleInfo.Unlink();
+        ++i;
+    }
     m_flattenedInfoPerPlatform.clear();
     m_isBroken = false;
     m_absRootDir.Clear();
