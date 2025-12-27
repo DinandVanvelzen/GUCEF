@@ -282,6 +282,15 @@ CTaskDelegator::TaskCleanup( CTaskPtr task )
             {
                 m_threadPool->TaskCleanup( task );
             }
+            else
+            {
+                // We should not get here but just in case
+                ThreadPoolPtr threadPool = task->GetThreadPool();
+                if ( !threadPool.IsNULL() )
+                {
+                    threadPool->TaskCleanup( task );
+                }
+            }
         }
         catch ( const timeout_exception& )
         {

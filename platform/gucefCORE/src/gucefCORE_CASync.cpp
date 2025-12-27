@@ -83,6 +83,15 @@ CASync::CASyncChainState::CASyncChainState( ThreadPoolPtr threadPool )
 
 /*-------------------------------------------------------------------------*/
 
+CASync::CASyncChainState::~CASyncChainState()
+{GUCEF_TRACE;
+
+    m_threadPool.Unlink();
+    m_tasks.clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
 CASync::CASync( const CString& threadPoolName )
     : m_state()
 {GUCEF_TRACE;
@@ -375,6 +384,11 @@ CASync::StartChain( const CString& taskType        ,
                     bool startRightAwayOnSubmit    )
 {GUCEF_TRACE;
 
+    if GUCEF_PREDICT_FALSE( m_state.IsNULL() )
+    {
+        return *this;
+    }
+
     CTaskPtr lastTask = GetLastTask();
     if ( !lastTask.IsNULL() )
     {
@@ -408,6 +422,10 @@ CFutureResult
 CASync::Submit( void )
 {GUCEF_TRACE;
 
+    if GUCEF_PREDICT_FALSE( m_state.IsNULL() )
+    {
+        return TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
+    }
     if ( !m_state->m_chainIsHealthy || m_state->m_threadPool.IsNULL() )
     {
         // There was an error during the formulation of the chain
@@ -423,7 +441,7 @@ CASync::Submit( void )
             }
         }
 
-        return CTask::CreateSharedObjWithParam( TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
+        return TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
     }
 
     // this chain has not been submitted yet (not a redundant Submit() call)

@@ -280,6 +280,8 @@ class GUCEF_CORE_PUBLIC_CPP CASync
         CASyncChainState( const CString& threadPoolName = CString::Empty );
 
         CASyncChainState( ThreadPoolPtr threadPool );
+
+        virtual ~CASyncChainState();
     };
 
     typedef CASyncChainState::TASyncChainStatePtr TASyncChainStatePtr;
@@ -705,7 +707,7 @@ CASyncChainStepArity1< R, A1, plain_false >::ThenPassToCallback( R (*f)( CTaskPt
     TPriorDeferredInvoker* priorInvoker = static_cast< TPriorDeferredInvoker* >( opaqueTaskData );
 
     // Build a callback invoker as task data of the forwarding variety
-    CICloneable* taskData = CDeferredTask::ResultFwdConstruct< CTaskPtr, TPriorDeferredInvoker, TGivenCallBackFunc >( lastTask, priorInvoker, f );
+    CICloneable* taskData = CDeferredTask::ResultFwdConstruct( lastTask, priorInvoker, f );
     if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
         return SetLastTaskStatus( TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED );
 

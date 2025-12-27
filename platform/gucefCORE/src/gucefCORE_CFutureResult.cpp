@@ -75,6 +75,14 @@ CFutureResult::CFutureResult( const CFutureResult& src )
 
 /*-------------------------------------------------------------------------*/
 
+CFutureResult::CFutureResult( CFutureResult&& src ) GUCEF_NOEXCEPT
+    : m_task( GUCEF_MOVE( src.m_task ) )
+{GUCEF_TRACE;
+    
+}
+
+/*-------------------------------------------------------------------------*/
+
 const CFutureResult&
 CFutureResult::Await( Int32 timeoutInMs ) const
 {GUCEF_TRACE;

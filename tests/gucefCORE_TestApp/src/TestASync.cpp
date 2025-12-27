@@ -127,32 +127,155 @@ int SimpleCallback4(int a, int b, int c, int d)
     return a + b + c + d;
 }
 
+int IDForChainCallback1 = 1;
+int IDForChainCallback2 = 2;
+int IDForChainCallback3 = 3;
+int IDForChainFwdCallback0 = 4;
+int IDForChainFwdCallback0B = 5;
+int IDForChainFwdCallback1 = 6;
+int IDForChainFwdCallback1B = 7;
+int IDForChainFwdCallback2 = 8;
+int IDForChainFwdCallback2B = 9;
+int IDForChainFwdCallback3 = 10;
+int IDForChainFwdCallback3B = 11;
+int IDForChainFwdCallback4 = 12;
+int IDForChainFwdCallback4B = 13;
+
+
 // Chain callback functions
-int ChainCallback1(CORE::CTaskPtr taskPtr)
+int ChainCallback1( CORE::CTaskPtr taskPtr )
 {
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ChainCallback1 called with task ID: " + CORE::ToString( taskPtr->GetTaskId() ) );
     
     MT::CScopeMutex lock(g_testMutex);
-    g_testResults.push_back(1);
+    g_testResults.push_back( IDForChainCallback1 );
     return 100;
 }
 
-int ChainCallback2(CORE::CTaskPtr taskPtr, int multiplier)
+int ChainCallback2( CORE::CTaskPtr taskPtr, int multiplier )
 {
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ChainCallback2 called with task ID: " + CORE::ToString( taskPtr->GetTaskId() ) + ", multiplier: " + CORE::ToString( multiplier ) );
     
     MT::CScopeMutex lock(g_testMutex);
-    g_testResults.push_back(2);
+    g_testResults.push_back( IDForChainCallback2 );
     return 200 * multiplier;
 }
 
-int ChainCallback3(CORE::CTaskPtr taskPtr, int a, int b)
+int ChainCallback3( CORE::CTaskPtr taskPtr, int a, int b )
 {
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ChainCallback3 called with task ID: " + CORE::ToString( taskPtr->GetTaskId() ) + ", a: " + CORE::ToString( a ) + ", b: " + CORE::ToString( b ) );
     
     MT::CScopeMutex lock(g_testMutex);
-    g_testResults.push_back(3);
+    g_testResults.push_back( IDForChainCallback3 );
     return 300 + a + b;
+}
+
+int ChainForwardingCallback0( CORE::CTaskPtr taskPtr, int priorResult )
+{
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ChainForwardingCallback0 called with task ID: " + CORE::ToString( taskPtr->GetTaskId() ) + ", priorResult: " + CORE::ToString( priorResult ) );
+    
+    MT::CScopeMutex lock( g_testMutex );
+    g_testResults.push_back( IDForChainFwdCallback0 );
+    return priorResult + IDForChainFwdCallback0;
+}
+
+int ChainForwardingCallback0B( CORE::CTaskPtr taskPtr, int priorResult, CORE::CTaskPtr priortask )
+{
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ChainForwardingCallback0B called with task ID: " + CORE::ToString( taskPtr->GetTaskId() ) +
+        ", priorResult: " + CORE::ToString( priorResult ) + ", priorTask with ID: " + CORE::ToString( priortask->GetTaskId() ) );
+    
+    MT::CScopeMutex lock( g_testMutex );
+    g_testResults.push_back( IDForChainFwdCallback0B );
+    return priorResult + IDForChainFwdCallback0B;
+}
+
+int ChainForwardingCallback1( CORE::CTaskPtr taskPtr, int priorResult, int priorParamA )
+{
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ChainForwardingCallback1 called with task ID: " + CORE::ToString( taskPtr->GetTaskId() ) + ", priorResult: " + CORE::ToString( priorResult ) + ", priorParamA: " + CORE::ToString( priorParamA ) );
+    
+    MT::CScopeMutex lock( g_testMutex );
+    g_testResults.push_back( IDForChainFwdCallback1 );
+    return priorResult + priorParamA + IDForChainFwdCallback1;
+}
+
+int ChainForwardingCallback1B( CORE::CTaskPtr taskPtr, int priorResult, CORE::CTaskPtr priortask, int priorParamA )
+{
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ChainForwardingCallback1B called with task ID: " + CORE::ToString( taskPtr->GetTaskId() ) +
+        ", priorResult: " + CORE::ToString( priorResult ) + ", priorTask with ID: " + CORE::ToString( priortask->GetTaskId() ) +
+        ", priorParamA: " + CORE::ToString( priorParamA )  );
+    
+    MT::CScopeMutex lock( g_testMutex );
+    g_testResults.push_back( IDForChainFwdCallback1B );
+    return priorResult + priorParamA + IDForChainFwdCallback1B;
+}
+
+int ChainForwardingCallback2( CORE::CTaskPtr taskPtr, int priorResult, int priorParamA, int priorParamB )
+{
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ChainForwardingCallback1 called with task ID: " + CORE::ToString( taskPtr->GetTaskId() ) +
+        ", priorResult: " + CORE::ToString( priorResult ) + ", priorParamA: " + CORE::ToString( priorParamA ) + ", priorParamB: " + CORE::ToString( priorParamB ) );
+    
+    MT::CScopeMutex lock( g_testMutex );
+    g_testResults.push_back( IDForChainFwdCallback2 );
+    return priorResult + priorParamA + priorParamB + IDForChainFwdCallback2;
+}
+
+int ChainForwardingCallback2B( CORE::CTaskPtr taskPtr, int priorResult, CORE::CTaskPtr priortask, int priorParamA, int priorParamB )
+{
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ChainForwardingCallback2B called with task ID: " + CORE::ToString( taskPtr->GetTaskId() ) +
+        ", priorResult: " + CORE::ToString( priorResult ) + ", priorTask with ID: " + CORE::ToString( priortask->GetTaskId() ) +
+        ", priorParamA: " + CORE::ToString( priorParamA ) + ", priorParamB: " + CORE::ToString( priorParamB ) );
+    
+    MT::CScopeMutex lock( g_testMutex );
+    g_testResults.push_back( IDForChainFwdCallback2B );
+    return priorResult + priorParamA + priorParamB + IDForChainFwdCallback2B;
+}
+
+int ChainForwardingCallback3( CORE::CTaskPtr taskPtr, int priorResult, int priorParamA, int priorParamB, int priorParamC )
+{
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ChainForwardingCallback3 called with task ID: " + CORE::ToString( taskPtr->GetTaskId() ) +
+        ", priorResult: " + CORE::ToString( priorResult ) + ", priorParamA: " + CORE::ToString( priorParamA ) +
+        ", priorParamB: " + CORE::ToString( priorParamB ) + ", priorParamC: " + CORE::ToString( priorParamC ) );
+    
+    MT::CScopeMutex lock( g_testMutex );
+    g_testResults.push_back( IDForChainFwdCallback3 );
+    return priorResult + priorParamA + priorParamB + priorParamC + IDForChainFwdCallback3;
+}
+
+int ChainForwardingCallback3B( CORE::CTaskPtr taskPtr, int priorResult, CORE::CTaskPtr priortask, int priorParamA, int priorParamB, int priorParamC )
+{
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ChainForwardingCallback3B called with task ID: " + CORE::ToString( taskPtr->GetTaskId() ) +
+        ", priorResult: " + CORE::ToString( priorResult ) + ", priorTask with ID: " + CORE::ToString( priortask->GetTaskId() ) +
+        ", priorParamA: " + CORE::ToString( priorParamA ) +
+        ", priorParamB: " + CORE::ToString( priorParamB ) + ", priorParamC: " + CORE::ToString( priorParamC ) );
+    
+    MT::CScopeMutex lock( g_testMutex );
+    g_testResults.push_back( IDForChainFwdCallback3B );
+    return priorResult + priorParamA + priorParamB + priorParamC + IDForChainFwdCallback3B;
+}
+
+int ChainForwardingCallback4( CORE::CTaskPtr taskPtr, int priorResult, int priorParamA, int priorParamB, int priorParamC, int priorParamD )
+{
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ChainForwardingCallback4 called with task ID: " + CORE::ToString( taskPtr->GetTaskId() ) +
+        ", priorResult: " + CORE::ToString( priorResult ) + ", priorParamA: " + CORE::ToString( priorParamA ) +
+        ", priorParamB: " + CORE::ToString( priorParamB ) + ", priorParamC: " + CORE::ToString( priorParamC ) +
+        ", priorParamD: " + CORE::ToString( priorParamD ) );
+    
+    MT::CScopeMutex lock( g_testMutex );
+    g_testResults.push_back( IDForChainFwdCallback4 );
+    return priorResult + priorParamA + priorParamB + priorParamC + priorParamD + IDForChainFwdCallback4;
+}
+
+int ChainForwardingCallback4B( CORE::CTaskPtr taskPtr, int priorResult, CORE::CTaskPtr priortask, int priorParamA, int priorParamB, int priorParamC, int priorParamD )
+{
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ChainForwardingCallback4B called with task ID: " + CORE::ToString( taskPtr->GetTaskId() ) +
+        ", priorResult: " + CORE::ToString( priorResult ) + ", priorTask with ID: " + CORE::ToString( priortask->GetTaskId() ) +
+        ", priorParamA: " + CORE::ToString( priorParamA ) +
+        ", priorParamB: " + CORE::ToString( priorParamB ) + ", priorParamC: " + CORE::ToString( priorParamC ) +
+        ", priorParamD: " + CORE::ToString( priorParamD ) );
+    
+    MT::CScopeMutex lock( g_testMutex );
+    g_testResults.push_back( IDForChainFwdCallback4B );
+    return priorResult + priorParamA + priorParamB + priorParamC + priorParamD + IDForChainFwdCallback4B;
 }
 
 // Memory leak detection helpers
@@ -223,7 +346,7 @@ class CASyncTestAccess : public CORE::CASync
     typedef CORE::CASync::TASyncChainStatePtr TASyncChainStatePtr;
 
     CASyncTestAccess( const CORE::CString& threadPoolName = g_threadPoolName )
-        : CORE::CASync(threadPoolName)
+        : CORE::CASync( threadPoolName )
     {
     }
 
@@ -259,7 +382,7 @@ class CASyncTestAccess : public CORE::CASync
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-void
+bool
 TestFinalTaskCountsAfterTests()
 {
     // check the state of the thread pool wrt task counts
@@ -311,6 +434,39 @@ TestFinalTaskCountsAfterTests()
                 ", Dormant=" + CORE::ToString( poolNrOfDormantTasks ) +
                 ", FreeObjs=" + CORE::ToString( poolNrOfFreeTaskObjs ) );
 
+             // check if the remaining work is specific to the 'other' pools
+             if ( ( 0 == poolNrOfInUseTasks && 0 == poolNrOfActiveTasks && 0 == poolNrOfDormantTasks ) &&
+                  ( 0 != nrOfInUseTasks || 0 != nrOfActiveTasks || 0 != nrOfDormantTasks ) )
+             {
+                 // Waiting for other pools, lets get some extra diagnostics
+
+                 CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
+
+                 CORE::CTaskManager::ThreadPoolVector pools;
+                 taskManager.GetAllThreadPools( pools );
+                 CORE::CTaskManager::ThreadPoolVector::iterator n = pools.begin();
+                 while ( n != pools.end() )
+                 {
+                     CORE::ThreadPoolPtr otherPool = *n;
+                     if ( otherPool != threadPool )
+                     {
+                         UInt32 otherPoolNrOfInUseTasks = 0;
+                         UInt32 otherPoolNrOfActiveTasks = 0;
+                         UInt32 otherPoolNrOfDormantTasks = 0;
+                         UInt32 otherPoolNrOfFreeTaskObjs = 0;
+                         ASSERT_TRUE( otherPool->GetTaskTotals( otherPoolNrOfInUseTasks, otherPoolNrOfActiveTasks, otherPoolNrOfDormantTasks, otherPoolNrOfFreeTaskObjs ) );
+                         if ( otherPoolNrOfInUseTasks != 0 || otherPoolNrOfActiveTasks != 0 || otherPoolNrOfDormantTasks != 0 )
+                         {
+                             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Waiting for other pool '" + otherPool->GetThreadPoolName() + "' to complete its tasks. Current counts - InUse=" + CORE::ToString( otherPoolNrOfInUseTasks ) +
+                                 ", Active=" + CORE::ToString( otherPoolNrOfActiveTasks ) +
+                                 ", Dormant=" + CORE::ToString( otherPoolNrOfDormantTasks ) +
+                                 ", FreeObjs=" + CORE::ToString( otherPoolNrOfFreeTaskObjs ) );
+                         }
+                     }
+                     ++n;
+                 }
+             }
+
             // give some time for the administrative upkeep to complete
             MT::PrecisionDelay( 1000 );
         }
@@ -326,7 +482,9 @@ TestFinalTaskCountsAfterTests()
                 ", Dormant=" + CORE::ToString( poolNrOfDormantTasks ) +
                 ", FreeObjs=" + CORE::ToString( poolNrOfFreeTaskObjs ) );
         ERRORHERE;
+        return false;
     }
+    return true;
 }
 
 void TestBasicASyncConstruction()
@@ -364,7 +522,7 @@ void TestBasicASyncConstruction()
         state = async3.GetChainStatePublic();
         ASSERT_TRUE( !state.IsNULL() );
 
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Thread pool pointer CASync construction successful" );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Thread pool pointer CASync construction successful === " );
         
     }
     catch(const std::exception& e)
@@ -435,7 +593,7 @@ void TestSimpleCallbacks()
         // Test callback with 4 parameters
         {
             CASyncTestAccess async;
-            CORE::CFutureResult result = async.QueueCallback(SimpleCallback4, 1, 2, 3, 4);
+            CORE::CFutureResult result = async.QueueCallback( SimpleCallback4, 1, 2, 3, 4);
    
             ASSERT_TRUE(result.HasAFuture());
             CORE::CTaskPtr task = result.GetResult(50000);
@@ -470,11 +628,11 @@ void TestTaskChaining1Deep()
         // Test simple chain
         {
             CASyncTestAccess async;
-            CORE::CFutureResult result = async.QueueCallback(SimpleCallback0)
-                                              .ThenCallback(ChainCallback1);
+            CORE::CFutureResult result = async.QueueCallback( SimpleCallback0 )
+                                              .ThenCallback( ChainCallback1 );
      
             ASSERT_TRUE(result.HasAFuture());
-            CORE::CTaskPtr task = result.GetResult(10000000);
+            CORE::CTaskPtr task = result.GetResult( 10000 );
             ASSERT_TRUE(!task.IsNULL());
             ASSERT_TRUE(task->IsTaskInEndState());
 
@@ -505,7 +663,7 @@ void TestTaskChaining1Deep()
 
 void TestTaskChaining3Deep()
 {
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === Testing Task Chaining 3 Deep === ");
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Testing Task Chaining 3 Deep === " );
 
     try
     {
@@ -514,10 +672,10 @@ void TestTaskChaining3Deep()
         // Test simple chain
         {
             CASyncTestAccess async;
-            CORE::CFutureResult result = async.QueueCallback(SimpleCallback0)
-                                              .ThenCallback(ChainCallback1)
-                                              .ThenCallback(ChainCallback2, 3)
-                                              .ThenCallback(ChainCallback3, 10, 20);
+            CORE::CFutureResult result = async.QueueCallback( SimpleCallback0 )
+                                              .ThenCallback( ChainCallback1 )
+                                              .ThenCallback( ChainCallback2, 3 )
+                                              .ThenCallback( ChainCallback3, 10, 20 );
      
             ASSERT_TRUE(result.HasAFuture());
             CORE::CTaskPtr task = result.GetResult(1000800000);
@@ -539,6 +697,66 @@ void TestTaskChaining3Deep()
         g_testResults.clear();
 
         TestFinalTaskCountsAfterTests();
+
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Task Chaining 3 Deep test completed === " );
+    }
+    catch(const timeout_exception& e)
+    {
+        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Timeout Exception in TestTaskChaining 3Deep: " + CORE::ToString( e.what() ));
+        ERRORHERE;
+    }
+    catch(const std::exception& e)
+    {
+        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestTaskChaining 3Deep: " + CORE::ToString( e.what() ));
+        ERRORHERE;
+    }
+}
+
+void TestTaskChaining3DeepWithResultPassing()
+{
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Testing Task Chaining 3 Deep With Prior Result Passing === " );
+
+    try
+    {
+        g_testResults.clear();
+        
+        // Test chain going back and forth with prior result passing
+        {
+            CASyncTestAccess async;
+            
+            CORE::CFutureResult result = async.QueueCallback( SimpleCallback1, 6 )
+                                              .ThenCallback( ChainCallback1 )
+                                              .ThenPassToCallback( ChainForwardingCallback0B )
+                                              .ThenCallback( ChainCallback2, 3 )
+                                              .ThenPassToCallback( ChainForwardingCallback1B )
+                                              .ThenCallback( ChainCallback3, 3, 6 )
+                                              .ThenPassToCallback( ChainForwardingCallback2B );
+
+            ASSERT_TRUE(result.HasAFuture());
+            CORE::CTaskPtr task = result.GetResult(10000);
+            ASSERT_TRUE(!task.IsNULL());
+            ASSERT_TRUE(task->IsTaskInEndState());
+            
+            // Wait a bit for all chained tasks to complete
+            //MT::PrecisionDelay(1000);
+
+            // Verify the chain executed in order
+            MT::CScopeMutex lock(g_testMutex);
+            ASSERT_TRUE( g_testResults.size() == 6 );
+            ASSERT_TRUE( g_testResults[0] == IDForChainCallback1 );
+            ASSERT_TRUE( g_testResults[1] == IDForChainFwdCallback0B );
+            ASSERT_TRUE( g_testResults[2] == IDForChainCallback2 );
+            ASSERT_TRUE( g_testResults[3] == IDForChainFwdCallback1B );
+            ASSERT_TRUE( g_testResults[4] == IDForChainCallback3 );
+            ASSERT_TRUE( g_testResults[5] == IDForChainFwdCallback2B );
+            std::cout << "Task chaining test passed\n";
+        }
+      
+        g_testResults.clear();
+
+        TestFinalTaskCountsAfterTests();
+
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Task Chaining 3 Deep With Prior Result Passing test completed === " );
     }
     catch(const timeout_exception& e)
     {
@@ -617,18 +835,9 @@ void TestMemoryManagement()
         // Now check and see if we did not leak any task objects in the thread pool
         // this test does assume that this test is the only thing actually using the thread pool right now in the process
 
-        UInt32 nrOfInUseTasks2 = 0;
-        UInt32 nrOfActiveTasks2 = 0;
-        UInt32 nrOfDormantTasks2 = 0;
-        UInt32 nrOfFreeTaskObjs2 = 0;
+        ASSERT_TRUE( TestFinalTaskCountsAfterTests() );
 
-        ASSERT_TRUE( threadPool->GetTaskTotals( nrOfInUseTasks2, nrOfActiveTasks2, nrOfDormantTasks2, nrOfFreeTaskObjs2 ) );
-        //ASSERT_TRUE( nrOfInUseTasks2 == 0 );   // we completed all the work hence no active or otherwise tracked tasks (due to chains) should remain
-        //ASSERT_TRUE( nrOfActiveTasks2 == 0 );  // we completed all the work hence no active tasks should remain
-        //ASSERT_TRUE( nrOfDormantTasks2 == 0 ); // we created all objects in local scopes so no dormant tasks should remain
-        //ASSERT_TRUE( nrOfFreeTaskObjs2 > 0 );  // we should have a bunch of free task objects available for reuse
-
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Memory management test passed - no leaks detected");
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Memory management test passed - no leaks detected === " );
     }
     catch(const timeout_exception& e)
     {
@@ -681,7 +890,7 @@ void TestTaskChainCleanup()
         // Give time for cleanup
         //MT::PrecisionDelay(2000);
 
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Task chain cleanup test completed");
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Task chain cleanup test completed === ");
     }
     catch(const std::exception& e)
     {
@@ -718,7 +927,7 @@ void TestErrorHandling()
         
         // Test timeout handling
         {
-            CORE::CASync async;
+            CASyncTestAccess async;
             CORE::CFutureResult result = async.QueueCallback(LongRunningCallback);
         
             ASSERT_TRUE(result.HasAFuture());
@@ -734,7 +943,7 @@ void TestErrorHandling()
             }
         }
 
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Error handling tests completed");
+        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === Error handling tests completed === ");
     }
     catch(const std::exception& e)
     {
@@ -749,16 +958,18 @@ void TestConcurrentOperations()
     
     try
     {
-        CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( CORE::CTaskManager::DefaultThreadPoolName );
-        threadPool->SetDesiredMinNrOfWorkerThreads( 20 );
-
         const int numConcurrentTasks = 20;
+
+        CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( CORE::CTaskManager::DefaultThreadPoolName );
+        threadPool->SetDesiredMinNrOfWorkerThreads( numConcurrentTasks );
+        
         std::vector<CORE::CFutureResult> futures;
+        futures.reserve( numConcurrentTasks );
     
         // Launch multiple concurrent async operations
         for (int i = 0; i < numConcurrentTasks; ++i)
         {
-            CORE::CASync async( threadPool );
+            CASyncTestAccess async( threadPool );
             CORE::CFutureResult result = async.QueueCallback( SimpleCallback1, i );
             futures.push_back(result);
         }
@@ -791,7 +1002,7 @@ void TestASyncConversionOperator()
     try
     {
         // Test implicit conversion to CFutureResult
-        CORE::CASync async;
+        CASyncTestAccess async;
         CORE::CFutureResult result = async.QueueCallback(SimpleCallback0);
         
         ASSERT_TRUE(result.HasAFuture());
@@ -799,7 +1010,7 @@ void TestASyncConversionOperator()
         ASSERT_TRUE(!task.IsNULL());
         ASSERT_TRUE(task->IsTaskInEndState());
 
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "CASync conversion operator test passed");
+        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === CASync conversion operator test passed === ");
     }
     catch(const std::exception& e)
     {
@@ -843,7 +1054,7 @@ void TestClearChain()
         ASSERT_TRUE( 0 != newTaskId );
         ASSERT_TRUE( lastTaskId != newTaskId );
 
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "ClearChain test passed");
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === ClearChain test passed === " );
     }
     catch( const std::exception& e )
     {
@@ -860,25 +1071,51 @@ void TestTaskTypeOperations()
     {
         // Test Start() method
         {
-            CORE::CASync async;
-            CORE::CFutureResult result = async.Start(CORE::CGenericCallbackTaskConsumer::TaskType);
+            CASyncTestAccess async;
+            CORE::CFutureResult result = async.Start( CORE::CGenericCallbackTaskConsumer::TaskType );
     
-            ASSERT_TRUE(result.HasAFuture());
-            CORE::CTaskPtr task = result.GetResult(5000);
-            ASSERT_TRUE(!task.IsNULL());
+            ASSERT_TRUE( result.HasAFuture() );
+            CORE::CTaskPtr task = result.GetResult( 5000 );
+            ASSERT_TRUE( !task.IsNULL() );
+            ASSERT_TRUE( task->IsTaskInEndState() );
+
+            // we need to give some time for the internal cleanup to complete
+            MT::PrecisionDelay( 3000 );
+
+            // Only held by us now that it's done in local scope which means
+            //  1 reference from the CASync object internally
+            //  1 reference from the CFutureResult object internally
+            //  1 reference from the extracted task object in the local scope
+            ASSERT_TRUE( 3 == task.GetReferenceCount() ); 
+
             GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Start() method test passed");
         }
       
         // Test Queue() method
         {
-            CORE::CASync async;
-            CORE::CFutureResult result = async.Queue(CORE::CGenericCallbackTaskConsumer::TaskType);
+            CASyncTestAccess async;
+            CORE::CFutureResult result = async.Queue( CORE::CGenericCallbackTaskConsumer::TaskType );
     
-            ASSERT_TRUE(result.HasAFuture());
+            ASSERT_TRUE( result.HasAFuture() );
             CORE::CTaskPtr task = result.GetResult(5000);
             ASSERT_TRUE(!task.IsNULL());
+            ASSERT_TRUE( task->IsTaskInEndState() );
+
+            // we need to give some time for the internal cleanup to complete
+            MT::PrecisionDelay( 3000 );
+
+            // Only held by us now that it's done in local scope which means
+            //  1 reference from the CASync object internally
+            //  1 reference from the CFutureResult object internally
+            //  1 reference from the extracted task object in the local scope
+            ASSERT_TRUE( 3 == task.GetReferenceCount() );
+
             GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Queue() method test passed");
         }
+
+        ASSERT_TRUE( TestFinalTaskCountsAfterTests() );
+
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Task Type Operations test passed === " );
     }
     catch(const std::exception& e)
     {
@@ -914,7 +1151,7 @@ void TestSubmitMethod()
         ASSERT_TRUE( task->IsTaskInEndState() );
         ASSERT_TRUE( task == lastTask );
 
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Submit method test passed");
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Submit method test passed === " );
     }
     catch( const std::exception& e )
     {
@@ -941,6 +1178,7 @@ PerformASyncTests( void )
         TestSimpleCallbacks();
         TestTaskChaining1Deep();
         TestTaskChaining3Deep();
+        TestTaskChaining3DeepWithResultPassing();
         TestMemoryManagement();
         TestTaskChainCleanup();
         TestErrorHandling();

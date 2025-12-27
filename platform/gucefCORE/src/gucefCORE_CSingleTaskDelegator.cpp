@@ -92,7 +92,7 @@ CSingleTaskDelegator::OnThreadCycle( void* )
         while ( attemptTimedOut );
         
         TaskCleanup( task );
-        task.Unlink();
+        m_task.Unlink();
         return taskResult;
     }
     return true;

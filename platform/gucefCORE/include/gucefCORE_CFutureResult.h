@@ -67,6 +67,10 @@ class GUCEF_CORE_PUBLIC_CPP CFutureResult
 
     CFutureResult( const CFutureResult& src );
 
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+    CFutureResult( CFutureResult&& src ) GUCEF_NOEXCEPT;
+    #endif
+
     /**
      *  You can use Await to block the calling thread until the task completes
      *  If a timeout occurs before the task completes a timeout_exception will be thrown
