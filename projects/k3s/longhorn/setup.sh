@@ -8,5 +8,8 @@ sudo kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.7.2
 # Install longhorn
 sudo kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.7.2/deploy/longhorn.yaml
 
+# Remove default annotation from local-path if it exists, since longhorn is now default
+. ../local-path-provisioner/switch_to_non_default.sh
+
 # Now set up the local storage in Longhorn
 . ./storage_setup.sh

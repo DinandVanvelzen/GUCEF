@@ -7,8 +7,8 @@
 # --------------------------------------------------------------------
 
 # install build tooling in base image
-FROM ubuntu:24.04
-RUN apt-get update && apt-get -y install apt-utils build-essential git-all clang clang-tools clang-tidy llvm cppcheck libssl-dev rpm libx11-dev graphviz doxygen cmake premake4 ninja-build ssh gdb gdbserver openssh-server netcat-traditional supervisor vim grep rsync gh
+FROM bitnami/minideb
+RUN install_packages apt-utils build-essential git-all clang clang-tools clang-tidy llvm cppcheck libssl-dev rpm libx11-dev graphviz doxygen cmake premake4 ninja-build ssh gdb gdbserver openssh-server netcat-traditional supervisor vim grep rsync gh
 
 # Expose the port for gdbserver
 EXPOSE 4020

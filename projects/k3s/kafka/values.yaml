@@ -1,0 +1,81 @@
+global:
+  security:
+    allowInsecureImages: true
+
+# Use 'latest' for helpers as specific legacy tags are often inaccessible in 2026
+defaultInitContainers:
+  autoDiscovery:
+    enabled: true
+    image:
+      registry: docker.io
+      repository: bitnamilegacy/kubectl
+      tag: latest
+  prepareConfig:
+    image:
+      registry: docker.io
+      repository: bitnamilegacy/os-shell
+      tag: latest
+
+image:
+  registry: docker.io
+  repository: bitnamilegacy/kafka  # Use bitnamilegacy instead of bitnami
+  tag: 4.0.0-debian-12-r10         # Legacy images often require the full specific tag
+  pullPolicy: IfNotPresent
+
+# existingLog4jConfigMap: "kafka-log4j-config"
+
+kraft:
+  enabled: true
+
+auth:
+  interBrokerProtocol: plaintext
+
+# Enable RBAC so the auto-discovery container can query the K8s API
+rbac:
+  create: true
+
+# Allow pods to use the service account token to authenticate with the API
+broker:
+  replicaCount: 1
+  automountServiceAccountToken: true
+
+controller:
+  replicaCount: 1
+  automountServiceAccountToken: true
+
+zookeeper:
+  enabled: false
+
+listeners:
+  client: { protocol: PLAINTEXT }
+  interbroker: { protocol: PLAINTEXT }
+  external: { protocol: PLAINTEXT }
+
+externalAccess:
+  enabled: true
+  # Top-level autoDiscovery is required for many chart versions
+  autoDiscovery:
+    enabled: true
+    image:
+      registry: registry.k8s.io
+      repository: kubectl
+      tag: v1.31.0 # Use a stable official version
+  broker:
+    service:
+      type: NodePort
+      nodePorts: [31090]
+  controller:
+    service:
+      type: NodePort
+      # Use a different port for the controller external access if needed, 
+      # or just set it to NodePort to satisfy validation.
+      nodePorts: [31091]
+
+
+podSecurityContext:
+  enabled: true
+  fsGroup: 1001
+containerSecurityContext:
+  enabled: true
+  runAsUser: 1001
+
