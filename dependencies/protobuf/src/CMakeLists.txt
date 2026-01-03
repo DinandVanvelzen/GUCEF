@@ -3989,23 +3989,23 @@ endif( WIN64 )
 include_directories( ../src google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 
 if ( ANDROID32 )
-  include_directories( google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
+  include_directories( google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
+  include_directories( google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 endif( ANDROID64 )
 
 if ( ARDUINO )
-  include_directories( google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
+  include_directories( google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 endif( ARDUINO )
 
 if ( EMSCRIPTEN32 )
-  include_directories( google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
+  include_directories( google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 endif( EMSCRIPTEN32 )
 
 if ( EMSCRIPTEN64 )
-  include_directories( google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
+  include_directories( google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 endif( EMSCRIPTEN64 )
 
 if ( GLX )
@@ -4017,15 +4017,15 @@ if ( GTK )
 endif( GTK )
 
 if ( IOS )
-  include_directories( google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
+  include_directories( google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 endif( IOS )
 
 if ( LINUX32 )
-  include_directories( ../../zlib google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
+  include_directories( ../../zlib google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../zlib google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
+  include_directories( ../../zlib google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 endif( LINUX64 )
 
 if ( NACL )
@@ -4033,7 +4033,7 @@ if ( NACL )
 endif( NACL )
 
 if ( OSX )
-  include_directories( google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
+  include_directories( google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 endif( OSX )
 
 if ( POSIX )
@@ -4053,11 +4053,11 @@ if ( UNIX )
 endif( UNIX )
 
 if ( WIN32 )
-  include_directories( ../../zlib google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
+  include_directories( ../../zlib google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../zlib google google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
+  include_directories( ../../zlib google/protobuf google/protobuf/compiler google/protobuf/io google/protobuf/stubs google/protobuf/util google/protobuf/util/internal )
 endif( WIN64 )
 
 

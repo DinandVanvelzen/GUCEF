@@ -668,6 +668,17 @@ CModuleInfo::AddSourceFile( const CORE::CString& pathToFiles ,
 
 /*---------------------------------------------------------------------------*/
 
+bool
+CModuleInfo::ShouldSubDirsBeConsidered( void ) const
+{GUCEF_TRACE;
+
+    if ( hasConsiderSubDirs )
+        return considerSubDirs;
+    return true;
+}
+
+/*---------------------------------------------------------------------------*/
+
 void
 CModuleInfo::SetNamesOfDependencies( const TStringSet& dependencies )
 {GUCEF_TRACE;

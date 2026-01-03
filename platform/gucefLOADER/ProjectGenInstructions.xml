@@ -10,6 +10,10 @@
         <ITEM NAME="../gucefMT/include/gucefMT_CScopeMutex.h" TYPE="FILE" />
         <ITEM NAME="../gucefMT/src/gucefMT_CNoLock.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefMT/include/gucefMT_CNoLock.h" TYPE="FILE" />
+		<ITEM NAME="../gucefMT/src/gucefMT_CObjectScopeLock.cpp" TYPE="FILE" />
+		<ITEM NAME="../gucefMT/include/gucefMT_CObjectScopeLock.h" TYPE="FILE" />
+		<ITEM NAME="../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp" TYPE="FILE" />
+		<ITEM NAME="../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h" TYPE="FILE" />		
         <ITEM NAME="../gucefMT/src/gucefMT_dvmtoswrap.c" TYPE="FILE" />
         <ITEM NAME="../gucefMT/include/gucefMT_dvmtoswrap.h" TYPE="FILE" />
         <ITEM NAME="../gucefMT/src/gucefMT_CICloneable.cpp" TYPE="FILE" />
@@ -76,10 +80,16 @@
         <ITEM NAME="../gucefCORE/include/dvmd5utils.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/dvmd5utils.c" TYPE="FILE" />
     </INCLUDES>
-	<INCLUDES PLATFORM="MSWIN">
+	<INCLUDES PLATFORM="mswin">
         <ITEM NAME="../gucefMT/src/mswin/gucefMT_mswinutils.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefMT/include/mswin/gucefMT_mswinutils.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/mswin/gucefCORE_mswinutils.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/mswin/gucefCORE_mswinutils.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/mswin/gucefCORE_cppmswinutils.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/mswin/gucefCORE_cppmswinutils.h" TYPE="FILE" />		
 	</INCLUDES>
+	<INCLUDES PLATFORM="android">
+        <ITEM NAME="../gucefMT/src/android/gucefCORE_CAndroidSystemLogger.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefMT/include/android/gucefCORE_CAndroidSystemLogger.h" TYPE="FILE" />	
+	</INCLUDES>	
 </PROJECTGENERATOR>

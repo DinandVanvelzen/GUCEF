@@ -3966,19 +3966,19 @@ configuration( {} )
 includedirs( { "", "../src", "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
+includedirs( { "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
+includedirs( { "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "ARDUINO" } )
-includedirs( { "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
+includedirs( { "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "EMSCRIPTEN32" } )
-includedirs( { "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
+includedirs( { "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "EMSCRIPTEN64" } )
-includedirs( { "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
+includedirs( { "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "GLX" } )
 includedirs( { "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
@@ -3987,19 +3987,19 @@ configuration( { "GTK" } )
 includedirs( { "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "IOS" } )
-includedirs( { "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
+includedirs( { "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "LINUX32" } )
-includedirs( { "../../zlib", "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
+includedirs( { "../../zlib", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "LINUX64" } )
-includedirs( { "../../zlib", "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
+includedirs( { "../../zlib", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "NACL" } )
 includedirs( { "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "OSX" } )
-includedirs( { "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
+includedirs( { "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "POSIX" } )
 includedirs( { "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
@@ -4014,7 +4014,7 @@ configuration( { "UNIX" } )
 includedirs( { "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../zlib", "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
+includedirs( { "../../zlib", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../zlib", "google", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )
+includedirs( { "../../zlib", "google/protobuf", "google/protobuf/compiler", "google/protobuf/io", "google/protobuf/stubs", "google/protobuf/util", "google/protobuf/util/internal" } )

@@ -27,16 +27,17 @@
         <Linker>
             <Dependency Name="Ws2_32.lib" Scope="private" />
 			<Dependency Name="PowrProf.lib" Scope="private" />
+			<Dependency Name="Shlwapi.lib" Scope="private" />
         </Linker>
     </Module>  
-    <Module Platform="Linux">
+    <Module Platform="linux">
         <Linker>
             <Dependency Name="dl" Scope="private" />
             <Dependency Name="rt" Scope="private" />
             <Dependency Name="X11" Scope="private" />
         </Linker>
     </Module>
-    <Module Platform="Android">
+    <Module Platform="android">
         <Linker>
             <Dependency Name="dl" Scope="private" />
         </Linker>
@@ -68,20 +69,21 @@
     </Module>
     <Module Platform="mswin">
         <Linker>
-            <Dependency Name="Ws2_32.lib" />
-			<Dependency Name="PowrProf.lib" />
+            <Dependency Name="Ws2_32.lib" Scope="private" />
+			<Dependency Name="PowrProf.lib" Scope="private" />
+			<Dependency Name="Shlwapi.lib" Scope="private" />
         </Linker>
     </Module>  
     <Module Platform="Linux">
         <Linker>
-            <Dependency Name="dl" />
-            <Dependency Name="rt" />
-            <Dependency Name="X11" />
+            <Dependency Name="dl" Scope="private" />
+            <Dependency Name="rt" Scope="private" />
+            <Dependency Name="X11" Scope="private" />
         </Linker>
     </Module>
     <Module Platform="Android">
         <Linker>
-            <Dependency Name="dl" />
+            <Dependency Name="dl" Scope="private" />
         </Linker>
     </Module>
 </ModuleInfoEntry>

@@ -155,6 +155,13 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfo : public CORE::CTSharedObjCreator<
     void AddSourceFile( const CORE::CString& pathToFiles ,
                         const CORE::CString& filename    );
 
+    /**
+     *  Whether this module's subdirectories should be considered when looking for additional information
+     *  Its a wholesale include/exclude switch thus it applies to all subdirs for any purpose
+     *  The default value is true, it has to be explicitly set to false to disable subdir consideration
+     */
+    bool ShouldSubDirsBeConsidered( void ) const;
+
     // list of module names of all modules this module depends on
     void SetNamesOfDependencies( const TStringSet& dependencies );
 

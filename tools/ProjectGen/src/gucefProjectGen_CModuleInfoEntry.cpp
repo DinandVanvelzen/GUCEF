@@ -1318,6 +1318,41 @@ CModuleInfoEntry::IsBroken( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CModuleInfoEntry::ShouldSubDirsBeConsidered( const CORE::CStringSet& enabledPlatforms ) const
+{GUCEF_TRACE;
+
+    bool baselineConsideration = true;
+    CModuleInfoPtr allPlatformsModuleInfo = FindModuleInfoForPlatform( KnownPlatforms::AllPlatforms );
+    if ( !allPlatformsModuleInfo.IsNULL() )
+    {
+        baselineConsideration = allPlatformsModuleInfo->ShouldSubDirsBeConsidered();
+        if ( baselineConsideration )
+            return true; // since the baseline for 'all' says check subdirs we can return true right away
+    }
+
+    if ( allPlatformsModuleInfo.IsNULL() ||  m_modulesPerPlatform.size() > 1 )
+    {
+        // Now check for any platform specific overrides against the enabled platforms
+        // if just one platform is enabled then that one takes precedence because we can only check a subdir or not check it
+        // its a binary decision regardless of how many platforms are enabled
+        CORE::CStringSet::const_iterator p = enabledPlatforms.begin();
+        while ( p != enabledPlatforms.end() )
+        {
+            CModuleInfoPtr platformModuleInfo = FindModuleInfoForPlatform( (*p) );
+            if ( !platformModuleInfo.IsNULL() )
+            {
+                if ( platformModuleInfo->ShouldSubDirsBeConsidered() )
+                    return true;
+            }
+            ++p;
+        }
+    }
+    return baselineConsideration;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CModuleInfoEntry::GetModuleDependencyNames( const CORE::CString& targetPlatform ,
                                             TStringSet& dependencies            ) const

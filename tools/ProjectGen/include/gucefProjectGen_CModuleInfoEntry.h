@@ -271,6 +271,14 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CModuleInfoEntry : public CORE::CIDataNodeSeri
     bool IsBroken( void ) const;
 
     /**
+     *  Determines whether subdirs should be considered for the given platforms
+     *  Subdirs are used to denote source/include folders that are relative to the module root
+     *  Subdirs may also contain even more module definitions depending on how the repo is structured
+     *  Note that if any relevant platform is enabled subdirs will be considered as its a wholesale include/exclude switch
+     */
+    bool ShouldSubDirsBeConsidered( const CORE::CStringSet& enabledPlatforms ) const;
+
+    /**
      *  Obtains the module dependencies by flattening the dependencies on-demand
      *  for the given target platform.
      *

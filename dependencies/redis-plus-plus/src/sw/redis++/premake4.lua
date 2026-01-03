@@ -98,19 +98,19 @@ configuration( {} )
 includedirs( { "../../", "../../../../", "../../../../hiredis", "cxx11", "cxx11/sw", "no_tls", "no_tls/sw", "../redis++", "cxx11/sw/redis++", "no_tls/sw/redis++", "patterns" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../../../../Ogre", "../../../../Ogre/RenderSystems", "../../../../Ogre/RenderSystems/GLES2", "../../../../Ogre/RenderSystems/GLES2/include", "../../../../Ogre/RenderSystems/GLES2/include/EGL", "../../../../Ogre/RenderSystems/GLES2/include/EGL/Android", "../../../../hiredis" } )
+includedirs( { "../../../../hiredis" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../../../../Ogre", "../../../../Ogre/RenderSystems", "../../../../Ogre/RenderSystems/GLES2", "../../../../Ogre/RenderSystems/GLES2/include", "../../../../Ogre/RenderSystems/GLES2/include/EGL", "../../../../Ogre/RenderSystems/GLES2/include/EGL/Android", "../../../../hiredis" } )
+includedirs( { "../../../../hiredis" } )
 
 configuration( { "ARDUINO" } )
 includedirs( { "../../../../hiredis" } )
 
 configuration( { "EMSCRIPTEN32" } )
-includedirs( { "../../../../Ogre", "../../../../Ogre/RenderSystems", "../../../../Ogre/RenderSystems/GLES2", "../../../../Ogre/RenderSystems/GLES2/include", "../../../../Ogre/RenderSystems/GLES2/include/EGL", "../../../../Ogre/RenderSystems/GLES2/include/EGL/Emscripten", "../../../../hiredis" } )
+includedirs( { "../../../../hiredis" } )
 
 configuration( { "EMSCRIPTEN64" } )
-includedirs( { "../../../../Ogre", "../../../../Ogre/RenderSystems", "../../../../Ogre/RenderSystems/GLES2", "../../../../Ogre/RenderSystems/GLES2/include", "../../../../Ogre/RenderSystems/GLES2/include/EGL", "../../../../Ogre/RenderSystems/GLES2/include/EGL/Emscripten", "../../../../hiredis" } )
+includedirs( { "../../../../hiredis" } )
 
 configuration( { "IOS" } )
 includedirs( { "../../../../hiredis" } )
@@ -122,10 +122,10 @@ configuration( { "LINUX64" } )
 includedirs( { "../../../../hiredis" } )
 
 configuration( { "OSX" } )
-includedirs( { "../../../../hiredis", "../../../../libRocket", "../../../../libRocket/Samples", "../../../../libRocket/Samples/shell", "../../../../libRocket/Samples/shell/include", "../../../../libRocket/Samples/shell/include/macosx" } )
+includedirs( { "../../../../hiredis" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../../../Ogre", "../../../../Ogre/RenderSystems", "../../../../Ogre/RenderSystems/GLES2", "../../../../Ogre/RenderSystems/GLES2/include", "../../../../Ogre/RenderSystems/GLES2/include/EGL", "../../../../Ogre/RenderSystems/GLES2/include/EGL/WIN32", "../../../../berkelium", "../../../../berkelium/win32", "../../../../berkelium/win32/demo", "../../../../berkelium/win32/demo/GL", "../../../../hiredis", "../../../../libRocket", "../../../../libRocket/Samples", "../../../../libRocket/Samples/shell", "../../../../libRocket/Samples/shell/include", "../../../../libRocket/Samples/shell/include/win32" } )
+includedirs( { "../../../../hiredis" } )
 
 configuration( { "WIN64" } )
 includedirs( { "../../../../hiredis" } )

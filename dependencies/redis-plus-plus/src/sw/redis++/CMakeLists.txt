@@ -79,11 +79,11 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 include_directories( ../../ ../../../../ ../../../../hiredis ../redis++ cxx11 cxx11/sw cxx11/sw/redis++ no_tls no_tls/sw no_tls/sw/redis++ patterns )
 
 if ( ANDROID32 )
-  include_directories( ../../../../Ogre ../../../../Ogre/RenderSystems ../../../../Ogre/RenderSystems/GLES2 ../../../../Ogre/RenderSystems/GLES2/include ../../../../Ogre/RenderSystems/GLES2/include/EGL ../../../../Ogre/RenderSystems/GLES2/include/EGL/Android ../../../../hiredis )
+  include_directories( ../../../../hiredis )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../../../Ogre ../../../../Ogre/RenderSystems ../../../../Ogre/RenderSystems/GLES2 ../../../../Ogre/RenderSystems/GLES2/include ../../../../Ogre/RenderSystems/GLES2/include/EGL ../../../../Ogre/RenderSystems/GLES2/include/EGL/Android ../../../../hiredis )
+  include_directories( ../../../../hiredis )
 endif( ANDROID64 )
 
 if ( ARDUINO )
@@ -91,11 +91,11 @@ if ( ARDUINO )
 endif( ARDUINO )
 
 if ( EMSCRIPTEN32 )
-  include_directories( ../../../../Ogre ../../../../Ogre/RenderSystems ../../../../Ogre/RenderSystems/GLES2 ../../../../Ogre/RenderSystems/GLES2/include ../../../../Ogre/RenderSystems/GLES2/include/EGL ../../../../Ogre/RenderSystems/GLES2/include/EGL/Emscripten ../../../../hiredis )
+  include_directories( ../../../../hiredis )
 endif( EMSCRIPTEN32 )
 
 if ( EMSCRIPTEN64 )
-  include_directories( ../../../../Ogre ../../../../Ogre/RenderSystems ../../../../Ogre/RenderSystems/GLES2 ../../../../Ogre/RenderSystems/GLES2/include ../../../../Ogre/RenderSystems/GLES2/include/EGL ../../../../Ogre/RenderSystems/GLES2/include/EGL/Emscripten ../../../../hiredis )
+  include_directories( ../../../../hiredis )
 endif( EMSCRIPTEN64 )
 
 if ( IOS )
@@ -111,11 +111,11 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( OSX )
-  include_directories( ../../../../hiredis ../../../../libRocket ../../../../libRocket/Samples ../../../../libRocket/Samples/shell ../../../../libRocket/Samples/shell/include ../../../../libRocket/Samples/shell/include/macosx )
+  include_directories( ../../../../hiredis )
 endif( OSX )
 
 if ( WIN32 )
-  include_directories( ../../../../Ogre ../../../../Ogre/RenderSystems ../../../../Ogre/RenderSystems/GLES2 ../../../../Ogre/RenderSystems/GLES2/include ../../../../Ogre/RenderSystems/GLES2/include/EGL ../../../../Ogre/RenderSystems/GLES2/include/EGL/WIN32 ../../../../berkelium ../../../../berkelium/win32 ../../../../berkelium/win32/demo ../../../../berkelium/win32/demo/GL ../../../../hiredis ../../../../libRocket ../../../../libRocket/Samples ../../../../libRocket/Samples/shell ../../../../libRocket/Samples/shell/include ../../../../libRocket/Samples/shell/include/win32 )
+  include_directories( ../../../../hiredis )
 endif( WIN32 )
 
 if ( WIN64 )

@@ -429,7 +429,7 @@ FindNextModuleAccordingToBuildOrder( CProjectInfo& projectInfo               ,
         // If we get here we did not find a module with build order 0
         // instead of a platform specific build order check the AllPlatforms build order
         platformEntry = projectInfo.FindModuleAccordingToBuildOrder( KnownPlatforms::AllPlatforms ,
-                                                                     desiredBuildOrder );
+                                                                     desiredBuildOrder            );
     }
 
     return platformEntry;
@@ -674,9 +674,9 @@ ExcludeOrIncludeDirEntriesAsSpecifiedForDir( const CORE::CString& dir           
 
     if ( !applyPlatformChangesOnly )
     {
-        ExcludeOrIncludeEntriesAsSpecifiedForDir( allInstructions ,
+        ExcludeOrIncludeEntriesAsSpecifiedForDir( allInstructions              ,
                                                   KnownPlatforms::AllPlatforms ,
-                                                  allEntries      );
+                                                  allEntries                   );
 
     }
 
@@ -699,9 +699,9 @@ ExcludeFileEntriesAsSpecifiedForDir( const TDirProcessingInstructions& allInstru
 
     if ( !applyPlatformChangesOnly )
     {
-        ExcludeEntriesAsSpecifiedForFile( allInstructions ,
+        ExcludeEntriesAsSpecifiedForFile( allInstructions              ,
                                           KnownPlatforms::AllPlatforms ,
-                                          allEntries      );
+                                          allEntries                   );
     }
 
     if ( !platform.IsNULLOrEmpty() && platform != KnownPlatforms::AllPlatforms )
@@ -725,11 +725,11 @@ IncludeFileEntriesAsSpecifiedForDir( const TDirProcessingInstructions& allInstru
 
     if ( !applyPlatformChangesOnly )
     {
-        IncludeEntriesAsSpecifiedForFile( allInstructions ,
+        IncludeEntriesAsSpecifiedForFile( allInstructions              ,
                                           KnownPlatforms::AllPlatforms ,
-                                          currentPath     ,
-                                          allEntries      ,
-                                          fileTypes       );
+                                          currentPath                  ,
+                                          allEntries                   ,
+                                          fileTypes                    );
     }
 
     if ( !platform.IsNULLOrEmpty() && platform != KnownPlatforms::AllPlatforms )
@@ -1365,24 +1365,22 @@ PopulateFileListFromDir( const CProjectInfo& projectInfo ,
             return;
     }
 
-    CORE::SDI_Data* sdiData = CORE::DI_First_Dir_Entry( path.C_String() );
-    if ( NULL != sdiData )
+    CORE::CFileSystemIterator fsIterator;
+    if ( fsIterator.FindFirst( path ) )
     {
         do
         {
-            if ( 0 != DI_Is_It_A_File( sdiData ) )
+            if ( fsIterator.IsAFile() )
             {
-                CORE::CString filename = DI_Name( sdiData );
+                CORE::CString filename = fsIterator.GetResourceName();
                 CORE::CString fileExt = CORE::ExtractFileExtention( filename );
-
                 if ( IsStringInList( fileTypes, false, fileExt ) )
                 {
                     fileList.insert( filename );
                 }
             }
         }
-        while ( 0 != DI_Next_Dir_Entry( sdiData ) );
-        DI_Cleanup( sdiData );
+        while ( fsIterator.FindNext() );
     }
 }
 
@@ -1402,15 +1400,15 @@ PopulateDirListFromDir( const CProjectInfo& projectInfo ,
         const TStringSet& platformsDirs = GetSupportedPlatformDirs( projectInfo );
 
         // Go through the dir adding dirs which qualify
-        CORE::SDI_Data* sdiData = CORE::DI_First_Dir_Entry( path.C_String() );
-        if ( NULL != sdiData )
+        CORE::CFileSystemIterator fsIterator;
+        if ( fsIterator.FindFirst( path ) )
         {
             do
             {
-                if ( 0 == DI_Is_It_A_File( sdiData ) )
+                if ( fsIterator.IsADirectory() )
                 {
                     // Add the dir if it is a real dir and if its not a platform dir
-                    CORE::CString dirName = DI_Name( sdiData );
+                    CORE::CString dirName = fsIterator.GetResourceName();
                     if ( ( dirName != "." ) && ( dirName != ".." )               &&
                          ( platformsDirs.find( dirName ) == platformsDirs.end() ) )
                     {
@@ -1418,8 +1416,7 @@ PopulateDirListFromDir( const CProjectInfo& projectInfo ,
                     }
                 }
             }
-            while ( 0 != DI_Next_Dir_Entry( sdiData ) );
-            DI_Cleanup( sdiData );
+            while ( fsIterator.FindNext() );
         }
     }
 
@@ -1433,16 +1430,16 @@ PopulateDirListFromDir( const CProjectInfo& projectInfo ,
             const TStringSet& dirsForPlatform = (*i).second;
 
             // Check each dir to see if it exists
-            CORE::SDI_Data* sdiData = CORE::DI_First_Dir_Entry( path.C_String() );
-            if ( NULL != sdiData )
+            CORE::CFileSystemIterator fsIterator;
+            if ( fsIterator.FindFirst( path ) )
             {
                 do
                 {
-                    if ( 0 == DI_Is_It_A_File( sdiData ) )
+                    if ( fsIterator.IsADirectory() )
                     {
                         // Add the dir if it is a real dir and if its a platform dir for
                         // the specified platform
-                        CORE::CString dirName = DI_Name( sdiData );
+                        CORE::CString dirName = fsIterator.GetResourceName();
                         if ( ( dirName != "." ) && ( dirName != ".." )                               &&
                              ( dirsForPlatform.find( dirName.Lowercase() ) != dirsForPlatform.end() ) )
                         {
@@ -1450,8 +1447,7 @@ PopulateDirListFromDir( const CProjectInfo& projectInfo ,
                         }
                     }
                 }
-                while ( 0 != DI_Next_Dir_Entry( sdiData ) );
-                DI_Cleanup( sdiData );
+                while ( fsIterator.FindNext() );
             }
         }
     }
@@ -1530,9 +1526,9 @@ GetListOfAllModuleDirs( const CProjectInfo& projectInfo      ,
 {GUCEF_TRACE;
 
     // Add generic dirs
-    GetListOfAllModuleDirs( moduleInfoEntry ,
-                            moduleDirs      ,
-                            relativePaths   ,
+    GetListOfAllModuleDirs( moduleInfoEntry              ,
+                            moduleDirs                   ,
+                            relativePaths                ,
                             KnownPlatforms::AllPlatforms );
 
     // Add all platform dirs
@@ -1783,7 +1779,8 @@ FindSubDirsWithFileTypes( const CProjectInfo& projectInfo                       
                           bool applyOnlyPlatformInstructions                       ,
                           const CORE::CString& curRootDir                          ,
                           const CORE::CString& curRootDirSeg                       ,
-                          TDirProcessingInstructionsMap& newProcessingInstructions )
+                          TDirProcessingInstructionsMap& newProcessingInstructions ,
+                          bool processSubDirsUnderCurRootDir                       )
 {GUCEF_TRACE;
 
     TStringSet fileList;
@@ -1826,40 +1823,44 @@ FindSubDirsWithFileTypes( const CProjectInfo& projectInfo                       
         }
     }
 
-    // Get a list of sub-dirs
-    TStringSet dirList;
-    PopulateDirListFromDir( projectInfo, curRootDir, dirList, platform, false );
-
-    // Now we add/subtract dirs based on generator instructions
-    ExcludeOrIncludeDirEntriesAsSpecifiedForDir( projectInfo                   ,
-                                                 curRootDir                    ,
-                                                 platform                      ,
-                                                 applyOnlyPlatformInstructions ,
-                                                 dirList                       ,
-                                                 newProcessingInstructions     );
-
-    TStringSet::iterator i = dirList.begin();
-    while ( i != dirList.end() )
+    if ( processSubDirsUnderCurRootDir )
     {
-        CORE::CString subDir = CORE::CombinePath( curRootDir, (*i) );
+        // Get a list of sub-dirs
+        TStringSet dirList;
+        PopulateDirListFromDir( projectInfo, curRootDir, dirList, platform, false );
 
-        // Do not recurse into other module dirs
-        if ( !IsDirAModuleDir( subDir ) )
+        // Now we add/subtract dirs based on generator instructions
+        ExcludeOrIncludeDirEntriesAsSpecifiedForDir( projectInfo                   ,
+                                                     curRootDir                    ,
+                                                     platform                      ,
+                                                     applyOnlyPlatformInstructions ,
+                                                     dirList                       ,
+                                                     newProcessingInstructions     );
+
+        TStringSet::iterator i = dirList.begin();
+        while ( i != dirList.end() )
         {
-            CORE::CString subDirSeg = curRootDirSeg;
-            subDirSeg = CORE::CombinePath( subDirSeg, (*i) );
-            subDirSeg = subDirSeg.ReplaceChar( '\\', '/' );
+            CORE::CString subDir = CORE::CombinePath( curRootDir, (*i) );
 
-            FindSubDirsWithFileTypes( projectInfo                   ,
-                                      fileMap                       ,
-                                      fileTypes                     ,
-                                      platform                      ,
-                                      applyOnlyPlatformInstructions ,
-                                      subDir                        ,
-                                      subDirSeg                     ,
-                                      newProcessingInstructions     );
+            // Do not recurse into other module dirs
+            if ( !IsDirAModuleDir( subDir ) )
+            {
+                CORE::CString subDirSeg = curRootDirSeg;
+                subDirSeg = CORE::CombinePath( subDirSeg, (*i) );
+                subDirSeg = subDirSeg.ReplaceChar( '\\', '/' );
+
+                FindSubDirsWithFileTypes( projectInfo                   ,
+                                          fileMap                       ,
+                                          fileTypes                     ,
+                                          platform                      ,
+                                          applyOnlyPlatformInstructions ,
+                                          subDir                        ,
+                                          subDirSeg                     ,
+                                          newProcessingInstructions     ,
+                                          processSubDirsUnderCurRootDir );
+            }
+            ++i;
         }
-        ++i;
     }
 }
 
@@ -1927,10 +1928,10 @@ FillHeaderSubDirIncludes( const CProjectInfo& projectInfo      ,
     if ( n != moduleInfoEntry->GetModulesPerPlatform().end() )
     {
         TStringSetMap dummy;
-        FillHeaderSubDirIncludes( projectInfo     ,
-                                  moduleInfoEntry ,
+        FillHeaderSubDirIncludes( projectInfo                  ,
+                                  moduleInfoEntry              ,
                                   KnownPlatforms::AllPlatforms ,
-                                  dummy           );
+                                  dummy                        );
 
         CModuleInfoPtr allPlatformsModuleInfo = (*n).second;
         TModuleInfoPtrMap::const_iterator m = moduleInfoEntry->GetModulesPerPlatform().begin();
@@ -1954,7 +1955,8 @@ void
 FindSubDirsWithHeaders( const CProjectInfo& projectInfo                          ,
                         CModuleInfoEntryPtr& moduleInfoEntry                     ,
                         const CORE::CString& platform                            ,
-                        TDirProcessingInstructionsMap& newProcessingInstructions )
+                        TDirProcessingInstructionsMap& newProcessingInstructions ,
+                        bool processSubDirsUnderCurRootDir                       )
 {GUCEF_TRACE;
 
     TStringSetMap fileMap;
@@ -1965,7 +1967,8 @@ FindSubDirsWithHeaders( const CProjectInfo& projectInfo                         
                               false                                             ,
                               moduleInfoEntry->GetAbsolutePathToModuleRootDir() ,
                               CORE::CString::Empty                              ,
-                              newProcessingInstructions                         );
+                              newProcessingInstructions                         ,
+                              processSubDirsUnderCurRootDir                     );
 
     if ( !fileMap.empty() )
     {
@@ -2022,16 +2025,18 @@ FindSubDirsWithHeaders( const CProjectInfo& projectInfo                         
 void
 FindSubDirsWithHeaders( const CProjectInfo& projectInfo                          ,
                         CModuleInfoEntryPtr& moduleInfoEntry                     ,
-                        TDirProcessingInstructionsMap& newProcessingInstructions )
+                        TDirProcessingInstructionsMap& newProcessingInstructions ,
+                        bool processSubDirsUnderCurRootDir                       )
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Locating headers which apply to all platforms" );
 
     // Add all generic headers
-    FindSubDirsWithHeaders( projectInfo               ,
-                            moduleInfoEntry           ,
-                            KnownPlatforms::AllPlatforms              ,
-                            newProcessingInstructions );
+    FindSubDirsWithHeaders( projectInfo                   ,
+                            moduleInfoEntry               ,
+                            KnownPlatforms::AllPlatforms  ,
+                            newProcessingInstructions     ,
+                            processSubDirsUnderCurRootDir );
 
     // Add platform specific headers
     const TStringSet& platforms = GetSupportedPlatforms( projectInfo );
@@ -2040,10 +2045,11 @@ FindSubDirsWithHeaders( const CProjectInfo& projectInfo                         
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Locating headers which apply to platform " + (*i) );
 
-        FindSubDirsWithHeaders( projectInfo               ,
-                                moduleInfoEntry           ,
-                                (*i)                      ,
-                                newProcessingInstructions );
+        FindSubDirsWithHeaders( projectInfo                   ,
+                                moduleInfoEntry               ,
+                                (*i)                          ,
+                                newProcessingInstructions     ,
+                                processSubDirsUnderCurRootDir );
 
         ++i;
     }
@@ -2061,7 +2067,8 @@ void
 FindSubDirsWithSource( const CProjectInfo& projectInfo                          ,
                        CModuleInfoEntryPtr& moduleInfoEntry                     ,
                        const CORE::CString& platform                            ,
-                       TDirProcessingInstructionsMap& newProcessingInstructions )
+                       TDirProcessingInstructionsMap& newProcessingInstructions ,
+                       bool processSubDirsUnderCurRootDir                       )
 {GUCEF_TRACE;
 
     TStringSetMap fileMap;
@@ -2072,7 +2079,8 @@ FindSubDirsWithSource( const CProjectInfo& projectInfo                          
                               false                                             ,
                               moduleInfoEntry->GetAbsolutePathToModuleRootDir() ,
                               CORE::CString::Empty                              ,
-                              newProcessingInstructions                         );
+                              newProcessingInstructions                         ,
+                              processSubDirsUnderCurRootDir                     );
 
     if ( !fileMap.empty() )
     {
@@ -2130,16 +2138,18 @@ FindSubDirsWithSource( const CProjectInfo& projectInfo                          
 void
 FindSubDirsWithSource( const CProjectInfo& projectInfo                          ,
                        CModuleInfoEntryPtr& moduleInfoEntry                     ,
-                       TDirProcessingInstructionsMap& newProcessingInstructions )
+                       TDirProcessingInstructionsMap& newProcessingInstructions ,
+                       bool processSubDirsUnderCurRootDir                       )
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Locating sources which apply to all platforms" );
 
     // Add all generic sources
-    FindSubDirsWithSource( projectInfo               ,
-                           moduleInfoEntry           ,
-                           KnownPlatforms::AllPlatforms ,
-                           newProcessingInstructions );
+    FindSubDirsWithSource( projectInfo                   ,
+                           moduleInfoEntry               ,
+                           KnownPlatforms::AllPlatforms  ,
+                           newProcessingInstructions     ,
+                           processSubDirsUnderCurRootDir );
 
     // Add platform specific source
     const TStringSet& platforms = GetSupportedPlatforms( projectInfo );
@@ -2148,10 +2158,11 @@ FindSubDirsWithSource( const CProjectInfo& projectInfo                          
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Locating sources which apply to platform " + (*i) );
 
-        FindSubDirsWithSource( projectInfo               ,
-                               moduleInfoEntry           ,
-                               (*i)                      ,
-                               newProcessingInstructions );
+        FindSubDirsWithSource( projectInfo                   ,
+                               moduleInfoEntry               ,
+                               (*i)                          ,
+                               newProcessingInstructions     ,
+                               processSubDirsUnderCurRootDir );
 
         ++i;
     }
@@ -2219,6 +2230,9 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
 {GUCEF_TRACE;
 
     MT::CObjectScopeReadOnlyLock projectInfoReaderLock( projectInfo.GetPointerAlways() );
+
+    TStringSet enabledPlatforms;
+    projectInfo->GetAllEnabledPlatformsUsed( enabledPlatforms, true );
 
     CORE::CString pathToModuleInfoFile = rootDir;
     CORE::AppendToPath( pathToModuleInfoFile, "ModuleInfo.xml" );
@@ -2335,6 +2349,8 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
         (*moduleInfoEntries)[ moduleInfoEntry->GetConsensusName() ] = moduleInfoEntry;
     }
 
+    
+
     TStringToModuleInfoEntryPtrMap::iterator i = moduleInfoEntries->begin();
     while ( i != moduleInfoEntries->end() )
     {
@@ -2344,12 +2360,20 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
         moduleInfoEntry->SetAbsolutePathToModuleRootDir( rootDir );
         moduleInfoEntry->SetProjectRelativePathToModuleRootDir( projectInfo->GetRelativePathFromProjectSubDirToProjectRootDir( rootDir ) );
 
-        FindSubDirsWithHeaders( *projectInfo.GetPointer(), moduleInfoEntry, *newProcessingInstructions.GetPointer() );
-        FindSubDirsWithSource( *projectInfo.GetPointer(), moduleInfoEntry, *newProcessingInstructions.GetPointer() );
-
         // If we have a module name then use it for our logging output
         // we want to be able to see in the log which modules where successfully processed
-        CORE::CString consensusModuleName = moduleInfoEntry->GetConsensusName();
+        const CORE::CString& consensusModuleName = moduleInfoEntry->GetConsensusName();
+
+        bool processSubDirsUnderCurRootDir = moduleInfoEntry->ShouldSubDirsBeConsidered( enabledPlatforms );
+
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Proceeding to process dirs for module " + consensusModuleName + " from project dir: " + moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
+        if ( !processSubDirsUnderCurRootDir )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Skipping sub-dirs for module " + consensusModuleName + " from project dir: " + moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
+        }
+
+        FindSubDirsWithHeaders( *projectInfo.GetPointer(), moduleInfoEntry, *newProcessingInstructions.GetPointer(), processSubDirsUnderCurRootDir );
+        FindSubDirsWithSource( *projectInfo.GetPointer(), moduleInfoEntry, *newProcessingInstructions.GetPointer(), processSubDirsUnderCurRootDir );
 
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Processed module " + consensusModuleName + " from project dir: " + moduleInfoEntry->GetAbsolutePathToModuleRootDir() );
 
@@ -2523,8 +2547,10 @@ CDirCrawlingProjectInfoGatherer::GatherInfo( const TStringVector& rootDirs      
 {GUCEF_TRACE;
 
     m_threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( threadPoolToUse );
-    //m_threadPool->SetNrOfWorkerThreadsToLogicalCPUs( 1 );
-    m_threadPool->SetDesiredMinNrOfWorkerThreads( 1 );
+    m_threadPool->SetNrOfWorkerThreadsToLogicalCPUs( 1 );
+    //m_threadPool->SetDesiredMinNrOfWorkerThreads( 1 );
+
+    CORE::CDateTime start = CORE::CDateTime::NowUTCDateTime();
 
     // Gather all processing instructions
     TDirProcessingInstructionsMap newProcessingInstructions;
@@ -2537,6 +2563,8 @@ CDirCrawlingProjectInfoGatherer::GatherInfo( const TStringVector& rootDirs      
     }
     MergeDirProcessingInstructionsMap( projectInfo->dirProcessingInstructions, newProcessingInstructions, true );
     newProcessingInstructions.clear();
+
+    CORE::CDateTime end = CORE::CDateTime::NowUTCDateTime();
 
     // Gather all module information
     CORE::CStringSet allModuleDirs;
@@ -2553,6 +2581,12 @@ CDirCrawlingProjectInfoGatherer::GatherInfo( const TStringVector& rootDirs      
         ++i;
     }
     MergeDirProcessingInstructionsMap( projectInfo->dirProcessingInstructions, newProcessingInstructions, true );
+
+    CORE::CDateTime end2 = CORE::CDateTime::NowUTCDateTime();
+
+    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Gathering processing instructions took " + CORE::ToString( start.GetTimeDifferenceInMillisecondsTowards( end ) ) );
+    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Gathering module information took " + CORE::ToString( end.GetTimeDifferenceInMillisecondsTowards( end2 ) ) );
+    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Total file discovery took " + CORE::ToString( start.GetTimeDifferenceInMillisecondsTowards( end2 ) ) );
 
     ProcessModuleInformation( m_threadPool, projectInfo, allModuleDirs );
 

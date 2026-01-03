@@ -1538,6 +1538,7 @@ elseif (WIN32)
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
+    ../gucefCORE/include/mswin/gucefCORE_cppmswinutils.h
     ../gucefCORE/include/mswin/gucefCORE_mswinutils.h
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
@@ -1583,6 +1584,7 @@ elseif (WIN32)
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
+    ../gucefCORE/src/mswin/gucefCORE_cppmswinutils.cpp
     ../gucefCORE/src/mswin/gucefCORE_mswinutils.cpp
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
@@ -1630,6 +1632,7 @@ elseif (WIN64)
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
+    ../gucefCORE/include/mswin/gucefCORE_cppmswinutils.h
     ../gucefCORE/include/mswin/gucefCORE_mswinutils.h
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
@@ -1675,6 +1678,7 @@ elseif (WIN64)
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
+    ../gucefCORE/src/mswin/gucefCORE_cppmswinutils.cpp
     ../gucefCORE/src/mswin/gucefCORE_mswinutils.cpp
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp

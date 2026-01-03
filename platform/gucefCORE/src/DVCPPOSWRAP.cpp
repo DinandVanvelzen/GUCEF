@@ -57,6 +57,11 @@
 #define GUCEF_MT_CSCOPEMUTEX_H
 #endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
 
+#ifndef GUCEF_MT_CNOLOCK_H
+#include "gucefMT_CNoLock.h"
+#define GUCEF_MT_CNOLOCK_H
+#endif /* GUCEF_MT_CNOLOCK_H ? */
+
 #ifndef GUCEF_CORE_DVCPPOSWRAP_H
 #include "DVCPPOSWRAP.h"
 #define GUCEF_CORE_DVCPPOSWRAP_H
