@@ -1337,23 +1337,28 @@ CTBasicSharedPtr< T, LockType >::Unlink( void )
             --m_shared->m_refCounter;
             assert( m_shared->m_refCounter >= 0 );
             if ( 0 >= m_shared->m_refCounter )
-            {
-                bool sharedDataIsIndependent = m_shared->m_hasIndependentLifeCycle;
+            {                
+                TBasicSharedPtrSharedData< LockType >* localSharedRef = m_shared;
+                bool sharedDataIsIndependent = localSharedRef->m_hasIndependentLifeCycle;
 
                 // We should check if the destructor pointer is not-NULL
                 // A descending class may NULL it for its own purposes.
-                if ( GUCEF_NULL != m_shared->m_voidDestructor )
+                if ( GUCEF_NULL != localSharedRef->m_voidDestructor )
                 {
-                    GUCEF_CHECKALLOCPTR( m_shared->m_originalAddressAsCreated );
-                    m_shared->m_voidDestructor->DestroyKnownVoidedObject( m_shared->m_originalAddressAsCreated );
-                    m_shared->m_voidDestructor = GUCEF_NULL;
-                    m_shared->m_originalAddressAsCreated = GUCEF_NULL;
+                    // Given there is no retry mechanism and we assume destroy succeeds we will null the pointers right away
+                    // thus any invalid reuse of the same memory space is more likely to run into a null pointer rather than a dangling pointer
+                    CIDynamicVoidDestructor* voidDestructor = localSharedRef->m_voidDestructor;
+                    void* originalAddressAsCreated = localSharedRef->m_originalAddressAsCreated;
+                    localSharedRef->m_voidDestructor = GUCEF_NULL;
+                    localSharedRef->m_originalAddressAsCreated = GUCEF_NULL;
+
+                    GUCEF_CHECKALLOCPTR( originalAddressAsCreated );
+                    voidDestructor->DestroyKnownVoidedObject( originalAddressAsCreated );
                 }
                 m_ptr = GUCEF_NULL;
 
                 if ( sharedDataIsIndependent )
-                {
-                    TBasicSharedPtrSharedData< LockType >* localSharedRef = m_shared;
+                {                    
                     m_shared = GUCEF_NULL;
                     localSharedRef->m_lock.Unlock();
                     GUCEF_DELETE localSharedRef;
@@ -1386,9 +1391,19 @@ CTBasicSharedPtr< T, LockType >::Unlink( void )
                 bool sharedDataIsIndependent = localSharedRef->m_hasIndependentLifeCycle;
 
                 // We should check if the destructor pointer is not-NULL
-                // Under most conditions there would be no object destructor if there is no objected pointed to
+                // Under most conditions there would be no object destructor if there is no object pointed to
                 if ( GUCEF_NULL != localSharedRef->m_voidDestructor )
-                    localSharedRef->m_voidDestructor->DestroyKnownVoidedObject( localSharedRef->m_originalAddressAsCreated );
+                {
+                    // Given there is no retry mechanism and we assume destroy succeeds we will null the pointers right away
+                    // thus any invalid reuse of the same memory space is more likely to run into a null pointer rather than a dangling pointer
+                    CIDynamicVoidDestructor* voidDestructor = localSharedRef->m_voidDestructor;
+                    void* originalAddressAsCreated = localSharedRef->m_originalAddressAsCreated;
+                    localSharedRef->m_voidDestructor = GUCEF_NULL;
+                    localSharedRef->m_originalAddressAsCreated = GUCEF_NULL;
+
+                    GUCEF_CHECKALLOCPTR( originalAddressAsCreated );
+                    voidDestructor->DestroyKnownVoidedObject( originalAddressAsCreated );
+                }
 
                 if ( sharedDataIsIndependent )
                 {
