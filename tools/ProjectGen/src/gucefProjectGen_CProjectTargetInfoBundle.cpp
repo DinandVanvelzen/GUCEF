@@ -312,32 +312,23 @@ CProjectTargetInfoBundle::CollapseRedundantPlatformTargets( void )
     TProjectTargetInfoPtrMapMap::iterator t = m_projects.begin();
     while ( t != m_projects.end() )
     {
-        // First check to see if this module has a 'AllPlatforms' definition
-        // Without one we cannot collapse since there is no unifying target to collapse to
+        // We only process for modules which have an 'AllPlatforms' definition since any additional platforms
+        // should be additive to that baseline definition
+        // Without one we cannot collapse since there is no unifying target to collapse to as we cannot assume
+        // that a given target is available on all platforms unless explicitly defined as such
+
         TProjectTargetInfoPtrMap& targetByPlatform = (*t).second;
-        TProjectTargetInfoPtrMap::iterator a = targetByPlatform.find( KnownPlatforms::AllPlatforms );
-        if ( a != targetByPlatform.end() )
+
+        CORE::CStringMapSet platformRedundancyMap;
+        IdentifyRedundantPlatformTargetsForPlatform( targetByPlatform             ,
+                                                     KnownPlatforms::AllPlatforms ,
+                                                     platformRedundancyMap       );
+
+        CORE::CStringMapSet::const_iterator a = platformRedundancyMap.find( KnownPlatforms::AllPlatforms );
+        if ( a != platformRedundancyMap.end() )
         {
-            CProjectTargetInfoPtr& allPlatformsTarget = (*a).second;
-                
-            // We now check to see if the modules match across platforms which is all that is needed here
-            // The modules themselves will deal with platform specifics at an intra-module level
-            // The use-case we look for are cases where some platforms have different modules then others
-            // in which case we need to keep them as distinct targets
-            TStringSet redundantPlatforms; 
-            TProjectTargetInfoPtrMap::iterator m = targetByPlatform.begin();
-            while (  m != targetByPlatform.end() )
-            {
-                const CORE::CString& currentPlatform = (*m).first;
-                if ( currentPlatform != KnownPlatforms::AllPlatforms )
-                {
-                    CProjectTargetInfoPtr& somePlatformTarget = (*m).second;
-                    if ( somePlatformTarget->modules == allPlatformsTarget->modules )
-                        redundantPlatforms.insert( currentPlatform );
-                }
-                ++m;
-            }
-            TStringSet::iterator r = redundantPlatforms.begin();
+            const TStringSet& redundantPlatforms = (*a).second;
+            TStringSet::const_iterator r = redundantPlatforms.begin();
             while ( r != redundantPlatforms.end() )
             {
                 targetByPlatform.erase( (*r) );
@@ -346,6 +337,91 @@ CProjectTargetInfoBundle::CollapseRedundantPlatformTargets( void )
         }
         // else: targets that don't have a 'AllPlatforms' target cannot be collapsed
         ++t;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectTargetInfoBundle::IdentifyRedundantPlatformTargetsForPlatform( const TProjectTargetInfoPtrMap& targetByPlatform   ,
+                                                                       const CORE::CString& platformName                  ,
+                                                                       CORE::CStringMapSet& redundantPlatformsPerPlatform )
+{GUCEF_TRACE;
+
+    TProjectTargetInfoPtrMap::const_iterator a = targetByPlatform.find( platformName );
+    if ( a != targetByPlatform.end() )
+    {
+        const CProjectTargetInfoPtr& chosenPlatformsTarget = (*a).second;
+        TStringSet& redundantPlatforms = redundantPlatformsPerPlatform[ platformName ];
+
+        // We check to see if the modules match across platforms which is all that is needed here
+        // The modules themselves will deal with platform specifics at an intra-module level
+        // The use-case we look for are cases where some platforms have different modules then others
+        // in which case we need to keep them as distinct targets        
+        TProjectTargetInfoPtrMap::const_iterator m = targetByPlatform.begin();
+        while (  m != targetByPlatform.end() )
+        {
+            const CORE::CString& currentPlatform = (*m).first;
+            if ( currentPlatform != platformName )
+            {
+                const CProjectTargetInfoPtr& somePlatformTarget = (*m).second;
+                if ( somePlatformTarget->mainModule == chosenPlatformsTarget->mainModule         &&
+                     somePlatformTarget->mainModuleName == chosenPlatformsTarget->mainModuleName &&
+                     somePlatformTarget->modules == chosenPlatformsTarget->modules                )
+                {
+                    redundantPlatforms.insert( currentPlatform );
+                }
+            }
+            ++m;
+        }
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectTargetInfoBundle::IdentifyRedundantPlatformTargets( CORE::CStringMapMapSet& redundantPlatformsPerProjectTarget ) const
+{GUCEF_TRACE;
+
+    TProjectTargetInfoPtrMapMap::const_iterator i = m_projects.begin();
+    while ( i != m_projects.end() )
+    {
+        const CORE::CString& targetProjectName = (*i).first;
+        const TProjectTargetInfoPtrMap& platformsForProject = (*i).second;
+        CORE::CStringMapSet& redundantPlatformsForProject = redundantPlatformsPerProjectTarget[ targetProjectName ];
+
+        TProjectTargetInfoPtrMap::const_iterator n = platformsForProject.begin();
+        while ( n != platformsForProject.end() )
+        {
+            const CORE::CString& platformName = (*n).first;
+
+            // Don't re-process platforms already marked as redundant
+            bool alreadyRedundant = false;
+            CORE::CStringMapSet::iterator r = redundantPlatformsForProject.begin();
+            while ( r != redundantPlatformsForProject.end() )
+            {
+                const CORE::CStringSet& currentRedundantPlatforms = (*r).second;
+                if ( currentRedundantPlatforms.find( platformName ) != currentRedundantPlatforms.end() )
+                {
+                    // This platform is already marked as redundant against another platform
+                    alreadyRedundant = true;
+                    break;
+                }
+
+                ++r;
+            }
+
+            if ( !alreadyRedundant )
+            {
+                IdentifyRedundantPlatformTargetsForPlatform( platformsForProject          ,
+                                                             platformName                 ,
+                                                             redundantPlatformsForProject );
+            }
+
+            ++n;
+        }
+
+        ++i;
     }
 }
 
@@ -362,11 +438,18 @@ CProjectTargetInfoBundle::Serialize( CORE::CDataNode& domRootNode               
     if ( GUCEF_NULL == projectsNode )
         return false;
 
+    // Before we serialize we identify redundant platform targets so that we can avoid adding
+    // duplicate content to the DOM where we support a notation of multiple platforms sharing the same target info via a single section
+    // this is done via the ';' delimited list in the 'Platform' attribute of the PlatformTargetInfo node
+    CORE::CStringMapMapSet redundantPlatformsPerProjectTarget;
+    IdentifyRedundantPlatformTargets( redundantPlatformsPerProjectTarget );
+
     TProjectTargetInfoPtrMapMap::const_iterator i = m_projects.begin();
     while ( i != m_projects.end() )
     {
         const CORE::CString& targetProjectName = (*i).first;
         const TProjectTargetInfoPtrMap& platformsForProject = (*i).second;
+        CORE::CStringMapSet& redundantPlatformsForProject = redundantPlatformsPerProjectTarget[ targetProjectName ];
 
         CORE::CDataNode* targetNode = projectsNode->AddChild( "Target", GUCEF_DATATYPE_OBJECT );
         if ( GUCEF_NULL == targetNode )
@@ -382,14 +465,58 @@ CProjectTargetInfoBundle::Serialize( CORE::CDataNode& domRootNode               
 
             if ( !project.IsNULL() )
             {
-                // We should only serialize platform targets that have content to avoid clutter which doesnt add value
+                // We should only serialize platform targets that have content to avoid clutter which doesn't add value
                 if ( !project->modules.empty() || !project->mainModule.IsNULL() )
                 {
-                    CORE::CDataNode* platformTargetInfoNode = targetNode->AddChild( "PlatformTargetInfo", GUCEF_DATATYPE_OBJECT );
-                    if ( GUCEF_NULL == platformTargetInfoNode )
-                        return false;
+                    bool isRedundant = false;
+                    bool isMultiPlatform = false;
+                    CORE::CString comboPlatformStr;
 
-                    totalSuccess = project->Serialize( *platformTargetInfoNode, settings ) && totalSuccess;
+                    CORE::CStringMapSet::iterator m = redundantPlatformsForProject.find( platformName );
+                    if ( m != redundantPlatformsForProject.end() )
+                    {
+                        CORE::CStringSet& redundantPlatforms = m->second;
+                        if ( !redundantPlatforms.empty() )
+                        {
+                            CORE::CStringSet reducedRedundantPlatforms( redundantPlatforms );
+                            reducedRedundantPlatforms.insert( platformName );
+                            reducedRedundantPlatforms = ReduceToUseMultiPlatformNamesIfFeasible( reducedRedundantPlatforms );
+                            comboPlatformStr = CORE::StringSetToString( reducedRedundantPlatforms, CORE::CString::Empty, ';' );
+                            isMultiPlatform = true;
+                        }
+                    }
+                    else
+                    {
+                        m = redundantPlatformsForProject.begin();
+                        while ( m != redundantPlatformsForProject.end() )
+                        {
+                            const CORE::CStringSet& redundantPlatforms = (*m).second;
+                            if ( redundantPlatforms.find( platformName ) != redundantPlatforms.end() )
+                            {
+                                isRedundant = true;
+                                break;
+                            }
+                            ++m;
+                        }
+                    }
+
+                    if ( !isRedundant )
+                    {
+                        CORE::CDataNode* platformTargetInfoNode = targetNode->AddChild( "PlatformTargetInfo", GUCEF_DATATYPE_OBJECT );
+                        if ( GUCEF_NULL == platformTargetInfoNode )
+                            return false;
+
+                        totalSuccess = project->Serialize( *platformTargetInfoNode, settings ) && totalSuccess;
+
+                        // if in reality this target info applies to multiple platforms then denote that
+                        // we do so by overriding the platform attribute with a ';' delimited list of platforms
+                        if ( isMultiPlatform )
+                        {
+                            platformTargetInfoNode->SetAttribute( "Platform", comboPlatformStr );
+                            comboPlatformStr.Clear();
+                            isMultiPlatform = false;
+                        }
+                    }
                 }
             }
             ++n;
@@ -429,23 +556,36 @@ CProjectTargetInfoBundle::Deserialize( const CORE::CDataNode& domRootNode       
                 const CORE::CDataNode* platformTargetInfoNode = (*n);
                 if GUCEF_PREDICT_TRUE( GUCEF_NULL != platformTargetInfoNode )
                 {
-                    CProjectTargetInfoPtr projectTargetInfo = CProjectTargetInfo::CreateSharedObj();
-                    if GUCEF_PREDICT_TRUE( !projectTargetInfo.IsNULL() )
+                    // Identical platforms, content wise, can be grouped under one target info node
+                    // we will split them up here as its a serialization/deserialization convenience/compression feature but they are distinct targets
+                    // this is done via the ';' delimited list in the 'Platform' attribute of the PlatformTargetInfo node
+                    // its a DOM convenience feature only
+                    CORE::CStringSet platforms = ResolveMultiPlatformName( platformTargetInfoNode->GetAttributeValueOrChildValueByName( "Platform" ).AsString() );
+
+                    CORE::CStringSet::iterator p = platforms.begin();
+                    while ( p != platforms.end() )
                     {
-                        bool deserializeTargetSuccess = projectTargetInfo->Deserialize( *platformTargetInfoNode, settings );
-                        if ( deserializeTargetSuccess )
+                        const CORE::CString& platformName = (*p);
+
+                        CProjectTargetInfoPtr projectTargetInfo = CProjectTargetInfo::CreateSharedObj();
+                        if GUCEF_PREDICT_TRUE( !projectTargetInfo.IsNULL() )
                         {
-                            const CORE::CString& platformName = projectTargetInfo->GetPlatformName();
-                            m_projects[ targetProjectName ][ platformName ] = projectTargetInfo;
+                            bool deserializeTargetSuccess = projectTargetInfo->Deserialize( *platformTargetInfoNode, settings );
+                            if ( deserializeTargetSuccess )
+                            {
+                                projectTargetInfo->SetPlatformName( platformName );
+                                m_projects[ targetProjectName ][ platformName ] = projectTargetInfo;
+                            }
+                            else
+                            {
+                                totalSuccess = false;
+                            }
                         }
                         else
                         {
                             totalSuccess = false;
                         }
-                    }
-                    else
-                    {
-                        totalSuccess = false;
+                        ++p;
                     }
                 }
                 else

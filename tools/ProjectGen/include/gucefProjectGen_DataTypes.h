@@ -749,9 +749,16 @@ HasIndependentModuleType( const TModuleInfoPtrMap& moduleDefs );
 // and return the actual platforms the multiplatform name maps to. If the name is not
 // a multiplatform name the same name is returned
 GUCEF_PROJECTGEN_PUBLIC_CPP
-TStringSet
-ResolveMultiPlatformName( const CORE::CString& platformName          ,
-                          const TPlatformDefinitionMap* platformDefs );
+CORE::CStringSet
+ResolveMultiPlatformName( const CORE::CString& platformName                       ,
+                          const TPlatformDefinitionMap* platformDefs = GUCEF_NULL );
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF_PROJECTGEN_PUBLIC_CPP
+CORE::CStringSet
+ReduceToUseMultiPlatformNamesIfFeasible( const CORE::CStringSet& platformNames                   ,
+                                         const TPlatformDefinitionMap* platformDefs = GUCEF_NULL );
 
 /*-------------------------------------------------------------------------*/
 

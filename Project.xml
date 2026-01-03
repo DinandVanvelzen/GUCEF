@@ -51066,28 +51066,7 @@
 			</PlatformTargetInfo>
 		</Target>
 		<Target name="GUCEF_exe_CMakeListGenerator" >
-			<PlatformTargetInfo MainModuleName="CMakeListGenerator" Platform="linux32" ProjectName="GUCEF_exe_CMakeListGenerator" >
-				<ModuleNames>
-					<ModuleName>CMakeListGenerator</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="CMakeListGenerator" Platform="linux64" ProjectName="GUCEF_exe_CMakeListGenerator" >
-				<ModuleNames>
-					<ModuleName>CMakeListGenerator</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="CMakeListGenerator" Platform="win32" ProjectName="GUCEF_exe_CMakeListGenerator" >
-				<ModuleNames>
-					<ModuleName>CMakeListGenerator</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="CMakeListGenerator" Platform="win64" ProjectName="GUCEF_exe_CMakeListGenerator" >
+			<PlatformTargetInfo MainModuleName="CMakeListGenerator" Platform="linux;mswin" ProjectName="GUCEF_exe_CMakeListGenerator" >
 				<ModuleNames>
 					<ModuleName>CMakeListGenerator</ModuleName>
 					<ModuleName>gucefCORE</ModuleName>
@@ -51174,32 +51153,7 @@
 					<ModuleName>zziplib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_FilePusher" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_FilePusher" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_FilePusher" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_FilePusher" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_FilePusher" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_FilePusher" >
+			<PlatformTargetInfo Platform="emscripten;linux;mswin" ProjectName="GUCEF_exe_FilePusher" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
@@ -51257,40 +51211,13 @@
 					<ModuleName>zziplib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_FileSorter" >
+			<PlatformTargetInfo Platform="emscripten" ProjectName="GUCEF_exe_FileSorter" >
 				<ModuleNames>
 					<ModuleName>imgpluginFreeImage</ModuleName>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_FileSorter" >
-				<ModuleNames>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_FileSorter" >
-				<ModuleNames>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_FileSorter" >
-				<ModuleNames>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_FileSorter" >
-				<ModuleNames>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_FileSorter" >
+			<PlatformTargetInfo Platform="linux;mswin" ProjectName="GUCEF_exe_FileSorter" >
 				<ModuleNames>
 					<ModuleName>FreeImage</ModuleName>
 					<ModuleName>imgpluginFreeImage</ModuleName>
@@ -51343,32 +51270,7 @@
 					<ModuleName>zziplib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_GucefArchiver" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_GucefArchiver" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_GucefArchiver" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_GucefArchiver" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_GucefArchiver" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_GucefArchiver" >
+			<PlatformTargetInfo Platform="emscripten;linux;mswin" ProjectName="GUCEF_exe_GucefArchiver" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
@@ -51394,32 +51296,7 @@
 					<ModuleName>libparsifal</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_GucefLogServiceApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_GucefLogServiceApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_GucefLogServiceApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_GucefLogServiceApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_GucefLogServiceApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_GucefLogServiceApp" >
+			<PlatformTargetInfo Platform="emscripten;linux;mswin" ProjectName="GUCEF_exe_GucefLogServiceApp" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
@@ -51447,15 +51324,7 @@
 			</PlatformTargetInfo>
 		</Target>
 		<Target name="GUCEF_exe_MemoryLeakFinder_TestApp" >
-			<PlatformTargetInfo MainModuleName="MemoryLeakFinder_TestApp" Platform="win32" ProjectName="GUCEF_exe_MemoryLeakFinder_TestApp" >
-				<ModuleNames>
-					<ModuleName>MemoryLeakFinder</ModuleName>
-					<ModuleName>MemoryLeakFinder_TestApp</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MemoryLeakFinder_TestApp" Platform="win64" ProjectName="GUCEF_exe_MemoryLeakFinder_TestApp" >
+			<PlatformTargetInfo MainModuleName="MemoryLeakFinder_TestApp" Platform="mswin" ProjectName="GUCEF_exe_MemoryLeakFinder_TestApp" >
 				<ModuleNames>
 					<ModuleName>MemoryLeakFinder</ModuleName>
 					<ModuleName>MemoryLeakFinder_TestApp</ModuleName>
@@ -51465,29 +51334,7 @@
 			</PlatformTargetInfo>
 		</Target>
 		<Target name="GUCEF_exe_MsmqMetrics" >
-			<PlatformTargetInfo MainModuleName="MsmqMetrics" Platform="win32" ProjectName="GUCEF_exe_MsmqMetrics" >
-				<ModuleNames>
-					<ModuleName>MsmqMetrics</ModuleName>
-					<ModuleName>codecspluginSTBRUMMEHASH</ModuleName>
-					<ModuleName>codecspluginZLIB</ModuleName>
-					<ModuleName>dstorepluginJSONPARSER</ModuleName>
-					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
-					<ModuleName>dstorepluginYAML</ModuleName>
-					<ModuleName>gucefCOM</ModuleName>
-					<ModuleName>gucefCOMCORE</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-					<ModuleName>gucefVFS</ModuleName>
-					<ModuleName>gucefWEB</ModuleName>
-					<ModuleName>jsonbuilder</ModuleName>
-					<ModuleName>jsonparser</ModuleName>
-					<ModuleName>libparsifal</ModuleName>
-					<ModuleName>stbrumme-hash</ModuleName>
-					<ModuleName>yaml</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MsmqMetrics" Platform="win64" ProjectName="GUCEF_exe_MsmqMetrics" >
+			<PlatformTargetInfo MainModuleName="MsmqMetrics" Platform="mswin" ProjectName="GUCEF_exe_MsmqMetrics" >
 				<ModuleNames>
 					<ModuleName>MsmqMetrics</ModuleName>
 					<ModuleName>codecspluginSTBRUMMEHASH</ModuleName>
@@ -51511,34 +51358,7 @@
 			</PlatformTargetInfo>
 		</Target>
 		<Target name="GUCEF_exe_MyGUI.FontViewer" >
-			<PlatformTargetInfo MainModuleName="MyGUI.FontViewer" Platform="linux32" ProjectName="GUCEF_exe_MyGUI.FontViewer" >
-				<ModuleNames>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.FontViewer</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MyGUI.FontViewer" Platform="linux64" ProjectName="GUCEF_exe_MyGUI.FontViewer" >
-				<ModuleNames>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.FontViewer</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MyGUI.FontViewer" Platform="win32" ProjectName="GUCEF_exe_MyGUI.FontViewer" >
-				<ModuleNames>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.FontViewer</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MyGUI.FontViewer" Platform="win64" ProjectName="GUCEF_exe_MyGUI.FontViewer" >
+			<PlatformTargetInfo MainModuleName="MyGUI.FontViewer" Platform="linux;mswin" ProjectName="GUCEF_exe_MyGUI.FontViewer" >
 				<ModuleNames>
 					<ModuleName>MyGUI.Engine</ModuleName>
 					<ModuleName>MyGUI.FontViewer</ModuleName>
@@ -51549,34 +51369,7 @@
 			</PlatformTargetInfo>
 		</Target>
 		<Target name="GUCEF_exe_MyGUI.ImageSetViewer" >
-			<PlatformTargetInfo MainModuleName="MyGUI.ImageSetViewer" Platform="linux32" ProjectName="GUCEF_exe_MyGUI.ImageSetViewer" >
-				<ModuleNames>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.ImageSetViewer</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MyGUI.ImageSetViewer" Platform="linux64" ProjectName="GUCEF_exe_MyGUI.ImageSetViewer" >
-				<ModuleNames>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.ImageSetViewer</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MyGUI.ImageSetViewer" Platform="win32" ProjectName="GUCEF_exe_MyGUI.ImageSetViewer" >
-				<ModuleNames>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.ImageSetViewer</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MyGUI.ImageSetViewer" Platform="win64" ProjectName="GUCEF_exe_MyGUI.ImageSetViewer" >
+			<PlatformTargetInfo MainModuleName="MyGUI.ImageSetViewer" Platform="linux;mswin" ProjectName="GUCEF_exe_MyGUI.ImageSetViewer" >
 				<ModuleNames>
 					<ModuleName>MyGUI.Engine</ModuleName>
 					<ModuleName>MyGUI.ImageSetViewer</ModuleName>
@@ -51587,7 +51380,7 @@
 			</PlatformTargetInfo>
 		</Target>
 		<Target name="GUCEF_exe_MyGUI.LayoutEditor" >
-			<PlatformTargetInfo MainModuleName="MyGUI.LayoutEditor" Platform="linux32" ProjectName="GUCEF_exe_MyGUI.LayoutEditor" >
+			<PlatformTargetInfo MainModuleName="MyGUI.LayoutEditor" Platform="linux" ProjectName="GUCEF_exe_MyGUI.LayoutEditor" >
 				<ModuleNames>
 					<ModuleName>MyGUI.Engine</ModuleName>
 					<ModuleName>MyGUI.LayoutEditor</ModuleName>
@@ -51597,26 +51390,7 @@
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MyGUI.LayoutEditor" Platform="linux64" ProjectName="GUCEF_exe_MyGUI.LayoutEditor" >
-				<ModuleNames>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.LayoutEditor</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>OIS</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MyGUI.LayoutEditor" Platform="win32" ProjectName="GUCEF_exe_MyGUI.LayoutEditor" >
-				<ModuleNames>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.LayoutEditor</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MyGUI.LayoutEditor" Platform="win64" ProjectName="GUCEF_exe_MyGUI.LayoutEditor" >
+			<PlatformTargetInfo MainModuleName="MyGUI.LayoutEditor" Platform="mswin" ProjectName="GUCEF_exe_MyGUI.LayoutEditor" >
 				<ModuleNames>
 					<ModuleName>MyGUI.Engine</ModuleName>
 					<ModuleName>MyGUI.LayoutEditor</ModuleName>
@@ -51627,34 +51401,7 @@
 			</PlatformTargetInfo>
 		</Target>
 		<Target name="GUCEF_exe_MyGUI.SkinEditor" >
-			<PlatformTargetInfo MainModuleName="MyGUI.SkinEditor" Platform="linux32" ProjectName="GUCEF_exe_MyGUI.SkinEditor" >
-				<ModuleNames>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>MyGUI.SkinEditor</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MyGUI.SkinEditor" Platform="linux64" ProjectName="GUCEF_exe_MyGUI.SkinEditor" >
-				<ModuleNames>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>MyGUI.SkinEditor</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MyGUI.SkinEditor" Platform="win32" ProjectName="GUCEF_exe_MyGUI.SkinEditor" >
-				<ModuleNames>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>MyGUI.SkinEditor</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="MyGUI.SkinEditor" Platform="win64" ProjectName="GUCEF_exe_MyGUI.SkinEditor" >
+			<PlatformTargetInfo MainModuleName="MyGUI.SkinEditor" Platform="linux;mswin" ProjectName="GUCEF_exe_MyGUI.SkinEditor" >
 				<ModuleNames>
 					<ModuleName>MyGUI.Engine</ModuleName>
 					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
@@ -51681,17 +51428,7 @@
 			</PlatformTargetInfo>
 		</Target>
 		<Target name="GUCEF_exe_PatchSetGenerator" >
-			<PlatformTargetInfo MainModuleName="PatchSetGenerator" Platform="win32" ProjectName="GUCEF_exe_PatchSetGenerator" >
-				<ModuleNames>
-					<ModuleName>PatchSetGenerator</ModuleName>
-					<ModuleName>gucefCOM</ModuleName>
-					<ModuleName>gucefCOMCORE</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-					<ModuleName>gucefPATCHER</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="PatchSetGenerator" Platform="win64" ProjectName="GUCEF_exe_PatchSetGenerator" >
+			<PlatformTargetInfo MainModuleName="PatchSetGenerator" Platform="mswin" ProjectName="GUCEF_exe_PatchSetGenerator" >
 				<ModuleNames>
 					<ModuleName>PatchSetGenerator</ModuleName>
 					<ModuleName>gucefCOM</ModuleName>
@@ -51732,50 +51469,12 @@
 					<ModuleName>yaml</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_ProcessMetrics" >
+			<PlatformTargetInfo Platform="emscripten;linux" ProjectName="GUCEF_exe_ProcessMetrics" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_ProcessMetrics" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_ProcessMetrics" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_ProcessMetrics" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_ProcessMetrics" >
-				<ModuleNames>
-					<ModuleName>aws-c-auth</ModuleName>
-					<ModuleName>aws-c-cal</ModuleName>
-					<ModuleName>aws-c-common</ModuleName>
-					<ModuleName>aws-c-compression</ModuleName>
-					<ModuleName>aws-c-event-stream</ModuleName>
-					<ModuleName>aws-c-http</ModuleName>
-					<ModuleName>aws-c-io</ModuleName>
-					<ModuleName>aws-c-mqtt</ModuleName>
-					<ModuleName>aws-c-s3</ModuleName>
-					<ModuleName>aws-c-sdkutils</ModuleName>
-					<ModuleName>aws-checksums</ModuleName>
-					<ModuleName>aws-cpp-sdk-core</ModuleName>
-					<ModuleName>aws-cpp-sdk-sqs</ModuleName>
-					<ModuleName>aws-crt-cpp</ModuleName>
-					<ModuleName>curl</ModuleName>
-					<ModuleName>pluginglueAWSSDK</ModuleName>
-					<ModuleName>pubsubpluginAWSSQS</ModuleName>
-					<ModuleName>pubsubpluginMSMQ</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_ProcessMetrics" >
+			<PlatformTargetInfo Platform="mswin" ProjectName="GUCEF_exe_ProcessMetrics" >
 				<ModuleNames>
 					<ModuleName>aws-c-auth</ModuleName>
 					<ModuleName>aws-c-cal</ModuleName>
@@ -51861,32 +51560,7 @@
 					<ModuleName>zziplib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_PubSubStorageTool" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_PubSubStorageTool" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_PubSubStorageTool" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_PubSubStorageTool" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_PubSubStorageTool" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_PubSubStorageTool" >
+			<PlatformTargetInfo Platform="emscripten;linux;mswin" ProjectName="GUCEF_exe_PubSubStorageTool" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
@@ -51987,33 +51661,12 @@
 					<ModuleName>stbrumme-hash</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_gucefCOMCORE_TestApp" >
+			<PlatformTargetInfo Platform="emscripten;linux" ProjectName="GUCEF_exe_gucefCOMCORE_TestApp" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_gucefCOMCORE_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_gucefCOMCORE_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_gucefCOMCORE_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_gucefCOMCORE_TestApp" >
-				<ModuleNames>
-					<ModuleName>MemoryLeakFinder</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_gucefCOMCORE_TestApp" >
+			<PlatformTargetInfo Platform="mswin" ProjectName="GUCEF_exe_gucefCOMCORE_TestApp" >
 				<ModuleNames>
 					<ModuleName>MemoryLeakFinder</ModuleName>
 					<ModuleName>zlib</ModuleName>
@@ -52030,12 +51683,7 @@
 					<ModuleName>gucefMT</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_gucefCOM_TestApp" >
-				<ModuleNames>
-					<ModuleName>MemoryLeakFinder</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_gucefCOM_TestApp" >
+			<PlatformTargetInfo Platform="mswin" ProjectName="GUCEF_exe_gucefCOM_TestApp" >
 				<ModuleNames>
 					<ModuleName>MemoryLeakFinder</ModuleName>
 				</ModuleNames>
@@ -52058,23 +51706,12 @@
 					<ModuleName>yaml</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_gucefCORE_TestApp" >
+			<PlatformTargetInfo Platform="linux" ProjectName="GUCEF_exe_gucefCORE_TestApp" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_gucefCORE_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_gucefCORE_TestApp" >
-				<ModuleNames>
-					<ModuleName>MemoryLeakFinder</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_gucefCORE_TestApp" >
+			<PlatformTargetInfo Platform="mswin" ProjectName="GUCEF_exe_gucefCORE_TestApp" >
 				<ModuleNames>
 					<ModuleName>MemoryLeakFinder</ModuleName>
 					<ModuleName>zlib</ModuleName>
@@ -52082,49 +51719,7 @@
 			</PlatformTargetInfo>
 		</Target>
 		<Target name="GUCEF_exe_gucefDRN_TestApp" >
-			<PlatformTargetInfo MainModuleName="gucefDRN_TestApp" Platform="linux32" ProjectName="GUCEF_exe_gucefDRN_TestApp" >
-				<ModuleNames>
-					<ModuleName>dstorepluginJSONPARSER</ModuleName>
-					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
-					<ModuleName>gucefCOMCORE</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefDRN</ModuleName>
-					<ModuleName>gucefDRN_TestApp</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-					<ModuleName>jsonbuilder</ModuleName>
-					<ModuleName>jsonparser</ModuleName>
-					<ModuleName>libparsifal</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="gucefDRN_TestApp" Platform="linux64" ProjectName="GUCEF_exe_gucefDRN_TestApp" >
-				<ModuleNames>
-					<ModuleName>dstorepluginJSONPARSER</ModuleName>
-					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
-					<ModuleName>gucefCOMCORE</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefDRN</ModuleName>
-					<ModuleName>gucefDRN_TestApp</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-					<ModuleName>jsonbuilder</ModuleName>
-					<ModuleName>jsonparser</ModuleName>
-					<ModuleName>libparsifal</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="gucefDRN_TestApp" Platform="win32" ProjectName="GUCEF_exe_gucefDRN_TestApp" >
-				<ModuleNames>
-					<ModuleName>dstorepluginJSONPARSER</ModuleName>
-					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
-					<ModuleName>gucefCOMCORE</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefDRN</ModuleName>
-					<ModuleName>gucefDRN_TestApp</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-					<ModuleName>jsonbuilder</ModuleName>
-					<ModuleName>jsonparser</ModuleName>
-					<ModuleName>libparsifal</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="gucefDRN_TestApp" Platform="win64" ProjectName="GUCEF_exe_gucefDRN_TestApp" >
+			<PlatformTargetInfo MainModuleName="gucefDRN_TestApp" Platform="linux;mswin" ProjectName="GUCEF_exe_gucefDRN_TestApp" >
 				<ModuleNames>
 					<ModuleName>dstorepluginJSONPARSER</ModuleName>
 					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
@@ -52140,7 +51735,7 @@
 			</PlatformTargetInfo>
 		</Target>
 		<Target name="GUCEF_exe_gucefGUI_TestApp" >
-			<PlatformTargetInfo MainModuleName="gucefGUI_TestApp" Platform="android32" ProjectName="GUCEF_exe_gucefGUI_TestApp" >
+			<PlatformTargetInfo MainModuleName="gucefGUI_TestApp" Platform="android" ProjectName="GUCEF_exe_gucefGUI_TestApp" >
 				<ModuleNames>
 					<ModuleName>CEGUI</ModuleName>
 					<ModuleName>CEGUI.RendererModule.Ogre</ModuleName>
@@ -52203,150 +51798,7 @@
 					<ModuleName>zziplib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="gucefGUI_TestApp" Platform="android64" ProjectName="GUCEF_exe_gucefGUI_TestApp" >
-				<ModuleNames>
-					<ModuleName>CEGUI</ModuleName>
-					<ModuleName>CEGUI.RendererModule.Ogre</ModuleName>
-					<ModuleName>CEGUI.RendererModule.OpenGLES</ModuleName>
-					<ModuleName>DVPACKSYS</ModuleName>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.OpenGLESPlatform</ModuleName>
-					<ModuleName>Ogre</ModuleName>
-					<ModuleName>RocketControls</ModuleName>
-					<ModuleName>RocketCore</ModuleName>
-					<ModuleName>aws-c-auth</ModuleName>
-					<ModuleName>aws-c-cal</ModuleName>
-					<ModuleName>aws-c-common</ModuleName>
-					<ModuleName>aws-c-compression</ModuleName>
-					<ModuleName>aws-c-event-stream</ModuleName>
-					<ModuleName>aws-c-http</ModuleName>
-					<ModuleName>aws-c-io</ModuleName>
-					<ModuleName>aws-c-mqtt</ModuleName>
-					<ModuleName>aws-c-s3</ModuleName>
-					<ModuleName>aws-c-sdkutils</ModuleName>
-					<ModuleName>aws-checksums</ModuleName>
-					<ModuleName>aws-cpp-sdk-core</ModuleName>
-					<ModuleName>aws-cpp-sdk-s3</ModuleName>
-					<ModuleName>aws-crt-cpp</ModuleName>
-					<ModuleName>curl</ModuleName>
-					<ModuleName>dstorepluginJSONPARSER</ModuleName>
-					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
-					<ModuleName>fliclib</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefGUI</ModuleName>
-					<ModuleName>gucefGUI_TestApp</ModuleName>
-					<ModuleName>gucefIMAGE</ModuleName>
-					<ModuleName>gucefINPUT</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-					<ModuleName>gucefVFS</ModuleName>
-					<ModuleName>guidriverAndroidGLES</ModuleName>
-					<ModuleName>guidriverCEGUI</ModuleName>
-					<ModuleName>guidriverCEGUIOgre</ModuleName>
-					<ModuleName>guidriverCEGUIOpenGL</ModuleName>
-					<ModuleName>guidriverMyGUI</ModuleName>
-					<ModuleName>guidriverMyGUIOgre</ModuleName>
-					<ModuleName>guidriverMyGUIOpenGL</ModuleName>
-					<ModuleName>guidriverOgre</ModuleName>
-					<ModuleName>guidriverRocket</ModuleName>
-					<ModuleName>guidriverRocketOpenGL</ModuleName>
-					<ModuleName>imgpluginFLIC</ModuleName>
-					<ModuleName>imgpluginITV</ModuleName>
-					<ModuleName>inputdriverNANDROID</ModuleName>
-					<ModuleName>jsonbuilder</ModuleName>
-					<ModuleName>jsonparser</ModuleName>
-					<ModuleName>libparsifal</ModuleName>
-					<ModuleName>pcre</ModuleName>
-					<ModuleName>pluginglueAWSSDK</ModuleName>
-					<ModuleName>vfspluginAWSS3</ModuleName>
-					<ModuleName>vfspluginDVP</ModuleName>
-					<ModuleName>vfspluginITV</ModuleName>
-					<ModuleName>vfspluginVP</ModuleName>
-					<ModuleName>vfspluginZIP</ModuleName>
-					<ModuleName>zziplib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="gucefGUI_TestApp" Platform="linux32" ProjectName="GUCEF_exe_gucefGUI_TestApp" >
-				<ModuleNames>
-					<ModuleName>CEGUI</ModuleName>
-					<ModuleName>CEGUI.RendererModule.Ogre</ModuleName>
-					<ModuleName>CEGUI.RendererModule.OpenGL</ModuleName>
-					<ModuleName>DVPACKSYS</ModuleName>
-					<ModuleName>DevIL2</ModuleName>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.OgrePlatform</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>OIS</ModuleName>
-					<ModuleName>Ogre</ModuleName>
-					<ModuleName>OpenEXR</ModuleName>
-					<ModuleName>RocketControls</ModuleName>
-					<ModuleName>RocketCore</ModuleName>
-					<ModuleName>aws-c-auth</ModuleName>
-					<ModuleName>aws-c-cal</ModuleName>
-					<ModuleName>aws-c-common</ModuleName>
-					<ModuleName>aws-c-compression</ModuleName>
-					<ModuleName>aws-c-event-stream</ModuleName>
-					<ModuleName>aws-c-http</ModuleName>
-					<ModuleName>aws-c-io</ModuleName>
-					<ModuleName>aws-c-mqtt</ModuleName>
-					<ModuleName>aws-c-s3</ModuleName>
-					<ModuleName>aws-c-sdkutils</ModuleName>
-					<ModuleName>aws-checksums</ModuleName>
-					<ModuleName>aws-cpp-sdk-core</ModuleName>
-					<ModuleName>aws-cpp-sdk-s3</ModuleName>
-					<ModuleName>aws-crt-cpp</ModuleName>
-					<ModuleName>curl</ModuleName>
-					<ModuleName>dstorepluginJSONPARSER</ModuleName>
-					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
-					<ModuleName>fliclib</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>glew</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefGUI</ModuleName>
-					<ModuleName>gucefGUI_TestApp</ModuleName>
-					<ModuleName>gucefIMAGE</ModuleName>
-					<ModuleName>gucefINPUT</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-					<ModuleName>gucefVFS</ModuleName>
-					<ModuleName>guidriverCEGUI</ModuleName>
-					<ModuleName>guidriverCEGUIOgre</ModuleName>
-					<ModuleName>guidriverCEGUIOpenGL</ModuleName>
-					<ModuleName>guidriverMyGUI</ModuleName>
-					<ModuleName>guidriverMyGUIOgre</ModuleName>
-					<ModuleName>guidriverMyGUIOpenGL</ModuleName>
-					<ModuleName>guidriverOgre</ModuleName>
-					<ModuleName>guidriverRocket</ModuleName>
-					<ModuleName>guidriverRocketOpenGL</ModuleName>
-					<ModuleName>guidriverXWinGL</ModuleName>
-					<ModuleName>imgpluginDEVIL</ModuleName>
-					<ModuleName>imgpluginFLIC</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>imgpluginITV</ModuleName>
-					<ModuleName>inputdriverOIS</ModuleName>
-					<ModuleName>inputdriverXWINMSG</ModuleName>
-					<ModuleName>jasper</ModuleName>
-					<ModuleName>jsonbuilder</ModuleName>
-					<ModuleName>jsonparser</ModuleName>
-					<ModuleName>lcms2</ModuleName>
-					<ModuleName>libjpeg</ModuleName>
-					<ModuleName>libmng</ModuleName>
-					<ModuleName>libparsifal</ModuleName>
-					<ModuleName>libpng</ModuleName>
-					<ModuleName>libtiff</ModuleName>
-					<ModuleName>pcre</ModuleName>
-					<ModuleName>pluginglueAWSSDK</ModuleName>
-					<ModuleName>squish</ModuleName>
-					<ModuleName>vfspluginAWSS3</ModuleName>
-					<ModuleName>vfspluginDVP</ModuleName>
-					<ModuleName>vfspluginITV</ModuleName>
-					<ModuleName>vfspluginVP</ModuleName>
-					<ModuleName>vfspluginZIP</ModuleName>
-					<ModuleName>zlib</ModuleName>
-					<ModuleName>zziplib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="gucefGUI_TestApp" Platform="linux64" ProjectName="GUCEF_exe_gucefGUI_TestApp" >
+			<PlatformTargetInfo MainModuleName="gucefGUI_TestApp" Platform="linux" ProjectName="GUCEF_exe_gucefGUI_TestApp" >
 				<ModuleNames>
 					<ModuleName>CEGUI</ModuleName>
 					<ModuleName>CEGUI.RendererModule.Ogre</ModuleName>
@@ -52593,94 +52045,7 @@
 			</PlatformTargetInfo>
 		</Target>
 		<Target name="GUCEF_exe_gucefIMAGE_TestApp" >
-			<PlatformTargetInfo MainModuleName="gucefIMAGE_TestApp" Platform="linux32" ProjectName="GUCEF_exe_gucefIMAGE_TestApp" >
-				<ModuleNames>
-					<ModuleName>DevIL2</ModuleName>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>OpenEXR</ModuleName>
-					<ModuleName>dstorepluginJSONPARSER</ModuleName>
-					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
-					<ModuleName>fliclib</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefIMAGE</ModuleName>
-					<ModuleName>gucefIMAGE_TestApp</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-					<ModuleName>imgpluginDEVIL</ModuleName>
-					<ModuleName>imgpluginFLIC</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>imgpluginITV</ModuleName>
-					<ModuleName>jasper</ModuleName>
-					<ModuleName>jsonbuilder</ModuleName>
-					<ModuleName>jsonparser</ModuleName>
-					<ModuleName>lcms2</ModuleName>
-					<ModuleName>libjpeg</ModuleName>
-					<ModuleName>libmng</ModuleName>
-					<ModuleName>libparsifal</ModuleName>
-					<ModuleName>libpng</ModuleName>
-					<ModuleName>libtiff</ModuleName>
-					<ModuleName>squish</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="gucefIMAGE_TestApp" Platform="linux64" ProjectName="GUCEF_exe_gucefIMAGE_TestApp" >
-				<ModuleNames>
-					<ModuleName>DevIL2</ModuleName>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>OpenEXR</ModuleName>
-					<ModuleName>dstorepluginJSONPARSER</ModuleName>
-					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
-					<ModuleName>fliclib</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefIMAGE</ModuleName>
-					<ModuleName>gucefIMAGE_TestApp</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-					<ModuleName>imgpluginDEVIL</ModuleName>
-					<ModuleName>imgpluginFLIC</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>imgpluginITV</ModuleName>
-					<ModuleName>jasper</ModuleName>
-					<ModuleName>jsonbuilder</ModuleName>
-					<ModuleName>jsonparser</ModuleName>
-					<ModuleName>lcms2</ModuleName>
-					<ModuleName>libjpeg</ModuleName>
-					<ModuleName>libmng</ModuleName>
-					<ModuleName>libparsifal</ModuleName>
-					<ModuleName>libpng</ModuleName>
-					<ModuleName>libtiff</ModuleName>
-					<ModuleName>squish</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="gucefIMAGE_TestApp" Platform="win32" ProjectName="GUCEF_exe_gucefIMAGE_TestApp" >
-				<ModuleNames>
-					<ModuleName>DevIL2</ModuleName>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>OpenEXR</ModuleName>
-					<ModuleName>dstorepluginJSONPARSER</ModuleName>
-					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
-					<ModuleName>fliclib</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefIMAGE</ModuleName>
-					<ModuleName>gucefIMAGE_TestApp</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-					<ModuleName>imgpluginDEVIL</ModuleName>
-					<ModuleName>imgpluginFLIC</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>imgpluginITV</ModuleName>
-					<ModuleName>jasper</ModuleName>
-					<ModuleName>jsonbuilder</ModuleName>
-					<ModuleName>jsonparser</ModuleName>
-					<ModuleName>lcms2</ModuleName>
-					<ModuleName>libjpeg</ModuleName>
-					<ModuleName>libmng</ModuleName>
-					<ModuleName>libparsifal</ModuleName>
-					<ModuleName>libpng</ModuleName>
-					<ModuleName>libtiff</ModuleName>
-					<ModuleName>squish</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="gucefIMAGE_TestApp" Platform="win64" ProjectName="GUCEF_exe_gucefIMAGE_TestApp" >
+			<PlatformTargetInfo MainModuleName="gucefIMAGE_TestApp" Platform="linux;mswin" ProjectName="GUCEF_exe_gucefIMAGE_TestApp" >
 				<ModuleNames>
 					<ModuleName>DevIL2</ModuleName>
 					<ModuleName>FreeImage</ModuleName>
@@ -52711,7 +52076,7 @@
 			</PlatformTargetInfo>
 		</Target>
 		<Target name="GUCEF_exe_gucefINPUT_TestApp" >
-			<PlatformTargetInfo MainModuleName="gucefINPUT_TestApp" Platform="linux32" ProjectName="GUCEF_exe_gucefINPUT_TestApp" >
+			<PlatformTargetInfo MainModuleName="gucefINPUT_TestApp" Platform="linux" ProjectName="GUCEF_exe_gucefINPUT_TestApp" >
 				<ModuleNames>
 					<ModuleName>OIS</ModuleName>
 					<ModuleName>dstorepluginJSONPARSER</ModuleName>
@@ -52727,40 +52092,7 @@
 					<ModuleName>libparsifal</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="gucefINPUT_TestApp" Platform="linux64" ProjectName="GUCEF_exe_gucefINPUT_TestApp" >
-				<ModuleNames>
-					<ModuleName>OIS</ModuleName>
-					<ModuleName>dstorepluginJSONPARSER</ModuleName>
-					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefINPUT</ModuleName>
-					<ModuleName>gucefINPUT_TestApp</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-					<ModuleName>inputdriverOIS</ModuleName>
-					<ModuleName>inputdriverXWINMSG</ModuleName>
-					<ModuleName>jsonbuilder</ModuleName>
-					<ModuleName>jsonparser</ModuleName>
-					<ModuleName>libparsifal</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="gucefINPUT_TestApp" Platform="win32" ProjectName="GUCEF_exe_gucefINPUT_TestApp" >
-				<ModuleNames>
-					<ModuleName>OIS</ModuleName>
-					<ModuleName>dstorepluginJSONPARSER</ModuleName>
-					<ModuleName>dstorepluginPARSIFALXML</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefINPUT</ModuleName>
-					<ModuleName>gucefINPUT_TestApp</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-					<ModuleName>inputdriverDIRECTINPUT8</ModuleName>
-					<ModuleName>inputdriverMSWINMSG</ModuleName>
-					<ModuleName>inputdriverOIS</ModuleName>
-					<ModuleName>jsonbuilder</ModuleName>
-					<ModuleName>jsonparser</ModuleName>
-					<ModuleName>libparsifal</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo MainModuleName="gucefINPUT_TestApp" Platform="win64" ProjectName="GUCEF_exe_gucefINPUT_TestApp" >
+			<PlatformTargetInfo MainModuleName="gucefINPUT_TestApp" Platform="mswin" ProjectName="GUCEF_exe_gucefINPUT_TestApp" >
 				<ModuleNames>
 					<ModuleName>OIS</ModuleName>
 					<ModuleName>dstorepluginJSONPARSER</ModuleName>
@@ -52800,32 +52132,7 @@
 					<ModuleName>zziplib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_gucefKAITAI_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_gucefKAITAI_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_gucefKAITAI_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_gucefKAITAI_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_gucefKAITAI_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_gucefKAITAI_TestApp" >
+			<PlatformTargetInfo Platform="emscripten;linux;mswin" ProjectName="GUCEF_exe_gucefKAITAI_TestApp" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
@@ -52849,12 +52156,7 @@
 					<ModuleName>gucefMT_TestApp</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_gucefMT_TestApp" >
-				<ModuleNames>
-					<ModuleName>MemoryLeakFinder</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_gucefMT_TestApp" >
+			<PlatformTargetInfo Platform="mswin" ProjectName="GUCEF_exe_gucefMT_TestApp" >
 				<ModuleNames>
 					<ModuleName>MemoryLeakFinder</ModuleName>
 				</ModuleNames>
@@ -52914,51 +52216,12 @@
 					<ModuleName>stbrumme-hash</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_gucefPUBSUB_TestApp" >
+			<PlatformTargetInfo Platform="emscripten;linux" ProjectName="GUCEF_exe_gucefPUBSUB_TestApp" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_gucefPUBSUB_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_gucefPUBSUB_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_gucefPUBSUB_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_gucefPUBSUB_TestApp" >
-				<ModuleNames>
-					<ModuleName>MemoryLeakFinder</ModuleName>
-					<ModuleName>aws-c-auth</ModuleName>
-					<ModuleName>aws-c-cal</ModuleName>
-					<ModuleName>aws-c-common</ModuleName>
-					<ModuleName>aws-c-compression</ModuleName>
-					<ModuleName>aws-c-event-stream</ModuleName>
-					<ModuleName>aws-c-http</ModuleName>
-					<ModuleName>aws-c-io</ModuleName>
-					<ModuleName>aws-c-mqtt</ModuleName>
-					<ModuleName>aws-c-s3</ModuleName>
-					<ModuleName>aws-c-sdkutils</ModuleName>
-					<ModuleName>aws-checksums</ModuleName>
-					<ModuleName>aws-cpp-sdk-core</ModuleName>
-					<ModuleName>aws-cpp-sdk-sqs</ModuleName>
-					<ModuleName>aws-crt-cpp</ModuleName>
-					<ModuleName>curl</ModuleName>
-					<ModuleName>pluginglueAWSSDK</ModuleName>
-					<ModuleName>pubsubpluginAWSSQS</ModuleName>
-					<ModuleName>pubsubpluginMSMQ</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_gucefPUBSUB_TestApp" >
+			<PlatformTargetInfo Platform="mswin" ProjectName="GUCEF_exe_gucefPUBSUB_TestApp" >
 				<ModuleNames>
 					<ModuleName>MemoryLeakFinder</ModuleName>
 					<ModuleName>aws-c-auth</ModuleName>
@@ -53015,22 +52278,7 @@
 					<ModuleName>zziplib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_gucefVFS_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_gucefVFS_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_gucefVFS_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_gucefVFS_TestApp" >
+			<PlatformTargetInfo Platform="linux;mswin" ProjectName="GUCEF_exe_gucefVFS_TestApp" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
@@ -53058,33 +52306,12 @@
 					<ModuleName>yaml</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_gucefWEB_TestApp" >
+			<PlatformTargetInfo Platform="emscripten;linux" ProjectName="GUCEF_exe_gucefWEB_TestApp" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_gucefWEB_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_gucefWEB_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_gucefWEB_TestApp" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_gucefWEB_TestApp" >
-				<ModuleNames>
-					<ModuleName>MemoryLeakFinder</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_gucefWEB_TestApp" >
+			<PlatformTargetInfo Platform="mswin" ProjectName="GUCEF_exe_gucefWEB_TestApp" >
 				<ModuleNames>
 					<ModuleName>MemoryLeakFinder</ModuleName>
 					<ModuleName>zlib</ModuleName>
@@ -53115,72 +52342,14 @@
 					<ModuleName>yaml</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_itvExporter" >
+			<PlatformTargetInfo Platform="emscripten" ProjectName="GUCEF_exe_itvExporter" >
 				<ModuleNames>
 					<ModuleName>imgpluginDEVIL</ModuleName>
 					<ModuleName>imgpluginFreeImage</ModuleName>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_itvExporter" >
-				<ModuleNames>
-					<ModuleName>imgpluginDEVIL</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_itvExporter" >
-				<ModuleNames>
-					<ModuleName>DevIL2</ModuleName>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>OpenEXR</ModuleName>
-					<ModuleName>imgpluginDEVIL</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>jasper</ModuleName>
-					<ModuleName>lcms2</ModuleName>
-					<ModuleName>libjpeg</ModuleName>
-					<ModuleName>libmng</ModuleName>
-					<ModuleName>libpng</ModuleName>
-					<ModuleName>libtiff</ModuleName>
-					<ModuleName>squish</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_itvExporter" >
-				<ModuleNames>
-					<ModuleName>DevIL2</ModuleName>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>OpenEXR</ModuleName>
-					<ModuleName>imgpluginDEVIL</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>jasper</ModuleName>
-					<ModuleName>lcms2</ModuleName>
-					<ModuleName>libjpeg</ModuleName>
-					<ModuleName>libmng</ModuleName>
-					<ModuleName>libpng</ModuleName>
-					<ModuleName>libtiff</ModuleName>
-					<ModuleName>squish</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_itvExporter" >
-				<ModuleNames>
-					<ModuleName>DevIL2</ModuleName>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>OpenEXR</ModuleName>
-					<ModuleName>imgpluginDEVIL</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>jasper</ModuleName>
-					<ModuleName>lcms2</ModuleName>
-					<ModuleName>libjpeg</ModuleName>
-					<ModuleName>libmng</ModuleName>
-					<ModuleName>libpng</ModuleName>
-					<ModuleName>libtiff</ModuleName>
-					<ModuleName>squish</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_itvExporter" >
+			<PlatformTargetInfo Platform="linux;mswin" ProjectName="GUCEF_exe_itvExporter" >
 				<ModuleNames>
 					<ModuleName>DevIL2</ModuleName>
 					<ModuleName>FreeImage</ModuleName>
@@ -53252,34 +52421,12 @@
 					<ModuleName>yaml</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_pubsub2pubsub" >
+			<PlatformTargetInfo Platform="emscripten;linux" ProjectName="GUCEF_exe_pubsub2pubsub" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_pubsub2pubsub" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_pubsub2pubsub" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_pubsub2pubsub" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_pubsub2pubsub" >
-				<ModuleNames>
-					<ModuleName>MemoryLeakFinder</ModuleName>
-					<ModuleName>pubsubpluginMSMQ</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_pubsub2pubsub" >
+			<PlatformTargetInfo Platform="mswin" ProjectName="GUCEF_exe_pubsub2pubsub" >
 				<ModuleNames>
 					<ModuleName>MemoryLeakFinder</ModuleName>
 					<ModuleName>pubsubpluginMSMQ</ModuleName>
@@ -53311,52 +52458,12 @@
 					<ModuleName>redis-plus-plus</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_pubsub2storage" >
+			<PlatformTargetInfo Platform="emscripten;linux" ProjectName="GUCEF_exe_pubsub2storage" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_pubsub2storage" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_pubsub2storage" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_pubsub2storage" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_pubsub2storage" >
-				<ModuleNames>
-					<ModuleName>aws-c-auth</ModuleName>
-					<ModuleName>aws-c-cal</ModuleName>
-					<ModuleName>aws-c-common</ModuleName>
-					<ModuleName>aws-c-compression</ModuleName>
-					<ModuleName>aws-c-event-stream</ModuleName>
-					<ModuleName>aws-c-http</ModuleName>
-					<ModuleName>aws-c-io</ModuleName>
-					<ModuleName>aws-c-mqtt</ModuleName>
-					<ModuleName>aws-c-s3</ModuleName>
-					<ModuleName>aws-c-sdkutils</ModuleName>
-					<ModuleName>aws-checksums</ModuleName>
-					<ModuleName>aws-cpp-sdk-core</ModuleName>
-					<ModuleName>aws-cpp-sdk-s3</ModuleName>
-					<ModuleName>aws-cpp-sdk-sqs</ModuleName>
-					<ModuleName>aws-crt-cpp</ModuleName>
-					<ModuleName>curl</ModuleName>
-					<ModuleName>pluginglueAWSSDK</ModuleName>
-					<ModuleName>pubsubpluginAWSSQS</ModuleName>
-					<ModuleName>pubsubpluginMSMQ</ModuleName>
-					<ModuleName>vfspluginAWSS3</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_pubsub2storage" >
+			<PlatformTargetInfo Platform="mswin" ProjectName="GUCEF_exe_pubsub2storage" >
 				<ModuleNames>
 					<ModuleName>aws-c-auth</ModuleName>
 					<ModuleName>aws-c-cal</ModuleName>
@@ -53406,32 +52513,7 @@
 					<ModuleName>yaml</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_redisinfo" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_redisinfo" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_redisinfo" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_redisinfo" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_redisinfo" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_redisinfo" >
+			<PlatformTargetInfo Platform="emscripten;linux;mswin" ProjectName="GUCEF_exe_redisinfo" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
@@ -53456,32 +52538,7 @@
 					<ModuleName>udp2kafka</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_udp2kafka" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_udp2kafka" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_udp2kafka" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_udp2kafka" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_udp2kafka" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_udp2kafka" >
+			<PlatformTargetInfo Platform="emscripten;linux;mswin" ProjectName="GUCEF_exe_udp2kafka" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
@@ -53506,32 +52563,7 @@
 					<ModuleName>udp2redis</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_udp2redis" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_udp2redis" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_udp2redis" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_udp2redis" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_udp2redis" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_udp2redis" >
+			<PlatformTargetInfo Platform="emscripten;linux;mswin" ProjectName="GUCEF_exe_udp2redis" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
@@ -53561,60 +52593,14 @@
 					<ModuleName>yaml</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_exe_udp2rediscluster" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_exe_udp2rediscluster" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_exe_udp2rediscluster" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_exe_udp2rediscluster" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_exe_udp2rediscluster" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_exe_udp2rediscluster" >
+			<PlatformTargetInfo Platform="emscripten;linux;mswin" ProjectName="GUCEF_exe_udp2rediscluster" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
 		</Target>
 		<Target name="GUCEF_tag_obsolete" >
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_tag_obsolete" >
-				<ModuleNames>
-					<ModuleName>CMakeListGenerator</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_tag_obsolete" >
-				<ModuleNames>
-					<ModuleName>CMakeListGenerator</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_tag_obsolete" >
-				<ModuleNames>
-					<ModuleName>CMakeListGenerator</ModuleName>
-					<ModuleName>gucefCORE</ModuleName>
-					<ModuleName>gucefMT</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_tag_obsolete" >
+			<PlatformTargetInfo Platform="linux;mswin" ProjectName="GUCEF_tag_obsolete" >
 				<ModuleNames>
 					<ModuleName>CMakeListGenerator</ModuleName>
 					<ModuleName>gucefCORE</ModuleName>
@@ -53736,7 +52722,7 @@
 					<ModuleName>zziplib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="android32" ProjectName="GUCEF_tag_plugin" >
+			<PlatformTargetInfo Platform="android" ProjectName="GUCEF_tag_plugin" >
 				<ModuleNames>
 					<ModuleName>CEGUI.RendererModule.OpenGLES</ModuleName>
 					<ModuleName>MyGUI.OpenGLESPlatform</ModuleName>
@@ -53744,50 +52730,12 @@
 					<ModuleName>inputdriverNANDROID</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="android64" ProjectName="GUCEF_tag_plugin" >
-				<ModuleNames>
-					<ModuleName>CEGUI.RendererModule.OpenGLES</ModuleName>
-					<ModuleName>MyGUI.OpenGLESPlatform</ModuleName>
-					<ModuleName>guidriverAndroidGLES</ModuleName>
-					<ModuleName>inputdriverNANDROID</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_tag_plugin" >
+			<PlatformTargetInfo Platform="emscripten" ProjectName="GUCEF_tag_plugin" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_tag_plugin" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_tag_plugin" >
-				<ModuleNames>
-					<ModuleName>CEGUI.RendererModule.OpenGL</ModuleName>
-					<ModuleName>DevIL2</ModuleName>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>MyGUI.OgrePlatform</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>OIS</ModuleName>
-					<ModuleName>OpenEXR</ModuleName>
-					<ModuleName>glew</ModuleName>
-					<ModuleName>guidriverXWinGL</ModuleName>
-					<ModuleName>imgpluginDEVIL</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>inputdriverOIS</ModuleName>
-					<ModuleName>inputdriverXWINMSG</ModuleName>
-					<ModuleName>jasper</ModuleName>
-					<ModuleName>lcms2</ModuleName>
-					<ModuleName>libjpeg</ModuleName>
-					<ModuleName>libmng</ModuleName>
-					<ModuleName>libpng</ModuleName>
-					<ModuleName>libtiff</ModuleName>
-					<ModuleName>squish</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_tag_plugin" >
+			<PlatformTargetInfo Platform="linux" ProjectName="GUCEF_tag_plugin" >
 				<ModuleNames>
 					<ModuleName>CEGUI.RendererModule.OpenGL</ModuleName>
 					<ModuleName>DevIL2</ModuleName>
@@ -53944,43 +52892,20 @@
 					<ModuleName>zziplib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_tag_services" >
+			<PlatformTargetInfo Platform="emscripten" ProjectName="GUCEF_tag_services" >
 				<ModuleNames>
 					<ModuleName>imgpluginFreeImage</ModuleName>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_tag_services" >
-				<ModuleNames>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_tag_services" >
+			<PlatformTargetInfo Platform="linux" ProjectName="GUCEF_tag_services" >
 				<ModuleNames>
 					<ModuleName>FreeImage</ModuleName>
 					<ModuleName>imgpluginFreeImage</ModuleName>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_tag_services" >
-				<ModuleNames>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_tag_services" >
-				<ModuleNames>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>MemoryLeakFinder</ModuleName>
-					<ModuleName>MsmqMetrics</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>pubsubpluginMSMQ</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_tag_services" >
+			<PlatformTargetInfo Platform="mswin" ProjectName="GUCEF_tag_services" >
 				<ModuleNames>
 					<ModuleName>FreeImage</ModuleName>
 					<ModuleName>MemoryLeakFinder</ModuleName>
@@ -54063,7 +52988,7 @@
 					<ModuleName>zziplib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="android32" ProjectName="GUCEF_tag_test" >
+			<PlatformTargetInfo Platform="android" ProjectName="GUCEF_tag_test" >
 				<ModuleNames>
 					<ModuleName>CEGUI</ModuleName>
 					<ModuleName>CEGUI.RendererModule.Ogre</ModuleName>
@@ -54095,102 +53020,12 @@
 					<ModuleName>pcre</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="android64" ProjectName="GUCEF_tag_test" >
-				<ModuleNames>
-					<ModuleName>CEGUI</ModuleName>
-					<ModuleName>CEGUI.RendererModule.Ogre</ModuleName>
-					<ModuleName>CEGUI.RendererModule.OpenGLES</ModuleName>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.OpenGLESPlatform</ModuleName>
-					<ModuleName>Ogre</ModuleName>
-					<ModuleName>RocketControls</ModuleName>
-					<ModuleName>RocketCore</ModuleName>
-					<ModuleName>fliclib</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>gucefGUI</ModuleName>
-					<ModuleName>gucefGUI_TestApp</ModuleName>
-					<ModuleName>gucefIMAGE</ModuleName>
-					<ModuleName>gucefINPUT</ModuleName>
-					<ModuleName>guidriverAndroidGLES</ModuleName>
-					<ModuleName>guidriverCEGUI</ModuleName>
-					<ModuleName>guidriverCEGUIOgre</ModuleName>
-					<ModuleName>guidriverCEGUIOpenGL</ModuleName>
-					<ModuleName>guidriverMyGUI</ModuleName>
-					<ModuleName>guidriverMyGUIOgre</ModuleName>
-					<ModuleName>guidriverMyGUIOpenGL</ModuleName>
-					<ModuleName>guidriverOgre</ModuleName>
-					<ModuleName>guidriverRocket</ModuleName>
-					<ModuleName>guidriverRocketOpenGL</ModuleName>
-					<ModuleName>imgpluginFLIC</ModuleName>
-					<ModuleName>imgpluginITV</ModuleName>
-					<ModuleName>inputdriverNANDROID</ModuleName>
-					<ModuleName>pcre</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_tag_test" >
+			<PlatformTargetInfo Platform="emscripten" ProjectName="GUCEF_tag_test" >
 				<ModuleNames>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_tag_test" >
-				<ModuleNames>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_tag_test" >
-				<ModuleNames>
-					<ModuleName>CEGUI</ModuleName>
-					<ModuleName>CEGUI.RendererModule.Ogre</ModuleName>
-					<ModuleName>CEGUI.RendererModule.OpenGL</ModuleName>
-					<ModuleName>DevIL2</ModuleName>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>MyGUI.Engine</ModuleName>
-					<ModuleName>MyGUI.OgrePlatform</ModuleName>
-					<ModuleName>MyGUI.OpenGLPlatform</ModuleName>
-					<ModuleName>OIS</ModuleName>
-					<ModuleName>Ogre</ModuleName>
-					<ModuleName>OpenEXR</ModuleName>
-					<ModuleName>RocketControls</ModuleName>
-					<ModuleName>RocketCore</ModuleName>
-					<ModuleName>fliclib</ModuleName>
-					<ModuleName>freetype</ModuleName>
-					<ModuleName>glew</ModuleName>
-					<ModuleName>gucefDRN</ModuleName>
-					<ModuleName>gucefDRN_TestApp</ModuleName>
-					<ModuleName>gucefGUI</ModuleName>
-					<ModuleName>gucefGUI_TestApp</ModuleName>
-					<ModuleName>gucefIMAGE</ModuleName>
-					<ModuleName>gucefIMAGE_TestApp</ModuleName>
-					<ModuleName>gucefINPUT</ModuleName>
-					<ModuleName>gucefINPUT_TestApp</ModuleName>
-					<ModuleName>guidriverCEGUI</ModuleName>
-					<ModuleName>guidriverCEGUIOgre</ModuleName>
-					<ModuleName>guidriverCEGUIOpenGL</ModuleName>
-					<ModuleName>guidriverMyGUI</ModuleName>
-					<ModuleName>guidriverMyGUIOgre</ModuleName>
-					<ModuleName>guidriverMyGUIOpenGL</ModuleName>
-					<ModuleName>guidriverOgre</ModuleName>
-					<ModuleName>guidriverRocket</ModuleName>
-					<ModuleName>guidriverRocketOpenGL</ModuleName>
-					<ModuleName>guidriverXWinGL</ModuleName>
-					<ModuleName>imgpluginDEVIL</ModuleName>
-					<ModuleName>imgpluginFLIC</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>imgpluginITV</ModuleName>
-					<ModuleName>inputdriverOIS</ModuleName>
-					<ModuleName>inputdriverXWINMSG</ModuleName>
-					<ModuleName>jasper</ModuleName>
-					<ModuleName>lcms2</ModuleName>
-					<ModuleName>libjpeg</ModuleName>
-					<ModuleName>libmng</ModuleName>
-					<ModuleName>libpng</ModuleName>
-					<ModuleName>libtiff</ModuleName>
-					<ModuleName>pcre</ModuleName>
-					<ModuleName>squish</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_tag_test" >
+			<PlatformTargetInfo Platform="linux" ProjectName="GUCEF_tag_test" >
 				<ModuleNames>
 					<ModuleName>CEGUI</ModuleName>
 					<ModuleName>CEGUI.RendererModule.Ogre</ModuleName>
@@ -54430,21 +53265,14 @@
 					<ModuleName>zziplib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten32" ProjectName="GUCEF_tag_tools" >
+			<PlatformTargetInfo Platform="emscripten" ProjectName="GUCEF_tag_tools" >
 				<ModuleNames>
 					<ModuleName>imgpluginDEVIL</ModuleName>
 					<ModuleName>imgpluginFreeImage</ModuleName>
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="emscripten64" ProjectName="GUCEF_tag_tools" >
-				<ModuleNames>
-					<ModuleName>imgpluginDEVIL</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux32" ProjectName="GUCEF_tag_tools" >
+			<PlatformTargetInfo Platform="linux" ProjectName="GUCEF_tag_tools" >
 				<ModuleNames>
 					<ModuleName>CMakeListGenerator</ModuleName>
 					<ModuleName>DevIL2</ModuleName>
@@ -54462,44 +53290,7 @@
 					<ModuleName>zlib</ModuleName>
 				</ModuleNames>
 			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="linux64" ProjectName="GUCEF_tag_tools" >
-				<ModuleNames>
-					<ModuleName>CMakeListGenerator</ModuleName>
-					<ModuleName>DevIL2</ModuleName>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>OpenEXR</ModuleName>
-					<ModuleName>imgpluginDEVIL</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>jasper</ModuleName>
-					<ModuleName>lcms2</ModuleName>
-					<ModuleName>libjpeg</ModuleName>
-					<ModuleName>libmng</ModuleName>
-					<ModuleName>libpng</ModuleName>
-					<ModuleName>libtiff</ModuleName>
-					<ModuleName>squish</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win32" ProjectName="GUCEF_tag_tools" >
-				<ModuleNames>
-					<ModuleName>CMakeListGenerator</ModuleName>
-					<ModuleName>DevIL2</ModuleName>
-					<ModuleName>FreeImage</ModuleName>
-					<ModuleName>OpenEXR</ModuleName>
-					<ModuleName>PatchSetGenerator</ModuleName>
-					<ModuleName>imgpluginDEVIL</ModuleName>
-					<ModuleName>imgpluginFreeImage</ModuleName>
-					<ModuleName>jasper</ModuleName>
-					<ModuleName>lcms2</ModuleName>
-					<ModuleName>libjpeg</ModuleName>
-					<ModuleName>libmng</ModuleName>
-					<ModuleName>libpng</ModuleName>
-					<ModuleName>libtiff</ModuleName>
-					<ModuleName>squish</ModuleName>
-					<ModuleName>zlib</ModuleName>
-				</ModuleNames>
-			</PlatformTargetInfo>
-			<PlatformTargetInfo Platform="win64" ProjectName="GUCEF_tag_tools" >
+			<PlatformTargetInfo Platform="mswin" ProjectName="GUCEF_tag_tools" >
 				<ModuleNames>
 					<ModuleName>CMakeListGenerator</ModuleName>
 					<ModuleName>DevIL2</ModuleName>

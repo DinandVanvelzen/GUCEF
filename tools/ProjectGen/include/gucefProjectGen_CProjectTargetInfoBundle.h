@@ -127,6 +127,12 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectTargetInfoBundle : public CORE::CIData
 
     void CollapseRedundantPlatformTargets( void );
 
+    void IdentifyRedundantPlatformTargets( CORE::CStringMapMapSet& redundantPlatformsPerProjectTarget ) const;
+
+    static void IdentifyRedundantPlatformTargetsForPlatform( const TProjectTargetInfoPtrMap& targetByPlatform   ,
+                                                             const CORE::CString& platformName                  ,
+                                                             CORE::CStringMapSet& redundantPlatformsPerPlatform );
+
     void Clear( void );
 
     CProjectTargetInfoBundle( void );

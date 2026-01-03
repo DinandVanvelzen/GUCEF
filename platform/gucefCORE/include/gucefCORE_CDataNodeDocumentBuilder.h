@@ -51,7 +51,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 /**
- *  Implementation which uses document parser callbacks to contruct a DataNode class based tree
+ *  Implementation which uses document parser callbacks to construct a DataNode class based tree
  */
 class GUCEF_CORE_PUBLIC_CPP CDataNodeDocumentBuilder : public CIDocumentParserCallbacks
 {
@@ -59,7 +59,7 @@ class GUCEF_CORE_PUBLIC_CPP CDataNodeDocumentBuilder : public CIDocumentParserCa
 
     CDataNodeDocumentBuilder( void );
     CDataNodeDocumentBuilder( const CDataNodeDocumentBuilder& src ); 
-    virtual ~CDataNodeDocumentBuilder();
+    virtual ~CDataNodeDocumentBuilder() GUCEF_VIRTUAL_OVERRIDE;
     CDataNodeDocumentBuilder& operator=( const CDataNodeDocumentBuilder& src );
 
     virtual void OnDocumentBegin( void ) GUCEF_VIRTUAL_OVERRIDE;

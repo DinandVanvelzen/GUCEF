@@ -616,12 +616,12 @@ GetLanguageForModule( const CModuleInfoPtr& moduleInfo )
 
 /*-------------------------------------------------------------------------*/
 
-TStringSet
+CORE::CStringSet
 ResolveMultiPlatformName( const CORE::CString& platformName          ,
                           const TPlatformDefinitionMap* platformDefs )
 {GUCEF_TRACE;
 
-    TStringSet resultSet;
+    CORE::CStringSet resultSet;
 
     // Save some effort for "All Platforms"...
     if ( platformName == KnownPlatforms::AllPlatforms )
@@ -718,6 +718,69 @@ ResolveMultiPlatformName( const CORE::CString& platformName          ,
 
     if ( resultSet.empty() )
         resultSet.insert( platformName );
+    return resultSet;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CStringSet
+ReduceToUseMultiPlatformNamesIfFeasible( const CORE::CStringSet& platformNames      ,
+                                         const TPlatformDefinitionMap* platformDefs )
+{GUCEF_TRACE;
+
+    CORE::CStringSet resultSet;
+
+    if ( platformNames.find( KnownPlatforms::Win32 ) != platformNames.end() )
+        if ( platformNames.find( KnownPlatforms::Win64 ) != platformNames.end() )
+            resultSet.insert( KnownMultiPlatforms::MsWin );
+
+    if ( platformNames.find( KnownPlatforms::Win64 ) != platformNames.end() )
+        if ( platformNames.find( KnownPlatforms::Win32 ) != platformNames.end() )
+            resultSet.insert( KnownMultiPlatforms::MsWin );
+
+    if ( platformNames.find( KnownPlatforms::Linux32 ) != platformNames.end() )
+        if ( platformNames.find( KnownPlatforms::Linux64 ) != platformNames.end() )
+            resultSet.insert( KnownMultiPlatforms::Linux );
+
+    if ( platformNames.find( KnownPlatforms::Linux64 ) != platformNames.end() )
+        if ( platformNames.find( KnownPlatforms::Linux32 ) != platformNames.end() )
+            resultSet.insert( KnownMultiPlatforms::Linux );
+
+    if ( platformNames.find( KnownPlatforms::Android32 ) != platformNames.end() )
+        if ( platformNames.find( KnownPlatforms::Android64 ) != platformNames.end() )
+            resultSet.insert( KnownMultiPlatforms::Android );
+
+    if ( platformNames.find( KnownPlatforms::Android64 ) != platformNames.end() )
+        if ( platformNames.find( KnownPlatforms::Android32 ) != platformNames.end() )
+            resultSet.insert( KnownMultiPlatforms::Android );
+
+    if ( platformNames.find( KnownPlatforms::Emscripten32 ) != platformNames.end() )
+        if ( platformNames.find( KnownPlatforms::Emscripten64 ) != platformNames.end() )
+            resultSet.insert( KnownMultiPlatforms::Emscripten );
+
+    if ( platformNames.find( KnownPlatforms::Emscripten64 ) != platformNames.end() )
+        if ( platformNames.find( KnownPlatforms::Emscripten32 ) != platformNames.end() )
+            resultSet.insert( KnownMultiPlatforms::Emscripten );
+
+    CORE::CStringSet::const_iterator i = platformNames.begin();
+    while ( i != platformNames.end() )
+    {
+        const CORE::CString& platformName = (*i);
+        if ( ( platformName != KnownPlatforms::Win32 ) &&
+             ( platformName != KnownPlatforms::Win64 ) &&
+             ( platformName != KnownPlatforms::Linux32 ) &&
+             ( platformName != KnownPlatforms::Linux64 ) &&
+             ( platformName != KnownPlatforms::Android32 ) &&
+             ( platformName != KnownPlatforms::Android64 ) &&
+             ( platformName != KnownPlatforms::Emscripten32 ) &&
+             ( platformName != KnownPlatforms::Emscripten64 ) )
+        {
+            resultSet.insert( platformName );
+        }
+
+        ++i;
+    }
+
     return resultSet;
 }
 
