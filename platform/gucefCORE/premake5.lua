@@ -39,8 +39,8 @@ defines( { "GUCEF_CORE_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefCORE", "MODULE
   links( { "dl" } )
   links( { "X11", "dl", "rt" } )
   links( { "X11", "dl", "rt" } )
-  links( { "PowrProf.lib", "Ws2_32.lib" } )
-  links( { "PowrProf.lib", "Ws2_32.lib" } )
+  links( { "PowrProf.lib", "Shlwapi.lib", "Ws2_32.lib" } )
+  links( { "PowrProf.lib", "Shlwapi.lib", "Ws2_32.lib" } )
 
 
 configuration( {} )

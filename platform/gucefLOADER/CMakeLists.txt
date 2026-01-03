@@ -45,6 +45,8 @@ set( HEADER_FILES
   ../gucefMT/include/gucefMT_CILockable.h
   ../gucefMT/include/gucefMT_CMutex.h
   ../gucefMT/include/gucefMT_CNoLock.h
+  ../gucefMT/include/gucefMT_CObjectScopeLock.h
+  ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
   ../gucefMT/include/gucefMT_CScopeMutex.h
   ../gucefMT/include/gucefMT_LockStatus.h
   ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -89,6 +91,8 @@ set( SOURCE_FILES
   ../gucefMT/src/gucefMT_CILockable.cpp
   ../gucefMT/src/gucefMT_CMutex.cpp
   ../gucefMT/src/gucefMT_CNoLock.cpp
+  ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+  ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
   ../gucefMT/src/gucefMT_CScopeMutex.cpp
   ../gucefMT/src/gucefMT_LockStatus.cpp
   ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -128,12 +132,15 @@ if (ANDROID32)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/md5.h
+    ../gucefCORE/include/android/gucefCORE_CAndroidSystemLogger.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -172,11 +179,14 @@ if (ANDROID32)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/md5.c
+    ../gucefCORE/src/android/gucefCORE_CAndroidSystemLogger.cpp
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -216,12 +226,15 @@ elseif (ANDROID64)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/md5.h
+    ../gucefCORE/include/android/gucefCORE_CAndroidSystemLogger.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
     ../gucefMT/include/gucefMT_CICloneable.h
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -260,11 +273,14 @@ elseif (ANDROID64)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/md5.c
+    ../gucefCORE/src/android/gucefCORE_CAndroidSystemLogger.cpp
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -310,6 +326,8 @@ elseif (ARDUINO)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -353,6 +371,8 @@ elseif (ARDUINO)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -398,6 +418,8 @@ elseif (EMSCRIPTEN32)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -441,6 +463,8 @@ elseif (EMSCRIPTEN32)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -486,6 +510,8 @@ elseif (EMSCRIPTEN64)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -529,6 +555,8 @@ elseif (EMSCRIPTEN64)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -574,6 +602,8 @@ elseif (GLX)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -617,6 +647,8 @@ elseif (GLX)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -662,6 +694,8 @@ elseif (GTK)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -705,6 +739,8 @@ elseif (GTK)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -750,6 +786,8 @@ elseif (IOS)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -793,6 +831,8 @@ elseif (IOS)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -838,6 +878,8 @@ elseif (LINUX32)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -881,6 +923,8 @@ elseif (LINUX32)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -926,6 +970,8 @@ elseif (LINUX64)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -969,6 +1015,8 @@ elseif (LINUX64)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -1014,6 +1062,8 @@ elseif (NACL)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -1057,6 +1107,8 @@ elseif (NACL)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -1102,6 +1154,8 @@ elseif (OSX)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -1145,6 +1199,8 @@ elseif (OSX)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -1190,6 +1246,8 @@ elseif (POSIX)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -1233,6 +1291,8 @@ elseif (POSIX)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -1278,6 +1338,8 @@ elseif (SDL)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -1321,6 +1383,8 @@ elseif (SDL)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -1366,6 +1430,8 @@ elseif (SYMBIAN)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -1409,6 +1475,8 @@ elseif (SYMBIAN)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -1454,6 +1522,8 @@ elseif (UNIX)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -1497,6 +1567,8 @@ elseif (UNIX)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -1544,6 +1616,8 @@ elseif (WIN32)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -1590,6 +1664,8 @@ elseif (WIN32)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -1638,6 +1714,8 @@ elseif (WIN64)
     ../gucefMT/include/gucefMT_CILockable.h
     ../gucefMT/include/gucefMT_CMutex.h
     ../gucefMT/include/gucefMT_CNoLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeLock.h
+    ../gucefMT/include/gucefMT_CObjectScopeReadOnlyLock.h
     ../gucefMT/include/gucefMT_CScopeMutex.h
     ../gucefMT/include/gucefMT_LockStatus.h
     ../gucefMT/include/gucefMT_ThreadStatus.h
@@ -1684,6 +1762,8 @@ elseif (WIN64)
     ../gucefMT/src/gucefMT_CILockable.cpp
     ../gucefMT/src/gucefMT_CMutex.cpp
     ../gucefMT/src/gucefMT_CNoLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeLock.cpp
+    ../gucefMT/src/gucefMT_CObjectScopeReadOnlyLock.cpp
     ../gucefMT/src/gucefMT_CScopeMutex.cpp
     ../gucefMT/src/gucefMT_LockStatus.cpp
     ../gucefMT/src/gucefMT_ThreadStatus.cpp
@@ -1724,11 +1804,11 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( WIN32 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE PowrProf.lib Ws2_32.lib winmm.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE PowrProf.lib Shlwapi.lib Ws2_32.lib winmm.lib )
 endif( WIN32 )
 
 if ( WIN64 )
-  target_link_libraries( ${MODULE_NAME} PRIVATE PowrProf.lib Ws2_32.lib winmm.lib )
+  target_link_libraries( ${MODULE_NAME} PRIVATE PowrProf.lib Shlwapi.lib Ws2_32.lib winmm.lib )
 endif( WIN64 )
 
 include_directories( .. ../../common/include ../gucefCORE ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT ../gucefMT/include include )

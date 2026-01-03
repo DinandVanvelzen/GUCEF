@@ -54,10 +54,10 @@ configuration( {} )
 includedirs( { "../../common/include", "../../platform", "../../platform/gucefCORE", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefLOADER/include", "../../platform/gucefMT", "../../platform/gucefMT/include", "../../platform/gucefMT/include/" } )
 
 configuration( { "ANDROID32" } )
-includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/android", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/", "../../platform/gucefMT/include/android", "../../platform/gucefMT/include/android/" } )
+includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/android", "../../platform/gucefCORE/include/android/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
 
 configuration( { "ANDROID64" } )
-includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/android", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/", "../../platform/gucefMT/include/android", "../../platform/gucefMT/include/android/" } )
+includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/android", "../../platform/gucefCORE/include/android/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
 
 configuration( { "ARDUINO" } )
 includedirs( { "../../platform/gucefCORE/include/", "../../platform/gucefCORE/include/c_api/", "../../platform/gucefMT/include/" } )
