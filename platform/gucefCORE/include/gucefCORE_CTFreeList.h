@@ -536,7 +536,7 @@ CTFreeList< T, LockType >::IsActive( const TSharedPtr& sp ) const
 
     MT::CObjectScopeReadOnlyLock lock( &m_lock );
     bool isActive = m_active.find( sp.GetPointerAlways() ) != m_active.end();
-    lock.EarlyUnlock();
+    lock.EarlyReaderUnlock();
     return isActive;
 }
 
@@ -549,7 +549,7 @@ CTFreeList< T, LockType >::IsDormant( const TSharedPtr& sp ) const
 
     MT::CObjectScopeReadOnlyLock lock( &m_lock );
     bool isDormant = m_dormant.find( sp.GetPointerAlways() ) != m_dormant.end();
-    lock.EarlyUnlock();
+    lock.EarlyReaderUnlock();
     return isDormant;
 }
 
@@ -732,7 +732,7 @@ CTFreeList< T, LockType >::GetReusePolicy( void ) const
 
     MT::CObjectScopeReadOnlyLock lock( &m_lock );
     CTFreeList< T, LockType >::TReusePolicy policy = m_reusePolicy;
-    lock.EarlyUnlock();
+    lock.EarlyReaderUnlock();
     return policy;
 }
 

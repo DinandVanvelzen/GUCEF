@@ -700,18 +700,18 @@ template< typename T, class LockType >
 CTSharedPtrCreator< T, LockType >::~CTSharedPtrCreator( void )
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( GetBasicSharedPtrData() );
+    MT::CObjectScopeLock lock( TBasicSharedPtrCreatorBase::GetBasicSharedPtrData() );
 
     // Sanity check to ensure no active references remain
     // Such references would be referencing the very object that is being destroyed here
-    GUCEF_ASSERT( 0 == GetBasicSharedPtrData().m_refCounter );
-    if ( 0 != GetBasicSharedPtrData().m_refCounter )
+    GUCEF_ASSERT( 0 == TBasicSharedPtrCreatorBase::GetBasicSharedPtrData().m_refCounter );
+    if ( 0 != TBasicSharedPtrCreatorBase::GetBasicSharedPtrData().m_refCounter )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CTSharedPtrCreator destructor called while there are still active references to the object" );
 
         // To avoid invalid memory access we sever the link to the destructor
         // we should still never get here in the first place, but best to minimize damage
-        OverrideSharedPtrCreatorData( GUCEF_NULL, GUCEF_NULL );
+        TBasicSharedPtrCreatorBase::OverrideSharedPtrCreatorData( GUCEF_NULL, GUCEF_NULL );
     }
 }
 

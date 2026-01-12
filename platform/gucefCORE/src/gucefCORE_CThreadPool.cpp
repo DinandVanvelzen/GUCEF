@@ -1381,7 +1381,7 @@ CThreadPool::StartTaskChain( const TTaskPtrVector& tasks )
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): First chain task of task type \"" + taskConsumer->GetType() +
             "\" with task ID " + ToString( taskConsumer->GetCurrentTaskId() ) + 
             ", linked to thread " + ToString( taskConsumer->GetDelegatorThreadId() ) + ", is instructed to commence work. There are "
-            + ToString( tasks.size() ) + " tasks in the chain." );
+            + SizeTToString( tasks.size() ) + " tasks in the chain." );
 
     // We return the last task as that is the task one would wait for to finish the chain
     // any failure earlier in the chain will propagate to the last task as well

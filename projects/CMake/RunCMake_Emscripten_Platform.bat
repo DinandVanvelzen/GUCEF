@@ -12,7 +12,7 @@ SET TOOLCHAIN=%SRCROOTDIR%\projects\CMake\Emscripten.toolchain.cmake
 cmake -DCMAKE_TOOLCHAIN_FILE="%SRCROOTDIR%\projects\CMake\Emscripten.toolchain.cmake" ^
       -G "Ninja" ^
       -DPLATFORM=wasm ^
-      -S "%MAINCMAKE%" -B "%EM_OUTPUTDIR%"
+      -S "%MAINCMAKE%" -B "%EM_OUTPUTDIR%" -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
 cmake --build "%EM_OUTPUTDIR%"
 
