@@ -1,0 +1,23 @@
+<ModuleInfoEntry>
+    <Module Name="guidriverRmlUI" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <Dependencies>
+            <Dependency Name="RmlUI_Core" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="RmlUI_Core" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_GUIDRIVERRMLUI_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

@@ -32,8 +32,8 @@
 			<RuntimeDependency Name="guidriverMyGUIOgre" />
 			<RuntimeDependency Name="guidriverMyGUIOpenGL" />
 			<RuntimeDependency Name="guidriverOgre" />
-			<RuntimeDependency Name="guidriverRocket" />
-			<RuntimeDependency Name="guidriverRocketOpenGL" />
+			<RuntimeDependency Name="guidriverRmlUI" />
+			<RuntimeDependency Name="guidriverRmlUIOpenGL" />
 			<RuntimeDependency Name="inputdriverOIS" />
 			<RuntimeDependency Name="imgpluginITV" />
 			<RuntimeDependency Name="imgpluginFreeImage" />

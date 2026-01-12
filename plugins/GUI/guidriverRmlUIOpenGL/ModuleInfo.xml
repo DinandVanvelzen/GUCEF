@@ -1,0 +1,39 @@
+<ModuleInfoEntry>
+    <Module Name="guidriverRmlUIOpenGL" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <Dependencies>
+            <Dependency Name="guidriverRmlUI" />
+            <Dependency Name="RmlUI_Core" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="guidriverRmlUI" />
+            <Dependency Name="RmlUI_Core" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUIDRIVERRMLUIGL_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+    <Module Platform="mswin">
+        <Linker>
+            <Dependency Name="OpenGL32.lib" />
+        </Linker>
+    </Module>
+    <Module Platform="linux">
+        <Linker>
+            <Dependency Name="GL" />
+        </Linker>
+    </Module>
+    <Module Platform="android">
+        <Linker>
+            <Dependency Name="EGL" />
+            <Dependency Name="GLESv1_CM" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>
