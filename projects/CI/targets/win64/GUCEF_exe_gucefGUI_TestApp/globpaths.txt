@@ -9,6 +9,8 @@ dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/*
 dependencies/OIS/*
 dependencies/Ogre/OgreMain/*
 dependencies/Ogre/include/*
+dependencies/RmlUi/Include/*
+dependencies/RmlUi/Source/Core/*
 dependencies/aws-cpp-sdk-core/*
 dependencies/aws-cpp-sdk-s3/*
 dependencies/aws-crt-cpp/*
@@ -21,9 +23,6 @@ dependencies/glm/*
 dependencies/jasper/src/libjasper/*
 dependencies/json-builder/*
 dependencies/json-parser/*
-dependencies/libRocket/Include/*
-dependencies/libRocket/Source/Controls/*
-dependencies/libRocket/Source/Core/*
 dependencies/libjpeg/*
 dependencies/libmng/*
 dependencies/libparsifal/*
@@ -45,7 +44,7 @@ plugins/CORE/dstorepluginPARSIFALXML/*
 plugins/GUI/guidriverCEGUI/*
 plugins/GUI/guidriverMyGUI/*
 plugins/GUI/guidriverOgre/*
-plugins/GUI/guidriverRocket/*
+plugins/GUI/guidriverRmlUI/*
 plugins/GUI/guidriverWin32/*
 plugins/IMAGE/imgpluginDEVIL/*
 plugins/IMAGE/imgpluginFLIC/*

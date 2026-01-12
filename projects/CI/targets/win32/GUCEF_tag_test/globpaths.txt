@@ -9,6 +9,8 @@ dependencies/MyGui/Platforms/OpenGL/OpenGLPlatform/*
 dependencies/OIS/*
 dependencies/Ogre/OgreMain/*
 dependencies/Ogre/include/*
+dependencies/RmlUi/Include/*
+dependencies/RmlUi/Source/Core/*
 dependencies/aws-cpp-sdk-core/include/*
 dependencies/aws-cpp-sdk-sqs/*
 dependencies/aws-crt-cpp/crt/aws-c-auth/include/*
@@ -31,9 +33,6 @@ dependencies/freetype/*
 dependencies/glew/*
 dependencies/glm/*
 dependencies/jasper/src/libjasper/*
-dependencies/libRocket/Include/*
-dependencies/libRocket/Source/Controls/*
-dependencies/libRocket/Source/Core/*
 dependencies/libjpeg/*
 dependencies/libmng/*
 dependencies/libpng/*
@@ -57,7 +56,7 @@ platform/gucefWEB/include/*
 plugins/GUI/guidriverCEGUI/*
 plugins/GUI/guidriverMyGUI/*
 plugins/GUI/guidriverOgre/*
-plugins/GUI/guidriverRocket/*
+plugins/GUI/guidriverRmlUI/*
 plugins/GUI/guidriverWin32/*
 plugins/IMAGE/imgpluginDEVIL/*
 plugins/IMAGE/imgpluginFLIC/*

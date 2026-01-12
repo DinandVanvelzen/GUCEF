@@ -9,10 +9,10 @@
 --------------------------------------------------------------------
 --
 
--- Configuration for module: guidriverRocketOpenGL
+-- Configuration for module: guidriverRmlUIOpenGL
 
 
-project( "guidriverRocketOpenGL" )
+project( "guidriverRmlUIOpenGL" )
 
 configuration( {} )
   location( os.getenv( "PM5OUTPUTDIR" ) )
@@ -29,12 +29,12 @@ configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "RocketControls", "RocketCore", "gucefCORE", "gucefGUI", "gucefINPUT", "gucefMT", "guidriverRocket" } )
-links( { "RocketControls", "RocketCore", "gucefCORE", "gucefGUI", "gucefINPUT", "gucefMT", "guidriverRocket" } )
+links( { "RmlUI_Core", "gucefCORE", "gucefGUI", "gucefINPUT", "gucefMT", "guidriverRmlUI" } )
+links( { "RmlUI_Core", "gucefCORE", "gucefGUI", "gucefINPUT", "gucefMT", "guidriverRmlUI" } )
 
 
 configuration( {} )
-defines( { "GUIDRIVERROCKETGL_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverRocketOpenGL", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverRocketOpenGL" } )
+defines( { "GUIDRIVERRMLUIGL_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverRmlUIOpenGL", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverRmlUIOpenGL" } )
   links( { "EGL", "GLESv1_CM" } )
   links( { "EGL", "GLESv1_CM" } )
   links( { "GL" } )
@@ -46,12 +46,12 @@ defines( { "GUIDRIVERROCKETGL_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverRoc
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
-  "include/guidriverRocketOpenGL.h",
-  "include/guidriverRocketOpenGL_CRocketGuiDriver.h",
-  "include/guidriverRocketOpenGL_CRocketRenderInterfaceOpenGL.h",
-  "include/guidriverRocketOpenGL_config.h",
-  "include/guidriverRocketOpenGL_macros.h",
-  "include/guidriverRocketOpenGL_pluginAPI.h"
+  "include/guidriverRmlUIOpenGL.h",
+  "include/guidriverRmlUIOpenGL_CRocketGuiDriver.h",
+  "include/guidriverRmlUIOpenGL_CRocketRenderInterfaceOpenGL.h",
+  "include/guidriverRmlUIOpenGL_config.h",
+  "include/guidriverRmlUIOpenGL_macros.h",
+  "include/guidriverRmlUIOpenGL_pluginAPI.h"
  } )
 
 
@@ -59,14 +59,14 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
-  "src/guidriverRocketOpenGL_CRocketGuiDriver.cpp",
-  "src/guidriverRocketOpenGL_CRocketRenderInterfaceOpenGL.cpp",
-  "src/guidriverRocketOpenGL_pluginAPI.cpp"
+  "src/guidriverRmlUIOpenGL_CRocketGuiDriver.cpp",
+  "src/guidriverRmlUIOpenGL_CRocketRenderInterfaceOpenGL.cpp",
+  "src/guidriverRmlUIOpenGL_pluginAPI.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../dependencies/libRocket/Include", "../../../dependencies/libRocket/Include/Rocket", "../../../dependencies/libRocket/Include/Rocket/Controls", "../../../dependencies/libRocket/Include/Rocket/Core", "../../../dependencies/libRocket/Include/Rocket/Core/Python", "../../../dependencies/libRocket/Include/Rocket/Debugger", "../../../dependencies/libRocket/Source/Controls", "../../../dependencies/libRocket/Source/Core", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../guidriverRocket/include", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/RmlUi/Include", "../../../dependencies/RmlUi/Include/RmlUi", "../../../dependencies/RmlUi/Include/RmlUi/Config", "../../../dependencies/RmlUi/Include/RmlUi/Core", "../../../dependencies/RmlUi/Include/RmlUi/Core/Containers", "../../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib", "../../../dependencies/RmlUi/Include/RmlUi/Core/Elements", "../../../dependencies/RmlUi/Include/RmlUi/Debugger", "../../../dependencies/RmlUi/Include/RmlUi/Lottie", "../../../dependencies/RmlUi/Include/RmlUi/Lua", "../../../dependencies/RmlUi/Include/RmlUi/SVG", "../../../dependencies/RmlUi/Source/Core", "../../../dependencies/RmlUi/Source/Core/Elements", "../../../dependencies/RmlUi/Source/Core/FontEngineDefault", "../../../dependencies/RmlUi/Source/Core/Layout", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "../guidriverRmlUI/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )

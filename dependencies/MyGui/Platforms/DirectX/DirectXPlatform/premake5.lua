@@ -45,12 +45,20 @@ configuration( { WIN64 } )
 kind( "StaticLib" )
   
 configuration( { WIN32 } )
-links( { "Direct3D9", "MyGUI.Engine" } )
+links( { "MyGUI.Engine" } )
   links( { "MyGUI.Engine", "d3d9", "d3dx9" } )
   
+
+configuration( { WIN32 } )
+defines( { "MODULE_NAME=MyGUI_DirectXPlatform" } )
+  
 configuration( { WIN64 } )
-links( { "Direct3D9", "MyGUI.Engine" } )
+links( { "MyGUI.Engine" } )
   links( { "MyGUI.Engine", "d3d9", "d3dx9" } )
+  
+
+configuration( { WIN64 } )
+defines( { "MODULE_NAME=MyGUI_DirectXPlatform" } )
 
 
 configuration( { "WIN32" } )
@@ -104,7 +112,7 @@ configuration( {} )
 includedirs( { "../../../../freetype/include", "../../../../freetype/include/freetype", "../../../../freetype/include/freetype/config", "../../../../freetype/include/freetype/internal", "../../../../freetype/include/freetype/internal/services", "../../../../freetype/src", "../../../../freetype/src/winfonts", "../../../MyGUIEngine/include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "#$#ENVVAR:DXSDK_DIR#$#/Include", "../../../../external", "../../../Common/FileSystemInfo", "include" } )
+includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include", "../../../Common/FileSystemInfo", "include" } )
 
 configuration( { "WIN64" } )
-includedirs( { "#$#ENVVAR:DXSDK_DIR#$#/Include", "../../../../external", "../../../Common/FileSystemInfo", "include" } )
+includedirs( { "#$#ENVVAR:DXSDK_DIR#$#\Include", "../../../Common/FileSystemInfo", "include" } )

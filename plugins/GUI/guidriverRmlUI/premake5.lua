@@ -9,10 +9,10 @@
 --------------------------------------------------------------------
 --
 
--- Configuration for module: guidriverRocket
+-- Configuration for module: guidriverRmlUI
 
 
-project( "guidriverRocket" )
+project( "guidriverRmlUI" )
 
 configuration( {} )
   location( os.getenv( "PM5OUTPUTDIR" ) )
@@ -29,53 +29,53 @@ configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "RocketControls", "RocketCore", "gucefCORE", "gucefGUI", "gucefINPUT", "gucefMT", "gucefVFS" } )
-links( { "RocketControls", "RocketCore", "gucefCORE", "gucefGUI", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "RmlUI_Core", "gucefCORE", "gucefGUI", "gucefINPUT", "gucefMT", "gucefVFS" } )
+links( { "RmlUI_Core", "gucefCORE", "gucefGUI", "gucefINPUT", "gucefMT", "gucefVFS" } )
 
 
 configuration( {} )
-defines( { "GUCEF_GUIDRIVERROCKET_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverRocket", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverRocket" } )
+defines( { "GUCEF_GUIDRIVERRMLUI_BUILD_MODULE", "MODULE_CONSENSUS_NAME=guidriverRmlUI", "MODULE_IS_PLUGIN=1", "MODULE_NAME=guidriverRmlUI" } )
 
 
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
-  "include/guidriverRocket.h",
-  "include/guidriverRocket_CButtonImp.h",
-  "include/guidriverRocket_CCheckboxImp.h",
-  "include/guidriverRocket_CComboboxImp.h",
-  "include/guidriverRocket_CDataManager.h",
-  "include/guidriverRocket_CEditboxImp.h",
-  "include/guidriverRocket_CFileOpenDialogImp.h",
-  "include/guidriverRocket_CFileSaveDialogImp.h",
-  "include/guidriverRocket_CFileSystemDialogImp.h",
-  "include/guidriverRocket_CFormBackendImp.h",
-  "include/guidriverRocket_CGUIContext.h",
-  "include/guidriverRocket_CGridViewImp.h",
-  "include/guidriverRocket_CImageFrameImp.h",
-  "include/guidriverRocket_CInputAdapter.h",
-  "include/guidriverRocket_CLabelImp.h",
-  "include/guidriverRocket_CListBoxImp.h",
-  "include/guidriverRocket_CMemoboxImp.h",
-  "include/guidriverRocket_CMenuBarImp.h",
-  "include/guidriverRocket_CPopupMenuImp.h",
-  "include/guidriverRocket_CProgressBarImp.h",
-  "include/guidriverRocket_CPushButtonImp.h",
-  "include/guidriverRocket_CRenderContextImp.h",
-  "include/guidriverRocket_CRocketStreamAdapter.h",
-  "include/guidriverRocket_CRocketSystemInterface.h",
-  "include/guidriverRocket_CRocketVFSInterface.h",
-  "include/guidriverRocket_CSpinnerImp.h",
-  "include/guidriverRocket_CTabContentPaneImp.h",
-  "include/guidriverRocket_CTabControlImp.h",
-  "include/guidriverRocket_CTreeviewImp.h",
-  "include/guidriverRocket_CVFSInfoProvider.h",
-  "include/guidriverRocket_CWidgetImp.h",
-  "include/guidriverRocket_CWindowImp.h",
-  "include/guidriverRocket_ETypes.h",
-  "include/guidriverRocket_config.h",
-  "include/guidriverRocket_macros.h",
-  "include/guidriverRocket_pluginAPI.h"
+  "include/guidriverRmlUI.h",
+  "include/guidriverRmlUI_CButtonImp.h",
+  "include/guidriverRmlUI_CCheckboxImp.h",
+  "include/guidriverRmlUI_CComboboxImp.h",
+  "include/guidriverRmlUI_CDataManager.h",
+  "include/guidriverRmlUI_CEditboxImp.h",
+  "include/guidriverRmlUI_CFileOpenDialogImp.h",
+  "include/guidriverRmlUI_CFileSaveDialogImp.h",
+  "include/guidriverRmlUI_CFileSystemDialogImp.h",
+  "include/guidriverRmlUI_CFormBackendImp.h",
+  "include/guidriverRmlUI_CGUIContext.h",
+  "include/guidriverRmlUI_CGridViewImp.h",
+  "include/guidriverRmlUI_CImageFrameImp.h",
+  "include/guidriverRmlUI_CInputAdapter.h",
+  "include/guidriverRmlUI_CLabelImp.h",
+  "include/guidriverRmlUI_CListBoxImp.h",
+  "include/guidriverRmlUI_CMemoboxImp.h",
+  "include/guidriverRmlUI_CMenuBarImp.h",
+  "include/guidriverRmlUI_CPopupMenuImp.h",
+  "include/guidriverRmlUI_CProgressBarImp.h",
+  "include/guidriverRmlUI_CPushButtonImp.h",
+  "include/guidriverRmlUI_CRenderContextImp.h",
+  "include/guidriverRmlUI_CRocketStreamAdapter.h",
+  "include/guidriverRmlUI_CRocketSystemInterface.h",
+  "include/guidriverRmlUI_CRocketVFSInterface.h",
+  "include/guidriverRmlUI_CSpinnerImp.h",
+  "include/guidriverRmlUI_CTabContentPaneImp.h",
+  "include/guidriverRmlUI_CTabControlImp.h",
+  "include/guidriverRmlUI_CTreeviewImp.h",
+  "include/guidriverRmlUI_CVFSInfoProvider.h",
+  "include/guidriverRmlUI_CWidgetImp.h",
+  "include/guidriverRmlUI_CWindowImp.h",
+  "include/guidriverRmlUI_ETypes.h",
+  "include/guidriverRmlUI_config.h",
+  "include/guidriverRmlUI_macros.h",
+  "include/guidriverRmlUI_pluginAPI.h"
  } )
 
 
@@ -83,46 +83,46 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
-  "src/guidriverRocket.cpp",
-  "src/guidriverRocket_CButtonImp.cpp",
-  "src/guidriverRocket_CCheckboxImp.cpp",
-  "src/guidriverRocket_CComboboxImp.cpp",
-  "src/guidriverRocket_CDataManager.cpp",
-  "src/guidriverRocket_CEditboxImp.cpp",
-  "src/guidriverRocket_CFileOpenDialogImp.cpp",
-  "src/guidriverRocket_CFileSaveDialogImp.cpp",
-  "src/guidriverRocket_CFileSystemDialogImp.cpp",
-  "src/guidriverRocket_CFormBackendImp.cpp",
-  "src/guidriverRocket_CGUIContext.cpp",
-  "src/guidriverRocket_CGridViewImp.cpp",
-  "src/guidriverRocket_CIOAccessToRocketStreamAdapter.cpp",
-  "src/guidriverRocket_CImageFrameImp.cpp",
-  "src/guidriverRocket_CInputAdapter.cpp",
-  "src/guidriverRocket_CLabelImp.cpp",
-  "src/guidriverRocket_CListboxImp.cpp",
-  "src/guidriverRocket_CMemoboxImp.cpp",
-  "src/guidriverRocket_CMenuBarImp.cpp",
-  "src/guidriverRocket_CPopupMenuImp.cpp",
-  "src/guidriverRocket_CProgressBarImp.cpp",
-  "src/guidriverRocket_CPushButtonImp.cpp",
-  "src/guidriverRocket_CRenderContextImp.cpp",
-  "src/guidriverRocket_CRocketInputAdapter.cpp",
-  "src/guidriverRocket_CRocketStreamAdapter.cpp",
-  "src/guidriverRocket_CRocketSystemInterface.cpp",
-  "src/guidriverRocket_CRocketVFSInterface.cpp",
-  "src/guidriverRocket_CSpinnerImp.cpp",
-  "src/guidriverRocket_CTabContentPaneImp.cpp",
-  "src/guidriverRocket_CTabControlImp.cpp",
-  "src/guidriverRocket_CTreeviewImp.cpp",
-  "src/guidriverRocket_CVFSInfoProvider.cpp",
-  "src/guidriverRocket_CWidgetImp.cpp",
-  "src/guidriverRocket_CWindowImp.cpp",
-  "src/guidriverRocket_pluginAPI.cpp"
+  "src/guidriverRmlUI.cpp",
+  "src/guidriverRmlUI_CButtonImp.cpp",
+  "src/guidriverRmlUI_CCheckboxImp.cpp",
+  "src/guidriverRmlUI_CComboboxImp.cpp",
+  "src/guidriverRmlUI_CDataManager.cpp",
+  "src/guidriverRmlUI_CEditboxImp.cpp",
+  "src/guidriverRmlUI_CFileOpenDialogImp.cpp",
+  "src/guidriverRmlUI_CFileSaveDialogImp.cpp",
+  "src/guidriverRmlUI_CFileSystemDialogImp.cpp",
+  "src/guidriverRmlUI_CFormBackendImp.cpp",
+  "src/guidriverRmlUI_CGUIContext.cpp",
+  "src/guidriverRmlUI_CGridViewImp.cpp",
+  "src/guidriverRmlUI_CIOAccessToRocketStreamAdapter.cpp",
+  "src/guidriverRmlUI_CImageFrameImp.cpp",
+  "src/guidriverRmlUI_CInputAdapter.cpp",
+  "src/guidriverRmlUI_CLabelImp.cpp",
+  "src/guidriverRmlUI_CListboxImp.cpp",
+  "src/guidriverRmlUI_CMemoboxImp.cpp",
+  "src/guidriverRmlUI_CMenuBarImp.cpp",
+  "src/guidriverRmlUI_CPopupMenuImp.cpp",
+  "src/guidriverRmlUI_CProgressBarImp.cpp",
+  "src/guidriverRmlUI_CPushButtonImp.cpp",
+  "src/guidriverRmlUI_CRenderContextImp.cpp",
+  "src/guidriverRmlUI_CRocketInputAdapter.cpp",
+  "src/guidriverRmlUI_CRocketStreamAdapter.cpp",
+  "src/guidriverRmlUI_CRocketSystemInterface.cpp",
+  "src/guidriverRmlUI_CRocketVFSInterface.cpp",
+  "src/guidriverRmlUI_CSpinnerImp.cpp",
+  "src/guidriverRmlUI_CTabContentPaneImp.cpp",
+  "src/guidriverRmlUI_CTabControlImp.cpp",
+  "src/guidriverRmlUI_CTreeviewImp.cpp",
+  "src/guidriverRmlUI_CVFSInfoProvider.cpp",
+  "src/guidriverRmlUI_CWidgetImp.cpp",
+  "src/guidriverRmlUI_CWindowImp.cpp",
+  "src/guidriverRmlUI_pluginAPI.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../../common/include", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../dependencies/libRocket/Include", "../../../dependencies/libRocket/Include/Rocket", "../../../dependencies/libRocket/Include/Rocket/Controls", "../../../dependencies/libRocket/Include/Rocket/Core", "../../../dependencies/libRocket/Include/Rocket/Core/Python", "../../../dependencies/libRocket/Include/Rocket/Debugger", "../../../dependencies/libRocket/Source/Controls", "../../../dependencies/libRocket/Source/Core", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "include" } )
+includedirs( { "../../../common/include", "../../../dependencies/RmlUi/Include", "../../../dependencies/RmlUi/Include/RmlUi", "../../../dependencies/RmlUi/Include/RmlUi/Config", "../../../dependencies/RmlUi/Include/RmlUi/Core", "../../../dependencies/RmlUi/Include/RmlUi/Core/Containers", "../../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib", "../../../dependencies/RmlUi/Include/RmlUi/Core/Elements", "../../../dependencies/RmlUi/Include/RmlUi/Debugger", "../../../dependencies/RmlUi/Include/RmlUi/Lottie", "../../../dependencies/RmlUi/Include/RmlUi/Lua", "../../../dependencies/RmlUi/Include/RmlUi/SVG", "../../../dependencies/RmlUi/Source/Core", "../../../dependencies/RmlUi/Source/Core/Elements", "../../../dependencies/RmlUi/Source/Core/FontEngineDefault", "../../../dependencies/RmlUi/Source/Core/Layout", "../../../dependencies/freetype/include", "../../../dependencies/freetype/include/freetype", "../../../dependencies/freetype/include/freetype/config", "../../../dependencies/freetype/include/freetype/internal", "../../../dependencies/freetype/include/freetype/internal/services", "../../../dependencies/freetype/src", "../../../dependencies/freetype/src/winfonts", "../../../platform/gucefCORE/include", "../../../platform/gucefCORE/include/c_api", "../../../platform/gucefGUI/include", "../../../platform/gucefIMAGE/include", "../../../platform/gucefINPUT/include", "../../../platform/gucefMT/include", "../../../platform/gucefVFS/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../../platform/gucefCORE/include/android" } )

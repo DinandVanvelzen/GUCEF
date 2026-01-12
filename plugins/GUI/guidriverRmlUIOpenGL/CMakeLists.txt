@@ -9,21 +9,21 @@
 #-------------------------------------------------------------------
 #
 
-# Configuration for module: guidriverRocketOpenGL
+# Configuration for module: guidriverRmlUIOpenGL
 
 set( HEADER_FILES 
-  include/guidriverRocketOpenGL.h
-  include/guidriverRocketOpenGL_CRocketGuiDriver.h
-  include/guidriverRocketOpenGL_CRocketRenderInterfaceOpenGL.h
-  include/guidriverRocketOpenGL_config.h
-  include/guidriverRocketOpenGL_macros.h
-  include/guidriverRocketOpenGL_pluginAPI.h
+  include/guidriverRmlUIOpenGL.h
+  include/guidriverRmlUIOpenGL_CRocketGuiDriver.h
+  include/guidriverRmlUIOpenGL_CRocketRenderInterfaceOpenGL.h
+  include/guidriverRmlUIOpenGL_config.h
+  include/guidriverRmlUIOpenGL_macros.h
+  include/guidriverRmlUIOpenGL_pluginAPI.h
 )
 
 set( SOURCE_FILES 
-  src/guidriverRocketOpenGL_CRocketGuiDriver.cpp
-  src/guidriverRocketOpenGL_CRocketRenderInterfaceOpenGL.cpp
-  src/guidriverRocketOpenGL_pluginAPI.cpp
+  src/guidriverRmlUIOpenGL_CRocketGuiDriver.cpp
+  src/guidriverRmlUIOpenGL_CRocketRenderInterfaceOpenGL.cpp
+  src/guidriverRmlUIOpenGL_pluginAPI.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
@@ -35,11 +35,11 @@ set( SOURCE_FILES
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
-set( MODULE_NAME "guidriverRocketOpenGL" )
+set( MODULE_NAME "guidriverRmlUIOpenGL" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} RocketControls RocketCore gucefCORE gucefGUI gucefINPUT gucefMT guidriverRocket )
-target_link_libraries( ${MODULE_NAME} PUBLIC RocketControls RocketCore gucefCORE gucefGUI gucefINPUT gucefMT guidriverRocket )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERROCKETGL_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverRocketOpenGL;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverRocketOpenGL" )
+add_dependencies( ${MODULE_NAME} RmlUI_Core gucefCORE gucefGUI gucefINPUT gucefMT guidriverRmlUI )
+target_link_libraries( ${MODULE_NAME} PUBLIC RmlUI_Core gucefCORE gucefGUI gucefINPUT gucefMT guidriverRmlUI )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUIDRIVERRMLUIGL_BUILD_MODULE;MODULE_CONSENSUS_NAME=guidriverRmlUIOpenGL;MODULE_IS_PLUGIN=1;MODULE_NAME=guidriverRmlUIOpenGL" )
 
 if ( ANDROID32 )
   target_link_libraries( ${MODULE_NAME} PRIVATE EGL GLESv1_CM )
@@ -65,7 +65,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PRIVATE OpenGL32.lib )
 endif( WIN64 )
 
-include_directories( ../../../common/include ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../dependencies/libRocket/Include ../../../dependencies/libRocket/Include/Rocket ../../../dependencies/libRocket/Include/Rocket/Controls ../../../dependencies/libRocket/Include/Rocket/Core ../../../dependencies/libRocket/Include/Rocket/Core/Python ../../../dependencies/libRocket/Include/Rocket/Debugger ../../../dependencies/libRocket/Source/Controls ../../../dependencies/libRocket/Source/Core ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../guidriverRocket/include include )
+include_directories( ../../../common/include ../../../dependencies/RmlUi/Include ../../../dependencies/RmlUi/Include/RmlUi ../../../dependencies/RmlUi/Include/RmlUi/Config ../../../dependencies/RmlUi/Include/RmlUi/Core ../../../dependencies/RmlUi/Include/RmlUi/Core/Containers ../../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib ../../../dependencies/RmlUi/Include/RmlUi/Core/Elements ../../../dependencies/RmlUi/Include/RmlUi/Debugger ../../../dependencies/RmlUi/Include/RmlUi/Lottie ../../../dependencies/RmlUi/Include/RmlUi/Lua ../../../dependencies/RmlUi/Include/RmlUi/SVG ../../../dependencies/RmlUi/Source/Core ../../../dependencies/RmlUi/Source/Core/Elements ../../../dependencies/RmlUi/Source/Core/FontEngineDefault ../../../dependencies/RmlUi/Source/Core/Layout ../../../dependencies/freetype/include ../../../dependencies/freetype/include/freetype ../../../dependencies/freetype/include/freetype/config ../../../dependencies/freetype/include/freetype/internal ../../../dependencies/freetype/include/freetype/internal/services ../../../dependencies/freetype/src ../../../dependencies/freetype/src/winfonts ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefGUI/include ../../../platform/gucefIMAGE/include ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefVFS/include ../guidriverRmlUI/include include )
 
 if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )
