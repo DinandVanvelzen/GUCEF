@@ -1,0 +1,14 @@
+<ModuleInfoEntry>
+    <Module Name="RmlUI_Core" Type="SharedLibrary" Platform="All">
+        <Preprocessor>
+            <Define String="RMLUI_CORE_EXPORTS" />
+        </Preprocessor>        
+        <Dependencies>
+            <Dependency Name="RmlUI_Includes" />
+            <Dependency Name="freetype" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="freetype" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>

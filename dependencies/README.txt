@@ -39,6 +39,7 @@ aws-cpp-sdk-secretsmanager is version 1.10.51 from GitHub (Jan 13th 2023) @ http
 aws-lambda-runtime is version 0.2.7 from GitHub @ https://github.com/awslabs/aws-lambda-cpp/releases/tag/v0.2.7
 libyaml is in-flight version 0.2.6 from GitHub @ https://github.com/yaml/libyaml obtained source dated 2023-04-23
 opentelemetry-cpp is version 1.21.0 from GitHub
+RmlUI is version 6.2 from GitHub @ https://github.com/mikke89/RmlUi/releases/tag/6.2
 
 Note for MS Windows builds: 
 - to build the DirectInput dependent code you must have the DirectX SDK installed on your system.

@@ -1,0 +1,13 @@
+<ModuleInfoEntry>
+    <Module Name="RmlUI_Debugger" Type="SharedLibrary" Platform="All">
+        <Dependencies>
+            <Dependency Name="RmlUI_Includes" />
+            <Dependency Name="RmlUI_Core" />
+            <Dependency Name="freetype" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="RmlUI_Core" />
+            <Dependency Name="freetype" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>
