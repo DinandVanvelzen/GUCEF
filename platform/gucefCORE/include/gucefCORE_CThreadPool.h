@@ -205,76 +205,76 @@ class GUCEF_CORE_PUBLIC_CPP CThreadPool : public CTSGNotifier ,
                              CObserver* taskObserver = GUCEF_NULL   ,
                              bool assumeOwnershipOfTaskData = false );
 
-    /**
-     *  Queues a task, in the form of a function callback, for execution as soon as a thread is available
-     *  to execute it.
-     *
-     *  @param f    The callback function pointer                                  
-     */    
-    template< typename R >
-    CFutureResult QueueCallbackTask( R (*f)() );
+    ///**
+    // *  Queues a task, in the form of a function callback, for execution as soon as a thread is available
+    // *  to execute it.
+    // *
+    // *  @param f    The callback function pointer                                  
+    // */    
+    //template< typename R >
+    //CFutureResult QueueCallbackTask( R (*f)() );
 
-    /**
-     *  Queues a task, in the form of a function callback, for execution as soon as a thread is available
-     *  to execute it.
-     *
-     *  @param f    The callback function pointer
-     *  @param a1   param 1 to be given to the function at time of deferred invocation   
-     */    
-    template< typename R, typename A1 >
-    CFutureResult QueueCallbackTask( R (*f)(A1), A1 a1 );
+    ///**
+    // *  Queues a task, in the form of a function callback, for execution as soon as a thread is available
+    // *  to execute it.
+    // *
+    // *  @param f    The callback function pointer
+    // *  @param a1   param 1 to be given to the function at time of deferred invocation   
+    // */    
+    //template< typename R, typename A1 >
+    //CFutureResult QueueCallbackTask( R (*f)(A1), A1 a1 );
 
-    /**
-     *  Queues a task, in the form of a function callback, for execution as soon as a thread is available
-     *  to execute it.
-     *
-     *  @param f    The callback function pointer
-     *  @param a1   param 1 to be given to the function at time of deferred invocation
-     *  @param a2   param 2 to be given to the function at time of deferred invocation
-     */ 
-    template< typename R, typename A1, typename A2 >
-    CFutureResult QueueCallbackTask( R (*f)(A1, A2), A1 a1, A2 a2 );
+    ///**
+    // *  Queues a task, in the form of a function callback, for execution as soon as a thread is available
+    // *  to execute it.
+    // *
+    // *  @param f    The callback function pointer
+    // *  @param a1   param 1 to be given to the function at time of deferred invocation
+    // *  @param a2   param 2 to be given to the function at time of deferred invocation
+    // */ 
+    //template< typename R, typename A1, typename A2 >
+    //CFutureResult QueueCallbackTask( R (*f)(A1, A2), A1 a1, A2 a2 );
 
-    /**
-     *  Queues a task, in the form of a function callback, for execution as soon as a thread is available
-     *  to execute it.
-     *
-     *  @param f    The callback function pointer
-     *  @param a1   param 1 to be given to the function at time of deferred invocation
-     *  @param a2   param 2 to be given to the function at time of deferred invocation
-     *  @param a3   param 3 to be given to the function at time of deferred invocation
-     */ 
-    template< typename R, typename A1, typename A2, typename A3 >
-    CFutureResult QueueCallbackTask( R (*f)(A1, A2, A3), A1 a1, A2 a2, A3 a3 );
+    ///**
+    // *  Queues a task, in the form of a function callback, for execution as soon as a thread is available
+    // *  to execute it.
+    // *
+    // *  @param f    The callback function pointer
+    // *  @param a1   param 1 to be given to the function at time of deferred invocation
+    // *  @param a2   param 2 to be given to the function at time of deferred invocation
+    // *  @param a3   param 3 to be given to the function at time of deferred invocation
+    // */ 
+    //template< typename R, typename A1, typename A2, typename A3 >
+    //CFutureResult QueueCallbackTask( R (*f)(A1, A2, A3), A1 a1, A2 a2, A3 a3 );
 
-    /**
-     *  Queues a task, in the form of a function callback, for execution as soon as a thread is available
-     *  to execute it.
-     *
-     *  @param f    The callback function pointer
-     *  @param a1   param 1 to be given to the function at time of deferred invocation
-     *  @param a2   param 2 to be given to the function at time of deferred invocation
-     *  @param a3   param 3 to be given to the function at time of deferred invocation
-     *  @param a4   param 4 to be given to the function at time of deferred invocation
-     */ 
-    template< typename R, typename A1, typename A2, typename A3, typename A4 >
-    CFutureResult QueueCallbackTask( R (*f)(A1, A2, A3, A4), A1 a1, A2 a2, A3 a3, A4 a4 );
+    ///**
+    // *  Queues a task, in the form of a function callback, for execution as soon as a thread is available
+    // *  to execute it.
+    // *
+    // *  @param f    The callback function pointer
+    // *  @param a1   param 1 to be given to the function at time of deferred invocation
+    // *  @param a2   param 2 to be given to the function at time of deferred invocation
+    // *  @param a3   param 3 to be given to the function at time of deferred invocation
+    // *  @param a4   param 4 to be given to the function at time of deferred invocation
+    // */ 
+    //template< typename R, typename A1, typename A2, typename A3, typename A4 >
+    //CFutureResult QueueCallbackTask( R (*f)(A1, A2, A3, A4), A1 a1, A2 a2, A3 a3, A4 a4 );
 
-    /**
-     *  Queues a task as the next task to execute after a given task, in the form of a function callback.
-     *  Queueing work in this manner allows for multiplexing the work with other work since the follow-up work will go to the back of the line again in the queue
-     *  once the pre-req task has been completed, it will subsequently be picked up for execution, as soon as a thread is available per queue order,
-     *  to execute it.
-     * 
-     *  Note that the completed prerequisite task is a mandatory first parameter input to the callback
-     *  Also note that until all tasks in a task chain have reached completion all those tasks are considered 'in-use' since they
-     *  are part of a greater whole
-     *
-     *  @param prereqTask       The prerequisite task who's completion will trigger the task formulated with this call
-     *  @param f                The callback function pointer                                  
-     */    
-    template< typename R >
-    CFutureResult QueueNextCallbackTask( CTaskPtr prereqTask, R (*f)( CTaskPtr ) );
+    ///**
+    // *  Queues a task as the next task to execute after a given task, in the form of a function callback.
+    // *  Queueing work in this manner allows for multiplexing the work with other work since the follow-up work will go to the back of the line again in the queue
+    // *  once the pre-req task has been completed, it will subsequently be picked up for execution, as soon as a thread is available per queue order,
+    // *  to execute it.
+    // * 
+    // *  Note that the completed prerequisite task is a mandatory first parameter input to the callback
+    // *  Also note that until all tasks in a task chain have reached completion all those tasks are considered 'in-use' since they
+    // *  are part of a greater whole
+    // *
+    // *  @param prereqTask       The prerequisite task who's completion will trigger the task formulated with this call
+    // *  @param f                The callback function pointer                                  
+    // */    
+    //template< typename R >
+    //CFutureResult QueueNextCallbackTask( CTaskPtr prereqTask, R (*f)( CTaskPtr ) );
 
     /**
      *  Immediately starts executing a task using the task
@@ -678,118 +678,133 @@ typedef CThreadPool::ThreadPoolTypedPtr     ThreadPoolTypedPtr;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-template< typename R >
-CFutureResult
-CThreadPool::QueueCallbackTask( R (*f)() )
-{GUCEF_TRACE;
+//template< typename R >
+//CFutureResult
+//CThreadPool::QueueCallbackTask( R (*f)() )
+//{GUCEF_TRACE;
+//
+//    CICloneable* taskData = CDeferredTask::Construct( f );
+//    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
+//        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+//
+//    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
+//                                      taskData                               ,
+//                                      GUCEF_NULL                             ,
+//                                      true                                   );
+//    return future;
+//}
+//
+///*-------------------------------------------------------------------------*/
+//
+//template< typename R, typename A1 >
+//CFutureResult
+//CThreadPool::QueueCallbackTask( R (*f)(A1), A1 a1 )
+//{GUCEF_TRACE;
+//
+//    CICloneable* taskData = CDeferredTask::Construct( f, a1 );
+//    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
+//        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+//
+//    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
+//                                      taskData                               ,
+//                                      GUCEF_NULL                             ,
+//                                      true                                   );
+//    return future;
+//}
+//
+///*-------------------------------------------------------------------------*/
+//
+//template< typename R, typename A1, typename A2 >
+//CFutureResult
+//CThreadPool::QueueCallbackTask( R (*f)(A1, A2), A1 a1, A2 a2 )
+//{GUCEF_TRACE;
+//
+//    CICloneable* taskData = CDeferredTask::Construct( f, a1, a2 );
+//    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
+//        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+//
+//    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
+//                                      taskData                               ,
+//                                      GUCEF_NULL                             ,
+//                                      true                                   );
+//    return future;
+//}
+//
+///*-------------------------------------------------------------------------*/
+//
+//template< typename R, typename A1, typename A2, typename A3 >
+//CFutureResult
+//CThreadPool::QueueCallbackTask( R (*f)(A1, A2, A3), A1 a1, A2 a2, A3 a3 )
+//{GUCEF_TRACE;
+//
+//    CICloneable* taskData = CDeferredTask::Construct( f, a1, a2, a3 );
+//    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
+//        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+//
+//    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
+//                                      taskData                               ,
+//                                      GUCEF_NULL                             ,
+//                                      true                                   );
+//    return future;
+//}
+//
+///*-------------------------------------------------------------------------*/
+//
+//template< typename R, typename A1, typename A2, typename A3, typename A4 >
+//CFutureResult
+//CThreadPool::QueueCallbackTask( R (*f)(A1, A2, A3, A4), A1 a1, A2 a2, A3 a3, A4 a4 )
+//{GUCEF_TRACE;
+//
+//    CICloneable* taskData = CDeferredTask::Construct( f, a1, a2, a3, a4 );
+//    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
+//        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
+//
+//    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
+//                                      taskData                               ,
+//                                      GUCEF_NULL                             ,
+//                                      true                                   );
+//    return future;
+//}
 
-    CICloneable* taskData = CDeferredTask::Construct( f );
-    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
-
-    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
-                                      taskData                               ,
-                                      GUCEF_NULL                             ,
-                                      true                                   );
-    return future;
-}
-
-/*-------------------------------------------------------------------------*/
-
-template< typename R, typename A1 >
-CFutureResult
-CThreadPool::QueueCallbackTask( R (*f)(A1), A1 a1 )
-{GUCEF_TRACE;
-
-    CICloneable* taskData = CDeferredTask::Construct( f, a1 );
-    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
-
-    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
-                                      taskData                               ,
-                                      GUCEF_NULL                             ,
-                                      true                                   );
-    return future;
-}
-
-/*-------------------------------------------------------------------------*/
-
-template< typename R, typename A1, typename A2 >
-CFutureResult
-CThreadPool::QueueCallbackTask( R (*f)(A1, A2), A1 a1, A2 a2 )
-{GUCEF_TRACE;
-
-    CICloneable* taskData = CDeferredTask::Construct( f, a1, a2 );
-    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
-
-    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
-                                      taskData                               ,
-                                      GUCEF_NULL                             ,
-                                      true                                   );
-    return future;
-}
-
-/*-------------------------------------------------------------------------*/
-
-template< typename R, typename A1, typename A2, typename A3 >
-CFutureResult
-CThreadPool::QueueCallbackTask( R (*f)(A1, A2, A3), A1 a1, A2 a2, A3 a3 )
-{GUCEF_TRACE;
-
-    CICloneable* taskData = CDeferredTask::Construct( f, a1, a2, a3 );
-    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
-
-    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
-                                      taskData                               ,
-                                      GUCEF_NULL                             ,
-                                      true                                   );
-    return future;
-}
-
-/*-------------------------------------------------------------------------*/
-
-template< typename R, typename A1, typename A2, typename A3, typename A4 >
-CFutureResult
-CThreadPool::QueueCallbackTask( R (*f)(A1, A2, A3, A4), A1 a1, A2 a2, A3 a3, A4 a4 )
-{GUCEF_TRACE;
-
-    CICloneable* taskData = CDeferredTask::Construct( f, a1, a2, a3, a4 );
-    if GUCEF_PREDICT_FALSE( GUCEF_NULL == taskData )
-        return TTaskStatus::TASKSTATUS_RESOURCE_LIMIT_REACHED;
-
-    CFutureResult future = QueueTask( CGenericCallbackTaskConsumer::TaskType ,
-                                      taskData                               ,
-                                      GUCEF_NULL                             ,
-                                      true                                   );
-    return future;
-}
-
-/*-------------------------------------------------------------------------*/
-
-template< typename R >
-CFutureResult
-CThreadPool::QueueNextCallbackTask( CTaskPtr prereqTask, R (*f)( CTaskPtr ) )
-{GUCEF_TRACE;
-
-    if ( prereqTask.IsNULL() )
-        return TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
-
-    CTaskPtr task = PrepTaskObj( CGenericCallbackTaskConsumer::TaskType ,
-                                 GUCEF_NULL                             ,
-                                 GUCEF_NULL                             ,
-                                 true                                   );
-    if ( !task->IsTaskInErrorState() )
-    {
-        if ( prereqTask->SetNextTask( task ) )
-        {
-            CFutureResult future = QueueCallbackTask( f, prereqTask );
-            return future;
-        }
-    }
-    return task;
-}
+///*-------------------------------------------------------------------------*/
+//
+//template< typename R >
+//CFutureResult
+//CThreadPool::QueueNextCallbackTask( CTaskPtr prereqTask, R (*f)( CTaskPtr ) )
+//{GUCEF_TRACE;
+//
+//    if ( prereqTask.IsNULL() )
+//        return TTaskStatus::TASKSTATUS_RESOURCE_NOT_AVAILABLE;
+//
+//    // Ensure that the prereq task is the last in its chain
+//    // We do not allow branched chains at this time
+//    if ( prereqTask->IsLastTaskInAChain() )
+//    {
+//        if ( prereqTask->IsTaskInErrorState() )
+//            return TTaskStatus::TASKSTATUS_CHAIN_PREREQ_FAILED;
+//
+//        CTaskPtr task = PrepTaskObj( CGenericCallbackTaskConsumer::TaskType ,
+//                                     GUCEF_NULL                             ,
+//                                     GUCEF_NULL                             ,
+//                                     true                                   );
+//        if ( !task->IsTaskInErrorState() )
+//        {
+//            CTask::TTaskPtrVector chainTasks;
+//            if ( prereqTask->GetAllTasksInChain( chainTasks ) )
+//            {
+//                
+//            }
+//
+//            if ( prereqTask->SetNextTask( task ) )
+//            {
+//                CFutureResult future = QueueCallbackTask( f, prereqTask );
+//                return future;
+//            }
+//        }
+//        return task;
+//    }
+//    return TTaskStatus::TASKSTATUS_TASK_CHAINING_FAILED;
+//}
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
