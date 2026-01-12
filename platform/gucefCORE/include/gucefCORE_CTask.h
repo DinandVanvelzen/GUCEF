@@ -314,7 +314,7 @@ class GUCEF_CORE_PUBLIC_CPP CTask : public CNotifier ,
     CThreadPoolPtr m_threadPool;
     CTaskConsumerPtr m_taskConsumer;
     TTaskId m_taskId;
-    bool m_assumedOwnershipOfTaskData;
+    bool m_assumedOwnershipOfTaskData;  
     TTaskStatus m_taskStatus;
     CString m_taskStatusExtraInfo;
     TTaskIdVector m_chainTasks;

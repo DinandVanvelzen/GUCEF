@@ -290,8 +290,8 @@ CPubSubClientSide::TopicLink::AddInFlightMsgs( const CPubSubClientTopic::TPublis
     if ( publishActionIds.size() != msgs.size() )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSubClientSide(" + CORE::ToString( this ) +
-            "):TopicLink:AddInFlightMsgs: Nr of publishActionIds (" + CORE::ToString( publishActionIds.size() ) +
-            ") does not match Nr of msgs (" + CORE::ToString( msgs.size() ) + "). Will proceed best effort but this will likely cause issues" );
+            "):TopicLink:AddInFlightMsgs: Nr of publishActionIds (" + CORE::SizeTToString( publishActionIds.size() ) +
+            ") does not match Nr of msgs (" + CORE::SizeTToString( msgs.size() ) + "). Will proceed best effort but this will likely cause issues" );
     }
 
     for ( size_t i=0; i<max; ++i )
@@ -314,8 +314,8 @@ CPubSubClientSide::TopicLink::AddInFlightMsgs( const CPubSubClientTopic::TPublis
     if ( publishActionIds.size() != msgs.size() )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSubClientSide(" + CORE::ToString( this ) +
-            "):TopicLink:AddInFlightMsgs: Nr of publishActionIds (" + CORE::ToString( publishActionIds.size() ) +
-            ") does not match Nr of msgs (" + CORE::ToString( msgs.size() ) + "). Will proceed best effort but this will likely cause issues" );
+            "):TopicLink:AddInFlightMsgs: Nr of publishActionIds (" + CORE::SizeTToString( publishActionIds.size() ) +
+            ") does not match Nr of msgs (" + CORE::SizeTToString( msgs.size() ) + "). Will proceed best effort but this will likely cause issues" );
     }
 
     for ( size_t i=0; i<max; ++i )
@@ -1420,7 +1420,7 @@ CPubSubClientSide::TopicLink::PublishMsgs( const TMsgCollection& msgs )
             // this is a performance tradeoff where pulling messages in-proc as a prefetch is expected
             // to provide faster recovery
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "TopicLink(" + CORE::ToString( this ) +
-                "):PublishMsgs: awaiting failure report. Deferring transmission as async send for " + CORE::ToString( msgs.size() ) +
+                "):PublishMsgs: awaiting failure report. Deferring transmission as async send for " + CORE::SizeTToString( msgs.size() ) +
                 " msgs for topic " + ( !topic.IsNULL() ? topic->GetTopicName() : "\"\"" )  );
 
             return PublishMsgsASync< const TMsgCollection >( msgs );
@@ -1441,7 +1441,7 @@ CPubSubClientSide::GetMsgAttributesForLog( const CIPubSubMsg& msg )
 {GUCEF_TRACE;
 
     return "MsgId=\"" + msg.GetMsgId().AsString() + "\", MsgIndex=\"" + msg.GetMsgIndex().AsString() + "\", MsgDateTime=\"" + CORE::ToString( msg.GetMsgDateTime() ) +
-            "\", MsgPrimaryPayloadSize=\"" + CORE::ToString( msg.GetPrimaryPayload().ByteSize( false ) ) + "\", MsgNrOfKeyValuePairs=\"" + CORE::ToString( msg.GetKeyValuePairs().size() ) + "\", MsgNrOfMetaDataKeyValuePairs=\"" + CORE::ToString( msg.GetMetaDataKeyValuePairs().size() ) +
+            "\", MsgPrimaryPayloadSize=\"" + CORE::ToString( msg.GetPrimaryPayload().ByteSize( false ) ) + "\", MsgNrOfKeyValuePairs=\"" + CORE::SizeTToString( msg.GetKeyValuePairs().size() ) + "\", MsgNrOfMetaDataKeyValuePairs=\"" + CORE::SizeTToString( msg.GetMetaDataKeyValuePairs().size() ) +
             "\", ReceiveActionId=\"" + CORE::ToString( msg.GetReceiveActionId() ) + "\", OriginClientTopic=\"" + ( !msg.GetOriginClientTopic().IsNULL() ?  msg.GetOriginClientTopic()->GetTopicName() : CORE::CString::Empty ) + "\"";
 }
 
@@ -1551,13 +1551,13 @@ CPubSubClientSide::TopicLink::OnCheckForTimedOutInFlightMessagesTimerCycle( CORE
                 if ( flowRouter->PublishMsgs( side, discardedMsgs, RouteType::DeadLetter ) )
                 {
                     GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "TopicLink(" + CORE::ToString( this ) +
-                        "):OnCheckForTimedOutInFlightMessagesTimerCycle: For topic " + topic->GetTopicName() + " we successfully sent a total of " + CORE::ToString( nrOfDiscardedMsgs ) +
+                        "):OnCheckForTimedOutInFlightMessagesTimerCycle: For topic " + topic->GetTopicName() + " we successfully sent a total of " + CORE::SizeTToString( nrOfDiscardedMsgs ) +
                         " messages to a dead letter destination" );
                 }
                 else
                 {
                     GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "TopicLink(" + CORE::ToString( this ) +
-                        "):OnCheckForTimedOutInFlightMessagesTimerCycle: For topic " + topic->GetTopicName() + " we were unable to send a total of " + CORE::ToString( nrOfDiscardedMsgs ) +
+                        "):OnCheckForTimedOutInFlightMessagesTimerCycle: For topic " + topic->GetTopicName() + " we were unable to send a total of " + CORE::SizeTToString( nrOfDiscardedMsgs ) +
                         " messages to any dead letter destination" );
                 }
             }
@@ -1572,7 +1572,7 @@ CPubSubClientSide::TopicLink::OnCheckForTimedOutInFlightMessagesTimerCycle( CORE
             }
 
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "TopicLink(" + CORE::ToString( this ) +
-                "):OnCheckForTimedOutInFlightMessagesTimerCycle: For topic " + topic->GetTopicName() + " we discarded a total of " + CORE::ToString( nrOfDiscardedMsgs ) +
+                "):OnCheckForTimedOutInFlightMessagesTimerCycle: For topic " + topic->GetTopicName() + " we discarded a total of " + CORE::SizeTToString( nrOfDiscardedMsgs ) +
                 " messages due to exceeding the max in-flight time allowed which is configured as " + CORE::ToString( sideSettings->maxPublishedMsgInFlightTimeInMs ) );
         }
     }
@@ -1629,7 +1629,7 @@ CPubSubClientSide::ProcessMailbox( void )
                 if ( !m_broadcastMailbox.ReInsertSPtrBulkMail( msgs ) )
                 {
                     GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "PubSubClientSide(" + CORE::ToString( this ) +
-                        "):RetryPublishFailedMsgsAndProcessMailbox: Failed to reinsert " + CORE::ToString( msgs.size() ) +
+                        "):RetryPublishFailedMsgsAndProcessMailbox: Failed to reinsert " + CORE::SizeTToString( msgs.size() ) +
                         " messages into the mailbox after an exception occured" );
                 }
             }
@@ -1677,7 +1677,7 @@ CPubSubClientSide::TopicLink::RetryPublishFailedMsgs( void )
             if ( !topic->IsPublishingSupported() )
             {
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "TopicLink(" + CORE::ToString( this ) +
-                    "):RetryPublishFailedMsgs: Topic " + topic->GetTopicName() + " has " + CORE::ToString( publishFailedMsgs.size() ) +
+                    "):RetryPublishFailedMsgs: Topic " + topic->GetTopicName() + " has " + CORE::SizeTToString( publishFailedMsgs.size() ) +
                     " publish failed messages and yet the topic is set as being incapable of publishing. This should never happen! Clearing the failed message as resolving the situation is impossible" );
 
                 publishFailedMsgs.clear();
@@ -1866,7 +1866,7 @@ CPubSubClientSide::TopicLink::RetryPublishFailedMsgs( void )
             if ( discardedMsgs > 0 )
             {
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "TopicLink(" + CORE::ToString( this ) +
-                    "):RetryPublishFailedMsgs: For topic " + topic->GetTopicName() + " we discarded a total of " + CORE::ToString( discardedMsgs ) +
+                    "):RetryPublishFailedMsgs: For topic " + topic->GetTopicName() + " we discarded a total of " + CORE::SizeTToString( discardedMsgs ) +
                     " messages due to exceeding the max retry attempts and/or sanity checks" );
             }
         }
@@ -1927,13 +1927,13 @@ CPubSubClientSide::TopicLink::PublishMailboxMsgs( void )
                         if ( timeoutOccured )
                         {
                             GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "TopicLink(" + CORE::ToString( this ) +
-                                "):PublishMailboxMsgs: Failed to pop back " + CORE::ToString( msgs.size() ) +
+                                "):PublishMailboxMsgs: Failed to pop back " + CORE::SizeTToString( msgs.size() ) +
                                 " messages into the mailbox after a timeout exception occured" );
                         }
                         else
                         {
                             GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "TopicLink(" + CORE::ToString( this ) +
-                                "):PublishMailboxMsgs: Failed to pop back " + CORE::ToString( msgs.size() ) +
+                                "):PublishMailboxMsgs: Failed to pop back " + CORE::SizeTToString( msgs.size() ) +
                                 " messages into the mailbox after a failure to publish occured" );
                         }
                     }
@@ -1946,7 +1946,7 @@ CPubSubClientSide::TopicLink::PublishMailboxMsgs( void )
             if ( !msgMailbox.ReInsertSPtrBulkMail( msgs ) )
             {
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "TopicLink(" + CORE::ToString( this ) +
-                    "):PublishMailboxMsgs: Failed to pop back " + CORE::ToString( msgs.size() ) +
+                    "):PublishMailboxMsgs: Failed to pop back " + CORE::SizeTToString( msgs.size() ) +
                     " messages into the mailbox after a timeout exception occured" );
             }
         }
@@ -1956,7 +1956,7 @@ CPubSubClientSide::TopicLink::PublishMailboxMsgs( void )
             if ( !msgMailbox.ReInsertSPtrBulkMail( msgs ) )
             {
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "TopicLink(" + CORE::ToString( this ) +
-                    "):PublishMailboxMsgs: Failed to pop back " + CORE::ToString( msgs.size() ) +
+                    "):PublishMailboxMsgs: Failed to pop back " + CORE::SizeTToString( msgs.size() ) +
                     " messages into the mailbox after an exception occured" );
             }
             throw e;
@@ -2091,7 +2091,7 @@ CPubSubClientSide::TopicLink::OnPubSubTopicMsgsReceived( CORE::CNotifier* notifi
         if ( !msgs.empty() )
         {
             GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "TopicLink(" + CORE::ToString( this ) +
-                "):OnPubSubTopicMsgsReceived: Received " + CORE::ToString( msgs.size() ) + " message(s) from pubsub client on side: " + side->GetSideId() );
+                "):OnPubSubTopicMsgsReceived: Received " + CORE::SizeTToString( msgs.size() ) + " message(s) from pubsub client on side: " + side->GetSideId() );
 
             MT::CScopeMutex lock( m_dataLock );
 
@@ -2577,7 +2577,7 @@ CPubSubClientSide::TopicLink::OnPubSubTopicMsgsPublished( CORE::CNotifier* notif
     {
         // This should not happen
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "TopicLink(" + CORE::ToString( this ) +
-                            "):OnPubSubTopicMsgsPublished: Could not process " + CORE::ToString( publishActionIds->size() ) +
+                            "):OnPubSubTopicMsgsPublished: Could not process " + CORE::SizeTToString( publishActionIds->size() ) +
                             " msg acks from client because the topic obj is unknown to us" );
     }
 }
@@ -2640,7 +2640,7 @@ CPubSubClientSide::TopicLink::OnPubSubTopicMsgsPublishFailure( CORE::CNotifier* 
     {
         // This should not happen
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "TopicLink(" + CORE::ToString( this ) +
-                            "):OnPubSubTopicMsgsPublishFailure: Could not process " + CORE::ToString( publishActionIds->size() ) +
+                            "):OnPubSubTopicMsgsPublishFailure: Could not process " + CORE::SizeTToString( publishActionIds->size() ) +
                             " msg failure notifications from client because the topic obj is unknown to us" );
     }
 

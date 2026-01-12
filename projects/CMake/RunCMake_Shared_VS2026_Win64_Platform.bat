@@ -1,0 +1,9 @@
+CALL CMakeCommon.bat
+
+ECHO *** Set VS2026 specifics and run CMake ***
+
+SET MAINCMAKE=%SRCROOTDIR%\projects\CMake\targets\GUCEF_tag_platform
+SET VS26_OUTPUTDIR="%OUTPUTDIR%\VS2026_x64_Platform"
+
+CMake.exe -DBUILD_SHARED_LIBS=ON -G"Visual Studio 18 2026" -A x64 -H"%MAINCMAKE%" -B%VS26_OUTPUTDIR% -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+PAUSE

@@ -75,6 +75,11 @@ namespace GUCEF {
   #undef max
 #endif
 
+#ifdef __clang__
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CLASSES                                                            //
@@ -461,10 +466,15 @@ public:
   #endif
 
     typedef typename base_type::value_type      value_type;
+    #if __cplusplus < 201703L
     typedef typename base_type::pointer         pointer;
     typedef typename base_type::const_pointer   const_pointer;
+    #endif
     typedef typename base_type::size_type       size_type;
     typedef typename base_type::difference_type difference_type;
+    #if __cplusplus >= 201103L
+    typedef std::allocator_traits< T >          traits;
+    #endif
 
     // rebind (required by older STL)
     template <class U>
@@ -488,7 +498,11 @@ public:
         : base_type( src ) { GUCEF_TRACE; }
   };
 
-//#endif
+/*-------------------------------------------------------------------------*/
+
+#ifdef __clang__
+  #pragma clang diagnostic pop
+#endif // __clang__
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

@@ -1873,7 +1873,7 @@ CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >::CTBasicSharedPtrCrea
     // When using this constructor we specifically mandate a subsequent call to InitializeSharedPtrCreatorData()
     // We want to keep the behavior consistent across the case where T is or is not derived from CTBasicSharedPtrCreator
     // Hence one can always call InitializeSharedPtrCreatorData() after default construction with an CTBasicSharedPtrCreatorAccessor
-    OverrideSharedPtrCreatorData( GUCEF_NULL, GUCEF_NULL );
+    T::OverrideSharedPtrCreatorData( GUCEF_NULL, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1884,7 +1884,7 @@ CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >::CTBasicSharedPtrCrea
     : T()
 {GUCEF_TRACE;
 
-    OverrideSharedPtrCreatorData( originalAddressAsCreated, voidDestructor );
+    T::OverrideSharedPtrCreatorData( originalAddressAsCreated, voidDestructor );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1905,7 +1905,7 @@ CTBasicSharedPtrCreatorAccessor< T, LockType, plain_true >::CTBasicSharedPtrCrea
     GUCEF_ASSERT( 0 == srcBasicSharedPtrData.m_refCounter );
     #endif
 
-    OverrideSharedPtrCreatorData( originalAddressAsCreated, voidDestructor );
+    T::OverrideSharedPtrCreatorData( originalAddressAsCreated, voidDestructor );
 }
 
 #endif

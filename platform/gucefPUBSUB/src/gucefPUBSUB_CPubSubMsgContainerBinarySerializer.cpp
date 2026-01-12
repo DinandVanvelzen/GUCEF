@@ -684,7 +684,7 @@ CPubSubMsgContainerBinarySerializer::IndexRebuildScan( TMsgOffsetIndex& index   
         }
     }
 
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "PubSubMsgContainerBinarySerializer:IndexRebuildScan: Index rebuild discovered " + CORE::ToString( index.size() ) + " messages" );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "PubSubMsgContainerBinarySerializer:IndexRebuildScan: Index rebuild discovered " + CORE::SizeTToString( index.size() ) + " messages" );
     return true;
 }
 
@@ -711,7 +711,7 @@ CPubSubMsgContainerBinarySerializer::Deserialize( CPubSubClientTopic::TPubSubMsg
     if ( msgs.size() <= index.size() )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "PubSubMsgContainerBinarySerializer:Deserialize: The given message storage was not properly pre-allocated ( " +
-                CORE::ToString( msgs.size() ) + " vs " + CORE::ToString( index.size() ) + ")" );
+                CORE::SizeTToString( msgs.size() ) + " vs " + CORE::SizeTToString( index.size() ) + ")" );
         isCorrupted = false;
         return false;
     }
@@ -970,7 +970,7 @@ CPubSubMsgContainerBinarySerializer::DeserializeMsgAtIndex( CIPubSubMsg& msg    
 
     if ( msgIndex >= index.size() )
     {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "PubSubMsgContainerBinarySerializer:DeserializeMsgAtIndex: Per footer the index is out of range. Actual Nr of items: " + CORE::ToString( index.size() ) );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "PubSubMsgContainerBinarySerializer:DeserializeMsgAtIndex: Per footer the index is out of range. Actual Nr of items: " + CORE::SizeTToString( index.size() ) );
         isCorrupted = true;
         return false;
     }

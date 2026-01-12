@@ -23,6 +23,12 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+
+#ifndef GUCEF_CORE_CCOREGLOBAL_H
+#include "gucefCORE_CCoreGlobal.h"
+#define GUCEF_CORE_CCOREGLOBAL_H
+#endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
+
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
@@ -182,15 +188,15 @@ CPassiveURLServerListProvider::ParseList( const CORE::CDataNode& listRoot )
                 att = entryNode->GetAttribute( "Name" );
                 if ( NULL != att )
                 {
-                    serverInfo.name = att->second.value;
+                    serverInfo.name = att->second;
                     att = entryNode->GetAttribute( "Address" );
                     if ( NULL != att )
                     {
-                        serverInfo.hostAddress.SetHostname( att->second.value );
+                        serverInfo.hostAddress.SetHostname( att->second );
                         att = entryNode->GetAttribute( "Port" );
                         if ( NULL != att )
                         {
-                            serverInfo.hostAddress.SetPortInHostByteOrder( CORE::StringToUInt16( att->second.value ) );
+                            serverInfo.hostAddress.SetPortInHostByteOrder( CORE::StringToUInt16( att->second ) );
 
                             // We now have enough info to consider this a valid entry
                             // We will add the rest to the optional parameter list
@@ -202,8 +208,8 @@ CPassiveURLServerListProvider::ParseList( const CORE::CDataNode& listRoot )
                                      ( "Address" != att->first ) &&
                                      ( "Port" != att->first )     )
                                 {
-                                    valueList.Set( att->first        ,
-                                                   att->second.value );
+                                    valueList.Set( att->first  ,
+                                                   att->second );
                                 }
                             }
 

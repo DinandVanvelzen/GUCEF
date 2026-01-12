@@ -180,7 +180,7 @@ CServerList::OnNotify( GUCEF::CORE::CNotifier* notifier                 ,
             m_toBePingedList.erase( n );
             
             ping.SetUserData( new TServerListEntryPtr( entry ) );
-            ping.Start( entry->serverInfo.hostAddress.AddressAsString() ,
+            ping.Start( entry->serverInfo.hostAddress.GetFirstAddressAsString() ,
                         1                                               );
         }
         
@@ -204,7 +204,7 @@ CServerList::OnNotify( GUCEF::CORE::CNotifier* notifier                 ,
             m_toBePingedList.erase( n );
             
             ping.SetUserData( new TServerListEntryPtr( entry ) );
-            ping.Start( entry->serverInfo.hostAddress.AddressAsString() ,
+            ping.Start( entry->serverInfo.hostAddress.GetFirstAddressAsString() ,
                         1                                               );
         }
                 
@@ -234,7 +234,7 @@ CServerList::RefreshPings( void )
                 entry = (*n);
                 n = m_toBePingedList.erase( n );
                 (*i)->SetUserData( new TServerListEntryPtr( entry ) );
-                (*i)->Start( entry->serverInfo.hostAddress.AddressAsString() ,
+                (*i)->Start( entry->serverInfo.hostAddress.GetFirstAddressAsString() ,
                              1                                               );
                 
                 if ( n == m_toBePingedList.end() )
@@ -331,7 +331,7 @@ CServerList::GetServerAddressList( TStringList& list ) const
     TServerInfoList::const_iterator i = m_serverList.begin();
     while ( i != m_serverList.end() )
     {
-        list.push_back( (*i)->serverInfo.hostAddress.AddressAsString() );
+        list.push_back( (*i)->serverInfo.hostAddress.GetFirstAddressAsString() );
         ++i;
     }
 }

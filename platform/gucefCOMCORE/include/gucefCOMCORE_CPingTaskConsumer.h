@@ -75,9 +75,9 @@ class GUCEF_COMCORE_EXPORT_CPP CPingTaskConsumer : public CORE::CTaskConsumer
 
         CEchoReceivedEventData( const CEchoReceivedEventData& src );
         
-        virtual ~CEchoReceivedEventData();
+        virtual ~CEchoReceivedEventData() GUCEF_VIRTUAL_OVERRIDE;
                 
-        virtual CORE::CICloneable* Clone( void ) const;
+        virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
         
         const CHostAddress& GetHostAddress( void ) const;
         
@@ -108,7 +108,7 @@ class GUCEF_COMCORE_EXPORT_CPP CPingTaskConsumer : public CORE::CTaskConsumer
         
         CPingTaskData( const CPingTaskData& src );
         
-        virtual CORE::CICloneable* Clone( void ) const;
+        virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
         
         void SetRemoteHosts( const TStringVector& hostList );
         
@@ -143,9 +143,9 @@ class GUCEF_COMCORE_EXPORT_CPP CPingTaskConsumer : public CORE::CTaskConsumer
     
     virtual ~CPingTaskConsumer() GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual CString GetType( void ) const;
+    virtual CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE;
     
-    virtual const CString& GetClassTypeName( void ) const;
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     
     virtual bool OnTaskStart( CORE::CTaskPtr task ) GUCEF_VIRTUAL_OVERRIDE;
 

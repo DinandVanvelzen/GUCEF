@@ -114,10 +114,10 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouteConfig : public CORE::CIConfigurab
 {
     public:
                                                                             
-    typedef CORE::CTSharedPtr< CPubSubFlowRouteConfig, MT::CMutex >                                 CPubSubFlowRouteConfigPtr;
-    typedef GUCEF::vector< CPubSubFlowRouteConfigPtr, gucef_allocator< CPubSubFlowRouteConfigPtr > >  PubSubFlowRouteConfigPtrVector;                                                
-    typedef CPubSubFlowRouteTopicConfig::CPubSubFlowRouteTopicConfigPtr                             CPubSubFlowRouteTopicConfigPtr;
-    typedef CPubSubFlowRouteTopicConfig::PubSubFlowRouteTopicConfigPtrVector                        PubSubFlowRouteTopicConfigPtrVector;
+    typedef CORE::CTSharedPtr< CPubSubFlowRouteConfig, MT::CMutex >            CPubSubFlowRouteConfigPtr;
+    typedef GUCEF::vector< CPubSubFlowRouteConfigPtr >                         PubSubFlowRouteConfigPtrVector;                                                
+    typedef CPubSubFlowRouteTopicConfig::CPubSubFlowRouteTopicConfigPtr        CPubSubFlowRouteTopicConfigPtr;
+    typedef CPubSubFlowRouteTopicConfig::PubSubFlowRouteTopicConfigPtrVector   PubSubFlowRouteTopicConfigPtrVector;
 
     CORE::CString fromSideId;                              /**< primary 'from' side for this route */
     CORE::CString toSideId;                                /**< primary 'to' side for this route */
@@ -137,7 +137,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouteConfig : public CORE::CIConfigurab
 
     CPubSubFlowRouteConfig( const CPubSubFlowRouteConfig& src );
 
-    virtual ~CPubSubFlowRouteConfig();
+    virtual ~CPubSubFlowRouteConfig() GUCEF_VIRTUAL_OVERRIDE;
 
     CPubSubFlowRouteConfig& operator=( const CPubSubFlowRouteConfig& src );
 

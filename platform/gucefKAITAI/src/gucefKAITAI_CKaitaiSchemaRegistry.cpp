@@ -189,7 +189,7 @@ CKaitaiSchemaRegistry::ResolveSchemaImportDependencies( CKaitaiSchemaPtr schema 
     // If this schema has unresolved imports regisster them for deferred resolution
     if ( !unresolvedImports.empty() )
     {
-        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchema: Noted " + CORE::ToString( unresolvedImports.size() ) + " missing import dependencies" );
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchema: Noted " + CORE::SizeTToString( unresolvedImports.size() ) + " missing import dependencies" );
 
         CORE::CStringSet::const_iterator i = unresolvedImports.begin();
         while ( i != unresolvedImports.end() )
@@ -222,7 +222,7 @@ CKaitaiSchemaRegistry::ResolveSchemaImportDependencies( CKaitaiSchemaPtr schema 
                     dependentSchema->ResolveImports( stillUnresolvedImports );
 
                     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchema:LoadSchema: Resolved import dependency '" + schema->id + 
-                        "' for schema '" + dependentSchema->id + "' in family " + schemaFamily + " with " + CORE::ToString( stillUnresolvedImports.size() ) + " unresolved imports remaining" );
+                        "' for schema '" + dependentSchema->id + "' in family " + schemaFamily + " with " + CORE::SizeTToString( stillUnresolvedImports.size() ) + " unresolved imports remaining" );
                 }
                 ++k;
             }
@@ -307,7 +307,7 @@ CKaitaiSchemaRegistry::LoadSchema( const CORE::CUri& schemaResource  ,
             if ( RegisterSchema( schema, schemaFamily ) )
             {
                 GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "KaitaiSchemaRegistry:LoadSchema: Successfully registered schema \"" + schema->GetSchemaId() + "\" into family \"" + 
-                    schemaFamily + "\" It has " + CORE::ToString( unresolvedImports.size() ) + " unresolved imports" );
+                    schemaFamily + "\" It has " + CORE::SizeTToString( unresolvedImports.size() ) + " unresolved imports" );
 
                 return true;
             }

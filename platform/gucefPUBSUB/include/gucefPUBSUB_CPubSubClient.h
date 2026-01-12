@@ -115,7 +115,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClient : public CORE::CTSGNotifier         
 
     CPubSubClient( const CPubSubClient& src );
 
-    virtual ~CPubSubClient();
+    virtual ~CPubSubClient() GUCEF_VIRTUAL_OVERRIDE;
 
     CPubSubClient& operator=( const CPubSubClient& src );
 
@@ -187,7 +187,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClient : public CORE::CTSGNotifier         
      *      @param cfg the data node structure where you'd like to serialize the config to
      *      @return wheter storing the config was successfull
      */
-    virtual bool SaveConfig( CORE::CDataNode& cfg ) const;
+    virtual bool SaveConfig( CORE::CDataNode& cfg ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *      @param cfg the config storage object where you'd like to serialize the config to
@@ -199,7 +199,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClient : public CORE::CTSGNotifier         
      *      @param cfg pertinent node in the config document from which to load the config
      *      @return success or failure to load all required settings correctly from the given config
      */
-    virtual bool LoadConfig( const CORE::CDataNode& cfg );
+    virtual bool LoadConfig( const CORE::CDataNode& cfg ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *      @param cfg the config storage object from which to load the config

@@ -474,9 +474,9 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientSide : public CORE::CTaskConsumer
         };
 
         typedef MT::CTMailBox< CIPubSubMsg::TNoLockSharedPtr >                      TPubSubMsgPtrMailbox;
-        typedef GUCEF::map< CORE::UInt64, MsgTrackingEntry >                          TUInt64ToMsgTrackingEntryMap;
-        typedef GUCEF::map< CORE::UInt64, CPubSubBookmark >                           TUInt64ToBookmarkMap;
-        typedef GUCEF::set< CORE::UInt64 >                                            TUInt64Set;
+        typedef GUCEF::map< CORE::UInt64, MsgTrackingEntry >                        TUInt64ToMsgTrackingEntryMap;
+        typedef GUCEF::map< CORE::UInt64, CPubSubBookmark >                         TUInt64ToBookmarkMap;
+        typedef GUCEF::set< CORE::UInt64 >                                          TUInt64Set;
         typedef CORE::CTEventHandlerFunctor< TopicLink >                            TEventCallback;
 
         CPubSubClientTopicBasicPtr topic;                                       /**< the actual backend topic access object */
@@ -509,10 +509,9 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientSide : public CORE::CTaskConsumer
     };
     typedef TopicLink::TSharedPtrType  TopicLinkPtr;
 
-    typedef std::pair< const CPubSubClientTopic*, TopicLinkPtr >   TPubSubClientTopicRawPtrAndTopicLinkPair;
-    typedef GUCEF::map< CPubSubClientTopic*, TopicLinkPtr, std::less< CPubSubClientTopic* >, gucef_allocator< TPubSubClientTopicRawPtrAndTopicLinkPair > > TopicPtrMap;
-    typedef GUCEF::map< CORE::CString, TopicLinkPtr, std::less< CORE::CString >, gucef_allocator< TPubSubClientTopicRawPtrAndTopicLinkPair > >             TopicNameMap;
-    typedef GUCEF::set< CPubSubClientTopicBasicPtr, std::less< CPubSubClientTopicBasicPtr >, gucef_allocator< CPubSubClientTopicBasicPtr > >               TopicSet;
+    typedef GUCEF::map< CPubSubClientTopic*, TopicLinkPtr >        TopicPtrMap;
+    typedef GUCEF::map< CORE::CString, TopicLinkPtr >              TopicNameMap;
+    typedef GUCEF::set< CPubSubClientTopicBasicPtr >               TopicSet;
 
     CPubSubClientPtr m_pubsubClient;
     CPubSubClientFeatures m_clientFeatures;

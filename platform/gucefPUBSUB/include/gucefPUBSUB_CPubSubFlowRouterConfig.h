@@ -84,7 +84,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouterConfig : public CORE::CIConfigura
 
     CPubSubFlowRouterConfig( const CPubSubFlowRouterConfig& src );
 
-    virtual ~CPubSubFlowRouterConfig();
+    virtual ~CPubSubFlowRouterConfig() GUCEF_VIRTUAL_OVERRIDE;
 
     CPubSubFlowRouterConfig& operator=( const CPubSubFlowRouterConfig& src );
 

@@ -371,7 +371,7 @@ CPubSubFlowRouter::CRouteInfo::MatchTopicRouteConfig( const CPubSubFlowRouteTopi
                                                                   topicAccessSet                     ,
                                                                   fromPulseGenerator                 ) )
                 {
-                    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter:RouteInfo:MatchTopicRouteConfig: Obtained access to " + CORE::ToString( topicAccessSet.size() ) +
+                    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter:RouteInfo:MatchTopicRouteConfig: Obtained access to " + CORE::SizeTToString( topicAccessSet.size() ) +
                         " topics association for pattern matched 'from' topic " + topicRouteConfig->fromSideTopicName +
                         ( fromPulseGenerator.IsNULL() ?  "" : ". Requested using pulse generator for thread " + CORE::ToString( fromPulseGenerator->GetPulseDriverThreadId() ) ) );
 
@@ -1078,7 +1078,7 @@ CPubSubFlowRouter::BuildRoutes( const CPubSubFlowRouterConfig& config ,
     }
 
     GUCEF_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSubFlowRouter:BuildRoutes: Routes are now defined for " +
-        CORE::ToString( m_routeMap.size() ) + " source sides, with a total of " + CORE::ToString( totalPossibleRoutes ) + " possible routes" );
+        CORE::SizeTToString( m_routeMap.size() ) + " source sides, with a total of " + CORE::SizeTToString( totalPossibleRoutes ) + " possible routes" );
 
     // Validate side capabilities relative to the assigned roles
     CORE::UInt32 sideClientCapabilityErrors = 0;
@@ -2635,7 +2635,7 @@ CPubSubFlowRouter::UpdateRoutesBasedOnSideHealthStatus( CPubSubClientSide* side 
         }
 
         GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter(" + CORE::PointerToString( this ) +
-            "):UpdateRoutesBasedOnSideHealthStatus: Updated " + CORE::ToString( multiRouteInfo.size() ) + " routes that have side \"" +
+            "):UpdateRoutesBasedOnSideHealthStatus: Updated " + CORE::SizeTToString( multiRouteInfo.size() ) + " routes that have side \"" +
             side->GetSideId() + "\" for a total of " + CORE::ToString( flagsUpdated ) + " health status updates. Healthy=" + CORE::ToString( isHealthy ) );
     }
 }
@@ -2872,7 +2872,7 @@ CPubSubFlowRouter::OnSidePubSubClientTopicsAutoCreation( CORE::CNotifier* notifi
     CPubSubClient::PubSubClientTopicSet& topics = *static_cast< CPubSubClient::TopicsAccessAutoCreatedEventData* >( eventData );
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter(" + CORE::ToString( this ) +
-        "):OnSidePubSubClientTopicsAutoCreation: Received notice of " + CORE::ToString( topics.size() ) +
+        "):OnSidePubSubClientTopicsAutoCreation: Received notice of " + CORE::SizeTToString( topics.size() ) +
         " new auto created topics");
 
     CPubSubClient::PubSubClientTopicSet::iterator i = topics.begin();

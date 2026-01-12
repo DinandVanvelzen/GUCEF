@@ -548,7 +548,7 @@ PubSub2PubSubConfig::ExplicitChannelSideOverlayConfig::LoadConfig( const CORE::C
             remoteAddresses.push_back( hostAddress );
             ++v;
         }
-        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSub2PubSubConfig:ExplicitChannelSideOverlayConfig:LoadConfig: Loaded " + CORE::ToString( remoteAddresses.size() ) + " remote addresses for side overlay" );
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSub2PubSubConfig:ExplicitChannelSideOverlayConfig:LoadConfig: Loaded " + CORE::SizeTToString( remoteAddresses.size() ) + " remote addresses for side overlay" );
     }
 
     const CORE::CDataNode* topicsNode = cfg.FindChild( "topics" );
@@ -1027,7 +1027,7 @@ PubSub2PubSubConfig::NormalizeConfig( void )
     bool totalSuccess = true;
     channelConfigs.clear();
 
-    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSub2PubSubConfig:NormalizeConfig: Normalizing " + CORE::ToString( explicitOverlayChannels.size() ) + " explicit channel overlay configs" );
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSub2PubSubConfig:NormalizeConfig: Normalizing " + CORE::SizeTToString( explicitOverlayChannels.size() ) + " explicit channel overlay configs" );
 
     ExplicitChannelOverlayConfigVector::iterator i = explicitOverlayChannels.begin();
     while ( i != explicitOverlayChannels.end() )
@@ -1136,7 +1136,7 @@ PubSub2PubSubConfig::NormalizeConfig( void )
     }
     if ( channelIds.size() < numericalAutoChannelConfig.channelIds.size() )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSub2PubSubConfig:NormalizeConfig: Only " + CORE::ToString( channelIds.size() ) + " numerical channel IDs were obtained from the channel list which contained more strings. Fix the config" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSub2PubSubConfig:NormalizeConfig: Only " + CORE::SizeTToString( channelIds.size() ) + " numerical channel IDs were obtained from the channel list which contained more strings. Fix the config" );
         return false;
     }
 
@@ -1158,12 +1158,12 @@ PubSub2PubSubConfig::NormalizeConfig( void )
     else
     if ( numericalAutoChannelConfig.channelCount < channelIds.size() )
     {
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSub2PubSubConfig::NormalizeConfig: " + CORE::ToString( channelIds.size() ) + " numerical channel IDs were provided but a total channel count of " +
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSub2PubSubConfig::NormalizeConfig: " + CORE::SizeTToString( channelIds.size() ) + " numerical channel IDs were provided but a total channel count of " +
             CORE::ToString( numericalAutoChannelConfig.channelCount ) + " was configured. Channel count will be increased to match the nr of IDs" );
         numericalAutoChannelConfig.channelCount = (CORE::UInt32) channelIds.size();
     }
 
-    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSub2PubSubConfig:NormalizeConfig: There are now " + CORE::ToString( channelConfigs.size() ) + " channel configs defined" );
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSub2PubSubConfig:NormalizeConfig: There are now " + CORE::SizeTToString( channelConfigs.size() ) + " channel configs defined" );
 
     // Auto assign CPU affinity, if desired, now that we have defined all the channel configs
     
