@@ -520,6 +520,9 @@ FileSorter::GetMediaMetaDataFromImage( const CORE::CString& vfsFilePath, MediaMe
     VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
     CORE::CString fileExt = CORE::ExtractFileExtention( vfsFilePath );
     
+    if ( 0 == vfs.GetFileSize( vfsFilePath ) )
+        return false;
+
     IMAGE::CImage img;
     VFS::TBasicVfsResourcePtr file = vfs.GetFile( vfsFilePath, "rb", false );
     if ( !file.IsNULL() )

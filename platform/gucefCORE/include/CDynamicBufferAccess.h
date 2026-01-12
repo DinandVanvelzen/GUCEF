@@ -180,7 +180,7 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBufferAccess : public CIOAccess ,
 
     private:
 
-    UInt32 m_carat;
+    UInt64 m_carat;
     CDynamicBuffer* m_buffer;
     bool m_deleteBufferUponDestruction;
     bool m_bufferWasConst;

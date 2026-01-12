@@ -192,13 +192,29 @@ GetFileTypeFromExt( const char* ext )
 {
     if ( ext != NULL )
     {
-        if ( strcmp( "tga", ext ) == 0 )
+        if ( _stricmp( "tga", ext ) == 0 )
         {
             return FIF_TARGA;
         }
-        if ( strcmp( "ppm", ext ) == 0 )
+        if ( _stricmp( "ppm", ext ) == 0 )
         {
             return FIF_PPM;
+        }
+        if ( _stricmp( "jpg", ext ) == 0 || _stricmp( "jpeg", ext ) == 0 )
+        {
+            return FIF_JPEG;
+        }
+        if ( _stricmp( "ico", ext ) == 0 )
+        {
+            return FIF_ICO;
+        }
+        if ( _stricmp( "bmp", ext ) == 0 )
+        {
+            return FIF_BMP;
+        }
+        if ( _stricmp( "pcx", ext ) == 0 )
+        {
+            return FIF_PCX;
         }
     }
     return FIF_UNKNOWN;

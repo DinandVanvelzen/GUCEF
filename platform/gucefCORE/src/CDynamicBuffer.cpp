@@ -764,41 +764,42 @@ CDynamicBuffer::CopyAndDecodeBase16From( const CString& source, UInt32 destinati
 
 /*-------------------------------------------------------------------------*/
 
-/**
- *      Copys size number of bytes from the buffer to src at the offset
- *      given.
- */
 UInt32
 CDynamicBuffer::CopyTo( UInt32 offset ,
                         UInt32 size   ,
                         void *dest    ) const
 {GUCEF_TRACE;
 
-    if ( offset+size > m_dataSize )
+    if ( GUCEF_NULL != _buffer )
     {
-        Int32 maxPossible = (Int32)m_dataSize - (Int32)offset;
-        if ( maxPossible > 0 )
+        if ( offset+size > m_dataSize )
         {
-            memcpy( dest, _buffer+offset, maxPossible );
-            return maxPossible;
+            Int32 maxPossible = (Int32)m_dataSize - (Int32)offset;
+            if ( maxPossible > 0 )
+            {
+                memcpy( dest, _buffer+offset, maxPossible );
+                return maxPossible;
+            }
+            return 0;
         }
-        return 0;
+        memcpy( dest, _buffer+offset, size );
+        return size;
     }
-    memcpy( dest, _buffer+offset, size );
-    return size;
+    return 0;
 }
 
 /*-------------------------------------------------------------------------*/
 
-/**
- *      Copys all data from the buffer to dest
- */
 UInt32 
 CDynamicBuffer::CopyTo( void *dest ) const
 {GUCEF_TRACE;
 
-    memcpy( dest, _buffer, m_dataSize );
-    return m_dataSize;
+    if ( GUCEF_NULL != _buffer && m_dataSize >= _bsize )
+    {
+        memcpy( dest, _buffer, m_dataSize );
+        return m_dataSize;
+    }
+    return 0;
 }
 
 /*-------------------------------------------------------------------------*/
