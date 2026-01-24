@@ -126,7 +126,6 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
     TStringToModuleInfoEntryPtrMap modules;                  // All generated module information
     TDirProcessingInstructionsMap dirProcessingInstructions; // All loaded processing instructions mapped per path
     TStringVector globalDirExcludeList;                      // Dirs that should never be included in processing regardless of path
-    TPlatformDefinitionMap platforms;                        // All supported platforms for this project    
 
     CModuleInfoEntryPtr
     GetModuleInfoEntry( const CORE::CString& consensusModuleName ) const;
@@ -164,6 +163,34 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
                          bool okToUseCachedValue = true ) const;
 
     /**
+     *  Provides the names of all known platforms
+     *  Known platforms are either defined by config or as a fallback the default hardcoded known platforms
+     *  If you want to exclude disabled platforms use GetKnownEnabledPlatforms()
+     */
+    void
+    GetKnownPlatforms( TStringSet& platformList ) const;
+
+    /**
+     *  Provides the directory names of all known platforms
+     *  Known platforms are either defined by config or as a fallback the default hardcoded known platforms
+     *  Directory names include multi-platform aliases which helps signify its content belongs to multiple
+     *  specific platforms per the multi-platform aliasing rules
+     */
+    void
+    GetKnownPlatformDirs( TStringSet& platformList ) const;
+
+    /**
+     *  Provides the directory names of all known platforms
+     *  Known platforms are either defined by config or as a fallback the default hardcoded known platforms
+     *  Directory names include multi-platform aliases which helps signify its content belongs to multiple
+     *  specific platforms per the multi-platform aliasing rules
+     */
+    void
+    GetKnownPlatformDirsPerPlatform( CORE::CStringMapSet& platformDirs ) const;
+
+    const TPlatformDefinitionMap& GetPlatformDefinitions( void ) const;
+
+    /**
      *  Determines which platforms are actually used in the project AND are enabled for processing
      *  and returns the names of the platforms in the given platformList
      * 
@@ -173,6 +200,14 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
     void
     GetAllEnabledPlatformsUsed( TStringSet& platformList ,
                                 bool okToUseCachedValue  ) const;
+
+    /**
+     *  Provides the names of all known platforms minus the disabled ones
+     *  If you also want the disabled ones use GetKnownPlatforms()
+     */
+    void
+    GetKnownEnabledPlatforms( TStringSet& platformList ,
+                              bool okToUseCachedValue  ) const;
 
     void
     GetNamesOfModulesWhichDependOnModuleForPlatform( const CORE::CString& targetPlatform ,
@@ -509,6 +544,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 
     void SetSetttings( const CORE::CValueList& settings );
 
+    void ApplyConfig( const CORE::CDataNode& loadedConfig );
+
     void SetRootDirs( const TStringVector& rootDirs );
 
     void SetRootDir( const CORE::CString& rootDir );
@@ -583,13 +620,16 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 
     bool BulkPostProcessAllModuleInfo( bool isLoadFromProjectInfo );
 
+    void SetKnownPlatformsToHardcodedDefaults( void );
+
     private:
 
     mutable TStringSet m_actualPlatformsUsed;           // Cached list of platforms actually used in the project, derived from the platforms map and the modules
     TStringToModuleDependencyNodePtrMap m_moduleDependencyChains;
     CORE::CValueList m_settings;
-    CORE::CStringSet m_disabledPlatforms; // platforms which we will ignore for processing
-    CORE::CString m_projectName;          // Name of the overall project
+    TPlatformDefinitionMap m_knownPlatforms;        // known platforms for this project
+    CORE::CStringSet m_disabledPlatforms;           // platforms which we will ignore for processing
+    CORE::CString m_projectName;                    // Name of the overall project
     CProjectTargetInfoBundlePtr m_projectTargets; 
     MT::CReadWriteLock m_rwLock;
 
@@ -597,8 +637,8 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CProjectInfo : public CORE::CTSharedObjCreator
 
     virtual MT::TLockStatus Lock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE {GUCEF_TRACE; return m_rwLock.Lock( lockWaitTimeoutInMs ); };
     virtual MT::TLockStatus Unlock( void ) const GUCEF_VIRTUAL_OVERRIDE {GUCEF_TRACE; return m_rwLock.Unlock(); };
-    virtual MT::TLockStatus ReadOnlyLock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const {GUCEF_TRACE; return m_rwLock.ReadOnlyLock( lockWaitTimeoutInMs ); };
-    virtual MT::TLockStatus ReadOnlyUnlock( void ) const {GUCEF_TRACE; return m_rwLock.ReadOnlyUnlock(); };
+    virtual MT::TLockStatus ReadOnlyLock( UInt32 lockWaitTimeoutInMs = GUCEF_MT_DEFAULT_LOCK_TIMEOUT_IN_MS ) const GUCEF_VIRTUAL_OVERRIDE {GUCEF_TRACE; return m_rwLock.ReadOnlyLock( lockWaitTimeoutInMs ); };
+    virtual MT::TLockStatus ReadOnlyUnlock( void ) const GUCEF_VIRTUAL_OVERRIDE {GUCEF_TRACE; return m_rwLock.ReadOnlyUnlock(); };
 };
 
 typedef CProjectInfo::TSharedPtrType    CProjectInfoPtr;

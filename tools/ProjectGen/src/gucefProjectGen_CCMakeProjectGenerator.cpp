@@ -77,58 +77,6 @@ static CORE::CStringMap cmakeAdditionTemplates;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static const TStringSetMap&
-GetSupportedPlatformDirMap( void )
-
-{GUCEF_TRACE;
-
-    static TStringSetMap platformMap;
-    if ( platformMap.empty() )
-    {
-        platformMap[ "WIN32" ].insert( "mswin" );
-        platformMap[ "WIN32" ].insert( "win32" );
-        platformMap[ "WIN64" ].insert( "mswin" );
-        platformMap[ "WIN64" ].insert( "win64" );
-        platformMap[ "UNIX" ].insert( "linux" );
-        platformMap[ "UNIX" ].insert( "linux32" );
-        platformMap[ "UNIX" ].insert( "linux64" );
-        platformMap[ "UNIX" ].insert( "unix" );
-        platformMap[ "IPHONEOS" ].insert( "iphone" );
-        platformMap[ "SYMBIAN" ].insert( "symbian" );
-        platformMap[ "OSX" ].insert( "osx" );
-        platformMap[ "OSX" ].insert( "mac" );
-        platformMap[ "ANDROID" ].insert( "android" );
-        platformMap[ "GLX" ].insert( "glx" );
-        platformMap[ "GTK" ].insert( "gtk" );
-        platformMap[ "SDL" ].insert( "sdl" );
-        platformMap[ "EMSCRIPTEN" ].insert( "emscripten" );
-        platformMap[ "NACL" ].insert( "nacl" );
-    }
-    return platformMap;
-}
-
-/*-------------------------------------------------------------------------*/
-
-static const TStringSet&
-GetSupportedPlatforms( void )
-{GUCEF_TRACE;
-
-    static TStringSet platforms;
-    if ( platforms.empty() )
-    {
-        const TStringSetMap& dirMap = GetSupportedPlatformDirMap();
-        TStringSetMap::const_iterator i = dirMap.begin();
-        while ( i != dirMap.end() )
-        {
-            platforms.insert( (*i).first );
-            ++i;
-        }
-    }
-    return platforms;
-}
-
-/*-------------------------------------------------------------------------*/
-
 static CString
 ConvertEnvVarStrings( const CString& inStr )
 {GUCEF_TRACE;
@@ -1468,9 +1416,6 @@ GenerateCMakeListsFileContent( const CProjectInfo& projectInfo            ,
     // Determine the general consensus module name
     CORE::CString consensusModuleName = moduleInfoEntry->GetConsensusName();
 
-if ( consensusModuleName.HasSubstr( "guidriverWin32" ) >= 0 )
-    int sdfsfs =0;
-
     GUCEF_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "Generating CMakeLists content for module " + consensusModuleName );
 
     // Set project name comment section
@@ -1538,11 +1483,7 @@ WriteCMakeListsFilesToDisk( const CProjectInfo& projectInfo  ,
     while ( i != projectInfo.modules.end() )
     {
         const CModuleInfoEntryPtr& moduleInfoEntry = (*i).second;
-        TModuleType allPlatformsType = moduleInfoEntry->GetModuleType( KnownPlatforms::AllPlatforms );
-        if ( ( MODULETYPE_HEADER_INCLUDE_LOCATION != allPlatformsType )   &&
-             ( MODULETYPE_HEADER_INTEGRATE_LOCATION != allPlatformsType ) &&
-             ( MODULETYPE_CODE_INTEGRATE_LOCATION != allPlatformsType )   &&
-             ( MODULETYPE_BINARY_PACKAGE != allPlatformsType )             )
+        if ( !moduleInfoEntry->HasOnlyLogicalModuleType() )
         {
             CORE::CString fileContent = GenerateCMakeListsFileContent( projectInfo, moduleInfoEntry, treatTagsAsOptions, addCompileDate );
             if ( logFilename.Length() > 0 )
@@ -1564,7 +1505,8 @@ WriteCMakeListsFilesToDisk( const CProjectInfo& projectInfo  ,
         }
         else
         {
-            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Skipping CMakeLists.txt generation for module of type \"HeaderIncludeLocation\"" );
+            TModuleType allPlatformsType = moduleInfoEntry->GetModuleType( KnownPlatforms::AllPlatforms );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Skipping CMakeLists.txt generation for module of type \"" + ModuleTypeToString( allPlatformsType ) + "\"" );
         }
         ++i;
     }

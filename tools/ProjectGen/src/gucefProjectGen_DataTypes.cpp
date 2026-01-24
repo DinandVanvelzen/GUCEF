@@ -552,36 +552,6 @@ ContainsFileWithFileExtension( const TStringSetMap& files    ,
 
 /*---------------------------------------------------------------------------*/
 
-void
-ApplyConfigToProject( const CORE::CDataNode& loadedConfig , 
-                      CProjectInfo& projectInfo           )
-{GUCEF_TRACE;
-    
-    CORE::CDataNode::TConstDataNodeSet platformDefs = loadedConfig.FindChildrenOfType( "PlatformDefinitions", true );
-    CORE::CDataNode::TConstDataNodeSet::const_iterator i = platformDefs.begin();
-    while ( i != platformDefs.end() )
-    {
-        const CORE::CDataNode* definitionGroup = (*i);
-        CORE::CDataNode::const_iterator n = definitionGroup->ConstBegin();
-        while ( n != definitionGroup->ConstEnd() )
-        {
-            const CORE::CDataNode* platform = (*n);
-            const CORE::CString platformName = platform->GetName();
-            CORE::CString aliases = platform->GetAttributeValueOrChildValueByName( "Aliases" );
-            CORE::CString platformDirs = platform->GetAttributeValueOrChildValueByName( "PlatformDirs" );
-
-            TPlatformDefinition& platformDef = (projectInfo.platforms)[ platformName ];
-            platformDef.aliases = aliases.ParseUniqueElements( ';', false );
-            platformDef.platformDirs = platformDirs.ParseUniqueElements( ';', false );
-
-            ++n;
-        }
-        ++i;
-    }
-}
-
-/*---------------------------------------------------------------------------*/
-
 CORE::CString
 GetLanguageForModule( const CModuleInfoPtr& moduleInfo )
 {GUCEF_TRACE;

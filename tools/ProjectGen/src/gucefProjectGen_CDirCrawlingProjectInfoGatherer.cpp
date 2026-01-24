@@ -117,25 +117,6 @@ GetProcessingInstructions( const CProjectInfo& projectInfo ,
 
 /*---------------------------------------------------------------------------*/
 
-static const TStringSetMap&
-GetSupportedPlatformDirMap( const CProjectInfo& projectInfo )
-{GUCEF_TRACE;
-
-    static TStringSetMap platformMap;
-    if ( platformMap.empty() )
-    {
-        TPlatformDefinitionMap::const_iterator i = projectInfo.platforms.begin();
-        while ( i != projectInfo.platforms.end() )
-        {
-            platformMap[ (*i).first ] = (*i).second.platformDirs;
-            ++i;
-        }
-    }
-    return platformMap;
-}
-
-/*---------------------------------------------------------------------------*/
-
 const TStringVector&
 GetSourceFileExtensions( void )
 {GUCEF_TRACE;
@@ -169,52 +150,6 @@ GetHeaderFileExtensions( void )
         fileTypes.push_back( "hxx" );
     }
     return fileTypes;
-}
-
-/*---------------------------------------------------------------------------*/
-
-static const TStringSet&
-GetSupportedPlatforms( const CProjectInfo& projectInfo )
-{GUCEF_TRACE;
-
-    static TStringSet platforms;
-    if ( platforms.empty() )
-    {
-        const TStringSetMap& dirMap = GetSupportedPlatformDirMap( projectInfo );
-        TStringSetMap::const_iterator i = dirMap.begin();
-        while ( i != dirMap.end() )
-        {
-            platforms.insert( (*i).first );
-            ++i;
-        }
-    }
-    return platforms;
-}
-
-/*---------------------------------------------------------------------------*/
-
-const TStringSet&
-GetSupportedPlatformDirs( const CProjectInfo& projectInfo )
-{GUCEF_TRACE;
-
-    static TStringSet platformDirs;
-    if ( platformDirs.empty() )
-    {
-        const TStringSetMap& dirMap = GetSupportedPlatformDirMap( projectInfo );
-        TStringSetMap::const_iterator i = dirMap.begin();
-        while ( i != dirMap.end() )
-        {
-            const TStringSet& dirs = (*i).second;
-            TStringSet::const_iterator n = dirs.begin();
-            while ( n != dirs.end() )
-            {
-                platformDirs.insert( (*n) );
-                ++n;
-            }
-            ++i;
-        }
-    }
-    return platformDirs;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -262,15 +197,17 @@ IsDirAPlatformDir( const CProjectInfo& projectInfo  ,
     }
 
     // A directory is a platform dir not only if the last subdir matches a platform dir name
-    // but also if a parent dir is a platform dir, since platform dirs can also have dir hierachies of course
+    // but also if a parent dir is a platform dir, since platform dirs can also have dir hierarchies of course
 
     TStringVector searchPathSegs = path.Lowercase().ReplaceChar( '\\', '/' ).ParseElements( '/', false );
-    const TStringSet& supportedPlatformDirs = GetSupportedPlatformDirs( projectInfo );
+
+    CORE::CStringSet platformsDirs;
+    projectInfo.GetKnownPlatformDirs( platformsDirs );
 
     TStringVector::const_iterator i = searchPathSegs.begin();
     while ( i != searchPathSegs.end() )
     {
-        if ( supportedPlatformDirs.end() != supportedPlatformDirs.find( (*i) ) )
+        if ( platformsDirs.end() != platformsDirs.find( (*i) ) )
         {
             // Found a platform dir in the path hierarchy
             return true;
@@ -321,9 +258,12 @@ IsDirAPlatformDirForPlatform( const CProjectInfo& projectInfo  ,
     }
 
     // Next check the actual path name against reserved directory names for certain platforms
-    const TStringSetMap& platformDirMap = GetSupportedPlatformDirMap( projectInfo );
-    TStringSetMap::const_iterator i = platformDirMap.find( platform );
-    if ( i != platformDirMap.end() )
+
+    CORE::CStringMapSet platformsDirMap;
+    projectInfo.GetKnownPlatformDirsPerPlatform( platformsDirMap );
+
+    CORE::CStringMapSet::const_iterator i = platformsDirMap.find( platform );
+    if ( i != platformsDirMap.end() )
     {
         // A directory is a platform dir not only if the last subdir matches a platform dir name
         // but also if a parent dir is a platform dir, since platform dirs can also have dir hierachies of course
@@ -869,8 +809,8 @@ ParseProcessingInstructions( const CProjectInfo& projectInfo                ,
 
                     // apply 1 to n platform mappings if applicable
                     TStringSet platforms;
-                    if ( !projectInfo.platforms.empty() )
-                        platforms = ResolveMultiPlatformName( platformValue, &projectInfo.platforms );
+                    if ( !projectInfo.GetPlatformDefinitions().empty() )
+                        platforms = ResolveMultiPlatformName( platformValue, &projectInfo.GetPlatformDefinitions() );
                     if ( !instructionStorage.platforms.empty() )
                         MergeStringSet( platforms, ResolveMultiPlatformName( platformValue, &instructionStorage.platforms ), false );
                     TStringSet::iterator p = platforms.begin();
@@ -958,8 +898,8 @@ ParseProcessingInstructions( const CProjectInfo& projectInfo                ,
 
                     // apply 1 to n platform mappings if applicable
                     TStringSet platforms;
-                    if ( !projectInfo.platforms.empty() )
-                        platforms = ResolveMultiPlatformName( platformValue, &projectInfo.platforms );
+                    if ( !projectInfo.GetPlatformDefinitions().empty() )
+                        platforms = ResolveMultiPlatformName( platformValue, &projectInfo.GetPlatformDefinitions() );
                     if ( !instructionStorage.platforms.empty() )
                         MergeStringSet( platforms, ResolveMultiPlatformName( platformValue, &instructionStorage.platforms ), false );
                     TStringSet::iterator p = platforms.begin();
@@ -1397,7 +1337,9 @@ PopulateDirListFromDir( const CProjectInfo& projectInfo ,
     if ( ( platform.IsNULLOrEmpty() || platform == KnownPlatforms::AllPlatforms ) || !excludeGenericDirs )
     {
         // Get a list of all platform dirs
-        const TStringSet& platformsDirs = GetSupportedPlatformDirs( projectInfo );
+
+        CORE::CStringSet platformsDirs;
+        projectInfo.GetKnownPlatformDirs( platformsDirs );
 
         // Go through the dir adding dirs which qualify
         CORE::CFileSystemIterator fsIterator;
@@ -1423,11 +1365,14 @@ PopulateDirListFromDir( const CProjectInfo& projectInfo ,
     if ( !platform.IsNULLOrEmpty() && platform != KnownPlatforms::AllPlatforms )
     {
         // We are looking for dirs for the given platform
-        const TStringSetMap& platformsDirMap = GetSupportedPlatformDirMap( projectInfo );
-        TStringSetMap::const_iterator i = platformsDirMap.find( platform );
+
+        CORE::CStringMapSet platformsDirMap;
+        projectInfo.GetKnownPlatformDirsPerPlatform( platformsDirMap );
+
+        CORE::CStringMapSet::const_iterator i = platformsDirMap.find( platform );
         if ( i != platformsDirMap.end() )
         {
-            const TStringSet& dirsForPlatform = (*i).second;
+            const CORE::CStringSet& dirsForPlatform = (*i).second;
 
             // Check each dir to see if it exists
             CORE::CFileSystemIterator fsIterator;
@@ -1532,8 +1477,10 @@ GetListOfAllModuleDirs( const CProjectInfo& projectInfo      ,
                             KnownPlatforms::AllPlatforms );
 
     // Add all platform dirs
-    const TStringSet& platforms = GetSupportedPlatforms( projectInfo );
-    TStringSet::const_iterator i = platforms.begin();
+    CORE::CStringSet platforms;
+    projectInfo.GetKnownPlatformDirs( platforms );
+
+    CORE::CStringSet::const_iterator i = platforms.begin();
     while ( i != platforms.end() )
     {
         GetListOfAllModuleDirs( moduleInfoEntry ,
@@ -2039,8 +1986,11 @@ FindSubDirsWithHeaders( const CProjectInfo& projectInfo                         
                             processSubDirsUnderCurRootDir );
 
     // Add platform specific headers
-    const TStringSet& platforms = GetSupportedPlatforms( projectInfo );
-    TStringSet::const_iterator i = platforms.begin();
+
+    CORE::CStringSet platforms;
+    projectInfo.GetKnownPlatformDirs( platforms );
+
+    CORE::CStringSet::const_iterator i = platforms.begin();
     while ( i != platforms.end() )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Locating headers which apply to platform " + (*i) );
@@ -2152,8 +2102,11 @@ FindSubDirsWithSource( const CProjectInfo& projectInfo                          
                            processSubDirsUnderCurRootDir );
 
     // Add platform specific source
-    const TStringSet& platforms = GetSupportedPlatforms( projectInfo );
-    TStringSet::const_iterator i = platforms.begin();
+
+    CORE::CStringSet platforms;
+    projectInfo.GetKnownPlatformDirs( platforms );
+
+    CORE::CStringSet::const_iterator i = platforms.begin();
     while ( i != platforms.end() )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Locating sources which apply to platform " + (*i) );
@@ -2230,9 +2183,6 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
 {GUCEF_TRACE;
 
     MT::CObjectScopeReadOnlyLock projectInfoReaderLock( projectInfo.GetPointerAlways() );
-
-    TStringSet enabledPlatforms;
-    projectInfo->GetAllEnabledPlatformsUsed( enabledPlatforms, true );
 
     CORE::CString pathToModuleInfoFile = rootDir;
     CORE::AppendToPath( pathToModuleInfoFile, "ModuleInfo.xml" );
@@ -2349,7 +2299,8 @@ ProcessProjectDir( CProjectInfoPtr projectInfo                                ,
         (*moduleInfoEntries)[ moduleInfoEntry->GetConsensusName() ] = moduleInfoEntry;
     }
 
-    
+    TStringSet enabledPlatforms;
+    projectInfo->GetKnownEnabledPlatforms( enabledPlatforms, false );
 
     TStringToModuleInfoEntryPtrMap::iterator i = moduleInfoEntries->begin();
     while ( i != moduleInfoEntries->end() )
@@ -2546,51 +2497,67 @@ CDirCrawlingProjectInfoGatherer::GatherInfo( const TStringVector& rootDirs      
                                              const CORE::CString& threadPoolToUse )
 {GUCEF_TRACE;
 
-    m_threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( threadPoolToUse );
-    m_threadPool->SetNrOfWorkerThreadsToLogicalCPUs( 1 );
-    //m_threadPool->SetDesiredMinNrOfWorkerThreads( 1 );
-
-    CORE::CDateTime start = CORE::CDateTime::NowUTCDateTime();
-
-    // Gather all processing instructions
-    TDirProcessingInstructionsMap newProcessingInstructions;
-    TStringVector::const_iterator i = rootDirs.begin();
-    while ( i != rootDirs.end() )
+    try
     {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Recursively loading all processing instructions for root directory \"" + (*i) + "\"" );
-        LoadAllProcessingInstructions( *projectInfo.GetPointerAlways(), CORE::RelativePath( (*i) ), newProcessingInstructions );
-        ++i;
+        m_threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( threadPoolToUse );
+        m_threadPool->SetNrOfWorkerThreadsToLogicalCPUs( 1 );
+        //m_threadPool->SetDesiredMinNrOfWorkerThreads( 1 );
+
+        CORE::CDateTime start = CORE::CDateTime::NowUTCDateTime();
+
+        // Gather all processing instructions
+        TDirProcessingInstructionsMap newProcessingInstructions;
+        TStringVector::const_iterator i = rootDirs.begin();
+        while ( i != rootDirs.end() )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Recursively loading all processing instructions for root directory \"" + (*i) + "\"" );
+            LoadAllProcessingInstructions( *projectInfo.GetPointerAlways(), CORE::RelativePath( (*i) ), newProcessingInstructions );
+            ++i;
+        }
+        MergeDirProcessingInstructionsMap( projectInfo->dirProcessingInstructions, newProcessingInstructions, true );
+        newProcessingInstructions.clear();
+
+        CORE::CDateTime end = CORE::CDateTime::NowUTCDateTime();
+
+        // Gather all module information
+        CORE::CStringSet allModuleDirs;
+        i = rootDirs.begin();
+        while ( i != rootDirs.end() )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Identifying all modules for root directory \"" + (*i) + "\"" );
+
+            CORE::CString resolvedPath = CORE::RelativePath( (*i), true );
+            projectInfo->rootDirs.push_back( resolvedPath );
+
+            LocateModuleDirsRecursively( *projectInfo.GetPointerAlways(), resolvedPath, allModuleDirs, newProcessingInstructions );
+
+            ++i;
+        }
+        MergeDirProcessingInstructionsMap( projectInfo->dirProcessingInstructions, newProcessingInstructions, true );
+
+        CORE::CDateTime end2 = CORE::CDateTime::NowUTCDateTime();
+
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Gathering processing instructions took " + CORE::ToString( start.GetTimeDifferenceInMillisecondsTowards( end ) ) + "ms" );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Gathering module information took " + CORE::ToString( end.GetTimeDifferenceInMillisecondsTowards( end2 ) ) + "ms" );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Total file discovery took " + CORE::ToString( start.GetTimeDifferenceInMillisecondsTowards( end2 ) ) + "ms" );
+
+        ProcessModuleInformation( m_threadPool, projectInfo, allModuleDirs );
+
+        start = CORE::CDateTime::NowUTCDateTime();
+        bool bulkProcessSuccess = projectInfo->BulkPostProcessAllModuleInfo();
+        end = CORE::CDateTime::NowUTCDateTime();
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Bulk post processing of module information took " + CORE::ToString( start.GetTimeDifferenceInMillisecondsTowards( end ) ) + "ms" );
+        return bulkProcessSuccess;
     }
-    MergeDirProcessingInstructionsMap( projectInfo->dirProcessingInstructions, newProcessingInstructions, true );
-    newProcessingInstructions.clear();
-
-    CORE::CDateTime end = CORE::CDateTime::NowUTCDateTime();
-
-    // Gather all module information
-    CORE::CStringSet allModuleDirs;
-    i = rootDirs.begin();
-    while ( i != rootDirs.end() )
-    {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Identifying all modules for root directory \"" + (*i) + "\"" );
-
-        CORE::CString resolvedPath = CORE::RelativePath( (*i), true );
-        projectInfo->rootDirs.push_back( resolvedPath );
-
-        LocateModuleDirsRecursively( *projectInfo.GetPointerAlways(), resolvedPath, allModuleDirs, newProcessingInstructions );
-
-        ++i;
+    catch ( const timeout_exception& e )
+    {    
+        GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_NORMAL, "Timeout exception occurred while gathering project info: " + CORE::CString( e.what() ) );
     }
-    MergeDirProcessingInstructionsMap( projectInfo->dirProcessingInstructions, newProcessingInstructions, true );
-
-    CORE::CDateTime end2 = CORE::CDateTime::NowUTCDateTime();
-
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Gathering processing instructions took " + CORE::ToString( start.GetTimeDifferenceInMillisecondsTowards( end ) ) );
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Gathering module information took " + CORE::ToString( end.GetTimeDifferenceInMillisecondsTowards( end2 ) ) );
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Total file discovery took " + CORE::ToString( start.GetTimeDifferenceInMillisecondsTowards( end2 ) ) );
-
-    ProcessModuleInformation( m_threadPool, projectInfo, allModuleDirs );
-
-    return projectInfo->BulkPostProcessAllModuleInfo();
+    catch ( const std::exception& e )
+    {    
+        GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_NORMAL, "Unknown exception occurred while gathering project info: " + CORE::CString( e.what() ) );
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------//

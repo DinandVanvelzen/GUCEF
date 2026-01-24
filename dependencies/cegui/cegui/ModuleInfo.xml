@@ -15,9 +15,8 @@
     </Module>
     <Module Platform="mswin">
         <Linker>
-            <Dependency Name="Dbghelp" />
-            <Dependency Name="Winmm" />
+            <Dependency Name="Dbghelp.lib" />
+            <Dependency Name="Winmm.lib" />
         </Linker>
     </Module>
-
 </ModuleInfoEntry>

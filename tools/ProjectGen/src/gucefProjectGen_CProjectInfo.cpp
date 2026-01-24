@@ -83,16 +83,17 @@ CProjectInfo::CProjectInfo( void )
     , modules()
     , dirProcessingInstructions()
     , globalDirExcludeList()
-    , platforms()
     , m_moduleDependencyChains()
     , m_actualPlatformsUsed()
     , m_settings()
+    , m_knownPlatforms()
     , m_disabledPlatforms()
     , m_projectName()
     , m_projectTargets()
     , m_rwLock( true )
 {GUCEF_TRACE;
 
+    SetKnownPlatformsToHardcodedDefaults();
 }
 
 /*---------------------------------------------------------------------------*/
@@ -103,10 +104,10 @@ CProjectInfo::CProjectInfo( const CProjectInfo& src )
     , modules( src.modules )
     , dirProcessingInstructions( src.dirProcessingInstructions )
     , globalDirExcludeList( src.globalDirExcludeList )
-    , platforms( src.platforms )
     , m_moduleDependencyChains( src.m_moduleDependencyChains )
     , m_actualPlatformsUsed( src.m_actualPlatformsUsed )
     , m_settings( src.m_settings )
+    , m_knownPlatforms( src.m_knownPlatforms )
     , m_disabledPlatforms( src.m_disabledPlatforms )
     , m_projectName( src.m_projectName )
     , m_projectTargets( src.m_projectTargets )
@@ -486,6 +487,94 @@ CProjectInfo::GetAllPlatformsUsed( TStringSet& platformList ,
 /*---------------------------------------------------------------------------*/
 
 void
+CProjectInfo::GetKnownPlatforms( TStringSet& platformList ) const
+{GUCEF_TRACE;
+
+    platformList.clear();
+
+    TPlatformDefinitionMap::const_iterator i = m_knownPlatforms.begin();
+    while ( i != m_knownPlatforms.end() )
+    {
+        const CORE::CString& platformName = (*i).first;
+        platformList.insert( platformName );
+        ++i;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetKnownPlatformDirs( TStringSet& platformList ) const
+{GUCEF_TRACE;
+
+    platformList.clear();
+
+    TPlatformDefinitionMap::const_iterator i = m_knownPlatforms.begin();
+    while ( i != m_knownPlatforms.end() )
+    {
+        const TStringSet& platformDirs = (*i).second.platformDirs;
+        TStringSet::const_iterator n = platformDirs.begin();
+        while ( n != platformDirs.end() )
+        {
+            platformList.insert( (*n) );
+            ++n;
+        }
+        ++i;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetKnownPlatformDirsPerPlatform( CORE::CStringMapSet& platformDirs ) const
+{GUCEF_TRACE;
+
+    platformDirs.clear();
+
+    TPlatformDefinitionMap::const_iterator i = m_knownPlatforms.begin();
+    while ( i != m_knownPlatforms.end() )
+    {
+        const CORE::CString& platformName = (*i).first;
+        const TStringSet& platformDirsForPlatform = (*i).second.platformDirs;
+
+        platformDirs[ platformName ] = platformDirsForPlatform; 
+
+        ++i;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+const TPlatformDefinitionMap&
+CProjectInfo::GetPlatformDefinitions( void ) const
+{GUCEF_TRACE;
+
+    return m_knownPlatforms;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::GetKnownEnabledPlatforms( TStringSet& platformList ,
+                                        bool okToUseCachedValue  ) const
+{GUCEF_TRACE;
+
+    // First just get all platforms for which we have platform definitions
+    GetKnownPlatforms( platformList );
+
+    // Now we erase the ones that are disabled from the 'known' list
+    CORE::CStringSet::const_iterator i = m_disabledPlatforms.begin();
+    while ( i != m_disabledPlatforms.end() )
+    {
+        const CORE::CString& disabledPlatform = (*i); 
+        platformList.erase( disabledPlatform );
+        ++i;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
 CProjectInfo::GetAllEnabledPlatformsUsed( TStringSet& platformList ,
                                           bool okToUseCachedValue  ) const
 {GUCEF_TRACE;
@@ -757,7 +846,7 @@ CProjectInfo::ReduceAllPlatformsDefinitionToSustainablePlatforms( CModuleInfoEnt
                         "\" has static library linker dependency \"" + libName + "\" at the 'all' platforms level. Will move the dependency to specific platforms"  );
 
                     CORE::CString movedLibName = libName;
-                    CORE::CStringSet specificPlatforms = ResolveMultiPlatformName( *knownMultiPlatforms, &platforms );
+                    CORE::CStringSet specificPlatforms = ResolveMultiPlatformName( *knownMultiPlatforms, &m_knownPlatforms );
 
                     CORE::CStringSet::iterator p = specificPlatforms.begin();
                     while ( p != specificPlatforms.end() )
@@ -2057,7 +2146,7 @@ CProjectInfo::Clear( void )
     modules.clear();
     dirProcessingInstructions.clear();
     globalDirExcludeList.clear();
-    platforms.clear();
+    m_knownPlatforms.clear();
     m_projectTargets.Unlink();
     ClearDependencyChains();
 }
@@ -3216,6 +3305,105 @@ CProjectInfo::Deserialize( const CORE::CString& inputFilepath )
     }
     GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "DeserializeModuleInfo: Cannot deserialize since no codec is registered that can be used for deserialization" );
     return false;
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::SetKnownPlatformsToHardcodedDefaults( void )                        
+{GUCEF_TRACE;
+
+    // Start from a clean slate
+    m_knownPlatforms.clear();
+
+    // Set hardcoded default platforms
+
+    TPlatformDefinition& platform = m_knownPlatforms[ KnownPlatforms::Android32 ];
+    platform.name = KnownPlatforms::Android32;
+    platform.aliases = { KnownMultiPlatforms::Android, KnownMultiPlatforms::LinuxLike };
+    platform.platformDirs = { KnownMultiPlatforms::Android, KnownPlatforms::Android32 };
+
+    platform = m_knownPlatforms[ KnownPlatforms::Android64 ];
+    platform.name = KnownPlatforms::Android64;
+    platform.aliases = { KnownMultiPlatforms::Android, KnownMultiPlatforms::LinuxLike };
+    platform.platformDirs = { KnownMultiPlatforms::Android, KnownPlatforms::Android64 };
+
+    platform = m_knownPlatforms[ KnownPlatforms::Linux32 ];
+    platform.name = KnownPlatforms::Linux32;
+    platform.aliases = { KnownMultiPlatforms::Linux, KnownMultiPlatforms::LinuxLike };
+    platform.platformDirs = { KnownMultiPlatforms::Linux, KnownPlatforms::Linux32 };
+
+    platform = m_knownPlatforms[ KnownPlatforms::Linux64 ];
+    platform.name = KnownPlatforms::Linux64;
+    platform.aliases = { KnownMultiPlatforms::Linux, KnownMultiPlatforms::LinuxLike };
+    platform.platformDirs = { KnownMultiPlatforms::Linux, KnownPlatforms::Linux64 };
+
+    platform = m_knownPlatforms[ KnownPlatforms::Win32 ];
+    platform.name = KnownPlatforms::Win32;
+    platform.aliases = { KnownMultiPlatforms::MsWin };
+    platform.platformDirs = { KnownMultiPlatforms::MsWin, KnownPlatforms::Win32 };
+
+    platform = m_knownPlatforms[ KnownPlatforms::Win64 ];
+    platform.name = KnownPlatforms::Win64;
+    platform.aliases = { KnownMultiPlatforms::MsWin };
+    platform.platformDirs = { KnownMultiPlatforms::MsWin, KnownPlatforms::Win64 };
+
+    platform = m_knownPlatforms[ KnownPlatforms::Emscripten32 ];
+    platform.name = KnownPlatforms::Emscripten32;
+    platform.aliases = { KnownMultiPlatforms::Emscripten };
+    platform.platformDirs = { KnownMultiPlatforms::Emscripten, KnownPlatforms::Emscripten32 };
+
+    platform = m_knownPlatforms[ KnownPlatforms::Emscripten64 ];
+    platform.name = KnownPlatforms::Emscripten64;
+    platform.aliases = { KnownMultiPlatforms::Emscripten };
+    platform.platformDirs = { KnownMultiPlatforms::Emscripten, KnownPlatforms::Emscripten64 };
+
+    platform = m_knownPlatforms[ KnownPlatforms::Arduino ];
+    platform.name = KnownPlatforms::Arduino;
+    platform.platformDirs = { KnownPlatforms::Arduino };
+}
+
+/*---------------------------------------------------------------------------*/
+
+void
+CProjectInfo::ApplyConfig( const CORE::CDataNode& loadedConfig )
+{GUCEF_TRACE;
+
+    // Load the config defined platforms
+
+    CORE::CDataNode::TConstDataNodeSet platformDefs = loadedConfig.FindChildrenOfType( "PlatformDefinitions", true );
+
+    if ( !platformDefs.empty() )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ProjectInfo:ApplyConfig: Found " + CORE::SizeTToString( platformDefs.size() ) +
+            " platform definition groups in the config. These will replace the hardcoded defaults." );
+
+        // start from a clean slate
+        // this wipes any previously known platforms which is the intended behavior, replacing the hardcoded defaults with config defined ones
+        m_knownPlatforms.clear();
+    }
+
+    CORE::CDataNode::TConstDataNodeSet::const_iterator i = platformDefs.begin();
+    while ( i != platformDefs.end() )
+    {
+        const CORE::CDataNode* definitionGroup = (*i);
+        CORE::CDataNode::const_iterator n = definitionGroup->ConstBegin();
+        while ( n != definitionGroup->ConstEnd() )
+        {
+            const CORE::CDataNode* platform = (*n);
+            const CORE::CString platformName = platform->GetName();
+            CORE::CString aliases = platform->GetAttributeValueOrChildValueByName( "Aliases" );
+            CORE::CString platformDirs = platform->GetAttributeValueOrChildValueByName( "PlatformDirs" );
+
+            TPlatformDefinition& platformDef = (m_knownPlatforms)[ platformName ];
+            platformDef.name = platformName;
+            platformDef.aliases = aliases.ParseUniqueElements( ';', false );
+            platformDef.platformDirs = platformDirs.ParseUniqueElements( ';', false );
+
+            ++n;
+        }
+        ++i;
+    }
 }
 
 /*-------------------------------------------------------------------------*/

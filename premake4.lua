@@ -12,7 +12,7 @@
 
 solution( "GUCEF" )
 
-  configurations( { "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "GLX", "GTK", "IOS", "LINUX32", "LINUX64", "NACL", "OSX", "POSIX", "SDL", "SYMBIAN", "UNIX", "WIN32", "WIN64" } )
+  configurations( { "ANDROID32", "ANDROID64", "ARDUINO", "EMSCRIPTEN32", "EMSCRIPTEN64", "IOS", "LINUX32", "LINUX64", "OSX", "WIN32", "WIN64" } )
 
   location( os.getenv( "PM4OUTPUTDIR" ) )
 

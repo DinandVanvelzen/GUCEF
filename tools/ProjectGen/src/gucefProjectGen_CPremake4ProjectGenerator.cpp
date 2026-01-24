@@ -78,54 +78,6 @@ static CORE::CStringMap premake4AdditionTemplates;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static const TStringSetMap&
-GetSupportedPlatformDirMap( void )
-
-{GUCEF_TRACE;
-
-    static TStringSetMap platformMap;
-    if ( platformMap.empty() )
-    {
-        platformMap[ "WIN32" ].insert( "mswin" );
-        platformMap[ "WIN32" ].insert( "win32" );
-        platformMap[ "WIN64" ].insert( "mswin" );
-        platformMap[ "WIN64" ].insert( "win64" );
-        platformMap[ "UNIX" ].insert( "linux" );
-        platformMap[ "UNIX" ].insert( "unix" );
-        platformMap[ "IPHONEOS" ].insert( "iphone" );
-        platformMap[ "SYMBIAN" ].insert( "symbian" );
-        platformMap[ "OSX" ].insert( "osx" );
-        platformMap[ "OSX" ].insert( "mac" );
-        platformMap[ "ANDROID" ].insert( "android" );
-        platformMap[ "GLX" ].insert( "glx" );
-        platformMap[ "GTK" ].insert( "gtk" );
-        platformMap[ "SDL" ].insert( "sdl" );
-    }
-    return platformMap;
-}
-
-/*-------------------------------------------------------------------------*/
-
-static const TStringSet&
-GetSupportedPlatforms( void )
-{GUCEF_TRACE;
-
-    static TStringSet platforms;
-    if ( platforms.empty() )
-    {
-        const TStringSetMap& dirMap = GetSupportedPlatformDirMap();
-        TStringSetMap::const_iterator i = dirMap.begin();
-        while ( i != dirMap.end() )
-        {
-            platforms.insert( (*i).first );
-            ++i;
-        }
-    }
-    return platforms;
-}
-
-/*-------------------------------------------------------------------------*/
-
 static CORE::CString
 ConvertEnvVarStrings( const CORE::CString& inStr )
 {GUCEF_TRACE;
@@ -1338,13 +1290,8 @@ GeneratePremake4ProjectFileContent( const CProjectInfo& projectInfo       ,
 
     // Generate the section which defines all configurations available for this Premake4 project
     TStringSet platformsUsed;
-    projectInfo.GetAllPlatformsUsed( platformsUsed );
+    projectInfo.GetAllEnabledPlatformsUsed( platformsUsed, true );
     platformsUsed.erase( AllPlatforms );
-
-    if ( platformsUsed.empty() )
-    {
-        platformsUsed = GetSupportedPlatforms();
-    }
 
     CORE::CString configurationsSection = "  configurations( {";
     bool first = true;

@@ -1587,7 +1587,7 @@ CModuleInfoEntry::Deserialize( const CORE::CDataNode& domRootNode               
 
                 const CORE::CString& multiPlatformName = (*i); 
 
-                TStringSet actualPlatforms = ResolveMultiPlatformName( multiPlatformName, &projectInfo->platforms );
+                TStringSet actualPlatforms = ResolveMultiPlatformName( multiPlatformName, &projectInfo->GetPlatformDefinitions() );
                 TStringSet::iterator n = actualPlatforms.begin();
                 while ( n != actualPlatforms.end() )
                 {

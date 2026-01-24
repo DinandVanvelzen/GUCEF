@@ -429,6 +429,7 @@ class GUCEF_PROJECTGEN_PUBLIC_CPP CPreprocessorSettings : public CORE::CTSharedO
 
 struct SPlatformDefinition
 {
+    CORE::CString name;                                    // primary name for this platform
     TStringSet aliases;                                    // alternate names for this platform, can be 1-N across multiple platforms as a group name
     TStringSet platformDirs;                               // Directory names which will be considered holders of platform specific files
 };
@@ -466,13 +467,6 @@ GUCEF_PROJECTGEN_PUBLIC_CPP
 CORE::CDStoreCodecRegistry::TDStoreCodecPtr
 GetXmlDStoreCodec( void );
 
-/*-------------------------------------------------------------------------*/
-
-GUCEF_PROJECTGEN_PUBLIC_CPP 
-void
-ApplyConfigToProject( const CORE::CDataNode& loadedConfig , 
-                      CProjectInfo& projectInfo           );
-                     
 /*-------------------------------------------------------------------------*/
                      
 GUCEF_PROJECTGEN_PUBLIC_CPP

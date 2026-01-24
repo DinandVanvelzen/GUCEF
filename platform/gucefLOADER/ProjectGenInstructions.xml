@@ -89,7 +89,7 @@
         <ITEM NAME="../gucefCORE/include/mswin/gucefCORE_cppmswinutils.h" TYPE="FILE" />		
 	</INCLUDES>
 	<INCLUDES PLATFORM="android">
-        <ITEM NAME="../gucefMT/src/android/gucefCORE_CAndroidSystemLogger.cpp" TYPE="FILE" />
-        <ITEM NAME="../gucefMT/include/android/gucefCORE_CAndroidSystemLogger.h" TYPE="FILE" />	
+        <ITEM NAME="../gucefCORE/src/android/gucefCORE_CAndroidSystemLogger.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/android/gucefCORE_CAndroidSystemLogger.h" TYPE="FILE" />	
 	</INCLUDES>	
 </PROJECTGENERATOR>

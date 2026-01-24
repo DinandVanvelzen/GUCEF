@@ -270,7 +270,7 @@ ProjectGenerator::PerformWork( void )
         return -1;
     }
 
-    ApplyConfigToProject( m_config, *projectInfo.GetPointerAlways() );
+    projectInfo->ApplyConfig( m_config );
     projectInfo->SetSetttings( m_params );
 
     bool useProjectInfoCache = m_params.GetValueAlways( "useProjectInfoCache", false ).AsBool( false, true );
