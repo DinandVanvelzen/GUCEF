@@ -3,7 +3,7 @@
 #include "../../Include/RmlUi/Core/ComputedValues.h"
 #include "../../Include/RmlUi/Core/Element.h"
 #include "../../Include/RmlUi/Core/ElementScroll.h"
-#include "../../Include/RmlUi/Core/Traits.h"
+#include "../../Include/RmlUi/Core/RmlUiTraits.h"
 #include "../../Include/RmlUi/Core/Types.h"
 #include "ControlledLifetimeResource.h"
 #include "ElementBackgroundBorder.h"

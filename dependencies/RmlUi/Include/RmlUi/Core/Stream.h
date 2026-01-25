@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Header.h"
-#include "Traits.h"
+#include "RmlUiTraits.h"
 #include "Types.h"
 #include "URL.h"
 

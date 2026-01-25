@@ -1,6 +1,6 @@
 #include "GeometryBackgroundBorder.h"
 #include "../../Include/RmlUi/Core/Box.h"
-#include "../../Include/RmlUi/Core/Math.h"
+#include "../../Include/RmlUi/Core/RmlUiMath.h"
 #include <algorithm>
 #include <float.h>
 

@@ -7,7 +7,7 @@
 #include "../../Include/RmlUi/Core/ElementScroll.h"
 #include "../../Include/RmlUi/Core/ElementUtilities.h"
 #include "../../Include/RmlUi/Core/Factory.h"
-#include "../../Include/RmlUi/Core/Math.h"
+#include "../../Include/RmlUi/Core/RmlUiMath.h"
 #include "../../Include/RmlUi/Core/Profiling.h"
 #include "../../Include/RmlUi/Core/PropertiesIteratorView.h"
 #include "../../Include/RmlUi/Core/PropertyDefinition.h"

@@ -2,7 +2,7 @@
 
 #include "Header.h"
 #include "Log.h"
-#include "Traits.h"
+#include "RmlUiTraits.h"
 #include "Types.h"
 
 namespace Rml {

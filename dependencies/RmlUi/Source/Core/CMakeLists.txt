@@ -218,7 +218,7 @@ set( SOURCE_FILES
   GeometryBoxShadow.cpp
   Log.cpp
   LogDefault.cpp
-  Math.cpp
+  RmlUiMath.cpp
   Memory.cpp
   MeshUtilities.cpp
   ObserverPtr.cpp

@@ -3,7 +3,7 @@
 #include "../../../Include/RmlUi/Core/ElementDocument.h"
 #include "../../../Include/RmlUi/Core/ElementUtilities.h"
 #include "../../../Include/RmlUi/Core/Factory.h"
-#include "../../../Include/RmlUi/Core/Math.h"
+#include "../../../Include/RmlUi/Core/RmlUiMath.h"
 #include "../../../Include/RmlUi/Core/MeshUtilities.h"
 #include "../../../Include/RmlUi/Core/PropertyIdSet.h"
 #include "../../../Include/RmlUi/Core/StyleSheet.h"

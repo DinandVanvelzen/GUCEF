@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Debug.h"
-#include "Math.h"
+#include "RmlUiMath.h"
 
 namespace Rml {
 

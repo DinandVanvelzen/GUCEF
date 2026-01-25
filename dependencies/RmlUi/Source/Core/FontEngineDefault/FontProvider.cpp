@@ -2,7 +2,7 @@
 #include "../../../Include/RmlUi/Core/Core.h"
 #include "../../../Include/RmlUi/Core/FileInterface.h"
 #include "../../../Include/RmlUi/Core/Log.h"
-#include "../../../Include/RmlUi/Core/Math.h"
+#include "../../../Include/RmlUi/Core/RmlUiMath.h"
 #include "../../../Include/RmlUi/Core/StringUtilities.h"
 #include "../ComputeProperty.h"
 #include "FontFace.h"

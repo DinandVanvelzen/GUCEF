@@ -7,7 +7,7 @@
 #include "../../../Include/RmlUi/Core/Event.h"
 #include "../../../Include/RmlUi/Core/Factory.h"
 #include "../../../Include/RmlUi/Core/Input.h"
-#include "../../../Include/RmlUi/Core/Math.h"
+#include "../../../Include/RmlUi/Core/RmlUiMath.h"
 #include "../../../Include/RmlUi/Core/Profiling.h"
 #include "../../../Include/RmlUi/Core/Property.h"
 #include "../DataModel.h"

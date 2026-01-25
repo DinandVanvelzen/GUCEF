@@ -9,7 +9,7 @@
 #include "../../../Include/RmlUi/Core/Factory.h"
 #include "../../../Include/RmlUi/Core/FontEngineInterface.h"
 #include "../../../Include/RmlUi/Core/Input.h"
-#include "../../../Include/RmlUi/Core/Math.h"
+#include "../../../Include/RmlUi/Core/RmlUiMath.h"
 #include "../../../Include/RmlUi/Core/MeshUtilities.h"
 #include "../../../Include/RmlUi/Core/StringUtilities.h"
 #include "../../../Include/RmlUi/Core/SystemInterface.h"

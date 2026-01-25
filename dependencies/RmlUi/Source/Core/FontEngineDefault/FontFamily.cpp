@@ -1,6 +1,6 @@
 #include "FontFamily.h"
 #include "../../../Include/RmlUi/Core/ComputedValues.h"
-#include "../../../Include/RmlUi/Core/Math.h"
+#include "../../../Include/RmlUi/Core/RmlUiMath.h"
 #include "FontFace.h"
 #include <limits.h>
 

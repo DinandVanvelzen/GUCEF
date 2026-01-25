@@ -1,7 +1,7 @@
 #include "../../../Include/RmlUi/Core/Elements/ElementFormControlTextArea.h"
 #include "../../../Include/RmlUi/Core/ElementText.h"
 #include "../../../Include/RmlUi/Core/ElementUtilities.h"
-#include "../../../Include/RmlUi/Core/Math.h"
+#include "../../../Include/RmlUi/Core/RmlUiMath.h"
 #include "../../../Include/RmlUi/Core/PropertyIdSet.h"
 #include "../../../Include/RmlUi/Core/StyleSheetSpecification.h"
 #include "WidgetTextInputMultiLine.h"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Config/Config.h"
-#include "Traits.h"
+#include "RmlUiTraits.h"
 #include <cstdlib>
 #include <memory>
 #include <stddef.h>

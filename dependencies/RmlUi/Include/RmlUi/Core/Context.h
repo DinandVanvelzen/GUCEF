@@ -4,7 +4,7 @@
 #include "Input.h"
 #include "ScriptInterface.h"
 #include "ScrollTypes.h"
-#include "Traits.h"
+#include "RmlUiTraits.h"
 #include "Types.h"
 
 namespace Rml {

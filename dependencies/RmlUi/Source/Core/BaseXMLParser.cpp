@@ -2,6 +2,7 @@
 #include "../../Include/RmlUi/Core/Profiling.h"
 #include "../../Include/RmlUi/Core/Stream.h"
 #include "XMLParseTools.h"
+
 #include <string.h>
 
 namespace Rml {

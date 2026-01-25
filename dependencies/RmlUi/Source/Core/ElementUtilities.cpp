@@ -7,7 +7,7 @@
 #include "../../Include/RmlUi/Core/ElementScroll.h"
 #include "../../Include/RmlUi/Core/Factory.h"
 #include "../../Include/RmlUi/Core/FontEngineInterface.h"
-#include "../../Include/RmlUi/Core/Math.h"
+#include "../../Include/RmlUi/Core/RmlUiMath.h"
 #include "../../Include/RmlUi/Core/RenderManager.h"
 #include "../../Include/RmlUi/Core/TextShapingContext.h"
 #include "DataController.h"

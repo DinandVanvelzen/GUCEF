@@ -3,7 +3,7 @@
 #include "PropertyDictionary.h"
 #include "Spritesheet.h"
 #include "StyleSheetTypes.h"
-#include "Traits.h"
+#include "RmlUiTraits.h"
 
 namespace Rml {
 

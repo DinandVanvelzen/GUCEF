@@ -4,7 +4,7 @@
 #include "../../Include/RmlUi/Core/DecorationTypes.h"
 #include "../../Include/RmlUi/Core/Element.h"
 #include "../../Include/RmlUi/Core/Geometry.h"
-#include "../../Include/RmlUi/Core/Math.h"
+#include "../../Include/RmlUi/Core/RmlUiMath.h"
 #include "../../Include/RmlUi/Core/MeshUtilities.h"
 #include "../../Include/RmlUi/Core/Profiling.h"
 #include "../../Include/RmlUi/Core/RenderManager.h"

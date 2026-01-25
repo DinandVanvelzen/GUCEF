@@ -6,7 +6,7 @@
 #include "../../../Include/RmlUi/Core/Geometry.h"
 #include "../../../Include/RmlUi/Core/TextShapingContext.h"
 #include "../../../Include/RmlUi/Core/Texture.h"
-#include "../../../Include/RmlUi/Core/Traits.h"
+#include "../../../Include/RmlUi/Core/RmlUiTraits.h"
 #include "FontTypes.h"
 
 namespace Rml {

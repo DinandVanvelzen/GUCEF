@@ -1,4 +1,4 @@
-#include "../../Include/RmlUi/Core/Traits.h"
+#include "../../Include/RmlUi/Core/RmlUiTraits.h"
 
 namespace Rml {
 

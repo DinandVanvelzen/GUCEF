@@ -4,7 +4,7 @@
 #include "DataTypeRegister.h"
 #include "DataTypes.h"
 #include "Header.h"
-#include "Traits.h"
+#include "RmlUiTraits.h"
 #include "Types.h"
 
 namespace Rml {

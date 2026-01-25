@@ -6,7 +6,7 @@
 #include "../../Include/RmlUi/Core/ElementUtilities.h"
 #include "../../Include/RmlUi/Core/FontEngineInterface.h"
 #include "../../Include/RmlUi/Core/Log.h"
-#include "../../Include/RmlUi/Core/Math.h"
+#include "../../Include/RmlUi/Core/RmlUiMath.h"
 #include "../../Include/RmlUi/Core/Profiling.h"
 #include "../../Include/RmlUi/Core/Property.h"
 #include "../../Include/RmlUi/Core/PropertyDefinition.h"

@@ -2,6 +2,16 @@
 
 #include "Platform.h"
 
+/* DV edit: Fix compilation errors on Windows */
+#ifdef RMLUI_PLATFORM_WIN32
+
+  #define WIN32_LEAN_AND_MEAN
+  #define NOMINMAX
+  #include <math.h>
+  #include <cmath>
+
+#endif
+
 // Note: Changing a RMLUICORE_API_INLINE method
 // breaks ABI compatibility!!
 

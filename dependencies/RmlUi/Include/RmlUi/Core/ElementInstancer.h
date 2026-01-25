@@ -3,7 +3,7 @@
 #include "Element.h"
 #include "Header.h"
 #include "Profiling.h"
-#include "Traits.h"
+#include "RmlUiTraits.h"
 #include "Types.h"
 
 namespace Rml {
