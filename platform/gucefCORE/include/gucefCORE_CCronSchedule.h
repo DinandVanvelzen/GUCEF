@@ -76,7 +76,7 @@ class GUCEF_CORE_PUBLIC_CPP CCronSchedule
 {
     public:
 
-    typedef GUCEF::set< UInt8 > TUInt8Set;
+    typedef GUCEF::set< UInt8 >        TUInt8Set;
     typedef GUCEF::vector< CDateTime > TDateTimeVector;
 
     static const CCronSchedule Empty;
