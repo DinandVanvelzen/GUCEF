@@ -98,19 +98,22 @@ DSTOREPLUG_Shutdown( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 DSTOREPLUG_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX 
 DSTOREPLUG_Dest_File_Open( void** plugdata      ,
+                           void** codecdata     ,
                            void** filedata      ,
                            TIOAccess* outFile   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
                            
 /*---------------------------------------------------------------------------*/
                            
 DSTOREPLUG_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
-DSTOREPLUG_Dest_File_Close( void** plugdata , 
-                            void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+DSTOREPLUG_Dest_File_Close( void** plugdata  , 
+                            void** codecdata ,
+                            void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
                             
 /*---------------------------------------------------------------------------*/
                             
 DSTOREPLUG_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
 DSTOREPLUG_Begin_Node_Store( void** plugdata      , 
+                             void** codecdata     ,
                              void** filedata      , 
                              const char* nodename , 
                              Int32 nodeType       ,
@@ -121,6 +124,7 @@ DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
                              
 DSTOREPLUG_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
 DSTOREPLUG_End_Node_Store( void** plugdata      , 
+                           void** codecdata     ,
                            void** filedata      , 
                            const char* nodename ,
                            UInt32 attscount     ,
@@ -130,6 +134,7 @@ DSTOREPLUG_End_Node_Store( void** plugdata      ,
                            
 DSTOREPLUG_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
 DSTOREPLUG_Store_Node_Att( void** plugdata              , 
+                           void** codecdata             ,
                            void** filedata              , 
                            const char* nodename         ,
                            UInt32 attscount             , 
@@ -142,6 +147,7 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
                            
 DSTOREPLUG_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
 DSTOREPLUG_Begin_Node_Children( void** plugdata      , 
+                                void** codecdata     ,
                                 void** filedata      , 
                                 const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX; 
                                 
@@ -149,6 +155,7 @@ DSTOREPLUG_Begin_Node_Children( void** plugdata      ,
                                 
 DSTOREPLUG_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX 
 DSTOREPLUG_End_Node_Children( void** plugdata      , 
+                              void** codecdata     ,
                               void** filedata      , 
                               const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
                                   

@@ -242,6 +242,7 @@ DSTOREPLUG_Shutdown( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Dest_File_Open( void** plugdata    ,
+                           void** codecdata   ,
                            void** filedata    ,
                            TIOAccess* outFile ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
@@ -267,6 +268,7 @@ DSTOREPLUG_Dest_File_Open( void** plugdata    ,
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Dest_File_Close( void** plugdata ,
+                            void** codecdata ,
                             void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     if ( filedata == GUCEF_NULL )
@@ -319,6 +321,7 @@ DSTOREPLUG_Dest_File_Close( void** plugdata ,
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
+                             void** codecdata     ,
                              void** filedata      ,
                              const char* nodename ,
                              Int32 nodeType       ,
@@ -376,7 +379,7 @@ DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
                 var.union_data.heap_data.union_data.char_heap_data = (char*) nodename;
                 var.union_data.heap_data.heap_data_size = (UInt32) ( GUCEF_NULL != nodename ? strlen( nodename ) : 0 );
                 
-                DSTOREPLUG_Store_Node_Att( plugdata, filedata, GUCEF_NULL, 1, 0, GUCEF_NULL, &var, haschildren );
+                DSTOREPLUG_Store_Node_Att( plugdata, codecdata, filedata, GUCEF_NULL, 1, 0, GUCEF_NULL, &var, haschildren );
             }
             if ( nodeType != GUCEF_DATATYPE_ARRAY && nodeType != GUCEF_DATATYPE_OBJECT )
             {
@@ -390,6 +393,7 @@ DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_End_Node_Store( void** plugdata      ,
+                           void** codecdata     ,
                            void** filedata      ,
                            const char* nodename ,
                            UInt32 attscount     ,
@@ -405,6 +409,7 @@ DSTOREPLUG_End_Node_Store( void** plugdata      ,
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Store_Node_Att( void** plugdata              ,
+                           void** codecdata             ,
                            void** filedata              ,
                            const char* nodename         ,
                            UInt32 attscount             ,
@@ -611,6 +616,7 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Begin_Node_Children( void** plugdata      ,
+                                void** codecdata     ,
                                 void** filedata      ,
                                 const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
@@ -621,6 +627,7 @@ DSTOREPLUG_Begin_Node_Children( void** plugdata      ,
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_End_Node_Children( void** plugdata      ,
+                              void** codecdata     ,
                               void** filedata      ,
                               const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {

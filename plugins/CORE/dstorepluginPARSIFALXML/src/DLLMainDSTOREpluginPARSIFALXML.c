@@ -528,6 +528,7 @@ MODULE_API_FUNCTION( DSTOREPLUG_Shutdown )( void** plugdata ) GUCEF_PLUGIN_CALLS
 
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( DSTOREPLUG_Dest_File_Open )( void** plugdata    ,
+                                                  void** codecdata   ,
                                                   void** filedata    ,
                                                   TIOAccess* outFile ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
@@ -565,8 +566,9 @@ MODULE_API_FUNCTION( DSTOREPLUG_Dest_File_Open )( void** plugdata    ,
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
-MODULE_API_FUNCTION( DSTOREPLUG_Dest_File_Close )( void** plugdata ,
-                                                   void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+MODULE_API_FUNCTION( DSTOREPLUG_Dest_File_Close )( void** plugdata  ,
+                                                   void** codecdata ,
+                                                   void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     if ( filedata )
     {
@@ -701,6 +703,7 @@ NodeNameFromType( Int32 type )
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( DSTOREPLUG_Begin_Node_Store )( void** plugdata      ,
+                                                    void** codecdata     ,
                                                     void** filedata      ,
                                                     const char* nodename ,
                                                     Int32 nodeType       ,
@@ -756,6 +759,7 @@ MODULE_API_FUNCTION( DSTOREPLUG_Begin_Node_Store )( void** plugdata      ,
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( DSTOREPLUG_End_Node_Store )( void** plugdata      ,
+                                                  void** codecdata     ,
                                                   void** filedata      ,
                                                   const char* nodename ,
                                                   UInt32 attscount     ,
@@ -793,6 +797,7 @@ MODULE_API_FUNCTION( DSTOREPLUG_End_Node_Store )( void** plugdata      ,
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( DSTOREPLUG_Store_Node_Att )( void** plugdata              ,
+                                                  void** codecdata             ,
                                                   void** filedata              ,
                                                   const char* nodename         ,
                                                   UInt32 attscount             ,
@@ -883,6 +888,7 @@ MODULE_API_FUNCTION( DSTOREPLUG_Store_Node_Att )( void** plugdata              ,
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( DSTOREPLUG_Begin_Node_Children )( void** plugdata      ,
+                                                       void** codecdata     ,
                                                        void** filedata      ,
                                                        const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
@@ -894,6 +900,7 @@ MODULE_API_FUNCTION( DSTOREPLUG_Begin_Node_Children )( void** plugdata      ,
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 MODULE_API_FUNCTION( DSTOREPLUG_End_Node_Children )( void** plugdata      ,
+                                                     void** codecdata     ,
                                                      void** filedata      ,
                                                      const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {

@@ -323,25 +323,25 @@ CDStoreCodecPlugin::Link( void* modulePtr                   ,
                                                                                                           3*sizeof(void*)                        ).funcPtr;
         m_api.Dest_File_Open = (TDSTOREPLUGFPTR_Dest_File_Open) GetFunctionAddress( m_sohandle                   ,
                                                                                     "DSTOREPLUG_Dest_File_Open" ,
-                                                                                    3*sizeof(void*)             ).funcPtr;
+                                                                                    4*sizeof(void*)             ).funcPtr;
         m_api.Dest_File_Close = (TDSTOREPLUGFPTR_Dest_File_Close) GetFunctionAddress( m_sohandle                    ,
                                                                                       "DSTOREPLUG_Dest_File_Close" ,
-                                                                                      2*sizeof(void*)              ).funcPtr;
+                                                                                      3*sizeof(void*)              ).funcPtr;
         m_api.Begin_Node_Store = (TDSTOREPLUGFPTR_Begin_Node_Store) GetFunctionAddress( m_sohandle                    ,
                                                                                         "DSTOREPLUG_Begin_Node_Store" ,
-                                                                                        3*sizeof(void*)+12            ).funcPtr;
+                                                                                        4*sizeof(void*)+12            ).funcPtr;
         m_api.End_Node_Store = (TDSTOREPLUGFPTR_End_Node_Store) GetFunctionAddress( m_sohandle                   ,
                                                                                     "DSTOREPLUG_End_Node_Store" ,
-                                                                                    3*sizeof(void*)+8           ).funcPtr;
+                                                                                    4*sizeof(void*)+8           ).funcPtr;
         m_api.Store_Node_Att = (TDSTOREPLUGFPTR_Store_Node_Att) GetFunctionAddress( m_sohandle                   ,
                                                                                     "DSTOREPLUG_Store_Node_Att" ,
-                                                                                    5*sizeof(void*)+12          ).funcPtr;
+                                                                                    6*sizeof(void*)+12          ).funcPtr;
         m_api.Begin_Node_Children = (TDSTOREPLUGFPTR_Begin_Node_Children) GetFunctionAddress( m_sohandle                        ,
                                                                                               "DSTOREPLUG_Begin_Node_Children" ,
-                                                                                              3*sizeof(void*)                  ).funcPtr;
+                                                                                              4*sizeof(void*)                  ).funcPtr;
         m_api.End_Node_Children = (TDSTOREPLUGFPTR_End_Node_Children) GetFunctionAddress( m_sohandle                      ,
                                                                                           "DSTOREPLUG_End_Node_Children" ,
-                                                                                          3*sizeof(void*)                ).funcPtr;
+                                                                                          4*sizeof(void*)                ).funcPtr;
         m_api.Src_File_Open = (TDSTOREPLUGFPTR_Src_File_Open) GetFunctionAddress( m_sohandle                  ,
                                                                                   "DSTOREPLUG_Src_File_Open" ,
                                                                                   3*sizeof(void*)            ).funcPtr;
@@ -513,7 +513,8 @@ CDStoreCodecPlugin::StoreNode( void** codecData   ,
      *  Begin storing the node
      */
     UInt32 valueAsAtt = n->HasValue() ? 1 : 0;
-    m_api.Begin_Node_Store( &m_plugdata         ,
+    m_api.Begin_Node_Store( &m_plugdata        ,
+                            codecData          ,
                             filedata           ,
                             name               ,
                             nodeType           ,
@@ -526,7 +527,8 @@ CDStoreCodecPlugin::StoreNode( void** codecData   ,
     for ( UInt32 i=0; i<count; ++i )
     {
             att = n->GetAttribute( i );
-            m_api.Store_Node_Att( &m_plugdata                 ,
+            m_api.Store_Node_Att( &m_plugdata                ,
+                                  codecData                  ,
                                   filedata                   ,
                                   name                       ,
                                   count                      ,
@@ -541,7 +543,8 @@ CDStoreCodecPlugin::StoreNode( void** codecData   ,
      */
     if ( n->HasValue() )
     {
-        m_api.Store_Node_Att( &m_plugdata                   ,
+        m_api.Store_Node_Att( &m_plugdata                  ,
+                              codecData                    ,
                               filedata                     ,
                               name                         ,
                               count + valueAsAtt           ,
@@ -557,8 +560,9 @@ CDStoreCodecPlugin::StoreNode( void** codecData   ,
     if ( n->HasChildren() )
     {
         m_api.Begin_Node_Children( &m_plugdata ,
-                                   filedata   ,
-                                   name       );
+                                   codecData   ,
+                                   filedata    ,
+                                   name        );
 
         /*
          *      Iterate the child node recursively storing each node level
@@ -571,14 +575,16 @@ CDStoreCodecPlugin::StoreNode( void** codecData   ,
         }
 
         m_api.End_Node_Children( &m_plugdata ,
-                                 filedata   ,
-                                 name       );
+                                 codecData   ,
+                                 filedata    ,
+                                 name        );
     }
 
     /*
      *      We are finished with this node
      */
-    m_api.End_Node_Store( &m_plugdata       ,
+    m_api.End_Node_Store( &m_plugdata      ,
+                          codecData        ,
                           filedata         ,
                           name             ,
                           count            ,
@@ -603,12 +609,13 @@ CDStoreCodecPlugin::StoreDataTree( void** codecData        ,
                                    const CString& filename )
 {GUCEF_TRACE;
 
-    Create_Path_Directories( filename.C_String() );
-
-    CFileAccess access( filename, "wb" );
-    if ( access.IsValid() )
+    if ( CreateDirs( filename ) )
     {
-        return StoreDataTree( codecData, tree, &access );
+        CFileAccess access( filename, "wb" );
+        if ( access.IsValid() )
+        {
+            return StoreDataTree( codecData, tree, &access );
+        }
     }
     return false;
 }
@@ -640,7 +647,7 @@ CDStoreCodecPlugin::StoreDataTree( void** codecData        ,
      *      Open the destination file
      */
     void* filedata;
-    if ( !m_api.Dest_File_Open( &m_plugdata, &filedata, file->CStyleAccess() ) )
+    if ( !m_api.Dest_File_Open( &m_plugdata, codecData, &filedata, file->CStyleAccess() ) )
     {
         return false;
     }
@@ -653,7 +660,7 @@ CDStoreCodecPlugin::StoreDataTree( void** codecData        ,
     /*
      *      We are finished,.. close the file
      */
-    m_api.Dest_File_Close( &m_plugdata, &filedata );
+    m_api.Dest_File_Close( &m_plugdata, codecData, &filedata );
     return true;
 }
 

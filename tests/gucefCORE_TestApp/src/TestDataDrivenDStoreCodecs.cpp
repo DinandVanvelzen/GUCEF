@@ -685,6 +685,311 @@ PerformProtobufTest_ComplexMessage( void )
 /*-------------------------------------------------------------------------*/
 
 void
+PerformProtobufTest_SerializeAllTypesMessage( void )
+{GUCEF_TRACE;
+
+    CORE::CCoreGlobal* coreGlobal = CORE::CCoreGlobal::Instance();
+    CORE::CDStoreCodecRegistry& codecRegistry = coreGlobal->GetDStoreCodecRegistry();
+
+    CORE::CDStoreCodecRegistry::TDStoreCodecPtr protobufCodec_AllTypesMessage;
+    ASSERT_TRUE( codecRegistry.TryLookup( ddCodecTypeNameForAllTypesMessage, protobufCodec_AllTypesMessage, false ) );
+
+    // Build a CDataNode tree with the same values used in the deserialization test
+
+    CORE::CDataNode sourceNode( "AllTypesMessage", GUCEF_DATATYPE_OBJECT );
+    sourceNode.SetAttribute( "int_field", CORE::CVariant( static_cast< Int32 >( -44 ) ) );
+    sourceNode.SetAttribute( "long_field", CORE::CVariant( static_cast< Int64 >( -3455 ) ) );
+    sourceNode.SetAttribute( "uint_field", CORE::CVariant( static_cast< UInt32 >( 3453577 ) ) );
+    sourceNode.SetAttribute( "ulong_field", CORE::CVariant( static_cast< UInt64 >( 3557878 ) ) );
+    sourceNode.SetAttribute( "sint_field", CORE::CVariant( static_cast< Int32 >( 97676 ) ) );
+    sourceNode.SetAttribute( "slong_field", CORE::CVariant( static_cast< Int64 >( 868680 ) ) );
+    sourceNode.SetAttribute( "fixed_field", CORE::CVariant( static_cast< UInt32 >( 5560 ) ) );
+    sourceNode.SetAttribute( "lfixed_field", CORE::CVariant( static_cast< UInt64 >( 7670 ) ) );
+    sourceNode.SetAttribute( "sfixed_field", CORE::CVariant( static_cast< Int32 >( -670 ) ) );
+    sourceNode.SetAttribute( "slfixed_field", CORE::CVariant( static_cast< Int64 >( -67077899 ) ) );
+    sourceNode.SetAttribute( "float_field", CORE::CVariant( static_cast< Float32 >( 0.454535f ) ) );
+    sourceNode.SetAttribute( "double_field", CORE::CVariant( static_cast< Float64 >( 0.3543534534 ) ) );
+    sourceNode.SetAttribute( "bool_field", CORE::CVariant( static_cast< Int32 >( 0 ) ) );
+    sourceNode.SetAttribute( "string_field", CORE::CVariant( CORE::CString( "this is a string" ) ) );
+    CORE::CDynamicBuffer emptyBlobBuffer;
+    sourceNode.SetAttribute( "bytes_field", CORE::CVariant( emptyBlobBuffer ) );
+
+    // Serialize to protobuf binary
+
+    CORE::CDynamicBuffer serializedData;
+    CORE::CDynamicBufferAccess serializedDataAccess( serializedData );
+    ASSERT_TRUE( protobufCodec_AllTypesMessage->StoreDataTree( &sourceNode, &serializedDataAccess ) );
+    ASSERT_TRUE( serializedData.GetDataSize() > 0 );
+
+    // Deserialize the serialized data back into a new CDataNode tree to verify round-trip
+
+    serializedDataAccess.Setpos( 0 );
+    CORE::CDataNode roundTripNode;
+    ASSERT_TRUE( protobufCodec_AllTypesMessage->BuildDataTree( &roundTripNode, &serializedDataAccess ) );
+
+    ASSERT_TRUE( roundTripNode.GetName() == "AllTypesMessage" );
+
+    const CORE::CVariant& rtIntField = roundTripNode.GetAttributeValueOrChildValueByName( "int_field" );
+    ASSERT_TRUE( rtIntField.IsInitialized() );
+    ASSERT_TRUE( rtIntField.AsInt32() == -44 );
+
+    const CORE::CVariant& rtLongField = roundTripNode.GetAttributeValueOrChildValueByName( "long_field" );
+    ASSERT_TRUE( rtLongField.IsInitialized() );
+    ASSERT_TRUE( rtLongField.AsInt64() == -3455 );
+
+    const CORE::CVariant& rtUintField = roundTripNode.GetAttributeValueOrChildValueByName( "uint_field" );
+    ASSERT_TRUE( rtUintField.IsInitialized() );
+    ASSERT_TRUE( rtUintField.AsUInt32() == 3453577 );
+
+    const CORE::CVariant& rtUlongField = roundTripNode.GetAttributeValueOrChildValueByName( "ulong_field" );
+    ASSERT_TRUE( rtUlongField.IsInitialized() );
+    ASSERT_TRUE( rtUlongField.AsUInt64() == 3557878 );
+
+    const CORE::CVariant& rtSintField = roundTripNode.GetAttributeValueOrChildValueByName( "sint_field" );
+    ASSERT_TRUE( rtSintField.IsInitialized() );
+    ASSERT_TRUE( rtSintField.AsInt32() == 97676 );
+
+    const CORE::CVariant& rtSlongField = roundTripNode.GetAttributeValueOrChildValueByName( "slong_field" );
+    ASSERT_TRUE( rtSlongField.IsInitialized() );
+    ASSERT_TRUE( rtSlongField.AsInt64() == 868680 );
+
+    const CORE::CVariant& rtFixedField = roundTripNode.GetAttributeValueOrChildValueByName( "fixed_field" );
+    ASSERT_TRUE( rtFixedField.IsInitialized() );
+    ASSERT_TRUE( rtFixedField.AsUInt32() == 5560 );
+
+    const CORE::CVariant& rtLfixedField = roundTripNode.GetAttributeValueOrChildValueByName( "lfixed_field" );
+    ASSERT_TRUE( rtLfixedField.IsInitialized() );
+    ASSERT_TRUE( rtLfixedField.AsUInt64() == 7670 );
+
+    const CORE::CVariant& rtSfixedField = roundTripNode.GetAttributeValueOrChildValueByName( "sfixed_field" );
+    ASSERT_TRUE( rtSfixedField.IsInitialized() );
+    ASSERT_TRUE( rtSfixedField.AsInt32() == -670 );
+
+    const CORE::CVariant& rtSlfixedField = roundTripNode.GetAttributeValueOrChildValueByName( "slfixed_field" );
+    ASSERT_TRUE( rtSlfixedField.IsInitialized() );
+    ASSERT_TRUE( rtSlfixedField.AsInt64() == -67077899 );
+
+    const CORE::CVariant& rtFloatField = roundTripNode.GetAttributeValueOrChildValueByName( "float_field" );
+    ASSERT_TRUE( rtFloatField.IsInitialized() );
+    ASSERT_TRUE( rtFloatField.IsFloat() );
+    CORE::CVariant rtCompareFloat32( static_cast< Float32 >( 0.454535f ) );
+    ASSERT_TRUE( rtFloatField == rtCompareFloat32 );
+
+    const CORE::CVariant& rtDoubleField = roundTripNode.GetAttributeValueOrChildValueByName( "double_field" );
+    ASSERT_TRUE( rtDoubleField.IsInitialized() );
+    ASSERT_TRUE( rtDoubleField.IsFloat() );
+    CORE::CVariant rtCompareFloat64( static_cast< Float64 >( 0.3543534534 ) );
+    ASSERT_TRUE( rtDoubleField == rtCompareFloat64 );
+
+    const CORE::CVariant& rtBoolField = roundTripNode.GetAttributeValueOrChildValueByName( "bool_field" );
+    ASSERT_TRUE( rtBoolField.IsInitialized() );
+    ASSERT_TRUE( rtBoolField == false );
+
+    const CORE::CVariant& rtStringField = roundTripNode.GetAttributeValueOrChildValueByName( "string_field" );
+    ASSERT_TRUE( rtStringField.IsInitialized() );
+    ASSERT_TRUE( rtStringField.AsString() == "this is a string" );
+
+    const CORE::CVariant& rtBytesField = roundTripNode.GetAttributeValueOrChildValueByName( "bytes_field" );
+    ASSERT_TRUE( rtBytesField.IsInitialized() );
+    ASSERT_TRUE( rtBytesField.IsBlob() );
+    ASSERT_TRUE( rtBytesField.ByteSize() == 0 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformProtobufTest_SerializeNestedMessage( void )
+{GUCEF_TRACE;
+
+    CORE::CCoreGlobal* coreGlobal = CORE::CCoreGlobal::Instance();
+    CORE::CDStoreCodecRegistry& codecRegistry = coreGlobal->GetDStoreCodecRegistry();
+
+    CORE::CDStoreCodecRegistry::TDStoreCodecPtr protobufCodec_NestedMessage;
+    ASSERT_TRUE( codecRegistry.TryLookup( ddCodecTypeNameForNestedMessage, protobufCodec_NestedMessage, false ) );
+
+    // Build a CDataNode tree matching the nested message test values
+
+    CORE::CDataNode sourceNode( "NestedMessage", GUCEF_DATATYPE_OBJECT );
+    sourceNode.SetAttribute( "id", CORE::CVariant( static_cast< Int32 >( 777 ) ) );
+
+    CORE::CDataNode* innerMsgNode = sourceNode.AddChild( "inner_message", GUCEF_DATATYPE_OBJECT );
+    ASSERT_TRUE( GUCEF_NULL != innerMsgNode );
+    innerMsgNode->SetAttribute( "inner_id", CORE::CVariant( static_cast< Int32 >( 747 ) ) );
+    innerMsgNode->SetAttribute( "inner_name", CORE::CVariant( CORE::CString( "this is the inner message" ) ) );
+
+    // Serialize to protobuf binary
+
+    CORE::CDynamicBuffer serializedData;
+    CORE::CDynamicBufferAccess serializedDataAccess( serializedData );
+    ASSERT_TRUE( protobufCodec_NestedMessage->StoreDataTree( &sourceNode, &serializedDataAccess ) );
+    ASSERT_TRUE( serializedData.GetDataSize() > 0 );
+
+    // Deserialize the serialized data back into a new CDataNode tree to verify round-trip
+
+    serializedDataAccess.Setpos( 0 );
+    CORE::CDataNode roundTripNode;
+    ASSERT_TRUE( protobufCodec_NestedMessage->BuildDataTree( &roundTripNode, &serializedDataAccess ) );
+
+    ASSERT_TRUE( roundTripNode.GetName() == "NestedMessage" );
+
+    const CORE::CVariant& rtIdField = roundTripNode.GetAttributeValueOrChildValueByName( "id" );
+    ASSERT_TRUE( rtIdField.IsInitialized() );
+    ASSERT_TRUE( rtIdField.AsInt32() == 777 );
+
+    ASSERT_TRUE( roundTripNode.GetNrOfChildNodes() == 1 );
+    CORE::CDataNode* rtInnerMsgNode = roundTripNode.FindChild( "inner_message", true );
+    ASSERT_TRUE( rtInnerMsgNode != GUCEF_NULL );
+    ASSERT_TRUE( rtInnerMsgNode->GetName() == "inner_message" );
+
+    const CORE::CVariant& rtInnerIdField = rtInnerMsgNode->GetAttributeValueOrChildValueByName( "inner_id" );
+    ASSERT_TRUE( rtInnerIdField.IsInitialized() );
+    ASSERT_TRUE( rtInnerIdField.AsInt32() == 747 );
+
+    const CORE::CVariant& rtInnerNameField = rtInnerMsgNode->GetAttributeValueOrChildValueByName( "inner_name" );
+    ASSERT_TRUE( rtInnerNameField.IsInitialized() );
+    ASSERT_TRUE( rtInnerNameField.IsString() );
+    ASSERT_TRUE( rtInnerNameField.AsString() == "this is the inner message" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformProtobufTest_SerializeComplexMessage( void )
+{GUCEF_TRACE;
+
+    CORE::CCoreGlobal* coreGlobal = CORE::CCoreGlobal::Instance();
+    CORE::CDStoreCodecRegistry& codecRegistry = coreGlobal->GetDStoreCodecRegistry();
+
+    CORE::CDStoreCodecRegistry::TDStoreCodecPtr protobufCodec_ComplexMessage;
+    ASSERT_TRUE( codecRegistry.TryLookup( ddCodecTypeNameForComplexMessage, protobufCodec_ComplexMessage, false ) );
+
+    // Build a CDataNode tree matching the complex message test values
+
+    CORE::CDataNode sourceNode( "ComplexMessage", GUCEF_DATATYPE_OBJECT );
+
+    // repeated int32 ids = [1, 2, 3, 4, 5]
+    CORE::CDataNode* idsArrayNode = sourceNode.AddChild( "ids", GUCEF_DATATYPE_ARRAY );
+    ASSERT_TRUE( GUCEF_NULL != idsArrayNode );
+    for ( Int32 i = 1; i <= 5; ++i )
+    {
+        idsArrayNode->AddValueAsChild( CORE::CVariant( i ) );
+    }
+
+    // map<string, int32> name_to_id = { "Alice": 1, "Bob": 2 }
+    CORE::CDataNode* nameToIdMapNode = sourceNode.AddChild( "name_to_id", GUCEF_DATATYPE_MAP );
+    ASSERT_TRUE( GUCEF_NULL != nameToIdMapNode );
+    nameToIdMapNode->SetAttribute( "Alice", CORE::CVariant( static_cast< Int32 >( 1 ) ) );
+    nameToIdMapNode->SetAttribute( "Bob", CORE::CVariant( static_cast< Int32 >( 2 ) ) );
+
+    // enum Status status = ACTIVE (1)
+    CORE::CDataNode* statusNode = sourceNode.AddChild( "status", GUCEF_DATATYPE_ENUM );
+    ASSERT_TRUE( GUCEF_NULL != statusNode );
+    statusNode->SetValue( CORE::CVariant( static_cast< Int32 >( 1 ) ) );
+
+    // nested_optional_message (oneof)
+    CORE::CDataNode* nestedOptMsgNode = sourceNode.AddChild( "nested_optional_message", GUCEF_DATATYPE_OBJECT );
+    ASSERT_TRUE( GUCEF_NULL != nestedOptMsgNode );
+    nestedOptMsgNode->SetAttribute( "nested_optional_field_1", CORE::CVariant( CORE::CString( "optional nested value" ) ) );
+    nestedOptMsgNode->SetAttribute( "nested_optional_field_2", CORE::CVariant( static_cast< Float64 >( 3.14159 ) ) );
+
+    // repeated NestedMessage nested_messages
+    CORE::CDataNode* nestedMsgsArrayNode = sourceNode.AddChild( "nested_messages", GUCEF_DATATYPE_ARRAY );
+    ASSERT_TRUE( GUCEF_NULL != nestedMsgsArrayNode );
+
+    CORE::CDataNode* nestedMsg1 = nestedMsgsArrayNode->AddChild( "NestedMessage", GUCEF_DATATYPE_OBJECT );
+    ASSERT_TRUE( GUCEF_NULL != nestedMsg1 );
+    nestedMsg1->SetAttribute( "inner_id", CORE::CVariant( static_cast< Int32 >( 10 ) ) );
+    nestedMsg1->SetAttribute( "inner_name", CORE::CVariant( CORE::CString( "nested inner 1" ) ) );
+    nestedMsg1->SetAttribute( "inner_timestamp", CORE::CVariant( static_cast< UInt64 >( 345386786767ULL ) ) );
+
+    CORE::CDataNode* nestedMsg2 = nestedMsgsArrayNode->AddChild( "NestedMessage", GUCEF_DATATYPE_OBJECT );
+    ASSERT_TRUE( GUCEF_NULL != nestedMsg2 );
+    nestedMsg2->SetAttribute( "inner_id", CORE::CVariant( static_cast< Int32 >( 20 ) ) );
+    nestedMsg2->SetAttribute( "inner_name", CORE::CVariant( CORE::CString( "nested inner 2" ) ) );
+    nestedMsg2->SetAttribute( "inner_timestamp", CORE::CVariant( static_cast< UInt64 >( 334435534534ULL ) ) );
+
+    // Serialize to protobuf binary
+
+    CORE::CDynamicBuffer serializedData;
+    CORE::CDynamicBufferAccess serializedDataAccess( serializedData );
+    ASSERT_TRUE( protobufCodec_ComplexMessage->StoreDataTree( &sourceNode, &serializedDataAccess ) );
+    ASSERT_TRUE( serializedData.GetDataSize() > 0 );
+
+    // Deserialize the serialized data back into a new CDataNode tree to verify round-trip
+
+    serializedDataAccess.Setpos( 0 );
+    CORE::CDataNode roundTripNode;
+    ASSERT_TRUE( protobufCodec_ComplexMessage->BuildDataTree( &roundTripNode, &serializedDataAccess ) );
+
+    ASSERT_TRUE( roundTripNode.GetName() == "ComplexMessage" );
+    ASSERT_TRUE( roundTripNode.GetNrOfDirectChildNodes() == 5 );
+
+    // Verify the packed array round-trip
+
+    const CORE::CDataNode* rtIdsArrayNode = roundTripNode.FindChild( "ids" );
+    ASSERT_TRUE( GUCEF_NULL != rtIdsArrayNode );
+    ASSERT_TRUE( rtIdsArrayNode->GetNodeType() == GUCEF_DATATYPE_ARRAY );
+    ASSERT_TRUE( rtIdsArrayNode->GetNrOfDirectChildNodes() == 5 );
+    CORE::CDataNode::TVariantVector rtIdValues = rtIdsArrayNode->GetChildrenValues();
+    ASSERT_TRUE( rtIdValues.size() == 5 );
+    for ( int i = 0; i < 5; ++i )
+    {
+        ASSERT_TRUE( rtIdValues[ i ].IsInteger() );
+        ASSERT_TRUE( rtIdValues[ i ] > 0 && rtIdValues[ i ] < 6 );
+    }
+
+    // Verify the map round-trip
+
+    const CORE::CDataNode* rtNameToIdMapNode = roundTripNode.FindChild( "name_to_id" );
+    ASSERT_TRUE( GUCEF_NULL != rtNameToIdMapNode );
+    ASSERT_TRUE( rtNameToIdMapNode->GetNodeType() == GUCEF_DATATYPE_MAP );
+    ASSERT_TRUE( rtNameToIdMapNode->GetAttCount() == 2 );
+
+    const CORE::CVariant& rtAlice = rtNameToIdMapNode->GetAttributeValueOrChildValueByName( "Alice" );
+    ASSERT_TRUE( rtAlice.IsInitialized() );
+    ASSERT_TRUE( rtAlice.AsInt32() == 1 );
+
+    const CORE::CVariant& rtBob = rtNameToIdMapNode->GetAttributeValueOrChildValueByName( "Bob" );
+    ASSERT_TRUE( rtBob.IsInitialized() );
+    ASSERT_TRUE( rtBob.AsInt32() == 2 );
+
+    // Verify the enum round-trip
+
+    const CORE::CDataNode* rtStatusNode = roundTripNode.FindChild( "status" );
+    ASSERT_TRUE( GUCEF_NULL != rtStatusNode );
+    ASSERT_TRUE( rtStatusNode->GetNodeType() == GUCEF_DATATYPE_ENUM );
+    const CORE::CVariant& rtStatusValue = rtStatusNode->GetValue();
+    ASSERT_TRUE( rtStatusValue.IsInitialized() );
+    ASSERT_TRUE( rtStatusValue.AsInt32() == 1 );
+
+    // Verify the nested optional message round-trip
+
+    const CORE::CDataNode* rtNestedOptMsgNode = roundTripNode.FindChild( "nested_optional_message" );
+    ASSERT_TRUE( GUCEF_NULL != rtNestedOptMsgNode );
+    ASSERT_TRUE( rtNestedOptMsgNode->GetNodeType() == GUCEF_DATATYPE_OBJECT );
+    ASSERT_TRUE( rtNestedOptMsgNode->GetAttCount() == 2 );
+
+    const CORE::CVariant& rtOptField1 = rtNestedOptMsgNode->GetAttributeValueOrChildValueByName( "nested_optional_field_1" );
+    ASSERT_TRUE( rtOptField1.IsInitialized() );
+    ASSERT_TRUE( rtOptField1.AsString() == "optional nested value" );
+
+    const CORE::CVariant& rtOptField2 = rtNestedOptMsgNode->GetAttributeValueOrChildValueByName( "nested_optional_field_2" );
+    ASSERT_TRUE( rtOptField2.IsInitialized() );
+    ASSERT_TRUE( rtOptField2.IsFloat() );
+    CORE::CVariant rtCompareFloat64( static_cast< Float64 >( 3.14159 ) );
+    ASSERT_TRUE( rtOptField2 == rtCompareFloat64 );
+
+    // Verify the repeated nested messages round-trip
+
+    const CORE::CDataNode* rtNestedMsgsArrayNode = roundTripNode.FindChild( "nested_messages" );
+    ASSERT_TRUE( GUCEF_NULL != rtNestedMsgsArrayNode );
+    ASSERT_TRUE( rtNestedMsgsArrayNode->GetNodeType() == GUCEF_DATATYPE_ARRAY );
+    ASSERT_TRUE( rtNestedMsgsArrayNode->GetNrOfChildNodes() == 2 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 PerformProtobufTest_ConfigDrivenCodecSpecification( void )
 {GUCEF_TRACE;
 
@@ -786,6 +1091,11 @@ PerformProtobufTestsIfFeasible( void )
 
             // Finally we can test a more complex message with repeated fields, maps and oneof
             PerformProtobufTest_ComplexMessage();
+
+            // Now test serialization (writing) to protobuf and round-trip verification
+            PerformProtobufTest_SerializeAllTypesMessage();
+            PerformProtobufTest_SerializeNestedMessage();
+            PerformProtobufTest_SerializeComplexMessage();
 
             // Also test the config driven codec specification instead of direct hardcoding
             PerformProtobufTest_ConfigDrivenCodecSpecification();
