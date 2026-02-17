@@ -44,6 +44,7 @@ class GUCEF_HIDDEN CResourceWritingInfo
     CDataDrivenCodecInfo* m_codecInfo;
     google::protobuf::Message* m_rootMessage;
     std::vector< SMessageContext > m_contextStack;
+    std::map< const google::protobuf::Message*, std::set< int > > m_trackedFields;
     bool m_hasError;
     std::string m_errorMessage;
 
@@ -133,6 +134,8 @@ class GUCEF_HIDDEN CResourceWritingInfo
         const google::protobuf::Reflection* reflection = msg->GetReflection();
         if ( GUCEF_NULL == reflection )
             return false;
+
+        m_trackedFields[ msg ].insert( field->number() );
 
         switch ( field->type() )
         {
@@ -348,10 +351,14 @@ class GUCEF_HIDDEN CResourceWritingInfo
         }
 
         std::string serialized;
-        if ( !m_rootMessage->SerializeToString( &serialized ) )
         {
-            SetError( "CResourceWritingInfo:SerializeToOutput: Failed to serialize message" );
-            return false;
+            google::protobuf::io::StringOutputStream rawOutput( &serialized );
+            google::protobuf::io::CodedOutputStream codedOutput( &rawOutput );
+            if ( !ForceSerializeMessage( m_rootMessage, &codedOutput ) )
+            {
+                SetError( "CResourceWritingInfo:SerializeToOutput: Failed to force-serialize message" );
+                return false;
+            }
         }
 
         if ( !serialized.empty() )
@@ -367,11 +374,335 @@ class GUCEF_HIDDEN CResourceWritingInfo
         return true;
     }
 
+    void TrackMessageField( google::protobuf::Message* parentMsg ,
+                            const google::protobuf::FieldDescriptor* field )
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL != parentMsg && GUCEF_NULL != field )
+            m_trackedFields[ parentMsg ].insert( field->number() );
+    }
+
+#ifdef GetMessage
+#undef GetMessage
+#endif
+
+    bool ForceSerializeMessage( const google::protobuf::Message* msg               ,
+                                google::protobuf::io::CodedOutputStream* output    )
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL == msg || GUCEF_NULL == output )
+            return false;
+
+        const google::protobuf::Descriptor* desc = msg->GetDescriptor();
+        const google::protobuf::Reflection* refl = msg->GetReflection();
+        if ( GUCEF_NULL == desc || GUCEF_NULL == refl )
+            return false;
+
+        // Look up which fields were explicitly set for this message
+        std::map< const google::protobuf::Message*, std::set< int > >::const_iterator trackIt = m_trackedFields.find( msg );
+        
+        for ( int i = 0; i < desc->field_count(); ++i )
+        {
+            const google::protobuf::FieldDescriptor* field = desc->field( i );
+            int fieldNum = field->number();
+
+            if ( field->is_repeated() )
+            {
+                // Repeated fields: serialize if they have elements (added via reflection)
+                int count = refl->FieldSize( *msg, field );
+                if ( count > 0 )
+                {
+                    if ( field->is_map() )
+                    {
+                        // Map entries: each is a sub-message with key(1) and value(2)
+                        for ( int j = 0; j < count; ++j )
+                        {
+                            const google::protobuf::Message& entry = refl->GetRepeatedMessage( *msg, field, j );
+                            std::string entryData;
+                            entry.SerializeToString( &entryData );
+                            google::protobuf::internal::WireFormatLite::WriteBytes( fieldNum, entryData, output );
+                        }
+                    }
+                    else if ( field->type() == google::protobuf::FieldDescriptor::TYPE_MESSAGE )
+                    {
+                        for ( int j = 0; j < count; ++j )
+                        {
+                            const google::protobuf::Message& subMsg = refl->GetRepeatedMessage( *msg, field, j );
+                            std::string subSerialized;
+                            {
+                                google::protobuf::io::StringOutputStream subRaw( &subSerialized );
+                                google::protobuf::io::CodedOutputStream subOut( &subRaw );
+                                if ( !ForceSerializeMessage( &subMsg, &subOut ) )
+                                    return false;
+                            }
+                            google::protobuf::internal::WireFormatLite::WriteBytes( fieldNum, subSerialized, output );
+                        }
+                    }
+                    else
+                    {
+                        // Repeated scalar: write as packed (length-delimited) for proto3 compatibility
+                        std::string packedData;
+                        {
+                            google::protobuf::io::StringOutputStream packedRaw( &packedData );
+                            google::protobuf::io::CodedOutputStream packedOut( &packedRaw );
+                            for ( int j = 0; j < count; ++j )
+                            {
+                                ForceSerializeScalarFieldPacked( msg, field, refl, &packedOut, j );
+                            }
+                        }
+                        google::protobuf::internal::WireFormatLite::WriteBytes( fieldNum, packedData, output );
+                    }
+                }
+            }
+            else if ( field->type() == google::protobuf::FieldDescriptor::TYPE_MESSAGE )
+            {
+                // Singular message field: only write if explicitly tracked
+                if ( trackIt != m_trackedFields.end() && 
+                     trackIt->second.find( fieldNum ) != trackIt->second.end() )
+                {
+                    const google::protobuf::Message& subMsg = refl->GetMessage( *msg, field );
+                    std::string subSerialized;
+                    {
+                        google::protobuf::io::StringOutputStream subRaw( &subSerialized );
+                        google::protobuf::io::CodedOutputStream subOut( &subRaw );
+                        if ( !ForceSerializeMessage( &subMsg, &subOut ) )
+                            return false;
+                    }
+                    google::protobuf::internal::WireFormatLite::WriteBytes( fieldNum, subSerialized, output );
+                }
+            }
+            else
+            {
+                // Singular scalar field: write if explicitly tracked (even if default value)
+                if ( trackIt != m_trackedFields.end() && 
+                     trackIt->second.find( fieldNum ) != trackIt->second.end() )
+                {
+                    ForceSerializeScalarField( msg, field, refl, output, -1 );
+                }
+            }
+        }
+
+        return true;
+    }
+
+    // Write scalar value without tag for packed encoding
+    void ForceSerializeScalarFieldPacked( const google::protobuf::Message* msg                ,
+                                          const google::protobuf::FieldDescriptor* field      ,
+                                          const google::protobuf::Reflection* refl            ,
+                                          google::protobuf::io::CodedOutputStream* output     ,
+                                          int repeatedIndex                                    )
+    {GUCEF_TRACE;
+
+        switch ( field->type() )
+        {
+            case google::protobuf::FieldDescriptor::TYPE_INT32:
+            {
+                int32_t v = refl->GetRepeatedInt32( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteInt32NoTag( v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_INT64:
+            {
+                int64_t v = refl->GetRepeatedInt64( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteInt64NoTag( v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_UINT32:
+            {
+                uint32_t v = refl->GetRepeatedUInt32( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteUInt32NoTag( v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_UINT64:
+            {
+                uint64_t v = refl->GetRepeatedUInt64( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteUInt64NoTag( v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SINT32:
+            {
+                int32_t v = refl->GetRepeatedInt32( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteSInt32NoTag( v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SINT64:
+            {
+                int64_t v = refl->GetRepeatedInt64( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteSInt64NoTag( v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_FIXED32:
+            {
+                uint32_t v = refl->GetRepeatedUInt32( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteFixed32NoTag( v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_FIXED64:
+            {
+                uint64_t v = refl->GetRepeatedUInt64( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteFixed64NoTag( v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SFIXED32:
+            {
+                int32_t v = refl->GetRepeatedInt32( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteSFixed32NoTag( v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SFIXED64:
+            {
+                int64_t v = refl->GetRepeatedInt64( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteSFixed64NoTag( v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_FLOAT:
+            {
+                float v = refl->GetRepeatedFloat( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteFloatNoTag( v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+            {
+                double v = refl->GetRepeatedDouble( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteDoubleNoTag( v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_BOOL:
+            {
+                bool v = refl->GetRepeatedBool( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteBoolNoTag( v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_ENUM:
+            {
+                int v = refl->GetRepeatedEnumValue( *msg, field, repeatedIndex );
+                google::protobuf::internal::WireFormatLite::WriteEnumNoTag( v, output );
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    void ForceSerializeScalarField( const google::protobuf::Message* msg                ,
+                                    const google::protobuf::FieldDescriptor* field      ,
+                                    const google::protobuf::Reflection* refl            ,
+                                    google::protobuf::io::CodedOutputStream* output     ,
+                                    int repeatedIndex                                    )
+    {GUCEF_TRACE;
+
+        int fieldNum = field->number();
+        bool isRepeated = ( repeatedIndex >= 0 );
+
+        switch ( field->type() )
+        {
+            case google::protobuf::FieldDescriptor::TYPE_INT32:
+            {
+                int32_t v = isRepeated ? refl->GetRepeatedInt32( *msg, field, repeatedIndex ) : refl->GetInt32( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteInt32( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_INT64:
+            {
+                int64_t v = isRepeated ? refl->GetRepeatedInt64( *msg, field, repeatedIndex ) : refl->GetInt64( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteInt64( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_UINT32:
+            {
+                uint32_t v = isRepeated ? refl->GetRepeatedUInt32( *msg, field, repeatedIndex ) : refl->GetUInt32( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteUInt32( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_UINT64:
+            {
+                uint64_t v = isRepeated ? refl->GetRepeatedUInt64( *msg, field, repeatedIndex ) : refl->GetUInt64( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteUInt64( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SINT32:
+            {
+                int32_t v = isRepeated ? refl->GetRepeatedInt32( *msg, field, repeatedIndex ) : refl->GetInt32( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteSInt32( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SINT64:
+            {
+                int64_t v = isRepeated ? refl->GetRepeatedInt64( *msg, field, repeatedIndex ) : refl->GetInt64( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteSInt64( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_FIXED32:
+            {
+                uint32_t v = isRepeated ? refl->GetRepeatedUInt32( *msg, field, repeatedIndex ) : refl->GetUInt32( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteFixed32( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_FIXED64:
+            {
+                uint64_t v = isRepeated ? refl->GetRepeatedUInt64( *msg, field, repeatedIndex ) : refl->GetUInt64( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteFixed64( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SFIXED32:
+            {
+                int32_t v = isRepeated ? refl->GetRepeatedInt32( *msg, field, repeatedIndex ) : refl->GetInt32( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteSFixed32( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_SFIXED64:
+            {
+                int64_t v = isRepeated ? refl->GetRepeatedInt64( *msg, field, repeatedIndex ) : refl->GetInt64( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteSFixed64( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_FLOAT:
+            {
+                float v = isRepeated ? refl->GetRepeatedFloat( *msg, field, repeatedIndex ) : refl->GetFloat( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteFloat( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+            {
+                double v = isRepeated ? refl->GetRepeatedDouble( *msg, field, repeatedIndex ) : refl->GetDouble( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteDouble( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_BOOL:
+            {
+                bool v = isRepeated ? refl->GetRepeatedBool( *msg, field, repeatedIndex ) : refl->GetBool( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteBool( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_STRING:
+            {
+                std::string v = isRepeated ? refl->GetRepeatedString( *msg, field, repeatedIndex ) : refl->GetString( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteString( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_BYTES:
+            {
+                std::string v = isRepeated ? refl->GetRepeatedString( *msg, field, repeatedIndex ) : refl->GetString( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteBytes( fieldNum, v, output );
+                break;
+            }
+            case google::protobuf::FieldDescriptor::TYPE_ENUM:
+            {
+                int v = isRepeated ? refl->GetRepeatedEnumValue( *msg, field, repeatedIndex ) : refl->GetEnumValue( *msg, field );
+                google::protobuf::internal::WireFormatLite::WriteEnum( fieldNum, v, output );
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
     CResourceWritingInfo( void ) 
         : m_access( GUCEF_NULL ) 
         , m_codecInfo( GUCEF_NULL )
         , m_rootMessage( GUCEF_NULL )
         , m_contextStack()
+        , m_trackedFields()
         , m_hasError( false )
         , m_errorMessage()
     {GUCEF_TRACE;

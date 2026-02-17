@@ -28,6 +28,8 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <set>
+#include <map>
 #include <unordered_map>
 
 #include <google/protobuf/message.h>          // Base class for all protobuf messages
@@ -1075,6 +1077,116 @@ class GUCEF_HIDDEN ProtoSAXParser
 
     /*---------------------------------------------------------------------------*/
 
+    void EmitDefaultsForUnseenFields( const google::protobuf::Descriptor* msgDescriptor           ,
+                                      const google::protobuf::FieldDescriptor* msgFieldDescriptor ,
+                                      const std::set< int >& seenFieldNumbers                     )
+    {GUCEF_TRACE;
+
+        if ( GUCEF_NULL == msgDescriptor )
+            return;
+
+        const char* nodeName = GUCEF_NULL != msgFieldDescriptor ? msgFieldDescriptor->name().c_str() : msgDescriptor->name().c_str();
+
+        for ( int i = 0; i < msgDescriptor->field_count(); ++i )
+        {
+            const google::protobuf::FieldDescriptor* field = msgDescriptor->field( i );
+            if ( GUCEF_NULL == field )
+                continue;
+
+            // Skip fields that were already seen on the wire
+            if ( seenFieldNumbers.find( field->number() ) != seenFieldNumbers.end() )
+                continue;
+
+            // Skip repeated, map, and message fields - only emit defaults for singular scalars
+            if ( field->is_repeated() )
+                continue;
+            if ( field->type() == google::protobuf::FieldDescriptor::TYPE_MESSAGE )
+                continue;
+
+            // Skip oneof fields - a oneof can legitimately have no member set in proto3
+            // and we should never emit defaults for the non-chosen alternatives
+            if ( GUCEF_NULL != field->containing_oneof() )
+                continue;
+
+            // Build the key variant with the field name
+            TVariantData keyVar;
+            memset( &keyVar, 0, sizeof( keyVar ) );
+            keyVar.containedType = GUCEF_DATATYPE_UTF8_STRING;
+            keyVar.union_data.heap_data.heap_data_is_linked = 1;
+            keyVar.union_data.heap_data.heap_data_size = static_cast< UInt32 >( field->name().size() );
+            keyVar.union_data.heap_data.union_data.const_char_heap_data = field->name().c_str();
+
+            // Build the value variant with the proto3 default (zero-value)
+            TVariantData valueVar;
+            memset( &valueVar, 0, sizeof( valueVar ) );
+
+            switch ( field->type() )
+            {
+                case google::protobuf::FieldDescriptor::TYPE_INT32:
+                case google::protobuf::FieldDescriptor::TYPE_SINT32:
+                case google::protobuf::FieldDescriptor::TYPE_SFIXED32:
+                    valueVar.containedType = GUCEF_DATATYPE_LE_INT32;
+                    valueVar.union_data.int32_data = 0;
+                    break;
+                case google::protobuf::FieldDescriptor::TYPE_INT64:
+                case google::protobuf::FieldDescriptor::TYPE_SINT64:
+                case google::protobuf::FieldDescriptor::TYPE_SFIXED64:
+                    valueVar.containedType = GUCEF_DATATYPE_LE_INT64;
+                    valueVar.union_data.int64_data = 0;
+                    break;
+                case google::protobuf::FieldDescriptor::TYPE_UINT32:
+                case google::protobuf::FieldDescriptor::TYPE_FIXED32:
+                    valueVar.containedType = GUCEF_DATATYPE_LE_UINT32;
+                    valueVar.union_data.uint32_data = 0;
+                    break;
+                case google::protobuf::FieldDescriptor::TYPE_UINT64:
+                case google::protobuf::FieldDescriptor::TYPE_FIXED64:
+                    valueVar.containedType = GUCEF_DATATYPE_LE_UINT64;
+                    valueVar.union_data.uint64_data = 0;
+                    break;
+                case google::protobuf::FieldDescriptor::TYPE_FLOAT:
+                    valueVar.containedType = GUCEF_DATATYPE_LE_FLOAT32;
+                    valueVar.union_data.float32_data = 0.0f;
+                    break;
+                case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+                    valueVar.containedType = GUCEF_DATATYPE_LE_FLOAT64;
+                    valueVar.union_data.float64_data = 0.0;
+                    break;
+                case google::protobuf::FieldDescriptor::TYPE_BOOL:
+                    valueVar.containedType = GUCEF_DATATYPE_BOOLEAN_INT32;
+                    valueVar.union_data.int32_data = 0;
+                    break;
+                case google::protobuf::FieldDescriptor::TYPE_STRING:
+                    valueVar.containedType = GUCEF_DATATYPE_UTF8_STRING;
+                    valueVar.union_data.heap_data.heap_data_size = 0;
+                    valueVar.union_data.heap_data.heap_data_is_linked = 1;
+                    valueVar.union_data.heap_data.union_data.const_char_heap_data = "";
+                    break;
+                case google::protobuf::FieldDescriptor::TYPE_BYTES:
+                    valueVar.containedType = GUCEF_DATATYPE_BINARY_BLOB;
+                    valueVar.union_data.heap_data.heap_data_size = 0;
+                    valueVar.union_data.heap_data.heap_data_is_linked = 1;
+                    valueVar.union_data.heap_data.union_data.void_heap_data = GUCEF_NULL;
+                    break;
+                case google::protobuf::FieldDescriptor::TYPE_ENUM:
+                {
+                    valueVar.containedType = GUCEF_DATATYPE_LE_INT32;
+                    valueVar.union_data.int32_data = 0;
+                    m_readCallbacks.OnNodeBegin( m_readPrivData, field->name().c_str(), GUCEF_DATATYPE_ENUM );
+                    m_readCallbacks.OnNodeValue( m_readPrivData, field->name().c_str(), &valueVar );
+                    m_readCallbacks.OnNodeEnd( m_readPrivData, field->name().c_str() );
+                    continue;
+                }
+                default:
+                    continue;
+            }
+
+            m_readCallbacks.OnNodeAtt( m_readPrivData, nodeName, &keyVar, &valueVar );
+        }
+    }
+
+    /*---------------------------------------------------------------------------*/
+
     bool ParseMsgFields( const google::protobuf::Descriptor* msgDescriptor           , 
                          const google::protobuf::FieldDescriptor* msgFieldDescriptor ,
                          google::protobuf::io::CodedInputStream* input               ) 
@@ -1085,6 +1197,8 @@ class GUCEF_HIDDEN ProtoSAXParser
         const char* nodeName = GUCEF_NULL != msgFieldDescriptor ? msgFieldDescriptor->name().c_str() : msgDescriptor->name().c_str();
         
         m_readCallbacks.OnNodeBegin( m_readPrivData, nodeName, GUCEF_DATATYPE_OBJECT );
+
+        std::set< int > seenFieldNumbers;
 
         while ( input->BytesUntilLimit() > 0 ) 
         {
@@ -1113,6 +1227,8 @@ class GUCEF_HIDDEN ProtoSAXParser
                 continue;
             }
 
+            seenFieldNumbers.insert( field_number );
+
             if ( field->is_repeated() ) 
             {
                 // Handle repeated fields
@@ -1130,6 +1246,11 @@ class GUCEF_HIDDEN ProtoSAXParser
                 }
             }
         }
+
+        // Emit default values for singular scalar fields not seen on the wire
+        // In proto3 all scalar defaults are zero-values. This ensures round-trip fidelity
+        // and that explicitly-set default values are preserved in the data tree
+        EmitDefaultsForUnseenFields( msgDescriptor, msgFieldDescriptor, seenFieldNumbers );
 
         m_readCallbacks.OnNodeEnd( m_readPrivData, nodeName );
 
@@ -1626,24 +1747,63 @@ DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
         const google::protobuf::FieldDescriptor* field = parentDesc->FindFieldByName( nodename );
         if ( GUCEF_NULL == field )
         {
+            // Check if we're inside a repeated message array context.
+            // In that case, each child node should create a new message in the repeated field.
+            if ( !writingInfo->m_contextStack.empty() )
+            {
+                const CResourceWritingInfo::SMessageContext& ctx = writingInfo->m_contextStack.back();
+                if ( GUCEF_NULL != ctx.fieldDesc && 
+                     ctx.fieldDesc->is_repeated() && 
+                     ctx.fieldDesc->type() == google::protobuf::FieldDescriptor::TYPE_MESSAGE &&
+                     !ctx.fieldDesc->is_map() )
+                {
+                    // We're inside a repeated message array - create a new message for this child
+                    const google::protobuf::Reflection* reflection = parentMsg->GetReflection();
+                    google::protobuf::Message* childMsg = reflection->AddMessage( parentMsg, ctx.fieldDesc );
+                    if ( GUCEF_NULL != childMsg )
+                    {
+                        writingInfo->TrackMessageField( parentMsg, ctx.fieldDesc );
+                        writingInfo->PushContext( childMsg, ctx.fieldDesc->message_type(), ctx.fieldDesc, nodename );
+                        return;
+                    }
+                }
+            }
+            
             writingInfo->PushContext( GUCEF_NULL, GUCEF_NULL, GUCEF_NULL, nodename );
             return;
         }
 
         if ( field->type() == google::protobuf::FieldDescriptor::TYPE_MESSAGE )
         {
-            const google::protobuf::Reflection* reflection = parentMsg->GetReflection();
-            google::protobuf::Message* childMsg = GUCEF_NULL;
-            
-            if ( field->is_repeated() )
-                childMsg = reflection->AddMessage( parentMsg, field );
+            // For map fields, we don't create MapEntry messages here.
+            // Each attribute on the map node will create its own MapEntry in Store_Node_Att.
+            if ( field->is_map() )
+            {
+                // Push a context with the parent message and the map field descriptor
+                writingInfo->PushContext( parentMsg, parentDesc, field, nodename );
+            }
+            // For repeated message fields (arrays of messages), don't create a message for the array container.
+            // Each child node will create its own message when processed.
+            else if ( field->is_repeated() )
+            {
+                // Push a context that remembers we're in a repeated message field
+                writingInfo->PushContext( parentMsg, parentDesc, field, nodename );
+            }
             else
+            {
+                const google::protobuf::Reflection* reflection = parentMsg->GetReflection();
+                google::protobuf::Message* childMsg = GUCEF_NULL;
+                
                 childMsg = reflection->MutableMessage( parentMsg, field );
-            
-            if ( GUCEF_NULL != childMsg )
-                writingInfo->PushContext( childMsg, field->message_type(), field, nodename );
-            else
-                writingInfo->PushContext( GUCEF_NULL, GUCEF_NULL, field, nodename );
+                
+                if ( GUCEF_NULL != childMsg )
+                {
+                    writingInfo->TrackMessageField( parentMsg, field );
+                    writingInfo->PushContext( childMsg, field->message_type(), field, nodename );
+                }
+                else
+                    writingInfo->PushContext( GUCEF_NULL, GUCEF_NULL, field, nodename );
+            }
         }
         else
         {
@@ -1689,6 +1849,23 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
 
     CResourceWritingInfo* writingInfo = static_cast< CResourceWritingInfo* >( *filedata );
 
+    // Handle child value nodes of repeated scalar arrays FIRST, before NULL context checks.
+    // When Begin_Node_Store("") is called for array child values, it pushes a NULL context.
+    // We need to check the parent context to find the repeated scalar field.
+    if ( GUCEF_NULL == attname && writingInfo->m_contextStack.size() >= 2 )
+    {
+        const CResourceWritingInfo::SMessageContext& parentCtx = writingInfo->m_contextStack[ writingInfo->m_contextStack.size() - 2 ];
+        if ( GUCEF_NULL != parentCtx.fieldDesc && 
+             GUCEF_NULL != parentCtx.message &&
+             parentCtx.fieldDesc->is_repeated() && 
+             parentCtx.fieldDesc->type() != google::protobuf::FieldDescriptor::TYPE_MESSAGE )
+        {
+            // We're a child value of a repeated scalar array
+            writingInfo->SetFieldFromVariant( parentCtx.message, parentCtx.fieldDesc, attvalue );
+            return;
+        }
+    }
+
     google::protobuf::Message* currentMsg = writingInfo->CurrentMessage();
     const google::protobuf::Descriptor* currentDesc = writingInfo->CurrentDescriptor();
 
@@ -1697,20 +1874,81 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
 
     if ( GUCEF_NULL == attname )
     {
+        // Check the current context for other cases (oneof, etc.)
         if ( !writingInfo->m_contextStack.empty() )
         {
             const CResourceWritingInfo::SMessageContext& ctx = writingInfo->m_contextStack.back();
-            if ( GUCEF_NULL != ctx.fieldDesc && ctx.fieldDesc->type() != google::protobuf::FieldDescriptor::TYPE_MESSAGE )
+            if ( GUCEF_NULL != ctx.fieldDesc )
             {
-                if ( writingInfo->m_contextStack.size() >= 2 )
+                // For repeated scalar fields (arrays) where the context is directly on the array node
+                if ( ctx.fieldDesc->is_repeated() && ctx.fieldDesc->type() != google::protobuf::FieldDescriptor::TYPE_MESSAGE )
                 {
-                    const CResourceWritingInfo::SMessageContext& parentCtx = writingInfo->m_contextStack[ writingInfo->m_contextStack.size() - 2 ];
-                    if ( GUCEF_NULL != parentCtx.message )
-                        writingInfo->SetFieldFromVariant( parentCtx.message, ctx.fieldDesc, attvalue );
+                    writingInfo->SetFieldFromVariant( currentMsg, ctx.fieldDesc, attvalue );
+                }
+                // For singular scalar fields (oneof or direct value nodes)
+                else if ( ctx.fieldDesc->type() != google::protobuf::FieldDescriptor::TYPE_MESSAGE )
+                {
+                    if ( writingInfo->m_contextStack.size() >= 2 )
+                    {
+                        const CResourceWritingInfo::SMessageContext& parentCtx = writingInfo->m_contextStack[ writingInfo->m_contextStack.size() - 2 ];
+                        if ( GUCEF_NULL != parentCtx.message )
+                            writingInfo->SetFieldFromVariant( parentCtx.message, ctx.fieldDesc, attvalue );
+                    }
                 }
             }
         }
         return;
+    }
+
+    // Check if the current context is a map field
+    // For map fields, each attribute represents a key-value pair, and we need to create a MapEntry message
+    if ( !writingInfo->m_contextStack.empty() )
+    {
+        const CResourceWritingInfo::SMessageContext& ctx = writingInfo->m_contextStack.back();
+        if ( GUCEF_NULL != ctx.fieldDesc && ctx.fieldDesc->is_map() )
+        {
+            // We're in a map field context. Each attribute is a map entry.
+            // The parent message is the one that contains the map field.
+            // We need to create a new MapEntry message and populate its key and value fields.
+            
+            const google::protobuf::Reflection* reflection = currentMsg->GetReflection();
+            if ( GUCEF_NULL == reflection )
+                return;
+            
+            // Add a new MapEntry message to the repeated field
+            google::protobuf::Message* mapEntryMsg = reflection->AddMessage( currentMsg, ctx.fieldDesc );
+            if ( GUCEF_NULL == mapEntryMsg )
+                return;
+            
+            const google::protobuf::Descriptor* mapEntryDesc = mapEntryMsg->GetDescriptor();
+            if ( GUCEF_NULL == mapEntryDesc )
+                return;
+            
+            // Get the key field descriptor (always at index 0)
+            const google::protobuf::FieldDescriptor* keyField = mapEntryDesc->field( 0 );
+            // Get the value field descriptor (always at index 1)
+            const google::protobuf::FieldDescriptor* valueField = mapEntryDesc->field( 1 );
+            
+            if ( GUCEF_NULL != keyField && GUCEF_NULL != valueField )
+            {
+                // Create a variant for the key (the attribute name)
+                TVariantData keyVar;
+                memset( &keyVar, 0, sizeof( keyVar ) );
+                keyVar.containedType = GUCEF_DATATYPE_UTF8_STRING;
+                keyVar.union_data.heap_data.heap_data_is_linked = 1;
+                keyVar.union_data.heap_data.heap_data_size = static_cast< UInt32 >( strlen( attname ) );
+                keyVar.union_data.heap_data.union_data.const_char_heap_data = attname;
+                
+                // Set the key field in the MapEntry message
+                writingInfo->SetFieldFromVariant( mapEntryMsg, keyField, &keyVar );
+                // Set the value field in the MapEntry message
+                writingInfo->SetFieldFromVariant( mapEntryMsg, valueField, attvalue );
+                
+                // Track that we've set this map field
+                writingInfo->TrackMessageField( currentMsg, ctx.fieldDesc );
+            }
+            return;
+        }
     }
 
     const google::protobuf::FieldDescriptor* field = currentDesc->FindFieldByName( attname );
