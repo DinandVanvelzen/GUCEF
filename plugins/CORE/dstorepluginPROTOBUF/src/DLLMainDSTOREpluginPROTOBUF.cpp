@@ -436,6 +436,10 @@ class GUCEF_HIDDEN CDataDrivenCodecInfo
 
 /*---------------------------------------------------------------------------*/
 
+#include "CResourceWritingInfo.h"            /* CResourceWritingInfo class for write support */
+
+/*---------------------------------------------------------------------------*/
+
 class GUCEF_HIDDEN ProtoSAXParser 
 {
     private:
@@ -1397,19 +1401,6 @@ class GUCEF_HIDDEN ProtoSAXParser
 
 /*---------------------------------------------------------------------------*/
 
-struct SDestFileData
-{
-    TIOAccess* fptr;
-    //yaml_parser_t parser;
-    //yaml_emitter_t emitter;
-    char activeNodeIsValueNode;
-    char* base64EncodeBuffer;
-    UInt32 base64EncodeBufferSize;
-};
-typedef struct SDestFileData TDestFileData;
-
-/*---------------------------------------------------------------------------*/
-
 class GUCEF_HIDDEN CResourceReadingInfo
 {
     public:
@@ -1546,9 +1537,34 @@ DSTOREPLUG_Shutdown( void** plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Dest_File_Open( void** plugdata    ,
+                           void** codecdata   ,
                            void** filedata    ,
                            TIOAccess* outFile ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
+
+    if ( GUCEF_NULL == filedata )
+        return 0;
+
+    *filedata = GUCEF_NULL;
+
+    if ( GUCEF_NULL == codecdata || GUCEF_NULL == *codecdata || GUCEF_NULL == outFile )
+    {
+        GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "DSTOREPLUG_Dest_File_Open: Invalid parameters" );
+        return 0;
+    }
+
+    CDataDrivenCodecInfo* codecInfo = static_cast< CDataDrivenCodecInfo* >( *codecdata );
+
+    CResourceWritingInfo* writingInfo = GUCEF_NEW CResourceWritingInfo();
+    if ( GUCEF_NULL != writingInfo )
+    {
+        if ( writingInfo->Init( codecInfo, outFile ) )
+        {
+            *filedata = writingInfo;
+            return 1;
+        }
+        GUCEF_DELETE writingInfo;
+    }
 
     return 0;
 }
@@ -1556,17 +1572,30 @@ DSTOREPLUG_Dest_File_Open( void** plugdata    ,
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
-DSTOREPLUG_Dest_File_Close( void** plugdata ,
-                            void** filedata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+DSTOREPLUG_Dest_File_Close( void** plugdata  ,
+                            void** codecdata ,
+                            void** filedata  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
+    if ( GUCEF_NULL == filedata || GUCEF_NULL == *filedata )
+        return;
 
+    CResourceWritingInfo* writingInfo = static_cast< CResourceWritingInfo* >( *filedata );
+
+    if ( !writingInfo->SerializeToOutput() )
+    {
+        GUCEF_C_ERROR_LOG( g_libApi, GUCEF_LOGLEVEL_NORMAL, "DSTOREPLUG_Dest_File_Close: Failed to serialize message to output" );
+    }
+
+    GUCEF_DELETE writingInfo;
+    *filedata = GUCEF_NULL;
 }
 
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
+                             void** codecdata     ,
                              void** filedata      ,
                              const char* nodename ,
                              Int32 nodeType       ,
@@ -1574,26 +1603,78 @@ DSTOREPLUG_Begin_Node_Store( void** plugdata      ,
                              UInt32 haschildren   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
+    if ( GUCEF_NULL == filedata || GUCEF_NULL == *filedata )
+        return;
 
+    CResourceWritingInfo* writingInfo = static_cast< CResourceWritingInfo* >( *filedata );
+
+    if ( writingInfo->m_contextStack.empty() )
+    {
+        writingInfo->PushContext( writingInfo->m_rootMessage               , 
+                                 writingInfo->m_codecInfo->m_msgDescriptor , 
+                                 GUCEF_NULL                                , 
+                                 nodename != GUCEF_NULL ? nodename : ""    );
+    }
+    else
+    {
+        google::protobuf::Message* parentMsg = writingInfo->CurrentMessage();
+        const google::protobuf::Descriptor* parentDesc = writingInfo->CurrentDescriptor();
+
+        if ( GUCEF_NULL == parentMsg || GUCEF_NULL == parentDesc || GUCEF_NULL == nodename )
+            return;
+
+        const google::protobuf::FieldDescriptor* field = parentDesc->FindFieldByName( nodename );
+        if ( GUCEF_NULL == field )
+        {
+            writingInfo->PushContext( GUCEF_NULL, GUCEF_NULL, GUCEF_NULL, nodename );
+            return;
+        }
+
+        if ( field->type() == google::protobuf::FieldDescriptor::TYPE_MESSAGE )
+        {
+            const google::protobuf::Reflection* reflection = parentMsg->GetReflection();
+            google::protobuf::Message* childMsg = GUCEF_NULL;
+            
+            if ( field->is_repeated() )
+                childMsg = reflection->AddMessage( parentMsg, field );
+            else
+                childMsg = reflection->MutableMessage( parentMsg, field );
+            
+            if ( GUCEF_NULL != childMsg )
+                writingInfo->PushContext( childMsg, field->message_type(), field, nodename );
+            else
+                writingInfo->PushContext( GUCEF_NULL, GUCEF_NULL, field, nodename );
+        }
+        else
+        {
+            writingInfo->PushContext( parentMsg, parentDesc, field, nodename );
+        }
+    }
 }
 
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_End_Node_Store( void** plugdata      ,
+                           void** codecdata     ,
                            void** filedata      ,
                            const char* nodename ,
                            UInt32 attscount     ,
                            UInt32 haschildren   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
+    if ( GUCEF_NULL == filedata || GUCEF_NULL == *filedata )
+        return;
 
+    CResourceWritingInfo* writingInfo = static_cast< CResourceWritingInfo* >( *filedata );
+    writingInfo->PopContext();
 }
 
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Store_Node_Att( void** plugdata              ,
+                           void** codecdata             ,
                            void** filedata              ,
                            const char* nodename         ,
                            UInt32 attscount             ,
@@ -1603,16 +1684,50 @@ DSTOREPLUG_Store_Node_Att( void** plugdata              ,
                            UInt32 haschildren           ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
+    if ( GUCEF_NULL == filedata || GUCEF_NULL == *filedata || GUCEF_NULL == attvalue )
+        return;
 
+    CResourceWritingInfo* writingInfo = static_cast< CResourceWritingInfo* >( *filedata );
+
+    google::protobuf::Message* currentMsg = writingInfo->CurrentMessage();
+    const google::protobuf::Descriptor* currentDesc = writingInfo->CurrentDescriptor();
+
+    if ( GUCEF_NULL == currentMsg || GUCEF_NULL == currentDesc )
+        return;
+
+    if ( GUCEF_NULL == attname )
+    {
+        if ( !writingInfo->m_contextStack.empty() )
+        {
+            const CResourceWritingInfo::SMessageContext& ctx = writingInfo->m_contextStack.back();
+            if ( GUCEF_NULL != ctx.fieldDesc && ctx.fieldDesc->type() != google::protobuf::FieldDescriptor::TYPE_MESSAGE )
+            {
+                if ( writingInfo->m_contextStack.size() >= 2 )
+                {
+                    const CResourceWritingInfo::SMessageContext& parentCtx = writingInfo->m_contextStack[ writingInfo->m_contextStack.size() - 2 ];
+                    if ( GUCEF_NULL != parentCtx.message )
+                        writingInfo->SetFieldFromVariant( parentCtx.message, ctx.fieldDesc, attvalue );
+                }
+            }
+        }
+        return;
+    }
+
+    const google::protobuf::FieldDescriptor* field = currentDesc->FindFieldByName( attname );
+    if ( GUCEF_NULL == field )
+        return;
+
+    writingInfo->SetFieldFromVariant( currentMsg, field, attvalue );
 }
 
 /*---------------------------------------------------------------------------*/
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_Begin_Node_Children( void** plugdata      ,
+                                void** codecdata     ,
                                 void** filedata      ,
                                 const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
+{GUCEF_TRACE;
 
 }
 
@@ -1620,9 +1735,10 @@ DSTOREPLUG_Begin_Node_Children( void** plugdata      ,
 
 void GUCEF_PLUGIN_CALLSPEC_PREFIX
 DSTOREPLUG_End_Node_Children( void** plugdata      ,
+                              void** codecdata     ,
                               void** filedata      ,
                               const char* nodename ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
+{GUCEF_TRACE;
 
 }
 

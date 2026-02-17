@@ -329,8 +329,8 @@ PerformProtobufTestsIfFeasible_DataBootstrap( void )
     CORE::CDataDrivenDStoreCodecFactory& ddCodecFactory = coreGlobal->GetDataDrivenDStoreCodecFactory();
     CORE::CDStoreCodecRegistry& codecRegistry = coreGlobal->GetDStoreCodecRegistry();
 
-    ddCodecFactory.UnregisterAll();
-    ddCodecFactory.UnregisterAllConcreteFactories();
+    //ddCodecFactory.UnregisterAll();
+    //ddCodecFactory.UnregisterAllConcreteFactories();
 
     // prepare the "AllTypesMessage" codec
 
@@ -697,22 +697,22 @@ PerformProtobufTest_SerializeAllTypesMessage( void )
     // Build a CDataNode tree with the same values used in the deserialization test
 
     CORE::CDataNode sourceNode( "AllTypesMessage", GUCEF_DATATYPE_OBJECT );
-    sourceNode.SetAttribute( "int_field", CORE::CVariant( static_cast< Int32 >( -44 ) ) );
-    sourceNode.SetAttribute( "long_field", CORE::CVariant( static_cast< Int64 >( -3455 ) ) );
-    sourceNode.SetAttribute( "uint_field", CORE::CVariant( static_cast< UInt32 >( 3453577 ) ) );
-    sourceNode.SetAttribute( "ulong_field", CORE::CVariant( static_cast< UInt64 >( 3557878 ) ) );
-    sourceNode.SetAttribute( "sint_field", CORE::CVariant( static_cast< Int32 >( 97676 ) ) );
-    sourceNode.SetAttribute( "slong_field", CORE::CVariant( static_cast< Int64 >( 868680 ) ) );
-    sourceNode.SetAttribute( "fixed_field", CORE::CVariant( static_cast< UInt32 >( 5560 ) ) );
-    sourceNode.SetAttribute( "lfixed_field", CORE::CVariant( static_cast< UInt64 >( 7670 ) ) );
-    sourceNode.SetAttribute( "sfixed_field", CORE::CVariant( static_cast< Int32 >( -670 ) ) );
-    sourceNode.SetAttribute( "slfixed_field", CORE::CVariant( static_cast< Int64 >( -67077899 ) ) );
-    sourceNode.SetAttribute( "float_field", CORE::CVariant( static_cast< Float32 >( 0.454535f ) ) );
-    sourceNode.SetAttribute( "double_field", CORE::CVariant( static_cast< Float64 >( 0.3543534534 ) ) );
-    sourceNode.SetAttribute( "bool_field", CORE::CVariant( static_cast< Int32 >( 0 ) ) );
-    sourceNode.SetAttribute( "string_field", CORE::CVariant( CORE::CString( "this is a string" ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "int_field", CORE::CVariant( static_cast< Int32 >( -44 ) ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "long_field", CORE::CVariant( static_cast< Int64 >( -3455 ) ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "uint_field", CORE::CVariant( static_cast< UInt32 >( 3453577 ) ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "ulong_field", CORE::CVariant( static_cast< UInt64 >( 3557878 ) ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "sint_field", CORE::CVariant( static_cast< Int32 >( 97676 ) ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "slong_field", CORE::CVariant( static_cast< Int64 >( 868680 ) ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "fixed_field", CORE::CVariant( static_cast< UInt32 >( 5560 ) ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "lfixed_field", CORE::CVariant( static_cast< UInt64 >( 7670 ) ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "sfixed_field", CORE::CVariant( static_cast< Int32 >( -670 ) ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "slfixed_field", CORE::CVariant( static_cast< Int64 >( -67077899 ) ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "float_field", CORE::CVariant( static_cast< Float32 >( 0.454535f ) ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "double_field", CORE::CVariant( static_cast< Float64 >( 0.3543534534 ) ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "bool_field", CORE::CVariant( false ) ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "string_field", CORE::CVariant( CORE::CString( "this is a string" ) ) ) );
     CORE::CDynamicBuffer emptyBlobBuffer;
-    sourceNode.SetAttribute( "bytes_field", CORE::CVariant( emptyBlobBuffer ) );
+    ASSERT_TRUE( sourceNode.SetAttribute( "bytes_field", CORE::CVariant( emptyBlobBuffer ) ) );
 
     // Serialize to protobuf binary
 
