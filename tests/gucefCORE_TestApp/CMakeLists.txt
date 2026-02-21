@@ -19,16 +19,17 @@ set( HEADER_FILES
   include/TestDateTime.h
   include/TestDynamicBufferStringStream.h
   include/TestDynamicBufferSwap.h
-  include/TestVariantStream.h
   include/TestFileUtils.h
   include/TestIniParser.h
   include/TestNotifierObserver.h
   include/TestSharedPtr.h
   include/TestString.h
+  include/TestTimestamp.h
   include/TestTokenizer.h
   include/TestUri.h
   include/TestVariant.h
   include/TestVariantBinarySerializer.h
+  include/TestVariantStream.h
   include/TestVars.h
   src/TestFreeList.h
 )
@@ -41,17 +42,18 @@ set( SOURCE_FILES
   src/TestDateTime.cpp
   src/TestDynamicBufferStringStream.cpp
   src/TestDynamicBufferSwap.cpp
-  src/TestVariantStream.cpp
   src/TestFileUtils.cpp
   src/TestFreeList.cpp
   src/TestIniParser.cpp
   src/TestNotifierObserver.cpp
   src/TestSharedPtr.cpp
   src/TestString.cpp
+  src/TestTimestamp.cpp
   src/TestTokenizer.cpp
   src/TestUri.cpp
   src/TestVariant.cpp
   src/TestVariantBinarySerializer.cpp
+  src/TestVariantStream.cpp
   src/TestVars.cpp
   src/gucefCORE_TestApp_main.cpp
 )

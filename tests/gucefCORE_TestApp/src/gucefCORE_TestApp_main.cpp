@@ -128,6 +128,11 @@
 #define GUCEF_CORE_TESTAPP_TESTVARIANTSTREAM_H
 #endif /* GUCEF_CORE_TESTAPP_TESTVARIANTSTREAM_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTTIMESTAMP_H
+#include "TestTimestamp.h"
+#define GUCEF_CORE_TESTAPP_TESTTIMESTAMP_H
+#endif /* GUCEF_CORE_TESTAPP_TESTTIMESTAMP_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -171,6 +176,7 @@ GUCEF_OSMAIN_BEGIN
         PerformCyclicDynamicBufferTests();
         PerformNotifierObserverTests();
         PerformVariantStreamTests();
+        PerformTimestampTests();
         PerformDataDrivenDStoreCodecsTests();
         PerformFreeListTests();
         PerformASyncTests();

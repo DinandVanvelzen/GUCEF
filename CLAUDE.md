@@ -53,6 +53,12 @@ This file contains important notes and reminders for AI assistants working on th
    - The build process will regenerate the Visual Studio project files
    - After regeneration, Visual Studio will prompt to reload the modified project files
 
+5. **Triggering builds from within Visual Studio**
+   - Use the `run_build` tool to trigger a build - this works from within Visual Studio
+   - This will also trigger CMake regeneration if CMakeLists.txt files have changed
+   - Terminal commands (`run_command_in_terminal`) are NOT implemented in the VS integration
+   - Always use `run_build` after modifying CMakeLists.txt to ensure changes are picked up
+
 ### Module Locations
 
 - Platform libraries: `platform/<moduleName>/`
