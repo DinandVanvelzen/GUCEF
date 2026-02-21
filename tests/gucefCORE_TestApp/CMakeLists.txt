@@ -19,6 +19,7 @@ set( HEADER_FILES
   include/TestDateTime.h
   include/TestDynamicBufferStringStream.h
   include/TestDynamicBufferSwap.h
+  include/TestVariantStream.h
   include/TestFileUtils.h
   include/TestIniParser.h
   include/TestNotifierObserver.h
@@ -40,6 +41,7 @@ set( SOURCE_FILES
   src/TestDateTime.cpp
   src/TestDynamicBufferStringStream.cpp
   src/TestDynamicBufferSwap.cpp
+  src/TestVariantStream.cpp
   src/TestFileUtils.cpp
   src/TestFreeList.cpp
   src/TestIniParser.cpp

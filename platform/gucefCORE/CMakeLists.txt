@@ -160,6 +160,7 @@ set( HEADER_FILES
   include/gucefCORE_CDirectoryWatcherEvents.h
   include/gucefCORE_CDynamicBufferStringStream.h
   include/gucefCORE_CDynamicBufferSwap.h
+  include/gucefCORE_CVariantStream.h
   include/gucefCORE_CEnumerator.h
   include/gucefCORE_CEventAggregateTrigger.h
   include/gucefCORE_CEventBasedTaskConsumer.h
@@ -439,6 +440,7 @@ set( SOURCE_FILES
   src/gucefCORE_CDirectoryWatcherEvents.cpp
   src/gucefCORE_CDynamicBufferStringStream.cpp
   src/gucefCORE_CDynamicBufferSwap.cpp
+  src/gucefCORE_CVariantStream.cpp
   src/gucefCORE_CEnumerator.cpp
   src/gucefCORE_CEventAggregateTrigger.cpp
   src/gucefCORE_CFileSystemDirectoryWatcher.cpp

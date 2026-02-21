@@ -123,6 +123,11 @@
 #define GUCEF_CORE_TESTAPP_TESTFREELIST_H
 #endif /* GUCEF_CORE_TESTAPP_TESTFREELIST_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTVARIANTSTREAM_H
+#include "TestVariantStream.h"
+#define GUCEF_CORE_TESTAPP_TESTVARIANTSTREAM_H
+#endif /* GUCEF_CORE_TESTAPP_TESTVARIANTSTREAM_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -165,6 +170,7 @@ GUCEF_OSMAIN_BEGIN
         PerformDynamicBufferStringStreamTests();
         PerformCyclicDynamicBufferTests();
         PerformNotifierObserverTests();
+        PerformVariantStreamTests();
         PerformDataDrivenDStoreCodecsTests();
         PerformFreeListTests();
         PerformASyncTests();

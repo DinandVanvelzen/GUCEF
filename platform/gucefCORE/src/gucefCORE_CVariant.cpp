@@ -3120,8 +3120,9 @@ CAsciiString
 CVariant::AsAsciiString( const CAsciiString& defaultIfNeeded, bool resolveVarsIfApplicable ) const
 {GUCEF_TRACE;
 
-    if ( GUCEF_DATATYPE_ASCII_STRING == m_variantData.containedType        ||
-         GUCEF_DATATYPE_BOOLEAN_ASCII_STRING == m_variantData.containedType )
+    if ( GUCEF_DATATYPE_ASCII_STRING == m_variantData.containedType                 ||
+         GUCEF_DATATYPE_BOOLEAN_ASCII_STRING == m_variantData.containedType         ||
+         GUCEF_DATATYPE_DATETIME_ISO8601_ASCII_STRING == m_variantData.containedType )
     {
         if ( resolveVarsIfApplicable )
         {
@@ -3149,8 +3150,9 @@ CUtf8String
 CVariant::AsUtf8String( const CUtf8String& defaultIfNeeded, bool resolveVarsIfApplicable ) const
 {GUCEF_TRACE;
 
-    if ( GUCEF_DATATYPE_UTF8_STRING == m_variantData.containedType        ||
-         GUCEF_DATATYPE_BOOLEAN_UTF8_STRING == m_variantData.containedType )
+    if ( GUCEF_DATATYPE_UTF8_STRING == m_variantData.containedType                 ||
+         GUCEF_DATATYPE_BOOLEAN_UTF8_STRING == m_variantData.containedType         ||
+         GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING == m_variantData.containedType )
     {
         if ( resolveVarsIfApplicable )
         {
@@ -3281,8 +3283,10 @@ CVariant::AsString( const CString& defaultIfNeeded, bool resolveVarsIfApplicable
             case GUCEF_DATATYPE_BOOLEAN_INT32:         { return ToString( AsBool( StringToBool( defaultIfNeeded, false ) ) ); }
             case GUCEF_DATATYPE_BOOLEAN_ASCII_STRING:  { return ToString( AsAsciiString( ToAsciiString( defaultIfNeeded ) ) ); }
             case GUCEF_DATATYPE_BOOLEAN_UTF8_STRING:   { return ToString( AsUtf8String( ToUtf8String( defaultIfNeeded ) ) ); }
-            case GUCEF_DATATYPE_ASCII_STRING:          { return ToString( AsAsciiString( ToAsciiString( defaultIfNeeded ) ) ); }
-            case GUCEF_DATATYPE_UTF8_STRING:           { return ToString( AsUtf8String( ToUtf8String( defaultIfNeeded ) ) ); }
+            case GUCEF_DATATYPE_DATETIME_ISO8601_ASCII_STRING:
+            case GUCEF_DATATYPE_ASCII_STRING:          { return ToString( AsAsciiString( ToAsciiString( defaultIfNeeded ), false ) ); }
+            case GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING:
+            case GUCEF_DATATYPE_UTF8_STRING:           { return ToString( AsUtf8String( ToUtf8String( defaultIfNeeded ), false ) ); }
 
             case GUCEF_DATATYPE_INT32T2_FRACTION:      { return ToString( m_variantData.union_data.fraction_data.union_data.int32t2_data.denominator ) + '/' + ToString( m_variantData.union_data.fraction_data.union_data.int32t2_data.numerator ); }
             case GUCEF_DATATYPE_UINT32T2_FRACTION:     { return ToString( m_variantData.union_data.fraction_data.union_data.uint32t2_data.denominator ) + '/' + ToString( m_variantData.union_data.fraction_data.union_data.uint32t2_data.numerator ); }
