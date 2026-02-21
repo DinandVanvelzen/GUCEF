@@ -23,6 +23,7 @@ set( HEADER_FILES
   include/TestIniParser.h
   include/TestNotifierObserver.h
   include/TestSharedPtr.h
+  include/TestStopwatch.h
   include/TestString.h
   include/TestTimestamp.h
   include/TestTokenizer.h
@@ -47,6 +48,7 @@ set( SOURCE_FILES
   src/TestIniParser.cpp
   src/TestNotifierObserver.cpp
   src/TestSharedPtr.cpp
+  src/TestStopwatch.cpp
   src/TestString.cpp
   src/TestTimestamp.cpp
   src/TestTokenizer.cpp

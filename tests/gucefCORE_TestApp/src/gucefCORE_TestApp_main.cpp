@@ -180,6 +180,7 @@ GUCEF_OSMAIN_BEGIN
         PerformDataDrivenDStoreCodecsTests();
         PerformFreeListTests();
         PerformASyncTests();
+        PerformStopwatchTests();
 
         return 1;
     }
