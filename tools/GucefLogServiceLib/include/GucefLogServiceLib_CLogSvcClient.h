@@ -117,13 +117,13 @@ class GUCEF_LOGSERVICELIB_EXPORT_CPP CLogSvcClient : public CORE::CLoggingTask
                                  const CORE::Int32 logLevel         ,
                                  const CORE::CString& logMessage    ,
                                  const CORE::UInt32 threadId        ,
-                                 const CORE::CDateTime& timestamp   ) GUCEF_VIRTUAL_OVERRIDE;
+                                 const CORE::CTimestamp& timestamp  ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool OnTaskCycleLogWithoutFormatting( const CORE::TLogMsgType logMsgType ,
                                                   const CORE::Int32 logLevel         ,
                                                   const CORE::CString& logMessage    ,
                                                   const CORE::UInt32 threadId        ,
-                                                  const CORE::CDateTime& timestamp   ) GUCEF_VIRTUAL_OVERRIDE;
+                                                  const CORE::CTimestamp& timestamp  ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool OnTaskCycleLogFlush( void ) GUCEF_VIRTUAL_OVERRIDE;
 

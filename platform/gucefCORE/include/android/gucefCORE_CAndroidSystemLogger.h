@@ -72,7 +72,7 @@ class GUCEF_CORE_PUBLIC_CPP CAndroidSystemLogger : public CILogger
                       const Int32 logLevel         ,
                       const CString& logMessage    ,
                       const UInt32 threadId        ,
-                      const CDateTime& timestamp   ) GUCEF_VIRTUAL_OVERRIDE;
+                      const CTimestamp& timestamp  ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *  The logging backend should output the logMessage string as given
@@ -81,7 +81,7 @@ class GUCEF_CORE_PUBLIC_CPP CAndroidSystemLogger : public CILogger
                                        const Int32 logLevel         ,
                                        const CString& logMessage    ,
                                        const UInt32 threadId        ,
-                                       const CDateTime& timestamp   ) GUCEF_VIRTUAL_OVERRIDE;
+                                       const CTimestamp& timestamp  ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual void FlushLog( void ) GUCEF_VIRTUAL_OVERRIDE;
 

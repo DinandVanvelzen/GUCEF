@@ -67,7 +67,7 @@ class GUCEF_LOGSERVICELIB_EXPORT_CPP CILogSvcServerLogger
                       const CORE::Int32 logLevel       ,
                       const CORE::CString& logMessage  ,
                       const CORE::UInt32 threadId      ,
-                      const CORE::CDateTime& timestamp ) = 0;
+                      const CORE::CTimestamp& timestamp ) = 0;
                       
     virtual void FlushLog( const TClientInfo& clientInfo ) = 0;
 

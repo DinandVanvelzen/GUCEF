@@ -155,7 +155,7 @@ CLoggingGlobal::Log( const TLogMsgType logMsgType ,
                      const Int32 logLevel         ,
                      const CString& logMessage    ,
                      const UInt32 threadId        ,
-                     const CDateTime& timestamp   )
+                     const CTimestamp& timestamp  )
 {
     if ( GUCEF_NULL != m_logManager  )
         m_logManager->Log( logMsgType, logLevel, logMessage, threadId, timestamp );

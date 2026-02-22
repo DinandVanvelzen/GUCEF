@@ -30,6 +30,11 @@
 #define GUCEF_MT_DVMTOSWRAP_H
 #endif /* GUCEF_MT_DVMTOSWRAP_H ? */
 
+#ifndef GUCEF_CORE_CTIMESTAMP_H
+#include "gucefCORE_CTimestamp.h"
+#define GUCEF_CORE_CTIMESTAMP_H
+#endif /* GUCEF_CORE_CTIMESTAMP_H ? */
+
 #include "gucefCORE_CMultiLogger.h"
 
 #ifndef GUCEF_CORE_ESSENTIALS_H
@@ -212,7 +217,7 @@ CMultiLogger::Log( const TLogMsgType logMsgType ,
          logLevel                    ,
          logMessage                  ,
          MT::GetCurrentTaskID()      ,
-         CDateTime::NowUTCDateTime() );
+         CTimestamp::NowUTCTime()    );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -222,7 +227,7 @@ CMultiLogger::Log( const TLogMsgType logMsgType ,
                    const Int32 logLevel         ,
                    const CString& logMessage    ,
                    const UInt32 threadId        ,
-                   const CDateTime& timestamp   )
+                   const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     // The loglevel must be such so that the message given falls under the global logging
@@ -269,7 +274,7 @@ CMultiLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
                                     const Int32 logLevel         ,
                                     const CString& logMessage    ,
                                     const UInt32 threadId        ,
-                                    const CDateTime& timestamp   )
+                                    const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     // The loglevel must be such so that the message given falls under the global logging

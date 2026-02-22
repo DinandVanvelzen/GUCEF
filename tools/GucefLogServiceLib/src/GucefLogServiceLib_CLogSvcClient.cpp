@@ -209,7 +209,7 @@ CLogSvcClient::OnTaskCycleLogWithoutFormatting( const CORE::TLogMsgType logMsgTy
                                                 const CORE::Int32 logLevel         ,
                                                 const CORE::CString& logMessage    ,
                                                 const CORE::UInt32 threadId        ,
-                                                const CORE::CDateTime& timestamp   )
+                                                const CORE::CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     return OnTaskCycleLog( logMsgType ,
@@ -226,13 +226,13 @@ CLogSvcClient::OnTaskCycleLog( const CORE::TLogMsgType logMsgType ,
                                const CORE::Int32 logLevel         ,
                                const CORE::CString& logMessage    ,
                                const CORE::UInt32 threadId        ,
-                               const CORE::CDateTime& timestamp   )
+                               const CORE::CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     CORE::Int16 logMsgTypeValue = logMsgType;
     CORE::Int8 msgHeader[ 24 ];  // 24 = 1+4+1+2+4+4+8
     CORE::UInt32 logMsgLength = logMessage.Length() + 11;
-    CORE::UInt64 unixEpochDt = timestamp.ToUnixEpochBasedTicksInMillisecs(); 
+    CORE::UInt64 unixEpochDt = timestamp.ToMillisecondsSinceEpoch(); 
 
     msgHeader[ 0 ] = (CORE::Int8) LOGSVCMSGTYPE_DELIMITER;   // set delimiter for message: 1 byte
     memcpy( msgHeader+1, &logMsgLength, 4 );                 // set the total message length : 4 bytes

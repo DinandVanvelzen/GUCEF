@@ -310,7 +310,7 @@ CLogSvcServerFileLogger::Log( const TClientInfo& clientInfo    ,
                               const CORE::Int32 logLevel       ,
                               const CORE::CString& logMessage  ,
                               const CORE::UInt32 threadId      ,
-                              const CORE::CDateTime& timestamp )
+                              const CORE::CTimestamp& timestamp )
 {GUCEF_TRACE;
 
     if ( logLevel >= m_minimalLogLevel )

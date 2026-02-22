@@ -249,7 +249,7 @@ CXTermConsoleLogger::Log( const TLogMsgType logMsgType ,
                           const Int32 logLevel         ,
                           const CString& logMessage    ,
                           const UInt32 threadId        ,
-                          const CDateTime& datetime    )
+                          const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     if ( m_slavefd != -1 && m_xtermpid != -1 && m_slaveFptr != NULL )
@@ -262,7 +262,7 @@ CXTermConsoleLogger::Log( const TLogMsgType logMsgType ,
                                                                         logLevel   ,
                                                                         logMessage ,
                                                                         threadId   ,
-                                                                        datetime   ) + "\n" );
+                                                                        timestamp  ) + "\n" );
 
                 fprintf( m_slaveFptr, "%s", actualLogMsg.C_String() );
             }
@@ -285,7 +285,7 @@ CXTermConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
                                            const Int32 logLevel         ,
                                            const CString& logMessage    ,
                                            const UInt32 threadId        ,
-                                           const CDateTime& datetime    )
+                                           const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     if ( m_slavefd != -1 && m_xtermpid != -1 && m_slaveFptr != NULL )

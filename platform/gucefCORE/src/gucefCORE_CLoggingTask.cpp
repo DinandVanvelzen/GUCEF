@@ -98,7 +98,7 @@ CLoggingTask::Log( const TLogMsgType logMsgType ,
                    const Int32 logLevel         ,
                    const CString& logMessage    ,
                    const UInt32 threadId        ,
-                   const CDateTime& timestamp   )
+                   const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     if ( logLevel >= m_minLogLevel )
@@ -108,6 +108,7 @@ CLoggingTask::Log( const TLogMsgType logMsgType ,
         logMsg.logMessage = logMessage;
         logMsg.logMsgType = logMsgType;
         logMsg.threadId = threadId;
+        logMsg.timestamp = timestamp;
         logMsg.withoutFormatting = false;
 
         m_mailbox.AddMail( MAILTYPE_NEWLOGMSG, &logMsg );
@@ -121,7 +122,7 @@ CLoggingTask::LogWithoutFormatting( const TLogMsgType logMsgType ,
                                     const Int32 logLevel         ,
                                     const CString& logMessage    ,
                                     const UInt32 threadId        ,
-                                    const CDateTime& timestamp   )
+                                    const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     if ( logLevel >= m_minLogLevel )
@@ -131,6 +132,7 @@ CLoggingTask::LogWithoutFormatting( const TLogMsgType logMsgType ,
         logMsg.logMessage = logMessage;
         logMsg.logMsgType = logMsgType;
         logMsg.threadId = threadId;
+        logMsg.timestamp = timestamp;
         logMsg.withoutFormatting = true;
 
         m_mailbox.AddMail( MAILTYPE_NEWLOGMSG, &logMsg );
@@ -190,7 +192,7 @@ CLoggingTask::OnTaskCycleLog( const TLogMsgType logMsgType ,
                               const Int32 logLevel         ,
                               const CString& logMessage    ,
                               const UInt32 threadId        ,
-                              const CDateTime& timestamp   )
+                              const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     if ( NULL != m_loggerBackend )
@@ -212,7 +214,7 @@ CLoggingTask::OnTaskCycleLogWithoutFormatting( const TLogMsgType logMsgType ,
                                                const Int32 logLevel         ,
                                                const CString& logMessage    ,
                                                const UInt32 threadId        ,
-                                               const CDateTime& timestamp   )
+                                               const CTimestamp& timestamp  )
 
 {GUCEF_TRACE;
 

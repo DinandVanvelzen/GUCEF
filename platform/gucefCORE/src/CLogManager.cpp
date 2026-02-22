@@ -402,7 +402,7 @@ CLogManager::Log( const TLogMsgType logMsgType ,
                   const CString& logMessage    )
 {GUCEF_TRACE;
 
-    Log( logMsgType, logLevel, logMessage, MT::GetCurrentTaskID(), CDateTime::NowUTCDateTime() );
+    Log( logMsgType, logLevel, logMessage, MT::GetCurrentTaskID(), CTimestamp::NowUTCTime() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -412,7 +412,7 @@ CLogManager::Log( const TLogMsgType logMsgType ,
                   const Int32 logLevel         ,
                   const CString& logMessage    ,
                   const UInt32 threadId        ,
-                  const CDateTime& timestamp   )
+                  const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     MT::CObjectScopeLock lock( this );

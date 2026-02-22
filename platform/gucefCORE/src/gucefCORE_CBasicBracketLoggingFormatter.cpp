@@ -104,10 +104,10 @@ CBasicBracketLoggingFormatter::FormatLogMessage( const TLogMsgType logMsgType ,
                                                  const Int32 logLevel         ,
                                                  const CString& logMessage    ,
                                                  const UInt32 threadId        ,
-                                                 const CDateTime& timestamp   )
+                                                 const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
-    return "[TIMESTAMP=" + timestamp.ToIso8601DateTimeString( true, true ) +  
+    return "[TIMESTAMP=" + timestamp.ToDateTime().ToIso8601DateTimeString( true, true ) +  
            "] [THREAD=" + UInt32ToString( threadId ) +
            "] [TYPE=" + CLogManager::GetLogMsgTypeString( logMsgType ) +
            "] [LVL=" + LogLevelToString( logLevel ) +

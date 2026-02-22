@@ -61,7 +61,7 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class CDateTime;
+class CTimestamp;
 class CLogManager;
 class CCoreGlobal;
 
@@ -94,7 +94,7 @@ class GUCEF_CORE_PUBLIC_CPP CLoggingGlobal
               const Int32 logLevel         ,
               const CString& logMessage    ,
               const UInt32 threadId        ,
-              const CDateTime& timestamp   );
+              const CTimestamp& timestamp  );
 
     private:
     friend class CCoreGlobal;

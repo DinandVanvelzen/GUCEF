@@ -182,7 +182,7 @@ CAndroidSystemLogger::Log( const TLogMsgType logMsgType ,
                            const Int32 logLevel         ,
                            const CString& logMessage    ,
                            const UInt32 threadId        ,
-                           const CDateTime& timestamp   )
+                           const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != m_logFunc && logLevel >= m_minimalLogLevel )
@@ -205,7 +205,7 @@ CAndroidSystemLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
                                             const Int32 logLevel         ,
                                             const CString& logMessage    ,
                                             const UInt32 threadId        ,
-                                            const CDateTime& timestamp   )
+                                            const CTimestamp& timestamp  )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != m_logFunc && logLevel >= m_minimalLogLevel )

@@ -59,6 +59,28 @@ This file contains important notes and reminders for AI assistants working on th
    - Terminal commands (`run_command_in_terminal`) are NOT implemented in the VS integration
    - Always use `run_build` after modifying CMakeLists.txt to ensure changes are picked up
 
+6. **Platform-specific implementations (IMPORTANT)**
+   - Source and header files often have platform-specific implementations in subdirectories
+   - When changing an interface, ALWAYS check platform subdirectories for implementations
+   - Common platform subdirectories under `src/` and `include/`:
+     - `mswin/` - Windows-specific code
+     - `linux/` - Linux-specific code
+     - `android/` - Android-specific code
+     - `apple/` or `macos/` - macOS-specific code
+   - Example: `platform/gucefCORE/src/mswin/CMSWinConsoleLogger.cpp`
+   - Example: `platform/gucefCORE/include/android/gucefCORE_CAndroidSystemLogger.h`
+   - These files may not be part of the current project build (e.g., Android files on Windows)
+   - But they MUST be updated to maintain cross-platform compatibility
+
+7. **Check tools/ folder when changing interfaces**
+   - The `tools/` folder contains applications and libraries that may implement or use interfaces defined in `platform/`
+   - When changing an interface in gucefCORE (e.g., CILogger), check for implementations in:
+     - `tools/GucefLogServiceLib/` - Log service library with CILogSvcServerLogger interface
+     - `tools/GucefLogServiceApp/` - Log service application
+     - `tools/GucefLogServiceClientPlugin/` - Log service client plugin
+     - Other tools that may depend on the changed interface
+   - These may not be in the current Visual Studio solution but need to be updated for consistency
+
 ### Module Locations
 
 - Platform libraries: `platform/<moduleName>/`

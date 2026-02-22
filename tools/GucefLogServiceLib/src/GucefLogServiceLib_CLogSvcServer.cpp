@@ -40,6 +40,11 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_CORE_CTIMESTAMP_H
+#include "gucefCORE_CTimestamp.h"
+#define GUCEF_CORE_CTIMESTAMP_H
+#endif /* GUCEF_CORE_CTIMESTAMP_H ? */
+
 #ifndef GUCEF_LOGSERVICELIB_CILOGSVCSERVERLOGGER_H
 #include "GucefLogServiceLib_CILogSvcServerLogger.h"
 #define GUCEF_LOGSERVICELIB_CILOGSVCSERVERLOGGER_H
@@ -271,8 +276,8 @@ CLogSvcServer::ProcessReceivedMessage( TClientInfo& clientInfo                  
                 offset += 4;
                 CORE::UInt64 unixEpochDt = messageBuffer.AsConstType< CORE::UInt64 >( offset );
                 offset += 8;
-                CORE::CDateTime dt;
-                dt.FromUnixEpochBasedTicksInMillisecs( unixEpochDt );
+                CORE::CTimestamp timestamp;
+                timestamp.FromMillisecondsSinceEpoch( unixEpochDt );
                 CORE::CString logMessage;
                 CORE::UInt32 strLength = messageBuffer.GetDataSize() - offset;
                 logMessage.Set( messageBuffer.AsConstTypePtr< char >( offset, strLength ), strLength );
@@ -281,7 +286,7 @@ CLogSvcServer::ProcessReceivedMessage( TClientInfo& clientInfo                  
                 TLoggerList::iterator i = m_loggers.begin();
                 while ( i != m_loggers.end() )
                 {
-                    (*i)->Log( clientInfo, logMsgTypeValue, logLevel, logMessage, threadId, dt );
+                    (*i)->Log( clientInfo, logMsgTypeValue, logLevel, logMessage, threadId, timestamp );
                     ++i;
                 }
                 break;

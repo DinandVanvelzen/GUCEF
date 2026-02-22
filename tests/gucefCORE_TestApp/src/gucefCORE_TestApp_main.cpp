@@ -133,6 +133,11 @@
 #define GUCEF_CORE_TESTAPP_TESTTIMESTAMP_H
 #endif /* GUCEF_CORE_TESTAPP_TESTTIMESTAMP_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTSTOPWATCH_H
+#include "TestStopwatch.h"
+#define GUCEF_CORE_TESTAPP_TESTSTOPWATCH_H
+#endif /* GUCEF_CORE_TESTAPP_TESTSTOPWATCH_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //

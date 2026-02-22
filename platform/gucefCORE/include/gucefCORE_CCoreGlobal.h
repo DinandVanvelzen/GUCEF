@@ -158,7 +158,7 @@ class GUCEF_CORE_PUBLIC_CPP CCoreGlobal
               const Int32 logLevel         ,
               const CString& logMessage    ,
               const UInt32 threadId        ,
-              const CDateTime& timestamp   );
+              const CTimestamp& timestamp  );
 
     private:
     friend class CGUCEFCOREModule;

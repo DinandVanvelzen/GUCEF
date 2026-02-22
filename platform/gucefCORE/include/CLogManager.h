@@ -59,10 +59,10 @@
 #define GUCEF_CORE_CTBASICSHAREDPTR_H
 #endif /* GUCEF_CORE_CTBASICSHAREDPTR_H ? */
 
-#ifndef GUCEF_CORE_CDATETIME_H
-#include "gucefCORE_CDateTime.h"
-#define GUCEF_CORE_CDATETIME_H
-#endif /* GUCEF_CORE_CDATETIME_H ? */
+#ifndef GUCEF_CORE_CTIMESTAMP_H
+#include "gucefCORE_CTimestamp.h"
+#define GUCEF_CORE_CTIMESTAMP_H
+#endif /* GUCEF_CORE_CTIMESTAMP_H ? */
 
 #ifndef GUCEF_CORE_LOGTYPES_H
 #include "gucefCORE_LogTypes.h"
@@ -144,7 +144,7 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
               const Int32 logLevel         ,
               const CString& logMessage    ,
               const UInt32 threadId        ,
-              const CDateTime& timestamp   );
+              const CTimestamp& timestamp  );
 
     void SetMinLogLevel( const Int32 logLevel );
 
@@ -206,7 +206,7 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
         Int32 logLevel;
         CString logMessage;
         UInt32 threadId;
-        CDateTime timestamp;
+        CTimestamp timestamp;
     };
     typedef struct SBootstrapLogEntry TBootstrapLogEntry;
     typedef GUCEF::vector< TBootstrapLogEntry > TBootstrapLogVector;

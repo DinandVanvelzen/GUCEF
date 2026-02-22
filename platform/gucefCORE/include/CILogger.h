@@ -36,10 +36,10 @@
 #define GUCEF_CORE_CSTRING_H
 #endif /* GUCEF_CORE_CSTRING_H ? */
 
-#ifndef GUCEF_CORE_CDATETIME_H
-#include "gucefCORE_CDateTime.h"
-#define GUCEF_CORE_CDATETIME_H
-#endif /* GUCEF_CORE_CDATETIME_H ? */
+#ifndef GUCEF_CORE_CTIMESTAMP_H
+#include "gucefCORE_CTimestamp.h"
+#define GUCEF_CORE_CTIMESTAMP_H
+#endif /* GUCEF_CORE_CTIMESTAMP_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -72,7 +72,7 @@ class GUCEF_CORE_PUBLIC_CPP CILogger
                       const Int32 logLevel         ,
                       const CString& logMessage    ,
                       const UInt32 threadId        ,
-                      const CDateTime& timestamp   ) = 0;
+                      const CTimestamp& timestamp  ) = 0;
 
     /**
      *  The logging backend should output the logMessage string as given
@@ -81,7 +81,7 @@ class GUCEF_CORE_PUBLIC_CPP CILogger
                                        const Int32 logLevel         ,
                                        const CString& logMessage    ,
                                        const UInt32 threadId        ,
-                                       const CDateTime& timestamp   ) = 0;
+                                       const CTimestamp& timestamp  ) = 0;
 
     virtual void FlushLog( void ) = 0;
 

@@ -61,7 +61,7 @@ class GUCEF_CORE_PUBLIC_CPP CJsonLoggingFormatter : public CILoggingFormatter
                                       const Int32 logLevel         ,
                                       const CString& logMessage    ,
                                       const UInt32 threadId        ,
-                                      const CDateTime& timestamp   ) GUCEF_VIRTUAL_OVERRIDE;
+                                      const CTimestamp& timestamp  ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *  Provide ability to get the textual name of the formatter

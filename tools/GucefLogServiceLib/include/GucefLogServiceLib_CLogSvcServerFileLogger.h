@@ -80,7 +80,7 @@ class GUCEF_LOGSERVICELIB_EXPORT_CPP CLogSvcServerFileLogger : public CILogSvcSe
                       const CORE::Int32 logLevel                   ,
                       const CORE::CString& logMessage              ,
                       const CORE::UInt32 threadId                  ,
-                      const CORE::CDateTime& timestamp             ) GUCEF_VIRTUAL_OVERRIDE;
+                      const CORE::CTimestamp& timestamp            ) GUCEF_VIRTUAL_OVERRIDE;
                       
     virtual void FlushLog( const TClientInfo& clientInfo ) GUCEF_VIRTUAL_OVERRIDE;
 
