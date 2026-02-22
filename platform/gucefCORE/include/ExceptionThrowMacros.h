@@ -26,10 +26,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_LOGGINGMACROS_H
-#include "gucefCORE_LoggingMacros.h"
-#define GUCEF_CORE_LOGGINGMACROS_H
-#endif /* GUCEF_CORE_LOGGINGMACROS_H ? */
+#ifndef GUCEF_CORE_STRINGLOGGINGMACROS_H
+#include "gucefCORE_StringLoggingMacros.h"
+#define GUCEF_CORE_STRINGLOGGINGMACROS_H
+#endif /* GUCEF_CORE_STRINGLOGGINGMACROS_H ? */
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
@@ -49,10 +49,10 @@
 #undef GUCEF_ETHROW
 #define GUCEF_ETHROW( exceptionName )                                        \
 {                                                                            \
-    GUCEF_EXCEPTION_LOG( ::GUCEF::CORE::LOGLEVEL_NORMAL,                     \
-                         ::GUCEF::CORE::CString( "Throwing exception @ " ) + \
-                         __FILE__                                          + \
-                         ::GUCEF::CORE::Int32ToString( __LINE__ )         ); \
+    GUCEF_EXCEPTION_LOGSTR( ::GUCEF::CORE::LOGLEVEL_NORMAL,                  \
+                            ::GUCEF::CORE::CString( "Throwing exception @ " ) + \
+                            __FILE__                                          + \
+                            ::GUCEF::CORE::Int32ToString( __LINE__ )         ); \
     throw exceptionName( __FILE__, __LINE__ );                               \
 }
 
@@ -61,12 +61,12 @@
 #undef GUCEF_EMSGTHROW
 #define GUCEF_EMSGTHROW( exceptionName, errorMsg )                                       \
 {                                                                                        \
-    GUCEF_EXCEPTION_LOG( ::GUCEF::CORE::LOGLEVEL_NORMAL,                                 \
-                         ::GUCEF::CORE::CString( "Throwing exception with message: " ) + \
-                         ::GUCEF::CORE::CString( errorMsg )                            + \
-                         ::GUCEF::CORE::CString( " @ " )                               + \
-                         __FILE__                                                      + \
-                         ::GUCEF::CORE::Int32ToString( __LINE__ )                     ); \
+    GUCEF_EXCEPTION_LOGSTR( ::GUCEF::CORE::LOGLEVEL_NORMAL,                              \
+                            ::GUCEF::CORE::CString( "Throwing exception with message: " ) + \
+                            ::GUCEF::CORE::CString( errorMsg )                            + \
+                            ::GUCEF::CORE::CString( " @ " )                               + \
+                            __FILE__                                                      + \
+                            ::GUCEF::CORE::Int32ToString( __LINE__ )                     ); \
     throw exceptionName( __FILE__, __LINE__, (errorMsg) );                               \
 }
 

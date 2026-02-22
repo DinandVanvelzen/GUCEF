@@ -54,11 +54,6 @@
 #define GUCEF_CORE_CTABSTRACTFACTORY_H
 #endif /* GUCEF_CORE_CTABSTRACTFACTORY_H ? */
 
-#ifndef GUCEF_CORE_CTBASICSHAREDPTR_H
-#include "CTBasicSharedPtr.h"
-#define GUCEF_CORE_CTBASICSHAREDPTR_H
-#endif /* GUCEF_CORE_CTBASICSHAREDPTR_H ? */
-
 #ifndef GUCEF_CORE_CTIMESTAMP_H
 #include "gucefCORE_CTimestamp.h"
 #define GUCEF_CORE_CTIMESTAMP_H
@@ -84,6 +79,11 @@
 #define GUCEF_CORE_CSTRING_H
 #endif /* GUCEF_CORE_CSTRING_H ? */
 
+#ifndef GUCEF_CORE_CVARIANTSTREAM_H
+#include "gucefCORE_CVariantStream.h"
+#define GUCEF_CORE_CVARIANTSTREAM_H
+#endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -103,32 +103,8 @@ namespace CORE {
 class CILogger;
 class CMultiLogger;
 class CLoggingTask;
-class CVariantStream;
 class CLogStreamScope;
-
-/*-------------------------------------------------------------------------*/
-
-typedef CTBasicSharedPtr< CVariantStream, MT::CMutex > CVariantStreamPtr;
-
-/*-------------------------------------------------------------------------*/
-
-/**
- *  Per-thread double buffer structure for logging.
- *  Each thread gets its own buffers to avoid contention.
- */
-struct GUCEF_CORE_PUBLIC_CPP SThreadLogBuffers
-{
-    CVariantStream* frontBuffer;    /**< Thread writes log entries here */
-    CVariantStream* backBuffer;     /**< Logger drains completed entries from here */
-    MT::CMutex swapLock;            /**< Protects swap operation only */
-    UInt32 threadId;                /**< Thread ID owning these buffers */
-    
-    SThreadLogBuffers( void );
-    ~SThreadLogBuffers();
-    
-    void Swap( void );
-};
-typedef struct SThreadLogBuffers TThreadLogBuffers;
+class CThreadLogBuffers;
 
 /*-------------------------------------------------------------------------*/
 
@@ -168,7 +144,7 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
      *  Writes log entry metadata (type, level, threadId, timestamp) at the start.
      *  Use with CLogStreamScope for automatic segment end marking.
      */
-    CVariantStream*
+    CVariantStreamPtr
     Log( const TLogMsgType logMsgType ,
          const Int32 logLevel         );
 
@@ -258,9 +234,9 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
     typedef struct SBootstrapLogEntry TBootstrapLogEntry;
     typedef GUCEF::vector< TBootstrapLogEntry > TBootstrapLogVector;
     typedef CTBasicSharedPtr< CLoggingTask, MT::CMutex > CLoggingTaskBasePtr;
-    typedef GUCEF::map< UInt32, TThreadLogBuffers* > TThreadBufferMap;
+    typedef GUCEF::map< UInt32, CThreadLogBuffers* > TThreadBufferMap;
 
-    TThreadLogBuffers* GetOrCreateThreadBuffers( UInt32 threadId );
+    CThreadLogBuffers* GetOrCreateThreadBuffers( UInt32 threadId );
 
     CMultiLogger* m_loggers;
     CLoggingTaskBasePtr m_loggingTask;

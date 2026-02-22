@@ -38,6 +38,11 @@
 #define GUCEF_CORE_CTDYNAMICDESTRUCTOR_H
 #endif /* GUCEF_CORE_CTDYNAMICDESTRUCTOR_H ? */
 
+#ifndef GUCEF_CORE_STRINGLOGGINGMACROS_H
+#include "gucefCORE_StringLoggingMacros.h"
+#define GUCEF_CORE_STRINGLOGGINGMACROS_H
+#endif /* GUCEF_CORE_STRINGLOGGINGMACROS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -707,7 +712,7 @@ CTSharedPtrCreator< T, LockType >::~CTSharedPtrCreator( void )
     GUCEF_ASSERT( 0 == TBasicSharedPtrCreatorBase::GetBasicSharedPtrData().m_refCounter );
     if ( 0 != TBasicSharedPtrCreatorBase::GetBasicSharedPtrData().m_refCounter )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CTSharedPtrCreator destructor called while there are still active references to the object" );
+        GUCEF_ERROR_LOGSTR( CORE::LOGLEVEL_IMPORTANT, "CTSharedPtrCreator destructor called while there are still active references to the object" );
 
         // To avoid invalid memory access we sever the link to the destructor
         // we should still never get here in the first place, but best to minimize damage

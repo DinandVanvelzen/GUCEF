@@ -85,6 +85,11 @@
 #define GUCEF_CORE_CVARIANTSTREAM_H
 #endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
 
+#ifndef GUCEF_CORE_CTHREADLOGBUFFERS_H
+#include "gucefCORE_CThreadLogBuffers.h"
+#define GUCEF_CORE_CTHREADLOGBUFFERS_H
+#endif /* GUCEF_CORE_CTHREADLOGBUFFERS_H ? */
+
 #include "CLogManager.h"
 
 #ifndef GUCEF_CORE_ESSENTIALS_H
@@ -140,39 +145,6 @@ static CharSepLoggingFormatterFactory charSepLoggingFormatterFactory;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-SThreadLogBuffers::SThreadLogBuffers( void )
-    : frontBuffer( GUCEF_NEW CVariantStream() )
-    , backBuffer( GUCEF_NEW CVariantStream() )
-    , swapLock()
-    , threadId( 0 )
-{GUCEF_TRACE;
-}
-
-/*-------------------------------------------------------------------------*/
-
-SThreadLogBuffers::~SThreadLogBuffers()
-{GUCEF_TRACE;
-
-    GUCEF_DELETE frontBuffer;
-    frontBuffer = GUCEF_NULL;
-    GUCEF_DELETE backBuffer;
-    backBuffer = GUCEF_NULL;
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-SThreadLogBuffers::Swap( void )
-{GUCEF_TRACE;
-
-    MT::CScopeMutex lock( swapLock );
-    CVariantStream* temp = frontBuffer;
-    frontBuffer = backBuffer;
-    backBuffer = temp;
-}
-
-/*-------------------------------------------------------------------------*/
-
 CLogManager::CLogManager( void )
     : m_loggers( GUCEF_NEW CMultiLogger() )
     , m_loggingTask()
@@ -222,7 +194,7 @@ CLogManager::~CLogManager()
 
 /*-------------------------------------------------------------------------*/
 
-TThreadLogBuffers*
+CThreadLogBuffers*
 CLogManager::GetOrCreateThreadBuffers( UInt32 threadId )
 {GUCEF_TRACE;
 
@@ -232,8 +204,8 @@ CLogManager::GetOrCreateThreadBuffers( UInt32 threadId )
     if ( i != m_threadBuffers.end() )
         return (*i).second;
     
-    TThreadLogBuffers* buffers = GUCEF_NEW TThreadLogBuffers();
-    buffers->threadId = threadId;
+    CThreadLogBuffers* buffers = GUCEF_NEW CThreadLogBuffers();
+    buffers->SetThreadId( threadId );
     m_threadBuffers[ threadId ] = buffers;
     return buffers;
 }
@@ -462,32 +434,38 @@ CLogManager::GetMinLogLevel( void ) const
 }
 
 
+
+
 /*-------------------------------------------------------------------------*/
 
-CVariantStream*
+CVariantStreamPtr
 CLogManager::Log( const TLogMsgType logMsgType ,
                   const Int32 logLevel         )
 {GUCEF_TRACE;
 
     // Get or create per-thread buffers
     UInt32 threadId = MT::GetCurrentTaskID();
-    TThreadLogBuffers* buffers = GetOrCreateThreadBuffers( threadId );
+    CThreadLogBuffers* buffers = GetOrCreateThreadBuffers( threadId );
     
-    if ( GUCEF_NULL != buffers && GUCEF_NULL != buffers->frontBuffer )
+    if ( GUCEF_NULL != buffers )
     {
-        CVariantStream& stream = *buffers->frontBuffer;
-        
-        // Write log entry metadata at the start of this segment
-        stream << static_cast< UInt8 >( logMsgType );
-        stream << logLevel;
-        stream << threadId;
-        stream << CTimestamp::NowUTCTime();
-        
-        // Return stream for user to continue writing
-        // Caller should use CLogStreamScope for automatic VOID marking
-        return buffers->frontBuffer;
+        CVariantStreamPtr frontBuffer = buffers->GetFrontBuffer();
+        if ( !frontBuffer.IsNULL() )
+        {
+            CVariantStream& stream = *frontBuffer;
+            
+            // Write log entry metadata at the start of this segment
+            stream << static_cast< UInt8 >( logMsgType );
+            stream << logLevel;
+            stream << threadId;
+            stream << CTimestamp::NowUTCTime();
+            
+            // Return stream for user to continue writing
+            // Caller should use CLogStreamScope for automatic VOID marking
+            return frontBuffer;
+        }
     }
-    return GUCEF_NULL;
+    return CVariantStreamPtr();
 }
 
 /*-------------------------------------------------------------------------*/

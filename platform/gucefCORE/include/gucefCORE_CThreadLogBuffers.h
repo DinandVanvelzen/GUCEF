@@ -17,8 +17,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef GUCEF_CORE_CLOGGINGGLOBAL_H
-#define GUCEF_CORE_CLOGGINGGLOBAL_H
+#ifndef GUCEF_CORE_CTHREADLOGBUFFERS_H
+#define GUCEF_CORE_CTHREADLOGBUFFERS_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -31,20 +31,10 @@
 #define GUCEF_MT_CMUTEX_H
 #endif /* GUCEF_MT_CMUTEX_H ? */
 
-#ifndef GUCEF_CORE_MACROS_H
-#include "gucefCORE_macros.h"
-#define GUCEF_CORE_MACROS_H
-#endif /* GUCEF_CORE_MACROS_H ? */
-
-#ifndef GUCEF_CORE_LOGTYPES_H
-#include "gucefCORE_LogTypes.h"
-#define GUCEF_CORE_LOGTYPES_H
-#endif /* GUCEF_CORE_LOGTYPES_H ? */
-
-#ifndef GUCEF_CORE_CSTRING_H
-#include "gucefCORE_CString.h"
-#define GUCEF_CORE_CSTRING_H
-#endif /* GUCEF_CORE_CSTRING_H ? */
+#ifndef GUCEF_CORE_ETYPES_H
+#include "gucefCORE_ETypes.h"
+#define GUCEF_CORE_ETYPES_H
+#endif /* GUCEF_CORE_ETYPES_H ? */
 
 #ifndef GUCEF_CORE_CVARIANTSTREAM_H
 #include "gucefCORE_CVariantStream.h"
@@ -62,85 +52,46 @@ namespace CORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      FORWARD DECLARATIONS                                               //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-class CTimestamp;
-class CLogManager;
-class CCoreGlobal;
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
 /**
- *  Singular singleton providing access to all global Core systems
+ *  Per-thread double buffer structure for logging.
+ *  Each thread gets its own buffers to avoid contention.
+ *  Internal implementation detail of CLogManager.
  */
-class GUCEF_CORE_PUBLIC_CPP CLoggingGlobal
+class GUCEF_HIDDEN CThreadLogBuffers
 {
     public:
 
-    static CLoggingGlobal* Instance( void );
+    CThreadLogBuffers( void );
 
-    CLogManager& GetLogManager( void );
+    ~CThreadLogBuffers();
 
-    /**
-     *  Logging proxy call provided here to avoid including the logging manager 
-     *  with its more involved dependencies.
-     *  Returns a shared pointer to the thread's log stream for streaming log data.
-     *  Log entry metadata is written at the start of the stream.
-     *  
-     *  IMPORTANT: Caller must call WriteSegmentEnd() on the stream when done,
-     *  or wrap with CLogStreamScope for automatic segment marking:
-     *  
-     *  Example:
-     *    CLogStreamScope scope( CLoggingGlobal::Instance()->Log( LOG_STANDARD, LOGLEVEL_NORMAL ) );
-     *    scope << "User " << userId << " logged in";
-     *  // VOID marker automatically written when scope goes out of scope
-     */
-    CVariantStreamPtr Log( const TLogMsgType logMsgType ,
-                           const Int32 logLevel         );
+    void Swap( void );
 
-    /**
-     *  Logging proxy call provided here to avoid including the logging manager 
-     *  with its more involved dependencies
-     */
-    void Log( const TLogMsgType logMsgType ,
-              const Int32 logLevel         ,
-              const CString& logMessage    );
+    CVariantStreamPtr GetFrontBuffer( void );
 
-    /**
-     *  Logging proxy call provided here to avoid including the logging manager 
-     *  with its more involved dependencies
-     */
-    void Log( const TLogMsgType logMsgType ,
-              const Int32 logLevel         ,
-              const CString& logMessage    ,
-              const UInt32 threadId        ,
-              const CTimestamp& timestamp  );
+    CVariantStreamPtr GetBackBuffer( void );
 
-    private:
-    friend class CCoreGlobal;
+    UInt32 GetThreadId( void ) const;
 
-    static void Deinstance( void );
+    void SetThreadId( UInt32 threadId );
+
+    MT::CMutex& GetSwapLock( void );
 
     private:
 
-    CLoggingGlobal( void );
-
-    ~CLoggingGlobal();
-
-    void Initialize( void );
+    CThreadLogBuffers( const CThreadLogBuffers& src );              /**< not implemented, don't use */
+    CThreadLogBuffers& operator=( const CThreadLogBuffers& src );   /**< not implemented, don't use */
 
     private:
 
-    CLogManager* m_logManager;
-
-    static MT::CMutex g_dataLock;
-    static CLoggingGlobal* g_instance;
+    CVariantStreamPtr m_frontBuffer;    /**< Thread writes log entries here */
+    CVariantStreamPtr m_backBuffer;     /**< Logger drains completed entries from here */
+    MT::CMutex m_swapLock;              /**< Protects swap operation only */
+    UInt32 m_threadId;                  /**< Thread ID owning these buffers */
 };
 
 /*-------------------------------------------------------------------------//
@@ -154,4 +105,4 @@ class GUCEF_CORE_PUBLIC_CPP CLoggingGlobal
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_CORE_CLOGGINGGLOBAL_H ? */
+#endif /* GUCEF_CORE_CTHREADLOGBUFFERS_H ? */

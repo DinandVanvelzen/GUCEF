@@ -61,6 +61,11 @@
 #define GUCEF_CORE_CTSHAREDPTR_H
 #endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
+#ifndef GUCEF_CORE_STRINGLOGGINGMACROS_H
+#include "gucefCORE_StringLoggingMacros.h"
+#define GUCEF_CORE_STRINGLOGGINGMACROS_H
+#endif /* GUCEF_CORE_STRINGLOGGINGMACROS_H ? */
+
 #ifndef GUCEF_CORE_CABSTRACTFACTORYBASE_H
 #include "gucefCORE_CAbstractFactoryBase.h"
 #define GUCEF_CORE_CABSTRACTFACTORYBASE_H
@@ -226,8 +231,8 @@ CTAbstractFactory< SelectionCriteriaType, BaseClassType, LockType >::Create( con
     typename TFactoryList::const_iterator i( m_concreteFactoryList.find( selectedType ) );
     if ( i != m_concreteFactoryList.end() )
     {
-        TProductPtr product( (*i).second->Create() );
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, !product.IsNULL() ? "TAbstractFactory<>: Created concrete type \"" + ToString( selectedType ) + "\"" : "TAbstractFactory<>: Failed to create concrete type \"" + ToString( selectedType ) + "\"" );
+    TProductPtr product( (*i).second->Create() );
+        GUCEF_DEBUG_LOGSTR( CORE::LOGLEVEL_NORMAL, !product.IsNULL() ? "TAbstractFactory<>: Created concrete type \"" + ToString( selectedType ) + "\"" : "TAbstractFactory<>: Failed to create concrete type \"" + ToString( selectedType ) + "\"" );
         return product;
     }
     return TProductPtr();
@@ -338,7 +343,7 @@ CTAbstractFactory< SelectionCriteriaType, BaseClassType, LockType >::RegisterCon
     m_concreteFactoryList[ selectedType ] = concreteFactory;
     m_concreteFactoryTypeMap[ concreteFactory->GetConcreteClassTypeName() ] = selectedType;
 
-    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "TAbstractFactory<>: Registered concrete factory for type \"" + ToString( selectedType ) + "\" with concrete class type \"" + concreteFactory->GetConcreteClassTypeName() + "\"" );
+    GUCEF_SYSTEM_LOGSTR( CORE::LOGLEVEL_NORMAL, "TAbstractFactory<>: Registered concrete factory for type \"" + ToString( selectedType ) + "\" with concrete class type \"" + concreteFactory->GetConcreteClassTypeName() + "\"" );
 
     if ( m_useEventing )
     {
@@ -369,7 +374,7 @@ CTAbstractFactory< SelectionCriteriaType, BaseClassType, LockType >::UnregisterC
         m_concreteFactoryList.erase( i );
         m_concreteFactoryTypeMap.erase( concreteClassTypeName );
 
-        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "TAbstractFactory<>: Unregistered concrete factory for type \"" + ToString( selectedType ) + "\" with concrete class type \"" + concreteClassTypeName + "\"");
+        GUCEF_SYSTEM_LOGSTR( CORE::LOGLEVEL_NORMAL, "TAbstractFactory<>: Unregistered concrete factory for type \"" + ToString( selectedType ) + "\" with concrete class type \"" + concreteClassTypeName + "\"");
 
         if ( m_useEventing )
         {
@@ -410,7 +415,7 @@ CTAbstractFactory< SelectionCriteriaType, BaseClassType, LockType >::UnregisterA
         }
     }
 
-    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "TAbstractFactory<>: Unregistered all concrete factories" );
+    GUCEF_SYSTEM_LOGSTR( CORE::LOGLEVEL_BELOW_NORMAL, "TAbstractFactory<>: Unregistered all concrete factories" );
 }
 
 /*-------------------------------------------------------------------------*/

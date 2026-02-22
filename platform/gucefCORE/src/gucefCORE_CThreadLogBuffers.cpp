@@ -1,4 +1,4 @@
- /*
+/*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
  *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
  *
@@ -23,27 +23,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MT_CSCOPEMUTEX_H
-#include "gucefMT_CScopeMutex.h"
-#define GUCEF_MT_CSCOPEMUTEX_H
-#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
-
-#ifndef GUCEF_CORE_MACROS_H
-#include "gucefCORE_macros.h"
-#define GUCEF_CORE_MACROS_H
-#endif /* GUCEF_CORE_MACROS_H ? */
+#ifndef GUCEF_CORE_CTHREADLOGBUFFERS_H
+#include "gucefCORE_CThreadLogBuffers.h"
+#define GUCEF_CORE_CTHREADLOGBUFFERS_H
+#endif /* GUCEF_CORE_CTHREADLOGBUFFERS_H ? */
 
 #ifndef GUCEF_CORE_CVARIANTSTREAM_H
 #include "gucefCORE_CVariantStream.h"
 #define GUCEF_CORE_CVARIANTSTREAM_H
 #endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
-
-#ifndef GUCEF_CORE_CLOGMANAGER_H
-#include "CLogManager.h"
-#define GUCEF_CORE_CLOGMANAGER_H
-#endif /* GUCEF_CORE_CLOGMANAGER_H ? */
-
-#include "gucefCORE_CLoggingGlobal.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -56,126 +44,82 @@ namespace CORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      GLOBAL VARS                                                        //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-MT::CMutex CLoggingGlobal::g_dataLock;
-CLoggingGlobal* CLoggingGlobal::g_instance = NULL;
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
 //      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CLoggingGlobal*
-CLoggingGlobal::Instance()
+CThreadLogBuffers::CThreadLogBuffers( void )
+    : m_frontBuffer( GUCEF_NEW CVariantStream() )
+    , m_backBuffer( GUCEF_NEW CVariantStream() )
+    , m_swapLock()
+    , m_threadId( 0 )
+{GUCEF_TRACE;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CThreadLogBuffers::~CThreadLogBuffers()
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL == g_instance )
-    {
-        MT::CScopeMutex lock( g_dataLock );
-        if ( GUCEF_NULL == g_instance )
-        {
-            g_instance = GUCEF_NEW CLoggingGlobal();
-            if ( GUCEF_NULL != g_instance )
-            {
-                g_instance->Initialize();
-            }
-        }
-    }
-    return g_instance;
+    m_frontBuffer.Unlink();
+    m_backBuffer.Unlink();
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CLoggingGlobal::Deinstance( void )
+CThreadLogBuffers::Swap( void )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( g_dataLock );
-    GUCEF_DELETE g_instance;
-    g_instance = GUCEF_NULL;
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CLoggingGlobal::Initialize( void )
-{GUCEF_TRACE;
-
-    m_logManager = GUCEF_NEW CLogManager();                 
-}
-
-/*-------------------------------------------------------------------------*/
-
-CLoggingGlobal::CLoggingGlobal( void )
-    : m_logManager( GUCEF_NULL )                 
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CLoggingGlobal::~CLoggingGlobal()
-{GUCEF_TRACE;
-
-    MT::CScopeMutex lock( g_dataLock );
-
-    // make a copy so that we disable logging loop back during destruction of the log manager
-    CLogManager* logManager = m_logManager;
-
-    m_logManager->FlushLogs();
-    
-    // wipe out log manager access first to disable a logging loop back during destruction of the log manager
-    m_logManager = GUCEF_NULL;
-    GUCEF_DELETE logManager;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CLogManager& 
-CLoggingGlobal::GetLogManager( void )
-{GUCEF_TRACE;
-
-    return *m_logManager;
+    MT::CScopeMutex lock( m_swapLock );
+    CVariantStreamPtr temp = m_frontBuffer;
+    m_frontBuffer = m_backBuffer;
+    m_backBuffer = temp;
 }
 
 /*-------------------------------------------------------------------------*/
 
 CVariantStreamPtr
-CLoggingGlobal::Log( const TLogMsgType logMsgType ,
-                     const Int32 logLevel         )
+CThreadLogBuffers::GetFrontBuffer( void )
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL != m_logManager )
-        return m_logManager->Log( logMsgType, logLevel );
-    return CVariantStreamPtr();
+    return m_frontBuffer;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStreamPtr
+CThreadLogBuffers::GetBackBuffer( void )
+{GUCEF_TRACE;
+
+    return m_backBuffer;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CThreadLogBuffers::GetThreadId( void ) const
+{GUCEF_TRACE;
+
+    return m_threadId;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CLoggingGlobal::Log( const TLogMsgType logMsgType ,
-                     const Int32 logLevel         ,
-                     const CString& logMessage    )
-{
-    if ( GUCEF_NULL != m_logManager  )
-        m_logManager->Log( logMsgType, logLevel, logMessage ); 
+CThreadLogBuffers::SetThreadId( UInt32 threadId )
+{GUCEF_TRACE;
+
+    m_threadId = threadId;
 }
 
 /*-------------------------------------------------------------------------*/
 
-void 
-CLoggingGlobal::Log( const TLogMsgType logMsgType ,
-                     const Int32 logLevel         ,
-                     const CString& logMessage    ,
-                     const UInt32 threadId        ,
-                     const CTimestamp& timestamp  )
-{
-    if ( GUCEF_NULL != m_logManager  )
-        m_logManager->Log( logMsgType, logLevel, logMessage, threadId, timestamp );
+MT::CMutex&
+CThreadLogBuffers::GetSwapLock( void )
+{GUCEF_TRACE;
+
+    return m_swapLock;
 }
 
 /*-------------------------------------------------------------------------//

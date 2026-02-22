@@ -72,6 +72,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 class CDateTime;
+class CTimestamp;
 class CUriResourceAccessorFactory;
 class CTaskManager;
 class CURLHandlerRegistry;
