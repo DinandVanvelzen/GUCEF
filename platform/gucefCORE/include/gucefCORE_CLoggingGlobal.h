@@ -77,7 +77,10 @@ class CCoreGlobal;
 //-------------------------------------------------------------------------*/
 
 /**
- *  Singular singleton providing access to all global Core systems
+ *  Singleton proxy for the logging manager.
+ *  Since logging is so fundamental to the core and is used in many places,
+ *  we want to avoid including the logging manager directly in those places
+ *  to avoid pulling in its more involved dependencies.
  */
 class GUCEF_CORE_PUBLIC_CPP CLoggingGlobal
 {
@@ -121,6 +124,12 @@ class GUCEF_CORE_PUBLIC_CPP CLoggingGlobal
               const CString& logMessage    ,
               const UInt32 threadId        ,
               const CTimestamp& timestamp  );
+
+    /**
+     *  Static provided here to avoid including the full CLogManager header in the logging macros.
+     *  It will forward the call provided the core system is available. If not, it will be a no-op.
+     */
+    void FlushLogs( void );
 
     private:
     friend class CCoreGlobal;

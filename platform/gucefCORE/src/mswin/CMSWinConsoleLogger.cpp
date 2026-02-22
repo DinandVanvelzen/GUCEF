@@ -205,6 +205,8 @@ CMSWinConsoleLogger::Log( const TLogMsgType logMsgType     ,
                           const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
+    // @TODO: We should avoid the ToString conversion here and instead have a way to
+    // write the CVariantStream content directly to the console
     Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
 }
 

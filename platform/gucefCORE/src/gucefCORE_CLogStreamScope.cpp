@@ -98,6 +98,19 @@ CLogStreamScope::GetStream( void )
     return *m_stream;
 }
 
+/*-------------------------------------------------------------------------*/
+
+void
+CLogStreamScope::FlushLogs( void )
+{GUCEF_TRACE;
+
+    CLoggingGlobal* loggingGlobal = CLoggingGlobal::Instance();
+    if ( GUCEF_NULL != loggingGlobal )
+    {
+        loggingGlobal->FlushLogs();
+    }
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

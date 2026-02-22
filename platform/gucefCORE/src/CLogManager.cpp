@@ -135,9 +135,9 @@ typedef CTFactory< CILoggingFormatter, CCharSepLoggingFormatter, MT::CMutex > Ch
 static CAndroidSystemLogger androidSystemLogger;
 #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ? */
 
-static JsonLoggingFormatterFactory jsonLoggingFormatterFactory;
-static BasicBracketLoggingFormatterFactory basicBracketLoggingFormatterFactory;
-static CharSepLoggingFormatterFactory charSepLoggingFormatterFactory;
+static JsonLoggingFormatterFactory g_jsonLoggingFormatterFactory;
+static BasicBracketLoggingFormatterFactory g_basicBracketLoggingFormatterFactory;
+static CharSepLoggingFormatterFactory g_charSepLoggingFormatterFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -160,9 +160,9 @@ CLogManager::CLogManager( void )
 {GUCEF_TRACE;
 
     m_defaultLogFormatter = CCharSepLoggingFormatter::TypeName;
-    m_logFormatterFactory.RegisterConcreteFactory( CBasicBracketLoggingFormatter::TypeName, &basicBracketLoggingFormatterFactory );
-    m_logFormatterFactory.RegisterConcreteFactory( CJsonLoggingFormatter::TypeName, &jsonLoggingFormatterFactory );
-    m_logFormatterFactory.RegisterConcreteFactory( CCharSepLoggingFormatter::TypeName, &charSepLoggingFormatterFactory );
+    m_logFormatterFactory.RegisterConcreteFactory( CBasicBracketLoggingFormatter::TypeName, &g_basicBracketLoggingFormatterFactory );
+    m_logFormatterFactory.RegisterConcreteFactory( CJsonLoggingFormatter::TypeName, &g_jsonLoggingFormatterFactory );
+    m_logFormatterFactory.RegisterConcreteFactory( CCharSepLoggingFormatter::TypeName, &g_charSepLoggingFormatterFactory );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID )
     AddLogger( &androidSystemLogger);
@@ -237,6 +237,8 @@ CLogManager::FlushBootstrapLogEntriesToLogs( void )
 {GUCEF_TRACE;
 
     Log( LOG_SYSTEM, LOGLEVEL_NORMAL, "LogManager: Flushing all bootstrap log entries to the currently registered loggers" );
+
+    FlushThreadStreamBuffers();
 
     MT::CObjectScopeLock lock( this );
 
@@ -432,9 +434,6 @@ CLogManager::GetMinLogLevel( void ) const
     MT::CObjectScopeLock lock( this );
     return m_loggers->GetMinimalLogLevel();
 }
-
-
-
 
 /*-------------------------------------------------------------------------*/
 
@@ -678,6 +677,8 @@ void
 CLogManager::FlushLogs( void )
 {GUCEF_TRACE;
 
+    FlushThreadStreamBuffers();
+
     MT::CObjectScopeLock lock( this );
     if ( m_useLogThread )
     {
@@ -687,6 +688,68 @@ CLogManager::FlushLogs( void )
     {
         m_loggers->FlushLog();
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CLogManager::FlushThreadStreamBuffers( void )
+{GUCEF_TRACE;
+
+    UInt32 flushedCount = 0;
+
+    // We need to iterate over all thread buffers
+    MT::CScopeMutex mapLock( m_threadBuffersLock );
+    
+    TThreadBufferMap::iterator i = m_threadBuffers.begin();
+    while ( i != m_threadBuffers.end() )
+    {
+        CThreadLogBuffers* threadBuffers = (*i).second;
+        if ( GUCEF_NULL != threadBuffers )
+        {
+            // Try to swap and get the back buffer for draining
+            // This will only succeed if the front buffer is not in use
+            CVariantStreamPtr backBuffer = threadBuffers->TrySwapAndGetBackBuffer();
+            
+            if ( !backBuffer.IsNULL() )
+            {
+                // Successfully swapped - now drain the back buffer
+                CVariantStream& stream = *backBuffer;
+                
+                // Process all segments in the buffer
+                stream.ResetReadPosition();
+                CVariantStream segmentStream;
+                
+                while ( stream.ReadNextSegment( segmentStream ) )
+                {
+                    // Read the metadata we wrote at segment start
+                    UInt8 logMsgTypeVal = 0;
+                    Int32 logLevel = 0;
+                    UInt32 threadId = 0;
+                    CTimestamp timestamp;
+                    
+                    segmentStream >> logMsgTypeVal;
+                    segmentStream >> logLevel;
+                    segmentStream >> threadId;
+                    segmentStream >> timestamp;
+                    
+                    TLogMsgType logMsgType = static_cast< TLogMsgType >( logMsgTypeVal );
+                    
+                    // The remainder of the segment is the log message content
+                    // Send the entire segment stream to the loggers
+                    Log( logMsgType, logLevel, segmentStream, threadId, timestamp );
+                }
+                
+                // Clear the drained buffer for reuse
+                stream.Clear();
+                ++flushedCount;
+            }
+            // else: front buffer in use, skip this thread buffer for now
+        }
+        ++i;
+    }
+    
+    return flushedCount;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -66,6 +66,11 @@
 #define GUCEF_CORE_CDATETIME_H
 #endif /* GUCEF_CORE_CDATETIME_H ? */
 
+#ifndef GUCEF_CORE_STRINGLOGGINGMACROS_H
+#include "gucefCORE_StringLoggingMacros.h"
+#define GUCEF_CORE_STRINGLOGGINGMACROS_H
+#endif /* GUCEF_CORE_STRINGLOGGINGMACROS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -719,7 +724,7 @@ CTFreeList< T, LockType >::OnObjectDestruction( TSharedPtrCreator* object )
     }
     else
     {
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "TFreeList<" + CORE::ToString< T >() + ">::OnObjectDestruction: Object being destroyed " + ToString( (void*) object ) + " was not registered as active or dormant in the free list" );
+        GUCEF_WARNING_LOGSTR( CORE::LOGLEVEL_NORMAL, "TFreeList<" + CORE::ToString< T >() + ">::OnObjectDestruction: Object being destroyed " + ToString( (void*) object ) + " was not registered as active or dormant in the free list" );
     }    
 }
 

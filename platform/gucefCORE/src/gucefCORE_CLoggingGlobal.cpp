@@ -178,6 +178,15 @@ CLoggingGlobal::Log( const TLogMsgType logMsgType ,
         m_logManager->Log( logMsgType, logLevel, logMessage, threadId, timestamp );
 }
 
+/*-------------------------------------------------------------------------*/
+
+void
+CLoggingGlobal::FlushLogs( void )
+{
+    if ( GUCEF_NULL != m_logManager )
+        m_logManager->FlushLogs();
+}
+    
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

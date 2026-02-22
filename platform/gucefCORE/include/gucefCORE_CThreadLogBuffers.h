@@ -81,6 +81,22 @@ class GUCEF_HIDDEN CThreadLogBuffers
 
     MT::CMutex& GetSwapLock( void );
 
+    /**
+     *  Checks if the front buffer is currently in use by the owning thread.
+     *  Returns true if the front buffer has references beyond the one held by this object.
+     *  Snapshot-in-time check; the state may change immediately after this call returns.
+     *        (Mainly intended for controlled test code)
+     */
+    bool IsFrontBufferInUse( void ) const;
+
+    /**
+     *  Attempts to swap buffers if the front buffer is not in use.
+     *  If successful, returns the back buffer (which was the front before swap) for draining.
+     *  If the front buffer is in use, returns NULL.
+     *  The swap lock is held during this operation.
+     */
+    CVariantStreamPtr TrySwapAndGetBackBuffer( void );
+
     private:
 
     CThreadLogBuffers( const CThreadLogBuffers& src );              /**< not implemented, don't use */
@@ -88,10 +104,10 @@ class GUCEF_HIDDEN CThreadLogBuffers
 
     private:
 
-    CVariantStreamPtr m_frontBuffer;    /**< Thread writes log entries here */
-    CVariantStreamPtr m_backBuffer;     /**< Logger drains completed entries from here */
-    MT::CMutex m_swapLock;              /**< Protects swap operation only */
-    UInt32 m_threadId;                  /**< Thread ID owning these buffers */
+    CVariantStreamTypedPtr m_frontBuffer;    /**< Thread writes log entries here */
+    CVariantStreamTypedPtr m_backBuffer;     /**< Logger drains completed entries from here */
+    MT::CMutex m_swapLock;                   /**< Protects swap operation only */
+    UInt32 m_threadId;                       /**< Thread ID owning these buffers */
 };
 
 /*-------------------------------------------------------------------------//

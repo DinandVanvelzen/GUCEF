@@ -174,6 +174,18 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
 
     void FlushLogs( void );
 
+    /**
+     *  Flushes all thread stream buffers to the backend loggers.
+     *  For each thread buffer:
+     *  - If the front buffer is not in use, swaps front/back buffers
+     *  - Drains all log segments from the back buffer to the loggers
+     *  - Clears the drained back buffer
+     *  
+     *  Returns the number of thread buffers that were successfully flushed.
+     *  Thread buffers where the front buffer was in use are skipped.
+     */
+    UInt32 FlushThreadStreamBuffers( void );
+
     void SetUseLoggingThread( bool useLogThread );
 
     bool GetUseLoggingThread( void ) const;

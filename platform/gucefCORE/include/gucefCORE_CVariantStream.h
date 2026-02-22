@@ -29,6 +29,11 @@
 #include <sstream>
 #include <string>
 
+#ifndef GUCEF_MT_CMUTEX_H
+#include "gucefMT_CMutex.h"
+#define GUCEF_MT_CMUTEX_H
+#endif /* GUCEF_MT_CMUTEX_H ? */
+
 #ifndef GUCEF_CORE_MACROS_H
 #include "gucefCORE_macros.h"
 #define GUCEF_CORE_MACROS_H
@@ -38,6 +43,11 @@
 #include "gucefCORE_CString.h"
 #define GUCEF_CORE_CSTRING_H
 #endif /* GUCEF_CORE_CSTRING_H ? */
+
+#ifndef GUCEF_CORE_CTSHAREDPTR_H
+#include "CTSharedPtr.h"
+#define GUCEF_CORE_CTSHAREDPTR_H
+#endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -78,6 +88,9 @@ typedef void (*TDefaultFuncPtr) ();
 class GUCEF_CORE_PUBLIC_CPP CVariantStream
 {
     public:
+
+    typedef CTBasicSharedPtr< CVariantStream, MT::CMutex > CVariantStreamPtr;
+    typedef CTSharedPtr< CVariantStream, MT::CMutex >      CVariantStreamTypedPtr;
 
     CVariantStream( void );
 
@@ -215,6 +228,7 @@ class GUCEF_CORE_PUBLIC_CPP CVariantStream
     /**
      *  Converts the stream contents to a string representation.
      *  For logging and debugging purposes.
+     *  Not efficient for large data or performance-critical paths.
      */
     CString ToString( void ) const;
 
@@ -261,6 +275,15 @@ class GUCEF_CORE_PUBLIC_CPP CVariantStream
     UInt32 m_readPosition;
     bool m_isValid;
 };
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      TYPES                                                              //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+typedef CVariantStream::CVariantStreamPtr        CVariantStreamPtr;
+typedef CVariantStream::CVariantStreamTypedPtr   CVariantStreamTypedPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

@@ -36,7 +36,6 @@
 #define GUCEF_CORE_LOGTYPES_H
 #endif /* GUCEF_CORE_LOGTYPES_H ? */
 
-
 #ifndef GUCEF_CORE_CVARIANTSTREAM_H
 #include "gucefCORE_CVariantStream.h"
 #define GUCEF_CORE_CVARIANTSTREAM_H
@@ -82,6 +81,12 @@ class GUCEF_CORE_PUBLIC_CPP CLogStreamScope
      */
     template< typename T >
     CLogStreamScope& operator<<( const T& data );
+
+    /**
+     *  Static provided here to avoid including the full CLogManager header in the logging macros.
+     *  It will forward the call provided the core system is available. If not, it will be a no-op.
+     */
+    static void FlushLogs( void );
 
     private:
 
