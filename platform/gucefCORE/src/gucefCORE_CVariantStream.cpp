@@ -529,7 +529,7 @@ CVariantStream&
 CVariantStream::operator<<( const CTimestamp& data )
 {GUCEF_TRACE;
 
-    CVariant var( data.ToDateTime() );
+    CVariant var( data );
     UInt32 bytesWritten = 0;
     if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
@@ -970,7 +970,7 @@ CVariantStream::operator>>( CTimestamp& data )
     if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
-        data = CTimestamp( var.AsDateTime() );
+        data = var.AsTimestamp();
     }
     else
     {

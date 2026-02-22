@@ -279,6 +279,16 @@ CVariant::CVariant( const CDateTime& datetime )
 
 /*-------------------------------------------------------------------------*/
 
+CVariant::CVariant( const CTimestamp& timestamp )
+    : m_variantData()
+{GUCEF_TRACE;
+
+    memset( &m_variantData, 0, sizeof( m_variantData ) );
+    *this = timestamp;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CVariant::CVariant( const void* data, UInt32 dataSize, UInt8 varType )
     : m_variantData()
 {GUCEF_TRACE;
@@ -495,6 +505,7 @@ CVariant::IsLittleEndian( void ) const
         case GUCEF_DATATYPE_LE_UINT32:
         case GUCEF_DATATYPE_LE_INT64:
         case GUCEF_DATATYPE_LE_UINT64:
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_UTF16_LE_STRING:
@@ -533,6 +544,7 @@ CVariant::IsBigEndian( void ) const
         case GUCEF_DATATYPE_BE_UINT32:
         case GUCEF_DATATYPE_BE_INT64:
         case GUCEF_DATATYPE_BE_UINT64:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_UTF16_BE_STRING:
@@ -616,7 +628,8 @@ CVariant::ToLittleEndian( void )
         case GUCEF_DATATYPE_BE_FLOAT64:
             { m_variantData.union_data.float64_data = SwapEndianFloat64( m_variantData.union_data.float64_data ); m_variantData.containedType = GUCEF_DATATYPE_LE_FLOAT64; return *this; }
 
-
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+            { m_variantData.union_data.uint64_data = SwapEndianUInt64( m_variantData.union_data.uint64_data ); m_variantData.containedType = GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH; return *this; }
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             { m_variantData.union_data.uint64_data = SwapEndianUInt64( m_variantData.union_data.uint64_data ); m_variantData.containedType = GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH; return *this; }
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
@@ -727,6 +740,8 @@ CVariant::ToBigEndian( void )
             { m_variantData.union_data.float64_data = SwapEndianFloat64( m_variantData.union_data.float64_data ); m_variantData.containedType = GUCEF_DATATYPE_BE_FLOAT64; return *this; }
 
 
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+            { m_variantData.union_data.uint64_data = SwapEndianUInt64( m_variantData.union_data.uint64_data ); m_variantData.containedType = GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH; return *this; }
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             { m_variantData.union_data.uint64_data = SwapEndianUInt64( m_variantData.union_data.uint64_data ); m_variantData.containedType = GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH; return *this; }
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
@@ -894,6 +909,8 @@ CVariant::IsInteger( void ) const
         case GUCEF_DATATYPE_BE_INT64:
         case GUCEF_DATATYPE_LE_UINT64:
         case GUCEF_DATATYPE_BE_UINT64:
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
@@ -948,6 +965,8 @@ CVariant::IsUnsignedInteger( void ) const
         case GUCEF_DATATYPE_BE_UINT32:
         case GUCEF_DATATYPE_LE_UINT64:
         case GUCEF_DATATYPE_BE_UINT64:
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
@@ -1638,6 +1657,8 @@ CVariant::AsInt64( Int64 defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_FLOAT32: return (Int64) m_variantData.union_data.float32_data;
         case GUCEF_DATATYPE_FLOAT64: return (Int64) m_variantData.union_data.float64_data;
         case GUCEF_DATATYPE_BOOLEAN_INT32: return (Int64) m_variantData.union_data.int32_data;
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return (Int64) m_variantData.union_data.uint64_data;
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return (Int64) m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return (Int64) m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return (Int64) m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return (Int64) m_variantData.union_data.uint64_data;
@@ -1675,6 +1696,8 @@ CVariant::AsUInt64( UInt64 defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_FLOAT32: return (UInt64) m_variantData.union_data.float32_data;
         case GUCEF_DATATYPE_FLOAT64: return (UInt64) m_variantData.union_data.float64_data;
         case GUCEF_DATATYPE_BOOLEAN_INT32: return (UInt64) m_variantData.union_data.int32_data;
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return m_variantData.union_data.uint64_data;
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return m_variantData.union_data.uint64_data;
@@ -1718,6 +1741,8 @@ CVariant::AsSizeT( size_t defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_FLOAT32: return (size_t) m_variantData.union_data.float32_data;
         case GUCEF_DATATYPE_FLOAT64: return (size_t) m_variantData.union_data.float64_data;
         case GUCEF_DATATYPE_BOOLEAN_INT32: return (size_t) m_variantData.union_data.int32_data;
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return (size_t) m_variantData.union_data.uint64_data;
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return (size_t) m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return (size_t) m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return (size_t) m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return (size_t) m_variantData.union_data.uint64_data;
@@ -1898,6 +1923,8 @@ CVariant::AsVoidPtr( const void* defaultIfNeeded ) const
         case GUCEF_DATATYPE_UINT64: return &m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_FLOAT32: return &m_variantData.union_data.float32_data;
         case GUCEF_DATATYPE_FLOAT64: return &m_variantData.union_data.float64_data;
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return &m_variantData.union_data.uint64_data;
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return &m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return &m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return &m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return &m_variantData.union_data.uint64_data;
@@ -1959,6 +1986,8 @@ CVariant::ByteSize( bool includeNullTerm ) const
         case GUCEF_DATATYPE_BOOLEAN_INT32: return sizeof m_variantData.union_data.int32_data;
         case GUCEF_DATATYPE_BINARY_BSOB: return sizeof m_variantData.union_data.bsob_data;
         case GUCEF_DATATYPE_BINARY_BLOB: return m_variantData.union_data.heap_data.heap_data_size;
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return sizeof m_variantData.union_data.uint64_data;
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return sizeof m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return sizeof m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return sizeof m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return sizeof m_variantData.union_data.uint64_data;
@@ -2252,6 +2281,17 @@ CVariant::operator=( const CDateTime& data )
 /*-------------------------------------------------------------------------*/
 
 CVariant&
+CVariant::operator=( const CTimestamp& data )
+{GUCEF_TRACE;
+
+    UInt64 value = data.ToNanosecondsSinceEpoch();
+    Set( &value, sizeof( UInt64 ), GUCEF_DATATYPE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH, false );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariant&
 CVariant::operator=( const CAsciiString& data )
 {GUCEF_TRACE;
 
@@ -2429,6 +2469,8 @@ CVariant::Set( const void* data, UInt32 dataSize, UInt8 varType, bool linkOnlyFo
             m_variantData.containedType = GUCEF_DATATYPE_INT64;
             return true;
         }
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
@@ -2440,7 +2482,7 @@ CVariant::Set( const void* data, UInt32 dataSize, UInt8 varType, bool linkOnlyFo
                 return false;
             const UInt64* typedData = reinterpret_cast< const UInt64* >( data );
             m_variantData.union_data.uint64_data = (*typedData);
-            m_variantData.containedType = GUCEF_DATATYPE_UINT64;
+            m_variantData.containedType = varType;
             return true;
         }
         case GUCEF_DATATYPE_FLOAT32:
@@ -2846,6 +2888,8 @@ CVariant::SetFromString( UInt8 varType, const CString& data, const CVariant& def
         case GUCEF_DATATYPE_BE_UINT32:
             { *this = StringToUInt32( data, defaultValue.AsUInt32() ); return true; }
 
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
@@ -3233,6 +3277,8 @@ CVariant::AsString( const CString& defaultIfNeeded, bool resolveVarsIfApplicable
             case GUCEF_DATATYPE_BE_UINT32:
                 { return ToString( AsUInt32() ); }
 
+            case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+            case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
@@ -3304,6 +3350,8 @@ CVariant::AsString( const CString& defaultIfNeeded, bool resolveVarsIfApplicable
             case GUCEF_DATATYPE_UINT16:                { return ToString( AsUInt16( StringToUInt16( defaultIfNeeded, 0 ) ) ); }
             case GUCEF_DATATYPE_UINT32:                { return ToString( AsUInt32( StringToUInt32( defaultIfNeeded, 0 ) ) ); }
 
+            case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+            case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
@@ -3394,6 +3442,13 @@ CVariant::AsDateTime( const CDateTime& defaultIfNeeded, bool resolveVarsIfApplic
             return defaultIfNeeded;
         }
 
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+        {
+            CTimestamp ts;
+            ts.FromNanosecondsSinceEpoch( m_variantData.union_data.uint64_data );
+            return ts.ToDateTime();
+        }
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         {
@@ -3409,6 +3464,58 @@ CVariant::AsDateTime( const CDateTime& defaultIfNeeded, bool resolveVarsIfApplic
             CDateTime dt;
             dt.FromUnixEpochBasedTicksInMillisecs( m_variantData.union_data.uint64_data );
             return dt;
+        }
+
+        default:
+            return defaultIfNeeded;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTimestamp
+CVariant::AsTimestamp( const CTimestamp& defaultIfNeeded, bool resolveVarsIfApplicable ) const
+{GUCEF_TRACE;
+
+    switch ( m_variantData.containedType )
+    {
+        case GUCEF_DATATYPE_UTF8_STRING:
+        case GUCEF_DATATYPE_ASCII_STRING:
+        case GUCEF_DATATYPE_DATETIME_ISO8601_ASCII_STRING:
+        case GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING:
+        {
+            CString str = AsString( CString::Empty, resolveVarsIfApplicable );
+            if ( str.IsNULLOrEmpty() )
+                return defaultIfNeeded;
+
+            CDateTime dt;
+            if ( dt.FromIso8601DateTimeString( str ) )
+                return CTimestamp( dt );
+            return defaultIfNeeded;
+        }
+
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+        {
+            CTimestamp ts;
+            ts.FromNanosecondsSinceEpoch( m_variantData.union_data.uint64_data );
+            return ts;
+        }
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
+        {
+            CTimestamp ts;
+            ts.FromMillisecondsSinceEpoch( m_variantData.union_data.uint64_data * 1000 );
+            return ts;
+        }
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_LE_UINT64:
+        case GUCEF_DATATYPE_BE_UINT64:
+        {
+            CTimestamp ts;
+            ts.FromMillisecondsSinceEpoch( m_variantData.union_data.uint64_data );
+            return ts;
         }
 
         default:

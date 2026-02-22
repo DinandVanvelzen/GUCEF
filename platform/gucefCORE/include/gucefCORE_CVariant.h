@@ -176,6 +176,11 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     CVariant( const CDateTime& datetime );
 
     /**
+     *  Creates a variant holding the timestamp value
+     */
+    CVariant( const CTimestamp& timestamp );
+
+    /**
      *  Interprets the string form data per the type ID given
      *  Creates a private copy
      */
@@ -278,6 +283,7 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     const char*     AsCharPtr( const char* defaultIfNeeded = GUCEF_NULL ) const;    
     CDynamicBuffer  AsBuffer( void ) const;
     CDateTime       AsDateTime( const CDateTime& defaultIfNeeded = CDateTime::Empty, bool resolveVarsIfApplicable = false ) const;
+    CTimestamp      AsTimestamp( const CTimestamp& defaultIfNeeded = CTimestamp::Empty, bool resolveVarsIfApplicable = false ) const;
     size_t          AsSizeT( size_t defaultIfNeeded = 0, bool resolveVarsIfApplicable = false ) const;
     TDefaultFuncPtr AsDefaultFuncPtr( TDefaultFuncPtr defaultIfNeeded = GUCEF_NULL ) const;
 
@@ -345,7 +351,8 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     CVariant& operator=( const CDynamicBuffer& data );
     CVariant& operator=( const CAsciiString& data );
     CVariant& operator=( const CUtf8String& data );
-    CVariant& operator=( const CDateTime& data );    
+    CVariant& operator=( const CDateTime& data );
+    CVariant& operator=( const CTimestamp& data );
     CVariant& operator=( const std::string& data );
     CVariant& operator=( const std::wstring& data );
     CVariant& operator=( const CVariant& src );
