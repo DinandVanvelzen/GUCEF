@@ -1178,7 +1178,7 @@ CVariantStream::ToString( void ) const
 {GUCEF_TRACE;
 
     CString result;
-    UInt32 readPos = 0;
+    UInt32 readPos = m_readPosition;
     UInt32 dataSize = m_buffer->GetDataSize();
     
     while ( readPos < dataSize )
@@ -1206,7 +1206,7 @@ CVariantStream::WriteAsStringTo( CDynamicBuffer& destBuffer ) const
 {GUCEF_TRACE;
 
     UInt32 initialSize = destBuffer.GetDataSize();
-    UInt32 readPos = 0;
+    UInt32 readPos = m_readPosition;
     UInt32 dataSize = m_buffer->GetDataSize();
     
     while ( readPos < dataSize )
@@ -1262,7 +1262,7 @@ CVariantStream::ReadNextSegment( CVariantStream& outSegment )
         CVariant var;
         UInt32 bytesRead = 0;
         
-        if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+        if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, true, bytesRead ) )
         {
             m_readPosition += bytesRead;
             

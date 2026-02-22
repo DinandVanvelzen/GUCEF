@@ -23,12 +23,20 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <iostream>
-
 #ifndef GUCEF_CORE_CSTRING_H
 #include "gucefCORE_CString.h"
 #define GUCEF_CORE_CSTRING_H
 #endif /* GUCEF_CORE_CSTRING_H ? */
+
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
 #include "TestString.h"
 
@@ -38,17 +46,9 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
-
-#define ERRORHERE { std::cout << "Test failed @ " << __FILE__ << "(" << __LINE__ << ")\n"; DEBUGBREAK; }
-#define ASSERT_TRUE( test ) if ( !(test) ) { ERRORHERE; } 
-#define ASSERT_FALSE( test ) if ( (test) ) { ERRORHERE; }
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -64,8 +64,7 @@ template< typename StringType >
 void
 PerformTypedStringTests( void )
 {
-    std::cout << "\n\n**** COMMENCING CString TESTS ****\n";
-    
+    GUCEF_TESTFW_TESTCASE( "Test: CString typed tests" )
     try
     {
         StringType testStr1;
@@ -225,8 +224,7 @@ PerformTypedStringTests( void )
     {
         ERRORHERE;
     }
-
-    std::cout << "\n\n**** FINISHED CString TESTS ****\n";
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/
@@ -234,8 +232,7 @@ PerformTypedStringTests( void )
 void
 PerformUtf8SpecificStringTests( void )
 {
-    std::cout << "\n\n**** COMMENCING CUtf8String TESTS ****\n";
-    
+    GUCEF_TESTFW_TESTCASE( "Test: CUtf8String specific tests" )
     try
     {
 
@@ -258,8 +255,7 @@ PerformUtf8SpecificStringTests( void )
     {
         ERRORHERE;
     }
-
-    std::cout << "\n\n**** FINISHED CUtf8String TESTS ****\n";
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/
@@ -267,9 +263,16 @@ PerformUtf8SpecificStringTests( void )
 void
 PerformStringTests( void )
 {
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING CString TESTS" );
+    
+    GUCEF_TESTFW_SUITE_SCOPE( "CString" );
+
     PerformTypedStringTests< CORE::CAsciiString >();
     PerformTypedStringTests< CORE::CUtf8String >();
     PerformUtf8SpecificStringTests();
+
+    CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CString TESTS COMPLETED" );
 }
 
 /*-------------------------------------------------------------------------*/

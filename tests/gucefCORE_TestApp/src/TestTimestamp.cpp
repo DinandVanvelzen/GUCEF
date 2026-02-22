@@ -38,6 +38,11 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
 #include "TestTimestamp.h"
 
 /*-------------------------------------------------------------------------//
@@ -46,17 +51,9 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
-
-#define ERRORHERE { GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, CORE::CString( "Test failed @ " ) + __FILE__ + "(" + CORE::Int32ToString( __LINE__ ) + ")" ); DEBUGBREAK; }
-#define ASSERT_TRUE( test ) if ( !(test) ) { ERRORHERE; } 
-#define ASSERT_FALSE( test ) if ( (test) ) { ERRORHERE; }
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -73,20 +70,29 @@ PerformTimestampTests( void )
 {
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING CTimestamp TESTS" );
     
-    try
-    {                              
-        // Test 1: Default construction
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 1: Default construction" );
+    GUCEF_TESTFW_SUITE_SCOPE( "CTimestamp" );
+                              
+    // Test 1: Default construction
+    GUCEF_TESTFW_TESTCASE( "Test 1: Default construction" )
+        try
         {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 1: Default construction" );
             CORE::CTimestamp ts;
             ASSERT_FALSE( ts.IsValid() );
             ASSERT_TRUE( ts.GetTickCount() == 0 );
             ASSERT_TRUE( ts == CORE::CTimestamp::Empty );
         }
-
-        // Test 2: NowLocalTime and NowUTCTime
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 2: NowLocalTime and NowUTCTime" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 2: NowLocalTime and NowUTCTime
+    GUCEF_TESTFW_TESTCASE( "Test 2: NowLocalTime and NowUTCTime" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 2: NowLocalTime and NowUTCTime" );
             CORE::CTimestamp localTs = CORE::CTimestamp::NowLocalTime();
             CORE::CTimestamp utcTs = CORE::CTimestamp::NowUTCTime();
             
@@ -95,10 +101,17 @@ PerformTimestampTests( void )
             ASSERT_TRUE( localTs.GetTickCount() > 0 );
             ASSERT_TRUE( utcTs.GetTickCount() > 0 );
         }
-
-        // Test 3: Copy constructor and assignment
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 3: Copy constructor and assignment" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 3: Copy constructor and assignment
+    GUCEF_TESTFW_TESTCASE( "Test 3: Copy constructor and assignment" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 3: Copy constructor and assignment" );
             CORE::CTimestamp ts1 = CORE::CTimestamp::NowUTCTime();
             CORE::CTimestamp ts2( ts1 );
             CORE::CTimestamp ts3;
@@ -108,10 +121,17 @@ PerformTimestampTests( void )
             ASSERT_TRUE( ts1 == ts3 );
             ASSERT_TRUE( ts2 == ts3 );
         }
-
-        // Test 4: Comparison operators
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: Comparison operators" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 4: Comparison operators
+    GUCEF_TESTFW_TESTCASE( "Test 4: Comparison operators" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: Comparison operators" );
             CORE::CTimestamp ts1 = CORE::CTimestamp::NowUTCTime();
             
             // Small delay to ensure different timestamps
@@ -133,10 +153,17 @@ PerformTimestampTests( void )
             ASSERT_TRUE( ts1 <= ts3 );
             ASSERT_TRUE( ts1 >= ts3 );
         }
-
-        // Test 5: Arithmetic operators
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: Arithmetic operators" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 5: Arithmetic operators
+    GUCEF_TESTFW_TESTCASE( "Test 5: Arithmetic operators" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: Arithmetic operators" );
             CORE::CTimestamp ts1 = CORE::CTimestamp::NowUTCTime();
             Int64 delta = 1000000;  // Some tick delta
             
@@ -158,10 +185,17 @@ PerformTimestampTests( void )
             Int64 diff = ts2 - ts1;
             ASSERT_TRUE( diff == delta );
         }
-
-        // Test 6: Conversion to/from CDateTime
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: Conversion to/from CDateTime" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 6: Conversion to/from CDateTime
+    GUCEF_TESTFW_TESTCASE( "Test 6: Conversion to/from CDateTime" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: Conversion to/from CDateTime" );
             CORE::CDateTime dt = CORE::CDateTime::NowUTCDateTime();
             CORE::CTimestamp ts( dt );
             
@@ -179,10 +213,17 @@ PerformTimestampTests( void )
             ASSERT_TRUE( dt.GetSeconds() == dt2.GetSeconds() );
             // Milliseconds might differ slightly due to timing
         }
-
-        // Test 7: Assignment from CDateTime
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 7: Assignment from CDateTime" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 7: Assignment from CDateTime
+    GUCEF_TESTFW_TESTCASE( "Test 7: Assignment from CDateTime" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 7: Assignment from CDateTime" );
             CORE::CDateTime dt = CORE::CDateTime::NowUTCDateTime();
             CORE::CTimestamp ts;
             ts = dt;
@@ -194,10 +235,17 @@ PerformTimestampTests( void )
             ASSERT_TRUE( dt.GetMonth() == dt2.GetMonth() );
             ASSERT_TRUE( dt.GetDay() == dt2.GetDay() );
         }
-
-        // Test 8: Millisecond conversions
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 8: Millisecond conversions" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 8: Millisecond conversions
+    GUCEF_TESTFW_TESTCASE( "Test 8: Millisecond conversions" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 8: Millisecond conversions" );
             CORE::CTimestamp ts1 = CORE::CTimestamp::NowUTCTime();
             UInt64 ms = ts1.ToMillisecondsSinceEpoch();
             
@@ -210,10 +258,17 @@ PerformTimestampTests( void )
             Int64 diff = ts1.GetTimeDifferenceInMillisecondsTo( ts2 );
             ASSERT_TRUE( diff >= -1 && diff <= 1 );  // Allow 1ms tolerance
         }
-
-        // Test 9: Microsecond conversions
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 9: Microsecond conversions" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 9: Microsecond conversions
+    GUCEF_TESTFW_TESTCASE( "Test 9: Microsecond conversions" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 9: Microsecond conversions" );
             CORE::CTimestamp ts1 = CORE::CTimestamp::NowUTCTime();
             UInt64 us = ts1.ToMicrosecondsSinceEpoch();
             
@@ -225,10 +280,17 @@ PerformTimestampTests( void )
             Int64 diff = ts1.GetTimeDifferenceInMicrosecondsTo( ts2 );
             ASSERT_TRUE( diff >= -1 && diff <= 1 );  // Allow 1us tolerance
         }
-
-        // Test 10: Nanosecond conversions
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 10: Nanosecond conversions" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 10: Nanosecond conversions
+    GUCEF_TESTFW_TESTCASE( "Test 10: Nanosecond conversions" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 10: Nanosecond conversions" );
             CORE::CTimestamp ts1 = CORE::CTimestamp::NowUTCTime();
             UInt64 ns = ts1.ToNanosecondsSinceEpoch();
             
@@ -242,10 +304,17 @@ PerformTimestampTests( void )
             Int64 diffNs = (Int64)ts2.ToNanosecondsSinceEpoch() - (Int64)ns;
             ASSERT_TRUE( diffNs >= -(Int64)resolution && diffNs <= (Int64)resolution );
         }
-
-        // Test 11: GetTimeDifference methods
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 11: GetTimeDifference methods" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 11: GetTimeDifference methods
+    GUCEF_TESTFW_TESTCASE( "Test 11: GetTimeDifference methods" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 11: GetTimeDifference methods" );
             CORE::CTimestamp ts1 = CORE::CTimestamp::NowUTCTime();
             
             // Create ts2 that is 100ms later (using ticks)
@@ -264,10 +333,17 @@ PerformTimestampTests( void )
             Int64 diffUs = ts1.GetTimeDifferenceInMicrosecondsTo( ts2 );
             ASSERT_TRUE( diffUs >= 99000 && diffUs <= 101000 );  // ~100000us
         }
-
-        // Test 12: Clear method
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 12: Clear method" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 12: Clear method
+    GUCEF_TESTFW_TESTCASE( "Test 12: Clear method" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 12: Clear method" );
             CORE::CTimestamp ts = CORE::CTimestamp::NowUTCTime();
             ASSERT_TRUE( ts.IsValid() );
             
@@ -275,10 +351,17 @@ PerformTimestampTests( void )
             ASSERT_FALSE( ts.IsValid() );
             ASSERT_TRUE( ts.GetTickCount() == 0 );
         }
-
-        // Test 13: UnixEpoch
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 13: UnixEpoch" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 13: UnixEpoch
+    GUCEF_TESTFW_TESTCASE( "Test 13: UnixEpoch" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 13: UnixEpoch" );
             CORE::CTimestamp epoch = CORE::CTimestamp::UnixEpoch();
             CORE::CTimestamp now = CORE::CTimestamp::NowUTCTime();
             
@@ -291,10 +374,17 @@ PerformTimestampTests( void )
             ASSERT_TRUE( epochMs == 0 );
             #endif
         }
-
-        // Test 14: GetResolutionInNanoseconds
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 14: GetResolutionInNanoseconds" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 14: GetResolutionInNanoseconds
+    GUCEF_TESTFW_TESTCASE( "Test 14: GetResolutionInNanoseconds" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 14: GetResolutionInNanoseconds" );
             UInt32 resolution = CORE::CTimestamp::GetResolutionInNanoseconds();
             
             // Resolution should be reasonable (1ns to 1ms)
@@ -303,10 +393,17 @@ PerformTimestampTests( void )
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, CORE::CString( "Platform timestamp resolution: " ) + 
                        CORE::UInt32ToString( resolution ) + " ns" );
         }
-
-        // Test 15: Comparison with CDateTime
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 15: Comparison with CDateTime" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 15: Comparison with CDateTime
+    GUCEF_TESTFW_TESTCASE( "Test 15: Comparison with CDateTime" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 15: Comparison with CDateTime" );
             CORE::CDateTime dt = CORE::CDateTime::NowUTCDateTime();
             CORE::CTimestamp ts( dt );
             
@@ -324,10 +421,17 @@ PerformTimestampTests( void )
             ASSERT_FALSE( ts > dtLater );
             ASSERT_FALSE( ts >= dtLater );
         }
-
-        // Test 16: Tick count get/set
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 16: Tick count get/set" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 16: Tick count get/set
+    GUCEF_TESTFW_TESTCASE( "Test 16: Tick count get/set" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 16: Tick count get/set" );
             CORE::CTimestamp ts1 = CORE::CTimestamp::NowUTCTime();
             UInt64 ticks = ts1.GetTickCount();
             
@@ -337,31 +441,52 @@ PerformTimestampTests( void )
             ASSERT_TRUE( ts1 == ts2 );
             ASSERT_TRUE( ts2.GetTickCount() == ticks );
         }
-
-        // Test 17: Construction from ticks
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 17: Construction from ticks" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 17: Construction from ticks
+    GUCEF_TESTFW_TESTCASE( "Test 17: Construction from ticks" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 17: Construction from ticks" );
             UInt64 ticks = 1234567890123456ULL;
             CORE::CTimestamp ts( ticks );
             
             ASSERT_TRUE( ts.GetTickCount() == ticks );
             ASSERT_TRUE( ts.IsValid() );
         }
-
-        // Test 18: Empty constant
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 18: Empty constant" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 18: Empty constant
+    GUCEF_TESTFW_TESTCASE( "Test 18: Empty constant" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 18: Empty constant" );
             ASSERT_FALSE( CORE::CTimestamp::Empty.IsValid() );
             ASSERT_TRUE( CORE::CTimestamp::Empty.GetTickCount() == 0 );
             
             CORE::CTimestamp ts;
             ASSERT_TRUE( ts == CORE::CTimestamp::Empty );
         }
-
-        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
-        // Test 19: Windows FILETIME conversion (Windows only)
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 19: Windows FILETIME conversion" );
+        catch( ... )
         {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    // Test 19: Windows FILETIME conversion (Windows only)
+    GUCEF_TESTFW_TESTCASE( "Test 19: Windows FILETIME conversion" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 19: Windows FILETIME conversion" );
             CORE::CTimestamp ts1 = CORE::CTimestamp::NowUTCTime();
             
             FILETIME ft = ts1.ToWindowsFiletime();
@@ -371,15 +496,15 @@ PerformTimestampTests( void )
             
             ASSERT_TRUE( ts1 == ts2 );
         }
-        #endif
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+    #endif
 
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CTimestamp TESTS PASSED" );
-    }
-    catch ( const std::exception& e )
-    {
-        GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, CORE::CString( "Exception caught: " ) + e.what() );
-        ERRORHERE;
-    }
+    CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CTimestamp TESTS COMPLETED" );
 }
 
 /*-------------------------------------------------------------------------*/

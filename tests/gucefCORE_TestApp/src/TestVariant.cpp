@@ -23,12 +23,20 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <iostream>
-
 #ifndef GUCEF_CORE_CVARIANT_H
 #include "gucefCORE_CVariant.h"
 #define GUCEF_CORE_CVARIANT_H
 #endif /* GUCEF_CORE_CVARIANT_H ? */
+
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
 #include "TestVariant.h"
 
@@ -38,17 +46,9 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
-
-#define ERRORHERE { std::cout << "Test failed @ " << __FILE__ << "(" << __LINE__ << ")\n"; DEBUGBREAK; }
-#define ASSERT_TRUE( test ) if ( !(test) ) { ERRORHERE; } 
-#define ASSERT_FALSE( test ) if ( (test) ) { ERRORHERE; }
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -63,97 +63,161 @@ using namespace GUCEF;
 void
 PerformVariantTests( void )
 {
-    std::cout << "\n\n**** COMMENCING CVariant TESTS ****\n";
-    
-    try
-    {
-        CORE::CVariant var;
-        ASSERT_TRUE( var.GetTypeId() == GUCEF_DATATYPE_UNKNOWN );
-        ASSERT_TRUE( var.GetTypeName() == GUCEF_DATATYPE_NAME_UNKNOWN );
-        ASSERT_FALSE( var.IsInteger() );
-        ASSERT_FALSE( var.IsBlob() );
-        ASSERT_FALSE( var.IsBsob() );
-        ASSERT_FALSE( var.IsBoolean() );        
-        ASSERT_FALSE( var.IsFloat() );
-        ASSERT_TRUE( var.IsNULLOrEmpty() );
-        ASSERT_FALSE( var.IsString() );
-        ASSERT_FALSE( var.IsDynamicMemoryLinked() );
-        ASSERT_FALSE( var.IsInitialized() );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING CVariant TESTS" );
 
-        var = Int8( 1 );
-        ASSERT_TRUE( var.GetTypeId() == GUCEF_DATATYPE_INT8 );
-        ASSERT_TRUE( var.GetTypeName() == GUCEF_DATATYPE_NAME_INT8 );
-        ASSERT_TRUE( var.IsInteger() );
-        ASSERT_FALSE( var.IsBlob() );
-        ASSERT_FALSE( var.IsBsob() );
-        ASSERT_FALSE( var.IsBoolean() );        
-        ASSERT_FALSE( var.IsFloat() );
-        ASSERT_FALSE( var.IsNULLOrEmpty() );
-        ASSERT_FALSE( var.IsString() );
-        ASSERT_FALSE( var.IsDynamicMemoryLinked() );
-        ASSERT_TRUE( var.IsInitialized() );
+    GUCEF_TESTFW_SUITE_SCOPE( "CVariant" );
 
-        var = Float32( 1.0f );
-        ASSERT_TRUE( var.GetTypeId() == GUCEF_DATATYPE_FLOAT32 );
-        ASSERT_TRUE( var.GetTypeName() == GUCEF_DATATYPE_NAME_FLOAT32 );
-        ASSERT_FALSE( var.IsInteger() );
-        ASSERT_FALSE( var.IsBlob() );
-        ASSERT_FALSE( var.IsBsob() );
-        ASSERT_FALSE( var.IsBoolean() );        
-        ASSERT_TRUE( var.IsFloat() );
-        ASSERT_FALSE( var.IsNULLOrEmpty() );
-        ASSERT_FALSE( var.IsString() );
-        ASSERT_FALSE( var.IsDynamicMemoryLinked() );
-        ASSERT_TRUE( var.IsInitialized() );
+    // Test 1: Default construction - unknown type
+    GUCEF_TESTFW_TESTCASE( "Test 1: Default construction - unknown type" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 1: Default construction - unknown type" );
+            CORE::CVariant var;
+            ASSERT_TRUE( var.GetTypeId() == GUCEF_DATATYPE_UNKNOWN );
+            ASSERT_TRUE( var.GetTypeName() == GUCEF_DATATYPE_NAME_UNKNOWN );
+            ASSERT_FALSE( var.IsInteger() );
+            ASSERT_FALSE( var.IsBlob() );
+            ASSERT_FALSE( var.IsBsob() );
+            ASSERT_FALSE( var.IsBoolean() );        
+            ASSERT_FALSE( var.IsFloat() );
+            ASSERT_TRUE( var.IsNULLOrEmpty() );
+            ASSERT_FALSE( var.IsString() );
+            ASSERT_FALSE( var.IsDynamicMemoryLinked() );
+            ASSERT_FALSE( var.IsInitialized() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 
-        var = Float64( 1.0 );
-        ASSERT_TRUE( var.GetTypeId() == GUCEF_DATATYPE_FLOAT64 );
-        ASSERT_TRUE( var.GetTypeName() == GUCEF_DATATYPE_NAME_FLOAT64 );
-        ASSERT_FALSE( var.IsInteger() );
-        ASSERT_FALSE( var.IsBlob() );
-        ASSERT_FALSE( var.IsBsob() );
-        ASSERT_FALSE( var.IsBoolean() );        
-        ASSERT_TRUE( var.IsFloat() );
-        ASSERT_FALSE( var.IsNULLOrEmpty() );
-        ASSERT_FALSE( var.IsString() );
-        ASSERT_FALSE( var.IsDynamicMemoryLinked() );
-        ASSERT_TRUE( var.IsInitialized() );
+    // Test 2: Int8 assignment and type detection
+    GUCEF_TESTFW_TESTCASE( "Test 2: Int8 assignment and type detection" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 2: Int8 assignment and type detection" );
+            CORE::CVariant var;
+            var = Int8( 1 );
+            ASSERT_TRUE( var.GetTypeId() == GUCEF_DATATYPE_INT8 );
+            ASSERT_TRUE( var.GetTypeName() == GUCEF_DATATYPE_NAME_INT8 );
+            ASSERT_TRUE( var.IsInteger() );
+            ASSERT_FALSE( var.IsBlob() );
+            ASSERT_FALSE( var.IsBsob() );
+            ASSERT_FALSE( var.IsBoolean() );        
+            ASSERT_FALSE( var.IsFloat() );
+            ASSERT_FALSE( var.IsNULLOrEmpty() );
+            ASSERT_FALSE( var.IsString() );
+            ASSERT_FALSE( var.IsDynamicMemoryLinked() );
+            ASSERT_TRUE( var.IsInitialized() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 
-        var = UInt16( 1 );
-        ASSERT_TRUE( var.GetTypeId() == GUCEF_DATATYPE_UINT16 );
-        ASSERT_TRUE( var.GetTypeName() == GUCEF_DATATYPE_NAME_UINT16 );
-        ASSERT_TRUE( var.IsInteger() );
-        ASSERT_FALSE( var.IsBlob() );
-        ASSERT_FALSE( var.IsBsob() );
-        ASSERT_FALSE( var.IsBoolean() );        
-        ASSERT_FALSE( var.IsFloat() );
-        ASSERT_FALSE( var.IsNULLOrEmpty() );
-        ASSERT_FALSE( var.IsString() );
-        ASSERT_FALSE( var.IsDynamicMemoryLinked() );
-        ASSERT_TRUE( var.IsInitialized() );
+    // Test 3: Float32 assignment and type detection
+    GUCEF_TESTFW_TESTCASE( "Test 3: Float32 assignment and type detection" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 3: Float32 assignment and type detection" );
+            CORE::CVariant var;
+            var = Float32( 1.0f );
+            ASSERT_TRUE( var.GetTypeId() == GUCEF_DATATYPE_FLOAT32 );
+            ASSERT_TRUE( var.GetTypeName() == GUCEF_DATATYPE_NAME_FLOAT32 );
+            ASSERT_FALSE( var.IsInteger() );
+            ASSERT_FALSE( var.IsBlob() );
+            ASSERT_FALSE( var.IsBsob() );
+            ASSERT_FALSE( var.IsBoolean() );        
+            ASSERT_TRUE( var.IsFloat() );
+            ASSERT_FALSE( var.IsNULLOrEmpty() );
+            ASSERT_FALSE( var.IsString() );
+            ASSERT_FALSE( var.IsDynamicMemoryLinked() );
+            ASSERT_TRUE( var.IsInitialized() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 
-        var = Int32( 1 );
-        ASSERT_TRUE( var.GetTypeId() == GUCEF_DATATYPE_INT32 );
-        ASSERT_TRUE( var.GetTypeName() == GUCEF_DATATYPE_NAME_INT32 );
-        ASSERT_TRUE( var.IsInteger() );
-        ASSERT_FALSE( var.IsBlob() );
-        ASSERT_FALSE( var.IsBsob() );
-        ASSERT_FALSE( var.IsBoolean() );        
-        ASSERT_FALSE( var.IsFloat() );
-        ASSERT_FALSE( var.IsNULLOrEmpty() );
-        ASSERT_FALSE( var.IsString() );
-        ASSERT_FALSE( var.IsDynamicMemoryLinked() );
-        ASSERT_TRUE( var.IsInitialized() );
+    // Test 4: Float64 assignment and type detection
+    GUCEF_TESTFW_TESTCASE( "Test 4: Float64 assignment and type detection" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: Float64 assignment and type detection" );
+            CORE::CVariant var;
+            var = Float64( 1.0 );
+            ASSERT_TRUE( var.GetTypeId() == GUCEF_DATATYPE_FLOAT64 );
+            ASSERT_TRUE( var.GetTypeName() == GUCEF_DATATYPE_NAME_FLOAT64 );
+            ASSERT_FALSE( var.IsInteger() );
+            ASSERT_FALSE( var.IsBlob() );
+            ASSERT_FALSE( var.IsBsob() );
+            ASSERT_FALSE( var.IsBoolean() );        
+            ASSERT_TRUE( var.IsFloat() );
+            ASSERT_FALSE( var.IsNULLOrEmpty() );
+            ASSERT_FALSE( var.IsString() );
+            ASSERT_FALSE( var.IsDynamicMemoryLinked() );
+            ASSERT_TRUE( var.IsInitialized() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 
+    // Test 5: UInt16 assignment and type detection
+    GUCEF_TESTFW_TESTCASE( "Test 5: UInt16 assignment and type detection" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: UInt16 assignment and type detection" );
+            CORE::CVariant var;
+            var = UInt16( 1 );
+            ASSERT_TRUE( var.GetTypeId() == GUCEF_DATATYPE_UINT16 );
+            ASSERT_TRUE( var.GetTypeName() == GUCEF_DATATYPE_NAME_UINT16 );
+            ASSERT_TRUE( var.IsInteger() );
+            ASSERT_FALSE( var.IsBlob() );
+            ASSERT_FALSE( var.IsBsob() );
+            ASSERT_FALSE( var.IsBoolean() );        
+            ASSERT_FALSE( var.IsFloat() );
+            ASSERT_FALSE( var.IsNULLOrEmpty() );
+            ASSERT_FALSE( var.IsString() );
+            ASSERT_FALSE( var.IsDynamicMemoryLinked() );
+            ASSERT_TRUE( var.IsInitialized() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 
+    // Test 6: Int32 assignment and type detection
+    GUCEF_TESTFW_TESTCASE( "Test 6: Int32 assignment and type detection" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: Int32 assignment and type detection" );
+            CORE::CVariant var;
+            var = Int32( 1 );
+            ASSERT_TRUE( var.GetTypeId() == GUCEF_DATATYPE_INT32 );
+            ASSERT_TRUE( var.GetTypeName() == GUCEF_DATATYPE_NAME_INT32 );
+            ASSERT_TRUE( var.IsInteger() );
+            ASSERT_FALSE( var.IsBlob() );
+            ASSERT_FALSE( var.IsBsob() );
+            ASSERT_FALSE( var.IsBoolean() );        
+            ASSERT_FALSE( var.IsFloat() );
+            ASSERT_FALSE( var.IsNULLOrEmpty() );
+            ASSERT_FALSE( var.IsString() );
+            ASSERT_FALSE( var.IsDynamicMemoryLinked() );
+            ASSERT_TRUE( var.IsInitialized() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 
-    }
-    catch( ... )
-    {
-        ERRORHERE;
-    }
-
-    std::cout << "\n\n**** FINISHED CVariant TESTS ****\n";
+    CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CVariant TESTS COMPLETED" );
 }
 
 /*-------------------------------------------------------------------------*/

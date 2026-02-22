@@ -23,12 +23,20 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <iostream>
-
 #ifndef GUCEF_CORE_CDATETIME_H
 #include "gucefCORE_CDateTime.h"
 #define GUCEF_CORE_CDATETIME_H
 #endif /* GUCEF_CORE_CDATETIME_H ? */
+
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
 #include "TestDateTime.h"
 
@@ -40,17 +48,9 @@ using namespace GUCEF;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
-
-#define ERRORHERE { std::cout << "Test failed @ " << __FILE__ << "(" << __LINE__ << ")\n"; DEBUGBREAK; }
-#define ASSERT_TRUE( test ) if ( !(test) ) { ERRORHERE; } 
-#define ASSERT_FALSE( test ) if ( (test) ) { ERRORHERE; }
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -223,32 +223,30 @@ static const std::vector< StringParseTestCase > stringParseTestCases = {
 void
 PerformDateTimeStringParsingTests( void )
 {
-    std::cout << "\n\n**** COMMENCING DateTime STRING PARSING TESTS ****\n";
-    
-    try
-    {
-        for ( UInt32 i=0; i<stringParseTestCases.size(); ++i )
+    GUCEF_TESTFW_TESTCASE( "Test: DateTime string parsing" )
+        try
         {
-            const StringParseTestCase& testCase = stringParseTestCases[ i ];
-            CORE::CDateTime dateTime;
+            for ( UInt32 i=0; i<stringParseTestCases.size(); ++i )
+            {
+                const StringParseTestCase& testCase = stringParseTestCases[ i ];
+                CORE::CDateTime dateTime;
 
-            ASSERT_TRUE( dateTime.FromIso8601DateTimeString( testCase.dateTimeString ) );
-            ASSERT_TRUE( dateTime.GetYear() == testCase.dateTimeStringResult[ 0 ] );
-            ASSERT_TRUE( dateTime.GetMonth() == testCase.dateTimeStringResult[ 1 ] );
-            ASSERT_TRUE( dateTime.GetDay() == testCase.dateTimeStringResult[ 2 ] );
-            ASSERT_TRUE( dateTime.GetHours() == testCase.dateTimeStringResult[ 3 ] );
-            ASSERT_TRUE( dateTime.GetMinutes() == testCase.dateTimeStringResult[ 4 ] );
-            ASSERT_TRUE( dateTime.GetSeconds() == testCase.dateTimeStringResult[ 5 ] );
-            ASSERT_TRUE( dateTime.GetMilliseconds() == testCase.dateTimeStringResult[ 6 ] );
-            ASSERT_TRUE( dateTime.GetTimeZoneUTCOffsetInMins() == testCase.tzOffsetResult );
+                ASSERT_TRUE( dateTime.FromIso8601DateTimeString( testCase.dateTimeString ) );
+                ASSERT_TRUE( dateTime.GetYear() == testCase.dateTimeStringResult[ 0 ] );
+                ASSERT_TRUE( dateTime.GetMonth() == testCase.dateTimeStringResult[ 1 ] );
+                ASSERT_TRUE( dateTime.GetDay() == testCase.dateTimeStringResult[ 2 ] );
+                ASSERT_TRUE( dateTime.GetHours() == testCase.dateTimeStringResult[ 3 ] );
+                ASSERT_TRUE( dateTime.GetMinutes() == testCase.dateTimeStringResult[ 4 ] );
+                ASSERT_TRUE( dateTime.GetSeconds() == testCase.dateTimeStringResult[ 5 ] );
+                ASSERT_TRUE( dateTime.GetMilliseconds() == testCase.dateTimeStringResult[ 6 ] );
+                ASSERT_TRUE( dateTime.GetTimeZoneUTCOffsetInMins() == testCase.tzOffsetResult );
+            }
         }
-    }
-    catch( ... )
-    {
-        ERRORHERE;
-    }
-
-    std::cout << "\n\n**** FINISHED DateTime STRING PARSING TESTS ****\n";
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/
@@ -256,19 +254,14 @@ PerformDateTimeStringParsingTests( void )
 void
 PerformDateTimeTests( void )
 {
-    std::cout << "\n\n**** COMMENCING DateTime TESTS ****\n";
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING DateTime TESTS" );
     
-    try
-    {
-        PerformDateTimeStringParsingTests();
-        
-    }
-    catch( ... )
-    {
-        ERRORHERE;
-    }
+    GUCEF_TESTFW_SUITE_SCOPE( "CDateTime" );
 
-    std::cout << "\n\n**** FINISHED DateTime TESTS ****\n";
+    PerformDateTimeStringParsingTests();
+
+    CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL DateTime TESTS COMPLETED" );
 }
 
 /*-------------------------------------------------------------------------*/

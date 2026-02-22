@@ -33,6 +33,11 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
 #include "TestStopwatch.h"
 
 /*-------------------------------------------------------------------------//
@@ -41,17 +46,9 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
-
-#define ERRORHERE { GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, CORE::CString( "Test failed @ " ) + __FILE__ + "(" + CORE::Int32ToString( __LINE__ ) + ")" ); DEBUGBREAK; }
-#define ASSERT_TRUE( test ) if ( !(test) ) { ERRORHERE; } 
-#define ASSERT_FALSE( test ) if ( (test) ) { ERRORHERE; }
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -77,6 +74,9 @@ PerformStopwatchTests( void )
 {
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING CStopwatch TESTS" );
     
+    GUCEF_TESTFW_SUITE_SCOPE( "CStopwatch" );
+
+    GUCEF_TESTFW_TESTCASE( "Test: Stopwatch operations" )
     try
     {                              
         // Test 1: Default construction
@@ -378,6 +378,10 @@ PerformStopwatchTests( void )
         GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_IMPORTANT, CORE::CString( "Exception caught: " ) + e.what() );
         ERRORHERE;
     }
+    GUCEF_TESTFW_TESTCASE_END
+
+    CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CStopwatch TESTS COMPLETED" );
 }
 
 /*-------------------------------------------------------------------------*/

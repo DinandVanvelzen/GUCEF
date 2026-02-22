@@ -23,7 +23,6 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <iostream>
 #include <vector>
 #include <memory>
 
@@ -57,6 +56,16 @@
 #define GUCEF_MT_CSCOPEMUTEX_H
 #endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
 
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
 #include "TestASync.h"
 
 using namespace GUCEF;
@@ -67,17 +76,9 @@ using namespace GUCEF;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
-
-#define ERRORHERE { std::cout << "Test failed @ " << __FILE__ << "(" << __LINE__ << ")\n"; DEBUGBREAK; }
-#define ASSERT_TRUE( test ) if ( !(test) ) { ERRORHERE; } 
-#define ASSERT_FALSE( test ) if ( (test) ) { ERRORHERE; }
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -489,675 +490,682 @@ TestFinalTaskCountsAfterTests()
 
 void TestBasicASyncConstruction()
 {
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "\n=== Testing Basic CASync Construction ===\n" );
-    
-    try
-    {
-        // Test default construction
-        CASyncTestAccess async1;
-        CORE::CTaskPtr lastTask = async1.GetLastTaskPublic();
-        ASSERT_TRUE( lastTask.IsNULL() );
-        CASyncTestAccess::TASyncChainStatePtr state = async1.GetChainStatePublic();
-        ASSERT_TRUE( !state.IsNULL() );
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Default CASync construction successful" );
-        
-        // Test construction with different thread pool name
-        CASyncTestAccess async2( "TestPoolWithDifferentName" );
-        lastTask = async2.GetLastTaskPublic();
-        CORE::ThreadPoolPtr threadPool1 = async2.GetThreadPoolPublic();
-        ASSERT_TRUE( lastTask.IsNULL() );
-        ASSERT_TRUE( !threadPool1.IsNULL() );
-        ASSERT_TRUE( threadPool1->GetThreadPoolName() == "TestPoolWithDifferentName" );
-        state = async2.GetChainStatePublic();
-        ASSERT_TRUE( !state.IsNULL() );
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Named thread pool CASync construction successful" );
+    GUCEF_TESTFW_TESTCASE( "Test 1: Basic CASync Construction" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 1: Basic CASync Construction" );
+            
+            // Test default construction
+            CASyncTestAccess async1;
+            CORE::CTaskPtr lastTask = async1.GetLastTaskPublic();
+            ASSERT_TRUE( lastTask.IsNULL() );
+            CASyncTestAccess::TASyncChainStatePtr state = async1.GetChainStatePublic();
+            ASSERT_TRUE( !state.IsNULL() );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Default CASync construction successful" );
+            
+            // Test construction with different thread pool name
+            CASyncTestAccess async2( "TestPoolWithDifferentName" );
+            lastTask = async2.GetLastTaskPublic();
+            CORE::ThreadPoolPtr threadPool1 = async2.GetThreadPoolPublic();
+            ASSERT_TRUE( lastTask.IsNULL() );
+            ASSERT_TRUE( !threadPool1.IsNULL() );
+            ASSERT_TRUE( threadPool1->GetThreadPoolName() == "TestPoolWithDifferentName" );
+            state = async2.GetChainStatePublic();
+            ASSERT_TRUE( !state.IsNULL() );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Named thread pool CASync construction successful" );
 
-        // Test construction with thread pool pointer
-        CORE::ThreadPoolPtr threadPool2 = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( "TestPoolWithDifferentName2" );
-        ASSERT_TRUE( !threadPool2.IsNULL() );
-        ASSERT_TRUE( threadPool2->GetThreadPoolName() == "TestPoolWithDifferentName2" );
-        CASyncTestAccess async3( threadPool2 );
-        lastTask = async3.GetLastTaskPublic();
-        ASSERT_TRUE( lastTask.IsNULL() );
-        state = async3.GetChainStatePublic();
-        ASSERT_TRUE( !state.IsNULL() );
+            // Test construction with thread pool pointer
+            CORE::ThreadPoolPtr threadPool2 = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( "TestPoolWithDifferentName2" );
+            ASSERT_TRUE( !threadPool2.IsNULL() );
+            ASSERT_TRUE( threadPool2->GetThreadPoolName() == "TestPoolWithDifferentName2" );
+            CASyncTestAccess async3( threadPool2 );
+            lastTask = async3.GetLastTaskPublic();
+            ASSERT_TRUE( lastTask.IsNULL() );
+            state = async3.GetChainStatePublic();
+            ASSERT_TRUE( !state.IsNULL() );
 
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Thread pool pointer CASync construction successful === " );
-        
-    }
-    catch(const std::exception& e)
-    {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Exception in TestBasicASyncConstruction: " + CORE::ToString( e.what() ) );
-        ERRORHERE;
-    }
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Thread pool pointer CASync construction successful" );
+        }
+        catch(const std::exception& e)
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Exception in TestBasicASyncConstruction: " + CORE::ToString( e.what() ) );
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 void TestSimpleCallbacks()
 {
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Testing Simple Callbacks === " );
+    GUCEF_TESTFW_TESTCASE( "Test 2: Simple Callbacks" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 2: Simple Callbacks" );
 
-    try
-    {
-        // Test callback with no parameters
-        {
-            CASyncTestAccess async;
-            CORE::CFutureResult result = async.QueueCallback( SimpleCallback0 );
-     
-            ASSERT_TRUE(result.HasAFuture());
-            CORE::CTaskPtr task = result.GetResult(50000);
-            ASSERT_TRUE(!task.IsNULL());
-            ASSERT_TRUE(task->IsTaskInEndState());
-            std::cout << "Simple callback 0 test passed\n";
-        }
-        TestFinalTaskCountsAfterTests();
-      
-        // Test callback with 1 parameter
-        {
-            CASyncTestAccess async;
-            CORE::CFutureResult result = async.QueueCallback( SimpleCallback1, 10);
-    
-            ASSERT_TRUE(result.HasAFuture());
-            CORE::CTaskPtr task = result.GetResult(50000);
-            ASSERT_TRUE(!task.IsNULL());
-            ASSERT_TRUE(task->IsTaskInEndState());
-            std::cout << "Simple callback 1 test passed\n";
-        }
-        TestFinalTaskCountsAfterTests();
+            // Test callback with no parameters
+            {
+                CASyncTestAccess async;
+                CORE::CFutureResult result = async.QueueCallback( SimpleCallback0 );
+         
+                ASSERT_TRUE(result.HasAFuture());
+                CORE::CTaskPtr task = result.GetResult(50000);
+                ASSERT_TRUE(!task.IsNULL());
+                ASSERT_TRUE(task->IsTaskInEndState());
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Simple callback 0 test passed" );
+            }
+            TestFinalTaskCountsAfterTests();
+          
+            // Test callback with 1 parameter
+            {
+                CASyncTestAccess async;
+                CORE::CFutureResult result = async.QueueCallback( SimpleCallback1, 10);
         
-        // Test callback with 2 parameters
-        {
-            CASyncTestAccess async;
-            CORE::CFutureResult result = async.QueueCallback( SimpleCallback2, 5, 7);
+                ASSERT_TRUE(result.HasAFuture());
+                CORE::CTaskPtr task = result.GetResult(50000);
+                ASSERT_TRUE(!task.IsNULL());
+                ASSERT_TRUE(task->IsTaskInEndState());
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Simple callback 1 test passed" );
+            }
+            TestFinalTaskCountsAfterTests();
             
-            ASSERT_TRUE(result.HasAFuture());
-            CORE::CTaskPtr task = result.GetResult(50000);
-            ASSERT_TRUE(!task.IsNULL());
-            ASSERT_TRUE(task->IsTaskInEndState());
-            std::cout << "Simple callback 2 test passed\n";
-        }
-        TestFinalTaskCountsAfterTests();
+            // Test callback with 2 parameters
+            {
+                CASyncTestAccess async;
+                CORE::CFutureResult result = async.QueueCallback( SimpleCallback2, 5, 7);
+                
+                ASSERT_TRUE(result.HasAFuture());
+                CORE::CTaskPtr task = result.GetResult(50000);
+                ASSERT_TRUE(!task.IsNULL());
+                ASSERT_TRUE(task->IsTaskInEndState());
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Simple callback 2 test passed" );
+            }
+            TestFinalTaskCountsAfterTests();
+            
+            // Test callback with 3 parameters
+            {
+                CASyncTestAccess async;
+                CORE::CFutureResult result = async.QueueCallback(SimpleCallback3, 1, 2, 3);
         
-        // Test callback with 3 parameters
-        {
-            CASyncTestAccess async;
-            CORE::CFutureResult result = async.QueueCallback(SimpleCallback3, 1, 2, 3);
-    
-            ASSERT_TRUE(result.HasAFuture());
-            CORE::CTaskPtr task = result.GetResult(50000);
-            ASSERT_TRUE(!task.IsNULL());
-            ASSERT_TRUE(task->IsTaskInEndState());
-            std::cout << "Simple callback 3 test passed\n";
+                ASSERT_TRUE(result.HasAFuture());
+                CORE::CTaskPtr task = result.GetResult(50000);
+                ASSERT_TRUE(!task.IsNULL());
+                ASSERT_TRUE(task->IsTaskInEndState());
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Simple callback 3 test passed" );
+            }
+            TestFinalTaskCountsAfterTests();
+     
+            // Test callback with 4 parameters
+            {
+                CASyncTestAccess async;
+                CORE::CFutureResult result = async.QueueCallback( SimpleCallback4, 1, 2, 3, 4);
+       
+                ASSERT_TRUE(result.HasAFuture());
+                CORE::CTaskPtr task = result.GetResult(50000);
+                ASSERT_TRUE(!task.IsNULL());
+                ASSERT_TRUE(task->IsTaskInEndState());
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Simple callback 4 test passed" );
+            }
+            TestFinalTaskCountsAfterTests();
         }
-        TestFinalTaskCountsAfterTests();
- 
-        // Test callback with 4 parameters
+        catch( const timeout_exception& e )
         {
-            CASyncTestAccess async;
-            CORE::CFutureResult result = async.QueueCallback( SimpleCallback4, 1, 2, 3, 4);
-   
-            ASSERT_TRUE(result.HasAFuture());
-            CORE::CTaskPtr task = result.GetResult(50000);
-            ASSERT_TRUE(!task.IsNULL());
-            ASSERT_TRUE(task->IsTaskInEndState());
-            std::cout << "Simple callback 4 test passed\n";
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Timeout Exception in TestSimpleCallbacks: " + CORE::ToString( e.what() ) );
+            ERRORHERE;
         }
-        TestFinalTaskCountsAfterTests();
-    }
-    catch( const timeout_exception& e )
-    {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Timeout Exception in TestSimpleCallbacks: " + CORE::ToString( e.what() ) );
-        ERRORHERE;
-    }
-    catch( const std::exception& e )
-    {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Exception in TestSimpleCallbacks: " + CORE::ToString( e.what() ) );
-        ERRORHERE;
-    }
-
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Finished Testing Simple Callbacks === " );
+        catch( const std::exception& e )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Exception in TestSimpleCallbacks: " + CORE::ToString( e.what() ) );
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 void TestTaskChaining1Deep()
 {
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === Testing Task Chaining 1 Deep === ");
-
-    try
-    {
-        g_testResults.clear();
-        
-        // Test simple chain
+    GUCEF_TESTFW_TESTCASE( "Test 3: Task Chaining 1 Deep" )
+        try
         {
-            CASyncTestAccess async;
-            CORE::CFutureResult result = async.QueueCallback( SimpleCallback0 )
-                                              .ThenCallback( ChainCallback1 );
-     
-            ASSERT_TRUE(result.HasAFuture());
-            CORE::CTaskPtr task = result.GetResult( 10000 );
-            ASSERT_TRUE(!task.IsNULL());
-            ASSERT_TRUE(task->IsTaskInEndState());
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Test 3: Task Chaining 1 Deep");
+            g_testResults.clear();
+            
+            // Test simple chain
+            {
+                CASyncTestAccess async;
+                CORE::CFutureResult result = async.QueueCallback( SimpleCallback0 )
+                                                  .ThenCallback( ChainCallback1 );
+         
+                ASSERT_TRUE(result.HasAFuture());
+                CORE::CTaskPtr task = result.GetResult( 10000 );
+                ASSERT_TRUE(!task.IsNULL());
+                ASSERT_TRUE(task->IsTaskInEndState());
 
-            // Verify the chain executed in order
-            MT::CScopeMutex lock( g_testMutex );
-            ASSERT_TRUE( g_testResults.size() == 1 );
-            ASSERT_TRUE( g_testResults[ 0 ] == 1 );
-            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Task chaining 1 Deep test passed");
+                // Verify the chain executed in order
+                MT::CScopeMutex lock( g_testMutex );
+                ASSERT_TRUE( g_testResults.size() == 1 );
+                ASSERT_TRUE( g_testResults[ 0 ] == 1 );
+                GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Task chaining 1 Deep test passed");
+            }
+          
+            g_testResults.clear();
+
+            TestFinalTaskCountsAfterTests();
         }
-      
-        g_testResults.clear();
-
-        TestFinalTaskCountsAfterTests();
-    }
-    catch(const timeout_exception& e)
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Timeout Exception in TestTaskChaining 1 Deep: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
-    catch(const std::exception& e)
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestTaskChaining 1 Deep: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
-
-
+        catch(const timeout_exception& e)
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Timeout Exception in TestTaskChaining 1 Deep: " + CORE::ToString( e.what() ));
+            ERRORHERE;
+        }
+        catch(const std::exception& e)
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestTaskChaining 1 Deep: " + CORE::ToString( e.what() ));
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 void TestTaskChaining3Deep()
 {
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Testing Task Chaining 3 Deep === " );
-
-    try
-    {
-        g_testResults.clear();
-        
-        // Test simple chain
+    GUCEF_TESTFW_TESTCASE( "Test 4: Task Chaining 3 Deep" )
+        try
         {
-            CASyncTestAccess async;
-            CORE::CFutureResult result = async.QueueCallback( SimpleCallback0 )
-                                              .ThenCallback( ChainCallback1 )
-                                              .ThenCallback( ChainCallback2, 3 )
-                                              .ThenCallback( ChainCallback3, 10, 20 );
-     
-            ASSERT_TRUE(result.HasAFuture());
-            CORE::CTaskPtr task = result.GetResult(1000800000);
-            ASSERT_TRUE(!task.IsNULL());
-            ASSERT_TRUE(task->IsTaskInEndState());
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: Task Chaining 3 Deep" );
+            g_testResults.clear();
             
-            // Wait a bit for all chained tasks to complete
-            //MT::PrecisionDelay(1000);
+            // Test simple chain
+            {
+                CASyncTestAccess async;
+                CORE::CFutureResult result = async.QueueCallback( SimpleCallback0 )
+                                                  .ThenCallback( ChainCallback1 )
+                                                  .ThenCallback( ChainCallback2, 3 )
+                                                  .ThenCallback( ChainCallback3, 10, 20 );
+         
+                ASSERT_TRUE(result.HasAFuture());
+                CORE::CTaskPtr task = result.GetResult(1000800000);
+                ASSERT_TRUE(!task.IsNULL());
+                ASSERT_TRUE(task->IsTaskInEndState());
+                
+                // Verify the chain executed in order
+                MT::CScopeMutex lock(g_testMutex);
+                ASSERT_TRUE(g_testResults.size() == 3);
+                ASSERT_TRUE(g_testResults[0] == 1);
+                ASSERT_TRUE(g_testResults[1] == 2);
+                ASSERT_TRUE(g_testResults[2] == 3);
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Task chaining test passed" );
+            }
+          
+            g_testResults.clear();
 
-            // Verify the chain executed in order
-            MT::CScopeMutex lock(g_testMutex);
-            ASSERT_TRUE(g_testResults.size() == 3);
-            ASSERT_TRUE(g_testResults[0] == 1);
-            ASSERT_TRUE(g_testResults[1] == 2);
-            ASSERT_TRUE(g_testResults[2] == 3);
-            std::cout << "Task chaining test passed\n";
+            TestFinalTaskCountsAfterTests();
+
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Task Chaining 3 Deep test completed" );
         }
-      
-        g_testResults.clear();
-
-        TestFinalTaskCountsAfterTests();
-
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Task Chaining 3 Deep test completed === " );
-    }
-    catch(const timeout_exception& e)
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Timeout Exception in TestTaskChaining 3Deep: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
-    catch(const std::exception& e)
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestTaskChaining 3Deep: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
+        catch(const timeout_exception& e)
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Timeout Exception in TestTaskChaining 3Deep: " + CORE::ToString( e.what() ));
+            ERRORHERE;
+        }
+        catch(const std::exception& e)
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestTaskChaining 3Deep: " + CORE::ToString( e.what() ));
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 void TestTaskChaining3DeepWithResultPassing()
 {
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Testing Task Chaining 3 Deep With Prior Result Passing === " );
-
-    try
-    {
-        g_testResults.clear();
-        
-        // Test chain going back and forth with prior result passing
+    GUCEF_TESTFW_TESTCASE( "Test 5: Task Chaining 3 Deep With Result Passing" )
+        try
         {
-            CASyncTestAccess async;
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: Task Chaining 3 Deep With Prior Result Passing" );
+            g_testResults.clear();
             
-            CORE::CFutureResult result = async.QueueCallback( SimpleCallback1, 6 )
-                                              .ThenCallback( ChainCallback1 )
-                                              .ThenPassToCallback( ChainForwardingCallback0B )
-                                              .ThenCallback( ChainCallback2, 3 )
-                                              .ThenPassToCallback( ChainForwardingCallback1B )
-                                              .ThenCallback( ChainCallback3, 3, 6 )
-                                              .ThenPassToCallback( ChainForwardingCallback2B );
+            // Test chain going back and forth with prior result passing
+            {
+                CASyncTestAccess async;
+                
+                CORE::CFutureResult result = async.QueueCallback( SimpleCallback1, 6 )
+                                                  .ThenCallback( ChainCallback1 )
+                                                  .ThenPassToCallback( ChainForwardingCallback0B )
+                                                  .ThenCallback( ChainCallback2, 3 )
+                                                  .ThenPassToCallback( ChainForwardingCallback1B )
+                                                  .ThenCallback( ChainCallback3, 3, 6 )
+                                                  .ThenPassToCallback( ChainForwardingCallback2B );
 
-            ASSERT_TRUE(result.HasAFuture());
-            CORE::CTaskPtr task = result.GetResult(10000);
-            ASSERT_TRUE(!task.IsNULL());
-            ASSERT_TRUE(task->IsTaskInEndState());
-            
-            // Wait a bit for all chained tasks to complete
-            //MT::PrecisionDelay(1000);
+                ASSERT_TRUE(result.HasAFuture());
+                CORE::CTaskPtr task = result.GetResult(10000);
+                ASSERT_TRUE(!task.IsNULL());
+                ASSERT_TRUE(task->IsTaskInEndState());
+                
+                // Verify the chain executed in order
+                MT::CScopeMutex lock(g_testMutex);
+                ASSERT_TRUE( g_testResults.size() == 6 );
+                ASSERT_TRUE( g_testResults[0] == IDForChainCallback1 );
+                ASSERT_TRUE( g_testResults[1] == IDForChainFwdCallback0B );
+                ASSERT_TRUE( g_testResults[2] == IDForChainCallback2 );
+                ASSERT_TRUE( g_testResults[3] == IDForChainFwdCallback1B );
+                ASSERT_TRUE( g_testResults[4] == IDForChainCallback3 );
+                ASSERT_TRUE( g_testResults[5] == IDForChainFwdCallback2B );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Task chaining test passed" );
+            }
+          
+            g_testResults.clear();
 
-            // Verify the chain executed in order
-            MT::CScopeMutex lock(g_testMutex);
-            ASSERT_TRUE( g_testResults.size() == 6 );
-            ASSERT_TRUE( g_testResults[0] == IDForChainCallback1 );
-            ASSERT_TRUE( g_testResults[1] == IDForChainFwdCallback0B );
-            ASSERT_TRUE( g_testResults[2] == IDForChainCallback2 );
-            ASSERT_TRUE( g_testResults[3] == IDForChainFwdCallback1B );
-            ASSERT_TRUE( g_testResults[4] == IDForChainCallback3 );
-            ASSERT_TRUE( g_testResults[5] == IDForChainFwdCallback2B );
-            std::cout << "Task chaining test passed\n";
+            TestFinalTaskCountsAfterTests();
+
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Task Chaining 3 Deep With Prior Result Passing test completed" );
         }
-      
-        g_testResults.clear();
-
-        TestFinalTaskCountsAfterTests();
-
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Task Chaining 3 Deep With Prior Result Passing test completed === " );
-    }
-    catch(const timeout_exception& e)
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Timeout Exception in TestTaskChaining 3Deep: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
-    catch(const std::exception& e)
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestTaskChaining 3Deep: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
+        catch(const timeout_exception& e)
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Timeout Exception in TestTaskChaining 3Deep: " + CORE::ToString( e.what() ));
+            ERRORHERE;
+        }
+        catch(const std::exception& e)
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestTaskChaining 3Deep: " + CORE::ToString( e.what() ));
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 void TestMemoryManagement()
 {
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === Testing Memory Management === ");
-    
-    try
-    {
-        // check the initial state of the thread pool wrt task counts
-        // there could be residual tasks from previous tests which is also a leak we want to catch those as well
-        CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( g_threadPoolName );
-        ASSERT_TRUE( !threadPool.IsNULL() );
-
-        UInt32 nrOfInUseTasks = 0;
-        UInt32 nrOfActiveTasks = 0;
-        UInt32 nrOfDormantTasks = 0;
-        UInt32 nrOfFreeTaskObjs = 0;
-
-        ASSERT_TRUE( threadPool->GetTaskTotals( nrOfInUseTasks, nrOfActiveTasks, nrOfDormantTasks, nrOfFreeTaskObjs ) );
-        ASSERT_TRUE( nrOfInUseTasks == 0 );   // we completed all the work hence no active or otherwise tracked tasks (due to chains) should remain
-        ASSERT_TRUE( nrOfActiveTasks == 0 );  // we completed all the work hence no active tasks should remain
-        ASSERT_TRUE( nrOfDormantTasks == 0 ); // we created all objects in local scopes so no dormant tasks should remain
-        ASSERT_TRUE( nrOfFreeTaskObjs >= 0 );  // we should have a bunch of free task objects available for reuse if other tests ran and initialized the free list
-
-        int initialCount = TaskMemoryTracker::GetTaskCount();
-        std::cout << "Initial tracker count: " << initialCount << "\n";
-   
-        // Test simple callback memory management
+    GUCEF_TESTFW_TESTCASE( "Test 6: Memory Management" )
+        try
         {
-            CASyncTestAccess async( threadPool );
-            CORE::CFutureResult result = async.QueueCallback(MemoryTrackingCallback);
-        
-            ASSERT_TRUE(result.HasAFuture());
-            CORE::CTaskPtr task = result.GetResult(5000);
-            ASSERT_TRUE(!task.IsNULL());
-            ASSERT_TRUE(task->IsTaskInEndState());
-        }
-        
-        // Give time for cleanup
-        MT::PrecisionDelay(500);
-        
-        // Test chained callback memory management
-        {
-            CASyncTestAccess async( threadPool );
-            CORE::CFutureResult result = async.QueueCallback(MemoryTrackingCallback)
-                                              .ThenCallback(MemoryTrackingChainCallback)
-                                              .ThenCallback(MemoryTrackingChainCallback)
-                                              .ThenCallback(MemoryTrackingChainCallback);
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Test 6: Memory Management");
             
-            ASSERT_TRUE(result.HasAFuture());
-            CORE::CTaskPtr task = result.GetResult(10000);
+            // check the initial state of the thread pool wrt task counts
+            // there could be residual tasks from previous tests which is also a leak we want to catch those as well
+            CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( g_threadPoolName );
+            ASSERT_TRUE( !threadPool.IsNULL() );
+
+            UInt32 nrOfInUseTasks = 0;
+            UInt32 nrOfActiveTasks = 0;
+            UInt32 nrOfDormantTasks = 0;
+            UInt32 nrOfFreeTaskObjs = 0;
+
+            ASSERT_TRUE( threadPool->GetTaskTotals( nrOfInUseTasks, nrOfActiveTasks, nrOfDormantTasks, nrOfFreeTaskObjs ) );
+            ASSERT_TRUE( nrOfInUseTasks == 0 );   // we completed all the work hence no active or otherwise tracked tasks (due to chains) should remain
+            ASSERT_TRUE( nrOfActiveTasks == 0 );  // we completed all the work hence no active tasks should remain
+            ASSERT_TRUE( nrOfDormantTasks == 0 ); // we created all objects in local scopes so no dormant tasks should remain
+            ASSERT_TRUE( nrOfFreeTaskObjs >= 0 );  // we should have a bunch of free task objects available for reuse if other tests ran and initialized the free list
+
+            int initialCount = TaskMemoryTracker::GetTaskCount();
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Initial tracker count: " + CORE::ToString( initialCount ) );
+       
+            // Test simple callback memory management
+            {
+                CASyncTestAccess async( threadPool );
+                CORE::CFutureResult result = async.QueueCallback(MemoryTrackingCallback);
+            
+                ASSERT_TRUE(result.HasAFuture());
+                CORE::CTaskPtr task = result.GetResult(5000);
+                ASSERT_TRUE(!task.IsNULL());
+                ASSERT_TRUE(task->IsTaskInEndState());
+            }
+            
+            // Give time for cleanup
+            MT::PrecisionDelay(500);
+            
+            // Test chained callback memory management
+            {
+                CASyncTestAccess async( threadPool );
+                CORE::CFutureResult result = async.QueueCallback(MemoryTrackingCallback)
+                                                  .ThenCallback(MemoryTrackingChainCallback)
+                                                  .ThenCallback(MemoryTrackingChainCallback)
+                                                  .ThenCallback(MemoryTrackingChainCallback);
+                
+                ASSERT_TRUE(result.HasAFuture());
+                CORE::CTaskPtr task = result.GetResult(10000);
             ASSERT_TRUE(!task.IsNULL());
             ASSERT_TRUE(task->IsTaskInEndState());
         }
     
-        // Give time for all cleanup to complete
-        MT::PrecisionDelay(2000);
-        
-        int finalCount = TaskMemoryTracker::GetTaskCount();
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Final tracker count: " + CORE::ToString(finalCount));
+            // Give time for all cleanup to complete
+            MT::PrecisionDelay(2000);
+            
+            int finalCount = TaskMemoryTracker::GetTaskCount();
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Final tracker count: " + CORE::ToString(finalCount));
 
-        // Check for memory leaks - this is the critical test for the known issue
-        ASSERT_TRUE(finalCount == initialCount);
+            // Check for memory leaks - this is the critical test for the known issue
+            ASSERT_TRUE(finalCount == initialCount);
 
-        // Now check and see if we did not leak any task objects in the thread pool
-        // this test does assume that this test is the only thing actually using the thread pool right now in the process
+            // Now check and see if we did not leak any task objects in the thread pool
+            // this test does assume that this test is the only thing actually using the thread pool right now in the process
 
-        ASSERT_TRUE( TestFinalTaskCountsAfterTests() );
+            ASSERT_TRUE( TestFinalTaskCountsAfterTests() );
 
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Memory management test passed - no leaks detected === " );
-    }
-    catch(const timeout_exception& e)
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Timeout Exception in TestTaskChaining: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
-    catch(const std::exception& e)
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestMemoryManagement: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Memory management test passed - no leaks detected" );
+        }
+        catch(const timeout_exception& e)
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Timeout Exception in TestTaskChaining: " + CORE::ToString( e.what() ));
+            ERRORHERE;
+        }
+        catch(const std::exception& e)
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestMemoryManagement: " + CORE::ToString( e.what() ));
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 void TestTaskChainCleanup()
 {
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === Testing Task Chain Cleanup === ");
-    
-    try
-    {
-        // This test specifically targets the chain reference cleanup issue mentioned
-        GUCEF::vector< CORE::CFutureResult > futures;
-        
-        // Create multiple chains that should be cleaned up properly
-        for (int i = 0; i < 10; ++i)
+    GUCEF_TESTFW_TESTCASE( "Test 7: Task Chain Cleanup" )
+        try
         {
-            CASyncTestAccess async;
-            CORE::CFutureResult result = async.QueueCallback(SimpleCallback0)
-                                                .ThenCallback(ChainCallback1)
-                                                .ThenCallback(ChainCallback2, i)
-                                                .ThenCallback(ChainCallback3, i, i+1);
- 
-            futures.push_back(result);
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Test 7: Task Chain Cleanup");
+            
+            // This test specifically targets the chain reference cleanup issue mentioned
+            GUCEF::vector< CORE::CFutureResult > futures;
+            
+            // Create multiple chains that should be cleaned up properly
+            for (int i = 0; i < 10; ++i)
+            {
+                CASyncTestAccess async;
+                CORE::CFutureResult result = async.QueueCallback(SimpleCallback0)
+                                                    .ThenCallback(ChainCallback1)
+                                                    .ThenCallback(ChainCallback2, i)
+                                                    .ThenCallback(ChainCallback3, i, i+1);
+     
+                futures.push_back(result);
+            }
+            
+            // Wait for all chains to complete
+            GUCEF::vector< CORE::CFutureResult >::iterator it = futures.begin();
+            for ( ; it != futures.end(); ++it )
+            {
+                CORE::CFutureResult& future = *it;
+
+                ASSERT_TRUE(future.HasAFuture());
+                CORE::CTaskPtr task = future.GetResult(15000);
+                ASSERT_TRUE(!task.IsNULL());
+                ASSERT_TRUE(task->IsTaskInEndState());
+            }
+            
+            // Clear futures to release references
+            futures.clear();
+
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Task chain cleanup test completed");
         }
-        
-        // Wait for all chains to complete
-        GUCEF::vector< CORE::CFutureResult >::iterator it = futures.begin();
-        for ( ; it != futures.end(); ++it )
+        catch(const std::exception& e)
         {
-            CORE::CFutureResult& future = *it;
-
-            ASSERT_TRUE(future.HasAFuture());
-            CORE::CTaskPtr task = future.GetResult(15000);
-            ASSERT_TRUE(!task.IsNULL());
-            ASSERT_TRUE(task->IsTaskInEndState());
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestTaskChainCleanup: " + CORE::ToString( e.what() ));
+            ERRORHERE;
         }
-        
-        // Clear futures to release references
-        futures.clear();
-      
-        // Give time for cleanup
-        //MT::PrecisionDelay(2000);
-
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Task chain cleanup test completed === ");
-    }
-    catch(const std::exception& e)
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestTaskChainCleanup: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 void TestErrorHandling()
 {
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === Testing Error Handling === ");
-    
-    try
-    {
-        // Test error in callback - this should not crash the system
+    GUCEF_TESTFW_TESTCASE( "Test 8: Error Handling" )
+        try
         {
-            CASyncTestAccess async;
-            CORE::CFutureResult result = async.QueueCallback(ErrorCallback);
-       
-            ASSERT_TRUE(result.HasAFuture());
-            try
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Test 8: Error Handling");
+            
+            // Test error in callback - this should not crash the system
             {
-                CORE::CTaskPtr task = result.GetResult(5000);
+                CASyncTestAccess async;
+                CORE::CFutureResult result = async.QueueCallback(ErrorCallback);
+           
+                ASSERT_TRUE(result.HasAFuture());
+                try
+                {
+                    CORE::CTaskPtr task = result.GetResult(5000);
 
-                // Task should exist but may be in an error state
-                ASSERT_TRUE(!task.IsNULL());
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Error callback test completed - task state: " + task->GetTaskStatusString() );
+                    // Task should exist but may be in an error state
+                    ASSERT_TRUE(!task.IsNULL());
+                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Error callback test completed - task state: " + task->GetTaskStatusString() );
+                }
+                catch(const std::exception& e)
+                {
+                    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Expected exception caught in error callback test: " + CORE::ToString( e.what() ));
+                }
             }
-            catch(const std::exception& e)
+            
+            // Test timeout handling
             {
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Expected exception caught in error callback test: " + CORE::ToString( e.what() ));
+                CASyncTestAccess async;
+                CORE::CFutureResult result = async.QueueCallback(LongRunningCallback);
+            
+                ASSERT_TRUE(result.HasAFuture());
+                try
+                {
+                    // Use short timeout to test timeout behavior
+                    CORE::CTaskPtr task = result.GetResult(1000); // 1 second timeout for 2 second task
+                    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Unexpected: Long running task completed within timeout");
+                }
+                catch(const std::exception& e)
+                {
+                    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Expected timeout exception caught: " + CORE::ToString( e.what() ));
+                }
             }
+
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Error handling tests completed");
         }
-        
-        // Test timeout handling
+        catch(const std::exception& e)
         {
-            CASyncTestAccess async;
-            CORE::CFutureResult result = async.QueueCallback(LongRunningCallback);
-        
-            ASSERT_TRUE(result.HasAFuture());
-            try
-            {
-                // Use short timeout to test timeout behavior
-                CORE::CTaskPtr task = result.GetResult(1000); // 1 second timeout for 2 second task
-                GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Unexpected: Long running task completed within timeout");
-            }
-            catch(const std::exception& e)
-            {
-                GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Expected timeout exception caught: " + CORE::ToString( e.what() ));
-            }
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestErrorHandling: " + CORE::ToString( e.what() ));
+            ERRORHERE;
         }
-
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === Error handling tests completed === ");
-    }
-    catch(const std::exception& e)
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestErrorHandling: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 void TestConcurrentOperations()
 {
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === Testing Concurrent Operations === ");
-    
-    try
-    {
-        const int numConcurrentTasks = 20;
+    GUCEF_TESTFW_TESTCASE( "Test 9: Concurrent Operations" )
+        try
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Test 9: Concurrent Operations");
+            const int numConcurrentTasks = 20;
 
-        CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( CORE::CTaskManager::DefaultThreadPoolName );
-        threadPool->SetDesiredMinNrOfWorkerThreads( numConcurrentTasks );
+            CORE::ThreadPoolPtr threadPool = CORE::CCoreGlobal::Instance()->GetTaskManager().GetOrCreateThreadPool( CORE::CTaskManager::DefaultThreadPoolName );
+            threadPool->SetDesiredMinNrOfWorkerThreads( numConcurrentTasks );
+            
+            std::vector<CORE::CFutureResult> futures;
+            futures.reserve( numConcurrentTasks );
         
-        std::vector<CORE::CFutureResult> futures;
-        futures.reserve( numConcurrentTasks );
-    
-        // Launch multiple concurrent async operations
-        for (int i = 0; i < numConcurrentTasks; ++i)
-        {
-            CASyncTestAccess async( threadPool );
-            CORE::CFutureResult result = async.QueueCallback( SimpleCallback1, i );
-            futures.push_back(result);
+            // Launch multiple concurrent async operations
+            for (int i = 0; i < numConcurrentTasks; ++i)
+            {
+                CASyncTestAccess async( threadPool );
+                CORE::CFutureResult result = async.QueueCallback( SimpleCallback1, i );
+                futures.push_back(result);
+            }
+            
+            // Wait for all to complete
+            int completedCount = 0;
+            for (auto& future : futures)
+            {
+                ASSERT_TRUE(future.HasAFuture());
+                CORE::CTaskPtr task = future.GetResult(10000);
+                ASSERT_TRUE(!task.IsNULL());
+                ASSERT_TRUE(task->IsTaskInEndState());
+                completedCount++;
+            }
+       
+            ASSERT_TRUE(completedCount == numConcurrentTasks);
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Concurrent operations test passed - " + CORE::ToString(completedCount) + " tasks completed");
         }
-        
-        // Wait for all to complete
-        int completedCount = 0;
-        for (auto& future : futures)
+        catch(const std::exception& e)
         {
-            ASSERT_TRUE(future.HasAFuture());
-            CORE::CTaskPtr task = future.GetResult(10000);
-            ASSERT_TRUE(!task.IsNULL());
-            ASSERT_TRUE(task->IsTaskInEndState());
-            completedCount++;
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestConcurrentOperations: " + CORE::ToString( e.what() ));
+            ERRORHERE;
         }
-   
-        ASSERT_TRUE(completedCount == numConcurrentTasks);
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Concurrent operations test passed - " + CORE::ToString(completedCount) + " tasks completed");
-    }
-    catch(const std::exception& e)
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestConcurrentOperations: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 void TestASyncConversionOperator()
 {
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === Testing CASync Conversion Operator === ");
-    
-    try
-    {
-        // Test implicit conversion to CFutureResult
-        CASyncTestAccess async;
-        CORE::CFutureResult result = async.QueueCallback(SimpleCallback0);
-        
-        ASSERT_TRUE(result.HasAFuture());
-        CORE::CTaskPtr task = result.GetResult(5000);
-        ASSERT_TRUE(!task.IsNULL());
-        ASSERT_TRUE(task->IsTaskInEndState());
+    GUCEF_TESTFW_TESTCASE( "Test 10: CASync Conversion Operator" )
+        try
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Test 10: CASync Conversion Operator");
+            
+            // Test implicit conversion to CFutureResult
+            CASyncTestAccess async;
+            CORE::CFutureResult result = async.QueueCallback(SimpleCallback0);
+            
+            ASSERT_TRUE(result.HasAFuture());
+            CORE::CTaskPtr task = result.GetResult(5000);
+            ASSERT_TRUE(!task.IsNULL());
+            ASSERT_TRUE(task->IsTaskInEndState());
 
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === CASync conversion operator test passed === ");
-    }
-    catch(const std::exception& e)
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestASyncConversionOperator: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "CASync conversion operator test passed");
+        }
+        catch(const std::exception& e)
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestASyncConversionOperator: " + CORE::ToString( e.what() ));
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 void TestClearChain()
 {
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === Testing ClearChain Functionality === ");
-    
-    try
-    {
-        CASyncTestAccess async;
-        
-        // Build a chain
-        async.QueueCallback( SimpleCallback1, 42 );
+    GUCEF_TESTFW_TESTCASE( "Test 11: ClearChain Functionality" )
+        try
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Test 11: ClearChain Functionality");
+            CASyncTestAccess async;
+            
+            // Build a chain
+            async.QueueCallback( SimpleCallback1, 42 );
 
-        CORE::CTaskPtr lastTask = async.GetLastTaskPublic();
-        ASSERT_TRUE( !lastTask.IsNULL() );
-        CASyncTestAccess::TASyncChainStatePtr state = async.GetChainStatePublic();
-        ASSERT_TRUE( !state.IsNULL() );
-        UInt64 lastTaskId = lastTask->GetTaskId();
-        ASSERT_TRUE( 0 != lastTaskId );
-        CORE::ThreadPoolPtr threadPool = async.GetThreadPoolPublic();
+            CORE::CTaskPtr lastTask = async.GetLastTaskPublic();
+            ASSERT_TRUE( !lastTask.IsNULL() );
+            CASyncTestAccess::TASyncChainStatePtr state = async.GetChainStatePublic();
+            ASSERT_TRUE( !state.IsNULL() );
+            UInt64 lastTaskId = lastTask->GetTaskId();
+            ASSERT_TRUE( 0 != lastTaskId );
+            CORE::ThreadPoolPtr threadPool = async.GetThreadPoolPublic();
 
-        // Clear the chain
-        async.ClearChain();
-        lastTask = async.GetLastTaskPublic();
-        ASSERT_TRUE( lastTask.IsNULL() );
-        
-        // Build a new chain on the same async object
-        CORE::CFutureResult result = async.QueueCallback( SimpleCallback2, 10, 20 );
-        
-        ASSERT_TRUE( result.HasAFuture() );
-        CORE::CTaskPtr task = result.GetResult( 30000 );
-        ASSERT_TRUE( !task.IsNULL() );
-        ASSERT_TRUE( task->IsTaskInEndState() );
-        UInt64 newTaskId = task->GetTaskId();
-        ASSERT_TRUE( 0 != newTaskId );
-        ASSERT_TRUE( lastTaskId != newTaskId );
+            // Clear the chain
+            async.ClearChain();
+            lastTask = async.GetLastTaskPublic();
+            ASSERT_TRUE( lastTask.IsNULL() );
+            
+            // Build a new chain on the same async object
+            CORE::CFutureResult result = async.QueueCallback( SimpleCallback2, 10, 20 );
+            
+            ASSERT_TRUE( result.HasAFuture() );
+            CORE::CTaskPtr task = result.GetResult( 30000 );
+            ASSERT_TRUE( !task.IsNULL() );
+            ASSERT_TRUE( task->IsTaskInEndState() );
+            UInt64 newTaskId = task->GetTaskId();
+            ASSERT_TRUE( 0 != newTaskId );
+            ASSERT_TRUE( lastTaskId != newTaskId );
 
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === ClearChain test passed === " );
-    }
-    catch( const std::exception& e )
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestClearChain: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ClearChain test passed" );
+        }
+        catch( const std::exception& e )
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestClearChain: " + CORE::ToString( e.what() ));
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 void TestTaskTypeOperations()
 {
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === Testing Task Type Operations === ");
-    
-    try
-    {
-        // Test Start() method
+    GUCEF_TESTFW_TESTCASE( "Test 12: Task Type Operations" )
+        try
         {
-            CASyncTestAccess async;
-            CORE::CFutureResult result = async.Start( CORE::CGenericCallbackTaskConsumer::TaskType );
-    
-            ASSERT_TRUE( result.HasAFuture() );
-            CORE::CTaskPtr task = result.GetResult( 5000 );
-            ASSERT_TRUE( !task.IsNULL() );
-            ASSERT_TRUE( task->IsTaskInEndState() );
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Test 12: Task Type Operations");
+            
+            // Test Start() method
+            {
+                CASyncTestAccess async;
+                CORE::CFutureResult result = async.Start( CORE::CGenericCallbackTaskConsumer::TaskType );
+        
+                ASSERT_TRUE( result.HasAFuture() );
+                CORE::CTaskPtr task = result.GetResult( 5000 );
+                ASSERT_TRUE( !task.IsNULL() );
+                ASSERT_TRUE( task->IsTaskInEndState() );
 
-            // we need to give some time for the internal cleanup to complete
-            MT::PrecisionDelay( 3000 );
+                // we need to give some time for the internal cleanup to complete
+                MT::PrecisionDelay( 3000 );
 
-            // Only held by us now that it's done in local scope which means
-            //  1 reference from the CASync object internally
-            //  1 reference from the CFutureResult object internally
-            //  1 reference from the extracted task object in the local scope
-            ASSERT_TRUE( 3 == task.GetReferenceCount() ); 
+                // Only held by us now that it's done in local scope which means
+                //  1 reference from the CASync object internally
+                //  1 reference from the CFutureResult object internally
+                //  1 reference from the extracted task object in the local scope
+                ASSERT_TRUE( 3 == task.GetReferenceCount() ); 
 
-            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Start() method test passed");
+                GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Start() method test passed");
+            }
+          
+            // Test Queue() method
+            {
+                CASyncTestAccess async;
+                CORE::CFutureResult result = async.Queue( CORE::CGenericCallbackTaskConsumer::TaskType );
+        
+                ASSERT_TRUE( result.HasAFuture() );
+                CORE::CTaskPtr task = result.GetResult(5000);
+                ASSERT_TRUE(!task.IsNULL());
+                ASSERT_TRUE( task->IsTaskInEndState() );
+
+                // we need to give some time for the internal cleanup to complete
+                MT::PrecisionDelay( 3000 );
+
+                // Only held by us now that it's done in local scope which means
+                //  1 reference from the CASync object internally
+                //  1 reference from the CFutureResult object internally
+                //  1 reference from the extracted task object in the local scope
+                ASSERT_TRUE( 3 == task.GetReferenceCount() );
+
+                GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Queue() method test passed");
+            }
+
+            ASSERT_TRUE( TestFinalTaskCountsAfterTests() );
+
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Task Type Operations test passed" );
         }
-      
-        // Test Queue() method
+        catch(const std::exception& e)
         {
-            CASyncTestAccess async;
-            CORE::CFutureResult result = async.Queue( CORE::CGenericCallbackTaskConsumer::TaskType );
-    
-            ASSERT_TRUE( result.HasAFuture() );
-            CORE::CTaskPtr task = result.GetResult(5000);
-            ASSERT_TRUE(!task.IsNULL());
-            ASSERT_TRUE( task->IsTaskInEndState() );
-
-            // we need to give some time for the internal cleanup to complete
-            MT::PrecisionDelay( 3000 );
-
-            // Only held by us now that it's done in local scope which means
-            //  1 reference from the CASync object internally
-            //  1 reference from the CFutureResult object internally
-            //  1 reference from the extracted task object in the local scope
-            ASSERT_TRUE( 3 == task.GetReferenceCount() );
-
-            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Queue() method test passed");
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestTaskTypeOperations: " + CORE::ToString( e.what() ));
+            ERRORHERE;
         }
-
-        ASSERT_TRUE( TestFinalTaskCountsAfterTests() );
-
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Task Type Operations test passed === " );
-    }
-    catch(const std::exception& e)
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestTaskTypeOperations: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 void TestSubmitMethod()
 {
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, " === Testing Submit Method === ");
-    
-    try
-    {
-        CASyncTestAccess async;
-        CORE::CTaskPtr lastTask = async.GetLastTaskPublic();
-        ASSERT_TRUE( lastTask.IsNULL() );
-        CASyncTestAccess::TASyncChainStatePtr state = async.GetChainStatePublic();
-        ASSERT_TRUE( !state.IsNULL() );
+    GUCEF_TESTFW_TESTCASE( "Test 13: Submit Method" )
+        try
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Test 13: Submit Method");
+            CASyncTestAccess async;
+            CORE::CTaskPtr lastTask = async.GetLastTaskPublic();
+            ASSERT_TRUE( lastTask.IsNULL() );
+            CASyncTestAccess::TASyncChainStatePtr state = async.GetChainStatePublic();
+            ASSERT_TRUE( !state.IsNULL() );
 
-        async.QueueCallback( SimpleCallback1, 123 );
-        lastTask = async.GetLastTaskPublic();
-        ASSERT_TRUE( !lastTask.IsNULL() );
-        state = async.GetChainStatePublic();
-        ASSERT_TRUE( !state.IsNULL() );
+            async.QueueCallback( SimpleCallback1, 123 );
+            lastTask = async.GetLastTaskPublic();
+            ASSERT_TRUE( !lastTask.IsNULL() );
+            state = async.GetChainStatePublic();
+            ASSERT_TRUE( !state.IsNULL() );
 
-        // Explicitly call Submit()
-        CORE::CFutureResult result = async.Submit();
+
+            // Explicitly call Submit()
+            CORE::CFutureResult result = async.Submit();
    
-        ASSERT_TRUE( result.HasAFuture() );
-        CORE::CTaskPtr task = result.GetResult( 30000 );
-        ASSERT_TRUE( !task.IsNULL() );
-        ASSERT_TRUE( task->IsTaskInEndState() );
-        ASSERT_TRUE( task == lastTask );
+            ASSERT_TRUE( result.HasAFuture() );
+            CORE::CTaskPtr task = result.GetResult( 30000 );
+            ASSERT_TRUE( !task.IsNULL() );
+            ASSERT_TRUE( task->IsTaskInEndState() );
+            ASSERT_TRUE( task == lastTask );
 
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, " === Submit method test passed === " );
-    }
-    catch( const std::exception& e )
-    {
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestSubmitMethod: " + CORE::ToString( e.what() ));
-        ERRORHERE;
-    }
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Submit method test passed" );
+        }
+        catch( const std::exception& e )
+        {
+            GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "Exception in TestSubmitMethod: " + CORE::ToString( e.what() ));
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------//
@@ -1169,7 +1177,9 @@ void TestSubmitMethod()
 void
 PerformASyncTests( void )
 {
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "**** COMMENCING ASync TESTS ****");
+    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "COMMENCING CASync TESTS");
+    
+    GUCEF_TESTFW_SUITE_SCOPE( "CASync" );
     
     try
     {
@@ -1189,8 +1199,6 @@ PerformASyncTests( void )
         TestSubmitMethod();
 
         TestFinalTaskCountsAfterTests();
-
-        GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "**** ALL ASync TESTS COMPLETED SUCCESSFULLY ****");
     }
     catch( const std::exception& e )
     {
@@ -1203,7 +1211,8 @@ PerformASyncTests( void )
         ERRORHERE;
     }
 
-    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "**** FINISHED ASync TESTS ****");
+    CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG(CORE::LOGLEVEL_NORMAL, "ALL CASync TESTS COMPLETED");
 }
 
 /*-------------------------------------------------------------------------*/

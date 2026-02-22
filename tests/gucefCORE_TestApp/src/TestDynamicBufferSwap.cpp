@@ -23,8 +23,6 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <iostream>
-
 #ifndef GUCEF_CORE_CDYNAMICBUFFERSWAP_H
 #include "gucefCORE_CDynamicBufferSwap.h"
 #define GUCEF_CORE_CDYNAMICBUFFERSWAP_H
@@ -35,6 +33,16 @@
 #define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFERACCESS_H ? */
 
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
 #include "TestDynamicBufferSwap.h"
 
 /*-------------------------------------------------------------------------//
@@ -43,17 +51,9 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
-
-#define ERRORHERE { std::cout << "Test failed @ " << __FILE__ << "(" << __LINE__ << ")\n"; DEBUGBREAK; }
-#define ASSERT_TRUE( test ) if ( !(test) ) { ERRORHERE; } 
-#define ASSERT_FALSE( test ) if ( (test) ) { ERRORHERE; }
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -69,13 +69,16 @@ void
 PerformDynamicBufferSwapTests( void )
 {GUCEF_TRACE;
 
-    std::cout << "\n\n**** COMMENCING CDynamicBufferSwap TESTS ****\n";
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING CDynamicBufferSwap TESTS" );
     
-    try
-    {       
-        // Check basic setup
-        
-        CORE::CDynamicBufferSwap buffers( 3 );
+    GUCEF_TESTFW_SUITE_SCOPE( "CDynamicBufferSwap" );
+
+    GUCEF_TESTFW_TESTCASE( "Test 1: Buffer swap read/write operations" )
+        try
+        {       
+            // Check basic setup
+            
+            CORE::CDynamicBufferSwap buffers( 3 );
         ASSERT_TRUE( 3 == buffers.GetNrOfBuffers() );
         ASSERT_TRUE( 0 == buffers.GetBuffersQueuedToRead() );
         ASSERT_TRUE( CORE::CDateTime::Empty == buffers.GetCurrenReaderBufferAssociatedDt() );
@@ -369,13 +372,15 @@ PerformDynamicBufferSwapTests( void )
         ASSERT_TRUE( 0 == buffers.GetBuffersQueuedToRead() );
         ASSERT_TRUE( CORE::CDateTime::Empty == writeStartDtPerReader );
         ASSERT_TRUE( writeStartDtPerReader == buffers.GetCurrenReaderBufferAssociatedDt() );        
-    }
-    catch( ... )
-    {
-        ERRORHERE;
-    }
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 
-    std::cout << "\n\n**** FINISHED CDynamicBufferSwap TESTS ****\n";
+    CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CDynamicBufferSwap TESTS COMPLETED" );
 }
 
 /*-------------------------------------------------------------------------*/

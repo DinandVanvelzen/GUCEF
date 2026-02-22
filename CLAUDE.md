@@ -177,3 +177,35 @@ MyClass::MyClass( MyClass&& src ) GUCEF_NOEXCEPT
 - Do NOT attempt to revert changes or make large-scale fixes without checking with the user first
 - This avoids undoing wanted work and wasting tokens on trial-and-error approaches
 - If unsure about the intended direction, stop and ask rather than guessing
+
+### Test Code Guidelines
+
+- **NEVER remove try-catch blocks from test code** - exception handling is critical
+- Tests can fail and throw exceptions - that's the whole point of having tests
+- One test's uncaught exception should NOT crash and prevent other tests from running
+- When converting tests to use the test framework:
+  - Keep all existing try-catch blocks
+  - The `GUCEF_TESTFW_TESTCASE` / `GUCEF_TESTFW_TESTCASE_END` macros work alongside try-catch, not as replacements
+  - Wrap the test body in try-catch INSIDE the test case macros
+- Example pattern:
+  ```cpp
+  GUCEF_TESTFW_TESTCASE( "Test name" )
+      try
+      {
+          // test code with ASSERT_TRUE etc.
+      }
+      catch( ... )
+      {
+          ERRORHERE;
+      }
+  GUCEF_TESTFW_TESTCASE_END
+  ```
+
+### Progress Tracking for Multi-File Tasks
+
+- **When doing structured tasks across multiple files (like converting all tests), use the planning tools**
+- Call `plan` at the start to create a tracked plan with steps for each file
+- Use `update_plan_progress` to mark files as completed
+- This prevents re-reading already-processed files and wasting tokens
+- Keep mental notes of what's already been accomplished in the current session
+- If interrupted, check the plan state before resuming work

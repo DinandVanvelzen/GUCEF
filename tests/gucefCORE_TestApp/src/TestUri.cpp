@@ -23,12 +23,20 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <iostream>
-
 #ifndef GUCEF_CORE_CURI_H
 #include "gucefCORE_CUri.h"
 #define GUCEF_CORE_CURI_H
 #endif /* GUCEF_CORE_CURI_H ? */
+
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
 #include "TestUri.h"
 
@@ -38,17 +46,9 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
-
-#define ERRORHERE { std::cout << "Test failed @ " << __FILE__ << "(" << __LINE__ << ")\n"; DEBUGBREAK; }
-#define ASSERT_TRUE( test ) if ( !(test) ) { ERRORHERE; } 
-#define ASSERT_FALSE( test ) if ( (test) ) { ERRORHERE; }
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -63,8 +63,11 @@ using namespace GUCEF;
 void
 PerformUriTests( void )
 {
-    std::cout << "\n\n**** COMMENCING CUri TESTS ****\n";
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING CUri TESTS" );
     
+    GUCEF_TESTFW_SUITE_SCOPE( "CUri" );
+
+    GUCEF_TESTFW_TESTCASE( "Test: URI parsing" )
     try
     {
         CORE::CUri emptyUri;
@@ -137,8 +140,10 @@ PerformUriTests( void )
     {
         ERRORHERE;
     }
+    GUCEF_TESTFW_TESTCASE_END
 
-    std::cout << "\n\n**** FINISHED CUri TESTS ****\n";
+    CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CUri TESTS COMPLETED" );
 }
 
 /*-------------------------------------------------------------------------*/

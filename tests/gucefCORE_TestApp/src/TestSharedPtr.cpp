@@ -23,8 +23,6 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <iostream>
-
 #ifndef GUCEF_MT_CMUTEX_H
 #include "gucefMT_CMutex.h"
 #define GUCEF_MT_CMUTEX_H
@@ -40,6 +38,16 @@
 #define GUCEF_CORE_CTMAILBOXFORSHAREDCLONEABLES_H
 #endif /* GUCEF_CORE_CTMAILBOXFORSHAREDCLONEABLES_H ? */
 
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
 #include "TestSharedPtr.h"
 
 /*-------------------------------------------------------------------------//
@@ -48,16 +56,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
-
-#define ERRORHERE { std::cout << "Test failed @ " << __FILE__ << "(" << __LINE__ << ")\n"; DEBUGBREAK; } 
-#define TESTASSERT( condition ) { if ( !( condition ) ) { ERRORHERE; } }
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define TESTASSERT(t)   GUCEF_TESTFW_ASSERT_TRUE(t)
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -138,22 +138,20 @@ class Unrelated
 void
 PerformBasicSharedPtrSanityTests( void )
 {
-    std::cout << "\n\n**** COMMENCING BASIC SHARED PTR SANITY TESTS ****\n";
-
-    typedef GUCEF::CORE::CTSharedPtr< IBase, GUCEF::MT::CMutex > TIBasePtr;
-    typedef GUCEF::CORE::CTSharedPtr< Base, GUCEF::MT::CMutex > TBasePtr;
-    typedef GUCEF::CORE::CTSharedPtr< AltBase, GUCEF::MT::CMutex > TAltBasePtr;
-    typedef GUCEF::CORE::CTSharedPtr< Derived, GUCEF::MT::CMutex > TDerivedPtr;
-    typedef GUCEF::CORE::CTSharedPtr< Unrelated, GUCEF::MT::CMutex > TUnrelatedPtr;
-
-    typedef GUCEF::CORE::CTBasicSharedPtr< IBase, GUCEF::MT::CMutex > TIBasicBasePtr;
-    typedef GUCEF::CORE::CTBasicSharedPtr< Base, GUCEF::MT::CMutex > TBasicBasePtr;
-    typedef GUCEF::CORE::CTBasicSharedPtr< AltBase, GUCEF::MT::CMutex > TBasicAltBasePtr;
-    typedef GUCEF::CORE::CTBasicSharedPtr< Derived, GUCEF::MT::CMutex > TBasicDerivedPtr;
-    typedef GUCEF::CORE::CTBasicSharedPtr< Unrelated, GUCEF::MT::CMutex > TBasicUnrelatedPtr;
-    
+    GUCEF_TESTFW_TESTCASE( "Test: Basic SharedPtr sanity tests" )
     try
     {
+        typedef GUCEF::CORE::CTSharedPtr< IBase, GUCEF::MT::CMutex > TIBasePtr;
+        typedef GUCEF::CORE::CTSharedPtr< Base, GUCEF::MT::CMutex > TBasePtr;
+        typedef GUCEF::CORE::CTSharedPtr< AltBase, GUCEF::MT::CMutex > TAltBasePtr;
+        typedef GUCEF::CORE::CTSharedPtr< Derived, GUCEF::MT::CMutex > TDerivedPtr;
+        typedef GUCEF::CORE::CTSharedPtr< Unrelated, GUCEF::MT::CMutex > TUnrelatedPtr;
+
+        typedef GUCEF::CORE::CTBasicSharedPtr< IBase, GUCEF::MT::CMutex > TIBasicBasePtr;
+        typedef GUCEF::CORE::CTBasicSharedPtr< Base, GUCEF::MT::CMutex > TBasicBasePtr;
+        typedef GUCEF::CORE::CTBasicSharedPtr< AltBase, GUCEF::MT::CMutex > TBasicAltBasePtr;
+        typedef GUCEF::CORE::CTBasicSharedPtr< Derived, GUCEF::MT::CMutex > TBasicDerivedPtr;
+        typedef GUCEF::CORE::CTBasicSharedPtr< Unrelated, GUCEF::MT::CMutex > TBasicUnrelatedPtr;
         //--- compile time tests, uncomment to test
         
         TUnrelatedPtr uptr;
@@ -333,8 +331,7 @@ PerformBasicSharedPtrSanityTests( void )
     {
         ERRORHERE;
     }
-
-    std::cout << "\n\n**** COMMENCING BASIC SHARED PTR SANITY TESTS ****\n";
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/
@@ -343,11 +340,14 @@ void
 PerformSharedPtrTests( void )
 {GUCEF_TRACE;
 
-    std::cout << "\n\n**** COMMENCING SHARED PTR TESTS ****\n";
+    GUCEF_LOG( GUCEF::CORE::LOGLEVEL_NORMAL, "COMMENCING SHARED PTR TESTS" );
+
+    GUCEF_TESTFW_SUITE_SCOPE( "SharedPtr" );
 
     PerformBasicSharedPtrSanityTests();
 
-    std::cout << "\n\n**** FINISHED SHAREDPTR TESTS ****\n";
+    GUCEF::CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG( GUCEF::CORE::LOGLEVEL_NORMAL, "ALL SHARED PTR TESTS COMPLETED" );
 }
 
 /*-------------------------------------------------------------------------*/

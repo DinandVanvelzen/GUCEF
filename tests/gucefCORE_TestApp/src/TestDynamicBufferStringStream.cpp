@@ -28,6 +28,16 @@
 #define GUCEF_CORE_CDYNAMICBUFFERSTRINGSTREAM_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFERSTRINGSTREAM_H ? */
 
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
 #include "TestDynamicBufferSwap.h"
 
 /*-------------------------------------------------------------------------//
@@ -36,17 +46,9 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
-
-#define ERRORHERE { std::cout << "Test failed @ " << __FILE__ << "(" << __LINE__ << ")\n"; DEBUGBREAK; }
-#define ASSERT_TRUE( test ) if ( !(test) ) { ERRORHERE; } 
-#define ASSERT_FALSE( test ) if ( (test) ) { ERRORHERE; }
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -62,54 +64,59 @@ void
 PerformDynamicBufferStringStreamTests( void )
 {GUCEF_TRACE;
 
-    std::cout << "\n\n**** COMMENCING CDynamicBufferStringStream TESTS ****\n";
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING CDynamicBufferStringStream TESTS" );
     
-    try
-    {       
-        // Check basic setup
-        
-        CORE::CDynamicBufferStringStream stream;
-        ASSERT_TRUE( GUCEF_NULL == stream.GetBufferPtr() );
-        ASSERT_TRUE( 0 == stream.GetBufferSize() );
-        ASSERT_TRUE( 0 == stream.GetDataSize() );                
-        //ASSERT_TRUE( stream.eof() );  // false on init :/ 
-        ASSERT_TRUE( stream.Eof() );
-        ASSERT_TRUE( GUCEF_NULL != stream.CStyleAccess() );
-        ASSERT_TRUE( 0 == stream.Tell() );
+    GUCEF_TESTFW_SUITE_SCOPE( "CDynamicBufferStringStream" );
 
-        // Attempt to write variables
-        
-        Int8     a = '1';
-        UInt8    b = '2';
-        Int16    c = 3;
-        UInt16   d = 4;
-        Int32    e = 5;
-        UInt32   f = 6;
-        Int64    g = 7;
-        UInt64   h = 8;
+    GUCEF_TESTFW_TESTCASE( "Test 1: Basic setup and stream operations" )
+        try
+        {       
+            // Check basic setup
+            
+            CORE::CDynamicBufferStringStream stream;
+            ASSERT_TRUE( GUCEF_NULL == stream.GetBufferPtr() );
+            ASSERT_TRUE( 0 == stream.GetBufferSize() );
+            ASSERT_TRUE( 0 == stream.GetDataSize() );                
+            //ASSERT_TRUE( stream.eof() );  // false on init :/ 
+            ASSERT_TRUE( stream.Eof() );
+            ASSERT_TRUE( GUCEF_NULL != stream.CStyleAccess() );
+            ASSERT_TRUE( 0 == stream.Tell() );
 
-stream << c ;//<< ',' ;//<< d << ',' << e << ',' << f << ',' << g << ',' << h;
+            // Attempt to write variables
+            
+            Int8     a = '1';
+            UInt8    b = '2';
+            Int16    c = 3;
+            UInt16   d = 4;
+            Int32    e = 5;
+            UInt32   f = 6;
+            Int64    g = 7;
+            UInt64   h = 8;
 
-        stream << a << ',' << b << ',' << c << ',' << d << ',' << e << ',' << f << ',' << g << ',' << h;
+    stream << c ;//<< ',' ;//<< d << ',' << e << ',' << f << ',' << g << ',' << h;
 
-        ASSERT_TRUE( "1,2,3,4,5,6,7,8" == stream );
+            stream << a << ',' << b << ',' << c << ',' << d << ',' << e << ',' << f << ',' << g << ',' << h;
 
-        CORE::CUtf8String testString1 = "foobar";
+            ASSERT_TRUE( "1,2,3,4,5,6,7,8" == stream );
 
-        //stream << testString1;
+            CORE::CUtf8String testString1 = "foobar";
 
-        ASSERT_TRUE( 2 == stream.GetDataSize() );
+            //stream << testString1;
 
-        //stream << d;
-        //stream << e;
-        //stream << f;
-    }
-    catch( ... )
-    {
-        ERRORHERE;
-    }
+            ASSERT_TRUE( 2 == stream.GetDataSize() );
 
-    std::cout << "\n\n**** FINISHED CDynamicBufferStringStream TESTS ****\n";
+            //stream << d;
+            //stream << e;
+            //stream << f;
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CDynamicBufferStringStream TESTS COMPLETED" );
 }
 
 /*-------------------------------------------------------------------------*/

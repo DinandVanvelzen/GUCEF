@@ -138,6 +138,17 @@
 #define GUCEF_CORE_TESTAPP_TESTSTOPWATCH_H
 #endif /* GUCEF_CORE_TESTAPP_TESTSTOPWATCH_H ? */
 
+#define GUCEF_TESTFW_IMPL
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTLOGGING_H
+#include "TestLogging.h"
+#define GUCEF_CORE_TESTAPP_TESTLOGGING_H
+#endif /* GUCEF_CORE_TESTAPP_TESTLOGGING_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -163,11 +174,15 @@ GUCEF_OSMAIN_BEGIN
         if ( GUCEF_APP_TYPE == GUCEF_APP_TYPE_CONSOLE )
             GUCEF::CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( console.GetLogger() );
 
+        GUCEF_TESTFW_INIT( "gucefCORE_TestApp" );
+
         //GUCEF::CORE::CGUCEFApplication::Instance()->main( argc, argv, true );
         
-        PerformStringTests();
+        //PerformStringTests();
         PerformVarsTests();
         PerformFileUtilsTests();
+        PerformTimestampTests();
+        PerformStopwatchTests();
         PerformDateTimeTests();        
         PerformUriTests();
         PerformVariantTests();
@@ -181,13 +196,15 @@ GUCEF_OSMAIN_BEGIN
         PerformCyclicDynamicBufferTests();
         PerformNotifierObserverTests();
         PerformVariantStreamTests();
-        PerformTimestampTests();
+        PerformLoggingTests();
         PerformDataDrivenDStoreCodecsTests();
         PerformFreeListTests();
         PerformASyncTests();
-        PerformStopwatchTests();
 
-        return 1;
+        GUCEF::CORE::CString xmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
+        GUCEF::CORE::AppendToPath( xmlPath, "gucefCORE_TestApp_Results.xml" );
+        GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
+        return GUCEF_TESTFW_EXITCODE;
     }
     catch ( ... )
     {

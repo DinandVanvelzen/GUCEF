@@ -55,6 +55,16 @@
 #define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
 #endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
 
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
 #include "TestNotifierObserver.h"
 
 /*-------------------------------------------------------------------------//
@@ -72,15 +82,9 @@ using namespace GUCEF::CORE;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
-
-#define ERRORHERE { printf( "Test failed @ %s(%d)\n", __FILE__, __LINE__ ); DEBUGBREAK; } 
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 #define SETARRAYMEM( ptr, max, value )    \
     {                                     \
@@ -219,11 +223,11 @@ public:
 void
 PerformNotifierObserverTests( void )
 {
-    printf( "\n\n**** COMMENCING NOTIFIER-OBSERVER TESTS ****\n" );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING NOTIFIER-OBSERVER TESTS" );
     
-    /*
-     *
-     */
+    GUCEF_TESTFW_SUITE_SCOPE( "NotifierObserver" );
+
+    GUCEF_TESTFW_TESTCASE( "Test: Notifier-Observer operations" )
     try
     {         
         /*
@@ -595,7 +599,10 @@ PerformNotifierObserverTests( void )
     {
         ERRORHERE;
     }
-    printf( "**** NOTIFIER-OBSERVER TESTS SUCCESSFULLY COMPLETED ****\n" );
+    GUCEF_TESTFW_TESTCASE_END
+
+    CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL NOTIFIER-OBSERVER TESTS COMPLETED" );
 }
 
 /*-------------------------------------------------------------------------*/

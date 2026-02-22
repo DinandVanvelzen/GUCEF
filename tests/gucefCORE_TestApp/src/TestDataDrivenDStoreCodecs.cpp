@@ -23,8 +23,6 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <iostream>
-
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
 #define GUCEF_CORE_CCOREGLOBAL_H
@@ -65,6 +63,16 @@
 #define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFERACCESS_H ? */
 
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
 #include "TestDataDrivenDStoreCodecs.h"
 
 using namespace GUCEF;
@@ -75,17 +83,9 @@ using namespace GUCEF;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
-
-#define ERRORHERE { std::cout << "Test failed @ " << __FILE__ << "(" << __LINE__ << ")\n"; DEBUGBREAK; }
-#define ASSERT_TRUE( test ) if ( !(test) ) { ERRORHERE; } 
-#define ASSERT_FALSE( test ) if ( (test) ) { ERRORHERE; }
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -307,7 +307,7 @@ PerformProtobufTestsIfFeasible_PluginBootstrap( CORE::CDStoreCodecRegistry::TDSt
                                                     "test"           ,
                                                     true             ) )
             { 
-                std::cout << "protobuf codec not available\n";
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "protobuf codec not available" );
                 return;
             }
         }
@@ -1064,7 +1064,7 @@ void
 PerformProtobufTestsIfFeasible( void )
 {GUCEF_TRACE;
 
-    std::cout << "\n\n**** COMMENCING Data Driven Data Storage Codec: protobuf TESTS ****\n";
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING Data Driven Data Storage Codec: protobuf TESTS" );
     
     try
     {
@@ -1107,7 +1107,7 @@ PerformProtobufTestsIfFeasible( void )
         ERRORHERE;
     }
 
-    std::cout << "\n\n**** FINISHED Data Driven Data Storage Codec: protobuf TESTS ****\n";
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FINISHED Data Driven Data Storage Codec: protobuf TESTS" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1115,19 +1115,23 @@ PerformProtobufTestsIfFeasible( void )
 void
 PerformDataDrivenDStoreCodecsTests( void )
 {
-    std::cout << "\n\n**** COMMENCING Data Driven Data Storage Codec TESTS ****\n";
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING Data Driven Data Storage Codec TESTS" );
     
-    try
-    {
-        PerformProtobufTestsIfFeasible();
-        
-    }
-    catch( ... )
-    {
-        ERRORHERE;
-    }
+    GUCEF_TESTFW_SUITE_SCOPE( "DataDrivenDStoreCodecs" );
 
-    std::cout << "\n\n**** FINISHED Data Driven Data Storage Codec parser TESTS ****\n";
+    GUCEF_TESTFW_TESTCASE( "Test: Protobuf codec tests" )
+        try
+        {
+            PerformProtobufTestsIfFeasible();
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL Data Driven Data Storage Codec TESTS COMPLETED" );
 }
 
 /*-------------------------------------------------------------------------*/

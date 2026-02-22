@@ -21,6 +21,7 @@ set( HEADER_FILES
   include/TestDynamicBufferSwap.h
   include/TestFileUtils.h
   include/TestIniParser.h
+  include/TestLogging.h
   include/TestNotifierObserver.h
   include/TestSharedPtr.h
   include/TestStopwatch.h
@@ -46,6 +47,7 @@ set( SOURCE_FILES
   src/TestFileUtils.cpp
   src/TestFreeList.cpp
   src/TestIniParser.cpp
+  src/TestLogging.cpp
   src/TestNotifierObserver.cpp
   src/TestSharedPtr.cpp
   src/TestStopwatch.cpp
