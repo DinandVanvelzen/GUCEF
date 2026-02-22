@@ -35,6 +35,11 @@
 #define GUCEF_CORE_CTIMESTAMP_H
 #endif /* GUCEF_CORE_CTIMESTAMP_H ? */
 
+#ifndef GUCEF_CORE_CVARIANTSTREAM_H
+#include "gucefCORE_CVariantStream.h"
+#define GUCEF_CORE_CVARIANTSTREAM_H
+#endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
+
 #include "gucefCORE_CMultiLogger.h"
 
 #ifndef GUCEF_CORE_ESSENTIALS_H
@@ -306,6 +311,80 @@ CMultiLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
             // We want to make certain that errors are always in the log file.
             // We might crash moments later which might cause some loggers not
             // to write the error entry to their respective output media
+            if ( LOG_ERROR == logMsgType )
+            {
+                FlushLog();
+            }
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMultiLogger::Log( const TLogMsgType logMsgType     ,
+                   const Int32 logLevel             ,
+                   const CVariantStream& logMessage ,
+                   const UInt32 threadId            ,
+                   const CTimestamp& timestamp      )
+{GUCEF_TRACE;
+
+    if ( logLevel >= m_minLogLevel )
+    {
+        if ( (*m_msgTypeEnablers.find( logMsgType )).second )
+        {
+            TLoggerList::const_iterator i = m_loggers.begin();
+            while ( i != m_loggers.end() )
+            {
+                CILogger* logger = (*i);
+                if ( GUCEF_NULL != logger )
+                {
+                    logger->Log( logMsgType ,
+                                 logLevel   ,
+                                 logMessage ,
+                                 threadId   ,
+                                 timestamp  );
+                }
+                ++i;
+            }
+
+            if ( LOG_ERROR == logMsgType || LOG_EXCEPTION == logMsgType )
+            {
+                FlushLog();
+            }
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMultiLogger::LogWithoutFormatting( const TLogMsgType logMsgType     ,
+                                    const Int32 logLevel             ,
+                                    const CVariantStream& logMessage ,
+                                    const UInt32 threadId            ,
+                                    const CTimestamp& timestamp      )
+{GUCEF_TRACE;
+
+    if ( logLevel >= m_minLogLevel )
+    {
+        if ( (*m_msgTypeEnablers.find( logMsgType )).second )
+        {
+            TLoggerList::const_iterator i = m_loggers.begin();
+            while ( i != m_loggers.end() )
+            {
+                CILogger* logger = (*i);
+                if ( GUCEF_NULL != logger )
+                {
+                    logger->LogWithoutFormatting( logMsgType ,
+                                                  logLevel   ,
+                                                  logMessage ,
+                                                  threadId   ,
+                                                  timestamp  );
+                }
+                ++i;
+            }
+
             if ( LOG_ERROR == logMsgType )
             {
                 FlushLog();

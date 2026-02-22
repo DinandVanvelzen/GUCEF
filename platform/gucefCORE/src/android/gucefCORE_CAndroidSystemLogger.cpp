@@ -49,6 +49,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CVARIANTSTREAM_H
+#include "gucefCORE_CVariantStream.h"
+#define GUCEF_CORE_CVARIANTSTREAM_H
+#endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
+
 #ifndef GUCEF_CORE_ESSENTIALS_H
 #include "gucef_essentials.h"
 #define GUCEF_CORE_ESSENTIALS_H
@@ -213,6 +218,32 @@ CAndroidSystemLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
         android_LogPriority androidLogPrio = LogTypeAndLevelToAndroidPrio( logMsgType, logLevel );
         ( (TAndroidLogWriteFunc) m_logFunc )( androidLogPrio, m_tag.C_String(), logMessage.C_String() );
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAndroidSystemLogger::Log( const TLogMsgType logMsgType     ,
+                           const Int32 logLevel             ,
+                           const CVariantStream& logMessage ,
+                           const UInt32 threadId            ,
+                           const CTimestamp& timestamp      )
+{GUCEF_TRACE;
+
+    Log( logMsgType, logLevel, logMessage.AsString(), threadId, timestamp );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CAndroidSystemLogger::LogWithoutFormatting( const TLogMsgType logMsgType     ,
+                                            const Int32 logLevel             ,
+                                            const CVariantStream& logMessage ,
+                                            const UInt32 threadId            ,
+                                            const CTimestamp& timestamp      )
+{GUCEF_TRACE;
+
+    LogWithoutFormatting( logMsgType, logLevel, logMessage.AsString(), threadId, timestamp );
 }
 
 /*-------------------------------------------------------------------------*/

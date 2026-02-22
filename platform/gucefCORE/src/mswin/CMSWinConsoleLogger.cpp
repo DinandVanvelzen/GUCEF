@@ -45,6 +45,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CVARIANTSTREAM_H
+#include "gucefCORE_CVariantStream.h"
+#define GUCEF_CORE_CVARIANTSTREAM_H
+#endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
+
 #ifndef GUCEF_CORE_ESSENTIALS_H
 #include "gucef_essentials.h"
 #define GUCEF_CORE_ESSENTIALS_H
@@ -188,6 +193,32 @@ CMSWinConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
             ::WriteConsoleA( m_consoleHandle, logMessage.C_String(), (DWORD)logMessage.Length(), &charsWritten, NULL );
         }
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMSWinConsoleLogger::Log( const TLogMsgType logMsgType     ,
+                          const Int32 logLevel             ,
+                          const CVariantStream& logMessage ,
+                          const UInt32 threadId            ,
+                          const CTimestamp& timestamp      )
+{GUCEF_TRACE;
+
+    Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMSWinConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType     ,
+                                           const Int32 logLevel             ,
+                                           const CVariantStream& logMessage ,
+                                           const UInt32 threadId            ,
+                                           const CTimestamp& timestamp      )
+{GUCEF_TRACE;
+
+    LogWithoutFormatting( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
 }
 
 /*-------------------------------------------------------------------------*/

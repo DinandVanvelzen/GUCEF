@@ -31,6 +31,11 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_CORE_CVARIANTSTREAM_H
+#include "gucefCORE_CVariantStream.h"
+#define GUCEF_CORE_CVARIANTSTREAM_H
+#endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
+
 #include "gucefCORE_CCharSepLoggingFormatter.h"
 
 #ifndef GUCEF_CORE_ESSENTIALS_H
@@ -121,6 +126,19 @@ CCharSepLoggingFormatter::FormatLogMessage( const TLogMsgType logMsgType ,
            CLogManager::GetLogMsgTypeString( logMsgType ) + m_seperatorChar + 
            LogLevelToString( logLevel ) + m_seperatorChar + 
            logMessage;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CCharSepLoggingFormatter::FormatLogMessage( const TLogMsgType logMsgType     ,
+                                            const Int32 logLevel             ,
+                                            const CVariantStream& logMessage ,
+                                            const UInt32 threadId            ,
+                                            const CTimestamp& timestamp      )
+{GUCEF_TRACE;
+
+    return FormatLogMessage( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
 }
 
 /*-------------------------------------------------------------------------*/

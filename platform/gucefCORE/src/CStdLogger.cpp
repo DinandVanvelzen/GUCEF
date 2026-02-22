@@ -45,6 +45,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CVARIANTSTREAM_H
+#include "gucefCORE_CVariantStream.h"
+#define GUCEF_CORE_CVARIANTSTREAM_H
+#endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
+
 #include "CStdLogger.h"
 
 #ifndef GUCEF_CORE_ESSENTIALS_H
@@ -156,6 +161,32 @@ CStdLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
                              1                       );
         }
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CStdLogger::Log( const TLogMsgType logMsgType     ,
+                 const Int32 logLevel             ,
+                 const CVariantStream& logMessage ,
+                 const UInt32 threadId            ,
+                 const CTimestamp& timestamp      )
+{GUCEF_TRACE;
+
+    Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CStdLogger::LogWithoutFormatting( const TLogMsgType logMsgType     ,
+                                  const Int32 logLevel             ,
+                                  const CVariantStream& logMessage ,
+                                  const UInt32 threadId            ,
+                                  const CTimestamp& timestamp      )
+{GUCEF_TRACE;
+
+    LogWithoutFormatting( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
 }
 
 /*-------------------------------------------------------------------------*/

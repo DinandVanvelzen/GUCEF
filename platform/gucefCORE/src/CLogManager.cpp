@@ -80,6 +80,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CVARIANTSTREAM_H
+#include "gucefCORE_CVariantStream.h"
+#define GUCEF_CORE_CVARIANTSTREAM_H
+#endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
+
 #include "CLogManager.h"
 
 #ifndef GUCEF_CORE_ESSENTIALS_H
@@ -455,6 +460,66 @@ CLogManager::Log( const TLogMsgType logMsgType ,
             entry.logLevel = logLevel;
             entry.logMsgType = logMsgType;
             entry.logMessage = logMessage;
+            entry.threadId = threadId;
+            entry.timestamp = timestamp;
+            m_bootstrapLog.push_back( entry );
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLogManager::Log( const TLogMsgType logMsgType     ,
+                  const Int32 logLevel             ,
+                  const CVariantStream& logMessage )
+{GUCEF_TRACE;
+
+    Log( logMsgType, logLevel, logMessage, MT::GetCurrentTaskID(), CTimestamp::NowUTCTime() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLogManager::Log( const TLogMsgType logMsgType     ,
+                  const Int32 logLevel             ,
+                  const CVariantStream& logMessage ,
+                  const UInt32 threadId            ,
+                  const CTimestamp& timestamp      )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+
+    if ( !m_busyLogging )
+    {
+        if ( m_loggers->GetLoggerCount() > 0  && !m_redirectToLogQueue )
+        {
+            m_busyLogging = true;
+            if ( m_useLogThread )
+            {
+                m_loggingTask->Log( logMsgType ,
+                                    logLevel   ,
+                                    logMessage ,
+                                    threadId   ,
+                                    timestamp  );
+            }
+            else
+            {
+                m_loggers->Log( logMsgType ,
+                                logLevel   ,
+                                logMessage ,
+                                threadId   ,
+                                timestamp  );
+            }
+            m_busyLogging = false;
+        }
+        else
+        {
+            // For bootstrap log, convert CVariantStream to string
+            TBootstrapLogEntry entry;
+            entry.logLevel = logLevel;
+            entry.logMsgType = logMsgType;
+            entry.logMessage = logMessage.ToString();
             entry.threadId = threadId;
             entry.timestamp = timestamp;
             m_bootstrapLog.push_back( entry );

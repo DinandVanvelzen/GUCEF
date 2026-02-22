@@ -193,6 +193,19 @@ class GUCEF_CORE_PUBLIC_CPP CVariantStream
      */
     void ResetValidState( void );
 
+    /**
+     *  Converts the stream contents to a string representation.
+     *  For logging and debugging purposes.
+     */
+    CString ToString( void ) const;
+
+    /**
+     *  Writes the string representation of the stream contents directly to the destination buffer.
+     *  More efficient than ToString() when you already have a buffer to write to.
+     *  Returns the number of bytes written.
+     */
+    UInt32 WriteAsStringTo( CDynamicBuffer& destBuffer ) const;
+
     private:
 
     CDynamicBuffer m_buffer;

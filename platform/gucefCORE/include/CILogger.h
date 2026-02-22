@@ -43,6 +43,20 @@
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      FORWARD DECLARATIONS                                               //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+namespace GUCEF {
+namespace CORE {
+
+class CVariantStream;
+
+}; /* namespace CORE */
+}; /* namespace GUCEF */
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      NAMESPACE                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -75,6 +89,17 @@ class GUCEF_CORE_PUBLIC_CPP CILogger
                       const CTimestamp& timestamp  ) = 0;
 
     /**
+     *  The logging backend should format the info given
+     *  as appropriote and output it.
+     *  This variant accepts a CVariantStream for structured log data.
+     */
+    virtual void Log( const TLogMsgType logMsgType     ,
+                      const Int32 logLevel             ,
+                      const CVariantStream& logMessage ,
+                      const UInt32 threadId            ,
+                      const CTimestamp& timestamp      ) = 0;
+
+    /**
      *  The logging backend should output the logMessage string as given
      */
     virtual void LogWithoutFormatting( const TLogMsgType logMsgType ,
@@ -82,6 +107,16 @@ class GUCEF_CORE_PUBLIC_CPP CILogger
                                        const CString& logMessage    ,
                                        const UInt32 threadId        ,
                                        const CTimestamp& timestamp  ) = 0;
+
+    /**
+     *  The logging backend should output the logMessage as given.
+     *  This variant accepts a CVariantStream for structured log data.
+     */
+    virtual void LogWithoutFormatting( const TLogMsgType logMsgType     ,
+                                       const Int32 logLevel             ,
+                                       const CVariantStream& logMessage ,
+                                       const UInt32 threadId            ,
+                                       const CTimestamp& timestamp      ) = 0;
 
     virtual void FlushLog( void ) = 0;
 

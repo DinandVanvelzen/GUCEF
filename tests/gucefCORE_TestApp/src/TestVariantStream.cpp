@@ -432,6 +432,102 @@ PerformVariantStreamTests( void )
             ASSERT_TRUE( bl == true );
         }
 
+        // Test 19: ToString basic
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 19: ToString basic" );
+        {
+            CORE::CVariantStream stream;
+            stream << "Hello" << "World";
+            
+            CORE::CString result = stream.ToString();
+            ASSERT_TRUE( result == "HelloWorld" );
+        }
+
+        // Test 20: ToString with mixed types
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 20: ToString with mixed types" );
+        {
+            CORE::CVariantStream stream;
+            stream << "Value=" << (Int32)42 << " Done";
+            
+            CORE::CString result = stream.ToString();
+            ASSERT_TRUE( result == "Value=42 Done" );
+        }
+
+        // Test 21: ToString with explicit spaces
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 21: ToString with explicit spaces" );
+        {
+            CORE::CVariantStream stream;
+            stream << "A" << " " << "B" << " " << "C";
+            
+            CORE::CString result = stream.ToString();
+            ASSERT_TRUE( result == "A B C" );
+        }
+
+        // Test 22: ToString on empty stream
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 22: ToString on empty stream" );
+        {
+            CORE::CVariantStream stream;
+            CORE::CString result = stream.ToString();
+            ASSERT_TRUE( result.IsNULLOrEmpty() );
+        }
+
+        // Test 23: WriteAsStringTo basic
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 23: WriteAsStringTo basic" );
+        {
+            CORE::CVariantStream stream;
+            stream << "Test" << (Int32)123;
+            
+            CORE::CDynamicBuffer destBuffer;
+            UInt32 bytesWritten = stream.WriteAsStringTo( destBuffer );
+            
+            ASSERT_TRUE( bytesWritten > 0 );
+            ASSERT_TRUE( destBuffer.GetDataSize() == bytesWritten );
+            
+            // Verify content matches ToString
+            CORE::CString fromToString = stream.ToString();
+            CORE::CString fromBuffer( destBuffer.AsConstTypePtr<char>(), destBuffer.GetDataSize() );
+            ASSERT_TRUE( fromBuffer == fromToString );
+        }
+
+        // Test 24: WriteAsStringTo with existing buffer content
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 24: WriteAsStringTo with existing buffer content" );
+        {
+            CORE::CVariantStream stream;
+            stream << "Appended";
+            
+            CORE::CDynamicBuffer destBuffer;
+            destBuffer.Append( "Prefix:", 7 );
+            UInt32 initialSize = destBuffer.GetDataSize();
+            
+            UInt32 bytesWritten = stream.WriteAsStringTo( destBuffer );
+            
+            ASSERT_TRUE( bytesWritten > 0 );
+            ASSERT_TRUE( destBuffer.GetDataSize() == initialSize + bytesWritten );
+            
+            CORE::CString fromBuffer( destBuffer.AsConstTypePtr<char>(), destBuffer.GetDataSize() );
+            ASSERT_TRUE( fromBuffer == "Prefix:Appended" );
+        }
+
+        // Test 25: WriteAsStringTo on empty stream
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 25: WriteAsStringTo on empty stream" );
+        {
+            CORE::CVariantStream stream;
+            CORE::CDynamicBuffer destBuffer;
+            
+            UInt32 bytesWritten = stream.WriteAsStringTo( destBuffer );
+            ASSERT_TRUE( bytesWritten == 0 );
+            ASSERT_TRUE( destBuffer.GetDataSize() == 0 );
+        }
+
+        // Test 26: ToString preserves numeric precision
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 26: ToString preserves numeric formatting" );
+        {
+            CORE::CVariantStream stream;
+            stream << (Float64)3.14159;
+            
+            CORE::CString result = stream.ToString();
+            ASSERT_TRUE( result.HasSubstr( "3.14159" ) >= 0 );
+        }
+
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CVariantStream TESTS PASSED" );
     }
     catch ( const std::exception& e )

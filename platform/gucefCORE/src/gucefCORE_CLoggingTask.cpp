@@ -23,6 +23,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CVARIANTSTREAM_H
+#include "gucefCORE_CVariantStream.h"
+#define GUCEF_CORE_CVARIANTSTREAM_H
+#endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
+
 #include "gucefCORE_CLoggingTask.h"
 
 /*-------------------------------------------------------------------------//
@@ -142,6 +147,54 @@ CLoggingTask::LogWithoutFormatting( const TLogMsgType logMsgType ,
 /*-------------------------------------------------------------------------*/
 
 void
+CLoggingTask::Log( const TLogMsgType logMsgType     ,
+                   const Int32 logLevel             ,
+                   const CVariantStream& logMessage ,
+                   const UInt32 threadId            ,
+                   const CTimestamp& timestamp      )
+{GUCEF_TRACE;
+
+    if ( logLevel >= m_minLogLevel )
+    {
+        CLoggingMail logMsg;
+        logMsg.logLevel = logLevel;
+        logMsg.logMessage = logMessage.ToString();
+        logMsg.logMsgType = logMsgType;
+        logMsg.threadId = threadId;
+        logMsg.timestamp = timestamp;
+        logMsg.withoutFormatting = false;
+
+        m_mailbox.AddMail( MAILTYPE_NEWLOGMSG, &logMsg );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLoggingTask::LogWithoutFormatting( const TLogMsgType logMsgType     ,
+                                    const Int32 logLevel             ,
+                                    const CVariantStream& logMessage ,
+                                    const UInt32 threadId            ,
+                                    const CTimestamp& timestamp      )
+{GUCEF_TRACE;
+
+    if ( logLevel >= m_minLogLevel )
+    {
+        CLoggingMail logMsg;
+        logMsg.logLevel = logLevel;
+        logMsg.logMessage = logMessage.ToString();
+        logMsg.logMsgType = logMsgType;
+        logMsg.threadId = threadId;
+        logMsg.timestamp = timestamp;
+        logMsg.withoutFormatting = true;
+
+        m_mailbox.AddMail( MAILTYPE_NEWLOGMSG, &logMsg );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CLoggingTask::FlushLog( void )
 {GUCEF_TRACE;
 
@@ -216,6 +269,50 @@ CLoggingTask::OnTaskCycleLogWithoutFormatting( const TLogMsgType logMsgType ,
                                                const UInt32 threadId        ,
                                                const CTimestamp& timestamp  )
 
+{GUCEF_TRACE;
+
+    if ( NULL != m_loggerBackend )
+    {
+        m_loggerBackend->LogWithoutFormatting( logMsgType ,
+                                               logLevel   ,
+                                               logMessage ,
+                                               threadId   ,
+                                               timestamp  );
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLoggingTask::OnTaskCycleLog( const TLogMsgType logMsgType     ,
+                              const Int32 logLevel             ,
+                              const CVariantStream& logMessage ,
+                              const UInt32 threadId            ,
+                              const CTimestamp& timestamp      )
+{GUCEF_TRACE;
+
+    if ( NULL != m_loggerBackend )
+    {
+        m_loggerBackend->Log( logMsgType ,
+                              logLevel   ,
+                              logMessage ,
+                              threadId   ,
+                              timestamp  );
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLoggingTask::OnTaskCycleLogWithoutFormatting( const TLogMsgType logMsgType     ,
+                                               const Int32 logLevel             ,
+                                               const CVariantStream& logMessage ,
+                                               const UInt32 threadId            ,
+                                               const CTimestamp& timestamp      )
 {GUCEF_TRACE;
 
     if ( NULL != m_loggerBackend )

@@ -102,6 +102,7 @@ namespace CORE {
 class CILogger;
 class CMultiLogger;
 class CLoggingTask;
+class CVariantStream;
 
 /*-------------------------------------------------------------------------*/
 
@@ -145,6 +146,16 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
               const CString& logMessage    ,
               const UInt32 threadId        ,
               const CTimestamp& timestamp  );
+
+    void Log( const TLogMsgType logMsgType     ,
+              const Int32 logLevel             ,
+              const CVariantStream& logMessage );
+
+    void Log( const TLogMsgType logMsgType     ,
+              const Int32 logLevel             ,
+              const CVariantStream& logMessage ,
+              const UInt32 threadId            ,
+              const CTimestamp& timestamp      );
 
     void SetMinLogLevel( const Int32 logLevel );
 

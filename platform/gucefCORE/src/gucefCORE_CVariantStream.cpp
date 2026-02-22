@@ -982,6 +982,66 @@ CVariantStream::ResetValidState( void )
     m_isValid = true;
 }
 
+/*-------------------------------------------------------------------------*/
+
+CString
+CVariantStream::ToString( void ) const
+{GUCEF_TRACE;
+
+    CString result;
+    UInt32 readPos = 0;
+    UInt32 dataSize = m_buffer.GetDataSize();
+    
+    while ( readPos < dataSize )
+    {
+        CVariant var;
+        UInt32 bytesRead = 0;
+        if ( CVariantBinarySerializer::Deserialize( var, readPos, m_buffer, false, bytesRead ) )
+        {
+            readPos += bytesRead;
+            result += var.AsString();
+        }
+        else
+        {
+            break;
+        }
+    }
+    
+    return result;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CVariantStream::WriteAsStringTo( CDynamicBuffer& destBuffer ) const
+{GUCEF_TRACE;
+
+    UInt32 initialSize = destBuffer.GetDataSize();
+    UInt32 readPos = 0;
+    UInt32 dataSize = m_buffer.GetDataSize();
+    
+    while ( readPos < dataSize )
+    {
+        CVariant var;
+        UInt32 bytesRead = 0;
+        if ( CVariantBinarySerializer::Deserialize( var, readPos, m_buffer, false, bytesRead ) )
+        {
+            readPos += bytesRead;
+            CString varStr = var.AsString();
+            if ( !varStr.IsNULLOrEmpty() )
+            {
+                destBuffer.Append( varStr.C_String(), varStr.Length() );
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+    
+    return destBuffer.GetDataSize() - initialSize;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

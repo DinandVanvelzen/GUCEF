@@ -57,6 +57,14 @@ namespace CORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      FORWARD DECLARATIONS                                               //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+class CVariantStream;
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -73,6 +81,12 @@ class GUCEF_CORE_PUBLIC_CPP CILoggingFormatter
                                       const CString& logMessage    ,
                                       const UInt32 threadId        ,
                                       const CTimestamp& timestamp  ) = 0;
+
+    virtual CString FormatLogMessage( const TLogMsgType logMsgType     ,
+                                      const Int32 logLevel             ,
+                                      const CVariantStream& logMessage ,
+                                      const UInt32 threadId            ,
+                                      const CTimestamp& timestamp      ) = 0;
 
     virtual const CString& GetType( void ) const = 0;
     
