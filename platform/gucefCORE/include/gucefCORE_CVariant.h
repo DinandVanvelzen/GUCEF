@@ -195,6 +195,15 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     bool IsBlob( void ) const;
     bool IsBsob( void ) const;
     bool IsMemoryAddress( void ) const;
+    bool IsVoid( void ) const;
+    bool IsNIL( void ) const;
+    bool IsNULL( void ) const;
+    
+    /**
+     *  Sets this variant to VOID type (GUCEF_DATATYPE_VOID).
+     *  Used for demarkation in streams.
+     */
+    void SetVoidType( void );
     
     static bool UsesDynamicMemory( UInt8 typeId );
     bool UsesDynamicMemory( void ) const;

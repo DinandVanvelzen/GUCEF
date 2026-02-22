@@ -406,6 +406,37 @@ CDynamicBuffer::operator=( const CDynamicBuffer &src )
 
 /*-------------------------------------------------------------------------*/
 
+#ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+
+CDynamicBuffer&
+CDynamicBuffer::operator=( CDynamicBuffer&& src ) GUCEF_NOEXCEPT
+{GUCEF_TRACE;
+
+    if ( this != &src )
+    {
+        Clear( false );
+
+        // per move assignment concept: we steal the memory and properties of src
+        // we then leave src in a default buffer state as if it was newly constructed
+
+        m_linked = src.m_linked;
+        src.m_linked = false;
+        _autoenlarge = src._autoenlarge;
+        src._autoenlarge = true;
+        _buffer = src._buffer;
+        src._buffer = GUCEF_NULL;
+        _bsize = src._bsize;
+        src._bsize = 0;
+        m_dataSize = src.m_dataSize;
+        src.m_dataSize = 0;
+    }
+    return *this;
+}
+
+#endif
+
+/*-------------------------------------------------------------------------*/
+
 CDynamicBuffer&
 CDynamicBuffer::operator=( const CString &src )
 {GUCEF_TRACE;
@@ -1187,6 +1218,34 @@ CDynamicBuffer::Clear( const bool logicalClearOnly /* = true */ )
         
         m_dataSize = 0;        
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDynamicBuffer::Swap( CDynamicBuffer& other )
+{GUCEF_TRACE;
+
+    // Swap all member variables directly - no copies needed
+    bool tempLinked = m_linked;
+    m_linked = other.m_linked;
+    other.m_linked = tempLinked;
+
+    bool tempAutoEnlarge = _autoenlarge;
+    _autoenlarge = other._autoenlarge;
+    other._autoenlarge = tempAutoEnlarge;
+
+    Int8* tempBuffer = _buffer;
+    _buffer = other._buffer;
+    other._buffer = tempBuffer;
+
+    UInt32 tempBsize = _bsize;
+    _bsize = other._bsize;
+    other._bsize = tempBsize;
+
+    UInt32 tempDataSize = m_dataSize;
+    m_dataSize = other.m_dataSize;
+    other.m_dataSize = tempDataSize;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -33,6 +33,11 @@
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
 
+#ifndef GUCEF_CORE_CVARIANTSTREAM_H
+#include "gucefCORE_CVariantStream.h"
+#define GUCEF_CORE_CVARIANTSTREAM_H
+#endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
+
 #ifndef GUCEF_CORE_CLOGMANAGER_H
 #include "CLogManager.h"
 #define GUCEF_CORE_CLOGMANAGER_H
@@ -139,14 +144,50 @@ CLoggingGlobal::GetLogManager( void )
 
 /*-------------------------------------------------------------------------*/
 
-CVariantStreamPtr
+CLogStreamScope::CLogStreamScope( CVariantStream* stream )
+    : m_stream( stream )
+{GUCEF_TRACE;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLogStreamScope::~CLogStreamScope()
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_stream )
+    {
+        m_stream->WriteSegmentEnd();
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream*
+CLogStreamScope::operator->( void )
+{GUCEF_TRACE;
+
+    return m_stream;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream&
+CLogStreamScope::operator*( void )
+{GUCEF_TRACE;
+
+    return *m_stream;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream*
 CLoggingGlobal::Log( const TLogMsgType logMsgType ,
                      const Int32 logLevel         )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != m_logManager )
         return m_logManager->Log( logMsgType, logLevel );
-    return CVariantStreamPtr();
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

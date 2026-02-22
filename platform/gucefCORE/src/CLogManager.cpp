@@ -140,6 +140,39 @@ static CharSepLoggingFormatterFactory charSepLoggingFormatterFactory;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+SThreadLogBuffers::SThreadLogBuffers( void )
+    : frontBuffer( GUCEF_NEW CVariantStream() )
+    , backBuffer( GUCEF_NEW CVariantStream() )
+    , swapLock()
+    , threadId( 0 )
+{GUCEF_TRACE;
+}
+
+/*-------------------------------------------------------------------------*/
+
+SThreadLogBuffers::~SThreadLogBuffers()
+{GUCEF_TRACE;
+
+    GUCEF_DELETE frontBuffer;
+    frontBuffer = GUCEF_NULL;
+    GUCEF_DELETE backBuffer;
+    backBuffer = GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+SThreadLogBuffers::Swap( void )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( swapLock );
+    CVariantStream* temp = frontBuffer;
+    frontBuffer = backBuffer;
+    backBuffer = temp;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CLogManager::CLogManager( void )
     : m_loggers( GUCEF_NEW CMultiLogger() )
     , m_loggingTask()
@@ -149,6 +182,8 @@ CLogManager::CLogManager( void )
     , m_redirectToLogQueue( false )
     , m_logFormatterFactory( false, false )
     , m_defaultLogFormatter()
+    , m_threadBuffers()
+    , m_threadBuffersLock()
     , m_dataLock()
 {GUCEF_TRACE;
 
@@ -174,6 +209,33 @@ CLogManager::~CLogManager()
 
     GUCEF_DELETE m_loggers;
     m_loggers = GUCEF_NULL;
+
+    // Clean up per-thread buffers
+    TThreadBufferMap::iterator i = m_threadBuffers.begin();
+    while ( i != m_threadBuffers.end() )
+    {
+        GUCEF_DELETE (*i).second;
+        ++i;
+    }
+    m_threadBuffers.clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
+TThreadLogBuffers*
+CLogManager::GetOrCreateThreadBuffers( UInt32 threadId )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_threadBuffersLock );
+    
+    TThreadBufferMap::iterator i = m_threadBuffers.find( threadId );
+    if ( i != m_threadBuffers.end() )
+        return (*i).second;
+    
+    TThreadLogBuffers* buffers = GUCEF_NEW TThreadLogBuffers();
+    buffers->threadId = threadId;
+    m_threadBuffers[ threadId ] = buffers;
+    return buffers;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -399,13 +461,33 @@ CLogManager::GetMinLogLevel( void ) const
     return m_loggers->GetMinimalLogLevel();
 }
 
+
 /*-------------------------------------------------------------------------*/
 
-CVariantStreamPtr
+CVariantStream*
 CLogManager::Log( const TLogMsgType logMsgType ,
                   const Int32 logLevel         )
-{
-    return CVariantStreamPtr(); // TODO
+{GUCEF_TRACE;
+
+    // Get or create per-thread buffers
+    UInt32 threadId = MT::GetCurrentTaskID();
+    TThreadLogBuffers* buffers = GetOrCreateThreadBuffers( threadId );
+    
+    if ( GUCEF_NULL != buffers && GUCEF_NULL != buffers->frontBuffer )
+    {
+        CVariantStream& stream = *buffers->frontBuffer;
+        
+        // Write log entry metadata at the start of this segment
+        stream << static_cast< UInt8 >( logMsgType );
+        stream << logLevel;
+        stream << threadId;
+        stream << CTimestamp::NowUTCTime();
+        
+        // Return stream for user to continue writing
+        // Caller should use CLogStreamScope for automatic VOID marking
+        return buffers->frontBuffer;
+    }
+    return GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

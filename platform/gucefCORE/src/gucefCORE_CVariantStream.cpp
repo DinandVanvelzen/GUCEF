@@ -28,6 +28,11 @@
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
 
+#ifndef GUCEF_CORE_CDYNAMICBUFFER_H
+#include "CDynamicBuffer.h"
+#define GUCEF_CORE_CDYNAMICBUFFER_H
+#endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
+
 #ifndef GUCEF_CORE_CVARIANTBINARYSERIALIZER_H
 #include "gucefCORE_CVariantBinarySerializer.h"
 #define GUCEF_CORE_CVARIANTBINARYSERIALIZER_H
@@ -71,7 +76,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 CVariantStream::CVariantStream( void )
-    : m_buffer()
+    : m_buffer( GUCEF_NEW CDynamicBuffer() )
     , m_writePosition( 0 )
     , m_readPosition( 0 )
     , m_isValid( true )
@@ -82,7 +87,7 @@ CVariantStream::CVariantStream( void )
 /*-------------------------------------------------------------------------*/
 
 CVariantStream::CVariantStream( UInt32 initialBufferSize )
-    : m_buffer( initialBufferSize, true )
+    : m_buffer( GUCEF_NEW CDynamicBuffer( initialBufferSize, true ) )
     , m_writePosition( 0 )
     , m_readPosition( 0 )
     , m_isValid( true )
@@ -93,7 +98,7 @@ CVariantStream::CVariantStream( UInt32 initialBufferSize )
 /*-------------------------------------------------------------------------*/
 
 CVariantStream::CVariantStream( const CVariantStream& src )
-    : m_buffer( src.m_buffer )
+    : m_buffer( GUCEF_NEW CDynamicBuffer( *src.m_buffer ) )
     , m_writePosition( src.m_writePosition )
     , m_readPosition( src.m_readPosition )
     , m_isValid( src.m_isValid )
@@ -106,7 +111,7 @@ CVariantStream::CVariantStream( const CVariantStream& src )
 #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
 
 CVariantStream::CVariantStream( CVariantStream&& src ) GUCEF_NOEXCEPT
-    : m_buffer( GUCEF_MOVE( src.m_buffer ) )
+    : m_buffer( GUCEF_NEW CDynamicBuffer( GUCEF_MOVE( *src.m_buffer ) ) )
     , m_writePosition( src.m_writePosition )
     , m_readPosition( src.m_readPosition )
     , m_isValid( src.m_isValid )
@@ -124,6 +129,8 @@ CVariantStream::CVariantStream( CVariantStream&& src ) GUCEF_NOEXCEPT
 CVariantStream::~CVariantStream()
 {GUCEF_TRACE;
 
+    GUCEF_DELETE m_buffer;
+    m_buffer = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -134,7 +141,7 @@ CVariantStream::operator=( const CVariantStream& src )
 
     if ( this != &src )
     {
-        m_buffer = src.m_buffer;
+        *m_buffer = *src.m_buffer;
         m_writePosition = src.m_writePosition;
         m_readPosition = src.m_readPosition;
         m_isValid = src.m_isValid;
@@ -152,7 +159,8 @@ CVariantStream::operator=( CVariantStream&& src ) GUCEF_NOEXCEPT
 
     if ( this != &src )
     {
-        m_buffer = GUCEF_MOVE( src.m_buffer );
+        *m_buffer = GUCEF_MOVE( *src.m_buffer );
+        
         m_writePosition = src.m_writePosition;
         m_readPosition = src.m_readPosition;
         m_isValid = src.m_isValid;
@@ -174,7 +182,7 @@ CVariantStream::operator<<( bool data )
 
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -193,7 +201,7 @@ CVariantStream::operator<<( Int8 data )
 
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -212,7 +220,7 @@ CVariantStream::operator<<( UInt8 data )
 
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -231,7 +239,7 @@ CVariantStream::operator<<( Int16 data )
 
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -250,7 +258,7 @@ CVariantStream::operator<<( UInt16 data )
 
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -269,7 +277,7 @@ CVariantStream::operator<<( Int32 data )
 
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -288,7 +296,7 @@ CVariantStream::operator<<( UInt32 data )
 
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -307,7 +315,7 @@ CVariantStream::operator<<( Int64 data )
 
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -326,7 +334,7 @@ CVariantStream::operator<<( UInt64 data )
 
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -345,7 +353,7 @@ CVariantStream::operator<<( Float32 data )
 
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -364,7 +372,7 @@ CVariantStream::operator<<( Float64 data )
 
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -384,7 +392,7 @@ CVariantStream::operator<<( const char* data )
     CVariant var;
     var.LinkTo( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -404,7 +412,7 @@ CVariantStream::operator<<( const CAsciiString& data )
     CVariant var;
     var.LinkTo( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -424,7 +432,7 @@ CVariantStream::operator<<( const CUtf8String& data )
     CVariant var;
     var.LinkTo( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -444,7 +452,7 @@ CVariantStream::operator<<( const std::string& data )
     CVariant var;
     var.LinkTo( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -464,7 +472,7 @@ CVariantStream::operator<<( const std::wstring& data )
     CVariant var;
     var.LinkTo( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -485,7 +493,7 @@ CVariantStream::operator<<( const std::stringstream& data )
     CVariant var;
     var.LinkTo( str );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -504,7 +512,7 @@ CVariantStream::operator<<( const CDateTime& data )
 
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -523,7 +531,7 @@ CVariantStream::operator<<( const CTimestamp& data )
 
     CVariant var( data.ToDateTime() );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -543,7 +551,7 @@ CVariantStream::operator<<( const CGeoLocation& data )
     // Serialize as ISO 6709 string representation
     CVariant var( data.ToISO6709String() );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -561,7 +569,7 @@ CVariantStream::operator<<( const CVariant& data )
 {GUCEF_TRACE;
 
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( data, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( data, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -581,7 +589,7 @@ CVariantStream::operator<<( const CDynamicBuffer& data )
     CVariant var;
     var.LinkTo( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -600,7 +608,7 @@ CVariantStream::operator<<( void* data )
 
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -617,9 +625,10 @@ CVariantStream&
 CVariantStream::operator<<( TDefaultFuncPtr data )
 {GUCEF_TRACE;
 
+
     CVariant var( data );
     UInt32 bytesWritten = 0;
-    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
     {
         m_writePosition += bytesWritten;
     }
@@ -638,7 +647,7 @@ CVariantStream::operator>>( bool& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsBool();
@@ -658,7 +667,7 @@ CVariantStream::operator>>( Int8& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsInt8();
@@ -678,7 +687,7 @@ CVariantStream::operator>>( UInt8& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsUInt8();
@@ -698,7 +707,7 @@ CVariantStream::operator>>( Int16& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsInt16();
@@ -718,7 +727,7 @@ CVariantStream::operator>>( UInt16& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsUInt16();
@@ -738,7 +747,7 @@ CVariantStream::operator>>( Int32& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsInt32();
@@ -758,7 +767,7 @@ CVariantStream::operator>>( UInt32& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsUInt32();
@@ -778,7 +787,7 @@ CVariantStream::operator>>( Int64& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsInt64();
@@ -798,7 +807,7 @@ CVariantStream::operator>>( UInt64& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsUInt64();
@@ -818,7 +827,7 @@ CVariantStream::operator>>( Float32& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsFloat32();
@@ -838,7 +847,7 @@ CVariantStream::operator>>( Float64& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsFloat64();
@@ -858,7 +867,7 @@ CVariantStream::operator>>( CAsciiString& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsAsciiString();
@@ -878,7 +887,7 @@ CVariantStream::operator>>( CUtf8String& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsUtf8String();
@@ -898,7 +907,7 @@ CVariantStream::operator>>( std::string& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsString().STL_String();
@@ -918,7 +927,7 @@ CVariantStream::operator>>( std::wstring& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = ToWString( var.AsString() );
@@ -938,7 +947,7 @@ CVariantStream::operator>>( CDateTime& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsDateTime();
@@ -958,7 +967,7 @@ CVariantStream::operator>>( CTimestamp& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = CTimestamp( var.AsDateTime() );
@@ -978,7 +987,7 @@ CVariantStream::operator>>( CGeoLocation& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data.FromISO6709String( var.AsString().STL_String() );
@@ -997,7 +1006,7 @@ CVariantStream::operator>>( CVariant& data )
 {GUCEF_TRACE;
 
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( data, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( data, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
     }
@@ -1016,7 +1025,7 @@ CVariantStream::operator>>( CDynamicBuffer& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = var.AsBuffer();
@@ -1036,7 +1045,7 @@ CVariantStream::operator>>( std::stringstream& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data.str( var.AsString().STL_String() );
@@ -1054,7 +1063,7 @@ void
 CVariantStream::Clear( void )
 {GUCEF_TRACE;
 
-    m_buffer.Clear();
+    m_buffer->Clear();
     m_writePosition = 0;
     m_readPosition = 0;
     m_isValid = true;
@@ -1066,7 +1075,7 @@ UInt32
 CVariantStream::GetDataSize( void ) const
 {GUCEF_TRACE;
 
-    return m_buffer.GetDataSize();
+    return m_buffer->GetDataSize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1111,7 +1120,7 @@ bool
 CVariantStream::HasUnreadData( void ) const
 {GUCEF_TRACE;
 
-    return m_readPosition < m_buffer.GetDataSize();
+    return m_readPosition < m_buffer->GetDataSize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1120,7 +1129,7 @@ UInt32
 CVariantStream::GetUnreadDataSize( void ) const
 {GUCEF_TRACE;
 
-    UInt32 dataSize = m_buffer.GetDataSize();
+    UInt32 dataSize = m_buffer->GetDataSize();
     if ( m_readPosition < dataSize )
         return dataSize - m_readPosition;
     return 0;
@@ -1132,7 +1141,7 @@ const CDynamicBuffer&
 CVariantStream::GetBuffer( void ) const
 {GUCEF_TRACE;
 
-    return m_buffer;
+    return *m_buffer;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1141,7 +1150,7 @@ CDynamicBuffer&
 CVariantStream::GetBuffer( void )
 {GUCEF_TRACE;
 
-    return m_buffer;
+    return *m_buffer;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1170,13 +1179,13 @@ CVariantStream::ToString( void ) const
 
     CString result;
     UInt32 readPos = 0;
-    UInt32 dataSize = m_buffer.GetDataSize();
+    UInt32 dataSize = m_buffer->GetDataSize();
     
     while ( readPos < dataSize )
     {
         CVariant var;
         UInt32 bytesRead = 0;
-        if ( CVariantBinarySerializer::Deserialize( var, readPos, m_buffer, false, bytesRead ) )
+        if ( CVariantBinarySerializer::Deserialize( var, readPos, *m_buffer, false, bytesRead ) )
         {
             readPos += bytesRead;
             result += var.AsString();
@@ -1198,13 +1207,13 @@ CVariantStream::WriteAsStringTo( CDynamicBuffer& destBuffer ) const
 
     UInt32 initialSize = destBuffer.GetDataSize();
     UInt32 readPos = 0;
-    UInt32 dataSize = m_buffer.GetDataSize();
+    UInt32 dataSize = m_buffer->GetDataSize();
     
     while ( readPos < dataSize )
     {
         CVariant var;
         UInt32 bytesRead = 0;
-        if ( CVariantBinarySerializer::Deserialize( var, readPos, m_buffer, false, bytesRead ) )
+        if ( CVariantBinarySerializer::Deserialize( var, readPos, *m_buffer, false, bytesRead ) )
         {
             readPos += bytesRead;
             CString varStr = var.AsString();
@@ -1220,6 +1229,167 @@ CVariantStream::WriteAsStringTo( CDynamicBuffer& destBuffer ) const
     }
     
     return destBuffer.GetDataSize() - initialSize;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVariantStream::WriteSegmentEnd( void )
+{GUCEF_TRACE;
+
+    // Write a VOID type marker to delineate segment end
+    CVariant voidMarker;
+    voidMarker.SetVoidType();
+    *this << voidMarker;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVariantStream::ReadNextSegment( CVariantStream& outSegment )
+{GUCEF_TRACE;
+
+    outSegment.Clear();
+    
+    if ( !HasUnreadData() )
+        return false;
+    
+    UInt32 dataSize = m_buffer->GetDataSize();
+    bool foundData = false;
+    
+    while ( m_readPosition < dataSize )
+    {
+        CVariant var;
+        UInt32 bytesRead = 0;
+        
+        if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+        {
+            m_readPosition += bytesRead;
+            
+            // Check if this is the segment end marker
+            if ( var.IsVoid() )
+            {
+                // Segment complete, stop reading
+                return foundData;
+            }
+            
+            // Add to output segment
+            outSegment << var;
+            foundData = true;
+        }
+        else
+        {
+            m_isValid = false;
+            break;
+        }
+    }
+    
+    // Reached end of stream without VOID marker - still return data if we have any
+    return foundData;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVariantStream::ReadNextSegmentAsString( CString& outString )
+{GUCEF_TRACE;
+
+    outString.Clear();
+    
+    if ( !HasUnreadData() )
+        return false;
+    
+    UInt32 dataSize = m_buffer->GetDataSize();
+    bool foundData = false;
+    
+    while ( m_readPosition < dataSize )
+    {
+        CVariant var;
+        UInt32 bytesRead = 0;
+        
+        if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+        {
+            m_readPosition += bytesRead;
+            
+            // Check if this is the segment end marker
+            if ( var.IsVoid() )
+            {
+                // Segment complete, stop reading
+                return foundData;
+            }
+            
+            // Append string representation
+            outString += var.AsString();
+            foundData = true;
+        }
+        else
+        {
+            m_isValid = false;
+            break;
+        }
+    }
+    
+    // Reached end of stream without VOID marker - still return data if we have any
+    return foundData;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVariantStream::HasNextSegment( void ) const
+{GUCEF_TRACE;
+
+    // Check if there's any unread data that isn't just a VOID marker
+    if ( !HasUnreadData() )
+        return false;
+    
+    UInt32 tempReadPos = m_readPosition;
+    UInt32 dataSize = m_buffer->GetDataSize();
+    
+    while ( tempReadPos < dataSize )
+    {
+        CVariant var;
+        UInt32 bytesRead = 0;
+        
+        if ( CVariantBinarySerializer::Deserialize( var, tempReadPos, *m_buffer, false, bytesRead ) )
+        {
+            // Found non-VOID data, there is a segment
+            if ( !var.IsVoid() )
+                return true;
+            
+            tempReadPos += bytesRead;
+        }
+        else
+        {
+            break;
+        }
+    }
+    
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVariantStream::Swap( CVariantStream& other )
+{GUCEF_TRACE;
+
+    // Swap the buffer pointers directly - no copies needed
+    CDynamicBuffer* tempBuffer = m_buffer;
+    m_buffer = other.m_buffer;
+    other.m_buffer = tempBuffer;
+    
+    UInt32 tempWritePos = m_writePosition;
+    m_writePosition = other.m_writePosition;
+    other.m_writePosition = tempWritePos;
+    
+    UInt32 tempReadPos = m_readPosition;
+    m_readPosition = other.m_readPosition;
+    other.m_readPosition = tempReadPos;
+    
+    bool tempValid = m_isValid;
+    m_isValid = other.m_isValid;
+    other.m_isValid = tempValid;
 }
 
 /*-------------------------------------------------------------------------//

@@ -168,3 +168,12 @@ MyClass::MyClass( MyClass&& src ) GUCEF_NOEXCEPT
 }
 #endif
 ```
+
+## Workflow Notes
+
+### When Facing Complex Changes or Multiple Errors
+
+- **Ask for feedback/input** when changes get complex or there are multiple compile errors to fix
+- Do NOT attempt to revert changes or make large-scale fixes without checking with the user first
+- This avoids undoing wanted work and wasting tokens on trial-and-error approaches
+- If unsure about the intended direction, stop and ask rather than guessing

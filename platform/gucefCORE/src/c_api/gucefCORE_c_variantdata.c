@@ -248,6 +248,7 @@ GucefByteSizeOfFixedSizeType( UInt8 varType )
 
         case GUCEF_DATATYPE_NULL:
         case GUCEF_DATATYPE_NIL:
+        case GUCEF_DATATYPE_VOID:
         default: return 0;
     }
 }

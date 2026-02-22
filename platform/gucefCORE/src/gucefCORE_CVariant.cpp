@@ -838,6 +838,43 @@ CVariant::IsMemoryAddress( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CVariant::IsVoid( void ) const
+{GUCEF_TRACE;
+
+    return m_variantData.containedType == GUCEF_DATATYPE_VOID;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVariant::IsNIL( void ) const
+{GUCEF_TRACE;
+
+    return m_variantData.containedType == GUCEF_DATATYPE_NIL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVariant::IsNULL( void ) const
+{GUCEF_TRACE;
+
+    return m_variantData.containedType == GUCEF_DATATYPE_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVariant::SetVoidType( void )
+{GUCEF_TRACE;
+
+    Clear();
+    m_variantData.containedType = GUCEF_DATATYPE_VOID;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CVariant::IsInteger( void ) const
 {GUCEF_TRACE;
 
@@ -1850,6 +1887,7 @@ CVariant::AsVoidPtr( const void* defaultIfNeeded ) const
 
     switch ( m_variantData.containedType )
     {
+        case GUCEF_DATATYPE_VOID: return GUCEF_NULL;
         case GUCEF_DATATYPE_INT8: return &m_variantData.union_data.int8_data;
         case GUCEF_DATATYPE_UINT8: return &m_variantData.union_data.uint8_data;
         case GUCEF_DATATYPE_INT16: return &m_variantData.union_data.int16_data;

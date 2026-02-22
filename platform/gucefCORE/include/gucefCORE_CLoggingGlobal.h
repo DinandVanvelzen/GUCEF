@@ -66,14 +66,44 @@ class CLogManager;
 class CCoreGlobal;
 class CVariantStream;
 
-template< typename T, class LockType > class CTBasicSharedPtr;
-typedef CTBasicSharedPtr< CVariantStream, MT::CMutex > CVariantStreamPtr;
-
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+/**
+ *  RAII scope guard for log stream segments.
+ *  On destruction, writes a VOID marker to end the segment.
+ *  This allows natural C++ scoping to delineate log entries.
+ */
+class GUCEF_CORE_PUBLIC_CPP CLogStreamScope
+{
+    public:
+
+    CLogStreamScope( CVariantStream* stream );
+
+    ~CLogStreamScope();
+
+    CVariantStream* operator->( void );
+    
+    CVariantStream& operator*( void );
+
+    /**
+     *  Convenience streaming operator for the scope guard
+     */
+    template< typename T >
+    CLogStreamScope& operator<<( const T& data );
+
+    private:
+
+    CLogStreamScope( const CLogStreamScope& src );              /**< not implemented, don't use */
+    CLogStreamScope& operator=( const CLogStreamScope& src );   /**< not implemented, don't use */
+
+    CVariantStream* m_stream;
+};
+
+/*-------------------------------------------------------------------------*/
 
 /**
  *  Singular singleton providing access to all global Core systems
@@ -89,10 +119,19 @@ class GUCEF_CORE_PUBLIC_CPP CLoggingGlobal
     /**
      *  Logging proxy call provided here to avoid including the logging manager 
      *  with its more involved dependencies.
-     *  Returns a thread-local CVariantStream for building log messages efficiently.
+     *  Returns a pointer to the thread's log stream for streaming log data.
+     *  Log entry metadata is written at the start of the stream.
+     *  
+     *  IMPORTANT: Caller must call WriteSegmentEnd() on the stream when done,
+     *  or wrap with CLogStreamScope for automatic segment marking:
+     *  
+     *  Example:
+     *    CLogStreamScope scope( CLoggingGlobal::Instance()->Log( LOG_STANDARD, LOGLEVEL_NORMAL ) );
+     *    scope << "User " << userId << " logged in";
+     *  // VOID marker automatically written when scope goes out of scope
      */
-    CVariantStreamPtr Log( const TLogMsgType logMsgType ,
-                           const Int32 logLevel         );
+    CVariantStream* Log( const TLogMsgType logMsgType ,
+                         const Int32 logLevel         );
 
     /**
      *  Logging proxy call provided here to avoid including the logging manager 

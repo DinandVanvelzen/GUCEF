@@ -93,6 +93,7 @@
 namespace GUCEF {
 namespace CORE {
 
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CLASSES                                                            //
@@ -103,10 +104,31 @@ class CILogger;
 class CMultiLogger;
 class CLoggingTask;
 class CVariantStream;
+class CLogStreamScope;
 
 /*-------------------------------------------------------------------------*/
 
 typedef CTBasicSharedPtr< CVariantStream, MT::CMutex > CVariantStreamPtr;
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Per-thread double buffer structure for logging.
+ *  Each thread gets its own buffers to avoid contention.
+ */
+struct GUCEF_CORE_PUBLIC_CPP SThreadLogBuffers
+{
+    CVariantStream* frontBuffer;    /**< Thread writes log entries here */
+    CVariantStream* backBuffer;     /**< Logger drains completed entries from here */
+    MT::CMutex swapLock;            /**< Protects swap operation only */
+    UInt32 threadId;                /**< Thread ID owning these buffers */
+    
+    SThreadLogBuffers( void );
+    ~SThreadLogBuffers();
+    
+    void Swap( void );
+};
+typedef struct SThreadLogBuffers TThreadLogBuffers;
 
 /*-------------------------------------------------------------------------*/
 
@@ -141,7 +163,12 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
     bool IsLoggingEnabled( const TLogMsgType logMsgType ,
                            const Int32 logLevel         ) const;
 
-    CVariantStreamPtr
+    /**
+     *  Returns the thread's log stream for streaming log data.
+     *  Writes log entry metadata (type, level, threadId, timestamp) at the start.
+     *  Use with CLogStreamScope for automatic segment end marking.
+     */
+    CVariantStream*
     Log( const TLogMsgType logMsgType ,
          const Int32 logLevel         );
 
@@ -205,6 +232,7 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
     
     virtual MT::TLockStatus Unlock( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+
     private:
     friend class CLoggingGlobal;
 
@@ -230,6 +258,9 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
     typedef struct SBootstrapLogEntry TBootstrapLogEntry;
     typedef GUCEF::vector< TBootstrapLogEntry > TBootstrapLogVector;
     typedef CTBasicSharedPtr< CLoggingTask, MT::CMutex > CLoggingTaskBasePtr;
+    typedef GUCEF::map< UInt32, TThreadLogBuffers* > TThreadBufferMap;
+
+    TThreadLogBuffers* GetOrCreateThreadBuffers( UInt32 threadId );
 
     CMultiLogger* m_loggers;
     CLoggingTaskBasePtr m_loggingTask;
@@ -239,6 +270,8 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
     bool m_redirectToLogQueue;
     TAbstractLoggingFormatterFactory m_logFormatterFactory;
     CString m_defaultLogFormatter;
+    TThreadBufferMap m_threadBuffers;               /**< Per-thread log buffers */
+    MT::CMutex m_threadBuffersLock;                 /**< Protects thread buffer map */
     MT::CMutex m_dataLock;
 };
 

@@ -27,16 +27,17 @@
 //-------------------------------------------------------------------------*/
 
 #include <sstream>
+#include <string>
 
 #ifndef GUCEF_CORE_MACROS_H
 #include "gucefCORE_macros.h"
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
 
-#ifndef GUCEF_CORE_CDYNAMICBUFFER_H
-#include "CDynamicBuffer.h"
-#define GUCEF_CORE_CDYNAMICBUFFER_H
-#endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
+#ifndef GUCEF_CORE_CSTRING_H
+#include "gucefCORE_CString.h"
+#define GUCEF_CORE_CSTRING_H
+#endif /* GUCEF_CORE_CSTRING_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -53,10 +54,9 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+class CDynamicBuffer;
 class CGeoLocation;
 class CVariant;
-class CAsciiString;
-class CUtf8String;
 class CTimestamp;
 class CDateTime;
 typedef void (*TDefaultFuncPtr) ();
@@ -225,9 +225,38 @@ class GUCEF_CORE_PUBLIC_CPP CVariantStream
      */
     UInt32 WriteAsStringTo( CDynamicBuffer& destBuffer ) const;
 
+    /**
+     *  Writes a VOID marker (GUCEF_DATATYPE_VOID) to delineate the end of current segment.
+     *  Used for separating logical entries within the stream (e.g., log entries).
+     */
+    void WriteSegmentEnd( void );
+
+    /**
+     *  Reads all variants from current read position up to (and consuming) the next VOID marker.
+     *  The segment data is copied to outSegment. Returns false if no more segments available.
+     */
+    bool ReadNextSegment( CVariantStream& outSegment );
+
+    /**
+     *  Convenience method: reads the next segment and converts it to a string.
+     *  Returns false if no more segments available.
+     */
+    bool ReadNextSegmentAsString( CString& outString );
+
+    /**
+     *  Returns true if there is at least one more segment to read (data before next VOID or EOF).
+     */
+    bool HasNextSegment( void ) const;
+
+    /**
+     *  Swaps the contents of this stream with another.
+     *  Useful for double-buffering scenarios.
+     */
+    void Swap( CVariantStream& other );
+
     private:
 
-    CDynamicBuffer m_buffer;
+    CDynamicBuffer* m_buffer;
     UInt32 m_writePosition;
     UInt32 m_readPosition;
     bool m_isValid;

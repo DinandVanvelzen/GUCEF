@@ -181,6 +181,10 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
      */
     CDynamicBuffer& operator=( const CDynamicBuffer &src );
 
+    #ifdef GUCEF_MOVE_SEMANTICS_SUPPORTED
+    CDynamicBuffer& operator=( CDynamicBuffer&& src ) GUCEF_NOEXCEPT;
+    #endif
+
     CDynamicBuffer& operator=( const CString &src );
 
     /**
@@ -254,15 +258,14 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
      *  if the buffer is not large enough it will be enlarged if auto-enlarge is enabled.
      */
     UInt32 CopyFrom( UInt32 destinationOffset ,
-                        UInt32 size              ,
-                        const void* src          );
+                     UInt32 size              ,
+                     const void* src          );
 
     /**
      *  Copies size number of bytes from src to the buffer
      *  Note that if the buffer is linked this operation will result in the creation of a private copy
      */
-    UInt32 CopyFrom( UInt32 size     ,
-                        const void* src );
+    UInt32 CopyFrom( UInt32 size, const void* src );
 
     UInt32 CopyFrom( const CString& source, UInt32 destinationOffset, bool includeNullTerminator );
     UInt32 CopyFrom( const CDynamicBuffer& source, UInt32 destinationOffset );
@@ -425,6 +428,12 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
     const void* GetConstBufferPtr( const UInt32 offset = 0 ) const;
 
     void Clear( const bool logicalClearOnly = true );
+
+    /**
+     *  Efficiently swaps the contents of this buffer with another.
+     *  No data copying occurs - just pointer/member swaps.
+     */
+    void Swap( CDynamicBuffer& other );
 
     /**
      *  Relinquishes ownership of any contained data to the caller

@@ -372,6 +372,7 @@ typedef double          Float64;  /* 8 bytes, signed, decimal */
 #define GUCEF_DATATYPE_NIL                      244      /**< representing data that is zero or nought. The word nil started to be used in the mid 19th century as a contraction of nihil, a Latin word that means nothing */
 #define GUCEF_DATATYPE_NULL                     245      /**< representing data that is null and void */
 #define GUCEF_DATATYPE_SET                      246      /**< data type representing a set container concept */
+#define GUCEF_DATATYPE_VOID                     247      /**< a no-op datatype, a void'ed entry, can be used for demarkation in a stream */
 
 #define GUCEF_DATATYPE_MORETHANONEBYTE          255      /**< NOT an actual data type. Used to indicate the data type is not one of the first 254 types listed and an additional byte is used to indicate the type */
 
