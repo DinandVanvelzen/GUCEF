@@ -33,6 +33,26 @@
 #define GUCEF_CORE_CVARIANTBINARYSERIALIZER_H
 #endif /* GUCEF_CORE_CVARIANTBINARYSERIALIZER_H ? */
 
+#ifndef GUCEF_CORE_CTIMESTAMP_H
+#include "gucefCORE_CTimestamp.h"
+#define GUCEF_CORE_CTIMESTAMP_H
+#endif /* GUCEF_CORE_CTIMESTAMP_H ? */
+
+#ifndef GUCEF_CORE_CGEOLOCATION_H
+#include "gucefCORE_CGeoLocation.h"
+#define GUCEF_CORE_CGEOLOCATION_H
+#endif /* GUCEF_CORE_CGEOLOCATION_H ? */
+
+#ifndef GUCEF_CORE_CVARIANT_H
+#include "gucefCORE_CVariant.h"
+#define GUCEF_CORE_CVARIANT_H
+#endif /* GUCEF_CORE_CVARIANT_H ? */
+
+#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
+#include "dvcppstringutils.h"
+#define GUCEF_CORE_DVCPPSTRINGUTILS_H
+#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
+
 #include "gucefCORE_CVariantStream.h"
 
 /*-------------------------------------------------------------------------//
@@ -438,10 +458,90 @@ CVariantStream::operator<<( const std::string& data )
 /*-------------------------------------------------------------------------*/
 
 CVariantStream&
+CVariantStream::operator<<( const std::wstring& data )
+{GUCEF_TRACE;
+
+    CVariant var;
+    var.LinkTo( data );
+    UInt32 bytesWritten = 0;
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    {
+        m_writePosition += bytesWritten;
+    }
+    else
+    {
+        m_isValid = false;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream&
+CVariantStream::operator<<( const std::stringstream& data )
+{GUCEF_TRACE;
+
+    std::string str = data.str();
+    CVariant var;
+    var.LinkTo( str );
+    UInt32 bytesWritten = 0;
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    {
+        m_writePosition += bytesWritten;
+    }
+    else
+    {
+        m_isValid = false;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream&
 CVariantStream::operator<<( const CDateTime& data )
 {GUCEF_TRACE;
 
     CVariant var( data );
+    UInt32 bytesWritten = 0;
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    {
+        m_writePosition += bytesWritten;
+    }
+    else
+    {
+        m_isValid = false;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream&
+CVariantStream::operator<<( const CTimestamp& data )
+{GUCEF_TRACE;
+
+    CVariant var( data.ToDateTime() );
+    UInt32 bytesWritten = 0;
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
+    {
+        m_writePosition += bytesWritten;
+    }
+    else
+    {
+        m_isValid = false;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream&
+CVariantStream::operator<<( const CGeoLocation& data )
+{GUCEF_TRACE;
+
+    // Serialize as ISO 6709 string representation
+    CVariant var( data.ToISO6709String() );
     UInt32 bytesWritten = 0;
     if ( CVariantBinarySerializer::Serialize( var, m_writePosition, m_buffer, bytesWritten ) )
     {
@@ -813,6 +913,26 @@ CVariantStream::operator>>( std::string& data )
 /*-------------------------------------------------------------------------*/
 
 CVariantStream&
+CVariantStream::operator>>( std::wstring& data )
+{GUCEF_TRACE;
+
+    CVariant var;
+    UInt32 bytesRead = 0;
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    {
+        m_readPosition += bytesRead;
+        data = ToWString( var.AsString() );
+    }
+    else
+    {
+        m_isValid = false;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream&
 CVariantStream::operator>>( CDateTime& data )
 {GUCEF_TRACE;
 
@@ -822,6 +942,46 @@ CVariantStream::operator>>( CDateTime& data )
     {
         m_readPosition += bytesRead;
         data = var.AsDateTime();
+    }
+    else
+    {
+        m_isValid = false;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream&
+CVariantStream::operator>>( CTimestamp& data )
+{GUCEF_TRACE;
+
+    CVariant var;
+    UInt32 bytesRead = 0;
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    {
+        m_readPosition += bytesRead;
+        data = CTimestamp( var.AsDateTime() );
+    }
+    else
+    {
+        m_isValid = false;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream&
+CVariantStream::operator>>( CGeoLocation& data )
+{GUCEF_TRACE;
+
+    CVariant var;
+    UInt32 bytesRead = 0;
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    {
+        m_readPosition += bytesRead;
+        data.FromISO6709String( var.AsString().STL_String() );
     }
     else
     {
@@ -860,6 +1020,26 @@ CVariantStream::operator>>( CDynamicBuffer& data )
     {
         m_readPosition += bytesRead;
         data = var.AsBuffer();
+    }
+    else
+    {
+        m_isValid = false;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream&
+CVariantStream::operator>>( std::stringstream& data )
+{GUCEF_TRACE;
+
+    CVariant var;
+    UInt32 bytesRead = 0;
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, m_buffer, false, bytesRead ) )
+    {
+        m_readPosition += bytesRead;
+        data.str( var.AsString().STL_String() );
     }
     else
     {

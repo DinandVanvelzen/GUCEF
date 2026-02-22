@@ -139,6 +139,18 @@ CLoggingGlobal::GetLogManager( void )
 
 /*-------------------------------------------------------------------------*/
 
+CVariantStreamPtr
+CLoggingGlobal::Log( const TLogMsgType logMsgType ,
+                     const Int32 logLevel         )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_logManager )
+        return m_logManager->Log( logMsgType, logLevel );
+    return CVariantStreamPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CLoggingGlobal::Log( const TLogMsgType logMsgType ,
                      const Int32 logLevel         ,

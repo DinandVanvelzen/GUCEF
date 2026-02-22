@@ -106,6 +106,10 @@ class CVariantStream;
 
 /*-------------------------------------------------------------------------*/
 
+typedef CTBasicSharedPtr< CVariantStream, MT::CMutex > CVariantStreamPtr;
+
+/*-------------------------------------------------------------------------*/
+
 class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
 {
     public:
@@ -136,6 +140,10 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
 
     bool IsLoggingEnabled( const TLogMsgType logMsgType ,
                            const Int32 logLevel         ) const;
+
+    CVariantStreamPtr
+    Log( const TLogMsgType logMsgType ,
+         const Int32 logLevel         );
 
     void Log( const TLogMsgType logMsgType ,
               const Int32 logLevel         ,

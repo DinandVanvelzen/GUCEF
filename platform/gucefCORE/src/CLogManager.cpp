@@ -401,6 +401,15 @@ CLogManager::GetMinLogLevel( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+CVariantStreamPtr
+CLogManager::Log( const TLogMsgType logMsgType ,
+                  const Int32 logLevel         )
+{
+    return CVariantStreamPtr(); // TODO
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CLogManager::Log( const TLogMsgType logMsgType ,
                   const Int32 logLevel         ,

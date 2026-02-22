@@ -33,6 +33,21 @@
 #define GUCEF_CORE_CDATETIME_H
 #endif /* GUCEF_CORE_CDATETIME_H ? */
 
+#ifndef GUCEF_CORE_CTIMESTAMP_H
+#include "gucefCORE_CTimestamp.h"
+#define GUCEF_CORE_CTIMESTAMP_H
+#endif /* GUCEF_CORE_CTIMESTAMP_H ? */
+
+#ifndef GUCEF_CORE_CGEOLOCATION_H
+#include "gucefCORE_CGeoLocation.h"
+#define GUCEF_CORE_CGEOLOCATION_H
+#endif /* GUCEF_CORE_CGEOLOCATION_H ? */
+
+#ifndef GUCEF_CORE_CVARIANT_H
+#include "gucefCORE_CVariant.h"
+#define GUCEF_CORE_CVARIANT_H
+#endif /* GUCEF_CORE_CVARIANT_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -526,6 +541,235 @@ PerformVariantStreamTests( void )
             
             CORE::CString result = stream.ToString();
             ASSERT_TRUE( result.HasSubstr( "3.14159" ) >= 0 );
+        }
+
+        // Test 27: Write std::stringstream to CVariantStream
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 27: Write std::stringstream to CVariantStream" );
+        {
+            CORE::CVariantStream stream;
+            std::stringstream ss;
+            ss << "Hello from stringstream";
+            
+            stream << ss;
+            ASSERT_TRUE( stream.IsValid() );
+            
+            stream.ResetReadPosition();
+            CORE::CUtf8String result;
+            stream >> result;
+            ASSERT_TRUE( result == "Hello from stringstream" );
+        }
+
+        // Test 28: Read CVariantStream to std::stringstream
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 28: Read CVariantStream to std::stringstream" );
+        {
+            CORE::CVariantStream stream;
+            stream << "Content for stringstream";
+            
+            stream.ResetReadPosition();
+            std::stringstream ss;
+            stream >> ss;
+            ASSERT_TRUE( stream.IsValid() );
+            ASSERT_TRUE( ss.str() == "Content for stringstream" );
+        }
+
+        // Test 29: Roundtrip std::stringstream
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 29: Roundtrip std::stringstream" );
+        {
+            CORE::CVariantStream stream;
+            std::stringstream ssIn;
+            ssIn << "Roundtrip test data";
+            
+            stream << ssIn;
+            ASSERT_TRUE( stream.IsValid() );
+            
+            stream.ResetReadPosition();
+            std::stringstream ssOut;
+            stream >> ssOut;
+            ASSERT_TRUE( stream.IsValid() );
+            ASSERT_TRUE( ssOut.str() == ssIn.str() );
+        }
+
+        // Test 30: std::stringstream with numbers
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 30: std::stringstream with numbers" );
+        {
+            CORE::CVariantStream stream;
+            std::stringstream ss;
+            ss << "Value: " << 42 << " and " << 3.14;
+            
+            stream << ss;
+            ASSERT_TRUE( stream.IsValid() );
+            
+            CORE::CString result = stream.ToString();
+            ASSERT_TRUE( result == ss.str() );
+        }
+
+        // Test 31: Write and read CTimestamp
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 31: Write and read CTimestamp" );
+        {
+            CORE::CVariantStream stream;
+            CORE::CTimestamp ts = CORE::CTimestamp::NowUTCTime();
+            
+            stream << ts;
+            ASSERT_TRUE( stream.IsValid() );
+            
+            stream.ResetReadPosition();
+            CORE::CTimestamp rts;
+            
+            stream >> rts;
+            ASSERT_TRUE( stream.IsValid() );
+            // Compare as milliseconds since epoch for precision
+            ASSERT_TRUE( rts.ToMillisecondsSinceEpoch() == ts.ToMillisecondsSinceEpoch() );
+        }
+
+        // Test 32: CTimestamp roundtrip with multiple values
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 32: CTimestamp roundtrip with multiple values" );
+        {
+            CORE::CVariantStream stream;
+            CORE::CTimestamp ts1 = CORE::CTimestamp::NowUTCTime();
+            CORE::CTimestamp ts2 = CORE::CTimestamp::NowLocalTime();
+            
+            stream << ts1 << "separator" << ts2;
+            ASSERT_TRUE( stream.IsValid() );
+            
+            stream.ResetReadPosition();
+            CORE::CTimestamp rts1, rts2;
+            CORE::CUtf8String sep;
+            
+            stream >> rts1 >> sep >> rts2;
+            ASSERT_TRUE( stream.IsValid() );
+            ASSERT_TRUE( rts1.ToMillisecondsSinceEpoch() == ts1.ToMillisecondsSinceEpoch() );
+            ASSERT_TRUE( sep == "separator" );
+            ASSERT_TRUE( rts2.ToMillisecondsSinceEpoch() == ts2.ToMillisecondsSinceEpoch() );
+        }
+
+        // Test 33: CTimestamp ToString output
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 33: CTimestamp ToString output" );
+        {
+            CORE::CVariantStream stream;
+            CORE::CTimestamp ts = CORE::CTimestamp::NowUTCTime();
+            
+            stream << ts;
+            CORE::CString result = stream.ToString();
+            
+            // Should produce an ISO date/time string representation
+            ASSERT_TRUE( !result.IsNULLOrEmpty() );
+            ASSERT_TRUE( result.HasChar( '-' ) >= 0 );  // ISO date has dashes
+        }
+
+        // Test 34: Write and read CGeoLocation
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 34: Write and read CGeoLocation" );
+        {
+            CORE::CVariantStream stream;
+            // New York City coordinates
+            CORE::CGeoLocation geo( 40.7128, -74.0060, 10.0 );
+            
+            stream << geo;
+            ASSERT_TRUE( stream.IsValid() );
+            
+            stream.ResetReadPosition();
+            CORE::CGeoLocation rgeo;
+            
+            stream >> rgeo;
+            ASSERT_TRUE( stream.IsValid() );
+            // Compare with small tolerance for floating point
+            Float64 latDiff = geo.GetLatitude() - rgeo.GetLatitude();
+            Float64 lonDiff = geo.GetLongitude() - rgeo.GetLongitude();
+            ASSERT_TRUE( latDiff < 0.0001 && latDiff > -0.0001 );
+            ASSERT_TRUE( lonDiff < 0.0001 && lonDiff > -0.0001 );
+        }
+
+        // Test 35: CGeoLocation roundtrip with multiple values
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 35: CGeoLocation roundtrip with multiple values" );
+        {
+            CORE::CVariantStream stream;
+            // London and Paris
+            CORE::CGeoLocation london( 51.5074, -0.1278, 11.0 );
+            CORE::CGeoLocation paris( 48.8566, 2.3522, 35.0 );
+            
+            stream << london << "to" << paris;
+            ASSERT_TRUE( stream.IsValid() );
+            
+            stream.ResetReadPosition();
+            CORE::CGeoLocation rlondon, rparis;
+            CORE::CUtf8String sep;
+            
+            stream >> rlondon >> sep >> rparis;
+            ASSERT_TRUE( stream.IsValid() );
+            ASSERT_TRUE( sep == "to" );
+            
+            Float64 latDiff = london.GetLatitude() - rlondon.GetLatitude();
+            ASSERT_TRUE( latDiff < 0.0001 && latDiff > -0.0001 );
+            latDiff = paris.GetLatitude() - rparis.GetLatitude();
+            ASSERT_TRUE( latDiff < 0.0001 && latDiff > -0.0001 );
+        }
+
+        // Test 36: CGeoLocation ToString output
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 36: CGeoLocation ToString output" );
+        {
+            CORE::CVariantStream stream;
+            CORE::CGeoLocation geo( 52.5200, 13.4050, 34.0 ); // Berlin
+            
+            stream << geo;
+            CORE::CString result = stream.ToString();
+            
+            // ISO 6709 format starts with +/- for lat/lon
+            ASSERT_TRUE( !result.IsNULLOrEmpty() );
+            ASSERT_TRUE( result.HasChar( '+' ) >= 0 || result.HasChar( '-' ) >= 0 );
+        }
+
+        // Test 37: Write and read std::wstring
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 37: Write and read std::wstring" );
+        {
+            CORE::CVariantStream stream;
+            std::wstring wstr = L"Hello Wide World";
+            
+            stream << wstr;
+            ASSERT_TRUE( stream.IsValid() );
+            
+            stream.ResetReadPosition();
+            std::wstring rwstr;
+            stream >> rwstr;
+            ASSERT_TRUE( stream.IsValid() );
+            ASSERT_TRUE( rwstr == wstr );
+        }
+
+        // Test 38: std::wstring with unicode characters
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 38: std::wstring with unicode characters" );
+        {
+            CORE::CVariantStream stream;
+            std::wstring wstr = L"Unicode: \u00C4\u00D6\u00DC\u00E4\u00F6\u00FC\u00DF"; // German umlauts
+            
+            stream << wstr;
+            ASSERT_TRUE( stream.IsValid() );
+            
+            stream.ResetReadPosition();
+            std::wstring rwstr;
+            stream >> rwstr;
+            ASSERT_TRUE( stream.IsValid() );
+            ASSERT_TRUE( rwstr == wstr );
+        }
+
+        // Test 39: std::wstring mixed with other types
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 39: std::wstring mixed with other types" );
+        {
+            CORE::CVariantStream stream;
+            std::wstring wstr = L"Wide";
+            std::string str = "Narrow";
+            Int32 num = 42;
+            
+            stream << wstr << str << num;
+            ASSERT_TRUE( stream.IsValid() );
+            
+            stream.ResetReadPosition();
+            std::wstring rwstr;
+            std::string rstr;
+            Int32 rnum = 0;
+            
+            stream >> rwstr >> rstr >> rnum;
+            ASSERT_TRUE( stream.IsValid() );
+            ASSERT_TRUE( rwstr == wstr );
+            ASSERT_TRUE( rstr == str );
+            ASSERT_TRUE( rnum == num );
         }
 
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CVariantStream TESTS PASSED" );

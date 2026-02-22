@@ -26,6 +26,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <sstream>
+
 #ifndef GUCEF_CORE_MACROS_H
 #include "gucefCORE_macros.h"
 #define GUCEF_CORE_MACROS_H
@@ -36,11 +38,6 @@
 #define GUCEF_CORE_CDYNAMICBUFFER_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
 
-#ifndef GUCEF_CORE_CVARIANT_H
-#include "gucefCORE_CVariant.h"
-#define GUCEF_CORE_CVARIANT_H
-#endif /* GUCEF_CORE_CVARIANT_H ? */
-
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -49,6 +46,20 @@
 
 namespace GUCEF {
 namespace CORE {
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      FORWARD DECLARATIONS                                               //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+class CGeoLocation;
+class CVariant;
+class CAsciiString;
+class CUtf8String;
+class CTimestamp;
+class CDateTime;
+typedef void (*TDefaultFuncPtr) ();
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -105,11 +116,15 @@ class GUCEF_CORE_PUBLIC_CPP CVariantStream
     CVariantStream& operator<<( const CAsciiString& data );
     CVariantStream& operator<<( const CUtf8String& data );
     CVariantStream& operator<<( const std::string& data );
+    CVariantStream& operator<<( const std::wstring& data );
     CVariantStream& operator<<( const CDateTime& data );
+    CVariantStream& operator<<( const CTimestamp& data );
+    CVariantStream& operator<<( const CGeoLocation& data );
     CVariantStream& operator<<( const CVariant& data );
     CVariantStream& operator<<( const CDynamicBuffer& data );
     CVariantStream& operator<<( void* data );
     CVariantStream& operator<<( TDefaultFuncPtr data );
+    CVariantStream& operator<<( const std::stringstream& data );
 
     /**
      *  Stream extraction operators for reading variant data
@@ -129,9 +144,13 @@ class GUCEF_CORE_PUBLIC_CPP CVariantStream
     CVariantStream& operator>>( CAsciiString& data );
     CVariantStream& operator>>( CUtf8String& data );
     CVariantStream& operator>>( std::string& data );
+    CVariantStream& operator>>( std::wstring& data );
     CVariantStream& operator>>( CDateTime& data );
+    CVariantStream& operator>>( CTimestamp& data );
+    CVariantStream& operator>>( CGeoLocation& data );
     CVariantStream& operator>>( CVariant& data );
     CVariantStream& operator>>( CDynamicBuffer& data );
+    CVariantStream& operator>>( std::stringstream& data );
 
     /**
      *  Clears all data from the stream and resets the read/write positions

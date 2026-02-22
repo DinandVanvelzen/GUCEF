@@ -57,15 +57,23 @@ namespace CORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CLASSES                                                            //
+//      FORWARD DECLARATIONS                                               //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
 class CTimestamp;
 class CLogManager;
 class CCoreGlobal;
+class CVariantStream;
 
-/*-------------------------------------------------------------------------*/
+template< typename T, class LockType > class CTBasicSharedPtr;
+typedef CTBasicSharedPtr< CVariantStream, MT::CMutex > CVariantStreamPtr;
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      CLASSES                                                            //
+//                                                                         //
+//-------------------------------------------------------------------------*/
 
 /**
  *  Singular singleton providing access to all global Core systems
@@ -77,6 +85,14 @@ class GUCEF_CORE_PUBLIC_CPP CLoggingGlobal
     static CLoggingGlobal* Instance( void );
 
     CLogManager& GetLogManager( void );
+
+    /**
+     *  Logging proxy call provided here to avoid including the logging manager 
+     *  with its more involved dependencies.
+     *  Returns a thread-local CVariantStream for building log messages efficiently.
+     */
+    CVariantStreamPtr Log( const TLogMsgType logMsgType ,
+                           const Int32 logLevel         );
 
     /**
      *  Logging proxy call provided here to avoid including the logging manager 
