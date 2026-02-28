@@ -34,6 +34,11 @@
 #define GUCEF_MT_COBJECTSCOPELOCK_H
 #endif /* GUCEF_MT_COBJECTSCOPELOCK_H ? */
 
+#ifndef GUCEF_MT_COBJECTSCOPEREADONLYLOCK_H
+#include "gucefMT_CObjectScopeReadOnlyLock.h"
+#define GUCEF_MT_COBJECTSCOPEREADONLYLOCK_H
+#endif /* GUCEF_MT_COBJECTSCOPEREADONLYLOCK_H ? */
+
 #include "CTFactoryWithParam.h"
 #include "CTFactoryBaseWithParam.h"
 #include "CMsgException.h"
@@ -126,6 +131,8 @@ class CTAbstractFactoryWithParam : public CAbstractFactoryBase
     void UnregisterAllConcreteFactories( void );
 
     bool IsConstructible( const SelectionCriteriaType& selectedType ) const;
+
+    bool IsClassConstructible( const CString& classTypeName ) const;
 
     /**
      *  Returns the concete class's type name as produced by a factory linked to the given selection criterea
@@ -282,8 +289,20 @@ bool
 CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionParamType, LockType >::IsConstructible( const SelectionCriteriaType& selectedType ) const
 {GUCEF_TRACE;
 
-    MT::CObjectScopeLock lock( this );
+    MT::CObjectScopeReadOnlyLock lock( this, GUCEF_MT_VERY_LONG_LOCK_TIMEOUT );
     return m_concreteFactoryList.find( selectedType ) != m_concreteFactoryList.end();
+}
+
+/*-------------------------------------------------------------------------*/
+
+template< typename SelectionCriteriaType, class BaseClassType, typename ConstructionParamType, class LockType >
+bool
+CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionParamType, LockType >::IsClassConstructible( const CString& classTypeName ) const
+{GUCEF_TRACE;
+
+    MT::CObjectScopeReadOnlyLock lock( this, GUCEF_MT_VERY_LONG_LOCK_TIMEOUT );
+    bool canBeConstructed = m_concreteFactoryTypeMap.find( classTypeName ) != m_concreteFactoryTypeMap.end();
+    return canBeConstructed;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -330,6 +349,7 @@ CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionPa
 
     MT::CObjectScopeLock lock( this );
     m_concreteFactoryList[ selectedType ] = concreteFactory;
+    m_concreteFactoryTypeMap[ concreteFactory->GetConcreteClassTypeName() ] = selectedType;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "TAbstractFactoryWithParam<>: Registered concrete factory for type \"" + ToString( selectedType ) + "\"" );
 
@@ -351,6 +371,8 @@ CTAbstractFactoryWithParam< SelectionCriteriaType, BaseClassType, ConstructionPa
     typename TFactoryList::iterator i = m_concreteFactoryList.find( selectedType );
     if ( i != m_concreteFactoryList.end() )
     {
+        m_concreteFactoryTypeMap.erase( (*i).second->GetConcreteClassTypeName() );
+
         if ( m_assumeFactoryOwnership )
         {
             GUCEF_DELETE (*i).second;

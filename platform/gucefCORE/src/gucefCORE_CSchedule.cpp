@@ -306,8 +306,8 @@ CSchedule::IsActive( const CDateTime& dt ) const
     if ( !m_hasTimeRange )
         return true; // No time range restriction, always active
 
-    // Check if current time is within the time range
-    return m_timeRange == dt;
+    // Check if current time is within the time range [start, end] inclusive
+    return !( m_timeRange > dt ) && !( m_timeRange < dt );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -373,8 +373,8 @@ CSchedule::GetNextOccurrence( const CDateTime& from, CDateTime& next ) const
     if ( !IsValid() )
         return false;
 
-    // If schedule has ended, no next occurrence
-    if ( HasEnded() )
+    // If schedule has ended relative to 'from', no next occurrence
+    if ( m_hasTimeRange && from >= m_timeRange.GetEnd() )
         return false;
 
     // Case 1: Only time range (no cron pattern)
@@ -447,8 +447,8 @@ CSchedule::GetPreviousOccurrence( const CDateTime& from, CDateTime& previous ) c
         if ( !m_cronSchedule.GetPreviousOccurrence( from, candidate ) )
             return false;
 
-        // Check if the previous occurrence is within the time range
-        if ( m_timeRange == candidate )
+        // Check if the previous occurrence is within the time range [start, end] inclusive
+        if ( !( m_timeRange > candidate ) && !( m_timeRange < candidate ) )
         {
             previous = candidate;
             return true;

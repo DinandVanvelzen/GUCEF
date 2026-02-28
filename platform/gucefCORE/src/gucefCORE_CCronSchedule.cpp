@@ -176,20 +176,20 @@ CCronSchedule::ParseCronField( const CString& field, UInt8 minValue, UInt8 maxVa
 
         if ( slashPos >= 0 )
         {
-            CString stepStr = part.SubstrFromRange( slashPos + 1, part.Length() - 1 );
+            CString stepStr = part.SubstrFromRange( slashPos + 1, part.Length() );
             Int32 stepValue = CORE::StringToInt32( stepStr, 1 );
             if ( stepValue < 1 )
                 return false;
             step = (UInt8) stepValue;
-            rangePart = part.SubstrFromRange( 0, slashPos - 1 );
+            rangePart = part.SubstrFromRange( 0, slashPos );
         }
 
         // Check for range (e.g., 10-20)
         Int32 dashPos = rangePart.HasChar( '-', true );
         if ( dashPos >= 0 )
         {
-            CString startStr = rangePart.SubstrFromRange( 0, dashPos - 1 );
-            CString endStr = rangePart.SubstrFromRange( dashPos + 1, rangePart.Length() - 1 );
+            CString startStr = rangePart.SubstrFromRange( 0, dashPos );
+            CString endStr = rangePart.SubstrFromRange( dashPos + 1, rangePart.Length() );
 
             Int32 startVal = CORE::StringToInt32( startStr, -1 );
             Int32 endVal = CORE::StringToInt32( endStr, -1 );

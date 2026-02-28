@@ -1976,6 +1976,7 @@ CVariant::AsVoidPtr( const void* defaultIfNeeded ) const
         case GUCEF_DATATYPE_ASCII_STRING: return m_variantData.union_data.heap_data.union_data.char_heap_data;
         case GUCEF_DATATYPE_UTF8_STRING: return m_variantData.union_data.heap_data.union_data.char_heap_data;
         case GUCEF_DATATYPE_UTF16_STRING: return m_variantData.union_data.heap_data.union_data.wchar_heap_data;
+        case GUCEF_DATATYPE_UTF32_STRING: return m_variantData.union_data.heap_data.union_data.void_heap_data;
         case GUCEF_DATATYPE_BINARY_BLOB: return m_variantData.union_data.heap_data.union_data.void_heap_data;
         case GUCEF_DATATYPE_INT64T2_FRACTION: return m_variantData.union_data.heap_data.union_data.fraction_int64t2_data;
         case GUCEF_DATATYPE_UINT64T2_FRACTION: return m_variantData.union_data.heap_data.union_data.fraction_uint64t2_data;
@@ -2052,10 +2053,10 @@ CVariant::ByteSize( bool includeNullTerm ) const
         }
         case GUCEF_DATATYPE_UTF32_STRING:
         {
-            if ( !includeNullTerm || 3 > m_variantData.union_data.heap_data.heap_data_size )
+            if ( includeNullTerm || 4 > m_variantData.union_data.heap_data.heap_data_size )
                 return m_variantData.union_data.heap_data.heap_data_size;
 
-            const UInt32 lastCodePoint = *reinterpret_cast< const UInt32* >( m_variantData.union_data.heap_data.union_data.char_heap_data + m_variantData.union_data.heap_data.heap_data_size - 3 );
+            const UInt32 lastCodePoint = *reinterpret_cast< const UInt32* >( m_variantData.union_data.heap_data.union_data.char_heap_data + m_variantData.union_data.heap_data.heap_data_size - 4 );
             if ( 0 == lastCodePoint )
                 return m_variantData.union_data.heap_data.heap_data_size-4;
             return m_variantData.union_data.heap_data.heap_data_size;

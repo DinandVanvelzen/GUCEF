@@ -231,6 +231,7 @@ set( HEADER_FILES
   include/gucefCORE_CPulseGenerator.h
   include/gucefCORE_CResourceMetaData.h
   include/gucefCORE_CRollingFileAccess.h
+  include/gucefCORE_CSchedule.h
   include/gucefCORE_CSimplisticPluginLoadLogic.h
   include/gucefCORE_CSingleTaskDelegator.h
   include/gucefCORE_CStdDataNodeSerializableTaskData.h
@@ -521,6 +522,7 @@ set( SOURCE_FILES
   src/gucefCORE_CPulseGenerator.cpp
   src/gucefCORE_CResourceMetaData.cpp
   src/gucefCORE_CRollingFileAccess.cpp
+  src/gucefCORE_CSchedule.cpp
   src/gucefCORE_CSimplisticPluginLoadLogic.cpp
   src/gucefCORE_CSingleTaskDelegator.cpp
   src/gucefCORE_CStdDataNodeSerializableTaskData.cpp

@@ -11,7 +11,8 @@
 
 # Configuration for module: gucefCORE_TestApp
 
-set( HEADER_FILES 
+set( HEADER_FILES
+  include/TestAbstractFactory.h
   include/TestASync.h
   include/TestCronSchedule.h
   include/TestCyclicDynamicBuffer.h
@@ -26,6 +27,7 @@ set( HEADER_FILES
   include/TestIniParser.h
   include/TestLogging.h
   include/TestNotifierObserver.h
+  include/TestSchedule.h
   include/TestSharedPtr.h
   include/TestStopwatch.h
   include/TestString.h
@@ -40,7 +42,8 @@ set( HEADER_FILES
   src/TestFreeList.h
 )
 
-set( SOURCE_FILES 
+set( SOURCE_FILES
+  src/TestAbstractFactory.cpp
   src/TestASync.cpp
   src/TestCronSchedule.cpp
   src/TestCyclicDynamicBuffer.cpp
@@ -56,6 +59,7 @@ set( SOURCE_FILES
   src/TestIniParser.cpp
   src/TestLogging.cpp
   src/TestNotifierObserver.cpp
+  src/TestSchedule.cpp
   src/TestSharedPtr.cpp
   src/TestStopwatch.cpp
   src/TestString.cpp

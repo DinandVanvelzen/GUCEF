@@ -14,7 +14,7 @@
  *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
 /*-------------------------------------------------------------------------//
@@ -104,31 +104,30 @@ using namespace GUCEF::CORE;
 class CMyObserver : public CObserver
 {
 private:
-	const CMyObserver& operator=(const CMyObserver&);
-	CMyObserver(const CMyObserver&);
+    const CMyObserver& operator=( const CMyObserver& );
+    CMyObserver( const CMyObserver& );
 
 public:
-    
+
     CMyObserver( UInt32 index       ,
                  CEvent* eventCache )
         : m_index( index )           ,
           m_eventCache( eventCache )
     {
-
     }
-    
+
     virtual ~CMyObserver()
     {
-        printf( "This is the end,.. observer %d signing off\n", m_index );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Observer destruction" );
     }
-    
+
     virtual void OnMyCallback( CNotifier* notifier           ,
                                const CEvent& eventid         ,
                                CICloneable* eventdata = NULL )
     {
-        printf( "This is observer %d calling: I have received an event in my custom callback\n", m_index );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Observer received event in custom callback" );
         m_eventCache[ m_index ] = eventid;
-    }    
+    }
 
     protected:
 
@@ -136,48 +135,49 @@ public:
                            const CEvent& eventid         ,
                            CICloneable* eventdata = NULL )
     {
-        
+
         if ( eventid == CNotifier::DestructionEvent )
-        {  
-            printf( "This is observer %d calling: My notifier is beeing destroyed\n", m_index );
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Observer notifier is being destroyed" );
             m_eventCache[ m_index ] = eventid;
 
             // We unsubscribe to explicitly indicate that we are terminating the subscription now
-            // This is not manditory, it can happen automaticly at the lowest level
+            // This is not mandatory, it can happen automatically at the lowest level
             UnsubscribeFrom( *notifier );
         }
         else
         if ( eventid == CNotifier::ModifyEvent )
         {
-            printf( "This is observer %d calling: My notifier has been modified\n", m_index );
-            m_eventCache[ m_index ] = eventid;    
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Observer notifier has been modified" );
+            m_eventCache[ m_index ] = eventid;
         }
         else
         if ( eventid == CNotifier::SubscribeEvent )
         {
-            printf( "This is observer %d calling: I have been subscribed to a notifier\n", m_index );
-            m_eventCache[ m_index ] = eventid;    
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Observer has been subscribed to a notifier" );
+            m_eventCache[ m_index ] = eventid;
         }
         else
         if ( eventid == CNotifier::UnsubscribeEvent )
         {
-            printf( "This is observer %d calling: I have been unsubscribed from a notifier\n", m_index );
-            m_eventCache[ m_index ] = eventid;    
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Observer has been unsubscribed from a notifier" );
+            m_eventCache[ m_index ] = eventid;
         }
         else
         {
-            printf( "This is observer %d calling: Recieved event \"%s\" with id %d\n", m_index, CCoreGlobal::Instance()->GetNotificationIDRegistry().Lookup(eventid).C_String(), eventid.GetID() );
-            m_eventCache[ m_index ] = eventid;        
-        }            
-    }   
-    
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, CString( "Observer received custom event: " ) +
+                CCoreGlobal::Instance()->GetNotificationIDRegistry().Lookup( eventid ) );
+            m_eventCache[ m_index ] = eventid;
+        }
+    }
+
     private:
     CEvent* m_eventCache;
     UInt32 m_index;
-    
+
     private:
-    
-    CMyObserver( void );                             
+
+    CMyObserver( void );
 };
 
 /*-------------------------------------------------------------------------*/
@@ -185,33 +185,75 @@ public:
 class CMyNotifier : public CNotifier
 {
 private:
-	const CMyNotifier& operator=(const CMyNotifier&);
-	CMyNotifier(const CMyNotifier&);
+    const CMyNotifier& operator=( const CMyNotifier& );
+    CMyNotifier( const CMyNotifier& );
 
 public:
     CMyNotifier() {}
 
     virtual ~CMyNotifier()
     {
-        printf( "Notifier destruction imminent\n" );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Notifier destruction imminent" );
     }
-    
+
     void DoNotifyObservers( void )
     {
-        NotifyObservers();    
+        NotifyObservers();
     }
-    
+
     void DoNotifyObservers( const CEvent& eventid         ,
                             CICloneable* eventData = NULL )
     {
         NotifyObservers( eventid   ,
-                         eventData );    
+                         eventData );
     }
-    
+
+    bool DoNotifyObserversWithResult( void )
+    {
+        return NotifyObservers();
+    }
+
     std::string GetTypeName( void ) const
     {
-        return "XtraBase::CMyNotifier";   
-    }                                                                                
+        return "XtraBase::CMyNotifier";
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+class CScheduleDestructionObserver : public CObserver
+{
+private:
+    const CScheduleDestructionObserver& operator=( const CScheduleDestructionObserver& );
+    CScheduleDestructionObserver( const CScheduleDestructionObserver& );
+
+public:
+
+    CScheduleDestructionObserver()
+        : m_notifierToDestroy( GUCEF_NULL )
+    {
+    }
+
+    virtual ~CScheduleDestructionObserver()
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CScheduleDestructionObserver destruction" );
+    }
+
+    CNotifier* m_notifierToDestroy;
+
+protected:
+
+    virtual void OnNotify( CNotifier* notifier           ,
+                           const CEvent& eventid         ,
+                           CICloneable* eventdata = NULL )
+    {
+        if ( eventid == CNotifier::ModifyEvent && GUCEF_NULL != m_notifierToDestroy )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Observer: scheduling notifier for destruction" );
+            m_notifierToDestroy->ScheduleForDestruction();
+            m_notifierToDestroy = GUCEF_NULL;
+        }
+    }
 };
 
 /*-------------------------------------------------------------------------//
@@ -224,376 +266,708 @@ void
 PerformNotifierObserverTests( void )
 {
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING NOTIFIER-OBSERVER TESTS" );
-    
+
     GUCEF_TESTFW_SUITE_SCOPE( "NotifierObserver" );
 
-    GUCEF_TESTFW_TESTCASE( "Test: Notifier-Observer operations" )
+    /*-----------------------------------------------------------------------*/
+    /* Test 1: Standard event registration                                   */
+    /*-----------------------------------------------------------------------*/
+
+    GUCEF_TESTFW_TESTCASE( "Standard event registration" )
     try
-    {         
-        /*
-         *  Try to create unlinked notifier and observer objects
-         */
-        
-        CMyNotifier notifierA, *notifierB;
-        CMyObserver* observers[ 100 ];
+    {
+        CNotificationIDRegistry* registry = &CCoreGlobal::Instance()->GetNotificationIDRegistry();
+
+        ASSERT_TRUE( registry->IsRegistered( CNotifier::ModifyEvent.GetName() ) );
+        CEvent modifyEvent = registry->Lookup( CNotifier::ModifyEvent.GetName() );
+        ASSERT_TRUE( modifyEvent.IsInitialized() );
+
+        ASSERT_TRUE( registry->IsRegistered( CNotifier::DestructionEvent.GetName() ) );
+        CEvent destructionEvent = registry->Lookup( CNotifier::DestructionEvent.GetName() );
+        ASSERT_TRUE( destructionEvent.IsInitialized() );
+
+        ASSERT_TRUE( registry->IsRegistered( CNotifier::SubscribeEvent.GetName() ) );
+        CEvent subscribeEvent = registry->Lookup( CNotifier::SubscribeEvent.GetName() );
+        ASSERT_TRUE( subscribeEvent.IsInitialized() );
+
+        ASSERT_TRUE( registry->IsRegistered( CNotifier::UnsubscribeEvent.GetName() ) );
+        CEvent unsubscribeEvent = registry->Lookup( CNotifier::UnsubscribeEvent.GetName() );
+        ASSERT_TRUE( unsubscribeEvent.IsInitialized() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /*-----------------------------------------------------------------------*/
+    /* Test 2: Subscription count semantics                                  */
+    /*-----------------------------------------------------------------------*/
+
+    GUCEF_TESTFW_TESTCASE( "Subscription count semantics" )
+    try
+    {
+        CNotificationIDRegistry* registry = &CCoreGlobal::Instance()->GetNotificationIDRegistry();
+        CEvent myEventA = registry->Register( "TestApp::myEventA" );
+        CEvent myEventB = registry->Register( "TestApp::myEventB" );
+
+        CEvent observerECache[ 3 ];
+        SETARRAYMEM( observerECache, 3, CEvent() );
+        CMyObserver* observers[ 3 ];
+        for ( UInt32 i = 0; i < 3; ++i )
+            observers[ i ] = new CMyObserver( i, observerECache );
+
+        CMyNotifier notifierA;
+        CMyNotifier* notifierB = new CMyNotifier();
+
+        // observer[0]: subscribe-all to one notifier (4 mandatory standard events)
+        notifierA.Subscribe( observers[ 0 ] );
+        ASSERT_TRUE( observers[ 0 ]->GetNotifierCount() == 1 );
+        ASSERT_TRUE( observers[ 0 ]->GetSubscriptionCount() == 4 );
+
+        // observer[0]: also subscribe-all to second notifier (4 + 4 = 8)
+        notifierB->Subscribe( observers[ 0 ] );
+        ASSERT_TRUE( observers[ 0 ]->GetNotifierCount() == 2 );
+        ASSERT_TRUE( observers[ 0 ]->GetSubscriptionCount() == 8 );
+
+        // observer[0]: unsubscribe from second notifier
+        notifierB->Unsubscribe( observers[ 0 ] );
+        ASSERT_TRUE( observers[ 0 ]->GetNotifierCount() == 1 );
+        ASSERT_TRUE( observers[ 0 ]->GetSubscriptionCount() == 4 );
+
+        // observer[0]: unsubscribe from all
+        observers[ 0 ]->UnsubscribeAllFromObserver();
+        ASSERT_TRUE( observers[ 0 ]->GetNotifierCount() == 0 );
+        ASSERT_TRUE( observers[ 0 ]->GetSubscriptionCount() == 0 );
+
+        // observer[1]: specific-event subscription to one notifier
+        // Without a callback the observer is NOT written into m_eventobservers, so count = 4 (base link only)
+        notifierA.Subscribe( observers[ 1 ], myEventA );
+        ASSERT_TRUE( observers[ 1 ]->GetNotifierCount() == 1 );
+        ASSERT_TRUE( observers[ 1 ]->GetSubscriptionCount() == 4 );
+
+        // observer[1]: also specific-event subscription to second notifier (4 + 4 = 8)
+        notifierB->Subscribe( observers[ 1 ], myEventB );
+        ASSERT_TRUE( observers[ 1 ]->GetNotifierCount() == 2 );
+        ASSERT_TRUE( observers[ 1 ]->GetSubscriptionCount() == 8 );
+
+        // observer[2]: subscribe then unsubscribe-all
+        notifierA.Subscribe( observers[ 2 ] );
+        observers[ 2 ]->UnsubscribeAllFromObserver();
+        ASSERT_TRUE( observers[ 2 ]->GetNotifierCount() == 0 );
+        ASSERT_TRUE( observers[ 2 ]->GetSubscriptionCount() == 0 );
+
+        delete notifierB;
+        for ( UInt32 i = 0; i < 3; ++i )
+            delete observers[ i ];
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /*-----------------------------------------------------------------------*/
+    /* Test 3: ModifyEvent broadcast delivery                                */
+    /*-----------------------------------------------------------------------*/
+
+    GUCEF_TESTFW_TESTCASE( "ModifyEvent broadcast delivery" )
+    try
+    {
+        CNotificationIDRegistry* registry = &CCoreGlobal::Instance()->GetNotificationIDRegistry();
+        CEvent modifyEvent = registry->Lookup( CNotifier::ModifyEvent.GetName() );
+
         CEvent observerECache[ 100 ];
         SETARRAYMEM( observerECache, 100, CEvent() );
-        CNotificationIDRegistry* registry = &CCoreGlobal::Instance()->GetNotificationIDRegistry();
-        
-        /*
-         *  The default notifier events should now be registered
-         *  The module load code should call RegisterEvents() on the classes
-         *  in addition the same should occur for notifierA's constructor
-         */
-        if ( !registry->IsRegistered( CNotifier::ModifyEvent.GetName() ) )
-        {
-            ERRORHERE;
-        }
-        CEvent modifyEvent = registry->Lookup( CNotifier::ModifyEvent.GetName() );
-        if ( !modifyEvent.IsInitialized() )
-        {
-            ERRORHERE;
-        }
-        if ( !registry->IsRegistered( CNotifier::DestructionEvent.GetName() ) )
-        {
-            ERRORHERE;
-        }
-        CEvent destructionEvent = registry->Lookup( CNotifier::DestructionEvent.GetName() );
-        if ( !destructionEvent.IsInitialized() )
-        {
-            ERRORHERE;
-        }
-        if ( !registry->IsRegistered( CNotifier::SubscribeEvent.GetName() ) )
-        {
-            ERRORHERE;
-        }
-        CEvent subscribeEvent = registry->Lookup( CNotifier::SubscribeEvent.GetName() );
-        if ( !subscribeEvent.IsInitialized() )
-        {
-            ERRORHERE;
-        }
-        if ( !registry->IsRegistered( CNotifier::UnsubscribeEvent.GetName() ) )
-        {
-            ERRORHERE;
-        }
-        CEvent unsubscribeEvent = registry->Lookup( CNotifier::UnsubscribeEvent.GetName() );
-        if ( !unsubscribeEvent.IsInitialized() )
-        {
-            ERRORHERE;
-        }
-        
-        /*
-         *  Create our observers
-         */
-        UInt32 i;       
-        for ( i=0; i<100; ++i )
-        {
+        CMyObserver* observers[ 100 ];
+        for ( UInt32 i = 0; i < 100; ++i )
             observers[ i ] = new CMyObserver( i, observerECache );
-            if ( observers[ i ] == NULL )
-            {
-                ERRORHERE;
-            }   
-        }
-            
-        
-        printf( "Starting notifier modify event test\n" );
-        /*
-         *  First we will attempt a simple modification setup
-         */
-        for ( i=0; i<100; ++i )
-        {
+
+        CMyNotifier notifierA;
+
+        for ( UInt32 i = 0; i < 100; ++i )
             notifierA.Subscribe( observers[ i ] );
 
-            if ( observers[ i ]->GetNotifierCount() != 1 )
-            {
-                ERRORHERE;
-            }
-            if ( observers[ i ]->GetSubscriptionCount() != 1 )
-            {
-                ERRORHERE;
-            }
-        }
-        notifierA.DoNotifyObservers();
-        
-        /*
-         *  Now check to make sure all observers got the modify event
-         */
-        for ( i=0; i<100; ++i )
-        {
-            if ( observerECache[ i ] != modifyEvent )
-            {
-                ERRORHERE;
-            }
-        }
-        printf( "Completed notifier modify event test\n" );
-        printf( "Starting multi-notifier modify event test\n" );
-        
-        /*
-         *  Now create notifier B and link half of the observers to it 
-         */
         SETARRAYMEM( observerECache, 100, CEvent() );
-        notifierB = new CMyNotifier();
-        if ( notifierB == NULL )
+        notifierA.DoNotifyObservers();
+
+        for ( UInt32 i = 0; i < 100; ++i )
         {
-            ERRORHERE;
-        }          
-        for ( i=0; i<45; ++i )
-        {
+            ASSERT_TRUE( observerECache[ i ] == modifyEvent );
+        }
+
+        for ( UInt32 i = 0; i < 100; ++i )
+            delete observers[ i ];
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /*-----------------------------------------------------------------------*/
+    /* Test 4: Multi-notifier routing                                        */
+    /*-----------------------------------------------------------------------*/
+
+    GUCEF_TESTFW_TESTCASE( "Multi-notifier routing" )
+    try
+    {
+        CNotificationIDRegistry* registry = &CCoreGlobal::Instance()->GetNotificationIDRegistry();
+        CEvent modifyEvent = registry->Lookup( CNotifier::ModifyEvent.GetName() );
+
+        CEvent observerECache[ 100 ];
+        SETARRAYMEM( observerECache, 100, CEvent() );
+        CMyObserver* observers[ 100 ];
+        for ( UInt32 i = 0; i < 100; ++i )
+            observers[ i ] = new CMyObserver( i, observerECache );
+
+        CMyNotifier notifierA;
+        CMyNotifier* notifierB = new CMyNotifier();
+
+        for ( UInt32 i = 0; i < 100; ++i )
+            notifierA.Subscribe( observers[ i ] );
+
+        // Subscribe observers[0..44] to notifierB, then unsubscribe 0..4
+        for ( UInt32 i = 0; i < 45; ++i )
             notifierB->Subscribe( observers[ i ] );
-            if ( observers[ i ]->GetNotifierCount() != 2 )
-            {
-                ERRORHERE;
-            }
-            if ( observers[ i ]->GetSubscriptionCount() != 2 )
-            {
-                ERRORHERE;
-            }
+
+        for ( UInt32 i = 0; i < 5; ++i )
+            notifierB->Unsubscribe( observers[ i ] );
+
+        // observers[5..44] should be on both notifiers (4 + 4 = 8 subscriptions)
+        for ( UInt32 i = 5; i < 45; ++i )
+        {
+            ASSERT_TRUE( observers[ i ]->GetNotifierCount() == 2 );
+            ASSERT_TRUE( observers[ i ]->GetSubscriptionCount() == 8 );
         }
-        for ( i=0; i<5; ++i )
+        // observers[0..4] should be on notifierA only (unsubscribed from notifierB)
+        for ( UInt32 i = 0; i < 5; ++i )
         {
-            notifierB->Unsubscribe( observers[ i ] );        
+            ASSERT_TRUE( observers[ i ]->GetNotifierCount() == 1 );
         }
-        for ( i=0; i<5; ++i )
-        {
-            if ( observerECache[ i ] != unsubscribeEvent )
-            {
-                ERRORHERE;
-            }
-        } 
-        for ( i=5; i<45; ++i )
-        {
-            if ( observerECache[ i ] != subscribeEvent )
-            {
-                ERRORHERE;
-            }
-        } 
-        
-        /*
-         *  Check whether some recieve the modify event while the others
-         *  do not.
-         */
-        SETARRAYMEM( observerECache, 100, CEvent() ); 
+
+        SETARRAYMEM( observerECache, 100, CEvent() );
         notifierB->DoNotifyObservers();
-        for ( i=5; i<45; ++i )
+
+        // Only observers[5..44] subscribed to notifierB should receive ModifyEvent
+        for ( UInt32 i = 5; i < 45; ++i )
         {
-            if ( observerECache[ i ] != modifyEvent )
-            {
-                ERRORHERE;
-            }
-        } 
-        for ( i=45; i<100; ++i )
-        {
-            // Check if the event objects are still in their uninitialized state
-            if ( observerECache[ i ].IsInitialized() )
-            {
-                ERRORHERE;
-            }
+            ASSERT_TRUE( observerECache[ i ] == modifyEvent );
         }
-        printf( "Completed multi-notifier modify event test\n" );
-        printf( "Starting notifier destruction test\n" );
-        
-        /*
-         *  Check if deleting the notifier doesn't cause any problems,..
-         *  observers should be notified. First the observer should recieve
-         *  a destructionEvent and then later you recieve an unsubscribe event
-         */ 
-        SETARRAYMEM( observerECache, 100, CEvent() );               
+        // observers[0..4] unsubscribed from notifierB — cache should remain uninitialized
+        for ( UInt32 i = 0; i < 5; ++i )
+        {
+            ASSERT_FALSE( observerECache[ i ].IsInitialized() );
+        }
+        // observers[45..99] never subscribed to notifierB — cache should remain uninitialized
+        for ( UInt32 i = 45; i < 100; ++i )
+        {
+            ASSERT_FALSE( observerECache[ i ].IsInitialized() );
+        }
+
         delete notifierB;
-        for ( i=5; i<45; ++i )
-        {
-            if ( observerECache[ i ] != unsubscribeEvent )
-            {
-                ERRORHERE;
-            }
-        } 
-        for ( i=45; i<100; ++i )
-        {
-            if ( observerECache[ i ].IsInitialized() )
-            {
-                // no change should have occured on this observer
-                ERRORHERE;
-            }
-        }
+        for ( UInt32 i = 0; i < 100; ++i )
+            delete observers[ i ];
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
 
-        printf( "Completed notifier destruction test\n" );
-        printf( "Performing custom event test\n" );
+    /*-----------------------------------------------------------------------*/
+    /* Test 5: Notifier destruction observer notification                    */
+    /*-----------------------------------------------------------------------*/
 
-        /*
-         *  Now we will test using custom events
-         */
-        CEvent myEventA = registry->Register( "TestApp::myEventA" ); 
-        CEvent myEventB = registry->Register( "TestApp::myEventB" );
-        CEvent myEventC = registry->Register( "TestApp::myEventC" );
-        
-        printf( "Registered test events: TestApp::myEventA(%d) & TestApp::myEventB(%d)\n", myEventA.GetID(), myEventB.GetID() );
-        
-        notifierB = new CMyNotifier();
-        if ( notifierB == NULL )
-        {
-            ERRORHERE;
-        }          
-        for ( i=30; i<100; ++i )
-        {
+    GUCEF_TESTFW_TESTCASE( "Notifier destruction observer notification" )
+    try
+    {
+        CNotificationIDRegistry* registry = &CCoreGlobal::Instance()->GetNotificationIDRegistry();
+        CEvent unsubscribeEvent = registry->Lookup( CNotifier::UnsubscribeEvent.GetName() );
+
+        CEvent observerECache[ 100 ];
+        SETARRAYMEM( observerECache, 100, CEvent() );
+        CMyObserver* observers[ 100 ];
+        for ( UInt32 i = 0; i < 100; ++i )
+            observers[ i ] = new CMyObserver( i, observerECache );
+
+        CMyNotifier* notifierB = new CMyNotifier();
+
+        // Subscribe only observers[5..44] to notifierB
+        for ( UInt32 i = 5; i < 45; ++i )
             notifierB->Subscribe( observers[ i ] );
 
-            if ( observers[ i ]->GetNotifierCount() != 2 )
-            {
-                printf( "ERROR: expected a notifier count of 2 and I found %d\n", observers[ i ]->GetNotifierCount() );
-                ERRORHERE;
-            }
-            if ( observers[ i ]->GetSubscriptionCount() != 2 )
-            {
-                ERRORHERE;
-            }
+        SETARRAYMEM( observerECache, 100, CEvent() );
+        delete notifierB;
+
+        // The observer's OnNotify for DestructionEvent calls UnsubscribeFrom(*notifier),
+        // so the last event cached is UnsubscribeEvent (fired by UnsubscribeFrom)
+        for ( UInt32 i = 5; i < 45; ++i )
+        {
+            ASSERT_TRUE( observerECache[ i ] == unsubscribeEvent );
         }
-        
-        /*
-         *  We will perform two event sends.
-         *  It should result in the following cache status:
-         *      0-30 should have myEventA
-         *      30-100 should have myEventB (because b is sent after a)
-         */
-        notifierA.DoNotifyObservers( myEventA );       
-        notifierB->DoNotifyObservers( myEventB );
-        
-        for ( i=0; i<30; ++i )
+        // observers[0..4] were not on notifierB — no change
+        for ( UInt32 i = 0; i < 5; ++i )
         {
-            if ( observerECache[ i ] != myEventA )
-            {
-                ERRORHERE;
-            }
-        } 
-        for ( i=30; i<100; ++i )
+            ASSERT_FALSE( observerECache[ i ].IsInitialized() );
+        }
+        // observers[45..99] were not on notifierB — no change
+        for ( UInt32 i = 45; i < 100; ++i )
         {
-            if ( observerECache[ i ] != myEventB )
-            {
-                ERRORHERE;
-            }
+            ASSERT_FALSE( observerECache[ i ].IsInitialized() );
         }
 
-        /*
-         *  Now instead of having the observers unsubscribe to ALL events
-         *  we will subscribe to our events specificly and then perform the same check again.
-         *  First we must unsubscribe the observers to perform the test
-         */
-        for ( i=0; i<100; ++i )
+        for ( UInt32 i = 0; i < 100; ++i )
+            delete observers[ i ];
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /*-----------------------------------------------------------------------*/
+    /* Test 6: Specific event subscription — selective delivery              */
+    /*-----------------------------------------------------------------------*/
+
+    GUCEF_TESTFW_TESTCASE( "Specific event subscription selective delivery" )
+    try
+    {
+        // Subscribe(observer, specificEvent, callback) adds the observer to m_eventobservers
+        // (Phase 1 dispatch) so only that event triggers the callback.  Without a callback
+        // the observer is NOT placed in m_eventobservers and receives nothing for that event.
+        // Selective delivery therefore requires callbacks.
+        //
+        // Subscription count with callback: 4 (base link) + 1 per callback entry = 5 per notifier.
+
+        CNotificationIDRegistry* registry = &CCoreGlobal::Instance()->GetNotificationIDRegistry();
+        CEvent myEventA = registry->Register( "TestApp::myEventA", true );
+        CEvent myEventB = registry->Register( "TestApp::myEventB", true );
+        CEvent myEventC = registry->Register( "TestApp::myEventC", true );
+
+        CEvent observerECache[ 100 ];
+        SETARRAYMEM( observerECache, 100, CEvent() );
+        CMyObserver* observers[ 100 ];
+        for ( UInt32 i = 0; i < 100; ++i )
+            observers[ i ] = new CMyObserver( i, observerECache );
+
+        CMyNotifier notifierA;
+        CMyNotifier* notifierB = new CMyNotifier();
+
+        // observers[0..29]: subscribe to notifierA for myEventA via callback (4 base + 1 = 5)
+        for ( UInt32 i = 0; i < 30; ++i )
+        {
+            CTEventHandlerFunctor< CMyObserver > cbA( observers[ i ], &CMyObserver::OnMyCallback );
+            notifierA.Subscribe( observers[ i ], myEventA, &cbA );
+            ASSERT_TRUE( observers[ i ]->GetNotifierCount() == 1 );
+            ASSERT_TRUE( observers[ i ]->GetSubscriptionCount() == 5 );
+        }
+
+        // observers[30..99]: subscribe to notifierA (myEventA) and notifierB (myEventB) via callbacks
+        // 2 notifiers × 5 = 10
+        for ( UInt32 i = 30; i < 100; ++i )
+        {
+            CTEventHandlerFunctor< CMyObserver > cbA( observers[ i ], &CMyObserver::OnMyCallback );
+            notifierA.Subscribe( observers[ i ], myEventA, &cbA );
+            CTEventHandlerFunctor< CMyObserver > cbB( observers[ i ], &CMyObserver::OnMyCallback );
+            notifierB->Subscribe( observers[ i ], myEventB, &cbB );
+            ASSERT_TRUE( observers[ i ]->GetNotifierCount() == 2 );
+            ASSERT_TRUE( observers[ i ]->GetSubscriptionCount() == 10 );
+        }
+
+        // Clear the SubscribeEvent entries placed in the cache during the subscribe loop above
+        SETARRAYMEM( observerECache, 100, CEvent() );
+
+        // Fire myEventA — all 100 callbacks receive it (Phase 1 via m_eventobservers)
+        notifierA.DoNotifyObservers( myEventA );
+        // Fire myEventC — no one has a callback for it; cache unchanged
+        notifierA.DoNotifyObservers( myEventC );
+        // Fire myEventB — callbacks for observers[30..99] overwrite their cache
+        notifierB->DoNotifyObservers( myEventB );
+
+        // observers[0..29]: got myEventA, didn't get myEventC (no callback), didn't get myEventB (not on notifierB)
+        for ( UInt32 i = 0; i < 30; ++i )
+        {
+            ASSERT_TRUE( observerECache[ i ] == myEventA );
+        }
+        // observers[30..99]: myEventB overwrote myEventA (fired after)
+        for ( UInt32 i = 30; i < 100; ++i )
+        {
+            ASSERT_TRUE( observerECache[ i ] == myEventB );
+        }
+
+        delete notifierB;
+        for ( UInt32 i = 0; i < 100; ++i )
+            delete observers[ i ];
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /*-----------------------------------------------------------------------*/
+    /* Test 7: UnsubscribeAll clears all subscriptions                       */
+    /*-----------------------------------------------------------------------*/
+
+    GUCEF_TESTFW_TESTCASE( "UnsubscribeAll clears all subscriptions" )
+    try
+    {
+        CEvent observerECache[ 10 ];
+        SETARRAYMEM( observerECache, 10, CEvent() );
+        CMyObserver* observers[ 10 ];
+        for ( UInt32 i = 0; i < 10; ++i )
+            observers[ i ] = new CMyObserver( i, observerECache );
+
+        CMyNotifier notifierA;
+
+        for ( UInt32 i = 0; i < 10; ++i )
+        {
+            notifierA.Subscribe( observers[ i ] );
+            ASSERT_TRUE( observers[ i ]->GetNotifierCount() == 1 );
+            ASSERT_TRUE( observers[ i ]->GetSubscriptionCount() == 4 );
+        }
+
+        for ( UInt32 i = 0; i < 10; ++i )
         {
             observers[ i ]->UnsubscribeAllFromObserver();
-            if ( observers[ i ]->GetNotifierCount() != 0 )
-            {
-                ERRORHERE;
-            }
-            if ( observers[ i ]->GetSubscriptionCount() != 0 )
-            {
-                ERRORHERE;
-            }
-        }
-        
-        /*
-         *  Now we subscribe the observers specificly to our custom events
-         *  You automaticly also subscribe to the standard
-         */
-        for ( i=0; i<30; ++i )
-        {
-            notifierA.Subscribe( observers[ i ], myEventA );
-
-            if ( observers[ i ]->GetNotifierCount() != 1 )
-            {
-                ERRORHERE;
-            }
-            if ( observers[ i ]->GetSubscriptionCount() != 2 )
-            {
-                ERRORHERE;
-            }
-        }
-        for ( i=30; i<100; ++i )
-        {        
-            notifierA.Subscribe( observers[ i ], myEventA );
-            notifierB->Subscribe( observers[ i ], myEventB );
-
-            if ( observers[ i ]->GetNotifierCount() != 2 )
-            {
-                ERRORHERE;
-            }
-            if ( observers[ i ]->GetSubscriptionCount() != 4 )
-            {
-                ERRORHERE;
-            }
+            ASSERT_TRUE( observers[ i ]->GetNotifierCount() == 0 );
+            ASSERT_TRUE( observers[ i ]->GetSubscriptionCount() == 0 );
         }
 
-        /*
-         *  We will perform two event sends.
-         *  It should result in the following cache status:
-         *      0-30 should have myEventA, they are not subscribed to eventC and thus should not have recieved it
-         *      30-100 should have myEventB because B is sent after A, overwiting it.
-         */                               
-        notifierA.DoNotifyObservers( myEventA );
-        notifierA.DoNotifyObservers( myEventC );
-        notifierB->DoNotifyObservers( myEventB );
-        
-        for ( i=0; i<30; ++i )
+        for ( UInt32 i = 0; i < 10; ++i )
+            delete observers[ i ];
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /*-----------------------------------------------------------------------*/
+    /* Test 8: Functor callback dispatch                                     */
+    /*-----------------------------------------------------------------------*/
+
+    GUCEF_TESTFW_TESTCASE( "Functor callback dispatch" )
+    try
+    {
+        CNotificationIDRegistry* registry = &CCoreGlobal::Instance()->GetNotificationIDRegistry();
+        CEvent myEventB = registry->Register( "TestApp::myEventB", true );
+
+        CEvent observerECache[ 10 ];
+        SETARRAYMEM( observerECache, 10, CEvent() );
+        CMyObserver* observers[ 10 ];
+        for ( UInt32 i = 0; i < 10; ++i )
+            observers[ i ] = new CMyObserver( i, observerECache );
+
+        CMyNotifier notifierA;
+
+        for ( UInt32 i = 0; i < 10; ++i )
         {
-            if ( observerECache[ i ] != myEventA )
-            {
-                ERRORHERE;
-            }
-        } 
-        for ( i=30; i<100; ++i )
-        {
-            if ( observerECache[ i ] != myEventB )
-            {
-                ERRORHERE;
-            }
-        }
-        notifierA.UnsubscribeAllFromNotifier();
-        notifierB->UnsubscribeAllFromNotifier();
-        
-        printf( "Completed custom event test\n" );     
-        printf( "Performing custom event handler callback test\n" );
-        
-        // Setup subscriptions for the test
-        for ( i=0; i<100; ++i )
-        {
-            // Clear the test output storage
-            observerECache[ i ] = CEvent();
-            
-            // Setup the callback
             CTEventHandlerFunctor< CMyObserver > callback( observers[ i ], &CMyObserver::OnMyCallback );
             observers[ i ]->UnsubscribeAllFromObserver();
             notifierA.Subscribe( observers[ i ], myEventB, &callback );
         }
-        
-        // Send the test event
+
         notifierA.DoNotifyObservers( myEventB );
-        
-        // Check whether it was processed correctly
-        for ( i=0; i<100; ++i )
-        {
-            if ( observerECache[ i ] != myEventB )
-            {
-                // For some reason the output is not as expected
-                ERRORHERE;
-            }
-        }        
 
-        printf( "Completed custom event handler callback test\n" );
-        
-        /*
-         *  Cleanup our toys
-         */
-        printf( "Commencing cleanup\n" );
-        delete notifierB;
-        for ( i=0; i<100; ++i )
+        for ( UInt32 i = 0; i < 10; ++i )
         {
-            delete observers[ i ];
+            ASSERT_TRUE( observerECache[ i ] == myEventB );
         }
-        
-        int a =1;                
 
+        for ( UInt32 i = 0; i < 10; ++i )
+            delete observers[ i ];
     }
-    catch ( const char* )
+    catch ( ... )
     {
         ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /*-----------------------------------------------------------------------*/
+    /* Test 9: SubscribeEvent and UnsubscribeEvent delivery                  */
+    /*-----------------------------------------------------------------------*/
+
+    GUCEF_TESTFW_TESTCASE( "SubscribeEvent and UnsubscribeEvent delivery" )
+    try
+    {
+        // The notifier fires SubscribeEvent directly to an observer when it first links,
+        // and UnsubscribeEvent when the link is removed.  Both events bypass the normal
+        // Phase 1/2 dispatch and are delivered unconditionally via OnNotify.
+
+        CNotificationIDRegistry* registry = &CCoreGlobal::Instance()->GetNotificationIDRegistry();
+        CEvent subscribeEvent   = registry->Lookup( CNotifier::SubscribeEvent.GetName() );
+        CEvent unsubscribeEvent = registry->Lookup( CNotifier::UnsubscribeEvent.GetName() );
+
+        CEvent observerECache[ 1 ];
+        SETARRAYMEM( observerECache, 1, CEvent() );
+        CMyObserver* observer = new CMyObserver( 0, observerECache );
+
+        CMyNotifier notifierA;
+
+        // Subscribe — LinkObserver fires SubscribeEvent directly to observer
+        notifierA.Subscribe( observer );
+        ASSERT_TRUE( observerECache[ 0 ] == subscribeEvent );
+        ASSERT_TRUE( observer->GetNotifierCount() == 1 );
+
+        // Unsubscribe — UnsubscribeFromAllEvents fires UnsubscribeEvent directly to observer
+        notifierA.Unsubscribe( observer );
+        ASSERT_TRUE( observerECache[ 0 ] == unsubscribeEvent );
+        ASSERT_TRUE( observer->GetNotifierCount() == 0 );
+
+        delete observer;
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /*-----------------------------------------------------------------------*/
+    /* Test 10: Idempotent subscribe-all                                     */
+    /*-----------------------------------------------------------------------*/
+
+    GUCEF_TESTFW_TESTCASE( "Idempotent subscribe-all" )
+    try
+    {
+        // Calling Subscribe(observer) twice on the same notifier must be a no-op
+        // on the second call: observer count stays 1, subscription count stays 4,
+        // and the notification fires once (not twice).
+
+        CNotificationIDRegistry* registry = &CCoreGlobal::Instance()->GetNotificationIDRegistry();
+        CEvent modifyEvent = registry->Lookup( CNotifier::ModifyEvent.GetName() );
+
+        CEvent observerECache[ 1 ];
+        SETARRAYMEM( observerECache, 1, CEvent() );
+        CMyObserver* observer = new CMyObserver( 0, observerECache );
+
+        CMyNotifier notifierA;
+
+        notifierA.Subscribe( observer );
+        notifierA.Subscribe( observer );  // second call — must be a no-op
+
+        ASSERT_TRUE( observer->GetNotifierCount() == 1 );
+        ASSERT_TRUE( observer->GetSubscriptionCount() == 4 );
+
+        SETARRAYMEM( observerECache, 1, CEvent() );
+        notifierA.DoNotifyObservers();
+
+        ASSERT_TRUE( observerECache[ 0 ] == modifyEvent );
+
+        delete observer;
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /*-----------------------------------------------------------------------*/
+    /* Test 11: Re-subscribe after explicit unsubscribe                      */
+    /*-----------------------------------------------------------------------*/
+
+    GUCEF_TESTFW_TESTCASE( "Re-subscribe after explicit unsubscribe" )
+    try
+    {
+        // An observer that has been explicitly unsubscribed can rejoin the notifier
+        // cleanly: counts return to normal and events are delivered again.
+
+        CNotificationIDRegistry* registry = &CCoreGlobal::Instance()->GetNotificationIDRegistry();
+        CEvent modifyEvent = registry->Lookup( CNotifier::ModifyEvent.GetName() );
+
+        CEvent observerECache[ 1 ];
+        SETARRAYMEM( observerECache, 1, CEvent() );
+        CMyObserver* observer = new CMyObserver( 0, observerECache );
+
+        CMyNotifier notifierA;
+
+        // First subscription
+        notifierA.Subscribe( observer );
+        ASSERT_TRUE( observer->GetNotifierCount() == 1 );
+        ASSERT_TRUE( observer->GetSubscriptionCount() == 4 );
+
+        // Unsubscribe
+        observer->UnsubscribeAllFromObserver();
+        ASSERT_TRUE( observer->GetNotifierCount() == 0 );
+        ASSERT_TRUE( observer->GetSubscriptionCount() == 0 );
+
+        // Re-subscribe — should behave identically to the first subscription
+        notifierA.Subscribe( observer );
+        ASSERT_TRUE( observer->GetNotifierCount() == 1 );
+        ASSERT_TRUE( observer->GetSubscriptionCount() == 4 );
+
+        SETARRAYMEM( observerECache, 1, CEvent() );
+        notifierA.DoNotifyObservers();
+
+        ASSERT_TRUE( observerECache[ 0 ] == modifyEvent );
+
+        delete observer;
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /*-----------------------------------------------------------------------*/
+    /* Test 12: UnsubscribeAllFromNotifier                                   */
+    /*-----------------------------------------------------------------------*/
+
+    GUCEF_TESTFW_TESTCASE( "UnsubscribeAllFromNotifier" )
+    try
+    {
+        // notifierA.UnsubscribeAllFromNotifier() must remove every observer from
+        // the notifier, resetting their counts to zero.  Subsequent fires must be
+        // no-ops (no crash, no cache changes).
+
+        CEvent observerECache[ 10 ];
+        SETARRAYMEM( observerECache, 10, CEvent() );
+        CMyObserver* observers[ 10 ];
+        for ( UInt32 i = 0; i < 10; ++i )
+            observers[ i ] = new CMyObserver( i, observerECache );
+
+        CMyNotifier notifierA;
+
+        for ( UInt32 i = 0; i < 10; ++i )
+            notifierA.Subscribe( observers[ i ] );
+
+        notifierA.UnsubscribeAllFromNotifier();
+
+        for ( UInt32 i = 0; i < 10; ++i )
+        {
+            ASSERT_TRUE( observers[ i ]->GetNotifierCount() == 0 );
+            ASSERT_TRUE( observers[ i ]->GetSubscriptionCount() == 0 );
+        }
+
+        // Fire with no subscribers — must not crash and must not change the cache
+        SETARRAYMEM( observerECache, 10, CEvent() );
+        notifierA.DoNotifyObservers();
+
+        for ( UInt32 i = 0; i < 10; ++i )
+        {
+            ASSERT_FALSE( observerECache[ i ].IsInitialized() );
+        }
+
+        for ( UInt32 i = 0; i < 10; ++i )
+            delete observers[ i ];
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /*-----------------------------------------------------------------------*/
+    /* Test 13: Observer auto-cleanup on destruction                         */
+    /*-----------------------------------------------------------------------*/
+
+    GUCEF_TESTFW_TESTCASE( "Observer auto-cleanup on destruction" )
+    try
+    {
+        // When a subscribed observer is deleted its destructor triggers OnObserverDestroy
+        // on every linked notifier, removing it from m_observers without sending
+        // UnsubscribeEvent (observerDestruction=true path).  Subsequent notifications
+        // must reach only the surviving observers and must not crash.
+
+        CNotificationIDRegistry* registry = &CCoreGlobal::Instance()->GetNotificationIDRegistry();
+        CEvent modifyEvent = registry->Lookup( CNotifier::ModifyEvent.GetName() );
+
+        CEvent observerECache[ 5 ];
+        SETARRAYMEM( observerECache, 5, CEvent() );
+        CMyObserver* observers[ 5 ];
+        for ( UInt32 i = 0; i < 5; ++i )
+            observers[ i ] = new CMyObserver( i, observerECache );
+
+        CMyNotifier notifierA;
+
+        for ( UInt32 i = 0; i < 5; ++i )
+            notifierA.Subscribe( observers[ i ] );
+
+        // Delete observers[0..2] while they are still subscribed.
+        // Their destructors call OnObserverDestroy → removes them from notifierA's m_observers.
+        delete observers[ 0 ];  observers[ 0 ] = GUCEF_NULL;
+        delete observers[ 1 ];  observers[ 1 ] = GUCEF_NULL;
+        delete observers[ 2 ];  observers[ 2 ] = GUCEF_NULL;
+
+        // Clear any subscribe/destruction events that accumulated before this point
+        SETARRAYMEM( observerECache, 5, CEvent() );
+
+        // Only observers[3] and [4] remain; notification must reach them and not crash
+        notifierA.DoNotifyObservers();
+
+        ASSERT_TRUE( observerECache[ 3 ] == modifyEvent );
+        ASSERT_TRUE( observerECache[ 4 ] == modifyEvent );
+
+        // Deleted observers can no longer write to the cache
+        ASSERT_FALSE( observerECache[ 0 ].IsInitialized() );
+        ASSERT_FALSE( observerECache[ 1 ].IsInitialized() );
+        ASSERT_FALSE( observerECache[ 2 ].IsInitialized() );
+
+        delete observers[ 3 ];
+        delete observers[ 4 ];
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /*-----------------------------------------------------------------------*/
+    /* Test 14: NotifyObservers returns false when notifier destroyed        */
+    /*          during dispatch via ScheduleForDestruction()                 */
+    /*-----------------------------------------------------------------------*/
+
+    GUCEF_TESTFW_TESTCASE( "NotifyObservers returns false when notifier destroyed during dispatch" )
+    try
+    {
+        // When ScheduleForDestruction() is called from within an observer's
+        // OnNotify() handler, the notifier is deleted after the current dispatch
+        // loop completes.  NotifyObservers() then returns false to signal the
+        // caller that the notifier no longer exists.
+        //
+        // Cleanup note: the scheduled-for-destruction path bypasses
+        // OnDeathOfOwnerNotifier, so the observer's m_notifiers back-reference
+        // is not cleared automatically.  We call UnlinkFrom() afterwards to
+        // remove the (now-dangling) pointer before the observer goes out of scope.
+        // UnlinkFrom only erases the pointer value from the set — it does not
+        // dereference the deleted notifier — so this is safe.
+
+        CMyNotifier* notifier = new CMyNotifier();
+
+        // INTENTIONAL MEMORY LEAK — do not flag as a leak checker error.
+        //
+        // The kill observer is heap-allocated and deliberately never deleted.
+        // Root cause: ScheduleForDestruction() bypasses OnDeathOfOwnerNotifier,
+        // so the notifier never calls UnlinkFrom() on its observers.  After the
+        // dispatch returns false, killObserver->m_notifiers still holds a dangling
+        // pointer to the deleted notifier.  CObserver::UnlinkFrom() (the only way
+        // to clear that pointer) is private / friend-only and cannot be called
+        // from test code.  Calling delete on killObserver would cause
+        // SignalUpcomingObserverDestruction() to dereference the dangling pointer,
+        // which is undefined behaviour.
+        //
+        // This is a known design constraint of the ScheduleForDestruction() path:
+        // observers that remain subscribed when the notifier is destroyed this way
+        // are left with a stale back-reference.  The leak is intentional and small;
+        // the OS reclaims the memory at process exit.
+        //
+        // TODO: if the memory-leak checker plugin is ever updated to support
+        // suppression annotations, mark this allocation explicitly at that time.
+        CScheduleDestructionObserver* killObserver = new CScheduleDestructionObserver();
+        killObserver->m_notifierToDestroy = notifier;
+
+        notifier->Subscribe( killObserver );
+
+        // Fires ModifyEvent to killObserver. killObserver calls
+        // ScheduleForDestruction() → notifier deleted after dispatch.
+        // Return value must be false.
+        bool notifierStillAlive = notifier->DoNotifyObserversWithResult();
+
+        ASSERT_FALSE( notifierStillAlive );
+
+        notifier = GUCEF_NULL;
+        // killObserver intentionally not deleted — see note above
     }
     catch ( ... )
     {

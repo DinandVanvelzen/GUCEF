@@ -84,6 +84,11 @@
 #define GUCEF_CORE_TESTAPP_TESTNOTIFIEROBSERVER_H
 #endif /* GUCEF_CORE_TESTAPP_TESTNOTIFIEROBSERVER_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTSCHEDULE_H
+#include "TestSchedule.h"
+#define GUCEF_CORE_TESTAPP_TESTSCHEDULE_H
+#endif /* GUCEF_CORE_TESTAPP_TESTSCHEDULE_H ? */
+
 #ifndef GUCEF_CORE_TESTAPP_TESTCRONSCHEDULE_H
 #include "TestCronSchedule.h"
 #define GUCEF_CORE_TESTAPP_TESTCRONSCHEDULE_H
@@ -143,6 +148,11 @@
 #include "TestDataDrivenDStoreCodecs.h"
 #define GUCEF_CORE_TESTAPP_TESTDATADRIVENDSTORECODECS_H
 #endif /* GUCEF_CORE_TESTAPP_TESTDATADRIVENDSTORECODECS_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTABSTRACTFACTORY_H
+#include "TestAbstractFactory.h"
+#define GUCEF_CORE_TESTAPP_TESTABSTRACTFACTORY_H
+#endif /* GUCEF_CORE_TESTAPP_TESTABSTRACTFACTORY_H ? */
 
 #ifndef GUCEF_CORE_TESTAPP_TESTASYNC_H
 #include "TestASync.h"
@@ -212,6 +222,7 @@ GUCEF_OSMAIN_BEGIN
         PerformVarsTests();
         PerformFileUtilsTests();
         PerformFractionTests();
+        PerformAbstractFactoryTests();
         PerformTimestampTests();
         PerformStopwatchTests();
         PerformDateTimeTests();
@@ -220,6 +231,7 @@ GUCEF_OSMAIN_BEGIN
         PerformVersionTests();
         PerformVersionRangeTests();
         PerformCronScheduleTests();
+        PerformScheduleTests();
         PerformVariantTests();
         PerformVariantBinarySerializerTests();
         PerformDataNodeBinarySerializerTests();
