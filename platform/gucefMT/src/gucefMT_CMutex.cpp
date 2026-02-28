@@ -259,9 +259,8 @@ CMutex::Lock( UInt32 lockWaitTimeoutInMs ) const
         if ( FALSE == lockSuccess )
         {
             timeWaitedInMs = (UInt32) ( ::GetTickCount64() - tickCountAtWaitStart );
-            Int32 timeRemaining = lockWaitTimeoutInMs - timeWaitedInMs;
-            if ( timeRemaining > 0 )
-                PrecisionDelay( 1 );    
+            if ( lockWaitTimeoutInMs == GUCEF_MT_INFINITE_LOCK_TIMEOUT || timeWaitedInMs < lockWaitTimeoutInMs )
+                PrecisionDelay( 1 );
         }
         else
         {
@@ -271,7 +270,7 @@ CMutex::Lock( UInt32 lockWaitTimeoutInMs ) const
             return LOCKSTATUS_OPERATION_SUCCESS;
         }
     }
-    while ( timeWaitedInMs < lockWaitTimeoutInMs );
+    while ( lockWaitTimeoutInMs == GUCEF_MT_INFINITE_LOCK_TIMEOUT || timeWaitedInMs < lockWaitTimeoutInMs );
     
     return LOCKSTATUS_WAIT_TIMEOUT;
     
@@ -318,28 +317,27 @@ CMutex::Unlock( void ) const
 
     #elif ( GUCEF_MT_MUTEX_WINDOWS_LOCK_IMPLEMENTATION == GUCEF_MT_MUTEX_LOCK_IMPLEMENTATION_WIN32_CRITICAL_SECTION )
 
-    if ( _mutexdata->isLocked )
+    /*
+     *  Do NOT gate this on _mutexdata->isLocked.
+     *  CRITICAL_SECTION is recursive: the same thread can Enter multiple times, and each Enter
+     *  must be matched by a Leave. A plain bool isLocked cannot track the recursion count, so
+     *  gating on it causes the second Unlock() call (in a recursive lock scenario) to skip
+     *  LeaveCriticalSection, leaving the CS permanently locked and blocking other threads.
+     *  Instead, only check thread ownership — the OS enforces the Enter/Leave pairing.
+     *
+     *  From MS Docs:
+     *      If a thread calls LeaveCriticalSection when it does not have ownership of the
+     *      specified critical section object, an error occurs that may cause another thread
+     *      using EnterCriticalSection to wait indefinitely.
+     */
+    if ( _mutexdata->threadLastOwningLock == (UInt32) ::GetCurrentThreadId() )
     {
-        if ( _mutexdata->threadLastOwningLock == (UInt32) ::GetCurrentThreadId() )
-        {
-            _mutexdata->isLocked = false;
-            GUCEF_TRACE_EXCLUSIVE_LOCK_RELEASED( &_mutexdata->critsection );
-            ::LeaveCriticalSection( &_mutexdata->critsection );
-        }
-        else
-        {
-            /*
-             *  From MS Docs:
-             *      If a thread calls LeaveCriticalSection when it does not have ownership of the 
-             *      specified critical section object, an error occurs that may cause another thread 
-             *      using EnterCriticalSection to wait indefinitely.
-             * 
-             *  If your code is structured correctly we should never come here
-             */
-            return LOCKSTATUS_OPERATION_FAILED;
-        }
+        _mutexdata->isLocked = false;
+        GUCEF_TRACE_EXCLUSIVE_LOCK_RELEASED( &_mutexdata->critsection );
+        ::LeaveCriticalSection( &_mutexdata->critsection );
+        return LOCKSTATUS_OPERATION_SUCCESS;
     }
-    return LOCKSTATUS_OPERATION_SUCCESS;
+    return LOCKSTATUS_OPERATION_FAILED;
 
     #endif
     

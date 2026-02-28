@@ -43,6 +43,16 @@
 
 #include "gucefCORE_CVariant.h"
 
+#ifndef GUCEF_CORE_CUTF16STRING_H
+#include "gucefCORE_CUtf16String.h"
+#define GUCEF_CORE_CUTF16STRING_H
+#endif /* GUCEF_CORE_CUTF16STRING_H ? */
+
+#ifndef GUCEF_CORE_CUTF32STRING_H
+#include "gucefCORE_CUtf32String.h"
+#define GUCEF_CORE_CUTF32STRING_H
+#endif /* GUCEF_CORE_CUTF32STRING_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -245,6 +255,26 @@ CVariant::CVariant( const CUtf8String& data )
 
     memset( &m_variantData, 0, sizeof( m_variantData ) );
     *this = data;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariant::CVariant( const CUtf16String& data )
+    : m_variantData()
+{GUCEF_TRACE;
+
+    memset( &m_variantData, 0, sizeof( m_variantData ) );
+    LinkTo( data );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariant::CVariant( const CUtf32String& data )
+    : m_variantData()
+{GUCEF_TRACE;
+
+    memset( &m_variantData, 0, sizeof( m_variantData ) );
+    LinkTo( data );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2313,6 +2343,26 @@ CVariant::operator=( const CUtf8String& data )
 /*-------------------------------------------------------------------------*/
 
 CVariant&
+CVariant::operator=( const CUtf16String& data )
+{GUCEF_TRACE;
+
+    Set( data.C_String(), data.ByteSize(), GUCEF_DATATYPE_UTF16_STRING, false );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariant&
+CVariant::operator=( const CUtf32String& data )
+{GUCEF_TRACE;
+
+    Set( data.C_String(), data.ByteSize(), GUCEF_DATATYPE_UTF32_STRING, false );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariant&
 CVariant::operator=( const std::string& data )
 {GUCEF_TRACE;
 
@@ -2758,6 +2808,26 @@ CVariant::LinkTo( const CUtf8String& src )
 {GUCEF_TRACE;
 
     Set( src.C_String(), src.ByteSize(), GUCEF_DATATYPE_UTF8_STRING, true );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariant&
+CVariant::LinkTo( const CUtf16String& src )
+{GUCEF_TRACE;
+
+    Set( src.C_String(), src.ByteSize(), GUCEF_DATATYPE_UTF16_STRING, true );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariant&
+CVariant::LinkTo( const CUtf32String& src )
+{GUCEF_TRACE;
+
+    Set( src.C_String(), src.ByteSize(), GUCEF_DATATYPE_UTF32_STRING, true );
     return *this;
 }
 
@@ -3259,6 +3329,52 @@ CVariant::AsUtf8String( const CUtf8String& defaultIfNeeded, bool resolveVarsIfAp
 
 /*-------------------------------------------------------------------------*/
 
+CUtf16String
+CVariant::AsUtf16String( const CUtf16String& defaultIfNeeded, bool resolveVarsIfApplicable ) const
+{GUCEF_TRACE;
+
+    if ( GUCEF_DATATYPE_UTF16_LE_STRING == m_variantData.containedType ||
+         GUCEF_DATATYPE_UTF16_BE_STRING == m_variantData.containedType )
+    {
+        if ( m_variantData.union_data.heap_data.heap_data_size > sizeof(UInt16) )
+        {
+            const UInt16* ptr = static_cast< const UInt16* >( m_variantData.union_data.heap_data.union_data.void_heap_data );
+            UInt32 codeUnits = ( m_variantData.union_data.heap_data.heap_data_size / sizeof(UInt16) ) - 1;
+            CUtf16String tmp( ptr, codeUnits );
+            if ( resolveVarsIfApplicable )
+                return CUtf16String( ResolveVars( CString( tmp.STL_String() ) ) );
+            return tmp;
+        }
+        return resolveVarsIfApplicable ? CUtf16String( ResolveVars( CString( defaultIfNeeded.STL_String() ) ) ) : defaultIfNeeded;
+    }
+    return CUtf16String( AsString( CString( defaultIfNeeded.STL_String() ), resolveVarsIfApplicable ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CUtf32String
+CVariant::AsUtf32String( const CUtf32String& defaultIfNeeded, bool resolveVarsIfApplicable ) const
+{GUCEF_TRACE;
+
+    if ( GUCEF_DATATYPE_UTF32_LE_STRING == m_variantData.containedType ||
+         GUCEF_DATATYPE_UTF32_BE_STRING == m_variantData.containedType )
+    {
+        if ( m_variantData.union_data.heap_data.heap_data_size > sizeof(UInt32) )
+        {
+            const UInt32* ptr = static_cast< const UInt32* >( m_variantData.union_data.heap_data.union_data.void_heap_data );
+            UInt32 codePoints = ( m_variantData.union_data.heap_data.heap_data_size / sizeof(UInt32) ) - 1;
+            CUtf32String tmp( ptr, codePoints );
+            if ( resolveVarsIfApplicable )
+                return CUtf32String( ResolveVars( CString( tmp.STL_String() ) ) );
+            return tmp;
+        }
+        return resolveVarsIfApplicable ? CUtf32String( ResolveVars( CString( defaultIfNeeded.STL_String() ) ) ) : defaultIfNeeded;
+    }
+    return CUtf32String( AsString( CString( defaultIfNeeded.STL_String() ), resolveVarsIfApplicable ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CString
 CVariant::AsString( const CString& defaultIfNeeded, bool resolveVarsIfApplicable ) const
 {GUCEF_TRACE;
@@ -3321,18 +3437,28 @@ CVariant::AsString( const CString& defaultIfNeeded, bool resolveVarsIfApplicable
             case GUCEF_DATATYPE_INT32T2_FRACTION:      { return ToString( m_variantData.union_data.fraction_data.union_data.int32t2_data.denominator ) + '/' + ToString( m_variantData.union_data.fraction_data.union_data.int32t2_data.numerator ); }
             case GUCEF_DATATYPE_UINT32T2_FRACTION:     { return ToString( m_variantData.union_data.fraction_data.union_data.uint32t2_data.denominator ) + '/' + ToString( m_variantData.union_data.fraction_data.union_data.uint32t2_data.numerator ); }
 
-            // @TODO: we dont have native UTF16 support yet, so convert to UTF8
             case GUCEF_DATATYPE_UTF16_LE_STRING:
             case GUCEF_DATATYPE_UTF16_BE_STRING:
             {
-                if ( m_variantData.union_data.heap_data.heap_data_size > 0 )
+                if ( m_variantData.union_data.heap_data.heap_data_size > sizeof(UInt16) )
                 {
-                    std::wstring wideStr;   // <- not exactly UTF16 but best we have right now
-                    wideStr.resize( (size_t)( m_variantData.union_data.heap_data.heap_data_size / sizeof(std::wstring::value_type) ) + 1 );
-                    memcpy( const_cast< wchar_t* >( wideStr.c_str() ), m_variantData.union_data.heap_data.union_data.void_heap_data, m_variantData.union_data.heap_data.heap_data_size );
-                    wideStr.shrink_to_fit();
+                    const UInt16* ptr = static_cast< const UInt16* >( m_variantData.union_data.heap_data.union_data.void_heap_data );
+                    UInt32 codeUnits = ( m_variantData.union_data.heap_data.heap_data_size / sizeof(UInt16) ) - 1;
+                    CString result( CUtf16String( ptr, codeUnits ).STL_String() );
+                    return resolveVarsIfApplicable ? ResolveVars( result ) : result;
+                }
+                return CString::Empty;
+            }
 
-                    return ResolveVars( ToUtf8String( wideStr ) );
+            case GUCEF_DATATYPE_UTF32_LE_STRING:
+            case GUCEF_DATATYPE_UTF32_BE_STRING:
+            {
+                if ( m_variantData.union_data.heap_data.heap_data_size > sizeof(UInt32) )
+                {
+                    const UInt32* ptr = static_cast< const UInt32* >( m_variantData.union_data.heap_data.union_data.void_heap_data );
+                    UInt32 codePoints = ( m_variantData.union_data.heap_data.heap_data_size / sizeof(UInt32) ) - 1;
+                    CString result( CUtf32String( ptr, codePoints ).STL_String() );
+                    return resolveVarsIfApplicable ? ResolveVars( result ) : result;
                 }
                 return CString::Empty;
             }
@@ -3378,18 +3504,28 @@ CVariant::AsString( const CString& defaultIfNeeded, bool resolveVarsIfApplicable
             case GUCEF_DATATYPE_INT32T2_FRACTION:      { return ToString( m_variantData.union_data.fraction_data.union_data.int32t2_data.denominator ) + '/' + ToString( m_variantData.union_data.fraction_data.union_data.int32t2_data.numerator ); }
             case GUCEF_DATATYPE_UINT32T2_FRACTION:     { return ToString( m_variantData.union_data.fraction_data.union_data.uint32t2_data.denominator ) + '/' + ToString( m_variantData.union_data.fraction_data.union_data.uint32t2_data.numerator ); }
 
-            // @TODO: we dont have native UTF16 support yet, so convert to UTF8
             case GUCEF_DATATYPE_UTF16_LE_STRING:
             case GUCEF_DATATYPE_UTF16_BE_STRING:
             {
-                if ( m_variantData.union_data.heap_data.heap_data_size > 0 )
+                if ( m_variantData.union_data.heap_data.heap_data_size > sizeof(UInt16) )
                 {
-                    std::wstring wideStr;   // <- not exactly UTF16 but best we have right now
-                    wideStr.resize( (size_t)( m_variantData.union_data.heap_data.heap_data_size / sizeof( std::wstring::value_type ) ) + 1 );
-                    memcpy( const_cast< wchar_t* >( wideStr.c_str() ), m_variantData.union_data.heap_data.union_data.void_heap_data, m_variantData.union_data.heap_data.heap_data_size );
-                    wideStr.shrink_to_fit();
+                    const UInt16* ptr = static_cast< const UInt16* >( m_variantData.union_data.heap_data.union_data.void_heap_data );
+                    UInt32 codeUnits = ( m_variantData.union_data.heap_data.heap_data_size / sizeof(UInt16) ) - 1;
+                    CString result( CUtf16String( ptr, codeUnits ).STL_String() );
+                    return resolveVarsIfApplicable ? ResolveVars( result ) : result;
+                }
+                return CString::Empty;
+            }
 
-                    return ToUtf8String( wideStr );
+            case GUCEF_DATATYPE_UTF32_LE_STRING:
+            case GUCEF_DATATYPE_UTF32_BE_STRING:
+            {
+                if ( m_variantData.union_data.heap_data.heap_data_size > sizeof(UInt32) )
+                {
+                    const UInt32* ptr = static_cast< const UInt32* >( m_variantData.union_data.heap_data.union_data.void_heap_data );
+                    UInt32 codePoints = ( m_variantData.union_data.heap_data.heap_data_size / sizeof(UInt32) ) - 1;
+                    CString result( CUtf32String( ptr, codePoints ).STL_String() );
+                    return resolveVarsIfApplicable ? ResolveVars( result ) : result;
                 }
                 return CString::Empty;
             }
@@ -4188,6 +4324,22 @@ CVariant::operator CUtf8String() const
 {GUCEF_TRACE;
 
     return AsUtf8String();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariant::operator CUtf16String() const
+{GUCEF_TRACE;
+
+    return AsUtf16String();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariant::operator CUtf32String() const
+{GUCEF_TRACE;
+
+    return AsUtf32String();
 }
 
 /*-------------------------------------------------------------------------*/

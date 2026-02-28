@@ -24,12 +24,21 @@
 //-------------------------------------------------------------------------*/
 
 #include <vector>
-#include <iostream>
 
 #ifndef GUCEF_MT_DVMTOSWRAP_H
 #include "gucefMT_dvmtoswrap.h"
 #define GUCEF_MT_DVMTOSWRAP_H
 #endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
 #ifndef GUCEF_MT_DVRWLOCK_H
 #include "gucefMT_DVRWLOCK.h"
@@ -69,17 +78,9 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#if GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX || GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID
-  #define DEBUGBREAK __builtin_trap()
-#elif GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-  #define DEBUGBREAK DebugBreak()
-#else
-  #define DEBUGBREAK
-#endif
-
-#define ERRORHERE { std::cout << "Test failed @ " << __FILE__ << "(" << __LINE__ << ")\n"; DEBUGBREAK; }
-#define ASSERT_TRUE( test ) if ( !(test) ) { ERRORHERE; } 
-#define ASSERT_FALSE( test ) if ( (test) ) { ERRORHERE; }
+#define ERRORHERE       GUCEF_TESTFW_ERRORHERE
+#define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
+#define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
 
 #define GUCEF_RWLOCKTEST_TEST_THREAD_BOOTUP_TIME_IN_MS      250
 
@@ -3203,21 +3204,45 @@ void
 PerformReaderWriterLockTests( void )
 {GUCEF_TRACE;
 
-    std::cout << "\n\n**** COMMENCING Reader Writer lock TESTS ****\n";
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING Reader Writer lock TESTS" );
+
+    GUCEF_TESTFW_SUITE_SCOPE( "ReaderWriterLock" );
 
     // perform tests in the calling thread
-    PerformReaderWriterLockSingleThreadTests( true, false );
-    PerformReaderWriterLockSingleThreadTests( true, true );
-    PerformReaderWriterLockSingleThreadTests( false, false );
-    PerformReaderWriterLockSingleThreadTests( false, true );
+    GUCEF_TESTFW_TESTCASE( "SingleThread: WritersPriority=true, ScopeObjects=false" )
+        try { PerformReaderWriterLockSingleThreadTests( true, false ); } catch(...) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "SingleThread: WritersPriority=true, ScopeObjects=true" )
+        try { PerformReaderWriterLockSingleThreadTests( true, true ); } catch(...) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "SingleThread: WritersPriority=false, ScopeObjects=false" )
+        try { PerformReaderWriterLockSingleThreadTests( false, false ); } catch(...) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "SingleThread: WritersPriority=false, ScopeObjects=true" )
+        try { PerformReaderWriterLockSingleThreadTests( false, true ); } catch(...) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
 
     // spin up worker threads and run test workloads from that context
-    PerformReaderWriterLockTests( true, false );
-    PerformReaderWriterLockTests( true, true );
-    //PerformReaderWriterLockTests( false, false );
-    //PerformReaderWriterLockTests( false, true );
+    GUCEF_TESTFW_TESTCASE( "MultiThread: WritersPriority=true, ScopeObjects=false" )
+        try { PerformReaderWriterLockTests( true, false ); } catch(...) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
 
-    std::cout << "\n\n**** FINISHED Reader Writer lock TESTS ****\n";
+    GUCEF_TESTFW_TESTCASE( "MultiThread: WritersPriority=true, ScopeObjects=true" )
+        try { PerformReaderWriterLockTests( true, true ); } catch(...) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    //GUCEF_TESTFW_TESTCASE( "MultiThread: WritersPriority=false, ScopeObjects=false" )
+    //    try { PerformReaderWriterLockTests( false, false ); } catch(...) { ERRORHERE; }
+    //GUCEF_TESTFW_TESTCASE_END
+
+    //GUCEF_TESTFW_TESTCASE( "MultiThread: WritersPriority=false, ScopeObjects=true" )
+    //    try { PerformReaderWriterLockTests( false, true ); } catch(...) { ERRORHERE; }
+    //GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "FINISHED Reader Writer lock TESTS" );
 }
 
 /*-------------------------------------------------------------------------*/

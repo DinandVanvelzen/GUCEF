@@ -13,13 +13,16 @@
 
 set( HEADER_FILES 
   include/TestASync.h
+  include/TestCronSchedule.h
   include/TestCyclicDynamicBuffer.h
   include/TestDataDrivenDStoreCodecs.h
   include/TestDataNodeBinarySerializer.h
   include/TestDateTime.h
+  include/TestDateTimeRange.h
   include/TestDynamicBufferStringStream.h
   include/TestDynamicBufferSwap.h
   include/TestFileUtils.h
+  include/TestFraction.h
   include/TestIniParser.h
   include/TestLogging.h
   include/TestNotifierObserver.h
@@ -33,18 +36,22 @@ set( HEADER_FILES
   include/TestVariantBinarySerializer.h
   include/TestVariantStream.h
   include/TestVars.h
+  include/TestVersion.h
   src/TestFreeList.h
 )
 
 set( SOURCE_FILES 
   src/TestASync.cpp
+  src/TestCronSchedule.cpp
   src/TestCyclicDynamicBuffer.cpp
   src/TestDataDrivenDStoreCodecs.cpp
   src/TestDataNodeBinarySerializer.cpp
   src/TestDateTime.cpp
+  src/TestDateTimeRange.cpp
   src/TestDynamicBufferStringStream.cpp
   src/TestDynamicBufferSwap.cpp
   src/TestFileUtils.cpp
+  src/TestFraction.cpp
   src/TestFreeList.cpp
   src/TestIniParser.cpp
   src/TestLogging.cpp
@@ -59,6 +66,7 @@ set( SOURCE_FILES
   src/TestVariantBinarySerializer.cpp
   src/TestVariantStream.cpp
   src/TestVars.cpp
+  src/TestVersion.cpp
   src/gucefCORE_TestApp_main.cpp
 )
 

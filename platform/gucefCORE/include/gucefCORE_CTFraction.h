@@ -545,7 +545,13 @@ CTFraction< NumeratorType, DenominatorType >::Normalize( void )
       //  NumeratorType gcdValue = gcd< NumeratorType >( m_numerator, static_cast< NumeratorType >( m_denominator ) );
       //  #endif
       //#else // use our own template's version
-      NumeratorType gcdValue = gcd< NumeratorType >( m_numerator, static_cast< NumeratorType >( m_denominator ) );
+      // gcd requires non-negative inputs to return a correct positive result.
+      // After MakeDenominatorPositive(), m_denominator is always >= 0.
+      // The numerator may be negative for signed types, so we pass its absolute value.
+      NumeratorType absNumerator = m_numerator;
+      if ( absNumerator < NumeratorType( 0 ) )
+          absNumerator = NumeratorType( 0 ) - absNumerator;
+      NumeratorType gcdValue = gcd< NumeratorType >( absNumerator, static_cast< NumeratorType >( m_denominator ) );
       //#endif
     #endif
 
@@ -648,6 +654,7 @@ CTFraction< NumeratorType, DenominatorType >::FromString( const CString& str )
         return false;
 
     m_numerator = StringToNumber< NumeratorType >( numStr );
+    m_denominator = denominator;
     Normalize();
     return true;
 }

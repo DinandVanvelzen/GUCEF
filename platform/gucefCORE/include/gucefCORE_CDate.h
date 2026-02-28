@@ -103,6 +103,13 @@ class GUCEF_CORE_PUBLIC_CPP CDate : public CIDate
 
     UInt8 GetDaysInMonth( void ) const;
 
+    /**
+     *  Returns the day of week for this date.
+     *  0 = Sunday, 1 = Monday, ..., 6 = Saturday
+     *  Uses the Tomohiko Sakamoto algorithm.
+     */
+    UInt8 GetDayOfWeek( void ) const;
+
     CDate& operator=( const CDate& src );
 
     bool operator==( const CDate& src ) const;

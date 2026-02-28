@@ -446,6 +446,46 @@ CVariantStream::operator<<( const CUtf8String& data )
 /*-------------------------------------------------------------------------*/
 
 CVariantStream&
+CVariantStream::operator<<( const CUtf16String& data )
+{GUCEF_TRACE;
+
+    CVariant var;
+    var.LinkTo( data );
+    UInt32 bytesWritten = 0;
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
+    {
+        m_writePosition += bytesWritten;
+    }
+    else
+    {
+        m_isValid = false;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream&
+CVariantStream::operator<<( const CUtf32String& data )
+{GUCEF_TRACE;
+
+    CVariant var;
+    var.LinkTo( data );
+    UInt32 bytesWritten = 0;
+    if ( CVariantBinarySerializer::Serialize( var, m_writePosition, *m_buffer, bytesWritten ) )
+    {
+        m_writePosition += bytesWritten;
+    }
+    else
+    {
+        m_isValid = false;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream&
 CVariantStream::operator<<( const std::string& data )
 {GUCEF_TRACE;
 
@@ -891,6 +931,46 @@ CVariantStream::operator>>( CUtf8String& data )
     {
         m_readPosition += bytesRead;
         data = var.AsUtf8String();
+    }
+    else
+    {
+        m_isValid = false;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream&
+CVariantStream::operator>>( CUtf16String& data )
+{GUCEF_TRACE;
+
+    CVariant var;
+    UInt32 bytesRead = 0;
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    {
+        m_readPosition += bytesRead;
+        data = var.AsUtf16String();
+    }
+    else
+    {
+        m_isValid = false;
+    }
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariantStream&
+CVariantStream::operator>>( CUtf32String& data )
+{GUCEF_TRACE;
+
+    CVariant var;
+    UInt32 bytesRead = 0;
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    {
+        m_readPosition += bytesRead;
+        data = var.AsUtf32String();
     }
     else
     {

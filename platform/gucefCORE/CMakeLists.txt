@@ -146,6 +146,7 @@ set( HEADER_FILES
   include/gucefCORE_CBusyWaitPulseGeneratorDriver.h
   include/gucefCORE_CCharSepLoggingFormatter.h
   include/gucefCORE_CCoreGlobal.h
+  include/gucefCORE_CCronSchedule.h
   include/gucefCORE_CDStoreBinaryCodec.h
   include/gucefCORE_CDataDrivenDStoreCodec.h
   include/gucefCORE_CDataDrivenDStoreCodecFactory.h
@@ -158,6 +159,7 @@ set( HEADER_FILES
   include/gucefCORE_CDataUriResourceAccessor.h
   include/gucefCORE_CDate.h
   include/gucefCORE_CDateTime.h
+  include/gucefCORE_CDateTimeRange.h
   include/gucefCORE_CDeferredTask.h
   include/gucefCORE_CDirectoryWatcherEvents.h
   include/gucefCORE_CDynamicBufferStringStream.h
@@ -436,6 +438,7 @@ set( SOURCE_FILES
   src/gucefCORE_CBusyWaitPulseGeneratorDriver.cpp
   src/gucefCORE_CCharSepLoggingFormatter.cpp
   src/gucefCORE_CCoreGlobal.cpp
+  src/gucefCORE_CCronSchedule.cpp
   src/gucefCORE_CDStoreBinaryCodec.cpp
   src/gucefCORE_CDataDrivenDStoreCodec.cpp
   src/gucefCORE_CDataDrivenDStoreCodecFactory.cpp
@@ -448,6 +451,7 @@ set( SOURCE_FILES
   src/gucefCORE_CDataUriResourceAccessor.cpp
   src/gucefCORE_CDate.cpp
   src/gucefCORE_CDateTime.cpp
+  src/gucefCORE_CDateTimeRange.cpp
   src/gucefCORE_CDirectoryWatcherEvents.cpp
   src/gucefCORE_CDynamicBufferStringStream.cpp
   src/gucefCORE_CDynamicBufferSwap.cpp

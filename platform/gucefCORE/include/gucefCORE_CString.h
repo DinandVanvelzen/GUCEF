@@ -36,6 +36,16 @@
 #define GUCEF_CORE_CUTF8STRING_H
 #endif /* GUCEF_CORE_CUTF8STRING_H ? */
 
+#ifndef GUCEF_CORE_CUTF16STRING_H
+#include "gucefCORE_CUtf16String.h"
+#define GUCEF_CORE_CUTF16STRING_H
+#endif /* GUCEF_CORE_CUTF16STRING_H ? */
+
+#ifndef GUCEF_CORE_CUTF32STRING_H
+#include "gucefCORE_CUtf32String.h"
+#define GUCEF_CORE_CUTF32STRING_H
+#endif /* GUCEF_CORE_CUTF32STRING_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -74,7 +84,7 @@ typedef CAsciiString::StringUMapUMapUMapSet   CStringUMapUMapUMapSet;
 #define GUCEF_DATATYPE_DATETIME_ISO8601_STRING     GUCEF_DATATYPE_DATETIME_ISO8601_ASCII_STRING
 #define GUCEF_DATATYPE_STRING                      GUCEF_DATATYPE_ASCII_STRING
 
-#else
+#elif ( GUCEF_DEFAULT_STRING_FORMAT == GUCEF_DATATYPE_UTF8_STRING )
 
 typedef CUtf8String                          CString;
 typedef CUtf8String::StringSet               CStringSet;
@@ -97,10 +107,50 @@ typedef CUtf8String::StringUMapUMapUMapSet   CStringUMapUMapUMapSet;
 #define GUCEF_DATATYPE_DATETIME_ISO8601_STRING     GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING
 #define GUCEF_DATATYPE_STRING                      GUCEF_DATATYPE_UTF8_STRING
 
+#elif ( GUCEF_DEFAULT_STRING_FORMAT == GUCEF_DATATYPE_UTF16_STRING )
+
+/*
+ *  UTF-16 string container typedefs — always available regardless of the CString default
+ */
+typedef CUtf16String                          CString;
+typedef CUtf16String::StringSet               CStringSet;
+typedef CUtf16String::StringVector            CStringVector;
+typedef CUtf16String::StringMap               CStringMap;
+typedef CUtf16String::StringMapMap            CStringMapMap;
+typedef CUtf16String::StringMapSet            CStringMapSet;
+typedef CUtf16String::StringMapMapSet         CStringMapMapSet;
+typedef CUtf16String::StringUMap              CStringUMap;
+typedef CUtf16String::StringUMapUMap          CStringUMapUMap;
+typedef CUtf16String::StringUMapSet           CStringUMapSet;
+typedef CUtf16String::StringUMapUMapSet       CStringUMapUMapSet;
+
+#define GUCEF_DATATYPE_DATETIME_ISO8601_STRING     GUCEF_DATATYPE_DATETIME_ISO8601_UTF16_STRING
+#define GUCEF_DATATYPE_STRING                      GUCEF_DATATYPE_UTF16_STRING
+
+#elif ( GUCEF_DEFAULT_STRING_FORMAT == GUCEF_DATATYPE_UTF32_STRING )
+
+/*
+ *  UTF-32 string container typedefs — always available regardless of the CString default
+ */
+typedef CUtf32String                          CString;
+typedef CUtf32String::StringSet               CStringSet;
+typedef CUtf32String::StringVector            CStringVector;
+typedef CUtf32String::StringMap               CStringMap;
+typedef CUtf32String::StringMapMap            CStringMapMap;
+typedef CUtf32String::StringMapSet            CStringMapSet;
+typedef CUtf32String::StringMapMapSet         CStringMapMapSet;
+typedef CUtf32String::StringUMap              CStringUMap;
+typedef CUtf32String::StringUMapUMap          CStringUMapUMap;
+typedef CUtf32String::StringUMapSet           CStringUMapSet;
+typedef CUtf32String::StringUMapUMapSet       CStringUMapUMapSet;
+
+#define GUCEF_DATATYPE_DATETIME_ISO8601_STRING     GUCEF_DATATYPE_DATETIME_ISO8601_UTF32_STRING
+#define GUCEF_DATATYPE_STRING                      GUCEF_DATATYPE_UTF32_STRING
+
 #endif
 
 /*
- *  When more UTF variants are supported "UtfString" will represent the default 
+ *  When more UTF variants are supported "UtfString" will represent the default
  *  UTF implementation used on the targeted platform
  */
 typedef CUtf8String                         CUtfString;

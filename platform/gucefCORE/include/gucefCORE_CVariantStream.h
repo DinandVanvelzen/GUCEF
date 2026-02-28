@@ -128,6 +128,8 @@ class GUCEF_CORE_PUBLIC_CPP CVariantStream
     CVariantStream& operator<<( const char* data );
     CVariantStream& operator<<( const CAsciiString& data );
     CVariantStream& operator<<( const CUtf8String& data );
+    CVariantStream& operator<<( const CUtf16String& data );
+    CVariantStream& operator<<( const CUtf32String& data );
     CVariantStream& operator<<( const std::string& data );
     CVariantStream& operator<<( const std::wstring& data );
     CVariantStream& operator<<( const CDateTime& data );
@@ -156,6 +158,8 @@ class GUCEF_CORE_PUBLIC_CPP CVariantStream
     CVariantStream& operator>>( Float64& data );
     CVariantStream& operator>>( CAsciiString& data );
     CVariantStream& operator>>( CUtf8String& data );
+    CVariantStream& operator>>( CUtf16String& data );
+    CVariantStream& operator>>( CUtf32String& data );
     CVariantStream& operator>>( std::string& data );
     CVariantStream& operator>>( std::wstring& data );
     CVariantStream& operator>>( CDateTime& data );

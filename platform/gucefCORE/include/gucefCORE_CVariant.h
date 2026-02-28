@@ -153,6 +153,9 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
      */
     CVariant( const CUtf8String& data );
 
+    CVariant( const CUtf16String& data );
+    CVariant( const CUtf32String& data );
+
     /**
      *  Creates a private copy of the assumed to be null terminated string data and sets the type as UTF8
      */
@@ -279,6 +282,8 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     CString         AsString( const CString& defaultIfNeeded = CString::Empty, bool resolveVarsIfApplicable = false ) const;
     CAsciiString    AsAsciiString( const CAsciiString& defaultIfNeeded = CAsciiString::Empty, bool resolveVarsIfApplicable = false ) const;
     CUtf8String     AsUtf8String( const CUtf8String& defaultIfNeeded = CUtf8String::Empty, bool resolveVarsIfApplicable = false ) const;
+    CUtf16String    AsUtf16String( const CUtf16String& defaultIfNeeded = CUtf16String::Empty, bool resolveVarsIfApplicable = false ) const;
+    CUtf32String    AsUtf32String( const CUtf32String& defaultIfNeeded = CUtf32String::Empty, bool resolveVarsIfApplicable = false ) const;
     const void*     AsVoidPtr( const void* defaultIfNeeded = GUCEF_NULL ) const;
     const char*     AsCharPtr( const char* defaultIfNeeded = GUCEF_NULL ) const;    
     CDynamicBuffer  AsBuffer( void ) const;
@@ -351,6 +356,8 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     CVariant& operator=( const CDynamicBuffer& data );
     CVariant& operator=( const CAsciiString& data );
     CVariant& operator=( const CUtf8String& data );
+    CVariant& operator=( const CUtf16String& data );
+    CVariant& operator=( const CUtf32String& data );
     CVariant& operator=( const CDateTime& data );
     CVariant& operator=( const CTimestamp& data );
     CVariant& operator=( const std::string& data );
@@ -363,6 +370,8 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
 
     operator CAsciiString() const;
     operator CUtf8String() const;
+    operator CUtf16String() const;
+    operator CUtf32String() const;
 
     void Clear( void );
 
@@ -393,6 +402,8 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     CVariant& LinkTo( const TVariantData& src );
     CVariant& LinkTo( const CAsciiString& src );
     CVariant& LinkTo( const CUtf8String& src );
+    CVariant& LinkTo( const CUtf16String& src );
+    CVariant& LinkTo( const CUtf32String& src );
     CVariant& LinkTo( const std::string& src );
     CVariant& LinkTo( const std::wstring& src );
         
@@ -492,6 +503,8 @@ template <> inline Float64 CVariant::AsTValue( const Float64 defaultIfNeeded, bo
 //template <> inline size_t CVariant::AsTValue( const size_t defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsSizeT( defaultIfNeeded, resolveVarsIfApplicable ); }
 template <> inline CAsciiString CVariant::AsTValue( const CAsciiString defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsAsciiString( defaultIfNeeded, resolveVarsIfApplicable ); }
 template <> inline CUtf8String CVariant::AsTValue( const CUtf8String defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsUtf8String( defaultIfNeeded, resolveVarsIfApplicable ); }
+template <> inline CUtf16String CVariant::AsTValue( const CUtf16String defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsUtf16String( defaultIfNeeded, resolveVarsIfApplicable ); }
+template <> inline CUtf32String CVariant::AsTValue( const CUtf32String defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsUtf32String( defaultIfNeeded, resolveVarsIfApplicable ); }
 template <> inline CDateTime CVariant::AsTValue( const CDateTime defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsDateTime( defaultIfNeeded, resolveVarsIfApplicable ); }
 template <> inline std::string CVariant::AsTValue( const std::string defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsString( defaultIfNeeded, resolveVarsIfApplicable ).STL_String(); }
 template <> inline std::wstring CVariant::AsTValue( const std::wstring defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return ToWString( AsString( ToString( defaultIfNeeded ), resolveVarsIfApplicable ) ); }
@@ -528,6 +541,8 @@ template <> inline bool CVariant::TTypeUsesDynamicMemory( const Float64* default
 //template <> inline bool CVariant::TTypeUsesDynamicMemory( const size_t* defaultIfNeeded ) const {GUCEF_TRACE; false; }
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const CAsciiString* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const CUtf8String* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const CUtf16String* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const CUtf32String* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const CDateTime* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const std::string* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const std::wstring* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
@@ -564,6 +579,8 @@ template <> inline bool CVariant::SetTValue( const Float64& valueToSet, bool lin
 //template <> inline bool CVariant::SetTValue( const size_t& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
 template <> inline bool CVariant::SetTValue( const CAsciiString& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
 template <> inline bool CVariant::SetTValue( const CUtf8String& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
+template <> inline bool CVariant::SetTValue( const CUtf16String& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
+template <> inline bool CVariant::SetTValue( const CUtf32String& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
 template <> inline bool CVariant::SetTValue( const CDateTime& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
 template <> inline bool CVariant::SetTValue( const std::string& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
 template <> inline bool CVariant::SetTValue( const std::wstring& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }

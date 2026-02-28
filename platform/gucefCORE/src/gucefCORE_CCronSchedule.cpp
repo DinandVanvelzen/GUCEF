@@ -661,42 +661,6 @@ CCronSchedule::GetNextOccurrence( const CDateTime& from, CDateTime& next ) const
 
 /*-------------------------------------------------------------------------*/
 
-bool
-CCronSchedule::GetNextOccurrence( const CDateTime& from, const CDateTimeRange& validWindow, CDateTime& next ) const
-{GUCEF_TRACE;
-
-    if ( !IsValid() )
-        return false;
-
-    CDateTime candidate = from;
-    const Int32 maxIterations = 366 * 24 * 60; // One year worth of minutes
-    Int32 iterations = 0;
-
-    while ( iterations < maxIterations )
-    {
-        ++iterations;
-
-        // Get the next occurrence without range constraint
-        if ( !GetNextOccurrence( candidate, next ) )
-            return false;
-
-        // Check if it's within the valid window
-        if ( validWindow == next )
-            return true;
-
-        // If the next occurrence is beyond the window, we're done
-        if ( next > validWindow.GetEnd() )
-            return false;
-
-        // Continue searching from this occurrence
-        candidate = next;
-    }
-
-    return false;
-}
-
-/*-------------------------------------------------------------------------*/
-
 UInt32
 CCronSchedule::GetNextOccurrences( const CDateTime& from, UInt32 maxOccurrences, TDateTimeVector& occurrences ) const
 {GUCEF_TRACE;
@@ -928,7 +892,7 @@ CCronSchedule::Matches( const CDateTime& dt               ,
 {GUCEF_TRACE;
 
     // Check if datetime is within the valid window
-    if ( validWindow == dt )
+    if ( dt.IsWithinRange( validWindow.GetStart(), validWindow.GetEnd() ) )
     {
         // Now check if it matches the cron schedule
         return Matches( dt );
@@ -960,7 +924,7 @@ CCronSchedule::GetNextOccurrence( const CDateTime& from             ,
             return false;
 
         // Check if it's within the valid window
-        if ( validWindow == next )
+        if ( next.IsWithinRange( validWindow.GetStart(), validWindow.GetEnd() ) )
             return true;
 
         // If the next occurrence is beyond the window, we're done
@@ -972,141 +936,6 @@ CCronSchedule::GetNextOccurrence( const CDateTime& from             ,
     }
 
     return false;
-}
-
-/*-------------------------------------------------------------------------*/
-
-UInt32
-CCronSchedule::GetNextOccurrences( const CDateTime& from, UInt32 maxOccurrences, TDateTimeVector& occurrences ) const
-{GUCEF_TRACE;
-
-    occurrences.clear();
-
-    if ( !IsValid() || maxOccurrences == 0 )
-        return 0;
-
-    CDateTime current = from;
-    CDateTime next;
-
-    for ( UInt32 i = 0; i < maxOccurrences; ++i )
-    {
-        if ( !GetNextOccurrence( current, next ) )
-            break;
-
-        occurrences.push_back( next );
-        current = next;
-    }
-
-    return (UInt32) occurrences.size();
-}
-
-/*-------------------------------------------------------------------------*/
-
-UInt32
-CCronSchedule::GetOccurrencesInRange( const CDateTimeRange& range, UInt32 maxOccurrences, TDateTimeVector& occurrences ) const
-{GUCEF_TRACE;
-
-    occurrences.clear();
-
-    if ( !IsValid() || maxOccurrences == 0 )
-        return 0;
-
-    CDateTime current = range.GetStart();
-    CDateTime next;
-
-    for ( UInt32 i = 0; i < maxOccurrences; ++i )
-    {
-        if ( !GetNextOccurrence( current, next ) )
-            break;
-
-        // Check if next occurrence is beyond the range
-        if ( next > range.GetEnd() )
-            break;
-
-        occurrences.push_back( next );
-        current = next;
-    }
-
-    return (UInt32) occurrences.size();
-}
-
-/*-------------------------------------------------------------------------*/
-
-UInt64
-CCronSchedule::GetMillisecondsUntilNext( void ) const
-{GUCEF_TRACE;
-
-    return GetMillisecondsUntilNext( CDateTime::NowUTCDateTime() );
-}
-
-/*-------------------------------------------------------------------------*/
-
-UInt64
-CCronSchedule::GetMillisecondsUntilNext( const CDateTime& from ) const
-{GUCEF_TRACE;
-
-    CDateTime next;
-    if ( GetNextOccurrence( from, next ) )
-    {
-        Int64 diff = from.GetTimeDifferenceInMillisecondsTowards( next );
-        if ( diff > 0 )
-            return (UInt64) diff;
-    }
-    return 0;
-}
-
-/*-------------------------------------------------------------------------*/
-
-bool
-CCronSchedule::IsEveryMinute( void ) const
-{GUCEF_TRACE;
-
-    if ( !IsValid() )
-        return false;
-
-    // Check if all fields allow all values (wildcard)
-    return m_minutes.size() == 60 &&
-           m_hours.size() == 24 &&
-           m_daysOfMonth.size() == 31 &&
-           m_months.size() == 12 &&
-           m_daysOfWeek.size() == 7;
-}
-
-/*-------------------------------------------------------------------------*/
-
-bool
-CCronSchedule::IsEveryHour( void ) const
-{GUCEF_TRACE;
-
-    if ( !IsValid() )
-        return false;
-
-    // Check if triggers at minute 0 and all other fields are wildcards
-    return m_minutes.size() == 1 &&
-           m_minutes.find( 0 ) != m_minutes.end() &&
-           m_hours.size() == 24 &&
-           m_daysOfMonth.size() == 31 &&
-           m_months.size() == 12 &&
-           m_daysOfWeek.size() == 7;
-}
-
-/*-------------------------------------------------------------------------*/
-
-bool
-CCronSchedule::IsDaily( void ) const
-{GUCEF_TRACE;
-
-    if ( !IsValid() )
-        return false;
-
-    // Check if triggers at 00:00 and all other fields are wildcards
-    return m_minutes.size() == 1 &&
-           m_minutes.find( 0 ) != m_minutes.end() &&
-           m_hours.size() == 1 &&
-           m_hours.find( 0 ) != m_hours.end() &&
-           m_daysOfMonth.size() == 31 &&
-           m_months.size() == 12 &&
-           m_daysOfWeek.size() == 7;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1189,8 +1018,9 @@ CCronSchedule::GetDescription( void ) const
     {
         UInt8 minute = *m_minutes.begin();
         UInt8 hour = *m_hours.begin();
-        return "Daily at " + CORE::UInt8ToString( hour ) + ":" + 
-               CORE::UInt8ToString( minute ).PadLeft( 2, '0' );
+        CString minuteStr = CORE::UInt8ToString( minute );
+        if ( minute < 10 ) minuteStr = "0" + minuteStr;
+        return "Daily at " + CORE::UInt8ToString( hour ) + ":" + minuteStr;
     }
 
     // Check for weekly
@@ -1205,8 +1035,9 @@ CCronSchedule::GetDescription( void ) const
         const char* dayNames[] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
         CString dayName = dayOfWeek < 7 ? dayNames[dayOfWeek] : "Unknown";
         
-        return "Weekly on " + dayName + " at " + CORE::UInt8ToString( hour ) + ":" + 
-               CORE::UInt8ToString( minute ).PadLeft( 2, '0' );
+        CString minuteStrW = CORE::UInt8ToString( minute );
+        if ( minute < 10 ) minuteStrW = "0" + minuteStrW;
+        return "Weekly on " + dayName + " at " + CORE::UInt8ToString( hour ) + ":" + minuteStrW;
     }
 
     // Check for monthly
@@ -1217,8 +1048,10 @@ CCronSchedule::GetDescription( void ) const
         UInt8 hour = *m_hours.begin();
         UInt8 day = *m_daysOfMonth.begin();
         
-        return "Monthly on day " + CORE::UInt8ToString( day ) + " at " + 
-               CORE::UInt8ToString( hour ) + ":" + CORE::UInt8ToString( minute ).PadLeft( 2, '0' );
+        CString minuteStrM = CORE::UInt8ToString( minute );
+        if ( minute < 10 ) minuteStrM = "0" + minuteStrM;
+        return "Monthly on day " + CORE::UInt8ToString( day ) + " at " +
+               CORE::UInt8ToString( hour ) + ":" + minuteStrM;
     }
 
     // Check for interval patterns (e.g., every 15 minutes)
@@ -1253,6 +1086,209 @@ CCronSchedule::GetDescription( void ) const
 
     // For complex schedules, return the cron expression
     return "Custom schedule: " + ToCronString();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CCronSchedule::IsValid( void ) const
+{GUCEF_TRACE;
+
+    return !m_minutes.empty() && !m_hours.empty() && !m_daysOfMonth.empty() &&
+           !m_months.empty() && !m_daysOfWeek.empty();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CCronSchedule::TUInt8Set&
+CCronSchedule::GetMinutes( void ) const
+{GUCEF_TRACE;
+
+    return m_minutes;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CCronSchedule::TUInt8Set&
+CCronSchedule::GetHours( void ) const
+{GUCEF_TRACE;
+
+    return m_hours;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CCronSchedule::TUInt8Set&
+CCronSchedule::GetDaysOfMonth( void ) const
+{GUCEF_TRACE;
+
+    return m_daysOfMonth;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CCronSchedule::TUInt8Set&
+CCronSchedule::GetMonths( void ) const
+{GUCEF_TRACE;
+
+    return m_months;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CCronSchedule::TUInt8Set&
+CCronSchedule::GetDaysOfWeek( void ) const
+{GUCEF_TRACE;
+
+    return m_daysOfWeek;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCronSchedule::SetMinutes( const TUInt8Set& minutes )
+{GUCEF_TRACE;
+
+    m_minutes = minutes;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCronSchedule::SetHours( const TUInt8Set& hours )
+{GUCEF_TRACE;
+
+    m_hours = hours;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCronSchedule::SetDaysOfMonth( const TUInt8Set& daysOfMonth )
+{GUCEF_TRACE;
+
+    m_daysOfMonth = daysOfMonth;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCronSchedule::SetMonths( const TUInt8Set& months )
+{GUCEF_TRACE;
+
+    m_months = months;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCronSchedule::SetDaysOfWeek( const TUInt8Set& daysOfWeek )
+{GUCEF_TRACE;
+
+    m_daysOfWeek = daysOfWeek;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CCronSchedule::GetPreviousOccurrence( const CDateTime& from, CDateTime& previous ) const
+{GUCEF_TRACE;
+
+    if ( !IsValid() )
+        return false;
+
+    // Start from the previous minute (we don't match 'from' itself)
+    previous = from;
+    previous.SetSeconds( 0 );
+    previous.SetMilliseconds( 0 );
+    DecrementToPreviousMinute( previous );
+
+    // Maximum iterations to prevent infinite loops
+    const Int32 maxIterations = 366 * 24 * 60; // One year worth of minutes
+    Int32 iterations = 0;
+
+    while ( iterations < maxIterations )
+    {
+        ++iterations;
+
+        UInt8 minute = (UInt8) previous.GetMinutes();
+        UInt8 hour   = (UInt8) previous.GetHours();
+        UInt8 month  = previous.GetMonth();
+
+        // Check month — months are 1-12, so (month-1) is safe as UInt8 only when month > 0
+        if ( m_months.find( month ) == m_months.end() )
+        {
+            bool wrapped = false;
+            // month is 1-12; when month==1, month-1==0, GetPreviousValue with 0 will wrap
+            UInt8 prevMonth = GetPreviousValue( m_months, (UInt8)( month - 1u ), 12, wrapped );
+            Int16 year = previous.GetYear();
+            if ( wrapped )
+                --year;
+            CDate tempDate( year, prevMonth, 1 );
+            UInt8 lastDay = tempDate.GetDaysInMonth();
+            previous.Set( year, prevMonth, lastDay, 23, 59, 0, 0, previous.GetTimeZoneUTCOffsetInMins() );
+            continue;
+        }
+
+        // Check day constraints
+        if ( !MatchesDayConstraints( previous ) )
+        {
+            DecrementToPreviousDay( previous );
+            continue;
+        }
+
+        // Check hour — guard against UInt8 underflow when hour==0
+        if ( m_hours.find( hour ) == m_hours.end() )
+        {
+            if ( hour == 0 )
+            {
+                DecrementToPreviousDay( previous );
+            }
+            else
+            {
+                bool wrapped = false;
+                UInt8 prevHour = GetPreviousValue( m_hours, (UInt8)( hour - 1u ), 23, wrapped );
+                if ( wrapped )
+                {
+                    DecrementToPreviousDay( previous );
+                }
+                else
+                {
+                    previous.SetHours( prevHour );
+                    previous.SetMinutes( 59 );
+                }
+            }
+            continue;
+        }
+
+        // Check minute — guard against UInt8 underflow when minute==0
+        if ( m_minutes.find( minute ) == m_minutes.end() )
+        {
+            if ( minute == 0 )
+            {
+                DecrementToPreviousHour( previous );
+            }
+            else
+            {
+                bool wrapped = false;
+                UInt8 prevMinute = GetPreviousValue( m_minutes, (UInt8)( minute - 1u ), 59, wrapped );
+                if ( wrapped )
+                {
+                    DecrementToPreviousHour( previous );
+                }
+                else
+                {
+                    previous.SetMinutes( prevMinute );
+                }
+            }
+            continue;
+        }
+
+        // All constraints matched
+        return true;
+    }
+
+    return false;
 }
 
 /*-------------------------------------------------------------------------//

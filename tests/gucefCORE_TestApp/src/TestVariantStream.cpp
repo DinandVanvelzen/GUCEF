@@ -53,6 +53,16 @@
 #define GUCEF_CORE_CVARIANT_H
 #endif /* GUCEF_CORE_CVARIANT_H ? */
 
+#ifndef GUCEF_CORE_CUTF16STRING_H
+#include "gucefCORE_CUtf16String.h"
+#define GUCEF_CORE_CUTF16STRING_H
+#endif /* GUCEF_CORE_CUTF16STRING_H ? */
+
+#ifndef GUCEF_CORE_CUTF32STRING_H
+#include "gucefCORE_CUtf32String.h"
+#define GUCEF_CORE_CUTF32STRING_H
+#endif /* GUCEF_CORE_CUTF32STRING_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -773,6 +783,33 @@ PerformVariantStreamTests( void )
         ASSERT_TRUE( rwstr == wstr );
         ASSERT_TRUE( rstr == str );
         ASSERT_TRUE( rnum == num );
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 40: Write and read UTF-16 and UTF-32 strings
+    GUCEF_TESTFW_TESTCASE( "Test 40: Write and read UTF-16 and UTF-32 strings" )
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 40: Write and read UTF-16 and UTF-32 strings" );
+        try
+        {
+            CORE::CVariantStream stream;
+            CORE::CUtf16String u16str( "Hello UTF16" );
+            CORE::CUtf32String u32str( "Hello UTF32" );
+
+            stream << u16str << u32str;
+            ASSERT_TRUE( stream.IsValid() );
+
+            stream.ResetReadPosition();
+            CORE::CUtf16String r16str;
+            CORE::CUtf32String r32str;
+
+            stream >> r16str >> r32str;
+            ASSERT_TRUE( stream.IsValid() );
+            ASSERT_TRUE( r16str == u16str );
+            ASSERT_TRUE( r32str == u32str );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
     GUCEF_TESTFW_TESTCASE_END
 
     CORE::CLogStreamScope::FlushLogs();

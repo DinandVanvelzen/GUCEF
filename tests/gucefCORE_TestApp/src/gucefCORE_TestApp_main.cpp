@@ -69,6 +69,11 @@
 #define GUCEF_CORE_TESTAPP_TESTURI_H
 #endif /* GUCEF_CORE_TESTAPP_TESTURI_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTVERSION_H
+#include "TestVersion.h"
+#define GUCEF_CORE_TESTAPP_TESTVERSION_H
+#endif /* GUCEF_CORE_TESTAPP_TESTVERSION_H ? */
+
 #ifndef GUCEF_CORE_TESTAPP_TESTVARIANTBINARYSERIALIZER_H
 #include "TestVariantBinarySerializer.h"
 #define GUCEF_CORE_TESTAPP_TESTVARIANTBINARYSERIALIZER_H
@@ -78,6 +83,11 @@
 #include "TestNotifierObserver.h"
 #define GUCEF_CORE_TESTAPP_TESTNOTIFIEROBSERVER_H
 #endif /* GUCEF_CORE_TESTAPP_TESTNOTIFIEROBSERVER_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTCRONSCHEDULE_H
+#include "TestCronSchedule.h"
+#define GUCEF_CORE_TESTAPP_TESTCRONSCHEDULE_H
+#endif /* GUCEF_CORE_TESTAPP_TESTCRONSCHEDULE_H ? */
 
 #ifndef GUCEF_CORE_TESTAPP_TESTCYCLICDYNAMICBUFFER_H
 #include "TestCyclicDynamicBuffer.h"
@@ -109,6 +119,11 @@
 #define GUCEF_CORE_TESTAPP_TESTDATETIME_H
 #endif /* GUCEF_CORE_TESTAPP_TESTDATETIME_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTDATETIMERANGE_H
+#include "TestDateTimeRange.h"
+#define GUCEF_CORE_TESTAPP_TESTDATETIMERANGE_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDATETIMERANGE_H ? */
+
 #ifndef GUCEF_CORE_TESTAPP_TESTTOKENIZER_H
 #include "TestTokenizer.h"
 #define GUCEF_CORE_TESTAPP_TESTTOKENIZER_H
@@ -118,6 +133,11 @@
 #include "TestFileUtils.h"
 #define GUCEF_CORE_TESTAPP_TESTFILEUTILS_H
 #endif /* GUCEF_CORE_TESTAPP_TESTFILEUTILS_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTFRACTION_H
+#include "TestFraction.h"
+#define GUCEF_CORE_TESTAPP_TESTFRACTION_H
+#endif /* GUCEF_CORE_TESTAPP_TESTFRACTION_H ? */
 
 #ifndef GUCEF_CORE_TESTAPP_TESTDATADRIVENDSTORECODECS_H
 #include "TestDataDrivenDStoreCodecs.h"
@@ -191,10 +211,15 @@ GUCEF_OSMAIN_BEGIN
         PerformStringTests();
         PerformVarsTests();
         PerformFileUtilsTests();
+        PerformFractionTests();
         PerformTimestampTests();
         PerformStopwatchTests();
-        PerformDateTimeTests();        
+        PerformDateTimeTests();
+        PerformDateTimeRangeTests();
         PerformUriTests();
+        PerformVersionTests();
+        PerformVersionRangeTests();
+        PerformCronScheduleTests();
         PerformVariantTests();
         PerformVariantBinarySerializerTests();
         PerformDataNodeBinarySerializerTests();

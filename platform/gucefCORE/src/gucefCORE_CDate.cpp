@@ -342,6 +342,21 @@ CDate::GetDaysInMonth( void ) const
         return 0;
 }
 
+/*-------------------------------------------------------------------------*/
+
+UInt8
+CDate::GetDayOfWeek( void ) const
+{GUCEF_TRACE;
+
+    // Tomohiko Sakamoto's algorithm. Returns 0=Sunday, 1=Monday, ..., 6=Saturday
+    static const int t[] = { 0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4 };
+    int y = (int) m_year;
+    int m = (int) m_month;
+    int d = (int) m_day;
+    if ( m < 3 ) --y;
+    return (UInt8) ( ( y + y/4 - y/100 + y/400 + t[m-1] + d ) % 7 );
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
