@@ -275,6 +275,7 @@ set( HEADER_FILES
   include/gucefCORE_LogTypes.h
   include/gucefCORE_Logging.h
   include/gucefCORE_LoggingMacros.h
+  include/gucefCORE_TestFwLogCallback.h
   include/gucefCORE_StringLoggingMacros.h
   include/gucefCORE_MetricsMacros.h
   include/gucefCORE_SFINAE_utils.h

@@ -264,7 +264,7 @@ CVariant::CVariant( const std::string& utf8Str )
 {GUCEF_TRACE;
 
     memset( &m_variantData, 0, sizeof( m_variantData ) );
-    *this = CUtf8String( utf8Str );
+    *this = utf8Str;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1945,6 +1945,7 @@ CVariant::AsVoidPtr( const void* defaultIfNeeded ) const
         case GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING: return m_variantData.union_data.heap_data.union_data.char_heap_data;
         case GUCEF_DATATYPE_ASCII_STRING: return m_variantData.union_data.heap_data.union_data.char_heap_data;
         case GUCEF_DATATYPE_UTF8_STRING: return m_variantData.union_data.heap_data.union_data.char_heap_data;
+        case GUCEF_DATATYPE_UTF16_STRING: return m_variantData.union_data.heap_data.union_data.wchar_heap_data;
         case GUCEF_DATATYPE_BINARY_BLOB: return m_variantData.union_data.heap_data.union_data.void_heap_data;
         case GUCEF_DATATYPE_INT64T2_FRACTION: return m_variantData.union_data.heap_data.union_data.fraction_int64t2_data;
         case GUCEF_DATATYPE_UINT64T2_FRACTION: return m_variantData.union_data.heap_data.union_data.fraction_uint64t2_data;
@@ -2325,7 +2326,7 @@ CVariant&
 CVariant::operator=( const std::wstring& data )
 {GUCEF_TRACE;
 
-    Set( data.c_str(), (UInt32) data.size(), GUCEF_DATATYPE_UTF16_LE_STRING, false );
+    Set( data.c_str(), (UInt32)( (data.size()+1) * sizeof(std::wstring::value_type) ), GUCEF_DATATYPE_UTF16_STRING, false );
     return *this;
 }
 
@@ -2776,7 +2777,7 @@ CVariant&
 CVariant::LinkTo( const std::wstring& src )
 {GUCEF_TRACE;
 
-    Set( src.c_str(), (UInt32) src.size(), GUCEF_DATATYPE_UTF16_STRING, true );
+    Set( src.c_str(), (UInt32)( (src.size()+1) * sizeof(std::wstring::value_type) ), GUCEF_DATATYPE_UTF16_STRING, true );
     return *this;
 }
 
@@ -3327,7 +3328,7 @@ CVariant::AsString( const CString& defaultIfNeeded, bool resolveVarsIfApplicable
                 if ( m_variantData.union_data.heap_data.heap_data_size > 0 )
                 {
                     std::wstring wideStr;   // <- not exactly UTF16 but best we have right now
-                    wideStr.resize( (size_t)( m_variantData.union_data.heap_data.heap_data_size / sizeof( wchar_t ) ) );
+                    wideStr.resize( (size_t)( m_variantData.union_data.heap_data.heap_data_size / sizeof(std::wstring::value_type) ) + 1 );
                     memcpy( const_cast< wchar_t* >( wideStr.c_str() ), m_variantData.union_data.heap_data.union_data.void_heap_data, m_variantData.union_data.heap_data.heap_data_size );
                     wideStr.shrink_to_fit();
 
@@ -3384,7 +3385,7 @@ CVariant::AsString( const CString& defaultIfNeeded, bool resolveVarsIfApplicable
                 if ( m_variantData.union_data.heap_data.heap_data_size > 0 )
                 {
                     std::wstring wideStr;   // <- not exactly UTF16 but best we have right now
-                    wideStr.resize( (size_t)( m_variantData.union_data.heap_data.heap_data_size / sizeof( wchar_t ) ) + 1 );
+                    wideStr.resize( (size_t)( m_variantData.union_data.heap_data.heap_data_size / sizeof( std::wstring::value_type ) ) + 1 );
                     memcpy( const_cast< wchar_t* >( wideStr.c_str() ), m_variantData.union_data.heap_data.union_data.void_heap_data, m_variantData.union_data.heap_data.heap_data_size );
                     wideStr.shrink_to_fit();
 

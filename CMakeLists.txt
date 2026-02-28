@@ -14,5 +14,16 @@
 # and provide build configuration options.
 ######################################################################
 
-# redirect to the actual all-encompasing CMake target
-include( ./projects/CMake/targets/GUCEF/CMakeLists.txt )
+cmake_minimum_required(VERSION 3.20)
+
+# Set GUCEF_BUILD_TARGET to the folder name under projects/cmake/targets/
+# e.g. via CMakePresets.json or: -DGUCEF_BUILD_TARGET=GUCEF_exe_gucefCORE_TestApp
+if(NOT DEFINED GUCEF_BUILD_TARGET)
+    message(FATAL_ERROR "GUCEF_BUILD_TARGET is not set. Select a CMake preset or pass -DGUCEF_BUILD_TARGET=<target> where <target> is a folder under projects/cmake/targets/")
+endif()
+
+project(GUCEF NONE)
+add_subdirectory(
+    "projects/cmake/targets/${GUCEF_BUILD_TARGET}"
+    "${CMAKE_BINARY_DIR}/${GUCEF_BUILD_TARGET}"
+)

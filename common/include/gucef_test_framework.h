@@ -42,10 +42,23 @@
  *    PerformMyTests();
  *    GUCEF_TESTFW_WRITE_RESULTS( "MyApp_Results.xml" );
  *    return GUCEF_TESTFW_EXITCODE;
+ *
+ *  Optional: Hook logging via callback:
+ *
+ *    void MyLogCallback( ETestEvent event, ... ) { ... }
+ *    GUCEF_TESTFW_SET_CALLBACK( MyLogCallback, NULL );
  */
 
 #ifndef GUCEF_TEST_FRAMEWORK_H
 #define GUCEF_TEST_FRAMEWORK_H
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      C++ GUARD                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+#ifdef __cplusplus
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -76,6 +89,49 @@ namespace TESTFW {
 //      TYPES                                                              //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+/**
+ *  Event types for the test framework callback mechanism.
+ *  Allows external code (like logging systems) to hook into test events.
+ */
+enum ETestEvent
+{
+    GUCEF_TESTFW_EVENT_INIT = 0,        /**< Test framework initialized */
+    GUCEF_TESTFW_EVENT_SUITE_BEGIN,     /**< Test suite started */
+    GUCEF_TESTFW_EVENT_SUITE_END,       /**< Test suite ended */
+    GUCEF_TESTFW_EVENT_CASE_BEGIN,      /**< Test case started */
+    GUCEF_TESTFW_EVENT_CASE_END,        /**< Test case ended (check failureCount) */
+    GUCEF_TESTFW_EVENT_FAILURE,         /**< Assertion failure recorded */
+    GUCEF_TESTFW_EVENT_EXCEPTION,       /**< Exception caught in test case */
+    GUCEF_TESTFW_EVENT_RESULTS_WRITTEN  /**< Results XML file written */
+};
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Callback function signature for test event notifications.
+ *  
+ *  @param eventType    The type of event that occurred
+ *  @param suiteName    Current suite name (may be NULL)
+ *  @param caseName     Current test case name (may be NULL)
+ *  @param message      Additional info: failure expression, exception message, filepath, etc.
+ *  @param file         Source file where event occurred (for failures/exceptions)
+ *  @param line         Line number in source file (for failures/exceptions)
+ *  @param failureCount Number of failures in current case (for CASE_END)
+ *  @param userData     User-provided context pointer
+ */
+typedef void (*TTestEventCallback)( 
+    ETestEvent  eventType,
+    const char* suiteName,
+    const char* caseName,
+    const char* message,
+    const char* file,
+    Int32       line,
+    UInt32      failureCount,
+    void*       userData
+);
+
+/*-------------------------------------------------------------------------*/
 
 /**
  *  Represents a single assertion or exception failure within a test case.
@@ -123,7 +179,7 @@ struct STestSuite
 
 /**
  *  Global singleton that accumulates all test results for a process run.
- *  Thread-unsafe by design — test registration is expected to be sequential.
+ *  Thread-unsafe by design - test registration is expected to be sequential.
  */
 class CTestContext
 {
@@ -133,6 +189,13 @@ public:
 
     /** Call once at process start to name the overall test run. */
     void Init( const char* appName );
+
+    /** 
+     *  Set a callback to receive test event notifications.
+     *  @param callback  Function to call on events (NULL to disable)
+     *  @param userData  Opaque pointer passed to callback
+     */
+    void SetEventCallback( TTestEventCallback callback, void* userData );
 
     /** Open a new test suite.  Matched by EndSuite(). */
     void BeginSuite( const char* name );
@@ -147,10 +210,16 @@ public:
     void EndTestCase();
 
     /**
-     *  Record an assertion failure or exception for the current test case.
+     *  Record an assertion failure for the current test case.
      *  No-op when no test case is currently open.
      */
     void RecordFailure( const char* expr, const char* file, Int32 line );
+
+    /**
+     *  Record an exception for the current test case.
+     *  Similar to RecordFailure but fires EXCEPTION event instead of FAILURE.
+     */
+    void RecordException( const char* message, const char* file, Int32 line );
 
     /**
      *  Write a JUnit-compatible XML results file.
@@ -168,12 +237,16 @@ private:
 
     CTestContext();
 
+    void FireEvent( ETestEvent eventType, const char* message, const char* file, Int32 line, UInt32 failureCount ) const;
+
     std::string             m_appName;
     std::vector<STestSuite> m_suites;
     STestSuite*             m_currentSuite;
     STestCase*              m_currentCase;
     clock_t                 m_suiteStart;
     clock_t                 m_caseStart;
+    TTestEventCallback      m_callback;
+    void*                   m_callbackUserData;
 };
 
 /*-------------------------------------------------------------------------*/
@@ -230,7 +303,7 @@ private:
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      END OF NAMESPACE — macros follow outside the namespace            //
+//      END OF NAMESPACE - macros follow outside the namespace             //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
@@ -268,10 +341,10 @@ private:
 
 #define GUCEF_TESTFW_TESTCASE_END \
     } catch ( const std::exception& gucef_ex_ ) { \
-        ::GUCEF::TESTFW::CTestContext::Instance().RecordFailure( \
+        ::GUCEF::TESTFW::CTestContext::Instance().RecordException( \
             gucef_ex_.what(), __FILE__, __LINE__ ); \
     } catch ( ... ) { \
-        ::GUCEF::TESTFW::CTestContext::Instance().RecordFailure( \
+        ::GUCEF::TESTFW::CTestContext::Instance().RecordException( \
             "Unknown exception", __FILE__, __LINE__ ); \
     } }
 
@@ -313,6 +386,13 @@ private:
     ::GUCEF::TESTFW::CTestContext::Instance().Init( appName )
 
 /*
+ *  GUCEF_TESTFW_SET_CALLBACK( callback, userData )
+ *    Set a callback to receive test event notifications for logging, etc.
+ */
+#define GUCEF_TESTFW_SET_CALLBACK( callback, userData ) \
+    ::GUCEF::TESTFW::CTestContext::Instance().SetEventCallback( callback, userData )
+
+/*
  *  GUCEF_TESTFW_WRITE_RESULTS( filepath )
  *    Write the JUnit XML file after all tests have run.
  */
@@ -328,8 +408,8 @@ private:
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      IMPLEMENTATION  (compiled in exactly one translation unit)        //
-//      Define GUCEF_TESTFW_IMPL before including this header in main.cpp //
+//      IMPLEMENTATION  (compiled in exactly one translation unit)         //
+//      Define GUCEF_TESTFW_IMPL before including this header in main.cpp  //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
@@ -398,6 +478,8 @@ CTestContext::CTestContext()
     , m_currentCase( GUCEF_NULL )
     , m_suiteStart( 0 )
     , m_caseStart( 0 )
+    , m_callback( GUCEF_NULL )
+    , m_callbackUserData( GUCEF_NULL )
 {
 }
 
@@ -411,12 +493,34 @@ CTestContext& CTestContext::Instance()
 
 /*-------------------------------------------------------------------------*/
 
+void CTestContext::SetEventCallback( TTestEventCallback callback, void* userData )
+{
+    m_callback = callback;
+    m_callbackUserData = userData;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void CTestContext::FireEvent( ETestEvent eventType, const char* message, const char* file, Int32 line, UInt32 failureCount ) const
+{
+    if ( m_callback != GUCEF_NULL )
+    {
+        const char* suiteName = ( m_currentSuite != GUCEF_NULL ) ? m_currentSuite->name.c_str() : GUCEF_NULL;
+        const char* caseName  = ( m_currentCase != GUCEF_NULL )  ? m_currentCase->name.c_str()  : GUCEF_NULL;
+        m_callback( eventType, suiteName, caseName, message, file, line, failureCount, m_callbackUserData );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 void CTestContext::Init( const char* appName )
 {
     m_appName      = ( appName != GUCEF_NULL ) ? appName : "";
     m_currentSuite = GUCEF_NULL;
     m_currentCase  = GUCEF_NULL;
     m_suites.clear();
+    
+    FireEvent( GUCEF_TESTFW_EVENT_INIT, m_appName.c_str(), GUCEF_NULL, 0, 0 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -429,6 +533,8 @@ void CTestContext::BeginSuite( const char* name )
     m_currentSuite = &m_suites.back();
     m_currentCase  = GUCEF_NULL;
     m_suiteStart   = clock();
+    
+    FireEvent( GUCEF_TESTFW_EVENT_SUITE_BEGIN, GUCEF_NULL, GUCEF_NULL, 0, 0 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -441,6 +547,9 @@ void CTestContext::EndSuite()
         m_currentSuite->durationSec =
             static_cast<double>( now - m_suiteStart ) /
             static_cast<double>( CLOCKS_PER_SEC );
+        
+        FireEvent( GUCEF_TESTFW_EVENT_SUITE_END, GUCEF_NULL, GUCEF_NULL, 0, 0 );
+        
         m_currentSuite = GUCEF_NULL;
     }
     m_currentCase = GUCEF_NULL;
@@ -458,6 +567,8 @@ void CTestContext::BeginTestCase( const char* name )
     m_currentSuite->cases.push_back( tc );
     m_currentCase = &m_currentSuite->cases.back();
     m_caseStart   = clock();
+    
+    FireEvent( GUCEF_TESTFW_EVENT_CASE_BEGIN, GUCEF_NULL, GUCEF_NULL, 0, 0 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -470,6 +581,10 @@ void CTestContext::EndTestCase()
         m_currentCase->durationSec =
             static_cast<double>( now - m_caseStart ) /
             static_cast<double>( CLOCKS_PER_SEC );
+        
+        UInt32 failureCount = static_cast<UInt32>( m_currentCase->failures.size() );
+        FireEvent( GUCEF_TESTFW_EVENT_CASE_END, GUCEF_NULL, GUCEF_NULL, 0, failureCount );
+        
         m_currentCase = GUCEF_NULL;
     }
 }
@@ -486,6 +601,24 @@ void CTestContext::RecordFailure( const char* expr, const char* file, Int32 line
     f.file = ( file != GUCEF_NULL ) ? file : "";
     f.line = line;
     m_currentCase->failures.push_back( f );
+    
+    FireEvent( GUCEF_TESTFW_EVENT_FAILURE, expr, file, line, static_cast<UInt32>( m_currentCase->failures.size() ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void CTestContext::RecordException( const char* message, const char* file, Int32 line )
+{
+    if ( m_currentCase == GUCEF_NULL )
+        return;
+
+    SFailure f;
+    f.expr = ( message != GUCEF_NULL ) ? message : "";
+    f.file = ( file != GUCEF_NULL ) ? file : "";
+    f.line = line;
+    m_currentCase->failures.push_back( f );
+    
+    FireEvent( GUCEF_TESTFW_EVENT_EXCEPTION, message, file, line, static_cast<UInt32>( m_currentCase->failures.size() ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -579,7 +712,13 @@ bool CTestContext::WriteJUnitXml( const char* filepath ) const
     }
 
     out << "</testsuites>\n";
-    return out.good();
+    
+    bool success = out.good();
+    
+    // Fire event after writing
+    const_cast<CTestContext*>(this)->FireEvent( GUCEF_TESTFW_EVENT_RESULTS_WRITTEN, filepath, GUCEF_NULL, 0, totalFailures );
+    
+    return success;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -604,6 +743,14 @@ Int32 CTestContext::GetExitCode() const
 }} /* namespace GUCEF::TESTFW */
 
 #endif /* GUCEF_TESTFW_IMPL ? */
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      END OF C++ GUARD                                                   //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+#endif /* __cplusplus ? */
 
 /*-------------------------------------------------------------------------*/
 

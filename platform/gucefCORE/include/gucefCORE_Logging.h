@@ -83,6 +83,11 @@
 #define GUCEF_CORE_LOGGINGMACROS_H
 #endif /* GUCEF_CORE_LOGGINGMACROS_H ? */
 
+#ifndef GUCEF_CORE_TESTFWLOGCALLBACK_H
+#include "gucefCORE_TestFwLogCallback.h"
+#define GUCEF_CORE_TESTFWLOGCALLBACK_H
+#endif /* GUCEF_CORE_TESTFWLOGCALLBACK_H ? */
+
 /*--------------------------------------------------------------------------*/
 
 #endif /* GUCEF_CORE_LOGGING_H ? */

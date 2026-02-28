@@ -33,6 +33,11 @@
 #define GUCEF_CORE_H
 #endif /* GUCEF_CORE_H ? */
 
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
 #ifndef GUCEF_CORE_TESTAPP_TESTSHAREDPTR_H
 #include "TestSharedPtr.h"
 #define GUCEF_CORE_TESTAPP_TESTSHAREDPTR_H
@@ -155,6 +160,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+using namespace GUCEF;
+
+/*-------------------------------------------------------------------------*/
+
 /*
  *      Application entry point
  */
@@ -175,6 +184,7 @@ GUCEF_OSMAIN_BEGIN
             GUCEF::CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( console.GetLogger() );
 
         GUCEF_TESTFW_INIT( "gucefCORE_TestApp" );
+        GUCEF_TESTFW_SET_CALLBACK( GUCEF::CORE::TestFrameworkLogCallback, GUCEF_NULL );
 
         //GUCEF::CORE::CGUCEFApplication::Instance()->main( argc, argv, true );
         

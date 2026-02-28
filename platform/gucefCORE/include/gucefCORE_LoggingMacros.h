@@ -54,66 +54,66 @@
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_ERROR_LOG
-#define GUCEF_ERROR_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_ERROR, logLevel ).GetStream() << (logMessage); }
+#define GUCEF_ERROR_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_ERROR, logLevel ).GetStream() << logMessage; }
 
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_LOG
-#define GUCEF_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_STANDARD, logLevel ).GetStream() << (logMessage); }
+#define GUCEF_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_STANDARD, logLevel ).GetStream() << logMessage; }
 #define GUCEF_STANDARD_LOG GUCEF_LOG
 
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_USER_LOG
-#define GUCEF_USER_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_USER, logLevel ).GetStream() << (logMessage); }
+#define GUCEF_USER_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_USER, logLevel ).GetStream() << logMessage; }
 
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_SYSTEM_LOG
-#define GUCEF_SYSTEM_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_SYSTEM, logLevel ).GetStream() << (logMessage); }
+#define GUCEF_SYSTEM_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_SYSTEM, logLevel ).GetStream() << logMessage; }
 
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_DEV_LOG
-#define GUCEF_DEV_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_DEV, logLevel ).GetStream() << (logMessage); }
+#define GUCEF_DEV_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_DEV, logLevel ).GetStream() << logMessage; }
 
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_SERVICE_LOG
-#define GUCEF_SERVICE_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_SERVICE, logLevel ).GetStream() << (logMessage); }
+#define GUCEF_SERVICE_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_SERVICE, logLevel ).GetStream() << logMessage; }
 
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_PROTECTED_LOG
-#define GUCEF_PROTECTED_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_PROTECTED, logLevel ).GetStream() << (logMessage); }
+#define GUCEF_PROTECTED_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_PROTECTED, logLevel ).GetStream() << logMessage; }
 
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_CALLSTACK_LOG
-#define GUCEF_CALLSTACK_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_CALLSTACK, logLevel ).GetStream() << (logMessage); }
+#define GUCEF_CALLSTACK_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_CALLSTACK, logLevel ).GetStream() << logMessage; }
 
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_EXCEPTION_LOG
-#define GUCEF_EXCEPTION_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_EXCEPTION, logLevel ).GetStream() << (logMessage); }
+#define GUCEF_EXCEPTION_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_EXCEPTION, logLevel ).GetStream() << logMessage; }
 
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_CONSOLE_LOG
-#define GUCEF_CONSOLE_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_CONSOLE, logLevel ).GetStream() << (logMessage); }
+#define GUCEF_CONSOLE_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_CONSOLE, logLevel ).GetStream() << logMessage; }
 
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_WARNING_LOG
-#define GUCEF_WARNING_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_WARNING, logLevel ).GetStream() << (logMessage); }
+#define GUCEF_WARNING_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_WARNING, logLevel ).GetStream() << logMessage; }
 
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_DEBUG_LOG
 #ifdef GUCEF_DEBUG_MODE
-  #define GUCEF_DEBUG_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_DEBUG, logLevel ).GetStream() << (logMessage); }
+  #define GUCEF_DEBUG_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_DEBUG, logLevel ).GetStream() << logMessage; }
   #ifdef GUCEF_DEBUG_MODE_VERBOSE
-    #define GUCEF_DEBUG_LOG_EVERYTHING( logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_DEBUG, LOGLEVEL_EVERYTHING ).GetStream() << (logMessage); }
+    #define GUCEF_DEBUG_LOG_EVERYTHING( logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_DEBUG, LOGLEVEL_EVERYTHING ).GetStream() << logMessage; }
   #else
     #define GUCEF_DEBUG_LOG_EVERYTHING( logMessage )
   #endif

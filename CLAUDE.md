@@ -178,6 +178,17 @@ MyClass::MyClass( MyClass&& src ) GUCEF_NOEXCEPT
 - This avoids undoing wanted work and wasting tokens on trial-and-error approaches
 - If unsure about the intended direction, stop and ask rather than guessing
 
+### File Replacement Safety Protocol
+
+**NEVER delete files directly when doing whole-file replacement.** Follow this protocol:
+1. Write new content to a temporary file first (e.g., `filename.h.new`)
+2. Check if the original file has uncommitted changes (`git status` or `git diff`)
+3. If uncommitted changes exist: **ASK USER PERMISSION** before proceeding
+4. Only after user approval: rename original to `.old`, rename `.new` to original
+5. User can then review and delete the `.old` file
+
+This prevents data loss from uncommitted work.
+
 ### Test Code Guidelines
 
 - **NEVER remove try-catch blocks from test code** - exception handling is critical

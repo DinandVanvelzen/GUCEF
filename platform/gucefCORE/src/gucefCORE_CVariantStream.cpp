@@ -927,7 +927,7 @@ CVariantStream::operator>>( std::wstring& data )
 
     CVariant var;
     UInt32 bytesRead = 0;
-    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, false, bytesRead ) )
+    if ( CVariantBinarySerializer::Deserialize( var, m_readPosition, *m_buffer, true, bytesRead ) )
     {
         m_readPosition += bytesRead;
         data = ToWString( var.AsString() );
