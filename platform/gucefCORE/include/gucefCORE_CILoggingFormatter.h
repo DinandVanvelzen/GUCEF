@@ -26,6 +26,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_MT_CMUTEX_H
+#include "gucefMT_CMutex.h"
+#define GUCEF_MT_CMUTEX_H
+#endif /* GUCEF_MT_CMUTEX_H ? */
+
 #ifndef GUCEF_CORE_CSTRING_H
 #include "gucefCORE_CString.h"
 #define GUCEF_CORE_CSTRING_H
@@ -45,6 +50,11 @@
 #include "gucefCORE_LogTypes.h"
 #define GUCEF_CORE_LOGTYPES_H
 #endif /* GUCEF_CORE_LOGTYPES_H ? */
+
+#ifndef GUCEF_CORE_CTABSTRACTFACTORY_H
+#include "CTAbstractFactory.h"
+#define GUCEF_CORE_CTABSTRACTFACTORY_H
+#endif /* GUCEF_CORE_CTABSTRACTFACTORY_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -95,6 +105,12 @@ class GUCEF_CORE_PUBLIC_CPP CILoggingFormatter
     CILoggingFormatter( const CILoggingFormatter& src );              /**< interface class: no-op */
     CILoggingFormatter& operator=( const CILoggingFormatter& src );   /**< interface class: no-op */
 };
+
+/*-------------------------------------------------------------------------*/
+
+typedef CTAbstractFactory< CString, CILoggingFormatter, MT::CMutex > TAbstractLoggingFormatterFactory;
+typedef TAbstractLoggingFormatterFactory::TFactory    TLoggingFormatterFactory;
+typedef TAbstractLoggingFormatterFactory::TProductPtr TLoggingFormatterPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

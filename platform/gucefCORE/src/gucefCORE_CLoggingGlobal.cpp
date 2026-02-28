@@ -43,6 +43,11 @@
 #define GUCEF_CORE_CLOGMANAGER_H
 #endif /* GUCEF_CORE_CLOGMANAGER_H ? */
 
+#ifndef GUCEF_CORE_CCOREGLOBAL_H
+#include "gucefCORE_CCoreGlobal.h"
+#define GUCEF_CORE_CCOREGLOBAL_H
+#endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
+
 #include "gucefCORE_CLoggingGlobal.h"
 
 /*-------------------------------------------------------------------------//
@@ -105,7 +110,8 @@ void
 CLoggingGlobal::Initialize( void )
 {GUCEF_TRACE;
 
-    m_logManager = GUCEF_NEW CLogManager();                 
+    GUCEF_DELETE m_logManager;
+    m_logManager = GUCEF_NEW CLogManager();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -144,14 +150,14 @@ CLoggingGlobal::GetLogManager( void )
 
 /*-------------------------------------------------------------------------*/
 
-CVariantStreamPtr
+CLogStreamPtr
 CLoggingGlobal::Log( const TLogMsgType logMsgType ,
                      const Int32 logLevel         )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != m_logManager )
         return m_logManager->Log( logMsgType, logLevel );
-    return CVariantStreamPtr();
+    return CLogStreamPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -185,6 +191,16 @@ CLoggingGlobal::FlushLogs( void )
 {
     if ( GUCEF_NULL != m_logManager )
         m_logManager->FlushLogs();
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CLoggingGlobal::FlushThreadStreamBuffer( CLogStreamPtr buffer )
+{
+    if ( GUCEF_NULL != m_logManager )
+        return m_logManager->FlushThreadStreamBuffer( buffer );
+    return 0;
 }
     
 /*-------------------------------------------------------------------------//

@@ -41,6 +41,11 @@
 #define GUCEF_CORE_CVARIANTSTREAM_H
 #endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
 
+#ifndef GUCEF_CORE_CLOGSTREAM_H
+#include "gucefCORE_CLogStream.h"
+#define GUCEF_CORE_CLOGSTREAM_H
+#endif /* GUCEF_CORE_CLOGSTREAM _H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -71,13 +76,13 @@ class GUCEF_HIDDEN CThreadLogBuffers
 
     void Swap( void );
 
-    CVariantStreamPtr GetFrontBuffer( void );
+    CLogStreamPtr GetFrontBuffer( void );
 
-    CVariantStreamPtr GetBackBuffer( void );
+    CLogStreamPtr GetBackBuffer( void );
 
     UInt32 GetThreadId( void ) const;
 
-    void SetThreadId( UInt32 threadId );
+    void SetThreadId( UInt32 threadId, bool isPulseGeneratorThread );
 
     MT::CMutex& GetSwapLock( void );
 
@@ -95,7 +100,7 @@ class GUCEF_HIDDEN CThreadLogBuffers
      *  If the front buffer is in use, returns NULL.
      *  The swap lock is held during this operation.
      */
-    CVariantStreamPtr TrySwapAndGetBackBuffer( void );
+    CLogStreamPtr TrySwapAndGetBackBuffer( void );
 
     private:
 
@@ -104,10 +109,10 @@ class GUCEF_HIDDEN CThreadLogBuffers
 
     private:
 
-    CVariantStreamTypedPtr m_frontBuffer;    /**< Thread writes log entries here */
-    CVariantStreamTypedPtr m_backBuffer;     /**< Logger drains completed entries from here */
-    MT::CMutex m_swapLock;                   /**< Protects swap operation only */
-    UInt32 m_threadId;                       /**< Thread ID owning these buffers */
+    CLogStreamTypedPtr m_frontBuffer;    /**< Thread writes log entries here */
+    CLogStreamTypedPtr m_backBuffer;     /**< Logger drains completed entries from here */
+    MT::CMutex m_swapLock;               /**< Protects swap operation only */
+    UInt32 m_threadId;                   /**< Thread ID owning these buffers */
 };
 
 /*-------------------------------------------------------------------------//

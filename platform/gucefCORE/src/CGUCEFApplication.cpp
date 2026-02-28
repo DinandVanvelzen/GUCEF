@@ -177,11 +177,10 @@ CGUCEFApplication::~CGUCEFApplication()
 
 /*-------------------------------------------------------------------------*/
 
-int
-CGUCEFApplication::MainLoop( void )
+bool
+CGUCEFApplication::LinkPulseGeneratorDriver( void )
 {GUCEF_TRACE;
 
-    Lock();
     PulseGeneratorPtr pulseGenerator = GetPulseGenerator();
     if ( !pulseGenerator.IsNULL() )
     {
@@ -194,6 +193,22 @@ CGUCEFApplication::MainLoop( void )
         }
         pulseGenerator->AllowPeriodicPulses();
         pulseGenerator->RequestPeriodicPulses( this );
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+int
+CGUCEFApplication::MainLoop( void )
+{GUCEF_TRACE;
+
+    Lock();
+    PulseGeneratorPtr pulseGenerator = GetPulseGenerator();
+    if ( !pulseGenerator.IsNULL() )
+    {
+        LinkPulseGeneratorDriver();
 
         // Unless the pulse drive is overridden we will now start the loop
         if ( pulseGenerator->GetPulseGeneratorDriver() == &m_busyWaitPulseDriver )
@@ -255,6 +270,16 @@ CGUCEFApplication::GetDesiredMaximumCycleDeltaInMilliSecs( void ) const
 {GUCEF_TRACE;
 
     return m_desiredMaximumCycleDeltaInMilliSecs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUCEFApplication::SetPulseGenerator( PulseGeneratorPtr newPulseGenerator )
+{GUCEF_TRACE;
+
+    CTSGNotifier::SetPulseGenerator( newPulseGenerator );
+    LinkPulseGeneratorDriver();
 }
 
 /*-------------------------------------------------------------------------*/

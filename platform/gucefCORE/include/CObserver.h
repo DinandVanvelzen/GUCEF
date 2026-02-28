@@ -27,8 +27,11 @@
 //-------------------------------------------------------------------------*/
 
 #include <set>
-
+              
+#ifndef GUCEF_CORE_CICLONEABLE_H
 #include "CICloneable.h"
+#define GUCEF_CORE_CICLONEABLE_H
+#endif /* GUCEF_CORE_CICLONEABLE_H ? */
 
 #ifndef GUCEF_CORE_CEVENT_H
 #include "CEvent.h"

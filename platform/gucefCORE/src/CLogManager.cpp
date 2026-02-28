@@ -146,7 +146,8 @@ static CharSepLoggingFormatterFactory g_charSepLoggingFormatterFactory;
 //-------------------------------------------------------------------------*/
 
 CLogManager::CLogManager( void )
-    : m_loggers( GUCEF_NEW CMultiLogger() )
+    : CORE::CObserver()
+    , m_loggers( GUCEF_NEW CMultiLogger() )
     , m_loggingTask()
     , m_useLogThread( false )
     , m_bootstrapLog()
@@ -155,6 +156,7 @@ CLogManager::CLogManager( void )
     , m_logFormatterFactory( false, false )
     , m_defaultLogFormatter()
     , m_threadBuffers()
+    , m_pulseGenerator()
     , m_threadBuffersLock()
     , m_dataLock()
 {GUCEF_TRACE;
@@ -205,7 +207,9 @@ CLogManager::GetOrCreateThreadBuffers( UInt32 threadId )
         return (*i).second;
     
     CThreadLogBuffers* buffers = GUCEF_NEW CThreadLogBuffers();
-    buffers->SetThreadId( threadId );
+    PulseGeneratorPtr pulseGen = m_pulseGenerator;
+    bool callerIsPulseGeneratorThread = pulseGen.IsNULL() ? false : (threadId == pulseGen->GetPulseDriverThreadId());
+    buffers->SetThreadId( threadId, callerIsPulseGeneratorThread );
     m_threadBuffers[ threadId ] = buffers;
     return buffers;
 }
@@ -367,7 +371,7 @@ CLogManager::ClearLoggingFormatters( void )
 
 /*-------------------------------------------------------------------------*/
 
-CLogManager::TLoggingFormatterPtr
+TLoggingFormatterPtr
 CLogManager::CreateLoggingFormatter( const CString& name )
 {GUCEF_TRACE;
 
@@ -377,7 +381,7 @@ CLogManager::CreateLoggingFormatter( const CString& name )
 
 /*-------------------------------------------------------------------------*/
 
-CLogManager::TLoggingFormatterPtr
+TLoggingFormatterPtr
 CLogManager::CreateDefaultLoggingFormatter( void )
 {GUCEF_TRACE;
 
@@ -437,7 +441,7 @@ CLogManager::GetMinLogLevel( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-CVariantStreamPtr
+CLogStreamPtr
 CLogManager::Log( const TLogMsgType logMsgType ,
                   const Int32 logLevel         )
 {GUCEF_TRACE;
@@ -448,10 +452,10 @@ CLogManager::Log( const TLogMsgType logMsgType ,
     
     if ( GUCEF_NULL != buffers )
     {
-        CVariantStreamPtr frontBuffer = buffers->GetFrontBuffer();
+        CLogStreamPtr frontBuffer = buffers->GetFrontBuffer();
         if ( !frontBuffer.IsNULL() )
         {
-            CVariantStream& stream = *frontBuffer;
+            CVariantStream& stream = frontBuffer->GetStream();
             
             // Write log entry metadata at the start of this segment
             stream << static_cast< UInt8 >( logMsgType );
@@ -464,7 +468,7 @@ CLogManager::Log( const TLogMsgType logMsgType ,
             return frontBuffer;
         }
     }
-    return CVariantStreamPtr();
+    return CLogStreamPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -693,6 +697,47 @@ CLogManager::FlushLogs( void )
 /*-------------------------------------------------------------------------*/
 
 UInt32
+CLogManager::FlushThreadStreamBuffer( CLogStreamPtr buffer )
+{GUCEF_TRACE;
+
+    if ( buffer.IsNULL() )
+        return 0;
+
+    // Successfully swapped - now drain the back buffer
+    CVariantStream& stream = buffer->GetStream();
+    
+    // Process all segments in the buffer
+    stream.ResetReadPosition();
+    CVariantStream segmentStream;
+    
+    UInt32 flushedCount = 0;
+    while ( stream.ReadNextSegment( segmentStream ) )
+    {
+        // Read the metadata we wrote at segment start
+        UInt8 logMsgTypeVal = 0;
+        Int32 logLevel = 0;
+        UInt32 threadId = 0;
+        CTimestamp timestamp;
+        
+        segmentStream >> logMsgTypeVal;
+        segmentStream >> logLevel;
+        segmentStream >> threadId;
+        segmentStream >> timestamp;
+        
+        TLogMsgType logMsgType = static_cast< TLogMsgType >( logMsgTypeVal );
+        
+        // The remainder of the segment is the log message content
+        // Send the entire segment stream to the loggers
+        Log( logMsgType, logLevel, segmentStream, threadId, timestamp );
+        ++flushedCount;
+    }
+    stream.Clear();
+    return flushedCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
 CLogManager::FlushThreadStreamBuffers( void )
 {GUCEF_TRACE;
 
@@ -709,39 +754,10 @@ CLogManager::FlushThreadStreamBuffers( void )
         {
             // Try to swap and get the back buffer for draining
             // This will only succeed if the front buffer is not in use
-            CVariantStreamPtr backBuffer = threadBuffers->TrySwapAndGetBackBuffer();
-            
+            CLogStreamPtr backBuffer = threadBuffers->TrySwapAndGetBackBuffer();
             if ( !backBuffer.IsNULL() )
             {
-                // Successfully swapped - now drain the back buffer
-                CVariantStream& stream = *backBuffer;
-                
-                // Process all segments in the buffer
-                stream.ResetReadPosition();
-                CVariantStream segmentStream;
-                
-                while ( stream.ReadNextSegment( segmentStream ) )
-                {
-                    // Read the metadata we wrote at segment start
-                    UInt8 logMsgTypeVal = 0;
-                    Int32 logLevel = 0;
-                    UInt32 threadId = 0;
-                    CTimestamp timestamp;
-                    
-                    segmentStream >> logMsgTypeVal;
-                    segmentStream >> logLevel;
-                    segmentStream >> threadId;
-                    segmentStream >> timestamp;
-                    
-                    TLogMsgType logMsgType = static_cast< TLogMsgType >( logMsgTypeVal );
-                    
-                    // The remainder of the segment is the log message content
-                    // Send the entire segment stream to the loggers
-                    Log( logMsgType, logLevel, segmentStream, threadId, timestamp );
-                }
-                
-                // Clear the drained buffer for reuse
-                stream.Clear();
+                FlushThreadStreamBuffer( backBuffer );
                 ++flushedCount;
             }
             // else: front buffer in use, skip this thread buffer for now
@@ -750,6 +766,47 @@ CLogManager::FlushThreadStreamBuffers( void )
     }
     
     return flushedCount;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLogManager::SetPulseGenerator( PulseGeneratorPtr pulseGenerator )
+{GUCEF_TRACE;
+
+    if ( pulseGenerator.IsNULL() )
+        return false;
+
+    MT::CObjectScopeLock lock( this );
+
+    //Unsubscribe
+
+    m_pulseGenerator = pulseGenerator;
+
+    CLogManager::TEventCallback callback( this, &CLogManager::OnPulseCycle );
+    SubscribeTo( pulseGenerator.GetPointerAlways() ,
+                 CORE::CPulseGenerator::PulseEvent ,
+                 callback                          );
+
+    lock.EarlyUnlock();
+
+    UInt32 threadIdOfDriver = pulseGenerator->GetPulseDriverThreadId();
+
+    MT::CScopeMutex mapLock( m_threadBuffersLock );
+
+    TThreadBufferMap::iterator i = m_threadBuffers.begin();
+    while ( i != m_threadBuffers.end() )
+    {
+        UInt32 entryForThreadId = (*i).first;
+        CThreadLogBuffers* threadBuffers = (*i).second;
+        if ( GUCEF_NULL != threadBuffers )
+        {
+            threadBuffers->SetThreadId( entryForThreadId, entryForThreadId == threadIdOfDriver );
+        }
+        ++i;    
+    }
+
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -786,6 +843,17 @@ CLogManager::GetUseLoggingThread( void ) const
 {GUCEF_TRACE;
 
     return m_useLogThread;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLogManager::OnPulseCycle( CORE::CNotifier* notifier    ,
+                           const CORE::CEvent& eventId  ,
+                           CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+                      
+    FlushThreadStreamBuffers();    
 }
 
 /*-------------------------------------------------------------------------*/

@@ -51,6 +51,11 @@
 #define GUCEF_CORE_CVARIANTSTREAM_H
 #endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
 
+#ifndef GUCEF_CORE_CLOGSTREAM_H
+#include "gucefCORE_CLogStream.h"
+#define GUCEF_CORE_CLOGSTREAM_H
+#endif /* GUCEF_CORE_CLOGSTREAM_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -104,8 +109,8 @@ class GUCEF_CORE_PUBLIC_CPP CLoggingGlobal
      *    scope << "User " << userId << " logged in";
      *  // VOID marker automatically written when scope goes out of scope
      */
-    CVariantStreamPtr Log( const TLogMsgType logMsgType ,
-                           const Int32 logLevel         );
+    CLogStreamPtr Log( const TLogMsgType logMsgType ,
+                       const Int32 logLevel         );
 
     /**
      *  Logging proxy call provided here to avoid including the logging manager 
@@ -135,6 +140,11 @@ class GUCEF_CORE_PUBLIC_CPP CLoggingGlobal
     friend class CCoreGlobal;
 
     static void Deinstance( void );
+
+    private:
+    friend class CLogStream;
+
+    UInt32 FlushThreadStreamBuffer( CLogStreamPtr buffer );
 
     private:
 

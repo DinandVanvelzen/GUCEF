@@ -236,6 +236,8 @@ class GUCEF_CORE_PRIVATE_CPP CTaskDelegator : public MT::CActiveObject      ,
 
     virtual void RequestStopOfPeriodicUpdates( CPulseGenerator& pulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual UInt32 GetPulseDriverThreadId( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     protected:
 
     CTaskDelegator( const ThreadPoolPtr& threadPool ,

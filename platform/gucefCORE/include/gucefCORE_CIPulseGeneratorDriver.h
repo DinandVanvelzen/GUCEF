@@ -70,6 +70,8 @@ class GUCEF_CORE_PUBLIC_CPP CIPulseGeneratorDriver
                                        const UInt32 pulseDeltaInMilliSecs ) = 0;
 
     virtual void RequestStopOfPeriodicUpdates( CPulseGenerator& pulseGenerator ) = 0;
+    
+    virtual UInt32 GetPulseDriverThreadId( void ) const = 0;
 
     protected:
 

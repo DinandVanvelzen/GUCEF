@@ -28,15 +28,7 @@
 #define GUCEF_MT_CSCOPEMUTEX_H
 #endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
 
-#ifndef GUCEF_CORE_CTHREADLOGBUFFERS_H
 #include "gucefCORE_CThreadLogBuffers.h"
-#define GUCEF_CORE_CTHREADLOGBUFFERS_H
-#endif /* GUCEF_CORE_CTHREADLOGBUFFERS_H ? */
-
-#ifndef GUCEF_CORE_CVARIANTSTREAM_H
-#include "gucefCORE_CVariantStream.h"
-#define GUCEF_CORE_CVARIANTSTREAM_H
-#endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -54,8 +46,8 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 CThreadLogBuffers::CThreadLogBuffers( void )
-    : m_frontBuffer( GUCEF_NEW CVariantStream() )
-    , m_backBuffer( GUCEF_NEW CVariantStream() )
+    : m_frontBuffer( CLogStream::CreateSharedObj() )
+    , m_backBuffer( CLogStream::CreateSharedObj() )
     , m_swapLock()
     , m_threadId( 0 )
 {GUCEF_TRACE;
@@ -76,14 +68,14 @@ void
 CThreadLogBuffers::Swap( void )
 {GUCEF_TRACE;
 
-    CVariantStreamTypedPtr frontBufferPtr = m_frontBuffer;
+    CLogStreamTypedPtr frontBufferPtr = m_frontBuffer;
     m_frontBuffer = m_backBuffer;
     m_backBuffer = frontBufferPtr;
 }
 
 /*-------------------------------------------------------------------------*/
 
-CVariantStreamPtr
+CLogStreamPtr
 CThreadLogBuffers::GetFrontBuffer( void )
 {GUCEF_TRACE;
 
@@ -92,7 +84,7 @@ CThreadLogBuffers::GetFrontBuffer( void )
 
 /*-------------------------------------------------------------------------*/
 
-CVariantStreamPtr
+CLogStreamPtr
 CThreadLogBuffers::GetBackBuffer( void )
 {GUCEF_TRACE;
 
@@ -111,10 +103,12 @@ CThreadLogBuffers::GetThreadId( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CThreadLogBuffers::SetThreadId( UInt32 threadId )
+CThreadLogBuffers::SetThreadId( UInt32 threadId, bool isPulseGeneratorThread )
 {GUCEF_TRACE;
 
     m_threadId = threadId;
+    m_frontBuffer->SetIsPulseGeneratorThread( isPulseGeneratorThread );
+    m_backBuffer->SetIsPulseGeneratorThread( isPulseGeneratorThread );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -138,7 +132,7 @@ CThreadLogBuffers::IsFrontBufferInUse( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-CVariantStreamPtr
+CLogStreamPtr
 CThreadLogBuffers::TrySwapAndGetBackBuffer( void )
 {GUCEF_TRACE;
 
@@ -154,11 +148,11 @@ CThreadLogBuffers::TrySwapAndGetBackBuffer( void )
         if ( m_frontBuffer.GetReferenceCount() > 1 )
         {
             // Front buffer is in use, cannot swap
-            return CVariantStreamPtr();
+            return CLogStreamPtr();
         }
     
         // Safe to swap - no external references to front buffer
-        CVariantStreamTypedPtr frontBufferPtr = m_frontBuffer;
+        CLogStreamTypedPtr frontBufferPtr = m_frontBuffer;
         m_frontBuffer = m_backBuffer;
         m_backBuffer = frontBufferPtr;
     
@@ -170,7 +164,7 @@ CThreadLogBuffers::TrySwapAndGetBackBuffer( void )
     {
         // Simply return a null pointer if we fail to acquire the lock within the timeout
         // This is a non-critical operation, so we can just skip this flush cycle if we are contended
-        return CVariantStreamPtr();
+        return CLogStreamPtr();
     }
 }
 

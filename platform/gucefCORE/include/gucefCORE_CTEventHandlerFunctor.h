@@ -36,10 +36,15 @@
 #define GUCEF_CORE_COBSERVER_H
 #endif /* GUCEF_CORE_COBSERVER_H ? */
 
-#ifndef GUCEF_CORE_LOGGING_H
-#include "gucefCORE_Logging.h"
-#define GUCEF_CORE_LOGGING_H
-#endif /* GUCEF_CORE_LOGGING_H ? */
+#ifndef GUCEF_CORE_LOGTYPES_H
+#include "gucefCORE_LogTypes.h"
+#define GUCEF_CORE_LOGTYPES_H
+#endif /* GUCEF_CORE_LOGTYPES_H ? */
+
+#ifndef GUCEF_CORE_LOGGINGMACROS_H
+#include "gucefCORE_LoggingMacros.h"
+#define GUCEF_CORE_LOGGINGMACROS_H
+#endif /* GUCEF_CORE_LOGGINGMACROS_H ? */
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"

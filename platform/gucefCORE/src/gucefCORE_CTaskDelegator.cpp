@@ -750,6 +750,15 @@ CTaskDelegator::Unlock( void ) const
     return MT::CActiveObject::Unlock();
 }
 
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CTaskDelegator::GetPulseDriverThreadId( void ) const
+{GUCEF_TRACE;
+
+    return GetThreadID();
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

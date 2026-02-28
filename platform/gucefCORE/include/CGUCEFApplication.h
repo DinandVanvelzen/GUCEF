@@ -173,6 +173,8 @@ class GUCEF_CORE_PUBLIC_CPP CGUCEFApplication : public CTSGNotifier             
 
     UInt32 GetDesiredMaximumCycleDeltaInMilliSecs( void ) const;
 
+    virtual void SetPulseGenerator( PulseGeneratorPtr newPulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
+
     protected:
 
     virtual bool OnSysConsoleCommand( const CString& path               ,
@@ -186,6 +188,8 @@ class GUCEF_CORE_PUBLIC_CPP CGUCEFApplication : public CTSGNotifier             
     CGUCEFApplication( void );
 
     virtual ~CGUCEFApplication();
+
+    bool LinkPulseGeneratorDriver( void );
     
     private:
 

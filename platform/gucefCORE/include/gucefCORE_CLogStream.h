@@ -1,6 +1,6 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -17,8 +17,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef GUCEF_CORE_CLOGSTREAMSCOPE_H
-#define GUCEF_CORE_CLOGSTREAMSCOPE_H
+#ifndef GUCEF_CORE_CLOGSTREAM_H
+#define GUCEF_CORE_CLOGSTREAM_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -31,15 +31,10 @@
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
 
-#ifndef GUCEF_CORE_LOGTYPES_H
-#include "gucefCORE_LogTypes.h"
-#define GUCEF_CORE_LOGTYPES_H
-#endif /* GUCEF_CORE_LOGTYPES_H ? */
-
-#ifndef GUCEF_CORE_CLOGSTREAM_H
-#include "gucefCORE_CLogStream.h"
-#define GUCEF_CORE_CLOGSTREAM_H
-#endif /* GUCEF_CORE_CLOGSTREAM_H ? */
+#ifndef GUCEF_CORE_CVARIANTSTREAM_H
+#include "gucefCORE_CVariantStream.h"
+#define GUCEF_CORE_CVARIANTSTREAM_H
+#endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -57,44 +52,69 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 /**
- *  RAII scope guard for log stream segments.
- *  On destruction, writes a VOID marker to end the segment.
- *  This allows natural C++ scoping to delineate log entries.
+ *  A log-aware wrapper around CVariantStream that composites the stream and
+ *  adds single-threaded app support via synchronous flushing.
+ *
+ *  The key difference from CVariantStream is in WriteSegmentEnd(): after
+ *  writing the end marker it checks m_isPulseGeneratorThread and, if true,
+ *  immediately flushes all thread stream buffers to the logging backends
+ *  within the same call.  This ensures single-threaded applications (where
+ *  no separate logging task is running the pulse) still see log output.
  */
-class GUCEF_CORE_PUBLIC_CPP CLogStreamScope
+class GUCEF_CORE_PUBLIC_CPP CLogStream : public CTSharedObjCreator< CLogStream, MT::CMutex >
 {
     public:
 
-    CLogStreamScope( const TLogMsgType logMsgType ,
-                     const Int32 logLevel         );
+    typedef CTSharedObjCreator< CLogStream, MT::CMutex >::TBasicSharedPtrType   CLogStreamPtr;
+    typedef CTSharedObjCreator< CLogStream, MT::CMutex >::TSharedPtrType      CLogStreamTypedPtr;
 
-    ~CLogStreamScope();
+    CLogStream( void );
 
-    CLogStream* operator->( void );
-    
-    CLogStream& operator*( void );
+    explicit CLogStream( bool isPulseGeneratorThread );
 
-    CLogStream& GetStream( void );
+    virtual ~CLogStream() GUCEF_VIRTUAL_OVERRIDE;
 
     /**
-     *  Convenience streaming operator for the scope guard
+     *  Direct access to the composited variant stream.
+     */
+    CVariantStream& GetStream( void );
+
+    const CVariantStream& GetStream( void ) const;
+
+    /**
+     *  Forwarding stream insertion operator - writes to the composited CVariantStream.
      */
     template< typename T >
-    CLogStreamScope& operator<<( const T& data );
+    CLogStream& operator<<( const T& data );
 
     /**
-     *  Static provided here to avoid including the full CLogManager header in the logging macros.
-     *  It will forward the call provided the core system is available. If not, it will be a no-op.
+     *  Writes a VOID segment-end marker to the composited stream and, when
+     *  m_isPulseGeneratorThread is true, synchronously flushes all thread
+     *  stream buffers to the registered logging backends.
+     *
+     *  This guarantees that single-threaded applications without a dedicated
+     *  logging task still emit log output on every completed log entry.
      */
-    static void FlushLogs( void );
+    void WriteSegmentEnd( void );
+
+    bool GetIsPulseGeneratorThread( void ) const;
+
+    void SetIsPulseGeneratorThread( bool isPulseGeneratorThread );
 
     private:
 
-    CLogStreamScope( const CLogStreamScope& src );              /**< not implemented, don't use */
-    CLogStreamScope& operator=( const CLogStreamScope& src );   /**< not implemented, don't use */
-
-    CLogStreamPtr m_stream;
+    CVariantStream m_variantStream;
+    bool m_isPulseGeneratorThread;
 };
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      TYPES                                                              //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+typedef CLogStream::CLogStreamPtr        CLogStreamPtr;
+typedef CLogStream::CLogStreamTypedPtr   CLogStreamTypedPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -103,14 +123,11 @@ class GUCEF_CORE_PUBLIC_CPP CLogStreamScope
 //-------------------------------------------------------------------------*/
 
 template< typename T >
-CLogStreamScope&
-CLogStreamScope::operator<<( const T& data )
+CLogStream&
+CLogStream::operator<<( const T& data )
 {GUCEF_TRACE;
 
-    if ( !m_stream.IsNULL() )
-    {
-        (*m_stream) << data;
-    }
+    m_variantStream << data;
     return *this;
 }
 
@@ -125,4 +142,4 @@ CLogStreamScope::operator<<( const T& data )
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_CORE_CLOGSTREAMSCOPE_H ? */
+#endif /* GUCEF_CORE_CLOGSTREAM_H ? */

@@ -73,7 +73,7 @@ CLogStreamScope::~CLogStreamScope()
 
 /*-------------------------------------------------------------------------*/
 
-CVariantStream*
+CLogStream*
 CLogStreamScope::operator->( void )
 {GUCEF_TRACE;
 
@@ -82,7 +82,7 @@ CLogStreamScope::operator->( void )
 
 /*-------------------------------------------------------------------------*/
 
-CVariantStream&
+CLogStream&
 CLogStreamScope::operator*( void )
 {GUCEF_TRACE;
 
@@ -91,7 +91,7 @@ CLogStreamScope::operator*( void )
 
 /*-------------------------------------------------------------------------*/
 
-CVariantStream&
+CLogStream&
 CLogStreamScope::GetStream( void )
 {GUCEF_TRACE;
 

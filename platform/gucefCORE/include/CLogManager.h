@@ -74,15 +74,30 @@
 #define GUCEF_CORE_CILOGGINGFORMATTER_H
 #endif /* GUCEF_CORE_CILOGGINGFORMATTER_H ? */
 
-#ifndef GUCEF_CORE_CSTRING_H
-#include "gucefCORE_CString.h"
-#define GUCEF_CORE_CSTRING_H
-#endif /* GUCEF_CORE_CSTRING_H ? */
-
 #ifndef GUCEF_CORE_CVARIANTSTREAM_H
 #include "gucefCORE_CVariantStream.h"
 #define GUCEF_CORE_CVARIANTSTREAM_H
 #endif /* GUCEF_CORE_CVARIANTSTREAM_H ? */
+
+#ifndef GUCEF_CORE_CLOGSTREAM_H
+#include "gucefCORE_CLogStream.h"
+#define GUCEF_CORE_CLOGSTREAM_H
+#endif /* GUCEF_CORE_CLOGSTREAM _H ? */
+
+#ifndef GUCEF_CORE_COBSERVER_H
+#include "CObserver.h"
+#define GUCEF_CORE_COBSERVER_H
+#endif /* GUCEF_CORE_COBSERVER_H ? */
+
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
+#ifndef GUCEF_CORE_CPULSEGENERATOR_H
+#include "gucefCORE_CPulseGenerator.h"
+#define GUCEF_CORE_CPULSEGENERATOR_H
+#endif /* GUCEF_CORE_CPULSEGENERATOR_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -108,13 +123,9 @@ class CThreadLogBuffers;
 
 /*-------------------------------------------------------------------------*/
 
-class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
+class GUCEF_CORE_PUBLIC_CPP CLogManager : public CORE::CObserver
 {
     public:
-
-    typedef CTAbstractFactory< CString, CILoggingFormatter, MT::CMutex > TAbstractLoggingFormatterFactory;
-    typedef TAbstractLoggingFormatterFactory::TFactory    TLoggingFormatterFactory;
-    typedef TAbstractLoggingFormatterFactory::TProductPtr TLoggingFormatterPtr;
 
     void AddLogger( CILogger* loggerImp );
 
@@ -144,7 +155,7 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
      *  Writes log entry metadata (type, level, threadId, timestamp) at the start.
      *  Use with CLogStreamScope for automatic segment end marking.
      */
-    CVariantStreamPtr
+    CLogStreamPtr
     Log( const TLogMsgType logMsgType ,
          const Int32 logLevel         );
 
@@ -223,10 +234,22 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
 
     private:
     friend class CLoggingGlobal;
+    friend class CCoreGlobal;
 
     CLogManager( void );
 
-    virtual ~CLogManager();
+    virtual ~CLogManager() GUCEF_VIRTUAL_OVERRIDE;
+
+    typedef CTEventHandlerFunctor< CLogManager > TEventCallback;
+
+    void
+    OnPulseCycle( CORE::CNotifier* notifier    ,
+                  const CORE::CEvent& eventId  ,
+                  CORE::CICloneable* eventData );
+
+    UInt32 FlushThreadStreamBuffer( CLogStreamPtr buffer );
+
+    bool SetPulseGenerator( PulseGeneratorPtr pulseGenerator );
 
     private:
 
@@ -259,6 +282,7 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public MT::CILockable
     TAbstractLoggingFormatterFactory m_logFormatterFactory;
     CString m_defaultLogFormatter;
     TThreadBufferMap m_threadBuffers;               /**< Per-thread log buffers */
+    PulseGeneratorPtr m_pulseGenerator;             /**< Used to trigger periodic flushing of thread buffers */
     MT::CMutex m_threadBuffersLock;                 /**< Protects thread buffer map */
     MT::CMutex m_dataLock;
 };

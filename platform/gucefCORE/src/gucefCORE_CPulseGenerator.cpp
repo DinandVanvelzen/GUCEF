@@ -422,6 +422,10 @@ CPulseGenerator::SetPulseGeneratorDriver( CIPulseGeneratorDriver* driver )
     MT::CScopeMutex dataLock( m_dataLock );
 
     m_driver = driver;
+
+    if ( GUCEF_NULL != m_driver )
+        m_driverThreadId = m_driver->GetPulseDriverThreadId();
+
     if ( IsPulsingPeriodicly() )
     {
         if ( GUCEF_NULL != m_driver )
@@ -510,6 +514,11 @@ CPulseGenerator::RequestPeriodicPulses( void )
 UInt32
 CPulseGenerator::GetPulseDriverThreadId( void ) const
 {
+    if ( GUCEF_NULL != m_driver )
+    {
+        return m_driver->GetPulseDriverThreadId();
+    }
+    
     return m_driverThreadId;
 }
 

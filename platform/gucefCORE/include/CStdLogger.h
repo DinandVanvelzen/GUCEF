@@ -36,6 +36,11 @@
 #define GUCEF_CORE_CLOGMANAGER_H
 #endif /* GUCEF_CORE_CLOGMANAGER_H ? */
 
+#ifndef GUCEF_CORE_CILOGGINGFORMATTER_H
+#include "gucefCORE_CILoggingFormatter.h"
+#define GUCEF_CORE_CILOGGINGFORMATTER_H
+#endif /* GUCEF_CORE_CILOGGINGFORMATTER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -111,7 +116,7 @@ class GUCEF_CORE_PUBLIC_CPP CStdLogger : public CILogger
 
     CIOAccess* m_output;
     Int32 m_minimalLogLevel;
-    CLogManager::TLoggingFormatterPtr m_logFormatter;
+    TLoggingFormatterPtr m_logFormatter;
 };
 
 /*-------------------------------------------------------------------------//
@@ -127,13 +132,3 @@ class GUCEF_CORE_PUBLIC_CPP CStdLogger : public CILogger
 
 #endif /* GUCEF_CORE_CSTDLOGGER_H ? */
 
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      Info & Changes                                                     //
-//                                                                         //
-//-------------------------------------------------------------------------//
-
-- 16-02-2007 :
-        - Dinand: Added this class
-
------------------------------------------------------------------------------*/

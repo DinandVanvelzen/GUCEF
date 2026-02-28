@@ -113,7 +113,7 @@ class GUCEF_CORE_PUBLIC_CPP CMSWinConsoleLogger : public CIConsoleLogger
     bool m_formatForUiPurpose;
     HANDLE m_consoleHandle;
     bool m_ownedConsole;
-    CLogManager::TLoggingFormatterPtr m_logFormatter;
+    TLoggingFormatterPtr m_logFormatter;
 };
 
 /*-------------------------------------------------------------------------//

@@ -207,6 +207,7 @@ set( HEADER_FILES
   include/gucefCORE_CLoaderDelegatedPluginLoadLogic.h
   include/gucefCORE_CLoggingGlobal.h
   include/gucefCORE_CLoggingTask.h
+  include/gucefCORE_CLogStream.h
   include/gucefCORE_CLogStreamScope.h
   include/gucefCORE_CThreadLogBuffers.h
   include/gucefCORE_CMetricsClientManager.h
@@ -492,6 +493,7 @@ set( SOURCE_FILES
   src/gucefCORE_CStringLogHelper.cpp
   src/gucefCORE_CLoggingGlobal.cpp
   src/gucefCORE_CLoggingTask.cpp
+  src/gucefCORE_CLogStream.cpp
   src/gucefCORE_CLogStreamScope.cpp
   src/gucefCORE_CThreadLogBuffers.cpp
   src/gucefCORE_CMetricsClientManager.cpp

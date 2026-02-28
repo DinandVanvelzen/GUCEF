@@ -56,6 +56,7 @@ CBusyWaitPulseGeneratorDriver::CBusyWaitPulseGeneratorDriver( void )
     , m_desiredPulseDelta( 10 )
     , m_immediatePulseTickets( 0 )
     , m_immediatePulseTicketMax( 1 )
+    , m_pulseDriverThreadId( MT::GetCurrentTaskID() )
 {GUCEF_TRACE;
 
 }
@@ -68,6 +69,7 @@ CBusyWaitPulseGeneratorDriver::CBusyWaitPulseGeneratorDriver( const CBusyWaitPul
     , m_desiredPulseDelta( 10 )     
     , m_immediatePulseTickets( 0 )
     , m_immediatePulseTicketMax( 1 )
+    , m_pulseDriverThreadId( MT::GetCurrentTaskID() )
 {GUCEF_TRACE;
 
 }
@@ -114,7 +116,9 @@ CBusyWaitPulseGeneratorDriver::Run( CPulseGenerator& pulseGenerator            ,
                                     UInt32 forcedMinimalCycleDeltaInMilliSecs  ,
                                     UInt32 desiredMaximumCycleDeltaInMilliSecs )
 {GUCEF_TRACE;
-    
+
+    m_pulseDriverThreadId = MT::GetCurrentTaskID();
+
     m_loop = true;
     while ( m_loop )
     {
@@ -169,6 +173,15 @@ CBusyWaitPulseGeneratorDriver::RequestStopOfPeriodicUpdates( CPulseGenerator& pu
 
     m_loop = false;
 }
+
+/*--------------------------------------------------------------------------*/
+
+UInt32
+CBusyWaitPulseGeneratorDriver::GetPulseDriverThreadId( void ) const 
+{GUCEF_TRACE;
+
+    return m_pulseDriverThreadId;
+}   
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

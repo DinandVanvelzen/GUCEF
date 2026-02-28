@@ -115,7 +115,7 @@ class GUCEF_CORE_PUBLIC_CPP CXTermConsoleLogger : public CIConsoleLogger
     int m_masterfd;
     int m_slavefd;
     FILE* m_slaveFptr;
-    CLogManager::TLoggingFormatterPtr m_logFormatter;
+    TLoggingFormatterPtr m_logFormatter;
 };
 
 /*-------------------------------------------------------------------------//
