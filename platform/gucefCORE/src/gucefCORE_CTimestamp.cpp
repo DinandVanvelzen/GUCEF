@@ -694,6 +694,15 @@ CTimestamp::ToDateTimeUTC( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+CString
+CTimestamp::ToIso8601DateTimeString( bool includeDelimeters, bool includeMilliseconds ) const
+{GUCEF_TRACE;
+
+    return ToDateTime().ToIso8601DateTimeString( includeDelimeters, includeMilliseconds );
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CTimestamp::FromDateTime( const CDateTime& dateTime )
 {GUCEF_TRACE;

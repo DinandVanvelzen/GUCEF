@@ -191,6 +191,12 @@ class GUCEF_CORE_PUBLIC_CPP CTimestamp
     CDateTime ToDateTimeUTC( void ) const;
 
     /**
+     *  Convenience: convert to ISO 8601 date/time string via CDateTime.
+     *  Equivalent to ToDateTime().ToIso8601DateTimeString( includeDelimeters, includeMilliseconds )
+     */
+    CString ToIso8601DateTimeString( bool includeDelimeters, bool includeMilliseconds ) const;
+
+    /**
      *  Set from CDateTime
      */
     void FromDateTime( const CDateTime& dateTime );

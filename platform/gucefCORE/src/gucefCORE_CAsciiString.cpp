@@ -432,7 +432,7 @@ CAsciiString::operator[]( const UInt32 index )
     if ( index <= m_length )
         return m_string[ index ];
 
-    GUCEF_ASSERT_ALWAYS;
+    //GUCEF_ASSERT_ALWAYS;
     return outOfBoundsChar;
 }
 

@@ -28,6 +28,12 @@
 #define GUCEF_MACROS_H
 #endif /* GUCEF_MACROS_H ? */
 
+#define GUCEF_TESTFW_IMPL
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
 #define GUCEF_CORE_H
@@ -143,12 +149,6 @@
 #define GUCEF_CORE_TESTAPP_TESTSTOPWATCH_H
 #endif /* GUCEF_CORE_TESTAPP_TESTSTOPWATCH_H ? */
 
-#define GUCEF_TESTFW_IMPL
-#ifndef GUCEF_TEST_FRAMEWORK_H
-#include "gucef_test_framework.h"
-#define GUCEF_TEST_FRAMEWORK_H
-#endif /* GUCEF_TEST_FRAMEWORK_H ? */
-
 #ifndef GUCEF_CORE_TESTAPP_TESTLOGGING_H
 #include "TestLogging.h"
 #define GUCEF_CORE_TESTAPP_TESTLOGGING_H
@@ -188,7 +188,7 @@ GUCEF_OSMAIN_BEGIN
 
         //GUCEF::CORE::CGUCEFApplication::Instance()->main( argc, argv, true );
         
-        //PerformStringTests();
+        PerformStringTests();
         PerformVarsTests();
         PerformFileUtilsTests();
         PerformTimestampTests();

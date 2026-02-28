@@ -140,6 +140,8 @@ set( HEADER_FILES
   include/gucefCORE_CASync.h
   include/gucefCORE_CAbstractFactoryBase.h
   include/gucefCORE_CAsciiString.h
+  include/gucefCORE_CUtf16String.h
+  include/gucefCORE_CUtf32String.h
   include/gucefCORE_CBasicBracketLoggingFormatter.h
   include/gucefCORE_CBusyWaitPulseGeneratorDriver.h
   include/gucefCORE_CCharSepLoggingFormatter.h
@@ -428,6 +430,8 @@ set( SOURCE_FILES
   src/gucefCORE_CASync.cpp
   src/gucefCORE_CAbstractFactoryBase.cpp
   src/gucefCORE_CAsciiString.cpp
+  src/gucefCORE_CUtf16String.cpp
+  src/gucefCORE_CUtf32String.cpp
   src/gucefCORE_CBasicBracketLoggingFormatter.cpp
   src/gucefCORE_CBusyWaitPulseGeneratorDriver.cpp
   src/gucefCORE_CCharSepLoggingFormatter.cpp

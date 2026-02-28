@@ -272,7 +272,7 @@ CGeoLocation::ToISO6709String( void ) const
         << (m_latDeg >= 0 ? "+" : "") << m_latDeg << "\370" << m_latMin << "'" << m_latSec << "\""
         << (m_lonDeg >= 0 ? "+" : "") << m_lonDeg << "\370" << m_lonMin << "'" << m_lonSec << "\"";
 
-    if ( (Float32) std::fabs( m_altitudeInMeters ) < GUCEF_FLOAT32_COMPARISON_EPSILON )
+    if ( !( (Float32) std::fabs( m_altitudeInMeters ) < GUCEF_FLOAT32_COMPARISON_EPSILON ) )
     {
         oss << ( m_altitudeInMeters >= 0 ? "+" : "") << m_altitudeInMeters << "CRS84";
     }
@@ -285,24 +285,74 @@ CGeoLocation
 CGeoLocation::ConvertISO6709StringToGeoLocation( const std::string& iso6709 )
 {GUCEF_TRACE;
 
+    // Parses DMS format: ±DD°MM'SS.ssss"±DDD°MM'SS.ssss"[±ALT.aaaCRS84]
+    // Uses find() to locate actual delimiter characters - no positional assumptions.
+    // The degree symbol '°' (0xF8 in ISO-8859-1) is used as the DMS field delimiter.
+
+    static const char degreeChar = '\370';  // 0xF8
+
+    size_t degPos1 = iso6709.find( degreeChar );
+    if ( degPos1 == std::string::npos )
+        return CGeoLocation();  // unsupported format
+
     Int32 latDeg = 0, latMin = 0, lonDeg = 0, lonMin = 0;
     Float64 latSec = 0.0, lonSec = 0.0, alt = 0.0;
     char latSign = '+', lonSign = '+', altSign = '+';
 
-    std::istringstream iss( iso6709 );
-    iss >> latSign >> latDeg >> latMin >> latSec >> lonSign >> lonDeg >> lonMin >> lonSec;
-
-    if ( iss.peek() == '+' || iss.peek() == '-' )
+    // Parse latitude sign and degrees
+    size_t latStart = 0;
+    if ( !iso6709.empty() && ( iso6709[0] == '+' || iso6709[0] == '-' ) )
     {
-        iss >> altSign >> alt;
+        latSign = iso6709[0];
+        latStart = 1;
+    }
+    latDeg = static_cast<Int32>( std::strtol( iso6709.substr( latStart, degPos1 - latStart ).c_str(), GUCEF_NULL, 10 ) );
+
+    // Parse latitude minutes
+    size_t minEnd1 = iso6709.find( '\'', degPos1 + 1 );
+    if ( minEnd1 == std::string::npos ) return CGeoLocation();
+    latMin = static_cast<Int32>( std::strtol( iso6709.substr( degPos1 + 1, minEnd1 - degPos1 - 1 ).c_str(), GUCEF_NULL, 10 ) );
+
+    // Parse latitude seconds
+    size_t secEnd1 = iso6709.find( '"', minEnd1 + 1 );
+    if ( secEnd1 == std::string::npos ) return CGeoLocation();
+    latSec = std::strtod( iso6709.substr( minEnd1 + 1, secEnd1 - minEnd1 - 1 ).c_str(), GUCEF_NULL );
+
+    // Parse longitude sign
+    size_t lonStart = secEnd1 + 1;
+    if ( lonStart >= iso6709.size() ) return CGeoLocation( latDeg, latMin, latSec );
+    if ( iso6709[lonStart] == '+' || iso6709[lonStart] == '-' )
+    {
+        lonSign = iso6709[lonStart];
+        ++lonStart;
     }
 
-    if ( latSign == '-' )
-        latDeg = -latDeg;
-    if ( lonSign == '-' )
-        lonDeg = -lonDeg;
-    if ( altSign == '-' )
-        alt = -alt;
+    // Parse longitude degrees
+    size_t degPos2 = iso6709.find( degreeChar, lonStart );
+    if ( degPos2 == std::string::npos ) return CGeoLocation( latDeg, latMin, latSec );
+    lonDeg = static_cast<Int32>( std::strtol( iso6709.substr( lonStart, degPos2 - lonStart ).c_str(), GUCEF_NULL, 10 ) );
+
+    // Parse longitude minutes
+    size_t minEnd2 = iso6709.find( '\'', degPos2 + 1 );
+    if ( minEnd2 == std::string::npos ) return CGeoLocation( latDeg, latMin, latSec );
+    lonMin = static_cast<Int32>( std::strtol( iso6709.substr( degPos2 + 1, minEnd2 - degPos2 - 1 ).c_str(), GUCEF_NULL, 10 ) );
+
+    // Parse longitude seconds
+    size_t secEnd2 = iso6709.find( '"', minEnd2 + 1 );
+    if ( secEnd2 == std::string::npos ) return CGeoLocation( latDeg, latMin, latSec );
+    lonSec = std::strtod( iso6709.substr( minEnd2 + 1, secEnd2 - minEnd2 - 1 ).c_str(), GUCEF_NULL );
+
+    // Parse optional altitude
+    size_t altStart = secEnd2 + 1;
+    if ( altStart < iso6709.size() && ( iso6709[altStart] == '+' || iso6709[altStart] == '-' ) )
+    {
+        altSign = iso6709[altStart];
+        alt = std::strtod( iso6709.substr( altStart + 1 ).c_str(), GUCEF_NULL );
+    }
+
+    if ( latSign == '-' ) latDeg = -latDeg;
+    if ( lonSign == '-' ) lonDeg = -lonDeg;
+    if ( altSign == '-' ) alt = -alt;
 
     return CGeoLocation( latDeg, latMin, latSec, lonDeg, lonMin, lonSec, alt );
 }

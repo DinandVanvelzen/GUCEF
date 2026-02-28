@@ -107,12 +107,15 @@ class GUCEF_CORE_PUBLIC_CPP CMSWinConsoleLogger : public CIConsoleLogger
     CMSWinConsoleLogger& operator=( const CMSWinConsoleLogger& src );
     CMSWinConsoleLogger( const CMSWinConsoleLogger& src );
 
+    WORD GetColorForMsgType( const TLogMsgType logMsgType ) const;
+
     private:
 
     Int32 m_minimalLogLevel;
     bool m_formatForUiPurpose;
     HANDLE m_consoleHandle;
     bool m_ownedConsole;
+    WORD m_originalConsoleAttribs;
     TLoggingFormatterPtr m_logFormatter;
 };
 

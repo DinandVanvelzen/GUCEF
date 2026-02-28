@@ -80,11 +80,12 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 CMSWinConsoleLogger::CMSWinConsoleLogger( void )
-    : CIConsoleLogger()                          
-    , m_minimalLogLevel( LOGLEVEL_BELOW_NORMAL )                       
-    , m_formatForUiPurpose( false )              
+    : CIConsoleLogger()
+    , m_minimalLogLevel( LOGLEVEL_BELOW_NORMAL )
+    , m_formatForUiPurpose( false )
     , m_consoleHandle( NULL )
     , m_ownedConsole( false )
+    , m_originalConsoleAttribs( FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE )
     , m_logFormatter( CCoreGlobal::Instance()->GetLogManager().CreateDefaultLoggingFormatter() )
 {GUCEF_TRACE;
 
@@ -95,6 +96,10 @@ CMSWinConsoleLogger::CMSWinConsoleLogger( void )
         m_ownedConsole = true;
     }
     m_consoleHandle = ::GetStdHandle( STD_OUTPUT_HANDLE );
+
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if ( ::GetConsoleScreenBufferInfo( m_consoleHandle, &csbi ) )
+        m_originalConsoleAttribs = csbi.wAttributes;
 
     //if ( consoleHandle != NULL )
     //{
@@ -135,6 +140,30 @@ CMSWinConsoleLogger::GetFormatAsConsoleUI( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+WORD
+CMSWinConsoleLogger::GetColorForMsgType( const TLogMsgType logMsgType ) const
+{GUCEF_TRACE;
+
+    switch ( logMsgType )
+    {
+        case LOG_ERROR:     return FOREGROUND_RED | FOREGROUND_INTENSITY;                                           /* bright red     */
+        case LOG_EXCEPTION: return FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY;                        /* bright magenta */
+        case LOG_WARNING:   return FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY;                       /* bright yellow  */
+        case LOG_SYSTEM:    return FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY;                      /* bright cyan    */
+        case LOG_DEV:       return FOREGROUND_GREEN | FOREGROUND_INTENSITY;                                        /* bright green   */
+        case LOG_DEBUG:     return FOREGROUND_INTENSITY;                                                           /* dark gray      */
+        case LOG_CALLSTACK: return FOREGROUND_GREEN | FOREGROUND_BLUE;                                             /* dark cyan      */
+        case LOG_SERVICE:   return FOREGROUND_BLUE | FOREGROUND_INTENSITY;                                         /* bright blue    */
+        case LOG_PROTECTED: return FOREGROUND_RED | FOREGROUND_BLUE;                                               /* dark magenta   */
+        case LOG_USER:      return FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY;     /* bright white   */
+        case LOG_CONSOLE:   return FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY;     /* bright white   */
+        case LOG_STANDARD:
+        default:            return FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;                            /* light gray     */
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CMSWinConsoleLogger::Log( const TLogMsgType logMsgType ,
                           const Int32 logLevel         ,
@@ -154,7 +183,9 @@ CMSWinConsoleLogger::Log( const TLogMsgType logMsgType ,
                                                                     timestamp  ) + "\n" );
 
             DWORD charsWritten = 0;
+            ::SetConsoleTextAttribute( m_consoleHandle, GetColorForMsgType( logMsgType ) );
             ::WriteConsoleA( m_consoleHandle, actualLogMsg.C_String(), (DWORD)actualLogMsg.Length(), &charsWritten, NULL );
+            ::SetConsoleTextAttribute( m_consoleHandle, m_originalConsoleAttribs );
         }
     }
     else
@@ -162,7 +193,9 @@ CMSWinConsoleLogger::Log( const TLogMsgType logMsgType ,
         if ( logMsgType == CORE::LOG_CONSOLE )
         {
             DWORD charsWritten = 0;
+            ::SetConsoleTextAttribute( m_consoleHandle, GetColorForMsgType( logMsgType ) );
             ::WriteConsoleA( m_consoleHandle, logMessage.C_String(), (DWORD)logMessage.Length(), &charsWritten, NULL );
+            ::SetConsoleTextAttribute( m_consoleHandle, m_originalConsoleAttribs );
         }
     }
 }
@@ -182,7 +215,9 @@ CMSWinConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
         if ( logLevel >= m_minimalLogLevel || m_formatForUiPurpose )
         {
             DWORD charsWritten = 0;
+            ::SetConsoleTextAttribute( m_consoleHandle, GetColorForMsgType( logMsgType ) );
             ::WriteConsoleA( m_consoleHandle, logMessage.C_String(), (DWORD)logMessage.Length(), &charsWritten, NULL );
+            ::SetConsoleTextAttribute( m_consoleHandle, m_originalConsoleAttribs );
         }
     }
     else
@@ -190,7 +225,9 @@ CMSWinConsoleLogger::LogWithoutFormatting( const TLogMsgType logMsgType ,
         if ( logMsgType == CORE::LOG_CONSOLE )
         {
             DWORD charsWritten = 0;
+            ::SetConsoleTextAttribute( m_consoleHandle, GetColorForMsgType( logMsgType ) );
             ::WriteConsoleA( m_consoleHandle, logMessage.C_String(), (DWORD)logMessage.Length(), &charsWritten, NULL );
+            ::SetConsoleTextAttribute( m_consoleHandle, m_originalConsoleAttribs );
         }
     }
 }

@@ -426,7 +426,7 @@ PerformLoggingTests( void )
 
         {
             // Get the thread's front buffer for this log entry
-            CORE::CVariantStreamPtr stream = logMgr.Log( CORE::LOG_STANDARD, CORE::LOGLEVEL_NORMAL );
+            CORE::CLogStreamPtr stream = logMgr.Log( CORE::LOG_STANDARD, CORE::LOGLEVEL_NORMAL );
             ASSERT_FALSE( stream.IsNULL() );
             if ( !stream.IsNULL() )
             {
@@ -435,10 +435,8 @@ PerformLoggingTests( void )
             }
         } // stream ref released here; front buffer ref count drops back to 1
 
-        // Before flush: message is still buffered in the thread's front buffer
-        ASSERT_FALSE( captureLogger.HasEntryWith( "StreamingApiMessage" ) );
-
-        // Flush dispatches buffered segments to registered loggers
+        // Note: In single-threaded apps WriteSegmentEnd() auto-flushes, so the message
+        // may already be dispatched here. We just ensure it arrives (after explicit flush too).
         logMgr.FlushLogs();
 
         ASSERT_TRUE( captureLogger.HasEntryWith( "StreamingApiMessage" ) );

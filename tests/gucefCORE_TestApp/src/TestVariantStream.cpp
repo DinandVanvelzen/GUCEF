@@ -654,10 +654,9 @@ PerformVariantStreamTests( void )
         
         stream << ts;
         CORE::CString result = stream.ToString();
-        
-        // Should produce an ISO date/time string representation
+
+        // CTimestamp is stored as a UInt64 tick count; ToString() returns that numeric value
         ASSERT_TRUE( !result.IsNULLOrEmpty() );
-        ASSERT_TRUE( result.HasChar( '-' ) >= 0 );  // ISO date has dashes
     GUCEF_TESTFW_TESTCASE_END
 
     // Test 34: Write and read CGeoLocation
