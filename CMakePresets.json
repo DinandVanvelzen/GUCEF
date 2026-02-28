@@ -1,0 +1,241 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": { "major": 3, "minor": 20, "patch": 0 },
+
+    "configurePresets": [
+
+        // ---------------------------------------------------------------
+        // Hidden _comp-* presets: compiler/toolchain building blocks.
+        // Users reference these in CMakeUserPresets.json via "inherits".
+        // ---------------------------------------------------------------
+        {
+            "name": "_comp-VS2026-x64",
+            "hidden": true,
+            "generator": "Visual Studio 18 2026",
+            "architecture": "x64",
+            "cacheVariables": {
+                "BUILD_SHARED_LIBS": "ON",
+                "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+            }
+        },
+        {
+            "name": "_comp-ClangCL-x64",
+            "hidden": true,
+            "generator": "Visual Studio 18 2026",
+            "architecture": "x64",
+            "toolset": "ClangCL",
+            "cacheVariables": {
+                "BUILD_SHARED_LIBS": "ON",
+                "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+            }
+        },
+        {
+            "name": "_comp-Ninja-x64",
+            "hidden": true,
+            "generator": "Ninja",
+            "cacheVariables": {
+                "BUILD_SHARED_LIBS": "ON",
+                "CMAKE_POLICY_VERSION_MINIMUM": "3.5"
+            }
+        },
+        {
+            "name": "_comp-Emscripten",
+            "hidden": true,
+            "generator": "Ninja",
+            "toolchainFile": "${sourceDir}/projects/CMake/Emscripten.toolchain.cmake",
+            "cacheVariables": {
+                "BUILD_SHARED_LIBS": "ON",
+                "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
+                "PLATFORM": "wasm"
+            }
+        },
+        {
+            "name": "_comp-Android-arm64",
+            "hidden": true,
+            "generator": "Ninja",
+            "toolchainFile": "${sourceDir}/projects/CMake/Android.cmake",
+            "cacheVariables": {
+                "BUILD_SHARED_LIBS": "ON",
+                "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
+                "ANDROID_ABI": "arm64-v8a",
+                "ANDROID_PLATFORM": "android-21"
+            }
+        },
+        {
+            "name": "_comp-Android-arm32",
+            "hidden": true,
+            "generator": "Ninja",
+            "toolchainFile": "${sourceDir}/projects/CMake/Android.cmake",
+            "cacheVariables": {
+                "BUILD_SHARED_LIBS": "ON",
+                "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
+                "ANDROID_ABI": "armeabi-v7a",
+                "ANDROID_PLATFORM": "android-21"
+            }
+        },
+        {
+            "name": "_comp-Android-x86_64",
+            "hidden": true,
+            "generator": "Ninja",
+            "toolchainFile": "${sourceDir}/projects/CMake/Android.cmake",
+            "cacheVariables": {
+                "BUILD_SHARED_LIBS": "ON",
+                "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
+                "ANDROID_ABI": "x86_64",
+                "ANDROID_PLATFORM": "android-21"
+            }
+        },
+
+        // ---------------------------------------------------------------
+        // Hidden _target-* presets: build-target building blocks.
+        // Users reference these in CMakeUserPresets.json via "inherits".
+        // ---------------------------------------------------------------
+        { "name": "_target-GUCEF_exe_gucefCORE_TestApp", "hidden": true, "cacheVariables": { "GUCEF_BUILD_TARGET": "GUCEF_exe_gucefCORE_TestApp" } },
+        { "name": "_target-GUCEF_tag_test",              "hidden": true, "cacheVariables": { "GUCEF_BUILD_TARGET": "GUCEF_tag_test"              } },
+        { "name": "_target-GUCEF_tag_platform",          "hidden": true, "cacheVariables": { "GUCEF_BUILD_TARGET": "GUCEF_tag_platform"          } },
+        { "name": "_target-GUCEF_tag_services",          "hidden": true, "cacheVariables": { "GUCEF_BUILD_TARGET": "GUCEF_tag_services"          } },
+        { "name": "_target-GUCEF_tag_tools",             "hidden": true, "cacheVariables": { "GUCEF_BUILD_TARGET": "GUCEF_tag_tools"             } },
+
+        // ---------------------------------------------------------------
+        // Visible default presets: one per target, shown only on the
+        // matching host OS. Each combines a _target-* + _comp-* via
+        // multi-inheritance. displayName is just the target so the
+        // picker stays clean (only one entry per target is visible).
+        // ---------------------------------------------------------------
+
+        // Windows defaults (VS2026 x64)
+        {
+            "name": "GUCEF_exe_gucefCORE_TestApp-Windows",
+            "displayName": "GUCEF_exe_gucefCORE_TestApp",
+            "inherits": [ "_target-GUCEF_exe_gucefCORE_TestApp", "_comp-VS2026-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_exe_gucefCORE_TestApp",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+        },
+        {
+            "name": "GUCEF_tag_test-Windows",
+            "displayName": "GUCEF_tag_test",
+            "inherits": [ "_target-GUCEF_tag_test", "_comp-VS2026-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_tag_test",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+        },
+        {
+            "name": "GUCEF_tag_platform-Windows",
+            "displayName": "GUCEF_tag_platform",
+            "inherits": [ "_target-GUCEF_tag_platform", "_comp-VS2026-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_tag_platform",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+        },
+        {
+            "name": "GUCEF_tag_services-Windows",
+            "displayName": "GUCEF_tag_services",
+            "inherits": [ "_target-GUCEF_tag_services", "_comp-VS2026-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_tag_services",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+        },
+        {
+            "name": "GUCEF_tag_tools-Windows",
+            "displayName": "GUCEF_tag_tools",
+            "inherits": [ "_target-GUCEF_tag_tools", "_comp-VS2026-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_tag_tools",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+        },
+
+        // Linux defaults (Ninja x64)
+        {
+            "name": "GUCEF_exe_gucefCORE_TestApp-Linux",
+            "displayName": "GUCEF_exe_gucefCORE_TestApp",
+            "inherits": [ "_target-GUCEF_exe_gucefCORE_TestApp", "_comp-Ninja-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_exe_gucefCORE_TestApp",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+        },
+        {
+            "name": "GUCEF_tag_test-Linux",
+            "displayName": "GUCEF_tag_test",
+            "inherits": [ "_target-GUCEF_tag_test", "_comp-Ninja-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_tag_test",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+        },
+        {
+            "name": "GUCEF_tag_platform-Linux",
+            "displayName": "GUCEF_tag_platform",
+            "inherits": [ "_target-GUCEF_tag_platform", "_comp-Ninja-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_tag_platform",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+        },
+        {
+            "name": "GUCEF_tag_services-Linux",
+            "displayName": "GUCEF_tag_services",
+            "inherits": [ "_target-GUCEF_tag_services", "_comp-Ninja-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_tag_services",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+        },
+        {
+            "name": "GUCEF_tag_tools-Linux",
+            "displayName": "GUCEF_tag_tools",
+            "inherits": [ "_target-GUCEF_tag_tools", "_comp-Ninja-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_tag_tools",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+        },
+
+        // macOS defaults (Ninja x64)
+        {
+            "name": "GUCEF_exe_gucefCORE_TestApp-Darwin",
+            "displayName": "GUCEF_exe_gucefCORE_TestApp",
+            "inherits": [ "_target-GUCEF_exe_gucefCORE_TestApp", "_comp-Ninja-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_exe_gucefCORE_TestApp",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+        },
+        {
+            "name": "GUCEF_tag_test-Darwin",
+            "displayName": "GUCEF_tag_test",
+            "inherits": [ "_target-GUCEF_tag_test", "_comp-Ninja-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_tag_test",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+        },
+        {
+            "name": "GUCEF_tag_platform-Darwin",
+            "displayName": "GUCEF_tag_platform",
+            "inherits": [ "_target-GUCEF_tag_platform", "_comp-Ninja-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_tag_platform",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+        },
+        {
+            "name": "GUCEF_tag_services-Darwin",
+            "displayName": "GUCEF_tag_services",
+            "inherits": [ "_target-GUCEF_tag_services", "_comp-Ninja-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_tag_services",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+        },
+        {
+            "name": "GUCEF_tag_tools-Darwin",
+            "displayName": "GUCEF_tag_tools",
+            "inherits": [ "_target-GUCEF_tag_tools", "_comp-Ninja-x64" ],
+            "binaryDir": "${sourceDir}/common/bin/preset-GUCEF_tag_tools",
+            "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+        }
+    ],
+
+    "buildPresets": [
+        { "name": "GUCEF_exe_gucefCORE_TestApp-Windows-Debug",   "displayName": "GUCEF_exe_gucefCORE_TestApp | Debug",   "configurePreset": "GUCEF_exe_gucefCORE_TestApp-Windows", "configuration": "Debug"   },
+        { "name": "GUCEF_exe_gucefCORE_TestApp-Windows-Release", "displayName": "GUCEF_exe_gucefCORE_TestApp | Release", "configurePreset": "GUCEF_exe_gucefCORE_TestApp-Windows", "configuration": "Release" },
+        { "name": "GUCEF_tag_test-Windows-Debug",                "displayName": "GUCEF_tag_test | Debug",                "configurePreset": "GUCEF_tag_test-Windows",               "configuration": "Debug"   },
+        { "name": "GUCEF_tag_test-Windows-Release",              "displayName": "GUCEF_tag_test | Release",              "configurePreset": "GUCEF_tag_test-Windows",               "configuration": "Release" },
+        { "name": "GUCEF_tag_platform-Windows-Debug",            "displayName": "GUCEF_tag_platform | Debug",            "configurePreset": "GUCEF_tag_platform-Windows",           "configuration": "Debug"   },
+        { "name": "GUCEF_tag_platform-Windows-Release",          "displayName": "GUCEF_tag_platform | Release",          "configurePreset": "GUCEF_tag_platform-Windows",           "configuration": "Release" },
+        { "name": "GUCEF_tag_services-Windows-Debug",            "displayName": "GUCEF_tag_services | Debug",            "configurePreset": "GUCEF_tag_services-Windows",           "configuration": "Debug"   },
+        { "name": "GUCEF_tag_services-Windows-Release",          "displayName": "GUCEF_tag_services | Release",          "configurePreset": "GUCEF_tag_services-Windows",           "configuration": "Release" },
+        { "name": "GUCEF_tag_tools-Windows-Debug",               "displayName": "GUCEF_tag_tools | Debug",               "configurePreset": "GUCEF_tag_tools-Windows",              "configuration": "Debug"   },
+        { "name": "GUCEF_tag_tools-Windows-Release",             "displayName": "GUCEF_tag_tools | Release",             "configurePreset": "GUCEF_tag_tools-Windows",              "configuration": "Release" },
+
+        { "name": "GUCEF_exe_gucefCORE_TestApp-Linux-Debug",     "displayName": "GUCEF_exe_gucefCORE_TestApp | Debug",   "configurePreset": "GUCEF_exe_gucefCORE_TestApp-Linux",   "configuration": "Debug"   },
+        { "name": "GUCEF_exe_gucefCORE_TestApp-Linux-Release",   "displayName": "GUCEF_exe_gucefCORE_TestApp | Release", "configurePreset": "GUCEF_exe_gucefCORE_TestApp-Linux",   "configuration": "Release" },
+        { "name": "GUCEF_tag_test-Linux-Debug",                  "displayName": "GUCEF_tag_test | Debug",                "configurePreset": "GUCEF_tag_test-Linux",                 "configuration": "Debug"   },
+        { "name": "GUCEF_tag_test-Linux-Release",                "displayName": "GUCEF_tag_test | Release",              "configurePreset": "GUCEF_tag_test-Linux",                 "configuration": "Release" },
+        { "name": "GUCEF_tag_platform-Linux-Debug",              "displayName": "GUCEF_tag_platform | Debug",            "configurePreset": "GUCEF_tag_platform-Linux",             "configuration": "Debug"   },
+        { "name": "GUCEF_tag_platform-Linux-Release",            "displayName": "GUCEF_tag_platform | Release",          "configurePreset": "GUCEF_tag_platform-Linux",             "configuration": "Release" },
+        { "name": "GUCEF_tag_services-Linux-Debug",              "displayName": "GUCEF_tag_services | Debug",            "configurePreset": "GUCEF_tag_services-Linux",             "configuration": "Debug"   },
+        { "name": "GUCEF_tag_services-Linux-Release",            "displayName": "GUCEF_tag_services | Release",          "configurePreset": "GUCEF_tag_services-Linux",             "configuration": "Release" },
+        { "name": "GUCEF_tag_tools-Linux-Debug",                 "displayName": "GUCEF_tag_tools | Debug",               "configurePreset": "GUCEF_tag_tools-Linux",                "configuration": "Debug"   },
+        { "name": "GUCEF_tag_tools-Linux-Release",               "displayName": "GUCEF_tag_tools | Release",             "configurePreset": "GUCEF_tag_tools-Linux",                "configuration": "Release" }
+    ]
+}

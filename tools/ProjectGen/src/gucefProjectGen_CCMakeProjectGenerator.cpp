@@ -1822,6 +1822,415 @@ WriteCMakeTargetsToDisk( const CProjectInfo& projectInfo         ,
 
 /*-------------------------------------------------------------------------*/
 
+struct SCMakePresetGeneratorConfig
+{
+    CORE::CString presetKey;       /**< unique key used in preset names, e.g. "VS2026-ARM64"           */
+    CORE::CString generator;       /**< CMake generator string                                          */
+    CORE::CString architecture;    /**< VS -A value: x64, Win32, ARM, ARM64 (empty for Ninja/cross)    */
+    CORE::CString toolset;         /**< e.g. "ClangCL", empty if none                                  */
+    CORE::CString toolchainFile;   /**< CMake toolchainFile preset field, empty if none                */
+    CORE::CString platform;        /**< Value for PLATFORM cache variable (e.g. "wasm"), empty if none */
+    CORE::CString androidAbi;      /**< ANDROID_ABI cache variable, e.g. "arm64-v8a", empty if none   */
+    CORE::CString androidPlatform; /**< ANDROID_PLATFORM minimum API level, e.g. "android-21"         */
+};
+
+/*-------------------------------------------------------------------------*/
+
+struct SPlatformDefault
+{
+    CORE::CString hostSystemName; /**< CMake ${hostSystemName} value: "Windows", "Linux", "Darwin" */
+    CORE::CString compPresetKey;  /**< Matches a _comp-{key} preset, e.g. "VS2026-x64"            */
+};
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Builds a generator config from a generator name and an explicit architecture.
+ *
+ *  @param generatorName  One of: VS2026, VS2022, VS2019, ClangCL, Ninja
+ *  @param cpuArch        Target CPU architecture: x64, x86, ARM, ARM64
+ *                        For Ninja this is informational only (no -A flag);
+ *                        cross-compilation requires a separate toolchain file.
+ *
+ *  The resulting presetKey is "{generatorName}-{cpuArch}".
+ */
+static SCMakePresetGeneratorConfig
+GetPresetGeneratorConfig( const CORE::CString& generatorName, const CORE::CString& cpuArch )
+{GUCEF_TRACE;
+
+    // Map user-facing arch name to the CMake VS architecture string
+    CORE::CString cmakeArch;
+    if      ( cpuArch == "x64"   ) cmakeArch = "x64";
+    else if ( cpuArch == "x86"   ) cmakeArch = "Win32";
+    else if ( cpuArch == "ARM"   ) cmakeArch = "ARM";
+    else if ( cpuArch == "ARM64" ) cmakeArch = "ARM64";
+    else if ( !cpuArch.IsNULLOrEmpty() )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "GetPresetGeneratorConfig: Unknown CPU architecture \"" + cpuArch + "\", using as-is" );
+        cmakeArch = cpuArch;
+    }
+
+    SCMakePresetGeneratorConfig config;
+    config.presetKey = generatorName + "-" + cpuArch;
+
+    if ( generatorName == "VS2026" )
+    {
+        config.generator    = "Visual Studio 18 2026";
+        config.architecture = cmakeArch.IsNULLOrEmpty() ? "x64" : cmakeArch;
+    }
+    else if ( generatorName == "VS2022" )
+    {
+        config.generator    = "Visual Studio 17 2022";
+        config.architecture = cmakeArch.IsNULLOrEmpty() ? "x64" : cmakeArch;
+    }
+    else if ( generatorName == "VS2019" )
+    {
+        config.generator    = "Visual Studio 16 2019";
+        config.architecture = cmakeArch.IsNULLOrEmpty() ? "x64" : cmakeArch;
+    }
+    else if ( generatorName == "ClangCL" )
+    {
+        // ClangCL pairs with the VS generator to use the MSVC linker/CRT
+        config.generator    = "Visual Studio 18 2026";
+        config.architecture = cmakeArch.IsNULLOrEmpty() ? "x64" : cmakeArch;
+        config.toolset      = "ClangCL";
+    }
+    else if ( generatorName == "Ninja" )
+    {
+        // Ninja does not use the VS -A architecture field.
+        // Cross-compilation to non-host architectures requires a CMake toolchain file.
+        config.generator = "Ninja";
+    }
+    else if ( generatorName == "Emscripten" )
+    {
+        // Emscripten is cross-compilation to WebAssembly via Ninja + the Emscripten toolchain.
+        // The arch axis is irrelevant (always wasm32); presetKey has no arch suffix.
+        // Requires EMSDK environment variable to be set before CMake configure.
+        config.presetKey     = "Emscripten";
+        config.generator     = "Ninja";
+        config.toolchainFile = "${sourceDir}/projects/CMake/Emscripten.toolchain.cmake";
+        config.platform      = "wasm";
+    }
+    else if ( generatorName == "Android-arm64" )
+    {
+        config.presetKey       = "Android-arm64";
+        config.generator       = "Ninja";
+        config.toolchainFile   = "${sourceDir}/projects/CMake/Android.cmake";
+        config.androidAbi      = "arm64-v8a";
+        config.androidPlatform = "android-21";
+    }
+    else if ( generatorName == "Android-arm32" )
+    {
+        config.presetKey       = "Android-arm32";
+        config.generator       = "Ninja";
+        config.toolchainFile   = "${sourceDir}/projects/CMake/Android.cmake";
+        config.androidAbi      = "armeabi-v7a";
+        config.androidPlatform = "android-21";
+    }
+    else if ( generatorName == "Android-x86_64" )
+    {
+        config.presetKey       = "Android-x86_64";
+        config.generator       = "Ninja";
+        config.toolchainFile   = "${sourceDir}/projects/CMake/Android.cmake";
+        config.androidAbi      = "x86_64";
+        config.androidPlatform = "android-21";
+    }
+    else if ( generatorName == "Android-x86" )
+    {
+        config.presetKey       = "Android-x86";
+        config.generator       = "Ninja";
+        config.toolchainFile   = "${sourceDir}/projects/CMake/Android.cmake";
+        config.androidAbi      = "x86";
+        config.androidPlatform = "android-21";
+    }
+    else
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "GetPresetGeneratorConfig: Unknown generator name \"" + generatorName + "\", passing through as-is" );
+        config.generator    = generatorName;
+        config.architecture = cmakeArch;
+    }
+    return config;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+WriteCMakePresetsFileToDisk( const CProjectTargetInfoBundle& targets    ,
+                             const CORE::CString& presetsRootDir         ,
+                             const CORE::CString& binaryDirBase          ,
+                             const CORE::CString& generatorsParam        ,
+                             const CORE::CString& architecturesParam     ,
+                             const CORE::CString& platformDefaultsParam   )
+{GUCEF_TRACE;
+
+    // Parse semicolon-separated generator list, e.g. "VS2026;ClangCL;Ninja"
+    TStringVector generatorNames = generatorsParam.Trim( true ).Trim( false ).ParseElements( ';', true );
+    if ( generatorNames.empty() )
+    {
+        generatorNames.push_back( "VS2026" );
+        generatorNames.push_back( "ClangCL" );
+        generatorNames.push_back( "Ninja" );
+    }
+
+    // Parse semicolon-separated CPU architecture list, e.g. "x64;ARM64"
+    TStringVector cpuArchitectures = architecturesParam.Trim( true ).Trim( false ).ParseElements( ';', true );
+    if ( cpuArchitectures.empty() )
+        cpuArchitectures.push_back( "x64" );
+
+    // Build the (generator x architecture) matrix — these become hidden _comp-* presets
+    typedef GUCEF::vector< SCMakePresetGeneratorConfig > TGenConfigVec;
+    TGenConfigVec genConfigs;
+    TStringVector::const_iterator gn = generatorNames.begin();
+    while ( gn != generatorNames.end() )
+    {
+        const CORE::CString genName = (*gn).Trim( true ).Trim( false );
+        if ( !genName.IsNULLOrEmpty() )
+        {
+            TStringVector::const_iterator an = cpuArchitectures.begin();
+            while ( an != cpuArchitectures.end() )
+            {
+                const CORE::CString archName = (*an).Trim( true ).Trim( false );
+                if ( !archName.IsNULLOrEmpty() )
+                {
+                    SCMakePresetGeneratorConfig cfg = GetPresetGeneratorConfig( genName, archName );
+                    // Deduplicate by presetKey (e.g. "Emscripten" ignores the arch axis)
+                    bool duplicate = false;
+                    TGenConfigVec::const_iterator di = genConfigs.begin();
+                    while ( di != genConfigs.end() )
+                    {
+                        if ( (*di).presetKey == cfg.presetKey ) { duplicate = true; break; }
+                        ++di;
+                    }
+                    if ( !duplicate )
+                        genConfigs.push_back( cfg );
+                }
+                ++an;
+            }
+        }
+        ++gn;
+    }
+    if ( genConfigs.empty() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "WriteCMakePresetsFileToDisk: No valid generator configs - skipping CMakePresets.json" );
+        return;
+    }
+
+    // Parse platform defaults, format: "HostSystemName:CompPresetKey" pairs separated by semicolons
+    // e.g. "Windows:VS2026-x64;Linux:Ninja-x64;Darwin:Ninja-x64"
+    typedef GUCEF::vector< SPlatformDefault > TPlatformDefaultVec;
+    TPlatformDefaultVec platformDefaults;
+    {
+        TStringVector pairs = platformDefaultsParam.Trim( true ).Trim( false ).ParseElements( ';', true );
+        TStringVector::const_iterator p = pairs.begin();
+        while ( p != pairs.end() )
+        {
+            TStringVector parts = (*p).Trim( true ).Trim( false ).ParseElements( ':', true );
+            if ( parts.size() == 2 )
+            {
+                SPlatformDefault pd;
+                pd.hostSystemName = parts[ 0 ].Trim( true ).Trim( false );
+                pd.compPresetKey  = parts[ 1 ].Trim( true ).Trim( false );
+                if ( !pd.hostSystemName.IsNULLOrEmpty() && !pd.compPresetKey.IsNULLOrEmpty() )
+                    platformDefaults.push_back( pd );
+            }
+            ++p;
+        }
+    }
+
+    // Fall back to sensible defaults using available compilers when none are configured
+    if ( platformDefaults.empty() )
+    {
+        bool hasVS2026x64 = false, hasNinjax64 = false;
+        TGenConfigVec::const_iterator gi = genConfigs.begin();
+        while ( gi != genConfigs.end() )
+        {
+            if ( (*gi).presetKey == "VS2026-x64" ) hasVS2026x64 = true;
+            if ( (*gi).presetKey == "Ninja-x64"  ) hasNinjax64  = true;
+            ++gi;
+        }
+
+        if ( hasVS2026x64 )
+        {
+            SPlatformDefault pd; pd.hostSystemName = "Windows"; pd.compPresetKey = "VS2026-x64";
+            platformDefaults.push_back( pd );
+        }
+        if ( hasNinjax64 )
+        {
+            { SPlatformDefault pd; pd.hostSystemName = "Linux";  pd.compPresetKey = "Ninja-x64"; platformDefaults.push_back( pd ); }
+            { SPlatformDefault pd; pd.hostSystemName = "Darwin"; pd.compPresetKey = "Ninja-x64"; platformDefaults.push_back( pd ); }
+        }
+        if ( platformDefaults.empty() )
+        {
+            SPlatformDefault pd; pd.hostSystemName = "Windows"; pd.compPresetKey = genConfigs.front().presetKey;
+            platformDefaults.push_back( pd );
+        }
+    }
+
+    const CORE::CString binaryBase = binaryDirBase.IsNULLOrEmpty()
+        ? CORE::CString( "${sourceDir}/common/bin" )
+        : binaryDirBase.ReplaceChar( '\\', '/' );
+
+    CORE::CString json = "{\n";
+    json += "    \"version\": 3,\n";
+    json += "    \"cmakeMinimumRequired\": { \"major\": 3, \"minor\": 20, \"patch\": 0 },\n\n";
+    json += "    \"configurePresets\": [\n\n";
+
+    // Hidden _comp-* presets: compiler/toolchain building blocks, one per generator x architecture
+    bool firstEntry = true;
+    TGenConfigVec::const_iterator g = genConfigs.begin();
+    while ( g != genConfigs.end() )
+    {
+        if ( !firstEntry ) json += ",\n";
+        firstEntry = false;
+
+        json += "        {\n";
+        json += "            \"name\": \"_comp-" + (*g).presetKey + "\",\n";
+        json += "            \"hidden\": true,\n";
+        json += "            \"generator\": \"" + (*g).generator + "\"";
+        if ( !(*g).architecture.IsNULLOrEmpty() )
+            json += ",\n            \"architecture\": \"" + (*g).architecture + "\"";
+        if ( !(*g).toolset.IsNULLOrEmpty() )
+            json += ",\n            \"toolset\": \"" + (*g).toolset + "\"";
+        if ( !(*g).toolchainFile.IsNULLOrEmpty() )
+            json += ",\n            \"toolchainFile\": \"" + (*g).toolchainFile + "\"";
+        json += ",\n";
+        json += "            \"cacheVariables\": {\n";
+        json += "                \"BUILD_SHARED_LIBS\": \"ON\",\n";
+        json += "                \"CMAKE_POLICY_VERSION_MINIMUM\": \"3.5\"";
+        if ( !(*g).platform.IsNULLOrEmpty() )
+            json += ",\n                \"PLATFORM\": \"" + (*g).platform + "\"";
+        if ( !(*g).androidAbi.IsNULLOrEmpty() )
+            json += ",\n                \"ANDROID_ABI\": \"" + (*g).androidAbi + "\"";
+        if ( !(*g).androidPlatform.IsNULLOrEmpty() )
+            json += ",\n                \"ANDROID_PLATFORM\": \"" + (*g).androidPlatform + "\"";
+        json += "\n";
+        json += "            }\n";
+        json += "        }";
+        ++g;
+    }
+
+    // Hidden _target-* presets: target building blocks, one per build target
+    const CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap& allTargets = targets.GetAllTargets();
+    CProjectTargetInfoBundle::TProjectTargetInfoPtrMapMap::const_iterator t = allTargets.begin();
+    while ( t != allTargets.end() )
+    {
+        const CORE::CString& targetKey = (*t).first;
+        json += ",\n";
+        json += "        {\n";
+        json += "            \"name\": \"_target-" + targetKey + "\",\n";
+        json += "            \"hidden\": true,\n";
+        json += "            \"cacheVariables\": {\n";
+        json += "                \"GUCEF_BUILD_TARGET\": \"" + targetKey + "\"\n";
+        json += "            }\n";
+        json += "        }";
+        ++t;
+    }
+
+    // Visible default presets: one per target per platform, gated by condition.
+    // Each preset combines a _target-* and a _comp-* via multi-inheritance.
+    // The displayName shows only the target name since only one entry is visible per platform.
+    t = allTargets.begin();
+    while ( t != allTargets.end() )
+    {
+        const CORE::CString& targetKey = (*t).first;
+        const CORE::CString binaryDir = ( binaryBase + "/preset-" + targetKey ).ReplaceChar( '\\', '/' );
+
+        TPlatformDefaultVec::const_iterator pd = platformDefaults.begin();
+        while ( pd != platformDefaults.end() )
+        {
+            // Validate that the referenced _comp-* preset was actually generated
+            bool compFound = false;
+            g = genConfigs.begin();
+            while ( g != genConfigs.end() )
+            {
+                if ( (*g).presetKey == (*pd).compPresetKey ) { compFound = true; break; }
+                ++g;
+            }
+            if ( !compFound )
+            {
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "WriteCMakePresetsFileToDisk: Platform default \"" + (*pd).hostSystemName
+                    + "\" references unknown compiler preset \"_comp-" + (*pd).compPresetKey + "\" - skipping" );
+                ++pd;
+                continue;
+            }
+
+            json += ",\n";
+            json += "        {\n";
+            json += "            \"name\": \"" + targetKey + "-" + (*pd).hostSystemName + "\",\n";
+            json += "            \"displayName\": \"" + targetKey + "\",\n";
+            json += "            \"inherits\": [ \"_target-" + targetKey + "\", \"_comp-" + (*pd).compPresetKey + "\" ],\n";
+            json += "            \"binaryDir\": \"" + binaryDir + "\",\n";
+            json += "            \"condition\": {\n";
+            json += "                \"type\": \"equals\",\n";
+            json += "                \"lhs\": \"${hostSystemName}\",\n";
+            json += "                \"rhs\": \"" + (*pd).hostSystemName + "\"\n";
+            json += "            }\n";
+            json += "        }";
+            ++pd;
+        }
+        ++t;
+    }
+
+    json += "\n    ],\n\n";
+
+    // Build presets: Debug + Release for every visible configure preset
+    json += "    \"buildPresets\": [\n";
+
+    bool firstBuildEntry = true;
+    t = allTargets.begin();
+    while ( t != allTargets.end() )
+    {
+        const CORE::CString& targetKey = (*t).first;
+
+        TPlatformDefaultVec::const_iterator pd = platformDefaults.begin();
+        while ( pd != platformDefaults.end() )
+        {
+            // Skip if _comp-* doesn't exist (same check as above)
+            bool compFound = false;
+            g = genConfigs.begin();
+            while ( g != genConfigs.end() )
+            {
+                if ( (*g).presetKey == (*pd).compPresetKey ) { compFound = true; break; }
+                ++g;
+            }
+            if ( !compFound ) { ++pd; continue; }
+
+            CORE::CString configurePreset = targetKey + "-" + (*pd).hostSystemName;
+
+            if ( !firstBuildEntry ) json += ",\n";
+            firstBuildEntry = false;
+
+            json += "        { \"name\": \"" + configurePreset + "-Debug\""
+                  + ", \"displayName\": \"" + targetKey + " | Debug\""
+                  + ", \"configurePreset\": \"" + configurePreset + "\""
+                  + ", \"configuration\": \"Debug\" }";
+
+            json += ",\n";
+            json += "        { \"name\": \"" + configurePreset + "-Release\""
+                  + ", \"displayName\": \"" + targetKey + " | Release\""
+                  + ", \"configurePreset\": \"" + configurePreset + "\""
+                  + ", \"configuration\": \"Release\" }";
+            ++pd;
+        }
+        ++t;
+    }
+
+    json += "\n    ]\n";
+    json += "}\n";
+
+    CORE::CString presetsFilePath = CORE::CombinePath( presetsRootDir, "CMakePresets.json" );
+    if ( CORE::WriteStringAsTextFile( presetsFilePath, json, true, "\n", true ) )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Created CMakePresets.json at: " + presetsFilePath );
+    }
+    else
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "Failed to write CMakePresets.json to: " + presetsFilePath );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CCMakeProjectGenerator::GetCapabilities( CProjectGeneratorCapabilities& capabilities ) const
 {GUCEF_TRACE;
@@ -1907,12 +2316,30 @@ CCMakeProjectGenerator::GenerateProject( const CProjectInfo& projectInfo      ,
     CProjectTargetInfoBundle targets;
     projectInfo.GetAllTargets( targets, treatTagsAsTargets, true );
 
-    WriteCMakeTargetsToDisk( projectInfo                     , 
+    WriteCMakeTargetsToDisk( projectInfo                     ,
                              targets                         ,
-                             outputDir                       , 
+                             outputDir                       ,
                              targetsOutputDir                ,
                              addGeneratorCompileTimeToOutput ,
                              splitTargets                    );
+
+    // Generate CMakePresets.json at the repo root for VS Code / CMake Tools integration.
+    // Requires cmakegen:PresetsRootDir to be set to the root where CMakeLists.txt lives.
+    CORE::CString presetsRootDir = params.GetValueAlways( "cmakegen:PresetsRootDir" ).AsString( CORE::CString::Empty, true );
+    if ( !presetsRootDir.IsNULLOrEmpty() )
+    {
+        presetsRootDir = CORE::RelativePath( presetsRootDir, true );
+        CORE::CString binaryDirBase        = params.GetValueAlways( "cmakegen:PresetBinaryDirBase" ).AsString( CORE::CString::Empty, true );
+        CORE::CString presetGenerators     = params.GetValueAlways( "cmakegen:PresetGenerators" ).AsString( CORE::CString::Empty, true );
+        CORE::CString presetArchitectures  = params.GetValueAlways( "cmakegen:PresetArchitectures" ).AsString( CORE::CString::Empty, true );
+        CORE::CString presetPlatformDefs   = params.GetValueAlways( "cmakegen:PlatformDefaults" ).AsString( CORE::CString::Empty, true );
+        WriteCMakePresetsFileToDisk( targets                ,
+                                     presetsRootDir         ,
+                                     binaryDirBase          ,
+                                     presetGenerators       ,
+                                     presetArchitectures    ,
+                                     presetPlatformDefs     );
+    }
 
     return true;
 }
