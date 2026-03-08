@@ -194,6 +194,97 @@ PerformConfigTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    // Test 9: New config fields default values
+    GUCEF_TESTFW_TESTCASE( "Test 9: New config fields default values" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 9: New config fields default values" );
+            GUCEF::MLF::SMemoryTrackerConfig cfg;
+            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            ASSERT_TRUE( cfg.enableRawCallstackCapture == true );
+            ASSERT_TRUE( cfg.maxRawCallstackDepth == 32 );
+            ASSERT_TRUE( cfg.deallocMismatchResponse == GUCEF::MLF::MISMATCH_LOG );
+            ASSERT_TRUE( cfg.enableCallsiteProfiling == false );
+            ASSERT_TRUE( cfg.useGuardPages == false );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 10: enableRawCallstackCapture toggle does not crash
+    GUCEF_TESTFW_TESTCASE( "Test 10: enableRawCallstackCapture toggle no crash" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 10: enableRawCallstackCapture toggle no crash" );
+            GUCEF::MLF::SMemoryTrackerConfig cfg;
+            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            cfg.enableRawCallstackCapture = true;
+            cfg.enableRawCallstackCapture = false;
+            cfg.enableRawCallstackCapture = true;
+            ASSERT_TRUE( cfg.enableRawCallstackCapture == true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 11: maxRawCallstackDepth assignment does not crash
+    GUCEF_TESTFW_TESTCASE( "Test 11: maxRawCallstackDepth assignment no crash" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 11: maxRawCallstackDepth assignment no crash" );
+            GUCEF::MLF::SMemoryTrackerConfig cfg;
+            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            cfg.maxRawCallstackDepth = 1;
+            cfg.maxRawCallstackDepth = 62;
+            cfg.maxRawCallstackDepth = 32;
+            ASSERT_TRUE( cfg.maxRawCallstackDepth == 32 );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 12: EMismatchResponse enum values are correct and assignment does not crash
+    GUCEF_TESTFW_TESTCASE( "Test 12: EMismatchResponse enum values correct" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 12: EMismatchResponse enum values correct" );
+            ASSERT_TRUE( (int) GUCEF::MLF::MISMATCH_LOG   == 0 );
+            ASSERT_TRUE( (int) GUCEF::MLF::MISMATCH_BREAK == 1 );
+            ASSERT_TRUE( (int) GUCEF::MLF::MISMATCH_ABORT == 2 );
+            GUCEF::MLF::SMemoryTrackerConfig cfg;
+            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            cfg.deallocMismatchResponse = GUCEF::MLF::MISMATCH_LOG;
+            ASSERT_TRUE( cfg.deallocMismatchResponse == GUCEF::MLF::MISMATCH_LOG );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 13: enableCallsiteProfiling toggle does not crash
+    GUCEF_TESTFW_TESTCASE( "Test 13: enableCallsiteProfiling toggle no crash" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 13: enableCallsiteProfiling toggle no crash" );
+            GUCEF::MLF::SMemoryTrackerConfig cfg;
+            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            cfg.enableCallsiteProfiling = true;
+            cfg.enableCallsiteProfiling = false;
+            ASSERT_TRUE( cfg.enableCallsiteProfiling == false );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF::MLF::MEMMAN_Shutdown();
 
     CORE::CLogStreamScope::FlushLogs();

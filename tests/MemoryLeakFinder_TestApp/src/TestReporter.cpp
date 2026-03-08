@@ -21,6 +21,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <stdio.h>
+
 #ifndef GUCEF_MLF_MEMORYMANAGER_H
 #include "gucefMLF_MemoryManager.h"
 #define GUCEF_MLF_MEMORYMANAGER_H
@@ -127,6 +129,44 @@ PerformReporterTests( void )
             /* Clean up */
             GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             ASSERT_TRUE( true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 5: MEMMAN_DumpTimeline writes an output file
+    GUCEF_TESTFW_TESTCASE( "Test 5: DumpTimeline creates output file" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: DumpTimeline creates output file" );
+            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            ASSERT_TRUE( ptr != GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_DumpTimeline( "MemoryLeakFinder_TestApp_Timeline.tsv" );
+            FILE* f = fopen( "MemoryLeakFinder_TestApp_Timeline.tsv", "r" );
+            ASSERT_TRUE( f != GUCEF_NULL );
+            if ( f != GUCEF_NULL ) { fclose( f ); }
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 6: MEMMAN_DumpMassifFormat writes an output file
+    GUCEF_TESTFW_TESTCASE( "Test 6: DumpMassifFormat creates output file" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: DumpMassifFormat creates output file" );
+            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            ASSERT_TRUE( ptr != GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_DumpMassifFormat( "MemoryLeakFinder_TestApp_Massif.ms" );
+            FILE* f = fopen( "MemoryLeakFinder_TestApp_Massif.ms", "r" );
+            ASSERT_TRUE( f != GUCEF_NULL );
+            if ( f != GUCEF_NULL ) { fclose( f ); }
         }
         catch( ... )
         {

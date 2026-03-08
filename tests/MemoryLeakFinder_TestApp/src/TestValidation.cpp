@@ -189,6 +189,62 @@ PerformValidationTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    // Test 8: Type mismatch (MM_NEW alloc, MM_FREE dealloc) with MISMATCH_LOG default - no crash
+    GUCEF_TESTFW_TESTCASE( "Test 8: Type mismatch MM_NEW+MM_FREE with MISMATCH_LOG no crash" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 8: Type mismatch MM_NEW+MM_FREE with MISMATCH_LOG no crash" );
+            /* Default mismatch response is MISMATCH_LOG: execution must continue past the mismatch */
+            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_NEW, GUCEF_NULL, "TestType" );
+            ASSERT_TRUE( ptr != GUCEF_NULL );
+            if ( ptr != GUCEF_NULL )
+            {
+                /* Intentional type mismatch: allocated with NEW, freed with FREE */
+                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            }
+            ASSERT_TRUE( true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 9: MEMMAN_SuppressMismatchCheck on a live pointer then mismatched dealloc - no crash
+    GUCEF_TESTFW_TESTCASE( "Test 9: SuppressMismatchCheck on live ptr then mismatch dealloc no crash" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 9: SuppressMismatchCheck on live ptr then mismatch dealloc no crash" );
+            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_NEW, GUCEF_NULL, "TestType" );
+            ASSERT_TRUE( ptr != GUCEF_NULL );
+            if ( ptr != GUCEF_NULL )
+            {
+                GUCEF::MLF::MEMMAN_SuppressMismatchCheck( ptr );
+                /* Mismatch dealloc must be silently accepted now */
+                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            }
+            ASSERT_TRUE( true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 10: MEMMAN_SuppressMismatchCheck(NULL) - must not crash
+    GUCEF_TESTFW_TESTCASE( "Test 10: SuppressMismatchCheck NULL no crash" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 10: SuppressMismatchCheck NULL no crash" );
+            GUCEF::MLF::MEMMAN_SuppressMismatchCheck( GUCEF_NULL );
+            ASSERT_TRUE( true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF::MLF::MEMMAN_Shutdown();
 
     CORE::CLogStreamScope::FlushLogs();

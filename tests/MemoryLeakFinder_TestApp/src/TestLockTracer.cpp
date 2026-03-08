@@ -28,6 +28,11 @@
 #define GUCEF_MLF_MEMORYMANAGER_H
 #endif /* GUCEF_MLF_MEMORYMANAGER_H ? */
 
+#ifndef GUCEF_MLF_SMEMORYTRACKERCONFIG_H
+#include "gucefMLF_SMemoryTrackerConfig.h"
+#define GUCEF_MLF_SMEMORYTRACKERCONFIG_H
+#endif /* GUCEF_MLF_SMEMORYTRACKERCONFIG_H ? */
+
 #ifndef GUCEF_LOCKTRACE_H
 #include "gucefMLF_locktrace.h"
 #define GUCEF_LOCKTRACE_H
@@ -141,6 +146,77 @@ PerformLockTracerTests( void )
             ERRORHERE;
         }
     GUCEF_TESTFW_TESTCASE_END
+
+#ifndef GUCEF_MLF_TSAN_ACTIVE
+
+    // Test 4: LockProtectsRange + LockUnprotectsRange smoke test - no crash
+    GUCEF_TESTFW_TESTCASE( "Test 4: LockProtectsRange+LockUnprotectsRange no crash" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: LockProtectsRange+LockUnprotectsRange no crash" );
+            char buf[ 64 ];
+            void* lockId = reinterpret_cast< void* >( static_cast< uintptr_t >( 0xCCCC0004 ) );
+            GUCEF::MLF::MEMMAN_ExclusiveLockCreated( lockId );
+            GUCEF::MLF::MEMMAN_LockProtectsRange( lockId, buf, sizeof( buf ) );
+            GUCEF::MLF::MEMMAN_LockUnprotectsRange( lockId );
+            GUCEF::MLF::MEMMAN_ExclusiveLockDestroy( lockId );
+            ASSERT_TRUE( true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 5: Lock IS held at dealloc time - no warning expected
+    GUCEF_TESTFW_TESTCASE( "Test 5: Lock held at dealloc - no warning" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: Lock held at dealloc - no warning" );
+            void* lockId = reinterpret_cast< void* >( static_cast< uintptr_t >( 0xDDDD0005 ) );
+            GUCEF::MLF::MEMMAN_ExclusiveLockCreated( lockId );
+            GUCEF::MLF::MEMMAN_ExclusiveLockObtained( lockId );
+            void* buf = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 64, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            ASSERT_TRUE( buf != GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_LockProtectsRange( lockId, buf, 64 );
+            /* Remove range association before freeing to avoid triggering the warning path */
+            GUCEF::MLF::MEMMAN_LockUnprotectsRange( lockId );
+            GUCEF::MLF::MEMMAN_DeAllocateMemory( buf, MM_FREE, GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_ExclusiveLockReleased( lockId );
+            GUCEF::MLF::MEMMAN_ExclusiveLockDestroy( lockId );
+            ASSERT_TRUE( true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 6: Lock NOT held at dealloc time - warning logged, must not crash
+    GUCEF_TESTFW_TESTCASE( "Test 6: Lock not held at dealloc - warning logged no crash" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: Lock not held at dealloc - warning logged no crash" );
+            void* lockId = reinterpret_cast< void* >( static_cast< uintptr_t >( 0xEEEE0006 ) );
+            GUCEF::MLF::MEMMAN_ExclusiveLockCreated( lockId );
+            /* Do NOT obtain the lock - so it is not held during dealloc */
+            void* buf = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 64, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            ASSERT_TRUE( buf != GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_LockProtectsRange( lockId, buf, 64 );
+            /* Dealloc while lock not held: a warning is expected, but execution continues */
+            GUCEF::MLF::MEMMAN_DeAllocateMemory( buf, MM_FREE, GUCEF_NULL );
+            /* These must still be reachable */
+            GUCEF::MLF::MEMMAN_LockUnprotectsRange( lockId );
+            GUCEF::MLF::MEMMAN_ExclusiveLockDestroy( lockId );
+            ASSERT_TRUE( true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+#endif /* GUCEF_MLF_TSAN_ACTIVE ? */
 
     GUCEF::MLF::MEMMAN_Shutdown();
 

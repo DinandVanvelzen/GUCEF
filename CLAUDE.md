@@ -54,10 +54,37 @@ This file contains important notes and reminders for AI assistants working on th
    - After regeneration, Visual Studio will prompt to reload the modified project files
 
 5. **Triggering builds from within Visual Studio**
-   - Use the `run_build` tool to trigger a build - this works from within Visual Studio
-   - This will also trigger CMake regeneration if CMakeLists.txt files have changed
-   - Terminal commands (`run_command_in_terminal`) are NOT implemented in the VS integration
-   - Always use `run_build` after modifying CMakeLists.txt to ensure changes are picked up
+   - Use the `build_solution` or `build_project` MCP tools to trigger a build from within Visual Studio
+   - These tools are provided by the **VS MCP Server** extension (see Visual Studio Setup below)
+   - Always trigger a build after modifying CMakeLists.txt to ensure changes are picked up
+
+### Visual Studio 2026 Pro Setup
+
+**CRITICAL: Do NOT assume Visual Studio is not running.** The user works inside Visual Studio 2026 Pro and launches Claude Code from within it via the Claude Code Extension. If MCP tools are unavailable or a port check fails, this does NOT mean VS is not running — it may mean the VS MCP Server extension is not yet active. Before asking or stating that VS is not running, first verify by checking running processes (`tasklist | findstr devenv`). The solution is always open when this session is active.
+
+If you detect you are running inside Visual Studio 2026 (e.g., told so by the user, or the session context indicates it), check whether the following MCP tools are available: `build_solution`, `document_open`, `solution_info`, etc.
+
+If these tools are **not available**, prompt the user to install the required extensions:
+
+1. **Claude Code Extension** (chat UI inside VS):
+   - https://marketplace.visualstudio.com/items?itemName=dliedke.ClaudeCodeExtension
+
+2. **VS MCP Server** (exposes VS GUI control as MCP tools):
+   - https://marketplace.visualstudio.com/items?itemName=CodingWithCalvin.VS-MCPServer
+   - After installing, register it with Claude Code by running (from a standalone terminal, NOT inside a Claude session):
+     ```
+     claude mcp add vs-mcp-server --transport sse http://localhost:5050/sse --scope user
+     ```
+   - The `--scope user` flag is required to make it available across all projects (valid scopes: local, user, project, dynamic, enterprise, claudeai, managed)
+   - Do NOT run this from inside a Claude session - it won't persist correctly
+   - Then restart the Claude Code session so the new tools are loaded
+
+**Available MCP tools once configured:**
+- `solution_info` / `solution_open` / `solution_close` - Solution management
+- `project_list` / `project_info` - Project metadata
+- `document_list` / `document_active` / `document_open` / `document_read` / `document_write` - File/editor control
+- `selection_get` / `selection_set` / `editor_insert` / `editor_replace` / `editor_goto_line` / `editor_find` - Editor operations
+- `build_solution` / `build_project` / `clean_solution` / `build_cancel` / `build_status` - Build control
 
 6. **Platform-specific implementations (IMPORTANT)**
    - Source and header files often have platform-specific implementations in subdirectories
@@ -211,6 +238,12 @@ This prevents data loss from uncommitted work.
       }
   GUCEF_TESTFW_TESTCASE_END
   ```
+
+### Investigating Claude Code / MCP Issues
+
+- When troubleshooting Claude Code configuration or MCP server issues, check `~/.claude.json` (home directory) — this file contains the actual runtime state including registered MCP servers, per-project settings, and tool allowlists
+- Do NOT assume the configuration is missing just because it's not in `~/.claude/settings.json` — they serve different purposes
+- Read the file contents before drawing conclusions; do not guess at what might be configured
 
 ### Progress Tracking for Multi-File Tasks
 

@@ -31,6 +31,11 @@
 #define GUCEF_CALLSTACK_H
 #endif /* GUCEF_CALLSTACK_H ? */
 
+#ifndef GUCEF_MLF_SMEMORYTRACKERCONFIG_H
+#include "gucefMLF_SMemoryTrackerConfig.h"
+#define GUCEF_MLF_SMEMORYTRACKERCONFIG_H
+#endif /* GUCEF_MLF_SMEMORYTRACKERCONFIG_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -143,6 +148,62 @@ PerformCallStackTests( void )
             GUCEF::MLF::MEMMAN_CallstackScopeEnd();
             /* outStack may be null if callstack tracing is disabled in the DLL */
             ASSERT_TRUE( true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 5: Default config (enableRawCallstackCapture=true) - alloc + dealloc succeeds
+    GUCEF_TESTFW_TESTCASE( "Test 5: Default enableRawCallstackCapture alloc+dealloc succeeds" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: Default enableRawCallstackCapture alloc+dealloc succeeds" );
+            GUCEF::MLF::SMemoryTrackerConfig cfg;
+            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            ASSERT_TRUE( cfg.enableRawCallstackCapture == true );
+            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            ASSERT_TRUE( ptr != GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 6: enableRawCallstackCapture=false - alloc + dealloc still works
+    GUCEF_TESTFW_TESTCASE( "Test 6: enableRawCallstackCapture=false alloc+dealloc works" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: enableRawCallstackCapture=false alloc+dealloc works" );
+            GUCEF::MLF::SMemoryTrackerConfig cfg;
+            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            cfg.enableRawCallstackCapture = false;
+            ASSERT_TRUE( cfg.enableRawCallstackCapture == false );
+            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            ASSERT_TRUE( ptr != GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 7: maxRawCallstackDepth=1 - alloc + dealloc still works
+    GUCEF_TESTFW_TESTCASE( "Test 7: maxRawCallstackDepth=1 alloc+dealloc works" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 7: maxRawCallstackDepth=1 alloc+dealloc works" );
+            GUCEF::MLF::SMemoryTrackerConfig cfg;
+            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            cfg.maxRawCallstackDepth = 1;
+            ASSERT_TRUE( cfg.maxRawCallstackDepth == 1 );
+            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            ASSERT_TRUE( ptr != GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
         }
         catch( ... )
         {

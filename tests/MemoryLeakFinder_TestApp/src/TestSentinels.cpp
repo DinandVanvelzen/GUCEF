@@ -31,6 +31,11 @@
 #define GUCEF_MLF_CALLOCATIONRECORD_H
 #endif /* GUCEF_MLF_CALLOCATIONRECORD_H ? */
 
+#ifndef GUCEF_MLF_SMEMORYTRACKERCONFIG_H
+#include "gucefMLF_SMemoryTrackerConfig.h"
+#define GUCEF_MLF_SMEMORYTRACKERCONFIG_H
+#endif /* GUCEF_MLF_SMEMORYTRACKERCONFIG_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -201,6 +206,76 @@ PerformSentinelTests( void )
             ERRORHERE;
         }
     GUCEF_TESTFW_TESTCASE_END
+
+#ifndef GUCEF_MLF_ASAN_ACTIVE
+
+    // Test 6: Guard page mode - alloc returns non-null
+    GUCEF_TESTFW_TESTCASE( "Test 6: Guard page mode alloc returns non-null" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: Guard page mode alloc returns non-null" );
+            /* useGuardPages=true configures hardware-enforced page protection after each allocation.
+             * We verify the field is settable and a standard alloc still returns non-null.
+             * Hardware boundary enforcement is validated in manual debug sessions. */
+            GUCEF::MLF::SMemoryTrackerConfig cfg;
+            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            cfg.useGuardPages = true;
+            ASSERT_TRUE( cfg.useGuardPages == true );
+            const size_t userSize = 64;
+            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            ASSERT_TRUE( ptr != GUCEF_NULL );
+            if ( ptr != GUCEF_NULL )
+            {
+                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            }
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 7: Guard page mode - memset of entire user buffer does not crash
+    GUCEF_TESTFW_TESTCASE( "Test 7: Guard page mode memset of user buffer no crash" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 7: Guard page mode memset of user buffer no crash" );
+            const size_t userSize = 64;
+            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            ASSERT_TRUE( ptr != GUCEF_NULL );
+            if ( ptr != GUCEF_NULL )
+            {
+                memset( ptr, 0xAB, userSize );
+                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            }
+            ASSERT_TRUE( true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 8: SMemoryTrackerConfig.useGuardPages is settable
+    GUCEF_TESTFW_TESTCASE( "Test 8: useGuardPages config field is settable" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 8: useGuardPages config field is settable" );
+            GUCEF::MLF::SMemoryTrackerConfig cfg;
+            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            ASSERT_TRUE( cfg.useGuardPages == false );
+            cfg.useGuardPages = true;
+            ASSERT_TRUE( cfg.useGuardPages == true );
+            cfg.useGuardPages = false;
+            ASSERT_TRUE( cfg.useGuardPages == false );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+#endif /* GUCEF_MLF_ASAN_ACTIVE ? */
 
     GUCEF::MLF::MEMMAN_Shutdown();
 

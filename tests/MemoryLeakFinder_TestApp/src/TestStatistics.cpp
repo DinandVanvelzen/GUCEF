@@ -26,6 +26,11 @@
 #define GUCEF_MLF_MEMORYMANAGER_H
 #endif /* GUCEF_MLF_MEMORYMANAGER_H ? */
 
+#ifndef GUCEF_MLF_SMEMORYTRACKERCONFIG_H
+#include "gucefMLF_SMemoryTrackerConfig.h"
+#define GUCEF_MLF_SMEMORYTRACKERCONFIG_H
+#endif /* GUCEF_MLF_SMEMORYTRACKERCONFIG_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -162,6 +167,47 @@ PerformStatisticsTests( void )
             void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 1024 * 1024, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
             GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 6: MEMMAN_DumpCallsiteReport does not crash
+    GUCEF_TESTFW_TESTCASE( "Test 6: DumpCallsiteReport does not crash" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: DumpCallsiteReport does not crash" );
+            /* Allocate a few blocks from the same file+line to create callsite entries */
+            void* ptr1 = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 16, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr2 = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 16, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr1, MM_FREE, GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr2, MM_FREE, GUCEF_NULL );
+            /* Stats may show zero if callsite profiling is disabled (default); that is expected */
+            GUCEF::MLF::MEMMAN_DumpCallsiteReport( 10 );
+            ASSERT_TRUE( true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 7: MEMMAN_DumpSizeHistogram does not crash
+    GUCEF_TESTFW_TESTCASE( "Test 7: DumpSizeHistogram does not crash" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 7: DumpSizeHistogram does not crash" );
+            /* Allocate blocks spanning multiple size buckets then free them */
+            void* pSmall  = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__,    8, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* pMedium = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__,  100, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* pLarge  = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 2048, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_DeAllocateMemory( pSmall,  MM_FREE, GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_DeAllocateMemory( pMedium, MM_FREE, GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_DeAllocateMemory( pLarge,  MM_FREE, GUCEF_NULL );
+            GUCEF::MLF::MEMMAN_DumpSizeHistogram();
+            ASSERT_TRUE( true );
         }
         catch( ... )
         {

@@ -53,3 +53,4 @@ projects/k3s/jenkins/CICD_USER_TOKEN.txt
 projects/k3s/longhorn/longhorn-disks.yaml
 projects/k3s/gucef_dev/vanvelzen-github-gucef-dev-base-latest.tar
 projects/k3s/gucef_dev/pod_volume/*
+.claude/settings.local.json
