@@ -40,10 +40,10 @@
 #undef GUCEF_USE_CALLSTACK_TRACING
 #undef GUCEF_USE_CALLSTACK_PLATFORM_TRACING
 
-#ifndef GUCEF_MLF_CALLOCATIONRECORD_H
-#include "gucefMLF_CAllocationRecord.h"
-#define GUCEF_MLF_CALLOCATIONRECORD_H
-#endif /* GUCEF_MLF_CALLOCATIONRECORD_H ? */
+#ifndef GUCEF_DRGUP_CALLOCATIONRECORD_H
+#include "gucefDRGUP_CAllocationRecord.h"
+#define GUCEF_DRGUP_CALLOCATIONRECORD_H
+#endif /* GUCEF_DRGUP_CALLOCATIONRECORD_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -52,7 +52,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace MLF {
+namespace DRGUP {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -128,12 +128,12 @@ CAllocationRecord::Release( CAllocationRecord* record )
     }
     if ( GUCEF_NULL != record->allocCallstack )
     {
-        MEMMAN_FreeCallstackCopy( record->allocCallstack );
+        DRGUP_FreeCallstackCopy( record->allocCallstack );
         record->allocCallstack = GUCEF_NULL;
     }
     if ( GUCEF_NULL != record->deallocCallstack )
     {
-        MEMMAN_FreeCallstackCopy( record->deallocCallstack );
+        DRGUP_FreeCallstackCopy( record->deallocCallstack );
         record->deallocCallstack = GUCEF_NULL;
     }
     if ( GUCEF_NULL != record->allocRawCallstack )
@@ -353,7 +353,7 @@ CAllocationRecord::CountUsedBodyBytes( void ) const
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MLF */
+}; /* namespace DRGUP */
 }; /* namespace GUCEF */
 
 /*--------------------------------------------------------------------------*/

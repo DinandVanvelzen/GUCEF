@@ -15,8 +15,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_MLF_CLOCKTRACER_H
-#define GUCEF_MLF_CLOCKTRACER_H
+#ifndef GUCEF_DRGUP_CLOCKTRACER_H
+#define GUCEF_DRGUP_CLOCKTRACER_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -28,13 +28,13 @@
 #include <stdio.h>
 #include <stdlib.h>   /* size_t */
 
-#ifndef GUCEF_MLF_ETYPES_H
-#include "gucefMLF_ETypes.h"
-#define GUCEF_MLF_ETYPES_H
-#endif /* GUCEF_MLF_ETYPES_H ? */
+#ifndef GUCEF_DRGUP_ETYPES_H
+#include "gucefDRGUP_ETypes.h"
+#define GUCEF_DRGUP_ETYPES_H
+#endif /* GUCEF_DRGUP_ETYPES_H ? */
 
 #ifndef GUCEF_CALLSTACK_H
-#include "gucefMLF_callstack.h"
+#include "gucefDRGUP_callstack.h"
 #define GUCEF_CALLSTACK_H
 #endif /* GUCEF_CALLSTACK_H ? */
 
@@ -65,7 +65,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace MLF {
+namespace DRGUP {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -202,9 +202,9 @@ class GUCEF_HIDDEN CLockTracer
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MLF */
+}; /* namespace DRGUP */
 }; /* namespace GUCEF */
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MLF_CLOCKTRACER_H ? */
+#endif /* GUCEF_DRGUP_CLOCKTRACER_H ? */

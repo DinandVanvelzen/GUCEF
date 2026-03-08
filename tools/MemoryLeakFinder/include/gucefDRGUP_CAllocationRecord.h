@@ -15,8 +15,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_MLF_CALLOCATIONRECORD_H
-#define GUCEF_MLF_CALLOCATIONRECORD_H
+#ifndef GUCEF_DRGUP_CALLOCATIONRECORD_H
+#define GUCEF_DRGUP_CALLOCATIONRECORD_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -27,20 +27,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef GUCEF_MLF_ETYPES_H
-#include "gucefMLF_ETypes.h"
-#define GUCEF_MLF_ETYPES_H
-#endif /* GUCEF_MLF_ETYPES_H ? */
+#ifndef GUCEF_DRGUP_ETYPES_H
+#include "gucefDRGUP_ETypes.h"
+#define GUCEF_DRGUP_ETYPES_H
+#endif /* GUCEF_DRGUP_ETYPES_H ? */
 
 #ifndef GUCEF_CALLSTACK_H
-#include "gucefMLF_callstack.h"
+#include "gucefDRGUP_callstack.h"
 #define GUCEF_CALLSTACK_H
 #endif /* GUCEF_CALLSTACK_H ? */
 
-#ifndef GUCEF_MLF_MEMORYMANAGER_H
-#include "gucefMLF_MemoryManager.h"
-#define GUCEF_MLF_MEMORYMANAGER_H
-#endif /* GUCEF_MLF_MEMORYMANAGER_H ? */
+#ifndef GUCEF_DRGUP_MEMORYMANAGER_H
+#include "gucefDRGUP_MemoryManager.h"
+#define GUCEF_DRGUP_MEMORYMANAGER_H
+#endif /* GUCEF_DRGUP_MEMORYMANAGER_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -49,7 +49,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace MLF {
+namespace DRGUP {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -206,9 +206,9 @@ class GUCEF_HIDDEN CAllocationRecord
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MLF */
+}; /* namespace DRGUP */
 }; /* namespace GUCEF */
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MLF_CALLOCATIONRECORD_H ? */
+#endif /* GUCEF_DRGUP_CALLOCATIONRECORD_H ? */

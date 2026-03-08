@@ -42,30 +42,30 @@
 
 inline
 void
-MEMMAN_SetExhaustiveTesting( unsigned __int32 test )
+DRGUP_SetExhaustiveTesting( unsigned __int32 test )
 {
-    if ( 0 != MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_SetExhaustiveTesting( test );
+    if ( 0 != DRGUP_LazyLoadMemoryManager() )
+        fp_DRGUP_SetExhaustiveTesting( test );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void
-MEMMAN_SetPaddingSize( unsigned __int32 size )
+DRGUP_SetPaddingSize( unsigned __int32 size )
 {
-    if ( 0 != MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_SetPaddingSize( size );
+    if ( 0 != DRGUP_LazyLoadMemoryManager() )
+        fp_DRGUP_SetPaddingSize( size );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
-MEMMAN_Int32
-MEMMAN_SetOwner( const char* file, int line, const char* typeName )
+DRGUP_Int32
+DRGUP_SetOwner( const char* file, int line, const char* typeName )
 {
-    if ( 0 != MEMMAN_LazyLoadMemoryManager() )
-        return fp_MEMMAN_SetOwner( file, line, typeName );
+    if ( 0 != DRGUP_LazyLoadMemoryManager() )
+        return fp_DRGUP_SetOwner( file, line, typeName );
     return 0;
 }
 
@@ -73,21 +73,21 @@ MEMMAN_SetOwner( const char* file, int line, const char* typeName )
 
 inline
 void*
-MEMMAN_malloc( const char* file, int line, size_t size )
+DRGUP_malloc( const char* file, int line, size_t size )
 {
-    return ( 0 == MEMMAN_LazyLoadMemoryManager() ?
+    return ( 0 == DRGUP_LazyLoadMemoryManager() ?
              malloc( size ) :
-             fp_MEMMAN_AllocateMemory( file, line, size, MM_MALLOC, GUCEF_NULL, GUCEF_NULL ) );
+             fp_DRGUP_AllocateMemory( file, line, size, MM_MALLOC, GUCEF_NULL, GUCEF_NULL ) );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void*
-MEMMAN_placement_new( const char* file, int line, size_t size, void* address, const char* typeName )
+DRGUP_placement_new( const char* file, int line, size_t size, void* address, const char* typeName )
 {
-    if ( 0 != MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_AllocateMemory( file, line, size, MM_PLACEMENT_NEW, address, typeName );
+    if ( 0 != DRGUP_LazyLoadMemoryManager() )
+        fp_DRGUP_AllocateMemory( file, line, size, MM_PLACEMENT_NEW, address, typeName );
     return address;
 }
 
@@ -95,66 +95,66 @@ MEMMAN_placement_new( const char* file, int line, size_t size, void* address, co
 
 inline
 void*
-MEMMAN_calloc( const char* file, int line, size_t num, size_t size )
+DRGUP_calloc( const char* file, int line, size_t num, size_t size )
 {
-    return ( 0 == MEMMAN_LazyLoadMemoryManager() ?
+    return ( 0 == DRGUP_LazyLoadMemoryManager() ?
              calloc( num, size ) :
-             fp_MEMMAN_AllocateMemory( file, line, size * num, MM_CALLOC, NULL, GUCEF_NULL ) );
+             fp_DRGUP_AllocateMemory( file, line, size * num, MM_CALLOC, NULL, GUCEF_NULL ) );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void*
-MEMMAN_realloc( const char* file, int line, void* ptr, size_t size )
+DRGUP_realloc( const char* file, int line, void* ptr, size_t size )
 {
-    if ( 0 == MEMMAN_LazyLoadMemoryManager() )
+    if ( 0 == DRGUP_LazyLoadMemoryManager() )
         return realloc( ptr, size );
     return ptr ?
-        fp_MEMMAN_AllocateMemory( file, line, size, MM_REALLOC, ptr, GUCEF_NULL ) :
-        fp_MEMMAN_AllocateMemory( file, line, size, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+        fp_DRGUP_AllocateMemory( file, line, size, MM_REALLOC, ptr, GUCEF_NULL ) :
+        fp_DRGUP_AllocateMemory( file, line, size, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void
-MEMMAN_free( const char* file, int line, void* ptr )
+DRGUP_free( const char* file, int line, void* ptr )
 {
-    if ( 0 == MEMMAN_LazyLoadMemoryManager() )
+    if ( 0 == DRGUP_LazyLoadMemoryManager() )
         free( ptr );
     else
-        fp_MEMMAN_DeAllocateMemoryEx( file, line, ptr, MM_FREE, GUCEF_NULL );
+        fp_DRGUP_DeAllocateMemoryEx( file, line, ptr, MM_FREE, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void
-MEMMAN_ValidateAccessibility( const void* address, unsigned __int32 blocksize, const char* file, int line )
+DRGUP_ValidateAccessibility( const void* address, unsigned __int32 blocksize, const char* file, int line )
 {
-    if ( 0 != MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_ValidateAccessibility( address, blocksize, file, line );
+    if ( 0 != DRGUP_LazyLoadMemoryManager() )
+        fp_DRGUP_ValidateAccessibility( address, blocksize, file, line );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void
-MEMMAN_ValidatePendingDestructor( const char* file, int line, const void* address, size_t blocksize, const char* typeName )
+DRGUP_ValidatePendingDestructor( const char* file, int line, const void* address, size_t blocksize, const char* typeName )
 {
-    if ( 0 != MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_ValidatePendingDestructor( file, line, address, blocksize, typeName );
+    if ( 0 != DRGUP_LazyLoadMemoryManager() )
+        fp_DRGUP_ValidatePendingDestructor( file, line, address, blocksize, typeName );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void
-MEMMAN_ValidateFinishedDestructor( const char* file, int line, const void* address, size_t blocksize, const char* typeName )
+DRGUP_ValidateFinishedDestructor( const char* file, int line, const void* address, size_t blocksize, const char* typeName )
 {
-    if ( 0 != MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_ValidateFinishedDestructor( file, line, address, blocksize, typeName );
+    if ( 0 != DRGUP_LazyLoadMemoryManager() )
+        fp_DRGUP_ValidateFinishedDestructor( file, line, address, blocksize, typeName );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -166,67 +166,67 @@ MEMMAN_ValidateFinishedDestructor( const char* file, int line, const void* addre
 
 inline
 wchar_t*
-MEMMAN_SysAllocString( const char* file, int line, wchar_t* wcharStr )
+DRGUP_SysAllocString( const char* file, int line, wchar_t* wcharStr )
 {
-    return ( 0 == MEMMAN_LazyLoadMemoryManager() ?
+    return ( 0 == DRGUP_LazyLoadMemoryManager() ?
              SysAllocString( wcharStr ) :
-             fp_MEMMAN_SysAllocString( file, line, wcharStr ) );
+             fp_DRGUP_SysAllocString( file, line, wcharStr ) );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 wchar_t*
-MEMMAN_SysAllocStringByteLen( const char* file, int line, const char* str, unsigned int bufferSize )
+DRGUP_SysAllocStringByteLen( const char* file, int line, const char* str, unsigned int bufferSize )
 {
-    return ( 0 == MEMMAN_LazyLoadMemoryManager() ?
+    return ( 0 == DRGUP_LazyLoadMemoryManager() ?
              SysAllocStringByteLen( str, bufferSize ) :
-             fp_MEMMAN_SysAllocStringByteLen( file, line, str, bufferSize ) );
+             fp_DRGUP_SysAllocStringByteLen( file, line, str, bufferSize ) );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 wchar_t*
-MEMMAN_SysAllocStringLen( const char* file, int line, const wchar_t* str, unsigned int charsToCopy )
+DRGUP_SysAllocStringLen( const char* file, int line, const wchar_t* str, unsigned int charsToCopy )
 {
-    return ( 0 == MEMMAN_LazyLoadMemoryManager() ?
+    return ( 0 == DRGUP_LazyLoadMemoryManager() ?
              SysAllocStringLen( str, charsToCopy ) :
-             fp_MEMMAN_SysAllocStringLen( file, line, str, charsToCopy ) );
+             fp_DRGUP_SysAllocStringLen( file, line, str, charsToCopy ) );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void
-MEMMAN_SysFreeString( const char* file, int line, wchar_t* bstrString )
+DRGUP_SysFreeString( const char* file, int line, wchar_t* bstrString )
 {
-    if ( 0 == MEMMAN_LazyLoadMemoryManager() )
+    if ( 0 == DRGUP_LazyLoadMemoryManager() )
         SysFreeString( bstrString );
     else
-        fp_MEMMAN_SysFreeString( file, line, bstrString );
+        fp_DRGUP_SysFreeString( file, line, bstrString );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 int
-MEMMAN_SysReAllocString( const char* file, int line, wchar_t** pbstr, const wchar_t* psz )
+DRGUP_SysReAllocString( const char* file, int line, wchar_t** pbstr, const wchar_t* psz )
 {
-    return ( 0 == MEMMAN_LazyLoadMemoryManager() ?
+    return ( 0 == DRGUP_LazyLoadMemoryManager() ?
              SysReAllocString( pbstr, psz ) :
-             fp_MEMMAN_SysReAllocString( file, line, pbstr, psz ) );
+             fp_DRGUP_SysReAllocString( file, line, pbstr, psz ) );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 int
-MEMMAN_SysReAllocStringLen( const char* file, int line, wchar_t** pbstr, const wchar_t* psz, unsigned int len )
+DRGUP_SysReAllocStringLen( const char* file, int line, wchar_t** pbstr, const wchar_t* psz, unsigned int len )
 {
-    return ( 0 == MEMMAN_LazyLoadMemoryManager() ?
+    return ( 0 == DRGUP_LazyLoadMemoryManager() ?
              SysReAllocStringLen( pbstr, psz, len ) :
-             fp_MEMMAN_SysReAllocStringLen( file, line, pbstr, psz, len ) );
+             fp_DRGUP_SysReAllocStringLen( file, line, pbstr, psz, len ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -238,20 +238,20 @@ MEMMAN_SysReAllocStringLen( const char* file, int line, wchar_t** pbstr, const w
 
 inline
 void
-MEMMAN_CallstackScopeBegin( const char* file, int line )
+DRGUP_CallstackScopeBegin( const char* file, int line )
 {
-    if ( 1 == MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_CallstackScopeBegin( file, line );
+    if ( 1 == DRGUP_LazyLoadMemoryManager() )
+        fp_DRGUP_CallstackScopeBegin( file, line );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void
-MEMMAN_CallstackScopeEnd( void )
+DRGUP_CallstackScopeEnd( void )
 {
-    if ( 1 == MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_CallstackScopeEnd();
+    if ( 1 == DRGUP_LazyLoadMemoryManager() )
+        fp_DRGUP_CallstackScopeEnd();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -263,50 +263,50 @@ MEMMAN_CallstackScopeEnd( void )
 
 inline
 void
-MEMMAN_ExclusiveLockCreated( void* lockId )
+DRGUP_ExclusiveLockCreated( void* lockId )
 {
-    if ( 1 == MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_ExclusiveLockCreated( lockId );
+    if ( 1 == DRGUP_LazyLoadMemoryManager() )
+        fp_DRGUP_ExclusiveLockCreated( lockId );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void
-MEMMAN_ExclusiveLockObtained( void* lockId )
+DRGUP_ExclusiveLockObtained( void* lockId )
 {
-    if ( 1 == MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_ExclusiveLockObtained( lockId );
+    if ( 1 == DRGUP_LazyLoadMemoryManager() )
+        fp_DRGUP_ExclusiveLockObtained( lockId );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void
-MEMMAN_ExclusiveLockReleased( void* lockId )
+DRGUP_ExclusiveLockReleased( void* lockId )
 {
-    if ( 1 == MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_ExclusiveLockReleased( lockId );
+    if ( 1 == DRGUP_LazyLoadMemoryManager() )
+        fp_DRGUP_ExclusiveLockReleased( lockId );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void
-MEMMAN_ExclusiveLockAbandoned( void* lockId )
+DRGUP_ExclusiveLockAbandoned( void* lockId )
 {
-    if ( 1 == MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_ExclusiveLockAbandoned( lockId );
+    if ( 1 == DRGUP_LazyLoadMemoryManager() )
+        fp_DRGUP_ExclusiveLockAbandoned( lockId );
 }
 
 /*-------------------------------------------------------------------------*/
 
 inline
 void
-MEMMAN_ExclusiveLockDestroy( void* lockId )
+DRGUP_ExclusiveLockDestroy( void* lockId )
 {
-    if ( 1 == MEMMAN_LazyLoadMemoryManager() )
-        fp_MEMMAN_ExclusiveLockDestroy( lockId );
+    if ( 1 == DRGUP_LazyLoadMemoryManager() )
+        fp_DRGUP_ExclusiveLockDestroy( lockId );
 }
 
 /*-------------------------------------------------------------------------*/

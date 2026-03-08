@@ -36,8 +36,8 @@
 #undef GUCEF_USE_CALLSTACK_TRACING
 #undef GUCEF_USE_CALLSTACK_PLATFORM_TRACING
 
-#include "gucefMLF_CMemoryTracker.h"
-#include "gucefMLF_callstack.h"
+#include "gucefDRGUP_CMemoryTracker.h"
+#include "gucefDRGUP_callstack.h"
 
 #ifndef GUCEF_MT_DVMTOSWRAP_H
 #include "gucefMT_dvmtoswrap.h"
@@ -73,15 +73,15 @@
   #include <unistd.h>     /* sysconf / _SC_PAGESIZE */
 #endif
 
-#ifndef GUCEF_MLF_CLOCKTRACER_H
-#include "gucefMLF_CLockTracer.h"
-#define GUCEF_MLF_CLOCKTRACER_H
-#endif /* GUCEF_MLF_CLOCKTRACER_H ? */
+#ifndef GUCEF_DRGUP_CLOCKTRACER_H
+#include "gucefDRGUP_CLockTracer.h"
+#define GUCEF_DRGUP_CLOCKTRACER_H
+#endif /* GUCEF_DRGUP_CLOCKTRACER_H ? */
 
-#ifndef GUCEF_MLF_CCALLSITESTATS_H
-#include "gucefMLF_CCallsiteStats.h"
-#define GUCEF_MLF_CCALLSITESTATS_H
-#endif /* GUCEF_MLF_CCALLSITESTATS_H ? */
+#ifndef GUCEF_DRGUP_CCALLSITESTATS_H
+#include "gucefDRGUP_CCallsiteStats.h"
+#define GUCEF_DRGUP_CCALLSITESTATS_H
+#endif /* GUCEF_DRGUP_CCALLSITESTATS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -90,7 +90,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace MLF {
+namespace DRGUP {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -476,7 +476,7 @@ CMemoryTracker::ApplyConfig( const SMemoryTrackerConfig& cfg )
     m_config.useGuardPages              = cfg.useGuardPages;
     /* When guard pages are active, cap the dealloc ring to avoid address space exhaustion.
      * Each entry consumes at least one page (4 KB) of address space in 32-bit processes. */
-    #ifndef GUCEF_MLF_ASAN_ACTIVE
+    #ifndef GUCEF_DRGUP_ASAN_ACTIVE
     if ( m_config.useGuardPages && m_config.deallocRingCapacity > 1000 )
         m_config.deallocRingCapacity = 1000;
     #endif
@@ -532,22 +532,22 @@ CMemoryTracker::ReturnToPool( CAllocationRecord* record )
     }
     if ( GUCEF_NULL != record->allocCallstack )
     {
-        MEMMAN_FreeCallstackCopy( record->allocCallstack );
+        DRGUP_FreeCallstackCopy( record->allocCallstack );
         record->allocCallstack = GUCEF_NULL;
     }
     if ( GUCEF_NULL != record->deallocCallstack )
     {
-        MEMMAN_FreeCallstackCopy( record->deallocCallstack );
+        DRGUP_FreeCallstackCopy( record->deallocCallstack );
         record->deallocCallstack = GUCEF_NULL;
     }
     if ( GUCEF_NULL != record->allocRawCallstack )
     {
-        MEMMAN_FreeRawCallstack( record->allocRawCallstack );
+        DRGUP_FreeRawCallstack( record->allocRawCallstack );
         record->allocRawCallstack = GUCEF_NULL;
     }
     if ( GUCEF_NULL != record->deallocRawCallstack )
     {
-        MEMMAN_FreeRawCallstack( record->deallocRawCallstack );
+        DRGUP_FreeRawCallstack( record->deallocRawCallstack );
         record->deallocRawCallstack = GUCEF_NULL;
     }
 
@@ -832,7 +832,7 @@ CMemoryTracker::TrackAllocation( const char* file    ,
                 ++m_numSubAllocations;
 
                 if ( m_config.enableCallstackCapture )
-                    MEMMAN_GetCallstackCopyForCurrentThread( &subRec->allocCallstack, 1 );
+                    DRGUP_GetCallstackCopyForCurrentThread( &subRec->allocCallstack, 1 );
 
                 if ( m_config.logAlways )
                     Log( "MEMMAN: PlacementNew %s(%05d) %s(0x%p) size=%zu",
@@ -887,10 +887,10 @@ CMemoryTracker::TrackAllocation( const char* file    ,
         {
             if ( GUCEF_NULL != existingRec->allocCallstack )
             {
-                MEMMAN_FreeCallstackCopy( existingRec->allocCallstack );
+                DRGUP_FreeCallstackCopy( existingRec->allocCallstack );
                 existingRec->allocCallstack = GUCEF_NULL;
             }
-            MEMMAN_GetCallstackCopyForCurrentThread( &existingRec->allocCallstack, 1 );
+            DRGUP_GetCallstackCopyForCurrentThread( &existingRec->allocCallstack, 1 );
         }
 
         InsertRecord( existingRec );
@@ -921,7 +921,7 @@ CMemoryTracker::TrackAllocation( const char* file    ,
     rec->breakOptions   = 0;
 
     /* --- Guard page allocation (opt-in, disabled under ASan) --- */
-    #if !defined( GUCEF_MLF_ASAN_ACTIVE )
+    #if !defined( GUCEF_DRGUP_ASAN_ACTIVE )
     if ( m_config.useGuardPages )
     {
         size_t pageSize    = GetSystemPageSize();
@@ -975,7 +975,7 @@ CMemoryTracker::TrackAllocation( const char* file    ,
             /* Fall through to normal malloc below */
         }
     }
-    #endif /* GUCEF_MLF_ASAN_ACTIVE */
+    #endif /* GUCEF_DRGUP_ASAN_ACTIVE */
 
     /* --- Normal malloc path (used when guard pages are disabled or fell back) --- */
     if ( GUCEF_NULL == rec->actualAddress )
@@ -998,13 +998,13 @@ CMemoryTracker::TrackAllocation( const char* file    ,
     rec->allocationTimestampUs = GetCurrentTimestampUs() - m_timestampBaseUs;
 
     if ( m_config.enableCallstackCapture )
-        MEMMAN_GetCallstackCopyForCurrentThread( &rec->allocCallstack, 1 );
+        DRGUP_GetCallstackCopyForCurrentThread( &rec->allocCallstack, 1 );
 
     if ( m_config.enableRawCallstackCapture )
-        MEMMAN_CaptureRawCallstack( &rec->allocRawCallstack, m_config.maxRawCallstackDepth );
+        DRGUP_CaptureRawCallstack( &rec->allocRawCallstack, m_config.maxRawCallstackDepth );
 
     /* Initialize sentinels */
-#if defined( GUCEF_MLF_ASAN_ACTIVE ) || defined( GUCEF_MLF_MSAN_ACTIVE )
+#if defined( GUCEF_DRGUP_ASAN_ACTIVE ) || defined( GUCEF_DRGUP_MSAN_ACTIVE )
     /* ASan/MSan owns memory poisoning — do not fill the body */
     (void) ALLOC_BODY_SENTINEL;
 #else
@@ -1147,7 +1147,7 @@ CMemoryTracker::TrackDeallocation( void*       address  ,
         GUCEF_SETBREAKPOINT;
 
     /* Lock range protection check — warn if deallocating a range declared protected by an unheld lock */
-    #ifndef GUCEF_MLF_TSAN_ACTIVE
+    #ifndef GUCEF_DRGUP_TSAN_ACTIVE
     {
         CLockTracer* lockTracer = CLockTracer::Instance();
         if ( GUCEF_NULL != lockTracer )
@@ -1160,12 +1160,12 @@ CMemoryTracker::TrackDeallocation( void*       address  ,
             }
         }
     }
-    #endif /* GUCEF_MLF_TSAN_ACTIVE */
+    #endif /* GUCEF_DRGUP_TSAN_ACTIVE */
 
     /* Poison freed memory with recognizable pattern before freeing.
      * Skip for guard-page allocations — the memory is about to be released
      * back to the OS and poisoning serves no diagnostic purpose there. */
-#if !defined( GUCEF_MLF_ASAN_ACTIVE ) && !defined( GUCEF_MLF_MSAN_ACTIVE )
+#if !defined( GUCEF_DRGUP_ASAN_ACTIVE ) && !defined( GUCEF_DRGUP_MSAN_ACTIVE )
     if ( GUCEF_NULL != rec->actualAddress && rec->actualSize > 0 && 0 == rec->guardPageRegionSize )
     {
         long* p     = (long*) rec->actualAddress;
@@ -1181,7 +1181,7 @@ CMemoryTracker::TrackDeallocation( void*       address  ,
 #endif
 
     /* Free the backing memory */
-    #if !defined( GUCEF_MLF_ASAN_ACTIVE )
+    #if !defined( GUCEF_DRGUP_ASAN_ACTIVE )
     if ( rec->guardPageRegionSize > 0 )
     {
         /* Guard-page-backed: release the entire reserved region (data + guard page) */
@@ -1192,7 +1192,7 @@ CMemoryTracker::TrackDeallocation( void*       address  ,
         #endif
     }
     else
-    #endif /* GUCEF_MLF_ASAN_ACTIVE */
+    #endif /* GUCEF_DRGUP_ASAN_ACTIVE */
     {
         ::free( rec->actualAddress );
     }
@@ -1203,19 +1203,19 @@ CMemoryTracker::TrackDeallocation( void*       address  ,
     {
         if ( GUCEF_NULL != rec->deallocCallstack )
         {
-            MEMMAN_FreeCallstackCopy( rec->deallocCallstack );
+            DRGUP_FreeCallstackCopy( rec->deallocCallstack );
             rec->deallocCallstack = GUCEF_NULL;
         }
-        MEMMAN_GetCallstackCopyForCurrentThread( &rec->deallocCallstack, 1 );
+        DRGUP_GetCallstackCopyForCurrentThread( &rec->deallocCallstack, 1 );
     }
     if ( m_config.enableRawCallstackCapture )
     {
         if ( GUCEF_NULL != rec->deallocRawCallstack )
         {
-            MEMMAN_FreeRawCallstack( rec->deallocRawCallstack );
+            DRGUP_FreeRawCallstack( rec->deallocRawCallstack );
             rec->deallocRawCallstack = GUCEF_NULL;
         }
-        MEMMAN_CaptureRawCallstack( &rec->deallocRawCallstack, m_config.maxRawCallstackDepth );
+        DRGUP_CaptureRawCallstack( &rec->deallocRawCallstack, m_config.maxRawCallstackDepth );
     }
 
     /* Overhead accounting */
@@ -1670,7 +1670,7 @@ CMemoryTracker::Log( const char* fmt, ... )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MLF */
+}; /* namespace DRGUP */
 }; /* namespace GUCEF */
 
 /*--------------------------------------------------------------------------*/

@@ -7,7 +7,7 @@
             <Dependency Name="Winmm" Scope="private" />
         </Linker>
         <Preprocessor>
-          <Define String="GUCEF_MLF_BUILD_MODULE" />
+          <Define String="GUCEF_DRGUP_BUILD_MODULE" />
           <Define String="GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI" />
           <Define String="GUCEF_DYNNEWON_DISABLED" />
           <Define String="GUCEF_CALLSTACK_TRACING_DISABLED" />

@@ -24,7 +24,7 @@
  *  Sub-header responsibilities:
  *    gucef_MemoryManagerLoader_types.h  — MM_* constants + all TFP_ typedefs
  *    gucef_MemoryManagerLoader_vars.h   — static fp_* and g_* global variables
- *    gucef_MemoryManagerLoader_load.h   — MEMMAN_LazyLoad/Unload + Windows/Linux impl
+ *    gucef_MemoryManagerLoader_load.h   — DRGUP_LazyLoad/Unload + Windows/Linux impl
  *    gucef_MemoryManagerLoader_inline.h — all inline shim functions (malloc, free, OLE, etc.)
  */
 

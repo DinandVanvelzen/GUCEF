@@ -49,7 +49,7 @@ CGUCEFMTModule::Load( void )
 {GUCEF_TRACE;
 
     #if ( defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED ) )
-    MEMMAN_Initialize();
+    DRGUP_Initialize();
     #endif
 
     // make sure the precision time is initialized
@@ -68,7 +68,7 @@ CGUCEFMTModule::Unload( void )
     PrecisionTimerShutdown();
 
     #if ( defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED ) )
-    MEMMAN_Shutdown();
+    DRGUP_Shutdown();
     #endif
 
     return true;

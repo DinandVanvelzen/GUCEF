@@ -299,11 +299,11 @@ CCoreGlobal::Initialize( void )
      *      Very important: Initialize the memory manager second, after the stack tracer !!!!!
      */
     #if ( defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED ) )
-    MEMMAN_Initialize();
-    MEMMAN_SetExhaustiveTesting( 0 );
-    MEMMAN_SetPaddingSize( 0 );    
+    DRGUP_Initialize();
+    DRGUP_SetExhaustiveTesting( 0 );
+    DRGUP_SetPaddingSize( 0 );    
     CString memLogFilePath = RelativePath( "$MODULEDIR$/GUCEFMemoryLog.txt" );
-    MEMMAN_SetLogFile( memLogFilePath.C_String() );
+    DRGUP_SetLogFile( memLogFilePath.C_String() );
     #endif
 
     /*

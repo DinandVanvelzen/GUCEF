@@ -23,10 +23,10 @@
 
 #include <stdio.h>
 
-#ifndef GUCEF_MLF_MEMORYMANAGER_H
-#include "gucefMLF_MemoryManager.h"
-#define GUCEF_MLF_MEMORYMANAGER_H
-#endif /* GUCEF_MLF_MEMORYMANAGER_H ? */
+#ifndef GUCEF_DRGUP_MEMORYMANAGER_H
+#include "gucefDRGUP_MemoryManager.h"
+#define GUCEF_DRGUP_MEMORYMANAGER_H
+#endif /* GUCEF_DRGUP_MEMORYMANAGER_H ? */
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -76,9 +76,9 @@ PerformOleApiTests( void )
 
 #ifdef MEMCHECK_OLEAPI
 
-    GUCEF::MLF::MEMMAN_Initialize();
+    GUCEF::DRGUP::DRGUP_Initialize();
 
-    { FILE* dbg = fopen( "memman_shutdown_debug.txt", "a" ); if ( dbg ) { fprintf( dbg, "OLEAPI: after MEMMAN_Initialize\n" ); fclose( dbg ); } }
+    { FILE* dbg = fopen( "memman_shutdown_debug.txt", "a" ); if ( dbg ) { fprintf( dbg, "OLEAPI: after DRGUP_Initialize\n" ); fclose( dbg ); } }
 
     // Test 1: SysAllocString returns non-null and SysFreeString does not crash
     { FILE* dbg = fopen( "memman_shutdown_debug.txt", "a" ); if ( dbg ) { fprintf( dbg, "OLEAPI: before Test1 TESTCASE macro\n" ); fclose( dbg ); } }
@@ -90,11 +90,11 @@ PerformOleApiTests( void )
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 1: SysAllocString and SysFreeString" );
             { FILE* dbg = fopen( "memman_shutdown_debug.txt", "a" ); if ( dbg ) { fprintf( dbg, "OLEAPI: Test1 - after GUCEF_LOG, before SysAllocString\n" ); fclose( dbg ); } }
             wchar_t wideStr[] = L"TestString";
-            wchar_t* bstr1 = GUCEF::MLF::MEMMAN_SysAllocString( __FILE__, __LINE__, wideStr );
+            wchar_t* bstr1 = GUCEF::DRGUP::DRGUP_SysAllocString( __FILE__, __LINE__, wideStr );
             { FILE* dbg = fopen( "memman_shutdown_debug.txt", "a" ); if ( dbg ) { fprintf( dbg, "OLEAPI: Test1 - after SysAllocString, bstr1=%p\n", (void*)bstr1 ); fclose( dbg ); } }
             ASSERT_TRUE( bstr1 != GUCEF_NULL );
             { FILE* dbg = fopen( "memman_shutdown_debug.txt", "a" ); if ( dbg ) { fprintf( dbg, "OLEAPI: Test1 - after ASSERT_TRUE, before SysFreeString\n" ); fclose( dbg ); } }
-            GUCEF::MLF::MEMMAN_SysFreeString( __FILE__, __LINE__, bstr1 );
+            GUCEF::DRGUP::DRGUP_SysFreeString( __FILE__, __LINE__, bstr1 );
             { FILE* dbg = fopen( "memman_shutdown_debug.txt", "a" ); if ( dbg ) { fprintf( dbg, "OLEAPI: Test1 - after SysFreeString\n" ); fclose( dbg ); } }
         }
         catch( ... )
@@ -108,9 +108,9 @@ PerformOleApiTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 2: SysAllocStringByteLen and SysFreeString" );
-            wchar_t* bstr2 = GUCEF::MLF::MEMMAN_SysAllocStringByteLen( __FILE__, __LINE__, "hello", 10 );
+            wchar_t* bstr2 = GUCEF::DRGUP::DRGUP_SysAllocStringByteLen( __FILE__, __LINE__, "hello", 10 );
             ASSERT_TRUE( bstr2 != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_SysFreeString( __FILE__, __LINE__, bstr2 );
+            GUCEF::DRGUP::DRGUP_SysFreeString( __FILE__, __LINE__, bstr2 );
         }
         catch( ... )
         {
@@ -124,9 +124,9 @@ PerformOleApiTests( void )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 3: SysAllocStringLen and SysFreeString" );
             wchar_t wideStr[] = L"TestString";
-            wchar_t* bstr3 = GUCEF::MLF::MEMMAN_SysAllocStringLen( __FILE__, __LINE__, wideStr, 4 );
+            wchar_t* bstr3 = GUCEF::DRGUP::DRGUP_SysAllocStringLen( __FILE__, __LINE__, wideStr, 4 );
             ASSERT_TRUE( bstr3 != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_SysFreeString( __FILE__, __LINE__, bstr3 );
+            GUCEF::DRGUP::DRGUP_SysFreeString( __FILE__, __LINE__, bstr3 );
         }
         catch( ... )
         {
@@ -141,10 +141,10 @@ PerformOleApiTests( void )
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: SysReAllocString no crash" );
             wchar_t wideStr[]  = L"TestString";
             wchar_t wideStr2[] = L"Longer";
-            wchar_t* bstr4 = GUCEF::MLF::MEMMAN_SysAllocString( __FILE__, __LINE__, wideStr );
+            wchar_t* bstr4 = GUCEF::DRGUP::DRGUP_SysAllocString( __FILE__, __LINE__, wideStr );
             ASSERT_TRUE( bstr4 != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_SysReAllocString( __FILE__, __LINE__, &bstr4, wideStr2 );
-            GUCEF::MLF::MEMMAN_SysFreeString( __FILE__, __LINE__, bstr4 );
+            GUCEF::DRGUP::DRGUP_SysReAllocString( __FILE__, __LINE__, &bstr4, wideStr2 );
+            GUCEF::DRGUP::DRGUP_SysFreeString( __FILE__, __LINE__, bstr4 );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -160,10 +160,10 @@ PerformOleApiTests( void )
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: SysReAllocStringLen no crash" );
             wchar_t wideStr[]  = L"TestString";
             wchar_t wideStr2[] = L"Longer";
-            wchar_t* bstr5 = GUCEF::MLF::MEMMAN_SysAllocString( __FILE__, __LINE__, wideStr );
+            wchar_t* bstr5 = GUCEF::DRGUP::DRGUP_SysAllocString( __FILE__, __LINE__, wideStr );
             ASSERT_TRUE( bstr5 != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_SysReAllocStringLen( __FILE__, __LINE__, &bstr5, wideStr2, 3 );
-            GUCEF::MLF::MEMMAN_SysFreeString( __FILE__, __LINE__, bstr5 );
+            GUCEF::DRGUP::DRGUP_SysReAllocStringLen( __FILE__, __LINE__, &bstr5, wideStr2, 3 );
+            GUCEF::DRGUP::DRGUP_SysFreeString( __FILE__, __LINE__, bstr5 );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -177,7 +177,7 @@ PerformOleApiTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: SysFreeString NULL no crash" );
-            GUCEF::MLF::MEMMAN_SysFreeString( __FILE__, __LINE__, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_SysFreeString( __FILE__, __LINE__, GUCEF_NULL );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -186,7 +186,7 @@ PerformOleApiTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    GUCEF::MLF::MEMMAN_Shutdown();
+    GUCEF::DRGUP::DRGUP_Shutdown();
 
 #else
 

@@ -15,8 +15,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_MLF_SMEMORYTRACKERCONFIG_H
-#define GUCEF_MLF_SMEMORYTRACKERCONFIG_H
+#ifndef GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
+#define GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -24,10 +24,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MLF_ETYPES_H
-#include "gucefMLF_ETypes.h"
-#define GUCEF_MLF_ETYPES_H
-#endif /* GUCEF_MLF_ETYPES_H ? */
+#ifndef GUCEF_DRGUP_ETYPES_H
+#include "gucefDRGUP_ETypes.h"
+#define GUCEF_DRGUP_ETYPES_H
+#endif /* GUCEF_DRGUP_ETYPES_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -42,10 +42,10 @@
  * lock tracing, and statistics.
  */
 #if defined( __SANITIZE_ADDRESS__ )
-  #define GUCEF_MLF_ASAN_ACTIVE 1
+  #define GUCEF_DRGUP_ASAN_ACTIVE 1
 #elif defined( __has_feature )
   #if __has_feature( address_sanitizer )
-    #define GUCEF_MLF_ASAN_ACTIVE 1
+    #define GUCEF_DRGUP_ASAN_ACTIVE 1
   #endif
 #endif
 
@@ -55,10 +55,10 @@
  * shadow tracking).  Keep allocation tracking, callstacks, OLE, lock tracing.
  */
 #if defined( __SANITIZE_MEMORY__ )
-  #define GUCEF_MLF_MSAN_ACTIVE 1
+  #define GUCEF_DRGUP_MSAN_ACTIVE 1
 #elif defined( __has_feature )
   #if __has_feature( memory_sanitizer )
-    #define GUCEF_MLF_MSAN_ACTIVE 1
+    #define GUCEF_DRGUP_MSAN_ACTIVE 1
   #endif
 #endif
 
@@ -69,10 +69,10 @@
  * callstacks, OLE.
  */
 #if defined( __SANITIZE_THREAD__ )
-  #define GUCEF_MLF_TSAN_ACTIVE 1
+  #define GUCEF_DRGUP_TSAN_ACTIVE 1
 #elif defined( __has_feature )
   #if __has_feature( thread_sanitizer )
-    #define GUCEF_MLF_TSAN_ACTIVE 1
+    #define GUCEF_DRGUP_TSAN_ACTIVE 1
   #endif
 #endif
 
@@ -84,7 +84,7 @@
 
 #ifdef __cplusplus
 namespace GUCEF {
-namespace MLF {
+namespace DRGUP {
 #endif /* __cplusplus ? */
 
 /*-------------------------------------------------------------------------//
@@ -109,7 +109,7 @@ enum EMismatchResponse
 };
 
 /**
- * POD configuration struct replacing all scattered MEMMAN_Set* global state.
+ * POD configuration struct replacing all scattered DRGUP_Set* global state.
  * Call SMemoryTrackerConfig_SetDefaults() to initialize before first use.
  */
 struct SMemoryTrackerConfig
@@ -173,10 +173,10 @@ SMemoryTrackerConfig_SetDefaults( SMemoryTrackerConfig& cfg )
 //-------------------------------------------------------------------------*/
 
 #ifdef __cplusplus
-}; /* namespace MLF */
+}; /* namespace DRGUP */
 }; /* namespace GUCEF */
 #endif /* __cplusplus ? */
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MLF_SMEMORYTRACKERCONFIG_H ? */
+#endif /* GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H ? */

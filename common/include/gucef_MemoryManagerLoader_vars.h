@@ -38,12 +38,12 @@
 
 #if ( defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) ) || ( defined( GUCEF_USE_CALLSTACK_TRACING ) && defined( GUCEF_USE_PLATFORM_CALLSTACK_TRACING ) )
 
-static TFP_MEMMAN_Initialize    fp_MEMMAN_Initialize    = 0;
-static TFP_MEMMAN_Shutdown      fp_MEMMAN_Shutdown      = 0;
-static TFP_MEMMAN_DumpLogReport fp_MEMMAN_DumpLogReport = 0;
-static TFP_MEMMAN_SetLogFile    fp_MEMMAN_SetLogFile    = 0;
-static TFP_MEMMAN_SetLogAlways  fp_MEMMAN_SetLogAlways  = 0;
-static TFP_MEMMAN_CleanLogFile  fp_MEMMAN_CleanLogFile  = 0;
+static TFP_DRGUP_Initialize    fp_DRGUP_Initialize    = 0;
+static TFP_DRGUP_Shutdown      fp_DRGUP_Shutdown      = 0;
+static TFP_DRGUP_DumpLogReport fp_DRGUP_DumpLogReport = 0;
+static TFP_DRGUP_SetLogFile    fp_DRGUP_SetLogFile    = 0;
+static TFP_DRGUP_SetLogAlways  fp_DRGUP_SetLogAlways  = 0;
+static TFP_DRGUP_CleanLogFile  fp_DRGUP_CleanLogFile  = 0;
 
 /*-------------------------------------------------------------------------*/
 
@@ -58,22 +58,22 @@ static const char* MemoryLeakFinderLib      = "MemoryLeakFinder_d.dll";
 
 /*-------------------------------------------------------------------------*/
 
-static TFP_MEMMAN_DumpMemoryAllocations      fp_MEMMAN_DumpMemoryAllocations      = 0;
-static TFP_MEMMAN_SetExhaustiveTesting       fp_MEMMAN_SetExhaustiveTesting       = 0;
-static TFP_MEMMAN_SetPaddingSize             fp_MEMMAN_SetPaddingSize             = 0;
-static TFP_MEMMAN_BreakOnAllocation          fp_MEMMAN_BreakOnAllocation          = 0;
-static TFP_MEMMAN_BreakOnDeallocation        fp_MEMMAN_BreakOnDeallocation        = 0;
-static TFP_MEMMAN_BreakOnReallocation        fp_MEMMAN_BreakOnReallocation        = 0;
-static TFP_MEMMAN_ValidateKnownAllocPtr      fp_MEMMAN_ValidateKnownAllocPtr      = 0;
-static TFP_MEMMAN_ValidateKnownAllocBlock    fp_MEMMAN_ValidateKnownAllocBlock    = 0;
-static TFP_MEMMAN_ValidateAccessibility      fp_MEMMAN_ValidateAccessibility      = 0;
-static TFP_MEMMAN_ValidateChunk              fp_MEMMAN_ValidateChunk              = 0;
-static TFP_MEMMAN_ValidatePendingDestructor  fp_MEMMAN_ValidatePendingDestructor  = 0;
-static TFP_MEMMAN_ValidateFinishedDestructor fp_MEMMAN_ValidateFinishedDestructor = 0;
-static TFP_MEMMAN_AllocateMemory             fp_MEMMAN_AllocateMemory             = 0;
-static TFP_MEMMAN_DeAllocateMemory           fp_MEMMAN_DeAllocateMemory           = 0;
-static TFP_MEMMAN_DeAllocateMemoryEx         fp_MEMMAN_DeAllocateMemoryEx         = 0;
-static TFP_MEMMAN_SetOwner                   fp_MEMMAN_SetOwner                   = 0;
+static TFP_DRGUP_DumpMemoryAllocations      fp_DRGUP_DumpMemoryAllocations      = 0;
+static TFP_DRGUP_SetExhaustiveTesting       fp_DRGUP_SetExhaustiveTesting       = 0;
+static TFP_DRGUP_SetPaddingSize             fp_DRGUP_SetPaddingSize             = 0;
+static TFP_DRGUP_BreakOnAllocation          fp_DRGUP_BreakOnAllocation          = 0;
+static TFP_DRGUP_BreakOnDeallocation        fp_DRGUP_BreakOnDeallocation        = 0;
+static TFP_DRGUP_BreakOnReallocation        fp_DRGUP_BreakOnReallocation        = 0;
+static TFP_DRGUP_ValidateKnownAllocPtr      fp_DRGUP_ValidateKnownAllocPtr      = 0;
+static TFP_DRGUP_ValidateKnownAllocBlock    fp_DRGUP_ValidateKnownAllocBlock    = 0;
+static TFP_DRGUP_ValidateAccessibility      fp_DRGUP_ValidateAccessibility      = 0;
+static TFP_DRGUP_ValidateChunk              fp_DRGUP_ValidateChunk              = 0;
+static TFP_DRGUP_ValidatePendingDestructor  fp_DRGUP_ValidatePendingDestructor  = 0;
+static TFP_DRGUP_ValidateFinishedDestructor fp_DRGUP_ValidateFinishedDestructor = 0;
+static TFP_DRGUP_AllocateMemory             fp_DRGUP_AllocateMemory             = 0;
+static TFP_DRGUP_DeAllocateMemory           fp_DRGUP_DeAllocateMemory           = 0;
+static TFP_DRGUP_DeAllocateMemoryEx         fp_DRGUP_DeAllocateMemoryEx         = 0;
+static TFP_DRGUP_SetOwner                   fp_DRGUP_SetOwner                   = 0;
 
 /*-------------------------------------------------------------------------*/
 
@@ -82,12 +82,12 @@ static TFP_MEMMAN_SetOwner                   fp_MEMMAN_SetOwner                 
 
 /*-------------------------------------------------------------------------*/
 
-static TFP_MEMMAN_SysAllocString         fp_MEMMAN_SysAllocString         = 0;
-static TFP_MEMMAN_SysAllocStringByteLen  fp_MEMMAN_SysAllocStringByteLen  = 0;
-static TFP_MEMMAN_SysAllocStringLen      fp_MEMMAN_SysAllocStringLen      = 0;
-static TFP_MEMMAN_SysFreeString          fp_MEMMAN_SysFreeString          = 0;
-static TFP_MEMMAN_SysReAllocString       fp_MEMMAN_SysReAllocString       = 0;
-static TFP_MEMMAN_SysReAllocStringLen    fp_MEMMAN_SysReAllocStringLen    = 0;
+static TFP_DRGUP_SysAllocString         fp_DRGUP_SysAllocString         = 0;
+static TFP_DRGUP_SysAllocStringByteLen  fp_DRGUP_SysAllocStringByteLen  = 0;
+static TFP_DRGUP_SysAllocStringLen      fp_DRGUP_SysAllocStringLen      = 0;
+static TFP_DRGUP_SysFreeString          fp_DRGUP_SysFreeString          = 0;
+static TFP_DRGUP_SysReAllocString       fp_DRGUP_SysReAllocString       = 0;
+static TFP_DRGUP_SysReAllocStringLen    fp_DRGUP_SysReAllocStringLen    = 0;
 
 /*-------------------------------------------------------------------------*/
 
@@ -96,8 +96,8 @@ static TFP_MEMMAN_SysReAllocStringLen    fp_MEMMAN_SysReAllocStringLen    = 0;
 
 /*-------------------------------------------------------------------------*/
 
-static TFP_MEMMAN_CallstackScopeBegin  fp_MEMMAN_CallstackScopeBegin  = 0;
-static TFP_MEMMAN_CallstackScopeEnd    fp_MEMMAN_CallstackScopeEnd    = 0;
+static TFP_DRGUP_CallstackScopeBegin  fp_DRGUP_CallstackScopeBegin  = 0;
+static TFP_DRGUP_CallstackScopeEnd    fp_DRGUP_CallstackScopeEnd    = 0;
 
 /*-------------------------------------------------------------------------*/
 
@@ -106,11 +106,11 @@ static TFP_MEMMAN_CallstackScopeEnd    fp_MEMMAN_CallstackScopeEnd    = 0;
 
 /*-------------------------------------------------------------------------*/
 
-static TFP_MEMMAN_ExclusiveLockCreated    fp_MEMMAN_ExclusiveLockCreated    = 0;
-static TFP_MEMMAN_ExclusiveLockObtained   fp_MEMMAN_ExclusiveLockObtained   = 0;
-static TFP_MEMMAN_ExclusiveLockReleased   fp_MEMMAN_ExclusiveLockReleased   = 0;
-static TFP_MEMMAN_ExclusiveLockAbandoned  fp_MEMMAN_ExclusiveLockAbandoned  = 0;
-static TFP_MEMMAN_ExclusiveLockDestroy    fp_MEMMAN_ExclusiveLockDestroy    = 0;
+static TFP_DRGUP_ExclusiveLockCreated    fp_DRGUP_ExclusiveLockCreated    = 0;
+static TFP_DRGUP_ExclusiveLockObtained   fp_DRGUP_ExclusiveLockObtained   = 0;
+static TFP_DRGUP_ExclusiveLockReleased   fp_DRGUP_ExclusiveLockReleased   = 0;
+static TFP_DRGUP_ExclusiveLockAbandoned  fp_DRGUP_ExclusiveLockAbandoned  = 0;
+static TFP_DRGUP_ExclusiveLockDestroy    fp_DRGUP_ExclusiveLockDestroy    = 0;
 
 /*-------------------------------------------------------------------------*/
 

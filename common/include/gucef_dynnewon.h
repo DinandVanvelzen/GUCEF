@@ -101,12 +101,12 @@
  */
 inline void* operator new( size_t size, const char* file, int line ) 
 {
-    if ( 0 == MEMMAN_LazyLoadMemoryManager() ) 
+    if ( 0 == DRGUP_LazyLoadMemoryManager() ) 
     { 
         //GUCEF_ASSERT_ALWAYS; 
         return malloc( size ); 
     }
-    return fp_MEMMAN_AllocateMemory( file, line, size, MM_NEW, GUCEF_NULL, GUCEF_NULL ); 
+    return fp_DRGUP_AllocateMemory( file, line, size, MM_NEW, GUCEF_NULL, GUCEF_NULL ); 
 }
 
 /*-------------------------------------------------------------------------*/
@@ -124,12 +124,12 @@ inline void* operator new( size_t size, const char* file, int line )
  */
 inline void* operator new[]( size_t size, const char* file, int line )
 {
-    if ( 0 == MEMMAN_LazyLoadMemoryManager() ) 
+    if ( 0 == DRGUP_LazyLoadMemoryManager() ) 
     { 
         //GUCEF_ASSERT_ALWAYS; 
         return malloc( size ); 
     }
-    return fp_MEMMAN_AllocateMemory( file, line, size, MM_NEW_ARRAY, GUCEF_NULL, GUCEF_NULL );
+    return fp_DRGUP_AllocateMemory( file, line, size, MM_NEW_ARRAY, GUCEF_NULL, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -146,12 +146,12 @@ inline void operator delete( void *address )
 {
     if ( GUCEF_NULL == address )  
         return;  // ANSI states that delete will allow NULL pointers.
-    if ( 0 == MEMMAN_LazyLoadMemoryManager() ) 
+    if ( 0 == DRGUP_LazyLoadMemoryManager() ) 
     { 
         //GUCEF_ASSERT_ALWAYS; 
         return free( address ); 
     }
-    fp_MEMMAN_DeAllocateMemory( address, MM_DELETE, GUCEF_NULL );
+    fp_DRGUP_DeAllocateMemory( address, MM_DELETE, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -168,12 +168,12 @@ inline void operator delete[]( void *address )
 {
     if ( GUCEF_NULL == address )  
         return;  // ANSI states that delete will allow NULL pointers.
-    if ( 0 == MEMMAN_LazyLoadMemoryManager() ) 
+    if ( 0 == DRGUP_LazyLoadMemoryManager() ) 
     { 
         //GUCEF_ASSERT_ALWAYS; 
         return free( address ); 
     }
-    fp_MEMMAN_DeAllocateMemory( address, MM_DELETE_ARRAY, GUCEF_NULL );
+    fp_DRGUP_DeAllocateMemory( address, MM_DELETE_ARRAY, GUCEF_NULL );
 }
 
 // ***** These two routines should never get called, unless an error occures during the 
@@ -181,8 +181,8 @@ inline void operator delete[]( void *address )
 // ***** If there was an allocation problem these method would be called automatically by 
 // ***** the operating system.  C/C++ Users Journal (Vol. 19 No. 4 -> April 2001 pg. 60)  
 // ***** has an excellent explanation of what is going on here.
-inline void operator delete( void *address, const char *file, int line )   { if ( 0 == MEMMAN_LazyLoadMemoryManager() ) { GUCEF_ASSERT_ALWAYS; return; } fp_MEMMAN_DumpLogReport(); free( address ); }
-inline void operator delete[]( void *address, const char *file, int line ) { if ( 0 == MEMMAN_LazyLoadMemoryManager() ) { GUCEF_ASSERT_ALWAYS; return; } fp_MEMMAN_DumpLogReport(); free( address ); }
+inline void operator delete( void *address, const char *file, int line )   { if ( 0 == DRGUP_LazyLoadMemoryManager() ) { GUCEF_ASSERT_ALWAYS; return; } fp_DRGUP_DumpLogReport(); free( address ); }
+inline void operator delete[]( void *address, const char *file, int line ) { if ( 0 == DRGUP_LazyLoadMemoryManager() ) { GUCEF_ASSERT_ALWAYS; return; } fp_DRGUP_DumpLogReport(); free( address ); }
 
 /*-------------------------------------------------------------------------*/
 
@@ -214,7 +214,7 @@ inline void operator delete[]( void *address, const char *file, int line ) { if 
 #undef GUCEF_DELETE
 #define GUCEF_NEW                           new( __FILE__, __LINE__ )
 #define GUCEF_DELETE                        delete 
-                                              //MEMMAN_SetOwner( __FILE__, __LINE__ ); ? delete : delete
+                                              //DRGUP_SetOwner( __FILE__, __LINE__ ); ? delete : delete
 
 #endif /* __cplusplus ? */
 
@@ -223,10 +223,10 @@ inline void operator delete[]( void *address, const char *file, int line ) { if 
 #undef GUCEF_REALLOC
 #undef GUCEF_FREE
 
-#define GUCEF_MALLOC( size )            MEMMAN_malloc( __FILE__, __LINE__, size )
-#define GUCEF_CALLOC( num, sz )         MEMMAN_calloc( __FILE__, __LINE__, num, sz )
-#define GUCEF_REALLOC( ptr, sz )        MEMMAN_realloc( __FILE__, __LINE__, ptr, sz )
-#define GUCEF_FREE( ptr )               MEMMAN_free( __FILE__, __LINE__, ptr )
+#define GUCEF_MALLOC( size )            DRGUP_malloc( __FILE__, __LINE__, size )
+#define GUCEF_CALLOC( num, sz )         DRGUP_calloc( __FILE__, __LINE__, num, sz )
+#define GUCEF_REALLOC( ptr, sz )        DRGUP_realloc( __FILE__, __LINE__, ptr, sz )
+#define GUCEF_FREE( ptr )               DRGUP_free( __FILE__, __LINE__, ptr )
 
 #undef malloc
 #undef calloc
@@ -242,10 +242,10 @@ inline void operator delete[]( void *address, const char *file, int line ) { if 
 #undef GUCEF_CHECKMEM
 #undef GUCEF_CHECKMEMSEG
 #undef GUCEF_CHECKACCESS
-#define GUCEF_CHECKALLOCPTR( addr )             { if ( 0 < MEMMAN_LazyLoadMemoryManager() ) fp_MEMMAN_ValidateKnownAllocPtr( addr, __FILE__, __LINE__ ); }
-#define GUCEF_CHECKMEM( addr, size )            { if ( 0 < MEMMAN_LazyLoadMemoryManager() ) fp_MEMMAN_ValidateKnownAllocBlock( addr, size, __FILE__, __LINE__ ); }
-#define GUCEF_CHECKMEMSEG( addr, chunk, size )  { if ( 0 < MEMMAN_LazyLoadMemoryManager() ) fp_MEMMAN_ValidateChunk( addr, chunk, size, __FILE__, __LINE__ ); }
-#define GUCEF_CHECKACCESS( addr, size )         { MEMMAN_ValidateAccessibility( addr, size, __FILE__, __LINE__ ); }
+#define GUCEF_CHECKALLOCPTR( addr )             { if ( 0 < DRGUP_LazyLoadMemoryManager() ) fp_DRGUP_ValidateKnownAllocPtr( addr, __FILE__, __LINE__ ); }
+#define GUCEF_CHECKMEM( addr, size )            { if ( 0 < DRGUP_LazyLoadMemoryManager() ) fp_DRGUP_ValidateKnownAllocBlock( addr, size, __FILE__, __LINE__ ); }
+#define GUCEF_CHECKMEMSEG( addr, chunk, size )  { if ( 0 < DRGUP_LazyLoadMemoryManager() ) fp_DRGUP_ValidateChunk( addr, chunk, size, __FILE__, __LINE__ ); }
+#define GUCEF_CHECKACCESS( addr, size )         { DRGUP_ValidateAccessibility( addr, size, __FILE__, __LINE__ ); }
 
 #ifdef GUCEF_MEMCHECK_OLEAPI
 
@@ -255,12 +255,12 @@ inline void operator delete[]( void *address, const char *file, int line ) { if 
 #undef SysFreeString
 #undef SysReAllocString
 #undef SysReAllocStringLen
-#define SysAllocString( wcharStr )              MEMMAN_SysAllocString( __FILE__, __LINE__, wcharStr )
-#define SysAllocStringByteLen( psz, len )       MEMMAN_SysAllocStringByteLen( __FILE__, __LINE__, psz, len )
-#define SysAllocStringLen( strIn, ui )          MEMMAN_SysAllocStringLen( __FILE__, __LINE__, strIn, ui )
-#define SysFreeString( bstrString )             MEMMAN_SysFreeString( __FILE__, __LINE__, bstrString )
-#define SysReAllocString( pbstr, psz )          MEMMAN_SysReAllocString( __FILE__, __LINE__, pbstr, psz )
-#define SysReAllocStringLen( pbstr, psz, len )  MEMMAN_SysReAllocStringLen( __FILE__, __LINE__, pbstr, psz, len )
+#define SysAllocString( wcharStr )              DRGUP_SysAllocString( __FILE__, __LINE__, wcharStr )
+#define SysAllocStringByteLen( psz, len )       DRGUP_SysAllocStringByteLen( __FILE__, __LINE__, psz, len )
+#define SysAllocStringLen( strIn, ui )          DRGUP_SysAllocStringLen( __FILE__, __LINE__, strIn, ui )
+#define SysFreeString( bstrString )             DRGUP_SysFreeString( __FILE__, __LINE__, bstrString )
+#define SysReAllocString( pbstr, psz )          DRGUP_SysReAllocString( __FILE__, __LINE__, pbstr, psz )
+#define SysReAllocStringLen( pbstr, psz, len )  DRGUP_SysReAllocStringLen( __FILE__, __LINE__, pbstr, psz, len )
 
 #endif /* GUCEF_MEMCHECK_OLEAPI ? */
 

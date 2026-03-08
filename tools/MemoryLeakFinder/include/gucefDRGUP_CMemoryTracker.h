@@ -15,8 +15,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_MLF_CMEMORYTRACKER_H
-#define GUCEF_MLF_CMEMORYTRACKER_H
+#ifndef GUCEF_DRGUP_CMEMORYTRACKER_H
+#define GUCEF_DRGUP_CMEMORYTRACKER_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -31,25 +31,25 @@
 #endif
 #include <map>
 
-#ifndef GUCEF_MLF_ETYPES_H
-#include "gucefMLF_ETypes.h"
-#define GUCEF_MLF_ETYPES_H
-#endif /* GUCEF_MLF_ETYPES_H ? */
+#ifndef GUCEF_DRGUP_ETYPES_H
+#include "gucefDRGUP_ETypes.h"
+#define GUCEF_DRGUP_ETYPES_H
+#endif /* GUCEF_DRGUP_ETYPES_H ? */
 
-#ifndef GUCEF_MLF_SMEMORYTRACKERCONFIG_H
-#include "gucefMLF_SMemoryTrackerConfig.h"
-#define GUCEF_MLF_SMEMORYTRACKERCONFIG_H
-#endif /* GUCEF_MLF_SMEMORYTRACKERCONFIG_H ? */
+#ifndef GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
+#include "gucefDRGUP_SMemoryTrackerConfig.h"
+#define GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
+#endif /* GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H ? */
 
-#ifndef GUCEF_MLF_CALLOCATIONRECORD_H
-#include "gucefMLF_CAllocationRecord.h"
-#define GUCEF_MLF_CALLOCATIONRECORD_H
-#endif /* GUCEF_MLF_CALLOCATIONRECORD_H ? */
+#ifndef GUCEF_DRGUP_CALLOCATIONRECORD_H
+#include "gucefDRGUP_CAllocationRecord.h"
+#define GUCEF_DRGUP_CALLOCATIONRECORD_H
+#endif /* GUCEF_DRGUP_CALLOCATIONRECORD_H ? */
 
-#ifndef GUCEF_MLF_CCALLSITESTATS_H
-#include "gucefMLF_CCallsiteStats.h"
-#define GUCEF_MLF_CCALLSITESTATS_H
-#endif /* GUCEF_MLF_CCALLSITESTATS_H ? */
+#ifndef GUCEF_DRGUP_CCALLSITESTATS_H
+#include "gucefDRGUP_CCallsiteStats.h"
+#define GUCEF_DRGUP_CCALLSITESTATS_H
+#endif /* GUCEF_DRGUP_CCALLSITESTATS_H ? */
 
 #ifndef GUCEF_MT_CMUTEX_H
 #include "gucefMT_CMutex.h"
@@ -68,7 +68,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace MLF {
+namespace DRGUP {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -344,9 +344,9 @@ class GUCEF_HIDDEN CMemoryTracker
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MLF */
+}; /* namespace DRGUP */
 }; /* namespace GUCEF */
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MLF_CMEMORYTRACKER_H ? */
+#endif /* GUCEF_DRGUP_CMEMORYTRACKER_H ? */

@@ -15,8 +15,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_MLF_TESTAPP_TESTSTATISTICS_H
-#define GUCEF_MLF_TESTAPP_TESTSTATISTICS_H
+#ifndef GUCEF_DRGUP_TESTAPP_TESTSTATISTICS_H
+#define GUCEF_DRGUP_TESTAPP_TESTSTATISTICS_H
 
 /*-------------------------------------------------------------------------*/
 
@@ -24,4 +24,4 @@ void PerformStatisticsTests( void );
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MLF_TESTAPP_TESTSTATISTICS_H ? */
+#endif /* GUCEF_DRGUP_TESTAPP_TESTSTATISTICS_H ? */

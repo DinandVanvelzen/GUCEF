@@ -73,7 +73,7 @@
   #ifdef GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER
 
     #if ( !defined( GUCEF_DYNNEWON_DISABLED ) )    
-      #define GUCEF_MEMORY_CHECK_APP_START { MEMMAN_Initialize(); }
+      #define GUCEF_MEMORY_CHECK_APP_START { DRGUP_Initialize(); }
       #define GUCEF_MEMORY_CHECK_APP_END
     #endif
 

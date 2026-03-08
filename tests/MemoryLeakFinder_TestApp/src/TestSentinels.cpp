@@ -21,20 +21,20 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MLF_MEMORYMANAGER_H
-#include "gucefMLF_MemoryManager.h"
-#define GUCEF_MLF_MEMORYMANAGER_H
-#endif /* GUCEF_MLF_MEMORYMANAGER_H ? */
+#ifndef GUCEF_DRGUP_MEMORYMANAGER_H
+#include "gucefDRGUP_MemoryManager.h"
+#define GUCEF_DRGUP_MEMORYMANAGER_H
+#endif /* GUCEF_DRGUP_MEMORYMANAGER_H ? */
 
-#ifndef GUCEF_MLF_CALLOCATIONRECORD_H
-#include "gucefMLF_CAllocationRecord.h"
-#define GUCEF_MLF_CALLOCATIONRECORD_H
-#endif /* GUCEF_MLF_CALLOCATIONRECORD_H ? */
+#ifndef GUCEF_DRGUP_CALLOCATIONRECORD_H
+#include "gucefDRGUP_CAllocationRecord.h"
+#define GUCEF_DRGUP_CALLOCATIONRECORD_H
+#endif /* GUCEF_DRGUP_CALLOCATIONRECORD_H ? */
 
-#ifndef GUCEF_MLF_SMEMORYTRACKERCONFIG_H
-#include "gucefMLF_SMemoryTrackerConfig.h"
-#define GUCEF_MLF_SMEMORYTRACKERCONFIG_H
-#endif /* GUCEF_MLF_SMEMORYTRACKERCONFIG_H ? */
+#ifndef GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
+#include "gucefDRGUP_SMemoryTrackerConfig.h"
+#define GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
+#endif /* GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H ? */
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -76,9 +76,9 @@ PerformSentinelTests( void )
 
     GUCEF_TESTFW_SUITE_SCOPE( "Sentinels" );
 
-    GUCEF::MLF::MEMMAN_Initialize();
+    GUCEF::DRGUP::DRGUP_Initialize();
     /* Use 4-byte padding (1 long) for predictable sentinel layout */
-    GUCEF::MLF::MEMMAN_SetPaddingSize( 4 );
+    GUCEF::DRGUP::DRGUP_SetPaddingSize( 4 );
 
     // Test 1: Pre-guard sentinel bytes have expected value
     GUCEF_TESTFW_TESTCASE( "Test 1: Pre-guard sentinel has correct value" )
@@ -86,15 +86,15 @@ PerformSentinelTests( void )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 1: Pre-guard sentinel has correct value" );
             const size_t userSize = 16;
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
             if ( ptr != GUCEF_NULL )
             {
                 /* Padding is sizeof(long) bytes before the user pointer */
                 const long* preguard = reinterpret_cast< const long* >(
                     reinterpret_cast< const char* >( ptr ) - sizeof( long ) );
-                ASSERT_TRUE( *preguard == GUCEF::MLF::ALLOC_PADDING_SENTINEL );
-                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+                ASSERT_TRUE( *preguard == GUCEF::DRGUP::ALLOC_PADDING_SENTINEL );
+                GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             }
         }
         catch( ... )
@@ -109,14 +109,14 @@ PerformSentinelTests( void )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 2: Post-guard sentinel has correct value" );
             const size_t userSize = 16;
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
             if ( ptr != GUCEF_NULL )
             {
                 const long* postguard = reinterpret_cast< const long* >(
                     reinterpret_cast< const char* >( ptr ) + userSize );
-                ASSERT_TRUE( *postguard == GUCEF::MLF::ALLOC_PADDING_SENTINEL );
-                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+                ASSERT_TRUE( *postguard == GUCEF::DRGUP::ALLOC_PADDING_SENTINEL );
+                GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             }
         }
         catch( ... )
@@ -131,13 +131,13 @@ PerformSentinelTests( void )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 3: ValidateKnownAllocBlock on clean block" );
             const size_t userSize = 16;
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
             if ( ptr != GUCEF_NULL )
             {
                 /* Should complete without crash when sentinels are intact */
-                GUCEF::MLF::MEMMAN_ValidateKnownAllocBlock( ptr, static_cast< GUCEF::MLF::UInt32 >( userSize ), __FILE__, __LINE__ );
-                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+                GUCEF::DRGUP::DRGUP_ValidateKnownAllocBlock( ptr, static_cast< GUCEF::DRGUP::UInt32 >( userSize ), __FILE__, __LINE__ );
+                GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             }
             ASSERT_TRUE( true );
         }
@@ -153,7 +153,7 @@ PerformSentinelTests( void )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: Corrupted pre-guard detected without crash" );
             const size_t userSize = 16;
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
             if ( ptr != GUCEF_NULL )
             {
@@ -163,11 +163,11 @@ PerformSentinelTests( void )
                 *preguard = 0xDEADBEEFl;
 
                 /* Validate should detect the violation (logged) without crashing */
-                GUCEF::MLF::MEMMAN_ValidateKnownAllocBlock( ptr, static_cast< GUCEF::MLF::UInt32 >( userSize ), __FILE__, __LINE__ );
+                GUCEF::DRGUP::DRGUP_ValidateKnownAllocBlock( ptr, static_cast< GUCEF::DRGUP::UInt32 >( userSize ), __FILE__, __LINE__ );
 
                 /* Restore sentinel before freeing to avoid double-error in dealloc path */
-                *preguard = GUCEF::MLF::ALLOC_PADDING_SENTINEL;
-                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+                *preguard = GUCEF::DRGUP::ALLOC_PADDING_SENTINEL;
+                GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             }
             ASSERT_TRUE( true );
         }
@@ -183,7 +183,7 @@ PerformSentinelTests( void )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: Corrupted post-guard detected without crash" );
             const size_t userSize = 16;
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
             if ( ptr != GUCEF_NULL )
             {
@@ -193,11 +193,11 @@ PerformSentinelTests( void )
                 *postguard = 0xDEADBEEFl;
 
                 /* Validate should detect the violation (logged) without crashing */
-                GUCEF::MLF::MEMMAN_ValidateKnownAllocBlock( ptr, static_cast< GUCEF::MLF::UInt32 >( userSize ), __FILE__, __LINE__ );
+                GUCEF::DRGUP::DRGUP_ValidateKnownAllocBlock( ptr, static_cast< GUCEF::DRGUP::UInt32 >( userSize ), __FILE__, __LINE__ );
 
                 /* Restore sentinel before freeing to avoid double-error in dealloc path */
-                *postguard = GUCEF::MLF::ALLOC_PADDING_SENTINEL;
-                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+                *postguard = GUCEF::DRGUP::ALLOC_PADDING_SENTINEL;
+                GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             }
             ASSERT_TRUE( true );
         }
@@ -207,7 +207,7 @@ PerformSentinelTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-#ifndef GUCEF_MLF_ASAN_ACTIVE
+#ifndef GUCEF_DRGUP_ASAN_ACTIVE
 
     // Test 6: Guard page mode - alloc returns non-null
     GUCEF_TESTFW_TESTCASE( "Test 6: Guard page mode alloc returns non-null" )
@@ -217,16 +217,16 @@ PerformSentinelTests( void )
             /* useGuardPages=true configures hardware-enforced page protection after each allocation.
              * We verify the field is settable and a standard alloc still returns non-null.
              * Hardware boundary enforcement is validated in manual debug sessions. */
-            GUCEF::MLF::SMemoryTrackerConfig cfg;
-            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            GUCEF::DRGUP::SMemoryTrackerConfig cfg;
+            GUCEF::DRGUP::SMemoryTrackerConfig_SetDefaults( cfg );
             cfg.useGuardPages = true;
             ASSERT_TRUE( cfg.useGuardPages == true );
             const size_t userSize = 64;
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
             if ( ptr != GUCEF_NULL )
             {
-                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+                GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             }
         }
         catch( ... )
@@ -241,12 +241,12 @@ PerformSentinelTests( void )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 7: Guard page mode memset of user buffer no crash" );
             const size_t userSize = 64;
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, userSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
             if ( ptr != GUCEF_NULL )
             {
                 memset( ptr, 0xAB, userSize );
-                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+                GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             }
             ASSERT_TRUE( true );
         }
@@ -261,8 +261,8 @@ PerformSentinelTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 8: useGuardPages config field is settable" );
-            GUCEF::MLF::SMemoryTrackerConfig cfg;
-            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            GUCEF::DRGUP::SMemoryTrackerConfig cfg;
+            GUCEF::DRGUP::SMemoryTrackerConfig_SetDefaults( cfg );
             ASSERT_TRUE( cfg.useGuardPages == false );
             cfg.useGuardPages = true;
             ASSERT_TRUE( cfg.useGuardPages == true );
@@ -275,9 +275,9 @@ PerformSentinelTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-#endif /* GUCEF_MLF_ASAN_ACTIVE ? */
+#endif /* GUCEF_DRGUP_ASAN_ACTIVE ? */
 
-    GUCEF::MLF::MEMMAN_Shutdown();
+    GUCEF::DRGUP::DRGUP_Shutdown();
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL Sentinels TESTS COMPLETED" );

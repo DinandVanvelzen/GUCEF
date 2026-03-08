@@ -15,8 +15,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_MLF_TESTAPP_TESTLOCKTRACER_H
-#define GUCEF_MLF_TESTAPP_TESTLOCKTRACER_H
+#ifndef GUCEF_DRGUP_TESTAPP_TESTLOCKTRACER_H
+#define GUCEF_DRGUP_TESTAPP_TESTLOCKTRACER_H
 
 /*-------------------------------------------------------------------------*/
 
@@ -24,4 +24,4 @@ void PerformLockTracerTests( void );
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MLF_TESTAPP_TESTLOCKTRACER_H ? */
+#endif /* GUCEF_DRGUP_TESTAPP_TESTLOCKTRACER_H ? */

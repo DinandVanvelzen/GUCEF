@@ -21,10 +21,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MLF_MEMORYMANAGER_H
-#include "gucefMLF_MemoryManager.h"
-#define GUCEF_MLF_MEMORYMANAGER_H
-#endif /* GUCEF_MLF_MEMORYMANAGER_H ? */
+#ifndef GUCEF_DRGUP_MEMORYMANAGER_H
+#include "gucefDRGUP_MemoryManager.h"
+#define GUCEF_DRGUP_MEMORYMANAGER_H
+#endif /* GUCEF_DRGUP_MEMORYMANAGER_H ? */
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -66,17 +66,17 @@ PerformValidationTests( void )
 
     GUCEF_TESTFW_SUITE_SCOPE( "Validation" );
 
-    GUCEF::MLF::MEMMAN_Initialize();
+    GUCEF::DRGUP::DRGUP_Initialize();
 
     // Test 1: ValidateKnownAllocPtr on a tracked pointer does not crash
     GUCEF_TESTFW_TESTCASE( "Test 1: ValidateKnownAllocPtr on tracked ptr" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 1: ValidateKnownAllocPtr on tracked ptr" );
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 64, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 64, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_ValidateKnownAllocPtr( ptr, __FILE__, __LINE__ );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_ValidateKnownAllocPtr( ptr, __FILE__, __LINE__ );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -92,7 +92,7 @@ PerformValidationTests( void )
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 2: ValidateKnownAllocPtr on untracked ptr no crash" );
             /* Stack variable — definitely not tracked */
             int stackVar = 42;
-            GUCEF::MLF::MEMMAN_ValidateKnownAllocPtr( &stackVar, __FILE__, __LINE__ );
+            GUCEF::DRGUP::DRGUP_ValidateKnownAllocPtr( &stackVar, __FILE__, __LINE__ );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -106,11 +106,11 @@ PerformValidationTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 3: ValidateKnownAllocBlock on tracked block" );
-            const GUCEF::MLF::UInt32 blockSize = 64;
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, blockSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            const GUCEF::DRGUP::UInt32 blockSize = 64;
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, blockSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_ValidateKnownAllocBlock( ptr, blockSize, __FILE__, __LINE__ );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_ValidateKnownAllocBlock( ptr, blockSize, __FILE__, __LINE__ );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -124,11 +124,11 @@ PerformValidationTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: ValidateChunk does not crash" );
-            const GUCEF::MLF::UInt32 blockSize = 64;
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, blockSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            const GUCEF::DRGUP::UInt32 blockSize = 64;
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, blockSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_ValidateChunk( ptr, ptr, blockSize, __FILE__, __LINE__ );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_ValidateChunk( ptr, ptr, blockSize, __FILE__, __LINE__ );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -142,11 +142,11 @@ PerformValidationTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: ValidateAccessibility does not crash" );
-            const GUCEF::MLF::UInt32 blockSize = 64;
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, blockSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            const GUCEF::DRGUP::UInt32 blockSize = 64;
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, blockSize, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_ValidateAccessibility( ptr, blockSize, __FILE__, __LINE__ );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_ValidateAccessibility( ptr, blockSize, __FILE__, __LINE__ );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -160,10 +160,10 @@ PerformValidationTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: ValidatePendingDestructor does not crash" );
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_NEW, GUCEF_NULL, "TestType" );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 32, MM_NEW, GUCEF_NULL, "TestType" );
             ASSERT_TRUE( ptr != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_ValidatePendingDestructor( __FILE__, __LINE__, ptr, 32, "TestType" );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_DELETE, "TestType" );
+            GUCEF::DRGUP::DRGUP_ValidatePendingDestructor( __FILE__, __LINE__, ptr, 32, "TestType" );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_DELETE, "TestType" );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -177,10 +177,10 @@ PerformValidationTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 7: ValidateFinishedDestructor does not crash" );
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_NEW, GUCEF_NULL, "TestType" );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 32, MM_NEW, GUCEF_NULL, "TestType" );
             ASSERT_TRUE( ptr != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_ValidateFinishedDestructor( __FILE__, __LINE__, ptr, 32, "TestType" );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_DELETE, "TestType" );
+            GUCEF::DRGUP::DRGUP_ValidateFinishedDestructor( __FILE__, __LINE__, ptr, 32, "TestType" );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_DELETE, "TestType" );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -195,12 +195,12 @@ PerformValidationTests( void )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 8: Type mismatch MM_NEW+MM_FREE with MISMATCH_LOG no crash" );
             /* Default mismatch response is MISMATCH_LOG: execution must continue past the mismatch */
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_NEW, GUCEF_NULL, "TestType" );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 32, MM_NEW, GUCEF_NULL, "TestType" );
             ASSERT_TRUE( ptr != GUCEF_NULL );
             if ( ptr != GUCEF_NULL )
             {
                 /* Intentional type mismatch: allocated with NEW, freed with FREE */
-                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+                GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             }
             ASSERT_TRUE( true );
         }
@@ -210,18 +210,18 @@ PerformValidationTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    // Test 9: MEMMAN_SuppressMismatchCheck on a live pointer then mismatched dealloc - no crash
+    // Test 9: DRGUP_SuppressMismatchCheck on a live pointer then mismatched dealloc - no crash
     GUCEF_TESTFW_TESTCASE( "Test 9: SuppressMismatchCheck on live ptr then mismatch dealloc no crash" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 9: SuppressMismatchCheck on live ptr then mismatch dealloc no crash" );
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_NEW, GUCEF_NULL, "TestType" );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 32, MM_NEW, GUCEF_NULL, "TestType" );
             ASSERT_TRUE( ptr != GUCEF_NULL );
             if ( ptr != GUCEF_NULL )
             {
-                GUCEF::MLF::MEMMAN_SuppressMismatchCheck( ptr );
+                GUCEF::DRGUP::DRGUP_SuppressMismatchCheck( ptr );
                 /* Mismatch dealloc must be silently accepted now */
-                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+                GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             }
             ASSERT_TRUE( true );
         }
@@ -231,12 +231,12 @@ PerformValidationTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    // Test 10: MEMMAN_SuppressMismatchCheck(NULL) - must not crash
+    // Test 10: DRGUP_SuppressMismatchCheck(NULL) - must not crash
     GUCEF_TESTFW_TESTCASE( "Test 10: SuppressMismatchCheck NULL no crash" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 10: SuppressMismatchCheck NULL no crash" );
-            GUCEF::MLF::MEMMAN_SuppressMismatchCheck( GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_SuppressMismatchCheck( GUCEF_NULL );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -245,7 +245,7 @@ PerformValidationTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    GUCEF::MLF::MEMMAN_Shutdown();
+    GUCEF::DRGUP::DRGUP_Shutdown();
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL Validation TESTS COMPLETED" );

@@ -15,8 +15,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_MLF_TESTAPP_TESTCALLSTACK_H
-#define GUCEF_MLF_TESTAPP_TESTCALLSTACK_H
+#ifndef GUCEF_DRGUP_TESTAPP_TESTCALLSTACK_H
+#define GUCEF_DRGUP_TESTAPP_TESTCALLSTACK_H
 
 /*-------------------------------------------------------------------------*/
 
@@ -24,4 +24,4 @@ void PerformCallStackTests( void );
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MLF_TESTAPP_TESTCALLSTACK_H ? */
+#endif /* GUCEF_DRGUP_TESTAPP_TESTCALLSTACK_H ? */

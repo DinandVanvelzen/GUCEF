@@ -58,7 +58,7 @@ add_dependencies( ${MODULE_NAME} MemoryLeakFinder gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} PUBLIC MemoryLeakFinder gucefCORE gucefMT )
 
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS
-  "GUCEF_MLF_TESTAPP_BUILD_MODULE;MEMCHECK_OLEAPI;MODULE_CONSENSUS_NAME=MemoryLeakFinder_TestApp;MODULE_NAME=MemoryLeakFinder_TestApp" )
+  "GUCEF_DRGUP_TESTAPP_BUILD_MODULE;MEMCHECK_OLEAPI;MODULE_CONSENSUS_NAME=MemoryLeakFinder_TestApp;MODULE_NAME=MemoryLeakFinder_TestApp" )
 
 include_directories( ../../common/include
   ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api

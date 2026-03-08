@@ -74,12 +74,12 @@ class GUCEF_HIDDEN ScopeStackTracer
     ScopeStackTracer( const char* file ,
                       const int line   )
     {
-        MEMMAN_CallstackScopeBegin( file, line );
+        DRGUP_CallstackScopeBegin( file, line );
     }
 
     ~ScopeStackTracer() 
     {
-        MEMMAN_CallstackScopeEnd();
+        DRGUP_CallstackScopeEnd();
     }
 
     private:

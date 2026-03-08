@@ -15,8 +15,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_MLF_TESTAPP_TESTMEMORYTRACKING_H
-#define GUCEF_MLF_TESTAPP_TESTMEMORYTRACKING_H
+#ifndef GUCEF_DRGUP_TESTAPP_TESTMEMORYTRACKING_H
+#define GUCEF_DRGUP_TESTAPP_TESTMEMORYTRACKING_H
 
 /*-------------------------------------------------------------------------*/
 
@@ -24,4 +24,4 @@ void PerformMemoryTrackingTests( void );
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MLF_TESTAPP_TESTMEMORYTRACKING_H ? */
+#endif /* GUCEF_DRGUP_TESTAPP_TESTMEMORYTRACKING_H ? */

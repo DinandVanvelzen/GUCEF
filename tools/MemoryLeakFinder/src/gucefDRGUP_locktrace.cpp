@@ -34,9 +34,9 @@
 #undef GUCEF_USE_PLATFORM_CALLSTACK_TRACING
 #undef GUCEF_USE_PLATFORM_LOCK_TRACER
 
-#include "gucefMLF_locktrace.h"
-#include "gucefMLF_CLockTracer.h"
-#include "gucefMLF_callstack.h"
+#include "gucefDRGUP_locktrace.h"
+#include "gucefDRGUP_CLockTracer.h"
+#include "gucefDRGUP_callstack.h"
 
 #ifndef GUCEF_MT_DVMTOSWRAP_H
 #include "gucefMT_dvmtoswrap.h"
@@ -82,7 +82,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace MLF {
+namespace DRGUP {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -232,8 +232,8 @@ CLockTracer::RegisterExclusiveLockCreation( void* lockId )
     assert( 0 == lockTrace->m_lockReentrancyDepth );
     assert( !lockTrace->m_isLocked );
 
-    MEMMAN_FreeCallstackCopy( lockTrace->m_callstackAtLockCreation );
-    MEMMAN_GetCallstackCopyForCurrentThread( &lockTrace->m_callstackAtLockCreation, 0 );
+    DRGUP_FreeCallstackCopy( lockTrace->m_callstackAtLockCreation );
+    DRGUP_GetCallstackCopyForCurrentThread( &lockTrace->m_callstackAtLockCreation, 0 );
     lockTrace->m_threadIdAtLockCreation = callerThreadId;
     lockTrace->m_isLocked = false;
     lockTrace->m_isExclusivelyLocked = false;
@@ -260,14 +260,14 @@ CLockTracer::RegisterExclusiveLockObtained( void* lockId )
         {
             /* Unexpected: exclusive lock obtained by multiple threads simultaneously */
             MT::CScopeWriterLock writeLock( readLock );
-            GUCEF_PrintCallstack();
+            DRGUP_PrintCallstack();
             PrintLockStacks( lockId, lockTrace, stdout );
             GUCEF_UNREACHABLE;
         }
     }
 
-    MEMMAN_FreeCallstackCopy( lockTrace->m_callstackAtLockObtainment );
-    MEMMAN_GetCallstackCopyForCurrentThread( &lockTrace->m_callstackAtLockObtainment, 0 );
+    DRGUP_FreeCallstackCopy( lockTrace->m_callstackAtLockObtainment );
+    DRGUP_GetCallstackCopyForCurrentThread( &lockTrace->m_callstackAtLockObtainment, 0 );
     lockTrace->m_lastCallerThreadIdAtLockObtainment = callerThreadId;
     lockTrace->m_isLocked = true;
     lockTrace->m_isExclusivelyLocked = true;
@@ -289,7 +289,7 @@ CLockTracer::RegisterExclusiveLockAbandonment( void* lockId )
         if ( callerThreadId != lockTrace->m_lastCallerThreadIdAtLockObtainment )
         {
             ++lockTrace->m_abandonmentCounter;
-            MEMMAN_FreeCallstackCopy( lockTrace->m_lastAbandonedCallstackAtLockObtainment );
+            DRGUP_FreeCallstackCopy( lockTrace->m_lastAbandonedCallstackAtLockObtainment );
             lockTrace->m_lastAbandonedCallstackAtLockObtainment = lockTrace->m_callstackAtLockObtainment;
             lockTrace->m_lastAbandonedCallerThreadIdAtLockObtainment = lockTrace->m_lastCallerThreadIdAtLockObtainment;
             lockTrace->m_callstackAtLockObtainment = GUCEF_NULL;
@@ -299,14 +299,14 @@ CLockTracer::RegisterExclusiveLockAbandonment( void* lockId )
         {
             /* Cannot abandon a lock we currently hold */
             MT::CScopeWriterLock writeLock( readLock );
-            GUCEF_PrintCallstack();
+            DRGUP_PrintCallstack();
             PrintLockStacks( lockId, lockTrace, stdout );
             GUCEF_UNREACHABLE;
         }
     }
 
-    MEMMAN_FreeCallstackCopy( lockTrace->m_callstackAtLockObtainment );
-    MEMMAN_GetCallstackCopyForCurrentThread( &lockTrace->m_callstackAtLockObtainment, 0 );
+    DRGUP_FreeCallstackCopy( lockTrace->m_callstackAtLockObtainment );
+    DRGUP_GetCallstackCopyForCurrentThread( &lockTrace->m_callstackAtLockObtainment, 0 );
     lockTrace->m_lastCallerThreadIdAtLockObtainment = callerThreadId;
     lockTrace->m_isLocked = true;
     lockTrace->m_isExclusivelyLocked = true;
@@ -327,11 +327,11 @@ CLockTracer::RegisterExclusiveLockReleased( void* lockId )
     {
         /* Surplus release — lock not currently held */
         ++lockTrace->m_surplusLockReleases;
-        MEMMAN_FreeCallstackCopy( lockTrace->m_callstackAtLastSurplusLockRelease );
-        MEMMAN_GetCallstackCopyForCurrentThread( &lockTrace->m_callstackAtLastSurplusLockRelease, 0 );
+        DRGUP_FreeCallstackCopy( lockTrace->m_callstackAtLastSurplusLockRelease );
+        DRGUP_GetCallstackCopyForCurrentThread( &lockTrace->m_callstackAtLastSurplusLockRelease, 0 );
 
         MT::CScopeWriterLock writeLock( readLock );
-        GUCEF_PrintCallstack();
+        DRGUP_PrintCallstack();
         PrintLockStacks( lockId, lockTrace, stdout );
         GUCEF_UNREACHABLE;
     }
@@ -348,14 +348,14 @@ CLockTracer::RegisterExclusiveLockReleased( void* lockId )
             lockTrace->m_isExclusivelyLocked = false;
         }
 
-        MEMMAN_FreeCallstackCopy( lockTrace->m_callstackAtLockRelease );
-        MEMMAN_GetCallstackCopyForCurrentThread( &lockTrace->m_callstackAtLockRelease, 0 );
+        DRGUP_FreeCallstackCopy( lockTrace->m_callstackAtLockRelease );
+        DRGUP_GetCallstackCopyForCurrentThread( &lockTrace->m_callstackAtLockRelease, 0 );
     }
     else
     {
         /* Thread releasing the lock is not the thread that obtained it */
         MT::CScopeWriterLock writeLock( readLock );
-        GUCEF_PrintCallstack();
+        DRGUP_PrintCallstack();
         PrintLockStacks( lockId, lockTrace, stdout );
         GUCEF_UNREACHABLE;
     }
@@ -376,7 +376,7 @@ CLockTracer::RegisterExclusiveLockDestruction( void* lockId )
     {
         /* Lock still held by another thread while we destroy it */
         MT::CScopeWriterLock writeLock( readLock );
-        GUCEF_PrintCallstack();
+        DRGUP_PrintCallstack();
         PrintLockStacks( lockId, lockTrace, stdout );
         GUCEF_UNREACHABLE;
     }
@@ -416,26 +416,26 @@ CLockTracer::PrintLockStacks( void* lockId, LockTraceInfo* lockTrace, FILE* dest
     fprintf( dest, "   lastAbandonedCallerThreadIdAtLockObtainment: %d%s", lockTrace->m_lastAbandonedCallerThreadIdAtLockObtainment, EOL );
     fprintf( dest, "------------------------------%s%s", EOL, EOL );
     fprintf( dest, "Stack at lock creation: %s%s", EOL, EOL );
-    GUCEF_PrintCallstackCopyTo( lockTrace->m_callstackAtLockCreation, dest );
+    DRGUP_PrintCallstackCopyTo( lockTrace->m_callstackAtLockCreation, dest );
     fprintf( dest, "------------------------------%s%s", EOL, EOL );
     fprintf( dest, "Stack at lock obtainment: %s%s", EOL, EOL );
     fprintf( dest, "------------------------%s%s", EOL, EOL );
-    GUCEF_PrintCallstackCopyTo( lockTrace->m_callstackAtLockObtainment, dest );
+    DRGUP_PrintCallstackCopyTo( lockTrace->m_callstackAtLockObtainment, dest );
     fprintf( dest, "Stack at lock release: %s%s", EOL, EOL );
     fprintf( dest, "------------------------%s%s", EOL, EOL );
-    GUCEF_PrintCallstackCopyTo( lockTrace->m_callstackAtLockRelease, dest );
+    DRGUP_PrintCallstackCopyTo( lockTrace->m_callstackAtLockRelease, dest );
     fprintf( dest, "------------------------------%s%s", EOL, EOL );
     if ( lockTrace->m_abandonmentCounter > 0 )
     {
         fprintf( dest, "Stack at lock obtainment from last lock abandonment: %s%s", EOL, EOL );
         fprintf( dest, "------------------------%s%s", EOL, EOL );
-        GUCEF_PrintCallstackCopyTo( lockTrace->m_lastAbandonedCallstackAtLockObtainment, dest );
+        DRGUP_PrintCallstackCopyTo( lockTrace->m_lastAbandonedCallstackAtLockObtainment, dest );
     }
     if ( lockTrace->m_surplusLockReleases > 0 )
     {
         fprintf( dest, "Stack at last surplus lock release call: %s%s", EOL, EOL );
         fprintf( dest, "------------------------%s%s", EOL, EOL );
-        GUCEF_PrintCallstackCopyTo( lockTrace->m_callstackAtLastSurplusLockRelease, dest );
+        DRGUP_PrintCallstackCopyTo( lockTrace->m_callstackAtLastSurplusLockRelease, dest );
     }
 }
 
@@ -490,15 +490,15 @@ CLockTracer::LockTraceInfo::LockTraceInfo( void )
 
 CLockTracer::LockTraceInfo::~LockTraceInfo( void )
 {
-    MEMMAN_FreeCallstackCopy( m_callstackAtLockCreation );
+    DRGUP_FreeCallstackCopy( m_callstackAtLockCreation );
     m_callstackAtLockCreation = GUCEF_NULL;
-    MEMMAN_FreeCallstackCopy( m_callstackAtLockObtainment );
+    DRGUP_FreeCallstackCopy( m_callstackAtLockObtainment );
     m_callstackAtLockObtainment = GUCEF_NULL;
-    MEMMAN_FreeCallstackCopy( m_callstackAtLockRelease );
+    DRGUP_FreeCallstackCopy( m_callstackAtLockRelease );
     m_callstackAtLockRelease = GUCEF_NULL;
-    MEMMAN_FreeCallstackCopy( m_lastAbandonedCallstackAtLockObtainment );
+    DRGUP_FreeCallstackCopy( m_lastAbandonedCallstackAtLockObtainment );
     m_lastAbandonedCallstackAtLockObtainment = GUCEF_NULL;
-    MEMMAN_FreeCallstackCopy( m_callstackAtLastSurplusLockRelease );
+    DRGUP_FreeCallstackCopy( m_callstackAtLastSurplusLockRelease );
     m_callstackAtLastSurplusLockRelease = GUCEF_NULL;
 }
 
@@ -599,7 +599,7 @@ CLockTracer::GetAggregateStats( SLockAggregateStats& stats )
 //-------------------------------------------------------------------------*/
 
 void
-MEMMAN_ExclusiveLockCreated( void* lockId )
+DRGUP_ExclusiveLockCreated( void* lockId )
 {
     CLockTracer::Instance()->RegisterExclusiveLockCreation( lockId );
 }
@@ -607,7 +607,7 @@ MEMMAN_ExclusiveLockCreated( void* lockId )
 /*-------------------------------------------------------------------------*/
 
 void
-MEMMAN_ExclusiveLockObtained( void* lockId )
+DRGUP_ExclusiveLockObtained( void* lockId )
 {
     CLockTracer::Instance()->RegisterExclusiveLockObtained( lockId );
 }
@@ -615,7 +615,7 @@ MEMMAN_ExclusiveLockObtained( void* lockId )
 /*-------------------------------------------------------------------------*/
 
 void
-MEMMAN_ExclusiveLockReleased( void* lockId )
+DRGUP_ExclusiveLockReleased( void* lockId )
 {
     CLockTracer::Instance()->RegisterExclusiveLockReleased( lockId );
 }
@@ -623,7 +623,7 @@ MEMMAN_ExclusiveLockReleased( void* lockId )
 /*-------------------------------------------------------------------------*/
 
 void
-MEMMAN_ExclusiveLockAbandoned( void* lockId )
+DRGUP_ExclusiveLockAbandoned( void* lockId )
 {
     CLockTracer::Instance()->RegisterExclusiveLockAbandonment( lockId );
 }
@@ -631,7 +631,7 @@ MEMMAN_ExclusiveLockAbandoned( void* lockId )
 /*-------------------------------------------------------------------------*/
 
 void
-MEMMAN_ExclusiveLockDestroy( void* lockId )
+DRGUP_ExclusiveLockDestroy( void* lockId )
 {
     CLockTracer::Instance()->RegisterExclusiveLockDestruction( lockId );
 }
@@ -639,7 +639,7 @@ MEMMAN_ExclusiveLockDestroy( void* lockId )
 /*-------------------------------------------------------------------------*/
 
 void
-MEMMAN_LockTraceInit( void )
+DRGUP_LockTraceInit( void )
 {
     CLockTracer::Instance();
 }
@@ -647,7 +647,7 @@ MEMMAN_LockTraceInit( void )
 /*-------------------------------------------------------------------------*/
 
 void
-MEMMAN_LockTraceShutdown( void )
+DRGUP_LockTraceShutdown( void )
 {
     CLockTracer::Deinstance();
 }
@@ -658,7 +658,7 @@ MEMMAN_LockTraceShutdown( void )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MLF */
+}; /* namespace DRGUP */
 }; /* namespace GUCEF */
 
 /*--------------------------------------------------------------------------*/

@@ -37,10 +37,10 @@
 #undef GUCEF_USE_CALLSTACK_TRACING
 #undef GUCEF_USE_CALLSTACK_PLATFORM_TRACING
 
-#include "gucefMLF_CReporter.h"
-#include "gucefMLF_CMemoryTracker.h"
-#include "gucefMLF_CLockTracer.h"
-#include "gucefMLF_callstack.h"
+#include "gucefDRGUP_CReporter.h"
+#include "gucefDRGUP_CMemoryTracker.h"
+#include "gucefDRGUP_CLockTracer.h"
+#include "gucefDRGUP_callstack.h"
 
 #ifndef GUCEF_MT_CSCOPERWLOCK_H
 #include "gucefMT_CScopeRwLock.h"
@@ -62,7 +62,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace MLF {
+namespace DRGUP {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -217,7 +217,7 @@ CReporter::DumpRecord( FILE* fp, CAllocationRecord* record )
     if ( GUCEF_NULL != record->allocRawCallstack && record->allocRawCallstack->frameCount > 0 )
     {
         fprintf( fp, "Allocation Call Stack (OS actual frames):\r\n" );
-        MEMMAN_SymbolicateRawCallstack( record->allocRawCallstack, fp, "  " );
+        DRGUP_SymbolicateRawCallstack( record->allocRawCallstack, fp, "  " );
     }
 
     if ( GUCEF_NULL != record->deallocCallstack && record->deallocCallstack->items > 0 )
@@ -230,7 +230,7 @@ CReporter::DumpRecord( FILE* fp, CAllocationRecord* record )
     if ( GUCEF_NULL != record->deallocRawCallstack && record->deallocRawCallstack->frameCount > 0 )
     {
         fprintf( fp, "Deallocation Call Stack (OS actual frames):\r\n" );
-        MEMMAN_SymbolicateRawCallstack( record->deallocRawCallstack, fp, "  " );
+        DRGUP_SymbolicateRawCallstack( record->deallocRawCallstack, fp, "  " );
     }
 }
 
@@ -507,11 +507,11 @@ CReporter::DumpExceptionReport( FILE* fp, void* faultAddress )
     fprintf( fp, "\r\n" );
 
     TCallStack* currentCallstack = GUCEF_NULL;
-    MEMMAN_GetCallstackForCurrentThread( &currentCallstack );
+    DRGUP_GetCallstackForCurrentThread( &currentCallstack );
     if ( GUCEF_NULL != currentCallstack )
     {
         fprintf( fp, "             C U R R E N T  C A L L S T A C K       \r\n" );
-        GUCEF_PrintCallstackCopyTo( currentCallstack, fp );
+        DRGUP_PrintCallstackCopyTo( currentCallstack, fp );
     }
 
     CMemoryTracker* tracker = CMemoryTracker::Instance();
@@ -593,11 +593,11 @@ CReporter::DumpExceptionReport( FILE*              fp                        ,
     fprintf( fp, "\r\n" );
 
     TCallStack* currentCallstack = GUCEF_NULL;
-    MEMMAN_GetCallstackForCurrentThread( &currentCallstack );
+    DRGUP_GetCallstackForCurrentThread( &currentCallstack );
     if ( GUCEF_NULL != currentCallstack )
     {
         fprintf( fp, "             C U R R E N T  C A L L S T A C K       \r\n" );
-        GUCEF_PrintCallstackCopyTo( currentCallstack, fp );
+        DRGUP_PrintCallstackCopyTo( currentCallstack, fp );
     }
 
     if ( GUCEF_NULL != nearestDeallocatedRecord )
@@ -885,7 +885,7 @@ CReporter::DumpMassifFormat( const char* path )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MLF */
+}; /* namespace DRGUP */
 }; /* namespace GUCEF */
 
 /*--------------------------------------------------------------------------*/

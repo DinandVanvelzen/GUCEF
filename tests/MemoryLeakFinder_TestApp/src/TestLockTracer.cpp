@@ -23,20 +23,20 @@
 
 #include <stdio.h>
 
-#ifndef GUCEF_MLF_MEMORYMANAGER_H
-#include "gucefMLF_MemoryManager.h"
-#define GUCEF_MLF_MEMORYMANAGER_H
-#endif /* GUCEF_MLF_MEMORYMANAGER_H ? */
+#ifndef GUCEF_DRGUP_MEMORYMANAGER_H
+#include "gucefDRGUP_MemoryManager.h"
+#define GUCEF_DRGUP_MEMORYMANAGER_H
+#endif /* GUCEF_DRGUP_MEMORYMANAGER_H ? */
 
-#ifndef GUCEF_MLF_SMEMORYTRACKERCONFIG_H
-#include "gucefMLF_SMemoryTrackerConfig.h"
-#define GUCEF_MLF_SMEMORYTRACKERCONFIG_H
-#endif /* GUCEF_MLF_SMEMORYTRACKERCONFIG_H ? */
+#ifndef GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
+#include "gucefDRGUP_SMemoryTrackerConfig.h"
+#define GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
+#endif /* GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H ? */
 
-#ifndef GUCEF_LOCKTRACE_H
-#include "gucefMLF_locktrace.h"
-#define GUCEF_LOCKTRACE_H
-#endif /* GUCEF_LOCKTRACE_H ? */
+#ifndef GUCEF_DRGUP_LOCKTRACE_H
+#include "gucefDRGUP_locktrace.h"
+#define GUCEF_DRGUP_LOCKTRACE_H
+#endif /* GUCEF_DRGUP_LOCKTRACE_H ? */
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -84,7 +84,7 @@ PerformLockTracerTests( void )
      * the exported C API functions are callable without crash regardless.
      */
 
-    GUCEF::MLF::MEMMAN_Initialize();
+    GUCEF::DRGUP::DRGUP_Initialize();
 
     // Test 1: Create/obtain/release/destroy lifecycle does not crash
     GUCEF_TESTFW_TESTCASE( "Test 1: Lock create/obtain/release/destroy no crash" )
@@ -92,10 +92,10 @@ PerformLockTracerTests( void )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 1: Lock create/obtain/release/destroy no crash" );
             void* lockId = reinterpret_cast< void* >( static_cast< uintptr_t >( 0x1234ABCD ) );
-            GUCEF::MLF::MEMMAN_ExclusiveLockCreated( lockId );
-            GUCEF::MLF::MEMMAN_ExclusiveLockObtained( lockId );
-            GUCEF::MLF::MEMMAN_ExclusiveLockReleased( lockId );
-            GUCEF::MLF::MEMMAN_ExclusiveLockDestroy( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockCreated( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockObtained( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockReleased( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockDestroy( lockId );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -110,12 +110,12 @@ PerformLockTracerTests( void )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 2: Re-entrant lock lifecycle no crash" );
             void* lockId = reinterpret_cast< void* >( static_cast< uintptr_t >( 0x5678EF01 ) );
-            GUCEF::MLF::MEMMAN_ExclusiveLockCreated( lockId );
-            GUCEF::MLF::MEMMAN_ExclusiveLockObtained( lockId );
-            GUCEF::MLF::MEMMAN_ExclusiveLockObtained( lockId );  /* re-entrant same thread */
-            GUCEF::MLF::MEMMAN_ExclusiveLockReleased( lockId );
-            GUCEF::MLF::MEMMAN_ExclusiveLockReleased( lockId );
-            GUCEF::MLF::MEMMAN_ExclusiveLockDestroy( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockCreated( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockObtained( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockObtained( lockId );  /* re-entrant same thread */
+            GUCEF::DRGUP::DRGUP_ExclusiveLockReleased( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockReleased( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockDestroy( lockId );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -131,14 +131,14 @@ PerformLockTracerTests( void )
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 3: Multiple distinct lock IDs no crash" );
             void* lockA = reinterpret_cast< void* >( static_cast< uintptr_t >( 0xAAAA0001 ) );
             void* lockB = reinterpret_cast< void* >( static_cast< uintptr_t >( 0xBBBB0002 ) );
-            GUCEF::MLF::MEMMAN_ExclusiveLockCreated( lockA );
-            GUCEF::MLF::MEMMAN_ExclusiveLockCreated( lockB );
-            GUCEF::MLF::MEMMAN_ExclusiveLockObtained( lockA );
-            GUCEF::MLF::MEMMAN_ExclusiveLockObtained( lockB );
-            GUCEF::MLF::MEMMAN_ExclusiveLockReleased( lockA );
-            GUCEF::MLF::MEMMAN_ExclusiveLockReleased( lockB );
-            GUCEF::MLF::MEMMAN_ExclusiveLockDestroy( lockA );
-            GUCEF::MLF::MEMMAN_ExclusiveLockDestroy( lockB );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockCreated( lockA );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockCreated( lockB );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockObtained( lockA );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockObtained( lockB );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockReleased( lockA );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockReleased( lockB );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockDestroy( lockA );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockDestroy( lockB );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -147,7 +147,7 @@ PerformLockTracerTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-#ifndef GUCEF_MLF_TSAN_ACTIVE
+#ifndef GUCEF_DRGUP_TSAN_ACTIVE
 
     // Test 4: LockProtectsRange + LockUnprotectsRange smoke test - no crash
     GUCEF_TESTFW_TESTCASE( "Test 4: LockProtectsRange+LockUnprotectsRange no crash" )
@@ -156,10 +156,10 @@ PerformLockTracerTests( void )
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: LockProtectsRange+LockUnprotectsRange no crash" );
             char buf[ 64 ];
             void* lockId = reinterpret_cast< void* >( static_cast< uintptr_t >( 0xCCCC0004 ) );
-            GUCEF::MLF::MEMMAN_ExclusiveLockCreated( lockId );
-            GUCEF::MLF::MEMMAN_LockProtectsRange( lockId, buf, sizeof( buf ) );
-            GUCEF::MLF::MEMMAN_LockUnprotectsRange( lockId );
-            GUCEF::MLF::MEMMAN_ExclusiveLockDestroy( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockCreated( lockId );
+            GUCEF::DRGUP::DRGUP_LockProtectsRange( lockId, buf, sizeof( buf ) );
+            GUCEF::DRGUP::DRGUP_LockUnprotectsRange( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockDestroy( lockId );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -174,16 +174,16 @@ PerformLockTracerTests( void )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: Lock held at dealloc - no warning" );
             void* lockId = reinterpret_cast< void* >( static_cast< uintptr_t >( 0xDDDD0005 ) );
-            GUCEF::MLF::MEMMAN_ExclusiveLockCreated( lockId );
-            GUCEF::MLF::MEMMAN_ExclusiveLockObtained( lockId );
-            void* buf = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 64, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockCreated( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockObtained( lockId );
+            void* buf = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 64, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( buf != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_LockProtectsRange( lockId, buf, 64 );
+            GUCEF::DRGUP::DRGUP_LockProtectsRange( lockId, buf, 64 );
             /* Remove range association before freeing to avoid triggering the warning path */
-            GUCEF::MLF::MEMMAN_LockUnprotectsRange( lockId );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( buf, MM_FREE, GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_ExclusiveLockReleased( lockId );
-            GUCEF::MLF::MEMMAN_ExclusiveLockDestroy( lockId );
+            GUCEF::DRGUP::DRGUP_LockUnprotectsRange( lockId );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( buf, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockReleased( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockDestroy( lockId );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -198,16 +198,16 @@ PerformLockTracerTests( void )
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: Lock not held at dealloc - warning logged no crash" );
             void* lockId = reinterpret_cast< void* >( static_cast< uintptr_t >( 0xEEEE0006 ) );
-            GUCEF::MLF::MEMMAN_ExclusiveLockCreated( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockCreated( lockId );
             /* Do NOT obtain the lock - so it is not held during dealloc */
-            void* buf = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 64, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* buf = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 64, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( buf != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_LockProtectsRange( lockId, buf, 64 );
+            GUCEF::DRGUP::DRGUP_LockProtectsRange( lockId, buf, 64 );
             /* Dealloc while lock not held: a warning is expected, but execution continues */
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( buf, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( buf, MM_FREE, GUCEF_NULL );
             /* These must still be reachable */
-            GUCEF::MLF::MEMMAN_LockUnprotectsRange( lockId );
-            GUCEF::MLF::MEMMAN_ExclusiveLockDestroy( lockId );
+            GUCEF::DRGUP::DRGUP_LockUnprotectsRange( lockId );
+            GUCEF::DRGUP::DRGUP_ExclusiveLockDestroy( lockId );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -216,11 +216,11 @@ PerformLockTracerTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-#endif /* GUCEF_MLF_TSAN_ACTIVE ? */
+#endif /* GUCEF_DRGUP_TSAN_ACTIVE ? */
 
-    GUCEF::MLF::MEMMAN_Shutdown();
+    GUCEF::DRGUP::DRGUP_Shutdown();
 
-    { FILE* dbg = fopen( "memman_shutdown_debug.txt", "a" ); if ( dbg ) { fprintf( dbg, "LOCKTRACERTEST: after MEMMAN_Shutdown\n" ); fclose( dbg ); } }
+    { FILE* dbg = fopen( "memman_shutdown_debug.txt", "a" ); if ( dbg ) { fprintf( dbg, "LOCKTRACERTEST: after DRGUP_Shutdown\n" ); fclose( dbg ); } }
 
     CORE::CLogStreamScope::FlushLogs();
 

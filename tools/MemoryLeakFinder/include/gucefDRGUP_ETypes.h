@@ -17,8 +17,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef GUCEF_MLF_ETYPES_H
-#define GUCEF_MLF_ETYPES_H
+#ifndef GUCEF_DRGUP_ETYPES_H
+#define GUCEF_DRGUP_ETYPES_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -41,20 +41,20 @@
  *      Maximum and minimal values for the simple types which we are about to
  *      define.
  */
-#define GUCEFMLF_INT8MAX     127
-#define GUCEFMLF_INT8MIN     (-128)
-#define GUCEFMLF_UINT8MAX    256
-#define GUCEFMLF_UINT8MIN    0
-#define GUCEFMLF_INT16MAX    32767
-#define GUCEFMLF_INT16MIN    (-32767-1)
-#define GUCEFMLF_UINT16MAX   65535
-#define GUCEFMLF_UINT16MIN   0
-#define GUCEFMLF_INT32MAX    2147483647
-#define GUCEFMLF_INT32MIN    (-2147483647-1)
-#define GUCEFMLF_UINT32MAX   4294967295
-#define GUCEFMLF_UINT32MIN   0
-#define GUCEFMLF_FLOAT32MAX  (3.40282347E+38F)
-#define GUCEFMLF_FLOAT32MIN  (-3.40282347E+38F-1)
+#define GUCEFDRGUP_INT8MAX     127
+#define GUCEFDRGUP_INT8MIN     (-128)
+#define GUCEFDRGUP_UINT8MAX    256
+#define GUCEFDRGUP_UINT8MIN    0
+#define GUCEFDRGUP_INT16MAX    32767
+#define GUCEFDRGUP_INT16MIN    (-32767-1)
+#define GUCEFDRGUP_UINT16MAX   65535
+#define GUCEFDRGUP_UINT16MIN   0
+#define GUCEFDRGUP_INT32MAX    2147483647
+#define GUCEFDRGUP_INT32MIN    (-2147483647-1)
+#define GUCEFDRGUP_UINT32MAX   4294967295
+#define GUCEFDRGUP_UINT32MIN   0
+#define GUCEFDRGUP_FLOAT32MAX  (3.40282347E+38F)
+#define GUCEFDRGUP_FLOAT32MIN  (-3.40282347E+38F-1)
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -64,7 +64,7 @@
 
 #ifdef __cplusplus
 namespace GUCEF {
-namespace MLF {
+namespace DRGUP {
 #endif /* __cplusplus ? */
 
 /*-------------------------------------------------------------------------//
@@ -178,13 +178,13 @@ typedef enum EBuildinDataType TBuildinDataType;
 //-------------------------------------------------------------------------*/
 
 #ifdef __cplusplus
-}; /* namespace MLF */
+}; /* namespace DRGUP */
 }; /* namespace GUCEF */
 #endif /* __cplusplus ? */
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MLF_ETYPES_H ? */
+#endif /* GUCEF_DRGUP_ETYPES_H ? */
 
 
 

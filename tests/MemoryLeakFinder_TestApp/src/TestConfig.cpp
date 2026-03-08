@@ -21,15 +21,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MLF_MEMORYMANAGER_H
-#include "gucefMLF_MemoryManager.h"
-#define GUCEF_MLF_MEMORYMANAGER_H
-#endif /* GUCEF_MLF_MEMORYMANAGER_H ? */
+#ifndef GUCEF_DRGUP_MEMORYMANAGER_H
+#include "gucefDRGUP_MemoryManager.h"
+#define GUCEF_DRGUP_MEMORYMANAGER_H
+#endif /* GUCEF_DRGUP_MEMORYMANAGER_H ? */
 
-#ifndef GUCEF_MLF_SMEMORYTRACKERCONFIG_H
-#include "gucefMLF_SMemoryTrackerConfig.h"
-#define GUCEF_MLF_SMEMORYTRACKERCONFIG_H
-#endif /* GUCEF_MLF_SMEMORYTRACKERCONFIG_H ? */
+#ifndef GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
+#include "gucefDRGUP_SMemoryTrackerConfig.h"
+#define GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
+#endif /* GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H ? */
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -72,15 +72,15 @@ PerformConfigTests( void )
     GUCEF_TESTFW_SUITE_SCOPE( "Config" );
 
     /* All config tests run inside an Initialize/Shutdown pair */
-    GUCEF::MLF::MEMMAN_Initialize();
+    GUCEF::DRGUP::DRGUP_Initialize();
 
     // Test 1: SMemoryTrackerConfig default values
     GUCEF_TESTFW_TESTCASE( "Test 1: SMemoryTrackerConfig default values" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 1: SMemoryTrackerConfig default values" );
-            GUCEF::MLF::SMemoryTrackerConfig cfg;
-            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            GUCEF::DRGUP::SMemoryTrackerConfig cfg;
+            GUCEF::DRGUP::SMemoryTrackerConfig_SetDefaults( cfg );
             ASSERT_TRUE( cfg.paddingSize == 4 );
             ASSERT_TRUE( cfg.exhaustiveTesting == false );
             ASSERT_TRUE( cfg.breakOnAllocationCount == -1 );
@@ -92,14 +92,14 @@ PerformConfigTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    // Test 2: MEMMAN_SetPaddingSize does not crash
+    // Test 2: DRGUP_SetPaddingSize does not crash
     GUCEF_TESTFW_TESTCASE( "Test 2: SetPaddingSize does not crash" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 2: SetPaddingSize does not crash" );
-            GUCEF::MLF::MEMMAN_SetPaddingSize( 8 );
+            GUCEF::DRGUP::DRGUP_SetPaddingSize( 8 );
             /* Reset to default for subsequent tests */
-            GUCEF::MLF::MEMMAN_SetPaddingSize( 4 );
+            GUCEF::DRGUP::DRGUP_SetPaddingSize( 4 );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -108,13 +108,13 @@ PerformConfigTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    // Test 3: MEMMAN_SetLogAlways does not crash
+    // Test 3: DRGUP_SetLogAlways does not crash
     GUCEF_TESTFW_TESTCASE( "Test 3: SetLogAlways does not crash" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 3: SetLogAlways does not crash" );
-            GUCEF::MLF::MEMMAN_SetLogAlways( 1 );
-            GUCEF::MLF::MEMMAN_SetLogAlways( 0 );
+            GUCEF::DRGUP::DRGUP_SetLogAlways( 1 );
+            GUCEF::DRGUP::DRGUP_SetLogAlways( 0 );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -123,13 +123,13 @@ PerformConfigTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    // Test 4: MEMMAN_SetExhaustiveTesting does not crash
+    // Test 4: DRGUP_SetExhaustiveTesting does not crash
     GUCEF_TESTFW_TESTCASE( "Test 4: SetExhaustiveTesting does not crash" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: SetExhaustiveTesting does not crash" );
-            GUCEF::MLF::MEMMAN_SetExhaustiveTesting( 1 );
-            GUCEF::MLF::MEMMAN_SetExhaustiveTesting( 0 );
+            GUCEF::DRGUP::DRGUP_SetExhaustiveTesting( 1 );
+            GUCEF::DRGUP::DRGUP_SetExhaustiveTesting( 0 );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -138,12 +138,12 @@ PerformConfigTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    // Test 5: MEMMAN_SetLogFile does not crash
+    // Test 5: DRGUP_SetLogFile does not crash
     GUCEF_TESTFW_TESTCASE( "Test 5: SetLogFile does not crash" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: SetLogFile does not crash" );
-            GUCEF::MLF::MEMMAN_SetLogFile( "MemoryLeakFinder_TestApp_Log.txt" );
+            GUCEF::DRGUP::DRGUP_SetLogFile( "MemoryLeakFinder_TestApp_Log.txt" );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -152,12 +152,12 @@ PerformConfigTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    // Test 6: MEMMAN_CleanLogFile does not crash
+    // Test 6: DRGUP_CleanLogFile does not crash
     GUCEF_TESTFW_TESTCASE( "Test 6: CleanLogFile does not crash" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: CleanLogFile does not crash" );
-            GUCEF::MLF::MEMMAN_CleanLogFile( 1 );
+            GUCEF::DRGUP::DRGUP_CleanLogFile( 1 );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -166,12 +166,12 @@ PerformConfigTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    // Test 7: MEMMAN_BreakOnAllocation(-1) disables break without crash
+    // Test 7: DRGUP_BreakOnAllocation(-1) disables break without crash
     GUCEF_TESTFW_TESTCASE( "Test 7: BreakOnAllocation disable does not crash" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 7: BreakOnAllocation disable does not crash" );
-            GUCEF::MLF::MEMMAN_BreakOnAllocation( -1 );
+            GUCEF::DRGUP::DRGUP_BreakOnAllocation( -1 );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -180,12 +180,12 @@ PerformConfigTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    // Test 8: MEMMAN_BreakOnDeallocation(NULL) does not crash
+    // Test 8: DRGUP_BreakOnDeallocation(NULL) does not crash
     GUCEF_TESTFW_TESTCASE( "Test 8: BreakOnDeallocation NULL does not crash" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 8: BreakOnDeallocation NULL does not crash" );
-            GUCEF::MLF::MEMMAN_BreakOnDeallocation( GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_BreakOnDeallocation( GUCEF_NULL );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -199,11 +199,11 @@ PerformConfigTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 9: New config fields default values" );
-            GUCEF::MLF::SMemoryTrackerConfig cfg;
-            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            GUCEF::DRGUP::SMemoryTrackerConfig cfg;
+            GUCEF::DRGUP::SMemoryTrackerConfig_SetDefaults( cfg );
             ASSERT_TRUE( cfg.enableRawCallstackCapture == true );
             ASSERT_TRUE( cfg.maxRawCallstackDepth == 32 );
-            ASSERT_TRUE( cfg.deallocMismatchResponse == GUCEF::MLF::MISMATCH_LOG );
+            ASSERT_TRUE( cfg.deallocMismatchResponse == GUCEF::DRGUP::MISMATCH_LOG );
             ASSERT_TRUE( cfg.enableCallsiteProfiling == false );
             ASSERT_TRUE( cfg.useGuardPages == false );
         }
@@ -218,8 +218,8 @@ PerformConfigTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 10: enableRawCallstackCapture toggle no crash" );
-            GUCEF::MLF::SMemoryTrackerConfig cfg;
-            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            GUCEF::DRGUP::SMemoryTrackerConfig cfg;
+            GUCEF::DRGUP::SMemoryTrackerConfig_SetDefaults( cfg );
             cfg.enableRawCallstackCapture = true;
             cfg.enableRawCallstackCapture = false;
             cfg.enableRawCallstackCapture = true;
@@ -236,8 +236,8 @@ PerformConfigTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 11: maxRawCallstackDepth assignment no crash" );
-            GUCEF::MLF::SMemoryTrackerConfig cfg;
-            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            GUCEF::DRGUP::SMemoryTrackerConfig cfg;
+            GUCEF::DRGUP::SMemoryTrackerConfig_SetDefaults( cfg );
             cfg.maxRawCallstackDepth = 1;
             cfg.maxRawCallstackDepth = 62;
             cfg.maxRawCallstackDepth = 32;
@@ -254,13 +254,13 @@ PerformConfigTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 12: EMismatchResponse enum values correct" );
-            ASSERT_TRUE( (int) GUCEF::MLF::MISMATCH_LOG   == 0 );
-            ASSERT_TRUE( (int) GUCEF::MLF::MISMATCH_BREAK == 1 );
-            ASSERT_TRUE( (int) GUCEF::MLF::MISMATCH_ABORT == 2 );
-            GUCEF::MLF::SMemoryTrackerConfig cfg;
-            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
-            cfg.deallocMismatchResponse = GUCEF::MLF::MISMATCH_LOG;
-            ASSERT_TRUE( cfg.deallocMismatchResponse == GUCEF::MLF::MISMATCH_LOG );
+            ASSERT_TRUE( (int) GUCEF::DRGUP::MISMATCH_LOG   == 0 );
+            ASSERT_TRUE( (int) GUCEF::DRGUP::MISMATCH_BREAK == 1 );
+            ASSERT_TRUE( (int) GUCEF::DRGUP::MISMATCH_ABORT == 2 );
+            GUCEF::DRGUP::SMemoryTrackerConfig cfg;
+            GUCEF::DRGUP::SMemoryTrackerConfig_SetDefaults( cfg );
+            cfg.deallocMismatchResponse = GUCEF::DRGUP::MISMATCH_LOG;
+            ASSERT_TRUE( cfg.deallocMismatchResponse == GUCEF::DRGUP::MISMATCH_LOG );
         }
         catch( ... )
         {
@@ -273,8 +273,8 @@ PerformConfigTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 13: enableCallsiteProfiling toggle no crash" );
-            GUCEF::MLF::SMemoryTrackerConfig cfg;
-            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            GUCEF::DRGUP::SMemoryTrackerConfig cfg;
+            GUCEF::DRGUP::SMemoryTrackerConfig_SetDefaults( cfg );
             cfg.enableCallsiteProfiling = true;
             cfg.enableCallsiteProfiling = false;
             ASSERT_TRUE( cfg.enableCallsiteProfiling == false );
@@ -285,7 +285,7 @@ PerformConfigTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    GUCEF::MLF::MEMMAN_Shutdown();
+    GUCEF::DRGUP::DRGUP_Shutdown();
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL Config TESTS COMPLETED" );

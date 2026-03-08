@@ -10,7 +10,7 @@
             <Dependency Name="gucefCORE" />
         </Linker>
         <Preprocessor>
-            <Define String="GUCEF_MLF_TESTAPP_BUILD_MODULE" />
+            <Define String="GUCEF_DRGUP_TESTAPP_BUILD_MODULE" />
 			<Define String="MEMCHECK_OLEAPI" />
         </Preprocessor>
     </Module>

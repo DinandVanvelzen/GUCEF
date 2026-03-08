@@ -21,15 +21,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MLF_MEMORYMANAGER_H
-#include "gucefMLF_MemoryManager.h"
-#define GUCEF_MLF_MEMORYMANAGER_H
-#endif /* GUCEF_MLF_MEMORYMANAGER_H ? */
+#ifndef GUCEF_DRGUP_MEMORYMANAGER_H
+#include "gucefDRGUP_MemoryManager.h"
+#define GUCEF_DRGUP_MEMORYMANAGER_H
+#endif /* GUCEF_DRGUP_MEMORYMANAGER_H ? */
 
-#ifndef GUCEF_MLF_SMEMORYTRACKERCONFIG_H
-#include "gucefMLF_SMemoryTrackerConfig.h"
-#define GUCEF_MLF_SMEMORYTRACKERCONFIG_H
-#endif /* GUCEF_MLF_SMEMORYTRACKERCONFIG_H ? */
+#ifndef GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
+#include "gucefDRGUP_SMemoryTrackerConfig.h"
+#define GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
+#endif /* GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H ? */
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -79,16 +79,16 @@ PerformStatisticsTests( void )
      * and the module handles multiple concurrent live allocations correctly.
      */
 
-    GUCEF::MLF::MEMMAN_Initialize();
+    GUCEF::DRGUP::DRGUP_Initialize();
 
     // Test 1: Single allocation returns non-null (tracked)
     GUCEF_TESTFW_TESTCASE( "Test 1: Single allocation is tracked" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 1: Single allocation is tracked" );
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 16, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 16, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
         }
         catch( ... )
         {
@@ -101,15 +101,15 @@ PerformStatisticsTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 2: Multiple simultaneous live allocations" );
-            void* ptr1 = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 16, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
-            void* ptr2 = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
-            void* ptr3 = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 64, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr1 = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 16, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr2 = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr3 = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 64, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr1 != GUCEF_NULL );
             ASSERT_TRUE( ptr2 != GUCEF_NULL );
             ASSERT_TRUE( ptr3 != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr1, MM_FREE, GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr2, MM_FREE, GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr3, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr1, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr2, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr3, MM_FREE, GUCEF_NULL );
         }
         catch( ... )
         {
@@ -124,9 +124,9 @@ PerformStatisticsTests( void )
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 3: Repeated alloc/dealloc cycles" );
             for ( int i = 0; i < 10; ++i )
             {
-                void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, static_cast< size_t >( ( i + 1 ) * 8 ), MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+                void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, static_cast< size_t >( ( i + 1 ) * 8 ), MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
                 ASSERT_TRUE( ptr != GUCEF_NULL );
-                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+                GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             }
         }
         catch( ... )
@@ -140,18 +140,18 @@ PerformStatisticsTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: Mixed allocation types return distinct pointers" );
-            void* pMalloc  = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 24, MM_MALLOC,    GUCEF_NULL, GUCEF_NULL );
-            void* pNew     = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 24, MM_NEW,       GUCEF_NULL, "T" );
-            void* pNewArr  = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 24, MM_NEW_ARRAY, GUCEF_NULL, "T[]" );
+            void* pMalloc  = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 24, MM_MALLOC,    GUCEF_NULL, GUCEF_NULL );
+            void* pNew     = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 24, MM_NEW,       GUCEF_NULL, "T" );
+            void* pNewArr  = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 24, MM_NEW_ARRAY, GUCEF_NULL, "T[]" );
             ASSERT_TRUE( pMalloc  != GUCEF_NULL );
             ASSERT_TRUE( pNew     != GUCEF_NULL );
             ASSERT_TRUE( pNewArr  != GUCEF_NULL );
             ASSERT_TRUE( pMalloc  != pNew );
             ASSERT_TRUE( pMalloc  != pNewArr );
             ASSERT_TRUE( pNew     != pNewArr );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( pMalloc,  MM_FREE,         GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( pNew,     MM_DELETE,       "T" );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( pNewArr,  MM_DELETE_ARRAY, "T[]" );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( pMalloc,  MM_FREE,         GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( pNew,     MM_DELETE,       "T" );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( pNewArr,  MM_DELETE_ARRAY, "T[]" );
         }
         catch( ... )
         {
@@ -164,9 +164,9 @@ PerformStatisticsTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: Large allocation and deallocation" );
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 1024 * 1024, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 1024 * 1024, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
         }
         catch( ... )
         {
@@ -174,18 +174,18 @@ PerformStatisticsTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    // Test 6: MEMMAN_DumpCallsiteReport does not crash
+    // Test 6: DRGUP_DumpCallsiteReport does not crash
     GUCEF_TESTFW_TESTCASE( "Test 6: DumpCallsiteReport does not crash" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: DumpCallsiteReport does not crash" );
             /* Allocate a few blocks from the same file+line to create callsite entries */
-            void* ptr1 = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 16, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
-            void* ptr2 = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 16, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr1, MM_FREE, GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr2, MM_FREE, GUCEF_NULL );
+            void* ptr1 = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 16, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr2 = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 16, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr1, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr2, MM_FREE, GUCEF_NULL );
             /* Stats may show zero if callsite profiling is disabled (default); that is expected */
-            GUCEF::MLF::MEMMAN_DumpCallsiteReport( 10 );
+            GUCEF::DRGUP::DRGUP_DumpCallsiteReport( 10 );
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -194,19 +194,19 @@ PerformStatisticsTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    // Test 7: MEMMAN_DumpSizeHistogram does not crash
+    // Test 7: DRGUP_DumpSizeHistogram does not crash
     GUCEF_TESTFW_TESTCASE( "Test 7: DumpSizeHistogram does not crash" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 7: DumpSizeHistogram does not crash" );
             /* Allocate blocks spanning multiple size buckets then free them */
-            void* pSmall  = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__,    8, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
-            void* pMedium = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__,  100, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
-            void* pLarge  = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 2048, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( pSmall,  MM_FREE, GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( pMedium, MM_FREE, GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( pLarge,  MM_FREE, GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DumpSizeHistogram();
+            void* pSmall  = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__,    8, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* pMedium = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__,  100, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* pLarge  = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 2048, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( pSmall,  MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( pMedium, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( pLarge,  MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DumpSizeHistogram();
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -215,7 +215,7 @@ PerformStatisticsTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    GUCEF::MLF::MEMMAN_Shutdown();
+    GUCEF::DRGUP::DRGUP_Shutdown();
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL Statistics TESTS COMPLETED" );

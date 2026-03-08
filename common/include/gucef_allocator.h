@@ -158,7 +158,7 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_SetOwner( __FILE__, __LINE__, typeid( value_type ).name() );
+        DRGUP_SetOwner( __FILE__, __LINE__, typeid( value_type ).name() );
 
         #endif
 
@@ -171,7 +171,7 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( val ), p, typeid( value_type ).name() );
+        DRGUP_placement_new( __FILE__, __LINE__, sizeof( val ), p, typeid( value_type ).name() );
 
         #endif
 
@@ -185,7 +185,7 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( val ), p, typeid( value_type ).name() );
+        DRGUP_placement_new( __FILE__, __LINE__, sizeof( val ), p, typeid( value_type ).name() );
 
         #endif
 
@@ -201,7 +201,7 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( value_type ), p, typeid( value_type ).name() );
+        DRGUP_placement_new( __FILE__, __LINE__, sizeof( value_type ), p, typeid( value_type ).name() );
 
         #endif
 
@@ -221,7 +221,7 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_ValidatePendingDestructor( __FILE__, __LINE__, p, sizeof(U), typeid( U ).name() );
+        DRGUP_ValidatePendingDestructor( __FILE__, __LINE__, p, sizeof(U), typeid( U ).name() );
 
         #endif
 
@@ -229,7 +229,7 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_ValidateFinishedDestructor( __FILE__, __LINE__, p, sizeof(U), typeid( U ).name() );
+        DRGUP_ValidateFinishedDestructor( __FILE__, __LINE__, p, sizeof(U), typeid( U ).name() );
 
         #endif
     }
@@ -304,7 +304,7 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_SetOwner( __FILE__, __LINE__ );
+        DRGUP_SetOwner( __FILE__, __LINE__ );
 
         #endif
 
@@ -317,7 +317,7 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( val ), p, typeid( value_type ).name() );
+        DRGUP_placement_new( __FILE__, __LINE__, sizeof( val ), p, typeid( value_type ).name() );
 
         #endif
 
@@ -331,7 +331,7 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( val ), p, typeid( value_type ).name() );
+        DRGUP_placement_new( __FILE__, __LINE__, sizeof( val ), p, typeid( value_type ).name() );
 
         #endif
 
@@ -348,7 +348,7 @@ public:
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
 
-        MEMMAN_placement_new( __FILE__, __LINE__, sizeof( value_type ), p, typeid( value_type ).name() );
+        DRGUP_placement_new( __FILE__, __LINE__, sizeof( value_type ), p, typeid( value_type ).name() );
 
         #endif
 
@@ -367,13 +367,13 @@ public:
         }
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
-        MEMMAN_ValidatePendingDestructor( __FILE__, __LINE__, p, sizeof(U), typeid(U).name() );
+        DRGUP_ValidatePendingDestructor( __FILE__, __LINE__, p, sizeof(U), typeid(U).name() );
         #endif
 
         p->~U();
 
         #if defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && !defined( GUCEF_DYNNEWON_DISABLED )
-        MEMMAN_ValidateFinishedDestructor( __FILE__, __LINE__, p, sizeof(U), typeid(U).name() );
+        DRGUP_ValidateFinishedDestructor( __FILE__, __LINE__, p, sizeof(U), typeid(U).name() );
         #endif
     }
 

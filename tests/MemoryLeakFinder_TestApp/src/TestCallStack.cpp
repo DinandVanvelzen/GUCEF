@@ -21,20 +21,20 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MLF_MEMORYMANAGER_H
-#include "gucefMLF_MemoryManager.h"
-#define GUCEF_MLF_MEMORYMANAGER_H
-#endif /* GUCEF_MLF_MEMORYMANAGER_H ? */
+#ifndef GUCEF_DRGUP_MEMORYMANAGER_H
+#include "gucefDRGUP_MemoryManager.h"
+#define GUCEF_DRGUP_MEMORYMANAGER_H
+#endif /* GUCEF_DRGUP_MEMORYMANAGER_H ? */
 
-#ifndef GUCEF_CALLSTACK_H
-#include "gucefMLF_callstack.h"
-#define GUCEF_CALLSTACK_H
-#endif /* GUCEF_CALLSTACK_H ? */
+#ifndef GUCEF_DRGUP_CALLSTACK_H
+#include "gucefDRGUP_callstack.h"
+#define GUCEF_DRGUP_CALLSTACK_H
+#endif /* GUCEF_DRGUP_CALLSTACK_H ? */
 
-#ifndef GUCEF_MLF_SMEMORYTRACKERCONFIG_H
-#include "gucefMLF_SMemoryTrackerConfig.h"
-#define GUCEF_MLF_SMEMORYTRACKERCONFIG_H
-#endif /* GUCEF_MLF_SMEMORYTRACKERCONFIG_H ? */
+#ifndef GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
+#include "gucefDRGUP_SMemoryTrackerConfig.h"
+#define GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H
+#endif /* GUCEF_DRGUP_SMEMORYTRACKERCONFIG_H ? */
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -82,15 +82,15 @@ PerformCallStackTests( void )
      * the exported C API functions are callable without crash regardless.
      */
 
-    GUCEF::MLF::MEMMAN_Initialize();
+    GUCEF::DRGUP::DRGUP_Initialize();
 
     // Test 1: Single CallstackScopeBegin does not crash
     GUCEF_TESTFW_TESTCASE( "Test 1: Single CallstackScopeBegin no crash" )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 1: Single CallstackScopeBegin no crash" );
-            GUCEF::MLF::MEMMAN_CallstackScopeBegin( __FILE__, __LINE__ );
-            GUCEF::MLF::MEMMAN_CallstackScopeEnd();
+            GUCEF::DRGUP::DRGUP_CallstackScopeBegin( __FILE__, __LINE__ );
+            GUCEF::DRGUP::DRGUP_CallstackScopeEnd();
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -104,10 +104,10 @@ PerformCallStackTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 2: Nested CallstackScopeBegin no crash" );
-            GUCEF::MLF::MEMMAN_CallstackScopeBegin( __FILE__, __LINE__ );
-            GUCEF::MLF::MEMMAN_CallstackScopeBegin( __FILE__, __LINE__ );
-            GUCEF::MLF::MEMMAN_CallstackScopeEnd();
-            GUCEF::MLF::MEMMAN_CallstackScopeEnd();
+            GUCEF::DRGUP::DRGUP_CallstackScopeBegin( __FILE__, __LINE__ );
+            GUCEF::DRGUP::DRGUP_CallstackScopeBegin( __FILE__, __LINE__ );
+            GUCEF::DRGUP::DRGUP_CallstackScopeEnd();
+            GUCEF::DRGUP::DRGUP_CallstackScopeEnd();
             ASSERT_TRUE( true );
         }
         catch( ... )
@@ -123,11 +123,11 @@ PerformCallStackTests( void )
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 3: Deeply nested scopes no crash" );
             for ( int i = 0; i < 5; ++i )
             {
-                GUCEF::MLF::MEMMAN_CallstackScopeBegin( __FILE__, __LINE__ );
+                GUCEF::DRGUP::DRGUP_CallstackScopeBegin( __FILE__, __LINE__ );
             }
             for ( int i = 0; i < 5; ++i )
             {
-                GUCEF::MLF::MEMMAN_CallstackScopeEnd();
+                GUCEF::DRGUP::DRGUP_CallstackScopeEnd();
             }
             ASSERT_TRUE( true );
         }
@@ -142,10 +142,10 @@ PerformCallStackTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: GetCallstackForCurrentThread no crash" );
-            GUCEF::MLF::TCallStack* outStack = GUCEF_NULL;
-            GUCEF::MLF::MEMMAN_CallstackScopeBegin( __FILE__, __LINE__ );
-            GUCEF::MLF::MEMMAN_GetCallstackForCurrentThread( &outStack );
-            GUCEF::MLF::MEMMAN_CallstackScopeEnd();
+            GUCEF::DRGUP::TCallStack* outStack = GUCEF_NULL;
+            GUCEF::DRGUP::DRGUP_CallstackScopeBegin( __FILE__, __LINE__ );
+            GUCEF::DRGUP::DRGUP_GetCallstackForCurrentThread( &outStack );
+            GUCEF::DRGUP::DRGUP_CallstackScopeEnd();
             /* outStack may be null if callstack tracing is disabled in the DLL */
             ASSERT_TRUE( true );
         }
@@ -160,12 +160,12 @@ PerformCallStackTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: Default enableRawCallstackCapture alloc+dealloc succeeds" );
-            GUCEF::MLF::SMemoryTrackerConfig cfg;
-            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            GUCEF::DRGUP::SMemoryTrackerConfig cfg;
+            GUCEF::DRGUP::SMemoryTrackerConfig_SetDefaults( cfg );
             ASSERT_TRUE( cfg.enableRawCallstackCapture == true );
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
         }
         catch( ... )
         {
@@ -178,13 +178,13 @@ PerformCallStackTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: enableRawCallstackCapture=false alloc+dealloc works" );
-            GUCEF::MLF::SMemoryTrackerConfig cfg;
-            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            GUCEF::DRGUP::SMemoryTrackerConfig cfg;
+            GUCEF::DRGUP::SMemoryTrackerConfig_SetDefaults( cfg );
             cfg.enableRawCallstackCapture = false;
             ASSERT_TRUE( cfg.enableRawCallstackCapture == false );
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
         }
         catch( ... )
         {
@@ -197,13 +197,13 @@ PerformCallStackTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 7: maxRawCallstackDepth=1 alloc+dealloc works" );
-            GUCEF::MLF::SMemoryTrackerConfig cfg;
-            GUCEF::MLF::SMemoryTrackerConfig_SetDefaults( cfg );
+            GUCEF::DRGUP::SMemoryTrackerConfig cfg;
+            GUCEF::DRGUP::SMemoryTrackerConfig_SetDefaults( cfg );
             cfg.maxRawCallstackDepth = 1;
             ASSERT_TRUE( cfg.maxRawCallstackDepth == 1 );
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
-            GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+            GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
         }
         catch( ... )
         {
@@ -211,7 +211,7 @@ PerformCallStackTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    GUCEF::MLF::MEMMAN_Shutdown();
+    GUCEF::DRGUP::DRGUP_Shutdown();
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CallStack TESTS COMPLETED" );

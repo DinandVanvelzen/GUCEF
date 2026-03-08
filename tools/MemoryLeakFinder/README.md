@@ -137,7 +137,7 @@ Include the `include/` directory in your project.
 In your application's memory header (or a precompiled header):
 
 ```cpp
-#include "gucefMLF_MemoryManager.h"
+#include "gucefDRGUP_MemoryManager.h"
 ```
 
 For operator `new`/`delete` interception add the macros header:
@@ -149,7 +149,7 @@ For operator `new`/`delete` interception add the macros header:
 ### 3. Initialize and shut down
 
 ```cpp
-#include "gucefMLF_MemoryManager.h"
+#include "gucefDRGUP_MemoryManager.h"
 
 int main()
 {
@@ -246,10 +246,10 @@ cfg.enableRawCallstackCapture = true;
 
 To intercept all C++ allocations in the process (including third-party libraries):
 
-Define `GUCEF_MLF_GLOBAL_NEW_OVERRIDE` **at MemoryLeakFinder DLL build time**.
+Define `GUCEF_DRGUP_GLOBAL_NEW_OVERRIDE` **at MemoryLeakFinder DLL build time**.
 
 ```cmake
-target_compile_definitions( MemoryLeakFinder PRIVATE GUCEF_MLF_GLOBAL_NEW_OVERRIDE )
+target_compile_definitions( MemoryLeakFinder PRIVATE GUCEF_DRGUP_GLOBAL_NEW_OVERRIDE )
 ```
 
 **Warning:** Do not define this if any other library in the link unit also overrides
@@ -262,10 +262,10 @@ A `#pragma message` warning is emitted at build time when this flag is active.
 
 Intercepts `malloc`/`calloc`/`realloc`/`free` from code sharing the same CRT instance:
 
-Define `GUCEF_MLF_HOOK_CRT_HEAP` at DLL build time:
+Define `GUCEF_DRGUP_HOOK_CRT_HEAP` at DLL build time:
 
 ```cmake
-target_compile_definitions( MemoryLeakFinder PRIVATE GUCEF_MLF_HOOK_CRT_HEAP )
+target_compile_definitions( MemoryLeakFinder PRIVATE GUCEF_DRGUP_HOOK_CRT_HEAP )
 ```
 
 This uses `_CrtSetAllocHook`. File/line info is unavailable from the CRT hook,
@@ -311,7 +311,7 @@ MEMMAN_Initialize();
 - The dealloc ring capacity is automatically capped at 1,000 when guard pages are active
   to prevent address space exhaustion in 32-bit processes
 - **Not for production use** — memory overhead makes this suitable for debug sessions only
-- Disabled automatically when ASan is active (`GUCEF_MLF_ASAN_ACTIVE`)
+- Disabled automatically when ASan is active (`GUCEF_DRGUP_ASAN_ACTIVE`)
 - Front sentinel padding is written before `reportedAddress` for pre-buffer detection in
   memory dumps; back sentinels are replaced by the guard page itself
 
@@ -340,7 +340,7 @@ MEMMAN: WARNING: Deallocating 0x... (size=...) which is declared protected by lo
 ```
 
 **Behaviour flags:**
-- Disabled when `GUCEF_MLF_TSAN_ACTIVE` (TSan owns lock analysis; avoid false positives)
+- Disabled when `GUCEF_DRGUP_TSAN_ACTIVE` (TSan owns lock analysis; avoid false positives)
 - The `MEMMAN_LockProtectsRange` / `MEMMAN_LockUnprotectsRange` calls are no-ops in that case
 - Adding a range association for a lock that does not exist in the CLockTracer inventory is
   permitted; the check simply never fires for an unknown lock
@@ -362,14 +362,14 @@ MEMMAN: WARNING: Deallocating 0x... (size=...) which is declared protected by lo
 
 ```
 MemoryLeakFinder.dll
-├── gucefMLF_CMemoryTracker       — singleton registry; alloc/dealloc tracking; histogram
-├── gucefMLF_CAllocationRecord    — per-alloc node: sizes, sentinels, callstacks, timestamps
-├── gucefMLF_CReporter            — all formatting: log report, exception report, profiling dumps
-├── gucefMLF_CCallStackTracker    — GUCEF_TRACE logical callstack (thread-local push/pop)
-├── gucefMLF_callstack            — OS-level frame capture + symbolication
-├── gucefMLF_CLockTracer          — lock lifecycle tracker; range protection; aggregate stats
-├── gucefMLF_MemoryManager        — C API layer (MEMMAN_* functions)
-└── gucefMLF_SMemoryTrackerConfig — POD configuration struct
+├── gucefDRGUP_CMemoryTracker       — singleton registry; alloc/dealloc tracking; histogram
+├── gucefDRGUP_CAllocationRecord    — per-alloc node: sizes, sentinels, callstacks, timestamps
+├── gucefDRGUP_CReporter            — all formatting: log report, exception report, profiling dumps
+├── gucefDRGUP_CCallStackTracker    — GUCEF_TRACE logical callstack (thread-local push/pop)
+├── gucefDRGUP_callstack            — OS-level frame capture + symbolication
+├── gucefDRGUP_CLockTracer          — lock lifecycle tracker; range protection; aggregate stats
+├── gucefDRGUP_MemoryManager        — C API layer (MEMMAN_* functions)
+└── gucefDRGUP_SMemoryTrackerConfig — POD configuration struct
 ```
 
 ---
@@ -392,11 +392,11 @@ On Windows the library links `Winmm.lib` (precision timer) and optionally `DbgHe
 
 | Header | Purpose |
 |---|---|
-| `gucefMLF_MemoryManager.h` | Public C API (`MEMMAN_*` functions) |
-| `gucefMLF_SMemoryTrackerConfig.h` | Configuration struct + sanitizer detection macros |
-| `gucefMLF_CAllocationRecord.h` | Allocation record struct (`TRawCallStack`, `CAllocationRecord`) |
-| `gucefMLF_CCallsiteStats.h` | Per-callsite aggregated statistics struct |
-| `gucefMLF_callstack.h` | OS callstack capture API |
-| `gucefMLF_locktrace.h` | Lock tracing C API |
+| `gucefDRGUP_MemoryManager.h` | Public C API (`MEMMAN_*` functions) |
+| `gucefDRGUP_SMemoryTrackerConfig.h` | Configuration struct + sanitizer detection macros |
+| `gucefDRGUP_CAllocationRecord.h` | Allocation record struct (`TRawCallStack`, `CAllocationRecord`) |
+| `gucefDRGUP_CCallsiteStats.h` | Per-callsite aggregated statistics struct |
+| `gucefDRGUP_callstack.h` | OS callstack capture API |
+| `gucefDRGUP_locktrace.h` | Lock tracing C API |
 | `gucef_dynnewon.h` | Macro header that redirects `new`/`delete` through the tracker |
 | `gucef_dynnewoff.h` | Disables the redirection (used inside the library itself) |

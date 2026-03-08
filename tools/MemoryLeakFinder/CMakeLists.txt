@@ -26,19 +26,19 @@ if (WIN32)
     ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
     ../../platform/gucefMT/include/gucefMT_mutex.h
     ../../platform/gucefMT/include/mswin/gucefMT_mswinutils.h
-    include/gucefMLF_CAllocationRecord.h
-    include/gucefMLF_CCallStackTracker.h
-    include/gucefMLF_CCallsiteStats.h
-    include/gucefMLF_CLockTracer.h
-    include/gucefMLF_CMemoryTracker.h
-    include/gucefMLF_CReporter.h
-    include/gucefMLF_ETypes.h
-    include/gucefMLF_MemoryManager.h
-    include/gucefMLF_SMemoryTrackerConfig.h
-    include/gucefMLF_callstack.h
-    include/gucefMLF_config.h
-    include/gucefMLF_locktrace.h
-    include/gucefMLF_macros.h
+    include/gucefDRGUP_CAllocationRecord.h
+    include/gucefDRGUP_CCallStackTracker.h
+    include/gucefDRGUP_CCallsiteStats.h
+    include/gucefDRGUP_CLockTracer.h
+    include/gucefDRGUP_CMemoryTracker.h
+    include/gucefDRGUP_CReporter.h
+    include/gucefDRGUP_ETypes.h
+    include/gucefDRGUP_MemoryManager.h
+    include/gucefDRGUP_SMemoryTrackerConfig.h
+    include/gucefDRGUP_callstack.h
+    include/gucefDRGUP_config.h
+    include/gucefDRGUP_locktrace.h
+    include/gucefDRGUP_macros.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN32" )
@@ -56,12 +56,12 @@ if (WIN32)
     ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
     ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
     ../../platform/gucefMT/src/mswin/gucefMT_mswinutils.cpp
-    src/gucefMLF_CAllocationRecord.cpp
-    src/gucefMLF_CMemoryTracker.cpp
-    src/gucefMLF_CReporter.cpp
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
+    src/gucefDRGUP_CAllocationRecord.cpp
+    src/gucefDRGUP_CMemoryTracker.cpp
+    src/gucefDRGUP_CReporter.cpp
+    src/gucefDRGUP_MemoryManager.cpp
+    src/gucefDRGUP_callstack.cpp
+    src/gucefDRGUP_locktrace.cpp
   )
 
   set( PLATFORM_SOURCE_INSTALL "WIN32" )
@@ -80,19 +80,19 @@ elseif (WIN64)
     ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
     ../../platform/gucefMT/include/gucefMT_mutex.h
     ../../platform/gucefMT/include/mswin/gucefMT_mswinutils.h
-    include/gucefMLF_CAllocationRecord.h
-    include/gucefMLF_CCallStackTracker.h
-    include/gucefMLF_CCallsiteStats.h
-    include/gucefMLF_CLockTracer.h
-    include/gucefMLF_CMemoryTracker.h
-    include/gucefMLF_CReporter.h
-    include/gucefMLF_ETypes.h
-    include/gucefMLF_MemoryManager.h
-    include/gucefMLF_SMemoryTrackerConfig.h
-    include/gucefMLF_callstack.h
-    include/gucefMLF_config.h
-    include/gucefMLF_locktrace.h
-    include/gucefMLF_macros.h
+    include/gucefDRGUP_CAllocationRecord.h
+    include/gucefDRGUP_CCallStackTracker.h
+    include/gucefDRGUP_CCallsiteStats.h
+    include/gucefDRGUP_CLockTracer.h
+    include/gucefDRGUP_CMemoryTracker.h
+    include/gucefDRGUP_CReporter.h
+    include/gucefDRGUP_ETypes.h
+    include/gucefDRGUP_MemoryManager.h
+    include/gucefDRGUP_SMemoryTrackerConfig.h
+    include/gucefDRGUP_callstack.h
+    include/gucefDRGUP_config.h
+    include/gucefDRGUP_locktrace.h
+    include/gucefDRGUP_macros.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN64" )
@@ -110,12 +110,12 @@ elseif (WIN64)
     ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
     ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
     ../../platform/gucefMT/src/mswin/gucefMT_mswinutils.cpp
-    src/gucefMLF_CAllocationRecord.cpp
-    src/gucefMLF_CMemoryTracker.cpp
-    src/gucefMLF_CReporter.cpp
-    src/gucefMLF_MemoryManager.cpp
-    src/gucefMLF_callstack.cpp
-    src/gucefMLF_locktrace.cpp
+    src/gucefDRGUP_CAllocationRecord.cpp
+    src/gucefDRGUP_CMemoryTracker.cpp
+    src/gucefDRGUP_CReporter.cpp
+    src/gucefDRGUP_MemoryManager.cpp
+    src/gucefDRGUP_callstack.cpp
+    src/gucefDRGUP_locktrace.cpp
   )
 
   set( PLATFORM_SOURCE_INSTALL "WIN64" )
@@ -140,12 +140,12 @@ endif()
 
 if ( WIN32 )
   target_link_libraries( ${MODULE_NAME} PRIVATE Winmm )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CALLSTACK_TRACING_DISABLED;GUCEF_CORE_EMBED_CODE;GUCEF_DYNNEWON_DISABLED;GUCEF_MLF_BUILD_MODULE;GUCEF_MT_EMBED_CODE;GUCEF_PLATFORM_LOCK_TRACER_DISABLED;GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI;MODULE_NAME=MemoryLeakFinder" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CALLSTACK_TRACING_DISABLED;GUCEF_CORE_EMBED_CODE;GUCEF_DYNNEWON_DISABLED;GUCEF_DRGUP_BUILD_MODULE;GUCEF_MT_EMBED_CODE;GUCEF_PLATFORM_LOCK_TRACER_DISABLED;GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI;MODULE_NAME=MemoryLeakFinder" )
 endif( WIN32 )
 
 if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PRIVATE Winmm )
-  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CALLSTACK_TRACING_DISABLED;GUCEF_CORE_EMBED_CODE;GUCEF_DYNNEWON_DISABLED;GUCEF_MLF_BUILD_MODULE;GUCEF_MT_EMBED_CODE;GUCEF_PLATFORM_LOCK_TRACER_DISABLED;GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI;MODULE_NAME=MemoryLeakFinder" )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CALLSTACK_TRACING_DISABLED;GUCEF_CORE_EMBED_CODE;GUCEF_DYNNEWON_DISABLED;GUCEF_DRGUP_BUILD_MODULE;GUCEF_MT_EMBED_CODE;GUCEF_PLATFORM_LOCK_TRACER_DISABLED;GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI;MODULE_NAME=MemoryLeakFinder" )
 endif( WIN64 )
 
 if ( ANDROID32 )

@@ -21,10 +21,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MLF_MEMORYMANAGER_H
-#include "gucefMLF_MemoryManager.h"
-#define GUCEF_MLF_MEMORYMANAGER_H
-#endif /* GUCEF_MLF_MEMORYMANAGER_H ? */
+#ifndef GUCEF_DRGUP_MEMORYMANAGER_H
+#include "gucefDRGUP_MemoryManager.h"
+#define GUCEF_DRGUP_MEMORYMANAGER_H
+#endif /* GUCEF_DRGUP_MEMORYMANAGER_H ? */
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -71,7 +71,7 @@ PerformTrackerLifecycleTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 1: Initialize returns success" );
-            __int32 result = GUCEF::MLF::MEMMAN_Initialize();
+            __int32 result = GUCEF::DRGUP::DRGUP_Initialize();
             ASSERT_TRUE( result != 0 );
         }
         catch( ... )
@@ -85,7 +85,7 @@ PerformTrackerLifecycleTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 2: Double-init handled gracefully" );
-            __int32 result = GUCEF::MLF::MEMMAN_Initialize();
+            __int32 result = GUCEF::DRGUP::DRGUP_Initialize();
             /* Either succeeds (0) or returns a benign non-crash value -- no crash is the requirement */
             (void) result;
         }
@@ -100,11 +100,11 @@ PerformTrackerLifecycleTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 3: Can allocate memory after Initialize" );
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 32, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
             if ( ptr != GUCEF_NULL )
             {
-                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+                GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             }
         }
         catch( ... )
@@ -118,7 +118,7 @@ PerformTrackerLifecycleTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 4: Shutdown returns success" );
-            __int32 result = GUCEF::MLF::MEMMAN_Shutdown();
+            __int32 result = GUCEF::DRGUP::DRGUP_Shutdown();
             ASSERT_TRUE( result != 0 );
         }
         catch( ... )
@@ -132,7 +132,7 @@ PerformTrackerLifecycleTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 5: Re-initialize after shutdown succeeds" );
-            __int32 result = GUCEF::MLF::MEMMAN_Initialize();
+            __int32 result = GUCEF::DRGUP::DRGUP_Initialize();
             ASSERT_TRUE( result != 0 );
         }
         catch( ... )
@@ -146,11 +146,11 @@ PerformTrackerLifecycleTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 6: Can allocate memory after re-initialize" );
-            void* ptr = GUCEF::MLF::MEMMAN_AllocateMemory( __FILE__, __LINE__, 64, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
+            void* ptr = GUCEF::DRGUP::DRGUP_AllocateMemory( __FILE__, __LINE__, 64, MM_MALLOC, GUCEF_NULL, GUCEF_NULL );
             ASSERT_TRUE( ptr != GUCEF_NULL );
             if ( ptr != GUCEF_NULL )
             {
-                GUCEF::MLF::MEMMAN_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
+                GUCEF::DRGUP::DRGUP_DeAllocateMemory( ptr, MM_FREE, GUCEF_NULL );
             }
         }
         catch( ... )
@@ -164,7 +164,7 @@ PerformTrackerLifecycleTests( void )
         try
         {
             GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 7: Second shutdown succeeds" );
-            __int32 result = GUCEF::MLF::MEMMAN_Shutdown();
+            __int32 result = GUCEF::DRGUP::DRGUP_Shutdown();
             ASSERT_TRUE( result != 0 );
         }
         catch( ... )

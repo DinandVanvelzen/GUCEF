@@ -81,7 +81,7 @@
 
 #endif /* defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) ? */
 
-#define MEMMAN_Int32      __int32
+#define DRGUP_Int32      __int32
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -95,12 +95,12 @@
 
 #if ( defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) ) || ( defined( GUCEF_USE_CALLSTACK_TRACING ) && defined( GUCEF_USE_PLATFORM_CALLSTACK_TRACING ) )
 
-typedef MEMMAN_Int32 ( *TFP_MEMMAN_Initialize )( void );
-typedef MEMMAN_Int32 ( *TFP_MEMMAN_Shutdown )( void );
-typedef void ( *TFP_MEMMAN_DumpLogReport )( void );
-typedef void ( *TFP_MEMMAN_SetLogFile )( const char *file );
-typedef void ( *TFP_MEMMAN_CleanLogFile )( unsigned __int32 test );
-typedef void ( *TFP_MEMMAN_SetLogAlways )( unsigned __int32 log );
+typedef DRGUP_Int32 ( *TFP_DRGUP_Initialize )( void );
+typedef DRGUP_Int32 ( *TFP_DRGUP_Shutdown )( void );
+typedef void ( *TFP_DRGUP_DumpLogReport )( void );
+typedef void ( *TFP_DRGUP_SetLogFile )( const char *file );
+typedef void ( *TFP_DRGUP_CleanLogFile )( unsigned __int32 test );
+typedef void ( *TFP_DRGUP_SetLogAlways )( unsigned __int32 log );
 
 /*-------------------------------------------------------------------------*/
 
@@ -113,18 +113,18 @@ typedef void ( *TFP_MEMMAN_SetLogAlways )( unsigned __int32 log );
  *  Memory allocation and memory validity related functionality
  */
 
-typedef void ( *TFP_MEMMAN_DumpMemoryAllocations )( void );
-typedef void ( *TFP_MEMMAN_SetExhaustiveTesting )( unsigned __int32 test );
-typedef void ( *TFP_MEMMAN_SetPaddingSize )( unsigned __int32 clean );
-typedef void ( *TFP_MEMMAN_BreakOnAllocation )( int alloccount );
-typedef void ( *TFP_MEMMAN_BreakOnDeallocation )( void* address );
-typedef void ( *TFP_MEMMAN_BreakOnReallocation )( void* address );
-typedef void ( *TFP_MEMMAN_ValidateKnownAllocPtr )( const void* address, const char* file, int line );
-typedef void ( *TFP_MEMMAN_ValidateKnownAllocBlock )( const void* address, unsigned __int32 blocksize, const char* file, int line );
-typedef void ( *TFP_MEMMAN_ValidateAccessibility )( const void* address, unsigned __int32 blocksize, const char* file, int line );
-typedef void ( *TFP_MEMMAN_ValidateChunk )( const void* address, const void* chunk, unsigned __int32 blocksize, const char* file, int line );
-typedef void ( *TFP_MEMMAN_ValidatePendingDestructor )( const char* file, int line, const void* address, size_t size, const char* typeName );
-typedef void ( *TFP_MEMMAN_ValidateFinishedDestructor )( const char* file, int line, const void* address, size_t size, const char* typeName );
+typedef void ( *TFP_DRGUP_DumpMemoryAllocations )( void );
+typedef void ( *TFP_DRGUP_SetExhaustiveTesting )( unsigned __int32 test );
+typedef void ( *TFP_DRGUP_SetPaddingSize )( unsigned __int32 clean );
+typedef void ( *TFP_DRGUP_BreakOnAllocation )( int alloccount );
+typedef void ( *TFP_DRGUP_BreakOnDeallocation )( void* address );
+typedef void ( *TFP_DRGUP_BreakOnReallocation )( void* address );
+typedef void ( *TFP_DRGUP_ValidateKnownAllocPtr )( const void* address, const char* file, int line );
+typedef void ( *TFP_DRGUP_ValidateKnownAllocBlock )( const void* address, unsigned __int32 blocksize, const char* file, int line );
+typedef void ( *TFP_DRGUP_ValidateAccessibility )( const void* address, unsigned __int32 blocksize, const char* file, int line );
+typedef void ( *TFP_DRGUP_ValidateChunk )( const void* address, const void* chunk, unsigned __int32 blocksize, const char* file, int line );
+typedef void ( *TFP_DRGUP_ValidatePendingDestructor )( const char* file, int line, const void* address, size_t size, const char* typeName );
+typedef void ( *TFP_DRGUP_ValidateFinishedDestructor )( const char* file, int line, const void* address, size_t size, const char* typeName );
 
 /*-------------------------------------------------------------------------*/
 
@@ -132,10 +132,10 @@ typedef void ( *TFP_MEMMAN_ValidateFinishedDestructor )( const char* file, int l
  *  Memory tracking functions which are invoked by the memory allocation overrides
  */
 
-typedef void* ( *TFP_MEMMAN_AllocateMemory )( const char *file, int line, size_t size, char allocType, void* address, const char* typeName );
-typedef void ( *TFP_MEMMAN_DeAllocateMemory )( void *address, char allocType, const char* typeName );
-typedef void ( *TFP_MEMMAN_DeAllocateMemoryEx )( const char *file, int line, void *address, char allocType, const char* typeName );
-typedef MEMMAN_Int32 ( *TFP_MEMMAN_SetOwner )( const char *file, int line, const char* typeName );
+typedef void* ( *TFP_DRGUP_AllocateMemory )( const char *file, int line, size_t size, char allocType, void* address, const char* typeName );
+typedef void ( *TFP_DRGUP_DeAllocateMemory )( void *address, char allocType, const char* typeName );
+typedef void ( *TFP_DRGUP_DeAllocateMemoryEx )( const char *file, int line, void *address, char allocType, const char* typeName );
+typedef DRGUP_Int32 ( *TFP_DRGUP_SetOwner )( const char *file, int line, const char* typeName );
 
 /*-------------------------------------------------------------------------*/
 
@@ -148,12 +148,12 @@ typedef MEMMAN_Int32 ( *TFP_MEMMAN_SetOwner )( const char *file, int line, const
  *  OLE Memory tracking function pointer types
  */
 
-typedef wchar_t* ( *TFP_MEMMAN_SysAllocString )( const char *file, int line, wchar_t* wcharStr );
-typedef wchar_t* ( *TFP_MEMMAN_SysAllocStringByteLen )( const char *file, int line, const char* str, unsigned int bufferSize );
-typedef wchar_t* ( *TFP_MEMMAN_SysAllocStringLen )( const char *file, int line, const wchar_t* str, unsigned int charsToCopy );
-typedef void ( *TFP_MEMMAN_SysFreeString )( const char *file, int line, wchar_t* bstrString );
-typedef int ( *TFP_MEMMAN_SysReAllocString )( const char *file, int line, wchar_t** pbstr, const wchar_t* psz );
-typedef int ( *TFP_MEMMAN_SysReAllocStringLen )( const char *file, int line, wchar_t** pbstr, const wchar_t* psz, unsigned int len );
+typedef wchar_t* ( *TFP_DRGUP_SysAllocString )( const char *file, int line, wchar_t* wcharStr );
+typedef wchar_t* ( *TFP_DRGUP_SysAllocStringByteLen )( const char *file, int line, const char* str, unsigned int bufferSize );
+typedef wchar_t* ( *TFP_DRGUP_SysAllocStringLen )( const char *file, int line, const wchar_t* str, unsigned int charsToCopy );
+typedef void ( *TFP_DRGUP_SysFreeString )( const char *file, int line, wchar_t* bstrString );
+typedef int ( *TFP_DRGUP_SysReAllocString )( const char *file, int line, wchar_t** pbstr, const wchar_t* psz );
+typedef int ( *TFP_DRGUP_SysReAllocStringLen )( const char *file, int line, wchar_t** pbstr, const wchar_t* psz, unsigned int len );
 
 #endif /* ( defined( GUCEF_USE_MEMORY_LEAK_CHECKER ) && defined( GUCEF_USE_PLATFORM_MEMORY_LEAK_CHECKER ) && defined( GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI ) ) ? */
 #if defined( GUCEF_USE_CALLSTACK_TRACING ) && defined( GUCEF_USE_PLATFORM_CALLSTACK_TRACING )
@@ -164,8 +164,8 @@ typedef int ( *TFP_MEMMAN_SysReAllocStringLen )( const char *file, int line, wch
  *  Platform callstack tracing function pointer types
  */
 
-typedef void ( *TFP_MEMMAN_CallstackScopeBegin )( const char *file, int line );
-typedef void ( *TFP_MEMMAN_CallstackScopeEnd )( void );
+typedef void ( *TFP_DRGUP_CallstackScopeBegin )( const char *file, int line );
+typedef void ( *TFP_DRGUP_CallstackScopeEnd )( void );
 
 /*-------------------------------------------------------------------------*/
 
@@ -178,11 +178,11 @@ typedef void ( *TFP_MEMMAN_CallstackScopeEnd )( void );
  *  Platform lock tracing function pointer types
  */
 
-typedef void ( *TFP_MEMMAN_ExclusiveLockCreated )( void* lockId );
-typedef void ( *TFP_MEMMAN_ExclusiveLockObtained )( void* lockId );
-typedef void ( *TFP_MEMMAN_ExclusiveLockReleased )( void* lockId );
-typedef void ( *TFP_MEMMAN_ExclusiveLockAbandoned )( void* lockId );
-typedef void ( *TFP_MEMMAN_ExclusiveLockDestroy )( void* lockId );
+typedef void ( *TFP_DRGUP_ExclusiveLockCreated )( void* lockId );
+typedef void ( *TFP_DRGUP_ExclusiveLockObtained )( void* lockId );
+typedef void ( *TFP_DRGUP_ExclusiveLockReleased )( void* lockId );
+typedef void ( *TFP_DRGUP_ExclusiveLockAbandoned )( void* lockId );
+typedef void ( *TFP_DRGUP_ExclusiveLockDestroy )( void* lockId );
 
 /*-------------------------------------------------------------------------*/
 

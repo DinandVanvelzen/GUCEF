@@ -15,8 +15,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_MLF_CCALLSITESTATS_H
-#define GUCEF_MLF_CCALLSITESTATS_H
+#ifndef GUCEF_DRGUP_CCALLSITESTATS_H
+#define GUCEF_DRGUP_CCALLSITESTATS_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -24,10 +24,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MLF_ETYPES_H
-#include "gucefMLF_ETypes.h"
-#define GUCEF_MLF_ETYPES_H
-#endif /* GUCEF_MLF_ETYPES_H ? */
+#ifndef GUCEF_DRGUP_ETYPES_H
+#include "gucefDRGUP_ETypes.h"
+#define GUCEF_DRGUP_ETYPES_H
+#endif /* GUCEF_DRGUP_ETYPES_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -36,7 +36,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace MLF {
+namespace DRGUP {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -72,9 +72,9 @@ struct CCallsiteStats
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MLF */
+}; /* namespace DRGUP */
 }; /* namespace GUCEF */
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MLF_CCALLSITESTATS_H ? */
+#endif /* GUCEF_DRGUP_CCALLSITESTATS_H ? */

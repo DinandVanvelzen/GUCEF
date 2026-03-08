@@ -116,20 +116,20 @@
         #endif
         
         /* macros for C code usage of callstack tracking. Please use ScopeStackTracer via the GUCEF_TRACE macro for C++ code */
-        #define GUCEF_BEGIN { MEMMAN_CallstackScopeBegin( __FILE__, __LINE__ ); }
-        #define GUCEF_END { MEMMAN_CallstackScopeEnd(); }
-        #define GUCEF_END_RET( retval ) { MEMMAN_CallstackScopeEnd(); return retval; }
+        #define GUCEF_BEGIN { DRGUP_CallstackScopeBegin( __FILE__, __LINE__ ); }
+        #define GUCEF_END { DRGUP_CallstackScopeEnd(); }
+        #define GUCEF_END_RET( retval ) { DRGUP_CallstackScopeEnd(); return retval; }
 
         #if defined( GUCEF_USE_PLATFORM_LOCK_TRACER ) && !defined( GUCEF_PLATFORM_LOCK_TRACER_DISABLED )
 
             /*
              *  Platform lock tracing is dependent on platform callstack tracing
              */
-            #define GUCEF_TRACE_EXCLUSIVE_LOCK_CREATED( lockId ) { MEMMAN_ExclusiveLockCreated( lockId ); }
-            #define GUCEF_TRACE_EXCLUSIVE_LOCK_OBTAINED( lockId ) { MEMMAN_ExclusiveLockObtained( lockId ); }
-            #define GUCEF_TRACE_EXCLUSIVE_LOCK_RELEASED( lockId ) { MEMMAN_ExclusiveLockReleased( lockId ); }
-            #define GUCEF_TRACE_EXCLUSIVE_LOCK_ABANDONED( lockId ) { MEMMAN_ExclusiveLockAbandoned( lockId ); }
-            #define GUCEF_TRACE_EXCLUSIVE_LOCK_DESTROY( lockId ) { MEMMAN_ExclusiveLockDestroy( lockId ); }
+            #define GUCEF_TRACE_EXCLUSIVE_LOCK_CREATED( lockId ) { DRGUP_ExclusiveLockCreated( lockId ); }
+            #define GUCEF_TRACE_EXCLUSIVE_LOCK_OBTAINED( lockId ) { DRGUP_ExclusiveLockObtained( lockId ); }
+            #define GUCEF_TRACE_EXCLUSIVE_LOCK_RELEASED( lockId ) { DRGUP_ExclusiveLockReleased( lockId ); }
+            #define GUCEF_TRACE_EXCLUSIVE_LOCK_ABANDONED( lockId ) { DRGUP_ExclusiveLockAbandoned( lockId ); }
+            #define GUCEF_TRACE_EXCLUSIVE_LOCK_DESTROY( lockId ) { DRGUP_ExclusiveLockDestroy( lockId ); }
 
         #else
 

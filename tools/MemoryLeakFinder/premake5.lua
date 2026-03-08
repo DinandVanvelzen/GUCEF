@@ -95,12 +95,12 @@ kind( "SharedLib" )
   
 
 configuration( { WIN32 } )
-defines( { "GUCEF_CALLSTACK_TRACING_DISABLED", "GUCEF_CORE_EMBED_CODE", "GUCEF_DYNNEWON_DISABLED", "GUCEF_MLF_BUILD_MODULE", "GUCEF_MT_EMBED_CODE", "GUCEF_PLATFORM_LOCK_TRACER_DISABLED", "GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI", "MODULE_NAME=MemoryLeakFinder" } )
+defines( { "GUCEF_CALLSTACK_TRACING_DISABLED", "GUCEF_CORE_EMBED_CODE", "GUCEF_DYNNEWON_DISABLED", "GUCEF_DRGUP_BUILD_MODULE", "GUCEF_MT_EMBED_CODE", "GUCEF_PLATFORM_LOCK_TRACER_DISABLED", "GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI", "MODULE_NAME=MemoryLeakFinder" } )
   links( { "Winmm" } )
   
 
 configuration( { WIN64 } )
-defines( { "GUCEF_CALLSTACK_TRACING_DISABLED", "GUCEF_CORE_EMBED_CODE", "GUCEF_DYNNEWON_DISABLED", "GUCEF_MLF_BUILD_MODULE", "GUCEF_MT_EMBED_CODE", "GUCEF_PLATFORM_LOCK_TRACER_DISABLED", "GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI", "MODULE_NAME=MemoryLeakFinder" } )
+defines( { "GUCEF_CALLSTACK_TRACING_DISABLED", "GUCEF_CORE_EMBED_CODE", "GUCEF_DYNNEWON_DISABLED", "GUCEF_DRGUP_BUILD_MODULE", "GUCEF_MT_EMBED_CODE", "GUCEF_PLATFORM_LOCK_TRACER_DISABLED", "GUCEF_PLATFORM_MEMORY_LEAK_CHECKER_INCLUDES_OLEAPI", "MODULE_NAME=MemoryLeakFinder" } )
 
 
 configuration( { "ANDROID32" } )
@@ -130,9 +130,9 @@ configuration( { "ANDROID32" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -164,9 +164,9 @@ configuration( { "ANDROID64" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -198,9 +198,9 @@ configuration( { "ARDUINO" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -232,9 +232,9 @@ configuration( { "EMSCRIPTEN32" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -266,9 +266,9 @@ configuration( { "EMSCRIPTEN64" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -300,9 +300,9 @@ configuration( { "GLX" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -334,9 +334,9 @@ configuration( { "GTK" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -368,9 +368,9 @@ configuration( { "IOS" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -402,9 +402,9 @@ configuration( { "LINUX32" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -436,9 +436,9 @@ configuration( { "LINUX64" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -470,9 +470,9 @@ configuration( { "NACL" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -504,9 +504,9 @@ configuration( { "OSX" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -538,9 +538,9 @@ configuration( { "POSIX" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -572,9 +572,9 @@ configuration( { "SDL" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -606,9 +606,9 @@ configuration( { "SYMBIAN" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -640,9 +640,9 @@ configuration( { "UNIX" } )
       "../../platform/gucefMT/src/gucefMT_MUTEX.c",
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -661,12 +661,12 @@ configuration( { "WIN32" } )
       "../../platform/gucefMT/include/gucefMT_dvmtoswrap.h",
       "../../platform/gucefMT/include/gucefMT_mutex.h",
       "../../platform/gucefMT/include/mswin/gucefMT_mswinutils.h",
-      "include/gucefMLF_ETypes.h",
-      "include/gucefMLF_MemoryManager.h",
-      "include/gucefMLF_callstack.h",
-      "include/gucefMLF_config.h",
-      "include/gucefMLF_locktrace.h",
-      "include/gucefMLF_macros.h"
+      "include/gucefDRGUP_ETypes.h",
+      "include/gucefDRGUP_MemoryManager.h",
+      "include/gucefDRGUP_callstack.h",
+      "include/gucefDRGUP_config.h",
+      "include/gucefDRGUP_locktrace.h",
+      "include/gucefDRGUP_macros.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -682,9 +682,9 @@ configuration( { "WIN32" } )
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
       "../../platform/gucefMT/src/mswin/gucefMT_mswinutils.cpp",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 
@@ -703,12 +703,12 @@ configuration( { "WIN64" } )
       "../../platform/gucefMT/include/gucefMT_dvmtoswrap.h",
       "../../platform/gucefMT/include/gucefMT_mutex.h",
       "../../platform/gucefMT/include/mswin/gucefMT_mswinutils.h",
-      "include/gucefMLF_ETypes.h",
-      "include/gucefMLF_MemoryManager.h",
-      "include/gucefMLF_callstack.h",
-      "include/gucefMLF_config.h",
-      "include/gucefMLF_locktrace.h",
-      "include/gucefMLF_macros.h"
+      "include/gucefDRGUP_ETypes.h",
+      "include/gucefDRGUP_MemoryManager.h",
+      "include/gucefDRGUP_callstack.h",
+      "include/gucefDRGUP_config.h",
+      "include/gucefDRGUP_locktrace.h",
+      "include/gucefDRGUP_macros.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -724,9 +724,9 @@ configuration( { "WIN64" } )
       "../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp",
       "../../platform/gucefMT/src/gucefMT_dvmtoswrap.c",
       "../../platform/gucefMT/src/mswin/gucefMT_mswinutils.cpp",
-      "src/gucefMLF_MemoryManager.cpp",
-      "src/gucefMLF_callstack.cpp",
-      "src/gucefMLF_locktrace.cpp"
+      "src/gucefDRGUP_MemoryManager.cpp",
+      "src/gucefDRGUP_callstack.cpp",
+      "src/gucefDRGUP_locktrace.cpp"
     } )
 
 

@@ -15,8 +15,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_MLF_CREPORTER_H
-#define GUCEF_MLF_CREPORTER_H
+#ifndef GUCEF_DRGUP_CREPORTER_H
+#define GUCEF_DRGUP_CREPORTER_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -26,15 +26,15 @@
 
 #include <stdio.h>
 
-#ifndef GUCEF_MLF_ETYPES_H
-#include "gucefMLF_ETypes.h"
-#define GUCEF_MLF_ETYPES_H
-#endif /* GUCEF_MLF_ETYPES_H ? */
+#ifndef GUCEF_DRGUP_ETYPES_H
+#include "gucefDRGUP_ETypes.h"
+#define GUCEF_DRGUP_ETYPES_H
+#endif /* GUCEF_DRGUP_ETYPES_H ? */
 
-#ifndef GUCEF_MLF_CALLOCATIONRECORD_H
-#include "gucefMLF_CAllocationRecord.h"
-#define GUCEF_MLF_CALLOCATIONRECORD_H
-#endif /* GUCEF_MLF_CALLOCATIONRECORD_H ? */
+#ifndef GUCEF_DRGUP_CALLOCATIONRECORD_H
+#include "gucefDRGUP_CAllocationRecord.h"
+#define GUCEF_DRGUP_CALLOCATIONRECORD_H
+#endif /* GUCEF_DRGUP_CALLOCATIONRECORD_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -43,7 +43,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace MLF {
+namespace DRGUP {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -144,9 +144,9 @@ class GUCEF_HIDDEN CReporter
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MLF */
+}; /* namespace DRGUP */
 }; /* namespace GUCEF */
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MLF_CREPORTER_H ? */
+#endif /* GUCEF_DRGUP_CREPORTER_H ? */

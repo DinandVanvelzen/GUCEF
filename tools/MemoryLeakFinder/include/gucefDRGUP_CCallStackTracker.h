@@ -15,8 +15,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_MLF_CCALLSTACKTRACKER_H
-#define GUCEF_MLF_CCALLSTACKTRACKER_H
+#ifndef GUCEF_DRGUP_CCALLSTACKTRACKER_H
+#define GUCEF_DRGUP_CCALLSTACKTRACKER_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -27,13 +27,13 @@
 #include <map>
 #include <stdio.h>
 
-#ifndef GUCEF_MLF_ETYPES_H
-#include "gucefMLF_ETypes.h"
-#define GUCEF_MLF_ETYPES_H
-#endif /* GUCEF_MLF_ETYPES_H ? */
+#ifndef GUCEF_DRGUP_ETYPES_H
+#include "gucefDRGUP_ETypes.h"
+#define GUCEF_DRGUP_ETYPES_H
+#endif /* GUCEF_DRGUP_ETYPES_H ? */
 
 #ifndef GUCEF_CALLSTACK_H
-#include "gucefMLF_callstack.h"
+#include "gucefDRGUP_callstack.h"
 #define GUCEF_CALLSTACK_H
 #endif /* GUCEF_CALLSTACK_H ? */
 
@@ -59,7 +59,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace MLF {
+namespace DRGUP {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -106,7 +106,7 @@ class GUCEF_HIDDEN CCallStackTracker
 
     /**
      * RAII scope guard — pushes on construction, pops on destruction.
-     * Use instead of raw MEMMAN_CallstackScopeBegin/End pairs.
+     * Use instead of raw DRGUP_CallstackScopeBegin/End pairs.
      */
     class CScopeGuard
     {
@@ -187,9 +187,9 @@ class GUCEF_HIDDEN CCallStackTracker
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MLF */
+}; /* namespace DRGUP */
 }; /* namespace GUCEF */
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MLF_CCALLSTACKTRACKER_H ? */
+#endif /* GUCEF_DRGUP_CCALLSTACKTRACKER_H ? */

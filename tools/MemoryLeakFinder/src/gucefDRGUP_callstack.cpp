@@ -44,10 +44,10 @@
   #include <unwind.h>
 #endif
 
-#ifndef GUCEF_MLF_CALLOCATIONRECORD_H
-#include "gucefMLF_CAllocationRecord.h"
-#define GUCEF_MLF_CALLOCATIONRECORD_H
-#endif /* GUCEF_MLF_CALLOCATIONRECORD_H ? */
+#ifndef GUCEF_DRGUP_CALLOCATIONRECORD_H
+#include "gucefDRGUP_CAllocationRecord.h"
+#define GUCEF_DRGUP_CALLOCATIONRECORD_H
+#endif /* GUCEF_DRGUP_CALLOCATIONRECORD_H ? */
 
 #ifndef GUCEF_DYNNEWOFF_H
 #include "gucef_dynnewoff.h"
@@ -57,8 +57,8 @@
 #undef GUCEF_USE_CALLSTACK_TRACING
 #undef GUCEF_USE_CALLSTACK_PLATFORM_TRACING
 
-#include "gucefMLF_callstack.h"
-#include "gucefMLF_CCallStackTracker.h"
+#include "gucefDRGUP_callstack.h"
+#include "gucefDRGUP_CCallStackTracker.h"
 
 #ifndef GUCEF_MT_DVMTOSWRAP_H
 #include "gucefMT_dvmtoswrap.h"
@@ -106,7 +106,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace MLF {
+namespace DRGUP {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -644,7 +644,7 @@ CCallStackTracker::StackTraceInfo::GetCallstackCopyForCurrentThread( TCallStack*
 //-------------------------------------------------------------------------*/
 
 void
-MEMMAN_CallstackScopeBegin( const char* file, Int32 line )
+DRGUP_CallstackScopeBegin( const char* file, Int32 line )
 {
     CCallStackTracker::Instance()->CallstackScopeBegin( file, line );
 }
@@ -652,7 +652,7 @@ MEMMAN_CallstackScopeBegin( const char* file, Int32 line )
 /*-------------------------------------------------------------------------*/
 
 void
-MEMMAN_CallstackScopeEnd( void )
+DRGUP_CallstackScopeEnd( void )
 {
     CCallStackTracker::Instance()->CallstackScopeEnd();
 }
@@ -660,7 +660,7 @@ MEMMAN_CallstackScopeEnd( void )
 /*-------------------------------------------------------------------------*/
 
 Int32
-MEMMAN_GetCallstackForCurrentThread( TCallStack** outStack )
+DRGUP_GetCallstackForCurrentThread( TCallStack** outStack )
 {
     return CCallStackTracker::Instance()->GetCallstackForCurrentThread( outStack );
 }
@@ -668,7 +668,7 @@ MEMMAN_GetCallstackForCurrentThread( TCallStack** outStack )
 /*-------------------------------------------------------------------------*/
 
 Int32
-MEMMAN_GetCallstackCopyForCurrentThread( TCallStack** outStack, UInt32 alsoCopyStatics )
+DRGUP_GetCallstackCopyForCurrentThread( TCallStack** outStack, UInt32 alsoCopyStatics )
 {
     return CCallStackTracker::Instance()->GetCallstackCopyForCurrentThread( outStack, 0 != alsoCopyStatics );
 }
@@ -676,7 +676,7 @@ MEMMAN_GetCallstackCopyForCurrentThread( TCallStack** outStack, UInt32 alsoCopyS
 /*-------------------------------------------------------------------------*/
 
 void
-MEMMAN_FreeCallstackCopy( TCallStack* stackCopy )
+DRGUP_FreeCallstackCopy( TCallStack* stackCopy )
 {
     CCallStackTracker::Instance()->FreeCallstackCopy( stackCopy );
 }
@@ -684,7 +684,7 @@ MEMMAN_FreeCallstackCopy( TCallStack* stackCopy )
 /*-------------------------------------------------------------------------*/
 
 void
-GUCEF_PrintCallstack( void )
+DRGUP_PrintCallstack( void )
 {
     CCallStackTracker::Instance()->PrintCallstack( stdout );
 }
@@ -692,7 +692,7 @@ GUCEF_PrintCallstack( void )
 /*-------------------------------------------------------------------------*/
 
 void
-GUCEF_PrintCallstackCopy( TCallStack* stackToPrint )
+DRGUP_PrintCallstackCopy( TCallStack* stackToPrint )
 {
     if ( GUCEF_NULL != stackToPrint )
         CCallStackTracker::Instance()->PrintCallstackCopy( *stackToPrint, stdout );
@@ -701,7 +701,7 @@ GUCEF_PrintCallstackCopy( TCallStack* stackToPrint )
 /*-------------------------------------------------------------------------*/
 
 void
-GUCEF_PrintCallstackCopyTo( TCallStack* stackToPrint, FILE* dest )
+DRGUP_PrintCallstackCopyTo( TCallStack* stackToPrint, FILE* dest )
 {
     if ( GUCEF_NULL != stackToPrint )
         CCallStackTracker::Instance()->PrintCallstackCopy( *stackToPrint, dest );
@@ -710,7 +710,7 @@ GUCEF_PrintCallstackCopyTo( TCallStack* stackToPrint, FILE* dest )
 /*-------------------------------------------------------------------------*/
 
 void
-GUCEF_DumpCallstack( const char* filename )
+DRGUP_DumpCallstack( const char* filename )
 {
     FILE* fptr = fopen( filename, "wb" );
     if ( GUCEF_NULL != fptr )
@@ -723,7 +723,7 @@ GUCEF_DumpCallstack( const char* filename )
 /*-------------------------------------------------------------------------*/
 
 void
-GUCEF_ShutdowntCallstackUtility( void )
+DRGUP_ShutdowntCallstackUtility( void )
 {
     CCallStackTracker::Deinstance();
 }
@@ -731,7 +731,7 @@ GUCEF_ShutdowntCallstackUtility( void )
 /*-------------------------------------------------------------------------*/
 
 void
-GUCEF_InitCallstackUtility( void )
+DRGUP_InitCallstackUtility( void )
 {
     CCallStackTracker::Instance();
 }
@@ -739,7 +739,7 @@ GUCEF_InitCallstackUtility( void )
 /*-------------------------------------------------------------------------*/
 
 void
-GUCEF_SetStackLogging( const UInt32 logStackBool )
+DRGUP_SetStackLogging( const UInt32 logStackBool )
 {
     CCallStackTracker::Instance()->SetIsStackLoggingEnabled( 0 != logStackBool );
 }
@@ -747,7 +747,7 @@ GUCEF_SetStackLogging( const UInt32 logStackBool )
 /*-------------------------------------------------------------------------*/
 
 void
-GUCEF_LogStackToStdOut( void )
+DRGUP_LogStackToStdOut( void )
 {
     CCallStackTracker::Instance()->SetStackLogOutputToStdOut();
 }
@@ -755,7 +755,7 @@ GUCEF_LogStackToStdOut( void )
 /*-------------------------------------------------------------------------*/
 
 void
-GUCEF_SetStackLoggingInCvsFormat( const UInt32 logAsCvsBool )
+DRGUP_SetStackLoggingInCvsFormat( const UInt32 logAsCvsBool )
 {
     CCallStackTracker::Instance()->SetIsStackLoggingInCsvFormat( 0 != logAsCvsBool );
 }
@@ -763,7 +763,7 @@ GUCEF_SetStackLoggingInCvsFormat( const UInt32 logAsCvsBool )
 /*-------------------------------------------------------------------------*/
 
 void
-GUCEF_SetStackPushCallback( TStackPushCallback cBack )
+DRGUP_SetStackPushCallback( TStackPushCallback cBack )
 {
     CCallStackTracker::Instance()->SetStackPushCallback( cBack );
 }
@@ -771,7 +771,7 @@ GUCEF_SetStackPushCallback( TStackPushCallback cBack )
 /*-------------------------------------------------------------------------*/
 
 void
-GUCEF_SetStackPopCallback( TStackPopCallback cBack )
+DRGUP_SetStackPopCallback( TStackPopCallback cBack )
 {
     CCallStackTracker::Instance()->SetStackPopCallback( cBack );
 }
@@ -779,7 +779,7 @@ GUCEF_SetStackPopCallback( TStackPopCallback cBack )
 /*-------------------------------------------------------------------------*/
 
 void
-GUCEF_LogStackTo( const char* filename )
+DRGUP_LogStackTo( const char* filename )
 {
     CCallStackTracker::Instance()->SetLogFilename( filename );
 }
@@ -832,7 +832,7 @@ UnwindCallback( struct _Unwind_Context* ctx, void* arg )
 /*-------------------------------------------------------------------------*/
 
 void
-MEMMAN_CaptureRawCallstack( TRawCallStack** outStack, UInt32 maxDepth )
+DRGUP_CaptureRawCallstack( TRawCallStack** outStack, UInt32 maxDepth )
 {
     if ( GUCEF_NULL == outStack )
         return;
@@ -903,7 +903,7 @@ MEMMAN_CaptureRawCallstack( TRawCallStack** outStack, UInt32 maxDepth )
 /*-------------------------------------------------------------------------*/
 
 void
-MEMMAN_FreeRawCallstack( TRawCallStack* stack )
+DRGUP_FreeRawCallstack( TRawCallStack* stack )
 {
     if ( GUCEF_NULL == stack )
         return;
@@ -918,7 +918,7 @@ MEMMAN_FreeRawCallstack( TRawCallStack* stack )
 /*-------------------------------------------------------------------------*/
 
 void
-MEMMAN_SymbolicateRawCallstack( TRawCallStack* stack ,
+DRGUP_SymbolicateRawCallstack( TRawCallStack* stack ,
                                 FILE*          dest  ,
                                 const char*    indent )
 {
@@ -1009,7 +1009,7 @@ MEMMAN_SymbolicateRawCallstack( TRawCallStack* stack ,
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace MLF */
+}; /* namespace DRGUP */
 }; /* namespace GUCEF */
 
 /*--------------------------------------------------------------------------*/
