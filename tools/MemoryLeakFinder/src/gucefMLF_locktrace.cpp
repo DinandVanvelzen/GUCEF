@@ -502,6 +502,96 @@ CLockTracer::LockTraceInfo::~LockTraceInfo( void )
     m_callstackAtLastSurplusLockRelease = GUCEF_NULL;
 }
 
+/*-------------------------------------------------------------------------*/
+
+void
+CLockTracer::LockProtectsRange( void* lockId, const void* address, size_t size )
+{
+    if ( GUCEF_NULL == lockId || GUCEF_NULL == address || 0 == size )
+        return;
+
+    MT::CScopeWriterLock writeLock( m_datalock );
+
+    SLockRangeAssoc& assoc = m_lockRanges[ lockId ];
+    assoc.rangeAddress = address;
+    assoc.rangeSize    = size;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLockTracer::LockUnprotectsRange( void* lockId )
+{
+    if ( GUCEF_NULL == lockId )
+        return;
+
+    MT::CScopeWriterLock writeLock( m_datalock );
+
+    m_lockRanges.erase( lockId );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLockTracer::IsRangeProtectedByUnheldLock( const void* address, size_t size, void** outLockId )
+{
+    if ( GUCEF_NULL == address || 0 == size )
+        return false;
+
+    MT::CScopeReaderLock readLock( m_datalock );
+
+    if ( m_lockRanges.empty() )
+        return false;
+
+    const char* checkStart = static_cast< const char* >( address );
+    const char* checkEnd   = checkStart + size;
+
+    for ( TLockRangeMap::const_iterator it = m_lockRanges.begin(); it != m_lockRanges.end(); ++it )
+    {
+        void*       lockId     = it->first;
+        const char* rangeStart = static_cast< const char* >( it->second.rangeAddress );
+        const char* rangeEnd   = rangeStart + it->second.rangeSize;
+
+        /* Check for range overlap */
+        if ( checkStart < rangeEnd && checkEnd > rangeStart )
+        {
+            /* Overlapping range found — check whether the associated lock is unheld */
+            TLockIdToLockTraceInfoMap::const_iterator li = m_inventory.find( lockId );
+            if ( li != m_inventory.end() && !li->second.m_isLocked )
+            {
+                if ( GUCEF_NULL != outLockId )
+                    *outLockId = lockId;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLockTracer::GetAggregateStats( SLockAggregateStats& stats )
+{
+    MT::CScopeReaderLock readLock( m_datalock );
+
+    stats.totalLockInstances   = (UInt64) m_inventory.size();
+    stats.totalAbandonments    = 0;
+    stats.totalSurplusReleases = 0;
+    stats.currentlyLockedCount = 0;
+
+    TLockIdToLockTraceInfoMap::const_iterator i = m_inventory.begin();
+    while ( i != m_inventory.end() )
+    {
+        const LockTraceInfo& info = i->second;
+        stats.totalAbandonments    += info.m_abandonmentCounter;
+        stats.totalSurplusReleases += info.m_surplusLockReleases;
+        if ( info.m_isLocked )
+            ++stats.currentlyLockedCount;
+        ++i;
+    }
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      C API — 1-line delegations to CLockTracer::Instance()              //

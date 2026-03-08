@@ -68,7 +68,20 @@
   #include <string>
 #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
   #include <signal.h>
+  #include <time.h>
+  #include <sys/mman.h>   /* mmap / munmap / mprotect — for guard page mode */
+  #include <unistd.h>     /* sysconf / _SC_PAGESIZE */
 #endif
+
+#ifndef GUCEF_MLF_CLOCKTRACER_H
+#include "gucefMLF_CLockTracer.h"
+#define GUCEF_MLF_CLOCKTRACER_H
+#endif /* GUCEF_MLF_CLOCKTRACER_H ? */
+
+#ifndef GUCEF_MLF_CCALLSITESTATS_H
+#include "gucefMLF_CCallsiteStats.h"
+#define GUCEF_MLF_CCALLSITESTATS_H
+#endif /* GUCEF_MLF_CCALLSITESTATS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -185,6 +198,50 @@ bool           CMemoryTracker::g_isConstructed = false;
 bool           CMemoryTracker::g_isDestructed  = false;
 CMemoryTracker* CMemoryTracker::g_instance     = GUCEF_NULL;
 
+/*-------------------------------------------------------------------------*/
+
+/**
+ * Return the platform high-resolution monotonic time in microseconds.
+ * Used to populate allocationTimestampUs on each allocation record.
+ */
+static UInt64
+GetCurrentTimestampUs( void )
+{
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    LARGE_INTEGER freq, now;
+    if ( QueryPerformanceFrequency( &freq ) && QueryPerformanceCounter( &now ) && freq.QuadPart > 0 )
+        return (UInt64)( now.QuadPart * 1000000LL / freq.QuadPart );
+    return 0;
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    struct timespec ts;
+    if ( 0 == clock_gettime( CLOCK_MONOTONIC, &ts ) )
+        return (UInt64)ts.tv_sec * 1000000ULL + (UInt64)ts.tv_nsec / 1000ULL;
+    return 0;
+#else
+    return 0;
+#endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ * Map an allocation size to a histogram bucket index.
+ * Buckets: [0]=1-16B, [1]=17-64B, [2]=65-256B, [3]=257-1023B,
+ *          [4]=1KB-4095B, [5]=4KB-65535B, [6]=64KB-1MB-1B, [7]=>=1MB
+ */
+static UInt32
+SizeToBucket( size_t size )
+{
+    if ( size <= 16 )       return 0;
+    if ( size <= 64 )       return 1;
+    if ( size <= 256 )      return 2;
+    if ( size <= 1023 )     return 3;
+    if ( size <= 4095 )     return 4;
+    if ( size <= 65535 )    return 5;
+    if ( size < 1048576 )   return 6;
+    return 7;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      IMPLEMENTATION: CMemoryTracker singleton                           //
@@ -266,6 +323,9 @@ CMemoryTracker::CMemoryTracker( void )
     , m_numBoundsViolations( 0 )
     , m_numAllocations( 0 )
     , m_numSubAllocations( 0 )
+    , m_numMismatchedDeallocs( 0 )
+    , m_callsiteMap()
+    , m_timestampBaseUs( 0 )
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
   #if ( _WIN32_WINNT >= 0x0500 )
     , m_vectoredExceptionHandler( GUCEF_NULL )
@@ -277,6 +337,14 @@ CMemoryTracker::CMemoryTracker( void )
     strncpy( m_logFileBuf, m_config.logFilePath, sizeof(m_logFileBuf) - 1 );
     m_logFileBuf[ sizeof(m_logFileBuf) - 1 ] = '\0';
     m_config.logFilePath = m_logFileBuf;
+
+    /* Initialize histogram buckets to zero */
+    for ( UInt32 b = 0; b < HISTOGRAM_BUCKET_COUNT; ++b )
+    {
+        m_histogramCounts[ b ] = 0;
+        m_histogramBytes[ b ]  = 0;
+    }
+
     Initialize();
 }
 
@@ -298,7 +366,26 @@ CMemoryTracker::Initialize( void )
   #if ( _WIN32_WINNT >= 0x0500 )
     m_vectoredExceptionHandler = ::AddVectoredExceptionHandler( 1, Win32VectoredExceptionHandler );
   #endif
+
+    /* Capture timestamp base for per-allocation timestamps */
+    LARGE_INTEGER freq, now;
+    if ( QueryPerformanceFrequency( &freq ) && QueryPerformanceCounter( &now ) && freq.QuadPart > 0 )
+        m_timestampBaseUs = (UInt64)( now.QuadPart * 1000000LL / freq.QuadPart );
+    else
+        m_timestampBaseUs = 0;
+
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+
+    struct timespec ts;
+    if ( 0 == clock_gettime( CLOCK_MONOTONIC, &ts ) )
+        m_timestampBaseUs = (UInt64)ts.tv_sec * 1000000ULL + (UInt64)ts.tv_nsec / 1000ULL;
+    else
+        m_timestampBaseUs = 0;
+
+#else
+    m_timestampBaseUs = 0;
 #endif
+
     m_initialized = true;
 }
 
@@ -380,8 +467,19 @@ CMemoryTracker::ApplyConfig( const SMemoryTrackerConfig& cfg )
     m_config.cleanLogFileOnFirstRun = cfg.cleanLogFileOnFirstRun;
     m_config.exhaustiveTesting    = cfg.exhaustiveTesting;
     m_config.breakOnAllocationCount = cfg.breakOnAllocationCount;
-    m_config.deallocRingCapacity  = cfg.deallocRingCapacity;
-    m_config.enableCallstackCapture = cfg.enableCallstackCapture;
+    m_config.deallocRingCapacity        = cfg.deallocRingCapacity;
+    m_config.enableCallstackCapture     = cfg.enableCallstackCapture;
+    m_config.enableRawCallstackCapture  = cfg.enableRawCallstackCapture;
+    m_config.maxRawCallstackDepth       = cfg.maxRawCallstackDepth;
+    m_config.deallocMismatchResponse    = cfg.deallocMismatchResponse;
+    m_config.enableCallsiteProfiling    = cfg.enableCallsiteProfiling;
+    m_config.useGuardPages              = cfg.useGuardPages;
+    /* When guard pages are active, cap the dealloc ring to avoid address space exhaustion.
+     * Each entry consumes at least one page (4 KB) of address space in 32-bit processes. */
+    #ifndef GUCEF_MLF_ASAN_ACTIVE
+    if ( m_config.useGuardPages && m_config.deallocRingCapacity > 1000 )
+        m_config.deallocRingCapacity = 1000;
+    #endif
     if ( GUCEF_NULL != cfg.logFilePath )
     {
         strncpy( m_logFileBuf, cfg.logFilePath, sizeof(m_logFileBuf) - 1 );
@@ -442,6 +540,16 @@ CMemoryTracker::ReturnToPool( CAllocationRecord* record )
         MEMMAN_FreeCallstackCopy( record->deallocCallstack );
         record->deallocCallstack = GUCEF_NULL;
     }
+    if ( GUCEF_NULL != record->allocRawCallstack )
+    {
+        MEMMAN_FreeRawCallstack( record->allocRawCallstack );
+        record->allocRawCallstack = GUCEF_NULL;
+    }
+    if ( GUCEF_NULL != record->deallocRawCallstack )
+    {
+        MEMMAN_FreeRawCallstack( record->deallocRawCallstack );
+        record->deallocRawCallstack = GUCEF_NULL;
+    }
 
     ::memset( record, 0, sizeof(CAllocationRecord) );
 
@@ -468,6 +576,31 @@ CMemoryTracker::InsertRecord( CAllocationRecord* record )
         m_peakTotalNumAllocations = m_numAllocations;
     m_totalMemoryAllocated += (UInt32) record->reportedSize;
     ++m_totalMemoryAllocations;
+
+    /* Size histogram */
+    UInt32 bucket = SizeToBucket( record->reportedSize );
+    ++m_histogramCounts[ bucket ];
+    m_histogramBytes[ bucket ] += (UInt64) record->reportedSize;
+
+    /* Per-callsite aggregation (opt-in) */
+    if ( m_config.enableCallsiteProfiling && GUCEF_NULL != record->sourceFile )
+    {
+        TCallsiteKey key2 = { record->sourceFile, record->sourceLine };
+        CCallsiteStats& cs = m_callsiteMap[ key2 ];
+        if ( cs.sourceFile == GUCEF_NULL )
+        {
+            cs.sourceFile = record->sourceFile;
+            cs.sourceLine = record->sourceLine;
+        }
+        ++cs.allocCount;
+        cs.totalBytesAllocated += (UInt64) record->reportedSize;
+        cs.currentLiveBytes    += (UInt64) record->reportedSize;
+        if ( cs.currentLiveBytes > cs.peakLiveBytes )
+            cs.peakLiveBytes = cs.currentLiveBytes;
+        UInt64 liveCount = cs.allocCount - cs.freeCount;
+        if ( liveCount > cs.peakLiveCount )
+            cs.peakLiveCount = liveCount;
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -497,6 +630,23 @@ CMemoryTracker::RemoveRecord( void* address )
 
     --m_numAllocations;
     m_allocatedMemory -= (UInt32) rec->reportedSize;
+
+    /* Per-callsite aggregation (opt-in) */
+    if ( m_config.enableCallsiteProfiling && GUCEF_NULL != rec->sourceFile )
+    {
+        TCallsiteKey cskey = { rec->sourceFile, rec->sourceLine };
+        TCallsiteMap::iterator cit = m_callsiteMap.find( cskey );
+        if ( cit != m_callsiteMap.end() )
+        {
+            CCallsiteStats& cs = cit->second;
+            ++cs.freeCount;
+            if ( cs.currentLiveBytes >= (UInt64) rec->reportedSize )
+                cs.currentLiveBytes -= (UInt64) rec->reportedSize;
+            else
+                cs.currentLiveBytes = 0;
+        }
+    }
+
     return rec;
 }
 
@@ -593,6 +743,23 @@ CMemoryTracker::PushDeallocRing( CAllocationRecord* record )
 //      Core tracking                                                      //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+static size_t
+GetSystemPageSize( void )
+{
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    SYSTEM_INFO si;
+    ::GetSystemInfo( &si );
+    return (size_t) si.dwPageSize;
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    long sz = ::sysconf( _SC_PAGESIZE );
+    return sz > 0 ? (size_t) sz : 4096;
+#else
+    return 4096;
+#endif
+}
+
+/*-------------------------------------------------------------------------*/
 
 void*
 CMemoryTracker::TrackAllocation( const char* file    ,
@@ -747,32 +914,105 @@ CMemoryTracker::TrackAllocation( const char* file    ,
     if ( m_overheadMemoryCost > m_peakOverheadMemoryCost )
         m_peakOverheadMemoryCost = m_overheadMemoryCost;
 
-    rec->actualSize       = size + (size_t) m_config.paddingSize * sizeof(long) * 2;
-    rec->reportedSize     = size;
-    rec->actualAddress    = ::malloc( rec->actualSize );
-    rec->reportedAddress  = (char*) rec->actualAddress + (size_t) m_config.paddingSize * sizeof(long);
-    rec->paddingSize      = (UInt16) m_config.paddingSize;
-    rec->allocationType   = allocType;
+    rec->reportedSize   = size;
+    rec->allocationType = allocType;
     rec->SetSourceFile( file );
-    rec->sourceLine       = (UInt32) line;
-    rec->breakOptions     = 0;
+    rec->sourceLine     = (UInt32) line;
+    rec->breakOptions   = 0;
+
+    /* --- Guard page allocation (opt-in, disabled under ASan) --- */
+    #if !defined( GUCEF_MLF_ASAN_ACTIVE )
+    if ( m_config.useGuardPages )
+    {
+        size_t pageSize    = GetSystemPageSize();
+        size_t frontPad    = (size_t) m_config.paddingSize * sizeof(long);
+        size_t minCommit   = frontPad + size;
+        /* Round up so user data ends exactly at a page boundary */
+        size_t pageAligned = ( (minCommit + pageSize - 1) / pageSize ) * pageSize;
+        size_t guardTotal  = pageAligned + pageSize; /* +1 NOACCESS guard page */
+
+        void* region = GUCEF_NULL;
+        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+        /* Reserve full region (all NOACCESS), then commit only the data pages */
+        region = ::VirtualAlloc( GUCEF_NULL, guardTotal, MEM_RESERVE, PAGE_NOACCESS );
+        if ( GUCEF_NULL != region )
+        {
+            if ( GUCEF_NULL == ::VirtualAlloc( region, pageAligned, MEM_COMMIT, PAGE_READWRITE ) )
+            {
+                ::VirtualFree( region, 0, MEM_RELEASE );
+                region = GUCEF_NULL;
+            }
+        }
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+        region = ::mmap( GUCEF_NULL, guardTotal, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0 );
+        if ( MAP_FAILED == region )
+            region = GUCEF_NULL;
+        else if ( 0 != ::mprotect( (char*) region + pageAligned, pageSize, PROT_NONE ) )
+        {
+            ::munmap( region, guardTotal );
+            region = GUCEF_NULL;
+        }
+        #endif
+
+        if ( GUCEF_NULL != region )
+        {
+            /* User data ends at the page boundary — overflow hits the guard page immediately */
+            rec->actualAddress       = region;
+            rec->actualSize          = pageAligned;
+            rec->reportedAddress     = (char*) region + ( pageAligned - size );
+            rec->paddingSize         = 0;            /* guard page replaces back sentinel */
+            rec->guardPageRegionSize = guardTotal;
+
+            /* Write front-of-block sentinel pattern for pre-buffer detection in dumps */
+            long* front      = (long*) region;
+            size_t frontLongs = ( pageAligned - size ) / sizeof(long);
+            for ( size_t fi = 0; fi < frontLongs; ++fi )
+                front[ fi ] = ALLOC_PADDING_SENTINEL;
+        }
+        else
+        {
+            Log( "MEMMAN: guard page allocation failed for size=%zu, falling back to malloc", size );
+            /* Fall through to normal malloc below */
+        }
+    }
+    #endif /* GUCEF_MLF_ASAN_ACTIVE */
+
+    /* --- Normal malloc path (used when guard pages are disabled or fell back) --- */
+    if ( GUCEF_NULL == rec->actualAddress )
+    {
+        rec->actualSize      = size + (size_t) m_config.paddingSize * sizeof(long) * 2;
+        rec->actualAddress   = ::malloc( rec->actualSize );
+        rec->reportedAddress = (char*) rec->actualAddress + (size_t) m_config.paddingSize * sizeof(long);
+        rec->paddingSize     = (UInt16) m_config.paddingSize;
+    }
 
     if ( GUCEF_NULL == rec->actualAddress )
     {
-        Log( "MEMMAN: malloc(%zu) failed — out of memory", rec->actualSize );
+        Log( "MEMMAN: allocation failed for size=%zu — out of memory", size );
         ReturnToPool( rec );
         tl_inTracker = false;
         return GUCEF_NULL;
     }
 
+    /* Capture timestamp */
+    rec->allocationTimestampUs = GetCurrentTimestampUs() - m_timestampBaseUs;
+
     if ( m_config.enableCallstackCapture )
         MEMMAN_GetCallstackCopyForCurrentThread( &rec->allocCallstack, 1 );
 
+    if ( m_config.enableRawCallstackCapture )
+        MEMMAN_CaptureRawCallstack( &rec->allocRawCallstack, m_config.maxRawCallstackDepth );
+
     /* Initialize sentinels */
+#if defined( GUCEF_MLF_ASAN_ACTIVE ) || defined( GUCEF_MLF_MSAN_ACTIVE )
+    /* ASan/MSan owns memory poisoning — do not fill the body */
+    (void) ALLOC_BODY_SENTINEL;
+#else
     if ( allocType == 5 /* MM_CALLOC */ )
         rec->InitializeSentinels( 0x00000000 );
     else
         rec->InitializeSentinels( ALLOC_BODY_SENTINEL );
+#endif
 
     InsertRecord( rec );
 
@@ -881,20 +1121,81 @@ CMemoryTracker::TrackDeallocation( void*       address  ,
     ValidateRecord( rec );
 
     /* Check alloc/dealloc type mismatch */
-    if ( rec->IsDeallocationTypeMismatch( type ) )
+    if ( 0 == rec->suppressMismatchCheck && rec->IsDeallocationTypeMismatch( type ) )
     {
+        ++m_numMismatchedDeallocs;
         Log( "MEMMAN: Alloc/dealloc type mismatch: allocated as %s, freed as %s @ 0x%p",
              s_allocationTypes[ (unsigned char) rec->allocationType ],
              s_allocationTypes[ (unsigned char) type ], address );
-        GUCEF_SETBREAKPOINT;
+        switch ( m_config.deallocMismatchResponse )
+        {
+            case MISMATCH_BREAK:
+                GUCEF_SETBREAKPOINT;
+                break;
+            case MISMATCH_ABORT:
+                GUCEF_SETBREAKPOINT;
+                ::abort();
+                break;
+            case MISMATCH_LOG:
+            default:
+                break;
+        }
     }
 
     /* Break-on-dealloc hook */
     if ( (rec->breakOptions & BREAK_OPTION_ON_DEALLOC) != 0 )
         GUCEF_SETBREAKPOINT;
 
+    /* Lock range protection check — warn if deallocating a range declared protected by an unheld lock */
+    #ifndef GUCEF_MLF_TSAN_ACTIVE
+    {
+        CLockTracer* lockTracer = CLockTracer::Instance();
+        if ( GUCEF_NULL != lockTracer )
+        {
+            void* protectingLock = GUCEF_NULL;
+            if ( lockTracer->IsRangeProtectedByUnheldLock( address, rec->reportedSize, &protectingLock ) )
+            {
+                Log( "MEMMAN: WARNING: Deallocating 0x%p (size=%zu) which is declared protected by lock 0x%p, but that lock is not currently held",
+                     address, rec->reportedSize, protectingLock );
+            }
+        }
+    }
+    #endif /* GUCEF_MLF_TSAN_ACTIVE */
+
+    /* Poison freed memory with recognizable pattern before freeing.
+     * Skip for guard-page allocations — the memory is about to be released
+     * back to the OS and poisoning serves no diagnostic purpose there. */
+#if !defined( GUCEF_MLF_ASAN_ACTIVE ) && !defined( GUCEF_MLF_MSAN_ACTIVE )
+    if ( GUCEF_NULL != rec->actualAddress && rec->actualSize > 0 && 0 == rec->guardPageRegionSize )
+    {
+        long* p     = (long*) rec->actualAddress;
+        size_t longs = rec->actualSize / sizeof(long);
+        for ( size_t pi = 0; pi < longs; ++pi )
+            p[ pi ] = ALLOC_FREED_BODY_SENTINEL;
+        /* Remainder bytes */
+        char* cp = (char*)( p + longs );
+        size_t rem = rec->actualSize - longs * sizeof(long);
+        for ( size_t pi = 0; pi < rem; ++pi )
+            cp[ pi ] = (char) 0xFE;
+    }
+#endif
+
     /* Free the backing memory */
-    ::free( rec->actualAddress );
+    #if !defined( GUCEF_MLF_ASAN_ACTIVE )
+    if ( rec->guardPageRegionSize > 0 )
+    {
+        /* Guard-page-backed: release the entire reserved region (data + guard page) */
+        #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+        ::VirtualFree( rec->actualAddress, 0, MEM_RELEASE );
+        #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+        ::munmap( rec->actualAddress, rec->guardPageRegionSize );
+        #endif
+    }
+    else
+    #endif /* GUCEF_MLF_ASAN_ACTIVE */
+    {
+        ::free( rec->actualAddress );
+    }
     rec->actualAddress = GUCEF_NULL;
 
     /* Capture dealloc callstack */
@@ -906,6 +1207,15 @@ CMemoryTracker::TrackDeallocation( void*       address  ,
             rec->deallocCallstack = GUCEF_NULL;
         }
         MEMMAN_GetCallstackCopyForCurrentThread( &rec->deallocCallstack, 1 );
+    }
+    if ( m_config.enableRawCallstackCapture )
+    {
+        if ( GUCEF_NULL != rec->deallocRawCallstack )
+        {
+            MEMMAN_FreeRawCallstack( rec->deallocRawCallstack );
+            rec->deallocRawCallstack = GUCEF_NULL;
+        }
+        MEMMAN_CaptureRawCallstack( &rec->deallocRawCallstack, m_config.maxRawCallstackDepth );
     }
 
     /* Overhead accounting */
@@ -1179,6 +1489,28 @@ UInt32 CMemoryTracker::GetAllocatedMemory( void )        const { return m_alloca
 UInt32 CMemoryTracker::GetNumBoundsViolations( void )    const { return m_numBoundsViolations; }
 UInt32 CMemoryTracker::GetNumAllocations( void )         const { return m_numAllocations; }
 UInt32 CMemoryTracker::GetNumSubAllocations( void )      const { return m_numSubAllocations; }
+UInt32 CMemoryTracker::GetNumMismatchedDeallocs( void )  const { return m_numMismatchedDeallocs; }
+
+/*-------------------------------------------------------------------------*/
+
+const CMemoryTracker::TCallsiteMap&
+CMemoryTracker::GetCallsiteMap( void ) const
+{
+    return m_callsiteMap;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMemoryTracker::GetSizeHistogram( UInt64 outCounts[ HISTOGRAM_BUCKET_COUNT ],
+                                  UInt64 outBytes [ HISTOGRAM_BUCKET_COUNT ] ) const
+{
+    for ( UInt32 b = 0; b < HISTOGRAM_BUCKET_COUNT; ++b )
+    {
+        outCounts[ b ] = m_histogramCounts[ b ];
+        outBytes[ b ]  = m_histogramBytes[ b ];
+    }
+}
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

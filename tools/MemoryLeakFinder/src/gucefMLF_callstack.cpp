@@ -27,6 +27,28 @@
 #include <assert.h>
 #include <map>
 
+/* Platform-specific includes for OS-level callstack capture */
+#ifndef GUCEF_PLATFORM_H
+#include "gucef_platform.h"
+#endif
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+  #ifndef WIN32_LEAN_AND_MEAN
+    #define WIN32_LEAN_AND_MEAN
+  #endif
+  #include <windows.h>
+  #include <DbgHelp.h>
+  #pragma comment( lib, "DbgHelp.lib" )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+  #include <execinfo.h>
+  #include <dlfcn.h>
+  #include <unwind.h>
+#endif
+
+#ifndef GUCEF_MLF_CALLOCATIONRECORD_H
+#include "gucefMLF_CAllocationRecord.h"
+#define GUCEF_MLF_CALLOCATIONRECORD_H
+#endif /* GUCEF_MLF_CALLOCATIONRECORD_H ? */
+
 #ifndef GUCEF_DYNNEWOFF_H
 #include "gucef_dynnewoff.h"
 #define GUCEF_DYNNEWOFF_H
@@ -760,6 +782,225 @@ void
 GUCEF_LogStackTo( const char* filename )
 {
     CCallStackTracker::Instance()->SetLogFilename( filename );
+}
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      OS-LEVEL RAW CALLSTACK CAPTURE                                    //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+/* DbgHelp is single-threaded — serialize all symbolication calls */
+static MT::CMutex g_dbgHelpMutex;
+static bool       g_dbgHelpInitialized = false;
+
+static void
+EnsureDbgHelpInitialized( void )
+{
+    if ( !g_dbgHelpInitialized )
+    {
+        SymSetOptions( SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES );
+        SymInitialize( GetCurrentProcess(), NULL, TRUE );
+        g_dbgHelpInitialized = true;
+    }
+}
+
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+
+/* Fallback: _Unwind_Backtrace for platforms without backtrace() */
+struct SUnwindState
+{
+    void**  frames;
+    int     count;
+    int     maxCount;
+};
+
+static _Unwind_Reason_Code
+UnwindCallback( struct _Unwind_Context* ctx, void* arg )
+{
+    SUnwindState* state = (SUnwindState*) arg;
+    if ( state->count >= state->maxCount )
+        return _URC_END_OF_STACK;
+    state->frames[ state->count++ ] = (void*) _Unwind_GetIP( ctx );
+    return _URC_NO_REASON;
+}
+
+#endif /* GUCEF_PLATFORM_MSWIN */
+
+/*-------------------------------------------------------------------------*/
+
+void
+MEMMAN_CaptureRawCallstack( TRawCallStack** outStack, UInt32 maxDepth )
+{
+    if ( GUCEF_NULL == outStack )
+        return;
+    *outStack = GUCEF_NULL;
+
+    if ( 0 == maxDepth )
+        return;
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    /* Windows caps at 62 frames */
+    if ( maxDepth > 62 )
+        maxDepth = 62;
+
+    void** frames = (void**) ::malloc( maxDepth * sizeof(void*) );
+    if ( GUCEF_NULL == frames )
+        return;
+
+    USHORT captured = RtlCaptureStackBackTrace( 1 /* skip this frame */, (DWORD)maxDepth, frames, NULL );
+
+    TRawCallStack* stack = (TRawCallStack*) ::malloc( sizeof(TRawCallStack) );
+    if ( GUCEF_NULL == stack )
+    {
+        ::free( frames );
+        return;
+    }
+    stack->frames     = frames;
+    stack->frameCount = (UInt32) captured;
+    stack->threadId   = (UInt32) GetCurrentThreadId();
+    *outStack = stack;
+
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+
+    void** frames = (void**) ::malloc( maxDepth * sizeof(void*) );
+    if ( GUCEF_NULL == frames )
+        return;
+
+  #if defined( __GLIBC__ ) || defined( __BIONIC__ )
+    int captured = backtrace( frames, (int) maxDepth );
+    if ( captured <= 0 )
+        captured = 0;
+  #else
+    /* Fallback via _Unwind_Backtrace */
+    SUnwindState unwindState = { frames, 0, (int) maxDepth };
+    _Unwind_Backtrace( UnwindCallback, &unwindState );
+    int captured = unwindState.count;
+  #endif
+
+    TRawCallStack* stack = (TRawCallStack*) ::malloc( sizeof(TRawCallStack) );
+    if ( GUCEF_NULL == stack )
+    {
+        ::free( frames );
+        return;
+    }
+    stack->frames     = frames;
+    stack->frameCount = (UInt32) captured;
+    stack->threadId   = (UInt32) MT::GetCurrentTaskID();
+    *outStack = stack;
+
+#else
+
+    /* Platform not supported — return NULL */
+    (void) maxDepth;
+
+#endif /* platform */
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+MEMMAN_FreeRawCallstack( TRawCallStack* stack )
+{
+    if ( GUCEF_NULL == stack )
+        return;
+    if ( GUCEF_NULL != stack->frames )
+    {
+        ::free( stack->frames );
+        stack->frames = GUCEF_NULL;
+    }
+    ::free( stack );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+MEMMAN_SymbolicateRawCallstack( TRawCallStack* stack ,
+                                FILE*          dest  ,
+                                const char*    indent )
+{
+    if ( GUCEF_NULL == stack || GUCEF_NULL == dest || 0 == stack->frameCount )
+        return;
+
+    if ( GUCEF_NULL == indent )
+        indent = "  ";
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    MT::CScopeMutex lock( g_dbgHelpMutex );
+    EnsureDbgHelpInitialized();
+
+    char symBuf[ sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR) ];
+    SYMBOL_INFO* sym = (SYMBOL_INFO*) symBuf;
+    IMAGEHLP_LINE64 lineInfo;
+    ::memset( sym, 0, sizeof(symBuf) );
+    ::memset( &lineInfo, 0, sizeof(lineInfo) );
+    sym->SizeOfStruct = sizeof(SYMBOL_INFO);
+    sym->MaxNameLen   = MAX_SYM_NAME;
+    lineInfo.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+
+    HANDLE hProc = GetCurrentProcess();
+
+    for ( UInt32 i = 0; i < stack->frameCount; ++i )
+    {
+        DWORD64 addr   = (DWORD64)(DWORD_PTR) stack->frames[ i ];
+        DWORD   disp32 = 0;
+        DWORD64 disp64 = 0;
+
+        bool gotSym  = ( SymFromAddr( hProc, addr, &disp64, sym ) == TRUE );
+        bool gotLine = ( SymGetLineFromAddr64( hProc, addr, &disp32, &lineInfo ) == TRUE );
+
+        if ( gotSym && gotLine )
+        {
+            fprintf( dest, "%s#%-2u  %s + 0x%llX  [%s:%lu]\r\n",
+                     indent, i, sym->Name, (unsigned long long) disp64,
+                     lineInfo.FileName, (unsigned long) lineInfo.LineNumber );
+        }
+        else if ( gotSym )
+        {
+            fprintf( dest, "%s#%-2u  %s + 0x%llX  [??]\r\n",
+                     indent, i, sym->Name, (unsigned long long) disp64 );
+        }
+        else
+        {
+            fprintf( dest, "%s#%-2u  0x%p  [??]\r\n", indent, i, stack->frames[ i ] );
+        }
+    }
+
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+
+    char** syms = backtrace_symbols( stack->frames, (int) stack->frameCount );
+    for ( UInt32 i = 0; i < stack->frameCount; ++i )
+    {
+        /* Try dladdr for a cleaner name */
+        Dl_info info;
+        if ( dladdr( stack->frames[ i ], &info ) && GUCEF_NULL != info.dli_sname )
+        {
+            fprintf( dest, "%s#%-2u  %s + 0x%lx  [%s]\n",
+                     indent, i, info.dli_sname,
+                     (unsigned long)( (char*)stack->frames[i] - (char*)info.dli_saddr ),
+                     GUCEF_NULL != info.dli_fname ? info.dli_fname : "?" );
+        }
+        else if ( GUCEF_NULL != syms && GUCEF_NULL != syms[i] )
+        {
+            fprintf( dest, "%s#%-2u  %s\n", indent, i, syms[i] );
+        }
+        else
+        {
+            fprintf( dest, "%s#%-2u  %p\n", indent, i, stack->frames[i] );
+        }
+    }
+    if ( GUCEF_NULL != syms )
+        ::free( syms );
+
+#else
+
+    fprintf( dest, "%s(raw callstack symbolication not supported on this platform)\n", indent );
+
+#endif /* platform */
 }
 
 /*-------------------------------------------------------------------------//

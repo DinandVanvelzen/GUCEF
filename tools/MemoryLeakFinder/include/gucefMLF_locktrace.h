@@ -25,6 +25,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <stdlib.h>     /* size_t */
+
 #ifndef GUCEF_MACROS_H
 #include "gucef_macros.h"
 #define GUCEF__MACROS_H
@@ -105,6 +107,27 @@ MEMMAN_ExclusiveLockAbandoned( void* lockId );
  */
 GUCEF_MLF_PUBLIC_C void
 MEMMAN_ExclusiveLockDestroy( void* lockId );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  MEMMAN_LockProtectsRange():
+ *  Declare that lockId is intended to protect the memory range [address, address+size).
+ *  At deallocation time, if the allocation overlaps the range and the lock is not
+ *  currently held, a warning is logged to the memory report.
+ *  This is contract validation, not race detection.
+ */
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_LockProtectsRange( void* lockId, const void* address, size_t size );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  MEMMAN_LockUnprotectsRange():
+ *  Remove any range association previously declared for lockId.
+ */
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_LockUnprotectsRange( void* lockId );
 
 /*-------------------------------------------------------------------------*/
 

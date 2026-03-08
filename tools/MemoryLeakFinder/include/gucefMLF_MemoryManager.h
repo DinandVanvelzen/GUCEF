@@ -39,6 +39,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <stdlib.h>   /* size_t */
+
 #ifndef GUCEF_MLF_CONFIG_H
 #include "gucefMLF_config.h"
 #define GUCEF_MLF_CONFIG_H
@@ -225,6 +227,76 @@ MEMMAN_ValidateFinishedDestructor( const char* file     ,
                                    const void* address  ,
                                    size_t size          ,
                                    const char* typeName );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ * MEMMAN_SuppressMismatchCheck():
+ * Mark a live allocation so that dealloc type mismatch checking is skipped.
+ * Use this for intentional cross-allocator patterns (e.g. code that acquires
+ * with new and releases with free by design).
+ * address must be a currently tracked reported-address.
+ */
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_SuppressMismatchCheck( void* address );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ * MEMMAN_LockProtectsRange():
+ * Declare that lockId is intended to protect the memory range [address, address+size).
+ * At deallocation time, if the allocation overlaps the range and the lock is not
+ * currently held, a warning is logged.  This is contract validation, not race detection.
+ * Has no effect when TSan is active (GUCEF_MLF_TSAN_ACTIVE).
+ */
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_LockProtectsRange( void* lockId, const void* address, size_t size );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ * MEMMAN_LockUnprotectsRange():
+ * Remove the range association previously declared for lockId.
+ */
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_LockUnprotectsRange( void* lockId );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ * MEMMAN_DumpCallsiteReport():
+ * Write per-callsite aggregated statistics to the log file.
+ * Requires enableCallsiteProfiling=true. topN=0 means print all.
+ */
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_DumpCallsiteReport( UInt32 topN );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ * MEMMAN_DumpSizeHistogram():
+ * Write the lifetime allocation size histogram to the log file.
+ */
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_DumpSizeHistogram( void );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ * MEMMAN_DumpTimeline():
+ * Write a TSV timeline of live allocations (timestampUs, size, file, line) to path.
+ */
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_DumpTimeline( const char* path );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ * MEMMAN_DumpMassifFormat():
+ * Write a Valgrind massif-format snapshot of the current heap to path.
+ */
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_DumpMassifFormat( const char* path );
 
 /*-------------------------------------------------------------------------*/
 

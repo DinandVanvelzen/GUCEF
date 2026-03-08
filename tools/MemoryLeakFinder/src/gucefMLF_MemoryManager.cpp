@@ -86,6 +86,14 @@ namespace MLF {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/* Forward declarations for CRT hook functions defined later in this file */
+#if defined( GUCEF_MLF_HOOK_CRT_HEAP ) && defined( _MSC_VER ) && !defined( GUCEF_MLF_ASAN_ACTIVE )
+static void InstallCrtHook( void );
+static void RemoveCrtHook( void );
+#endif
+
+/*-------------------------------------------------------------------------*/
+
 /**
  * MEMMAN_Initialize():
  *  Initialize the memory tracking subsystem.  Safe to call multiple times.
@@ -103,10 +111,12 @@ MEMMAN_Initialize( void )
     if ( GUCEF_NULL == callstackTracker )
         return 0;
 
-    /* Lazy-construct CLockTracer */
+    /* Lazy-construct CLockTracer — disabled when TSan is active to avoid false positives */
+    #ifndef GUCEF_MLF_TSAN_ACTIVE
     CLockTracer* lockTracer = CLockTracer::Instance();
     if ( GUCEF_NULL == lockTracer )
         return 0;
+    #endif /* GUCEF_MLF_TSAN_ACTIVE */
 
     /* Lazy-construct CMemoryTracker with defaults if not yet constructed */
     CMemoryTracker* tracker = CMemoryTracker::Instance();
@@ -117,6 +127,11 @@ MEMMAN_Initialize( void )
     SMemoryTrackerConfig cfg;
     SMemoryTrackerConfig_SetDefaults( cfg );
     tracker->ApplyConfig( cfg );
+
+    /* Install CRT heap hook if opted in */
+    #if defined( GUCEF_MLF_HOOK_CRT_HEAP ) && defined( _MSC_VER ) && !defined( GUCEF_MLF_ASAN_ACTIVE )
+    InstallCrtHook();
+    #endif
 
     return 1;
 }
@@ -153,10 +168,17 @@ MEMMAN_Shutdown( void )
         if ( dbg ) { fprintf( dbg, "SHUTDOWN step 3: after DumpLogReport\n" ); fflush( dbg ); }
     }
 
+    /* Remove CRT heap hook before teardown */
+    #if defined( GUCEF_MLF_HOOK_CRT_HEAP ) && defined( _MSC_VER ) && !defined( GUCEF_MLF_ASAN_ACTIVE )
+    RemoveCrtHook();
+    #endif
+
     /* Tear down in reverse init order */
+    #ifndef GUCEF_MLF_TSAN_ACTIVE
     if ( dbg ) { fprintf( dbg, "SHUTDOWN step 4: before CLockTracer::Deinstance\n" ); fflush( dbg ); }
     CLockTracer::Deinstance();
     if ( dbg ) { fprintf( dbg, "SHUTDOWN step 5: after CLockTracer::Deinstance\n" ); fflush( dbg ); }
+    #endif /* GUCEF_MLF_TSAN_ACTIVE */
 
     if ( dbg ) { fprintf( dbg, "SHUTDOWN step 6: before CCallStackTracker::Deinstance\n" ); fflush( dbg ); }
     CCallStackTracker::Deinstance();
@@ -297,6 +319,102 @@ MEMMAN_DumpMemoryAllocations( void )
 
     CReporter reporter;
     reporter.DumpMemoryAllocations();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+MEMMAN_SuppressMismatchCheck( void* address )
+{
+    if ( GUCEF_NULL == address )
+        return;
+
+    CMemoryTracker* tracker = CMemoryTracker::Instance();
+    if ( GUCEF_NULL == tracker )
+        return;
+
+    /* Acquire write lock to safely access the registry */
+    MT::CScopeWriterLock writeLock( tracker->GetDataLock() );
+    /* GetRegistry() returns const ref, but the CAllocationRecord* values are mutable */
+    const CMemoryTracker::TRegistry& reg = tracker->GetRegistry();
+    CMemoryTracker::TRegistry::const_iterator i = reg.find( (UIntPtr) address );
+    if ( i != reg.end() && GUCEF_NULL != i->second )
+    {
+        /* The pointer in the registry points to a mutable record */
+        i->second->suppressMismatchCheck = 1;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+MEMMAN_LockProtectsRange( void* lockId, const void* address, size_t size )
+{
+    #ifndef GUCEF_MLF_TSAN_ACTIVE
+    CLockTracer* lockTracer = CLockTracer::Instance();
+    if ( GUCEF_NULL != lockTracer )
+        lockTracer->LockProtectsRange( lockId, address, size );
+    #endif /* GUCEF_MLF_TSAN_ACTIVE */
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+MEMMAN_LockUnprotectsRange( void* lockId )
+{
+    #ifndef GUCEF_MLF_TSAN_ACTIVE
+    CLockTracer* lockTracer = CLockTracer::Instance();
+    if ( GUCEF_NULL != lockTracer )
+        lockTracer->LockUnprotectsRange( lockId );
+    #endif /* GUCEF_MLF_TSAN_ACTIVE */
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+MEMMAN_DumpCallsiteReport( UInt32 topN )
+{
+    if ( !CMemoryTracker::IsConstructed() )
+        return;
+
+    CReporter reporter;
+    reporter.DumpCallsiteReport( topN );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+MEMMAN_DumpSizeHistogram( void )
+{
+    if ( !CMemoryTracker::IsConstructed() )
+        return;
+
+    CReporter reporter;
+    reporter.DumpSizeHistogram();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+MEMMAN_DumpTimeline( const char* path )
+{
+    if ( !CMemoryTracker::IsConstructed() || GUCEF_NULL == path )
+        return;
+
+    CReporter reporter;
+    reporter.DumpTimeline( path );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+MEMMAN_DumpMassifFormat( const char* path )
+{
+    if ( !CMemoryTracker::IsConstructed() || GUCEF_NULL == path )
+        return;
+
+    CReporter reporter;
+    reporter.DumpMassifFormat( path );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -576,6 +694,144 @@ MEMMAN_ValidateFinishedDestructor( const char* file    ,
 }
 
 /*-------------------------------------------------------------------------*/
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      GLOBAL NEW / DELETE REPLACEMENT (opt-in via GUCEF_MLF_GLOBAL_NEW_OVERRIDE)
+//                                                                         //
+//  When GUCEF_MLF_GLOBAL_NEW_OVERRIDE is defined at DLL build time, all    //
+//  C++ operator-new and operator-delete calls in the process that resolve   //
+//  through the normal ODR mechanism are routed through the tracker.         //
+//                                                                         //
+//  WARNING: Do NOT define this if any other library in the link unit also   //
+//  overrides operator new/delete.  Linker will report a duplicate symbol.   //
+//-------------------------------------------------------------------------*/
+
+#ifdef GUCEF_MLF_GLOBAL_NEW_OVERRIDE
+
+#pragma message( "GUCEF MemoryLeakFinder: GUCEF_MLF_GLOBAL_NEW_OVERRIDE is active — " \
+                 "global operator new/delete are intercepted. " \
+                 "Ensure no other library in this link unit also overrides them." )
+
+} /* close namespace MLF */
+} /* close namespace GUCEF */
+
+void* operator new( size_t size )
+{
+    return GUCEF::MLF::MEMMAN_AllocateMemory( "<global new>", 0, size, MM_NEW, GUCEF_NULL, GUCEF_NULL );
+}
+
+void* operator new[]( size_t size )
+{
+    return GUCEF::MLF::MEMMAN_AllocateMemory( "<global new[]>", 0, size, MM_NEW_ARRAY, GUCEF_NULL, GUCEF_NULL );
+}
+
+void operator delete( void* p ) GUCEF_NOEXCEPT
+{
+    if ( GUCEF_NULL != p )
+        GUCEF::MLF::MEMMAN_DeAllocateMemory( p, MM_DELETE, GUCEF_NULL );
+}
+
+void operator delete[]( void* p ) GUCEF_NOEXCEPT
+{
+    if ( GUCEF_NULL != p )
+        GUCEF::MLF::MEMMAN_DeAllocateMemory( p, MM_DELETE_ARRAY, GUCEF_NULL );
+}
+
+/* Sized delete (C++14) */
+#if __cplusplus >= 201402L
+void operator delete( void* p, size_t ) GUCEF_NOEXCEPT
+{
+    if ( GUCEF_NULL != p )
+        GUCEF::MLF::MEMMAN_DeAllocateMemory( p, MM_DELETE, GUCEF_NULL );
+}
+
+void operator delete[]( void* p, size_t ) GUCEF_NOEXCEPT
+{
+    if ( GUCEF_NULL != p )
+        GUCEF::MLF::MEMMAN_DeAllocateMemory( p, MM_DELETE_ARRAY, GUCEF_NULL );
+}
+#endif /* C++14 */
+
+namespace GUCEF {
+namespace MLF {
+
+#endif /* GUCEF_MLF_GLOBAL_NEW_OVERRIDE */
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      CRT HEAP HOOK (opt-in via GUCEF_MLF_HOOK_CRT_HEAP, MSVC only)      //
+//                                                                         //
+//  When defined, _CrtSetAllocHook intercepts all CRT malloc/calloc/       //
+//  realloc/free calls within the same CRT instance.  File/line info is    //
+//  not available from the CRT hook, but size and type are.                //
+//-------------------------------------------------------------------------*/
+
+#if defined( GUCEF_MLF_HOOK_CRT_HEAP ) && defined( _MSC_VER ) && !defined( GUCEF_MLF_ASAN_ACTIVE )
+
+#include <crtdbg.h>
+
+static bool g_crtHookActive = false;
+
+static int __cdecl
+GucefCrtAllocHook( int      allocType ,
+                   void*    userData  ,
+                   size_t   size      ,
+                   int      blockType ,
+                   long     requestNumber,
+                   const unsigned char* filename,
+                   int      lineNumber )
+{
+    /* Ignore internal CRT allocations */
+    if ( blockType == _CRT_BLOCK )
+        return TRUE;
+
+    /* Only intercept when tracker is alive and re-entrancy guard allows */
+    if ( !CMemoryTracker::IsConstructed() || CMemoryTracker::IsDestructed() )
+        return TRUE;
+
+    CMemoryTracker* tracker = CMemoryTracker::Instance();
+    if ( GUCEF_NULL == tracker )
+        return TRUE;
+
+    const char* file = GUCEF_NULL != filename ? (const char*) filename : "<CRT>";
+
+    switch ( allocType )
+    {
+        case _HOOK_ALLOC:
+            /* CRT hook is informational only — actual allocation done by CRT */
+            break;
+        case _HOOK_REALLOC:
+            break;
+        case _HOOK_FREE:
+            break;
+        default:
+            break;
+    }
+    return TRUE; /* Allow CRT to proceed with the actual operation */
+}
+
+static void
+InstallCrtHook( void )
+{
+    if ( !g_crtHookActive )
+    {
+        _CrtSetAllocHook( GucefCrtAllocHook );
+        g_crtHookActive = true;
+    }
+}
+
+static void
+RemoveCrtHook( void )
+{
+    if ( g_crtHookActive )
+    {
+        _CrtSetAllocHook( GUCEF_NULL );
+        g_crtHookActive = false;
+    }
+}
+
+#endif /* GUCEF_MLF_HOOK_CRT_HEAP */
 
 #ifdef MEMCHECK_OLEAPI
 

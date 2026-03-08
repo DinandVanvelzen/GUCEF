@@ -29,6 +29,7 @@
 #else
   #include <map>
 #endif
+#include <map>
 
 #ifndef GUCEF_MLF_ETYPES_H
 #include "gucefMLF_ETypes.h"
@@ -44,6 +45,11 @@
 #include "gucefMLF_CAllocationRecord.h"
 #define GUCEF_MLF_CALLOCATIONRECORD_H
 #endif /* GUCEF_MLF_CALLOCATIONRECORD_H ? */
+
+#ifndef GUCEF_MLF_CCALLSITESTATS_H
+#include "gucefMLF_CCallsiteStats.h"
+#define GUCEF_MLF_CCALLSITESTATS_H
+#endif /* GUCEF_MLF_CCALLSITESTATS_H ? */
 
 #ifndef GUCEF_MT_CMUTEX_H
 #include "gucefMT_CMutex.h"
@@ -179,6 +185,23 @@ class GUCEF_HIDDEN CMemoryTracker
 
     typedef std::map< UInt64, CAllocationRecord* > TUInt64ToRecordMap;
 
+    /**
+     * Key for the callsite map: (file pointer, line number).
+     * File pointers are used by identity (not string comparison) because
+     * __FILE__ produces static-storage string literals.
+     */
+    struct TCallsiteKey
+    {
+        const char* file;
+        UInt32      line;
+        bool operator<( const TCallsiteKey& o ) const
+        {
+            if ( file != o.file ) return file < o.file;
+            return line < o.line;
+        }
+    };
+    typedef std::map< TCallsiteKey, CCallsiteStats > TCallsiteMap;
+
     /* Acquire reader lock; caller must hold it for the duration of access  */
     MT::CReadWriteLock& GetDataLock( void );
 
@@ -187,6 +210,14 @@ class GUCEF_HIDDEN CMemoryTracker
 
     /* Dealloc ring — raw access under data lock                           */
     CAllocationRecord* GetDeallocRingHead( void ) const;
+
+    /* Callsite stats map — call only while holding at least a read lock   */
+    const TCallsiteMap& GetCallsiteMap( void ) const;
+
+    /* Size histogram — 8 buckets: 1-16, 17-64, 65-256, 257-1K, 1K-4K, 4K-64K, 64K-1M, >1M */
+    static const UInt32 HISTOGRAM_BUCKET_COUNT = 8;
+    void GetSizeHistogram( UInt64 outCounts[ HISTOGRAM_BUCKET_COUNT ],
+                           UInt64 outBytes [ HISTOGRAM_BUCKET_COUNT ] ) const;
 
     /* ------------------------------------------------------------------ */
     /* Statistics (read under data lock)                                    */
@@ -203,6 +234,7 @@ class GUCEF_HIDDEN CMemoryTracker
     UInt32 GetNumBoundsViolations( void )       const;
     UInt32 GetNumAllocations( void )            const;
     UInt32 GetNumSubAllocations( void )         const;
+    UInt32 GetNumMismatchedDeallocs( void )     const;
 
     /* ------------------------------------------------------------------ */
     /* Nearest-node queries (for exception reports, used by CReporter)      */
@@ -282,6 +314,17 @@ class GUCEF_HIDDEN CMemoryTracker
     UInt32  m_numBoundsViolations;
     UInt32  m_numAllocations;
     UInt32  m_numSubAllocations;
+    UInt32  m_numMismatchedDeallocs;   /* total alloc/dealloc type mismatches seen */
+
+    /* Size histogram counters — guarded by m_dataLock */
+    UInt64  m_histogramCounts[ HISTOGRAM_BUCKET_COUNT ];
+    UInt64  m_histogramBytes [ HISTOGRAM_BUCKET_COUNT ];
+
+    /* Per-callsite stats — guarded by m_dataLock; only populated when enableCallsiteProfiling=true */
+    TCallsiteMap m_callsiteMap;
+
+    /* Timestamp base — QueryPerformanceCounter or clock_gettime value at initialization */
+    UInt64  m_timestampBaseUs;
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
   #if ( _WIN32_WINNT >= 0x0500 )

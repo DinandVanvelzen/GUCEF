@@ -59,7 +59,24 @@ namespace MLF {
 
 /* Sentinel values — must not change (binary format compatibility) */
 static const long ALLOC_PADDING_SENTINEL = (long) 0xDEADC0DE;
+
+/**
+ * Body fill pattern for newly-allocated memory.
+ * 0xBAADC0DE is recognizable in memory dumps and signals "uninitialized".
+ */
 static const long ALLOC_BODY_SENTINEL    = (long) 0xBAADC0DE;
+
+/**
+ * Body fill pattern written over freed memory in the dealloc ring.
+ * This pattern is intentionally recognizable so that use-after-free reads
+ * that access this data produce a recognizable crash value.
+ * The pattern is FEEDFACE_DEADBEEF (64-bit) stored in repeating long words.
+ */
+#if defined(_WIN64) || defined(__LP64__) || defined(__x86_64__)
+static const long ALLOC_FREED_BODY_SENTINEL = (long) 0xFEEDFACEDEADBEEFLL;
+#else
+static const long ALLOC_FREED_BODY_SENTINEL = (long) 0xDEADBEEFL;
+#endif
 
 /* Break option flags stored in breakOptions field */
 static const UInt8 BREAK_OPTION_ON_DEALLOC = 0x01;
@@ -67,6 +84,27 @@ static const UInt8 BREAK_OPTION_ON_REALLOC = 0x02;
 
 /* Allocation type identifiers — must match the MM_* constants in MemoryManager.h */
 typedef char EAllocationType;
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      TYPES                                                              //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/**
+ * OS-level raw callstack — instruction-pointer addresses captured by
+ * RtlCaptureStackBackTrace (Windows) or backtrace() (Linux/Android).
+ *
+ * Raw addresses are stored (not symbolicated) because symbolication is slow
+ * (DbgHelp.dll lock, PDB disk I/O) and should be deferred to report time.
+ * Freed by FreeRawCallstack() in callstack.cpp.
+ */
+struct TRawCallStack
+{
+    void**  frames;       /* raw instruction-pointer addresses (malloc'd) */
+    UInt32  frameCount;   /* number of captured frames */
+    UInt32  threadId;     /* ID of the thread that captured this stack */
+};
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -98,10 +136,15 @@ class GUCEF_HIDDEN CAllocationRecord
     UInt16             paddingSize;         /* # of long-words of padding on each side */
     EAllocationType    allocationType;      /* MM_NEW, MM_MALLOC, etc. */
     UInt8              breakOptions;        /* BREAK_OPTION_ON_DEALLOC | BREAK_OPTION_ON_REALLOC */
+    UInt8              suppressMismatchCheck; /* non-zero: skip alloc/dealloc type mismatch check */
+    size_t             guardPageRegionSize; /* 0 = normal malloc; >0 = total VirtualAlloc/mmap region size (guard page backed) */
     long               predefinedBody;      /* body fill value used (for usage stats) */
     bool               hadPlacementChildren;
-    TCallStack*        allocCallstack;
-    TCallStack*        deallocCallstack;
+    UInt64             allocationTimestampUs; /* microseconds since tracker start (QueryPerformanceCounter / clock_gettime) */
+    TCallStack*        allocCallstack;      /* GUCEF_TRACE logical callstack at allocation */
+    TCallStack*        deallocCallstack;    /* GUCEF_TRACE logical callstack at deallocation */
+    TRawCallStack*     allocRawCallstack;   /* OS-level raw frames captured at allocation */
+    TRawCallStack*     deallocRawCallstack; /* OS-level raw frames captured at deallocation */
 
     /* Placement-new children: singly-linked list hanging off the parent */
     CAllocationRecord* placementChildren;   /* first child (null if none) */

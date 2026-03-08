@@ -227,6 +227,58 @@ GUCEF_InitCallstackUtility( void );
 GUCEF_MLF_PUBLIC_C void
 GUCEF_ShutdowntCallstackUtility( void );
 
+/*-------------------------------------------------------------------------*/
+
+/*
+ * Forward declaration — defined in CAllocationRecord.h.
+ * Declared here so the raw-callstack C API can be used without pulling in
+ * the full CAllocationRecord header.
+ */
+#ifdef __cplusplus
+struct TRawCallStack;
+#else
+typedef struct TRawCallStack TRawCallStack;
+struct TRawCallStack;
+#endif
+
+/**
+ * Capture the current thread's OS-level callstack (instruction-pointer frames).
+ *
+ * Windows : RtlCaptureStackBackTrace — no DbgHelp needed for capture.
+ * Linux   : backtrace() from <execinfo.h> (glibc / bionic).
+ * Android : same as Linux; _Unwind_Backtrace used as fallback.
+ *
+ * @param outStack  receives a newly malloc'd TRawCallStack; set to NULL on failure.
+ * @param maxDepth  maximum frames to capture (capped at 62 on Windows).
+ */
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_CaptureRawCallstack( struct TRawCallStack** outStack, UInt32 maxDepth );
+
+/**
+ * Free a TRawCallStack previously allocated by MEMMAN_CaptureRawCallstack().
+ */
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_FreeRawCallstack( struct TRawCallStack* stack );
+
+/**
+ * Write a symbolicated (human-readable) form of the raw callstack to dest.
+ *
+ * Symbolication is deferred to report time (not per-alloc) to avoid the
+ * performance cost of DbgHelp.dll disk I/O on every allocation.
+ *
+ * Windows: SymFromAddr + SymGetLineFromAddr64 (DbgHelp.dll; single-threaded,
+ *           serialised behind an internal mutex).
+ * Linux  : backtrace_symbols() / dladdr() for demangling.
+ *
+ * @param stack  the raw callstack to symbolicate (may be NULL; prints nothing).
+ * @param dest   output FILE* (e.g. log file handle).
+ * @param indent prefix string printed before each frame line (may be NULL).
+ */
+GUCEF_MLF_PUBLIC_C void
+MEMMAN_SymbolicateRawCallstack( struct TRawCallStack* stack ,
+                                FILE*                 dest  ,
+                                const char*           indent );
+
 /*--------------------------------------------------------------------------*/
 
 #ifdef __cplusplus

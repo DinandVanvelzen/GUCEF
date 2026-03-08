@@ -25,6 +25,9 @@
 #include <string.h>
 #include <time.h>
 #include <stdarg.h>
+#include <map>
+#include <vector>
+#include <algorithm>
 
 #ifndef GUCEF_DYNNEWOFF_H
 #include "gucef_dynnewoff.h"
@@ -36,6 +39,7 @@
 
 #include "gucefMLF_CReporter.h"
 #include "gucefMLF_CMemoryTracker.h"
+#include "gucefMLF_CLockTracer.h"
 #include "gucefMLF_callstack.h"
 
 #ifndef GUCEF_MT_CSCOPERWLOCK_H
@@ -205,16 +209,28 @@ CReporter::DumpRecord( FILE* fp, CAllocationRecord* record )
 
     if ( GUCEF_NULL != record->allocCallstack && record->allocCallstack->items > 0 )
     {
-        fprintf( fp, "Allocation Call Stack:\r\n" );
+        fprintf( fp, "Allocation Call Stack (GUCEF logical frames):\r\n" );
         for ( UInt32 s = 0; s < record->allocCallstack->items; ++s )
             fprintf( fp, "  %s:%d\r\n", record->allocCallstack->file[s], record->allocCallstack->linenr[s] );
     }
 
+    if ( GUCEF_NULL != record->allocRawCallstack && record->allocRawCallstack->frameCount > 0 )
+    {
+        fprintf( fp, "Allocation Call Stack (OS actual frames):\r\n" );
+        MEMMAN_SymbolicateRawCallstack( record->allocRawCallstack, fp, "  " );
+    }
+
     if ( GUCEF_NULL != record->deallocCallstack && record->deallocCallstack->items > 0 )
     {
-        fprintf( fp, "Deallocation Call Stack:\r\n" );
+        fprintf( fp, "Deallocation Call Stack (GUCEF logical frames):\r\n" );
         for ( UInt32 s = 0; s < record->deallocCallstack->items; ++s )
             fprintf( fp, "  %s:%d\r\n", record->deallocCallstack->file[s], record->deallocCallstack->linenr[s] );
+    }
+
+    if ( GUCEF_NULL != record->deallocRawCallstack && record->deallocRawCallstack->frameCount > 0 )
+    {
+        fprintf( fp, "Deallocation Call Stack (OS actual frames):\r\n" );
+        MEMMAN_SymbolicateRawCallstack( record->deallocRawCallstack, fp, "  " );
     }
 }
 
@@ -319,9 +335,11 @@ CReporter::DumpLogReportToFile( FILE* fp )
     fprintf( fp, "\r\n" );
 
     /* Bounds violations */
+    UInt32 numMismatches = tracker->GetNumMismatchedDeallocs();
     fprintf( fp, "                      B O U N D S  V I O L A T I O N S                          \r\n" );
     fprintf( fp, "------------------------------------------------------------------------------- \r\n" );
     fprintf( fp, "            Number of Memory Bounds Violations: %10s\r\n", InsertCommas( numBoundsViol ) );
+    fprintf( fp, "      Number of Alloc/Dealloc Type Mismatches: %10s\r\n", InsertCommas( numMismatches ) );
     fprintf( fp, "\r\n" );
 
     /* Memory leaks */
@@ -332,6 +350,69 @@ CReporter::DumpLogReportToFile( FILE* fp )
     fprintf( fp, "   Percentage of Allocated Memory Un-Allocated: %10.2f %%\r\n",
              (float)(1 - (totalAllocated - unallocated) / (float) totalDivider) * 100.0f );
     fprintf( fp, "\r\n" );
+
+    /* Lock tracer summary */
+    {
+        CLockTracer* lockTracer = CLockTracer::Instance();
+        if ( GUCEF_NULL != lockTracer )
+        {
+            CLockTracer::SLockAggregateStats ls;
+            lockTracer->GetAggregateStats( ls );
+
+            fprintf( fp, "                  L O C K  T R A C E R  S U M M A R Y                       \r\n" );
+            fprintf( fp, "------------------------------------------------------------------------------- \r\n" );
+#ifdef GUCEF_MSWIN_BUILD
+            fprintf( fp, "                    Total Lock Instances Tracked: %10I64u\r\n", ls.totalLockInstances );
+            fprintf( fp, "              Currently Locked (at report time): %10I64u\r\n",  ls.currentlyLockedCount );
+            fprintf( fp, "              Total Lock Abandonments (not released): %6I64u\r\n", ls.totalAbandonments );
+            fprintf( fp, "        Total Surplus Lock Releases (over-release): %7I64u\r\n", ls.totalSurplusReleases );
+#else
+            fprintf( fp, "                    Total Lock Instances Tracked: %10llu\r\n", (unsigned long long)ls.totalLockInstances );
+            fprintf( fp, "              Currently Locked (at report time): %10llu\r\n",  (unsigned long long)ls.currentlyLockedCount );
+            fprintf( fp, "              Total Lock Abandonments (not released): %6llu\r\n", (unsigned long long)ls.totalAbandonments );
+            fprintf( fp, "        Total Surplus Lock Releases (over-release): %7llu\r\n", (unsigned long long)ls.totalSurplusReleases );
+#endif
+            if ( ls.totalAbandonments > 0 )
+                fprintf( fp, "  *** WARNING: Abandoned locks detected — possible deadlock risk! ***\r\n" );
+            if ( ls.totalSurplusReleases > 0 )
+                fprintf( fp, "  *** WARNING: Surplus lock releases detected — logic error in locking! ***\r\n" );
+            fprintf( fp, "\r\n" );
+        }
+    }
+
+    /* Size histogram */
+    {
+        UInt64 hCounts[ CMemoryTracker::HISTOGRAM_BUCKET_COUNT ];
+        UInt64 hBytes [ CMemoryTracker::HISTOGRAM_BUCKET_COUNT ];
+        tracker->GetSizeHistogram( hCounts, hBytes );
+
+        static const char* const s_bucketLabels[ CMemoryTracker::HISTOGRAM_BUCKET_COUNT ] =
+        {
+            "     1 -    16 bytes",
+            "    17 -    64 bytes",
+            "    65 -   256 bytes",
+            "   257 -  1023 bytes",
+            "  1 KB -  4095 bytes",
+            "  4 KB - 64535 bytes",
+            " 64 KB -    1 MB    ",
+            "      > 1 MB        "
+        };
+
+        fprintf( fp, "                    A L L O C A T I O N  S I Z E  H I S T O G R A M                \r\n" );
+        fprintf( fp, "------------------------------------------------------------------------------- \r\n" );
+        fprintf( fp, "  %-20s  %12s  %18s\r\n", "Size Range", "Alloc Count", "Total Bytes" );
+        fprintf( fp, "  %-20s  %12s  %18s\r\n", "--------------------", "------------", "------------------" );
+        for ( UInt32 b = 0; b < CMemoryTracker::HISTOGRAM_BUCKET_COUNT; ++b )
+        {
+#ifdef GUCEF_MSWIN_BUILD
+            fprintf( fp, "  %-20s  %12I64u  %18I64u\r\n", s_bucketLabels[ b ], hCounts[ b ], hBytes[ b ] );
+#else
+            fprintf( fp, "  %-20s  %12llu  %18llu\r\n", s_bucketLabels[ b ], (unsigned long long)hCounts[ b ], (unsigned long long)hBytes[ b ] );
+#endif
+        }
+        fprintf( fp, "\r\n" );
+    }
+
     fflush( fp );
 }
 
@@ -552,6 +633,250 @@ CReporter::DumpExceptionReport( FILE*              fp                        ,
     }
 
     DumpLogReportToFile( fp );
+}
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      New aggregate report methods                                       //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+void
+CReporter::DumpCallsiteReport( UInt32 topN )
+{
+    FILE* fp = OpenLogFile( GUCEF_NULL );
+    if ( GUCEF_NULL == fp )
+        return;
+
+    CMemoryTracker* tracker = CMemoryTracker::Instance();
+    if ( GUCEF_NULL == tracker )
+    {
+        fclose( fp );
+        return;
+    }
+
+    MT::CScopeReaderLock readLock( tracker->GetDataLock() );
+    const CMemoryTracker::TCallsiteMap& csmap = tracker->GetCallsiteMap();
+
+    /* Collect and sort by currentLiveBytes descending */
+    typedef std::pair< UInt64, const CCallsiteStats* > TSortEntry;
+    std::vector< TSortEntry > sorted;
+    sorted.reserve( csmap.size() );
+    CMemoryTracker::TCallsiteMap::const_iterator it = csmap.begin();
+    while ( it != csmap.end() )
+    {
+        sorted.push_back( TSortEntry( it->second.currentLiveBytes, &it->second ) );
+        ++it;
+    }
+    std::sort( sorted.begin(), sorted.end(), [](const TSortEntry& a, const TSortEntry& b){ return a.first > b.first; } );
+
+    fprintf( fp, "\r\n" );
+    fprintf( fp, "******************************************************************************* \r\n" );
+    fprintf( fp, "*********                C A L L S I T E  R E P O R T                 ********* \r\n" );
+    fprintf( fp, "******************************************************************************* \r\n" );
+    fprintf( fp, "  %-40s  %8s  %10s  %10s  %10s\r\n",
+             "Callsite", "Live", "LiveBytes", "PeakBytes", "TotalBytes" );
+    fprintf( fp, "  %-40s  %8s  %10s  %10s  %10s\r\n",
+             "----------------------------------------", "--------", "----------", "----------", "----------" );
+
+    UInt32 printed = 0;
+    for ( size_t i = 0; i < sorted.size(); ++i )
+    {
+        if ( topN > 0 && printed >= topN )
+            break;
+        const CCallsiteStats* cs = sorted[ i ].second;
+        char label[ 48 ];
+        if ( GUCEF_NULL != cs->sourceFile )
+            snprintf( label, sizeof(label), "%s:%u", cs->sourceFile, cs->sourceLine );
+        else
+            snprintf( label, sizeof(label), "?:%u", cs->sourceLine );
+        label[ sizeof(label) - 1 ] = '\0';
+#ifdef GUCEF_MSWIN_BUILD
+        fprintf( fp, "  %-40s  %8I64u  %10I64u  %10I64u  %10I64u\r\n",
+                 label,
+                 (unsigned long long)(cs->allocCount - cs->freeCount),
+                 cs->currentLiveBytes, cs->peakLiveBytes, cs->totalBytesAllocated );
+#else
+        fprintf( fp, "  %-40s  %8llu  %10llu  %10llu  %10llu\r\n",
+                 label,
+                 (unsigned long long)(cs->allocCount - cs->freeCount),
+                 (unsigned long long)cs->currentLiveBytes,
+                 (unsigned long long)cs->peakLiveBytes,
+                 (unsigned long long)cs->totalBytesAllocated );
+#endif
+        ++printed;
+    }
+    fprintf( fp, "\r\n" );
+    fclose( fp );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CReporter::DumpSizeHistogram( void )
+{
+    FILE* fp = OpenLogFile( GUCEF_NULL );
+    if ( GUCEF_NULL == fp )
+        return;
+
+    CMemoryTracker* tracker = CMemoryTracker::Instance();
+    if ( GUCEF_NULL == tracker )
+    {
+        fclose( fp );
+        return;
+    }
+
+    MT::CScopeReaderLock readLock( tracker->GetDataLock() );
+
+    UInt64 hCounts[ CMemoryTracker::HISTOGRAM_BUCKET_COUNT ];
+    UInt64 hBytes [ CMemoryTracker::HISTOGRAM_BUCKET_COUNT ];
+    tracker->GetSizeHistogram( hCounts, hBytes );
+
+    static const char* const s_bucketLabels[ CMemoryTracker::HISTOGRAM_BUCKET_COUNT ] =
+    {
+        "     1 -    16 bytes",
+        "    17 -    64 bytes",
+        "    65 -   256 bytes",
+        "   257 -  1023 bytes",
+        "  1 KB -  4095 bytes",
+        "  4 KB - 64535 bytes",
+        " 64 KB -    1 MB    ",
+        "      > 1 MB        "
+    };
+
+    fprintf( fp, "\r\n" );
+    fprintf( fp, "******************************************************************************* \r\n" );
+    fprintf( fp, "*********           S I Z E  H I S T O G R A M  (lifetime)           ********* \r\n" );
+    fprintf( fp, "******************************************************************************* \r\n" );
+    fprintf( fp, "  %-20s  %12s  %18s\r\n", "Size Range", "Alloc Count", "Total Bytes" );
+    fprintf( fp, "  %-20s  %12s  %18s\r\n", "--------------------", "------------", "------------------" );
+    for ( UInt32 b = 0; b < CMemoryTracker::HISTOGRAM_BUCKET_COUNT; ++b )
+    {
+#ifdef GUCEF_MSWIN_BUILD
+        fprintf( fp, "  %-20s  %12I64u  %18I64u\r\n", s_bucketLabels[ b ], hCounts[ b ], hBytes[ b ] );
+#else
+        fprintf( fp, "  %-20s  %12llu  %18llu\r\n", s_bucketLabels[ b ], (unsigned long long)hCounts[ b ], (unsigned long long)hBytes[ b ] );
+#endif
+    }
+    fprintf( fp, "\r\n" );
+    fclose( fp );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CReporter::DumpTimeline( const char* path )
+{
+    if ( GUCEF_NULL == path )
+        return;
+
+    CMemoryTracker* tracker = CMemoryTracker::Instance();
+    if ( GUCEF_NULL == tracker )
+        return;
+
+    FILE* fp = fopen( path, "wb" );
+    if ( GUCEF_NULL == fp )
+        return;
+
+    MT::CScopeReaderLock readLock( tracker->GetDataLock() );
+    const CMemoryTracker::TRegistry& reg = tracker->GetRegistry();
+
+    /* Header */
+    fprintf( fp, "timestampUs\treportedSize\tfile\tline\tallocationType\r\n" );
+
+    CMemoryTracker::TRegistry::const_iterator i = reg.begin();
+    while ( i != reg.end() )
+    {
+        const CAllocationRecord* rec = i->second;
+        if ( GUCEF_NULL != rec && GUCEF_NULL == rec->parentRecord )
+        {
+#ifdef GUCEF_MSWIN_BUILD
+            fprintf( fp, "%I64u\t%zu\t%s\t%u\t%d\r\n",
+                     rec->allocationTimestampUs,
+                     rec->reportedSize,
+                     GUCEF_NULL != rec->sourceFile ? rec->sourceFile : "?",
+                     rec->sourceLine,
+                     (int) rec->allocationType );
+#else
+            fprintf( fp, "%llu\t%zu\t%s\t%u\t%d\r\n",
+                     (unsigned long long) rec->allocationTimestampUs,
+                     rec->reportedSize,
+                     GUCEF_NULL != rec->sourceFile ? rec->sourceFile : "?",
+                     rec->sourceLine,
+                     (int) rec->allocationType );
+#endif
+        }
+        ++i;
+    }
+    fclose( fp );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CReporter::DumpMassifFormat( const char* path )
+{
+    if ( GUCEF_NULL == path )
+        return;
+
+    CMemoryTracker* tracker = CMemoryTracker::Instance();
+    if ( GUCEF_NULL == tracker )
+        return;
+
+    FILE* fp = fopen( path, "wb" );
+    if ( GUCEF_NULL == fp )
+        return;
+
+    MT::CScopeReaderLock readLock( tracker->GetDataLock() );
+    const CMemoryTracker::TRegistry& reg = tracker->GetRegistry();
+
+    /* Compute snapshot totals */
+    size_t totalLiveBytes = 0;
+    size_t numLive = 0;
+    CMemoryTracker::TRegistry::const_iterator i = reg.begin();
+    while ( i != reg.end() )
+    {
+        const CAllocationRecord* rec = i->second;
+        if ( GUCEF_NULL != rec && GUCEF_NULL == rec->parentRecord )
+        {
+            totalLiveBytes += rec->reportedSize;
+            ++numLive;
+        }
+        ++i;
+    }
+
+    /* Massif snapshot header */
+    fprintf( fp, "desc: GUCEF MemoryLeakFinder snapshot-at-shutdown\r\n" );
+    fprintf( fp, "cmd: (gucef instrumented application)\r\n" );
+    fprintf( fp, "time_unit: ms\r\n" );
+    fprintf( fp, "\r\n" );
+    fprintf( fp, "#-----------\r\n" );
+    fprintf( fp, "snapshot=0\r\n" );
+    fprintf( fp, "#-----------\r\n" );
+    fprintf( fp, "time=0\r\n" );
+    fprintf( fp, "mem_heap_B=%zu\r\n", totalLiveBytes );
+    fprintf( fp, "mem_heap_extra_B=0\r\n" );
+    fprintf( fp, "mem_stacks_B=0\r\n" );
+    fprintf( fp, "heap_tree=detailed\r\n" );
+    fprintf( fp, "n%zu: %zu (heap allocation)\r\n", numLive, totalLiveBytes );
+
+    /* Per-allocation detail */
+    i = reg.begin();
+    while ( i != reg.end() )
+    {
+        const CAllocationRecord* rec = i->second;
+        if ( GUCEF_NULL != rec && GUCEF_NULL == rec->parentRecord )
+        {
+            fprintf( fp, " n0: %zu (", rec->reportedSize );
+            if ( GUCEF_NULL != rec->sourceFile )
+                fprintf( fp, "%s:%u", rec->sourceFile, rec->sourceLine );
+            else
+                fprintf( fp, "?" );
+            fprintf( fp, ")\r\n" );
+        }
+        ++i;
+    }
+    fclose( fp );
 }
 
 /*-------------------------------------------------------------------------//

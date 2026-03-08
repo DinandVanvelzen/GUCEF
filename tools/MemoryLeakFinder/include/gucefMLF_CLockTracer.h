@@ -26,6 +26,7 @@
 
 #include <map>
 #include <stdio.h>
+#include <stdlib.h>   /* size_t */
 
 #ifndef GUCEF_MLF_ETYPES_H
 #include "gucefMLF_ETypes.h"
@@ -89,6 +90,53 @@ class GUCEF_HIDDEN CLockTracer
     static CLockTracer* Instance( void );
     static void         Deinstance( void );
 
+    /* ------------------------------------------------------------------ */
+    /* Aggregate statistics (for surfacing in DumpLogReport)               */
+    /* ------------------------------------------------------------------ */
+
+    struct SLockAggregateStats
+    {
+        UInt64 totalLockInstances;    /* total distinct lock IDs ever registered */
+        UInt64 totalAbandonments;     /* sum of abandonmentCounter across all locks */
+        UInt64 totalSurplusReleases;  /* sum of surplusLockReleases across all locks */
+        UInt64 currentlyLockedCount;  /* locks still in a locked state at query time */
+    };
+
+    void GetAggregateStats( SLockAggregateStats& stats );
+
+    /* ------------------------------------------------------------------ */
+    /* Lock range protection (Gap 5B)                                      */
+    /*                                                                     */
+    /* Associate a lock with the memory range it is intended to protect.   */
+    /* At deallocation time, if the allocation overlaps a declared range   */
+    /* and the associated lock is not currently held, a warning is logged. */
+    /* This is contract validation, not race detection.                    */
+    /* ------------------------------------------------------------------ */
+
+    struct SLockRangeAssoc
+    {
+        const void* rangeAddress;   /* start of protected range */
+        size_t      rangeSize;      /* length of protected range in bytes */
+    };
+
+    typedef std::map< void*, SLockRangeAssoc > TLockRangeMap;
+
+    /** Declare that lockId is intended to protect [address, address+size). */
+    void LockProtectsRange( void* lockId, const void* address, size_t size );
+
+    /** Remove any range association for lockId. */
+    void LockUnprotectsRange( void* lockId );
+
+    /**
+     * Check whether the given address range overlaps any declared protected range
+     * whose associated lock is currently unheld.
+     * @param outLockId  receives the lock ID of the first matching unheld lock (if any)
+     * @return true if an overlap with an unheld protecting lock was found
+     */
+    bool IsRangeProtectedByUnheldLock( const void* address, size_t size, void** outLockId );
+
+    /* ------------------------------------------------------------------ */
+
     void RegisterExclusiveLockCreation( void* lockId );
     void RegisterExclusiveLockObtained( void* lockId );
     void RegisterExclusiveLockReleased( void* lockId );
@@ -139,6 +187,7 @@ class GUCEF_HIDDEN CLockTracer
     static Int32 GUCEF_CALLSPEC_STD_PREFIX SnapshotThreadMain( void* thisObject ) GUCEF_CALLSPEC_STD_SUFFIX;
 
     TLockIdToLockTraceInfoMap   m_inventory;
+    TLockRangeMap               m_lockRanges;
     MT::CReadWriteLock          m_datalock;
     struct MT::SThreadData*     m_snapshotThread;
 

@@ -28,6 +28,7 @@ if (WIN32)
     ../../platform/gucefMT/include/mswin/gucefMT_mswinutils.h
     include/gucefMLF_CAllocationRecord.h
     include/gucefMLF_CCallStackTracker.h
+    include/gucefMLF_CCallsiteStats.h
     include/gucefMLF_CLockTracer.h
     include/gucefMLF_CMemoryTracker.h
     include/gucefMLF_CReporter.h
@@ -81,6 +82,7 @@ elseif (WIN64)
     ../../platform/gucefMT/include/mswin/gucefMT_mswinutils.h
     include/gucefMLF_CAllocationRecord.h
     include/gucefMLF_CCallStackTracker.h
+    include/gucefMLF_CCallsiteStats.h
     include/gucefMLF_CLockTracer.h
     include/gucefMLF_CMemoryTracker.h
     include/gucefMLF_CReporter.h

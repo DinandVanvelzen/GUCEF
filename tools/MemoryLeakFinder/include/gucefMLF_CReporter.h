@@ -78,6 +78,32 @@ class GUCEF_HIDDEN CReporter
     /** Write all currently live allocations to the log file */
     void DumpMemoryAllocations( void );
 
+    /**
+     * Write per-callsite aggregated statistics to the log file.
+     * Only useful when enableCallsiteProfiling=true in config.
+     * @param topN  show the top N callsites by current live bytes; 0=all
+     */
+    void DumpCallsiteReport( UInt32 topN = 20 );
+
+    /** Write the size histogram table to the log file */
+    void DumpSizeHistogram( void );
+
+    /**
+     * Write a TSV (tab-separated) timeline of allocation events to a file.
+     * Columns: timestampUs, liveBytes, liveCount, file, line
+     * Suitable for import into Excel, Python pandas, or any graphing tool.
+     * @param path  output file path
+     */
+    void DumpTimeline( const char* path );
+
+    /**
+     * Write a Valgrind massif-compatible snapshot of the current heap state.
+     * The output file can be loaded into massif-visualizer or processed with ms_print.
+     * This is a snapshot-at-call-time implementation (not periodic).
+     * @param path  output file path
+     */
+    void DumpMassifFormat( const char* path );
+
     /* ------------------------------------------------------------------ */
     /* Crash-time reports (direct fprintf to supplied FILE*)                */
     /* ------------------------------------------------------------------ */

@@ -70,10 +70,15 @@ CAllocationRecord::CAllocationRecord( void )
     , paddingSize( 0 )
     , allocationType( 0 /* MM_UNKNOWN */ )
     , breakOptions( 0 )
+    , suppressMismatchCheck( 0 )
+    , guardPageRegionSize( 0 )
     , predefinedBody( 0 )
     , hadPlacementChildren( false )
+    , allocationTimestampUs( 0 )
     , allocCallstack( GUCEF_NULL )
     , deallocCallstack( GUCEF_NULL )
+    , allocRawCallstack( GUCEF_NULL )
+    , deallocRawCallstack( GUCEF_NULL )
     , placementChildren( GUCEF_NULL )
     , placementSiblingNext( GUCEF_NULL )
     , parentRecord( GUCEF_NULL )
@@ -130,6 +135,20 @@ CAllocationRecord::Release( CAllocationRecord* record )
     {
         MEMMAN_FreeCallstackCopy( record->deallocCallstack );
         record->deallocCallstack = GUCEF_NULL;
+    }
+    if ( GUCEF_NULL != record->allocRawCallstack )
+    {
+        if ( GUCEF_NULL != record->allocRawCallstack->frames )
+            ::free( record->allocRawCallstack->frames );
+        ::free( record->allocRawCallstack );
+        record->allocRawCallstack = GUCEF_NULL;
+    }
+    if ( GUCEF_NULL != record->deallocRawCallstack )
+    {
+        if ( GUCEF_NULL != record->deallocRawCallstack->frames )
+            ::free( record->deallocRawCallstack->frames );
+        ::free( record->deallocRawCallstack );
+        record->deallocRawCallstack = GUCEF_NULL;
     }
 
     ::free( record );
