@@ -14,7 +14,7 @@
 
 
 if (WIN32)
-  set( PLATFORM_HEADER_FILES 
+  set( PLATFORM_HEADER_FILES
     ../../platform/gucefMT/include/gucefMT_CILockable.h
     ../../platform/gucefMT/include/gucefMT_CMutex.h
     ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
@@ -26,8 +26,14 @@ if (WIN32)
     ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
     ../../platform/gucefMT/include/gucefMT_mutex.h
     ../../platform/gucefMT/include/mswin/gucefMT_mswinutils.h
+    include/gucefMLF_CAllocationRecord.h
+    include/gucefMLF_CCallStackTracker.h
+    include/gucefMLF_CLockTracer.h
+    include/gucefMLF_CMemoryTracker.h
+    include/gucefMLF_CReporter.h
     include/gucefMLF_ETypes.h
     include/gucefMLF_MemoryManager.h
+    include/gucefMLF_SMemoryTrackerConfig.h
     include/gucefMLF_callstack.h
     include/gucefMLF_config.h
     include/gucefMLF_locktrace.h
@@ -37,7 +43,7 @@ if (WIN32)
   set( PLATFORM_HEADER_INSTALL "WIN32" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
-  set( PLATFORM_SOURCE_FILES 
+  set( PLATFORM_SOURCE_FILES
     ../../platform/gucefMT/src/gucefMT_CILockable.cpp
     ../../platform/gucefMT/src/gucefMT_CMutex.cpp
     ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
@@ -49,6 +55,9 @@ if (WIN32)
     ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
     ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
     ../../platform/gucefMT/src/mswin/gucefMT_mswinutils.cpp
+    src/gucefMLF_CAllocationRecord.cpp
+    src/gucefMLF_CMemoryTracker.cpp
+    src/gucefMLF_CReporter.cpp
     src/gucefMLF_MemoryManager.cpp
     src/gucefMLF_callstack.cpp
     src/gucefMLF_locktrace.cpp
@@ -58,7 +67,7 @@ if (WIN32)
   source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
 
 elseif (WIN64)
-  set( PLATFORM_HEADER_FILES 
+  set( PLATFORM_HEADER_FILES
     ../../platform/gucefMT/include/gucefMT_CILockable.h
     ../../platform/gucefMT/include/gucefMT_CMutex.h
     ../../platform/gucefMT/include/gucefMT_CReadWriteLock.h
@@ -70,8 +79,14 @@ elseif (WIN64)
     ../../platform/gucefMT/include/gucefMT_dvmtoswrap.h
     ../../platform/gucefMT/include/gucefMT_mutex.h
     ../../platform/gucefMT/include/mswin/gucefMT_mswinutils.h
+    include/gucefMLF_CAllocationRecord.h
+    include/gucefMLF_CCallStackTracker.h
+    include/gucefMLF_CLockTracer.h
+    include/gucefMLF_CMemoryTracker.h
+    include/gucefMLF_CReporter.h
     include/gucefMLF_ETypes.h
     include/gucefMLF_MemoryManager.h
+    include/gucefMLF_SMemoryTrackerConfig.h
     include/gucefMLF_callstack.h
     include/gucefMLF_config.h
     include/gucefMLF_locktrace.h
@@ -81,7 +96,7 @@ elseif (WIN64)
   set( PLATFORM_HEADER_INSTALL "WIN64" )
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
-  set( PLATFORM_SOURCE_FILES 
+  set( PLATFORM_SOURCE_FILES
     ../../platform/gucefMT/src/gucefMT_CILockable.cpp
     ../../platform/gucefMT/src/gucefMT_CMutex.cpp
     ../../platform/gucefMT/src/gucefMT_CReadWriteLock.cpp
@@ -93,6 +108,9 @@ elseif (WIN64)
     ../../platform/gucefMT/src/gucefMT_ThreadStatus.cpp
     ../../platform/gucefMT/src/gucefMT_dvmtoswrap.c
     ../../platform/gucefMT/src/mswin/gucefMT_mswinutils.cpp
+    src/gucefMLF_CAllocationRecord.cpp
+    src/gucefMLF_CMemoryTracker.cpp
+    src/gucefMLF_CReporter.cpp
     src/gucefMLF_MemoryManager.cpp
     src/gucefMLF_callstack.cpp
     src/gucefMLF_locktrace.cpp

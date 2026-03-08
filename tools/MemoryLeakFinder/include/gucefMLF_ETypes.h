@@ -99,6 +99,14 @@ typedef unsigned __int64    UInt64;  /* 8 bytes, unsigned */
 typedef float               Float32;  /* 4 bytes, signed, decimal */
 typedef double              Float64;  /* 8 bytes, signed, decimal */
 
+#ifdef _WIN64
+typedef unsigned __int64    UIntPtr;  /* pointer-sized unsigned int */
+typedef signed __int64      IntPtr;   /* pointer-sized signed int */
+#else
+typedef unsigned __int32    UIntPtr;  /* pointer-sized unsigned int */
+typedef signed __int32      IntPtr;   /* pointer-sized signed int */
+#endif
+
 #else
                        
 #ifndef Byte
@@ -134,6 +142,10 @@ typedef unsigned __int64 UInt64;  /* 8 bytes, unsigned */
 
 typedef float           Float32;  /* 4 bytes, signed, decimal */
 typedef double          Float64;  /* 8 bytes, signed, decimal */
+
+#include <stdint.h>
+typedef uintptr_t       UIntPtr;  /* pointer-sized unsigned int */
+typedef intptr_t        IntPtr;   /* pointer-sized signed int */
 
 #endif
 

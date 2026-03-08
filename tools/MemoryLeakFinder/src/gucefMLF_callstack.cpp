@@ -1,7 +1,6 @@
 /*
- *  gucefMT: GUCEF module providing multithreading solutions
- *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  MemoryLeakFinder: GUCEF module providing memory diagnostics
+ *  Copyright (C) 2002 - 2024.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -28,20 +27,24 @@
 #include <assert.h>
 #include <map>
 
+#ifndef GUCEF_DYNNEWOFF_H
+#include "gucef_dynnewoff.h"
+#define GUCEF_DYNNEWOFF_H
+#endif /* GUCEF_DYNNEWOFF_H ? */
+
+#undef GUCEF_USE_CALLSTACK_TRACING
+#undef GUCEF_USE_CALLSTACK_PLATFORM_TRACING
+
 #include "gucefMLF_callstack.h"
+#include "gucefMLF_CCallStackTracker.h"
 
 #ifndef GUCEF_MT_DVMTOSWRAP_H
 #include "gucefMT_dvmtoswrap.h"
 #define GUCEF_MT_DVMTOSWRAP_H
 #endif /* GUCEF_MT_DVMTOSWRAP_H ? */
 
-#ifndef GUCEF_MT_MUTEX_H
-#include "gucefMT_mutex.h"
-#define GUCEF_MT_MUTEX_H
-#endif /* GUCEF_MT_MUTEX_H ? */
-
 #ifndef GUCEF_MT_CMUTEX_H
-#include "gucefMT_CMutex.h" 
+#include "gucefMT_CMutex.h"
 #define GUCEF_MT_CMUTEX_H
 #endif /* GUCEF_MT_CMUTEX_H ? */
 
@@ -60,16 +63,19 @@
 #define GUCEF_MT_CSCOPERWLOCK_H
 #endif /* GUCEF_MT_CSCOPERWLOCK_H ? */
 
-/*
- *  We specifically do NOT want to redirect memory management here
- */
-#ifndef GUCEF_DYNNEWOFF_H
-#include "gucef_dynnewoff.h"
-#define GUCEF_DYNNEWOFF_H
-#endif /* GUCEF_DYNNEWOFF_H ? */
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      CONSTANTS                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
 
-#undef GUCEF_USE_CALLSTACK_TRACING
-#undef GUCEF_USE_CALLSTACK_PLATFORM_TRACING
+#define STACK_RESIZE_AMOUNT     256
+
+#ifdef GUCEF_MSWIN_BUILD
+  #define EOL "\r\n"
+#else
+  #define EOL "\n"
+#endif
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -82,127 +88,29 @@ namespace MLF {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      CONSTANTS                                                          //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-#define STACK_RESIZE_AMOUNT     256
-
-#ifdef GUCEF_MSWIN_BUILD
-  #define EOL                   "\r\n"
-#else
-  #define EOL                   "\n"
-#endif
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
-//      CLASSES                                                            //
-//                                                                         //
-//-------------------------------------------------------------------------*/
-
-class GUCEF_HIDDEN StackInventory
-{
-    public:
-
-    StackInventory( void );
-    ~StackInventory();
-
-    static StackInventory* Instance( void );
-    static void Deinstance( void );
-    static bool IsInitialized( void );
-
-    void SetStackPushCallback( TStackPushCallback cBack );
-    void SetStackPopCallback( TStackPopCallback cBack );
-
-    void CallstackScopeBegin( const char* file , Int32 line );
-    void CallstackScopeEnd( void );
-    
-    Int32 GetCallstackForCurrentThread( TCallStack** outStack );
-    Int32 GetCallstackCopyForCurrentThread( TCallStack** outStack, bool alsoCopyStatics );
-    void FreeCallstackCopy( TCallStack* stackCopy );
-    
-    void Log( const char* logtype ,
-              UInt32 threadID     ,
-              Int32 stackheight   ,
-              const char* file    ,
-              Int32 line          ,
-              UInt32 ticksSpent   );
-
-    void PrintCallstack( FILE* dest );    
-    void PrintCallstackCopy( TCallStack& stackToPrint, FILE* dest );    
-    void SetIsStackLoggingEnabled( bool isEnabled );
-    void SetIsStackLoggingInCsvFormat( bool isInCsv );
-    void SetLogFilename( const char* filename );
-    void SetStackLogOutputToStdOut( void );
-    void CloseLogFile( void );
-
-    private:
-
-    class GUCEF_HIDDEN StackTraceInfo
-    {
-        public:
-
-        TCallStack m_callstack;
-
-        static void Push( TCallStack* stack ,
-                          const char* file  ,
-                          Int32 line        );
-
-        static void Pop( TCallStack* stack );
-
-        void PrintCallstack( FILE* dest );
-        static void PrintCallstack( TCallStack& stackToPrint, FILE* dest );
-        void CallstackScopeBegin( const char* file , Int32 line );
-        void CallstackScopeEnd( void );
-        bool GetCallstackForCurrentThread( TCallStack** outStack );
-        Int32 GetCallstackCopyForCurrentThread( TCallStack** outStack, bool alsoCopyStatics );
-
-        StackTraceInfo( void );
-        ~StackTraceInfo();
-    };
-    
-    typedef std::map< UInt32, StackTraceInfo >    TThreadIdToCallStackMap;
-
-    StackTraceInfo* GetStackTraceInfoForCallingThread( MT::CScopeReaderLock& readerLock );
-    
-    TThreadIdToCallStackMap m_inventory;
-    TStackPushCallback m_pushCallback;
-    TStackPopCallback m_popCallback;
-    char* m_logFilename;
-    FILE* m_logFile;
-    bool m_logInCvsFormat;
-    bool m_logStack;
-
-    MT::CReadWriteLock m_datalock;
-
-    static MT::CMutex g_instanceLock;
-    static StackInventory* g_instance;
-};
-
-/*-------------------------------------------------------------------------//
-//                                                                         //
 //      GLOBAL VARS                                                        //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-MT::CMutex StackInventory::g_instanceLock;
-StackInventory* StackInventory::g_instance = GUCEF_NULL;
+MT::CMutex         CCallStackTracker::g_instanceLock;
+CCallStackTracker* CCallStackTracker::g_instance = GUCEF_NULL;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      IMPLEMENTATION                                                     //
+//      IMPLEMENTATION: CCallStackTracker                                  //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-StackInventory*
-StackInventory::Instance( void )
+/* static */
+CCallStackTracker*
+CCallStackTracker::Instance( void )
 {
     if ( GUCEF_NULL == g_instance )
     {
         MT::CScopeMutex lock( g_instanceLock );
         if ( GUCEF_NULL == g_instance )
         {
-            g_instance = new StackInventory();
+            g_instance = new CCallStackTracker();
         }
     }
     return g_instance;
@@ -210,45 +118,36 @@ StackInventory::Instance( void )
 
 /*-------------------------------------------------------------------------*/
 
+/* static */
 void
-StackInventory::Deinstance( void )
+CCallStackTracker::Deinstance( void )
 {
+    MT::CScopeMutex lock( g_instanceLock );
     if ( GUCEF_NULL != g_instance )
     {
-        MT::CScopeMutex lock( g_instanceLock );
-        if ( GUCEF_NULL != g_instance )
-        {
-            GUCEF_DELETE g_instance;
-            g_instance = GUCEF_NULL;
-        }
+        delete g_instance;
+        g_instance = GUCEF_NULL;
     }
 }
 
 /*-------------------------------------------------------------------------*/
 
+/* static */
 bool
-StackInventory::IsInitialized( void )
+CCallStackTracker::IsInitialized( void )
 {
-    if ( GUCEF_NULL == g_instance )
-    {
-        MT::CScopeMutex lock( g_instanceLock );
-        if ( GUCEF_NULL == g_instance )
-        {
-            return false;
-        }
-    }
-    return true;
+    return GUCEF_NULL != g_instance;
 }
 
 /*-------------------------------------------------------------------------*/
 
-StackInventory::StackInventory( void )
+CCallStackTracker::CCallStackTracker( void )
     : m_inventory()
     , m_pushCallback( GUCEF_NULL )
     , m_popCallback( GUCEF_NULL )
     , m_logFilename( GUCEF_NULL )
     , m_logFile( GUCEF_NULL )
-    , m_logInCvsFormat( false )
+    , m_logInCsvFormat( false )
     , m_logStack( false )
     , m_datalock( true )
 {
@@ -256,47 +155,40 @@ StackInventory::StackInventory( void )
 
 /*-------------------------------------------------------------------------*/
 
-StackInventory::~StackInventory()
+CCallStackTracker::~CCallStackTracker( void )
 {
     MT::CScopeWriterLock writeLock( m_datalock );
     CloseLogFile();
-    
-    free( m_logFilename );
-    m_logFilename = NULL;
 
-    TThreadIdToCallStackMap::iterator i = m_inventory.begin();
-    while ( i != m_inventory.end() )
-    {
-       
-        ++i;
-    }
+    free( m_logFilename );
+    m_logFilename = GUCEF_NULL;
+
     m_inventory.clear();
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-StackInventory::CloseLogFile( void )
+CCallStackTracker::CloseLogFile( void )
 {
     MT::CScopeWriterLock writeLock( m_datalock );
-
-    if ( ( m_logFile != stdout ) && ( m_logFile != NULL ) )
+    if ( ( m_logFile != stdout ) && ( m_logFile != GUCEF_NULL ) )
     {
         fclose( m_logFile );
-        m_logFile = NULL;
+        m_logFile = GUCEF_NULL;
     }
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-StackInventory::FreeCallstackCopy( TCallStack* stackCopy )
+CCallStackTracker::FreeCallstackCopy( TCallStack* stackCopy )
 {
     if ( GUCEF_NULL != stackCopy )
     {
         if ( 0 != stackCopy->staticsAreCopied )
         {
-            for ( UInt32 s=0; s<stackCopy->items; ++s )
+            for ( UInt32 s = 0; s < stackCopy->items; ++s )
             {
                 free( (void*) stackCopy->file[ s ] );
             }
@@ -310,16 +202,16 @@ StackInventory::FreeCallstackCopy( TCallStack* stackCopy )
 
 /*-------------------------------------------------------------------------*/
 
-void 
-StackInventory::PrintCallstackCopy( TCallStack& stackToPrint, FILE* dest )
+void
+CCallStackTracker::PrintCallstackCopy( TCallStack& stackToPrint, FILE* dest )
 {
     StackTraceInfo::PrintCallstack( stackToPrint, dest );
 }
 
 /*-------------------------------------------------------------------------*/
 
-void 
-StackInventory::SetIsStackLoggingEnabled( bool isEnabled )
+void
+CCallStackTracker::SetIsStackLoggingEnabled( bool isEnabled )
 {
     MT::CScopeWriterLock writeLock( m_datalock );
     m_logStack = isEnabled;
@@ -328,30 +220,34 @@ StackInventory::SetIsStackLoggingEnabled( bool isEnabled )
 /*-------------------------------------------------------------------------*/
 
 void
-StackInventory::SetIsStackLoggingInCsvFormat( bool isInCsv )
+CCallStackTracker::SetIsStackLoggingInCsvFormat( bool isInCsv )
 {
     MT::CScopeWriterLock writeLock( m_datalock );
-    m_logInCvsFormat = isInCsv;
+    m_logInCsvFormat = isInCsv;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-StackInventory::SetLogFilename( const char* filename )
+CCallStackTracker::SetLogFilename( const char* filename )
 {
     MT::CScopeWriterLock writeLock( m_datalock );
 
-    bool wasOpen = NULL != m_logFile;
+    bool wasOpen = GUCEF_NULL != m_logFile;
     CloseLogFile();
 
     free( m_logFilename );
-    m_logFilename = NULL;
+    m_logFilename = GUCEF_NULL;
 
-    UInt32 strLen = (UInt32) strlen( filename )+1;
-    m_logFilename = (char*) malloc( strLen );
-    memcpy( m_logFilename, filename, strLen );
+    if ( GUCEF_NULL != filename )
+    {
+        UInt32 strLen = (UInt32) strlen( filename ) + 1;
+        m_logFilename = (char*) malloc( strLen );
+        if ( GUCEF_NULL != m_logFilename )
+            memcpy( m_logFilename, filename, strLen );
+    }
 
-    if ( wasOpen )
+    if ( wasOpen && GUCEF_NULL != m_logFilename )
     {
         m_logFile = fopen( m_logFilename, "ab" );
     }
@@ -360,38 +256,34 @@ StackInventory::SetLogFilename( const char* filename )
 /*-------------------------------------------------------------------------*/
 
 void
-StackInventory::SetStackLogOutputToStdOut( void )
+CCallStackTracker::SetStackLogOutputToStdOut( void )
 {
     MT::CScopeWriterLock writeLock( m_datalock );
-
     CloseLogFile();
-
     free( m_logFilename );
-    m_logFilename = NULL;
-
+    m_logFilename = GUCEF_NULL;
     m_logFile = stdout;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-StackInventory::Log( const char* logtype ,
-                     UInt32 threadID     ,
-                     Int32 stackheight   ,
-                     const char* file    ,
-                     Int32 line          ,
-                     UInt32 ticksSpent   )
+CCallStackTracker::Log( const char* logtype ,
+                        UInt32 threadID     ,
+                        Int32 stackheight   ,
+                        const char* file    ,
+                        Int32 line          ,
+                        UInt32 ticksSpent   )
 {
     MT::CScopeReaderLock readLock( m_datalock );
 
     if ( m_logStack )
     {
-        if ( NULL == m_logFile )
+        if ( GUCEF_NULL == m_logFile )
         {
             MT::CScopeWriterLock writeLock( readLock );
 
-            /* lazy initialization of the default output file */
-            if ( NULL == m_logFilename )
+            if ( GUCEF_NULL == m_logFilename )
             {
                 m_logFilename = (char*) malloc( 14 );
                 memcpy( m_logFilename, "Callstack.txt", 14 );
@@ -402,39 +294,131 @@ StackInventory::Log( const char* logtype ,
                 m_logFile = fopen( m_logFilename, "ab" );
             }
 
-            // Now degrade back to a read lock
             writeLock.TransitionToReader( readLock );
         }
 
-        if ( !m_logInCvsFormat )
+        if ( GUCEF_NULL != m_logFile )
         {
-            if ( ticksSpent > 0 )
+            if ( !m_logInCsvFormat )
             {
-                fprintf( m_logFile, "Thread %d: %s: %d: %s(%d) (%d ms)%s", threadID, logtype, stackheight, file, line, ticksSpent, EOL );
+                if ( ticksSpent > 0 )
+                    fprintf( m_logFile, "Thread %d: %s: %d: %s(%d) (%d ms)%s", threadID, logtype, stackheight, file, line, ticksSpent, EOL );
+                else
+                    fprintf( m_logFile, "Thread %d: %s: %d: %s(%d)%s", threadID, logtype, stackheight, file, line, EOL );
             }
             else
             {
-                fprintf( m_logFile, "Thread %d: %s: %d: %s(%d)%s", threadID, logtype, stackheight, file, line, EOL );
+                if ( ticksSpent > 0 )
+                    fprintf( m_logFile, "%d,%s,%d,%s,%d,%d%s", threadID, logtype, stackheight, file, line, ticksSpent, EOL );
+                else
+                    fprintf( m_logFile, "%d,%s,%d,%s,%d%s", threadID, logtype, stackheight, file, line, EOL );
             }
+            fflush( m_logFile );
         }
-        else
-        {
-            if ( ticksSpent > 0 )
-            {
-                fprintf( m_logFile, "%d,%s,%d,%s,%d,%d%s", threadID, logtype, stackheight, file, line, ticksSpent, EOL );
-            }
-            else
-            {
-                fprintf( m_logFile, "%d,%s,%d,%s,%d%s", threadID, logtype, stackheight, file, line, EOL );
-            }
-        }
-        fflush( m_logFile );
     }
 }
 
 /*-------------------------------------------------------------------------*/
 
-StackInventory::StackTraceInfo::StackTraceInfo( void )
+void
+CCallStackTracker::SetStackPushCallback( TStackPushCallback cBack )
+{
+    MT::CScopeWriterLock writeLock( m_datalock );
+    m_pushCallback = cBack;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCallStackTracker::SetStackPopCallback( TStackPopCallback cBack )
+{
+    MT::CScopeWriterLock writeLock( m_datalock );
+    m_popCallback = cBack;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CCallStackTracker::StackTraceInfo*
+CCallStackTracker::GetStackTraceInfoForCallingThread( MT::CScopeReaderLock& readLock )
+{
+    UInt32 threadid = MT::GetCurrentTaskID();
+
+    TThreadIdToCallStackMap::iterator i = m_inventory.find( threadid );
+    if ( i != m_inventory.end() )
+        return &(*i).second;
+
+    /* First time seeing this thread — escalate to write lock */
+    MT::CScopeWriterLock writeLock( readLock );
+    StackTraceInfo& newStack = m_inventory[ threadid ];
+    newStack.m_callstack.threadid = threadid;
+
+    assert( 0 == writeLock.GetWriterReentrancyDepth() );
+
+    writeLock.TransitionToReader( readLock );
+    return &newStack;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCallStackTracker::CallstackScopeBegin( const char* file, Int32 line )
+{
+    MT::CScopeReaderLock readLock( m_datalock );
+    StackTraceInfo* info = GetStackTraceInfoForCallingThread( readLock );
+    info->CallstackScopeBegin( file, line );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCallStackTracker::CallstackScopeEnd( void )
+{
+    MT::CScopeReaderLock readLock( m_datalock );
+    StackTraceInfo* info = GetStackTraceInfoForCallingThread( readLock );
+    info->CallstackScopeEnd();
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CCallStackTracker::GetCallstackForCurrentThread( TCallStack** outStack )
+{
+    MT::CScopeReaderLock readLock( m_datalock );
+    StackTraceInfo* info = GetStackTraceInfoForCallingThread( readLock );
+    return info->GetCallstackForCurrentThread( outStack ) ? 0 : -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CCallStackTracker::GetCallstackCopyForCurrentThread( TCallStack** outStack, bool alsoCopyStatics )
+{
+    MT::CScopeReaderLock readLock( m_datalock );
+    StackTraceInfo* info = GetStackTraceInfoForCallingThread( readLock );
+    return info->GetCallstackCopyForCurrentThread( outStack, alsoCopyStatics );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCallStackTracker::PrintCallstack( FILE* dest )
+{
+    MT::CScopeWriterLock writeLock( m_datalock );
+    TThreadIdToCallStackMap::iterator i = m_inventory.begin();
+    while ( i != m_inventory.end() )
+    {
+        (*i).second.PrintCallstack( dest );
+        ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      IMPLEMENTATION: CCallStackTracker::StackTraceInfo                  //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+CCallStackTracker::StackTraceInfo::StackTraceInfo( void )
     : m_callstack()
 {
     memset( &m_callstack, 0, sizeof( m_callstack ) );
@@ -442,15 +426,15 @@ StackInventory::StackTraceInfo::StackTraceInfo( void )
 
 /*-------------------------------------------------------------------------*/
 
-StackInventory::StackTraceInfo::~StackTraceInfo()
+CCallStackTracker::StackTraceInfo::~StackTraceInfo( void )
 {
-
 }
 
 /*-------------------------------------------------------------------------*/
 
+/* static */
 void
-StackInventory::StackTraceInfo::PrintCallstack( TCallStack& stackToPrint, FILE* dest )
+CCallStackTracker::StackTraceInfo::PrintCallstack( TCallStack& stackToPrint, FILE* dest )
 {
     fprintf( dest, "------------------------------%s", EOL );
     fprintf( dest, "Callstack for thread %d:%s%s", stackToPrint.threadid, EOL, EOL );
@@ -458,9 +442,9 @@ StackInventory::StackTraceInfo::PrintCallstack( TCallStack& stackToPrint, FILE* 
     fprintf( dest, "------------------------------%s%s", EOL, EOL );
     if ( stackToPrint.items > 0 )
     {
-        for ( UInt32 n=0; n<stackToPrint.items; ++n )
+        for ( UInt32 n = 0; n < stackToPrint.items; ++n )
         {
-            fprintf( dest, "%d: %s(%d)%s", n+1, stackToPrint.file[ n ], stackToPrint.linenr[ n ], EOL );
+            fprintf( dest, "%d: %s(%d)%s", n + 1, stackToPrint.file[ n ], stackToPrint.linenr[ n ], EOL );
         }
         fprintf( dest, "%s%s------------------------------%s%s", EOL, EOL, EOL, EOL );
     }
@@ -474,84 +458,56 @@ StackInventory::StackTraceInfo::PrintCallstack( TCallStack& stackToPrint, FILE* 
 /*-------------------------------------------------------------------------*/
 
 void
-StackInventory::StackTraceInfo::PrintCallstack( FILE* dest )
+CCallStackTracker::StackTraceInfo::PrintCallstack( FILE* dest )
 {
     PrintCallstack( m_callstack, dest );
 }
 
 /*-------------------------------------------------------------------------*/
 
+/* static */
 void
-StackInventory::StackTraceInfo::Push( TCallStack* stack ,
-                                      const char* file  ,
-                                      Int32 line        )
+CCallStackTracker::StackTraceInfo::Push( TCallStack* stack, const char* file, Int32 line )
 {
-    /* if the stack heap is full we will enlarge it */
     if ( stack->items == stack->reservedStacksize )
     {
         stack->reservedStacksize += STACK_RESIZE_AMOUNT;
-        stack->file = (const char**)realloc( (char**)stack->file, stack->reservedStacksize*sizeof(const char*) );
-        stack->linenr = (int*)realloc( stack->linenr, stack->reservedStacksize*sizeof(Int32) );
-        stack->entryTickCount = (UInt64*)realloc( stack->entryTickCount, stack->reservedStacksize*sizeof(UInt64) );
+        stack->file = (const char**) realloc( (char**) stack->file, stack->reservedStacksize * sizeof(const char*) );
+        stack->linenr = (int*) realloc( stack->linenr, stack->reservedStacksize * sizeof(Int32) );
+        stack->entryTickCount = (UInt64*) realloc( stack->entryTickCount, stack->reservedStacksize * sizeof(UInt64) );
         stack->staticsAreCopied = 0;
     }
 
-    /* record the new call on the stack */
-    stack->file[ stack->items ] = file;
-    stack->linenr[ stack->items ] = line;
+    stack->file[ stack->items ]           = file;
+    stack->linenr[ stack->items ]         = line;
     stack->entryTickCount[ stack->items ] = MT::PrecisionTickCount();
     ++stack->items;
+}
 
-    //Log( "PUSH", stack->threadid, stack->items, file, line, 0 );
+/*-------------------------------------------------------------------------*/
 
-    //if ( pushCallback != NULL )
-    //{
-    //    pushCallback( file            ,
-    //                  line            ,
-    //                  stack->threadid ,
-    //                  stack->items    );
-    //}
+/* static */
+void
+CCallStackTracker::StackTraceInfo::Pop( TCallStack* stack )
+{
+    if ( stack->items > 0 )
+    {
+        --stack->items;
+    }
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-StackInventory::StackTraceInfo::Pop( TCallStack* stack )
-{
-    Int32 itemCount;
-    if ( stack->items > 0 )
-    {
-        UInt32 ticksSpent;
-
-        --stack->items;
-        itemCount = stack->items;
-        ticksSpent = (UInt32) (MT::PrecisionTickCount() - stack->entryTickCount[ itemCount ]);
-
-        //Log( " POP", stack->threadid, itemCount+1, stack->file[ itemCount ], stack->linenr[ itemCount ], ticksSpent );
-
-        //if ( popCallback != NULL )
-        //{
-        //    popCallback( stack->file[ itemCount ]   ,
-        //                 stack->linenr[ itemCount ] ,
-        //                 stack->threadid            ,
-        //                 stack->items               ,
-        //                 ticksSpent                 );
-        //}
-    }
-}
-
-/*-------------------------------------------------------------------------*/
-
-void 
-StackInventory::StackTraceInfo::CallstackScopeBegin( const char* file , Int32 line )
+CCallStackTracker::StackTraceInfo::CallstackScopeBegin( const char* file, Int32 line )
 {
     Push( &m_callstack, file, line );
 }
 
 /*-------------------------------------------------------------------------*/
 
-void 
-StackInventory::StackTraceInfo::CallstackScopeEnd( void )
+void
+CCallStackTracker::StackTraceInfo::CallstackScopeEnd( void )
 {
     Pop( &m_callstack );
 }
@@ -559,7 +515,7 @@ StackInventory::StackTraceInfo::CallstackScopeEnd( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-StackInventory::StackTraceInfo::GetCallstackForCurrentThread( TCallStack** outStack )
+CCallStackTracker::StackTraceInfo::GetCallstackForCurrentThread( TCallStack** outStack )
 {
     if ( GUCEF_NULL == outStack )
         return false;
@@ -570,214 +526,105 @@ StackInventory::StackTraceInfo::GetCallstackForCurrentThread( TCallStack** outSt
 /*-------------------------------------------------------------------------*/
 
 Int32
-StackInventory::StackTraceInfo::GetCallstackCopyForCurrentThread( TCallStack** outStack, bool alsoCopyStatics )
+CCallStackTracker::StackTraceInfo::GetCallstackCopyForCurrentThread( TCallStack** outStack, bool alsoCopyStatics )
 {
     TCallStack* scopeStack = GUCEF_NULL;
-    if ( GetCallstackForCurrentThread( &scopeStack ) )
-    {
-        TCallStack* stackCopy = (TCallStack*) malloc( sizeof( TCallStack ) );
-        if ( GUCEF_NULL != stackCopy )
-        {
-            stackCopy->threadid = scopeStack->threadid;
-            stackCopy->items = scopeStack->items;
-            stackCopy->reservedStacksize = stackCopy->items;
+    if ( !GetCallstackForCurrentThread( &scopeStack ) )
+        return -1;
 
-            UInt64 blockSize = stackCopy->items * sizeof(UInt64);
-            stackCopy->entryTickCount = (UInt64*) malloc( blockSize );
-            if ( GUCEF_NULL == stackCopy->entryTickCount )
+    TCallStack* stackCopy = (TCallStack*) malloc( sizeof( TCallStack ) );
+    if ( GUCEF_NULL == stackCopy )
+    {
+        *outStack = GUCEF_NULL;
+        return -2;
+    }
+
+    stackCopy->threadid          = scopeStack->threadid;
+    stackCopy->items             = scopeStack->items;
+    stackCopy->reservedStacksize = stackCopy->items;
+
+    UInt64 blockSize = (UInt64) stackCopy->items * sizeof(UInt64);
+    stackCopy->entryTickCount = (UInt64*) malloc( (size_t) blockSize );
+    if ( GUCEF_NULL == stackCopy->entryTickCount )
+    {
+        free( stackCopy );
+        *outStack = GUCEF_NULL;
+        return -2;
+    }
+    memcpy( stackCopy->entryTickCount, scopeStack->entryTickCount, (size_t) blockSize );
+
+    blockSize = (UInt64) stackCopy->items * sizeof(const char*);
+    stackCopy->file = (const char**) malloc( (size_t) blockSize );
+    if ( GUCEF_NULL == stackCopy->file )
+    {
+        free( stackCopy->entryTickCount );
+        free( stackCopy );
+        *outStack = GUCEF_NULL;
+        return -2;
+    }
+
+    if ( !alsoCopyStatics )
+    {
+        memcpy( stackCopy->file, scopeStack->file, (size_t) blockSize );
+        stackCopy->staticsAreCopied = 0;
+    }
+    else
+    {
+        memset( stackCopy->file, 0, (size_t) blockSize );
+        for ( UInt32 s = 0; s < stackCopy->items; ++s )
+        {
+            size_t filePathLength = strlen( scopeStack->file[ s ] );
+            char* newBuf = (char*) malloc( filePathLength + 1 );
+            if ( GUCEF_NULL != newBuf )
             {
-                free( stackCopy );
-                *outStack = GUCEF_NULL;
-                return -2;
-            }
-            memcpy( stackCopy->entryTickCount, scopeStack->entryTickCount, blockSize );
-            
-            blockSize = stackCopy->items * sizeof( const char*);
-            stackCopy->file = (const char**) malloc( blockSize );
-            if ( GUCEF_NULL == stackCopy->file )
-            {
-                free( stackCopy->entryTickCount );
-                free( stackCopy );
-                *outStack = GUCEF_NULL;
-                return -2;
-            }
-            if ( 0 == alsoCopyStatics )
-            {
-                memcpy( stackCopy->file, scopeStack->file, blockSize );
-                stackCopy->staticsAreCopied = 0;
+                stackCopy->file[ s ] = newBuf;
+                memcpy( (void*) stackCopy->file[ s ], scopeStack->file[ s ], filePathLength + 1 );
             }
             else
             {
-                /* there are cases where we also have to copy statics like the __FILE__ referenced strings
-                 * this is because if we are unloading modules the pointers would be invalided even though they are
-                 * hardcoded. This is an additional performance penalty so dont use if you dont need module unload protection
-                 */
-
-                memset( stackCopy->file, 0, blockSize );
-                for ( UInt32 s=0; s<stackCopy->items; ++s )
-                {
-                    size_t filePathLength = strlen( scopeStack->file[ s ] );
-                    char* newFilePathBuffer = (char*) malloc( filePathLength+1 );
-                    if ( GUCEF_NULL != newFilePathBuffer )
-                    {
-                        stackCopy->file[ s ] = newFilePathBuffer;
-                        memcpy( (void*)stackCopy->file[ s ], scopeStack->file[ s ], filePathLength+1 );
-                    }
-                    else
-                    {
-                        for ( UInt32 s2=0; s2<s; ++s2 )
-                        {
-                            free( (void*) stackCopy->file[ s ] );
-                        }
-
-                        free( stackCopy->entryTickCount );
-                        free( stackCopy );
-                        *outStack = GUCEF_NULL;
-                        return -2;
-                    }
-                }
-                stackCopy->staticsAreCopied = 1;
-            }
-
-            blockSize = stackCopy->items * sizeof(Int32);
-            stackCopy->linenr = (Int32*) malloc( blockSize );
-            if ( GUCEF_NULL == stackCopy->linenr )
-            {
+                for ( UInt32 s2 = 0; s2 < s; ++s2 )
+                    free( (void*) stackCopy->file[ s2 ] );
                 free( stackCopy->entryTickCount );
                 free( stackCopy->file );
                 free( stackCopy );
                 *outStack = GUCEF_NULL;
                 return -2;
             }
-            memcpy( stackCopy->linenr, scopeStack->linenr, blockSize );
-
-            *outStack = stackCopy;
-            return 1;
         }
+        stackCopy->staticsAreCopied = 1;
+    }
+
+    blockSize = (UInt64) stackCopy->items * sizeof(Int32);
+    stackCopy->linenr = (Int32*) malloc( (size_t) blockSize );
+    if ( GUCEF_NULL == stackCopy->linenr )
+    {
+        if ( stackCopy->staticsAreCopied )
+        {
+            for ( UInt32 s = 0; s < stackCopy->items; ++s )
+                free( (void*) stackCopy->file[ s ] );
+        }
+        free( stackCopy->entryTickCount );
+        free( stackCopy->file );
+        free( stackCopy );
         *outStack = GUCEF_NULL;
         return -2;
     }
-    return -1;
-}
+    memcpy( stackCopy->linenr, scopeStack->linenr, (size_t) blockSize );
 
-/*-------------------------------------------------------------------------*/
-
-void
-StackInventory::SetStackPushCallback( TStackPushCallback cBack )
-{
-    MT::CScopeWriterLock writeLock( m_datalock );
-    m_pushCallback = cBack;
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-StackInventory::SetStackPopCallback( TStackPopCallback cBack )
-{
-    MT::CScopeWriterLock writeLock( m_datalock );
-    m_popCallback = cBack;
-}
-
-/*-------------------------------------------------------------------------*/
-
-StackInventory::StackTraceInfo*
-StackInventory::GetStackTraceInfoForCallingThread( MT::CScopeReaderLock& readLock )
-{
-    UInt32 threadid = MT::GetCurrentTaskID();
-    StackTraceInfo* stackTraceInfo = GUCEF_NULL;
-
-    TThreadIdToCallStackMap::iterator i = m_inventory.find( threadid );
-    if ( i != m_inventory.end() )
-    {
-        return &(*i).second;
-    }
-    else
-    {
-        // Escalate to a write lock since this is the first time we are seeing this thread
-        MT::CScopeWriterLock writeLock( readLock );
-        StackTraceInfo& newStack = m_inventory[ threadid ];
-        newStack.m_callstack.threadid = threadid;
-
-        if ( writeLock.GetWriterReentrancyDepth() > 0 )
-        {
-            PrintCallstack( stdout );
-        }
-        assert( 0 == writeLock.GetWriterReentrancyDepth() );
-
-        // Now degrade back to a read lock
-        writeLock.TransitionToReader( readLock );
-        return &newStack;
-    }
-}
-
-/*-------------------------------------------------------------------------*/
-
-void 
-StackInventory::CallstackScopeBegin( const char* file , Int32 line )
-{
-    MT::CScopeReaderLock readLock( m_datalock );
-    StackTraceInfo* stackTraceInfo = GetStackTraceInfoForCallingThread( readLock );
-    stackTraceInfo->CallstackScopeBegin( file, line );
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-StackInventory::CallstackScopeEnd( void )
-{
-    MT::CScopeReaderLock readLock( m_datalock );
-    StackTraceInfo* stackTraceInfo = GetStackTraceInfoForCallingThread( readLock );
-    stackTraceInfo->CallstackScopeEnd();
-}
-
-/*-------------------------------------------------------------------------*/
-
-Int32 
-StackInventory::GetCallstackForCurrentThread( TCallStack** outStack )
-{
-    MT::CScopeReaderLock readLock( m_datalock );
-    StackTraceInfo* stackTraceInfo = GetStackTraceInfoForCallingThread( readLock );
-    return stackTraceInfo->GetCallstackForCurrentThread( outStack ) ? 0 : -1;
-}
-
-/*-------------------------------------------------------------------------*/
-
-Int32 
-StackInventory::GetCallstackCopyForCurrentThread( TCallStack** outStack, bool alsoCopyStatics )
-{
-    MT::CScopeReaderLock readLock( m_datalock );
-    StackTraceInfo* stackTraceInfo = GetStackTraceInfoForCallingThread( readLock );
-    return stackTraceInfo->GetCallstackCopyForCurrentThread( outStack, alsoCopyStatics );
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-StackInventory::PrintCallstack( FILE* dest )
-{
-    // We need to keep everything stable while we print
-    // plus the thread that calls print can do so from a thred not associated with the stack
-    MT::CScopeWriterLock writeLock( m_datalock );
-
-    TThreadIdToCallStackMap::iterator i = m_inventory.begin();
-    while ( i != m_inventory.end() )
-    {
-        (*i).second.PrintCallstack( dest );
-        ++i;
-    }
+    *outStack = stackCopy;
+    return 1;
 }
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      UTILITIES                                                          //
+//      C API — 1-line delegations to CCallStackTracker::Instance()        //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
 void
-MEMMAN_CallstackScopeBegin( const char* file ,
-                            Int32 line       )
+MEMMAN_CallstackScopeBegin( const char* file, Int32 line )
 {
-    StackInventory::Instance()->CallstackScopeBegin( file, line );
+    CCallStackTracker::Instance()->CallstackScopeBegin( file, line );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -785,7 +632,7 @@ MEMMAN_CallstackScopeBegin( const char* file ,
 void
 MEMMAN_CallstackScopeEnd( void )
 {
-    StackInventory::Instance()->CallstackScopeEnd();
+    CCallStackTracker::Instance()->CallstackScopeEnd();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -793,16 +640,15 @@ MEMMAN_CallstackScopeEnd( void )
 Int32
 MEMMAN_GetCallstackForCurrentThread( TCallStack** outStack )
 {
-    return StackInventory::Instance()->GetCallstackForCurrentThread( outStack );
+    return CCallStackTracker::Instance()->GetCallstackForCurrentThread( outStack );
 }
 
 /*-------------------------------------------------------------------------*/
 
 Int32
-MEMMAN_GetCallstackCopyForCurrentThread( TCallStack** outStack  ,
-                                         UInt32 alsoCopyStatics )
+MEMMAN_GetCallstackCopyForCurrentThread( TCallStack** outStack, UInt32 alsoCopyStatics )
 {
-    return StackInventory::Instance()->GetCallstackCopyForCurrentThread( outStack, 0 != alsoCopyStatics );
+    return CCallStackTracker::Instance()->GetCallstackCopyForCurrentThread( outStack, 0 != alsoCopyStatics );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -810,7 +656,7 @@ MEMMAN_GetCallstackCopyForCurrentThread( TCallStack** outStack  ,
 void
 MEMMAN_FreeCallstackCopy( TCallStack* stackCopy )
 {
-    StackInventory::Instance()->FreeCallstackCopy( stackCopy );
+    CCallStackTracker::Instance()->FreeCallstackCopy( stackCopy );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -818,7 +664,7 @@ MEMMAN_FreeCallstackCopy( TCallStack* stackCopy )
 void
 GUCEF_PrintCallstack( void )
 {
-    StackInventory::Instance()->PrintCallstack( stdout );
+    CCallStackTracker::Instance()->PrintCallstack( stdout );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -827,7 +673,7 @@ void
 GUCEF_PrintCallstackCopy( TCallStack* stackToPrint )
 {
     if ( GUCEF_NULL != stackToPrint )
-        StackInventory::Instance()->PrintCallstackCopy( *stackToPrint, stdout );
+        CCallStackTracker::Instance()->PrintCallstackCopy( *stackToPrint, stdout );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -836,7 +682,7 @@ void
 GUCEF_PrintCallstackCopyTo( TCallStack* stackToPrint, FILE* dest )
 {
     if ( GUCEF_NULL != stackToPrint )
-        StackInventory::Instance()->PrintCallstackCopy( *stackToPrint, dest );
+        CCallStackTracker::Instance()->PrintCallstackCopy( *stackToPrint, dest );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -844,11 +690,10 @@ GUCEF_PrintCallstackCopyTo( TCallStack* stackToPrint, FILE* dest )
 void
 GUCEF_DumpCallstack( const char* filename )
 {
-    FILE* fptr = NULL;
-    fptr = fopen( filename, "wb" );
-    if ( NULL != fptr )
+    FILE* fptr = fopen( filename, "wb" );
+    if ( GUCEF_NULL != fptr )
     {
-        StackInventory::Instance()->PrintCallstack( fptr );
+        CCallStackTracker::Instance()->PrintCallstack( fptr );
         fclose( fptr );
     }
 }
@@ -858,7 +703,7 @@ GUCEF_DumpCallstack( const char* filename )
 void
 GUCEF_ShutdowntCallstackUtility( void )
 {
-    StackInventory::Deinstance();
+    CCallStackTracker::Deinstance();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -866,7 +711,7 @@ GUCEF_ShutdowntCallstackUtility( void )
 void
 GUCEF_InitCallstackUtility( void )
 {
-    StackInventory::Instance();
+    CCallStackTracker::Instance();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -874,7 +719,7 @@ GUCEF_InitCallstackUtility( void )
 void
 GUCEF_SetStackLogging( const UInt32 logStackBool )
 {
-    StackInventory::Instance()->SetIsStackLoggingEnabled( 0 != logStackBool );
+    CCallStackTracker::Instance()->SetIsStackLoggingEnabled( 0 != logStackBool );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -882,7 +727,7 @@ GUCEF_SetStackLogging( const UInt32 logStackBool )
 void
 GUCEF_LogStackToStdOut( void )
 {
-    StackInventory::Instance()->SetStackLogOutputToStdOut();
+    CCallStackTracker::Instance()->SetStackLogOutputToStdOut();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -890,7 +735,7 @@ GUCEF_LogStackToStdOut( void )
 void
 GUCEF_SetStackLoggingInCvsFormat( const UInt32 logAsCvsBool )
 {
-    StackInventory::Instance()->SetIsStackLoggingInCsvFormat( 0 != logAsCvsBool );
+    CCallStackTracker::Instance()->SetIsStackLoggingInCsvFormat( 0 != logAsCvsBool );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -898,7 +743,7 @@ GUCEF_SetStackLoggingInCvsFormat( const UInt32 logAsCvsBool )
 void
 GUCEF_SetStackPushCallback( TStackPushCallback cBack )
 {
-    StackInventory::Instance()->SetStackPushCallback( cBack );
+    CCallStackTracker::Instance()->SetStackPushCallback( cBack );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -906,7 +751,7 @@ GUCEF_SetStackPushCallback( TStackPushCallback cBack )
 void
 GUCEF_SetStackPopCallback( TStackPopCallback cBack )
 {
-    StackInventory::Instance()->SetStackPopCallback( cBack );
+    CCallStackTracker::Instance()->SetStackPopCallback( cBack );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -914,7 +759,7 @@ GUCEF_SetStackPopCallback( TStackPopCallback cBack )
 void
 GUCEF_LogStackTo( const char* filename )
 {
-    StackInventory::Instance()->SetLogFilename( filename );
+    CCallStackTracker::Instance()->SetLogFilename( filename );
 }
 
 /*-------------------------------------------------------------------------//
