@@ -130,6 +130,35 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:v
 .ovrow{border:1px solid var(--border);border-radius:6px;padding:9px;margin-bottom:7px;}
 /* ── Responsive ── */
 @media(max-width:900px){#main{grid-template-columns:1fr;}#pv{height:280px;}}
+/* ── Network View ── */
+.nv-mode-toggle{display:flex;gap:0;flex-shrink:0;margin-left:auto;}
+.nv-mode-toggle button{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:4px 11px;cursor:pointer;font-size:.78rem;transition:background .15s;}
+.nv-mode-toggle button:first-child{border-radius:4px 0 0 4px;}
+.nv-mode-toggle button:last-child{border-radius:0 4px 4px 0;}
+.nv-mode-toggle button.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.nv-chip-row{display:flex;gap:5px;flex-wrap:wrap;padding:6px 10px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;align-items:center;min-height:38px;}
+.nv-chip{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:3px 10px;border-radius:12px;cursor:pointer;font-size:.76rem;white-space:nowrap;user-select:none;}
+.nv-chip.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.nv-chip:hover:not(.on){border-color:var(--accent2);color:var(--text);}
+.nv-wrap{display:flex;flex:1;overflow:hidden;min-height:0;}
+.nv-canvas-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;min-width:0;}
+.nv-palette{display:flex;gap:5px;flex-wrap:wrap;padding:7px 10px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.nv-canvas{flex:1;overflow:hidden;background:var(--bg);display:block;cursor:default;}
+.nv-props{width:38%;min-width:260px;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:var(--bg2);}
+.nv-props-body{flex:1;overflow-y:auto;padding:10px;}
+.nv-props-footer{border-top:1px solid var(--border);padding:8px 10px;display:flex;gap:6px;background:var(--bg2);flex-shrink:0;}
+.nv-route-menu{position:fixed;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;z-index:1000;min-width:190px;box-shadow:0 4px 20px rgba(0,0,0,.6);display:none;}
+.nv-route-menu h4{font-size:.8rem;margin-bottom:8px;color:var(--text2);}
+.nv-route-menu label{display:flex;align-items:center;gap:7px;font-size:.82rem;margin-bottom:6px;cursor:pointer;}
+.nv-route-menu .btn-row{display:flex;gap:6px;margin-top:10px;}
+.nv-tmpl-dialog{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;z-index:1001;min-width:320px;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.7);}
+.nv-tmpl-dialog h3{margin-bottom:14px;font-size:.95rem;}
+.nv-opt{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px;cursor:pointer;}
+.nv-opt:hover{border-color:var(--accent);}
+.nv-opt strong{font-size:.84rem;}
+.nv-opt .hint{margin-top:2px;}
+.nv-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;}
+.nv-props-hdr{font-size:.75rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
 </style>
 </head>
 <body>
@@ -160,18 +189,46 @@ body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:v
     <!-- Templates tab -->
     <div id="tc-tmpl" class="tc on">
       <div class="toolbar">
-        <button class="btn sm"   onclick="App.newTmpl()">+ New Template</button>
+        <button class="btn sm"   onclick="App.newTmplOrDialog()">+ New Template</button>
         <button class="btn s sm" onclick="App.importTmpl()">Import File</button>
         <button class="btn s sm" onclick="App.fetchTmplsApi()">Fetch from API</button>
         <input type="file" id="fi-tmpl" accept=".json" style="display:none" onchange="App.onFileImport(event)">
+        <div class="nv-mode-toggle">
+          <button id="btn-mode-form"           onclick="NetView.setMode('form')">&#9632; Form</button>
+          <button id="btn-mode-net"  class="on" onclick="NetView.setMode('network')">&#9673; Network</button>
+        </div>
       </div>
+      <!-- Chip row: template selector in network mode -->
+      <div id="nv-chip-row" class="nv-chip-row" style="display:none"></div>
+      <!-- Template list: form mode only -->
       <div id="tlist"></div>
+      <!-- Form editor: form mode only -->
       <div id="ea">
         <div class="noop" id="noop">
           <p>No template selected</p>
-          <button class="btn" onclick="App.newTmpl()">+ New Template</button>
+          <button class="btn" onclick="App.newTmplOrDialog()">+ New Template</button>
         </div>
         <div id="tform" style="display:none"></div>
+      </div>
+      <!-- Network view: network mode only -->
+      <div id="nv-wrap" class="nv-wrap" style="display:none">
+        <div class="nv-canvas-wrap">
+          <div class="nv-palette" id="nv-palette"></div>
+          <svg id="nv-svg" class="nv-canvas"
+            onclick="NetView.onSvgClick(event)"
+            onmousedown="NetView.onSvgMouseDown(event)"
+            onmousemove="NetView.onSvgMouseMove(event)"
+            onmouseup="NetView.onSvgMouseUp(event)">
+          </svg>
+        </div>
+        <div class="nv-props">
+          <div class="nv-props-body" id="nv-props-body"></div>
+          <div class="nv-props-footer">
+            <button class="btn s sm" onclick="App.copy()">&#128203; Copy</button>
+            <button class="btn s sm" onclick="App.download()">&#8595; Download</button>
+            <button class="btn sm"   onclick="App.push()">&#128640; Push</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -531,7 +588,7 @@ const App = {
   gt(){ return this.s.tIdx>=0 && this.s.tIdx<this.s.tmpls.length ? this.s.tmpls[this.s.tIdx] : null; },
   pv(t,el){ if(t==='b')return el.checked; if(t==='n')return parseFloat(el.value)||0; return el.value; },
   sp(obj, parts, v){ let c=obj; for(let i=0;i<parts.length-1;i++){if(c[parts[i]]==null)c[parts[i]]={};c=c[parts[i]];} c[parts[parts.length-1]]=v; },
-  strip(o){ if(typeof o!=='object'||o===null)return; delete o._x; Object.values(o).forEach(v=>this.strip(v)); },
+  strip(o){ if(typeof o!=='object'||o===null)return; Object.keys(o).forEach(k=>{if(k[0]==='_')delete o[k];}); Object.values(o).forEach(v=>this.strip(v)); },
   status(msg,t){
     const el=document.getElementById('sbmsg'); el.textContent=msg;
     const sb=document.getElementById('sb'); sb.className=t||'';
@@ -545,7 +602,15 @@ const App = {
       document.getElementById('tc-'+x).classList.toggle('on',x===t);
       document.getElementById('tab-'+x).classList.toggle('on',x===t);
     });
-    if(t==='app') this.renderApp();
+    if(t==='app'){
+      this.renderApp();
+      // Always show preview panel on app tab
+      document.getElementById('pv').style.display='flex';
+      document.getElementById('main').style.gridTemplateColumns='';
+    } else if(t==='tmpl' && NetView._mode==='network'){
+      document.getElementById('pv').style.display='none';
+      document.getElementById('main').style.gridTemplateColumns='100%';
+    }
     this.updPv();
   },
 
@@ -558,12 +623,33 @@ const App = {
         <span class="ti-name">${this.esc(t.channelName||'unnamed')}</span>
         <span class="ti-del" onclick="event.stopPropagation();App.delTmpl(${i})" title="Delete">✕</span>
       </div>`).join('');
+    if(NetView._mode==='network') NetView.renderChips();
   },
-  selTmpl(i){ this.s.tIdx=i; this.renderList(); this.renderTmpl(); this.updPv(); },
+  selTmpl(i){
+    this.s.tIdx=i;
+    if(NetView._mode==='network'){
+      NetView._sel=null;
+      NetView.renderChips();
+      NetView.render();
+      NetView.renderProps();
+    } else {
+      this.renderList(); this.renderTmpl();
+    }
+    this.updPv();
+  },
   delTmpl(i){
     this.s.tmpls.splice(i,1);
     if(this.s.tIdx>=this.s.tmpls.length) this.s.tIdx=this.s.tmpls.length-1;
-    this.renderList(); this.renderTmpl(); this.updPv();
+    if(NetView._mode==='network'){
+      NetView._sel=null; NetView.renderChips(); NetView.render(); NetView.renderProps();
+    } else {
+      this.renderList(); this.renderTmpl();
+    }
+    this.updPv();
+  },
+  newTmplOrDialog(){
+    if(NetView._mode==='network'){NetView.showNewTemplateDialog();return;}
+    this.newTmpl();
   },
   newTmpl(){
     this.s.tmpls.push({channelId:-1,channelName:'new-channel',collectMetrics:true,
@@ -578,18 +664,34 @@ const App = {
     this.s.tIdx=this.s.tmpls.length-1;
     this.renderList(); this.renderTmpl(); this.updPv();
   },
-  importTmpl(){ document.getElementById('fi-tmpl').click(); },
+  _lastImportHandle: null,
+  importTmpl(){
+    if(typeof showOpenFilePicker !== 'undefined'){
+      const opts = {types:[{description:'JSON',accept:{'application/json':['.json']}}],multiple:false};
+      // Reuse last handle so picker reopens in the same directory
+      if(this._lastImportHandle) opts.startIn = this._lastImportHandle;
+      showOpenFilePicker(opts)
+        .then(([fh])=>{ this._lastImportHandle=fh; return fh.getFile(); })
+        .then(file=>{ const r=new FileReader(); r.onload=ev=>this._loadTmplText(ev.target.result,file.name); r.readAsText(file); })
+        .catch(e=>{ if(e.name!=='AbortError') this.status('Import error: '+e.message,'err'); });
+    } else {
+      document.getElementById('fi-tmpl').click();
+    }
+  },
+  _loadTmplText(text, filename){
+    try{
+      const t=JSON.parse(text);
+      this.s.tmpls.push(t); this.s.tIdx=this.s.tmpls.length-1;
+      if(NetView._mode==='network'){NetView.renderChips();NetView.render();NetView.renderProps();}
+      else {this.renderList(); this.renderTmpl();}
+      this.updPv();
+      this.status('Imported: '+(t.channelName||filename||'unnamed'),'ok');
+    }catch(err){this.status('Import error: '+err.message,'err');}
+  },
   onFileImport(e){
     const f=e.target.files[0]; if(!f)return;
     const r=new FileReader();
-    r.onload=ev=>{
-      try{
-        const t=JSON.parse(ev.target.result);
-        this.s.tmpls.push(t); this.s.tIdx=this.s.tmpls.length-1;
-        this.renderList(); this.renderTmpl(); this.updPv();
-        this.status('Imported: '+(t.channelName||'unnamed'),'ok');
-      }catch(err){this.status('Import error: '+err.message,'err');}
-    };
+    r.onload=ev=>this._loadTmplText(ev.target.result, f.name);
     r.readAsText(f); e.target.value='';
   },
 
@@ -960,14 +1062,28 @@ const App = {
     t.PubSubSides[id]=this._mkSide('Kafka');
     this.renderTmpl();this.updPv();
   },
-  delSide(id){ const t=this.gt();if(!t)return;delete t.PubSubSides[id];this.renderTmpl();this.updPv(); },
+  delSide(id){
+    const t=this.gt();if(!t)return;
+    delete t.PubSubSides[id];
+    // Remove from layout
+    if(t._layout) delete t._layout[id];
+    if(NetView._mode==='network'){NetView.render();NetView.renderProps();}
+    else this.renderTmpl();
+    this.updPv();
+  },
   renSide(old,n){
     n=n.trim();if(!n||n===old)return;
     const t=this.gt();if(!t)return;
     const side=t.PubSubSides[old];delete t.PubSubSides[old];t.PubSubSides[n]=side;
+    // Update layout key
+    if(t._layout&&t._layout[old]){t._layout[n]=t._layout[old];delete t._layout[old];}
     const rs=t.PubSubFlowRouterConfig?.routes||[];
     rs.forEach(r=>{['fromSideId','toSideId','failoverSideId','spilloverBufferSideId','deadLetterSideId'].forEach(k=>{if(r[k]===old)r[k]=n;});});
-    this.renderTmpl();this.updPv();
+    // Update selection if renaming the selected side
+    if(NetView._sel?.type==='side'&&NetView._sel.sideId===old) NetView._sel.sideId=n;
+    if(NetView._mode==='network'){NetView.render();NetView.renderProps();}
+    else this.renderTmpl();
+    this.updPv();
   },
   togSide(id){
     const t=this.gt();if(!t)return;
@@ -992,7 +1108,9 @@ const App = {
       isOptional:false,preferDedicatedConnection:false,consumerGroupName:'',consumerName:'',
       useTopicLevelMaxTotalMsgsInFlight:false,maxTotalMsgsInFlight:-1,CustomConfig:{}};
     side.DesiredFeatures=Object.assign({},beDef.df);side._x=true;
-    this.renderTmpl();this.updPv();
+    if(NetView._mode==='network'){NetView.render();NetView.renderProps();}
+    else this.renderTmpl();
+    this.updPv();
   },
   resetFeat(sid){
     const t=this.gt();if(!t)return;
@@ -1223,6 +1341,7 @@ const App = {
       obj=this.s.app; lbl.textContent='pubsub2pubsub_d.json';
     }
     code.innerHTML=this._hl(JSON.stringify(obj,null,4));
+    if(NetView._mode==='network') NetView.render();
   },
   _hl(json){
     return json
@@ -1326,11 +1445,612 @@ const App = {
 
   // ── Init ─────────────────────────────────────────────────────
   init(){
-    this.renderList();
     this.renderApp();
     this.updPv();
     document.getElementById('api-host').addEventListener('change',e=>{this.s.apiHost=e.target.value;});
+    // Start in network mode
+    NetView.setMode('network');
   }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// NetView — Network diagram editor for Channel Templates
+// ═══════════════════════════════════════════════════════════════
+const NetView = {
+  _mode: 'network',
+  _sel: null,        // {type:'side'|'arrow', sideId?, routeIdx?, role?}
+  _conn: null,       // {fromSide, fromPort} during connection drag
+  _drag: null,       // {sideId, ox, oy} during box drag
+  _mx: 0, _my: 0,   // current mouse SVG coords during drag/conn
+  BOX_W: 170, BOX_H: 90,
+  BE_COLORS: {
+    Kafka:'#22c55e', ClusteredRedis:'#f97316', STORAGE:'#3b82f6',
+    AwsSqs:'#eab308', MSMQ:'#a855f7', UDP:'#14b8a6', WEB:'#06b6d4', TEST:'#ef4444'
+  },
+
+  // ── Mode toggle ─────────────────────────────────────────────
+  setMode(m){
+    this._mode = m;
+    const isNet = m === 'network';
+    document.getElementById('nv-chip-row').style.display = isNet ? 'flex' : 'none';
+    document.getElementById('nv-wrap').style.display    = isNet ? 'flex' : 'none';
+    document.getElementById('tlist').style.display      = isNet ? 'none' : '';
+    document.getElementById('ea').style.display         = isNet ? 'none' : '';
+    document.getElementById('pv').style.display         = isNet ? 'none' : 'flex';
+    document.getElementById('main').style.gridTemplateColumns = isNet ? '100%' : '';
+    document.getElementById('btn-mode-form').classList.toggle('on', !isNet);
+    document.getElementById('btn-mode-net').classList.toggle('on', isNet);
+    if(isNet){
+      this.renderPalette();
+      this.renderChips();
+      this.render();
+      this.renderProps();
+    }
+  },
+
+  // ── Palette ─────────────────────────────────────────────────
+  renderPalette(){
+    const pal = document.getElementById('nv-palette');
+    if(!pal) return;
+    pal.innerHTML = Object.entries(this.BE_COLORS).map(([be, color]) =>
+      `<button class="btn s sm" style="border-left:3px solid ${color}" onclick="NetView.addSideFromPalette('${be}')">+ ${be}</button>`
+    ).join('');
+  },
+
+  // ── Template chips ───────────────────────────────────────────
+  renderChips(){
+    const row = document.getElementById('nv-chip-row');
+    if(!row) return;
+    const s = App.s;
+    let html = s.tmpls.map((t,i) =>
+      `<span class="nv-chip ${i===s.tIdx?'on':''}" onclick="App.selTmpl(${i})">${App.esc(t.channelName||'unnamed')}</span>`
+    ).join('');
+    html += `<span class="nv-chip" onclick="NetView.showNewTemplateDialog()" style="border-style:dashed">+ New</span>`;
+    row.innerHTML = html;
+  },
+
+  // ── Layout ───────────────────────────────────────────────────
+  _autoLayout(sides){
+    const ids = Object.keys(sides);
+    if(!ids.length) return {};
+    const classify = id => {
+      const tc = sides[id]?.PubSubClientConfig?.defaultTopicConfig;
+      const canSub = tc?.needSubscribeSupport !== false;
+      const canPub = tc?.needPublishSupport === true;
+      return canSub && !canPub ? 'src' : !canSub && canPub ? 'sink' : 'bidi';
+    };
+    const srcs=[],bidi=[],snks=[];
+    ids.forEach(id=>{ const c=classify(id); if(c==='src')srcs.push(id); else if(c==='sink')snks.push(id); else bidi.push(id); });
+    const cols = [srcs,bidi,snks].filter(c=>c.length);
+    const colXMap = {1:[220], 2:[80,380], 3:[60,230,400]};
+    const colX = colXMap[cols.length]||[60];
+    const layout = {};
+    const gap = 130;
+    cols.forEach((col, ci) => {
+      col.forEach((id, ri) => { layout[id] = {x:colX[ci], y:60+ri*gap}; });
+    });
+    return layout;
+  },
+
+  _getLayout(){
+    const t = App.gt();
+    if(!t) return {};
+    if(!t._layout) t._layout = this._autoLayout(t.PubSubSides||{});
+    // Add layout for any sides not yet in layout
+    Object.keys(t.PubSubSides||{}).forEach(id => {
+      if(!t._layout[id]){
+        const count = Object.keys(t._layout).length;
+        t._layout[id] = {x:50+count*30, y:60+count*20};
+      }
+    });
+    return t._layout;
+  },
+
+  _portPos(sideId, port){
+    const layout = this._getLayout();
+    const pos = layout[sideId]||{x:50,y:50};
+    return {x: port==='L' ? pos.x : pos.x+this.BOX_W, y: pos.y+this.BOX_H/2};
+  },
+
+  // ── SVG generation ───────────────────────────────────────────
+  _svgDefs(){
+    const arr = (id,color) =>
+      `<marker id="arr-${id}" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0,8 3,0 6" fill="${color}"/></marker>`;
+    return `<defs>
+      ${arr('primary','#6366f1')}${arr('failover','#f59e0b')}
+      ${arr('spillover','#eab308')}${arr('deadletter','#ef4444')}
+      ${arr('rubber','#666')}
+      <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation="2.5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>`;
+  },
+
+  _routePath(x1,y1,x2,y2,off){
+    off = off||0;
+    const cx1=x1+Math.max(60,Math.abs(x2-x1)*0.45), cy1=y1+off;
+    const cx2=x2-Math.max(60,Math.abs(x2-x1)*0.45), cy2=y2+off;
+    return `M${x1},${y1} C${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`;
+  },
+
+  _xt(s,max){ return s.length<=max ? App.esc(s) : App.esc(s.slice(0,max-1))+'&#8230;'; },
+
+  _svgSide(id, side, x, y){
+    const cc = side.PubSubClientConfig||{};
+    const be = cc.pubsubClientType||'Kafka';
+    const color = this.BE_COLORS[be]||'#888';
+    const tc = cc.defaultTopicConfig||{};
+    const canSub = tc.needSubscribeSupport !== false;
+    const canPub = tc.needPublishSupport === true;
+    const thread = !!side.performPubSubInDedicatedThread;
+    const isSel = this._sel?.type==='side' && this._sel.sideId===id;
+    const W=this.BOX_W, H=this.BOX_H;
+    const ring = isSel
+      ? `<rect x="${x-3}" y="${y-3}" width="${W+6}" height="${H+6}" rx="11" fill="none" stroke="#6366f1" stroke-width="2.5" opacity=".9"/>`
+      : '';
+    return `<g class="nv-side" data-sid="${App.esc(id)}">
+      ${ring}
+      <rect x="${x}" y="${y}" width="${W}" height="${H}" rx="9" fill="#1a1a2e" stroke="${isSel?'#6366f1':'#3a3a5c'}" stroke-width="${isSel?2:1}" style="cursor:move"/>
+      <text x="${x+W/2}" y="${y+21}" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e2f0" font-family="system-ui" style="pointer-events:none">${this._xt(id,18)}</text>
+      <rect x="${x+W/2-34}" y="${y+28}" width="68" height="19" rx="9.5" fill="${color}28" stroke="${color}" stroke-width="1" style="pointer-events:none"/>
+      <text x="${x+W/2}" y="${y+41}" text-anchor="middle" font-size="10" fill="${color}" font-family="system-ui" style="pointer-events:none">${be}</text>
+      ${canSub?`<text x="${x+9}" y="${y+H-10}" font-size="10" fill="#60a5fa" font-family="system-ui" style="pointer-events:none">&#9668; SUB</text>`:''}
+      ${canPub?`<text x="${x+W-9}" y="${y+H-10}" text-anchor="end" font-size="10" fill="#4ade80" font-family="system-ui" style="pointer-events:none">PUB &#9658;</text>`:''}
+      ${thread?`<text x="${x+W-13}" y="${y+16}" font-size="13" font-family="system-ui" style="pointer-events:none">&#9889;</text>`:''}
+      <circle class="nv-port" data-sid="${App.esc(id)}" data-port="L"
+        cx="${x}" cy="${y+H/2}" r="6" fill="${canSub?'#3b82f6':'#2a2a4a'}" stroke="#1a1a2e" stroke-width="1.5"
+        opacity="${canSub?'1':'.4'}" style="cursor:crosshair"/>
+      <circle class="nv-port" data-sid="${App.esc(id)}" data-port="R"
+        cx="${x+W}" cy="${y+H/2}" r="6" fill="${canPub?'#22c55e':'#2a2a4a'}" stroke="#1a1a2e" stroke-width="1.5"
+        opacity="${canPub?'1':'.4'}" style="cursor:crosshair"/>
+    </g>`;
+  },
+
+  _svgRoute(ri, r, layout){
+    const ROLES = [
+      {role:'primary',   toKey:'toSideId',             dash:'',      color:'#6366f1', label:''},
+      {role:'failover',  toKey:'failoverSideId',        dash:'6,4',   color:'#f59e0b', label:'FAILOVER'},
+      {role:'spillover', toKey:'spilloverBufferSideId', dash:'3,3',   color:'#eab308', label:'SPILLOVER'},
+      {role:'deadletter',toKey:'deadLetterSideId',      dash:'2,4',   color:'#ef4444', label:'DEAD LTR'},
+    ];
+    let html = '';
+    ROLES.forEach((rt, rti) => {
+      const toId = r[rt.toKey];
+      if(!toId) return;
+      const srcPos = layout[r.fromSideId], dstPos = layout[toId];
+      if(!srcPos||!dstPos) return;
+      const x1=srcPos.x+this.BOX_W, y1=srcPos.y+this.BOX_H/2;
+      const x2=dstPos.x,            y2=dstPos.y+this.BOX_H/2;
+      const off = rti*22-11;
+      const isSel = this._sel?.type==='arrow' && this._sel.routeIdx===ri && this._sel.role===rt.role;
+      const d = this._routePath(x1,y1,x2,y2,off);
+      const sw = isSel ? 3.5 : 2;
+      const flt = isSel ? 'filter="url(#glow)"' : '';
+      const dashAttr = rt.dash ? `stroke-dasharray="${rt.dash}"` : '';
+      const pathId = `rp-${ri}-${rt.role}`;
+      html += `<path class="nv-arrow" data-ri="${ri}" data-role="${rt.role}"
+        d="${d}" fill="none" stroke="${rt.color}" stroke-width="${sw}" ${dashAttr}
+        marker-end="url(#arr-${rt.role})" ${flt} style="cursor:pointer"/>`;
+      if(rt.label){
+        html += `<path id="${pathId}" d="${d}" fill="none" stroke="none" style="pointer-events:none"/>
+          <text font-size="9" fill="${rt.color}" font-family="system-ui" style="pointer-events:none">
+            <textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${rt.label}</textPath>
+          </text>`;
+      }
+    });
+    return html;
+  },
+
+  render(){
+    const svg = document.getElementById('nv-svg');
+    if(!svg) return;
+    const t = App.gt();
+    if(!t){
+      svg.innerHTML = `${this._svgDefs()}
+        <rect width="100%" height="100%" fill="transparent"/>
+        <text x="50%" y="50%" text-anchor="middle" dy=".35em" fill="#3a3a5c"
+          font-size="15" font-family="system-ui" style="pointer-events:none">No template selected — create or select one above</text>`;
+      return;
+    }
+    const sides = t.PubSubSides||{};
+    const layout = this._getLayout();
+    const routes = (t.PubSubFlowRouterConfig||{}).routes||[];
+
+    let html = this._svgDefs();
+    // Transparent full-canvas rect ensures background clicks always have a target
+    html += `<rect width="100%" height="100%" fill="transparent"/>`;
+
+    // Arrows first (behind boxes)
+    routes.forEach((r,ri) => { html += this._svgRoute(ri,r,layout); });
+
+    // Rubber-band line during connection drag
+    if(this._conn){
+      const p = this._portPos(this._conn.fromSide, this._conn.fromPort);
+      html += `<path d="${this._routePath(p.x,p.y,this._mx,this._my,0)}"
+        fill="none" stroke="#666" stroke-width="1.5" stroke-dasharray="4,3"
+        marker-end="url(#arr-rubber)" style="pointer-events:none"/>`;
+    }
+
+    // Side boxes on top
+    Object.entries(sides).forEach(([id,side]) => {
+      const pos = layout[id]||{x:50,y:50};
+      html += this._svgSide(id, side, pos.x, pos.y);
+    });
+
+    svg.innerHTML = html;
+  },
+
+  // ── Properties panel ─────────────────────────────────────────
+  renderProps(){
+    const body = document.getElementById('nv-props-body');
+    if(!body) return;
+    const t = App.gt();
+    if(!t){
+      body.innerHTML = '<p style="color:var(--text2);font-size:.82rem;padding:4px 0">No template selected.</p>';
+      return;
+    }
+
+    if(!this._sel){
+      body.innerHTML = `<div class="nv-props-hdr">Channel Info</div>
+        <div class="fr"><label>Channel Name</label>
+          <input class="fi" value="${App.esc(t.channelName||'')}"
+            oninput="App.onTI(event,'channelName')" onchange="NetView.renderChips()"></div>
+        <div class="fr"><label>Channel ID (-1=auto)</label>
+          <input class="fi" type="number" value="${t.channelId??-1}"
+            oninput="App.onTI(event,'channelId','n')"></div>
+        <div class="tr"><label>Collect Metrics</label>
+          <input type="checkbox" ${t.collectMetrics?'checked':''}
+            onchange="App.onTI(event,'collectMetrics','b')"></div>
+        <div class="fr"><label>Metrics Interval (ms)</label>
+          <input class="fi" type="number" value="${t.metricsIntervalInMs||1000}"
+            oninput="App.onTI(event,'metricsIntervalInMs','n')"></div>
+        <div class="fr"><label>Ticket Refill Busy Cycle</label>
+          <input class="fi" type="number" value="${t.ticketRefillOnBusyCycle||10000}"
+            oninput="App.onTI(event,'ticketRefillOnBusyCycle','n')"></div>`;
+      return;
+    }
+
+    if(this._sel.type === 'side'){
+      const sid = this._sel.sideId;
+      const side = t.PubSubSides[sid];
+      if(!side){ this._sel=null; this.renderProps(); return; }
+      side._x = true;
+      const be = side.PubSubClientConfig?.pubsubClientType||'Kafka';
+      body.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="nv-props-hdr" style="margin:0">Side: ${App.esc(sid)}</div>
+          <button class="btn d sm" onclick="NetView.confirmDeleteSide('${App.esc(sid)}')">&#215; Delete</button>
+        </div>
+        <div class="sc" id="sc-${App.esc(sid)}">
+          <div class="sch">
+            <input class="si-in" value="${App.esc(sid)}"
+              onblur="App.renSide('${App.esc(sid)}',this.value)" title="Side ID">
+            <select class="bs" onchange="App.chBe('${App.esc(sid)}',this.value)">
+              ${Object.keys(BE).map(b=>`<option value="${b}" ${b===be?'selected':''}>${BE[b].label}</option>`).join('')}
+            </select>
+          </div>
+          <div class="sdet on" id="sd-${App.esc(sid)}">${App.rSideDet(sid,side,be)}</div>
+        </div>`;
+      return;
+    }
+
+    if(this._sel.type === 'arrow'){
+      const ri = this._sel.routeIdx;
+      const role = this._sel.role;
+      const routes = t.PubSubFlowRouterConfig?.routes||[];
+      const r = routes[ri];
+      if(!r){ this._sel=null; this.renderProps(); return; }
+      const roleColor = {primary:'#6366f1',failover:'#f59e0b',spillover:'#eab308',deadletter:'#ef4444'}[role]||'#888';
+      const toId = role==='primary'?r.toSideId:role==='failover'?r.failoverSideId:role==='spillover'?r.spilloverBufferSideId:r.deadLetterSideId;
+      const router = t.PubSubFlowRouterConfig||{};
+      body.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="nv-props-hdr" style="margin:0;color:${roleColor}">Route: ${role}</div>
+          <button class="btn d sm" onclick="NetView.deleteSelectedArrow()">Delete</button>
+        </div>
+        <div class="fr"><label>From</label>
+          <span class="fi" style="color:var(--text)">${App.esc(r.fromSideId)}</span></div>
+        <div class="fr"><label>To</label>
+          <span class="fi" style="color:var(--text)">${App.esc(toId)}</span></div>
+        <div class="fr"><label>Ack Style</label>
+          <select class="fs" onchange="App.onRouter('ackStyle','s',event)">
+            ${['AllOrNothing','BestEffort'].map(v=>`<option ${(router.ackStyle||'AllOrNothing')===v?'selected':''}>${v}</option>`).join('')}
+          </select></div>
+        <div class="tr"><label>Topics Auto-Match</label>
+          <input type="checkbox" ${r.toSideTopicsAutoMatchFromSide?'checked':''}
+            onchange="App.onRt(${ri},'toSideTopicsAutoMatchFromSide','b',event)"></div>
+        <div class="tr"><label>Prefer From-Topic Thread</label>
+          <input type="checkbox" ${r.preferFromTopicThreadForDestination?'checked':''}
+            onchange="App.onRt(${ri},'preferFromTopicThreadForDestination','b',event)"></div>
+        <button class="btn s sm" style="margin-top:12px;width:100%"
+          onclick="NetView.spliceRoutePrompt(${ri})">+ Splice Side</button>`;
+      return;
+    }
+  },
+
+  // ── Arrow actions ────────────────────────────────────────────
+  deleteSelectedArrow(){
+    if(!this._sel||this._sel.type!=='arrow') return;
+    const t = App.gt(); if(!t) return;
+    const {routeIdx:ri, role} = this._sel;
+    const r = t.PubSubFlowRouterConfig?.routes?.[ri];
+    if(!r) return;
+    if(role==='primary')                 t.PubSubFlowRouterConfig.routes.splice(ri,1);
+    else if(role==='failover')           r.failoverSideId='';
+    else if(role==='spillover')          r.spilloverBufferSideId='';
+    else if(role==='deadletter')         r.deadLetterSideId='';
+    this._sel = null;
+    App.updPv(); this.render(); this.renderProps();
+  },
+
+  confirmDeleteSide(sid){
+    const t = App.gt(); if(!t) return;
+    const routes = t.PubSubFlowRouterConfig?.routes||[];
+    const n = routes.filter(r=>[r.fromSideId,r.toSideId,r.failoverSideId,r.spilloverBufferSideId,r.deadLetterSideId].includes(sid)).length;
+    if(n>0 && !confirm(`Delete side "${sid}"?\nThis will also modify ${n} route(s).`)) return;
+    this._sel = null;
+    App.delSide(sid);
+  },
+
+  spliceRoutePrompt(ri){
+    const beList = Object.keys(BE).join(', ');
+    const be = prompt(`Backend type for spliced side:\n${beList}`, 'STORAGE');
+    if(!be||!BE[be]) return;
+    const t = App.gt(); if(!t) return;
+    const r = t.PubSubFlowRouterConfig?.routes?.[ri]; if(!r) return;
+    const origTo = r.toSideId;
+    const newId = be.toLowerCase()+'-'+(Date.now()%10000);
+    t.PubSubSides[newId] = App._mkSide(be);
+    const layout = this._getLayout();
+    const sp = layout[r.fromSideId]||{x:50,y:50};
+    const dp = layout[origTo]||{x:300,y:50};
+    layout[newId] = {x:(sp.x+dp.x)/2, y:(sp.y+dp.y)/2};
+    r.toSideId = newId;
+    t.PubSubFlowRouterConfig.routes.push({
+      fromSideId:newId, toSideId:origTo, failoverSideId:'',
+      spilloverBufferSideId:'', deadLetterSideId:'', topicAssociations:[]});
+    this._sel = null;
+    App.updPv(); this.render(); this.renderProps();
+  },
+
+  // ── Add side from palette ────────────────────────────────────
+  addSideFromPalette(beType){
+    const t = App.gt(); if(!t) return;
+    const sides = t.PubSubSides||{};
+    const n = Object.values(sides).filter(s=>(s.PubSubClientConfig?.pubsubClientType||'Kafka')===beType).length;
+    const id = beType.toLowerCase()+'-'+(n+1);
+    t.PubSubSides[id] = App._mkSide(beType);
+    const svg = document.getElementById('nv-svg');
+    const W = svg?svg.clientWidth:600, H=svg?svg.clientHeight:400;
+    const layout = this._getLayout();
+    layout[id] = {x:Math.max(10,W/2-this.BOX_W/2), y:Math.max(10,H/2-this.BOX_H/2)};
+    this._sel = {type:'side', sideId:id};
+    App.updPv(); this.render(); this.renderProps();
+  },
+
+  // ── Route menu ───────────────────────────────────────────────
+  showRouteMenu(screenX, screenY, fromSide, toSide){
+    this._routeMenu = {fromSide, toSide};
+    let menu = document.getElementById('nv-route-menu');
+    if(!menu){
+      menu = document.createElement('div');
+      menu.id = 'nv-route-menu';
+      menu.className = 'nv-route-menu';
+      document.body.appendChild(menu);
+    }
+    menu.innerHTML = `<h4>Select route type</h4>
+      ${['primary','failover','spillover','deadletter'].map((rt,i)=>`
+        <label><input type="radio" name="nv-rt" value="${rt}" ${i===0?'checked':''}>${rt.charAt(0).toUpperCase()+rt.slice(1)}</label>`).join('')}
+      <div class="btn-row">
+        <button class="btn sm" onclick="NetView.addRouteFromMenu()">Add</button>
+        <button class="btn s sm" onclick="NetView.closeRouteMenu()">Cancel</button>
+      </div>`;
+    menu.style.left = Math.min(screenX, window.innerWidth-220)+'px';
+    menu.style.top  = Math.min(screenY, window.innerHeight-200)+'px';
+    menu.style.display = 'block';
+  },
+
+  closeRouteMenu(){
+    const m = document.getElementById('nv-route-menu');
+    if(m) m.style.display='none';
+    this._routeMenu = null;
+  },
+
+  addRouteFromMenu(){
+    if(!this._routeMenu) return;
+    const menu = document.getElementById('nv-route-menu');
+    const rt = menu?.querySelector('input[name="nv-rt"]:checked')?.value||'primary';
+    const {fromSide, toSide} = this._routeMenu;
+    this.closeRouteMenu();
+    this.addRoute(fromSide, toSide, rt);
+  },
+
+  addRoute(fromSide, toSide, routeType){
+    const t = App.gt(); if(!t) return;
+    if(!t.PubSubFlowRouterConfig) t.PubSubFlowRouterConfig={ackStyle:'AllOrNothing',routes:[]};
+    const routes = t.PubSubFlowRouterConfig.routes;
+    if(routeType==='primary'){
+      routes.push({fromSideId:fromSide, toSideId:toSide, failoverSideId:'',
+        spilloverBufferSideId:'', deadLetterSideId:'',
+        toSideTopicsAutoMatchFromSide:true, failoverSideTopicsAutoMatchFromSide:true,
+        spilloverSideTopicsAutoMatchFromSide:true, deadLetterSideTopicsAutoMatchFromSide:true,
+        preferFromTopicThreadForDestination:true, topicAssociations:[]});
+    } else {
+      const fk = routeType==='failover'?'failoverSideId':routeType==='spillover'?'spilloverBufferSideId':'deadLetterSideId';
+      let existing = routes.find(r=>r.fromSideId===fromSide && !r[fk]);
+      if(!existing){
+        existing = {fromSideId:fromSide, toSideId:'', failoverSideId:'',
+          spilloverBufferSideId:'', deadLetterSideId:'', topicAssociations:[]};
+        routes.push(existing);
+      }
+      existing[fk] = toSide;
+    }
+    this._sel = null;
+    App.updPv(); this.render(); this.renderProps();
+  },
+
+  // ── SVG mouse events ─────────────────────────────────────────
+  _svgPt(e){
+    const svg = document.getElementById('nv-svg'); if(!svg) return {x:0,y:0};
+    const pt = svg.createSVGPoint();
+    pt.x=e.clientX; pt.y=e.clientY;
+    const ctm = svg.getScreenCTM(); if(!ctm) return {x:0,y:0};
+    const p = pt.matrixTransform(ctm.inverse());
+    return {x:p.x, y:p.y};
+  },
+
+  _didDrag: false,  // flag to suppress click after a real drag
+
+  onSvgClick(e){
+    // Suppress click that immediately follows a drag operation
+    if(this._didDrag){ this._didDrag=false; return; }
+
+    const el = e.target;
+
+    // 1. Port click — ports carry data-port attribute
+    if(el.dataset && el.dataset.port){
+      const sid=el.dataset.sid, port=el.dataset.port;
+      if(this._conn){
+        if(sid!==this._conn.fromSide) this.showRouteMenu(e.clientX, e.clientY, this._conn.fromSide, sid);
+        this._conn=null; this.render();
+      } else {
+        this._conn={fromSide:sid, fromPort:port}; this.render();
+      }
+      return;
+    }
+
+    // Cancel in-progress connection on any non-port click
+    if(this._conn){ this._conn=null; this.render(); return; }
+
+    // 2. Arrow click — arrows carry data-ri and data-role
+    if(el.dataset && el.dataset.ri !== undefined && el.dataset.role){
+      this._sel={type:'arrow', routeIdx:parseInt(el.dataset.ri), role:el.dataset.role};
+      this.render(); this.renderProps(); return;
+    }
+
+    // 3. Side box click — walk up via closest() to find the side <g>
+    const sideG = el.closest ? el.closest('g[data-sid]') : null;
+    if(sideG && sideG.dataset.sid){
+      this._sel={type:'side', sideId:sideG.dataset.sid};
+      this.render(); this.renderProps(); return;
+    }
+
+    // 4. Background — deselect, show channel info
+    this._sel=null; this.render(); this.renderProps();
+  },
+
+  onSvgMouseDown(e){
+    if(e.button!==0||this._conn) return;
+    const el = e.target;
+    if(el.dataset && el.dataset.port) return; // ports are handled by click
+    // Start potential drag on a side box — do NOT call preventDefault (would block the click event)
+    const sideG = el.closest ? el.closest('g[data-sid]') : null;
+    if(sideG && sideG.dataset.sid){
+      const p=this._svgPt(e);
+      const layout=this._getLayout();
+      const pos=layout[sideG.dataset.sid]||{x:0,y:0};
+      this._drag={sideId:sideG.dataset.sid, ox:p.x-pos.x, oy:p.y-pos.y, moved:false};
+    }
+  },
+
+  onSvgMouseMove(e){
+    const p=this._svgPt(e);
+    this._mx=p.x; this._my=p.y;
+    if(this._drag){
+      const layout=this._getLayout();
+      const pos=layout[this._drag.sideId];
+      if(pos){
+        const nx=Math.max(0,p.x-this._drag.ox), ny=Math.max(0,p.y-this._drag.oy);
+        // Only start rendering drag once mouse has moved enough (avoids jitter on clicks)
+        if(this._drag.moved || Math.hypot(nx-pos.x, ny-pos.y)>4){
+          this._drag.moved=true;
+          pos.x=nx; pos.y=ny; this.render();
+        }
+      }
+      return;
+    }
+    if(this._conn) this.render();
+  },
+
+  onSvgMouseUp(e){
+    if(this._drag){
+      if(this._drag.moved){ this._didDrag=true; App.updPv(); }
+      this._drag=null;
+    }
+  },
+
+  // ── New template dialog ──────────────────────────────────────
+  showNewTemplateDialog(){
+    const overlay = document.createElement('div');
+    overlay.className='nv-overlay'; overlay.id='nv-overlay';
+    overlay.onclick=()=>this._closeDialog();
+    document.body.appendChild(overlay);
+
+    const dlg = document.createElement('div');
+    dlg.className='nv-tmpl-dialog'; dlg.id='nv-tmpl-dialog';
+    const opts = App.s.tmpls.map((t,i)=>`<option value="${i}">${App.esc(t.channelName||'unnamed')}</option>`).join('');
+    dlg.innerHTML = `<h3>New Channel Template</h3>
+      <div class="nv-opt" onclick="NetView._newFromScratch()">
+        <strong>Start from scratch</strong>
+        <div class="hint">Blank template with empty canvas</div>
+      </div>
+      ${App.s.tmpls.length?`
+      <div class="nv-opt">
+        <strong>Copy existing template</strong>
+        <div class="hint" style="margin-bottom:5px">Select template to copy:</div>
+        <select class="fs" id="nv-copy-sel" style="width:100%" onclick="event.stopPropagation()">
+          ${opts}
+        </select>
+        <button class="btn sm" style="margin-top:7px;width:100%"
+          onclick="event.stopPropagation();NetView._newFromCopy()">Copy &amp; Edit</button>
+      </div>
+      <div class="nv-opt">
+        <strong>Work on existing template</strong>
+        <div class="hint" style="margin-bottom:5px">Select template:</div>
+        <select class="fs" id="nv-open-sel" style="width:100%" onclick="event.stopPropagation()">
+          ${opts}
+        </select>
+        <button class="btn s sm" style="margin-top:7px;width:100%"
+          onclick="event.stopPropagation();NetView._openExisting()">Open</button>
+      </div>`:''}
+      <button class="btn s sm" style="margin-top:4px;width:100%"
+        onclick="NetView._closeDialog()">Cancel</button>`;
+    document.body.appendChild(dlg);
+  },
+
+  _closeDialog(){
+    document.getElementById('nv-overlay')?.remove();
+    document.getElementById('nv-tmpl-dialog')?.remove();
+  },
+
+  _newFromScratch(){
+    this._closeDialog();
+    App.newTmpl();
+    NetView._sel=null;
+    NetView.renderChips(); NetView.render(); NetView.renderProps();
+  },
+
+  _newFromCopy(){
+    const sel = document.getElementById('nv-copy-sel');
+    const idx = parseInt(sel?.value);
+    this._closeDialog();
+    if(isNaN(idx)||!App.s.tmpls[idx]) return;
+    const copy = JSON.parse(JSON.stringify(App.s.tmpls[idx]));
+    copy.channelName=(copy.channelName||'template')+'-copy';
+    copy.channelId=-1; delete copy._layout;
+    App.s.tmpls.push(copy); App.s.tIdx=App.s.tmpls.length-1;
+    this._sel=null;
+    App.updPv(); this.renderChips(); this.render(); this.renderProps();
+  },
+
+  _openExisting(){
+    const sel = document.getElementById('nv-open-sel');
+    const idx = parseInt(sel?.value);
+    this._closeDialog();
+    if(!isNaN(idx)) App.selTmpl(idx);
+  },
 };
 
 App.init();
