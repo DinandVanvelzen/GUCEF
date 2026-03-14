@@ -648,13 +648,13 @@ CAwsSqsPubSubClient::GetSqsQueueUrlForQueueName( const CORE::CString& queueName 
         {
             const Aws::String& queueUrl = gqu_out.GetResult().GetQueueUrl();
 
-            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AwsSqsPubSubClient:GetSqsQueueUrlForQueueName: Resolved queue name \"" + queueName = "\" to URL: " + queueUrl );
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AwsSqsPubSubClient:GetSqsQueueUrlForQueueName: Resolved queue name \"" + queueName + "\" to URL: " + CORE::ToString( queueUrl ) );
             return queueUrl;
         } 
         else 
         {
             errorCode = gqu_out.GetError();
-            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AwsSqsPubSubClient:GetSqsQueueUrlForQueueName: Error getting URL for queue name \"" + queueName = "\":" + gqu_out.GetError().GetMessage() );
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AwsSqsPubSubClient:GetSqsQueueUrlForQueueName: Error getting URL for queue name \"" + queueName + "\":" + CORE::ToString( gqu_out.GetError().GetMessage() ) );
         }
     }
     catch ( const std::exception& e )

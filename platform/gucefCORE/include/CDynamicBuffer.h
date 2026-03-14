@@ -420,6 +420,14 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
     bool AppendContentToFile( const CORE::CString& filepath ) const;
 
     /**
+     *  Appends printf-style formatted text to the buffer.
+     *  Handles buffer growth automatically - no fixed size limit.
+     *  The null terminator written by vsnprintf is NOT included in the DataSize.
+     *  Returns the number of bytes appended (excluding null terminator), or -1 on error.
+     */
+    Int32 AppendPrintf( const char* format, ... );
+
+    /**
      *  Provides mutable access to the buffer as a block of memory
      *  Note that if the buffer is linked this operation will result in the creation of a private copy
      */

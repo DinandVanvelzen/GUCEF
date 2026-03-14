@@ -198,12 +198,12 @@ CAwsSqsPubSubClientTopic::GetSqsQueueUrlForQueueName( const CORE::CString& queue
         {
             const Aws::String& queueUrl = gqu_out.GetResult().GetQueueUrl();
 
-            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AwsSqsPubSubClientTopic:GetSqsQueueUrlForQueueName: Resolved queue name \"" + queueName = "\" to URL: " + queueUrl );
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AwsSqsPubSubClientTopic:GetSqsQueueUrlForQueueName: Resolved queue name \"" + queueName + "\" to URL: " + CORE::ToString( queueUrl ) );
             return queueUrl;
         } 
         else 
         {
-            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AwsSqsPubSubClientTopic:GetSqsQueueUrlForQueueName: Error getting URL for queue name \"" + queueName = "\":" + gqu_out.GetError().GetMessage() );
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "AwsSqsPubSubClientTopic:GetSqsQueueUrlForQueueName: Error getting URL for queue name \"" + queueName + "\":" + CORE::ToString( gqu_out.GetError().GetMessage() ) );
         }
     }
     catch ( const std::exception& e )
@@ -410,7 +410,7 @@ CAwsSqsPubSubClientTopic::ApplySqsMessageAttributeNameContraints( CORE::CAsciiSt
 {GUCEF_TRACE;
 
     // From the AWS documentation:
-    //          Name – The message attribute name can contain the following characters: A-Z, a-z, 0-9, underscore (_), hyphen (-), and period (.). The following restrictions apply:
+    //          Name â€“ The message attribute name can contain the following characters: A-Z, a-z, 0-9, underscore (_), hyphen (-), and period (.). The following restrictions apply:
     //              - Can be up to 256 characters long
     //              - Can't start with AWS. or Amazon. (or any casing variations)
     //              - Is case-sensitive

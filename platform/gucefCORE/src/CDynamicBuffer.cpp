@@ -26,6 +26,8 @@
 #include <functional>           /* needed here for std::min() */
 #include <stdlib.h>             /* needed here for realloc() */
 #include <string.h>             /* needed for memcpy() */
+#include <stdarg.h>             /* needed for va_list / vsnprintf */
+#include <stdio.h>              /* needed for vsnprintf */
 #include <assert.h>
 
 #ifndef GUCEF_CORE_CIOACCESS_H
@@ -1478,6 +1480,48 @@ CDynamicBuffer::LinkTo( const CDynamicBuffer& src )
 {GUCEF_TRACE;
 
     return LinkTo( src.GetConstBufferPtr(), src.GetDataSize() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CDynamicBuffer::AppendPrintf( const char* format, ... )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == format )
+        return -1;
+
+    // First pass: determine how many bytes vsnprintf wants to write (excl. null)
+    va_list args;
+    va_start( args, format );
+    Int32 requiredSize = vsnprintf( GUCEF_NULL, 0, format, args );
+    va_end( args );
+
+    if ( requiredSize < 0 )
+        return -1;
+
+    // Grow the buffer if needed to hold existing data + new content + null terminator
+    UInt32 writeOffset = m_dataSize;
+    UInt32 neededBufferSize = writeOffset + (UInt32) requiredSize + 1;
+    if ( neededBufferSize > _bsize )
+    {
+        if ( !SetBufferSize( neededBufferSize, false ) )
+            return -1;
+    }
+
+    // Second pass: write directly into the buffer at the current data end
+    char* writePtr = static_cast< char* >( GetBufferPtr( writeOffset ) );
+    va_start( args, format );
+    Int32 written = vsnprintf( writePtr, (UInt32) requiredSize + 1, format, args );
+    va_end( args );
+
+    if ( written > 0 )
+    {
+        // Advance data size by bytes written; null terminator is not counted
+        SetDataSize( writeOffset + (UInt32) written );
+    }
+
+    return written;
 }
 
 /*-------------------------------------------------------------------------//
