@@ -12,8 +12,16 @@
 # Configuration for module: gucefPUBSUB_TestApp
 
 set( HEADER_FILES
+  include/MockPubSubClient.h
+  include/TestBasicPubSubMsg.h
+  include/TestPubSubBookmark.h
   include/TestPubSubClientConfig.h
+  include/TestPubSubClientFeatures.h
+  include/TestPubSubClientSide.h
+  include/TestPubSubFlowRouter.h
+  include/TestPubSubFlowRouterConfig.h
   include/TestPubSubMsgBinarySerializer.h
+  include/TestPubSubMsgContainerBinarySerializer.h
   include/TestPubSubPlugin_AWSSNS.h
   include/TestPubSubPlugin_AWSSQS.h
   include/TestPubSubPlugin_KAFKA.h
@@ -27,8 +35,16 @@ set( HEADER_FILES
 
 set( SOURCE_FILES
   src/gucefPUBSUB_TestApp_main.cpp
+  src/MockPubSubClient.cpp
+  src/TestBasicPubSubMsg.cpp
+  src/TestPubSubBookmark.cpp
   src/TestPubSubClientConfig.cpp
+  src/TestPubSubClientFeatures.cpp
+  src/TestPubSubClientSide.cpp
+  src/TestPubSubFlowRouter.cpp
+  src/TestPubSubFlowRouterConfig.cpp
   src/TestPubSubMsgBinarySerializer.cpp
+  src/TestPubSubMsgContainerBinarySerializer.cpp
   src/TestPubSubPlugin_AWSSNS.cpp
   src/TestPubSubPlugin_AWSSQS.cpp
   src/TestPubSubPlugin_KAFKA.cpp

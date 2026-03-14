@@ -48,15 +48,50 @@
 #define GUCEF_PUBSUB_H
 #endif /* GUCEF_PUBSUB_H ? */
 
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTBASICPUBSUBMSG_H
+#include "TestBasicPubSubMsg.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTBASICPUBSUBMSG_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTBASICPUBSUBMSG_H ? */
+
 #ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBMSGBINARYSERIALIZER_H
 #include "TestPubSubMsgBinarySerializer.h"
 #define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBMSGBINARYSERIALIZER_H
 #endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBMSGBINARYSERIALIZER_H ? */
 
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBMSGCONTAINERBINARYSERIALIZER_H
+#include "TestPubSubMsgContainerBinarySerializer.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBMSGCONTAINERBINARYSERIALIZER_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBMSGCONTAINERBINARYSERIALIZER_H ? */
+
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBBOOKMARK_H
+#include "TestPubSubBookmark.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBBOOKMARK_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBBOOKMARK_H ? */
+
 #ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBCLIENTCONFIG_H
 #include "TestPubSubClientConfig.h"
 #define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBCLIENTCONFIG_H
 #endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBCLIENTCONFIG_H ? */
+
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBCLIENTFEATURES_H
+#include "TestPubSubClientFeatures.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBCLIENTFEATURES_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBCLIENTFEATURES_H ? */
+
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBCLIENTSIDE_H
+#include "TestPubSubClientSide.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBCLIENTSIDE_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBCLIENTSIDE_H ? */
+
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBFLOWROUTER_H
+#include "TestPubSubFlowRouter.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBFLOWROUTER_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBFLOWROUTER_H ? */
+
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBFLOWROUTERCONFIG_H
+#include "TestPubSubFlowRouterConfig.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBFLOWROUTERCONFIG_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBFLOWROUTERCONFIG_H ? */
 
 #ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_AWSSNS_H
 #include "TestPubSubPlugin_AWSSNS.h"
@@ -137,18 +172,27 @@ GUCEF_OSMAIN_BEGIN
         GUCEF_TESTFW_INIT( "gucefPUBSUB_TestApp" );
         GUCEF_TESTFW_SET_CALLBACK( GUCEF::CORE::TestFrameworkLogCallback, GUCEF_NULL );
 
-        PerformPubSubMsgBinarySerializerTests();
-        PerformPubSubClientConfigTests();
+        #define FLUSH_LOGS GUCEF::CORE::CCoreGlobal::Instance()->GetLogManager().FlushLogs()
 
-        PerformPubSubPlugin_AWSSNSTests();
-        PerformPubSubPlugin_AWSSQSTests();
-        PerformPubSubPlugin_KAFKATests();
-        PerformPubSubPlugin_MSMQTests();
-        PerformPubSubPlugin_REDISCLUSTERTests();
-        PerformPubSubPlugin_STORAGETests();
-        PerformPubSubPlugin_TESTTests();
-        PerformPubSubPlugin_UDPTests();
-        PerformPubSubPlugin_WEBTests();
+        PerformPubSubBookmarkTests();                     FLUSH_LOGS;
+        PerformPubSubClientFeaturesTests();               FLUSH_LOGS;
+        PerformBasicPubSubMsgTests();                     FLUSH_LOGS;
+        PerformPubSubMsgBinarySerializerTests();          FLUSH_LOGS;
+        PerformPubSubMsgContainerBinarySerializerTests(); FLUSH_LOGS;
+        PerformPubSubClientConfigTests();                 FLUSH_LOGS;
+        PerformPubSubFlowRouterConfigTests();             FLUSH_LOGS;
+        PerformPubSubFlowRouterTests();                   FLUSH_LOGS;
+        PerformPubSubClientSideTests();                   FLUSH_LOGS;
+
+        PerformPubSubPlugin_AWSSNSTests();                FLUSH_LOGS;
+        PerformPubSubPlugin_AWSSQSTests();                FLUSH_LOGS;
+        PerformPubSubPlugin_KAFKATests();                 FLUSH_LOGS;
+        PerformPubSubPlugin_MSMQTests();                  FLUSH_LOGS;
+        PerformPubSubPlugin_REDISCLUSTERTests();          FLUSH_LOGS;
+        PerformPubSubPlugin_STORAGETests();               FLUSH_LOGS;
+        PerformPubSubPlugin_TESTTests();                  FLUSH_LOGS;
+        PerformPubSubPlugin_UDPTests();                   FLUSH_LOGS;
+        PerformPubSubPlugin_WEBTests();                   FLUSH_LOGS;
 
         GUCEF::CORE::CString xmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
         GUCEF::CORE::AppendToPath( xmlPath, "gucefPUBSUB_TestApp_Results.xml" );

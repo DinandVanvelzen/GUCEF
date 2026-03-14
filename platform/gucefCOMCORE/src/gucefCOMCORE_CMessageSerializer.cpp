@@ -434,13 +434,98 @@ CMessageSerializer::Serialize( const CMessageSerializerOptions& options ,
 
 /*-------------------------------------------------------------------------*/
 
-bool 
+bool
 CMessageSerializer::Deserialize( const CMessageSerializerOptions& options ,
                                  CIMessage& msg                           ,
                                  const CORE::CDataNode& input             )
 {GUCEF_TRACE;
 
-    return false;
+    bool success = true;
+    try
+    {
+        if ( options.msgDateTimeIncluded )
+        {
+            const CORE::CVariant& dtValue = input.GetAttributeValueOrChildValueByName( "msgDateTimeAsMsSinceUnixEpochInUtc" );
+            if ( !dtValue.IsNULLOrEmpty() )
+            {
+                msg.GetMsgDateTime().FromUnixEpochBasedTicksInMillisecs( dtValue.AsUInt64( 0, true ) );
+            }
+            else
+            {
+                const CORE::CVariant& iso8601 = input.GetAttributeValueOrChildValueByName( "msgDateTimeAsIso8601" );
+                if ( !iso8601.IsNULLOrEmpty() )
+                {
+                    CORE::CString iso8601Str = iso8601.AsString();
+                    msg.GetMsgDateTime().FromIso8601DateTimeString( iso8601Str.C_String(), iso8601Str.Length() );
+                }
+            }
+        }
+
+        if ( options.msgIdIncluded )
+        {
+            const CORE::CVariant& msgId = input.GetAttributeValueOrChildValueByName( "msgId" );
+            if ( !msgId.IsNULLOrEmpty() )
+            {
+                msg.GetMsgId() = msgId;
+            }
+        }
+
+        if ( options.msgIndexIncluded )
+        {
+            const CORE::CVariant& msgIndex = input.GetAttributeValueOrChildValueByName( "msgIndex" );
+            if ( !msgIndex.IsNULLOrEmpty() )
+            {
+                msg.GetMsgIndex() = msgIndex;
+            }
+        }
+
+        if ( options.msgPrimaryPayloadIncluded )
+        {
+            const CORE::CDataNode* payloadNode = input.FindChild( "primaryPayload" );
+            if ( GUCEF_NULL != payloadNode )
+            {
+                msg.GetPrimaryPayload() = payloadNode->GetValue();
+            }
+        }
+
+        if ( options.msgKeyValuePairsIncluded )
+        {
+            const CORE::CDataNode* kvPairsNode = input.FindChild( "keyValuePairs" );
+            if ( GUCEF_NULL != kvPairsNode )
+            {
+                CORE::CDataNode::const_iterator i = kvPairsNode->ConstBegin();
+                while ( i != kvPairsNode->ConstEnd() )
+                {
+                    msg.GetKeyValuePairs().push_back( CIMessage::TKeyValuePair(
+                        CORE::CVariant( (*i)->GetName() ),
+                        (*i)->GetValue() ) );
+                    ++i;
+                }
+            }
+        }
+
+        if ( options.msgMetaDataKeyValuePairsIncluded )
+        {
+            const CORE::CDataNode* kvPairsNode = input.FindChild( "metaDataKeyValuePairs" );
+            if ( GUCEF_NULL != kvPairsNode )
+            {
+                CORE::CDataNode::const_iterator i = kvPairsNode->ConstBegin();
+                while ( i != kvPairsNode->ConstEnd() )
+                {
+                    msg.GetMetaDataKeyValuePairs().push_back( CIMessage::TKeyValuePair(
+                        CORE::CVariant( (*i)->GetName() ),
+                        (*i)->GetValue() ) );
+                    ++i;
+                }
+            }
+        }
+    }
+    catch ( const std::exception& e )
+    {
+        success = false;
+        GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_NORMAL, CString( "MessageSerializer:Deserialize: caught exception: " ) + e.what() );
+    }
+    return success;
 }
 
 /*-------------------------------------------------------------------------*/

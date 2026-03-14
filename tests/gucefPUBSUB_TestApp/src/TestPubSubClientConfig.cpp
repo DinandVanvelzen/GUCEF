@@ -78,7 +78,7 @@ PerformPubSubClientConfigTests( void )
             PUBSUB::CPubSubClientConfig cfg;
             ASSERT_TRUE( cfg.pubsubClientType.IsNULLOrEmpty() );
             ASSERT_TRUE( cfg.reconnectDelayInMs == 0 );
-            ASSERT_TRUE( cfg.maxTotalMsgsInFlight == -1 );
+            ASSERT_TRUE( cfg.maxTotalMsgsInFlight == 1000 );
             ASSERT_TRUE( cfg.topics.empty() );
             ASSERT_TRUE( cfg.remoteAddresses.empty() );
         }

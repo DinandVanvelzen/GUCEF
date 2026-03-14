@@ -62,6 +62,8 @@ This file contains important notes and reminders for AI assistants working on th
 
 **CRITICAL: Do NOT assume Visual Studio is not running.** The user works inside Visual Studio 2026 Pro and launches Claude Code from within it via the Claude Code Extension. If MCP tools are unavailable or a port check fails, this does NOT mean VS is not running — it may mean the VS MCP Server extension is not yet active. Before asking or stating that VS is not running, first verify by checking running processes (`tasklist | findstr devenv`). The solution is always open when this session is active.
 
+**CRITICAL: VS MCP Server requires manual "Start server" click.** The VS MCP Server extension does NOT start automatically when Visual Studio opens. The user must manually click **"Start server"** in the VS MCP Server extension panel each time Visual Studio is launched. If `build_project` / `build_solution` and other VS MCP tools are unavailable, remind the user: **"Please click 'Start server' in the VS MCP Server extension panel inside Visual Studio."**
+
 If you detect you are running inside Visual Studio 2026 (e.g., told so by the user, or the session context indicates it), check whether the following MCP tools are available: `build_solution`, `document_open`, `solution_info`, etc.
 
 If these tools are **not available**, prompt the user to install the required extensions:

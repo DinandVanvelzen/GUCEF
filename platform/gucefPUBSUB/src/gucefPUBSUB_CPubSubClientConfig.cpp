@@ -184,7 +184,7 @@ CPubSubClientConfig::SaveConfig( CORE::CDataNode& cfg ) const
         }
     }
 
-    if ( defaultTopicConfig.IsNULL() )
+    if ( !defaultTopicConfig.IsNULL() )
     {
         CORE::CDataNode* defaultTopicCfgNode = cfg.FindOrAddChild( "defaultTopicConfig" );
         if ( GUCEF_NULL == defaultTopicCfgNode )
