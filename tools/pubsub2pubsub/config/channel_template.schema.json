@@ -1,0 +1,1327 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "pubsub2pubsub Channel Template",
+  "description": "Configuration template for a pubsub2pubsub message routing channel. Defines pub/sub sides (sources and/or sinks), the flow router that connects them, and backend-specific settings.",
+  "type": "object",
+  "required": ["channelName"],
+  "properties": {
+    "channelId": {
+      "description": "Unique channel identifier. Use -1 to request auto-assignment.",
+      "anyOf": [{ "type": "integer" }, { "type": "string" }]
+    },
+    "channelName": {
+      "type": "string",
+      "description": "Human-readable name for this channel."
+    },
+    "collectMetrics": {
+      "description": "Whether to collect runtime metrics for this channel.",
+      "anyOf": [{ "type": "boolean" }, { "type": "string", "enum": ["true", "false"] }]
+    },
+    "metricsIntervalInMs": {
+      "description": "Interval in milliseconds at which metrics are collected and reported.",
+      "anyOf": [{ "type": "integer" }, { "type": "string" }]
+    },
+    "ticketRefillOnBusyCycle": {
+      "description": "Number of processing tickets refilled per busy cycle. Controls throughput throttling.",
+      "anyOf": [{ "type": "integer" }, { "type": "string" }]
+    },
+    "PubSubSides": {
+      "description": "Named pub/sub endpoints. Each key is a user-defined side ID (e.g. 'kafka-source', 'storage-sink').",
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/PubSubSide" }
+    },
+    "PubSubFlowRouterConfig": { "$ref": "#/$defs/PubSubFlowRouterConfig" }
+  },
+
+  "$defs": {
+
+    "IntOrString": {
+      "description": "Accepts both integer and string representations of a number.",
+      "anyOf": [{ "type": "integer" }, { "type": "string" }]
+    },
+
+    "NumberOrString": {
+      "description": "Accepts both number (incl. float) and string representations.",
+      "anyOf": [{ "type": "number" }, { "type": "string" }]
+    },
+
+    "BoolOrString": {
+      "description": "Accepts both boolean and string boolean representations.",
+      "anyOf": [{ "type": "boolean" }, { "type": "string", "enum": ["true", "false"] }]
+    },
+
+    "JournalConfig": {
+      "description": "Configuration for binary journaling of pub/sub messages, used for recovery and replay.",
+      "type": "object",
+      "properties": {
+        "useJournal": {
+          "type": "boolean",
+          "description": "Whether to enable journaling for this client/topic."
+        },
+        "journalType": {
+          "type": "string",
+          "description": "Format of the journal. Currently 'binary' is the supported type.",
+          "examples": ["binary"]
+        },
+        "journalPath": {
+          "type": "string",
+          "description": "VFS path for the journal files. Supports template variables: {clientType}, {clientInstance}, {topicName}.",
+          "examples": ["vfs://DataPath/journals/clientType/{clientType}/instance/{clientInstance}"]
+        }
+      }
+    },
+
+    "BinarySerializerOptions": {
+      "description": "Controls which fields are included in binary serialization of pub/sub messages.",
+      "type": "object",
+      "properties": {
+        "msgDateTimeIncluded":             { "type": "boolean", "description": "Include the message timestamp." },
+        "msgDateTimeAsMsSinceUnixEpochInUtc": { "type": "boolean", "description": "Encode timestamp as milliseconds since Unix epoch (UTC)." },
+        "msgIdIncluded":                   { "type": "boolean", "description": "Include the message ID." },
+        "msgIndexIncluded":                { "type": "boolean", "description": "Include the message index." },
+        "msgPrimaryPayloadIncluded":       { "type": "boolean", "description": "Include the primary payload bytes." },
+        "msgKeyValuePairsIncluded":        { "type": "boolean", "description": "Include the key-value pair set." },
+        "msgMetaDataKeyValuePairsIncluded":{ "type": "boolean", "description": "Include the metadata key-value pair set." },
+        "topicNameIncluded":               { "type": "boolean", "description": "Include the topic name." }
+      }
+    },
+
+    "SerializerOptions": {
+      "description": "Controls which fields are included in text/structured serialization of pub/sub messages.",
+      "type": "object",
+      "properties": {
+        "msgDateTimeIncluded":                { "type": "boolean" },
+        "msgDateTimeAsMsSinceUnixEpochInUtc": { "type": "boolean" },
+        "msgIdIncluded":                      { "type": "boolean" },
+        "msgIndexIncluded":                   { "type": "boolean" },
+        "msgPrimaryPayloadIncluded":          { "type": "boolean" },
+        "msgPrimaryPayloadTypeIncluded":      { "type": "boolean", "description": "Include the MIME/type identifier for the primary payload." },
+        "msgKeyValuePairsIncluded":           { "type": "boolean" },
+        "msgMetaDataKeyValuePairsIncluded":   { "type": "boolean" },
+        "includeUndefinedValues":             { "type": "boolean", "description": "Include fields whose values are undefined/null." },
+        "receiveActionIdIncluded":            { "type": "boolean" },
+        "originTopicObjPointerIncluded":      { "type": "boolean", "description": "Include internal object pointer of origin topic (debug use)." },
+        "originTopicNameIncluded":            { "type": "boolean" },
+        "originClientTypeNameIncluded":       { "type": "boolean" },
+        "originClientObjPointerIncluded":     { "type": "boolean", "description": "Include internal object pointer of origin client (debug use)." }
+      }
+    },
+
+    "DesiredFeatures": {
+      "description": "Declares which pub/sub features this backend supports. Used by the framework to select compatible code paths. These are capability declarations, not configuration.",
+      "type": "object",
+      "properties": {
+        "supportsPublishing":                        { "type": "boolean" },
+        "supportsSubscribing":                       { "type": "boolean" },
+        "supportsAutoReconnect":                     { "type": "boolean" },
+        "supportsBinaryPayloads":                    { "type": "boolean" },
+        "supportsKeyValueSetPerMsg":                 { "type": "boolean" },
+        "supportsMetaDataKeyValueSetPerMsg":         { "type": "boolean" },
+        "supportsDuplicateKeysPerMsg":               { "type": "boolean" },
+        "supportsPrimaryPayloadPerMsg":              { "type": "boolean" },
+        "supportsAbsentPrimaryPayloadPerMsg":        { "type": "boolean" },
+        "supportsPerMsgIds":                         { "type": "boolean" },
+        "supportsMsgIndex":                          { "type": "boolean" },
+        "supportsMultiHostSharding":                 { "type": "boolean" },
+        "supportsMetrics":                           { "type": "boolean" },
+        "supportsBookmarkingConcept":                { "type": "boolean" },
+        "supportsAutoBookmarking":                   { "type": "boolean" },
+        "supportsSubscribingUsingBookmark":          { "type": "boolean" },
+        "supportsServerSideBookmarkPersistance":     { "type": "boolean" },
+        "supportsDerivingBookmarkFromMsg":           { "type": "boolean" },
+        "supportsMsgIdBasedBookmark":                { "type": "boolean" },
+        "supportsMsgIndexBasedBookmark":             { "type": "boolean" },
+        "supportsMsgDateTimeBasedBookmark":          { "type": "boolean" },
+        "supportsTopicIndexBasedBookmark":           { "type": "boolean" },
+        "supportsAckUsingBookmark":                  { "type": "boolean" },
+        "supportsAckUsingLastMsgInBatch":            { "type": "boolean" },
+        "supportsSubscriberMsgReceivedAck":          { "type": "boolean" },
+        "supportsAutoMsgReceivedAck":                { "type": "boolean" },
+        "supportsAbsentMsgReceivedAck":              { "type": "boolean" },
+        "supportsSubscriberRateThrottling":          { "type": "boolean" },
+        "supportsSubscriptionMsgArrivalDelayRequests": { "type": "boolean" },
+        "supportsSubscriptionEndOfDataEvent":        { "type": "boolean" },
+        "supportsDiscoveryOfAvailableTopics":        { "type": "boolean" },
+        "supportsGlobPatternTopicNames":             { "type": "boolean" },
+        "supportsPatternBasedAggregateTopic":        { "type": "boolean" }
+      }
+    },
+
+    "PubSubBookmarkPersistenceConfig": {
+      "description": "Configures how pub/sub progress bookmarks are persisted across restarts.",
+      "type": "object",
+      "properties": {
+        "bookmarkPersistenceType": {
+          "type": "string",
+          "description": "Backend used for bookmark persistence.",
+          "examples": ["VFS"]
+        },
+        "bookmarkNamespace": {
+          "type": "string",
+          "description": "Namespace prefix for organizing bookmarks. Supports template variables."
+        },
+        "autoPersistAlways": {
+          "type": "boolean",
+          "description": "Persist bookmarks on every message regardless of other settings."
+        },
+        "autoPersistIfClientSideBookmarksNeeded": {
+          "type": "boolean",
+          "description": "Automatically persist bookmarks when the backend requires client-side bookmark tracking."
+        },
+        "autoPersistIntervalInMs": {
+          "type": "integer",
+          "description": "Interval in milliseconds between automatic bookmark persistence operations."
+        },
+        "autoPersistMsgInterval": {
+          "type": "integer",
+          "description": "Persist a bookmark every N messages."
+        },
+        "maxNrOfBookmarksToKeep": {
+          "type": "integer",
+          "description": "Maximum number of historical bookmarks to retain."
+        },
+        "CustomConfig": {
+          "description": "VFS-specific bookmark persistence settings.",
+          "type": "object",
+          "properties": {
+            "vfsRootPath": {
+              "type": "string",
+              "description": "VFS root path for storing bookmark files.",
+              "examples": ["DataPath/bookmarks", "InstallPath/bookmarks"]
+            },
+            "persistenceStructure": {
+              "type": "string",
+              "description": "Path template for bookmark files. Supports: {bookmarkNamespace}, {clientType}, {topicName}.",
+              "examples": ["{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}"]
+            }
+          }
+        }
+      }
+    },
+
+    "RouteConfig": {
+      "description": "Defines a message flow route from a source side to one or more destination sides.",
+      "type": "object",
+      "required": ["fromSideId", "toSideId"],
+      "properties": {
+        "fromSideId": {
+          "type": "string",
+          "description": "Side ID of the message source (must match a key in PubSubSides)."
+        },
+        "toSideId": {
+          "type": "string",
+          "description": "Side ID of the primary message destination."
+        },
+        "failoverSideId": {
+          "type": "string",
+          "description": "Side ID to route to if the primary destination is unhealthy. Empty string disables failover."
+        },
+        "spilloverBufferSideId": {
+          "type": "string",
+          "description": "Side ID of a buffer side used for temporary spillover when the destination is under pressure. Empty string disables spillover."
+        },
+        "deadLetterSideId": {
+          "type": "string",
+          "description": "Side ID for messages that cannot be delivered. Empty string disables dead-letter routing."
+        },
+        "toSideTopicsAutoMatchFromSide": {
+          "type": "boolean",
+          "description": "Automatically match destination topics to source topics by name."
+        },
+        "failoverSideTopicsAutoMatchFromSide": {
+          "type": "boolean",
+          "description": "Automatically match failover side topics to source topics."
+        },
+        "spilloverSideTopicsAutoMatchFromSide": {
+          "type": "boolean",
+          "description": "Automatically match spillover side topics to source topics."
+        },
+        "deadLetterSideTopicsAutoMatchFromSide": {
+          "type": "boolean",
+          "description": "Automatically match dead-letter side topics to source topics."
+        },
+        "preferFromTopicThreadForDestination": {
+          "type": "boolean",
+          "description": "Use the source topic's thread for publishing to the destination, reducing context switches."
+        },
+        "egressAllDiscoveredSpilloverTopicsOnStart": {
+          "type": "boolean",
+          "description": "On startup, egress all topics already present in the spillover buffer."
+        },
+        "autoAssociateTopicsAnyToAnyAcrossSides": {
+          "type": "boolean",
+          "description": "Automatically create any-to-any topic associations between sides."
+        },
+        "topicAssociations": {
+          "type": "array",
+          "description": "Explicit topic routing associations between sides. Usually empty when auto-matching is enabled.",
+          "items": { "type": "object" }
+        }
+      }
+    },
+
+    "PubSubFlowRouterConfig": {
+      "description": "Controls how messages are routed between pub/sub sides, including failover and spillover behavior.",
+      "type": "object",
+      "properties": {
+        "ackStyle": {
+          "type": "string",
+          "description": "Acknowledgement strategy for routed messages.",
+          "enum": ["AllOrNothing", "BestEffort"],
+          "examples": ["AllOrNothing"]
+        },
+        "minBadHealthDurationBeforeFailoverInMs": {
+          "type": "integer",
+          "description": "Minimum duration (ms) a destination must be unhealthy before failover is triggered."
+        },
+        "minBadHealthDurationBeforeSpilloverInMs": {
+          "type": "integer",
+          "description": "Minimum duration (ms) a destination must be unhealthy before spillover buffering is triggered."
+        },
+        "minPrimarySideGoodHealthDurationBeforeActivationInMs": {
+          "type": "integer",
+          "description": "Minimum duration (ms) the primary side must be healthy before it becomes active."
+        },
+        "minFailoverSideGoodHealthDurationBeforeActivationInMs": {
+          "type": "integer",
+          "description": "Minimum duration (ms) a failover side must be healthy before it activates."
+        },
+        "minSpilloverSideGoodHealthDurationBeforeActivationInMs": {
+          "type": "integer",
+          "description": "Minimum duration (ms) a spillover side must be healthy before it activates."
+        },
+        "routeSwitchingTimerIntervalInMs": {
+          "type": "integer",
+          "description": "Interval (ms) at which the router evaluates whether a route switch is needed."
+        },
+        "routes": {
+          "type": "array",
+          "description": "List of message flow routes.",
+          "items": { "$ref": "#/$defs/RouteConfig" }
+        }
+      }
+    },
+
+    "PubSubSide": {
+      "description": "A single pub/sub endpoint - either a source (subscriber) or sink (publisher), or both.",
+      "type": "object",
+      "properties": {
+        "allowOutOfOrderPublishRetry": {
+          "type": "boolean",
+          "description": "Allow retrying failed publishes out of their original order."
+        },
+        "needToTrackInFlightPublishedMsgsForAckDefault": {
+          "type": "boolean",
+          "description": "Whether to track in-flight published messages for acknowledgement by default."
+        },
+        "allowTimedOutPublishedInFlightMsgsRetryOutOfOrder": {
+          "type": "boolean",
+          "description": "Allow retrying timed-out in-flight published messages out of order."
+        },
+        "applyThreadCpuAffinity": {
+          "type": "boolean",
+          "description": "Pin the pub/sub thread to a specific CPU core."
+        },
+        "cpuAffinityForPubSubThread": {
+          "type": "integer",
+          "description": "CPU core index to pin the pub/sub thread to (0-based). Requires applyThreadCpuAffinity=true."
+        },
+        "maxMsgPublishRetryAttempts": {
+          "type": "integer",
+          "description": "Maximum number of times to retry a failed message publish."
+        },
+        "maxMsgPublishRetryTotalTimeInMs": {
+          "type": "integer",
+          "description": "Maximum total time (ms) to spend retrying a failed publish before giving up."
+        },
+        "maxPublishedMsgInFlightTimeInMs": {
+          "type": "integer",
+          "description": "Maximum time (ms) a published message may be in-flight before it is considered timed out."
+        },
+        "maxTotalMsgsInFlight": {
+          "type": "integer",
+          "description": "Maximum number of messages that may be in-flight simultaneously for this side."
+        },
+        "maxASyncPublishMailboxSize": {
+          "type": "integer",
+          "description": "Maximum size of the async publish mailbox under normal conditions."
+        },
+        "maxASyncPublishMailboxSizeDuringAFR": {
+          "type": "integer",
+          "description": "Maximum size of the async publish mailbox during Accelerated Flow Recovery (AFR)."
+        },
+        "performPubSubInDedicatedThread": {
+          "type": "boolean",
+          "description": "Run pub/sub operations in a dedicated thread rather than the shared thread pool."
+        },
+        "retryFailedPublishAttempts": {
+          "type": "boolean",
+          "description": "Whether to retry failed message publish attempts."
+        },
+        "subscribeWithoutBookmarkIfNoneIsPersisted": {
+          "type": "boolean",
+          "description": "Start subscribing from the beginning (or default offset) if no persisted bookmark is found."
+        },
+        "PubSubClientConfig": { "$ref": "#/$defs/PubSubClientConfig" },
+        "PubSubBookmarkPersistenceConfig": { "$ref": "#/$defs/PubSubBookmarkPersistenceConfig" }
+      }
+    },
+
+    "PubSubClientConfigCommon": {
+      "description": "Common fields shared across all pub/sub client backend types.",
+      "type": "object",
+      "properties": {
+        "pubsubClientType": {
+          "type": "string",
+          "description": "Identifies the pub/sub backend plugin to use. Determines which fields are valid in CustomConfig.",
+          "enum": ["Kafka", "MSMQ", "STORAGE", "ClusteredRedis", "UDP", "WEB", "AwsSqs", "TEST"]
+        },
+        "reconnectDelayInMs": {
+          "description": "Delay (ms) before attempting to reconnect after a connection loss. Use 0 for immediate reconnect.",
+          "anyOf": [{ "type": "integer" }, { "type": "string" }]
+        },
+        "pubsubIdPrefix": {
+          "type": "string",
+          "description": "Prefix for auto-generated pub/sub client IDs. Use '{auto}' for automatic generation.",
+          "examples": ["{auto}"]
+        },
+        "maxTotalMsgsInFlight": {
+          "type": "integer",
+          "description": "Maximum number of messages that may be in-flight simultaneously across all topics."
+        },
+        "RemoteAddresses": {
+          "description": "Remote host addresses for this backend. Format: 'host:port'. Can be an array or object.",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": { "type": "string" },
+              "examples": [["127.0.0.1:9092"], ["127.0.0.1:6379"]]
+            },
+            {
+              "type": "object",
+              "description": "Object form with a single 'remoteAddress' field (legacy format).",
+              "properties": {
+                "remoteAddress": { "type": "string" }
+              }
+            }
+          ]
+        },
+        "RemoteAddressess": {
+          "description": "Alternative spelling of RemoteAddresses (legacy/typo variant). Use RemoteAddresses instead.",
+          "anyOf": [
+            { "type": "array", "items": { "type": "string" } },
+            { "type": "object" }
+          ]
+        },
+        "journalConfig": { "$ref": "#/$defs/JournalConfig" },
+        "DesiredFeatures": { "$ref": "#/$defs/DesiredFeatures" }
+      }
+    },
+
+    "PubSubClientConfig": {
+      "description": "Backend-specific pub/sub client configuration. The 'pubsubClientType' field acts as a discriminator determining valid CustomConfig, defaultTopicConfig, and Topics content.",
+      "allOf": [
+        { "$ref": "#/$defs/PubSubClientConfigCommon" },
+        {
+          "if": {
+            "properties": { "pubsubClientType": { "const": "Kafka" } },
+            "required": ["pubsubClientType"]
+          },
+          "then": {
+            "properties": {
+              "CustomConfig": { "$ref": "#/$defs/KafkaClientCustomConfig" },
+              "defaultTopicConfig": { "$ref": "#/$defs/KafkaDefaultTopicConfig" },
+              "Topics": { "$ref": "#/$defs/KafkaTopicsConfig" }
+            }
+          },
+          "else": {
+            "if": {
+              "properties": { "pubsubClientType": { "const": "MSMQ" } },
+              "required": ["pubsubClientType"]
+            },
+            "then": {
+              "properties": {
+                "CustomConfig": { "$ref": "#/$defs/MsmqClientCustomConfig" },
+                "defaultTopicConfig": { "$ref": "#/$defs/MsmqDefaultTopicConfig" },
+                "Topics": { "$ref": "#/$defs/MsmqTopicsConfig" }
+              }
+            },
+            "else": {
+              "if": {
+                "properties": { "pubsubClientType": { "const": "STORAGE" } },
+                "required": ["pubsubClientType"]
+              },
+              "then": {
+                "properties": {
+                  "CustomConfig": { "$ref": "#/$defs/StorageClientCustomConfig" },
+                  "defaultTopicConfig": { "$ref": "#/$defs/StorageDefaultTopicConfig" },
+                  "Topics": { "$ref": "#/$defs/StorageTopicsConfig" }
+                }
+              },
+              "else": {
+                "if": {
+                  "properties": { "pubsubClientType": { "const": "ClusteredRedis" } },
+                  "required": ["pubsubClientType"]
+                },
+                "then": {
+                  "properties": {
+                    "CustomConfig": { "$ref": "#/$defs/RedisClientCustomConfig" },
+                    "defaultTopicConfig": { "$ref": "#/$defs/RedisDefaultTopicConfig" },
+                    "Topics": { "$ref": "#/$defs/RedisTopicsConfig" }
+                  }
+                },
+                "else": {
+                  "if": {
+                    "properties": { "pubsubClientType": { "const": "UDP" } },
+                    "required": ["pubsubClientType"]
+                  },
+                  "then": {
+                    "properties": {
+                      "CustomConfig": { "$ref": "#/$defs/UdpClientCustomConfig" },
+                      "defaultTopicConfig": { "$ref": "#/$defs/UdpDefaultTopicConfig" },
+                      "Topics": { "$ref": "#/$defs/UdpTopicsConfig" }
+                    }
+                  },
+                  "else": {
+                    "if": {
+                      "properties": { "pubsubClientType": { "const": "WEB" } },
+                      "required": ["pubsubClientType"]
+                    },
+                    "then": {
+                      "properties": {
+                        "CustomConfig": { "$ref": "#/$defs/WebClientCustomConfig" },
+                        "defaultTopicConfig": { "$ref": "#/$defs/WebDefaultTopicConfig" },
+                        "Topics": { "$ref": "#/$defs/WebTopicsConfig" }
+                      }
+                    },
+                    "else": {
+                      "if": {
+                        "properties": { "pubsubClientType": { "const": "AwsSqs" } },
+                        "required": ["pubsubClientType"]
+                      },
+                      "then": {
+                        "properties": {
+                          "CustomConfig": { "$ref": "#/$defs/SqsClientCustomConfig" },
+                          "defaultTopicConfig": { "$ref": "#/$defs/SqsDefaultTopicConfig" },
+                          "Topics": { "$ref": "#/$defs/SqsTopicsConfig" }
+                        }
+                      },
+                      "else": {
+                        "if": {
+                          "properties": { "pubsubClientType": { "const": "TEST" } },
+                          "required": ["pubsubClientType"]
+                        },
+                        "then": {
+                          "properties": {
+                            "CustomConfig": { "$ref": "#/$defs/TestClientCustomConfig" },
+                            "defaultTopicConfig": { "$ref": "#/$defs/TestDefaultTopicConfig" },
+                            "Topics": { "$ref": "#/$defs/TestTopicsConfig" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+
+    "TopicConfigCommonFields": {
+      "description": "Common fields shared by all topic configurations regardless of backend.",
+      "type": "object",
+      "properties": {
+        "isOptional": {
+          "type": "boolean",
+          "description": "Whether failure to connect to or discover this topic is treated as non-fatal."
+        },
+        "needPublishSupport": {
+          "type": "boolean",
+          "description": "This topic requires publish (send) support from the backend."
+        },
+        "needSubscribeSupport": {
+          "type": "boolean",
+          "description": "This topic requires subscribe (receive) support from the backend."
+        },
+        "preferDedicatedConnection": {
+          "type": "boolean",
+          "description": "Request a dedicated connection for this topic rather than sharing a connection."
+        },
+        "topicName": {
+          "type": "string",
+          "description": "Backend-specific topic name. For MSMQ: queue path. For Kafka: topic name. For Redis: stream name. For STORAGE: sub-path. For UDP: interface label."
+        },
+        "consumerGroupName": {
+          "type": "string",
+          "description": "Consumer group name for backends that support consumer groups (e.g. Kafka)."
+        },
+        "consumerName": {
+          "type": "string",
+          "description": "Unique consumer name within the consumer group. Supports template: $HOSTNAME$, {topicName}."
+        },
+        "useTopicLevelMaxTotalMsgsInFlight": {
+          "type": "boolean",
+          "description": "Override the client-level maxTotalMsgsInFlight with the topic-level value."
+        },
+        "maxTotalMsgsInFlight": {
+          "type": "integer",
+          "description": "Topic-level cap on in-flight messages. Only used when useTopicLevelMaxTotalMsgsInFlight=true. Use -1 for unlimited."
+        },
+        "journalConfig": { "$ref": "#/$defs/JournalConfig" }
+      }
+    },
+
+    "KafkaLibrdkafkaConfig": {
+      "description": "Free-form librdkafka configuration properties. Field names use the librdkafka convention (dots allowed). Values may be string, integer, or boolean.",
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          { "type": "string" },
+          { "type": "integer" },
+          { "type": "boolean" }
+        ]
+      }
+    },
+
+    "KafkaClientCustomConfig": {
+      "description": "Kafka client-level configuration. These settings apply to the Kafka producer or consumer globally.",
+      "type": "object",
+      "properties": {
+        "KafkaConsumerGlobalConfig": {
+          "$ref": "#/$defs/KafkaLibrdkafkaConfig",
+          "description": "Global librdkafka consumer configuration. Applied to all consumer connections. See librdkafka documentation for available keys."
+        },
+        "KafkaProducerGlobalConfig": {
+          "$ref": "#/$defs/KafkaLibrdkafkaConfig",
+          "description": "Global librdkafka producer configuration. Applied to all producer connections. See librdkafka documentation for available keys."
+        }
+      }
+    },
+
+    "KafkaTopicCustomConfig": {
+      "description": "Kafka topic-level configuration controlling per-topic consumer/producer behavior.",
+      "type": "object",
+      "properties": {
+        "addProducerHostnameAsKafkaMsgHeader": {
+          "type": "boolean",
+          "description": "Add the producer's hostname as a Kafka message header."
+        },
+        "consumerModeStartOffset": {
+          "type": "string",
+          "description": "Consumer start offset strategy. Use 'stored' to resume from last committed offset, 'largest' for latest, 'smallest' for earliest.",
+          "examples": ["stored", "largest", "smallest", ""]
+        },
+        "kafkaMsgHeaderUsedForFiltering": {
+          "type": "string",
+          "description": "Kafka message header name to use for consumer-side filtering."
+        },
+        "kafkaMsgValuesUsedForFiltering": {
+          "type": "string",
+          "description": "Comma-separated list of values to match against the filter header."
+        },
+        "useKafkaMsgHeadersForConsumerFiltering": {
+          "type": "boolean",
+          "description": "Enable filtering of consumed messages based on Kafka headers."
+        },
+        "prefixToAddForKvPairs": {
+          "type": "string",
+          "description": "Prefix to prepend to all key-value pair keys when producing."
+        },
+        "prefixToAddForMetaDataKvPairs": {
+          "type": "string",
+          "description": "Prefix to prepend to metadata key-value pair keys when producing."
+        },
+        "stripPrefixForKvPairs": {
+          "type": "boolean",
+          "description": "Strip the configured prefix from key-value pair keys when consuming."
+        },
+        "stripPrefixForMetaDataKvPairs": {
+          "type": "boolean",
+          "description": "Strip the configured prefix from metadata key-value pair keys when consuming."
+        },
+        "maxKafkaErrorsToBeHealthy": {
+          "type": "integer",
+          "description": "Maximum number of consecutive Kafka errors before the topic is considered unhealthy. 0 = any error makes it unhealthy."
+        },
+        "addReadyToTransmitTimeStampAsKafkaMetaDataMsgHeader": {
+          "type": "boolean",
+          "description": "Add a 'ready to transmit' timestamp as a Kafka message header."
+        },
+        "readyToTransmitTimeStampMetaDataKey": {
+          "type": "string",
+          "description": "Key name for the ready-to-transmit timestamp header.",
+          "default": "readyForKafkaTransmitTimestamp"
+        },
+        "KafkaProducerGlobalConfig": {
+          "$ref": "#/$defs/KafkaLibrdkafkaConfig",
+          "description": "Per-topic librdkafka producer overrides."
+        },
+        "KafkaConsumerGlobalConfig": {
+          "$ref": "#/$defs/KafkaLibrdkafkaConfig",
+          "description": "Per-topic librdkafka consumer overrides."
+        }
+      }
+    },
+
+    "KafkaTopicConfigDirect": {
+      "description": "Kafka topic configuration with fields defined directly (without PubSubClientTopicConfig wrapper).",
+      "allOf": [
+        { "$ref": "#/$defs/TopicConfigCommonFields" },
+        {
+          "type": "object",
+          "properties": {
+            "CustomConfig": { "$ref": "#/$defs/KafkaTopicCustomConfig" }
+          }
+        }
+      ]
+    },
+
+    "KafkaDefaultTopicConfig": {
+      "description": "Default Kafka topic configuration applied to all topics unless overridden in the Topics array.",
+      "$ref": "#/$defs/KafkaTopicConfigDirect"
+    },
+
+    "KafkaTopicsConfig": {
+      "description": "Explicit list of Kafka topic configurations. Usually empty when defaultTopicConfig covers all topics.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/KafkaTopicConfigDirect" }
+    },
+
+    "MsmqClientCustomConfig": {
+      "description": "MSMQ (Microsoft Message Queuing) client-level configuration.",
+      "type": "object",
+      "properties": {
+        "simulateReceiveAckFeatureViaLookupId": {
+          "type": "boolean",
+          "description": "Simulate message receive acknowledgement by using the MSMQ LookupId to track delivered messages."
+        },
+        "gatherMsmqMetricForTotalBytesAllQueues": {
+          "type": "boolean",
+          "description": "Collect the total bytes across all MSMQ queues as a metric."
+        }
+      }
+    },
+
+    "MsmqTopicCustomConfig": {
+      "description": "MSMQ topic (queue) level configuration.",
+      "type": "object",
+      "properties": {
+        "convertMsmqClsIdToString": {
+          "type": "boolean",
+          "description": "Convert the MSMQ class ID (CLSID) to a string representation."
+        },
+        "convertMsmqMsgIdToString": {
+          "type": "boolean",
+          "description": "Convert the MSMQ message ID to a string representation."
+        },
+        "defaultMsmqBodyBufferSizeInBytes": {
+          "type": "integer",
+          "description": "Initial buffer size in bytes for the MSMQ message body. Grows automatically if needed."
+        },
+        "gatherMsmqTransitTimeOnReceiveMetric": {
+          "type": "boolean",
+          "description": "Measure and record the time between message send and receive as a metric."
+        },
+        "maxMsmqMsgsToReadPerSyncCycle": {
+          "type": "integer",
+          "description": "Maximum number of MSMQ messages to read in a single synchronous processing cycle."
+        },
+        "minPayloadFieldGrowthPercOnBufferTooSmall": {
+          "type": "integer",
+          "description": "Minimum percentage by which to grow the payload buffer when it is too small."
+        },
+        "msmqMsgPropIdToMapToMsgIdOnReceive": {
+          "type": "integer",
+          "description": "MSMQ property ID whose value maps to the pubsub message ID on receive. Default 30 = PROPID_M_MSGID."
+        },
+        "msmqPropIdsToReceive": {
+          "type": "string",
+          "description": "Comma-separated list of MSMQ property IDs to retrieve on receive.",
+          "examples": ["2,8,9,20,21,22,30,31,32,33,34,35,36"]
+        },
+        "msmqPropIdsToSend": {
+          "type": "string",
+          "description": "Comma-separated list of MSMQ property IDs to set on send. Empty = default set."
+        },
+        "retainMsmqSentTimeAsMetaData": {
+          "type": "boolean",
+          "description": "Store the MSMQ sent-time field as message metadata."
+        },
+        "addMsgReadFromMsmqTimeAsMetaData": {
+          "type": "boolean",
+          "description": "Record the time the message was read from MSMQ as metadata."
+        },
+        "metadataKeyForMsgReadFromMsmqTime": {
+          "type": "integer",
+          "description": "Metadata key (integer) under which the MSMQ read time is stored."
+        },
+        "topicNameIsMsmqFormatName": {
+          "type": "boolean",
+          "description": "Treat the topicName as an MSMQ format name rather than a direct queue path."
+        },
+        "maxMsmqErrorsOnAckToBeHealthy": {
+          "type": "integer",
+          "description": "Maximum consecutive MSMQ errors during acknowledgement before the topic is considered unhealthy."
+        },
+        "maxMsmqErrorsOnReceiveToBeHealthy": {
+          "type": "integer",
+          "description": "Maximum consecutive MSMQ errors during receive before the topic is considered unhealthy."
+        }
+      }
+    },
+
+    "MsmqTopicConfigDirect": {
+      "allOf": [
+        { "$ref": "#/$defs/TopicConfigCommonFields" },
+        {
+          "type": "object",
+          "properties": {
+            "CustomConfig": { "$ref": "#/$defs/MsmqTopicCustomConfig" }
+          }
+        }
+      ]
+    },
+
+    "MsmqDefaultTopicConfig": {
+      "description": "Default MSMQ topic configuration applied to all topics unless overridden in the Topics array.",
+      "$ref": "#/$defs/MsmqTopicConfigDirect"
+    },
+
+    "MsmqTopicsConfig": {
+      "description": "Explicit list of MSMQ topic configurations. Usually empty when defaultTopicConfig covers all topics.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/MsmqTopicConfigDirect" }
+    },
+
+    "StorageClientCustomConfig": {
+      "description": "STORAGE client-level configuration. Controls how VFS storage directories are discovered and managed.",
+      "type": "object",
+      "properties": {
+        "vfsStorageRootPath": {
+          "type": "string",
+          "description": "Root VFS path used for automatic topic discovery from directory structure.",
+          "examples": ["DataPath/storage/", "DataPath/storage-source"]
+        },
+        "dirTopicDiscoveryIsRecursive": {
+          "type": "boolean",
+          "description": "Whether to recursively scan subdirectories when discovering topics from the filesystem."
+        },
+        "includeDirParentInTopicName": {
+          "type": "boolean",
+          "description": "Include the parent directory name as part of the topic name during auto-discovery."
+        },
+        "destroyTopicWhenDirIsDeleted": {
+          "type": "boolean",
+          "description": "Automatically destroy a topic when its backing directory is deleted."
+        }
+      }
+    },
+
+    "StorageTopicCustomConfig": {
+      "description": "STORAGE topic-level configuration. Controls buffering, VFS paths, codecs, serialization, and lifecycle for storage-backed pub/sub topics.",
+      "type": "object",
+      "properties": {
+        "desiredNrOfBuffers": {
+          "type": "integer",
+          "description": "Number of write buffers to maintain. More buffers allow higher throughput at the cost of memory.",
+          "default": 3
+        },
+        "desiredMinimalSerializedBlockSize": {
+          "type": "integer",
+          "description": "Minimum size in bytes for a serialized block before it is written to storage.",
+          "examples": [52428800, 2560000, 5000000]
+        },
+        "desiredMaxTimeToWaitToGrowSerializedBlockSizeInMs": {
+          "type": "integer",
+          "description": "Maximum time (ms) to wait for a block to grow to the desired size before flushing it anyway."
+        },
+        "vfsStorageRootPath": {
+          "type": "string",
+          "description": "VFS root path for this topic's storage files. Supports template variables: {topicName}, {pubsubIdPrefix}.",
+          "examples": ["DataPath/pubsub/storage/{pubsubIdPrefix}/{topicName}", "DataPath/storage/{topicName}"]
+        },
+        "vfsFileExtention": {
+          "type": "string",
+          "description": "File extension for storage files (without leading dot).",
+          "examples": ["pubsubcapture", "pubsubmsgs"]
+        },
+        "encodeCodecFamily": {
+          "type": "string",
+          "description": "Codec family name used to encode (compress/encrypt) data on write. Empty = no encoding."
+        },
+        "encodeCodecName": {
+          "type": "string",
+          "description": "Specific codec name within the family for encoding. Empty = auto-select."
+        },
+        "decodeCodecFamily": {
+          "type": "string",
+          "description": "Codec family name used to decode data on read. Empty = auto-detect."
+        },
+        "decodeCodecName": {
+          "type": "string",
+          "description": "Specific codec name within the family for decoding. Empty = auto-detect."
+        },
+        "ticketRefillOnBusyCycle": {
+          "type": "integer",
+          "description": "Tickets to refill per busy VFS ops cycle. Controls I/O throughput throttling."
+        },
+        "performVfsOpsASync": {
+          "type": "boolean",
+          "description": "Perform VFS operations asynchronously."
+        },
+        "performVfsOpsInDedicatedThread": {
+          "type": "boolean",
+          "description": "Run VFS operations in a dedicated thread."
+        },
+        "applyDedicatedVfsOpsThreadCpuAffinity": {
+          "type": "boolean",
+          "description": "Pin the dedicated VFS ops thread to a specific CPU core."
+        },
+        "cpuAffinityForDedicatedVfsOpsThread": {
+          "type": "integer",
+          "description": "CPU core index for the dedicated VFS ops thread (0-based)."
+        },
+        "collectMetrics": {
+          "type": "boolean",
+          "description": "Whether to collect metrics for this storage topic."
+        },
+        "subscribeWithoutBookmarkIfNoneIsPersisted": {
+          "type": "boolean",
+          "description": "Begin reading from the start of storage if no persisted bookmark is found."
+        },
+        "autoPushAfterStartupIfStorageToPubSub": {
+          "type": "boolean",
+          "description": "Automatically push stored messages to the downstream pub/sub after startup."
+        },
+        "autoPushAfterStartupIsPersistent": {
+          "type": "boolean",
+          "description": "Keep pushing storage contents persistently rather than stopping after initial catch-up."
+        },
+        "youngestStoragePubSubMsgFileToLoad": {
+          "type": "string",
+          "description": "Date/time threshold - only load files newer than this timestamp. Empty = no upper bound."
+        },
+        "oldestStoragePubSubMsgFileToLoad": {
+          "type": "string",
+          "description": "Date/time threshold - only load files older than this timestamp. Empty = no lower bound."
+        },
+        "defaultCodecDecodeGrowthRatioExpectation": {
+          "description": "Expected ratio by which the decoded data grows vs the encoded data. Used for buffer pre-allocation.",
+          "anyOf": [{ "type": "number" }, { "type": "integer" }],
+          "default": 6
+        },
+        "bestEffortDeserializeIsAllowed": {
+          "type": "boolean",
+          "description": "Allow partial deserialization of corrupt or partially written data."
+        },
+        "maxStorageCorruptionDetectionsToBeHealthy": {
+          "type": "integer",
+          "description": "Maximum corruption detection events before the topic is considered unhealthy. 0 = any corruption is fatal."
+        },
+        "maxStorageDeserializationFailuresToBeHealthy": {
+          "type": "integer",
+          "description": "Maximum deserialization failures before the topic is considered unhealthy."
+        },
+        "treatEveryFullfilledRequestAsEODEvent": {
+          "type": "boolean",
+          "description": "Treat every fulfilled read request as an end-of-data event."
+        },
+        "deleteContainersWithFullyAckdContent": {
+          "type": "boolean",
+          "description": "Delete storage container files once all their content has been acknowledged."
+        },
+        "moveContainersWithFullyAckdContent": {
+          "type": "boolean",
+          "description": "Move storage container files to an archive path once all their content has been acknowledged."
+        },
+        "vfsStorageRootPathForFullyAckdContainers": {
+          "type": "string",
+          "description": "VFS path where fully-acknowledged container files are moved. Used when moveContainersWithFullyAckdContent=true.",
+          "examples": ["DataPath/storage-sink/ackd", "DataPath/processed/storage-source/{topicName}"]
+        },
+        "maxCompletedContainerRefsToRetain": {
+          "type": "integer",
+          "description": "Maximum number of completed container references to keep in memory."
+        },
+        "topicFollowsDirRenames": {
+          "type": "boolean",
+          "description": "Update the topic name when its backing directory is renamed."
+        },
+        "binarySerializerOptions": { "$ref": "#/$defs/BinarySerializerOptions" },
+        "serializerOptions": { "$ref": "#/$defs/SerializerOptions" }
+      }
+    },
+
+    "StorageTopicConfigDirect": {
+      "allOf": [
+        { "$ref": "#/$defs/TopicConfigCommonFields" },
+        {
+          "type": "object",
+          "properties": {
+            "CustomConfig": { "$ref": "#/$defs/StorageTopicCustomConfig" }
+          }
+        }
+      ]
+    },
+
+    "StorageDefaultTopicConfig": {
+      "description": "Default STORAGE topic configuration applied to all topics unless overridden in the Topics array.",
+      "$ref": "#/$defs/StorageTopicConfigDirect"
+    },
+
+    "StorageTopicsConfig": {
+      "description": "Explicit list of STORAGE topic configurations. Usually empty when defaultTopicConfig covers all topics.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/StorageTopicConfigDirect" }
+    },
+
+    "RedisClientCustomConfig": {
+      "description": "ClusteredRedis client-level configuration. In current configurations this is typically empty; topic-level settings carry the main Redis parameters.",
+      "type": "object",
+      "properties": {}
+    },
+
+    "RedisTopicCustomConfig": {
+      "description": "ClusteredRedis (Redis Streams) topic-level configuration.",
+      "type": "object",
+      "properties": {
+        "autoGenerateRedisAddMinId": {
+          "type": "boolean",
+          "description": "Automatically generate the XADD MINID (minimum ID) based on maxAgeInMsForMinId."
+        },
+        "maxAgeInMsForMinId": {
+          "type": "integer",
+          "description": "Maximum age (ms) of messages to retain when autoGenerateRedisAddMinId=true. Default ~1 year.",
+          "default": 31560000000
+        },
+        "redisXAddMaxLen": {
+          "type": "integer",
+          "description": "Maximum number of messages in the Redis stream (XADD MAXLEN). Use -1 to disable trimming."
+        },
+        "redisXAddMaxLenIsApproximate": {
+          "type": "boolean",
+          "description": "Use approximate trimming ('~' flag on MAXLEN) for better performance."
+        },
+        "redisXAddIgnoreMsgId": {
+          "type": "boolean",
+          "description": "Ignore the pubsub message ID when writing to Redis (use auto-generated Redis IDs)."
+        },
+        "redisXReadDefaultOffset": {
+          "type": "string",
+          "description": "Default offset for XREAD when no bookmark is available. '0' = read from beginning, '$' = read only new messages.",
+          "examples": ["0", "$"]
+        },
+        "redisXReadCount": {
+          "type": "integer",
+          "description": "Maximum number of messages to read per XREAD call."
+        },
+        "redisXReadBlockTimeoutInMs": {
+          "type": "integer",
+          "description": "Blocking timeout (ms) for XREAD. The call blocks until a message arrives or the timeout expires."
+        },
+        "treatXReadBlockTimeoutAsEndOfDataEvent": {
+          "type": "boolean",
+          "description": "Treat an XREAD block timeout as an end-of-data event rather than an error."
+        },
+        "minAvailableInFlightSlotsBeforeRead": {
+          "type": "integer",
+          "description": "Minimum number of available in-flight message slots required before initiating an XREAD."
+        },
+        "useDedicatedReadThread": {
+          "type": "boolean",
+          "description": "Use a dedicated thread for blocking XREAD operations."
+        }
+      }
+    },
+
+    "RedisTopicConfigDirect": {
+      "allOf": [
+        { "$ref": "#/$defs/TopicConfigCommonFields" },
+        {
+          "type": "object",
+          "properties": {
+            "CustomConfig": { "$ref": "#/$defs/RedisTopicCustomConfig" }
+          }
+        }
+      ]
+    },
+
+    "RedisDefaultTopicConfig": {
+      "description": "Default ClusteredRedis topic configuration applied to all topics unless overridden in the Topics array.",
+      "$ref": "#/$defs/RedisTopicConfigDirect"
+    },
+
+    "RedisTopicsConfig": {
+      "description": "Explicit list of ClusteredRedis topic configurations. Usually empty when defaultTopicConfig covers all topics.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/RedisTopicConfigDirect" }
+    },
+
+    "UdpClientCustomConfig": {
+      "description": "UDP client-level configuration for sending and receiving UDP datagrams.",
+      "type": "object",
+      "properties": {
+        "transmitTestPackets": {
+          "type": "boolean",
+          "description": "Continuously transmit test UDP packets for connectivity and throughput testing."
+        },
+        "testPacketTransmissionIntervalInMs": {
+          "type": "integer",
+          "description": "Interval (ms) between test packet transmissions."
+        },
+        "testPacketAsBase64": {
+          "type": "string",
+          "description": "Base64-encoded payload to use for test packets."
+        }
+      }
+    },
+
+    "UdpTopicCustomConfig": {
+      "description": "UDP topic (socket) level configuration.",
+      "type": "object",
+      "properties": {
+        "wantsTestPackage": {
+          "type": "boolean",
+          "description": "Whether this topic/socket participates in test packet transmission."
+        },
+        "udpInterface": {
+          "type": "string",
+          "description": "UDP interface address and port to bind to for receiving.",
+          "examples": ["0.0.0.0:50333", "192.168.1.100:9000"]
+        },
+        "ticketRefillOnBusyCycle": {
+          "type": "integer",
+          "description": "Processing tickets to refill per busy receive cycle."
+        },
+        "nrOfUdpReceiveBuffersPerSocket": {
+          "type": "integer",
+          "description": "Number of receive buffers per UDP socket."
+        },
+        "udpSocketOsReceiveBufferSize": {
+          "type": "integer",
+          "description": "OS-level receive buffer size hint for the UDP socket (bytes)."
+        },
+        "udpSocketUpdateCyclesPerPulse": {
+          "type": "integer",
+          "description": "Number of socket update cycles per processing pulse."
+        },
+        "addUdpSourceAddressAsMetaData": {
+          "type": "boolean",
+          "description": "Add the UDP packet source address as message metadata."
+        },
+        "translateUdpSourceAddressToString": {
+          "type": "boolean",
+          "description": "Convert the binary source address to a human-readable string before storing as metadata."
+        },
+        "udpSourceAddressAsMetaDataKeyName": {
+          "type": "string",
+          "description": "Metadata key name for the UDP source address.",
+          "default": "udpsourceip4"
+        },
+        "maxUdpPacketPayloadSizeInBytes": {
+          "type": "integer",
+          "description": "Maximum expected UDP payload size in bytes. Packets larger than this may be truncated."
+        },
+        "addTimestampToReceivedPackages": {
+          "type": "boolean",
+          "description": "Attach a receive timestamp to each incoming UDP packet."
+        }
+      }
+    },
+
+    "UdpTopicConfigDirect": {
+      "allOf": [
+        { "$ref": "#/$defs/TopicConfigCommonFields" },
+        {
+          "type": "object",
+          "properties": {
+            "CustomConfig": { "$ref": "#/$defs/UdpTopicCustomConfig" }
+          }
+        }
+      ]
+    },
+
+    "UdpDefaultTopicConfig": {
+      "description": "Default UDP topic configuration applied to all topics unless overridden in the Topics array.",
+      "$ref": "#/$defs/UdpTopicConfigDirect"
+    },
+
+    "UdpTopicsConfig": {
+      "description": "Explicit list of UDP topic configurations. Usually empty when defaultTopicConfig covers all topics.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/UdpTopicConfigDirect" }
+    },
+
+    "WebClientCustomConfig": {
+      "description": "WEB client-level configuration. In current configurations this is typically empty; topic-level settings carry the main HTTP parameters.",
+      "type": "object",
+      "properties": {}
+    },
+
+    "WebTopicCustomConfig": {
+      "description": "WEB (HTTP) topic-level configuration for an embedded HTTP server pub/sub endpoint.",
+      "type": "object",
+      "properties": {
+        "httpServerPort": {
+          "type": "integer",
+          "description": "TCP port for the embedded HTTP server.",
+          "examples": [50321]
+        },
+        "exposeBasicHealthEndpoint": {
+          "type": "boolean",
+          "description": "Expose a basic HTTP health check endpoint."
+        },
+        "basicHealthEndpointPath": {
+          "type": "string",
+          "description": "URL path for the basic health check endpoint (relative, no leading slash).",
+          "examples": ["health/basic"]
+        }
+      }
+    },
+
+    "WebTopicConfigDirect": {
+      "allOf": [
+        { "$ref": "#/$defs/TopicConfigCommonFields" },
+        {
+          "type": "object",
+          "properties": {
+            "CustomConfig": { "$ref": "#/$defs/WebTopicCustomConfig" }
+          }
+        }
+      ]
+    },
+
+    "WebDefaultTopicConfig": {
+      "description": "Default WEB topic configuration applied to all topics unless overridden in the Topics array.",
+      "$ref": "#/$defs/WebTopicConfigDirect"
+    },
+
+    "WebTopicsConfig": {
+      "description": "Explicit list of WEB topic configurations. Usually empty when defaultTopicConfig covers all topics.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/WebTopicConfigDirect" }
+    },
+
+    "SqsClientCustomConfig": {
+      "description": "AWS SQS client-level configuration. In current configurations this is typically empty; topic-level settings carry the main SQS parameters.",
+      "type": "object",
+      "properties": {}
+    },
+
+    "SqsTopicCustomConfig": {
+      "description": "AWS SQS topic (queue) level configuration.",
+      "type": "object",
+      "properties": {
+        "topicNameIsQueueName": {
+          "type": "boolean",
+          "description": "Treat the topicName directly as the SQS queue name (rather than a queue URL)."
+        },
+        "tryToUseSendMessageBatch": {
+          "type": "boolean",
+          "description": "Use the SQS SendMessageBatch API for higher throughput when publishing multiple messages."
+        },
+        "addPrefixWhenSendingKvPairs": {
+          "type": "boolean",
+          "description": "Prepend a prefix to all key-value pair keys when sending as SQS message attributes."
+        },
+        "kvPairPrefixToAddOnSend": {
+          "type": "string",
+          "description": "Prefix string to prepend to key-value pair keys when sending."
+        },
+        "addPrefixWhenSendingMetaDataKvPairs": {
+          "type": "boolean",
+          "description": "Prepend a prefix to all metadata key-value pair keys when sending as SQS message attributes."
+        },
+        "metaDatakvPairPrefixToAddOnSend": {
+          "type": "string",
+          "description": "Prefix string to prepend to metadata key-value pair keys when sending."
+        }
+      }
+    },
+
+    "SqsTopicConfigDirect": {
+      "allOf": [
+        { "$ref": "#/$defs/TopicConfigCommonFields" },
+        {
+          "type": "object",
+          "properties": {
+            "CustomConfig": { "$ref": "#/$defs/SqsTopicCustomConfig" }
+          }
+        }
+      ]
+    },
+
+    "SqsDefaultTopicConfig": {
+      "description": "Default AWS SQS topic configuration applied to all topics unless overridden in the Topics array.",
+      "$ref": "#/$defs/SqsTopicConfigDirect"
+    },
+
+    "SqsTopicsConfig": {
+      "description": "Explicit list of AWS SQS topic configurations. Usually empty when defaultTopicConfig covers all topics.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/SqsTopicConfigDirect" }
+    },
+
+    "TestClientCustomConfig": {
+      "description": "TEST backend client-level configuration. The TEST backend emulates the STORAGE backend with additional health-control capabilities for testing purposes.",
+      "allOf": [
+        { "$ref": "#/$defs/StorageClientCustomConfig" }
+      ]
+    },
+
+    "TestTopicCustomConfig": {
+      "description": "TEST backend topic-level configuration. Extends StorageTopicCustomConfig with controls for simulating health state changes.",
+      "allOf": [
+        { "$ref": "#/$defs/StorageTopicCustomConfig" },
+        {
+          "type": "object",
+          "properties": {
+            "defaultIsHealthyStatus": {
+              "type": "boolean",
+              "description": "Initial health status of this test topic. true = healthy, false = unhealthy.",
+              "default": true
+            },
+            "toggleHealthyStatus": {
+              "type": "boolean",
+              "description": "Whether to periodically toggle the health status (used for failover/spillover testing)."
+            },
+            "healthyStatusToggleIntervalInMs": {
+              "type": "integer",
+              "description": "Interval (ms) between health status toggles when toggleHealthyStatus=true."
+            },
+            "healthyStatusToggleIntervalJitter": {
+              "type": "integer",
+              "description": "Random jitter (ms) added to healthyStatusToggleIntervalInMs to vary toggle timing."
+            }
+          }
+        }
+      ]
+    },
+
+    "TestTopicConfigDirect": {
+      "allOf": [
+        { "$ref": "#/$defs/TopicConfigCommonFields" },
+        {
+          "type": "object",
+          "properties": {
+            "CustomConfig": { "$ref": "#/$defs/TestTopicCustomConfig" }
+          }
+        }
+      ]
+    },
+
+    "TestDefaultTopicConfig": {
+      "description": "Default TEST backend topic configuration applied to all topics unless overridden in the Topics array.",
+      "$ref": "#/$defs/TestTopicConfigDirect"
+    },
+
+    "TestTopicsConfig": {
+      "description": "Explicit list of TEST backend topic configurations. Usually empty when defaultTopicConfig covers all topics.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/TestTopicConfigDirect" }
+    }
+
+  }
+}

@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pubsub2pubsub Configurator</title>
+<style>
+:root {
+  --bg:     #0f0f1a;
+  --bg2:    #1a1a2e;
+  --bg3:    #252540;
+  --border: #3a3a5c;
+  --text:   #e2e2f0;
+  --text2:  #8888aa;
+  --accent: #6366f1;
+  --accent2:#818cf8;
+  --ok:     #22c55e;
+  --err:    #ef4444;
+  --warn:   #f59e0b;
+  --code:   #0d1117;
+  --cs:     #a5d6ff;
+  --cn:     #ffa657;
+  --cb:     #ff7b72;
+  --ck:     #7ee787;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:14px;}
+/* ── Header ── */
+#hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+#hdr h1{font-size:1rem;font-weight:700;flex:1;white-space:nowrap;}
+#hdr h1 span{color:var(--accent);}
+.api-bar{display:flex;align-items:center;gap:8px;}
+#api-dot{width:8px;height:8px;border-radius:50%;background:var(--text2);flex-shrink:0;}
+#api-dot.ok{background:var(--ok);}
+#api-dot.err{background:var(--err);}
+.api-in{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 9px;border-radius:6px;font-size:0.82rem;width:190px;}
+/* ── Tabs ── */
+#tabs{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;display:flex;gap:2px;flex-shrink:0;}
+.tab{background:none;border:none;color:var(--text2);padding:9px 16px;cursor:pointer;border-bottom:2px solid transparent;font-size:0.88rem;}
+.tab.on{color:var(--text);border-bottom-color:var(--accent);}
+.tab:hover{color:var(--text);}
+/* ── Layout ── */
+#main{display:grid;grid-template-columns:55% 45%;flex:1;overflow:hidden;min-height:0;}
+#ed{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+/* ── Toolbar ── */
+.toolbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 12px;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;}
+/* ── Template list ── */
+#tlist{border-bottom:1px solid var(--border);max-height:130px;overflow-y:auto;flex-shrink:0;}
+.ti{padding:7px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:0.82rem;border-bottom:1px solid var(--border);}
+.ti:hover{background:var(--bg3);}
+.ti.on{background:var(--bg3);color:var(--accent);}
+.ti-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ti-del{color:var(--err);opacity:.5;cursor:pointer;padding:2px 4px;line-height:1;}
+.ti-del:hover{opacity:1;}
+/* ── Editor area ── */
+#ea{flex:1;overflow-y:auto;padding:12px;min-height:0;}
+.noop{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:12px;color:var(--text2);}
+/* ── Cards ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden;}
+.card summary{padding:9px 14px;font-size:0.87rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;background:var(--bg3);border-bottom:1px solid transparent;list-style:none;user-select:none;}
+.card[open] summary{border-bottom-color:var(--border);}
+.card summary::after{content:'▸';margin-left:auto;font-size:.7rem;color:var(--text2);}
+.card[open] summary::after{content:'▾';}
+.cb{padding:12px;}
+/* ── Fields ── */
+.fr{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.fr label{font-size:.78rem;color:var(--text2);min-width:200px;flex-shrink:0;}
+.fi,.fs{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:.82rem;min-width:0;}
+.fi:focus,.fs:focus{outline:none;border-color:var(--accent);}
+.fi[type=number]{max-width:130px;}
+.tr{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.tr label{font-size:.78rem;color:var(--text2);flex:1;}
+/* ── Side cards ── */
+.sc{border:1px solid var(--border);border-radius:8px;margin-bottom:9px;overflow:hidden;}
+.sch{background:var(--bg3);padding:8px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.si-in{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:5px;font-size:.83rem;font-weight:600;width:170px;}
+.bs{background:var(--bg);border:1px solid var(--accent);color:var(--accent);padding:4px 8px;border-radius:5px;font-size:.78rem;font-weight:600;}
+.exp-btn{margin-left:auto;background:none;border:1px solid var(--border);color:var(--text2);padding:3px 8px;border-radius:4px;cursor:pointer;font-size:.74rem;}
+.exp-btn:hover{color:var(--text);border-color:var(--accent);}
+.sdel{background:none;border:none;color:var(--err);cursor:pointer;opacity:.5;font-size:1rem;padding:0 4px;}
+.sdel:hover{opacity:1;}
+.sdet{padding:10px;display:none;}
+.sdet.on{display:block;}
+/* ── Sub-details ── */
+.sub summary{padding:5px 0;font-size:.78rem;color:var(--text2);cursor:pointer;user-select:none;list-style:none;}
+.sub summary::marker{display:none;}
+.sub[open] summary::after{content:' ▾';}
+.sub summary::after{content:' ▸';}
+/* ── KV table ── */
+.kvt{width:100%;border-collapse:collapse;margin-bottom:6px;}
+.kvt th{text-align:left;font-size:.72rem;color:var(--text2);padding:3px 5px;}
+.kvt td{padding:2px 3px;}
+.kvi{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:4px;font-size:.78rem;font-family:monospace;}
+/* ── Route card ── */
+.rc{border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px;}
+/* ── Preview ── */
+#pv{display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+#pvbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 12px;display:flex;gap:7px;align-items:center;flex-shrink:0;}
+#pvlabel{font-size:.78rem;color:var(--text2);flex:1;}
+#pvcode{flex:1;overflow:auto;background:var(--code);padding:12px 16px;font-family:'Cascadia Code','Consolas','Courier New',monospace;font-size:.78rem;line-height:1.65;white-space:pre;min-height:0;}
+/* ── Status bar ── */
+#sb{background:var(--bg2);border-top:1px solid var(--border);padding:4px 16px;font-size:.75rem;color:var(--text2);flex-shrink:0;}
+#sb.ok{color:var(--ok);}
+#sb.err{color:var(--err);}
+/* ── Buttons ── */
+.btn{background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.8rem;font-weight:500;white-space:nowrap;}
+.btn:hover{background:var(--accent2);}
+.btn.s{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.btn.s:hover{border-color:var(--accent);color:var(--accent);}
+.btn.d{background:transparent;color:var(--err);border:1px solid var(--err);}
+.btn.d:hover{background:var(--err);color:#fff;}
+.btn.sm{padding:4px 9px;font-size:.76rem;}
+/* ── Features grid ── */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+/* ── Serializer grid ── */
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+/* ── Section divider ── */
+.div{font-size:.72rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;padding:7px 0 3px;border-top:1px solid var(--border);margin-top:7px;}
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+/* ── Tab content ── */
+.tc{display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0;}
+.tc.on{display:flex;}
+/* ── Hint ── */
+.hint{font-size:.72rem;color:var(--text2);margin-top:2px;}
+/* ── Overlay table ── */
+.ovrow{border:1px solid var(--border);border-radius:6px;padding:9px;margin-bottom:7px;}
+/* ── Responsive ── */
+@media(max-width:900px){#main{grid-template-columns:1fr;}#pv{height:280px;}}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div id="hdr">
+  <h1>pubsub2pubsub <span>Configurator</span></h1>
+  <div class="api-bar">
+    <div id="api-dot"></div>
+    <span style="font-size:.78rem;color:var(--text2)">API:</span>
+    <input class="api-in" id="api-host" value="localhost:10000" placeholder="host:port">
+    <button class="btn s sm" onclick="App.apiConnect()">Connect</button>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div id="tabs">
+  <button class="tab on" id="tab-tmpl" onclick="App.switchTab('tmpl')">Channel Templates</button>
+  <button class="tab" id="tab-app"  onclick="App.switchTab('app')">App Config</button>
+</div>
+
+<!-- Main -->
+<div id="main">
+
+  <!-- Editor panel -->
+  <div id="ed">
+
+    <!-- Templates tab -->
+    <div id="tc-tmpl" class="tc on">
+      <div class="toolbar">
+        <button class="btn sm"   onclick="App.newTmpl()">+ New Template</button>
+        <button class="btn s sm" onclick="App.importTmpl()">Import File</button>
+        <button class="btn s sm" onclick="App.fetchTmplsApi()">Fetch from API</button>
+        <input type="file" id="fi-tmpl" accept=".json" style="display:none" onchange="App.onFileImport(event)">
+      </div>
+      <div id="tlist"></div>
+      <div id="ea">
+        <div class="noop" id="noop">
+          <p>No template selected</p>
+          <button class="btn" onclick="App.newTmpl()">+ New Template</button>
+        </div>
+        <div id="tform" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- App config tab -->
+    <div id="tc-app" class="tc">
+      <div class="toolbar">
+        <button class="btn s sm" onclick="App.importApp()">Import File</button>
+        <button class="btn s sm" onclick="App.fetchAppApi()">Fetch from API</button>
+        <input type="file" id="fi-app" accept=".json" style="display:none" onchange="App.onAppImport(event)">
+      </div>
+      <div id="ea" style="flex:1;overflow-y:auto;padding:12px;min-height:0;">
+        <div id="aform"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Preview panel -->
+  <div id="pv">
+    <div id="pvbar">
+      <span id="pvlabel">JSON Preview</span>
+      <button class="btn s sm" onclick="App.copy()">📋 Copy</button>
+      <button class="btn s sm" onclick="App.download()">⬇ Download</button>
+      <button class="btn sm"   onclick="App.push()">🚀 Push to API</button>
+    </div>
+    <pre id="pvcode">Select or create a template to begin.</pre>
+  </div>
+
+</div>
+
+<!-- Status bar -->
+<div id="sb"><span id="sbmsg">Ready</span></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// Backend Registry
+// ═══════════════════════════════════════════════════════════════
+const BE = {
+  Kafka: {
+    label:'Apache Kafka', remote:true,
+    clientFields:[
+      {k:'KafkaProducerGlobalConfig',  l:'Producer Global Config',   t:'kv', hint:'librdkafka key-value pairs'},
+      {k:'KafkaConsumerGlobalConfig',  l:'Consumer Global Config',   t:'kv', hint:'librdkafka key-value pairs'}
+    ],
+    topicFields:[
+      {k:'topicName',                             l:'Topic Name',                    t:'s',  def:'my-kafka-topic'},
+      {k:'addProducerHostnameAsKafkaMsgHeader',   l:'Add Hostname as Header',        t:'b',  def:false},
+      {k:'consumerModeStartOffset',               l:'Consumer Start Offset',         t:'s',  def:''},
+      {k:'kafkaMsgHeaderUsedForFiltering',        l:'Header for Filtering',          t:'s',  def:''},
+      {k:'kafkaMsgValuesUsedForFiltering',        l:'Values for Filtering',          t:'s',  def:''},
+      {k:'prefixToAddForKvPairs',                 l:'KV Pair Prefix',                t:'s',  def:''},
+      {k:'prefixToAddForMetaDataKvPairs',         l:'MetaData KV Prefix',            t:'s',  def:''},
+      {k:'stripPrefixForKvPairs',                 l:'Strip KV Prefix',               t:'b',  def:false},
+      {k:'stripPrefixForMetaDataKvPairs',         l:'Strip MetaData KV Prefix',      t:'b',  def:false},
+      {k:'useKafkaMsgHeadersForConsumerFiltering',l:'Use Headers for Filtering',     t:'b',  def:false},
+      {k:'maxKafkaErrorsToBeHealthy',             l:'Max Errors to be Healthy',      t:'n',  def:0},
+      {k:'KafkaProducerGlobalConfig',             l:'Producer Config (topic-level)', t:'kv'},
+      {k:'KafkaConsumerGlobalConfig',             l:'Consumer Config (topic-level)', t:'kv'}
+    ],
+    df:{supportsPublishing:true,supportsSubscribing:true,supportsAutoReconnect:true,
+        supportsSubscriberRateThrottling:true,supportsBinaryPayloads:true,
+        supportsBookmarkingConcept:false,supportsAbsentPrimaryPayloadPerMsg:false,
+        supportsAutoBookmarking:false,supportsDuplicateKeysPerMsg:false,
+        supportsKeyValueSetPerMsg:true,supportsMetaDataKeyValueSetPerMsg:false,
+        supportsMetrics:true,supportsMsgDateTimeBasedBookmark:false,
+        supportsMsgIdBasedBookmark:false,supportsMsgIndexBasedBookmark:false,
+        supportsMultiHostSharding:false,supportsPerMsgIds:false,
+        supportsPrimaryPayloadPerMsg:false,supportsSubscriberMsgReceivedAck:true,
+        supportsTopicIndexBasedBookmark:false}
+  },
+  MSMQ: {
+    label:'Microsoft MSMQ', remote:false,
+    clientFields:[
+      {k:'simulateReceiveAckFeatureViaLookupId',    l:'Simulate Receive Ack via LookupId', t:'b', def:true},
+      {k:'gatherMsmqMetricForTotalBytesAllQueues',  l:'Gather Total Bytes Metric',         t:'b', def:true}
+    ],
+    topicFields:[
+      {k:'topicName',                             l:'Queue Name',                        t:'s', def:'.\\PRIVATE$\\my-queue'},
+      {k:'convertMsmqClsIdToString',              l:'Convert CLSID to String',           t:'b', def:true},
+      {k:'convertMsmqMsgIdToString',              l:'Convert MsgId to String',           t:'b', def:true},
+      {k:'defaultMsmqBodyBufferSizeInBytes',      l:'Default Body Buffer Size (bytes)',  t:'n', def:4096},
+      {k:'gatherMsmqTransitTimeOnReceiveMetric',  l:'Gather Transit Time Metric',        t:'b', def:true},
+      {k:'maxMsmqMsgsToReadPerSyncCycle',         l:'Max Msgs per Sync Cycle',           t:'n', def:500},
+      {k:'minPayloadFieldGrowthPercOnBufferTooSmall',l:'Buffer Growth % on Too Small',   t:'n', def:50},
+      {k:'msmqMsgPropIdToMapToMsgIdOnReceive',    l:'PropId Mapped to MsgId',            t:'n', def:30},
+      {k:'msmqPropIdsToReceive',                  l:'Prop IDs to Receive (csv)',         t:'s', def:'2,8,9,20,21,22,30,31,32,33,34,35,36'},
+      {k:'msmqPropIdsToSend',                     l:'Prop IDs to Send (csv)',            t:'s', def:''},
+      {k:'retainMsmqSentTimeAsMetaData',          l:'Retain Sent Time as MetaData',      t:'b', def:true},
+      {k:'addMsgReadFromMsmqTimeAsMetaData',      l:'Add Read Time as MetaData',         t:'b', def:true},
+      {k:'metadataKeyForMsgReadFromMsmqTime',     l:'MetaData Key for Read Time',        t:'n', def:10001},
+      {k:'topicNameIsMsmqFormatName',             l:'Topic Name is Format Name',         t:'b', def:false},
+      {k:'maxMsmqErrorsOnAckToBeHealthy',         l:'Max Ack Errors to be Healthy',      t:'n', def:0},
+      {k:'maxMsmqErrorsOnReceiveToBeHealthy',     l:'Max Receive Errors to be Healthy',  t:'n', def:0}
+    ],
+    df:{supportsPublishing:false,supportsSubscribing:true,supportsAutoReconnect:true,
+        supportsSubscriberRateThrottling:true,supportsBinaryPayloads:true,
+        supportsBookmarkingConcept:false,supportsAbsentPrimaryPayloadPerMsg:false,
+        supportsAutoBookmarking:false,supportsDuplicateKeysPerMsg:false,
+        supportsKeyValueSetPerMsg:true,supportsMetaDataKeyValueSetPerMsg:false,
+        supportsMetrics:true,supportsMsgDateTimeBasedBookmark:false,
+        supportsMsgIdBasedBookmark:false,supportsMsgIndexBasedBookmark:false,
+        supportsMultiHostSharding:false,supportsPerMsgIds:false,
+        supportsPrimaryPayloadPerMsg:false,supportsSubscriberMsgReceivedAck:true,
+        supportsTopicIndexBasedBookmark:false}
+  },
+  STORAGE: {
+    label:'VFS Storage', remote:false, serializer:true,
+    clientFields:[
+      {k:'vfsStorageRootPath',            l:'VFS Storage Root Path',          t:'s', def:'DataPath/storage'},
+      {k:'dirTopicDiscoveryIsRecursive',  l:'Recursive Dir Discovery',        t:'b', def:false},
+      {k:'includeDirParentInTopicName',   l:'Include Dir Parent in Name',     t:'b', def:false},
+      {k:'destroyTopicWhenDirIsDeleted',  l:'Destroy Topic on Dir Delete',    t:'b', def:true}
+    ],
+    topicFields:[
+      {k:'topicName',                                           l:'Topic Name',                         t:'s', def:'my-topic'},
+      {k:'desiredNrOfBuffers',                                  l:'Number of Buffers',                  t:'n', def:3},
+      {k:'desiredMinimalSerializedBlockSize',                   l:'Min Block Size (bytes)',              t:'n', def:2560000},
+      {k:'desiredMaxTimeToWaitToGrowSerializedBlockSizeInMs',   l:'Max Wait to Grow Block (ms)',        t:'n', def:1000},
+      {k:'vfsStorageRootPath',                                  l:'VFS Storage Root Path',              t:'s', def:'{topicName}'},
+      {k:'vfsFileExtention',                                    l:'File Extension',                     t:'s', def:'pubsubmsgs'},
+      {k:'encodeCodecFamily',                                   l:'Encode Codec Family',                t:'s', def:''},
+      {k:'encodeCodecName',                                     l:'Encode Codec Name',                  t:'s', def:''},
+      {k:'decodeCodecFamily',                                   l:'Decode Codec Family',                t:'s', def:''},
+      {k:'decodeCodecName',                                     l:'Decode Codec Name',                  t:'s', def:''},
+      {k:'ticketRefillOnBusyCycle',                             l:'Ticket Refill on Busy Cycle',        t:'n', def:10000},
+      {k:'performVfsOpsASync',                                  l:'Perform VFS Ops Async',              t:'b', def:false},
+      {k:'performVfsOpsInDedicatedThread',                      l:'VFS Ops in Dedicated Thread',        t:'b', def:false},
+      {k:'applyDedicatedVfsOpsThreadCpuAffinity',               l:'CPU Affinity for VFS Thread',        t:'b', def:false},
+      {k:'cpuAffinityForDedicatedVfsOpsThread',                 l:'CPU Core for VFS Thread',            t:'n', def:0},
+      {k:'collectMetrics',                                      l:'Collect Metrics',                    t:'b', def:true},
+      {k:'subscribeWithoutBookmarkIfNoneIsPersisted',           l:'Subscribe w/o Bookmark if None',     t:'b', def:true},
+      {k:'autoPushAfterStartupIfStorageToPubSub',               l:'Auto-Push After Startup',            t:'b', def:true},
+      {k:'autoPushAfterStartupIsPersistent',                    l:'Auto-Push is Persistent',            t:'b', def:true},
+      {k:'youngestStoragePubSubMsgFileToLoad',                  l:'Youngest File to Load',              t:'s', def:''},
+      {k:'oldestStoragePubSubMsgFileToLoad',                    l:'Oldest File to Load',                t:'s', def:''},
+      {k:'defaultCodecDecodeGrowthRatioExpectation',            l:'Codec Decode Growth Ratio',          t:'n', def:6},
+      {k:'bestEffortDeserializeIsAllowed',                      l:'Best Effort Deserialize',            t:'b', def:true},
+      {k:'maxStorageCorruptionDetectionsToBeHealthy',           l:'Max Corruption Detections',          t:'n', def:0},
+      {k:'maxStorageDeserializationFailuresToBeHealthy',        l:'Max Deserialize Failures',           t:'n', def:0},
+      {k:'treatEveryFullfilledRequestAsEODEvent',               l:'Fulfilled Request = EOD',            t:'b', def:false},
+      {k:'deleteContainersWithFullyAckdContent',                l:'Delete Fully ACKd Containers',       t:'b', def:false},
+      {k:'moveContainersWithFullyAckdContent',                  l:'Move Fully ACKd Containers',         t:'b', def:true},
+      {k:'vfsStorageRootPathForFullyAckdContainers',            l:'Path for ACKd Containers',           t:'s', def:'{topicName}/processed'},
+      {k:'maxCompletedContainerRefsToRetain',                   l:'Max Completed Container Refs',       t:'n', def:50},
+      {k:'topicFollowsDirRenames',                              l:'Topic Follows Dir Renames',          t:'b', def:true}
+    ],
+    df:{supportsPublishing:true,supportsSubscribing:true,supportsAutoReconnect:true,
+        supportsSubscriberRateThrottling:true,supportsSubscriptionMsgArrivalDelayRequests:true,
+        supportsSubscriptionEndOfDataEvent:true,supportsBinaryPayloads:true,
+        supportsMultiHostSharding:false,supportsPerMsgIds:true,supportsMsgIndex:true,
+        supportsPrimaryPayloadPerMsg:true,supportsAbsentPrimaryPayloadPerMsg:true,
+        supportsKeyValueSetPerMsg:true,supportsDuplicateKeysPerMsg:true,
+        supportsMetaDataKeyValueSetPerMsg:true,supportsSubscriberMsgReceivedAck:false,
+        supportsAutoMsgReceivedAck:false,supportsAbsentMsgReceivedAck:false,
+        supportsAckUsingLastMsgInBatch:true,supportsAckUsingBookmark:true,
+        supportsBookmarkingConcept:true,supportsSubscribingUsingBookmark:true,
+        supportsServerSideBookmarkPersistance:false,supportsAutoBookmarking:false,
+        supportsMsgIdBasedBookmark:false,supportsMsgIndexBasedBookmark:false,
+        supportsTopicIndexBasedBookmark:false,supportsMsgDateTimeBasedBookmark:false,
+        supportsDerivingBookmarkFromMsg:true,supportsDiscoveryOfAvailableTopics:true,
+        supportsGlobPatternTopicNames:true,supportsPatternBasedAggregateTopic:false,
+        supportsMetrics:true}
+  },
+  ClusteredRedis: {
+    label:'Redis Streams', remote:true,
+    clientFields:[],
+    topicFields:[
+      {k:'topicName',                              l:'Stream Name',                   t:'s', def:'my-stream'},
+      {k:'autoGenerateRedisAddMinId',              l:'Auto-Generate Min ID',          t:'b', def:false},
+      {k:'maxAgeInMsForMinId',                     l:'Max Age for Min ID (ms)',       t:'n', def:31560000000},
+      {k:'redisXAddMaxLen',                        l:'XADD MAXLEN (-1=unlimited)',    t:'n', def:-1},
+      {k:'redisXAddMaxLenIsApproximate',           l:'MAXLEN is Approximate',         t:'b', def:true},
+      {k:'redisXAddIgnoreMsgId',                   l:'XADD Ignore Msg ID',            t:'b', def:true},
+      {k:'redisXReadDefaultOffset',                l:'XREAD Default Offset',          t:'s', def:'0'},
+      {k:'redisXReadBlockTimeoutInMs',             l:'XREAD Block Timeout (ms)',      t:'n', def:1000},
+      {k:'treatXReadBlockTimeoutAsEndOfDataEvent', l:'Block Timeout = EOD Event',     t:'b', def:true},
+      {k:'minAvailableInFlightSlotsBeforeRead',    l:'Min In-Flight Slots Before Read',t:'n', def:900}
+    ],
+    df:{supportsPublishing:true,supportsSubscribing:true,supportsAutoReconnect:true,
+        supportsSubscriberRateThrottling:true,supportsSubscriptionMsgArrivalDelayRequests:true,
+        supportsSubscriptionEndOfDataEvent:true,supportsBinaryPayloads:true,
+        supportsMultiHostSharding:false,supportsPerMsgIds:true,supportsMsgIndex:true,
+        supportsPrimaryPayloadPerMsg:true,supportsAbsentPrimaryPayloadPerMsg:true,
+        supportsKeyValueSetPerMsg:true,supportsDuplicateKeysPerMsg:true,
+        supportsMetaDataKeyValueSetPerMsg:true,supportsSubscriberMsgReceivedAck:false,
+        supportsAutoMsgReceivedAck:false,supportsAbsentMsgReceivedAck:false,
+        supportsAckUsingLastMsgInBatch:true,supportsAckUsingBookmark:true,
+        supportsBookmarkingConcept:true,supportsSubscribingUsingBookmark:true,
+        supportsServerSideBookmarkPersistance:false,supportsAutoBookmarking:false,
+        supportsMsgIdBasedBookmark:false,supportsMsgIndexBasedBookmark:false,
+        supportsTopicIndexBasedBookmark:false,supportsMsgDateTimeBasedBookmark:false,
+        supportsDerivingBookmarkFromMsg:true,supportsDiscoveryOfAvailableTopics:true,
+        supportsGlobPatternTopicNames:true,supportsMetrics:true}
+  },
+  UDP: {
+    label:'UDP Datagram', remote:false,
+    clientFields:[
+      {k:'transmitTestPackets',               l:'Transmit Test Packets',        t:'b', def:false},
+      {k:'testPacketTransmissionIntervalInMs',l:'Test Packet Interval (ms)',    t:'n', def:1000},
+      {k:'testPacketAsBase64',                l:'Test Packet (Base64)',          t:'s', def:''}
+    ],
+    topicFields:[
+      {k:'topicName',                          l:'Topic Name',                       t:'s', def:'udp'},
+      {k:'wantsTestPackage',                   l:'Wants Test Package',               t:'b', def:false},
+      {k:'udpInterface',                       l:'UDP Interface (host:port)',         t:'s', def:'0.0.0.0:50333'},
+      {k:'ticketRefillOnBusyCycle',            l:'Ticket Refill on Busy Cycle',      t:'n', def:1000},
+      {k:'nrOfUdpReceiveBuffersPerSocket',     l:'Receive Buffers per Socket',       t:'n', def:10},
+      {k:'udpSocketOsReceiveBufferSize',       l:'OS Receive Buffer Size (bytes)',   t:'n', def:1024},
+      {k:'udpSocketUpdateCyclesPerPulse',      l:'Update Cycles per Pulse',          t:'n', def:10},
+      {k:'addUdpSourceAddressAsMetaData',      l:'Add Source Address as MetaData',   t:'b', def:true},
+      {k:'translateUdpSourceAddressToString',  l:'Translate Source Addr to String',  t:'b', def:true},
+      {k:'udpSourceAddressAsMetaDataKeyName',  l:'MetaData Key for Source Addr',     t:'s', def:'udpsourceip4'},
+      {k:'maxUdpPacketPayloadSizeInBytes',     l:'Max Packet Payload Size (bytes)',  t:'n', def:10000},
+      {k:'addTimestampToReceivedPackages',     l:'Add Timestamp to Received',        t:'b', def:true}
+    ],
+    df:{supportsPublishing:false,supportsSubscribing:true,supportsAutoReconnect:true,
+        supportsSubscriberRateThrottling:true,supportsBinaryPayloads:true,
+        supportsBookmarkingConcept:false,supportsAbsentPrimaryPayloadPerMsg:false,
+        supportsAutoBookmarking:false,supportsDuplicateKeysPerMsg:false,
+        supportsKeyValueSetPerMsg:true,supportsMetaDataKeyValueSetPerMsg:false,
+        supportsMetrics:true,supportsMsgDateTimeBasedBookmark:false,
+        supportsMsgIdBasedBookmark:false,supportsMsgIndexBasedBookmark:false,
+        supportsMultiHostSharding:false,supportsPerMsgIds:false,
+        supportsPrimaryPayloadPerMsg:false,supportsSubscriberMsgReceivedAck:true,
+        supportsTopicIndexBasedBookmark:false}
+  },
+  WEB: {
+    label:'HTTP/WebSocket', remote:false,
+    clientFields:[],
+    topicFields:[
+      {k:'topicName',                  l:'Topic Name',             t:'s', def:'pubsub'},
+      {k:'httpServerPort',             l:'HTTP Server Port',       t:'n', def:50321},
+      {k:'exposeBasicHealthEndpoint',  l:'Expose Health Endpoint', t:'b', def:true},
+      {k:'basicHealthEndpointPath',    l:'Health Endpoint Path',   t:'s', def:'health/basic'}
+    ],
+    df:{supportsPublishing:true,supportsSubscribing:true,supportsAutoReconnect:true,
+        supportsSubscriberRateThrottling:false,supportsBinaryPayloads:true,
+        supportsBookmarkingConcept:false,supportsAbsentPrimaryPayloadPerMsg:false,
+        supportsAutoBookmarking:false,supportsDuplicateKeysPerMsg:false,
+        supportsKeyValueSetPerMsg:true,supportsMetaDataKeyValueSetPerMsg:false,
+        supportsMetrics:true,supportsMsgDateTimeBasedBookmark:false,
+        supportsMsgIdBasedBookmark:false,supportsMsgIndexBasedBookmark:false,
+        supportsMultiHostSharding:false,supportsPerMsgIds:false,
+        supportsPrimaryPayloadPerMsg:false,supportsSubscriberMsgReceivedAck:false,
+        supportsTopicIndexBasedBookmark:false}
+  },
+  AwsSqs: {
+    label:'AWS SQS', remote:false,
+    clientFields:[],
+    topicFields:[
+      {k:'topicName',                           l:'Queue Name',                  t:'s', def:'my-sqs-queue'},
+      {k:'topicNameIsQueueName',                l:'Topic Name is Queue Name',    t:'b', def:true},
+      {k:'tryToUseSendMessageBatch',            l:'Use Batch Sending',           t:'b', def:true},
+      {k:'addPrefixWhenSendingKvPairs',         l:'Add Prefix to KV Pairs',      t:'b', def:false},
+      {k:'kvPairPrefixToAddOnSend',             l:'KV Pair Prefix',              t:'s', def:''},
+      {k:'addPrefixWhenSendingMetaDataKvPairs', l:'Add Prefix to MetaData KV',   t:'b', def:false},
+      {k:'metaDatakvPairPrefixToAddOnSend',     l:'MetaData KV Prefix',          t:'s', def:''}
+    ],
+    df:{supportsPublishing:true,supportsSubscribing:false,supportsAutoReconnect:true,
+        supportsSubscriberRateThrottling:true,supportsBinaryPayloads:true,
+        supportsBookmarkingConcept:false,supportsAbsentPrimaryPayloadPerMsg:false,
+        supportsAutoBookmarking:false,supportsDuplicateKeysPerMsg:false,
+        supportsKeyValueSetPerMsg:true,supportsMetaDataKeyValueSetPerMsg:false,
+        supportsMetrics:true,supportsMsgDateTimeBasedBookmark:false,
+        supportsMsgIdBasedBookmark:false,supportsMsgIndexBasedBookmark:false,
+        supportsMultiHostSharding:false,supportsPerMsgIds:false,
+        supportsPrimaryPayloadPerMsg:false,supportsSubscriberMsgReceivedAck:true,
+        supportsTopicIndexBasedBookmark:false}
+  },
+  TEST: {
+    label:'TEST (Storage+Health)', remote:false, serializer:true,
+    clientFields:[
+      {k:'vfsStorageRootPath',            l:'VFS Storage Root Path',       t:'s', def:'DataPath/test-sink'},
+      {k:'dirTopicDiscoveryIsRecursive',  l:'Recursive Dir Discovery',     t:'b', def:true},
+      {k:'includeDirParentInTopicName',   l:'Include Dir Parent in Name',  t:'b', def:true},
+      {k:'destroyTopicWhenDirIsDeleted',  l:'Destroy Topic on Dir Delete', t:'b', def:true}
+    ],
+    topicFields:[
+      {k:'topicName',                                         l:'Topic Name',               t:'s', def:'sink'},
+      {k:'desiredNrOfBuffers',                                l:'Number of Buffers',        t:'n', def:3},
+      {k:'desiredMinimalSerializedBlockSize',                 l:'Min Block Size (bytes)',   t:'n', def:2560000},
+      {k:'desiredMaxTimeToWaitToGrowSerializedBlockSizeInMs', l:'Max Wait to Grow (ms)',    t:'n', def:1000},
+      {k:'vfsStorageRootPath',                                l:'VFS Storage Root Path',   t:'s', def:'DataPath/test-sink'},
+      {k:'vfsFileExtention',                                  l:'File Extension',           t:'s', def:'pubsubmsgs'},
+      {k:'ticketRefillOnBusyCycle',                           l:'Ticket Refill Busy Cycle', t:'n', def:10000},
+      {k:'collectMetrics',                                    l:'Collect Metrics',          t:'b', def:true},
+      {k:'autoPushAfterStartupIfStorageToPubSub',             l:'Auto-Push After Startup',  t:'b', def:true},
+      {k:'moveContainersWithFullyAckdContent',                l:'Move Fully ACKd Containers',t:'b',def:true},
+      {k:'vfsStorageRootPathForFullyAckdContainers',          l:'Path for ACKd Containers', t:'s', def:'{topicName}/processed'},
+      {k:'maxCompletedContainerRefsToRetain',                 l:'Max Completed Refs',       t:'n', def:50},
+      {k:'topicFollowsDirRenames',                            l:'Topic Follows Dir Renames',t:'b', def:true},
+      {k:'defaultIsHealthyStatus',                            l:'Default Is Healthy',       t:'b', def:true},
+      {k:'toggleHealthyStatus',                               l:'Toggle Healthy Status',    t:'b', def:false},
+      {k:'healthyStatusToggleIntervalInMs',                   l:'Toggle Interval (ms)',     t:'n', def:5000},
+      {k:'healthyStatusToggleIntervalJitter',                 l:'Toggle Jitter (ms)',       t:'n', def:100}
+    ],
+    df:{supportsPublishing:true,supportsSubscribing:false,supportsAutoReconnect:true,
+        supportsSubscriberRateThrottling:true,supportsSubscriptionMsgArrivalDelayRequests:true,
+        supportsSubscriptionEndOfDataEvent:true,supportsBinaryPayloads:true,
+        supportsMultiHostSharding:false,supportsPerMsgIds:true,supportsMsgIndex:true,
+        supportsPrimaryPayloadPerMsg:true,supportsAbsentPrimaryPayloadPerMsg:true,
+        supportsKeyValueSetPerMsg:true,supportsDuplicateKeysPerMsg:true,
+        supportsMetaDataKeyValueSetPerMsg:true,supportsSubscriberMsgReceivedAck:false,
+        supportsAutoMsgReceivedAck:false,supportsAbsentMsgReceivedAck:false,
+        supportsAckUsingLastMsgInBatch:true,supportsAckUsingBookmark:true,
+        supportsBookmarkingConcept:true,supportsSubscribingUsingBookmark:true,
+        supportsServerSideBookmarkPersistance:false,supportsAutoBookmarking:false,
+        supportsMsgIdBasedBookmark:false,supportsMsgIndexBasedBookmark:false,
+        supportsTopicIndexBasedBookmark:false,supportsMsgDateTimeBasedBookmark:false,
+        supportsDerivingBookmarkFromMsg:true,supportsDiscoveryOfAvailableTopics:true,
+        supportsGlobPatternTopicNames:true,supportsPatternBasedAggregateTopic:false,
+        supportsMetrics:true}
+  }
+};
+
+const DEF_BM = {
+  bookmarkPersistenceType:'VFS', bookmarkNamespace:'',
+  autoPersistAlways:false, autoPersistIfClientSideBookmarksNeeded:true,
+  autoPersistIntervalInMs:1000, autoPersistMsgInterval:1000, maxNrOfBookmarksToKeep:10,
+  CustomConfig:{vfsRootPath:'InstallPath/bookmarks',
+    persistenceStructure:'{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}'}
+};
+
+// ═══════════════════════════════════════════════════════════════
+// App
+// ═══════════════════════════════════════════════════════════════
+const App = {
+  s: {
+    tab:'tmpl', apiHost:'localhost:10000', apiOk:false,
+    tmpls:[], tIdx:-1,
+    app:{
+      AWSSDK:{'DefaultClientConfig.region':'us-east-2',
+        AWSCredentialsProviders:'Environment;Config;ProfileConfigFile;InstanceProfile',
+        AWS_ACCESS_KEY_ID:'', AWS_SECRET_ACCESS_KEY:'', AWS_SESSION_TOKEN:'', LogLevel:5},
+      GlobalDnsCache:{asyncRefreshIntervalInMs:300000, asyncUpdateCache:true, DnsEntries:[]},
+      StatsDClient:{statsDestination:'127.0.0.1:8125', statsNamePrefix:'myenv.$HOSTNAME$.pubsub2pubsub.',
+        transmit:false, logStats:false},
+      VFS:{archives:[
+        {actualArchivePath:'$MODULEDIR$',mountPath:'InstallPath',archiveName:'InstallPath',
+          archiveType:'FileSystem',mountArchives:false,mountArchivesIsRecursive:false,writeable:true,readable:true},
+        {actualArchivePath:'$MODULEDIR$',mountPath:'DataPath',archiveName:'DataPath',
+          archiveType:'FileSystem',mountArchives:false,mountArchivesIsRecursive:false,writeable:true,readable:true}
+      ]},
+      PubSub2PubSubConfig:{channelConfigTemplateRefs:[],channelConfigTemplates:[],
+        explicitChannelOverlays:[],
+        numericalAutoChannels:{usingTemplate:'',channelCount:0,firstChannelId:0,channelIds:''},
+        globalStandbyEnabled:false, enableRestApi:true, restApiPort:10000,
+        restBasicHealthUri:'/health/basic', transmitMetrics:true},
+      Main:{AppArgs:{outputDir:'$MODULEDIR$',minimalLogLevel:1}}
+    }
+  },
+
+  // ── Helpers ──────────────────────────────────────────────────
+  esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); },
+  gt(){ return this.s.tIdx>=0 && this.s.tIdx<this.s.tmpls.length ? this.s.tmpls[this.s.tIdx] : null; },
+  pv(t,el){ if(t==='b')return el.checked; if(t==='n')return parseFloat(el.value)||0; return el.value; },
+  sp(obj, parts, v){ let c=obj; for(let i=0;i<parts.length-1;i++){if(c[parts[i]]==null)c[parts[i]]={};c=c[parts[i]];} c[parts[parts.length-1]]=v; },
+  strip(o){ if(typeof o!=='object'||o===null)return; delete o._x; Object.values(o).forEach(v=>this.strip(v)); },
+  status(msg,t){
+    const el=document.getElementById('sbmsg'); el.textContent=msg;
+    const sb=document.getElementById('sb'); sb.className=t||'';
+    if(t==='ok'){setTimeout(()=>{el.textContent='Ready';sb.className='';},3000);}
+  },
+
+  // ── Tabs ─────────────────────────────────────────────────────
+  switchTab(t){
+    this.s.tab=t;
+    ['tmpl','app'].forEach(x=>{
+      document.getElementById('tc-'+x).classList.toggle('on',x===t);
+      document.getElementById('tab-'+x).classList.toggle('on',x===t);
+    });
+    if(t==='app') this.renderApp();
+    this.updPv();
+  },
+
+  // ── Template list ────────────────────────────────────────────
+  renderList(){
+    const el=document.getElementById('tlist');
+    if(!this.s.tmpls.length){el.innerHTML='';return;}
+    el.innerHTML=this.s.tmpls.map((t,i)=>`
+      <div class="ti ${i===this.s.tIdx?'on':''}" onclick="App.selTmpl(${i})">
+        <span class="ti-name">${this.esc(t.channelName||'unnamed')}</span>
+        <span class="ti-del" onclick="event.stopPropagation();App.delTmpl(${i})" title="Delete">✕</span>
+      </div>`).join('');
+  },
+  selTmpl(i){ this.s.tIdx=i; this.renderList(); this.renderTmpl(); this.updPv(); },
+  delTmpl(i){
+    this.s.tmpls.splice(i,1);
+    if(this.s.tIdx>=this.s.tmpls.length) this.s.tIdx=this.s.tmpls.length-1;
+    this.renderList(); this.renderTmpl(); this.updPv();
+  },
+  newTmpl(){
+    this.s.tmpls.push({channelId:-1,channelName:'new-channel',collectMetrics:true,
+      metricsIntervalInMs:1000,ticketRefillOnBusyCycle:10000,PubSubSides:{},
+      PubSubFlowRouterConfig:{ackStyle:'AllOrNothing',
+        minBadHealthDurationBeforeFailoverInMs:5000000,
+        minBadHealthDurationBeforeSpilloverInMs:5000000,
+        minPrimarySideGoodHealthDurationBeforeActivationInMs:5000,
+        minFailoverSideGoodHealthDurationBeforeActivationInMs:5000,
+        minSpilloverSideGoodHealthDurationBeforeActivationInMs:5000,
+        routeSwitchingTimerIntervalInMs:1000,routes:[]}});
+    this.s.tIdx=this.s.tmpls.length-1;
+    this.renderList(); this.renderTmpl(); this.updPv();
+  },
+  importTmpl(){ document.getElementById('fi-tmpl').click(); },
+  onFileImport(e){
+    const f=e.target.files[0]; if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      try{
+        const t=JSON.parse(ev.target.result);
+        this.s.tmpls.push(t); this.s.tIdx=this.s.tmpls.length-1;
+        this.renderList(); this.renderTmpl(); this.updPv();
+        this.status('Imported: '+(t.channelName||'unnamed'),'ok');
+      }catch(err){this.status('Import error: '+err.message,'err');}
+    };
+    r.readAsText(f); e.target.value='';
+  },
+
+  // ── Template editor ──────────────────────────────────────────
+  renderTmpl(){
+    const t=this.gt();
+    document.getElementById('noop').style.display=t?'none':'flex';
+    const form=document.getElementById('tform');
+    form.style.display=t?'block':'none';
+    if(!t){form.innerHTML='';return;}
+    const ids=Object.keys(t.PubSubSides||{});
+    const routes=(t.PubSubFlowRouterConfig&&t.PubSubFlowRouterConfig.routes)||[];
+    form.innerHTML=this.rInfo(t)+this.rSides(t,ids)+this.rRoutes(routes,ids,t);
+  },
+
+  rInfo(t){
+    return `<details class="card" open><summary>Channel Info</summary><div class="cb">
+      <div class="fr"><label>Channel Name *</label>
+        <input class="fi" value="${this.esc(t.channelName||'')}"
+          oninput="App.onTI(event,'channelName')" onchange="App.renderList()"></div>
+      <div class="fr"><label>Channel ID (-1=auto)</label>
+        <input class="fi" type="number" value="${t.channelId??-1}"
+          oninput="App.onTI(event,'channelId','n')"></div>
+      <div class="tr"><label>Collect Metrics</label>
+        <input type="checkbox" ${t.collectMetrics?'checked':''}
+          onchange="App.onTI(event,'collectMetrics','b')"></div>
+      <div class="fr"><label>Metrics Interval (ms)</label>
+        <input class="fi" type="number" value="${t.metricsIntervalInMs||1000}"
+          oninput="App.onTI(event,'metricsIntervalInMs','n')"></div>
+      <div class="fr"><label>Ticket Refill on Busy Cycle</label>
+        <input class="fi" type="number" value="${t.ticketRefillOnBusyCycle||10000}"
+          oninput="App.onTI(event,'ticketRefillOnBusyCycle','n')"></div>
+    </div></details>`;
+  },
+  onTI(ev,k,tp){ const t=this.gt();if(!t)return;t[k]=this.pv(tp||'s',ev.target);this.updPv(); },
+
+  rSides(t,ids){
+    return `<details class="card" open><summary>Sides (${ids.length})</summary><div class="cb">
+      ${ids.map(id=>this.rSideCard(id,t.PubSubSides[id])).join('')}
+      <button class="btn sm" style="width:100%;margin-top:4px" onclick="App.addSide()">+ Add Side</button>
+    </div></details>`;
+  },
+
+  rSideCard(id,side){
+    const cc=side.PubSubClientConfig||{};
+    const be=cc.pubsubClientType||'Kafka';
+    const exp=side._x||false;
+    const bOpts=Object.keys(BE).map(b=>`<option value="${b}" ${b===be?'selected':''}>${BE[b].label}</option>`).join('');
+    return `<div class="sc" id="sc-${this.esc(id)}">
+      <div class="sch">
+        <input class="si-in" value="${this.esc(id)}"
+          onblur="App.renSide('${this.esc(id)}',this.value)" title="Side ID">
+        <select class="bs" onchange="App.chBe('${this.esc(id)}',this.value)">${bOpts}</select>
+        <button class="exp-btn" onclick="App.togSide('${this.esc(id)}')">
+          ${exp?'▲ Collapse':'▼ Configure'}</button>
+        <button class="sdel" onclick="App.delSide('${this.esc(id)}')" title="Delete">✕</button>
+      </div>
+      <div class="sdet ${exp?'on':''}" id="sd-${this.esc(id)}">
+        ${exp?this.rSideDet(id,side,be):''}
+      </div>
+    </div>`;
+  },
+
+  rSideDet(id,side,be){
+    const cc=side.PubSubClientConfig||{};
+    const cx=cc.CustomConfig||{};
+    const tc=cc.defaultTopicConfig||{};
+    const tx=tc.CustomConfig||{};
+    const feat=side.DesiredFeatures||{};
+    const bm=side.PubSubBookmarkPersistenceConfig||{};
+    const bmx=bm.CustomConfig||{};
+    const beDef=BE[be]||BE.Kafka;
+    const jc=cc.journalConfig||{};
+    const tjc=tc.journalConfig||{};
+    const sid=this.esc(id);
+
+    return `
+    <!-- Common -->
+    <details class="card"><summary>Common Settings</summary><div class="cb">
+      ${[
+        ['performPubSubInDedicatedThread','Dedicated Thread','b',side.performPubSubInDedicatedThread],
+        ['applyThreadCpuAffinity','Apply CPU Affinity','b',side.applyThreadCpuAffinity],
+        ['retryFailedPublishAttempts','Retry Failed Publishes','b',side.retryFailedPublishAttempts!==false],
+        ['allowOutOfOrderPublishRetry','Allow OOO Publish Retry','b',side.allowOutOfOrderPublishRetry],
+        ['allowTimedOutPublishedInFlightMsgsRetryOutOfOrder','Allow Timed-Out In-Flight OOO Retry','b',side.allowTimedOutPublishedInFlightMsgsRetryOutOfOrder!==false],
+        ['subscribeWithoutBookmarkIfNoneIsPersisted','Subscribe w/o Bookmark if None','b',side.subscribeWithoutBookmarkIfNoneIsPersisted!==false]
+      ].map(([k,l,t,v])=>`<div class="tr"><label>${l}</label>
+        <input type="checkbox" ${v?'checked':''} onchange="App.onSI('${sid}','${k}','b',event)"></div>`).join('')}
+      ${[
+        ['cpuAffinityForPubSubThread','CPU Affinity Core','n',side.cpuAffinityForPubSubThread||0],
+        ['maxMsgPublishRetryAttempts','Max Publish Retry Attempts','n',side.maxMsgPublishRetryAttempts||20],
+        ['maxMsgPublishRetryTotalTimeInMs','Max Retry Total Time (ms)','n',side.maxMsgPublishRetryTotalTimeInMs||60000],
+        ['maxPublishedMsgInFlightTimeInMs','Max In-Flight Time (ms)','n',side.maxPublishedMsgInFlightTimeInMs||240000],
+        ['maxTotalMsgsInFlight','Max Total Msgs In-Flight','n',side.maxTotalMsgsInFlight||1000]
+      ].map(([k,l,t,v])=>`<div class="fr"><label>${l}</label>
+        <input class="fi" type="number" value="${v}" oninput="App.onSI('${sid}','${k}','n',event)"></div>`).join('')}
+    </div></details>
+
+    <!-- Client Config -->
+    <details class="card"><summary>Client Config (${be})</summary><div class="cb">
+      <div class="fr"><label>Reconnect Delay (ms)</label>
+        <input class="fi" type="number" value="${cc.reconnectDelayInMs||0}"
+          oninput="App.onCI('${sid}','reconnectDelayInMs','n',event)"></div>
+      <div class="fr"><label>Max Total Msgs In-Flight</label>
+        <input class="fi" type="number" value="${cc.maxTotalMsgsInFlight||1000}"
+          oninput="App.onCI('${sid}','maxTotalMsgsInFlight','n',event)"></div>
+      <div class="fr"><label>PubSub ID Prefix</label>
+        <input class="fi" value="${this.esc(cc.pubsubIdPrefix||'')}"
+          oninput="App.onCI('${sid}','pubsubIdPrefix','s',event)"></div>
+      ${beDef.remote?`<div class="div">Remote Addresses</div>
+        <div id="ra-${sid}">${this.rAddrs(sid,cc.RemoteAddresses||[])}</div>
+        <button class="btn s sm" onclick="App.addAddr('${sid}')">+ Add Address</button>`:''}
+      ${beDef.clientFields.length?`<div class="div">Backend Custom Config</div>
+        ${beDef.clientFields.filter(f=>f.t!=='kv').map(f=>this.rF(f,cx[f.k],`App.onCX('${sid}','${this.esc(f.k)}','${f.t}',event)`,f.t==='b'?'onchange':'oninput')).join('')}
+        ${beDef.clientFields.filter(f=>f.t==='kv').map(f=>this.rKV(sid,'c',f.k,cx[f.k],true)).join('')}`:''}
+      ${be==='Kafka'?this.rKV(sid,'c','KafkaProducerGlobalConfig',cx.KafkaProducerGlobalConfig,true)+
+        this.rKV(sid,'c','KafkaConsumerGlobalConfig',cx.KafkaConsumerGlobalConfig,true):''}
+      <details class="sub"><summary>Journal Config</summary>
+        <div style="padding:6px 0">
+          <div class="tr"><label>Use Journal</label>
+            <input type="checkbox" ${jc.useJournal?'checked':''}
+              onchange="App.onJC('${sid}','useJournal','b',event)"></div>
+          <div class="fr"><label>Type</label>
+            <input class="fi" value="${this.esc(jc.journalType||'binary')}"
+              oninput="App.onJC('${sid}','journalType','s',event)"></div>
+          <div class="fr"><label>Path</label>
+            <input class="fi" value="${this.esc(jc.journalPath||'')}"
+              oninput="App.onJC('${sid}','journalPath','s',event)"></div>
+        </div></details>
+    </div></details>
+
+    <!-- Default Topic -->
+    <details class="card" open><summary>Default Topic Config</summary><div class="cb">
+      <div class="fr"><label>Topic Name</label>
+        <input class="fi" value="${this.esc(tc.topicName||'')}"
+          oninput="App.onTC('${sid}','topicName','s',event)"></div>
+      <div class="fr"><label>Consumer Group Name</label>
+        <input class="fi" value="${this.esc(tc.consumerGroupName||'')}"
+          oninput="App.onTC('${sid}','consumerGroupName','s',event)"></div>
+      <div class="fr"><label>Consumer Name</label>
+        <input class="fi" value="${this.esc(tc.consumerName||'')}"
+          oninput="App.onTC('${sid}','consumerName','s',event)"></div>
+      ${[
+        ['needPublishSupport','Need Publish Support','b',tc.needPublishSupport],
+        ['needSubscribeSupport','Need Subscribe Support','b',tc.needSubscribeSupport!==false],
+        ['isOptional','Is Optional','b',tc.isOptional],
+        ['preferDedicatedConnection','Prefer Dedicated Connection','b',tc.preferDedicatedConnection],
+        ['useTopicLevelMaxTotalMsgsInFlight','Use Topic-Level Max In-Flight','b',tc.useTopicLevelMaxTotalMsgsInFlight]
+      ].map(([k,l,t,v])=>`<div class="tr"><label>${l}</label>
+        <input type="checkbox" ${v?'checked':''} onchange="App.onTC('${sid}','${k}','b',event)"></div>`).join('')}
+      <div class="fr"><label>Max Total Msgs In-Flight</label>
+        <input class="fi" type="number" value="${tc.maxTotalMsgsInFlight??-1}"
+          oninput="App.onTC('${sid}','maxTotalMsgsInFlight','n',event)"></div>
+      ${beDef.topicFields.filter(f=>f.k!=='topicName'&&f.t!=='kv').map(f=>
+        this.rF(f,tx[f.k]!==undefined?tx[f.k]:f.def,
+          `App.onTX('${sid}','${this.esc(f.k)}','${f.t}',event)`,f.t==='b'?'onchange':'oninput')
+      ).join('')}
+      ${beDef.topicFields.filter(f=>f.t==='kv').map(f=>this.rKV(sid,'t',f.k,tx[f.k],true)).join('')}
+      ${(be==='STORAGE'||be==='TEST')?this.rSer(sid,tx):''}
+      <details class="sub"><summary>Topic Journal Config</summary>
+        <div style="padding:6px 0">
+          <div class="tr"><label>Use Journal</label>
+            <input type="checkbox" ${tjc.useJournal?'checked':''}
+              onchange="App.onTJC('${sid}','useJournal','b',event)"></div>
+          <div class="fr"><label>Type</label>
+            <input class="fi" value="${this.esc(tjc.journalType||'binary')}"
+              oninput="App.onTJC('${sid}','journalType','s',event)"></div>
+          <div class="fr"><label>Path</label>
+            <input class="fi" value="${this.esc(tjc.journalPath||'')}"
+              oninput="App.onTJC('${sid}','journalPath','s',event)"></div>
+        </div></details>
+    </div></details>
+
+    <!-- Desired Features -->
+    <details class="card"><summary>Desired Features</summary><div class="cb">
+      <div class="fg">
+        ${Object.keys(feat).map(f=>`<div class="tr">
+          <label style="font-size:.72rem">${f}</label>
+          <input type="checkbox" ${feat[f]?'checked':''}
+            onchange="App.onFeat('${sid}','${f}',event)"></div>`).join('')}
+      </div>
+      <button class="btn s sm" style="margin-top:8px" onclick="App.resetFeat('${sid}')">Reset to Backend Defaults</button>
+    </div></details>
+
+    <!-- Bookmark Persistence -->
+    <details class="card"><summary>Bookmark Persistence</summary><div class="cb">
+      <div class="fr"><label>Persistence Type</label>
+        <select class="fs" onchange="App.onBM('${sid}','bookmarkPersistenceType','s',event)">
+          ${['VFS','none'].map(v=>`<option ${(bm.bookmarkPersistenceType||'VFS')===v?'selected':''}>${v}</option>`).join('')}
+        </select></div>
+      <div class="fr"><label>Namespace</label>
+        <input class="fi" value="${this.esc(bm.bookmarkNamespace||'')}"
+          oninput="App.onBM('${sid}','bookmarkNamespace','s',event)"></div>
+      ${[
+        ['autoPersistAlways','Auto-Persist Always','b',bm.autoPersistAlways],
+        ['autoPersistIfClientSideBookmarksNeeded','Auto-Persist if Needed','b',bm.autoPersistIfClientSideBookmarksNeeded!==false]
+      ].map(([k,l,t,v])=>`<div class="tr"><label>${l}</label>
+        <input type="checkbox" ${v?'checked':''} onchange="App.onBM('${sid}','${k}','b',event)"></div>`).join('')}
+      ${[
+        ['autoPersistIntervalInMs','Auto-Persist Interval (ms)','n',bm.autoPersistIntervalInMs||1000],
+        ['autoPersistMsgInterval','Auto-Persist Msg Interval','n',bm.autoPersistMsgInterval||1000],
+        ['maxNrOfBookmarksToKeep','Max Bookmarks to Keep','n',bm.maxNrOfBookmarksToKeep||10]
+      ].map(([k,l,t,v])=>`<div class="fr"><label>${l}</label>
+        <input class="fi" type="number" value="${v}" oninput="App.onBM('${sid}','${k}','n',event)"></div>`).join('')}
+      <div class="fr"><label>VFS Root Path</label>
+        <input class="fi" value="${this.esc(bmx.vfsRootPath||'InstallPath/bookmarks')}"
+          oninput="App.onBMX('${sid}','vfsRootPath',event)"></div>
+      <div class="fr"><label>Persistence Structure</label>
+        <input class="fi" value="${this.esc(bmx.persistenceStructure||'{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}')}"
+          oninput="App.onBMX('${sid}','persistenceStructure',event)"></div>
+    </div></details>`;
+  },
+
+  rAddrs(sid,addrs){
+    return (addrs||[]).map((a,i)=>`<div class="fr" id="ra-${sid}-${i}">
+      <input class="fi" value="${this.esc(a)}" oninput="App.onAddr('${sid}',${i},event)">
+      <button class="btn d sm" onclick="App.rmAddr('${sid}',${i})">✕</button>
+    </div>`).join('');
+  },
+
+  rSer(sid,tx){
+    const bo=tx.binarySerializerOptions||{msgDateTimeIncluded:true,msgDateTimeAsMsSinceUnixEpochInUtc:true,msgIdIncluded:true,msgIndexIncluded:true,msgPrimaryPayloadIncluded:true,msgKeyValuePairsIncluded:true,msgMetaDataKeyValuePairsIncluded:true,topicNameIncluded:false};
+    const so=tx.serializerOptions||{msgDateTimeIncluded:true,msgDateTimeAsMsSinceUnixEpochInUtc:true,msgIdIncluded:true,msgIndexIncluded:true,msgPrimaryPayloadIncluded:true,msgPrimaryPayloadTypeIncluded:true,msgKeyValuePairsIncluded:true,msgMetaDataKeyValuePairsIncluded:true,includeUndefinedValues:false,receiveActionIdIncluded:true,originTopicObjPointerIncluded:false,originTopicNameIncluded:false,originClientTypeNameIncluded:false,originClientObjPointerIncluded:false};
+    const bk=['msgDateTimeIncluded','msgDateTimeAsMsSinceUnixEpochInUtc','msgIdIncluded','msgIndexIncluded','msgPrimaryPayloadIncluded','msgKeyValuePairsIncluded','msgMetaDataKeyValuePairsIncluded','topicNameIncluded'];
+    const sk=['msgDateTimeIncluded','msgDateTimeAsMsSinceUnixEpochInUtc','msgIdIncluded','msgIndexIncluded','msgPrimaryPayloadIncluded','msgPrimaryPayloadTypeIncluded','msgKeyValuePairsIncluded','msgMetaDataKeyValuePairsIncluded','includeUndefinedValues','receiveActionIdIncluded','originTopicObjPointerIncluded','originTopicNameIncluded','originClientTypeNameIncluded','originClientObjPointerIncluded'];
+    return `
+    <details class="sub"><summary>Binary Serializer Options</summary>
+      <div class="sg" style="padding:6px 0">
+        ${bk.map(f=>`<div class="tr"><label style="font-size:.72rem">${f}</label>
+          <input type="checkbox" ${bo[f]!==false?'checked':''}
+            onchange="App.onSer('${sid}','binarySerializerOptions','${f}',event)"></div>`).join('')}
+      </div></details>
+    <details class="sub"><summary>Text Serializer Options</summary>
+      <div class="sg" style="padding:6px 0">
+        ${sk.map(f=>`<div class="tr"><label style="font-size:.72rem">${f}</label>
+          <input type="checkbox" ${so[f]!==false?'checked':''}
+            onchange="App.onSer('${sid}','serializerOptions','${f}',event)"></div>`).join('')}
+      </div></details>`;
+  },
+
+  rKV(sid,sec,key,data,show){
+    if(!show)return '';
+    const entries=Object.entries(data||{});
+    return `<div class="div">${key}</div>
+    <table class="kvt" id="kv-${sid}-${sec}-${key}">
+      <tr><th>Key</th><th>Value</th><th></th></tr>
+      ${entries.map(([k,v],i)=>`<tr>
+        <td><input class="kvi" value="${this.esc(k)}"
+          oninput="App.kvKey('${sid}','${sec}','${key}',${i},this.value)"></td>
+        <td><input class="kvi" value="${this.esc(String(v))}"
+          oninput="App.kvVal('${sid}','${sec}','${key}',${i},this.value)"></td>
+        <td><button class="btn d sm" onclick="App.kvDel('${sid}','${sec}','${key}',${i})">✕</button></td>
+      </tr>`).join('')}
+    </table>
+    <button class="btn s sm" onclick="App.kvAdd('${sid}','${sec}','${key}')">+ Add Entry</button>`;
+  },
+
+  rF(f,v,h,ev){
+    if(f.t==='b'){
+      return `<div class="tr"><label>${f.l}</label>
+        <input type="checkbox" ${(v??f.def)?'checked':''} ${ev}="${h}"></div>`;
+    }else if(f.t==='n'){
+      return `<div class="fr"><label>${f.l}</label>
+        <input class="fi" type="number" value="${v??f.def??0}" ${ev}="${h}"></div>`;
+    }else if(f.t==='kv'){return '';}
+    return `<div class="fr"><label>${f.l}${f.hint?`<br><span class="hint">${f.hint}</span>`:''}</label>
+      <input class="fi" value="${this.esc(String(v??f.def??''))}" ${ev}="${h}"></div>`;
+  },
+
+  rRoutes(routes,ids,t){
+    const router=t.PubSubFlowRouterConfig||{};
+    const sOpts=ids.map(s=>`<option value="${this.esc(s)}">${this.esc(s)}</option>`).join('');
+    const sOptsNone=['<option value="">— none —</option>',...ids.map(s=>`<option value="${this.esc(s)}">${this.esc(s)}</option>`)].join('');
+
+    const routeCards=routes.map((r,i)=>`
+    <div class="rc">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong style="font-size:.84rem">Route ${i+1}</strong>
+        <button class="btn d sm" onclick="App.delRoute(${i})">Delete</button>
+      </div>
+      <div class="fr"><label>From Side</label>
+        <select class="fs" onchange="App.onRt(${i},'fromSideId','s',event)">
+          ${ids.map(s=>`<option value="${this.esc(s)}" ${r.fromSideId===s?'selected':''}>${this.esc(s)}</option>`).join('')}
+        </select></div>
+      <div class="fr"><label>To Side</label>
+        <select class="fs" onchange="App.onRt(${i},'toSideId','s',event)">
+          ${ids.map(s=>`<option value="${this.esc(s)}" ${r.toSideId===s?'selected':''}>${this.esc(s)}</option>`).join('')}
+        </select></div>
+      <div class="fr"><label>Failover Side</label>
+        <select class="fs" onchange="App.onRt(${i},'failoverSideId','s',event)">
+          ${['<option value="">— none —</option>',...ids.map(s=>`<option value="${this.esc(s)}" ${r.failoverSideId===s?'selected':''}>${this.esc(s)}</option>`)].join('')}
+        </select></div>
+      <div class="fr"><label>Spillover Buffer Side</label>
+        <select class="fs" onchange="App.onRt(${i},'spilloverBufferSideId','s',event)">
+          ${['<option value="">— none —</option>',...ids.map(s=>`<option value="${this.esc(s)}" ${r.spilloverBufferSideId===s?'selected':''}>${this.esc(s)}</option>`)].join('')}
+        </select></div>
+      <div class="fr"><label>Dead Letter Side</label>
+        <select class="fs" onchange="App.onRt(${i},'deadLetterSideId','s',event)">
+          ${['<option value="">— none —</option>',...ids.map(s=>`<option value="${this.esc(s)}" ${r.deadLetterSideId===s?'selected':''}>${this.esc(s)}</option>`)].join('')}
+        </select></div>
+      <details class="sub"><summary>Advanced Options</summary>
+        <div style="padding:6px 0">
+          ${[
+            ['toSideTopicsAutoMatchFromSide','To-Side Topics Auto-Match From-Side'],
+            ['failoverSideTopicsAutoMatchFromSide','Failover Topics Auto-Match'],
+            ['spilloverSideTopicsAutoMatchFromSide','Spillover Topics Auto-Match'],
+            ['deadLetterSideTopicsAutoMatchFromSide','Dead Letter Topics Auto-Match'],
+            ['preferFromTopicThreadForDestination','Prefer From-Topic Thread'],
+            ['egressAllDiscoveredSpilloverTopicsOnStart','Egress All Spillover Topics on Start'],
+            ['autoAssociateTopicsAnyToAnyAcrossSides','Auto-Associate Topics Any-to-Any']
+          ].map(([k,l])=>`<div class="tr"><label style="font-size:.76rem">${l}</label>
+            <input type="checkbox" ${r[k]?'checked':''} onchange="App.onRt(${i},'${k}','b',event)"></div>`).join('')}
+        </div></details>
+    </div>`).join('');
+
+    return `<details class="card" open><summary>Routes (${routes.length})</summary><div class="cb">
+      ${routeCards}
+      <div class="div">Router Timing</div>
+      <div class="fr"><label>Ack Style</label>
+        <select class="fs" onchange="App.onRouter('ackStyle','s',event)">
+          ${['AllOrNothing','BestEffort'].map(v=>`<option ${(router.ackStyle||'AllOrNothing')===v?'selected':''}>${v}</option>`).join('')}
+        </select></div>
+      ${[
+        ['routeSwitchingTimerIntervalInMs','Route Switching Timer (ms)',router.routeSwitchingTimerIntervalInMs||1000],
+        ['minBadHealthDurationBeforeFailoverInMs','Min Bad Health for Failover (ms)',router.minBadHealthDurationBeforeFailoverInMs||5000000],
+        ['minBadHealthDurationBeforeSpilloverInMs','Min Bad Health for Spillover (ms)',router.minBadHealthDurationBeforeSpilloverInMs||5000000],
+        ['minPrimarySideGoodHealthDurationBeforeActivationInMs','Min Good Health Primary (ms)',router.minPrimarySideGoodHealthDurationBeforeActivationInMs||5000],
+        ['minFailoverSideGoodHealthDurationBeforeActivationInMs','Min Good Health Failover (ms)',router.minFailoverSideGoodHealthDurationBeforeActivationInMs||5000],
+        ['minSpilloverSideGoodHealthDurationBeforeActivationInMs','Min Good Health Spillover (ms)',router.minSpilloverSideGoodHealthDurationBeforeActivationInMs||5000]
+      ].map(([k,l,v])=>`<div class="fr"><label>${l}</label>
+        <input class="fi" type="number" value="${v}" oninput="App.onRouter('${k}','n',event)"></div>`).join('')}
+      <button class="btn sm" style="width:100%;margin-top:6px" onclick="App.addRoute()">+ Add Route</button>
+    </div></details>`;
+  },
+
+  // ── Side input handlers ──────────────────────────────────────
+  onSI(sid,k,t,ev){ const s=this.gt()?.PubSubSides[sid];if(s){s[k]=this.pv(t,ev.target);this.updPv();} },
+  onCI(sid,k,t,ev){ const cc=this.gt()?.PubSubSides[sid]?.PubSubClientConfig;if(cc){cc[k]=this.pv(t,ev.target);this.updPv();} },
+  onCX(sid,k,t,ev){ const cc=this.gt()?.PubSubSides[sid]?.PubSubClientConfig;if(cc){if(!cc.CustomConfig)cc.CustomConfig={};cc.CustomConfig[k]=this.pv(t,ev.target);this.updPv();} },
+  onJC(sid,k,t,ev){ const cc=this.gt()?.PubSubSides[sid]?.PubSubClientConfig;if(cc){if(!cc.journalConfig)cc.journalConfig={};cc.journalConfig[k]=this.pv(t,ev.target);this.updPv();} },
+  onTC(sid,k,t,ev){ const cc=this.gt()?.PubSubSides[sid]?.PubSubClientConfig;if(cc){if(!cc.defaultTopicConfig)cc.defaultTopicConfig={};cc.defaultTopicConfig[k]=this.pv(t,ev.target);this.updPv();} },
+  onTX(sid,k,t,ev){ const tc=this.gt()?.PubSubSides[sid]?.PubSubClientConfig?.defaultTopicConfig;if(tc){if(!tc.CustomConfig)tc.CustomConfig={};tc.CustomConfig[k]=this.pv(t,ev.target);this.updPv();} },
+  onTJC(sid,k,t,ev){ const tc=this.gt()?.PubSubSides[sid]?.PubSubClientConfig?.defaultTopicConfig;if(tc){if(!tc.journalConfig)tc.journalConfig={};tc.journalConfig[k]=this.pv(t,ev.target);this.updPv();} },
+  onSer(sid,sk,f,ev){ const tc=this.gt()?.PubSubSides[sid]?.PubSubClientConfig?.defaultTopicConfig;if(tc){if(!tc.CustomConfig)tc.CustomConfig={};if(!tc.CustomConfig[sk])tc.CustomConfig[sk]={};tc.CustomConfig[sk][f]=ev.target.checked;this.updPv();} },
+  onFeat(sid,f,ev){ const s=this.gt()?.PubSubSides[sid];if(s){if(!s.DesiredFeatures)s.DesiredFeatures={};s.DesiredFeatures[f]=ev.target.checked;this.updPv();} },
+  onBM(sid,k,t,ev){ const s=this.gt()?.PubSubSides[sid];if(s){if(!s.PubSubBookmarkPersistenceConfig)s.PubSubBookmarkPersistenceConfig={};s.PubSubBookmarkPersistenceConfig[k]=this.pv(t,ev.target);this.updPv();} },
+  onBMX(sid,k,ev){ const s=this.gt()?.PubSubSides[sid];if(s){if(!s.PubSubBookmarkPersistenceConfig)s.PubSubBookmarkPersistenceConfig={};if(!s.PubSubBookmarkPersistenceConfig.CustomConfig)s.PubSubBookmarkPersistenceConfig.CustomConfig={};s.PubSubBookmarkPersistenceConfig.CustomConfig[k]=ev.target.value;this.updPv();} },
+  onAddr(sid,i,ev){ const cc=this.gt()?.PubSubSides[sid]?.PubSubClientConfig;if(cc&&cc.RemoteAddresses)cc.RemoteAddresses[i]=ev.target.value;this.updPv(); },
+  onRt(i,k,t,ev){ const t2=this.gt();if(!t2)return;const r=t2.PubSubFlowRouterConfig?.routes?.[i];if(r){r[k]=this.pv(t,ev.target);this.updPv();} },
+  onRouter(k,t,ev){ const t2=this.gt();if(t2?.PubSubFlowRouterConfig){t2.PubSubFlowRouterConfig[k]=this.pv(t,ev.target);this.updPv();} },
+
+  // KV map handlers
+  _kvMap(sid,sec,key){
+    const t=this.gt();if(!t)return null;
+    const cc=t.PubSubSides[sid]?.PubSubClientConfig;if(!cc)return null;
+    if(sec==='c'){if(!cc.CustomConfig)cc.CustomConfig={};if(!cc.CustomConfig[key])cc.CustomConfig[key]={};return cc.CustomConfig[key];}
+    const tc=cc.defaultTopicConfig||{};if(!tc.CustomConfig)tc.CustomConfig={};if(!tc.CustomConfig[key])tc.CustomConfig[key]={};return tc.CustomConfig[key];
+  },
+  kvKey(sid,sec,key,i,nk){const m=this._kvMap(sid,sec,key);if(!m)return;const e=Object.entries(m);if(i<e.length){const v=e[i][1];delete m[e[i][0]];m[nk]=v;this.updPv();}},
+  kvVal(sid,sec,key,i,nv){const m=this._kvMap(sid,sec,key);if(!m)return;const k=Object.keys(m)[i];if(k!==undefined){m[k]=nv;this.updPv();}},
+  kvDel(sid,sec,key,i){const m=this._kvMap(sid,sec,key);if(!m)return;const k=Object.keys(m)[i];if(k!==undefined){delete m[k];const el=document.getElementById(`kv-${sid}-${sec}-${key}`);if(el){const par=el.parentElement;par.innerHTML=this.rKV(sid,sec,key,m,true);}this.updPv();}},
+  kvAdd(sid,sec,key){const m=this._kvMap(sid,sec,key);if(!m)return;m['new.key.'+Date.now()]='';const el=document.getElementById(`kv-${sid}-${sec}-${key}`);if(el){const par=el.parentElement;par.innerHTML=this.rKV(sid,sec,key,m,true);}this.updPv();},
+
+  // ── Side management ──────────────────────────────────────────
+  addSide(){
+    const t=this.gt();if(!t)return;
+    const id='new-side-'+Date.now();
+    t.PubSubSides[id]=this._mkSide('Kafka');
+    this.renderTmpl();this.updPv();
+  },
+  delSide(id){ const t=this.gt();if(!t)return;delete t.PubSubSides[id];this.renderTmpl();this.updPv(); },
+  renSide(old,n){
+    n=n.trim();if(!n||n===old)return;
+    const t=this.gt();if(!t)return;
+    const side=t.PubSubSides[old];delete t.PubSubSides[old];t.PubSubSides[n]=side;
+    const rs=t.PubSubFlowRouterConfig?.routes||[];
+    rs.forEach(r=>{['fromSideId','toSideId','failoverSideId','spilloverBufferSideId','deadLetterSideId'].forEach(k=>{if(r[k]===old)r[k]=n;});});
+    this.renderTmpl();this.updPv();
+  },
+  togSide(id){
+    const t=this.gt();if(!t)return;
+    const side=t.PubSubSides[id];if(!side)return;
+    side._x=!side._x;
+    const det=document.getElementById('sd-'+id);
+    const btn=document.querySelector('#sc-'+id+' .exp-btn');
+    if(det){det.classList.toggle('on',side._x);if(side._x&&!det.innerHTML.trim())det.innerHTML=this.rSideDet(id,side,side.PubSubClientConfig?.pubsubClientType||'Kafka');}
+    if(btn)btn.textContent=side._x?'▲ Collapse':'▼ Configure';
+    this.updPv();
+  },
+  chBe(id,be){
+    const t=this.gt();if(!t||!t.PubSubSides[id])return;
+    const side=t.PubSubSides[id];
+    const beDef=BE[be]||BE.Kafka;
+    if(!side.PubSubClientConfig)side.PubSubClientConfig={};
+    side.PubSubClientConfig.pubsubClientType=be;
+    side.PubSubClientConfig.CustomConfig={};
+    side.PubSubClientConfig.Topics=[];
+    side.PubSubClientConfig.defaultTopicConfig={topicName:beDef.topicFields[0]?.def||'topic',
+      needPublishSupport:!!beDef.df.supportsPublishing,needSubscribeSupport:!!beDef.df.supportsSubscribing,
+      isOptional:false,preferDedicatedConnection:false,consumerGroupName:'',consumerName:'',
+      useTopicLevelMaxTotalMsgsInFlight:false,maxTotalMsgsInFlight:-1,CustomConfig:{}};
+    side.DesiredFeatures=Object.assign({},beDef.df);side._x=true;
+    this.renderTmpl();this.updPv();
+  },
+  resetFeat(sid){
+    const t=this.gt();if(!t)return;
+    const side=t.PubSubSides[sid];if(!side)return;
+    const be=side.PubSubClientConfig?.pubsubClientType||'Kafka';
+    side.DesiredFeatures=Object.assign({},(BE[be]||BE.Kafka).df);
+    side._x=true;this.renderTmpl();this.updPv();
+  },
+  addAddr(sid){
+    const cc=this.gt()?.PubSubSides[sid]?.PubSubClientConfig;if(!cc)return;
+    if(!cc.RemoteAddresses)cc.RemoteAddresses=[];
+    cc.RemoteAddresses.push('127.0.0.1:6379');
+    const el=document.getElementById('ra-'+sid);if(el)el.innerHTML=this.rAddrs(sid,cc.RemoteAddresses);
+    this.updPv();
+  },
+  rmAddr(sid,i){
+    const cc=this.gt()?.PubSubSides[sid]?.PubSubClientConfig;
+    if(cc?.RemoteAddresses){cc.RemoteAddresses.splice(i,1);const el=document.getElementById('ra-'+sid);if(el)el.innerHTML=this.rAddrs(sid,cc.RemoteAddresses);this.updPv();}
+  },
+  addRoute(){
+    const t=this.gt();if(!t)return;
+    const ids=Object.keys(t.PubSubSides||{});
+    if(!t.PubSubFlowRouterConfig)t.PubSubFlowRouterConfig={ackStyle:'AllOrNothing',routes:[]};
+    t.PubSubFlowRouterConfig.routes.push({fromSideId:ids[0]||'',toSideId:ids[1]||ids[0]||'',
+      failoverSideId:'',spilloverBufferSideId:'',deadLetterSideId:'',topicAssociations:[]});
+    this.renderTmpl();this.updPv();
+  },
+  delRoute(i){ const t=this.gt();if(!t)return;t.PubSubFlowRouterConfig.routes.splice(i,1);this.renderTmpl();this.updPv(); },
+  _mkSide(be){
+    const beDef=BE[be]||BE.Kafka;
+    return {allowOutOfOrderPublishRetry:true,allowTimedOutPublishedInFlightMsgsRetryOutOfOrder:true,
+      applyThreadCpuAffinity:false,cpuAffinityForPubSubThread:0,maxMsgPublishRetryAttempts:20,
+      maxMsgPublishRetryTotalTimeInMs:60000,maxPublishedMsgInFlightTimeInMs:240000,maxTotalMsgsInFlight:1000,
+      performPubSubInDedicatedThread:true,retryFailedPublishAttempts:true,
+      subscribeWithoutBookmarkIfNoneIsPersisted:true,_x:true,
+      PubSubClientConfig:{pubsubClientType:be,reconnectDelayInMs:0,maxTotalMsgsInFlight:1000,
+        CustomConfig:{},Topics:[],
+        defaultTopicConfig:{topicName:beDef.topicFields[0]?.def||'topic',
+          needPublishSupport:false,needSubscribeSupport:true,isOptional:false,
+          preferDedicatedConnection:false,consumerGroupName:'',consumerName:'',
+          useTopicLevelMaxTotalMsgsInFlight:false,maxTotalMsgsInFlight:-1,CustomConfig:{}}},
+      DesiredFeatures:Object.assign({},beDef.df),
+      PubSubBookmarkPersistenceConfig:JSON.parse(JSON.stringify(DEF_BM))};
+  },
+
+  // ── App Config Editor ────────────────────────────────────────
+  renderApp(){
+    const cfg=this.s.app;
+    const p2p=cfg.PubSub2PubSubConfig;
+    document.getElementById('aform').innerHTML=`
+    <details class="card" open><summary>REST API</summary><div class="cb">
+      <div class="tr"><label>Enable REST API</label>
+        <input type="checkbox" ${p2p.enableRestApi?'checked':''}
+          onchange="App.onAp('PubSub2PubSubConfig.enableRestApi','b',event)"></div>
+      <div class="fr"><label>REST API Port</label>
+        <input class="fi" type="number" value="${p2p.restApiPort||10000}"
+          oninput="App.onAp('PubSub2PubSubConfig.restApiPort','n',event)"></div>
+      <div class="fr"><label>Health URI</label>
+        <input class="fi" value="${this.esc(p2p.restBasicHealthUri||'/health/basic')}"
+          oninput="App.onAp('PubSub2PubSubConfig.restBasicHealthUri','s',event)"></div>
+      <div class="tr"><label>Global Standby Enabled</label>
+        <input type="checkbox" ${p2p.globalStandbyEnabled?'checked':''}
+          onchange="App.onAp('PubSub2PubSubConfig.globalStandbyEnabled','b',event)"></div>
+      <div class="tr"><label>Transmit Metrics</label>
+        <input type="checkbox" ${p2p.transmitMetrics?'checked':''}
+          onchange="App.onAp('PubSub2PubSubConfig.transmitMetrics','b',event)"></div>
+    </div></details>
+
+    <details class="card"><summary>StatsD Metrics</summary><div class="cb">
+      <div class="fr"><label>Destination (host:port)</label>
+        <input class="fi" value="${this.esc(cfg.StatsDClient?.statsDestination||'127.0.0.1:8125')}"
+          oninput="App.onAp('StatsDClient.statsDestination','s',event)"></div>
+      <div class="fr"><label>Name Prefix</label>
+        <input class="fi" value="${this.esc(cfg.StatsDClient?.statsNamePrefix||'')}"
+          oninput="App.onAp('StatsDClient.statsNamePrefix','s',event)"></div>
+      <div class="tr"><label>Transmit</label>
+        <input type="checkbox" ${cfg.StatsDClient?.transmit?'checked':''}
+          onchange="App.onAp('StatsDClient.transmit','b',event)"></div>
+      <div class="tr"><label>Log Stats</label>
+        <input type="checkbox" ${cfg.StatsDClient?.logStats?'checked':''}
+          onchange="App.onAp('StatsDClient.logStats','b',event)"></div>
+    </div></details>
+
+    <details class="card"><summary>VFS Mounts</summary><div class="cb">
+      <table style="width:100%;border-collapse:collapse;font-size:.78rem">
+        <thead><tr style="color:var(--text2)">
+          <th style="text-align:left;padding:3px 5px">Mount Path</th>
+          <th style="text-align:left;padding:3px 5px">Actual Path</th>
+          <th style="text-align:left;padding:3px 5px">Type</th>
+          <th style="text-align:center;padding:3px 5px">R/W</th><th></th>
+        </tr></thead>
+        <tbody id="vfs-tb">
+          ${(cfg.VFS?.archives||[]).map((a,i)=>this.rVfsRow(a,i)).join('')}
+        </tbody>
+      </table>
+      <button class="btn s sm" style="margin-top:8px" onclick="App.addVfs()">+ Add Mount</button>
+    </div></details>
+
+    <details class="card"><summary>AWS SDK</summary><div class="cb">
+      ${[
+        ['DefaultClientConfig.region','Region','us-east-2'],
+        ['AWSCredentialsProviders','Credentials Providers',''],
+        ['AWS_ACCESS_KEY_ID','Access Key ID',''],
+        ['AWS_SECRET_ACCESS_KEY','Secret Access Key',''],
+        ['AWS_SESSION_TOKEN','Session Token','']
+      ].map(([k,l,d])=>`<div class="fr"><label>${l}</label>
+        <input class="fi" ${k.includes('KEY')||k.includes('SECRET')?'type="password"':''} value="${this.esc(cfg.AWSSDK?.[k]||d)}"
+          oninput="App.onAws('${k}',event)"></div>`).join('')}
+    </div></details>
+
+    <details class="card"><summary>Channel Template References (${(p2p.channelConfigTemplateRefs||[]).length})</summary><div class="cb">
+      <p class="hint" style="margin-bottom:8px">VFS paths to channel template JSON files loaded at startup</p>
+      <div id="tr-list">
+        ${(p2p.channelConfigTemplateRefs||[]).map((r,i)=>`
+        <div class="fr" style="margin-bottom:4px">
+          <input class="fi" value="${this.esc(r)}" oninput="App.onTRef(${i},event)">
+          <button class="btn d sm" onclick="App.rmTRef(${i})">✕</button>
+        </div>`).join('')}
+      </div>
+      <button class="btn s sm" style="margin-top:4px" onclick="App.addTRef()">+ Add Reference</button>
+    </div></details>
+
+    <details class="card"><summary>Channel Instances (${(p2p.explicitChannelOverlays||[]).length})</summary><div class="cb">
+      <div id="ov-list">
+        ${(p2p.explicitChannelOverlays||[]).map((ov,i)=>this.rOv(ov,i)).join('')}
+      </div>
+      <button class="btn sm" style="width:100%;margin-top:6px" onclick="App.addOv()">+ Add Channel Instance</button>
+    </div></details>
+
+    <details class="card"><summary>Auto Channels</summary><div class="cb">
+      <div class="fr"><label>Using Template</label>
+        <input class="fi" value="${this.esc(p2p.numericalAutoChannels?.usingTemplate||'')}"
+          oninput="App.onAC('usingTemplate',event)"></div>
+      <div class="fr"><label>Channel Count</label>
+        <input class="fi" type="number" value="${p2p.numericalAutoChannels?.channelCount||0}"
+          oninput="App.onAC('channelCount',event,'n')"></div>
+      <div class="fr"><label>First Channel ID</label>
+        <input class="fi" type="number" value="${p2p.numericalAutoChannels?.firstChannelId||0}"
+          oninput="App.onAC('firstChannelId',event,'n')"></div>
+      <div class="fr"><label>Channel IDs (csv)</label>
+        <input class="fi" value="${this.esc(p2p.numericalAutoChannels?.channelIds||'')}"
+          oninput="App.onAC('channelIds',event)"></div>
+    </div></details>
+
+    <details class="card"><summary>App Arguments</summary><div class="cb">
+      <div class="fr"><label>Output Directory</label>
+        <input class="fi" value="${this.esc(cfg.Main?.AppArgs?.outputDir||'$MODULEDIR$')}"
+          oninput="App.onAp('Main.AppArgs.outputDir','s',event)"></div>
+      <div class="fr"><label>Min Log Level</label>
+        <input class="fi" type="number" value="${cfg.Main?.AppArgs?.minimalLogLevel||1}"
+          oninput="App.onAp('Main.AppArgs.minimalLogLevel','n',event)"></div>
+    </div></details>`;
+  },
+
+  rVfsRow(a,i){return `<tr id="vr-${i}">
+    <td><input class="kvi" value="${this.esc(a.mountPath||'')}" oninput="App.onVfs(${i},'mountPath',event)"></td>
+    <td><input class="kvi" value="${this.esc(a.actualArchivePath||'')}" oninput="App.onVfs(${i},'actualArchivePath',event)"></td>
+    <td><select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:2px 4px;border-radius:4px;font-size:.76rem" onchange="App.onVfs(${i},'archiveType',event)">
+      ${['FileSystem','Zip','DataStore'].map(t=>`<option ${a.archiveType===t?'selected':''}>${t}</option>`).join('')}
+    </select></td>
+    <td style="text-align:center;white-space:nowrap">
+      <input type="checkbox" title="Readable" ${a.readable?'checked':''} onchange="App.onVfs(${i},'readable',event,'b')">R
+      <input type="checkbox" title="Writeable" ${a.writeable?'checked':''} onchange="App.onVfs(${i},'writeable',event,'b')">W
+    </td>
+    <td><button class="btn d sm" onclick="App.rmVfs(${i})">✕</button></td>
+  </tr>`;},
+
+  rOv(ov,i){return `<div class="ovrow">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong style="font-size:.84rem">Channel Instance ${i+1}</strong>
+      <button class="btn d sm" onclick="App.rmOv(${i})">Delete</button>
+    </div>
+    <div class="fr"><label>Using Template</label>
+      <input class="fi" value="${this.esc(ov.usingTemplate||'')}" oninput="App.onOv(${i},'usingTemplate',event)"></div>
+    <div class="fr"><label>Channel ID</label>
+      <input class="fi" type="number" value="${ov.channelId??-1}" oninput="App.onOv(${i},'channelId',event,'n')"></div>
+    <div class="fr"><label>Channel Name (override)</label>
+      <input class="fi" value="${this.esc(ov.channelName||'')}" oninput="App.onOv(${i},'channelName',event)"></div>
+    <details class="sub"><summary>Side Overrides (${(ov.sides||[]).length})</summary>
+      <div id="ovs-${i}" style="padding:6px 0">
+        ${(ov.sides||[]).map((s,si)=>this.rOvSide(i,si,s)).join('')}
+        <button class="btn s sm" onclick="App.addOvSide(${i})">+ Add Side Override</button>
+      </div></details>
+  </div>`;},
+
+  rOvSide(oi,si,s){return `<div style="border:1px solid var(--border);border-radius:5px;padding:8px;margin-bottom:5px">
+    <div class="fr"><label style="min-width:80px">Side ID</label>
+      <input class="fi" value="${this.esc(s.sideId||'')}" oninput="App.onOvS(${oi},${si},'sideId',event)">
+      <button class="btn d sm" onclick="App.rmOvSide(${oi},${si})">✕</button></div>
+    <div class="fr"><label style="min-width:80px">Remote Addrs</label>
+      <input class="fi" value="${this.esc((s.remoteAddresses||[]).join(','))}" placeholder="host:port,..."
+        oninput="App.onOvRA(${oi},${si},event)"></div>
+    <div class="fr"><label style="min-width:80px">Topics (csv)</label>
+      <input class="fi" value="${this.esc((s.topics||[]).map(t=>t.topicName).join(','))}" placeholder="topic-name,..."
+        oninput="App.onOvT(${oi},${si},event)"></div>
+  </div>`;},
+
+  // App config handlers
+  onAp(path,t,ev){ this.sp(this.s.app,path.split('.'),this.pv(t,ev.target));this.updPv(); },
+  onAws(k,ev){ if(!this.s.app.AWSSDK)this.s.app.AWSSDK={};this.s.app.AWSSDK[k]=ev.target.value;this.updPv(); },
+  onTRef(i,ev){ this.s.app.PubSub2PubSubConfig.channelConfigTemplateRefs[i]=ev.target.value;this.updPv(); },
+  addTRef(){ this.s.app.PubSub2PubSubConfig.channelConfigTemplateRefs.push('vfs://InstallPath/channel_templates/new.json');this.renderApp();this.updPv(); },
+  rmTRef(i){ this.s.app.PubSub2PubSubConfig.channelConfigTemplateRefs.splice(i,1);this.renderApp();this.updPv(); },
+  addVfs(){ this.s.app.VFS.archives.push({actualArchivePath:'$MODULEDIR$',mountPath:'NewMount',archiveName:'NewMount',archiveType:'FileSystem',mountArchives:false,mountArchivesIsRecursive:false,writeable:true,readable:true});this.renderApp();this.updPv(); },
+  rmVfs(i){ this.s.app.VFS.archives.splice(i,1);this.renderApp();this.updPv(); },
+  onVfs(i,k,ev,t){ const a=this.s.app.VFS.archives[i];if(a){a[k]=t==='b'?ev.target.checked:ev.target.value;this.updPv();} },
+  addOv(){ this.s.app.PubSub2PubSubConfig.explicitChannelOverlays.push({usingTemplate:'',channelId:-1,channelName:'',sides:[]});this.renderApp();this.updPv(); },
+  rmOv(i){ this.s.app.PubSub2PubSubConfig.explicitChannelOverlays.splice(i,1);this.renderApp();this.updPv(); },
+  onOv(i,k,ev,t){ const ov=this.s.app.PubSub2PubSubConfig.explicitChannelOverlays[i];if(ov){ov[k]=t==='n'?parseFloat(ev.target.value):ev.target.value;this.updPv();} },
+  addOvSide(oi){ const ov=this.s.app.PubSub2PubSubConfig.explicitChannelOverlays[oi];if(ov){if(!ov.sides)ov.sides=[];ov.sides.push({sideId:'side',remoteAddresses:[],topics:[{topicName:'topic'}]});this.renderApp();this.updPv();} },
+  rmOvSide(oi,si){ const ov=this.s.app.PubSub2PubSubConfig.explicitChannelOverlays[oi];if(ov){ov.sides.splice(si,1);this.renderApp();this.updPv();} },
+  onOvS(oi,si,k,ev){ const ov=this.s.app.PubSub2PubSubConfig.explicitChannelOverlays[oi];if(ov?.sides[si])ov.sides[si][k]=ev.target.value;this.updPv(); },
+  onOvRA(oi,si,ev){ const ov=this.s.app.PubSub2PubSubConfig.explicitChannelOverlays[oi];if(ov?.sides[si])ov.sides[si].remoteAddresses=ev.target.value.split(',').map(s=>s.trim()).filter(Boolean);this.updPv(); },
+  onOvT(oi,si,ev){ const ov=this.s.app.PubSub2PubSubConfig.explicitChannelOverlays[oi];if(ov?.sides[si])ov.sides[si].topics=ev.target.value.split(',').map(s=>s.trim()).filter(Boolean).map(n=>({topicName:n}));this.updPv(); },
+  onAC(k,ev,t){ const nc=this.s.app.PubSub2PubSubConfig.numericalAutoChannels;nc[k]=t==='n'?parseFloat(ev.target.value):ev.target.value;this.updPv(); },
+
+  // ── JSON Preview ─────────────────────────────────────────────
+  updPv(){
+    const code=document.getElementById('pvcode');
+    const lbl=document.getElementById('pvlabel');
+    let obj;
+    if(this.s.tab==='tmpl'){
+      obj=this.gt();
+      if(!obj){code.innerHTML='Select or create a template to begin.';lbl.textContent='JSON Preview';return;}
+      obj=JSON.parse(JSON.stringify(obj)); this.strip(obj);
+      lbl.textContent=(obj.channelName||'template')+'.json';
+    }else{
+      obj=this.s.app; lbl.textContent='pubsub2pubsub_d.json';
+    }
+    code.innerHTML=this._hl(JSON.stringify(obj,null,4));
+  },
+  _hl(json){
+    return json
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{
+        let c='color:var(--cn)';
+        if(/^"/.test(m)) c=/:$/.test(m)?'color:var(--ck)':'color:var(--cs)';
+        else if(/true|false/.test(m)) c='color:var(--cb)';
+        else if(/null/.test(m)) c='color:var(--cb)';
+        return `<span style="${c}">${m}</span>`;
+      });
+  },
+
+  // ── REST API ─────────────────────────────────────────────────
+  async apiConnect(){
+    const host=document.getElementById('api-host').value.trim();
+    this.s.apiHost=host;
+    const dot=document.getElementById('api-dot');
+    dot.className='';this.status('Connecting to '+host+'…');
+    try{
+      const r=await fetch(`http://${host}/health`,{signal:AbortSignal.timeout(5000)});
+      if(r.ok){this.s.apiOk=true;dot.className='ok';this.status('Connected to '+host,'ok');}
+      else throw new Error('HTTP '+r.status);
+    }catch(e){
+      this.s.apiOk=false;dot.className='err';
+      const m=e.name==='TypeError'||e.message.includes('Failed to fetch')
+        ?'Cannot connect. Ensure the service is running and has CORS enabled for null origin.'
+        :'Error: '+e.message;
+      this.status(m,'err');
+    }
+  },
+  async fetchTmplsApi(){
+    if(!this.s.apiOk){this.status('Not connected','err');return;}
+    try{
+      const r=await fetch(`http://${this.s.apiHost}/config`);
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const cfg=await r.json();
+      const ts=cfg.PubSub2PubSubConfig?.channelConfigTemplates||[];
+      if(!ts.length){this.status('No inline templates in API response (templates may be file-based)','err');return;}
+      ts.forEach(t=>this.s.tmpls.push(t));
+      this.s.tIdx=this.s.tmpls.length-1;
+      this.renderList();this.renderTmpl();this.updPv();
+      this.status('Loaded '+ts.length+' template(s) from API','ok');
+    }catch(e){this.status('Fetch error: '+e.message,'err');}
+  },
+  async fetchAppApi(){
+    if(!this.s.apiOk){this.status('Not connected','err');return;}
+    try{
+      const r=await fetch(`http://${this.s.apiHost}/config`);
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      this.s.app=await r.json();
+      this.renderApp();this.updPv();
+      this.status('App config loaded from API','ok');
+    }catch(e){this.status('Fetch error: '+e.message,'err');}
+  },
+  async push(){
+    if(!this.s.apiOk){this.status('Not connected to API','err');return;}
+    let body;
+    if(this.s.tab==='tmpl'){
+      const t=this.gt();if(!t){this.status('No template selected','err');return;}
+      const obj=JSON.parse(JSON.stringify(t));this.strip(obj);
+      body=JSON.stringify({PubSub2PubSubConfig:{channelConfigTemplates:[obj]}});
+    }else{
+      body=JSON.stringify(this.s.app);
+    }
+    try{
+      const r=await fetch(`http://${this.s.apiHost}/config`,
+        {method:'PUT',headers:{'Content-Type':'application/json','Accept':'application/json'},body});
+      if(r.ok)this.status('Config pushed to API','ok');
+      else throw new Error('HTTP '+r.status+': '+await r.text());
+    }catch(e){this.status('Push error: '+e.message,'err');}
+  },
+
+  // ── IO ───────────────────────────────────────────────────────
+  importApp(){ document.getElementById('fi-app').click(); },
+  onAppImport(e){
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{try{this.s.app=JSON.parse(ev.target.result);this.renderApp();this.updPv();this.status('App config imported','ok');}catch(err){this.status('Import error: '+err.message,'err');}};
+    r.readAsText(f);e.target.value='';
+  },
+  download(){
+    let obj,name;
+    if(this.s.tab==='tmpl'){
+      const t=this.gt();if(!t){this.status('No template selected','err');return;}
+      obj=JSON.parse(JSON.stringify(t));this.strip(obj);name=(obj.channelName||'template')+'.json';
+    }else{obj=this.s.app;name='pubsub2pubsub_d.json';}
+    const blob=new Blob([JSON.stringify(obj,null,4)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=name;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    this.status('Downloaded '+name,'ok');
+  },
+  async copy(){
+    let obj;
+    if(this.s.tab==='tmpl'){const t=this.gt();if(!t){this.status('No template selected','err');return;}obj=JSON.parse(JSON.stringify(t));this.strip(obj);}
+    else obj=this.s.app;
+    try{await navigator.clipboard.writeText(JSON.stringify(obj,null,4));this.status('Copied to clipboard','ok');}
+    catch(e){this.status('Copy failed: '+e.message,'err');}
+  },
+
+  // ── Init ─────────────────────────────────────────────────────
+  init(){
+    this.renderList();
+    this.renderApp();
+    this.updPv();
+    document.getElementById('api-host').addEventListener('change',e=>{this.s.apiHost=e.target.value;});
+  }
+};
+
+App.init();
+</script>
+</body>
+</html>

@@ -1,242 +1,238 @@
 {
-	"channelId": "-1",
-	"channelName": "udp2storage",
-	"collectMetrics": "true",
-	"metricsIntervalInMs": "1000",
-	"ticketRefillOnBusyCycle": "10000",
-	"PubSubSides": {
-		"udp-source": {
-			"allowOutOfOrderPublishRetry": true,
-			"allowTimedOutPublishedInFlightMsgsRetryOutOfOrder": true,
-			"applyThreadCpuAffinity": true,
-			"cpuAffinityForPubSubThread": 0,
-			"maxMsgPublishRetryAttempts": 20,
-			"maxMsgPublishRetryTotalTimeInMs": 60000,
-			"maxPublishedMsgInFlightTimeInMs": 240000,
-			"maxTotalMsgsInFlight": 1000,
-			"performPubSubInDedicatedThread": true,
-			"retryFailedPublishAttempts": true,
-			"subscribeWithoutBookmarkIfNoneIsPersisted": true,
-			"PubSubClientConfig": {
-				"pubsubClientType": "UDP",
-				"reconnectDelayInMs": 1000,
-				"CustomConfig": {
-					"transmitTestPackets": true,
-					"testPacketTransmissionIntervalInMs": 1,
-					"testPacketAsBase64": "ewogICAiZUJvb2tzIjpbCiAgICAgIHsKICAgICAgICAgImxhbmd1YWdlIjoiUGFzY2FsIiwKICAgICAgICAgImVkaXRpb24iOiJ0aGlyZCIKICAgICAgfSwKICAgICAgewogICAgICAgICAibGFuZ3VhZ2UiOiJQeXRob24iLAogICAgICAgICAiZWRpdGlvbiI6ImZvdXIiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAgImxhbmd1YWdlIjoiU1FMIiwKICAgICAgICAgImVkaXRpb24iOiJzZWNvbmQiCiAgICAgIH0KICAgXQp9"
-				},
-				"Topics": {
-					"0": {
-						"PubSubClientTopicConfig": {
-							"isOptional": false,
-							"needPublishSupport": false,
-							"needSubscribeSupport": true,
-							"preferDedicatedConnection": false,
-							"topicName": "udp",
-							"CustomConfig": {
-								"wantsTestPackage": true,
-								"udpInterface": "0.0.0.0:50333",
-								"ticketRefillOnBusyCycle": 1000,
-								"nrOfUdpReceiveBuffersPerSocket": 10,
-								"udpSocketOsReceiveBufferSize": 1024,
-								"udpSocketUpdateCyclesPerPulse": 10,
-								"addUdpSourceAddressAsMetaData": true,
-								"translateUdpSourceAddressToString": true,
-								"udpSourceAddressAsMetaDataKeyName": "udpsourceip4",
-								"maxUdpPacketPayloadSizeInBytes": 10000,
-								"addTimestampToReceivedPackages": true
-							}
-						}
-					}
-				},
-				"DesiredFeatures": {
-					"supportsAbsentPrimaryPayloadPerMsg": false,
-					"supportsAutoBookmarking": false,
-					"supportsAutoReconnect": true,
-					"supportsBinaryPayloads": true,
-					"supportsBookmarkingConcept": false,
-					"supportsDuplicateKeysPerMsg": false,
-					"supportsKeyValueSetPerMsg": true,
-					"supportsMetaDataKeyValueSetPerMsg": false,
-					"supportsMetrics": true,
-					"supportsMsgDateTimeBasedBookmark": false,
-					"supportsMsgIdBasedBookmark": false,
-					"supportsMsgIndexBasedBookmark": false,
-					"supportsMultiHostSharding": false,
-					"supportsPerMsgIds": false,
-					"supportsPrimaryPayloadPerMsg": false,
-					"supportsPublishing": false,
-					"supportsSubscriberMsgReceivedAck": true,
-					"supportsSubscriberRateThrottling": true,
-					"supportsSubscribing": true,
-					"supportsTopicIndexBasedBookmark": false
-				}
-			},
-			"PubSubBookmarkPersistenceConfig": {
-				"bookmarkPersistenceType": "VFS",
-				"bookmarkNamespace": "",
-				"autoPersistAlways": false,
-				"autoPersistIfClientSideBookmarksNeeded": true,
-				"autoPersistIntervalInMs": 1000,
-				"autoPersistMsgInterval": 1000,
-				"maxNrOfBookmarksToKeep": 10,
-				"CustomConfig": {
-					"vfsRootPath": "InstallPath/bookmarks",
-					"persistenceStructure": "{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}"
-				}
-			}
-		},
-		"storage-sink": {
-			"allowOutOfOrderPublishRetry": true,
-			"allowTimedOutPublishedInFlightMsgsRetryOutOfOrder": true,
-			"applyThreadCpuAffinity": false,
-			"cpuAffinityForPubSubThread": 1,
-			"maxMsgPublishRetryAttempts": 20,
-			"maxMsgPublishRetryTotalTimeInMs": 60000,
-			"maxPublishedMsgInFlightTimeInMs": 240000,
-			"performPubSubInDedicatedThread": false,
-			"retryFailedPublishAttempts": true,
-			"subscribeWithoutBookmarkIfNoneIsPersisted": true,
-			"PubSubClientConfig": {
-				"pubsubClientType": "STORAGE",
-				"reconnectDelayInMs": 0,
-				"maxTotalMsgsInFlight": 1000,
-				"CustomConfig": {},
-				"Topics": {
-					"0": {
-						"PubSubClientTopicConfig": {
-							"isOptional": false,
-							"needSubscribeSupport": false,
-							"needPublishSupport": true,
-							"preferDedicatedConnection": false,
-							"topicName": "sink",
-							"consumerGroupName": "",
-							"consumerName": "",
-							"useTopicLevelMaxTotalMsgsInFlight": false,
-							"maxTotalMsgsInFlight": -1,
-							"CustomConfig": {
-								"desiredNrOfBuffers": 3,
-								"desiredMinimalSerializedBlockSize": 2560000,
-								"desiredMaxTimeToWaitToGrowSerializedBlockSizeInMs": 1000,
-								"vfsStorageRootPath": "InstallPath/test-sink",
-								"vfsFileExtention": "pubsubmsgs",
-								"encodeCodecFamily": "",
-								"encodeCodecName": "",
-								"decodeCodecFamily": "",
-								"decodeCodecName": "",
-								"ticketRefillOnBusyCycle": 10000,
-								"performVfsOpsASync": false,
-								"performVfsOpsInDedicatedThread": false,
-								"applyDedicatedVfsOpsThreadCpuAffinity": false,
-								"cpuAffinityForDedicatedVfsOpsThread": 0,
-								"collectMetrics": true,
-								"subscribeWithoutBookmarkIfNoneIsPersisted": true,
-								"autoPushAfterStartupIfStorageToPubSub": true,
-								"autoPushAfterStartupIsPersistent": true,
-								"youngestStoragePubSubMsgFileToLoad": "",
-								"oldestStoragePubSubMsgFileToLoad": "",
-								"defaultCodecDecodeGrowthRatioExpectation": 6.0,
-								"bestEffortDeserializeIsAllowed": true,
-								"maxStorageCorruptionDetectionsToBeHealthy": 0,
-								"maxStorageDeserializationFailuresToBeHealthy": 0,
-								"treatEveryFullfilledRequestAsEODEvent": false,
-								"deleteContainersWithFullyAckdContent": false,
-								"moveContainersWithFullyAckdContent": true,
-								"vfsStorageRootPathForFullyAckdContainers": "InstallPath/test-sink/processed",
-								"maxCompletedContainerRefsToRetain": 50,
-								"binarySerializerOptions": {
-									"msgDateTimeIncluded": true,
-									"msgDateTimeAsMsSinceUnixEpochInUtc": true,
-									"msgIdIncluded": false,
-									"msgIndexIncluded": false,
-									"msgPrimaryPayloadIncluded": true,
-									"msgKeyValuePairsIncluded": false,
-									"msgMetaDataKeyValuePairsIncluded": true
-								},
-								"serializerOptions": {
-									"msgDateTimeIncluded": true,
-									"msgDateTimeAsMsSinceUnixEpochInUtc": true,
-									"msgIdIncluded": false,
-									"msgIndexIncluded": false,
-									"msgPrimaryPayloadIncluded": true,
-									"msgPrimaryPayloadTypeIncluded": true,
-									"msgKeyValuePairsIncluded": false,
-									"msgMetaDataKeyValuePairsIncluded": true,
-									"includeUndefinedValues": false,
-									"receiveActionIdIncluded": true,
-									"originTopicObjPointerIncluded": false,
-									"originTopicNameIncluded": false,
-									"originClientTypeNameIncluded": false,
-									"originClientObjPointerIncluded": false
-								}								
-							}
-						}
-					}
-				},
-				"DesiredFeatures": {
-					"supportsPublishing": true,
-					"supportsSubscribing": false,
-					"supportsAutoReconnect": true,
-					"supportsSubscriberRateThrottling": true,
-					"supportsSubscriptionMsgArrivalDelayRequests": true,
-					"supportsSubscriptionEndOfDataEvent": true,
-					"supportsBinaryPayloads": true,
-					"supportsMultiHostSharding": false,
-					"supportsPerMsgIds": true,
-					"supportsMsgIndex": true,
-					"supportsPrimaryPayloadPerMsg": true,
-					"supportsAbsentPrimaryPayloadPerMsg": true,
-					"supportsKeyValueSetPerMsg": true,
-					"supportsDuplicateKeysPerMsg": true,
-					"supportsMetaDataKeyValueSetPerMsg": true,
-					"supportsSubscriberMsgReceivedAck": false,
-					"supportsAutoMsgReceivedAck": false,
-					"supportsAbsentMsgReceivedAck": false,
-					"supportsAckUsingLastMsgInBatch": true,
-					"supportsAckUsingBookmark": true,
-					"supportsBookmarkingConcept": true,
-					"supportsSubscribingUsingBookmark": true,
-					"supportsServerSideBookmarkPersistance": false,
-					"supportsAutoBookmarking": false,
-					"supportsMsgIdBasedBookmark": false,
-					"supportsMsgIndexBasedBookmark": false,
-					"supportsTopicIndexBasedBookmark": false,
-					"supportsMsgDateTimeBasedBookmark": false,
-					"supportsDerivingBookmarkFromMsg": true,
-					"supportsDiscoveryOfAvailableTopics": true,
-					"supportsGlobPatternTopicNames": true,
-					"supportsMetrics": true
-				}
-			},
-			"PubSubBookmarkPersistenceConfig": {
-				"bookmarkPersistenceType": "VFS",
-				"bookmarkNamespace": "",
-				"autoPersistAlways": false,
-				"autoPersistIfClientSideBookmarksNeeded": true,
-				"autoPersistIntervalInMs": 10000,
-				"autoPersistMsgInterval": 1000,
-				"maxNrOfBookmarksToKeep": 10,
-				"CustomConfig": {
-					"vfsRootPath": "InstallPath/bookmarks",
-					"persistenceStructure": "{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}"
-				}
-			}
-		}
-	},
-	"PubSubFlowRouterConfig": {
-		"ackStyle": "AllOrNothing",
-		"minBadHealthDurationBeforeFailoverInMs": 5000000,
-		"minBadHealthDurationBeforeSpilloverInMs": 5000000,
-		"minPrimarySideGoodHealthDurationBeforeActivationInMs": 5000,
-		"minFailoverSideGoodHealthDurationBeforeActivationInMs": 5000,
-		"minSpilloverSideGoodHealthDurationBeforeActivationInMs": 5000,
-		"routeSwitchingTimerIntervalInMs": 1000,
-		"routes": [{
-			"fromSideId": "udp-source",
-			"toSideId": "storage-sink",
-			"failoverSideId": "",
-			"spilloverBufferSideId": "",
-			"deadLetterSideId": ""
-		}]
-	}
+    "channelId": "-1",
+    "channelName": "udp2storage",
+    "collectMetrics": "true",
+    "metricsIntervalInMs": "1000",
+    "ticketRefillOnBusyCycle": "10000",
+    "PubSubSides": {
+        "udp-source": {
+            "allowOutOfOrderPublishRetry": true,
+            "allowTimedOutPublishedInFlightMsgsRetryOutOfOrder": true,
+            "applyThreadCpuAffinity": true,
+            "cpuAffinityForPubSubThread": 0,
+            "maxMsgPublishRetryAttempts": 20,
+            "maxMsgPublishRetryTotalTimeInMs": 60000,
+            "maxPublishedMsgInFlightTimeInMs": 240000,
+            "maxTotalMsgsInFlight": 1000,
+            "performPubSubInDedicatedThread": true,
+            "retryFailedPublishAttempts": true,
+            "subscribeWithoutBookmarkIfNoneIsPersisted": true,
+            "PubSubClientConfig": {
+                "pubsubClientType": "UDP",
+                "reconnectDelayInMs": 1000,
+                "CustomConfig": {
+                    "transmitTestPackets": true,
+                    "testPacketTransmissionIntervalInMs": 1,
+                    "testPacketAsBase64": "ewogICAiZUJvb2tzIjpbCiAgICAgIHsKICAgICAgICAgImxhbmd1YWdlIjoiUGFzY2FsIiwKICAgICAgICAgImVkaXRpb24iOiJ0aGlyZCIKICAgICAgfSwKICAgICAgewogICAgICAgICAibGFuZ3VhZ2UiOiJQeXRob24iLAogICAgICAgICAiZWRpdGlvbiI6ImZvdXIiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAgImxhbmd1YWdlIjoiU1FMIiwKICAgICAgICAgImVkaXRpb24iOiJzZWNvbmQiCiAgICAgIH0KICAgXQp9"
+                },
+                "Topics": [],
+                "DesiredFeatures": {
+                    "supportsAbsentPrimaryPayloadPerMsg": false,
+                    "supportsAutoBookmarking": false,
+                    "supportsAutoReconnect": true,
+                    "supportsBinaryPayloads": true,
+                    "supportsBookmarkingConcept": false,
+                    "supportsDuplicateKeysPerMsg": false,
+                    "supportsKeyValueSetPerMsg": true,
+                    "supportsMetaDataKeyValueSetPerMsg": false,
+                    "supportsMetrics": true,
+                    "supportsMsgDateTimeBasedBookmark": false,
+                    "supportsMsgIdBasedBookmark": false,
+                    "supportsMsgIndexBasedBookmark": false,
+                    "supportsMultiHostSharding": false,
+                    "supportsPerMsgIds": false,
+                    "supportsPrimaryPayloadPerMsg": false,
+                    "supportsPublishing": false,
+                    "supportsSubscriberMsgReceivedAck": true,
+                    "supportsSubscriberRateThrottling": true,
+                    "supportsSubscribing": true,
+                    "supportsTopicIndexBasedBookmark": false
+                },
+                "defaultTopicConfig": {
+                    "isOptional": false,
+                    "needPublishSupport": false,
+                    "needSubscribeSupport": true,
+                    "preferDedicatedConnection": false,
+                    "topicName": "udp",
+                    "CustomConfig": {
+                        "wantsTestPackage": true,
+                        "udpInterface": "0.0.0.0:50333",
+                        "ticketRefillOnBusyCycle": 1000,
+                        "nrOfUdpReceiveBuffersPerSocket": 10,
+                        "udpSocketOsReceiveBufferSize": 1024,
+                        "udpSocketUpdateCyclesPerPulse": 10,
+                        "addUdpSourceAddressAsMetaData": true,
+                        "translateUdpSourceAddressToString": true,
+                        "udpSourceAddressAsMetaDataKeyName": "udpsourceip4",
+                        "maxUdpPacketPayloadSizeInBytes": 10000,
+                        "addTimestampToReceivedPackages": true
+                    }
+                }
+            },
+            "PubSubBookmarkPersistenceConfig": {
+                "bookmarkPersistenceType": "VFS",
+                "bookmarkNamespace": "",
+                "autoPersistAlways": false,
+                "autoPersistIfClientSideBookmarksNeeded": true,
+                "autoPersistIntervalInMs": 1000,
+                "autoPersistMsgInterval": 1000,
+                "maxNrOfBookmarksToKeep": 10,
+                "CustomConfig": {
+                    "vfsRootPath": "InstallPath/bookmarks",
+                    "persistenceStructure": "{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}"
+                }
+            }
+        },
+        "storage-sink": {
+            "allowOutOfOrderPublishRetry": true,
+            "allowTimedOutPublishedInFlightMsgsRetryOutOfOrder": true,
+            "applyThreadCpuAffinity": false,
+            "cpuAffinityForPubSubThread": 1,
+            "maxMsgPublishRetryAttempts": 20,
+            "maxMsgPublishRetryTotalTimeInMs": 60000,
+            "maxPublishedMsgInFlightTimeInMs": 240000,
+            "performPubSubInDedicatedThread": false,
+            "retryFailedPublishAttempts": true,
+            "subscribeWithoutBookmarkIfNoneIsPersisted": true,
+            "PubSubClientConfig": {
+                "pubsubClientType": "STORAGE",
+                "reconnectDelayInMs": 0,
+                "maxTotalMsgsInFlight": 1000,
+                "CustomConfig": {},
+                "Topics": [],
+                "DesiredFeatures": {
+                    "supportsPublishing": true,
+                    "supportsSubscribing": false,
+                    "supportsAutoReconnect": true,
+                    "supportsSubscriberRateThrottling": true,
+                    "supportsSubscriptionMsgArrivalDelayRequests": true,
+                    "supportsSubscriptionEndOfDataEvent": true,
+                    "supportsBinaryPayloads": true,
+                    "supportsMultiHostSharding": false,
+                    "supportsPerMsgIds": true,
+                    "supportsMsgIndex": true,
+                    "supportsPrimaryPayloadPerMsg": true,
+                    "supportsAbsentPrimaryPayloadPerMsg": true,
+                    "supportsKeyValueSetPerMsg": true,
+                    "supportsDuplicateKeysPerMsg": true,
+                    "supportsMetaDataKeyValueSetPerMsg": true,
+                    "supportsSubscriberMsgReceivedAck": false,
+                    "supportsAutoMsgReceivedAck": false,
+                    "supportsAbsentMsgReceivedAck": false,
+                    "supportsAckUsingLastMsgInBatch": true,
+                    "supportsAckUsingBookmark": true,
+                    "supportsBookmarkingConcept": true,
+                    "supportsSubscribingUsingBookmark": true,
+                    "supportsServerSideBookmarkPersistance": false,
+                    "supportsAutoBookmarking": false,
+                    "supportsMsgIdBasedBookmark": false,
+                    "supportsMsgIndexBasedBookmark": false,
+                    "supportsTopicIndexBasedBookmark": false,
+                    "supportsMsgDateTimeBasedBookmark": false,
+                    "supportsDerivingBookmarkFromMsg": true,
+                    "supportsDiscoveryOfAvailableTopics": true,
+                    "supportsGlobPatternTopicNames": true,
+                    "supportsMetrics": true
+                },
+                "defaultTopicConfig": {
+                    "isOptional": false,
+                    "needSubscribeSupport": false,
+                    "needPublishSupport": true,
+                    "preferDedicatedConnection": false,
+                    "topicName": "sink",
+                    "consumerGroupName": "",
+                    "consumerName": "",
+                    "useTopicLevelMaxTotalMsgsInFlight": false,
+                    "maxTotalMsgsInFlight": -1,
+                    "CustomConfig": {
+                        "desiredNrOfBuffers": 3,
+                        "desiredMinimalSerializedBlockSize": 2560000,
+                        "desiredMaxTimeToWaitToGrowSerializedBlockSizeInMs": 1000,
+                        "vfsStorageRootPath": "InstallPath/test-sink",
+                        "vfsFileExtention": "pubsubmsgs",
+                        "encodeCodecFamily": "",
+                        "encodeCodecName": "",
+                        "decodeCodecFamily": "",
+                        "decodeCodecName": "",
+                        "ticketRefillOnBusyCycle": 10000,
+                        "performVfsOpsASync": false,
+                        "performVfsOpsInDedicatedThread": false,
+                        "applyDedicatedVfsOpsThreadCpuAffinity": false,
+                        "cpuAffinityForDedicatedVfsOpsThread": 0,
+                        "collectMetrics": true,
+                        "subscribeWithoutBookmarkIfNoneIsPersisted": true,
+                        "autoPushAfterStartupIfStorageToPubSub": true,
+                        "autoPushAfterStartupIsPersistent": true,
+                        "youngestStoragePubSubMsgFileToLoad": "",
+                        "oldestStoragePubSubMsgFileToLoad": "",
+                        "defaultCodecDecodeGrowthRatioExpectation": 6,
+                        "bestEffortDeserializeIsAllowed": true,
+                        "maxStorageCorruptionDetectionsToBeHealthy": 0,
+                        "maxStorageDeserializationFailuresToBeHealthy": 0,
+                        "treatEveryFullfilledRequestAsEODEvent": false,
+                        "deleteContainersWithFullyAckdContent": false,
+                        "moveContainersWithFullyAckdContent": true,
+                        "vfsStorageRootPathForFullyAckdContainers": "InstallPath/test-sink/processed",
+                        "maxCompletedContainerRefsToRetain": 50,
+                        "binarySerializerOptions": {
+                            "msgDateTimeIncluded": true,
+                            "msgDateTimeAsMsSinceUnixEpochInUtc": true,
+                            "msgIdIncluded": false,
+                            "msgIndexIncluded": false,
+                            "msgPrimaryPayloadIncluded": true,
+                            "msgKeyValuePairsIncluded": false,
+                            "msgMetaDataKeyValuePairsIncluded": true
+                        },
+                        "serializerOptions": {
+                            "msgDateTimeIncluded": true,
+                            "msgDateTimeAsMsSinceUnixEpochInUtc": true,
+                            "msgIdIncluded": false,
+                            "msgIndexIncluded": false,
+                            "msgPrimaryPayloadIncluded": true,
+                            "msgPrimaryPayloadTypeIncluded": true,
+                            "msgKeyValuePairsIncluded": false,
+                            "msgMetaDataKeyValuePairsIncluded": true,
+                            "includeUndefinedValues": false,
+                            "receiveActionIdIncluded": true,
+                            "originTopicObjPointerIncluded": false,
+                            "originTopicNameIncluded": false,
+                            "originClientTypeNameIncluded": false,
+                            "originClientObjPointerIncluded": false
+                        }
+                    }
+                }
+            },
+            "PubSubBookmarkPersistenceConfig": {
+                "bookmarkPersistenceType": "VFS",
+                "bookmarkNamespace": "",
+                "autoPersistAlways": false,
+                "autoPersistIfClientSideBookmarksNeeded": true,
+                "autoPersistIntervalInMs": 10000,
+                "autoPersistMsgInterval": 1000,
+                "maxNrOfBookmarksToKeep": 10,
+                "CustomConfig": {
+                    "vfsRootPath": "InstallPath/bookmarks",
+                    "persistenceStructure": "{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}"
+                }
+            }
+        }
+    },
+    "PubSubFlowRouterConfig": {
+        "ackStyle": "AllOrNothing",
+        "minBadHealthDurationBeforeFailoverInMs": 5000000,
+        "minBadHealthDurationBeforeSpilloverInMs": 5000000,
+        "minPrimarySideGoodHealthDurationBeforeActivationInMs": 5000,
+        "minFailoverSideGoodHealthDurationBeforeActivationInMs": 5000,
+        "minSpilloverSideGoodHealthDurationBeforeActivationInMs": 5000,
+        "routeSwitchingTimerIntervalInMs": 1000,
+        "routes": [
+            {
+                "fromSideId": "udp-source",
+                "toSideId": "storage-sink",
+                "failoverSideId": "",
+                "spilloverBufferSideId": "",
+                "deadLetterSideId": ""
+            }
+        ]
+    }
 }

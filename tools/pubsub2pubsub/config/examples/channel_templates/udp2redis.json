@@ -1,199 +1,197 @@
 {
-	"channelId": "-1",
-	"channelName": "udp2redis",
-	"collectMetrics": "true",
-	"metricsIntervalInMs": "1000",
-	"ticketRefillOnBusyCycle": "10000",
-	"PubSubSides": {
-		"udp-source": {
-			"allowOutOfOrderPublishRetry": true,
-			"allowTimedOutPublishedInFlightMsgsRetryOutOfOrder": true,
-			"applyThreadCpuAffinity": true,
-			"cpuAffinityForPubSubThread": 0,
-			"maxMsgPublishRetryAttempts": 20,
-			"maxMsgPublishRetryTotalTimeInMs": 60000,
-			"maxPublishedMsgInFlightTimeInMs": 240000,
-			"maxTotalMsgsInFlight": 1000,
-			"performPubSubInDedicatedThread": true,
-			"retryFailedPublishAttempts": true,
-			"subscribeWithoutBookmarkIfNoneIsPersisted": true,
-			"PubSubClientConfig": {
-				"pubsubClientType": "UDP",
-				"reconnectDelayInMs": 1000,
-				"CustomConfig": {
-					"transmitTestPackets": true,
-					"testPacketTransmissionIntervalInMs": 1,
-					"testPacketAsBase64": "ewogICAiZUJvb2tzIjpbCiAgICAgIHsKICAgICAgICAgImxhbmd1YWdlIjoiUGFzY2FsIiwKICAgICAgICAgImVkaXRpb24iOiJ0aGlyZCIKICAgICAgfSwKICAgICAgewogICAgICAgICAibGFuZ3VhZ2UiOiJQeXRob24iLAogICAgICAgICAiZWRpdGlvbiI6ImZvdXIiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAgImxhbmd1YWdlIjoiU1FMIiwKICAgICAgICAgImVkaXRpb24iOiJzZWNvbmQiCiAgICAgIH0KICAgXQp9"
-				},
-				"Topics": {
-					"0": {
-						"PubSubClientTopicConfig": {
-							"isOptional": false,
-							"needPublishSupport": false,
-							"needSubscribeSupport": true,
-							"preferDedicatedConnection": false,
-							"topicName": "udp",
-							"CustomConfig": {
-								"wantsTestPackage": true,
-								"udpInterface": "0.0.0.0:50333",
-								"ticketRefillOnBusyCycle": 1000,
-								"nrOfUdpReceiveBuffersPerSocket": 10,
-								"udpSocketOsReceiveBufferSize": 1024,
-								"udpSocketUpdateCyclesPerPulse": 10,
-								"addUdpSourceAddressAsMetaData": true,
-								"translateUdpSourceAddressToString": true,
-								"udpSourceAddressAsMetaDataKeyName": "udpsourceip4",
-								"maxUdpPacketPayloadSizeInBytes": 10000,
-								"addTimestampToReceivedPackages": true
-							}
-						}
-					}
-				},
-				"DesiredFeatures": {
-					"supportsAbsentPrimaryPayloadPerMsg": false,
-					"supportsAutoBookmarking": false,
-					"supportsAutoReconnect": true,
-					"supportsBinaryPayloads": true,
-					"supportsBookmarkingConcept": false,
-					"supportsDuplicateKeysPerMsg": false,
-					"supportsKeyValueSetPerMsg": true,
-					"supportsMetaDataKeyValueSetPerMsg": false,
-					"supportsMetrics": true,
-					"supportsMsgDateTimeBasedBookmark": false,
-					"supportsMsgIdBasedBookmark": false,
-					"supportsMsgIndexBasedBookmark": false,
-					"supportsMultiHostSharding": false,
-					"supportsPerMsgIds": false,
-					"supportsPrimaryPayloadPerMsg": false,
-					"supportsPublishing": false,
-					"supportsSubscriberMsgReceivedAck": true,
-					"supportsSubscriberRateThrottling": true,
-					"supportsSubscribing": true,
-					"supportsTopicIndexBasedBookmark": false
-				}
-			},
-			"PubSubBookmarkPersistenceConfig": {
-				"bookmarkPersistenceType": "VFS",
-				"bookmarkNamespace": "",
-				"autoPersistAlways": false,
-				"autoPersistIfClientSideBookmarksNeeded": true,
-				"autoPersistIntervalInMs": 1000,
-				"autoPersistMsgInterval": 1000,
-				"maxNrOfBookmarksToKeep": 10,
-				"CustomConfig": {
-					"vfsRootPath": "InstallPath/bookmarks",
-					"persistenceStructure": "{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}"
-				}
-			}
-		},
-		"redis-sink": {
-			"allowOutOfOrderPublishRetry": true,
-			"allowTimedOutPublishedInFlightMsgsRetryOutOfOrder": true,
-			"applyThreadCpuAffinity": true,
-			"cpuAffinityForPubSubThread": 0,
-			"maxMsgPublishRetryAttempts": 20,
-			"maxMsgPublishRetryTotalTimeInMs": 60000,
-			"maxPublishedMsgInFlightTimeInMs": 240000,
-			"performPubSubInDedicatedThread": true,
-			"retryFailedPublishAttempts": true,
-			"subscribeWithoutBookmarkIfNoneIsPersisted": true,
-			"PubSubClientConfig": {
-				"pubsubClientType": "ClusteredRedis",
-				"reconnectDelayInMs": 1000,
-				"pubsubIdPrefix": "{auto}",
-				"maxTotalMsgsInFlight": 100000,
-				"RemoteAddresses": ["127.0.0.1:6379"],
-				"CustomConfig": {},
-				"Topics": {
-					"0": {
-						"PubSubClientTopicConfig": {
-							"isOptional": false,
-							"needSubscribeSupport": true,
-							"needPublishSupport": false,
-							"preferDedicatedConnection": false,
-							"topicName": "put-your-redis-stream-name-here",
-							"consumerGroupName": "",
-							"consumerName": "",
-							"useTopicLevelMaxTotalMsgsInFlight": false,
-							"maxTotalMsgsInFlight": -1,
-							"CustomConfig": {
-								"autoGenerateRedisAddMinId": false,
-								"maxAgeInMsForMinId": 31560000000,
-								"redisXAddMaxLen": -1,
-								"redisXAddMaxLenIsApproximate": true,
-								"redisXAddIgnoreMsgId": true,
-								"redisXReadDefaultOffset": "0",
-								"redisXReadBlockTimeoutInMs": 1000,
-								"treatXReadBlockTimeoutAsEndOfDataEvent": true,
-								"minAvailableInFlightSlotsBeforeRead": 900
-							}
-						}
-					}
-				},
-				"DesiredFeatures": {
-					"supportsPublishing": false,
-					"supportsSubscribing": true,
-					"supportsAutoReconnect": true,
-					"supportsSubscriberRateThrottling": true,
-					"supportsSubscriptionMsgArrivalDelayRequests": true,
-					"supportsSubscriptionEndOfDataEvent": true,
-					"supportsBinaryPayloads": true,
-					"supportsMultiHostSharding": false,
-					"supportsPerMsgIds": true,
-					"supportsMsgIndex": true,
-					"supportsPrimaryPayloadPerMsg": true,
-					"supportsAbsentPrimaryPayloadPerMsg": true,
-					"supportsKeyValueSetPerMsg": true,
-					"supportsDuplicateKeysPerMsg": true,
-					"supportsMetaDataKeyValueSetPerMsg": true,
-					"supportsSubscriberMsgReceivedAck": false,
-					"supportsAutoMsgReceivedAck": false,
-					"supportsAbsentMsgReceivedAck": false,
-					"supportsAckUsingLastMsgInBatch": true,
-					"supportsAckUsingBookmark": true,
-					"supportsBookmarkingConcept": true,
-					"supportsSubscribingUsingBookmark": true,
-					"supportsServerSideBookmarkPersistance": false,
-					"supportsAutoBookmarking": false,
-					"supportsMsgIdBasedBookmark": false,
-					"supportsMsgIndexBasedBookmark": false,
-					"supportsTopicIndexBasedBookmark": false,
-					"supportsMsgDateTimeBasedBookmark": false,
-					"supportsDerivingBookmarkFromMsg": true,
-					"supportsDiscoveryOfAvailableTopics": true,
-					"supportsGlobPatternTopicNames": true,
-					"supportsMetrics": true
-				}
-			},
-			"PubSubBookmarkPersistenceConfig": {
-				"bookmarkPersistenceType": "VFS",
-				"bookmarkNamespace": "",
-				"autoPersistAlways": false,
-				"autoPersistIfClientSideBookmarksNeeded": true,
-				"autoPersistIntervalInMs": 1000,
-				"autoPersistMsgInterval": 1000,
-				"maxNrOfBookmarksToKeep": 10,
-				"CustomConfig": {
-					"vfsRootPath": "InstallPath/pubsub/bookmarks",
-					"persistenceStructure": "{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}"
-				}
-			}
-		}
-	},
-	"PubSubFlowRouterConfig": {
-		"ackStyle": "AllOrNothing",
-		"minBadHealthDurationBeforeFailoverInMs": 5000000,
-		"minBadHealthDurationBeforeSpilloverInMs": 5000000,
-		"minPrimarySideGoodHealthDurationBeforeActivationInMs": 5000,
-		"minFailoverSideGoodHealthDurationBeforeActivationInMs": 5000,
-		"minSpilloverSideGoodHealthDurationBeforeActivationInMs": 5000,
-		"routeSwitchingTimerIntervalInMs": 1000,
-		"routes": [{
-			"fromSideId": "redis-source",
-			"toSideId": "storage-sink",
-			"failoverSideId": "",
-			"spilloverBufferSideId": "",
-			"deadLetterSideId": ""
-		}]
-	}
+    "channelId": "-1",
+    "channelName": "udp2redis",
+    "collectMetrics": "true",
+    "metricsIntervalInMs": "1000",
+    "ticketRefillOnBusyCycle": "10000",
+    "PubSubSides": {
+        "udp-source": {
+            "allowOutOfOrderPublishRetry": true,
+            "allowTimedOutPublishedInFlightMsgsRetryOutOfOrder": true,
+            "applyThreadCpuAffinity": true,
+            "cpuAffinityForPubSubThread": 0,
+            "maxMsgPublishRetryAttempts": 20,
+            "maxMsgPublishRetryTotalTimeInMs": 60000,
+            "maxPublishedMsgInFlightTimeInMs": 240000,
+            "maxTotalMsgsInFlight": 1000,
+            "performPubSubInDedicatedThread": true,
+            "retryFailedPublishAttempts": true,
+            "subscribeWithoutBookmarkIfNoneIsPersisted": true,
+            "PubSubClientConfig": {
+                "pubsubClientType": "UDP",
+                "reconnectDelayInMs": 1000,
+                "CustomConfig": {
+                    "transmitTestPackets": true,
+                    "testPacketTransmissionIntervalInMs": 1,
+                    "testPacketAsBase64": "ewogICAiZUJvb2tzIjpbCiAgICAgIHsKICAgICAgICAgImxhbmd1YWdlIjoiUGFzY2FsIiwKICAgICAgICAgImVkaXRpb24iOiJ0aGlyZCIKICAgICAgfSwKICAgICAgewogICAgICAgICAibGFuZ3VhZ2UiOiJQeXRob24iLAogICAgICAgICAiZWRpdGlvbiI6ImZvdXIiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAgImxhbmd1YWdlIjoiU1FMIiwKICAgICAgICAgImVkaXRpb24iOiJzZWNvbmQiCiAgICAgIH0KICAgXQp9"
+                },
+                "Topics": [],
+                "DesiredFeatures": {
+                    "supportsAbsentPrimaryPayloadPerMsg": false,
+                    "supportsAutoBookmarking": false,
+                    "supportsAutoReconnect": true,
+                    "supportsBinaryPayloads": true,
+                    "supportsBookmarkingConcept": false,
+                    "supportsDuplicateKeysPerMsg": false,
+                    "supportsKeyValueSetPerMsg": true,
+                    "supportsMetaDataKeyValueSetPerMsg": false,
+                    "supportsMetrics": true,
+                    "supportsMsgDateTimeBasedBookmark": false,
+                    "supportsMsgIdBasedBookmark": false,
+                    "supportsMsgIndexBasedBookmark": false,
+                    "supportsMultiHostSharding": false,
+                    "supportsPerMsgIds": false,
+                    "supportsPrimaryPayloadPerMsg": false,
+                    "supportsPublishing": false,
+                    "supportsSubscriberMsgReceivedAck": true,
+                    "supportsSubscriberRateThrottling": true,
+                    "supportsSubscribing": true,
+                    "supportsTopicIndexBasedBookmark": false
+                },
+                "defaultTopicConfig": {
+                    "isOptional": false,
+                    "needPublishSupport": false,
+                    "needSubscribeSupport": true,
+                    "preferDedicatedConnection": false,
+                    "topicName": "udp",
+                    "CustomConfig": {
+                        "wantsTestPackage": true,
+                        "udpInterface": "0.0.0.0:50333",
+                        "ticketRefillOnBusyCycle": 1000,
+                        "nrOfUdpReceiveBuffersPerSocket": 10,
+                        "udpSocketOsReceiveBufferSize": 1024,
+                        "udpSocketUpdateCyclesPerPulse": 10,
+                        "addUdpSourceAddressAsMetaData": true,
+                        "translateUdpSourceAddressToString": true,
+                        "udpSourceAddressAsMetaDataKeyName": "udpsourceip4",
+                        "maxUdpPacketPayloadSizeInBytes": 10000,
+                        "addTimestampToReceivedPackages": true
+                    }
+                }
+            },
+            "PubSubBookmarkPersistenceConfig": {
+                "bookmarkPersistenceType": "VFS",
+                "bookmarkNamespace": "",
+                "autoPersistAlways": false,
+                "autoPersistIfClientSideBookmarksNeeded": true,
+                "autoPersistIntervalInMs": 1000,
+                "autoPersistMsgInterval": 1000,
+                "maxNrOfBookmarksToKeep": 10,
+                "CustomConfig": {
+                    "vfsRootPath": "InstallPath/bookmarks",
+                    "persistenceStructure": "{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}"
+                }
+            }
+        },
+        "redis-sink": {
+            "allowOutOfOrderPublishRetry": true,
+            "allowTimedOutPublishedInFlightMsgsRetryOutOfOrder": true,
+            "applyThreadCpuAffinity": true,
+            "cpuAffinityForPubSubThread": 0,
+            "maxMsgPublishRetryAttempts": 20,
+            "maxMsgPublishRetryTotalTimeInMs": 60000,
+            "maxPublishedMsgInFlightTimeInMs": 240000,
+            "performPubSubInDedicatedThread": true,
+            "retryFailedPublishAttempts": true,
+            "subscribeWithoutBookmarkIfNoneIsPersisted": true,
+            "PubSubClientConfig": {
+                "pubsubClientType": "ClusteredRedis",
+                "reconnectDelayInMs": 1000,
+                "pubsubIdPrefix": "{auto}",
+                "maxTotalMsgsInFlight": 100000,
+                "RemoteAddresses": [
+                    "127.0.0.1:6379"
+                ],
+                "CustomConfig": {},
+                "Topics": [],
+                "DesiredFeatures": {
+                    "supportsPublishing": false,
+                    "supportsSubscribing": true,
+                    "supportsAutoReconnect": true,
+                    "supportsSubscriberRateThrottling": true,
+                    "supportsSubscriptionMsgArrivalDelayRequests": true,
+                    "supportsSubscriptionEndOfDataEvent": true,
+                    "supportsBinaryPayloads": true,
+                    "supportsMultiHostSharding": false,
+                    "supportsPerMsgIds": true,
+                    "supportsMsgIndex": true,
+                    "supportsPrimaryPayloadPerMsg": true,
+                    "supportsAbsentPrimaryPayloadPerMsg": true,
+                    "supportsKeyValueSetPerMsg": true,
+                    "supportsDuplicateKeysPerMsg": true,
+                    "supportsMetaDataKeyValueSetPerMsg": true,
+                    "supportsSubscriberMsgReceivedAck": false,
+                    "supportsAutoMsgReceivedAck": false,
+                    "supportsAbsentMsgReceivedAck": false,
+                    "supportsAckUsingLastMsgInBatch": true,
+                    "supportsAckUsingBookmark": true,
+                    "supportsBookmarkingConcept": true,
+                    "supportsSubscribingUsingBookmark": true,
+                    "supportsServerSideBookmarkPersistance": false,
+                    "supportsAutoBookmarking": false,
+                    "supportsMsgIdBasedBookmark": false,
+                    "supportsMsgIndexBasedBookmark": false,
+                    "supportsTopicIndexBasedBookmark": false,
+                    "supportsMsgDateTimeBasedBookmark": false,
+                    "supportsDerivingBookmarkFromMsg": true,
+                    "supportsDiscoveryOfAvailableTopics": true,
+                    "supportsGlobPatternTopicNames": true,
+                    "supportsMetrics": true
+                },
+                "defaultTopicConfig": {
+                    "isOptional": false,
+                    "needSubscribeSupport": true,
+                    "needPublishSupport": false,
+                    "preferDedicatedConnection": false,
+                    "topicName": "put-your-redis-stream-name-here",
+                    "consumerGroupName": "",
+                    "consumerName": "",
+                    "useTopicLevelMaxTotalMsgsInFlight": false,
+                    "maxTotalMsgsInFlight": -1,
+                    "CustomConfig": {
+                        "autoGenerateRedisAddMinId": false,
+                        "maxAgeInMsForMinId": 31560000000,
+                        "redisXAddMaxLen": -1,
+                        "redisXAddMaxLenIsApproximate": true,
+                        "redisXAddIgnoreMsgId": true,
+                        "redisXReadDefaultOffset": "0",
+                        "redisXReadBlockTimeoutInMs": 1000,
+                        "treatXReadBlockTimeoutAsEndOfDataEvent": true,
+                        "minAvailableInFlightSlotsBeforeRead": 900
+                    }
+                }
+            },
+            "PubSubBookmarkPersistenceConfig": {
+                "bookmarkPersistenceType": "VFS",
+                "bookmarkNamespace": "",
+                "autoPersistAlways": false,
+                "autoPersistIfClientSideBookmarksNeeded": true,
+                "autoPersistIntervalInMs": 1000,
+                "autoPersistMsgInterval": 1000,
+                "maxNrOfBookmarksToKeep": 10,
+                "CustomConfig": {
+                    "vfsRootPath": "InstallPath/pubsub/bookmarks",
+                    "persistenceStructure": "{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}"
+                }
+            }
+        }
+    },
+    "PubSubFlowRouterConfig": {
+        "ackStyle": "AllOrNothing",
+        "minBadHealthDurationBeforeFailoverInMs": 5000000,
+        "minBadHealthDurationBeforeSpilloverInMs": 5000000,
+        "minPrimarySideGoodHealthDurationBeforeActivationInMs": 5000,
+        "minFailoverSideGoodHealthDurationBeforeActivationInMs": 5000,
+        "minSpilloverSideGoodHealthDurationBeforeActivationInMs": 5000,
+        "routeSwitchingTimerIntervalInMs": 1000,
+        "routes": [
+            {
+                "fromSideId": "redis-source",
+                "toSideId": "storage-sink",
+                "failoverSideId": "",
+                "spilloverBufferSideId": "",
+                "deadLetterSideId": ""
+            }
+        ]
+    }
 }

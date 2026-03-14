@@ -1,211 +1,209 @@
 {
-	"channelId": -1,
-	"channelName": "udp2kafka",	
-	"collectMetrics": true,
-	"metricsIntervalInMs": 1000,
-	"ticketRefillOnBusyCycle": 10000,
-	"PubSubSides": {
-		"udp-source": {
-			"allowOutOfOrderPublishRetry": true,
-			"allowTimedOutPublishedInFlightMsgsRetryOutOfOrder": true,
-			"applyThreadCpuAffinity": true,
-			"cpuAffinityForPubSubThread": 0,
-			"maxMsgPublishRetryAttempts": 20,
-			"maxMsgPublishRetryTotalTimeInMs": 60000,
-			"maxPublishedMsgInFlightTimeInMs": 240000,
-			"maxTotalMsgsInFlight": 1000,
-			"performPubSubInDedicatedThread": true,
-			"retryFailedPublishAttempts": true,
-			"subscribeWithoutBookmarkIfNoneIsPersisted": true,
-			"PubSubClientConfig": {
-				"pubsubClientType": "UDP",
-				"reconnectDelayInMs": 1000,
-				"CustomConfig": {
-					"transmitTestPackets": true,
-					"testPacketTransmissionIntervalInMs": 1,
-					"testPacketAsBase64": "ewogICAiZUJvb2tzIjpbCiAgICAgIHsKICAgICAgICAgImxhbmd1YWdlIjoiUGFzY2FsIiwKICAgICAgICAgImVkaXRpb24iOiJ0aGlyZCIKICAgICAgfSwKICAgICAgewogICAgICAgICAibGFuZ3VhZ2UiOiJQeXRob24iLAogICAgICAgICAiZWRpdGlvbiI6ImZvdXIiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAgImxhbmd1YWdlIjoiU1FMIiwKICAgICAgICAgImVkaXRpb24iOiJzZWNvbmQiCiAgICAgIH0KICAgXQp9"
-				},
-				"Topics": {
-					"0": {
-						"PubSubClientTopicConfig": {
-							"isOptional": false,
-							"needPublishSupport": false,
-							"needSubscribeSupport": true,
-							"preferDedicatedConnection": false,
-							"topicName": "udp",
-							"CustomConfig": {
-								"wantsTestPackage": true,
-								"udpInterface": "0.0.0.0:50333",
-								"ticketRefillOnBusyCycle": 1000,
-								"nrOfUdpReceiveBuffersPerSocket": 10,
-								"udpSocketOsReceiveBufferSize": 1024,
-								"udpSocketUpdateCyclesPerPulse": 10,
-								"addUdpSourceAddressAsMetaData": true,
-								"translateUdpSourceAddressToString": true,
-								"udpSourceAddressAsMetaDataKeyName": "udpsourceip4",
-								"maxUdpPacketPayloadSizeInBytes": 10000,
-								"addTimestampToReceivedPackages": true
-							}
-						}
-					}
-				},
-				"DesiredFeatures": {
-					"supportsAbsentPrimaryPayloadPerMsg": false,
-					"supportsAutoBookmarking": false,
-					"supportsAutoReconnect": true,
-					"supportsBinaryPayloads": true,
-					"supportsBookmarkingConcept": false,
-					"supportsDuplicateKeysPerMsg": false,
-					"supportsKeyValueSetPerMsg": true,
-					"supportsMetaDataKeyValueSetPerMsg": false,
-					"supportsMetrics": true,
-					"supportsMsgDateTimeBasedBookmark": false,
-					"supportsMsgIdBasedBookmark": false,
-					"supportsMsgIndexBasedBookmark": false,
-					"supportsMultiHostSharding": false,
-					"supportsPerMsgIds": false,
-					"supportsPrimaryPayloadPerMsg": false,
-					"supportsPublishing": false,
-					"supportsSubscriberMsgReceivedAck": true,
-					"supportsSubscriberRateThrottling": true,
-					"supportsSubscribing": true,
-					"supportsTopicIndexBasedBookmark": false
-				}
-			},
-			"PubSubBookmarkPersistenceConfig": {
-				"bookmarkPersistenceType": "VFS",
-				"bookmarkNamespace": "",
-				"autoPersistAlways": false,
-				"autoPersistIfClientSideBookmarksNeeded": true,
-				"autoPersistIntervalInMs": 1000,
-				"autoPersistMsgInterval": 1000,
-				"maxNrOfBookmarksToKeep": 10,
-				"CustomConfig": {
-					"vfsRootPath": "InstallPath/bookmarks",
-					"persistenceStructure": "{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}"
-				}
-			}
-		},
-		"kafka-sink": {
-			"allowOutOfOrderPublishRetry": false,
-			"allowTimedOutPublishedInFlightMsgsRetryOutOfOrder": true,
-			"applyThreadCpuAffinity": true,
-			"cpuAffinityForPubSubThread": 1,
-			"maxMsgPublishRetryAttempts": 20,
-			"maxMsgPublishRetryTotalTimeInMs": 60000,
-			"maxPublishedMsgInFlightTimeInMs": 240000,
-			"maxTotalMsgsInFlight": 1000,
-			"performPubSubInDedicatedThread": true,
-			"retryFailedPublishAttempts": true,
-			"subscribeWithoutBookmarkIfNoneIsPersisted": true,
-			"PubSubClientConfig": {
-				"pubsubClientType": "Kafka",
-				"reconnectDelayInMs": 500,
-				"RemoteAddresses": ["127.0.0.1:6000"],
-				"CustomConfig": {
-					"KafkaProducerGlobalConfig": {
-						"max.in.flight.requests.per.connection": 100000,
-						"message.max.bytes": 1000000,
-						"queue.buffering.max.ms": 1,
-						"socket.timeout.ms": 60000,
-						"topic.metadata.refresh.interval.ms": 300000,
-						"socket.keepalive.enable": true,
-						"statistics.interval.ms": 0,
-						"debug": "all",
-						"log_level": 7
-					}
-				},
-				"Topics": {
-					"0": {
-						"PubSubClientTopicConfig": {
-							"isOptional": false,
-							"needPublishSupport": true,
-							"needSubscribeSupport": false,
-							"preferDedicatedConnection": false,
-							"topicName": "pubsub2pubsub-udp2kafka-test",
-							"CustomConfig": {
-								"addProducerHostnameAsKafkaMsgHeader": false,
-								"consumerModeStartOffset": "",
-								"kafkaMsgHeaderUsedForFiltering": "",
-								"kafkaMsgValuesUsedForFiltering": "",
-								"prefixToAddForKvPairs": "",
-								"prefixToAddForMetaDataKvPairs": "",
-								"stripPrefixForKvPairs": false,
-								"stripPrefixForMetaDataKvPairs": false,
-								"useKafkaMsgHeadersForConsumerFiltering": false,
-								"maxKafkaErrorsToBeHealthy": 0,
-								"KafkaProducerGlobalConfig": {
-									"auto.offset.reset": "largest",
-									"compression.codec": "inherit",
-									"compression.level": "-1",
-									"compression.type": "none",
-									"message.timeout.ms": "300000",
-									"partitioner": "consistent",
-									"request.required.acks": "-1",
-									"request.timeout.ms": "30000",
-									"log_level": "7"
-								},
-								"KafkaConsumerGlobalConfig": {
-									"auto.offset.reset": "largest",
-									"consume.callback.max.messages": "0",
-									"log_level": "7"
-								}
-							}
-						}
-					}
-				},
-				"DesiredFeatures": {
-					"supportsAbsentPrimaryPayloadPerMsg": false,
-					"supportsAutoBookmarking": false,
-					"supportsAutoReconnect": true,
-					"supportsBinaryPayloads": true,
-					"supportsBookmarkingConcept": false,
-					"supportsDuplicateKeysPerMsg": false,
-					"supportsKeyValueSetPerMsg": true,
-					"supportsMetaDataKeyValueSetPerMsg": false,
-					"supportsMetrics": true,
-					"supportsMsgDateTimeBasedBookmark": false,
-					"supportsMsgIdBasedBookmark": false,
-					"supportsMsgIndexBasedBookmark": false,
-					"supportsMultiHostSharding": false,
-					"supportsPerMsgIds": false,
-					"supportsPrimaryPayloadPerMsg": false,
-					"supportsPublishing": true,
-					"supportsSubscriberMsgReceivedAck": true,
-					"supportsSubscriberRateThrottling": true,
-					"supportsSubscribing": false,
-					"supportsTopicIndexBasedBookmark": false
-				}
-			},
-			"PubSubBookmarkPersistenceConfig": {
-				"bookmarkPersistenceType": "VFS",
-				"bookmarkNamespace": "",
-				"autoPersistAlways": false,
-				"autoPersistIfClientSideBookmarksNeeded": true,
-				"autoPersistIntervalInMs": 1000,
-				"autoPersistMsgInterval": 1000,
-				"maxNrOfBookmarksToKeep": 10,
-				"CustomConfig": {
-					"vfsRootPath": "InstallPath/bookmarks",
-					"persistenceStructure": "{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}"
-				}
-			}
-		}
-	},
-	"PubSubFlowRouterConfig": {
-		"ackStyle": "AllOrNothing",
-		"minBadHealthDurationBeforeFailoverInMs": 5000000,
-		"minBadHealthDurationBeforeSpilloverInMs": 5000000,
-		"minPrimarySideGoodHealthDurationBeforeActivationInMs": 5000,
-		"minFailoverSideGoodHealthDurationBeforeActivationInMs": 5000,
-		"minSpilloverSideGoodHealthDurationBeforeActivationInMs": 5000,
-		"routeSwitchingTimerIntervalInMs": 1000,
-		"routes": [{
-			"fromSideId": "udp-source",
-			"toSideId": "kafka-sink",
-			"failoverSideId": "",
-			"spilloverBufferSideId": "",
-			"deadLetterSideId": ""
-		}]
-	}
+    "channelId": -1,
+    "channelName": "udp2kafka",
+    "collectMetrics": true,
+    "metricsIntervalInMs": 1000,
+    "ticketRefillOnBusyCycle": 10000,
+    "PubSubSides": {
+        "udp-source": {
+            "allowOutOfOrderPublishRetry": true,
+            "allowTimedOutPublishedInFlightMsgsRetryOutOfOrder": true,
+            "applyThreadCpuAffinity": true,
+            "cpuAffinityForPubSubThread": 0,
+            "maxMsgPublishRetryAttempts": 20,
+            "maxMsgPublishRetryTotalTimeInMs": 60000,
+            "maxPublishedMsgInFlightTimeInMs": 240000,
+            "maxTotalMsgsInFlight": 1000,
+            "performPubSubInDedicatedThread": true,
+            "retryFailedPublishAttempts": true,
+            "subscribeWithoutBookmarkIfNoneIsPersisted": true,
+            "PubSubClientConfig": {
+                "pubsubClientType": "UDP",
+                "reconnectDelayInMs": 1000,
+                "CustomConfig": {
+                    "transmitTestPackets": true,
+                    "testPacketTransmissionIntervalInMs": 1,
+                    "testPacketAsBase64": "ewogICAiZUJvb2tzIjpbCiAgICAgIHsKICAgICAgICAgImxhbmd1YWdlIjoiUGFzY2FsIiwKICAgICAgICAgImVkaXRpb24iOiJ0aGlyZCIKICAgICAgfSwKICAgICAgewogICAgICAgICAibGFuZ3VhZ2UiOiJQeXRob24iLAogICAgICAgICAiZWRpdGlvbiI6ImZvdXIiCiAgICAgIH0sCiAgICAgIHsKICAgICAgICAgImxhbmd1YWdlIjoiU1FMIiwKICAgICAgICAgImVkaXRpb24iOiJzZWNvbmQiCiAgICAgIH0KICAgXQp9"
+                },
+                "Topics": [],
+                "DesiredFeatures": {
+                    "supportsAbsentPrimaryPayloadPerMsg": false,
+                    "supportsAutoBookmarking": false,
+                    "supportsAutoReconnect": true,
+                    "supportsBinaryPayloads": true,
+                    "supportsBookmarkingConcept": false,
+                    "supportsDuplicateKeysPerMsg": false,
+                    "supportsKeyValueSetPerMsg": true,
+                    "supportsMetaDataKeyValueSetPerMsg": false,
+                    "supportsMetrics": true,
+                    "supportsMsgDateTimeBasedBookmark": false,
+                    "supportsMsgIdBasedBookmark": false,
+                    "supportsMsgIndexBasedBookmark": false,
+                    "supportsMultiHostSharding": false,
+                    "supportsPerMsgIds": false,
+                    "supportsPrimaryPayloadPerMsg": false,
+                    "supportsPublishing": false,
+                    "supportsSubscriberMsgReceivedAck": true,
+                    "supportsSubscriberRateThrottling": true,
+                    "supportsSubscribing": true,
+                    "supportsTopicIndexBasedBookmark": false
+                },
+                "defaultTopicConfig": {
+                    "isOptional": false,
+                    "needPublishSupport": false,
+                    "needSubscribeSupport": true,
+                    "preferDedicatedConnection": false,
+                    "topicName": "udp",
+                    "CustomConfig": {
+                        "wantsTestPackage": true,
+                        "udpInterface": "0.0.0.0:50333",
+                        "ticketRefillOnBusyCycle": 1000,
+                        "nrOfUdpReceiveBuffersPerSocket": 10,
+                        "udpSocketOsReceiveBufferSize": 1024,
+                        "udpSocketUpdateCyclesPerPulse": 10,
+                        "addUdpSourceAddressAsMetaData": true,
+                        "translateUdpSourceAddressToString": true,
+                        "udpSourceAddressAsMetaDataKeyName": "udpsourceip4",
+                        "maxUdpPacketPayloadSizeInBytes": 10000,
+                        "addTimestampToReceivedPackages": true
+                    }
+                }
+            },
+            "PubSubBookmarkPersistenceConfig": {
+                "bookmarkPersistenceType": "VFS",
+                "bookmarkNamespace": "",
+                "autoPersistAlways": false,
+                "autoPersistIfClientSideBookmarksNeeded": true,
+                "autoPersistIntervalInMs": 1000,
+                "autoPersistMsgInterval": 1000,
+                "maxNrOfBookmarksToKeep": 10,
+                "CustomConfig": {
+                    "vfsRootPath": "InstallPath/bookmarks",
+                    "persistenceStructure": "{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}"
+                }
+            }
+        },
+        "kafka-sink": {
+            "allowOutOfOrderPublishRetry": false,
+            "allowTimedOutPublishedInFlightMsgsRetryOutOfOrder": true,
+            "applyThreadCpuAffinity": true,
+            "cpuAffinityForPubSubThread": 1,
+            "maxMsgPublishRetryAttempts": 20,
+            "maxMsgPublishRetryTotalTimeInMs": 60000,
+            "maxPublishedMsgInFlightTimeInMs": 240000,
+            "maxTotalMsgsInFlight": 1000,
+            "performPubSubInDedicatedThread": true,
+            "retryFailedPublishAttempts": true,
+            "subscribeWithoutBookmarkIfNoneIsPersisted": true,
+            "PubSubClientConfig": {
+                "pubsubClientType": "Kafka",
+                "reconnectDelayInMs": 500,
+                "RemoteAddresses": [
+                    "127.0.0.1:6000"
+                ],
+                "CustomConfig": {
+                    "KafkaProducerGlobalConfig": {
+                        "max.in.flight.requests.per.connection": 100000,
+                        "message.max.bytes": 1000000,
+                        "queue.buffering.max.ms": 1,
+                        "socket.timeout.ms": 60000,
+                        "topic.metadata.refresh.interval.ms": 300000,
+                        "socket.keepalive.enable": true,
+                        "statistics.interval.ms": 0,
+                        "debug": "all",
+                        "log_level": 7
+                    }
+                },
+                "Topics": [],
+                "DesiredFeatures": {
+                    "supportsAbsentPrimaryPayloadPerMsg": false,
+                    "supportsAutoBookmarking": false,
+                    "supportsAutoReconnect": true,
+                    "supportsBinaryPayloads": true,
+                    "supportsBookmarkingConcept": false,
+                    "supportsDuplicateKeysPerMsg": false,
+                    "supportsKeyValueSetPerMsg": true,
+                    "supportsMetaDataKeyValueSetPerMsg": false,
+                    "supportsMetrics": true,
+                    "supportsMsgDateTimeBasedBookmark": false,
+                    "supportsMsgIdBasedBookmark": false,
+                    "supportsMsgIndexBasedBookmark": false,
+                    "supportsMultiHostSharding": false,
+                    "supportsPerMsgIds": false,
+                    "supportsPrimaryPayloadPerMsg": false,
+                    "supportsPublishing": true,
+                    "supportsSubscriberMsgReceivedAck": true,
+                    "supportsSubscriberRateThrottling": true,
+                    "supportsSubscribing": false,
+                    "supportsTopicIndexBasedBookmark": false
+                },
+                "defaultTopicConfig": {
+                    "isOptional": false,
+                    "needPublishSupport": true,
+                    "needSubscribeSupport": false,
+                    "preferDedicatedConnection": false,
+                    "topicName": "pubsub2pubsub-udp2kafka-test",
+                    "CustomConfig": {
+                        "addProducerHostnameAsKafkaMsgHeader": false,
+                        "consumerModeStartOffset": "",
+                        "kafkaMsgHeaderUsedForFiltering": "",
+                        "kafkaMsgValuesUsedForFiltering": "",
+                        "prefixToAddForKvPairs": "",
+                        "prefixToAddForMetaDataKvPairs": "",
+                        "stripPrefixForKvPairs": false,
+                        "stripPrefixForMetaDataKvPairs": false,
+                        "useKafkaMsgHeadersForConsumerFiltering": false,
+                        "maxKafkaErrorsToBeHealthy": 0,
+                        "KafkaProducerGlobalConfig": {
+                            "auto.offset.reset": "largest",
+                            "compression.codec": "inherit",
+                            "compression.level": "-1",
+                            "compression.type": "none",
+                            "message.timeout.ms": "300000",
+                            "partitioner": "consistent",
+                            "request.required.acks": "-1",
+                            "request.timeout.ms": "30000",
+                            "log_level": "7"
+                        },
+                        "KafkaConsumerGlobalConfig": {
+                            "auto.offset.reset": "largest",
+                            "consume.callback.max.messages": "0",
+                            "log_level": "7"
+                        }
+                    }
+                }
+            },
+            "PubSubBookmarkPersistenceConfig": {
+                "bookmarkPersistenceType": "VFS",
+                "bookmarkNamespace": "",
+                "autoPersistAlways": false,
+                "autoPersistIfClientSideBookmarksNeeded": true,
+                "autoPersistIntervalInMs": 1000,
+                "autoPersistMsgInterval": 1000,
+                "maxNrOfBookmarksToKeep": 10,
+                "CustomConfig": {
+                    "vfsRootPath": "InstallPath/bookmarks",
+                    "persistenceStructure": "{bookmarkNamespace}/clientType/{clientType}/topicName/{topicName}"
+                }
+            }
+        }
+    },
+    "PubSubFlowRouterConfig": {
+        "ackStyle": "AllOrNothing",
+        "minBadHealthDurationBeforeFailoverInMs": 5000000,
+        "minBadHealthDurationBeforeSpilloverInMs": 5000000,
+        "minPrimarySideGoodHealthDurationBeforeActivationInMs": 5000,
+        "minFailoverSideGoodHealthDurationBeforeActivationInMs": 5000,
+        "minSpilloverSideGoodHealthDurationBeforeActivationInMs": 5000,
+        "routeSwitchingTimerIntervalInMs": 1000,
+        "routes": [
+            {
+                "fromSideId": "udp-source",
+                "toSideId": "kafka-sink",
+                "failoverSideId": "",
+                "spilloverBufferSideId": "",
+                "deadLetterSideId": ""
+            }
+        ]
+    }
 }
