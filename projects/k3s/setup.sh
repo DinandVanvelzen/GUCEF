@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # show what we have running before we begin
-sudo kubectl get all -A
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get all -A
 
 # kill all containers/pods
 sudo /usr/local/bin/k3s-killall.sh
@@ -10,23 +10,21 @@ sudo /usr/local/bin/k3s-killall.sh
 sudo /usr/local/bin/k3s-uninstall.sh
 
 # get a new copy of k3s
-sudo curl -sfL https://get.k3s.io | sh -
+# K3S_KUBECONFIG_MODE=644 makes k3s write the kubeconfig world-readable on every start/upgrade
+# so kubectl and helm work without sudo using --kubeconfig /etc/rancher/k3s/k3s.yaml
+sudo curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="644" sh -
 
 # set the location of the kubeconfig
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-# set the access rights such that all users can read the k3s config but root owns it
-sudo chmod 644 /etc/rancher/k3s/k3s.yaml
-sudo chown root:root /etc/rancher/k3s/k3s.yaml
-
 # check to see if we are back online
-sudo kubectl get nodes -o wide
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get nodes -o wide
 
 # install the system upgrade controller
 # this will be used for k3s version upgrades instead of a full reinstall
 echo "Installing k3s system-upgrade-controller to manage future k3s upgrades"
-sudo kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/latest/download/system-upgrade-controller.yaml
-sudo kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/latest/download/crd.yaml
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml apply -f https://github.com/rancher/system-upgrade-controller/releases/latest/download/system-upgrade-controller.yaml
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml apply -f https://github.com/rancher/system-upgrade-controller/releases/latest/download/crd.yaml
 
 # download Helm 3
 echo "Installing Helm 3 for helm chart support"
@@ -38,22 +36,28 @@ sudo ./get_helm.sh
 rm -f ./get_helm.sh
 
 # confirm we are dealing with Helm 3
-sudo helm version
+helm version
 
 # set often used repos and update
 echo "Configuring Helm repos"
-sudo helm repo add bitnami https://charts.bitnami.com/bitnami --kubeconfig /etc/rancher/k3s/k3s.yaml
-sudo helm repo add jenkins https://charts.jenkins.io --kubeconfig /etc/rancher/k3s/k3s.yaml
-sudo helm repo add gitlab https://charts.gitlab.io/ --kubeconfig /etc/rancher/k3s/k3s.yaml
-sudo helm repo update --kubeconfig /etc/rancher/k3s/k3s.yaml
+helm repo add bitnami https://charts.bitnami.com/bitnami --kubeconfig /etc/rancher/k3s/k3s.yaml
+helm repo add jenkins https://charts.jenkins.io --kubeconfig /etc/rancher/k3s/k3s.yaml
+helm repo add gitlab https://charts.gitlab.io/ --kubeconfig /etc/rancher/k3s/k3s.yaml
+helm repo update --kubeconfig /etc/rancher/k3s/k3s.yaml
 
 # install the local path provisioner, which is a plugin for k3s
 # it comes standard with k3s as provisioner "rancher.io/local-path"
 # you can update it independently here (since its a newer feature and you might want latest)
 # stable version:
-sudo kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.29/deploy/local-path-storage.yaml
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.29/deploy/local-path-storage.yaml
 # latest version:
 #sudo kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+
+# Install Sealed Secrets controller for safe secret management in git
+# Must be installed before any component that uses sealed secrets (e.g. immich)
+cd ./sealed-secrets
+./setup.sh
+cd ..
 
 # Make the local drives of the node available to k8s
 # comment this line or edit the yaml for your own node
@@ -62,6 +66,7 @@ cd ./host-node
 cd ..
 
 # Use Longhorn for storage management
+# This will switch the default away from the local-storage-provisioner
 cd ./longhorn
 ./setup.sh
 cd ..
@@ -86,6 +91,11 @@ cd ./mysql
 ./setup.sh
 cd ..
 
+# setup PostgreSQL
+cd ./postgresql
+./setup.sh
+cd ..
+
 # setup GitHub runner integration
 cd ./github
 ./setup.sh
@@ -106,9 +116,16 @@ cd ./metrics
 ./setup.sh
 cd ..
 
-# Make the kubeconfig available for our home kubectrl
-sudo mkdir -p ~/.kube/
-sudo cp -f -r /etc/rancher/k3s/k3s.yaml ~/.kube/
-sudo mv ~/.kube/k3s.yaml ~/.kube/config
-sudo chmod a+rw ~/.kube/config
+# setup Immich photo management
+# Requires: sealed-secrets (above), postgresql (above)
+# Optional: create immich/setup-home.sh with your NAS symlinks before running
+cd ./immich
+./setup.sh
+cd ..
+
+# Make the kubeconfig available without needing sudo for every kubectl/helm call
+mkdir -p ~/.kube
+sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+sudo chown $USER:$USER ~/.kube/config
+chmod 600 ~/.kube/config
 

@@ -4,16 +4,16 @@
 ./set_nodename_var_and_label.sh 
 
 # print which storage classes the cluster already knows about
-sudo kubectl get storageclass
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get storageclass
 
 # publish our storage classes into the cluster
 # we add the concept of a "raid" and "jbod" storage class
 # these might be used to reference similarly named PVs based on mounts
 #echo "Updating the StorageClass definitions in the cluster..."
-#sudo kubectl apply -f ./storage-classes.yaml
+#kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml apply -f ./storage-classes.yaml
 
 # print which storage classes the cluster now knows about
-sudo kubectl get storageclass
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get storageclass
 
 # the following step needs to perform some JSON parsing on the command line for which we use the tool jq
 # lets make sure its installed: Ubuntu/Debian:
@@ -31,7 +31,7 @@ sudo apt-get install jq -y
 # Automatically update the ConfigMap in the cluster
 # Comment below if you want to review it first before directly applying the config to the cluster
 #echo "Updating the ConfigMap in the cluster..."
-#sudo kubectl patch configmap local-path-config -n kube-system --type merge --patch "$(jq -Rs '{data: {"config.json": .}}' < ./local-path-config-updated.json)"
+#kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml patch configmap local-path-config -n kube-system --type merge --patch "$(jq -Rs '{data: {"config.json": .}}' < ./local-path-config-updated.json)"
 
 # Ensure the ConfigMap Update Takes Effect by restarting the provisioner
-#sudo kubectl delete pod -n kube-system -l app=local-path-provisioner
+#kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml delete pod -n kube-system -l app=local-path-provisioner

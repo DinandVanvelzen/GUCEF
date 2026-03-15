@@ -1,29 +1,29 @@
 #!/bin/bash
 
-sudo kubectl get deployments -n devops-tools
-sudo kubectl delete deployments/jenkins -n devops-tools
-sudo kubectl get deployments -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get deployments -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml delete deployments/jenkins -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get deployments -n devops-tools
 
-sudo kubectl get services -n devops-tools
-sudo kubectl delete services/jenkins -n devops-tools
-sudo kubectl get services -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get services -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml delete services/jenkins -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get services -n devops-tools
 
-sudo kubectl get pods -n devops-tools
-sudo kubectl delete all -n devops-tools --all
-sudo kubectl get pods -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get pods -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml delete all -n devops-tools --all
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get pods -n devops-tools
 
-sudo kubectl get pvc -n devops-tools
-sudo kubectl delete pvc jenkins-pv-claim -n devops-tools
-sudo kubectl get pvc -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get pvc -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml delete pvc jenkins-pv-claim -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get pvc -n devops-tools
 
-sudo kubectl get configmaps -n devops-tools
-sudo kubectl delete configmap jenkins-casc -n devops-tools
-sudo kubectl get configmaps -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get configmaps -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml delete configmap jenkins-casc -n devops-tools
+kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get configmaps -n devops-tools
 
 # We use the dynamic provisioner now so the below should not be needed
-#sudo kubectl get pv
-#sudo kubectl delete pv jenkins-pv
-#sudo kubectl get pv
+#kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get pv
+#kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml delete pv jenkins-pv
+#kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get pv
 
 sudo docker image remove jenkins/jenkins --force
 sudo docker image remove jenkins/jenkins:lts --force

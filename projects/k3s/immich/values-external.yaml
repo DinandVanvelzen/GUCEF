@@ -1,0 +1,10 @@
+server:
+  persistence:
+    external-media:
+      enabled: true
+      existingClaim: immich-external-pvc
+      advancedMounts:
+        main:
+          main:
+            - path: /media/external
+              readOnly: true

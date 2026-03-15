@@ -10,3 +10,5 @@ jenkins:
     loggedInUsersCanDoAnything:
       allowAnonymousRead: true
   systemMessage: "Welcome to Jenkins!"
+  remoting:
+    workspaceDir: "/your/custom/workspace/path"

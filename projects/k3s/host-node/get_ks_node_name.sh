@@ -10,7 +10,7 @@ else
     NODE_HOSTNAME=$(hostname | tr '[:upper:]' '[:lower:]')  # Convert to lowercase
     
     # Try to fetch KS_NODE_NAME from the node labels
-    KS_NODE_NAME=$(sudo kubectl get nodes -o jsonpath="{.items[?(@.metadata.labels['KS_NODE_NAME'])].metadata.labels['KS_NODE_NAME']}")
+    KS_NODE_NAME=$(kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get nodes -o jsonpath="{.items[?(@.metadata.labels['KS_NODE_NAME'])].metadata.labels['KS_NODE_NAME']}")
 
     # Check if we got the KS_NODE_NAME from the labels
     if [[ -z "$KS_NODE_NAME" ]]; then

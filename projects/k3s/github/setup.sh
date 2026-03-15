@@ -1,7 +1,7 @@
 #!/bin/bash
 
-sudo helm repo add github-actions-runner-controller https://actions-runner-controller.github.io/actions-runner-controller --kubeconfig /etc/rancher/k3s/k3s.yaml
-sudo helm repo update --kubeconfig /etc/rancher/k3s/k3s.yaml
+helm repo add github-actions-runner-controller https://actions-runner-controller.github.io/actions-runner-controller --kubeconfig /etc/rancher/k3s/k3s.yaml
+helm repo update --kubeconfig /etc/rancher/k3s/k3s.yaml
 
 # install the pipe to GitHub
 ./github_access_runner_install.sh

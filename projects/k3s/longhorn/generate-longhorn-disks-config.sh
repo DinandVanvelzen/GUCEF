@@ -30,7 +30,7 @@ done
 
 # Create longhorn-disks.yaml
 cat > longhorn-disks.yaml <<EOF
-apiVersion: longhorn.io/v1beta1
+apiVersion: longhorn.io/v1beta2
 kind: Node
 metadata:
   name: ${KS_NODE_NAME}
@@ -39,14 +39,25 @@ spec:
 EOF
 
 # Add disk paths to longhorn-disks.yaml
+# Note: disks tagged "mirror" or "raid" also receive the "raid" tag so that
+# the longhorn-raid StorageClass (diskSelector: raid) can schedule on any
+# RAID-protected disk regardless of whether it is RAID-1 (mirror), RAID-5, etc.
 for keyword in "${!disk_paths[@]}"; do
   for path in ${disk_paths["$keyword"]}; do
+    # Build extra tags: mirror and raid disks also get the "raid" tag so the
+    # longhorn-raid StorageClass (diskSelector: raid) can schedule on any RAID-protected disk
+    EXTRA_TAGS=""
+    if [[ "$keyword" == "mirror" || "$keyword" == "raid" ]]; then
+      EXTRA_TAGS="        - raid"
+    fi
     cat >> longhorn-disks.yaml <<EOF
     ${keyword}-disk-$(basename $path):
       path: $path
       allowScheduling: true
+      diskType: filesystem
       tags:
         - $keyword
+${EXTRA_TAGS}
 EOF
   done
 done

@@ -1,0 +1,82 @@
+## Immich Helm chart values
+## Chart: https://github.com/immich-app/immich-charts (v0.10.0+ structure)
+## Common library: https://github.com/bjw-s-labs/helm-charts/tree/common-4.3.0/charts/library/common
+
+# Shared environment for all Immich components (server + microservices).
+# DB_PASSWORD is injected via envFrom referencing the immich-credentials sealed secret.
+controllers:
+  main:
+    containers:
+      main:
+        env:
+          REDIS_HOSTNAME: '{{ printf "%s-valkey" .Release.Name }}'
+          IMMICH_MACHINE_LEARNING_URL: '{{ printf "http://%s-machine-learning:3003" .Release.Name }}'
+          DB_HOSTNAME: "my-postgres.postgresql.svc.cluster.local"
+          DB_USERNAME: "immich"
+          DB_DATABASE_NAME: "immich"
+        envFrom:
+          - secretRef:
+              name: immich-credentials
+
+immich:
+  metrics:
+    enabled: false
+  persistence:
+    library:
+      existingClaim: immich-library-pvc
+  configuration: {}
+
+# Valkey (Redis-compatible cache)
+valkey:
+  enabled: true
+
+# Immich server
+server:
+  enabled: true
+  controllers:
+    main:
+      containers:
+        main:
+          image:
+            repository: ghcr.io/immich-app/immich-server
+            pullPolicy: IfNotPresent
+  service:
+    main:
+      type: LoadBalancer
+  ingress:
+    main:
+      enabled: false
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      hosts:
+        - host: immich.local
+          paths:
+            - path: "/"
+              service:
+                identifier: main
+      tls: []
+
+# Immich machine learning
+machine-learning:
+  enabled: true
+  controllers:
+    main:
+      containers:
+        main:
+          image:
+            repository: ghcr.io/immich-app/immich-machine-learning
+            pullPolicy: IfNotPresent
+          env:
+            TRANSFORMERS_CACHE: /cache
+            HF_XET_CACHE: /cache/huggingface-xet
+            MPLCONFIGDIR: /cache/matplotlib-config
+  persistence:
+    cache:
+      enabled: true
+      # Pre-created PVC so ML models survive pod restarts (avoids re-downloading ~2-5GB)
+      existingClaim: immich-ml-cache-pvc
+
+# External media library mount:
+# When /media/external exists on the k3s host, setup.sh creates a hostPath PV/PVC
+# and generates values-external.yaml passed as an additional --values overlay.
+# Nothing needs to be configured here - it is handled entirely by setup.sh.
