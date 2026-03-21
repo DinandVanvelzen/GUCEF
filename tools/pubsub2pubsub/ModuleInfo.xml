@@ -33,6 +33,7 @@
 			<RuntimeDependency Name="pubsubpluginWEB" />
 			<RuntimeDependency Name="pubsubpluginTEST" />
 			<RuntimeDependency Name="pubsubpluginAWSSQS" />
+			<RuntimeDependency Name="pubsubpluginFIX" />
 			<RuntimeDependency Name="vfspluginAWSS3" />			
 		</RuntimeDependencies>
 	</Module>

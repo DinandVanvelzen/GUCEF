@@ -128,6 +128,11 @@
 #define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_TEST_H
 #endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_TEST_H ? */
 
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_FIX_H
+#include "TestPubSubPlugin_FIX.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_FIX_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_FIX_H ? */
+
 #ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_UDP_H
 #include "TestPubSubPlugin_UDP.h"
 #define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_UDP_H
@@ -184,6 +189,7 @@ GUCEF_OSMAIN_BEGIN
         PerformPubSubFlowRouterTests();                   FLUSH_LOGS;
         PerformPubSubClientSideTests();                   FLUSH_LOGS;
 
+        PerformPubSubPlugin_FIXTests();                   FLUSH_LOGS;
         PerformPubSubPlugin_AWSSNSTests();                FLUSH_LOGS;
         PerformPubSubPlugin_AWSSQSTests();                FLUSH_LOGS;
         PerformPubSubPlugin_KAFKATests();                 FLUSH_LOGS;

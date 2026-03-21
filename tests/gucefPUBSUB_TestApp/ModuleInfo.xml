@@ -31,6 +31,7 @@
 			<RuntimeDependency Name="pubsubpluginSTORAGE" />
 			<RuntimeDependency Name="pubsubpluginWEB" />
 			<RuntimeDependency Name="pubsubpluginTEST" />
+			<RuntimeDependency Name="pubsubpluginFIX" />
 		</RuntimeDependencies>
     </Module>
 	<Module Platform="mswin" >

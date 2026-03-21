@@ -81,6 +81,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PROJECTGEN/Pro
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PROJECTGEN/ProjectGenVSImporter ${CMAKE_BINARY_DIR}/ProjectGenVSImporter )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PUBSUB/pubsubpluginAWSSNS ${CMAKE_BINARY_DIR}/pubsubpluginAWSSNS )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PUBSUB/pubsubpluginAWSSQS ${CMAKE_BINARY_DIR}/pubsubpluginAWSSQS )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PUBSUB/pubsubpluginFIX ${CMAKE_BINARY_DIR}/pubsubpluginFIX )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PUBSUB/pubsubpluginKAFKA ${CMAKE_BINARY_DIR}/pubsubpluginKAFKA )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PUBSUB/pubsubpluginREDISCLUSTER ${CMAKE_BINARY_DIR}/pubsubpluginREDISCLUSTER )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PUBSUB/pubsubpluginSTORAGE ${CMAKE_BINARY_DIR}/pubsubpluginSTORAGE )

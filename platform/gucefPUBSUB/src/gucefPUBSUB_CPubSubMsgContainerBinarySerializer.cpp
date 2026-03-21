@@ -951,8 +951,7 @@ CPubSubMsgContainerBinarySerializer::DeserializeMsgAtIndex( CIPubSubMsg& msg    
         return false;
     }
 
-    // Note that the footer is read in reversed order vs how it was written
-    // thus so will be the entries in the index
+    // Read footer in hdr-to-ftr order (hdrToFtrOrderedIndex=true) so index[0]=first msg, index[size-1]=last msg
     TMsgOffsetIndex index;
     if ( !DeserializeFooter( index, source, bytesRead, true ) )
     {
@@ -975,7 +974,10 @@ CPubSubMsgContainerBinarySerializer::DeserializeMsgAtIndex( CIPubSubMsg& msg    
         return false;
     }
 
-    UInt32 actualIndex = (UInt32) ( fromStart ? (index.size()-1) - msgIndex : msgIndex );
+    // The footer index is in hdr-to-ftr order (index[0]=first msg, index[size-1]=last msg)
+    // fromStart=true  + msgIndex=0 → first message  → index[0]
+    // fromStart=false + msgIndex=0 → last message   → index[size-1]
+    UInt32 actualIndex = (UInt32) ( fromStart ? msgIndex : (index.size()-1) - msgIndex );
     CORE::UInt32 offsetOfLastMsg = index[ actualIndex ];
     if ( !CPubSubMsgBinarySerializer::Deserialize( options, linkWherePossible, msg, offsetOfLastMsg, source, bytesRead ) )
     {

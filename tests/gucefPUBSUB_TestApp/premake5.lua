@@ -46,7 +46,27 @@ defines( { "MODULE_CONSENSUS_NAME=gucefPUBSUB_TestApp", "MODULE_NAME=gucefPUBSUB
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
-  "include/TestCode_PubSubMsgBinaryStorageTest.h"
+  "include/MockPubSubClient.h",
+  "include/TestBasicPubSubMsg.h",
+  "include/TestCode_PubSubMsgBinaryStorageTest.h",
+  "include/TestPubSubBookmark.h",
+  "include/TestPubSubClientConfig.h",
+  "include/TestPubSubClientFeatures.h",
+  "include/TestPubSubClientSide.h",
+  "include/TestPubSubFlowRouter.h",
+  "include/TestPubSubFlowRouterConfig.h",
+  "include/TestPubSubMsgBinarySerializer.h",
+  "include/TestPubSubMsgContainerBinarySerializer.h",
+  "include/TestPubSubPlugin_AWSSNS.h",
+  "include/TestPubSubPlugin_AWSSQS.h",
+  "include/TestPubSubPlugin_FIX.h",
+  "include/TestPubSubPlugin_KAFKA.h",
+  "include/TestPubSubPlugin_MSMQ.h",
+  "include/TestPubSubPlugin_REDISCLUSTER.h",
+  "include/TestPubSubPlugin_STORAGE.h",
+  "include/TestPubSubPlugin_TEST.h",
+  "include/TestPubSubPlugin_UDP.h",
+  "include/TestPubSubPlugin_WEB.h"
  } )
 
 
@@ -54,8 +74,29 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/MockPubSubClient.cpp",
+  "src/TestBasicPubSubMsg.cpp",
   "src/TestCode_PubSubMsgBinaryStorageTest.cpp",
-  "src/gucefPUBSUB_TestApp.cpp"
+  "src/TestPubSubBookmark.cpp",
+  "src/TestPubSubClientConfig.cpp",
+  "src/TestPubSubClientFeatures.cpp",
+  "src/TestPubSubClientSide.cpp",
+  "src/TestPubSubFlowRouter.cpp",
+  "src/TestPubSubFlowRouterConfig.cpp",
+  "src/TestPubSubMsgBinarySerializer.cpp",
+  "src/TestPubSubMsgContainerBinarySerializer.cpp",
+  "src/TestPubSubPlugin_AWSSNS.cpp",
+  "src/TestPubSubPlugin_AWSSQS.cpp",
+  "src/TestPubSubPlugin_FIX.cpp",
+  "src/TestPubSubPlugin_KAFKA.cpp",
+  "src/TestPubSubPlugin_MSMQ.cpp",
+  "src/TestPubSubPlugin_REDISCLUSTER.cpp",
+  "src/TestPubSubPlugin_STORAGE.cpp",
+  "src/TestPubSubPlugin_TEST.cpp",
+  "src/TestPubSubPlugin_UDP.cpp",
+  "src/TestPubSubPlugin_WEB.cpp",
+  "src/gucefPUBSUB_TestApp.cpp",
+  "src/gucefPUBSUB_TestApp_main.cpp"
  } )
 
 

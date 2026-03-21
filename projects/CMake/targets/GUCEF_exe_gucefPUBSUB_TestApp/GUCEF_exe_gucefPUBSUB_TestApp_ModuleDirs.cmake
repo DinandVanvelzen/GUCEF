@@ -26,6 +26,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecsplu
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginZLIB ${CMAKE_BINARY_DIR}/codecspluginZLIB )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstorepluginJSONPARSER ${CMAKE_BINARY_DIR}/dstorepluginJSONPARSER )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstorepluginPARSIFALXML ${CMAKE_BINARY_DIR}/dstorepluginPARSIFALXML )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PUBSUB/pubsubpluginFIX ${CMAKE_BINARY_DIR}/pubsubpluginFIX )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PUBSUB/pubsubpluginKAFKA ${CMAKE_BINARY_DIR}/pubsubpluginKAFKA )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PUBSUB/pubsubpluginREDISCLUSTER ${CMAKE_BINARY_DIR}/pubsubpluginREDISCLUSTER )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PUBSUB/pubsubpluginSTORAGE ${CMAKE_BINARY_DIR}/pubsubpluginSTORAGE )
