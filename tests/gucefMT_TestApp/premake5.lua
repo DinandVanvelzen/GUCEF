@@ -46,6 +46,7 @@ defines( { "GUCEF_MT_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefMT_TestA
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
+  "include/TestMutex.h",
   "include/TestReaderWriterLock.h"
  } )
 
@@ -54,6 +55,7 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/TestMutex.cpp",
   "src/TestReaderWriterLock.cpp",
   "src/gucefMT_TestApp.cpp"
  } )

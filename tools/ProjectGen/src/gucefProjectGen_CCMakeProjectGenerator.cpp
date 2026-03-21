@@ -1955,12 +1955,12 @@ GetPresetGeneratorConfig( const CORE::CString& generatorName, const CORE::CStrin
 /*-------------------------------------------------------------------------*/
 
 static void
-WriteCMakePresetsFileToDisk( const CProjectTargetInfoBundle& targets    ,
+WriteCMakePresetsFileToDisk( const CProjectTargetInfoBundle& targets     ,
                              const CORE::CString& presetsRootDir         ,
                              const CORE::CString& binaryDirBase          ,
                              const CORE::CString& generatorsParam        ,
                              const CORE::CString& architecturesParam     ,
-                             const CORE::CString& platformDefaultsParam   )
+                             const CORE::CString& platformDefaultsParam  )
 {GUCEF_TRACE;
 
     // Parse semicolon-separated generator list, e.g. "VS2026;ClangCL;Ninja"

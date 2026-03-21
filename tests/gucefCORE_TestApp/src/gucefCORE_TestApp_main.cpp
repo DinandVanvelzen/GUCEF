@@ -233,12 +233,14 @@ GUCEF_OSMAIN_BEGIN
         PerformCronScheduleTests();
         PerformScheduleTests();
         PerformVariantTests();
+        PerformVariantViewTests();
         PerformVariantBinarySerializerTests();
         PerformDataNodeBinarySerializerTests();
         PerformIniParserTests();        
         PerformSharedPtrTests();
         PerformTokenizerTests();
         PerformDynamicBufferSwapTests();
+        PerformDynamicBufferViewTests();
         PerformDynamicBufferStringStreamTests();
         PerformCyclicDynamicBufferTests();
         PerformNotifierObserverTests();

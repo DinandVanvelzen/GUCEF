@@ -28,6 +28,16 @@
 #define GUCEF_CORE_CDYNAMICBUFFERSWAP_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFERSWAP_H ? */
 
+#ifndef GUCEF_CORE_CVARIANT_H
+#include "gucefCORE_CVariant.h"
+#define GUCEF_CORE_CVARIANT_H
+#endif /* GUCEF_CORE_CVARIANT_H ? */
+
+#ifndef GUCEF_CORE_CDYNAMICBUFFER_VIEW_H
+#include "gucefCORE_CDynamicBufferView.h"
+#define GUCEF_CORE_CDYNAMICBUFFER_VIEW_H
+#endif /* GUCEF_CORE_CDYNAMICBUFFER_VIEW_H ? */
+
 #ifndef GUCEF_CORE_CDYNAMICBUFFERACCESS_H
 #include "CDynamicBufferAccess.h"
 #define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
@@ -381,6 +391,158 @@ PerformDynamicBufferSwapTests( void )
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CDynamicBufferSwap TESTS COMPLETED" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformDynamicBufferViewTests( void )
+{
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING CDynamicBufferView TESTS" );
+
+    GUCEF_TESTFW_SUITE_SCOPE( "CDynamicBufferView" );
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CDynamicBufferView] Default construct: empty" )
+    try
+    {
+        CORE::CDynamicBufferView view;
+        ASSERT_TRUE(  0 == view.GetDataSize() );
+        ASSERT_TRUE(  0 == view.GetBufferSize() );
+        ASSERT_TRUE(  GUCEF_NULL == view.GetConstBufferPtr() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CDynamicBufferView] Construct from (void*, size): no copy" )
+    try
+    {
+        static const char rawData[] = "hello view";
+        CORE::CDynamicBufferView view( rawData, sizeof( rawData ) );
+        ASSERT_TRUE(  view.IsLinked() );
+        ASSERT_TRUE(  sizeof( rawData ) == view.GetBufferSize() );
+        ASSERT_TRUE(  view.GetConstBufferPtr() == static_cast< const void* >( rawData ) );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CDynamicBufferView] Construct from CDynamicBuffer: no copy" )
+    try
+    {
+        CORE::CDynamicBuffer owned( 16, false );
+        owned.CopyFrom( 5, "hello" );
+        owned.SetDataSize( 5 );
+
+        CORE::CDynamicBufferView view( owned );
+        ASSERT_TRUE(  view.IsLinked() );
+        ASSERT_TRUE(  view.GetConstBufferPtr() == owned.GetConstBufferPtr() );
+        ASSERT_TRUE(  view.GetDataSize() == owned.GetDataSize() );
+        ASSERT_TRUE(  view == owned );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CDynamicBufferView] Copy rebinds; both point to same raw buffer" )
+    try
+    {
+        static const char rawData[] = "copy rebind";
+        CORE::CDynamicBufferView view1( rawData, sizeof( rawData ) );
+        CORE::CDynamicBufferView view2( view1 );
+        ASSERT_TRUE(  view2.IsLinked() );
+        ASSERT_TRUE(  view2.GetConstBufferPtr() == static_cast< const void* >( rawData ) );
+        ASSERT_TRUE(  view2.GetConstBufferPtr() == view1.GetConstBufferPtr() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CDynamicBufferView] Implicit conversion to const CDynamicBuffer& works" )
+    try
+    {
+        CORE::CDynamicBuffer owned( 8, false );
+        owned.CopyFrom( 4, "test" );
+        owned.SetDataSize( 4 );
+
+        CORE::CDynamicBufferView view( owned );
+
+        /* operator== takes const CDynamicBuffer& — implicit conversion used */
+        ASSERT_TRUE(  view == owned );
+
+        const CORE::CDynamicBuffer& ref = view;
+        ASSERT_TRUE(  ref.GetConstBufferPtr() == owned.GetConstBufferPtr() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CDynamicBufferView] CopyTo copies data correctly" )
+    try
+    {
+        static const char rawData[] = { 1, 2, 3, 4, 5 };
+        CORE::CDynamicBufferView view( rawData, sizeof( rawData ) );
+        view.LinkTo( rawData, sizeof( rawData ) );
+        /* Manually set data size on inner buffer via AsBuffer() — data size equals buffer size here */
+        char dest[ 5 ] = { 0 };
+        CORE::UInt32 copied = view.CopyTo( 0, sizeof( rawData ), dest );
+        ASSERT_TRUE(  sizeof( rawData ) == copied );
+        for ( int i = 0; i < 5; ++i )
+            ASSERT_TRUE(  dest[ i ] == rawData[ i ] );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CDynamicBufferView] Find locates byte sequence" )
+    try
+    {
+        static const char rawData[] = "abcdefgh";
+        CORE::CDynamicBufferView view( rawData, sizeof( rawData ) );
+        CORE::Int32 pos = view.Find( "cde", 3, 0 );
+        ASSERT_TRUE(  2 == pos );
+
+        pos = view.Find( "xyz", 3, 0 );
+        ASSERT_TRUE(  -1 == pos );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CDynamicBufferView] LinkTo rebinds to new buffer" )
+    try
+    {
+        static const char buf1[] = "first";
+        static const char buf2[] = "second";
+
+        CORE::CDynamicBufferView view( buf1, sizeof( buf1 ) );
+        ASSERT_TRUE(  view.GetConstBufferPtr() == static_cast< const void* >( buf1 ) );
+
+        view.LinkTo( buf2, sizeof( buf2 ) );
+        ASSERT_TRUE(  view.GetConstBufferPtr() == static_cast< const void* >( buf2 ) );
+        ASSERT_TRUE(  view.IsLinked() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CDynamicBufferView] AsConstTypePtr<T> accesses typed data" )
+    try
+    {
+        static const CORE::UInt32 vals[] = { 0xDEADBEEFu, 0xCAFEBABEu };
+        CORE::CDynamicBufferView view( vals, sizeof( vals ) );
+
+        const CORE::UInt32* ptr = view.AsConstTypePtr< CORE::UInt32 >( 0 );
+        ASSERT_TRUE(  GUCEF_NULL != ptr );
+        ASSERT_TRUE(  0xDEADBEEFu == ptr[ 0 ] );
+        ASSERT_TRUE(  0xCAFEBABEu == ptr[ 1 ] );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CDynamicBufferView TESTS COMPLETED" );
 }
 
 /*-------------------------------------------------------------------------*/

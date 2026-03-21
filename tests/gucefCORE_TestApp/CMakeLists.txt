@@ -11,9 +11,9 @@
 
 # Configuration for module: gucefCORE_TestApp
 
-set( HEADER_FILES
-  include/TestAbstractFactory.h
+set( HEADER_FILES 
   include/TestASync.h
+  include/TestAbstractFactory.h
   include/TestCronSchedule.h
   include/TestCyclicDynamicBuffer.h
   include/TestDataDrivenDStoreCodecs.h
@@ -42,9 +42,9 @@ set( HEADER_FILES
   src/TestFreeList.h
 )
 
-set( SOURCE_FILES
-  src/TestAbstractFactory.cpp
+set( SOURCE_FILES 
   src/TestASync.cpp
+  src/TestAbstractFactory.cpp
   src/TestCronSchedule.cpp
   src/TestCyclicDynamicBuffer.cpp
   src/TestDataDrivenDStoreCodecs.cpp

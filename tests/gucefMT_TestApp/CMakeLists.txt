@@ -11,12 +11,12 @@
 
 # Configuration for module: gucefMT_TestApp
 
-set( HEADER_FILES
+set( HEADER_FILES 
   include/TestMutex.h
   include/TestReaderWriterLock.h
 )
 
-set( SOURCE_FILES
+set( SOURCE_FILES 
   src/TestMutex.cpp
   src/TestReaderWriterLock.cpp
   src/gucefMT_TestApp.cpp

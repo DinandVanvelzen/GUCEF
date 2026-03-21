@@ -358,6 +358,7 @@ AllocFromUtf8Bytes( const char* src, UInt32 byteSize, UInt32& outLength )
 CUtf32String::CUtf32String( void )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
 }
@@ -367,8 +368,10 @@ CUtf32String::CUtf32String( void )
 CUtf32String::CUtf32String( const CUtf32String& src )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
+    // Always deep-copy: never propagate linked state on copy
     if ( src.m_length > 0u )
     {
         m_length = src.m_length;
@@ -385,10 +388,12 @@ CUtf32String::CUtf32String( const CUtf32String& src )
 CUtf32String::CUtf32String( CUtf32String&& src ) GUCEF_NOEXCEPT
     : m_string( src.m_string )
     , m_length( src.m_length )
+    , m_linked( src.m_linked )
 {GUCEF_TRACE;
 
     src.m_string = GUCEF_NULL;
     src.m_length = 0u;
+    src.m_linked = false;
 }
 
 #endif /* GUCEF_RVALUE_REFERENCES_SUPPORTED */
@@ -398,6 +403,7 @@ CUtf32String::CUtf32String( CUtf32String&& src ) GUCEF_NOEXCEPT
 CUtf32String::CUtf32String( const CUtf8String& src )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     const char* utf8Buf = src.C_String();
@@ -412,6 +418,7 @@ CUtf32String::CUtf32String( const CUtf8String& src )
 CUtf32String::CUtf32String( const CAsciiString& src )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     UInt32 srcLen = src.Length();
@@ -434,6 +441,7 @@ CUtf32String::CUtf32String( const CAsciiString& src )
 CUtf32String::CUtf32String( const std::string& src )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     if ( !src.empty() )
@@ -447,6 +455,7 @@ CUtf32String::CUtf32String( const std::string& src )
 CUtf32String::CUtf32String( const char* src ) GUCEF_NOEXCEPT
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != src && '\0' != *src )
@@ -462,6 +471,7 @@ CUtf32String::CUtf32String( const char* src              ,
                              bool reexamineByteSize       ) GUCEF_NOEXCEPT
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != src && 0u < byteSize )
@@ -487,6 +497,7 @@ CUtf32String::CUtf32String( const char* src              ,
 CUtf32String::CUtf32String( const UInt32* src ) GUCEF_NOEXCEPT
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != src )
@@ -508,6 +519,7 @@ CUtf32String::CUtf32String( const UInt32* src                ,
                              bool reexamineLength             ) GUCEF_NOEXCEPT
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != src && 0u < lengthInCodePoints )
@@ -547,6 +559,7 @@ CUtf32String::CUtf32String( const UInt32* src                ,
 CUtf32String::CUtf32String( const UInt32 utf32CodePoint )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     UInt32 cp = utf32CodePoint;
@@ -558,6 +571,7 @@ CUtf32String::CUtf32String( const UInt32 utf32CodePoint )
 CUtf32String::CUtf32String( const int NULLvalue )
     : m_string( GUCEF_NULL )
     , m_length( 0u )
+    , m_linked( false )
 {GUCEF_TRACE;
 
     assert( NULLvalue == static_cast<int>( GUCEF_NULL ) );
@@ -568,9 +582,11 @@ CUtf32String::CUtf32String( const int NULLvalue )
 CUtf32String::~CUtf32String()
 {GUCEF_TRACE;
 
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = GUCEF_NULL;
     m_length = 0u;
+    m_linked = false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -581,9 +597,11 @@ CUtf32String::operator=( const CUtf32String& src )
 
     if ( &src != this )
     {
-        GUCEF_DELETE []m_string;
+        if ( !m_linked )
+            GUCEF_DELETE []m_string;
         m_string = GUCEF_NULL;
         m_length = src.m_length;
+        m_linked = false;
 
         if ( m_length > 0u )
         {
@@ -601,9 +619,11 @@ CUtf32String&
 CUtf32String::operator=( const char* src )
 {GUCEF_TRACE;
 
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = GUCEF_NULL;
     m_length = 0u;
+    m_linked = false;
 
     if ( GUCEF_NULL != src && '\0' != *src )
     {
@@ -814,6 +834,7 @@ UInt32&
 CUtf32String::operator[]( const UInt32 index )
 {GUCEF_TRACE;
 
+    PromoteToOwned();
     static UInt32 outOfBoundsSlot = 0u;
     if ( index <= m_length )
         return m_string[ index ];
@@ -859,6 +880,7 @@ UInt32*
 CUtf32String::C_String( void )
 {GUCEF_TRACE;
 
+    PromoteToOwned();
     return m_string;
 }
 
@@ -868,8 +890,10 @@ UInt32*
 CUtf32String::Reserve( const UInt32 bufferSizeInCodePoints, Int32 newLength )
 {GUCEF_TRACE;
 
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = GUCEF_NULL;
+    m_linked = false;
 
     if ( bufferSizeInCodePoints > 0u )
     {
@@ -916,6 +940,7 @@ void
 CUtf32String::SetLength( UInt32 newLength )
 {GUCEF_TRACE;
 
+    PromoteToOwned();
     if ( GUCEF_NULL != m_string )
     {
         if ( m_length < newLength )
@@ -972,9 +997,11 @@ CUtf32String::Set( const UInt32* str,
 
     if ( str != m_string )
     {
-        GUCEF_DELETE []m_string;
+        if ( !m_linked )
+            GUCEF_DELETE []m_string;
         m_string = GUCEF_NULL;
         m_length = 0u;
+        m_linked = false;
 
         if ( GUCEF_NULL != str && lengthInCodePoints > 0u )
         {
@@ -1004,9 +1031,11 @@ void
 CUtf32String::Set( const char* src )
 {GUCEF_TRACE;
 
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = GUCEF_NULL;
     m_length = 0u;
+    m_linked = false;
 
     if ( GUCEF_NULL != src && '\0' != *src )
     {
@@ -1055,13 +1084,17 @@ CUtf32String::Append( const UInt32* appendStr,
             memcpy( newBuf + m_length, appendStr, lengthInCodePoints * sizeof( UInt32 ) );
             m_length = m_length + lengthInCodePoints;
             newBuf[ m_length ] = 0u;
-            GUCEF_DELETE []m_string;
+            if ( !m_linked )
+                GUCEF_DELETE []m_string;
             m_string = newBuf;
+            m_linked = false;
         }
         else
         {
-            GUCEF_DELETE []m_string;
+            if ( !m_linked )
+                GUCEF_DELETE []m_string;
             m_length = lengthInCodePoints;
+            m_linked = false;
             m_string = GUCEF_NEW UInt32[ m_length + 1u ];
             assert( GUCEF_NULL != m_string );
             memcpy( m_string, appendStr, m_length * sizeof( UInt32 ) );
@@ -1105,8 +1138,64 @@ CUtf32String::Clear( void )
 {GUCEF_TRACE;
 
     m_length = 0u;
-    GUCEF_DELETE []m_string;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
     m_string = GUCEF_NULL;
+    m_linked = false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUtf32String::PromoteToOwned( void )
+{GUCEF_TRACE;
+
+    if ( m_linked && GUCEF_NULL != m_string )
+    {
+        UInt32 len = m_length + 1u;
+        UInt32* copy = GUCEF_NEW UInt32[ len ];
+        ::memcpy( copy, m_string, len * sizeof( UInt32 ) );
+        m_string = copy;
+        m_linked = false;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CUtf32String::IsLinked( void ) const
+{GUCEF_TRACE;
+
+    return m_linked;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CUtf32String&
+CUtf32String::LinkTo( const UInt32* externalBuffer, UInt32 lengthInCodePoints )
+{GUCEF_TRACE;
+
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
+    m_string = const_cast< UInt32* >( externalBuffer );
+    m_length = lengthInCodePoints;
+    m_linked = ( GUCEF_NULL != externalBuffer );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CUtf32String&
+CUtf32String::LinkTo( const CUtf32String& src )
+{GUCEF_TRACE;
+
+    if ( &src == this ) return *this;
+    if ( !m_linked )
+        GUCEF_DELETE []m_string;
+    m_string = const_cast< UInt32* >( src.m_string );
+    m_length = src.m_length;
+    m_linked = ( GUCEF_NULL != src.m_string );
+    return *this;
 }
 
 /*-------------------------------------------------------------------------*/

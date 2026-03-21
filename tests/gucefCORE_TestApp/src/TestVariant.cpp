@@ -28,6 +28,11 @@
 #define GUCEF_CORE_CVARIANT_H
 #endif /* GUCEF_CORE_CVARIANT_H ? */
 
+#ifndef GUCEF_CORE_CVARIANT_VIEW_H
+#include "gucefCORE_CVariantView.h"
+#define GUCEF_CORE_CVARIANT_VIEW_H
+#endif /* GUCEF_CORE_CVARIANT_VIEW_H ? */
+
 #ifndef GUCEF_CORE_C_VARIANTDATA_H
 #include "gucefCORE_c_variantdata.h"
 #define GUCEF_CORE_C_VARIANTDATA_H
@@ -1284,6 +1289,164 @@ PerformVariantTests( void )
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CVariant TESTS COMPLETED" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformVariantViewTests( void )
+{
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING CVariantView TESTS" );
+
+    GUCEF_TESTFW_SUITE_SCOPE( "CVariantView" );
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CVariantView] Default construct: uninitialized" )
+    try
+    {
+        CORE::CVariantView view;
+        ASSERT_TRUE(  !view.IsInitialized() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CVariantView] Construct from CVariant scalar: value preserved, linked" )
+    try
+    {
+        CORE::CVariant owned( (CORE::Int32) 42 );
+        CORE::CVariantView view( owned );
+        ASSERT_TRUE(  view.IsInitialized() );
+        ASSERT_TRUE(  view.IsInteger() );
+        ASSERT_TRUE(  42 == view.AsInt32() );
+        ASSERT_TRUE(  view.GetTypeId() == owned.GetTypeId() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CVariantView] Construct from CVariant string: dynamic memory linked, no copy" )
+    try
+    {
+        CORE::CVariant owned( "hello view" );
+        CORE::CVariantView view( owned );
+        ASSERT_TRUE(  view.IsString() );
+        ASSERT_TRUE(  view.IsDynamicMemoryLinked() );
+        ASSERT_TRUE(  view.AsCharPtr() == owned.AsCharPtr() );  /* same buffer pointer */
+        ASSERT_TRUE(  view.AsString() == "hello view" );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CVariantView] Construct from raw (void*, size, type)" )
+    try
+    {
+        static const char rawStr[] = "raw string";
+        CORE::CVariantView view( static_cast< const void* >( rawStr ),
+                                 sizeof( rawStr ),
+                                 GUCEF_DATATYPE_ASCII_STRING );
+        ASSERT_TRUE(  view.IsString() );
+        ASSERT_TRUE(  view.IsDynamicMemoryLinked() );
+        ASSERT_TRUE(  view.AsCharPtr() == rawStr );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CVariantView] Construct from null-terminated char*" )
+    try
+    {
+        static const char rawStr[] = "null term string";
+        CORE::CVariantView view( rawStr );
+        ASSERT_TRUE(  view.IsString() );
+        ASSERT_TRUE(  view.AsCharPtr() == rawStr );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CVariantView] Copy rebinds; both share same data pointer" )
+    try
+    {
+        CORE::CVariant owned( "copy test" );
+        CORE::CVariantView view1( owned );
+        CORE::CVariantView view2( view1 );
+        ASSERT_TRUE(  view2.IsString() );
+        ASSERT_TRUE(  view2.AsCharPtr() == view1.AsCharPtr() );
+        ASSERT_TRUE(  view2.AsCharPtr() == owned.AsCharPtr() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CVariantView] Implicit conversion to const CVariant& works" )
+    try
+    {
+        CORE::CVariant owned( (CORE::UInt64) 12345ull );
+        CORE::CVariantView view( owned );
+
+        /* operator== takes const CVariant& — implicit conversion used */
+        ASSERT_TRUE(  view == owned );
+
+        const CORE::CVariant& ref = view;
+        ASSERT_TRUE(  ref.AsUInt64() == owned.AsUInt64() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CVariantView] Type predicates delegate correctly" )
+    try
+    {
+        {
+            CORE::CVariantView view( (CORE::Int32) 1 );
+            ASSERT_TRUE(  view.IsInteger() );
+            ASSERT_TRUE(  view.IsNumber() );
+            ASSERT_FALSE( view.IsString() );
+            ASSERT_FALSE( view.IsFloat() );
+        }
+        {
+            CORE::CVariantView view( 3.14f );
+            ASSERT_TRUE(  view.IsFloat() );
+            ASSERT_FALSE( view.IsInteger() );
+        }
+        {
+            CORE::CVariantView view( true );
+            ASSERT_TRUE(  view.IsBoolean() );
+        }
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CVariantView] AsTValue<T> delegates to inner variant" )
+    try
+    {
+        CORE::CVariant owned( (CORE::Float64) 2.718 );
+        CORE::CVariantView view( owned );
+        CORE::Float64 val = view.AsTValue< CORE::Float64 >();
+        ASSERT_TRUE(  val == owned.AsFloat64() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CVariantView] LinkTo CAsciiString: dynamic memory linked" )
+    try
+    {
+        CORE::CAsciiString asciiStr( "ascii view" );
+        CORE::CVariantView view;
+        view.LinkTo( asciiStr );
+        ASSERT_TRUE(  view.IsString() );
+        ASSERT_TRUE(  view.IsDynamicMemoryLinked() );
+        ASSERT_TRUE(  view.AsString() == "ascii view" );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    CORE::CLogStreamScope::FlushLogs();
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CVariantView TESTS COMPLETED" );
 }
 
 /*-------------------------------------------------------------------------*/

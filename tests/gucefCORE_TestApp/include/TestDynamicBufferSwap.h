@@ -34,6 +34,9 @@
 void
 PerformDynamicBufferSwapTests( void );
 
+void
+PerformDynamicBufferViewTests( void );
+
 /*-------------------------------------------------------------------------*/
 
 #endif /* GUCEF_CORE_TESTAPP_TESTDYNAMICBUFFERSWAP_H ? */

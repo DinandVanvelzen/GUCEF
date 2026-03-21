@@ -696,6 +696,404 @@ PerformUtf16SpecificStringTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Tests the linked (non-owning) mode added to each string class.
+ *  Works for all four string types because:
+ *    - All have LinkTo( const SameType& )
+ *    - All have IsLinked()
+ *    - Copy ctor/assign never propagate linked state
+ *    - Append / operator+= trigger PromoteToOwned
+ */
+template< typename StringType >
+void
+PerformTypedStringLinkedModeTests( void )
+{
+    const char* typeName = StringTypeName< StringType >();
+    char tcName[ 128 ];
+
+    /* ------------------------------------------------------------------ */
+    snprintf( tcName, sizeof( tcName ), "[%s] LinkTo(same type): IsLinked true, content matches", typeName );
+    GUCEF_TESTFW_TESTCASE( tcName )
+    try
+    {
+        StringType owned( "hello linked world" );
+        ASSERT_FALSE( owned.IsLinked() );
+
+        StringType linked;
+        linked.LinkTo( owned );
+        ASSERT_TRUE(  linked.IsLinked() );
+        ASSERT_FALSE( owned.IsLinked() );
+        ASSERT_TRUE(  linked == owned );
+        /* Both should point to the same underlying raw buffer */
+        ASSERT_TRUE(  linked.C_String() == owned.C_String() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    snprintf( tcName, sizeof( tcName ), "[%s] Copy of linked string is independent (non-linked)", typeName );
+    GUCEF_TESTFW_TESTCASE( tcName )
+    try
+    {
+        StringType owned( "hello linked world" );
+        StringType linked;
+        linked.LinkTo( owned );
+        ASSERT_TRUE( linked.IsLinked() );
+
+        /* Copy constructor must deep-copy and NOT propagate linked state */
+        StringType copied( linked );
+        ASSERT_FALSE( copied.IsLinked() );
+        ASSERT_TRUE(  copied == owned );
+        /* Independent buffer */
+        ASSERT_TRUE(  copied.C_String() != owned.C_String() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    snprintf( tcName, sizeof( tcName ), "[%s] Assignment of linked string is independent (non-linked)", typeName );
+    GUCEF_TESTFW_TESTCASE( tcName )
+    try
+    {
+        StringType owned( "hello linked world" );
+        StringType linked;
+        linked.LinkTo( owned );
+        ASSERT_TRUE( linked.IsLinked() );
+
+        StringType assigned;
+        assigned = linked;
+        ASSERT_FALSE( assigned.IsLinked() );
+        ASSERT_TRUE(  assigned == owned );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    snprintf( tcName, sizeof( tcName ), "[%s] Mutation auto-promotes linked string; original unchanged", typeName );
+    GUCEF_TESTFW_TESTCASE( tcName )
+    try
+    {
+        StringType owned( "hello" );
+        StringType linked;
+        linked.LinkTo( owned );
+        ASSERT_TRUE( linked.IsLinked() );
+
+        /* Append triggers PromoteToOwned inside Append() */
+        linked += StringType( "!" );
+        ASSERT_FALSE( linked.IsLinked() );          /* promoted to owned  */
+        ASSERT_TRUE(  owned == "hello" );            /* original unchanged */
+        ASSERT_TRUE(  linked != owned );             /* content diverged   */
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    snprintf( tcName, sizeof( tcName ), "[%s] Re-linking clears previous link", typeName );
+    GUCEF_TESTFW_TESTCASE( tcName )
+    try
+    {
+        StringType owned1( "first" );
+        StringType owned2( "second" );
+        StringType linked;
+        linked.LinkTo( owned1 );
+        ASSERT_TRUE( linked.IsLinked() );
+        ASSERT_TRUE( linked == "first" );
+
+        linked.LinkTo( owned2 );
+        ASSERT_TRUE( linked.IsLinked() );
+        ASSERT_TRUE( linked == "second" );
+        ASSERT_TRUE( owned1 == "first" );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    snprintf( tcName, sizeof( tcName ), "[%s] Set on linked string promotes then overwrites", typeName );
+    GUCEF_TESTFW_TESTCASE( tcName )
+    try
+    {
+        StringType owned( "original" );
+        StringType linked;
+        linked.LinkTo( owned );
+        ASSERT_TRUE( linked.IsLinked() );
+
+        linked.Set( "overwritten" );
+        ASSERT_FALSE( linked.IsLinked() );       /* no longer linked   */
+        ASSERT_TRUE(  linked == "overwritten" ); /* new content        */
+        ASSERT_TRUE(  owned  == "original" );    /* original unchanged */
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformAsciiStringLinkedAndViewTests( void )
+{
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CAsciiString] LinkTo(const char*, UInt32): buffer borrowed" )
+    try
+    {
+        static const char rawBuf[] = "raw buffer content";
+        CORE::CAsciiString linked;
+        linked.LinkTo( rawBuf, 18 );
+        ASSERT_TRUE(  linked.IsLinked() );
+        ASSERT_TRUE(  linked == "raw buffer content" );
+        ASSERT_TRUE(  linked.Length() == 18 );
+        ASSERT_TRUE(  linked.C_String() == rawBuf );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CAsciiStringView] Default construct: empty, not crashing" )
+    try
+    {
+        CORE::CAsciiStringView view;
+        ASSERT_TRUE(  view.IsNULLOrEmpty() );
+        ASSERT_TRUE(  0 == view.Length() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CAsciiStringView] Construct from (char*, length): no copy" )
+    try
+    {
+        static const char rawBuf[] = "view test";
+        CORE::CAsciiStringView view( rawBuf, 9 );
+        ASSERT_FALSE( view.IsNULLOrEmpty() );
+        ASSERT_TRUE(  9  == view.Length() );
+        ASSERT_TRUE(  view.C_String() == rawBuf );   /* same pointer — no copy */
+        ASSERT_TRUE(  view.AsString().IsLinked() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CAsciiStringView] Construct from CAsciiString: no copy" )
+    try
+    {
+        CORE::CAsciiString owned( "owned string" );
+        CORE::CAsciiStringView view( owned );
+        ASSERT_TRUE(  view.C_String() == owned.C_String() );
+        ASSERT_TRUE(  view.Length()   == owned.Length() );
+        ASSERT_TRUE(  view.AsString().IsLinked() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CAsciiStringView] Copy rebinds link; original buffer shared" )
+    try
+    {
+        static const char rawBuf[] = "shared";
+        CORE::CAsciiStringView view1( rawBuf, 6 );
+        CORE::CAsciiStringView view2( view1 );
+        ASSERT_TRUE(  view2.C_String() == rawBuf );
+        ASSERT_TRUE(  view2.C_String() == view1.C_String() );
+        ASSERT_TRUE(  view2.AsString().IsLinked() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CAsciiStringView] Implicit conversion to const CAsciiString& works" )
+    try
+    {
+        CORE::CAsciiString owned( "implicit test" );
+        CORE::CAsciiStringView view( owned );
+
+        /* Equals() takes const CAsciiString& — implicit conversion used here */
+        ASSERT_TRUE(  owned.Equals( view ) );
+        ASSERT_TRUE(  view.Equals( owned ) );
+
+        /* Assign to const ref — zero copy */
+        const CORE::CAsciiString& ref = view;
+        ASSERT_TRUE(  ref.C_String() == owned.C_String() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CAsciiStringView] Const read operations delegate correctly" )
+    try
+    {
+        static const char rawBuf[] = "Hello World";
+        CORE::CAsciiStringView view( rawBuf, 11 );
+
+        ASSERT_TRUE(  11 == view.Length() );
+        ASSERT_FALSE( view.IsNULLOrEmpty() );
+        ASSERT_TRUE(  4 == view.HasChar( 'o' ) );
+        ASSERT_TRUE(  6 == view.HasSubstr( "World" ) );
+        ASSERT_TRUE(  view.Lowercase() == "hello world" );
+        ASSERT_TRUE(  view.Uppercase() == "HELLO WORLD" );
+        ASSERT_TRUE(  view.SubstrFromRange( 0, 4 ) == "Hello" );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformUtf8StringViewTests( void )
+{
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CUtf8StringView] Construct from (char*, byteSize, length): no copy" )
+    try
+    {
+        static const char rawBuf[] = "utf8 view";
+        CORE::CUtf8StringView view( rawBuf, 9, 9 );
+        ASSERT_FALSE( view.IsNULLOrEmpty() );
+        ASSERT_TRUE(  9 == view.Length() );
+        ASSERT_TRUE(  view.C_String() == rawBuf );
+        ASSERT_TRUE(  view.AsString().IsLinked() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CUtf8StringView] Construct from null-terminated char*: no copy" )
+    try
+    {
+        static const char rawBuf[] = "null term";
+        CORE::CUtf8StringView view( rawBuf );
+        ASSERT_TRUE(  9 == view.Length() );
+        ASSERT_TRUE(  view.C_String() == rawBuf );
+        ASSERT_TRUE(  view.AsString().IsLinked() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CUtf8StringView] Construct from CUtf8String: no copy" )
+    try
+    {
+        CORE::CUtf8String owned( "owned utf8" );
+        CORE::CUtf8StringView view( owned );
+        ASSERT_TRUE(  view.C_String() == owned.C_String() );
+        ASSERT_TRUE(  view.Length()   == owned.Length() );
+        ASSERT_TRUE(  view.AsString().IsLinked() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CUtf8StringView] Implicit conversion to const CUtf8String& works" )
+    try
+    {
+        CORE::CUtf8String owned( "utf8 implicit" );
+        CORE::CUtf8StringView view( owned );
+
+        ASSERT_TRUE(  owned.Equals( view ) );
+
+        const CORE::CUtf8String& ref = view;
+        ASSERT_TRUE(  ref.C_String() == owned.C_String() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformUtf16StringViewTests( void )
+{
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CUtf16StringView] Construct from CUtf16String: no copy" )
+    try
+    {
+        CORE::CUtf16String owned( "utf16 view" );
+        CORE::CUtf16StringView view( owned );
+        ASSERT_TRUE(  view.C_String() == owned.C_String() );
+        ASSERT_TRUE(  view.Length()   == owned.Length() );
+        ASSERT_TRUE(  view.AsString().IsLinked() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CUtf16StringView] Implicit conversion to const CUtf16String& works" )
+    try
+    {
+        CORE::CUtf16String owned( "utf16 implicit" );
+        CORE::CUtf16StringView view( owned );
+
+        ASSERT_TRUE(  owned.Equals( view ) );
+
+        const CORE::CUtf16String& ref = view;
+        ASSERT_TRUE(  ref.C_String() == owned.C_String() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CUtf16StringView] Construct from (UInt16*, codeUnits, length)" )
+    try
+    {
+        CORE::CUtf16String owned( "xyz" );
+        const CORE::UInt16* rawBuf = owned.C_String();
+        CORE::CUtf16StringView view( rawBuf, 3, 3 );
+        ASSERT_TRUE(  view.C_String() == rawBuf );
+        ASSERT_TRUE(  3 == view.Length() );
+        ASSERT_TRUE(  view.AsString().IsLinked() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformUtf32StringViewTests( void )
+{
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CUtf32StringView] Construct from CUtf32String: no copy" )
+    try
+    {
+        CORE::CUtf32String owned( "utf32 view" );
+        CORE::CUtf32StringView view( owned );
+        ASSERT_TRUE(  view.C_String() == owned.C_String() );
+        ASSERT_TRUE(  view.Length()   == owned.Length() );
+        ASSERT_TRUE(  view.AsString().IsLinked() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CUtf32StringView] Implicit conversion to const CUtf32String& works" )
+    try
+    {
+        CORE::CUtf32String owned( "utf32 implicit" );
+        CORE::CUtf32StringView view( owned );
+
+        ASSERT_TRUE(  owned.Equals( view ) );
+
+        const CORE::CUtf32String& ref = view;
+        ASSERT_TRUE(  ref.C_String() == owned.C_String() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    GUCEF_TESTFW_TESTCASE( "[CUtf32StringView] Construct from (UInt32*, length)" )
+    try
+    {
+        CORE::CUtf32String owned( "abc" );
+        const CORE::UInt32* rawBuf = owned.C_String();
+        CORE::CUtf32StringView view( rawBuf, 3 );
+        ASSERT_TRUE(  view.C_String() == rawBuf );
+        ASSERT_TRUE(  3 == view.Length() );
+        ASSERT_TRUE(  view.AsString().IsLinked() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformStringTests( void )
 {
@@ -710,6 +1108,14 @@ PerformStringTests( void )
     PerformUtf8SpecificStringTests();
     PerformUtf16SpecificStringTests();
     PerformUtf32SpecificStringTests();
+    PerformTypedStringLinkedModeTests< CORE::CAsciiString >();
+    PerformTypedStringLinkedModeTests< CORE::CUtf8String  >();
+    PerformTypedStringLinkedModeTests< CORE::CUtf16String >();
+    PerformTypedStringLinkedModeTests< CORE::CUtf32String >();
+    PerformAsciiStringLinkedAndViewTests();
+    PerformUtf8StringViewTests();
+    PerformUtf16StringViewTests();
+    PerformUtf32StringViewTests();
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL CString TESTS COMPLETED" );

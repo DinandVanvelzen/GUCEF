@@ -140,8 +140,7 @@ set( HEADER_FILES
   include/gucefCORE_CASync.h
   include/gucefCORE_CAbstractFactoryBase.h
   include/gucefCORE_CAsciiString.h
-  include/gucefCORE_CUtf16String.h
-  include/gucefCORE_CUtf32String.h
+  include/gucefCORE_CAsciiStringView.h
   include/gucefCORE_CBasicBracketLoggingFormatter.h
   include/gucefCORE_CBusyWaitPulseGeneratorDriver.h
   include/gucefCORE_CCharSepLoggingFormatter.h
@@ -164,9 +163,7 @@ set( HEADER_FILES
   include/gucefCORE_CDirectoryWatcherEvents.h
   include/gucefCORE_CDynamicBufferStringStream.h
   include/gucefCORE_CDynamicBufferSwap.h
-  include/gucefCORE_CStopwatch.h
-  include/gucefCORE_CTimestamp.h
-  include/gucefCORE_CVariantStream.h
+  include/gucefCORE_CDynamicBufferView.h
   include/gucefCORE_CEnumerator.h
   include/gucefCORE_CEventAggregateTrigger.h
   include/gucefCORE_CEventBasedTaskConsumer.h
@@ -209,11 +206,10 @@ set( HEADER_FILES
   include/gucefCORE_CJsonLoggingFormatter.h
   include/gucefCORE_CLinkedTransferBuffer.h
   include/gucefCORE_CLoaderDelegatedPluginLoadLogic.h
-  include/gucefCORE_CLoggingGlobal.h
-  include/gucefCORE_CLoggingTask.h
   include/gucefCORE_CLogStream.h
   include/gucefCORE_CLogStreamScope.h
-  include/gucefCORE_CThreadLogBuffers.h
+  include/gucefCORE_CLoggingGlobal.h
+  include/gucefCORE_CLoggingTask.h
   include/gucefCORE_CMetricsClientManager.h
   include/gucefCORE_CMultiLogger.h
   include/gucefCORE_COSWindow.h
@@ -235,6 +231,7 @@ set( HEADER_FILES
   include/gucefCORE_CSimplisticPluginLoadLogic.h
   include/gucefCORE_CSingleTaskDelegator.h
   include/gucefCORE_CStdDataNodeSerializableTaskData.h
+  include/gucefCORE_CStopwatch.h
   include/gucefCORE_CString.h
   include/gucefCORE_CSubFileAccess.h
   include/gucefCORE_CTBasicSharedPtrObjOperators.h
@@ -255,22 +252,31 @@ set( HEADER_FILES
   include/gucefCORE_CTaskInfo.h
   include/gucefCORE_CTaskManager.h
   include/gucefCORE_CTaskManagerInfo.h
+  include/gucefCORE_CThreadLogBuffers.h
   include/gucefCORE_CThreadPool.h
   include/gucefCORE_CThreadPoollnfo.h
   include/gucefCORE_CThreadlnfo.h
   include/gucefCORE_CTime.h
+  include/gucefCORE_CTimestamp.h
   include/gucefCORE_CTokenizer.h
   include/gucefCORE_CUri.h
   include/gucefCORE_CUriResourceAccessor.h
   include/gucefCORE_CUriResourceAccessorFactory.h
   include/gucefCORE_CUrlEncoder.h
+  include/gucefCORE_CUtf16String.h
+  include/gucefCORE_CUtf16StringView.h
+  include/gucefCORE_CUtf32String.h
+  include/gucefCORE_CUtf32StringView.h
   include/gucefCORE_CUtf8String.h
+  include/gucefCORE_CUtf8StringView.h
   include/gucefCORE_CValueConstraint.h
   include/gucefCORE_CValueConstraintList.h
   include/gucefCORE_CValueDefinition.h
   include/gucefCORE_CValueMapBuilder.h
   include/gucefCORE_CVariant.h
   include/gucefCORE_CVariantBinarySerializer.h
+  include/gucefCORE_CVariantStream.h
+  include/gucefCORE_CVariantView.h
   include/gucefCORE_CVersion.h
   include/gucefCORE_CVersionRange.h
   include/gucefCORE_CoreCodecTypes.h
@@ -281,11 +287,11 @@ set( HEADER_FILES
   include/gucefCORE_LogTypes.h
   include/gucefCORE_Logging.h
   include/gucefCORE_LoggingMacros.h
-  include/gucefCORE_TestFwLogCallback.h
-  include/gucefCORE_StringLoggingMacros.h
   include/gucefCORE_MetricsMacros.h
   include/gucefCORE_SFINAE_utils.h
+  include/gucefCORE_StringLoggingMacros.h
   include/gucefCORE_TaskStatus.h
+  include/gucefCORE_TestFwLogCallback.h
   include/gucefCORE_ThreadStatus.h
   include/gucefCORE_TokenTypes.h
   include/gucefCORE_TypeInfoTemplateExt.h
@@ -433,8 +439,7 @@ set( SOURCE_FILES
   src/gucefCORE_CASync.cpp
   src/gucefCORE_CAbstractFactoryBase.cpp
   src/gucefCORE_CAsciiString.cpp
-  src/gucefCORE_CUtf16String.cpp
-  src/gucefCORE_CUtf32String.cpp
+  src/gucefCORE_CAsciiStringView.cpp
   src/gucefCORE_CBasicBracketLoggingFormatter.cpp
   src/gucefCORE_CBusyWaitPulseGeneratorDriver.cpp
   src/gucefCORE_CCharSepLoggingFormatter.cpp
@@ -456,9 +461,7 @@ set( SOURCE_FILES
   src/gucefCORE_CDirectoryWatcherEvents.cpp
   src/gucefCORE_CDynamicBufferStringStream.cpp
   src/gucefCORE_CDynamicBufferSwap.cpp
-  src/gucefCORE_CStopwatch.cpp
-  src/gucefCORE_CTimestamp.cpp
-  src/gucefCORE_CVariantStream.cpp
+  src/gucefCORE_CDynamicBufferView.cpp
   src/gucefCORE_CEnumerator.cpp
   src/gucefCORE_CEventAggregateTrigger.cpp
   src/gucefCORE_CFileSystemDirectoryWatcher.cpp
@@ -499,12 +502,10 @@ set( SOURCE_FILES
   src/gucefCORE_CJsonLoggingFormatter.cpp
   src/gucefCORE_CLinkedTransferBuffer.cpp
   src/gucefCORE_CLoaderDelegatedPluginLoadLogic.cpp
-  src/gucefCORE_CStringLogHelper.cpp
-  src/gucefCORE_CLoggingGlobal.cpp
-  src/gucefCORE_CLoggingTask.cpp
   src/gucefCORE_CLogStream.cpp
   src/gucefCORE_CLogStreamScope.cpp
-  src/gucefCORE_CThreadLogBuffers.cpp
+  src/gucefCORE_CLoggingGlobal.cpp
+  src/gucefCORE_CLoggingTask.cpp
   src/gucefCORE_CMetricsClientManager.cpp
   src/gucefCORE_CMultiLogger.cpp
   src/gucefCORE_COSWindow.cpp
@@ -526,6 +527,8 @@ set( SOURCE_FILES
   src/gucefCORE_CSimplisticPluginLoadLogic.cpp
   src/gucefCORE_CSingleTaskDelegator.cpp
   src/gucefCORE_CStdDataNodeSerializableTaskData.cpp
+  src/gucefCORE_CStopwatch.cpp
+  src/gucefCORE_CStringLogHelper.cpp
   src/gucefCORE_CSubFileAccess.cpp
   src/gucefCORE_CTEventHandlerFunctor.cpp
   src/gucefCORE_CTEventHandlerFunctorProxy.cpp
@@ -541,22 +544,31 @@ set( SOURCE_FILES
   src/gucefCORE_CTaskInfo.cpp
   src/gucefCORE_CTaskManager.cpp
   src/gucefCORE_CTaskManagerInfo.cpp
+  src/gucefCORE_CThreadLogBuffers.cpp
   src/gucefCORE_CThreadPool.cpp
   src/gucefCORE_CThreadPoollnfo.cpp
   src/gucefCORE_CThreadlnfo.cpp
   src/gucefCORE_CTime.cpp
+  src/gucefCORE_CTimestamp.cpp
   src/gucefCORE_CTokenizer.cpp
   src/gucefCORE_CUri.cpp
   src/gucefCORE_CUriResourceAccessor.cpp
   src/gucefCORE_CUriResourceAccessorFactory.cpp
   src/gucefCORE_CUrlEncoder.cpp
+  src/gucefCORE_CUtf16String.cpp
+  src/gucefCORE_CUtf16StringView.cpp
+  src/gucefCORE_CUtf32String.cpp
+  src/gucefCORE_CUtf32StringView.cpp
   src/gucefCORE_CUtf8String.cpp
+  src/gucefCORE_CUtf8StringView.cpp
   src/gucefCORE_CValueConstraint.cpp
   src/gucefCORE_CValueConstraintList.cpp
   src/gucefCORE_CValueDefinition.cpp
   src/gucefCORE_CValueMapBuilder.cpp
   src/gucefCORE_CVariant.cpp
   src/gucefCORE_CVariantBinarySerializer.cpp
+  src/gucefCORE_CVariantStream.cpp
+  src/gucefCORE_CVariantView.cpp
   src/gucefCORE_CVersion.cpp
   src/gucefCORE_CVersionRange.cpp
   src/gucefCORE_CoreCodecTypes.cpp

@@ -399,9 +399,29 @@ class GUCEF_CORE_PUBLIC_CPP CAsciiString
 
     static CAsciiString ReadString( CIOAccess* io );
 
+    /**
+     *  Links this string to an externally managed buffer (zero-copy, non-owning).
+     *  The caller is responsible for keeping the buffer alive as long as this object is used.
+     *  LinkTo() is the ONLY way to enter linked/non-owning mode.
+     *  Any subsequent mutation (Set, Append, operator[], non-const C_String, Reserve, SetLength, Clear)
+     *  will automatically promote to an owned deep-copy before mutating (copy-on-write).
+     */
+    CAsciiString& LinkTo( const char* externalBuffer, UInt32 length );
+    CAsciiString& LinkTo( const CAsciiString& src );
+
+    /**
+     *  Returns true if this string is in linked (non-owning) mode.
+     */
+    bool IsLinked( void ) const;
+
+    private:
+
+    void PromoteToOwned( void );
+
     private:
     char* m_string;    /**< our actual null-terminated string */
     UInt32 m_length;   /**< length of the string */
+    bool m_linked;     /**< true = borrows external buffer; do not delete on destruction */
 };
 
 /*-------------------------------------------------------------------------*/
