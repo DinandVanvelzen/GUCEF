@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPIC_H
-#define PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPIC_H
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTTOPIC_H
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTTOPIC_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -40,20 +40,20 @@
 #define GUCEF_PUBSUB_CPUBSUBCLIENTTOPIC_H
 #endif /* GUCEF_PUBSUB_CPUBSUBCLIENTTOPIC_H ? */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXMESSAGE_H
-#include "pubsubpluginFIX_CFIXMessage.h"
-#define PUBSUBPLUGIN_FIX_CFIXMESSAGE_H
-#endif /* PUBSUBPLUGIN_FIX_CFIXMESSAGE_H ? */
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTMESSAGE_H
+#include "pubsubpluginFIX_CFIXClientMessage.h"
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTMESSAGE_H
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTMESSAGE_H ? */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H
-#include "pubsubpluginFIX_CFIXSessionFields.h"
-#define PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H
-#endif /* PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H ? */
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTSESSIONFIELDS_H
+#include "pubsubpluginFIX_CFIXClientSessionFields.h"
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTSESSIONFIELDS_H
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTSESSIONFIELDS_H ? */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPICCONFIG_H
-#include "pubsubpluginFIX_CFIXPubSubClientTopicConfig.h"
-#define PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPICCONFIG_H
-#endif /* PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPICCONFIG_H ? */
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTTOPICCONFIG_H
+#include "pubsubpluginFIX_CFIXClientPubSubClientTopicConfig.h"
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTTOPICCONFIG_H
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTTOPICCONFIG_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -71,22 +71,21 @@ namespace FIX {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class CFIXPubSubClient;
+class CFIXClientPubSubClient;
 
 /**
  *  Represents the single pubsub topic exposed per FIX TCP session.
  *  Received application-level FIX messages are delivered here as pubsub messages.
  *  Outgoing publishes are serialized as raw FIX and sent via the client socket.
  */
-class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClientTopic :
-    public PUBSUB::CPubSubClientTopic ,
-    public CORE::CTSharedObjCreator< CFIXPubSubClientTopic, MT::CMutex >
+class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXClientPubSubClientTopic : public PUBSUB::CPubSubClientTopic ,
+                                                                        public CORE::CTSharedObjCreator< CFIXClientPubSubClientTopic, MT::CMutex >
 {
     public:
 
-    CFIXPubSubClientTopic( CFIXPubSubClient* client );
+    CFIXClientPubSubClientTopic( CFIXClientPubSubClient* client );
 
-    virtual ~CFIXPubSubClientTopic() GUCEF_VIRTUAL_OVERRIDE;
+    virtual ~CFIXClientPubSubClientTopic() GUCEF_VIRTUAL_OVERRIDE;
 
     virtual PUBSUB::CPubSubClient* GetClient( void ) GUCEF_VIRTUAL_OVERRIDE;
 
@@ -127,7 +126,7 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClientTopic :
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /**
-     *  Called by CFIXPubSubClient when a new FIX message arrives (application or session level).
+     *  Called by CFIXClientPubSubClient when a new FIX message arrives (application or session level).
      *  Delivers raw FIX wire bytes as ASCII_STRING primary payload (linked, zero-copy).
      *  Delivers essential session fields as numeric UInt32 tag-keyed metadata (linked, zero-copy).
      *  Fires MsgsRecievedEvent synchronously — linked views are valid until this call returns.
@@ -136,10 +135,11 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClientTopic :
      *  @param msgLen    Total byte length of the complete FIX message including tag 10
      *  @param fields    Pre-scanned session fields (raw pointers into receive buffer)
      */
-    void OnApplicationMessage( const char* msgStart, CORE::UInt32 msgLen,
-                                const CFIXSessionFields& fields );
+    void OnApplicationMessage( const char* msgStart                  ,
+                               CORE::UInt32 msgLen                   ,
+                               const CFIXClientSessionFields& fields );
 
-    const CFIXPubSubClientTopicConfig& GetTopicConfig( void ) const;
+    const CFIXClientPubSubClientTopicConfig& GetTopicConfig( void ) const;
 
     protected:
 
@@ -148,31 +148,31 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClientTopic :
 
     private:
 
-    typedef CORE::CTEventHandlerFunctor< CFIXPubSubClientTopic > TEventCallback;
+    typedef CORE::CTEventHandlerFunctor< CFIXClientPubSubClientTopic > TEventCallback;
     typedef GUCEF::vector< PUBSUB::CBasicPubSubMsg > TPubSubMsgsVector;
 
     bool IsMsgTypePassedByFilter( const char* msgType, CORE::UInt32 msgTypeLen ) const;
 
     private:
 
-    CFIXPubSubClient*            m_client;
-    CFIXPubSubClientTopicConfig  m_config;
-    bool                         m_isSubscribed;
-    CORE::UInt64                 m_lastReceivedSeqNum;
-    CORE::UInt64                 m_currentPublishActionId;
-    CORE::UInt64                 m_currentReceiveActionId;
-    MT::CMutex                   m_lock;
-    TPubSubMsgsVector            m_pubsubMsgs;
-    TMsgsRecievedEventData       m_pubsubMsgsRefs;
-    TPublishActionIdVector       m_publishSuccessActionIds;
-    TMsgsPublishedEventData      m_publishSuccessActionEventData;
-    TPublishActionIdVector       m_publishFailureActionIds;
-    TMsgsPublishFailureEventData m_publishFailureActionEventData;
+    CFIXClientPubSubClient*            m_client;
+    CFIXClientPubSubClientTopicConfig  m_config;
+    bool                               m_isSubscribed;
+    CORE::UInt64                       m_lastReceivedSeqNum;
+    CORE::UInt64                       m_currentPublishActionId;
+    CORE::UInt64                       m_currentReceiveActionId;
+    MT::CMutex                         m_lock;
+    TPubSubMsgsVector                  m_pubsubMsgs;
+    TMsgsRecievedEventData             m_pubsubMsgsRefs;
+    TPublishActionIdVector             m_publishSuccessActionIds;
+    TMsgsPublishedEventData            m_publishSuccessActionEventData;
+    TPublishActionIdVector             m_publishFailureActionIds;
+    TMsgsPublishFailureEventData       m_publishFailureActionEventData;
 };
 
 /*--------------------------------------------------------------------------*/
 
-typedef CFIXPubSubClientTopic::TSharedPtrType   CFIXPubSubClientTopicPtr;
+typedef CFIXClientPubSubClientTopic::TSharedPtrType   CFIXClientPubSubClientTopicPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -186,4 +186,4 @@ typedef CFIXPubSubClientTopic::TSharedPtrType   CFIXPubSubClientTopicPtr;
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPIC_H ? */
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTTOPIC_H ? */

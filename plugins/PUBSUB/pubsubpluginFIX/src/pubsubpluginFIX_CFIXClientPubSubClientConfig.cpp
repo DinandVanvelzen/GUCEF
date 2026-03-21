@@ -22,7 +22,7 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include "pubsubpluginFIX_CFIXPubSubClientConfig.h"
+#include "pubsubpluginFIX_CFIXClientPubSubClientConfig.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -40,7 +40,7 @@ namespace FIX {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CFIXPubSubClientConfig::CFIXPubSubClientConfig( void )
+CFIXClientPubSubClientConfig::CFIXClientPubSubClientConfig( void )
     : PUBSUB::CPubSubClientConfig()
     , senderCompId()
     , targetCompId()
@@ -58,7 +58,7 @@ CFIXPubSubClientConfig::CFIXPubSubClientConfig( void )
 
 /*-------------------------------------------------------------------------*/
 
-CFIXPubSubClientConfig::CFIXPubSubClientConfig( const PUBSUB::CPubSubClientConfig& genericConfig )
+CFIXClientPubSubClientConfig::CFIXClientPubSubClientConfig( const PUBSUB::CPubSubClientConfig& genericConfig )
     : PUBSUB::CPubSubClientConfig( genericConfig )
     , senderCompId()
     , targetCompId()
@@ -78,14 +78,14 @@ CFIXPubSubClientConfig::CFIXPubSubClientConfig( const PUBSUB::CPubSubClientConfi
 
 /*-------------------------------------------------------------------------*/
 
-CFIXPubSubClientConfig::~CFIXPubSubClientConfig()
+CFIXClientPubSubClientConfig::~CFIXClientPubSubClientConfig()
 {GUCEF_TRACE;
 }
 
 /*-------------------------------------------------------------------------*/
 
-CFIXPubSubClientConfig&
-CFIXPubSubClientConfig::operator=( const PUBSUB::CPubSubClientConfig& src )
+CFIXClientPubSubClientConfig&
+CFIXClientPubSubClientConfig::operator=( const PUBSUB::CPubSubClientConfig& src )
 {GUCEF_TRACE;
 
     if ( &src != this )
@@ -98,8 +98,8 @@ CFIXPubSubClientConfig::operator=( const PUBSUB::CPubSubClientConfig& src )
 
 /*-------------------------------------------------------------------------*/
 
-CFIXPubSubClientConfig&
-CFIXPubSubClientConfig::operator=( const CFIXPubSubClientConfig& src )
+CFIXClientPubSubClientConfig&
+CFIXClientPubSubClientConfig::operator=( const CFIXClientPubSubClientConfig& src )
 {GUCEF_TRACE;
 
     if ( &src != this )
@@ -123,12 +123,12 @@ CFIXPubSubClientConfig::operator=( const CFIXPubSubClientConfig& src )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientConfig::LoadCustomConfig( const CORE::CDataNode& config )
+CFIXClientPubSubClientConfig::LoadCustomConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
 
-    senderCompId                   = config.GetAttributeValueOrChildValueByName( "senderCompId" ).AsString( senderCompId, true );
-    targetCompId                   = config.GetAttributeValueOrChildValueByName( "targetCompId" ).AsString( targetCompId, true );
-    fixVersion                     = config.GetAttributeValueOrChildValueByName( "fixVersion" ).AsString( fixVersion, true );
+    senderCompId                   = config.GetAttributeValueOrChildValueByName( "senderCompId" ).AsAsciiString( senderCompId, true );
+    targetCompId                   = config.GetAttributeValueOrChildValueByName( "targetCompId" ).AsAsciiString( targetCompId, true );
+    fixVersion                     = config.GetAttributeValueOrChildValueByName( "fixVersion" ).AsAsciiString( fixVersion, true );
     heartbeatIntervalSecs          = config.GetAttributeValueOrChildValueByName( "heartbeatIntervalSecs" ).AsUInt32( heartbeatIntervalSecs, true );
     resetSeqNumOnLogon             = config.GetAttributeValueOrChildValueByName( "resetSeqNumOnLogon" ).AsBool( resetSeqNumOnLogon, true );
     logonTimeoutInMs               = config.GetAttributeValueOrChildValueByName( "logonTimeoutInMs" ).AsUInt32( logonTimeoutInMs, true );
@@ -143,12 +143,12 @@ CFIXPubSubClientConfig::LoadCustomConfig( const CORE::CDataNode& config )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientConfig::SaveCustomConfig( CORE::CDataNode& config ) const
+CFIXClientPubSubClientConfig::SaveCustomConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
 
-    config.SetAttribute( "senderCompId",                   senderCompId );
-    config.SetAttribute( "targetCompId",                   targetCompId );
-    config.SetAttribute( "fixVersion",                     fixVersion );
+    config.SetAttribute( "senderCompId",                   CORE::CString( senderCompId ) );
+    config.SetAttribute( "targetCompId",                   CORE::CString( targetCompId ) );
+    config.SetAttribute( "fixVersion",                     CORE::CString( fixVersion ) );
     config.SetAttribute( "heartbeatIntervalSecs",          heartbeatIntervalSecs );
     config.SetAttribute( "resetSeqNumOnLogon",             resetSeqNumOnLogon );
     config.SetAttribute( "logonTimeoutInMs",               logonTimeoutInMs );
@@ -163,7 +163,7 @@ CFIXPubSubClientConfig::SaveCustomConfig( CORE::CDataNode& config ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientConfig::SerializeCustomConfigToGenericConfig( void )
+CFIXClientPubSubClientConfig::SerializeCustomConfigToGenericConfig( void )
 {GUCEF_TRACE;
 
     return SaveCustomConfig( customConfig );
@@ -172,7 +172,7 @@ CFIXPubSubClientConfig::SerializeCustomConfigToGenericConfig( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientConfig::LoadConfig( const CORE::CDataNode& config )
+CFIXClientPubSubClientConfig::LoadConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
 
     if ( PUBSUB::CPubSubClientConfig::LoadConfig( config ) )
@@ -185,7 +185,7 @@ CFIXPubSubClientConfig::LoadConfig( const CORE::CDataNode& config )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientConfig::SaveConfig( CORE::CDataNode& config ) const
+CFIXClientPubSubClientConfig::SaveConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
 
     PUBSUB::CPubSubClientConfig cfgCopy( *this );
@@ -199,7 +199,7 @@ CFIXPubSubClientConfig::SaveConfig( CORE::CDataNode& config ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientConfig::LoadConfig( const PUBSUB::CPubSubClientConfig& cfg )
+CFIXClientPubSubClientConfig::LoadConfig( const PUBSUB::CPubSubClientConfig& cfg )
 {GUCEF_TRACE;
 
     if ( &cfg != this )
@@ -212,7 +212,7 @@ CFIXPubSubClientConfig::LoadConfig( const PUBSUB::CPubSubClientConfig& cfg )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientConfig::SaveConfig( PUBSUB::CPubSubClientConfig& cfg ) const
+CFIXClientPubSubClientConfig::SaveConfig( PUBSUB::CPubSubClientConfig& cfg ) const
 {GUCEF_TRACE;
 
     cfg = *this;

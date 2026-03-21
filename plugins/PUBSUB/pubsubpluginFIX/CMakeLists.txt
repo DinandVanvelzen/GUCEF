@@ -13,23 +13,23 @@
 
 set( HEADER_FILES
   include/pubsubpluginFIX.h
-  include/pubsubpluginFIX_CFIXMessage.h
-  include/pubsubpluginFIX_CFIXPubSubClient.h
-  include/pubsubpluginFIX_CFIXPubSubClientConfig.h
-  include/pubsubpluginFIX_CFIXPubSubClientTopic.h
-  include/pubsubpluginFIX_CFIXPubSubClientTopicConfig.h
-  include/pubsubpluginFIX_CFIXSessionFields.h
+  include/pubsubpluginFIX_CFIXClientMessage.h
+  include/pubsubpluginFIX_CFIXClientPubSubClient.h
+  include/pubsubpluginFIX_CFIXClientPubSubClientConfig.h
+  include/pubsubpluginFIX_CFIXClientPubSubClientTopic.h
+  include/pubsubpluginFIX_CFIXClientPubSubClientTopicConfig.h
+  include/pubsubpluginFIX_CFIXClientSessionFields.h
   include/pubsubpluginFIX_config.h
   include/pubsubpluginFIX_macros.h
 )
 
-set( SOURCE_FILES 
+set( SOURCE_FILES
   src/pubsubpluginFIX.cpp
-  src/pubsubpluginFIX_CFIXMessage.cpp
-  src/pubsubpluginFIX_CFIXPubSubClient.cpp
-  src/pubsubpluginFIX_CFIXPubSubClientConfig.cpp
-  src/pubsubpluginFIX_CFIXPubSubClientTopic.cpp
-  src/pubsubpluginFIX_CFIXPubSubClientTopicConfig.cpp
+  src/pubsubpluginFIX_CFIXClientMessage.cpp
+  src/pubsubpluginFIX_CFIXClientPubSubClient.cpp
+  src/pubsubpluginFIX_CFIXClientPubSubClientConfig.cpp
+  src/pubsubpluginFIX_CFIXClientPubSubClientTopic.cpp
+  src/pubsubpluginFIX_CFIXClientPubSubClientTopicConfig.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined

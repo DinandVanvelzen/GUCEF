@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXMESSAGE_H
-#define PUBSUBPLUGIN_FIX_CFIXMESSAGE_H
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTMESSAGE_H
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTMESSAGE_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -25,10 +25,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_CSTRING_H
-#include "gucefCORE_CString.h"
-#define GUCEF_CORE_CSTRING_H
-#endif /* GUCEF_CORE_CSTRING_H ? */
+#ifndef GUCEF_CORE_CASCIISTRING_H
+#include "gucefCORE_CAsciiString.h"
+#define GUCEF_CORE_CASCIISTRING_H
+#endif /* GUCEF_CORE_CASCIISTRING_H ? */
 
 #ifndef GUCEF_CORE_ETYPES_H
 #include "gucefCORE_ETypes.h"
@@ -63,10 +63,10 @@ namespace FIX {
  *  Wire format uses SOH (ASCII 0x01) as field delimiter.
  *  Fields are TAG=VALUE\x01 pairs.
  *
- *  Note: Parsing is now done zero-copy via CFIXSessionFields + ScanSessionFields
- *  in CFIXPubSubClient. This class is builder-only.
+ *  Note: Parsing is now done zero-copy via CFIXClientSessionFields + ScanSessionFields
+ *  in CFIXClientPubSubClient. This class is builder-only.
  */
-class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXMessage
+class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXClientMessage
 {
     public:
 
@@ -97,59 +97,59 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXMessage
     /**
      *  Build a FIX Logon message (MsgType=A)
      */
-    static CORE::CString BuildLogon( const CORE::CString& senderCompId,
-                                     const CORE::CString& targetCompId,
-                                     const CORE::CString& fixVersion,
-                                     CORE::UInt64 outgoingSeqNum,
-                                     CORE::UInt32 heartbeatIntervalSecs,
-                                     bool resetSeqNumFlag );
+    static CORE::CAsciiString BuildLogon( const CORE::CAsciiString& senderCompId ,
+                                          const CORE::CAsciiString& targetCompId ,
+                                          const CORE::CAsciiString& fixVersion   ,
+                                          CORE::UInt64 outgoingSeqNum            ,
+                                          CORE::UInt32 heartbeatIntervalSecs     ,
+                                          bool resetSeqNumFlag                    );
 
     /**
      *  Build a FIX Logout message (MsgType=5)
      */
-    static CORE::CString BuildLogout( const CORE::CString& senderCompId,
-                                      const CORE::CString& targetCompId,
-                                      const CORE::CString& fixVersion,
-                                      CORE::UInt64 outgoingSeqNum,
-                                      const CORE::CString& text = CORE::CString::Empty );
+    static CORE::CAsciiString BuildLogout( const CORE::CAsciiString& senderCompId                      ,
+                                           const CORE::CAsciiString& targetCompId                      ,
+                                           const CORE::CAsciiString& fixVersion                        ,
+                                           CORE::UInt64 outgoingSeqNum                                 ,
+                                           const CORE::CAsciiString& text = CORE::CAsciiString::Empty  );
 
     /**
      *  Build a FIX Heartbeat message (MsgType=0)
      */
-    static CORE::CString BuildHeartbeat( const CORE::CString& senderCompId,
-                                         const CORE::CString& targetCompId,
-                                         const CORE::CString& fixVersion,
-                                         CORE::UInt64 outgoingSeqNum,
-                                         const CORE::CString& testReqId = CORE::CString::Empty );
+    static CORE::CAsciiString BuildHeartbeat( const CORE::CAsciiString& senderCompId                          ,
+                                              const CORE::CAsciiString& targetCompId                          ,
+                                              const CORE::CAsciiString& fixVersion                            ,
+                                              CORE::UInt64 outgoingSeqNum                                     ,
+                                              const CORE::CAsciiString& testReqId = CORE::CAsciiString::Empty );
 
     /**
      *  Build a FIX TestRequest message (MsgType=1)
      */
-    static CORE::CString BuildTestRequest( const CORE::CString& senderCompId,
-                                           const CORE::CString& targetCompId,
-                                           const CORE::CString& fixVersion,
-                                           CORE::UInt64 outgoingSeqNum,
-                                           const CORE::CString& testReqId );
+    static CORE::CAsciiString BuildTestRequest( const CORE::CAsciiString& senderCompId ,
+                                                const CORE::CAsciiString& targetCompId ,
+                                                const CORE::CAsciiString& fixVersion   ,
+                                                CORE::UInt64 outgoingSeqNum            ,
+                                                const CORE::CAsciiString& testReqId    );
 
     /**
      *  Build a FIX ResendRequest message (MsgType=2)
      */
-    static CORE::CString BuildResendRequest( const CORE::CString& senderCompId,
-                                             const CORE::CString& targetCompId,
-                                             const CORE::CString& fixVersion,
-                                             CORE::UInt64 outgoingSeqNum,
-                                             CORE::UInt64 beginSeqNo,
-                                             CORE::UInt64 endSeqNo );
+    static CORE::CAsciiString BuildResendRequest( const CORE::CAsciiString& senderCompId ,
+                                                  const CORE::CAsciiString& targetCompId ,
+                                                  const CORE::CAsciiString& fixVersion   ,
+                                                  CORE::UInt64 outgoingSeqNum            ,
+                                                  CORE::UInt64 beginSeqNo                ,
+                                                  CORE::UInt64 endSeqNo                   );
 
     /**
      *  Build a FIX SequenceReset message (MsgType=4)
      */
-    static CORE::CString BuildSequenceReset( const CORE::CString& senderCompId,
-                                             const CORE::CString& targetCompId,
-                                             const CORE::CString& fixVersion,
-                                             CORE::UInt64 outgoingSeqNum,
-                                             CORE::UInt64 newSeqNo,
-                                             bool gapFillFlag );
+    static CORE::CAsciiString BuildSequenceReset( const CORE::CAsciiString& senderCompId ,
+                                                  const CORE::CAsciiString& targetCompId ,
+                                                  const CORE::CAsciiString& fixVersion   ,
+                                                  CORE::UInt64 outgoingSeqNum            ,
+                                                  CORE::UInt64 newSeqNo                  ,
+                                                  bool gapFillFlag                        );
 
     private:
 
@@ -158,16 +158,16 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXMessage
      *  @param msgWithoutChecksum  The message bytes NOT including the "10=xxx\x01" part
      *  @return 3-digit decimal checksum string
      */
-    static CORE::CString CalcCheckSum( const CORE::CString& msgWithoutChecksum );
+    static CORE::CAsciiString CalcCheckSum( const CORE::CAsciiString& msgWithoutChecksum );
 
     /**
      *  Build the standard FIX header body (tags 35, 49, 56, 34, 52).
      *  Does NOT include tag 8 (BeginString) or tag 9 (BodyLength).
      */
-    static CORE::CString BuildStandardBody( const CORE::CString& msgType,
-                                            const CORE::CString& senderCompId,
-                                            const CORE::CString& targetCompId,
-                                            CORE::UInt64 seqNum );
+    static CORE::CAsciiString BuildStandardBody( const CORE::CAsciiString& msgType      ,
+                                                 const CORE::CAsciiString& senderCompId ,
+                                                 const CORE::CAsciiString& targetCompId ,
+                                                 CORE::UInt64 seqNum                    );
 
     /**
      *  Finalize a FIX message by prepending the BeginString+BodyLength header
@@ -177,13 +177,13 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXMessage
      *  @param body        Everything from tag 35 onwards (without tag 8, 9, 10)
      *  @return            Complete FIX message ready to send
      */
-    static CORE::CString FinalizeMsg( const CORE::CString& fixVersion,
-                                      const CORE::CString& body );
+    static CORE::CAsciiString FinalizeMsg( const CORE::CAsciiString& fixVersion ,
+                                           const CORE::CAsciiString& body        );
 
     /**
      *  Get current UTC time formatted as FIX SendingTime (YYYYMMDD-HH:MM:SS)
      */
-    static CORE::CString GetCurrentSendingTime( void );
+    static CORE::CAsciiString GetCurrentSendingTime( void );
 };
 
 /*-------------------------------------------------------------------------//
@@ -198,4 +198,4 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXMessage
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* PUBSUBPLUGIN_FIX_CFIXMESSAGE_H ? */
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTMESSAGE_H ? */

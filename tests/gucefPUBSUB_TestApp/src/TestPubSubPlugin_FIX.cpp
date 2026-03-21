@@ -258,7 +258,7 @@ PerformPubSubPlugin_FIXTests( void )
         try
         {
             PUBSUB::CPubSubClientFactory& factory = PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory();
-            ASSERT_TRUE( factory.IsConstructible( "FIX" ) );
+            ASSERT_TRUE( factory.IsConstructible( "FIXClient" ) );
         }
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END
@@ -269,11 +269,11 @@ PerformPubSubPlugin_FIXTests( void )
         {
             // Create a client config via the factory using default config
             PUBSUB::CPubSubClientConfig cfg;
-            cfg.pubsubClientType = "FIX";
+            cfg.pubsubClientType = "FIXClient";
 
             // We test config round-trip by creating a client through the factory
             PUBSUB::CPubSubClientFactory& factory = PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory();
-            ASSERT_TRUE( factory.IsConstructible( "FIX" ) );
+            ASSERT_TRUE( factory.IsConstructible( "FIXClient" ) );
 
             // Basic config can be created - the plugin is functional
             ASSERT_TRUE( true );
@@ -286,17 +286,17 @@ PerformPubSubPlugin_FIXTests( void )
         try
         {
             PUBSUB::CPubSubClientConfig cfg;
-            cfg.pubsubClientType = "FIX";
+            cfg.pubsubClientType = "FIXClient";
 
             PUBSUB::CPubSubClientFactory& factory = PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory();
-            ASSERT_TRUE( factory.IsConstructible( "FIX" ) );
+            ASSERT_TRUE( factory.IsConstructible( "FIXClient" ) );
 
-            PUBSUB::CPubSubClientPtr client = factory.Create( "FIX", cfg );
+            PUBSUB::CPubSubClientPtr client = factory.Create( "FIXClient", cfg );
             ASSERT_FALSE( client.IsNULL() );
 
             if ( !client.IsNULL() )
             {
-                ASSERT_TRUE( client->GetType() == "FIX" );
+                ASSERT_TRUE( client->GetType() == "FIXClient" );
                 ASSERT_FALSE( client->IsConnected() );
 
                 PUBSUB::CPubSubClientFeatures features;

@@ -49,12 +49,12 @@
 #define GUCEF_PUBSUB_CPUBSUBBOOKMARK_H
 #endif /* GUCEF_PUBSUB_CPUBSUBBOOKMARK_H ? */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENT_H
-#include "pubsubpluginFIX_CFIXPubSubClient.h"
-#define PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENT_H
-#endif /* PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENT_H ? */
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENT_H
+#include "pubsubpluginFIX_CFIXClientPubSubClient.h"
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENT_H
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENT_H ? */
 
-#include "pubsubpluginFIX_CFIXPubSubClientTopic.h"
+#include "pubsubpluginFIX_CFIXClientPubSubClientTopic.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -90,9 +90,9 @@ static inline bool IsSessionLevelMsgType( const char* msgType, CORE::UInt32 msgT
 
 /*-------------------------------------------------------------------------*/
 
-CFIXPubSubClientTopic::CFIXPubSubClientTopic( CFIXPubSubClient* client )
+CFIXClientPubSubClientTopic::CFIXClientPubSubClientTopic( CFIXClientPubSubClient* client )
     : PUBSUB::CPubSubClientTopic( client->GetPulseGenerator() )
-    , CORE::CTSharedObjCreator< CFIXPubSubClientTopic, MT::CMutex >( this )
+    , CORE::CTSharedObjCreator< CFIXClientPubSubClientTopic, MT::CMutex >( this )
     , m_client( client )
     , m_config()
     , m_isSubscribed( false )
@@ -114,7 +114,7 @@ CFIXPubSubClientTopic::CFIXPubSubClientTopic( CFIXPubSubClient* client )
 
 /*-------------------------------------------------------------------------*/
 
-CFIXPubSubClientTopic::~CFIXPubSubClientTopic()
+CFIXClientPubSubClientTopic::~CFIXClientPubSubClientTopic()
 {GUCEF_TRACE;
 
     Shutdown();
@@ -123,7 +123,7 @@ CFIXPubSubClientTopic::~CFIXPubSubClientTopic()
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClientTopic::Shutdown( void )
+CFIXClientPubSubClientTopic::Shutdown( void )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
@@ -134,7 +134,7 @@ CFIXPubSubClientTopic::Shutdown( void )
 /*-------------------------------------------------------------------------*/
 
 PUBSUB::CPubSubClient*
-CFIXPubSubClientTopic::GetClient( void )
+CFIXClientPubSubClientTopic::GetClient( void )
 {GUCEF_TRACE;
 
     return m_client;
@@ -143,7 +143,7 @@ CFIXPubSubClientTopic::GetClient( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::InitializeConnectivity( bool reset )
+CFIXClientPubSubClientTopic::InitializeConnectivity( bool reset )
 {GUCEF_TRACE;
 
     // Connectivity is managed at the client (TCP session) level
@@ -153,7 +153,7 @@ CFIXPubSubClientTopic::InitializeConnectivity( bool reset )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::Disconnect( void )
+CFIXClientPubSubClientTopic::Disconnect( void )
 {GUCEF_TRACE;
 
     m_isSubscribed = false;
@@ -163,7 +163,7 @@ CFIXPubSubClientTopic::Disconnect( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::IsConnected( void ) const
+CFIXClientPubSubClientTopic::IsConnected( void ) const
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != m_client )
@@ -174,7 +174,7 @@ CFIXPubSubClientTopic::IsConnected( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::IsSubscribed( void ) const
+CFIXClientPubSubClientTopic::IsSubscribed( void ) const
 {GUCEF_TRACE;
 
     return m_isSubscribed;
@@ -183,7 +183,7 @@ CFIXPubSubClientTopic::IsSubscribed( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::IsHealthy( void ) const
+CFIXClientPubSubClientTopic::IsHealthy( void ) const
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != m_client )
@@ -194,7 +194,7 @@ CFIXPubSubClientTopic::IsHealthy( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::IsPublishingSupported( void ) const
+CFIXClientPubSubClientTopic::IsPublishingSupported( void ) const
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != m_client )
@@ -205,7 +205,7 @@ CFIXPubSubClientTopic::IsPublishingSupported( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::IsSubscribingSupported( void ) const
+CFIXClientPubSubClientTopic::IsSubscribingSupported( void ) const
 {GUCEF_TRACE;
 
     return true;
@@ -214,7 +214,7 @@ CFIXPubSubClientTopic::IsSubscribingSupported( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::Subscribe( void )
+CFIXClientPubSubClientTopic::Subscribe( void )
 {GUCEF_TRACE;
 
     m_isSubscribed = true;
@@ -224,7 +224,7 @@ CFIXPubSubClientTopic::Subscribe( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::SubscribeStartingAtBookmark( const PUBSUB::CPubSubBookmark& bookmark )
+CFIXClientPubSubClientTopic::SubscribeStartingAtBookmark( const PUBSUB::CPubSubBookmark& bookmark )
 {GUCEF_TRACE;
 
     // Decode the sequence number from the bookmark and request a replay
@@ -240,7 +240,7 @@ CFIXPubSubClientTopic::SubscribeStartingAtBookmark( const PUBSUB::CPubSubBookmar
 /*-------------------------------------------------------------------------*/
 
 PUBSUB::CPubSubBookmark
-CFIXPubSubClientTopic::GetCurrentBookmark( void )
+CFIXClientPubSubClientTopic::GetCurrentBookmark( void )
 {GUCEF_TRACE;
 
     PUBSUB::CPubSubBookmark bookmark( PUBSUB::CPubSubBookmark::BOOKMARK_TYPE_MSG_INDEX );
@@ -251,7 +251,7 @@ CFIXPubSubClientTopic::GetCurrentBookmark( void )
 /*-------------------------------------------------------------------------*/
 
 const CORE::CString&
-CFIXPubSubClientTopic::GetTopicName( void ) const
+CFIXClientPubSubClientTopic::GetTopicName( void ) const
 {GUCEF_TRACE;
 
     return m_config.topicName;
@@ -260,8 +260,8 @@ CFIXPubSubClientTopic::GetTopicName( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::IsMsgTypePassedByFilter( const char* msgType,
-                                                  CORE::UInt32 msgTypeLen ) const
+CFIXClientPubSubClientTopic::IsMsgTypePassedByFilter( const char* msgType ,
+                                                      CORE::UInt32 msgTypeLen ) const
 {GUCEF_TRACE;
 
     if ( m_config.msgTypeFilter.IsNULLOrEmpty() )
@@ -299,8 +299,9 @@ CFIXPubSubClientTopic::IsMsgTypePassedByFilter( const char* msgType,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClientTopic::OnApplicationMessage( const char* msgStart, CORE::UInt32 msgLen,
-                                              const CFIXSessionFields& fields )
+CFIXClientPubSubClientTopic::OnApplicationMessage( const char* msgStart                  ,
+                                                   CORE::UInt32 msgLen                   ,
+                                                   const CFIXClientSessionFields& fields )
 {GUCEF_TRACE;
 
     if ( !m_isSubscribed )
@@ -343,35 +344,35 @@ CFIXPubSubClientTopic::OnApplicationMessage( const char* msgStart, CORE::UInt32 
         CORE::CVariant valueVar;
         valueVar.LinkTo( fields.msgTypeStart, fields.msgTypeLen, GUCEF_DATATYPE_ASCII_STRING );
         msg.AddLinkedMetaDataKeyValuePair(
-            CORE::CVariant( (CORE::UInt32)CFIXMessage::TAG_MSG_TYPE ), valueVar );
+            CORE::CVariant( (CORE::UInt32)CFIXClientMessage::TAG_MSG_TYPE ), valueVar );
     }
     if ( GUCEF_NULL != fields.beginStringStart )
     {
         CORE::CVariant valueVar;
         valueVar.LinkTo( fields.beginStringStart, fields.beginStringLen, GUCEF_DATATYPE_ASCII_STRING );
         msg.AddLinkedMetaDataKeyValuePair(
-            CORE::CVariant( (CORE::UInt32)CFIXMessage::TAG_BEGIN_STRING ), valueVar );
+            CORE::CVariant( (CORE::UInt32)CFIXClientMessage::TAG_BEGIN_STRING ), valueVar );
     }
     if ( GUCEF_NULL != fields.senderStart )
     {
         CORE::CVariant valueVar;
         valueVar.LinkTo( fields.senderStart, fields.senderLen, GUCEF_DATATYPE_ASCII_STRING );
         msg.AddLinkedMetaDataKeyValuePair(
-            CORE::CVariant( (CORE::UInt32)CFIXMessage::TAG_SENDER_COMP_ID ), valueVar );
+            CORE::CVariant( (CORE::UInt32)CFIXClientMessage::TAG_SENDER_COMP_ID ), valueVar );
     }
     if ( GUCEF_NULL != fields.targetStart )
     {
         CORE::CVariant valueVar;
         valueVar.LinkTo( fields.targetStart, fields.targetLen, GUCEF_DATATYPE_ASCII_STRING );
         msg.AddLinkedMetaDataKeyValuePair(
-            CORE::CVariant( (CORE::UInt32)CFIXMessage::TAG_TARGET_COMP_ID ), valueVar );
+            CORE::CVariant( (CORE::UInt32)CFIXClientMessage::TAG_TARGET_COMP_ID ), valueVar );
     }
     if ( GUCEF_NULL != fields.seqNumStart )
     {
         CORE::CVariant valueVar;
         valueVar.LinkTo( fields.seqNumStart, fields.seqNumLen, GUCEF_DATATYPE_ASCII_STRING );
         msg.AddLinkedMetaDataKeyValuePair(
-            CORE::CVariant( (CORE::UInt32)CFIXMessage::TAG_MSG_SEQ_NUM ), valueVar );
+            CORE::CVariant( (CORE::UInt32)CFIXClientMessage::TAG_MSG_SEQ_NUM ), valueVar );
     }
 
     msg.SetReceiveActionId( m_currentReceiveActionId );
@@ -390,28 +391,28 @@ CFIXPubSubClientTopic::OnApplicationMessage( const char* msgStart, CORE::UInt32 
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::Publish( CORE::UInt64& publishActionId,
-                                 const PUBSUB::CIPubSubMsg& msg,
-                                 bool notify )
+CFIXClientPubSubClientTopic::Publish( CORE::UInt64& publishActionId ,
+                                      const PUBSUB::CIPubSubMsg& msg ,
+                                      bool notify                    )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == m_client || !m_client->GetConfig().allowPublishing )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClientTopic::Publish: Publishing not enabled" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClientTopic::Publish: Publishing not enabled" );
         return false;
     }
 
     // Use the primary payload as a raw FIX string if available
-    CORE::CString rawFix;
+    CORE::CAsciiString rawFix;
     const CORE::CVariant& payload = msg.GetPrimaryPayload();
     if ( !payload.IsNULL() )
     {
-        rawFix = payload.AsString( CORE::CString::Empty, true );
+        rawFix = CORE::CAsciiString( payload.AsString( CORE::CString::Empty, true ) );
     }
 
     if ( rawFix.IsNULLOrEmpty() )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClientTopic::Publish: No primary payload to send" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClientTopic::Publish: No primary payload to send" );
         publishActionId = m_currentPublishActionId;
         ++m_currentPublishActionId;
 
@@ -448,7 +449,7 @@ CFIXPubSubClientTopic::Publish( CORE::UInt64& publishActionId,
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::AcknowledgeReceipt( const PUBSUB::CIPubSubMsg& msg )
+CFIXClientPubSubClientTopic::AcknowledgeReceipt( const PUBSUB::CIPubSubMsg& msg )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != m_client )
@@ -459,7 +460,7 @@ CFIXPubSubClientTopic::AcknowledgeReceipt( const PUBSUB::CIPubSubMsg& msg )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::AcknowledgeReceipt( const PUBSUB::CPubSubBookmark& bookmark )
+CFIXClientPubSubClientTopic::AcknowledgeReceipt( const PUBSUB::CPubSubBookmark& bookmark )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != m_client )
@@ -470,7 +471,7 @@ CFIXPubSubClientTopic::AcknowledgeReceipt( const PUBSUB::CPubSubBookmark& bookma
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::SaveConfig( PUBSUB::CPubSubClientTopicConfig& config ) const
+CFIXClientPubSubClientTopic::SaveConfig( PUBSUB::CPubSubClientTopicConfig& config ) const
 {GUCEF_TRACE;
 
     config = m_config;
@@ -480,7 +481,7 @@ CFIXPubSubClientTopic::SaveConfig( PUBSUB::CPubSubClientTopicConfig& config ) co
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::LoadConfig( const PUBSUB::CPubSubClientTopicConfig& config )
+CFIXClientPubSubClientTopic::LoadConfig( const PUBSUB::CPubSubClientTopicConfig& config )
 {GUCEF_TRACE;
 
     return m_config.LoadConfig( config );
@@ -488,8 +489,8 @@ CFIXPubSubClientTopic::LoadConfig( const PUBSUB::CPubSubClientTopicConfig& confi
 
 /*-------------------------------------------------------------------------*/
 
-const CFIXPubSubClientTopicConfig&
-CFIXPubSubClientTopic::GetTopicConfig( void ) const
+const CFIXClientPubSubClientTopicConfig&
+CFIXClientPubSubClientTopic::GetTopicConfig( void ) const
 {GUCEF_TRACE;
 
     return m_config;
@@ -498,17 +499,17 @@ CFIXPubSubClientTopic::GetTopicConfig( void ) const
 /*-------------------------------------------------------------------------*/
 
 const CORE::CString&
-CFIXPubSubClientTopic::GetClassTypeName( void ) const
+CFIXClientPubSubClientTopic::GetClassTypeName( void ) const
 {GUCEF_TRACE;
 
-    static const CORE::CString classTypeName = "GUCEF::PUBSUBPLUGIN::FIX::CFIXPubSubClientTopic";
+    static const CORE::CString classTypeName = "GUCEF::PUBSUBPLUGIN::FIX::CFIXClientPubSubClientTopic";
     return classTypeName;
 }
 
 /*-------------------------------------------------------------------------*/
 
 const MT::CILockable*
-CFIXPubSubClientTopic::AsLockable( void ) const
+CFIXClientPubSubClientTopic::AsLockable( void ) const
 {GUCEF_TRACE;
 
     return this;
@@ -517,7 +518,7 @@ CFIXPubSubClientTopic::AsLockable( void ) const
 /*-------------------------------------------------------------------------*/
 
 MT::TLockStatus
-CFIXPubSubClientTopic::Lock( CORE::UInt32 lockWaitTimeoutInMs ) const
+CFIXClientPubSubClientTopic::Lock( CORE::UInt32 lockWaitTimeoutInMs ) const
 {GUCEF_TRACE;
 
     return m_lock.Lock( lockWaitTimeoutInMs );
@@ -526,7 +527,7 @@ CFIXPubSubClientTopic::Lock( CORE::UInt32 lockWaitTimeoutInMs ) const
 /*-------------------------------------------------------------------------*/
 
 MT::TLockStatus
-CFIXPubSubClientTopic::Unlock( void ) const
+CFIXClientPubSubClientTopic::Unlock( void ) const
 {GUCEF_TRACE;
 
     return m_lock.Unlock();

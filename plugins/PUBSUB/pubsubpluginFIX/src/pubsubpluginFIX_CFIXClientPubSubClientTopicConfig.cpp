@@ -22,7 +22,7 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include "pubsubpluginFIX_CFIXPubSubClientTopicConfig.h"
+#include "pubsubpluginFIX_CFIXClientPubSubClientTopicConfig.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -40,9 +40,9 @@ namespace FIX {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CFIXPubSubClientTopicConfig::CFIXPubSubClientTopicConfig( void )
+CFIXClientPubSubClientTopicConfig::CFIXClientPubSubClientTopicConfig( void )
     : PUBSUB::CPubSubClientTopicConfig()
-    , CORE::CTSharedObjCreator< CFIXPubSubClientTopicConfig, MT::CMutex >( this )
+    , CORE::CTSharedObjCreator< CFIXClientPubSubClientTopicConfig, MT::CMutex >( this )
     , includeSessionLevelMsgs( false )
     , msgTypeFilter()
 {GUCEF_TRACE;
@@ -50,9 +50,9 @@ CFIXPubSubClientTopicConfig::CFIXPubSubClientTopicConfig( void )
 
 /*-------------------------------------------------------------------------*/
 
-CFIXPubSubClientTopicConfig::CFIXPubSubClientTopicConfig( const CFIXPubSubClientTopicConfig& src )
+CFIXClientPubSubClientTopicConfig::CFIXClientPubSubClientTopicConfig( const CFIXClientPubSubClientTopicConfig& src )
     : PUBSUB::CPubSubClientTopicConfig( src )
-    , CORE::CTSharedObjCreator< CFIXPubSubClientTopicConfig, MT::CMutex >( this )
+    , CORE::CTSharedObjCreator< CFIXClientPubSubClientTopicConfig, MT::CMutex >( this )
     , includeSessionLevelMsgs( src.includeSessionLevelMsgs )
     , msgTypeFilter( src.msgTypeFilter )
 {GUCEF_TRACE;
@@ -62,9 +62,9 @@ CFIXPubSubClientTopicConfig::CFIXPubSubClientTopicConfig( const CFIXPubSubClient
 
 /*-------------------------------------------------------------------------*/
 
-CFIXPubSubClientTopicConfig::CFIXPubSubClientTopicConfig( const PUBSUB::CPubSubClientTopicConfig& genericConfig )
+CFIXClientPubSubClientTopicConfig::CFIXClientPubSubClientTopicConfig( const PUBSUB::CPubSubClientTopicConfig& genericConfig )
     : PUBSUB::CPubSubClientTopicConfig( genericConfig )
-    , CORE::CTSharedObjCreator< CFIXPubSubClientTopicConfig, MT::CMutex >( this )
+    , CORE::CTSharedObjCreator< CFIXClientPubSubClientTopicConfig, MT::CMutex >( this )
     , includeSessionLevelMsgs( false )
     , msgTypeFilter()
 {GUCEF_TRACE;
@@ -74,14 +74,14 @@ CFIXPubSubClientTopicConfig::CFIXPubSubClientTopicConfig( const PUBSUB::CPubSubC
 
 /*-------------------------------------------------------------------------*/
 
-CFIXPubSubClientTopicConfig::~CFIXPubSubClientTopicConfig()
+CFIXClientPubSubClientTopicConfig::~CFIXClientPubSubClientTopicConfig()
 {GUCEF_TRACE;
 }
 
 /*-------------------------------------------------------------------------*/
 
-CFIXPubSubClientTopicConfig&
-CFIXPubSubClientTopicConfig::operator=( const PUBSUB::CPubSubClientTopicConfig& src )
+CFIXClientPubSubClientTopicConfig&
+CFIXClientPubSubClientTopicConfig::operator=( const PUBSUB::CPubSubClientTopicConfig& src )
 {GUCEF_TRACE;
 
     if ( &src != this )
@@ -94,8 +94,8 @@ CFIXPubSubClientTopicConfig::operator=( const PUBSUB::CPubSubClientTopicConfig& 
 
 /*-------------------------------------------------------------------------*/
 
-CFIXPubSubClientTopicConfig&
-CFIXPubSubClientTopicConfig::operator=( const CFIXPubSubClientTopicConfig& src )
+CFIXClientPubSubClientTopicConfig&
+CFIXClientPubSubClientTopicConfig::operator=( const CFIXClientPubSubClientTopicConfig& src )
 {GUCEF_TRACE;
 
     if ( &src != this )
@@ -110,29 +110,29 @@ CFIXPubSubClientTopicConfig::operator=( const CFIXPubSubClientTopicConfig& src )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopicConfig::LoadCustomConfig( const CORE::CDataNode& config )
+CFIXClientPubSubClientTopicConfig::LoadCustomConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
 
     includeSessionLevelMsgs = config.GetAttributeValueOrChildValueByName( "includeSessionLevelMsgs" ).AsBool( includeSessionLevelMsgs, true );
-    msgTypeFilter           = config.GetAttributeValueOrChildValueByName( "msgTypeFilter" ).AsString( msgTypeFilter, true );
+    msgTypeFilter           = config.GetAttributeValueOrChildValueByName( "msgTypeFilter" ).AsAsciiString( msgTypeFilter, true );
     return true;
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopicConfig::SaveCustomConfig( CORE::CDataNode& config ) const
+CFIXClientPubSubClientTopicConfig::SaveCustomConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
 
     config.SetAttribute( "includeSessionLevelMsgs", includeSessionLevelMsgs );
-    config.SetAttribute( "msgTypeFilter",           msgTypeFilter );
+    config.SetAttribute( "msgTypeFilter",           CORE::CString( msgTypeFilter ) );
     return true;
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopicConfig::LoadConfig( const PUBSUB::CPubSubClientTopicConfig& src )
+CFIXClientPubSubClientTopicConfig::LoadConfig( const PUBSUB::CPubSubClientTopicConfig& src )
 {GUCEF_TRACE;
 
     if ( &src != this )
@@ -145,10 +145,10 @@ CFIXPubSubClientTopicConfig::LoadConfig( const PUBSUB::CPubSubClientTopicConfig&
 /*-------------------------------------------------------------------------*/
 
 CORE::CICloneable*
-CFIXPubSubClientTopicConfig::Clone( void ) const
+CFIXClientPubSubClientTopicConfig::Clone( void ) const
 {GUCEF_TRACE;
 
-    return GUCEF_NEW CFIXPubSubClientTopicConfig( *this );
+    return GUCEF_NEW CFIXClientPubSubClientTopicConfig( *this );
 }
 
 /*-------------------------------------------------------------------------//

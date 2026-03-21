@@ -59,7 +59,7 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
-#include "pubsubpluginFIX_CFIXPubSubClient.h"
+#include "pubsubpluginFIX_CFIXClientPubSubClient.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -77,7 +77,7 @@ namespace FIX {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-const CORE::CString CFIXPubSubClient::TypeName = "FIX";
+const CORE::CString CFIXClientPubSubClient::TypeName = "FIXClient";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -85,7 +85,7 @@ const CORE::CString CFIXPubSubClient::TypeName = "FIX";
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CFIXPubSubClient::CFIXPubSubClient( const PUBSUB::CPubSubClientConfig& config )
+CFIXClientPubSubClient::CFIXClientPubSubClient( const PUBSUB::CPubSubClientConfig& config )
     : PUBSUB::CPubSubClient( config.pulseGenerator )
     , m_fixConfig()
     , m_tcpSocket( config.pulseGenerator.IsNULL()
@@ -107,7 +107,7 @@ CFIXPubSubClient::CFIXPubSubClient( const PUBSUB::CPubSubClientConfig& config )
 
     if ( !LoadConfig( config ) )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CFIXPubSubClient: Failed to load config at construction" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CFIXClientPubSubClient: Failed to load config at construction" );
     }
 
     if ( m_fixConfig.pulseGenerator.IsNULL() )
@@ -127,7 +127,7 @@ CFIXPubSubClient::CFIXPubSubClient( const PUBSUB::CPubSubClientConfig& config )
 
 /*-------------------------------------------------------------------------*/
 
-CFIXPubSubClient::~CFIXPubSubClient()
+CFIXClientPubSubClient::~CFIXClientPubSubClient()
 {GUCEF_TRACE;
 
     Disconnect();
@@ -156,7 +156,7 @@ CFIXPubSubClient::~CFIXPubSubClient()
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::SetPulseGenerator( CORE::PulseGeneratorPtr newPulseGenerator )
+CFIXClientPubSubClient::SetPulseGenerator( CORE::PulseGeneratorPtr newPulseGenerator )
 {GUCEF_TRACE;
 
     SetPulseGenerator( newPulseGenerator, true );
@@ -165,7 +165,7 @@ CFIXPubSubClient::SetPulseGenerator( CORE::PulseGeneratorPtr newPulseGenerator )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::SetPulseGenerator( CORE::PulseGeneratorPtr newPulseGenerator,
+CFIXClientPubSubClient::SetPulseGenerator( CORE::PulseGeneratorPtr newPulseGenerator,
                                       bool includeTopics )
 {GUCEF_TRACE;
 
@@ -196,26 +196,26 @@ CFIXPubSubClient::SetPulseGenerator( CORE::PulseGeneratorPtr newPulseGenerator,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::RegisterEventHandlers( void )
+CFIXClientPubSubClient::RegisterEventHandlers( void )
 {GUCEF_TRACE;
 
     // TCP socket events
-    TEventCallback cbConnected( this, &CFIXPubSubClient::OnTcpConnected );
+    TEventCallback cbConnected( this, &CFIXClientPubSubClient::OnTcpConnected );
     SubscribeTo( &m_tcpSocket                            ,
                  COMCORE::CTCPConnection::ConnectedEvent ,
                  cbConnected                            );
 
-    TEventCallback cbDisconnected( this, &CFIXPubSubClient::OnTcpDisconnected );
+    TEventCallback cbDisconnected( this, &CFIXClientPubSubClient::OnTcpDisconnected );
     SubscribeTo( &m_tcpSocket                               ,
                  COMCORE::CTCPConnection::DisconnectedEvent ,
                  cbDisconnected                             );
 
-    TEventCallback cbDataReceived( this, &CFIXPubSubClient::OnTcpDataReceived );
+    TEventCallback cbDataReceived( this, &CFIXClientPubSubClient::OnTcpDataReceived );
     SubscribeTo( &m_tcpSocket                               ,
                  COMCORE::CTCPConnection::DataRecievedEvent ,
                  cbDataReceived                             );
 
-    TEventCallback cbSocketError( this, &CFIXPubSubClient::OnTcpSocketError );
+    TEventCallback cbSocketError( this, &CFIXClientPubSubClient::OnTcpSocketError );
     SubscribeTo( &m_tcpSocket                              ,
                  COMCORE::CTCPConnection::SocketErrorEvent ,
                  cbSocketError                             );
@@ -223,7 +223,7 @@ CFIXPubSubClient::RegisterEventHandlers( void )
     // Heartbeat timer
     if ( GUCEF_NULL != m_heartbeatTimer )
     {
-        TEventCallback cbHeartbeat( this, &CFIXPubSubClient::OnHeartbeatTimerCycle );
+        TEventCallback cbHeartbeat( this, &CFIXClientPubSubClient::OnHeartbeatTimerCycle );
         SubscribeTo( m_heartbeatTimer               ,
                      CORE::CTimer::TimerUpdateEvent ,
                      cbHeartbeat                   );
@@ -232,7 +232,7 @@ CFIXPubSubClient::RegisterEventHandlers( void )
     // Logon timeout timer
     if ( GUCEF_NULL != m_logonTimeoutTimer )
     {
-        TEventCallback cbLogonTimeout( this, &CFIXPubSubClient::OnLogonTimeoutTimerCycle );
+        TEventCallback cbLogonTimeout( this, &CFIXClientPubSubClient::OnLogonTimeoutTimerCycle );
         SubscribeTo( m_logonTimeoutTimer            ,
                      CORE::CTimer::TimerUpdateEvent ,
                      cbLogonTimeout                 );
@@ -241,7 +241,7 @@ CFIXPubSubClient::RegisterEventHandlers( void )
     // Reconnect timer
     if ( GUCEF_NULL != m_reconnectTimer )
     {
-        TEventCallback cbReconnect( this, &CFIXPubSubClient::OnReconnectTimerCycle );
+        TEventCallback cbReconnect( this, &CFIXClientPubSubClient::OnReconnectTimerCycle );
         SubscribeTo( m_reconnectTimer               ,
                      CORE::CTimer::TimerUpdateEvent ,
                      cbReconnect                    );
@@ -251,7 +251,7 @@ CFIXPubSubClient::RegisterEventHandlers( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::GetSupportedFeatures( PUBSUB::CPubSubClientFeatures& features ) const
+CFIXClientPubSubClient::GetSupportedFeatures( PUBSUB::CPubSubClientFeatures& features ) const
 {GUCEF_TRACE;
 
     features.supportsBinaryPayloads              = true;
@@ -290,15 +290,15 @@ CFIXPubSubClient::GetSupportedFeatures( PUBSUB::CPubSubClientFeatures& features 
 /*-------------------------------------------------------------------------*/
 
 PUBSUB::CPubSubClientTopicBasicPtr
-CFIXPubSubClient::CreateTopicAccess( PUBSUB::CPubSubClientTopicConfigPtr topicConfig,
-                                      CORE::PulseGeneratorPtr pulseGenerator )
+CFIXClientPubSubClient::CreateTopicAccess( PUBSUB::CPubSubClientTopicConfigPtr topicConfig ,
+                                           CORE::PulseGeneratorPtr pulseGenerator          )
 {GUCEF_TRACE;
 
-    CFIXPubSubClientTopicPtr topicAccess;
+    CFIXClientPubSubClientTopicPtr topicAccess;
     {
         MT::CObjectScopeLock lock( this );
 
-        topicAccess = ( GUCEF_NEW CFIXPubSubClientTopic( this ) )->CreateSharedPtr();
+        topicAccess = ( GUCEF_NEW CFIXClientPubSubClientTopic( this ) )->CreateSharedPtr();
         if ( topicAccess->LoadConfig( *topicConfig ) )
         {
             m_topicMap[ topicConfig->topicName ] = topicAccess;
@@ -321,7 +321,7 @@ CFIXPubSubClient::CreateTopicAccess( PUBSUB::CPubSubClientTopicConfigPtr topicCo
 /*-------------------------------------------------------------------------*/
 
 PUBSUB::CPubSubClientTopicBasicPtr
-CFIXPubSubClient::GetTopicAccess( const CORE::CString& topicName )
+CFIXClientPubSubClient::GetTopicAccess( const CORE::CString& topicName )
 {GUCEF_TRACE;
 
     MT::CObjectScopeLock lock( this );
@@ -334,14 +334,14 @@ CFIXPubSubClient::GetTopicAccess( const CORE::CString& topicName )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::DestroyTopicAccess( const CORE::CString& topicName )
+CFIXClientPubSubClient::DestroyTopicAccess( const CORE::CString& topicName )
 {GUCEF_TRACE;
 
     MT::CObjectScopeLock lock( this );
     TTopicMap::iterator i = m_topicMap.find( topicName );
     if ( i != m_topicMap.end() )
     {
-        CFIXPubSubClientTopicPtr topicAccess = (*i).second;
+        CFIXClientPubSubClientTopicPtr topicAccess = (*i).second;
         m_topicMap.erase( i );
 
         TopicAccessDestroyedEventData eData( topicName );
@@ -355,7 +355,7 @@ CFIXPubSubClient::DestroyTopicAccess( const CORE::CString& topicName )
 /*-------------------------------------------------------------------------*/
 
 PUBSUB::CPubSubClientTopicConfigPtr
-CFIXPubSubClient::GetTopicConfig( const CORE::CString& topicName )
+CFIXClientPubSubClient::GetTopicConfig( const CORE::CString& topicName )
 {GUCEF_TRACE;
 
     PUBSUB::CPubSubClientConfig::TPubSubClientTopicConfigPtrVector::iterator i = m_fixConfig.topics.begin();
@@ -371,14 +371,14 @@ CFIXPubSubClient::GetTopicConfig( const CORE::CString& topicName )
 /*-------------------------------------------------------------------------*/
 
 PUBSUB::CPubSubClientTopicConfigPtr
-CFIXPubSubClient::GetOrCreateTopicConfig( const CORE::CString& topicName )
+CFIXClientPubSubClient::GetOrCreateTopicConfig( const CORE::CString& topicName )
 {GUCEF_TRACE;
 
     PUBSUB::CPubSubClientTopicConfigPtr preExistingConfig = GetTopicConfig( topicName );
     if ( !preExistingConfig.IsNULL() )
         return preExistingConfig;
 
-    CFIXPubSubClientTopicConfigPtr newTopicConfig = CFIXPubSubClientTopicConfig::CreateSharedObj();
+    CFIXClientPubSubClientTopicConfigPtr newTopicConfig = CFIXClientPubSubClientTopicConfig::CreateSharedObj();
     if ( !newTopicConfig.IsNULL() &&
          !m_fixConfig.defaultTopicConfig.IsNULL() &&
          newTopicConfig->LoadConfig( *m_fixConfig.defaultTopicConfig ) )
@@ -392,7 +392,7 @@ CFIXPubSubClient::GetOrCreateTopicConfig( const CORE::CString& topicName )
 /*-------------------------------------------------------------------------*/
 
 PUBSUB::CPubSubClientTopicConfigPtr
-CFIXPubSubClient::GetDefaultTopicConfig( void )
+CFIXClientPubSubClient::GetDefaultTopicConfig( void )
 {GUCEF_TRACE;
 
     MT::CObjectScopeLock lock( this );
@@ -402,7 +402,7 @@ CFIXPubSubClient::GetDefaultTopicConfig( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::GetConfiguredTopicNameList( CORE::CString::StringSet& topicNameList )
+CFIXClientPubSubClient::GetConfiguredTopicNameList( CORE::CString::StringSet& topicNameList )
 {GUCEF_TRACE;
 
     PUBSUB::CPubSubClientConfig::TPubSubClientTopicConfigPtrVector::iterator i = m_fixConfig.topics.begin();
@@ -416,7 +416,7 @@ CFIXPubSubClient::GetConfiguredTopicNameList( CORE::CString::StringSet& topicNam
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::GetCreatedTopicAccessNameList( CORE::CString::StringSet& topicNameList )
+CFIXClientPubSubClient::GetCreatedTopicAccessNameList( CORE::CString::StringSet& topicNameList )
 {GUCEF_TRACE;
 
     TTopicMap::iterator i = m_topicMap.begin();
@@ -430,7 +430,7 @@ CFIXPubSubClient::GetCreatedTopicAccessNameList( CORE::CString::StringSet& topic
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::GetAllCreatedTopicAccess( PubSubClientTopicSet& topicAccess )
+CFIXClientPubSubClient::GetAllCreatedTopicAccess( PubSubClientTopicSet& topicAccess )
 {GUCEF_TRACE;
 
     MT::CObjectScopeLock lock( this );
@@ -445,7 +445,7 @@ CFIXPubSubClient::GetAllCreatedTopicAccess( PubSubClientTopicSet& topicAccess )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::Connect( bool reset )
+CFIXClientPubSubClient::Connect( bool reset )
 {GUCEF_TRACE;
 
     if ( !reset && m_sessionState == STATE_ACTIVE )
@@ -466,18 +466,18 @@ CFIXPubSubClient::Connect( bool reset )
     // Get remote address from config
     if ( m_fixConfig.remoteAddresses.empty() )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CFIXPubSubClient::Connect: No remote addresses configured" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CFIXClientPubSubClient::Connect: No remote addresses configured" );
         return false;
     }
 
     const COMCORE::CHostAddress& remoteAddr = m_fixConfig.remoteAddresses.front();
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::Connect: Connecting to " + remoteAddr.GetFirstAddressAndPortAsString() );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClient::Connect: Connecting to " + remoteAddr.GetFirstAddressAndPortAsString() );
 
     m_sessionState = STATE_CONNECTING;
     bool connectOk = m_tcpSocket.ConnectTo( remoteAddr, false /* non-blocking */ );
     if ( !connectOk )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CFIXPubSubClient::Connect: ConnectTo returned false" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CFIXClientPubSubClient::Connect: ConnectTo returned false" );
         m_sessionState = STATE_DISCONNECTED;
         return false;
     }
@@ -487,7 +487,7 @@ CFIXPubSubClient::Connect( bool reset )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::Disconnect( void )
+CFIXClientPubSubClient::Disconnect( void )
 {GUCEF_TRACE;
 
     m_heartbeatTimer->SetEnabled( false );
@@ -497,7 +497,7 @@ CFIXPubSubClient::Disconnect( void )
     if ( m_sessionState == STATE_ACTIVE )
     {
         // Send Logout
-        CORE::CString logoutMsg = CFIXMessage::BuildLogout(
+        CORE::CAsciiString logoutMsg = CFIXClientMessage::BuildLogout(
             m_fixConfig.senderCompId, m_fixConfig.targetCompId,
             m_fixConfig.fixVersion, m_outgoingSeqNum );
         m_tcpSocket.Send( logoutMsg.C_String(), (CORE::UInt32) logoutMsg.Length() );
@@ -515,7 +515,7 @@ CFIXPubSubClient::Disconnect( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::IsConnected( void ) const
+CFIXClientPubSubClient::IsConnected( void ) const
 {GUCEF_TRACE;
 
     return m_sessionState == STATE_ACTIVE;
@@ -524,7 +524,7 @@ CFIXPubSubClient::IsConnected( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::IsSessionActive( void ) const
+CFIXClientPubSubClient::IsSessionActive( void ) const
 {GUCEF_TRACE;
 
     return m_sessionState == STATE_ACTIVE;
@@ -533,7 +533,7 @@ CFIXPubSubClient::IsSessionActive( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::IsHealthy( void ) const
+CFIXClientPubSubClient::IsHealthy( void ) const
 {GUCEF_TRACE;
 
     return m_sessionState == STATE_ACTIVE ||
@@ -544,7 +544,7 @@ CFIXPubSubClient::IsHealthy( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::IsInitialized( void ) const
+CFIXClientPubSubClient::IsInitialized( void ) const
 {GUCEF_TRACE;
 
     return m_initialized;
@@ -553,7 +553,7 @@ CFIXPubSubClient::IsInitialized( void ) const
 /*-------------------------------------------------------------------------*/
 
 const CORE::CString&
-CFIXPubSubClient::GetType( void ) const
+CFIXClientPubSubClient::GetType( void ) const
 {GUCEF_TRACE;
 
     return TypeName;
@@ -562,17 +562,17 @@ CFIXPubSubClient::GetType( void ) const
 /*-------------------------------------------------------------------------*/
 
 const CORE::CString&
-CFIXPubSubClient::GetClassTypeName( void ) const
+CFIXClientPubSubClient::GetClassTypeName( void ) const
 {GUCEF_TRACE;
 
-    static const CORE::CString classTypeName = "GUCEF::PUBSUBPLUGIN::FIX::CFIXPubSubClient";
+    static const CORE::CString classTypeName = "GUCEF::PUBSUBPLUGIN::FIX::CFIXClientPubSubClient";
     return classTypeName;
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::SaveConfig( CORE::CDataNode& cfg ) const
+CFIXClientPubSubClient::SaveConfig( CORE::CDataNode& cfg ) const
 {GUCEF_TRACE;
 
     return m_fixConfig.SaveConfig( cfg );
@@ -581,7 +581,7 @@ CFIXPubSubClient::SaveConfig( CORE::CDataNode& cfg ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::SaveConfig( PUBSUB::CPubSubClientConfig& cfg ) const
+CFIXClientPubSubClient::SaveConfig( PUBSUB::CPubSubClientConfig& cfg ) const
 {GUCEF_TRACE;
 
     return m_fixConfig.SaveConfig( cfg );
@@ -590,10 +590,10 @@ CFIXPubSubClient::SaveConfig( PUBSUB::CPubSubClientConfig& cfg ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::LoadConfig( const CORE::CDataNode& cfg )
+CFIXClientPubSubClient::LoadConfig( const CORE::CDataNode& cfg )
 {GUCEF_TRACE;
 
-    CFIXPubSubClientConfig parsedCfg;
+    CFIXClientPubSubClientConfig parsedCfg;
     if ( parsedCfg.LoadConfig( cfg ) )
     {
         m_fixConfig = parsedCfg;
@@ -605,10 +605,10 @@ CFIXPubSubClient::LoadConfig( const CORE::CDataNode& cfg )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::LoadConfig( const PUBSUB::CPubSubClientConfig& cfg )
+CFIXClientPubSubClient::LoadConfig( const PUBSUB::CPubSubClientConfig& cfg )
 {GUCEF_TRACE;
 
-    CFIXPubSubClientConfig parsedCfg;
+    CFIXClientPubSubClientConfig parsedCfg;
     if ( parsedCfg.LoadConfig( cfg ) )
     {
         m_fixConfig = parsedCfg;
@@ -619,8 +619,8 @@ CFIXPubSubClient::LoadConfig( const PUBSUB::CPubSubClientConfig& cfg )
 
 /*-------------------------------------------------------------------------*/
 
-CFIXPubSubClientConfig&
-CFIXPubSubClient::GetConfig( void )
+CFIXClientPubSubClientConfig&
+CFIXClientPubSubClient::GetConfig( void )
 {GUCEF_TRACE;
 
     return m_fixConfig;
@@ -629,12 +629,12 @@ CFIXPubSubClient::GetConfig( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::SendRawFix( const CORE::CString& rawMsg )
+CFIXClientPubSubClient::SendRawFix( const CORE::CAsciiString& rawMsg )
 {GUCEF_TRACE;
 
     if ( m_sessionState != STATE_ACTIVE )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::SendRawFix: Session not active" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClient::SendRawFix: Session not active" );
         return false;
     }
     return m_tcpSocket.Send( rawMsg.C_String(), (CORE::UInt32) rawMsg.Length() );
@@ -643,7 +643,7 @@ CFIXPubSubClient::SendRawFix( const CORE::CString& rawMsg )
 /*-------------------------------------------------------------------------*/
 
 CORE::UInt64
-CFIXPubSubClient::GetAndIncrementOutgoingSeqNum( void )
+CFIXClientPubSubClient::GetAndIncrementOutgoingSeqNum( void )
 {GUCEF_TRACE;
 
     return m_outgoingSeqNum++;
@@ -652,7 +652,7 @@ CFIXPubSubClient::GetAndIncrementOutgoingSeqNum( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::SaveSequenceBookmark( void )
+CFIXClientPubSubClient::SaveSequenceBookmark( void )
 {GUCEF_TRACE;
 
     if ( m_fixConfig.bookmarkPersistence.IsNULL() )
@@ -671,7 +671,7 @@ CFIXPubSubClient::SaveSequenceBookmark( void )
 
     if ( !m_topicMap.empty() )
     {
-        CFIXPubSubClientTopicPtr topic = m_topicMap.begin()->second;
+        CFIXClientPubSubClientTopicPtr topic = m_topicMap.begin()->second;
         if ( !topic.IsNULL() )
         {
             m_fixConfig.bookmarkPersistence->StoreBookmark( m_fixConfig.pubsubIdPrefix, *this, *topic, bookmark );
@@ -682,13 +682,13 @@ CFIXPubSubClient::SaveSequenceBookmark( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::LoadSequenceBookmark( void )
+CFIXClientPubSubClient::LoadSequenceBookmark( void )
 {GUCEF_TRACE;
 
     if ( m_fixConfig.bookmarkPersistence.IsNULL() || m_topicMap.empty() )
         return;
 
-    CFIXPubSubClientTopicPtr topic = m_topicMap.begin()->second;
+    CFIXClientPubSubClientTopicPtr topic = m_topicMap.begin()->second;
     if ( topic.IsNULL() )
         return;
 
@@ -703,7 +703,7 @@ CFIXPubSubClient::LoadSequenceBookmark( void )
             {
                 m_outgoingSeqNum         = pData[ 0 ];
                 m_expectedIncomingSeqNum = pData[ 1 ];
-                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::LoadSequenceBookmark: Restored outgoing=" +
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClient::LoadSequenceBookmark: Restored outgoing=" +
                     CORE::ToString( m_outgoingSeqNum ) + " incoming=" + CORE::ToString( m_expectedIncomingSeqNum ) );
             }
         }
@@ -713,13 +713,13 @@ CFIXPubSubClient::LoadSequenceBookmark( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::RequestReplayFrom( CORE::UInt64 fromSeqNum )
+CFIXClientPubSubClient::RequestReplayFrom( CORE::UInt64 fromSeqNum )
 {GUCEF_TRACE;
 
     if ( m_sessionState != STATE_ACTIVE )
         return;
 
-    CORE::CString resendReq = CFIXMessage::BuildResendRequest(
+    CORE::CAsciiString resendReq = CFIXClientMessage::BuildResendRequest(
         m_fixConfig.senderCompId, m_fixConfig.targetCompId,
         m_fixConfig.fixVersion, m_outgoingSeqNum, fromSeqNum, 0 );
     ++m_outgoingSeqNum;
@@ -729,7 +729,7 @@ CFIXPubSubClient::RequestReplayFrom( CORE::UInt64 fromSeqNum )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::ScheduleReconnect( void )
+CFIXClientPubSubClient::ScheduleReconnect( void )
 {GUCEF_TRACE;
 
     m_heartbeatTimer->SetEnabled( false );
@@ -741,7 +741,7 @@ CFIXPubSubClient::ScheduleReconnect( void )
 
 // [S4] Parse decimal integer inline. Returns 0 on overflow or non-digit.
 CORE::UInt64
-CFIXPubSubClient::ParseUInt64Inline( const char* s, CORE::UInt32 len )
+CFIXClientPubSubClient::ParseUInt64Inline( const char* s, CORE::UInt32 len )
 {
     if ( len == 0 || len > 20 )
         return 0;  // [S4] overflow guard: a 21-digit string overflows UInt64
@@ -758,8 +758,9 @@ CFIXPubSubClient::ParseUInt64Inline( const char* s, CORE::UInt32 len )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::FieldMatchesValue( const char* fieldStart, CORE::UInt32 fieldLen,
-                                      const char* expected )
+CFIXClientPubSubClient::FieldMatchesValue( const char* fieldStart ,
+                                           CORE::UInt32 fieldLen  ,
+                                           const char* expected   )
 {
     if ( GUCEF_NULL == fieldStart || GUCEF_NULL == expected )
         return false;
@@ -772,15 +773,16 @@ CFIXPubSubClient::FieldMatchesValue( const char* fieldStart, CORE::UInt32 fieldL
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClient::ScanSessionFields( const char* msgStart, CORE::UInt32 msgLen,
-                                      CFIXSessionFields& outFields )
+CFIXClientPubSubClient::ScanSessionFields( const char* msgStart               ,
+                                           CORE::UInt32 msgLen                ,
+                                           CFIXClientSessionFields& outFields )
 {
     // Maximum value length we accept for any session-level field we store [S3]
     static const CORE::UInt32 MAX_SESSION_FIELD_VALUE_LEN = 256;
     // Maximum tag number digits [S6]
     static const CORE::UInt32 MAX_TAG_DIGITS = 6;
 
-    const char  SOH    = CFIXMessage::SOH;
+    const char  SOH    = CFIXClientMessage::SOH;
     const char* msgEnd = msgStart + msgLen;
     const char* pos    = msgStart;
 
@@ -890,7 +892,7 @@ CFIXPubSubClient::ScanSessionFields( const char* msgStart, CORE::UInt32 msgLen,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::ProcessReceiveBuffer( void )
+CFIXClientPubSubClient::ProcessReceiveBuffer( void )
 {GUCEF_TRACE;
 
     const char* bufPtr = static_cast< const char* >( m_receiveBuffer.GetConstBufferPtr() );
@@ -919,10 +921,10 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
                 {
                     // Must be at buffer start or preceded by SOH
                     if ( processedOffset + i == 0 ||
-                         bufPtr[ processedOffset + i - 1 ] == CFIXMessage::SOH )
+                         bufPtr[ processedOffset + i - 1 ] == CFIXClientMessage::SOH )
                     {
                         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
-                            "CFIXPubSubClient::ProcessReceiveBuffer: Framing resync - skipping " +
+                            "CFIXClientPubSubClient::ProcessReceiveBuffer: Framing resync - skipping " +
                             CORE::ToString( i ) + " bytes to next 8=" );
                         processedOffset += i;
                         found = true;
@@ -943,7 +945,7 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
         const char* tag8ValStart = msgStart + 2;  // after "8="
         const char* tag8ValEnd   = tag8ValStart;
         const char* bufEnd       = bufPtr + bufLen;
-        while ( tag8ValEnd < bufEnd && *tag8ValEnd != CFIXMessage::SOH )
+        while ( tag8ValEnd < bufEnd && *tag8ValEnd != CFIXClientMessage::SOH )
             ++tag8ValEnd;
         if ( tag8ValEnd >= bufEnd )
             break;  // incomplete — wait for more data
@@ -961,7 +963,7 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
         if ( !validBeginString )
         {
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
-                "CFIXPubSubClient::ProcessReceiveBuffer: [S5] BeginString is not FIX/FIXT - discarding framing junk" );
+                "CFIXClientPubSubClient::ProcessReceiveBuffer: [S5] BeginString is not FIX/FIXT - discarding framing junk" );
             // Advance past this "8=" occurrence and continue resyncing
             processedOffset = (CORE::UInt32)( tag8ValEnd - bufPtr ) + 1;
             continue;
@@ -977,7 +979,7 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
             while ( scanPos + 1 < scanEnd )
             {
                 if ( scanPos[ 0 ] == '9' && scanPos[ 1 ] == '=' &&
-                     ( scanPos == bufPtr || *( scanPos - 1 ) == CFIXMessage::SOH ) )
+                     ( scanPos == bufPtr || *( scanPos - 1 ) == CFIXClientMessage::SOH ) )
                 {
                     tag9Pos = scanPos;
                     break;
@@ -990,7 +992,7 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
             if ( afterTag8 + 20 > bufEnd )
                 break;  // incomplete — might still come
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
-                "CFIXPubSubClient::ProcessReceiveBuffer: Cannot locate tag 9 (BodyLength), skipping" );
+                "CFIXClientPubSubClient::ProcessReceiveBuffer: Cannot locate tag 9 (BodyLength), skipping" );
             processedOffset = (CORE::UInt32)( tag8ValEnd - bufPtr ) + 1;
             continue;
         }
@@ -998,7 +1000,7 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
         // Parse BodyLength value inline
         const char* bodyLenStart = tag9Pos + 2;  // after "9="
         const char* bodyLenEnd   = bodyLenStart;
-        while ( bodyLenEnd < bufEnd && *bodyLenEnd != CFIXMessage::SOH )
+        while ( bodyLenEnd < bufEnd && *bodyLenEnd != CFIXClientMessage::SOH )
             ++bodyLenEnd;
         if ( bodyLenEnd >= bufEnd )
             break;  // incomplete
@@ -1010,7 +1012,7 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
         if ( bodyLen > m_fixConfig.maxMsgSizeBytes )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT,
-                "CFIXPubSubClient::ProcessReceiveBuffer: [S1] BodyLength " +
+                "CFIXClientPubSubClient::ProcessReceiveBuffer: [S1] BodyLength " +
                 CORE::ToString( bodyLen ) + " exceeds maxMsgSizeBytes " +
                 CORE::ToString( m_fixConfig.maxMsgSizeBytes ) + " - disconnecting" );
             Disconnect();
@@ -1033,11 +1035,11 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
         // [S9] Verify the jump landed on "10=" (bounded fallback scan if not)
         bool tag10Valid = ( (CORE::UInt32)( bufEnd - tag10Pos ) >= 3 &&
                             tag10Pos[ 0 ] == '1' && tag10Pos[ 1 ] == '0' && tag10Pos[ 2 ] == '=' &&
-                            ( tag10Pos == bufPtr || *( tag10Pos - 1 ) == CFIXMessage::SOH ) );
+                            ( tag10Pos == bufPtr || *( tag10Pos - 1 ) == CFIXClientMessage::SOH ) );
         if ( !tag10Valid )
         {
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
-                "CFIXPubSubClient::ProcessReceiveBuffer: BodyLength jump missed tag 10 - fallback linear scan" );
+                "CFIXClientPubSubClient::ProcessReceiveBuffer: BodyLength jump missed tag 10 - fallback linear scan" );
             tag10Pos = GUCEF_NULL;
             // [S9] Bounded fallback scan: do not scan past bufLen-6
             const char* scanPtr = bodyStart;
@@ -1047,7 +1049,7 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
             while ( scanPtr < scanEnd )
             {
                 if ( scanPtr[ 0 ] == '1' && scanPtr[ 1 ] == '0' && scanPtr[ 2 ] == '=' &&
-                     ( scanPtr == bufPtr || *( scanPtr - 1 ) == CFIXMessage::SOH ) )
+                     ( scanPtr == bufPtr || *( scanPtr - 1 ) == CFIXClientMessage::SOH ) )
                 {
                     tag10Pos = scanPtr;
                     break;
@@ -1057,7 +1059,7 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
             if ( GUCEF_NULL == tag10Pos )
             {
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL,
-                    "CFIXPubSubClient::ProcessReceiveBuffer: Cannot locate tag 10 - malformed message, skipping" );
+                    "CFIXClientPubSubClient::ProcessReceiveBuffer: Cannot locate tag 10 - malformed message, skipping" );
                 processedOffset = (CORE::UInt32)( bodyStart - bufPtr );
                 continue;
             }
@@ -1066,7 +1068,7 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
         // Find SOH after checksum digits — determines actual msgEnd
         const char* checksumValStart = tag10Pos + 3;  // after "10="
         const char* checksumValEnd   = checksumValStart;
-        while ( checksumValEnd < bufEnd && *checksumValEnd != CFIXMessage::SOH )
+        while ( checksumValEnd < bufEnd && *checksumValEnd != CFIXClientMessage::SOH )
             ++checksumValEnd;
         if ( checksumValEnd >= bufEnd )
             break;  // incomplete
@@ -1088,14 +1090,14 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
             if ( calcChecksum != claimedChecksum )
             {
                 GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
-                    "CFIXPubSubClient::ProcessReceiveBuffer: [S7] Checksum mismatch claimed=" +
+                    "CFIXClientPubSubClient::ProcessReceiveBuffer: [S7] Checksum mismatch claimed=" +
                     CORE::ToString( claimedChecksum ) + " calc=" + CORE::ToString( calcChecksum ) +
                     " - dropping message" );
                 ++m_consecutiveChecksumFailures;
                 if ( m_consecutiveChecksumFailures >= m_fixConfig.maxConsecutiveChecksumFailures )
                 {
                     GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT,
-                        "CFIXPubSubClient::ProcessReceiveBuffer: " +
+                        "CFIXClientPubSubClient::ProcessReceiveBuffer: " +
                         CORE::ToString( m_consecutiveChecksumFailures ) +
                         " consecutive checksum failures - disconnecting" );
                     Disconnect();
@@ -1108,11 +1110,11 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
         }
 
         // Scan session fields — zero-allocation, single forward pass
-        CFIXSessionFields fields;
+        CFIXClientSessionFields fields;
         if ( !ScanSessionFields( msgStart, msgLen, fields ) )
         {
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
-                "CFIXPubSubClient::ProcessReceiveBuffer: ScanSessionFields failed - dropping message" );
+                "CFIXClientPubSubClient::ProcessReceiveBuffer: ScanSessionFields failed - dropping message" );
             processedOffset += msgLen;
             continue;
         }
@@ -1150,15 +1152,16 @@ CFIXPubSubClient::ProcessReceiveBuffer( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::DispatchIncomingMessage( const char* msgStart, CORE::UInt32 msgLen,
-                                            const CFIXSessionFields& fields )
+CFIXClientPubSubClient::DispatchIncomingMessage( const char* msgStart                  ,
+                                                 CORE::UInt32 msgLen                   ,
+                                                 const CFIXClientSessionFields& fields )
 {GUCEF_TRACE;
 
     // Require at minimum a MsgType field
     if ( GUCEF_NULL == fields.msgTypeStart )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
-            "CFIXPubSubClient::DispatchIncomingMessage: Missing MsgType (tag 35) - dropping" );
+            "CFIXClientPubSubClient::DispatchIncomingMessage: Missing MsgType (tag 35) - dropping" );
         return;
     }
 
@@ -1171,13 +1174,13 @@ CFIXPubSubClient::DispatchIncomingMessage( const char* msgStart, CORE::UInt32 ms
         {
             // Gap detected — request resend
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
-                "CFIXPubSubClient: Sequence gap detected. Expected=" +
+                "CFIXClientPubSubClient: Sequence gap detected. Expected=" +
                 CORE::ToString( m_expectedIncomingSeqNum ) +
                 " Got=" + CORE::ToString( incomingSeqNum ) );
 
             if ( m_sessionState == STATE_ACTIVE )
             {
-                CORE::CString resendReq = CFIXMessage::BuildResendRequest(
+                CORE::CAsciiString resendReq = CFIXClientMessage::BuildResendRequest(
                     m_fixConfig.senderCompId, m_fixConfig.targetCompId,
                     m_fixConfig.fixVersion, m_outgoingSeqNum,
                     m_expectedIncomingSeqNum, incomingSeqNum - 1 );
@@ -1201,7 +1204,7 @@ CFIXPubSubClient::DispatchIncomingMessage( const char* msgStart, CORE::UInt32 ms
                 return;  // already processed — skip
             }
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
-                "CFIXPubSubClient: Unexpected lower seqnum. Expected=" +
+                "CFIXClientPubSubClient: Unexpected lower seqnum. Expected=" +
                 CORE::ToString( m_expectedIncomingSeqNum ) +
                 " Got=" + CORE::ToString( incomingSeqNum ) );
         }
@@ -1234,11 +1237,12 @@ CFIXPubSubClient::DispatchIncomingMessage( const char* msgStart, CORE::UInt32 ms
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleLogon( const char* msgStart, CORE::UInt32 msgLen,
-                                const CFIXSessionFields& fields )
+CFIXClientPubSubClient::HandleLogon( const char* msgStart                  ,
+                                     CORE::UInt32 msgLen                   ,
+                                     const CFIXClientSessionFields& fields )
 {GUCEF_TRACE;
 
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::HandleLogon: Logon accepted by counterparty" );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClient::HandleLogon: Logon accepted by counterparty" );
 
     m_logonTimeoutTimer->SetEnabled( false );
     m_sessionState = STATE_ACTIVE;
@@ -1263,16 +1267,17 @@ CFIXPubSubClient::HandleLogon( const char* msgStart, CORE::UInt32 msgLen,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleLogout( const char* msgStart, CORE::UInt32 msgLen,
-                                 const CFIXSessionFields& fields )
+CFIXClientPubSubClient::HandleLogout( const char* msgStart                  ,
+                                      CORE::UInt32 msgLen                   ,
+                                      const CFIXClientSessionFields& fields )
 {GUCEF_TRACE;
 
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::HandleLogout: Received Logout from counterparty" );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClient::HandleLogout: Received Logout from counterparty" );
 
     if ( m_sessionState == STATE_ACTIVE )
     {
         // Send Logout reply
-        CORE::CString logoutReply = CFIXMessage::BuildLogout(
+        CORE::CAsciiString logoutReply = CFIXClientMessage::BuildLogout(
             m_fixConfig.senderCompId, m_fixConfig.targetCompId,
             m_fixConfig.fixVersion, m_outgoingSeqNum );
         m_tcpSocket.Send( logoutReply.C_String(), (CORE::UInt32) logoutReply.Length() );
@@ -1299,16 +1304,17 @@ CFIXPubSubClient::HandleLogout( const char* msgStart, CORE::UInt32 msgLen,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleHeartbeat( const char* msgStart, CORE::UInt32 msgLen,
-                                    const CFIXSessionFields& fields )
+CFIXClientPubSubClient::HandleHeartbeat( const char* msgStart                  ,
+                                         CORE::UInt32 msgLen                   ,
+                                         const CFIXClientSessionFields& fields )
 {GUCEF_TRACE;
 
     // If TestReqID is present, echo it back as a Heartbeat
     if ( GUCEF_NULL != fields.testReqIdStart && fields.testReqIdLen > 0 )
     {
         // Outgoing path: allocation acceptable (infrequent)
-        CORE::CString testReqId( fields.testReqIdStart, fields.testReqIdLen );
-        CORE::CString heartbeat = CFIXMessage::BuildHeartbeat(
+        CORE::CAsciiString testReqId( fields.testReqIdStart, fields.testReqIdLen );
+        CORE::CAsciiString heartbeat = CFIXClientMessage::BuildHeartbeat(
             m_fixConfig.senderCompId, m_fixConfig.targetCompId,
             m_fixConfig.fixVersion, m_outgoingSeqNum, testReqId );
         m_tcpSocket.Send( heartbeat.C_String(), (CORE::UInt32) heartbeat.Length() );
@@ -1327,17 +1333,18 @@ CFIXPubSubClient::HandleHeartbeat( const char* msgStart, CORE::UInt32 msgLen,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleTestRequest( const char* msgStart, CORE::UInt32 msgLen,
-                                      const CFIXSessionFields& fields )
+CFIXClientPubSubClient::HandleTestRequest( const char* msgStart                  ,
+                                           CORE::UInt32 msgLen                   ,
+                                           const CFIXClientSessionFields& fields )
 {GUCEF_TRACE;
 
     // Reply with Heartbeat including the TestReqID
     // Outgoing path: allocation acceptable (infrequent)
-    CORE::CString testReqId;
+    CORE::CAsciiString testReqId;
     if ( GUCEF_NULL != fields.testReqIdStart && fields.testReqIdLen > 0 )
-        testReqId = CORE::CString( fields.testReqIdStart, fields.testReqIdLen );
+        testReqId = CORE::CAsciiString( fields.testReqIdStart, fields.testReqIdLen );
 
-    CORE::CString heartbeat = CFIXMessage::BuildHeartbeat(
+    CORE::CAsciiString heartbeat = CFIXClientMessage::BuildHeartbeat(
         m_fixConfig.senderCompId, m_fixConfig.targetCompId,
         m_fixConfig.fixVersion, m_outgoingSeqNum, testReqId );
     m_tcpSocket.Send( heartbeat.C_String(), (CORE::UInt32) heartbeat.Length() );
@@ -1355,12 +1362,13 @@ CFIXPubSubClient::HandleTestRequest( const char* msgStart, CORE::UInt32 msgLen,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleResendRequest( const char* msgStart, CORE::UInt32 msgLen,
-                                        const CFIXSessionFields& fields )
+CFIXClientPubSubClient::HandleResendRequest( const char* msgStart                  ,
+                                             CORE::UInt32 msgLen                   ,
+                                             const CFIXClientSessionFields& fields )
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL,
-        "CFIXPubSubClient::HandleResendRequest: ResendRequest received - sending GapFill SequenceReset" );
+        "CFIXClientPubSubClient::HandleResendRequest: ResendRequest received - sending GapFill SequenceReset" );
 
     // Parse BeginSeqNo from fields — outgoing path, allocation acceptable
     CORE::UInt64 beginSeqNo = 0;
@@ -1368,7 +1376,7 @@ CFIXPubSubClient::HandleResendRequest( const char* msgStart, CORE::UInt32 msgLen
         beginSeqNo = ParseUInt64Inline( fields.beginSeqNoStart, fields.beginSeqNoLen );
 
     // For simplicity, respond with a SequenceReset-GapFill to catch up to current seqnum
-    CORE::CString seqReset = CFIXMessage::BuildSequenceReset(
+    CORE::CAsciiString seqReset = CFIXClientMessage::BuildSequenceReset(
         m_fixConfig.senderCompId, m_fixConfig.targetCompId,
         m_fixConfig.fixVersion, beginSeqNo, m_outgoingSeqNum, true /* gapFill */ );
     m_tcpSocket.Send( seqReset.C_String(), (CORE::UInt32) seqReset.Length() );
@@ -1377,8 +1385,9 @@ CFIXPubSubClient::HandleResendRequest( const char* msgStart, CORE::UInt32 msgLen
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleSequenceReset( const char* msgStart, CORE::UInt32 msgLen,
-                                        const CFIXSessionFields& fields )
+CFIXClientPubSubClient::HandleSequenceReset( const char* msgStart                  ,
+                                             CORE::UInt32 msgLen                   ,
+                                             const CFIXClientSessionFields& fields )
 {GUCEF_TRACE;
 
     CORE::UInt64 newSeqNo = 0;
@@ -1388,7 +1397,7 @@ CFIXPubSubClient::HandleSequenceReset( const char* msgStart, CORE::UInt32 msgLen
     if ( newSeqNo > 0 )
     {
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL,
-            "CFIXPubSubClient::HandleSequenceReset: Resetting expected incoming seq to " +
+            "CFIXClientPubSubClient::HandleSequenceReset: Resetting expected incoming seq to " +
             CORE::ToString( newSeqNo ) );
         m_expectedIncomingSeqNum = newSeqNo;
     }
@@ -1405,12 +1414,13 @@ CFIXPubSubClient::HandleSequenceReset( const char* msgStart, CORE::UInt32 msgLen
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleReject( const char* msgStart, CORE::UInt32 msgLen,
-                                 const CFIXSessionFields& fields )
+CFIXClientPubSubClient::HandleReject( const char* msgStart                  ,
+                                      CORE::UInt32 msgLen                   ,
+                                      const CFIXClientSessionFields& fields )
 {GUCEF_TRACE;
 
     GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
-        "CFIXPubSubClient::HandleReject: Reject received from counterparty" );
+        "CFIXClientPubSubClient::HandleReject: Reject received from counterparty" );
 
     // Also pass to topics if configured
     TTopicMap::iterator i = m_topicMap.begin();
@@ -1424,17 +1434,17 @@ CFIXPubSubClient::HandleReject( const char* msgStart, CORE::UInt32 msgLen,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::OnTcpConnected( CORE::CNotifier* notifier    ,
+CFIXClientPubSubClient::OnTcpConnected( CORE::CNotifier* notifier    ,
                                    const CORE::CEvent& eventId  ,
                                    CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::OnTcpConnected: TCP connection established, sending Logon" );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClient::OnTcpConnected: TCP connection established, sending Logon" );
 
     m_sessionState = STATE_LOGGING_IN;
 
     // Send Logon
-    CORE::CString logonMsg = CFIXMessage::BuildLogon(
+    CORE::CAsciiString logonMsg = CFIXClientMessage::BuildLogon(
         m_fixConfig.senderCompId, m_fixConfig.targetCompId,
         m_fixConfig.fixVersion, m_outgoingSeqNum,
         m_fixConfig.heartbeatIntervalSecs, m_fixConfig.resetSeqNumOnLogon );
@@ -1448,12 +1458,12 @@ CFIXPubSubClient::OnTcpConnected( CORE::CNotifier* notifier    ,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::OnTcpDisconnected( CORE::CNotifier* notifier    ,
+CFIXClientPubSubClient::OnTcpDisconnected( CORE::CNotifier* notifier    ,
                                       const CORE::CEvent& eventId  ,
                                       CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::OnTcpDisconnected" );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClient::OnTcpDisconnected" );
 
     m_heartbeatTimer->SetEnabled( false );
     m_logonTimeoutTimer->SetEnabled( false );
@@ -1467,7 +1477,7 @@ CFIXPubSubClient::OnTcpDisconnected( CORE::CNotifier* notifier    ,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::OnTcpDataReceived( CORE::CNotifier* notifier    ,
+CFIXClientPubSubClient::OnTcpDataReceived( CORE::CNotifier* notifier    ,
                                       const CORE::CEvent& eventId  ,
                                       CORE::CICloneable* eventData )
 {GUCEF_TRACE;
@@ -1494,12 +1504,12 @@ CFIXPubSubClient::OnTcpDataReceived( CORE::CNotifier* notifier    ,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::OnTcpSocketError( CORE::CNotifier* notifier    ,
+CFIXClientPubSubClient::OnTcpSocketError( CORE::CNotifier* notifier    ,
                                      const CORE::CEvent& eventId  ,
                                      CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::OnTcpSocketError: TCP socket error" );
+    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClient::OnTcpSocketError: TCP socket error" );
 
     m_heartbeatTimer->SetEnabled( false );
     m_logonTimeoutTimer->SetEnabled( false );
@@ -1512,7 +1522,7 @@ CFIXPubSubClient::OnTcpSocketError( CORE::CNotifier* notifier    ,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::OnHeartbeatTimerCycle( CORE::CNotifier* notifier    ,
+CFIXClientPubSubClient::OnHeartbeatTimerCycle( CORE::CNotifier* notifier    ,
                                           const CORE::CEvent& eventId  ,
                                           CORE::CICloneable* eventData )
 {GUCEF_TRACE;
@@ -1521,8 +1531,8 @@ CFIXPubSubClient::OnHeartbeatTimerCycle( CORE::CNotifier* notifier    ,
         return;
 
     // Send TestRequest to verify counterparty is alive
-    CORE::CString testReqId = "HEARTBEAT_" + CORE::ToString( m_outgoingSeqNum );
-    CORE::CString testReq = CFIXMessage::BuildTestRequest(
+    CORE::CAsciiString testReqId = CORE::CAsciiString( "HEARTBEAT_" ) + CORE::CAsciiString( CORE::ToString( m_outgoingSeqNum ) );
+    CORE::CAsciiString testReq = CFIXClientMessage::BuildTestRequest(
         m_fixConfig.senderCompId, m_fixConfig.targetCompId,
         m_fixConfig.fixVersion, m_outgoingSeqNum, testReqId );
     m_tcpSocket.Send( testReq.C_String(), (CORE::UInt32) testReq.Length() );
@@ -1532,7 +1542,7 @@ CFIXPubSubClient::OnHeartbeatTimerCycle( CORE::CNotifier* notifier    ,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::OnLogonTimeoutTimerCycle( CORE::CNotifier* notifier    ,
+CFIXClientPubSubClient::OnLogonTimeoutTimerCycle( CORE::CNotifier* notifier    ,
                                              const CORE::CEvent& eventId  ,
                                              CORE::CICloneable* eventData )
 {GUCEF_TRACE;
@@ -1540,7 +1550,7 @@ CFIXPubSubClient::OnLogonTimeoutTimerCycle( CORE::CNotifier* notifier    ,
     if ( m_sessionState == STATE_LOGGING_IN )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
-            "CFIXPubSubClient::OnLogonTimeoutTimerCycle: Logon timeout, disconnecting" );
+            "CFIXClientPubSubClient::OnLogonTimeoutTimerCycle: Logon timeout, disconnecting" );
         m_logonTimeoutTimer->SetEnabled( false );
         m_tcpSocket.Close();
         m_sessionState = STATE_DISCONNECTED;
@@ -1551,13 +1561,13 @@ CFIXPubSubClient::OnLogonTimeoutTimerCycle( CORE::CNotifier* notifier    ,
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::OnReconnectTimerCycle( CORE::CNotifier* notifier    ,
+CFIXClientPubSubClient::OnReconnectTimerCycle( CORE::CNotifier* notifier    ,
                                           const CORE::CEvent& eventId  ,
                                           CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     m_reconnectTimer->SetEnabled( false );
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::OnReconnectTimerCycle: Attempting reconnect" );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClient::OnReconnectTimerCycle: Attempting reconnect" );
     Connect( false );
 }
 

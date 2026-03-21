@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPICCONFIG_H
-#define PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPICCONFIG_H
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTCONFIG_H
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTCONFIG_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -25,20 +25,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MT_CMUTEX_H
-#include "gucefMT_CMutex.h"
-#define GUCEF_MT_CMUTEX_H
-#endif /* GUCEF_MT_CMUTEX_H ? */
+#ifndef GUCEF_PUBSUB_CPUBSUBCLIENTCONFIG_H
+#include "gucefPUBSUB_CPubSubClientConfig.h"
+#define GUCEF_PUBSUB_CPUBSUBCLIENTCONFIG_H
+#endif /* GUCEF_PUBSUB_CPUBSUBCLIENTCONFIG_H ? */
 
-#ifndef GUCEF_CORE_CTSHAREDPTR_H
-#include "CTSharedPtr.h"
-#define GUCEF_CORE_CTSHAREDPTR_H
-#endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
-
-#ifndef GUCEF_PUBSUB_CPUBSUBCLIENTTOPICCONFIG_H
-#include "gucefPUBSUB_CPubSubClientTopicConfig.h"
-#define GUCEF_PUBSUB_CPUBSUBCLIENTTOPICCONFIG_H
-#endif /* GUCEF_PUBSUB_CPUBSUBCLIENTTOPICCONFIG_H ? */
+#ifndef GUCEF_CORE_CASCIISTRING_H
+#include "gucefCORE_CAsciiString.h"
+#define GUCEF_CORE_CASCIISTRING_H
+#endif /* GUCEF_CORE_CASCIISTRING_H ? */
 
 #ifndef PUBSUBPLUGIN_FIX_MACROS_H
 #include "pubsubpluginFIX_macros.h"
@@ -61,47 +56,58 @@ namespace FIX {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+class CFIXClientPubSubClient;
+
 /**
- *  Per-topic configuration for the FIX pubsub backend.
- *  Since a FIX session maps to a single TCP connection all application
- *  messages flow through a single topic per client.
+ *  Standard pub-sub client config with FIX-protocol-specific settings added.
+ *
+ *  Remote host/port is taken from the base class remoteAddresses (first entry).
  */
-class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClientTopicConfig :
-    public PUBSUB::CPubSubClientTopicConfig ,
-    public CORE::CTSharedObjCreator< CFIXPubSubClientTopicConfig, MT::CMutex >
+class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXClientPubSubClientConfig : public PUBSUB::CPubSubClientConfig
 {
     public:
 
-    CFIXPubSubClientTopicConfig( void );
+    CFIXClientPubSubClientConfig( void );
 
-    CFIXPubSubClientTopicConfig( const CFIXPubSubClientTopicConfig& src );
+    CFIXClientPubSubClientConfig( const PUBSUB::CPubSubClientConfig& genericConfig );
 
-    CFIXPubSubClientTopicConfig( const PUBSUB::CPubSubClientTopicConfig& genericConfig );
+    virtual ~CFIXClientPubSubClientConfig() GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual ~CFIXPubSubClientTopicConfig() GUCEF_VIRTUAL_OVERRIDE;
+    CFIXClientPubSubClientConfig& operator=( const PUBSUB::CPubSubClientConfig& src );
 
-    CFIXPubSubClientTopicConfig& operator=( const PUBSUB::CPubSubClientTopicConfig& src );
-
-    CFIXPubSubClientTopicConfig& operator=( const CFIXPubSubClientTopicConfig& src );
+    CFIXClientPubSubClientConfig& operator=( const CFIXClientPubSubClientConfig& src );
 
     bool LoadCustomConfig( const CORE::CDataNode& config );
 
     bool SaveCustomConfig( CORE::CDataNode& config ) const;
 
-    bool LoadConfig( const PUBSUB::CPubSubClientTopicConfig& src );
+    bool SerializeCustomConfigToGenericConfig( void );
 
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    bool LoadConfig( const CORE::CDataNode& config );
 
-    // Whether to pass FIX session-level messages (Heartbeat, Logon, etc.) to subscribers
-    bool includeSessionLevelMsgs;     // default=false
+    bool SaveConfig( CORE::CDataNode& config ) const;
 
-    // Comma-separated MsgTypes to pass through; empty = pass all
-    CORE::CString msgTypeFilter;
+    bool LoadConfig( const PUBSUB::CPubSubClientConfig& cfg );
+
+    bool SaveConfig( PUBSUB::CPubSubClientConfig& cfg ) const;
+
+    // FIX session identity
+    CORE::CAsciiString senderCompId;            // FIX tag 49 - required
+    CORE::CAsciiString targetCompId;            // FIX tag 56 - required
+    CORE::CAsciiString fixVersion;              // "FIX.4.2" | "FIX.4.4" | "FIXT.1.1"
+
+    // Session behaviour
+    CORE::UInt32 heartbeatIntervalSecs;             // FIX tag 108 in Logon, default=30
+    bool         resetSeqNumOnLogon;                // send tag 141=Y on logon, default=false
+    CORE::UInt32 logonTimeoutInMs;                  // milliseconds before reconnect if no logon reply, default=10000
+    bool         useSsl;                            // TLS (stretch goal), default=false
+    bool         allowPublishing;                   // allow sending FIX msgs via Publish(), default=false
+
+    // Security / framing settings
+    CORE::UInt32 maxMsgSizeBytes;                   // max BodyLength accepted [S1], default=65536
+    bool         disableChecksumValidation;         // disable FIX checksum check [S7], default=false
+    CORE::UInt32 maxConsecutiveChecksumFailures;    // disconnect after N consecutive bad checksums, default=3
 };
-
-/*-------------------------------------------------------------------------*/
-
-typedef CFIXPubSubClientTopicConfig::TSharedPtrType   CFIXPubSubClientTopicConfigPtr;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -115,4 +121,4 @@ typedef CFIXPubSubClientTopicConfig::TSharedPtrType   CFIXPubSubClientTopicConfi
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPICCONFIG_H ? */
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTCONFIG_H ? */

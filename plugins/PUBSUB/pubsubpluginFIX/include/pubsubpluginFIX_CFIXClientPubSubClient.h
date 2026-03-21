@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENT_H
-#define PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENT_H
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENT_H
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENT_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -55,25 +55,25 @@
 #define GUCEF_PUBSUB_CPUBSUBCLIENTFACTORY_H
 #endif /* GUCEF_PUBSUB_CPUBSUBCLIENTFACTORY_H ? */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXMESSAGE_H
-#include "pubsubpluginFIX_CFIXMessage.h"
-#define PUBSUBPLUGIN_FIX_CFIXMESSAGE_H
-#endif /* PUBSUBPLUGIN_FIX_CFIXMESSAGE_H ? */
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTMESSAGE_H
+#include "pubsubpluginFIX_CFIXClientMessage.h"
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTMESSAGE_H
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTMESSAGE_H ? */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H
-#include "pubsubpluginFIX_CFIXSessionFields.h"
-#define PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H
-#endif /* PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H ? */
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTSESSIONFIELDS_H
+#include "pubsubpluginFIX_CFIXClientSessionFields.h"
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTSESSIONFIELDS_H
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTSESSIONFIELDS_H ? */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTCONFIG_H
-#include "pubsubpluginFIX_CFIXPubSubClientConfig.h"
-#define PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTCONFIG_H
-#endif /* PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTCONFIG_H ? */
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTCONFIG_H
+#include "pubsubpluginFIX_CFIXClientPubSubClientConfig.h"
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTCONFIG_H
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTCONFIG_H ? */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPIC_H
-#include "pubsubpluginFIX_CFIXPubSubClientTopic.h"
-#define PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPIC_H
-#endif /* PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPIC_H ? */
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTTOPIC_H
+#include "pubsubpluginFIX_CFIXClientPubSubClientTopic.h"
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTTOPIC_H
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENTTOPIC_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -100,15 +100,15 @@ namespace FIX {
  *  ASCII_STRING views into the receive buffer. Session fields are scanned
  *  inline (no map allocation). Buffer compaction happens AFTER dispatch.
  */
-class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClient : public PUBSUB::CPubSubClient
+class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXClientPubSubClient : public PUBSUB::CPubSubClient
 {
     public:
 
     static const CORE::CString TypeName;
 
-    CFIXPubSubClient( const PUBSUB::CPubSubClientConfig& config );
+    CFIXClientPubSubClient( const PUBSUB::CPubSubClientConfig& config );
 
-    virtual ~CFIXPubSubClient() GUCEF_VIRTUAL_OVERRIDE;
+    virtual ~CFIXClientPubSubClient() GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool GetSupportedFeatures( PUBSUB::CPubSubClientFeatures& features ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -158,13 +158,13 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClient : public PUBSUB::CPub
 
     virtual bool LoadConfig( const PUBSUB::CPubSubClientConfig& cfg ) GUCEF_VIRTUAL_OVERRIDE;
 
-    CFIXPubSubClientConfig& GetConfig( void );
+    CFIXClientPubSubClientConfig& GetConfig( void );
 
     /**
      *  Send a raw FIX message string over the TCP socket.
      *  Used by the topic's Publish() path.
      */
-    bool SendRawFix( const CORE::CString& rawMsg );
+    bool SendRawFix( const CORE::CAsciiString& rawMsg );
 
     /**
      *  Increment outgoing sequence number and return it.
@@ -202,16 +202,31 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClient : public PUBSUB::CPub
 
     void ProcessReceiveBuffer( void );
 
-    void DispatchIncomingMessage( const char* msgStart, CORE::UInt32 msgLen,
-                                  const CFIXSessionFields& fields );
+    void DispatchIncomingMessage( const char* msgStart                  ,
+                                  CORE::UInt32 msgLen                   ,
+                                  const CFIXClientSessionFields& fields );
 
-    void HandleLogon( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
-    void HandleLogout( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
-    void HandleHeartbeat( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
-    void HandleTestRequest( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
-    void HandleResendRequest( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
-    void HandleSequenceReset( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
-    void HandleReject( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
+    void HandleLogon( const char* msgStart                  ,
+                      CORE::UInt32 msgLen                   ,
+                      const CFIXClientSessionFields& fields );
+    void HandleLogout( const char* msgStart                  ,
+                       CORE::UInt32 msgLen                   ,
+                       const CFIXClientSessionFields& fields );
+    void HandleHeartbeat( const char* msgStart                  ,
+                          CORE::UInt32 msgLen                   ,
+                          const CFIXClientSessionFields& fields );
+    void HandleTestRequest( const char* msgStart                  ,
+                            CORE::UInt32 msgLen                   ,
+                            const CFIXClientSessionFields& fields );
+    void HandleResendRequest( const char* msgStart                  ,
+                              CORE::UInt32 msgLen                   ,
+                              const CFIXClientSessionFields& fields );
+    void HandleSequenceReset( const char* msgStart                  ,
+                              CORE::UInt32 msgLen                   ,
+                              const CFIXClientSessionFields& fields );
+    void HandleReject( const char* msgStart                  ,
+                       CORE::UInt32 msgLen                   ,
+                       const CFIXClientSessionFields& fields );
 
     void ScheduleReconnect( void );
 
@@ -221,8 +236,9 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClient : public PUBSUB::CPub
      *  Strictly bounded to [msgStart, msgStart+msgLen).
      *  Returns false if the message is structurally malformed.
      */
-    static bool ScanSessionFields( const char* msgStart, CORE::UInt32 msgLen,
-                                   CFIXSessionFields& outFields );
+    static bool ScanSessionFields( const char* msgStart               ,
+                                   CORE::UInt32 msgLen                ,
+                                   CFIXClientSessionFields& outFields );
 
     /**
      *  Parse a decimal integer inline from raw bytes.
@@ -233,8 +249,9 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClient : public PUBSUB::CPub
     /**
      *  Compare a raw field value against a null-terminated expected string.
      */
-    static bool FieldMatchesValue( const char* fieldStart, CORE::UInt32 fieldLen,
-                                   const char* expected );
+    static bool FieldMatchesValue( const char* fieldStart ,
+                                   CORE::UInt32 fieldLen  ,
+                                   const char* expected   );
 
     void
     OnTcpConnected( CORE::CNotifier* notifier    ,
@@ -271,26 +288,26 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClient : public PUBSUB::CPub
                            const CORE::CEvent& eventId  ,
                            CORE::CICloneable* eventData );
 
-    CFIXPubSubClient( void ); // not implemented
+    CFIXClientPubSubClient( void ); // not implemented
 
     private:
 
-    typedef CORE::CTEventHandlerFunctor< CFIXPubSubClient > TEventCallback;
-    typedef GUCEF::map< CORE::CString, CFIXPubSubClientTopicPtr > TTopicMap;
+    typedef CORE::CTEventHandlerFunctor< CFIXClientPubSubClient > TEventCallback;
+    typedef GUCEF::map< CORE::CString, CFIXClientPubSubClientTopicPtr > TTopicMap;
 
-    CFIXPubSubClientConfig     m_fixConfig;
-    COMCORE::CTCPClientSocket  m_tcpSocket;
-    CORE::CDynamicBuffer       m_receiveBuffer;
-    TTopicMap                  m_topicMap;
-    CORE::CTimer*              m_heartbeatTimer;
-    CORE::CTimer*              m_logonTimeoutTimer;
-    CORE::CTimer*              m_reconnectTimer;
-    CORE::UInt64               m_outgoingSeqNum;
-    CORE::UInt64               m_expectedIncomingSeqNum;
-    ESessionState              m_sessionState;
-    CORE::UInt32               m_consecutiveChecksumFailures;
-    MT::CMutex                 m_lock;
-    bool                       m_initialized;
+    CFIXClientPubSubClientConfig  m_fixConfig;
+    COMCORE::CTCPClientSocket     m_tcpSocket;
+    CORE::CDynamicBuffer          m_receiveBuffer;
+    TTopicMap                     m_topicMap;
+    CORE::CTimer*                 m_heartbeatTimer;
+    CORE::CTimer*                 m_logonTimeoutTimer;
+    CORE::CTimer*                 m_reconnectTimer;
+    CORE::UInt64                  m_outgoingSeqNum;
+    CORE::UInt64                  m_expectedIncomingSeqNum;
+    ESessionState                 m_sessionState;
+    CORE::UInt32                  m_consecutiveChecksumFailures;
+    MT::CMutex                    m_lock;
+    bool                          m_initialized;
 };
 
 /*-------------------------------------------------------------------------//
@@ -305,4 +322,4 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClient : public PUBSUB::CPub
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENT_H ? */
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENT_H ? */

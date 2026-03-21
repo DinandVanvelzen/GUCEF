@@ -41,7 +41,7 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
-#include "pubsubpluginFIX_CFIXMessage.h"
+#include "pubsubpluginFIX_CFIXClientMessage.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -59,7 +59,7 @@ namespace FIX {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-const char CFIXMessage::SOH = '\x01';
+const char CFIXClientMessage::SOH = '\x01';
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -67,8 +67,8 @@ const char CFIXMessage::SOH = '\x01';
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CORE::CString
-CFIXMessage::GetCurrentSendingTime( void )
+CORE::CAsciiString
+CFIXClientMessage::GetCurrentSendingTime( void )
 {GUCEF_TRACE;
 
     CORE::CDateTime now = CORE::CDateTime::NowUTCDateTime();
@@ -83,13 +83,13 @@ CFIXMessage::GetCurrentSendingTime( void )
     CORE::Int32 sec  = now.GetTime().GetSeconds();
 
     ::sprintf( buf, "%04d%02d%02d-%02d:%02d:%02d", yr, mon, day, hr, min, sec );
-    return CORE::CString( buf );
+    return CORE::CAsciiString( buf );
 }
 
 /*-------------------------------------------------------------------------*/
 
-CORE::CString
-CFIXMessage::CalcCheckSum( const CORE::CString& msgWithoutChecksum )
+CORE::CAsciiString
+CFIXClientMessage::CalcCheckSum( const CORE::CAsciiString& msgWithoutChecksum )
 {GUCEF_TRACE;
 
     CORE::UInt32 byteSum = 0;
@@ -101,20 +101,20 @@ CFIXMessage::CalcCheckSum( const CORE::CString& msgWithoutChecksum )
 
     char buf[ 8 ];
     ::sprintf( buf, "%03u", checksum );
-    return CORE::CString( buf );
+    return CORE::CAsciiString( buf );
 }
 
 /*-------------------------------------------------------------------------*/
 
-CORE::CString
-CFIXMessage::BuildStandardBody( const CORE::CString& msgType,
-                                const CORE::CString& senderCompId,
-                                const CORE::CString& targetCompId,
-                                CORE::UInt64 seqNum )
+CORE::CAsciiString
+CFIXClientMessage::BuildStandardBody( const CORE::CAsciiString& msgType      ,
+                                      const CORE::CAsciiString& senderCompId ,
+                                      const CORE::CAsciiString& targetCompId ,
+                                      CORE::UInt64 seqNum                    )
 {GUCEF_TRACE;
 
     // Build body: 35, 49, 56, 34, 52
-    CORE::CString body;
+    CORE::CAsciiString body;
     body += "35=" + msgType + SOH;
     body += "49=" + senderCompId + SOH;
     body += "56=" + targetCompId + SOH;
@@ -125,55 +125,55 @@ CFIXMessage::BuildStandardBody( const CORE::CString& msgType,
 
 /*-------------------------------------------------------------------------*/
 
-CORE::CString
-CFIXMessage::FinalizeMsg( const CORE::CString& fixVersion,
-                          const CORE::CString& body )
+CORE::CAsciiString
+CFIXClientMessage::FinalizeMsg( const CORE::CAsciiString& fixVersion ,
+                                const CORE::CAsciiString& body        )
 {GUCEF_TRACE;
 
     // body is everything from tag 35 onwards (not including 8=, 9=, 10=)
     CORE::UInt32 bodyLen = (CORE::UInt32) body.Length();
 
-    CORE::CString header;
+    CORE::CAsciiString header;
     header += "8=" + fixVersion + SOH;
     header += "9=" + CORE::ToString( bodyLen ) + SOH;
 
-    CORE::CString msgWithoutChecksum = header + body;
-    CORE::CString checksum = CalcCheckSum( msgWithoutChecksum );
+    CORE::CAsciiString msgWithoutChecksum = header + body;
+    CORE::CAsciiString checksum = CalcCheckSum( msgWithoutChecksum );
 
     return msgWithoutChecksum + "10=" + checksum + SOH;
 }
 
 /*-------------------------------------------------------------------------*/
 
-CORE::CString
-CFIXMessage::BuildLogon( const CORE::CString& senderCompId,
-                         const CORE::CString& targetCompId,
-                         const CORE::CString& fixVersion,
-                         CORE::UInt64 outgoingSeqNum,
-                         CORE::UInt32 heartbeatIntervalSecs,
-                         bool resetSeqNumFlag )
+CORE::CAsciiString
+CFIXClientMessage::BuildLogon( const CORE::CAsciiString& senderCompId ,
+                               const CORE::CAsciiString& targetCompId ,
+                               const CORE::CAsciiString& fixVersion   ,
+                               CORE::UInt64 outgoingSeqNum            ,
+                               CORE::UInt32 heartbeatIntervalSecs     ,
+                               bool resetSeqNumFlag                    )
 {GUCEF_TRACE;
 
-    CORE::CString body = BuildStandardBody( "A", senderCompId, targetCompId, outgoingSeqNum );
-    body += "98=0" + CORE::CString( SOH );               // EncryptMethod=0 (None)
+    CORE::CAsciiString body = BuildStandardBody( "A", senderCompId, targetCompId, outgoingSeqNum );
+    body += "98=0" + CORE::CAsciiString( SOH );               // EncryptMethod=0 (None)
     body += "108=" + CORE::ToString( heartbeatIntervalSecs ) + SOH;
     if ( resetSeqNumFlag )
-        body += "141=Y" + CORE::CString( SOH );
+        body += "141=Y" + CORE::CAsciiString( SOH );
 
     return FinalizeMsg( fixVersion, body );
 }
 
 /*-------------------------------------------------------------------------*/
 
-CORE::CString
-CFIXMessage::BuildLogout( const CORE::CString& senderCompId,
-                          const CORE::CString& targetCompId,
-                          const CORE::CString& fixVersion,
-                          CORE::UInt64 outgoingSeqNum,
-                          const CORE::CString& text )
+CORE::CAsciiString
+CFIXClientMessage::BuildLogout( const CORE::CAsciiString& senderCompId ,
+                                const CORE::CAsciiString& targetCompId ,
+                                const CORE::CAsciiString& fixVersion   ,
+                                CORE::UInt64 outgoingSeqNum            ,
+                                const CORE::CAsciiString& text          )
 {GUCEF_TRACE;
 
-    CORE::CString body = BuildStandardBody( "5", senderCompId, targetCompId, outgoingSeqNum );
+    CORE::CAsciiString body = BuildStandardBody( "5", senderCompId, targetCompId, outgoingSeqNum );
     if ( !text.IsNULLOrEmpty() )
         body += "58=" + text + SOH;
 
@@ -182,15 +182,15 @@ CFIXMessage::BuildLogout( const CORE::CString& senderCompId,
 
 /*-------------------------------------------------------------------------*/
 
-CORE::CString
-CFIXMessage::BuildHeartbeat( const CORE::CString& senderCompId,
-                             const CORE::CString& targetCompId,
-                             const CORE::CString& fixVersion,
-                             CORE::UInt64 outgoingSeqNum,
-                             const CORE::CString& testReqId )
+CORE::CAsciiString
+CFIXClientMessage::BuildHeartbeat( const CORE::CAsciiString& senderCompId ,
+                                   const CORE::CAsciiString& targetCompId ,
+                                   const CORE::CAsciiString& fixVersion   ,
+                                   CORE::UInt64 outgoingSeqNum            ,
+                                   const CORE::CAsciiString& testReqId    )
 {GUCEF_TRACE;
 
-    CORE::CString body = BuildStandardBody( "0", senderCompId, targetCompId, outgoingSeqNum );
+    CORE::CAsciiString body = BuildStandardBody( "0", senderCompId, targetCompId, outgoingSeqNum );
     if ( !testReqId.IsNULLOrEmpty() )
         body += "112=" + testReqId + SOH;
 
@@ -199,15 +199,15 @@ CFIXMessage::BuildHeartbeat( const CORE::CString& senderCompId,
 
 /*-------------------------------------------------------------------------*/
 
-CORE::CString
-CFIXMessage::BuildTestRequest( const CORE::CString& senderCompId,
-                               const CORE::CString& targetCompId,
-                               const CORE::CString& fixVersion,
-                               CORE::UInt64 outgoingSeqNum,
-                               const CORE::CString& testReqId )
+CORE::CAsciiString
+CFIXClientMessage::BuildTestRequest( const CORE::CAsciiString& senderCompId ,
+                                     const CORE::CAsciiString& targetCompId ,
+                                     const CORE::CAsciiString& fixVersion   ,
+                                     CORE::UInt64 outgoingSeqNum            ,
+                                     const CORE::CAsciiString& testReqId    )
 {GUCEF_TRACE;
 
-    CORE::CString body = BuildStandardBody( "1", senderCompId, targetCompId, outgoingSeqNum );
+    CORE::CAsciiString body = BuildStandardBody( "1", senderCompId, targetCompId, outgoingSeqNum );
     body += "112=" + testReqId + SOH;
 
     return FinalizeMsg( fixVersion, body );
@@ -215,16 +215,16 @@ CFIXMessage::BuildTestRequest( const CORE::CString& senderCompId,
 
 /*-------------------------------------------------------------------------*/
 
-CORE::CString
-CFIXMessage::BuildResendRequest( const CORE::CString& senderCompId,
-                                 const CORE::CString& targetCompId,
-                                 const CORE::CString& fixVersion,
-                                 CORE::UInt64 outgoingSeqNum,
-                                 CORE::UInt64 beginSeqNo,
-                                 CORE::UInt64 endSeqNo )
+CORE::CAsciiString
+CFIXClientMessage::BuildResendRequest( const CORE::CAsciiString& senderCompId ,
+                                       const CORE::CAsciiString& targetCompId ,
+                                       const CORE::CAsciiString& fixVersion   ,
+                                       CORE::UInt64 outgoingSeqNum            ,
+                                       CORE::UInt64 beginSeqNo                ,
+                                       CORE::UInt64 endSeqNo                   )
 {GUCEF_TRACE;
 
-    CORE::CString body = BuildStandardBody( "2", senderCompId, targetCompId, outgoingSeqNum );
+    CORE::CAsciiString body = BuildStandardBody( "2", senderCompId, targetCompId, outgoingSeqNum );
     body += "7=" + CORE::ToString( beginSeqNo ) + SOH;
     body += "16=" + CORE::ToString( endSeqNo ) + SOH;
 
@@ -233,18 +233,18 @@ CFIXMessage::BuildResendRequest( const CORE::CString& senderCompId,
 
 /*-------------------------------------------------------------------------*/
 
-CORE::CString
-CFIXMessage::BuildSequenceReset( const CORE::CString& senderCompId,
-                                 const CORE::CString& targetCompId,
-                                 const CORE::CString& fixVersion,
-                                 CORE::UInt64 outgoingSeqNum,
-                                 CORE::UInt64 newSeqNo,
-                                 bool gapFillFlag )
+CORE::CAsciiString
+CFIXClientMessage::BuildSequenceReset( const CORE::CAsciiString& senderCompId ,
+                                       const CORE::CAsciiString& targetCompId ,
+                                       const CORE::CAsciiString& fixVersion   ,
+                                       CORE::UInt64 outgoingSeqNum            ,
+                                       CORE::UInt64 newSeqNo                  ,
+                                       bool gapFillFlag                        )
 {GUCEF_TRACE;
 
-    CORE::CString body = BuildStandardBody( "4", senderCompId, targetCompId, outgoingSeqNum );
+    CORE::CAsciiString body = BuildStandardBody( "4", senderCompId, targetCompId, outgoingSeqNum );
     if ( gapFillFlag )
-        body += "123=Y" + CORE::CString( SOH );
+        body += "123=Y" + CORE::CAsciiString( SOH );
     body += "36=" + CORE::ToString( newSeqNo ) + SOH;
 
     return FinalizeMsg( fixVersion, body );

@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H
-#define PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTSESSIONFIELDS_H
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTSESSIONFIELDS_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -63,7 +63,7 @@ namespace FIX {
  *  NotifyObservers is synchronous, so all observers finish before the buffer
  *  is compacted.
  */
-struct PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXSessionFields
+struct PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXClientSessionFields
 {
     const char* beginStringStart; CORE::UInt32 beginStringLen;  // tag 8
     const char* msgTypeStart;     CORE::UInt32 msgTypeLen;      // tag 35
@@ -78,9 +78,9 @@ struct PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXSessionFields
     const char* newSeqNoStart;    CORE::UInt32 newSeqNoLen;     // tag 36
     CORE::UInt64 seqNumVal;                                      // tag 34 parsed inline - no allocation
 
-    CFIXSessionFields( void )
+    CFIXClientSessionFields( void )
     {
-        ::memset( this, 0, sizeof( CFIXSessionFields ) );
+        ::memset( this, 0, sizeof( CFIXClientSessionFields ) );
     }
 };
 
@@ -96,4 +96,4 @@ struct PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXSessionFields
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H ? */
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTSESSIONFIELDS_H ? */
