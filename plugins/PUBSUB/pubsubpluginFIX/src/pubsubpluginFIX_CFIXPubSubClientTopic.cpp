@@ -22,6 +22,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>
+
 #ifndef GUCEF_MT_CSCOPEMUTEX_H
 #include "gucefMT_CScopeMutex.h"
 #define GUCEF_MT_CSCOPEMUTEX_H
@@ -70,16 +72,20 @@ namespace FIX {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-// FIX session-level MsgTypes that are normally not forwarded to subscribers
-static bool IsSessionLevelMsgType( const CORE::CString& msgType )
+// FIX session-level MsgTypes that are normally not forwarded to subscribers.
+// Checked inline via single-char comparison for hot-path efficiency.
+static inline bool IsSessionLevelMsgType( const char* msgType, CORE::UInt32 msgTypeLen )
 {
-    return msgType == "0" ||  // Heartbeat
-           msgType == "1" ||  // TestRequest
-           msgType == "2" ||  // ResendRequest
-           msgType == "3" ||  // Reject
-           msgType == "4" ||  // SequenceReset
-           msgType == "5" ||  // Logout
-           msgType == "A";    // Logon
+    if ( GUCEF_NULL == msgType || msgTypeLen != 1 )
+        return false;
+    char c = msgType[ 0 ];
+    return c == '0' ||  // Heartbeat
+           c == '1' ||  // TestRequest
+           c == '2' ||  // ResendRequest
+           c == '3' ||  // Reject
+           c == '4' ||  // SequenceReset
+           c == '5' ||  // Logout
+           c == 'A';    // Logon
 }
 
 /*-------------------------------------------------------------------------*/
@@ -254,13 +260,14 @@ CFIXPubSubClientTopic::GetTopicName( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CFIXPubSubClientTopic::IsMsgTypePassedByFilter( const CORE::CString& msgType ) const
+CFIXPubSubClientTopic::IsMsgTypePassedByFilter( const char* msgType,
+                                                  CORE::UInt32 msgTypeLen ) const
 {GUCEF_TRACE;
 
     if ( m_config.msgTypeFilter.IsNULLOrEmpty() )
         return true;  // empty filter = accept all
 
-    // Filter is comma-separated list of MsgTypes
+    // Scan comma-separated filter list with memcmp — no CString allocation
     const char* filterPtr = m_config.msgTypeFilter.C_String();
     CORE::UInt32 filterLen = (CORE::UInt32) m_config.msgTypeFilter.Length();
     CORE::UInt32 start = 0;
@@ -270,9 +277,18 @@ CFIXPubSubClientTopic::IsMsgTypePassedByFilter( const CORE::CString& msgType ) c
         while ( end < filterLen && filterPtr[ end ] != ',' )
             ++end;
 
-        CORE::CString token( filterPtr + start, end - start );
-        token = token.Trim( true );
-        if ( token == msgType )
+        // Trim leading spaces
+        CORE::UInt32 tokenStart = start;
+        while ( tokenStart < end && filterPtr[ tokenStart ] == ' ' )
+            ++tokenStart;
+        // Trim trailing spaces
+        CORE::UInt32 tokenEnd = end;
+        while ( tokenEnd > tokenStart && filterPtr[ tokenEnd - 1 ] == ' ' )
+            --tokenEnd;
+
+        CORE::UInt32 tokenLen = tokenEnd - tokenStart;
+        if ( tokenLen == msgTypeLen &&
+             ::memcmp( filterPtr + tokenStart, msgType, msgTypeLen ) == 0 )
             return true;
 
         start = end + 1;
@@ -283,65 +299,89 @@ CFIXPubSubClientTopic::IsMsgTypePassedByFilter( const CORE::CString& msgType ) c
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClientTopic::OnApplicationMessage( const CFIXMessage& fixMsg )
+CFIXPubSubClientTopic::OnApplicationMessage( const char* msgStart, CORE::UInt32 msgLen,
+                                              const CFIXSessionFields& fields )
 {GUCEF_TRACE;
 
     if ( !m_isSubscribed )
         return;
 
-    CORE::CString msgType = fixMsg.GetMsgType();
-
-    // Check session-level filter
-    if ( IsSessionLevelMsgType( msgType ) && !m_config.includeSessionLevelMsgs )
+    // Check session-level filter — inline char comparison, no CString allocation
+    if ( IsSessionLevelMsgType( fields.msgTypeStart, fields.msgTypeLen ) &&
+         !m_config.includeSessionLevelMsgs )
         return;
 
-    // Check MsgType filter
-    if ( !IsMsgTypePassedByFilter( msgType ) )
+    // Check MsgType filter — memcmp scan, no CString allocation
+    if ( GUCEF_NULL != fields.msgTypeStart &&
+         !IsMsgTypePassedByFilter( fields.msgTypeStart, fields.msgTypeLen ) )
         return;
 
     MT::CScopeMutex lock( m_lock );
 
-    // Build a pubsub message
     m_pubsubMsgs.resize( 1 );
     PUBSUB::CBasicPubSubMsg& msg = m_pubsubMsgs[ 0 ];
+    msg.Clear();
 
-    // Set message identity fields
-    msg.GetMsgId() = fixMsg.GetMsgSeqNum();
-    msg.GetMsgIndex() = fixMsg.GetMsgSeqNumAsUInt64();
+    // MsgId: link seqNum ASCII bytes from buffer — no copy
+    if ( GUCEF_NULL != fields.seqNumStart )
+        msg.GetMsgId().LinkTo( fields.seqNumStart, fields.seqNumLen, GUCEF_DATATYPE_ASCII_STRING );
+
+    // MsgIndex: inline UInt64 scalar — no heap allocation
+    msg.GetMsgIndex() = CORE::CVariant( fields.seqNumVal );
+
     msg.GetMsgDateTime() = CORE::CDateTime::NowUTCDateTime();
 
-    // Set raw FIX bytes as primary payload
-    const CORE::CString& rawMsg = fixMsg.GetRawMessage();
-    msg.GetPrimaryPayload() = CORE::CVariant( rawMsg.C_String(), (CORE::UInt32) rawMsg.Length(), GUCEF_DATATYPE_BINARY_BLOB );
+    // PRIMARY PAYLOAD: FIX is a text protocol — typed as ASCII_STRING, linked, no copy
+    msg.GetPrimaryPayload().LinkTo( msgStart, msgLen, GUCEF_DATATYPE_ASCII_STRING );
 
-    // Optionally emit all FIX fields as key-value pairs
-    if ( m_config.parseFieldsAsKeyValues )
+    // METADATA: numeric UInt32 tag keys (inline scalars) + linked ASCII_STRING value views
+    // Only add fields that were actually found (null-check guards)
+    // All calls use AddLinkedMetaDataKeyValuePair so value variants are stored linked (no copy)
+
+    if ( GUCEF_NULL != fields.msgTypeStart )
     {
-        const CFIXMessage::TFixFieldMap& fields = fixMsg.GetFields();
-        CFIXMessage::TFixFieldMap::const_iterator i = fields.begin();
-        while ( i != fields.end() )
-        {
-            msg.AddKeyValuePair( CORE::CVariant( i->first ), CORE::CVariant( i->second ) );
-            ++i;
-        }
+        CORE::CVariant valueVar;
+        valueVar.LinkTo( fields.msgTypeStart, fields.msgTypeLen, GUCEF_DATATYPE_ASCII_STRING );
+        msg.AddLinkedMetaDataKeyValuePair(
+            CORE::CVariant( (CORE::UInt32)CFIXMessage::TAG_MSG_TYPE ), valueVar );
     }
-
-    // Always add metadata
-    msg.AddMetaDataKeyValuePair( CORE::CVariant( CORE::CString( "FIX_MsgType" ) ),
-                                 CORE::CVariant( msgType ) );
-    msg.AddMetaDataKeyValuePair( CORE::CVariant( CORE::CString( "FIX_BeginString" ) ),
-                                 CORE::CVariant( fixMsg.GetBeginString() ) );
-    msg.AddMetaDataKeyValuePair( CORE::CVariant( CORE::CString( "FIX_SenderCompID" ) ),
-                                 CORE::CVariant( fixMsg.GetField( CFIXMessage::TAG_SENDER_COMP_ID ) ) );
-    msg.AddMetaDataKeyValuePair( CORE::CVariant( CORE::CString( "FIX_TargetCompID" ) ),
-                                 CORE::CVariant( fixMsg.GetField( CFIXMessage::TAG_TARGET_COMP_ID ) ) );
+    if ( GUCEF_NULL != fields.beginStringStart )
+    {
+        CORE::CVariant valueVar;
+        valueVar.LinkTo( fields.beginStringStart, fields.beginStringLen, GUCEF_DATATYPE_ASCII_STRING );
+        msg.AddLinkedMetaDataKeyValuePair(
+            CORE::CVariant( (CORE::UInt32)CFIXMessage::TAG_BEGIN_STRING ), valueVar );
+    }
+    if ( GUCEF_NULL != fields.senderStart )
+    {
+        CORE::CVariant valueVar;
+        valueVar.LinkTo( fields.senderStart, fields.senderLen, GUCEF_DATATYPE_ASCII_STRING );
+        msg.AddLinkedMetaDataKeyValuePair(
+            CORE::CVariant( (CORE::UInt32)CFIXMessage::TAG_SENDER_COMP_ID ), valueVar );
+    }
+    if ( GUCEF_NULL != fields.targetStart )
+    {
+        CORE::CVariant valueVar;
+        valueVar.LinkTo( fields.targetStart, fields.targetLen, GUCEF_DATATYPE_ASCII_STRING );
+        msg.AddLinkedMetaDataKeyValuePair(
+            CORE::CVariant( (CORE::UInt32)CFIXMessage::TAG_TARGET_COMP_ID ), valueVar );
+    }
+    if ( GUCEF_NULL != fields.seqNumStart )
+    {
+        CORE::CVariant valueVar;
+        valueVar.LinkTo( fields.seqNumStart, fields.seqNumLen, GUCEF_DATATYPE_ASCII_STRING );
+        msg.AddLinkedMetaDataKeyValuePair(
+            CORE::CVariant( (CORE::UInt32)CFIXMessage::TAG_MSG_SEQ_NUM ), valueVar );
+    }
 
     msg.SetReceiveActionId( m_currentReceiveActionId );
     ++m_currentReceiveActionId;
 
-    m_lastReceivedSeqNum = fixMsg.GetMsgSeqNumAsUInt64();
+    m_lastReceivedSeqNum = fields.seqNumVal;
 
-    // Build refs vector and notify
+    // Build refs vector and notify synchronously
+    // IMPORTANT: linked views into msgStart are valid because ProcessReceiveBuffer
+    // performs the memmove compaction AFTER this call returns
     m_pubsubMsgsRefs.clear();
     m_pubsubMsgsRefs.push_back( &m_pubsubMsgs[ 0 ] );
     NotifyObservers( MsgsRecievedEvent, &m_pubsubMsgsRefs );

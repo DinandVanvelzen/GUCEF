@@ -44,7 +44,6 @@ CFIXPubSubClientTopicConfig::CFIXPubSubClientTopicConfig( void )
     : PUBSUB::CPubSubClientTopicConfig()
     , CORE::CTSharedObjCreator< CFIXPubSubClientTopicConfig, MT::CMutex >( this )
     , includeSessionLevelMsgs( false )
-    , parseFieldsAsKeyValues( true )
     , msgTypeFilter()
 {GUCEF_TRACE;
 }
@@ -55,7 +54,6 @@ CFIXPubSubClientTopicConfig::CFIXPubSubClientTopicConfig( const CFIXPubSubClient
     : PUBSUB::CPubSubClientTopicConfig( src )
     , CORE::CTSharedObjCreator< CFIXPubSubClientTopicConfig, MT::CMutex >( this )
     , includeSessionLevelMsgs( src.includeSessionLevelMsgs )
-    , parseFieldsAsKeyValues( src.parseFieldsAsKeyValues )
     , msgTypeFilter( src.msgTypeFilter )
 {GUCEF_TRACE;
 
@@ -68,7 +66,6 @@ CFIXPubSubClientTopicConfig::CFIXPubSubClientTopicConfig( const PUBSUB::CPubSubC
     : PUBSUB::CPubSubClientTopicConfig( genericConfig )
     , CORE::CTSharedObjCreator< CFIXPubSubClientTopicConfig, MT::CMutex >( this )
     , includeSessionLevelMsgs( false )
-    , parseFieldsAsKeyValues( true )
     , msgTypeFilter()
 {GUCEF_TRACE;
 
@@ -105,7 +102,6 @@ CFIXPubSubClientTopicConfig::operator=( const CFIXPubSubClientTopicConfig& src )
     {
         PUBSUB::CPubSubClientTopicConfig::operator=( src );
         includeSessionLevelMsgs = src.includeSessionLevelMsgs;
-        parseFieldsAsKeyValues  = src.parseFieldsAsKeyValues;
         msgTypeFilter           = src.msgTypeFilter;
     }
     return *this;
@@ -118,7 +114,6 @@ CFIXPubSubClientTopicConfig::LoadCustomConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
 
     includeSessionLevelMsgs = config.GetAttributeValueOrChildValueByName( "includeSessionLevelMsgs" ).AsBool( includeSessionLevelMsgs, true );
-    parseFieldsAsKeyValues  = config.GetAttributeValueOrChildValueByName( "parseFieldsAsKeyValues" ).AsBool( parseFieldsAsKeyValues, true );
     msgTypeFilter           = config.GetAttributeValueOrChildValueByName( "msgTypeFilter" ).AsString( msgTypeFilter, true );
     return true;
 }
@@ -130,7 +125,6 @@ CFIXPubSubClientTopicConfig::SaveCustomConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
 
     config.SetAttribute( "includeSessionLevelMsgs", includeSessionLevelMsgs );
-    config.SetAttribute( "parseFieldsAsKeyValues",  parseFieldsAsKeyValues );
     config.SetAttribute( "msgTypeFilter",           msgTypeFilter );
     return true;
 }

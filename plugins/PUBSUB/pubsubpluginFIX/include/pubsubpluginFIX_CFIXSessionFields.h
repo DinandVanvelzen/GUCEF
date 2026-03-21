@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTCONFIG_H
-#define PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTCONFIG_H
+#ifndef PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H
+#define PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -25,10 +25,12 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_PUBSUB_CPUBSUBCLIENTCONFIG_H
-#include "gucefPUBSUB_CPubSubClientConfig.h"
-#define GUCEF_PUBSUB_CPUBSUBCLIENTCONFIG_H
-#endif /* GUCEF_PUBSUB_CPUBSUBCLIENTCONFIG_H ? */
+#include <string.h>
+
+#ifndef GUCEF_CORE_ETYPES_H
+#include "gucefCORE_ETypes.h"
+#define GUCEF_CORE_ETYPES_H
+#endif /* GUCEF_CORE_ETYPES_H ? */
 
 #ifndef PUBSUBPLUGIN_FIX_MACROS_H
 #include "pubsubpluginFIX_macros.h"
@@ -51,57 +53,35 @@ namespace FIX {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-class CFIXPubSubClient;
-
 /**
- *  Standard pub-sub client config with FIX-protocol-specific settings added.
+ *  Stack-allocated struct holding raw pointer views into the receive buffer.
+ *  All pointers are only valid until ProcessReceiveBuffer compacts the buffer
+ *  (i.e., the memmove that follows the dispatch loop).
  *
- *  Remote host/port is taken from the base class remoteAddresses (first entry).
+ *  IMPORTANT: Downstream consumers (topics, observers) MUST NOT hold references
+ *  to these pointers beyond the synchronous notification callback.
+ *  NotifyObservers is synchronous, so all observers finish before the buffer
+ *  is compacted.
  */
-class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClientConfig : public PUBSUB::CPubSubClientConfig
+struct PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXSessionFields
 {
-    public:
+    const char* beginStringStart; CORE::UInt32 beginStringLen;  // tag 8
+    const char* msgTypeStart;     CORE::UInt32 msgTypeLen;      // tag 35
+    const char* seqNumStart;      CORE::UInt32 seqNumLen;       // tag 34
+    const char* senderStart;      CORE::UInt32 senderLen;       // tag 49
+    const char* targetStart;      CORE::UInt32 targetLen;       // tag 56
+    const char* hbIntStart;       CORE::UInt32 hbIntLen;        // tag 108
+    const char* testReqIdStart;   CORE::UInt32 testReqIdLen;    // tag 112
+    const char* resetFlagStart;   CORE::UInt32 resetFlagLen;    // tag 141
+    const char* possDupFlagStart; CORE::UInt32 possDupFlagLen;  // tag 43
+    const char* beginSeqNoStart;  CORE::UInt32 beginSeqNoLen;   // tag 7
+    const char* newSeqNoStart;    CORE::UInt32 newSeqNoLen;     // tag 36
+    CORE::UInt64 seqNumVal;                                      // tag 34 parsed inline - no allocation
 
-    CFIXPubSubClientConfig( void );
-
-    CFIXPubSubClientConfig( const PUBSUB::CPubSubClientConfig& genericConfig );
-
-    virtual ~CFIXPubSubClientConfig() GUCEF_VIRTUAL_OVERRIDE;
-
-    CFIXPubSubClientConfig& operator=( const PUBSUB::CPubSubClientConfig& src );
-
-    CFIXPubSubClientConfig& operator=( const CFIXPubSubClientConfig& src );
-
-    bool LoadCustomConfig( const CORE::CDataNode& config );
-
-    bool SaveCustomConfig( CORE::CDataNode& config ) const;
-
-    bool SerializeCustomConfigToGenericConfig( void );
-
-    bool LoadConfig( const CORE::CDataNode& config );
-
-    bool SaveConfig( CORE::CDataNode& config ) const;
-
-    bool LoadConfig( const PUBSUB::CPubSubClientConfig& cfg );
-
-    bool SaveConfig( PUBSUB::CPubSubClientConfig& cfg ) const;
-
-    // FIX session identity
-    CORE::CString senderCompId;            // FIX tag 49 - required
-    CORE::CString targetCompId;            // FIX tag 56 - required
-    CORE::CString fixVersion;              // "FIX.4.2" | "FIX.4.4" | "FIXT.1.1"
-
-    // Session behaviour
-    CORE::UInt32 heartbeatIntervalSecs;             // FIX tag 108 in Logon, default=30
-    bool         resetSeqNumOnLogon;                // send tag 141=Y on logon, default=false
-    CORE::UInt32 logonTimeoutInMs;                  // milliseconds before reconnect if no logon reply, default=10000
-    bool         useSsl;                            // TLS (stretch goal), default=false
-    bool         allowPublishing;                   // allow sending FIX msgs via Publish(), default=false
-
-    // Security / framing settings
-    CORE::UInt32 maxMsgSizeBytes;                   // max BodyLength accepted [S1], default=65536
-    bool         disableChecksumValidation;         // disable FIX checksum check [S7], default=false
-    CORE::UInt32 maxConsecutiveChecksumFailures;    // disconnect after N consecutive bad checksums, default=3
+    CFIXSessionFields( void )
+    {
+        ::memset( this, 0, sizeof( CFIXSessionFields ) );
+    }
 };
 
 /*-------------------------------------------------------------------------//
@@ -116,4 +96,4 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClientConfig : public PUBSUB
 
 /*--------------------------------------------------------------------------*/
 
-#endif /* PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTCONFIG_H ? */
+#endif /* PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H ? */

@@ -22,6 +22,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>
+
 #ifndef GUCEF_MT_CSCOPEMUTEX_H
 #include "gucefMT_CScopeMutex.h"
 #define GUCEF_MT_CSCOPEMUTEX_H
@@ -98,6 +100,7 @@ CFIXPubSubClient::CFIXPubSubClient( const PUBSUB::CPubSubClientConfig& config )
     , m_outgoingSeqNum( 1 )
     , m_expectedIncomingSeqNum( 1 )
     , m_sessionState( STATE_DISCONNECTED )
+    , m_consecutiveChecksumFailures( 0 )
     , m_lock()
     , m_initialized( false )
 {GUCEF_TRACE;
@@ -505,6 +508,7 @@ CFIXPubSubClient::Disconnect( void )
     m_tcpSocket.Close();
     m_sessionState = STATE_DISCONNECTED;
     m_receiveBuffer.Clear();
+    m_consecutiveChecksumFailures = 0;
     return true;
 }
 
@@ -735,81 +739,441 @@ CFIXPubSubClient::ScheduleReconnect( void )
 
 /*-------------------------------------------------------------------------*/
 
+// [S4] Parse decimal integer inline. Returns 0 on overflow or non-digit.
+CORE::UInt64
+CFIXPubSubClient::ParseUInt64Inline( const char* s, CORE::UInt32 len )
+{
+    if ( len == 0 || len > 20 )
+        return 0;  // [S4] overflow guard: a 21-digit string overflows UInt64
+    CORE::UInt64 r = 0;
+    for ( CORE::UInt32 i = 0; i < len; ++i )
+    {
+        if ( s[ i ] < '0' || s[ i ] > '9' )
+            return 0;  // [S4] non-digit guard
+        r = r * 10 + ( (CORE::UInt8)s[ i ] - '0' );
+    }
+    return r;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFIXPubSubClient::FieldMatchesValue( const char* fieldStart, CORE::UInt32 fieldLen,
+                                      const char* expected )
+{
+    if ( GUCEF_NULL == fieldStart || GUCEF_NULL == expected )
+        return false;
+    CORE::UInt32 expectedLen = (CORE::UInt32) ::strlen( expected );
+    if ( fieldLen != expectedLen )
+        return false;
+    return ::memcmp( fieldStart, expected, fieldLen ) == 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFIXPubSubClient::ScanSessionFields( const char* msgStart, CORE::UInt32 msgLen,
+                                      CFIXSessionFields& outFields )
+{
+    // Maximum value length we accept for any session-level field we store [S3]
+    static const CORE::UInt32 MAX_SESSION_FIELD_VALUE_LEN = 256;
+    // Maximum tag number digits [S6]
+    static const CORE::UInt32 MAX_TAG_DIGITS = 6;
+
+    const char  SOH    = CFIXMessage::SOH;
+    const char* msgEnd = msgStart + msgLen;
+    const char* pos    = msgStart;
+
+    while ( pos < msgEnd )
+    {
+        // [S6] Parse tag number: max MAX_TAG_DIGITS ASCII digits before '='
+        CORE::UInt32 tag       = 0;
+        CORE::UInt32 digitCount = 0;
+        while ( pos < msgEnd && digitCount < MAX_TAG_DIGITS )
+        {
+            char c = *pos;
+            if ( c == '=' )
+                break;
+            if ( c < '0' || c > '9' )
+                return false;  // [S6] non-digit before '=' — malformed
+            tag = tag * 10 + (CORE::UInt32)( (CORE::UInt8)c - '0' );
+            ++pos;
+            ++digitCount;
+        }
+        if ( pos >= msgEnd )
+            break;  // end of message (normal after last field's SOH)
+        if ( *pos != '=' )
+        {
+            // More than MAX_TAG_DIGITS digits or non-'=' after digits — malformed [S6]
+            if ( digitCount >= MAX_TAG_DIGITS )
+                return false;
+            break;  // likely end of data
+        }
+        ++pos;  // skip '='
+
+        // [S3] Scan value until SOH, strictly bounded within [msgStart, msgEnd)
+        const char* valueStart = pos;
+        while ( pos < msgEnd && *pos != SOH )
+            ++pos;
+        if ( pos >= msgEnd )
+            return false;  // [S3] malformed — no SOH terminating this field value
+
+        CORE::UInt32 valueLen = (CORE::UInt32)( pos - valueStart );
+        ++pos;  // skip SOH
+
+        // Store only session-relevant fields; apply [S3] cap only to fields we record
+        switch ( tag )
+        {
+            case 8:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.beginStringStart = valueStart;
+                outFields.beginStringLen   = valueLen;
+                break;
+            case 34:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.seqNumStart = valueStart;
+                outFields.seqNumLen   = valueLen;
+                outFields.seqNumVal   = ParseUInt64Inline( valueStart, valueLen );  // [S4]
+                break;
+            case 35:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.msgTypeStart = valueStart;
+                outFields.msgTypeLen   = valueLen;
+                break;
+            case 43:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.possDupFlagStart = valueStart;
+                outFields.possDupFlagLen   = valueLen;
+                break;
+            case 49:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.senderStart = valueStart;
+                outFields.senderLen   = valueLen;
+                break;
+            case 56:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.targetStart = valueStart;
+                outFields.targetLen   = valueLen;
+                break;
+            case 7:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.beginSeqNoStart = valueStart;
+                outFields.beginSeqNoLen   = valueLen;
+                break;
+            case 36:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.newSeqNoStart = valueStart;
+                outFields.newSeqNoLen   = valueLen;
+                break;
+            case 108:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.hbIntStart = valueStart;
+                outFields.hbIntLen   = valueLen;
+                break;
+            case 112:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.testReqIdStart = valueStart;
+                outFields.testReqIdLen   = valueLen;
+                break;
+            case 141:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.resetFlagStart = valueStart;
+                outFields.resetFlagLen   = valueLen;
+                break;
+            default:
+                break;  // skip non-session fields — no cap, no allocation
+        }
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CFIXPubSubClient::ProcessReceiveBuffer( void )
 {GUCEF_TRACE;
 
-    // Search for complete FIX messages (terminated by "10=xxx\x01") in m_receiveBuffer
-    // A complete FIX message ends with the CheckSum field: "10=NNN\x01"
-    while ( true )
-    {
-        const char* bufPtr = static_cast< const char* >( m_receiveBuffer.GetConstBufferPtr() );
-        CORE::UInt32 bufLen = m_receiveBuffer.GetDataSize();
+    const char* bufPtr = static_cast< const char* >( m_receiveBuffer.GetConstBufferPtr() );
+    CORE::UInt32 bufLen = m_receiveBuffer.GetDataSize();
+    CORE::UInt32 processedOffset = 0;
 
-        if ( bufLen == 0 )
+    while ( processedOffset < bufLen )
+    {
+        const char* msgStart = bufPtr + processedOffset;
+        CORE::UInt32 remaining = bufLen - processedOffset;
+
+        // Need minimum bytes for a meaningful FIX header
+        if ( remaining < 15 )
             break;
 
-        // Find "10=" followed by digits and SOH
-        const char* msgEnd = GUCEF_NULL;
-        for ( CORE::UInt32 i = 0; i + 5 < bufLen; ++i )
+        // Framing sync: message must start with "8="
+        if ( msgStart[ 0 ] != '8' || msgStart[ 1 ] != '=' )
         {
-            if ( bufPtr[i] == '1' && bufPtr[i+1] == '0' && bufPtr[i+2] == '=' )
+            // Scan forward for a field-aligned "8=" to resync framing
+            CORE::UInt32 i = 1;
+            bool found = false;
+            while ( i + 1 < remaining )
             {
-                // Found "10=", now find the terminating SOH
-                CORE::UInt32 j = i + 3;
-                while ( j < bufLen && bufPtr[j] != CFIXMessage::SOH )
-                    ++j;
-                if ( j < bufLen && bufPtr[j] == CFIXMessage::SOH )
+                if ( bufPtr[ processedOffset + i ]     == '8' &&
+                     bufPtr[ processedOffset + i + 1 ] == '=' )
                 {
-                    msgEnd = bufPtr + j + 1; // one past the terminating SOH
+                    // Must be at buffer start or preceded by SOH
+                    if ( processedOffset + i == 0 ||
+                         bufPtr[ processedOffset + i - 1 ] == CFIXMessage::SOH )
+                    {
+                        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
+                            "CFIXPubSubClient::ProcessReceiveBuffer: Framing resync - skipping " +
+                            CORE::ToString( i ) + " bytes to next 8=" );
+                        processedOffset += i;
+                        found = true;
+                        break;
+                    }
+                }
+                ++i;
+            }
+            if ( !found )
+            {
+                processedOffset = bufLen;  // nothing recognisable left
+                break;
+            }
+            continue;  // restart from new position
+        }
+
+        // Find end of tag 8 value (BeginString)
+        const char* tag8ValStart = msgStart + 2;  // after "8="
+        const char* tag8ValEnd   = tag8ValStart;
+        const char* bufEnd       = bufPtr + bufLen;
+        while ( tag8ValEnd < bufEnd && *tag8ValEnd != CFIXMessage::SOH )
+            ++tag8ValEnd;
+        if ( tag8ValEnd >= bufEnd )
+            break;  // incomplete — wait for more data
+
+        // [S5] Validate BeginString starts with "FIX." or "FIXT."
+        CORE::UInt32 beginStringLen = (CORE::UInt32)( tag8ValEnd - tag8ValStart );
+        bool validBeginString =
+            ( beginStringLen >= 4 &&
+              tag8ValStart[ 0 ] == 'F' && tag8ValStart[ 1 ] == 'I' &&
+              tag8ValStart[ 2 ] == 'X' && tag8ValStart[ 3 ] == '.' ) ||
+            ( beginStringLen >= 5 &&
+              tag8ValStart[ 0 ] == 'F' && tag8ValStart[ 1 ] == 'I' &&
+              tag8ValStart[ 2 ] == 'X' && tag8ValStart[ 3 ] == 'T' &&
+              tag8ValStart[ 4 ] == '.' );
+        if ( !validBeginString )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
+                "CFIXPubSubClient::ProcessReceiveBuffer: [S5] BeginString is not FIX/FIXT - discarding framing junk" );
+            // Advance past this "8=" occurrence and continue resyncing
+            processedOffset = (CORE::UInt32)( tag8ValEnd - bufPtr ) + 1;
+            continue;
+        }
+
+        // Locate "9=" (BodyLength) — must immediately follow tag 8's SOH in standard FIX
+        const char* afterTag8 = tag8ValEnd + 1;
+        const char* tag9Pos   = GUCEF_NULL;
+        {
+            const char* scanPos = afterTag8;
+            const char* scanEnd = afterTag8 + 20;  // tag 9 must be within 20 bytes of tag 8 SOH
+            if ( scanEnd > bufEnd ) scanEnd = bufEnd;
+            while ( scanPos + 1 < scanEnd )
+            {
+                if ( scanPos[ 0 ] == '9' && scanPos[ 1 ] == '=' &&
+                     ( scanPos == bufPtr || *( scanPos - 1 ) == CFIXMessage::SOH ) )
+                {
+                    tag9Pos = scanPos;
                     break;
                 }
+                ++scanPos;
+            }
+        }
+        if ( GUCEF_NULL == tag9Pos )
+        {
+            if ( afterTag8 + 20 > bufEnd )
+                break;  // incomplete — might still come
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
+                "CFIXPubSubClient::ProcessReceiveBuffer: Cannot locate tag 9 (BodyLength), skipping" );
+            processedOffset = (CORE::UInt32)( tag8ValEnd - bufPtr ) + 1;
+            continue;
+        }
+
+        // Parse BodyLength value inline
+        const char* bodyLenStart = tag9Pos + 2;  // after "9="
+        const char* bodyLenEnd   = bodyLenStart;
+        while ( bodyLenEnd < bufEnd && *bodyLenEnd != CFIXMessage::SOH )
+            ++bodyLenEnd;
+        if ( bodyLenEnd >= bufEnd )
+            break;  // incomplete
+
+        CORE::UInt32 bodyLen = (CORE::UInt32) ParseUInt64Inline( bodyLenStart,
+                                                                  (CORE::UInt32)( bodyLenEnd - bodyLenStart ) );
+
+        // [S1] Max message size cap — reject giant BodyLength before jumping
+        if ( bodyLen > m_fixConfig.maxMsgSizeBytes )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT,
+                "CFIXPubSubClient::ProcessReceiveBuffer: [S1] BodyLength " +
+                CORE::ToString( bodyLen ) + " exceeds maxMsgSizeBytes " +
+                CORE::ToString( m_fixConfig.maxMsgSizeBytes ) + " - disconnecting" );
+            Disconnect();
+            return;
+        }
+
+        // bodyStart = first byte after "9=xxx\x01"
+        const char* bodyStart = bodyLenEnd + 1;
+
+        // [S2] 64-bit overflow-safe bounds check: bodyStart + bodyLen + 7 ("10=XXX\x01") <= bufLen
+        CORE::UInt64 safeEnd = (CORE::UInt64)( bodyStart - bufPtr ) +
+                               (CORE::UInt64)bodyLen +
+                               (CORE::UInt64)7;  // "10=XXX\x01" minimum 7 bytes
+        if ( safeEnd > (CORE::UInt64)bufLen )
+            break;  // incomplete — wait for more data
+
+        // O(1) jump to where "10=" should be
+        const char* tag10Pos = bodyStart + bodyLen;
+
+        // [S9] Verify the jump landed on "10=" (bounded fallback scan if not)
+        bool tag10Valid = ( (CORE::UInt32)( bufEnd - tag10Pos ) >= 3 &&
+                            tag10Pos[ 0 ] == '1' && tag10Pos[ 1 ] == '0' && tag10Pos[ 2 ] == '=' &&
+                            ( tag10Pos == bufPtr || *( tag10Pos - 1 ) == CFIXMessage::SOH ) );
+        if ( !tag10Valid )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
+                "CFIXPubSubClient::ProcessReceiveBuffer: BodyLength jump missed tag 10 - fallback linear scan" );
+            tag10Pos = GUCEF_NULL;
+            // [S9] Bounded fallback scan: do not scan past bufLen-6
+            const char* scanPtr = bodyStart;
+            const char* scanEnd = bufEnd;
+            if ( scanEnd > bufEnd - 6 )
+                scanEnd = bufEnd - 6;
+            while ( scanPtr < scanEnd )
+            {
+                if ( scanPtr[ 0 ] == '1' && scanPtr[ 1 ] == '0' && scanPtr[ 2 ] == '=' &&
+                     ( scanPtr == bufPtr || *( scanPtr - 1 ) == CFIXMessage::SOH ) )
+                {
+                    tag10Pos = scanPtr;
+                    break;
+                }
+                ++scanPtr;
+            }
+            if ( GUCEF_NULL == tag10Pos )
+            {
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL,
+                    "CFIXPubSubClient::ProcessReceiveBuffer: Cannot locate tag 10 - malformed message, skipping" );
+                processedOffset = (CORE::UInt32)( bodyStart - bufPtr );
+                continue;
             }
         }
 
-        if ( GUCEF_NULL == msgEnd )
-            break; // No complete message yet
+        // Find SOH after checksum digits — determines actual msgEnd
+        const char* checksumValStart = tag10Pos + 3;  // after "10="
+        const char* checksumValEnd   = checksumValStart;
+        while ( checksumValEnd < bufEnd && *checksumValEnd != CFIXMessage::SOH )
+            ++checksumValEnd;
+        if ( checksumValEnd >= bufEnd )
+            break;  // incomplete
 
-        // Extract the complete message
-        CORE::UInt32 msgLen = (CORE::UInt32)( msgEnd - bufPtr );
-        CORE::CString rawMsg( bufPtr, msgLen );
+        const char* msgEnd = checksumValEnd + 1;  // one past final SOH
+        CORE::UInt32 msgLen = (CORE::UInt32)( msgEnd - msgStart );
 
-        // Advance the buffer past this message
-        CORE::UInt32 remaining = bufLen - msgLen;
-        if ( remaining > 0 )
+        // [S7] Checksum validation (enabled by default)
+        if ( !m_fixConfig.disableChecksumValidation )
         {
-            ::memmove( m_receiveBuffer.GetBufferPtr(), bufPtr + msgLen, remaining );
-        }
-        m_receiveBuffer.SetDataSize( remaining );
+            CORE::UInt32 byteSum = 0;
+            for ( const char* p = msgStart; p < tag10Pos; ++p )
+                byteSum += (CORE::UInt8)*p;
+            CORE::UInt32 calcChecksum = byteSum % 256;
 
-        DispatchIncomingMessage( rawMsg );
+            CORE::UInt32 claimedChecksum = (CORE::UInt32) ParseUInt64Inline(
+                checksumValStart, (CORE::UInt32)( checksumValEnd - checksumValStart ) );
+
+            if ( calcChecksum != claimedChecksum )
+            {
+                GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
+                    "CFIXPubSubClient::ProcessReceiveBuffer: [S7] Checksum mismatch claimed=" +
+                    CORE::ToString( claimedChecksum ) + " calc=" + CORE::ToString( calcChecksum ) +
+                    " - dropping message" );
+                ++m_consecutiveChecksumFailures;
+                if ( m_consecutiveChecksumFailures >= m_fixConfig.maxConsecutiveChecksumFailures )
+                {
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT,
+                        "CFIXPubSubClient::ProcessReceiveBuffer: " +
+                        CORE::ToString( m_consecutiveChecksumFailures ) +
+                        " consecutive checksum failures - disconnecting" );
+                    Disconnect();
+                    return;
+                }
+                processedOffset += msgLen;
+                continue;
+            }
+            m_consecutiveChecksumFailures = 0;
+        }
+
+        // Scan session fields — zero-allocation, single forward pass
+        CFIXSessionFields fields;
+        if ( !ScanSessionFields( msgStart, msgLen, fields ) )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
+                "CFIXPubSubClient::ProcessReceiveBuffer: ScanSessionFields failed - dropping message" );
+            processedOffset += msgLen;
+            continue;
+        }
+
+        // CRITICAL: Dispatch BEFORE buffer compaction.
+        // NotifyObservers is synchronous — all observers complete before we return here.
+        // Linked views into msgStart remain valid for the entire notification chain.
+        DispatchIncomingMessage( msgStart, msgLen, fields );
+
+        // Check if dispatch triggered a disconnect (e.g., Logout handler closed connection)
+        if ( m_sessionState == STATE_DISCONNECTED )
+            return;  // buffer has been cleared, do not continue processing
+
+        processedOffset += msgLen;
+    }
+
+    // [S8] Safety clamp: processedOffset cannot exceed bufLen
+    if ( processedOffset > bufLen )
+        processedOffset = bufLen;
+
+    // Single memmove at the end — not per-message
+    if ( processedOffset > 0 )
+    {
+        CORE::UInt32 remainingBytes = bufLen - processedOffset;
+        if ( remainingBytes > 0 )
+        {
+            ::memmove( m_receiveBuffer.GetBufferPtr(),
+                       bufPtr + processedOffset,
+                       remainingBytes );
+        }
+        m_receiveBuffer.SetDataSize( remainingBytes );
     }
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::DispatchIncomingMessage( const CORE::CString& rawMsg )
+CFIXPubSubClient::DispatchIncomingMessage( const char* msgStart, CORE::UInt32 msgLen,
+                                            const CFIXSessionFields& fields )
 {GUCEF_TRACE;
 
-    CFIXMessage fixMsg;
-    if ( !CFIXMessage::Parse( rawMsg, fixMsg ) )
+    // Require at minimum a MsgType field
+    if ( GUCEF_NULL == fields.msgTypeStart )
     {
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::DispatchIncomingMessage: Failed to parse FIX message" );
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
+            "CFIXPubSubClient::DispatchIncomingMessage: Missing MsgType (tag 35) - dropping" );
         return;
     }
 
-    CORE::UInt64 incomingSeqNum = fixMsg.GetMsgSeqNumAsUInt64();
-    CORE::CString msgType = fixMsg.GetMsgType();
+    CORE::UInt64 incomingSeqNum = fields.seqNumVal;
 
-    // Sequence number gap detection (skip for SequenceReset which is allowed to reset)
-    if ( msgType != "4" && incomingSeqNum > 0 )
+    // Sequence number gap detection (skip for SequenceReset which resets seqnum)
+    if ( !FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "4" ) && incomingSeqNum > 0 )
     {
         if ( incomingSeqNum > m_expectedIncomingSeqNum )
         {
-            // Gap detected - request resend
-            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient: Sequence gap detected. Expected=" +
-                CORE::ToString( m_expectedIncomingSeqNum ) + " Got=" + CORE::ToString( incomingSeqNum ) );
+            // Gap detected — request resend
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
+                "CFIXPubSubClient: Sequence gap detected. Expected=" +
+                CORE::ToString( m_expectedIncomingSeqNum ) +
+                " Got=" + CORE::ToString( incomingSeqNum ) );
 
             if ( m_sessionState == STATE_ACTIVE )
             {
@@ -820,24 +1184,26 @@ CFIXPubSubClient::DispatchIncomingMessage( const CORE::CString& rawMsg )
                 m_tcpSocket.Send( resendReq.C_String(), (CORE::UInt32) resendReq.Length() );
                 ++m_outgoingSeqNum;
             }
-            // Still process the current message if it's not a PossDupFlag scenario
-            if ( fixMsg.HasField( CFIXMessage::TAG_POSS_DUP_FLAG ) &&
-                 fixMsg.GetField( CFIXMessage::TAG_POSS_DUP_FLAG ) == "Y" &&
+            // Still process the current message unless it is a PossDup duplicate
+            if ( GUCEF_NULL != fields.possDupFlagStart &&
+                 FieldMatchesValue( fields.possDupFlagStart, fields.possDupFlagLen, "Y" ) &&
                  incomingSeqNum < m_expectedIncomingSeqNum )
             {
-                return; // duplicate, skip
+                return;  // duplicate — skip
             }
         }
         else if ( incomingSeqNum < m_expectedIncomingSeqNum )
         {
-            // PossDupFlag check
-            if ( fixMsg.HasField( CFIXMessage::TAG_POSS_DUP_FLAG ) &&
-                 fixMsg.GetField( CFIXMessage::TAG_POSS_DUP_FLAG ) == "Y" )
+            // PossDupFlag check for already-processed messages
+            if ( GUCEF_NULL != fields.possDupFlagStart &&
+                 FieldMatchesValue( fields.possDupFlagStart, fields.possDupFlagLen, "Y" ) )
             {
-                return; // already processed, skip
+                return;  // already processed — skip
             }
-            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient: Unexpected lower seqnum. Expected=" +
-                CORE::ToString( m_expectedIncomingSeqNum ) + " Got=" + CORE::ToString( incomingSeqNum ) );
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
+                "CFIXPubSubClient: Unexpected lower seqnum. Expected=" +
+                CORE::ToString( m_expectedIncomingSeqNum ) +
+                " Got=" + CORE::ToString( incomingSeqNum ) );
         }
         else
         {
@@ -845,21 +1211,21 @@ CFIXPubSubClient::DispatchIncomingMessage( const CORE::CString& rawMsg )
         }
     }
 
-    // Dispatch by MsgType
-    if      ( msgType == "A" ) HandleLogon( fixMsg );
-    else if ( msgType == "5" ) HandleLogout( fixMsg );
-    else if ( msgType == "0" ) HandleHeartbeat( fixMsg );
-    else if ( msgType == "1" ) HandleTestRequest( fixMsg );
-    else if ( msgType == "2" ) HandleResendRequest( fixMsg );
-    else if ( msgType == "4" ) HandleSequenceReset( fixMsg );
-    else if ( msgType == "3" ) HandleReject( fixMsg );
+    // Dispatch by MsgType via direct char comparison — no CString allocation
+    if      ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "A" ) ) HandleLogon( msgStart, msgLen, fields );
+    else if ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "5" ) ) HandleLogout( msgStart, msgLen, fields );
+    else if ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "0" ) ) HandleHeartbeat( msgStart, msgLen, fields );
+    else if ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "1" ) ) HandleTestRequest( msgStart, msgLen, fields );
+    else if ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "2" ) ) HandleResendRequest( msgStart, msgLen, fields );
+    else if ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "4" ) ) HandleSequenceReset( msgStart, msgLen, fields );
+    else if ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "3" ) ) HandleReject( msgStart, msgLen, fields );
     else
     {
-        // Application message - route to topic
+        // Application message — route to all topics
         TTopicMap::iterator i = m_topicMap.begin();
         while ( i != m_topicMap.end() )
         {
-            (*i).second->OnApplicationMessage( fixMsg );
+            (*i).second->OnApplicationMessage( msgStart, msgLen, fields );
             ++i;
         }
     }
@@ -868,7 +1234,8 @@ CFIXPubSubClient::DispatchIncomingMessage( const CORE::CString& rawMsg )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleLogon( const CFIXMessage& msg )
+CFIXPubSubClient::HandleLogon( const char* msgStart, CORE::UInt32 msgLen,
+                                const CFIXSessionFields& fields )
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::HandleLogon: Logon accepted by counterparty" );
@@ -877,18 +1244,18 @@ CFIXPubSubClient::HandleLogon( const CFIXMessage& msg )
     m_sessionState = STATE_ACTIVE;
     m_heartbeatTimer->SetEnabled( true );
 
-    // If counterparty requests a seq reset
-    if ( msg.HasField( CFIXMessage::TAG_RESET_SEQ_NUM ) &&
-         msg.GetField( CFIXMessage::TAG_RESET_SEQ_NUM ) == "Y" )
+    // If counterparty requests a sequence reset (tag 141=Y)
+    if ( GUCEF_NULL != fields.resetFlagStart &&
+         FieldMatchesValue( fields.resetFlagStart, fields.resetFlagLen, "Y" ) )
     {
         m_expectedIncomingSeqNum = 1;
     }
 
-    // Also pass Logon to topics if configured
+    // Also pass Logon to topics if configured (includeSessionLevelMsgs)
     TTopicMap::iterator i = m_topicMap.begin();
     while ( i != m_topicMap.end() )
     {
-        (*i).second->OnApplicationMessage( msg );
+        (*i).second->OnApplicationMessage( msgStart, msgLen, fields );
         ++i;
     }
 }
@@ -896,7 +1263,8 @@ CFIXPubSubClient::HandleLogon( const CFIXMessage& msg )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleLogout( const CFIXMessage& msg )
+CFIXPubSubClient::HandleLogout( const char* msgStart, CORE::UInt32 msgLen,
+                                 const CFIXSessionFields& fields )
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::HandleLogout: Received Logout from counterparty" );
@@ -913,16 +1281,17 @@ CFIXPubSubClient::HandleLogout( const CFIXMessage& msg )
 
     m_heartbeatTimer->SetEnabled( false );
     m_sessionState = STATE_LOGGING_OUT;
-    m_tcpSocket.Close();
-    m_sessionState = STATE_DISCONNECTED;
 
-    // Also pass Logout to topics if configured
+    // Also pass Logout to topics if configured (before closing connection)
     TTopicMap::iterator i = m_topicMap.begin();
     while ( i != m_topicMap.end() )
     {
-        (*i).second->OnApplicationMessage( msg );
+        (*i).second->OnApplicationMessage( msgStart, msgLen, fields );
         ++i;
     }
+
+    m_tcpSocket.Close();
+    m_sessionState = STATE_DISCONNECTED;
 
     ScheduleReconnect();
 }
@@ -930,13 +1299,15 @@ CFIXPubSubClient::HandleLogout( const CFIXMessage& msg )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleHeartbeat( const CFIXMessage& msg )
+CFIXPubSubClient::HandleHeartbeat( const char* msgStart, CORE::UInt32 msgLen,
+                                    const CFIXSessionFields& fields )
 {GUCEF_TRACE;
 
     // If TestReqID is present, echo it back as a Heartbeat
-    if ( msg.HasField( CFIXMessage::TAG_TEST_REQ_ID ) )
+    if ( GUCEF_NULL != fields.testReqIdStart && fields.testReqIdLen > 0 )
     {
-        CORE::CString testReqId = msg.GetField( CFIXMessage::TAG_TEST_REQ_ID );
+        // Outgoing path: allocation acceptable (infrequent)
+        CORE::CString testReqId( fields.testReqIdStart, fields.testReqIdLen );
         CORE::CString heartbeat = CFIXMessage::BuildHeartbeat(
             m_fixConfig.senderCompId, m_fixConfig.targetCompId,
             m_fixConfig.fixVersion, m_outgoingSeqNum, testReqId );
@@ -948,7 +1319,7 @@ CFIXPubSubClient::HandleHeartbeat( const CFIXMessage& msg )
     TTopicMap::iterator i = m_topicMap.begin();
     while ( i != m_topicMap.end() )
     {
-        (*i).second->OnApplicationMessage( msg );
+        (*i).second->OnApplicationMessage( msgStart, msgLen, fields );
         ++i;
     }
 }
@@ -956,11 +1327,16 @@ CFIXPubSubClient::HandleHeartbeat( const CFIXMessage& msg )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleTestRequest( const CFIXMessage& msg )
+CFIXPubSubClient::HandleTestRequest( const char* msgStart, CORE::UInt32 msgLen,
+                                      const CFIXSessionFields& fields )
 {GUCEF_TRACE;
 
     // Reply with Heartbeat including the TestReqID
-    CORE::CString testReqId = msg.GetField( CFIXMessage::TAG_TEST_REQ_ID );
+    // Outgoing path: allocation acceptable (infrequent)
+    CORE::CString testReqId;
+    if ( GUCEF_NULL != fields.testReqIdStart && fields.testReqIdLen > 0 )
+        testReqId = CORE::CString( fields.testReqIdStart, fields.testReqIdLen );
+
     CORE::CString heartbeat = CFIXMessage::BuildHeartbeat(
         m_fixConfig.senderCompId, m_fixConfig.targetCompId,
         m_fixConfig.fixVersion, m_outgoingSeqNum, testReqId );
@@ -971,7 +1347,7 @@ CFIXPubSubClient::HandleTestRequest( const CFIXMessage& msg )
     TTopicMap::iterator i = m_topicMap.begin();
     while ( i != m_topicMap.end() )
     {
-        (*i).second->OnApplicationMessage( msg );
+        (*i).second->OnApplicationMessage( msgStart, msgLen, fields );
         ++i;
     }
 }
@@ -979,13 +1355,19 @@ CFIXPubSubClient::HandleTestRequest( const CFIXMessage& msg )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleResendRequest( const CFIXMessage& msg )
+CFIXPubSubClient::HandleResendRequest( const char* msgStart, CORE::UInt32 msgLen,
+                                        const CFIXSessionFields& fields )
 {GUCEF_TRACE;
 
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::HandleResendRequest: ResendRequest received - sending GapFill SequenceReset" );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL,
+        "CFIXPubSubClient::HandleResendRequest: ResendRequest received - sending GapFill SequenceReset" );
+
+    // Parse BeginSeqNo from fields — outgoing path, allocation acceptable
+    CORE::UInt64 beginSeqNo = 0;
+    if ( GUCEF_NULL != fields.beginSeqNoStart && fields.beginSeqNoLen > 0 )
+        beginSeqNo = ParseUInt64Inline( fields.beginSeqNoStart, fields.beginSeqNoLen );
 
     // For simplicity, respond with a SequenceReset-GapFill to catch up to current seqnum
-    CORE::UInt64 beginSeqNo = CORE::StringToUInt64( msg.GetField( CFIXMessage::TAG_BEGIN_SEQ_NO ) );
     CORE::CString seqReset = CFIXMessage::BuildSequenceReset(
         m_fixConfig.senderCompId, m_fixConfig.targetCompId,
         m_fixConfig.fixVersion, beginSeqNo, m_outgoingSeqNum, true /* gapFill */ );
@@ -995,13 +1377,19 @@ CFIXPubSubClient::HandleResendRequest( const CFIXMessage& msg )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleSequenceReset( const CFIXMessage& msg )
+CFIXPubSubClient::HandleSequenceReset( const char* msgStart, CORE::UInt32 msgLen,
+                                        const CFIXSessionFields& fields )
 {GUCEF_TRACE;
 
-    CORE::UInt64 newSeqNo = CORE::StringToUInt64( msg.GetField( CFIXMessage::TAG_NEW_SEQ_NO ) );
+    CORE::UInt64 newSeqNo = 0;
+    if ( GUCEF_NULL != fields.newSeqNoStart && fields.newSeqNoLen > 0 )
+        newSeqNo = ParseUInt64Inline( fields.newSeqNoStart, fields.newSeqNoLen );
+
     if ( newSeqNo > 0 )
     {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::HandleSequenceReset: Resetting expected incoming seq to " + CORE::ToString( newSeqNo ) );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL,
+            "CFIXPubSubClient::HandleSequenceReset: Resetting expected incoming seq to " +
+            CORE::ToString( newSeqNo ) );
         m_expectedIncomingSeqNum = newSeqNo;
     }
 
@@ -1009,7 +1397,7 @@ CFIXPubSubClient::HandleSequenceReset( const CFIXMessage& msg )
     TTopicMap::iterator i = m_topicMap.begin();
     while ( i != m_topicMap.end() )
     {
-        (*i).second->OnApplicationMessage( msg );
+        (*i).second->OnApplicationMessage( msgStart, msgLen, fields );
         ++i;
     }
 }
@@ -1017,16 +1405,18 @@ CFIXPubSubClient::HandleSequenceReset( const CFIXMessage& msg )
 /*-------------------------------------------------------------------------*/
 
 void
-CFIXPubSubClient::HandleReject( const CFIXMessage& msg )
+CFIXPubSubClient::HandleReject( const char* msgStart, CORE::UInt32 msgLen,
+                                 const CFIXSessionFields& fields )
 {GUCEF_TRACE;
 
-    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::HandleReject: Reject received from counterparty" );
+    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
+        "CFIXPubSubClient::HandleReject: Reject received from counterparty" );
 
     // Also pass to topics if configured
     TTopicMap::iterator i = m_topicMap.begin();
     while ( i != m_topicMap.end() )
     {
-        (*i).second->OnApplicationMessage( msg );
+        (*i).second->OnApplicationMessage( msgStart, msgLen, fields );
         ++i;
     }
 }
@@ -1069,14 +1459,7 @@ CFIXPubSubClient::OnTcpDisconnected( CORE::CNotifier* notifier    ,
     m_logonTimeoutTimer->SetEnabled( false );
     m_sessionState = STATE_DISCONNECTED;
     m_receiveBuffer.Clear();
-
-    // Notify topics of disconnection
-    TTopicMap::iterator i = m_topicMap.begin();
-    while ( i != m_topicMap.end() )
-    {
-        // Topics notice disconnect via IsConnected() returning false
-        ++i;
-    }
+    m_consecutiveChecksumFailures = 0;
 
     ScheduleReconnect();
 }
@@ -1122,6 +1505,7 @@ CFIXPubSubClient::OnTcpSocketError( CORE::CNotifier* notifier    ,
     m_logonTimeoutTimer->SetEnabled( false );
     m_sessionState = STATE_DISCONNECTED;
     m_receiveBuffer.Clear();
+    m_consecutiveChecksumFailures = 0;
     ScheduleReconnect();
 }
 
@@ -1155,7 +1539,8 @@ CFIXPubSubClient::OnLogonTimeoutTimerCycle( CORE::CNotifier* notifier    ,
 
     if ( m_sessionState == STATE_LOGGING_IN )
     {
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CFIXPubSubClient::OnLogonTimeoutTimerCycle: Logon timeout, disconnecting" );
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
+            "CFIXPubSubClient::OnLogonTimeoutTimerCycle: Logon timeout, disconnecting" );
         m_logonTimeoutTimer->SetEnabled( false );
         m_tcpSocket.Close();
         m_sessionState = STATE_DISCONNECTED;

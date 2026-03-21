@@ -11,13 +11,14 @@
 
 # Configuration for module: pubsubpluginFIX
 
-set( HEADER_FILES 
+set( HEADER_FILES
   include/pubsubpluginFIX.h
   include/pubsubpluginFIX_CFIXMessage.h
   include/pubsubpluginFIX_CFIXPubSubClient.h
   include/pubsubpluginFIX_CFIXPubSubClientConfig.h
   include/pubsubpluginFIX_CFIXPubSubClientTopic.h
   include/pubsubpluginFIX_CFIXPubSubClientTopicConfig.h
+  include/pubsubpluginFIX_CFIXSessionFields.h
   include/pubsubpluginFIX_config.h
   include/pubsubpluginFIX_macros.h
 )

@@ -60,6 +60,11 @@
 #define PUBSUBPLUGIN_FIX_CFIXMESSAGE_H
 #endif /* PUBSUBPLUGIN_FIX_CFIXMESSAGE_H ? */
 
+#ifndef PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H
+#include "pubsubpluginFIX_CFIXSessionFields.h"
+#define PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H
+#endif /* PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H ? */
+
 #ifndef PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTCONFIG_H
 #include "pubsubpluginFIX_CFIXPubSubClientConfig.h"
 #define PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTCONFIG_H
@@ -90,6 +95,10 @@ namespace FIX {
  *  PubSub client that establishes a FIX protocol session over TCP.
  *  Manages the full FIX session lifecycle (Logon → Active → Logout)
  *  and maps received application messages onto a single pubsub topic.
+ *
+ *  Receive path is zero-copy: raw FIX wire bytes are delivered as linked
+ *  ASCII_STRING views into the receive buffer. Session fields are scanned
+ *  inline (no map allocation). Buffer compaction happens AFTER dispatch.
  */
 class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClient : public PUBSUB::CPubSubClient
 {
@@ -193,17 +202,39 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClient : public PUBSUB::CPub
 
     void ProcessReceiveBuffer( void );
 
-    void DispatchIncomingMessage( const CORE::CString& rawMsg );
+    void DispatchIncomingMessage( const char* msgStart, CORE::UInt32 msgLen,
+                                  const CFIXSessionFields& fields );
 
-    void HandleLogon( const CFIXMessage& msg );
-    void HandleLogout( const CFIXMessage& msg );
-    void HandleHeartbeat( const CFIXMessage& msg );
-    void HandleTestRequest( const CFIXMessage& msg );
-    void HandleResendRequest( const CFIXMessage& msg );
-    void HandleSequenceReset( const CFIXMessage& msg );
-    void HandleReject( const CFIXMessage& msg );
+    void HandleLogon( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
+    void HandleLogout( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
+    void HandleHeartbeat( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
+    void HandleTestRequest( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
+    void HandleResendRequest( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
+    void HandleSequenceReset( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
+    void HandleReject( const char* msgStart, CORE::UInt32 msgLen, const CFIXSessionFields& fields );
 
     void ScheduleReconnect( void );
+
+    /**
+     *  Single-pass session-field scanner.
+     *  Sets raw pointer views into the message buffer for all session-relevant tags.
+     *  Strictly bounded to [msgStart, msgStart+msgLen).
+     *  Returns false if the message is structurally malformed.
+     */
+    static bool ScanSessionFields( const char* msgStart, CORE::UInt32 msgLen,
+                                   CFIXSessionFields& outFields );
+
+    /**
+     *  Parse a decimal integer inline from raw bytes.
+     *  Returns 0 if len==0, len>20, or any non-digit character is found. [S4]
+     */
+    static CORE::UInt64 ParseUInt64Inline( const char* s, CORE::UInt32 len );
+
+    /**
+     *  Compare a raw field value against a null-terminated expected string.
+     */
+    static bool FieldMatchesValue( const char* fieldStart, CORE::UInt32 fieldLen,
+                                   const char* expected );
 
     void
     OnTcpConnected( CORE::CNotifier* notifier    ,
@@ -257,6 +288,7 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClient : public PUBSUB::CPub
     CORE::UInt64               m_outgoingSeqNum;
     CORE::UInt64               m_expectedIncomingSeqNum;
     ESessionState              m_sessionState;
+    CORE::UInt32               m_consecutiveChecksumFailures;
     MT::CMutex                 m_lock;
     bool                       m_initialized;
 };

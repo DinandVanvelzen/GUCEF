@@ -35,11 +35,6 @@
 #define GUCEF_CORE_ETYPES_H
 #endif /* GUCEF_CORE_ETYPES_H ? */
 
-#ifndef GUCEF_STL_H
-#include "gucef_stl.h"
-#define GUCEF_STL_H
-#endif /* GUCEF_STL_H ? */
-
 #ifndef PUBSUBPLUGIN_FIX_MACROS_H
 #include "pubsubpluginFIX_macros.h"
 #define PUBSUBPLUGIN_FIX_MACROS_H
@@ -62,11 +57,14 @@ namespace FIX {
 //-------------------------------------------------------------------------*/
 
 /**
- *  FIX (Financial Information eXchange) protocol message parser and builder.
- *  Handles FIX 4.2, 4.4 and FIXT 1.1 session and application messages.
+ *  FIX (Financial Information eXchange) protocol session message builder.
+ *  Provides static builders for all FIX session-level messages.
  *
  *  Wire format uses SOH (ASCII 0x01) as field delimiter.
  *  Fields are TAG=VALUE\x01 pairs.
+ *
+ *  Note: Parsing is now done zero-copy via CFIXSessionFields + ScanSessionFields
+ *  in CFIXPubSubClient. This class is builder-only.
  */
 class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXMessage
 {
@@ -75,7 +73,7 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXMessage
     // SOH delimiter character used in FIX protocol
     static const char SOH;
 
-    // FIX standard tag numbers
+    // FIX standard tag numbers (used by session scanner and topic metadata keys)
     static const CORE::UInt32 TAG_BEGIN_STRING    = 8;
     static const CORE::UInt32 TAG_BODY_LENGTH     = 9;
     static const CORE::UInt32 TAG_MSG_TYPE        = 35;
@@ -93,48 +91,6 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXMessage
     static const CORE::UInt32 TAG_HEARTBT_INT     = 108;
     static const CORE::UInt32 TAG_RESET_SEQ_NUM   = 141;
     static const CORE::UInt32 TAG_APPL_VER_ID     = 1128;
-
-    typedef GUCEF::map< CORE::UInt32, CORE::CString > TFixFieldMap;
-
-    CFIXMessage( void );
-
-    CFIXMessage( const CFIXMessage& src );
-
-    ~CFIXMessage();
-
-    CFIXMessage& operator=( const CFIXMessage& src );
-
-    /**
-     *  Parse a raw FIX message string into a CFIXMessage object.
-     *  Validates BodyLength (tag 9) and CheckSum (tag 10).
-     *
-     *  @param raw  The raw FIX message bytes (SOH-delimited)
-     *  @param out  Output object to populate with parsed fields
-     *  @return true if parsing and validation succeeded
-     */
-    static bool Parse( const CORE::CString& raw, CFIXMessage& out );
-
-    /**
-     *  Get the value of a FIX field by tag number.
-     *
-     *  @param tag        The FIX tag number
-     *  @param defaultVal Value to return if tag not present
-     *  @return The field value string, or defaultVal
-     */
-    CORE::CString GetField( CORE::UInt32 tag, const CORE::CString& defaultVal = CORE::CString::Empty ) const;
-
-    bool HasField( CORE::UInt32 tag ) const;
-
-    CORE::CString GetMsgType( void ) const;        // tag 35
-    CORE::CString GetMsgSeqNum( void ) const;      // tag 34
-    CORE::CString GetBeginString( void ) const;    // tag 8
-    CORE::UInt64  GetMsgSeqNumAsUInt64( void ) const;
-
-    const CORE::CString& GetRawMessage( void ) const;
-
-    bool IsValid( void ) const;
-
-    const TFixFieldMap& GetFields( void ) const;
 
     // --- Session message builders ---
 
@@ -228,12 +184,6 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXMessage
      *  Get current UTC time formatted as FIX SendingTime (YYYYMMDD-HH:MM:SS)
      */
     static CORE::CString GetCurrentSendingTime( void );
-
-    private:
-
-    TFixFieldMap  m_fields;
-    CORE::CString m_rawMessage;
-    bool          m_isValid;
 };
 
 /*-------------------------------------------------------------------------//

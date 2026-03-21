@@ -95,9 +95,6 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClientTopicConfig :
     // Whether to pass FIX session-level messages (Heartbeat, Logon, etc.) to subscribers
     bool includeSessionLevelMsgs;     // default=false
 
-    // Whether to emit all FIX tags as key-value pairs on the pubsub message
-    bool parseFieldsAsKeyValues;      // default=true
-
     // Comma-separated MsgTypes to pass through; empty = pass all
     CORE::CString msgTypeFilter;
 };

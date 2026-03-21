@@ -45,6 +45,11 @@
 #define PUBSUBPLUGIN_FIX_CFIXMESSAGE_H
 #endif /* PUBSUBPLUGIN_FIX_CFIXMESSAGE_H ? */
 
+#ifndef PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H
+#include "pubsubpluginFIX_CFIXSessionFields.h"
+#define PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H
+#endif /* PUBSUBPLUGIN_FIX_CFIXSESSIONFIELDS_H ? */
+
 #ifndef PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPICCONFIG_H
 #include "pubsubpluginFIX_CFIXPubSubClientTopicConfig.h"
 #define PUBSUBPLUGIN_FIX_CFIXPUBSUBCLIENTTOPICCONFIG_H
@@ -122,10 +127,17 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClientTopic :
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /**
-     *  Called by CFIXPubSubClient when a new application-level FIX message arrives.
-     *  Converts it to a pubsub message and fires MsgsRecievedEvent.
+     *  Called by CFIXPubSubClient when a new FIX message arrives (application or session level).
+     *  Delivers raw FIX wire bytes as ASCII_STRING primary payload (linked, zero-copy).
+     *  Delivers essential session fields as numeric UInt32 tag-keyed metadata (linked, zero-copy).
+     *  Fires MsgsRecievedEvent synchronously — linked views are valid until this call returns.
+     *
+     *  @param msgStart  Pointer into receive buffer (valid until ProcessReceiveBuffer compacts)
+     *  @param msgLen    Total byte length of the complete FIX message including tag 10
+     *  @param fields    Pre-scanned session fields (raw pointers into receive buffer)
      */
-    void OnApplicationMessage( const CFIXMessage& fixMsg );
+    void OnApplicationMessage( const char* msgStart, CORE::UInt32 msgLen,
+                                const CFIXSessionFields& fields );
 
     const CFIXPubSubClientTopicConfig& GetTopicConfig( void ) const;
 
@@ -139,7 +151,7 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXPubSubClientTopic :
     typedef CORE::CTEventHandlerFunctor< CFIXPubSubClientTopic > TEventCallback;
     typedef GUCEF::vector< PUBSUB::CBasicPubSubMsg > TPubSubMsgsVector;
 
-    bool IsMsgTypePassedByFilter( const CORE::CString& msgType ) const;
+    bool IsMsgTypePassedByFilter( const char* msgType, CORE::UInt32 msgTypeLen ) const;
 
     private:
 

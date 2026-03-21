@@ -50,6 +50,9 @@ CFIXPubSubClientConfig::CFIXPubSubClientConfig( void )
     , logonTimeoutInMs( 10000 )
     , useSsl( false )
     , allowPublishing( false )
+    , maxMsgSizeBytes( 65536 )
+    , disableChecksumValidation( false )
+    , maxConsecutiveChecksumFailures( 3 )
 {GUCEF_TRACE;
 }
 
@@ -65,6 +68,9 @@ CFIXPubSubClientConfig::CFIXPubSubClientConfig( const PUBSUB::CPubSubClientConfi
     , logonTimeoutInMs( 10000 )
     , useSsl( false )
     , allowPublishing( false )
+    , maxMsgSizeBytes( 65536 )
+    , disableChecksumValidation( false )
+    , maxConsecutiveChecksumFailures( 3 )
 {GUCEF_TRACE;
 
     LoadCustomConfig( genericConfig.customConfig );
@@ -99,14 +105,17 @@ CFIXPubSubClientConfig::operator=( const CFIXPubSubClientConfig& src )
     if ( &src != this )
     {
         PUBSUB::CPubSubClientConfig::operator=( src );
-        senderCompId         = src.senderCompId;
-        targetCompId         = src.targetCompId;
-        fixVersion           = src.fixVersion;
-        heartbeatIntervalSecs = src.heartbeatIntervalSecs;
-        resetSeqNumOnLogon   = src.resetSeqNumOnLogon;
-        logonTimeoutInMs     = src.logonTimeoutInMs;
-        useSsl               = src.useSsl;
-        allowPublishing      = src.allowPublishing;
+        senderCompId                    = src.senderCompId;
+        targetCompId                    = src.targetCompId;
+        fixVersion                      = src.fixVersion;
+        heartbeatIntervalSecs           = src.heartbeatIntervalSecs;
+        resetSeqNumOnLogon              = src.resetSeqNumOnLogon;
+        logonTimeoutInMs                = src.logonTimeoutInMs;
+        useSsl                          = src.useSsl;
+        allowPublishing                 = src.allowPublishing;
+        maxMsgSizeBytes                 = src.maxMsgSizeBytes;
+        disableChecksumValidation       = src.disableChecksumValidation;
+        maxConsecutiveChecksumFailures  = src.maxConsecutiveChecksumFailures;
     }
     return *this;
 }
@@ -117,14 +126,17 @@ bool
 CFIXPubSubClientConfig::LoadCustomConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
 
-    senderCompId         = config.GetAttributeValueOrChildValueByName( "senderCompId" ).AsString( senderCompId, true );
-    targetCompId         = config.GetAttributeValueOrChildValueByName( "targetCompId" ).AsString( targetCompId, true );
-    fixVersion           = config.GetAttributeValueOrChildValueByName( "fixVersion" ).AsString( fixVersion, true );
-    heartbeatIntervalSecs = config.GetAttributeValueOrChildValueByName( "heartbeatIntervalSecs" ).AsUInt32( heartbeatIntervalSecs, true );
-    resetSeqNumOnLogon   = config.GetAttributeValueOrChildValueByName( "resetSeqNumOnLogon" ).AsBool( resetSeqNumOnLogon, true );
-    logonTimeoutInMs     = config.GetAttributeValueOrChildValueByName( "logonTimeoutInMs" ).AsUInt32( logonTimeoutInMs, true );
-    useSsl               = config.GetAttributeValueOrChildValueByName( "useSsl" ).AsBool( useSsl, true );
-    allowPublishing      = config.GetAttributeValueOrChildValueByName( "allowPublishing" ).AsBool( allowPublishing, true );
+    senderCompId                   = config.GetAttributeValueOrChildValueByName( "senderCompId" ).AsString( senderCompId, true );
+    targetCompId                   = config.GetAttributeValueOrChildValueByName( "targetCompId" ).AsString( targetCompId, true );
+    fixVersion                     = config.GetAttributeValueOrChildValueByName( "fixVersion" ).AsString( fixVersion, true );
+    heartbeatIntervalSecs          = config.GetAttributeValueOrChildValueByName( "heartbeatIntervalSecs" ).AsUInt32( heartbeatIntervalSecs, true );
+    resetSeqNumOnLogon             = config.GetAttributeValueOrChildValueByName( "resetSeqNumOnLogon" ).AsBool( resetSeqNumOnLogon, true );
+    logonTimeoutInMs               = config.GetAttributeValueOrChildValueByName( "logonTimeoutInMs" ).AsUInt32( logonTimeoutInMs, true );
+    useSsl                         = config.GetAttributeValueOrChildValueByName( "useSsl" ).AsBool( useSsl, true );
+    allowPublishing                = config.GetAttributeValueOrChildValueByName( "allowPublishing" ).AsBool( allowPublishing, true );
+    maxMsgSizeBytes                = config.GetAttributeValueOrChildValueByName( "maxMsgSizeBytes" ).AsUInt32( maxMsgSizeBytes, true );
+    disableChecksumValidation      = config.GetAttributeValueOrChildValueByName( "disableChecksumValidation" ).AsBool( disableChecksumValidation, true );
+    maxConsecutiveChecksumFailures = config.GetAttributeValueOrChildValueByName( "maxConsecutiveChecksumFailures" ).AsUInt32( maxConsecutiveChecksumFailures, true );
     return true;
 }
 
@@ -134,14 +146,17 @@ bool
 CFIXPubSubClientConfig::SaveCustomConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
 
-    config.SetAttribute( "senderCompId",          senderCompId );
-    config.SetAttribute( "targetCompId",          targetCompId );
-    config.SetAttribute( "fixVersion",            fixVersion );
-    config.SetAttribute( "heartbeatIntervalSecs", heartbeatIntervalSecs );
-    config.SetAttribute( "resetSeqNumOnLogon",    resetSeqNumOnLogon );
-    config.SetAttribute( "logonTimeoutInMs",      logonTimeoutInMs );
-    config.SetAttribute( "useSsl",                useSsl );
-    config.SetAttribute( "allowPublishing",       allowPublishing );
+    config.SetAttribute( "senderCompId",                   senderCompId );
+    config.SetAttribute( "targetCompId",                   targetCompId );
+    config.SetAttribute( "fixVersion",                     fixVersion );
+    config.SetAttribute( "heartbeatIntervalSecs",          heartbeatIntervalSecs );
+    config.SetAttribute( "resetSeqNumOnLogon",             resetSeqNumOnLogon );
+    config.SetAttribute( "logonTimeoutInMs",               logonTimeoutInMs );
+    config.SetAttribute( "useSsl",                         useSsl );
+    config.SetAttribute( "allowPublishing",                allowPublishing );
+    config.SetAttribute( "maxMsgSizeBytes",                maxMsgSizeBytes );
+    config.SetAttribute( "disableChecksumValidation",      disableChecksumValidation );
+    config.SetAttribute( "maxConsecutiveChecksumFailures", maxConsecutiveChecksumFailures );
     return true;
 }
 
