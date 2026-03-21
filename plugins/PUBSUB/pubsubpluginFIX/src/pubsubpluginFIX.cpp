@@ -37,6 +37,11 @@
 #define PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENT_H
 #endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTPUBSUBCLIENT_H ? */
 
+#ifndef PUBSUBPLUGIN_FIX_CFIXSERVERPUBSUBCLIENT_H
+#include "pubsubpluginFIX_CFIXServerPubSubClient.h"
+#define PUBSUBPLUGIN_FIX_CFIXSERVERPUBSUBCLIENT_H
+#endif /* PUBSUBPLUGIN_FIX_CFIXSERVERPUBSUBCLIENT_H ? */
+
 #include "pubsubpluginFIX.h"
 
 /*-------------------------------------------------------------------------//
@@ -56,6 +61,7 @@ namespace FIX {
 //-------------------------------------------------------------------------*/
 
 typedef CORE::CTFactoryWithParam< PUBSUB::CPubSubClient, CFIXClientPubSubClient, PUBSUB::CPubSubClientConfig, MT::CMutex >    TFIXClientPubSubClientFactory;
+typedef CORE::CTFactoryWithParam< PUBSUB::CPubSubClient, CFIXServerPubSubClient, PUBSUB::CPubSubClientConfig, MT::CMutex >    TFIXServerPubSubClientFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -64,6 +70,7 @@ typedef CORE::CTFactoryWithParam< PUBSUB::CPubSubClient, CFIXClientPubSubClient,
 //-------------------------------------------------------------------------*/
 
 TFIXClientPubSubClientFactory g_fixClientPubSubClientFactory;
+TFIXServerPubSubClientFactory g_fixServerPubSubClientFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -78,6 +85,7 @@ GUCEFPlugin_Load( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_S
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GUCEFPlugin_Load: Load called on PUBSUB plugin FIX" );
 
     PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory().RegisterConcreteFactory( CFIXClientPubSubClient::TypeName, &g_fixClientPubSubClientFactory );
+    PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory().RegisterConcreteFactory( CFIXServerPubSubClient::TypeName, &g_fixServerPubSubClientFactory );
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GUCEFPlugin_Load: Load finished for PUBSUB plugin FIX" );
     return 1;
@@ -92,6 +100,7 @@ GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GUCEFPlugin_Unload: Unload called on PUBSUB plugin FIX" );
 
     PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory().UnregisterConcreteFactory( CFIXClientPubSubClient::TypeName );
+    PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory().UnregisterConcreteFactory( CFIXServerPubSubClient::TypeName );
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GUCEFPlugin_Unload: Unload finished for PUBSUB plugin FIX" );
 }

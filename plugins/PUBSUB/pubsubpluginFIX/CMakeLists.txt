@@ -19,6 +19,10 @@ set( HEADER_FILES
   include/pubsubpluginFIX_CFIXClientPubSubClientTopic.h
   include/pubsubpluginFIX_CFIXClientPubSubClientTopicConfig.h
   include/pubsubpluginFIX_CFIXClientSessionFields.h
+  include/pubsubpluginFIX_CFIXServerPubSubClient.h
+  include/pubsubpluginFIX_CFIXServerPubSubClientConfig.h
+  include/pubsubpluginFIX_CFIXServerPubSubClientTopic.h
+  include/pubsubpluginFIX_CFIXServerPubSubClientTopicConfig.h
   include/pubsubpluginFIX_config.h
   include/pubsubpluginFIX_macros.h
 )
@@ -30,6 +34,10 @@ set( SOURCE_FILES
   src/pubsubpluginFIX_CFIXClientPubSubClientConfig.cpp
   src/pubsubpluginFIX_CFIXClientPubSubClientTopic.cpp
   src/pubsubpluginFIX_CFIXClientPubSubClientTopicConfig.cpp
+  src/pubsubpluginFIX_CFIXServerPubSubClient.cpp
+  src/pubsubpluginFIX_CFIXServerPubSubClientConfig.cpp
+  src/pubsubpluginFIX_CFIXServerPubSubClientTopic.cpp
+  src/pubsubpluginFIX_CFIXServerPubSubClientTopicConfig.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined

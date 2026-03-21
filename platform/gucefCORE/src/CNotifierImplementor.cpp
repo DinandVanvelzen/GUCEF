@@ -131,6 +131,12 @@ CNotifierImplementor::~CNotifierImplementor()
      *  causes undefined behavior possibly resulting in a crash.
      *  If you hit this assert then you have found a bug in the logic of this class
      */
+    if ( m_isBusy )
+    {
+        GUCEF_ERROR_LOG( LOGLEVEL_CRITICAL, "CNotifierImplementor DESTROYED WHILE BUSY! Owner class: " +
+            ( m_ownerNotifier != GUCEF_NULL ? m_ownerNotifier->GetClassTypeName() : CString( "NULL" ) ) +
+            " ptr=" + PointerToString( m_ownerNotifier ) );
+    }
     assert( !m_isBusy );
 
     UnsubscribeAllFromNotifier( false );

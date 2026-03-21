@@ -250,6 +250,156 @@ CFIXClientMessage::BuildSequenceReset( const CORE::CAsciiString& senderCompId ,
     return FinalizeMsg( fixVersion, body );
 }
 
+// [S4] Parse decimal integer inline. Returns 0 on overflow or non-digit.
+CORE::UInt64
+CFIXClientMessage::ParseUInt64Inline( const char* s, CORE::UInt32 len )
+{
+    if ( len == 0 || len > 20 )
+        return 0;  // [S4] overflow guard: a 21-digit string overflows UInt64
+    CORE::UInt64 r = 0;
+    for ( CORE::UInt32 i = 0; i < len; ++i )
+    {
+        if ( s[ i ] < '0' || s[ i ] > '9' )
+            return 0;  // [S4] non-digit guard
+        r = r * 10 + ( (CORE::UInt8)s[ i ] - '0' );
+    }
+    return r;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFIXClientMessage::FieldMatchesValue( const char* fieldStart ,
+                                      CORE::UInt32 fieldLen  ,
+                                      const char* expected   )
+{
+    if ( GUCEF_NULL == fieldStart || GUCEF_NULL == expected )
+        return false;
+    CORE::UInt32 expectedLen = (CORE::UInt32) ::strlen( expected );
+    if ( fieldLen != expectedLen )
+        return false;
+    return ::memcmp( fieldStart, expected, fieldLen ) == 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFIXClientMessage::ScanSessionFields( const char* msgStart               ,
+                                      CORE::UInt32 msgLen                ,
+                                      CFIXClientSessionFields& outFields )
+{
+    // Maximum value length we accept for any session-level field we store [S3]
+    static const CORE::UInt32 MAX_SESSION_FIELD_VALUE_LEN = 256;
+    // Maximum tag number digits [S6]
+    static const CORE::UInt32 MAX_TAG_DIGITS = 6;
+
+    const char  soh    = CFIXClientMessage::SOH;
+    const char* msgEnd = msgStart + msgLen;
+    const char* pos    = msgStart;
+
+    while ( pos < msgEnd )
+    {
+        // [S6] Parse tag number: max MAX_TAG_DIGITS ASCII digits before '='
+        CORE::UInt32 tag        = 0;
+        CORE::UInt32 digitCount = 0;
+        while ( pos < msgEnd && digitCount < MAX_TAG_DIGITS )
+        {
+            char c = *pos;
+            if ( c == '=' )
+                break;
+            if ( c < '0' || c > '9' )
+                return false;  // [S6] non-digit before '=' — malformed
+            tag = tag * 10 + (CORE::UInt32)( (CORE::UInt8)c - '0' );
+            ++pos;
+            ++digitCount;
+        }
+        if ( pos >= msgEnd )
+            break;  // end of message (normal after last field's SOH)
+        if ( *pos != '=' )
+        {
+            // More than MAX_TAG_DIGITS digits or non-'=' after digits — malformed [S6]
+            if ( digitCount >= MAX_TAG_DIGITS )
+                return false;
+            break;  // likely end of data
+        }
+        ++pos;  // skip '='
+
+        // [S3] Scan value until SOH, strictly bounded within [msgStart, msgEnd)
+        const char* valueStart = pos;
+        while ( pos < msgEnd && *pos != soh )
+            ++pos;
+        if ( pos >= msgEnd )
+            return false;  // [S3] malformed — no SOH terminating this field value
+
+        CORE::UInt32 valueLen = (CORE::UInt32)( pos - valueStart );
+        ++pos;  // skip SOH
+
+        // Store only session-relevant fields; apply [S3] cap only to fields we record
+        switch ( tag )
+        {
+            case 8:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.beginStringStart = valueStart;
+                outFields.beginStringLen   = valueLen;
+                break;
+            case 34:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.seqNumStart = valueStart;
+                outFields.seqNumLen   = valueLen;
+                outFields.seqNumVal   = ParseUInt64Inline( valueStart, valueLen );  // [S4]
+                break;
+            case 35:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.msgTypeStart = valueStart;
+                outFields.msgTypeLen   = valueLen;
+                break;
+            case 43:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.possDupFlagStart = valueStart;
+                outFields.possDupFlagLen   = valueLen;
+                break;
+            case 49:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.senderStart = valueStart;
+                outFields.senderLen   = valueLen;
+                break;
+            case 56:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.targetStart = valueStart;
+                outFields.targetLen   = valueLen;
+                break;
+            case 7:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.beginSeqNoStart = valueStart;
+                outFields.beginSeqNoLen   = valueLen;
+                break;
+            case 36:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.newSeqNoStart = valueStart;
+                outFields.newSeqNoLen   = valueLen;
+                break;
+            case 108:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.hbIntStart = valueStart;
+                outFields.hbIntLen   = valueLen;
+                break;
+            case 112:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.testReqIdStart = valueStart;
+                outFields.testReqIdLen   = valueLen;
+                break;
+            case 141:
+                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
+                outFields.resetFlagStart = valueStart;
+                outFields.resetFlagLen   = valueLen;
+                break;
+            default:
+                break;  // skip non-session fields — no cap, no allocation
+        }
+    }
+    return true;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

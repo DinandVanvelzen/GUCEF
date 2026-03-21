@@ -230,29 +230,6 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXClientPubSubClient : public PUBSUB
 
     void ScheduleReconnect( void );
 
-    /**
-     *  Single-pass session-field scanner.
-     *  Sets raw pointer views into the message buffer for all session-relevant tags.
-     *  Strictly bounded to [msgStart, msgStart+msgLen).
-     *  Returns false if the message is structurally malformed.
-     */
-    static bool ScanSessionFields( const char* msgStart               ,
-                                   CORE::UInt32 msgLen                ,
-                                   CFIXClientSessionFields& outFields );
-
-    /**
-     *  Parse a decimal integer inline from raw bytes.
-     *  Returns 0 if len==0, len>20, or any non-digit character is found. [S4]
-     */
-    static CORE::UInt64 ParseUInt64Inline( const char* s, CORE::UInt32 len );
-
-    /**
-     *  Compare a raw field value against a null-terminated expected string.
-     */
-    static bool FieldMatchesValue( const char* fieldStart ,
-                                   CORE::UInt32 fieldLen  ,
-                                   const char* expected   );
-
     void
     OnTcpConnected( CORE::CNotifier* notifier    ,
                     const CORE::CEvent& eventId  ,

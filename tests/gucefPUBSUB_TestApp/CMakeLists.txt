@@ -25,6 +25,7 @@ set( HEADER_FILES
   include/TestPubSubPlugin_AWSSNS.h
   include/TestPubSubPlugin_AWSSQS.h
   include/TestPubSubPlugin_FIX.h
+  include/TestPubSubPlugin_FIX_Integration.h
   include/TestPubSubPlugin_KAFKA.h
   include/TestPubSubPlugin_MSMQ.h
   include/TestPubSubPlugin_REDISCLUSTER.h
@@ -48,6 +49,7 @@ set( SOURCE_FILES
   src/TestPubSubPlugin_AWSSNS.cpp
   src/TestPubSubPlugin_AWSSQS.cpp
   src/TestPubSubPlugin_FIX.cpp
+  src/TestPubSubPlugin_FIX_Integration.cpp
   src/TestPubSubPlugin_KAFKA.cpp
   src/TestPubSubPlugin_MSMQ.cpp
   src/TestPubSubPlugin_REDISCLUSTER.cpp

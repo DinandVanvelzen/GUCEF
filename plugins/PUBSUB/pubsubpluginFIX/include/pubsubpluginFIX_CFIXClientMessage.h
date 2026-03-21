@@ -35,6 +35,11 @@
 #define GUCEF_CORE_ETYPES_H
 #endif /* GUCEF_CORE_ETYPES_H ? */
 
+#ifndef PUBSUBPLUGIN_FIX_CFIXCLIENTSESSIONFIELDS_H
+#include "pubsubpluginFIX_CFIXClientSessionFields.h"
+#define PUBSUBPLUGIN_FIX_CFIXCLIENTSESSIONFIELDS_H
+#endif /* PUBSUBPLUGIN_FIX_CFIXCLIENTSESSIONFIELDS_H ? */
+
 #ifndef PUBSUBPLUGIN_FIX_MACROS_H
 #include "pubsubpluginFIX_macros.h"
 #define PUBSUBPLUGIN_FIX_MACROS_H
@@ -91,6 +96,31 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXClientMessage
     static const CORE::UInt32 TAG_HEARTBT_INT     = 108;
     static const CORE::UInt32 TAG_RESET_SEQ_NUM   = 141;
     static const CORE::UInt32 TAG_APPL_VER_ID     = 1128;
+
+    // --- Zero-copy session field parsing helpers (shared by client and server) ---
+
+    /**
+     *  Single-pass session-field scanner.
+     *  Sets raw pointer views into the message buffer for all session-relevant tags.
+     *  Strictly bounded to [msgStart, msgStart+msgLen).
+     *  Returns false if the message is structurally malformed.
+     */
+    static bool ScanSessionFields( const char* msgStart               ,
+                                   CORE::UInt32 msgLen                ,
+                                   CFIXClientSessionFields& outFields );
+
+    /**
+     *  Parse a decimal integer inline from raw bytes.
+     *  Returns 0 if len==0, len>20, or any non-digit character is found. [S4]
+     */
+    static CORE::UInt64 ParseUInt64Inline( const char* s, CORE::UInt32 len );
+
+    /**
+     *  Compare a raw field value against a null-terminated expected string.
+     */
+    static bool FieldMatchesValue( const char* fieldStart ,
+                                   CORE::UInt32 fieldLen  ,
+                                   const char* expected   );
 
     // --- Session message builders ---
 

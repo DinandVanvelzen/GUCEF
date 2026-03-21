@@ -309,6 +309,16 @@ PerformPubSubPlugin_FIXTests( void )
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END
 
+    // Test 7: Verify the plugin also registers the FIXServer client type
+    GUCEF_TESTFW_TESTCASE( "Test 7: Plugin registers \"FIXServer\" client type in PubSubClientFactory" )
+        try
+        {
+            PUBSUB::CPubSubClientFactory& factory = PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory();
+            ASSERT_TRUE( factory.IsConstructible( "FIXServer" ) );
+        }
+        catch ( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
     pluginControl.UnloadPluginGroup( "pubsubpluginFIX_tests" );
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL pubsubpluginFIX backend TESTS COMPLETED" );

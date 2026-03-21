@@ -739,155 +739,7 @@ CFIXClientPubSubClient::ScheduleReconnect( void )
 
 /*-------------------------------------------------------------------------*/
 
-// [S4] Parse decimal integer inline. Returns 0 on overflow or non-digit.
-CORE::UInt64
-CFIXClientPubSubClient::ParseUInt64Inline( const char* s, CORE::UInt32 len )
-{
-    if ( len == 0 || len > 20 )
-        return 0;  // [S4] overflow guard: a 21-digit string overflows UInt64
-    CORE::UInt64 r = 0;
-    for ( CORE::UInt32 i = 0; i < len; ++i )
-    {
-        if ( s[ i ] < '0' || s[ i ] > '9' )
-            return 0;  // [S4] non-digit guard
-        r = r * 10 + ( (CORE::UInt8)s[ i ] - '0' );
-    }
-    return r;
-}
-
 /*-------------------------------------------------------------------------*/
-
-bool
-CFIXClientPubSubClient::FieldMatchesValue( const char* fieldStart ,
-                                           CORE::UInt32 fieldLen  ,
-                                           const char* expected   )
-{
-    if ( GUCEF_NULL == fieldStart || GUCEF_NULL == expected )
-        return false;
-    CORE::UInt32 expectedLen = (CORE::UInt32) ::strlen( expected );
-    if ( fieldLen != expectedLen )
-        return false;
-    return ::memcmp( fieldStart, expected, fieldLen ) == 0;
-}
-
-/*-------------------------------------------------------------------------*/
-
-bool
-CFIXClientPubSubClient::ScanSessionFields( const char* msgStart               ,
-                                           CORE::UInt32 msgLen                ,
-                                           CFIXClientSessionFields& outFields )
-{
-    // Maximum value length we accept for any session-level field we store [S3]
-    static const CORE::UInt32 MAX_SESSION_FIELD_VALUE_LEN = 256;
-    // Maximum tag number digits [S6]
-    static const CORE::UInt32 MAX_TAG_DIGITS = 6;
-
-    const char  SOH    = CFIXClientMessage::SOH;
-    const char* msgEnd = msgStart + msgLen;
-    const char* pos    = msgStart;
-
-    while ( pos < msgEnd )
-    {
-        // [S6] Parse tag number: max MAX_TAG_DIGITS ASCII digits before '='
-        CORE::UInt32 tag       = 0;
-        CORE::UInt32 digitCount = 0;
-        while ( pos < msgEnd && digitCount < MAX_TAG_DIGITS )
-        {
-            char c = *pos;
-            if ( c == '=' )
-                break;
-            if ( c < '0' || c > '9' )
-                return false;  // [S6] non-digit before '=' — malformed
-            tag = tag * 10 + (CORE::UInt32)( (CORE::UInt8)c - '0' );
-            ++pos;
-            ++digitCount;
-        }
-        if ( pos >= msgEnd )
-            break;  // end of message (normal after last field's SOH)
-        if ( *pos != '=' )
-        {
-            // More than MAX_TAG_DIGITS digits or non-'=' after digits — malformed [S6]
-            if ( digitCount >= MAX_TAG_DIGITS )
-                return false;
-            break;  // likely end of data
-        }
-        ++pos;  // skip '='
-
-        // [S3] Scan value until SOH, strictly bounded within [msgStart, msgEnd)
-        const char* valueStart = pos;
-        while ( pos < msgEnd && *pos != SOH )
-            ++pos;
-        if ( pos >= msgEnd )
-            return false;  // [S3] malformed — no SOH terminating this field value
-
-        CORE::UInt32 valueLen = (CORE::UInt32)( pos - valueStart );
-        ++pos;  // skip SOH
-
-        // Store only session-relevant fields; apply [S3] cap only to fields we record
-        switch ( tag )
-        {
-            case 8:
-                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
-                outFields.beginStringStart = valueStart;
-                outFields.beginStringLen   = valueLen;
-                break;
-            case 34:
-                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
-                outFields.seqNumStart = valueStart;
-                outFields.seqNumLen   = valueLen;
-                outFields.seqNumVal   = ParseUInt64Inline( valueStart, valueLen );  // [S4]
-                break;
-            case 35:
-                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
-                outFields.msgTypeStart = valueStart;
-                outFields.msgTypeLen   = valueLen;
-                break;
-            case 43:
-                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
-                outFields.possDupFlagStart = valueStart;
-                outFields.possDupFlagLen   = valueLen;
-                break;
-            case 49:
-                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
-                outFields.senderStart = valueStart;
-                outFields.senderLen   = valueLen;
-                break;
-            case 56:
-                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
-                outFields.targetStart = valueStart;
-                outFields.targetLen   = valueLen;
-                break;
-            case 7:
-                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
-                outFields.beginSeqNoStart = valueStart;
-                outFields.beginSeqNoLen   = valueLen;
-                break;
-            case 36:
-                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
-                outFields.newSeqNoStart = valueStart;
-                outFields.newSeqNoLen   = valueLen;
-                break;
-            case 108:
-                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
-                outFields.hbIntStart = valueStart;
-                outFields.hbIntLen   = valueLen;
-                break;
-            case 112:
-                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
-                outFields.testReqIdStart = valueStart;
-                outFields.testReqIdLen   = valueLen;
-                break;
-            case 141:
-                if ( valueLen > MAX_SESSION_FIELD_VALUE_LEN ) return false;
-                outFields.resetFlagStart = valueStart;
-                outFields.resetFlagLen   = valueLen;
-                break;
-            default:
-                break;  // skip non-session fields — no cap, no allocation
-        }
-    }
-    return true;
-}
 
 /*-------------------------------------------------------------------------*/
 
@@ -1005,7 +857,7 @@ CFIXClientPubSubClient::ProcessReceiveBuffer( void )
         if ( bodyLenEnd >= bufEnd )
             break;  // incomplete
 
-        CORE::UInt32 bodyLen = (CORE::UInt32) ParseUInt64Inline( bodyLenStart,
+        CORE::UInt32 bodyLen = (CORE::UInt32) CFIXClientMessage::ParseUInt64Inline( bodyLenStart,
                                                                   (CORE::UInt32)( bodyLenEnd - bodyLenStart ) );
 
         // [S1] Max message size cap — reject giant BodyLength before jumping
@@ -1084,7 +936,7 @@ CFIXClientPubSubClient::ProcessReceiveBuffer( void )
                 byteSum += (CORE::UInt8)*p;
             CORE::UInt32 calcChecksum = byteSum % 256;
 
-            CORE::UInt32 claimedChecksum = (CORE::UInt32) ParseUInt64Inline(
+            CORE::UInt32 claimedChecksum = (CORE::UInt32) CFIXClientMessage::ParseUInt64Inline(
                 checksumValStart, (CORE::UInt32)( checksumValEnd - checksumValStart ) );
 
             if ( calcChecksum != claimedChecksum )
@@ -1111,7 +963,7 @@ CFIXClientPubSubClient::ProcessReceiveBuffer( void )
 
         // Scan session fields — zero-allocation, single forward pass
         CFIXClientSessionFields fields;
-        if ( !ScanSessionFields( msgStart, msgLen, fields ) )
+        if ( !CFIXClientMessage::ScanSessionFields( msgStart, msgLen, fields ) )
         {
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
                 "CFIXClientPubSubClient::ProcessReceiveBuffer: ScanSessionFields failed - dropping message" );
@@ -1168,7 +1020,7 @@ CFIXClientPubSubClient::DispatchIncomingMessage( const char* msgStart           
     CORE::UInt64 incomingSeqNum = fields.seqNumVal;
 
     // Sequence number gap detection (skip for SequenceReset which resets seqnum)
-    if ( !FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "4" ) && incomingSeqNum > 0 )
+    if ( !CFIXClientMessage::FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "4" ) && incomingSeqNum > 0 )
     {
         if ( incomingSeqNum > m_expectedIncomingSeqNum )
         {
@@ -1189,7 +1041,7 @@ CFIXClientPubSubClient::DispatchIncomingMessage( const char* msgStart           
             }
             // Still process the current message unless it is a PossDup duplicate
             if ( GUCEF_NULL != fields.possDupFlagStart &&
-                 FieldMatchesValue( fields.possDupFlagStart, fields.possDupFlagLen, "Y" ) &&
+                 CFIXClientMessage::FieldMatchesValue( fields.possDupFlagStart, fields.possDupFlagLen, "Y" ) &&
                  incomingSeqNum < m_expectedIncomingSeqNum )
             {
                 return;  // duplicate — skip
@@ -1199,7 +1051,7 @@ CFIXClientPubSubClient::DispatchIncomingMessage( const char* msgStart           
         {
             // PossDupFlag check for already-processed messages
             if ( GUCEF_NULL != fields.possDupFlagStart &&
-                 FieldMatchesValue( fields.possDupFlagStart, fields.possDupFlagLen, "Y" ) )
+                 CFIXClientMessage::FieldMatchesValue( fields.possDupFlagStart, fields.possDupFlagLen, "Y" ) )
             {
                 return;  // already processed — skip
             }
@@ -1215,13 +1067,13 @@ CFIXClientPubSubClient::DispatchIncomingMessage( const char* msgStart           
     }
 
     // Dispatch by MsgType via direct char comparison — no CString allocation
-    if      ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "A" ) ) HandleLogon( msgStart, msgLen, fields );
-    else if ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "5" ) ) HandleLogout( msgStart, msgLen, fields );
-    else if ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "0" ) ) HandleHeartbeat( msgStart, msgLen, fields );
-    else if ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "1" ) ) HandleTestRequest( msgStart, msgLen, fields );
-    else if ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "2" ) ) HandleResendRequest( msgStart, msgLen, fields );
-    else if ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "4" ) ) HandleSequenceReset( msgStart, msgLen, fields );
-    else if ( FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "3" ) ) HandleReject( msgStart, msgLen, fields );
+    if      ( CFIXClientMessage::FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "A" ) ) HandleLogon( msgStart, msgLen, fields );
+    else if ( CFIXClientMessage::FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "5" ) ) HandleLogout( msgStart, msgLen, fields );
+    else if ( CFIXClientMessage::FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "0" ) ) HandleHeartbeat( msgStart, msgLen, fields );
+    else if ( CFIXClientMessage::FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "1" ) ) HandleTestRequest( msgStart, msgLen, fields );
+    else if ( CFIXClientMessage::FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "2" ) ) HandleResendRequest( msgStart, msgLen, fields );
+    else if ( CFIXClientMessage::FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "4" ) ) HandleSequenceReset( msgStart, msgLen, fields );
+    else if ( CFIXClientMessage::FieldMatchesValue( fields.msgTypeStart, fields.msgTypeLen, "3" ) ) HandleReject( msgStart, msgLen, fields );
     else
     {
         // Application message — route to all topics
@@ -1250,7 +1102,7 @@ CFIXClientPubSubClient::HandleLogon( const char* msgStart                  ,
 
     // If counterparty requests a sequence reset (tag 141=Y)
     if ( GUCEF_NULL != fields.resetFlagStart &&
-         FieldMatchesValue( fields.resetFlagStart, fields.resetFlagLen, "Y" ) )
+         CFIXClientMessage::FieldMatchesValue( fields.resetFlagStart, fields.resetFlagLen, "Y" ) )
     {
         m_expectedIncomingSeqNum = 1;
     }
@@ -1373,7 +1225,7 @@ CFIXClientPubSubClient::HandleResendRequest( const char* msgStart               
     // Parse BeginSeqNo from fields — outgoing path, allocation acceptable
     CORE::UInt64 beginSeqNo = 0;
     if ( GUCEF_NULL != fields.beginSeqNoStart && fields.beginSeqNoLen > 0 )
-        beginSeqNo = ParseUInt64Inline( fields.beginSeqNoStart, fields.beginSeqNoLen );
+        beginSeqNo = CFIXClientMessage::ParseUInt64Inline( fields.beginSeqNoStart, fields.beginSeqNoLen );
 
     // For simplicity, respond with a SequenceReset-GapFill to catch up to current seqnum
     CORE::CAsciiString seqReset = CFIXClientMessage::BuildSequenceReset(
@@ -1392,7 +1244,7 @@ CFIXClientPubSubClient::HandleSequenceReset( const char* msgStart               
 
     CORE::UInt64 newSeqNo = 0;
     if ( GUCEF_NULL != fields.newSeqNoStart && fields.newSeqNoLen > 0 )
-        newSeqNo = ParseUInt64Inline( fields.newSeqNoStart, fields.newSeqNoLen );
+        newSeqNo = CFIXClientMessage::ParseUInt64Inline( fields.newSeqNoStart, fields.newSeqNoLen );
 
     if ( newSeqNo > 0 )
     {

@@ -503,7 +503,8 @@ CHostAddress::GetRandomIPv4Address( void ) const
     {
         float fractionalIndex = ( static_cast< float >( std::rand() ) / RAND_MAX ) * static_cast< float >( m_ipv4.size() );
         UInt32 index = static_cast< UInt32 >( round( fractionalIndex ) );
-
+        if ( index >= m_ipv4.size() )
+            index = static_cast< UInt32 >( m_ipv4.size() - 1 );
         return m_ipv4[ index ];
     }
     return CIPv4Address::None;
