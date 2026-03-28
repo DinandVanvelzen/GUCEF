@@ -111,6 +111,7 @@ CFIXServerPubSubClientTopic::CFIXServerPubSubClientTopic( CFIXServerPubSubClient
     , m_logonTimeoutTimer( GUCEF_NULL )
     , m_outgoingSeqNum( 1 )
     , m_expectedIncomingSeqNum( 1 )
+    , m_resendRequestSentForExpectedSeq( 0 )
     , m_consecutiveChecksumFailures( 0 )
     , m_sessionState( STATE_NO_CONNECTION )
     , m_isSubscribed( false )
@@ -494,6 +495,7 @@ CFIXServerPubSubClientTopic::AttachConnection( COMCORE::CTCPServerConnection* co
     // Reset per-connection state
     m_receiveBuffer.Clear();
     m_consecutiveChecksumFailures = 0;
+    m_resendRequestSentForExpectedSeq = 0;
     m_sessionState = STATE_WAITING_LOGON;
 
     // Attach to new connection
@@ -803,7 +805,8 @@ CFIXServerPubSubClientTopic::DispatchIncomingMessage( const char* msgStart      
                 CORE::ToString( m_expectedIncomingSeqNum ) +
                 " Got=" + CORE::ToString( incomingSeqNum ) );
 
-            if ( m_sessionState == STATE_ACTIVE && GUCEF_NULL != m_activeConnection )
+            if ( m_sessionState == STATE_ACTIVE && GUCEF_NULL != m_activeConnection &&
+                 m_resendRequestSentForExpectedSeq != m_expectedIncomingSeqNum )
             {
                 const CFIXServerPubSubClientConfig& cfg = m_client->GetConfig();
                 CORE::CAsciiString resendReq = CFIXClientMessage::BuildResendRequest(
@@ -812,6 +815,7 @@ CFIXServerPubSubClientTopic::DispatchIncomingMessage( const char* msgStart      
                     m_expectedIncomingSeqNum, incomingSeqNum - 1 );
                 m_activeConnection->Send( resendReq.C_String(), (CORE::UInt32) resendReq.Length() );
                 ++m_outgoingSeqNum;
+                m_resendRequestSentForExpectedSeq = m_expectedIncomingSeqNum;
             }
 
             if ( GUCEF_NULL != fields.possDupFlagStart &&
@@ -823,15 +827,23 @@ CFIXServerPubSubClientTopic::DispatchIncomingMessage( const char* msgStart      
         {
             if ( GUCEF_NULL != fields.possDupFlagStart &&
                  CFIXClientMessage::FieldMatchesValue( fields.possDupFlagStart, fields.possDupFlagLen, "Y" ) )
+            {
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL,
+                    "CFIXServerPubSubClientTopic: PossDup lower seqnum - already processed. Expected=" +
+                    CORE::ToString( m_expectedIncomingSeqNum ) +
+                    " Got=" + CORE::ToString( incomingSeqNum ) );
                 return;
+            }
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
                 "CFIXServerPubSubClientTopic: Unexpected lower seqnum. Expected=" +
                 CORE::ToString( m_expectedIncomingSeqNum ) +
                 " Got=" + CORE::ToString( incomingSeqNum ) );
+            return;
         }
         else
         {
             ++m_expectedIncomingSeqNum;
+            m_resendRequestSentForExpectedSeq = 0;
         }
     }
 
@@ -871,6 +883,10 @@ CFIXServerPubSubClientTopic::HandleLogon( const char* msgStart                  
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
             "CFIXServerPubSubClientTopic::HandleLogon: Session already active for topic \"" +
             m_config.topicName + "\" - ignoring duplicate Logon" );
+        // DispatchIncomingMessage already incremented m_expectedIncomingSeqNum for this Logon.
+        // Undo that increment so the expected counter stays at the post-reset value (1).
+        if ( m_expectedIncomingSeqNum > 1 )
+            --m_expectedIncomingSeqNum;
         return;
     }
 
@@ -1067,6 +1083,7 @@ CFIXServerPubSubClientTopic::HandleSequenceReset( const char* msgStart          
             "CFIXServerPubSubClientTopic::HandleSequenceReset: Resetting expected incoming seq to " +
             CORE::ToString( newSeqNo ) );
         m_expectedIncomingSeqNum = newSeqNo;
+        m_resendRequestSentForExpectedSeq = 0;
     }
 
     DeliverToSubscribers( msgStart, msgLen, fields );

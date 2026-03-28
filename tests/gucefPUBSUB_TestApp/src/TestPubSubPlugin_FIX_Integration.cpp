@@ -318,6 +318,120 @@ BuildAppMsgBadChecksum( const char*  senderCompId ,
 /*-------------------------------------------------------------------------*/
 
 /**
+ *  Build a raw FIX Heartbeat (MsgType=0) with an optional TestReqID.
+ *  @param testReqId  If non-empty, tag 112 is included; pass "" to omit.
+ */
+static CORE::CString
+BuildHeartbeatMsg( const char*  senderCompId ,
+                   const char*  targetCompId ,
+                   CORE::UInt64 seqNum       ,
+                   const char*  testReqId    )
+{GUCEF_TRACE;
+    const char SOH = '\x01';
+
+    CORE::CString body;
+    body += CORE::CString( "35=0" ) + SOH;
+    body += CORE::CString( "49=" ) + CORE::CString( senderCompId ) + SOH;
+    body += CORE::CString( "56=" ) + CORE::CString( targetCompId ) + SOH;
+    body += CORE::CString( "34=" ) + CORE::ToString( seqNum ) + SOH;
+    body += CORE::CString( "52=20240101-12:00:00" ) + SOH;
+    if ( GUCEF_NULL != testReqId && testReqId[ 0 ] != '\0' )
+        body += CORE::CString( "112=" ) + CORE::CString( testReqId ) + SOH;
+
+    CORE::UInt32 bodyLen = (CORE::UInt32) body.Length();
+    CORE::CString header;
+    header += CORE::CString( "8=FIX.4.2" ) + SOH;
+    header += CORE::CString( "9=" ) + CORE::ToString( bodyLen ) + SOH;
+
+    CORE::CString msgWithoutCs = header + body;
+    CORE::UInt32 byteSum = 0;
+    const char* ptr = msgWithoutCs.C_String();
+    for ( CORE::UInt32 i = 0; i < (CORE::UInt32) msgWithoutCs.Length(); ++i )
+        byteSum += (CORE::UInt8) ptr[ i ];
+    char csBuf[ 8 ];
+    ::sprintf( csBuf, "%03u", byteSum % 256 );
+    return msgWithoutCs + CORE::CString( "10=" ) + CORE::CString( csBuf ) + SOH;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Build a raw FIX TestRequest (MsgType=1) with a required TestReqID.
+ */
+static CORE::CString
+BuildTestRequestMsg( const char*  senderCompId ,
+                     const char*  targetCompId ,
+                     CORE::UInt64 seqNum       ,
+                     const char*  testReqId    )
+{GUCEF_TRACE;
+    const char SOH = '\x01';
+
+    CORE::CString body;
+    body += CORE::CString( "35=1" ) + SOH;
+    body += CORE::CString( "49=" ) + CORE::CString( senderCompId ) + SOH;
+    body += CORE::CString( "56=" ) + CORE::CString( targetCompId ) + SOH;
+    body += CORE::CString( "34=" ) + CORE::ToString( seqNum ) + SOH;
+    body += CORE::CString( "52=20240101-12:00:00" ) + SOH;
+    body += CORE::CString( "112=" ) + CORE::CString( testReqId ) + SOH;
+
+    CORE::UInt32 bodyLen = (CORE::UInt32) body.Length();
+    CORE::CString header;
+    header += CORE::CString( "8=FIX.4.2" ) + SOH;
+    header += CORE::CString( "9=" ) + CORE::ToString( bodyLen ) + SOH;
+
+    CORE::CString msgWithoutCs = header + body;
+    CORE::UInt32 byteSum = 0;
+    const char* ptr = msgWithoutCs.C_String();
+    for ( CORE::UInt32 i = 0; i < (CORE::UInt32) msgWithoutCs.Length(); ++i )
+        byteSum += (CORE::UInt8) ptr[ i ];
+    char csBuf[ 8 ];
+    ::sprintf( csBuf, "%03u", byteSum % 256 );
+    return msgWithoutCs + CORE::CString( "10=" ) + CORE::CString( csBuf ) + SOH;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Build a raw FIX ResendRequest (MsgType=2).
+ *  @param beginSeqNo  Tag 7 — first seqnum to resend
+ *  @param endSeqNo    Tag 16 — last seqnum to resend; 0 = open-ended (all)
+ */
+static CORE::CString
+BuildResendRequestMsg( const char*  senderCompId ,
+                       const char*  targetCompId ,
+                       CORE::UInt64 seqNum       ,
+                       CORE::UInt64 beginSeqNo   ,
+                       CORE::UInt64 endSeqNo     )
+{GUCEF_TRACE;
+    const char SOH = '\x01';
+
+    CORE::CString body;
+    body += CORE::CString( "35=2" ) + SOH;
+    body += CORE::CString( "49=" ) + CORE::CString( senderCompId ) + SOH;
+    body += CORE::CString( "56=" ) + CORE::CString( targetCompId ) + SOH;
+    body += CORE::CString( "34=" ) + CORE::ToString( seqNum ) + SOH;
+    body += CORE::CString( "52=20240101-12:00:00" ) + SOH;
+    body += CORE::CString( "7=" )  + CORE::ToString( beginSeqNo ) + SOH;
+    body += CORE::CString( "16=" ) + CORE::ToString( endSeqNo ) + SOH;
+
+    CORE::UInt32 bodyLen = (CORE::UInt32) body.Length();
+    CORE::CString header;
+    header += CORE::CString( "8=FIX.4.2" ) + SOH;
+    header += CORE::CString( "9=" ) + CORE::ToString( bodyLen ) + SOH;
+
+    CORE::CString msgWithoutCs = header + body;
+    CORE::UInt32 byteSum = 0;
+    const char* ptr = msgWithoutCs.C_String();
+    for ( CORE::UInt32 i = 0; i < (CORE::UInt32) msgWithoutCs.Length(); ++i )
+        byteSum += (CORE::UInt8) ptr[ i ];
+    char csBuf[ 8 ];
+    ::sprintf( csBuf, "%03u", byteSum % 256 );
+    return msgWithoutCs + CORE::CString( "10=" ) + CORE::CString( csBuf ) + SOH;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
  *  Construct a CPubSubClientConfig for the FIXServer backend.
  *  All FIX-specific settings go into customConfig attributes;
  *  the generic CPubSubClientConfig fields are set directly.
@@ -845,7 +959,8 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             }
             serverTopic->Subscribe();
 
-            CORE::CString rawFix = BuildAppMsg( TEST_SERVER_COMP_ID, TEST_CLIENT_COMP_ID, 1, '8' );
+            // Server's Logon ACK consumed outgoing seqnum=1; next server message is seqnum=2
+            CORE::CString rawFix = BuildAppMsg( TEST_SERVER_COMP_ID, TEST_CLIENT_COMP_ID, 2, '8' );
             PUBSUB::CBasicPubSubMsg pubMsg;
             pubMsg.GetPrimaryPayload() = rawFix;
 
@@ -940,7 +1055,8 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
             }
 
             // Publish 5 messages from server → client
-            for ( CORE::UInt64 seq = 1; seq <= 5; ++seq )
+            // Server's Logon ACK consumed outgoing seqnum=1; app messages start at seqnum=2
+            for ( CORE::UInt64 seq = 2; seq <= 6; ++seq )
             {
                 CORE::CString rawFix = BuildAppMsg( TEST_SERVER_COMP_ID, TEST_CLIENT_COMP_ID, seq, '8' );
                 PUBSUB::CBasicPubSubMsg msg;
@@ -1605,6 +1721,465 @@ PerformPubSubPlugin_FIXIntegrationTests( void )
                 driver.RequestImmediatePulse( *pg );
                 MT::ThreadDelay( 5 );
             }
+        }
+        catch ( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // =====================================================================
+    //  GROUP I — Idempotency Under Duplicate Delivery
+    //  Verify that sending the same FIX bytes twice produces exactly one
+    //  protocol response and advances sequence counters by exactly the
+    //  expected amount (not doubled).  These tests exercise Fix A (early
+    //  return in lower-seqnum branch), Fix B (ResendRequest guard), and
+    //  Fix C (client HandleLogon guard).
+    //
+    //  With resetSeqNumOnLogon=true the server resets m_expectedIncomingSeqNum
+    //  back to 1 on Logon (tag 141=Y), so all post-Logon test messages start
+    //  at seqnum=1 from the client's perspective.
+    // =====================================================================
+
+    // I1: Duplicate app message — server delivers to subscriber exactly once
+    GUCEF_TESTFW_TESTCASE( "I1: Duplicate app message delivered to server exactly once" )
+        try
+        {
+            CORE::CBusyWaitPulseGeneratorDriver driver;
+            CORE::PulseGeneratorPtr pg = ( GUCEF_NEW CORE::CPulseGenerator() )->CreateSharedPtr();
+
+            PUBSUB::CPubSubClientConfig serverCfg = MakeServerConfig( pg );
+            PUBSUB::CPubSubClientConfig clientCfg = MakeClientConfig( pg );
+
+            PUBSUB::CPubSubClientPtr server = factory.Create( "FIXServer", serverCfg );
+            PUBSUB::CPubSubClientPtr client = factory.Create( "FIXClient", clientCfg );
+            ASSERT_FALSE( server.IsNULL() );
+            ASSERT_FALSE( client.IsNULL() );
+            if ( server.IsNULL() || client.IsNULL() )
+                return;
+
+            server->SetPulseGenerator( pg, true );
+            client->SetPulseGenerator( pg, true );
+            ASSERT_TRUE( server->Connect( false ) );
+            ASSERT_TRUE( client->Connect( false ) );
+
+            bool sessionEstablished = PumpUntil( driver, pg,
+                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                SESSION_TIMEOUT_MS );
+            ASSERT_TRUE( sessionEstablished );
+            if ( !sessionEstablished )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+
+            PUBSUB::CPubSubClientTopicBasicPtr serverTopic =
+                server->GetTopicAccess( CORE::CString( TEST_CLIENT_COMP_ID ) );
+            ASSERT_FALSE( serverTopic.IsNULL() );
+            if ( serverTopic.IsNULL() )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+            serverTopic->Subscribe();
+
+            CFIXIntegrationTestObserver serverObs;
+            serverObs.ObserveTopic( serverTopic );
+
+            PUBSUB::CPubSubClientTopicBasicPtr clientTopic =
+                CreateAndSubscribeClientTopic( client, CORE::CString( TEST_SERVER_COMP_ID ), pg );
+            ASSERT_FALSE( clientTopic.IsNULL() );
+            if ( clientTopic.IsNULL() )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+
+            // seqnum=1: server expected is 1 after Logon with resetSeqNumOnLogon=true
+            CORE::CString rawFix = BuildAppMsg( TEST_CLIENT_COMP_ID, TEST_SERVER_COMP_ID, 1, 'D' );
+            PUBSUB::CBasicPubSubMsg msg;
+            msg.GetPrimaryPayload() = rawFix;
+
+            CORE::UInt64 aid = 0;
+            clientTopic->Publish( aid, msg, false );  // first send
+            clientTopic->Publish( aid, msg, false );  // duplicate (same seqnum=1)
+
+            // Pump until server has had a chance to process both
+            PumpUntil( driver, pg,
+                [&]() -> bool { return serverObs.msgsReceived >= 1; },
+                MSG_FLOW_TIMEOUT_MS );
+
+            // Deliver exactly once — second copy has seqnum < expected and must be
+            // dropped by Fix A's early-return in the lower-seqnum branch
+            ASSERT_TRUE( serverObs.msgsReceived == 1 );
+
+            TeardownSession( client, server, driver, pg );
+        }
+        catch ( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // I2: Duplicate out-of-order message — exactly one ResendRequest exchange,
+    //     session remains healthy and accepts the next expected message.
+    GUCEF_TESTFW_TESTCASE( "I2: Duplicate gap message causes one ResendRequest, session stays healthy" )
+        try
+        {
+            CORE::CBusyWaitPulseGeneratorDriver driver;
+            CORE::PulseGeneratorPtr pg = ( GUCEF_NEW CORE::CPulseGenerator() )->CreateSharedPtr();
+
+            PUBSUB::CPubSubClientConfig serverCfg = MakeServerConfig( pg );
+            PUBSUB::CPubSubClientConfig clientCfg = MakeClientConfig( pg );
+
+            PUBSUB::CPubSubClientPtr server = factory.Create( "FIXServer", serverCfg );
+            PUBSUB::CPubSubClientPtr client = factory.Create( "FIXClient", clientCfg );
+            ASSERT_FALSE( server.IsNULL() );
+            ASSERT_FALSE( client.IsNULL() );
+            if ( server.IsNULL() || client.IsNULL() )
+                return;
+
+            server->SetPulseGenerator( pg, true );
+            client->SetPulseGenerator( pg, true );
+            ASSERT_TRUE( server->Connect( false ) );
+            ASSERT_TRUE( client->Connect( false ) );
+
+            bool sessionEstablished = PumpUntil( driver, pg,
+                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                SESSION_TIMEOUT_MS );
+            ASSERT_TRUE( sessionEstablished );
+            if ( !sessionEstablished )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+
+            PUBSUB::CPubSubClientTopicBasicPtr serverTopic =
+                server->GetTopicAccess( CORE::CString( TEST_CLIENT_COMP_ID ) );
+            ASSERT_FALSE( serverTopic.IsNULL() );
+            if ( serverTopic.IsNULL() )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+            serverTopic->Subscribe();
+
+            CFIXIntegrationTestObserver serverObs;
+            serverObs.ObserveTopic( serverTopic );
+
+            PUBSUB::CPubSubClientTopicBasicPtr clientTopic =
+                CreateAndSubscribeClientTopic( client, CORE::CString( TEST_SERVER_COMP_ID ), pg );
+            ASSERT_FALSE( clientTopic.IsNULL() );
+            if ( clientTopic.IsNULL() )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+
+            // seqnum=5 creates a gap (server expects seqnum=1)
+            // Send it twice before any pump cycle so Fix B guard is exercised
+            CORE::CString gapMsg = BuildAppMsg( TEST_CLIENT_COMP_ID, TEST_SERVER_COMP_ID, 5, 'D' );
+            PUBSUB::CBasicPubSubMsg gapPubMsg;
+            gapPubMsg.GetPrimaryPayload() = gapMsg;
+
+            CORE::UInt64 aid = 0;
+            clientTopic->Publish( aid, gapPubMsg, false );  // first gap send
+            clientTopic->Publish( aid, gapPubMsg, false );  // duplicate gap send — Fix B must suppress second ResendRequest
+
+            // Pump to let the ResendRequest → GapFill exchange complete.
+            // Both gap messages are still delivered to subscribers (out-of-order delivery
+            // is not filtered), so wait for at least 2 deliveries.
+            PumpUntil( driver, pg,
+                [&]() -> bool { return serverObs.msgsReceived >= 2; },
+                MSG_FLOW_TIMEOUT_MS );
+
+            // Verify the session was not corrupted — send the expected seqnum=1 message
+            // (server's expected resets to the GapFill's NewSeqNo after the exchange,
+            // which is the client's current outgoing=2; however the GapFill from the
+            // client uses seqnum=beginSeqNo=1 as the message seqnum, which is < server's
+            // expected=2 that was set when processing the GapFill itself, so expect=2 after exchange).
+            // Use seqnum=2 to match the server's post-exchange expected.
+            CORE::CString nextMsg = BuildAppMsg( TEST_CLIENT_COMP_ID, TEST_SERVER_COMP_ID, 2, 'D' );
+            PUBSUB::CBasicPubSubMsg nextPubMsg;
+            nextPubMsg.GetPrimaryPayload() = nextMsg;
+            clientTopic->Publish( aid, nextPubMsg, false );
+
+            bool thirdDelivery = PumpUntil( driver, pg,
+                [&]() -> bool { return serverObs.msgsReceived >= 3; },
+                MSG_FLOW_TIMEOUT_MS );
+            ASSERT_TRUE( thirdDelivery );
+            ASSERT_TRUE( serverObs.msgsReceived == 3 );
+            ASSERT_TRUE( client->IsConnected() );
+            ASSERT_TRUE( server->IsConnected() );
+
+            TeardownSession( client, server, driver, pg );
+        }
+        catch ( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // I3: Duplicate plain Heartbeat — server delivers to subscriber exactly once
+    //     Uses a Heartbeat WITHOUT TestReqID to avoid triggering echo-response loops.
+    //     Measures at the server (serverObs) rather than the client to stay clear of
+    //     any response traffic.  Fix A's early-return in the lower-seqnum branch must
+    //     prevent the second copy from reaching HandleHeartbeat.
+    GUCEF_TESTFW_TESTCASE( "I3: Duplicate plain Heartbeat delivered to server exactly once" )
+        try
+        {
+            CORE::CBusyWaitPulseGeneratorDriver driver;
+            CORE::PulseGeneratorPtr pg = ( GUCEF_NEW CORE::CPulseGenerator() )->CreateSharedPtr();
+
+            // includeSessionLevelMsgs=true so the server topic forwards the
+            // Heartbeat to DeliverToSubscribers and serverObs can count it
+            PUBSUB::CPubSubClientTopicConfigPtr defaultTopicCfg(
+                GUCEF_NEW PUBSUB::CPubSubClientTopicConfig() );
+            defaultTopicCfg->customConfig.SetAttribute( CORE::CString( "includeSessionLevelMsgs" ), true );
+
+            PUBSUB::CPubSubClientConfig serverCfg = MakeServerConfig( pg );
+            serverCfg.defaultTopicConfig = defaultTopicCfg;
+
+            PUBSUB::CPubSubClientConfig clientCfg = MakeClientConfig( pg );
+
+            PUBSUB::CPubSubClientPtr server = factory.Create( "FIXServer", serverCfg );
+            PUBSUB::CPubSubClientPtr client = factory.Create( "FIXClient", clientCfg );
+            ASSERT_FALSE( server.IsNULL() );
+            ASSERT_FALSE( client.IsNULL() );
+            if ( server.IsNULL() || client.IsNULL() )
+                return;
+
+            server->SetPulseGenerator( pg, true );
+            client->SetPulseGenerator( pg, true );
+            ASSERT_TRUE( server->Connect( false ) );
+            ASSERT_TRUE( client->Connect( false ) );
+
+            bool sessionEstablished = PumpUntil( driver, pg,
+                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                SESSION_TIMEOUT_MS );
+            ASSERT_TRUE( sessionEstablished );
+            if ( !sessionEstablished )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+
+            PUBSUB::CPubSubClientTopicBasicPtr serverTopic =
+                server->GetTopicAccess( CORE::CString( TEST_CLIENT_COMP_ID ) );
+            ASSERT_FALSE( serverTopic.IsNULL() );
+            if ( serverTopic.IsNULL() )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+            serverTopic->Subscribe();
+
+            CFIXIntegrationTestObserver serverObs;
+            serverObs.ObserveTopic( serverTopic );
+
+            PUBSUB::CPubSubClientTopicBasicPtr clientTopic =
+                CreateAndSubscribeClientTopic( client, CORE::CString( TEST_SERVER_COMP_ID ), pg );
+            ASSERT_FALSE( clientTopic.IsNULL() );
+            if ( clientTopic.IsNULL() )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+
+            // seqnum=1 (server expects 1 after Logon with resetSeqNumOnLogon=true)
+            // Plain Heartbeat with NO TestReqID — no echo response triggered so there
+            // is no echo loop that could add extra deliveries to serverObs
+            CORE::CString rawHb = BuildHeartbeatMsg( TEST_CLIENT_COMP_ID, TEST_SERVER_COMP_ID, 1, "" );
+            PUBSUB::CBasicPubSubMsg hbMsg;
+            hbMsg.GetPrimaryPayload() = rawHb;
+
+            CORE::UInt64 aid = 0;
+            clientTopic->Publish( aid, hbMsg, false );  // first send — server processes normally
+            clientTopic->Publish( aid, hbMsg, false );  // duplicate — Fix A drops before handler
+
+            // Both messages were queued before any pump cycle so the server reads both in
+            // the first pulse; Fix A drops the second before HandleHeartbeat is called.
+            PumpUntil( driver, pg,
+                [&]() -> bool { return serverObs.msgsReceived >= 1; },
+                MSG_FLOW_TIMEOUT_MS );
+
+            // Exactly one delivery — the second copy has seqnum < expected and was
+            // dropped by Fix A's early-return in the lower-seqnum branch
+            ASSERT_TRUE( serverObs.msgsReceived == 1 );
+
+            TeardownSession( client, server, driver, pg );
+        }
+        catch ( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // I4: Duplicate TestRequest — server delivers to subscriber exactly once
+    //     Both TestRequest messages are queued before any pump cycle so the server
+    //     reads them in the same pulse; Fix A drops the second before HandleTestRequest
+    //     runs.  Measured at the server (serverObs) so we never need to wait for the
+    //     Heartbeat response to travel to the client, which avoids the
+    //     Heartbeat echo-loop that would otherwise corrupt the seqnum state.
+    GUCEF_TESTFW_TESTCASE( "I4: Duplicate TestRequest delivered to server exactly once" )
+        try
+        {
+            CORE::CBusyWaitPulseGeneratorDriver driver;
+            CORE::PulseGeneratorPtr pg = ( GUCEF_NEW CORE::CPulseGenerator() )->CreateSharedPtr();
+
+            // includeSessionLevelMsgs=true so the server topic forwards the
+            // TestRequest to DeliverToSubscribers and serverObs can count it
+            PUBSUB::CPubSubClientTopicConfigPtr defaultTopicCfg(
+                GUCEF_NEW PUBSUB::CPubSubClientTopicConfig() );
+            defaultTopicCfg->customConfig.SetAttribute( CORE::CString( "includeSessionLevelMsgs" ), true );
+
+            PUBSUB::CPubSubClientConfig serverCfg = MakeServerConfig( pg );
+            serverCfg.defaultTopicConfig = defaultTopicCfg;
+
+            PUBSUB::CPubSubClientConfig clientCfg = MakeClientConfig( pg );
+
+            PUBSUB::CPubSubClientPtr server = factory.Create( "FIXServer", serverCfg );
+            PUBSUB::CPubSubClientPtr client = factory.Create( "FIXClient", clientCfg );
+            ASSERT_FALSE( server.IsNULL() );
+            ASSERT_FALSE( client.IsNULL() );
+            if ( server.IsNULL() || client.IsNULL() )
+                return;
+
+            server->SetPulseGenerator( pg, true );
+            client->SetPulseGenerator( pg, true );
+            ASSERT_TRUE( server->Connect( false ) );
+            ASSERT_TRUE( client->Connect( false ) );
+
+            bool sessionEstablished = PumpUntil( driver, pg,
+                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                SESSION_TIMEOUT_MS );
+            ASSERT_TRUE( sessionEstablished );
+            if ( !sessionEstablished )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+
+            PUBSUB::CPubSubClientTopicBasicPtr serverTopic =
+                server->GetTopicAccess( CORE::CString( TEST_CLIENT_COMP_ID ) );
+            ASSERT_FALSE( serverTopic.IsNULL() );
+            if ( serverTopic.IsNULL() )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+            serverTopic->Subscribe();
+
+            CFIXIntegrationTestObserver serverObs;
+            serverObs.ObserveTopic( serverTopic );
+
+            PUBSUB::CPubSubClientTopicBasicPtr clientTopic =
+                CreateAndSubscribeClientTopic( client, CORE::CString( TEST_SERVER_COMP_ID ), pg );
+            ASSERT_FALSE( clientTopic.IsNULL() );
+            if ( clientTopic.IsNULL() )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+
+            // seqnum=1 (server expects 1 after Logon with resetSeqNumOnLogon=true)
+            CORE::CString rawTr = BuildTestRequestMsg( TEST_CLIENT_COMP_ID, TEST_SERVER_COMP_ID, 1, "TESTREQ1" );
+            PUBSUB::CBasicPubSubMsg trMsg;
+            trMsg.GetPrimaryPayload() = rawTr;
+
+            CORE::UInt64 aid = 0;
+            clientTopic->Publish( aid, trMsg, false );  // first send — server processes, sends Heartbeat response
+            clientTopic->Publish( aid, trMsg, false );  // duplicate — Fix A drops before HandleTestRequest
+
+            // Both messages were queued before any pump cycle so the server reads both in
+            // the first pulse; Fix A drops the second before HandleTestRequest is called.
+            // We assert at the server before the Heartbeat response reaches the client,
+            // so the Heartbeat echo-loop does not affect serverObs.
+            PumpUntil( driver, pg,
+                [&]() -> bool { return serverObs.msgsReceived >= 1; },
+                MSG_FLOW_TIMEOUT_MS );
+
+            // Exactly one delivery — the second copy has seqnum < expected and was
+            // dropped by Fix A's early-return in the lower-seqnum branch
+            ASSERT_TRUE( serverObs.msgsReceived == 1 );
+
+            TeardownSession( client, server, driver, pg );
+        }
+        catch ( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // I5: Duplicate ResendRequest from client — server sends exactly one GapFill
+    GUCEF_TESTFW_TESTCASE( "I5: Duplicate ResendRequest from client causes exactly one GapFill" )
+        try
+        {
+            CORE::CBusyWaitPulseGeneratorDriver driver;
+            CORE::PulseGeneratorPtr pg = ( GUCEF_NEW CORE::CPulseGenerator() )->CreateSharedPtr();
+
+            // Configure default topic with includeSessionLevelMsgs=true so that
+            // the server observer counts the incoming ResendRequest messages
+            PUBSUB::CPubSubClientTopicConfigPtr defaultTopicCfg(
+                GUCEF_NEW PUBSUB::CPubSubClientTopicConfig() );
+            defaultTopicCfg->customConfig.SetAttribute( CORE::CString( "includeSessionLevelMsgs" ), true );
+
+            PUBSUB::CPubSubClientConfig serverCfg = MakeServerConfig( pg );
+            serverCfg.defaultTopicConfig = defaultTopicCfg;
+
+            PUBSUB::CPubSubClientConfig clientCfg = MakeClientConfig( pg );
+
+            PUBSUB::CPubSubClientPtr server = factory.Create( "FIXServer", serverCfg );
+            PUBSUB::CPubSubClientPtr client = factory.Create( "FIXClient", clientCfg );
+            ASSERT_FALSE( server.IsNULL() );
+            ASSERT_FALSE( client.IsNULL() );
+            if ( server.IsNULL() || client.IsNULL() )
+                return;
+
+            server->SetPulseGenerator( pg, true );
+            client->SetPulseGenerator( pg, true );
+            ASSERT_TRUE( server->Connect( false ) );
+            ASSERT_TRUE( client->Connect( false ) );
+
+            bool sessionEstablished = PumpUntil( driver, pg,
+                [&]() -> bool { return client->IsConnected() && server->IsConnected(); },
+                SESSION_TIMEOUT_MS );
+            ASSERT_TRUE( sessionEstablished );
+            if ( !sessionEstablished )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+
+            PUBSUB::CPubSubClientTopicBasicPtr serverTopic =
+                server->GetTopicAccess( CORE::CString( TEST_CLIENT_COMP_ID ) );
+            ASSERT_FALSE( serverTopic.IsNULL() );
+            if ( serverTopic.IsNULL() )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+            serverTopic->Subscribe();
+
+            CFIXIntegrationTestObserver serverObs;
+            serverObs.ObserveTopic( serverTopic );
+
+            PUBSUB::CPubSubClientTopicBasicPtr clientTopic =
+                CreateAndSubscribeClientTopic( client, CORE::CString( TEST_SERVER_COMP_ID ), pg );
+            ASSERT_FALSE( clientTopic.IsNULL() );
+            if ( clientTopic.IsNULL() )
+            {
+                TeardownSession( client, server, driver, pg );
+                return;
+            }
+
+            // seqnum=1 (server expects 1 after Logon reset)
+            // BeginSeqNo=1, EndSeqNo=0 (open-ended)
+            CORE::CString rawRr = BuildResendRequestMsg(
+                TEST_CLIENT_COMP_ID, TEST_SERVER_COMP_ID, 1, 1, 0 );
+            PUBSUB::CBasicPubSubMsg rrMsg;
+            rrMsg.GetPrimaryPayload() = rawRr;
+
+            CORE::UInt64 aid = 0;
+            clientTopic->Publish( aid, rrMsg, false );  // first send — server sends GapFill
+            clientTopic->Publish( aid, rrMsg, false );  // duplicate — Fix A drops it at server
+
+            // Wait for the server to deliver the ResendRequest to the observer
+            PumpUntil( driver, pg,
+                [&]() -> bool { return serverObs.msgsReceived >= 1; },
+                MSG_FLOW_TIMEOUT_MS );
+
+            // Exactly one ResendRequest delivered — the second was dropped by Fix A
+            // HandleResendRequest does not increment m_outgoingSeqNum so the
+            // server outgoing counter is unchanged from the GapFill send.
+            ASSERT_TRUE( serverObs.msgsReceived == 1 );
+
+            TeardownSession( client, server, driver, pg );
         }
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END

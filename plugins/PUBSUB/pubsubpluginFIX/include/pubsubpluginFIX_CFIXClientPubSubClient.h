@@ -281,10 +281,12 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXClientPubSubClient : public PUBSUB
     CORE::CTimer*                 m_reconnectTimer;
     CORE::UInt64                  m_outgoingSeqNum;
     CORE::UInt64                  m_expectedIncomingSeqNum;
+    CORE::UInt64                  m_resendRequestSentForExpectedSeq;
     ESessionState                 m_sessionState;
     CORE::UInt32                  m_consecutiveChecksumFailures;
     MT::CMutex                    m_lock;
     bool                          m_initialized;
+    bool                          m_reconnectEnabled;
 };
 
 /*-------------------------------------------------------------------------//

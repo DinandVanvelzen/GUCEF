@@ -99,10 +99,12 @@ CFIXClientPubSubClient::CFIXClientPubSubClient( const PUBSUB::CPubSubClientConfi
     , m_reconnectTimer( GUCEF_NULL )
     , m_outgoingSeqNum( 1 )
     , m_expectedIncomingSeqNum( 1 )
+    , m_resendRequestSentForExpectedSeq( 0 )
     , m_sessionState( STATE_DISCONNECTED )
     , m_consecutiveChecksumFailures( 0 )
     , m_lock()
     , m_initialized( false )
+    , m_reconnectEnabled( true )
 {GUCEF_TRACE;
 
     if ( !LoadConfig( config ) )
@@ -461,6 +463,7 @@ CFIXClientPubSubClient::Connect( bool reset )
     {
         m_outgoingSeqNum = 1;
         m_expectedIncomingSeqNum = 1;
+        m_resendRequestSentForExpectedSeq = 0;
     }
 
     // Get remote address from config
@@ -473,6 +476,7 @@ CFIXClientPubSubClient::Connect( bool reset )
     const COMCORE::CHostAddress& remoteAddr = m_fixConfig.remoteAddresses.front();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClient::Connect: Connecting to " + remoteAddr.GetFirstAddressAndPortAsString() );
 
+    m_reconnectEnabled = true;
     m_sessionState = STATE_CONNECTING;
     bool connectOk = m_tcpSocket.ConnectTo( remoteAddr, false /* non-blocking */ );
     if ( !connectOk )
@@ -490,6 +494,7 @@ bool
 CFIXClientPubSubClient::Disconnect( void )
 {GUCEF_TRACE;
 
+    m_reconnectEnabled = false;
     m_heartbeatTimer->SetEnabled( false );
     m_logonTimeoutTimer->SetEnabled( false );
     m_reconnectTimer->SetEnabled( false );
@@ -731,6 +736,9 @@ CFIXClientPubSubClient::RequestReplayFrom( CORE::UInt64 fromSeqNum )
 void
 CFIXClientPubSubClient::ScheduleReconnect( void )
 {GUCEF_TRACE;
+
+    if ( !m_reconnectEnabled )
+        return;
 
     m_heartbeatTimer->SetEnabled( false );
     m_logonTimeoutTimer->SetEnabled( false );
@@ -1030,7 +1038,8 @@ CFIXClientPubSubClient::DispatchIncomingMessage( const char* msgStart           
                 CORE::ToString( m_expectedIncomingSeqNum ) +
                 " Got=" + CORE::ToString( incomingSeqNum ) );
 
-            if ( m_sessionState == STATE_ACTIVE )
+            if ( m_sessionState == STATE_ACTIVE &&
+                 m_resendRequestSentForExpectedSeq != m_expectedIncomingSeqNum )
             {
                 CORE::CAsciiString resendReq = CFIXClientMessage::BuildResendRequest(
                     m_fixConfig.senderCompId, m_fixConfig.targetCompId,
@@ -1038,6 +1047,7 @@ CFIXClientPubSubClient::DispatchIncomingMessage( const char* msgStart           
                     m_expectedIncomingSeqNum, incomingSeqNum - 1 );
                 m_tcpSocket.Send( resendReq.C_String(), (CORE::UInt32) resendReq.Length() );
                 ++m_outgoingSeqNum;
+                m_resendRequestSentForExpectedSeq = m_expectedIncomingSeqNum;
             }
             // Still process the current message unless it is a PossDup duplicate
             if ( GUCEF_NULL != fields.possDupFlagStart &&
@@ -1053,16 +1063,22 @@ CFIXClientPubSubClient::DispatchIncomingMessage( const char* msgStart           
             if ( GUCEF_NULL != fields.possDupFlagStart &&
                  CFIXClientMessage::FieldMatchesValue( fields.possDupFlagStart, fields.possDupFlagLen, "Y" ) )
             {
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL,
+                    "CFIXClientPubSubClient: PossDup lower seqnum - already processed. Expected=" +
+                    CORE::ToString( m_expectedIncomingSeqNum ) +
+                    " Got=" + CORE::ToString( incomingSeqNum ) );
                 return;  // already processed — skip
             }
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
                 "CFIXClientPubSubClient: Unexpected lower seqnum. Expected=" +
                 CORE::ToString( m_expectedIncomingSeqNum ) +
                 " Got=" + CORE::ToString( incomingSeqNum ) );
+            return;
         }
         else
         {
             ++m_expectedIncomingSeqNum;
+            m_resendRequestSentForExpectedSeq = 0;
         }
     }
 
@@ -1093,6 +1109,17 @@ CFIXClientPubSubClient::HandleLogon( const char* msgStart                  ,
                                      CORE::UInt32 msgLen                   ,
                                      const CFIXClientSessionFields& fields )
 {GUCEF_TRACE;
+
+    if ( m_sessionState == STATE_ACTIVE )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
+            "CFIXClientPubSubClient::HandleLogon: Session already active - ignoring duplicate Logon" );
+        // DispatchIncomingMessage already incremented m_expectedIncomingSeqNum for this Logon.
+        // Undo that increment so the expected counter stays at the post-reset value (1).
+        if ( m_expectedIncomingSeqNum > 1 )
+            --m_expectedIncomingSeqNum;
+        return;
+    }
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXClientPubSubClient::HandleLogon: Logon accepted by counterparty" );
 
@@ -1252,6 +1279,7 @@ CFIXClientPubSubClient::HandleSequenceReset( const char* msgStart               
             "CFIXClientPubSubClient::HandleSequenceReset: Resetting expected incoming seq to " +
             CORE::ToString( newSeqNo ) );
         m_expectedIncomingSeqNum = newSeqNo;
+        m_resendRequestSentForExpectedSeq = 0;
     }
 
     // Also pass to topics if configured

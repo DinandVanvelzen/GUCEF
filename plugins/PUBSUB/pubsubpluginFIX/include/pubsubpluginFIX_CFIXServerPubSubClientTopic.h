@@ -256,6 +256,7 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXServerPubSubClientTopic
     CORE::CTimer*                        m_logonTimeoutTimer;
     CORE::UInt64                         m_outgoingSeqNum;
     CORE::UInt64                         m_expectedIncomingSeqNum;
+    CORE::UInt64                         m_resendRequestSentForExpectedSeq;
     CORE::UInt32                         m_consecutiveChecksumFailures;
     ESessionState                        m_sessionState;
     bool                                 m_isSubscribed;

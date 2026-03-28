@@ -537,14 +537,17 @@ CTCPServerSocket::ListenOnPort( UInt16 servport )
     }
     m_port = servport;
 
-    UInt32 connectionIndex = 0;
-    if ( !_connections.empty() )
-        connectionIndex = (UInt32) _connections.size()-1;
-
-    for ( UInt32 i=connectionIndex; i<_data->maxcon; ++i )
+    // Create connection slot objects for any slots not yet initialized.
+    // The pre-sized _connections vector starts with all null pointers; we allocate
+    // only slots that haven't been created yet so that re-entrant ListenOnPort calls
+    // (e.g. after Close()) don't leak the previously created connection objects.
+    for ( UInt32 i=0; i<_data->maxcon; ++i )
     {
-        _connections[ i ] = GUCEF_NEW CTCPServerConnection( this, i );
-        m_inactiveConnections.insert( _connections[ i ] );
+        if ( GUCEF_NULL == _connections[ i ] )
+        {
+            _connections[ i ] = GUCEF_NEW CTCPServerConnection( this, i );
+            m_inactiveConnections.insert( _connections[ i ] );
+        }
     }
 
     int error = 0;
@@ -772,6 +775,7 @@ CTCPServerSocket::Close( void )
             ++i;
         }
         m_activeConnections.clear();
+        _active = false;
     }
     _datalock.Unlock();
 
