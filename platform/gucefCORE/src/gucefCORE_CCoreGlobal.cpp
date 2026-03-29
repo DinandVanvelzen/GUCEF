@@ -397,6 +397,7 @@ CCoreGlobal::Initialize( void )
     m_dstoreCodecRegistry->Register( "dnc", CDStoreCodecRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CDataStoreBinaryCodec() ) );
 
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "gucefCORE Global systems initialized" );
+    m_pluginControl->ListModuleForLinkBack( "gucefCORE" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -442,6 +443,7 @@ CCoreGlobal::~CCoreGlobal()
     m_codecRegistry->UnregisterAll();
     m_dstoreCodecRegistry->UnregisterAll();
     m_dataDrivenDStoreCodecFactory->UnregisterAllConcreteFactories();
+    m_pluginControl->UnlistModuleForLinkBack( "gucefCORE" );
     m_pluginControl->UnloadAll();
    
 

@@ -78,6 +78,11 @@
 #define PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBCLIENTVFSTASK_H
 #endif /* PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBCLIENTVFSTASK_H ? */
 
+#ifndef PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBINDEXWRITER_H
+#include "pubsubpluginSTORAGE_CStoragePubSubIndexWriter.h"
+#define PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBINDEXWRITER_H
+#endif /* PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBINDEXWRITER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -123,14 +128,52 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubClientTopic : public
         mutable CORE::UInt32 offsetInFile;
         CORE::CString vfsFilePath;
 
-        bool operator<( const CStorageBookmarkInfo& other ) const;
-        bool operator==( const CStorageBookmarkInfo& other ) const;
-        CStorageBookmarkInfo& operator=( const CStorageBookmarkInfo& src );
+        inline bool operator<( const CStorageBookmarkInfo& other ) const
+        {
+            if ( vfsFilePath == other.vfsFilePath )
+                return msgIndex < other.msgIndex;
+            else
+                return vfsFilePath < other.vfsFilePath;
+        }
 
-        bool IsEmpty( void ) const;
-        
-        CStorageBookmarkInfo( const CORE::CString& vfsFilePath = CORE::CString::Empty );
-        CStorageBookmarkInfo( const CStorageBookmarkInfo& src );        
+        inline bool operator==( const CStorageBookmarkInfo& other ) const
+        {
+            return vfsFilePath == other.vfsFilePath && msgIndex == other.msgIndex;
+        }
+
+        inline CStorageBookmarkInfo& operator=( const CStorageBookmarkInfo& src )
+        {
+            if ( &src != this )
+            {
+                bookmarkFormatVersion = src.bookmarkFormatVersion;
+                doneWithFile          = src.doneWithFile;
+                msgIndex              = src.msgIndex;
+                offsetInFile          = src.offsetInFile;
+                vfsFilePath           = src.vfsFilePath;
+            }
+            return *this;
+        }
+
+        inline bool IsEmpty( void ) const
+        {
+            return 0 == bookmarkFormatVersion;
+        }
+
+        inline CStorageBookmarkInfo( const CORE::CString& vfsPath = CORE::CString::Empty )
+            : bookmarkFormatVersion( 1 )
+            , doneWithFile( 0 )
+            , msgIndex( 0 )
+            , offsetInFile( 0 )
+            , vfsFilePath( vfsPath )
+        {}
+
+        inline CStorageBookmarkInfo( const CStorageBookmarkInfo& src )
+            : bookmarkFormatVersion( src.bookmarkFormatVersion )
+            , doneWithFile( src.doneWithFile )
+            , msgIndex( src.msgIndex )
+            , offsetInFile( src.offsetInFile )
+            , vfsFilePath( src.vfsFilePath )
+        {}
     };
     
     class CContainerRangeInfo : public CStorageBookmarkInfo ,
@@ -191,6 +234,16 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubClientTopic : public
     virtual bool SubscribeStartingAtBookmark( const PUBSUB::CPubSubBookmark& bookmark ) GUCEF_VIRTUAL_OVERRIDE;
 
     bool SubscribeStartingAtBookmarkInfo( const CStorageBookmarkInfo& bookmarkInfo );
+
+    /**
+     *  Convenience overload: uses the sidecar index to translate a logical key value into
+     *  a storage bookmark and then calls SubscribeStartingAtBookmarkInfo().
+     *
+     *  @param keyNameWithPrefix  "mk:<keyName>" for metadata keys, "k:<keyName>" for KV-pair keys.
+     *  @param startKeyValue      First key value to deliver (lower-bound, inclusive).
+     */
+    bool SubscribeStartingAtKeyValue( const CORE::CString& keyNameWithPrefix ,
+                                      CORE::UInt64         startKeyValue     );
 
     virtual PUBSUB::CPubSubBookmark GetCurrentBookmark( void ) GUCEF_VIRTUAL_OVERRIDE;
 
@@ -541,6 +594,9 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubClientTopic : public
     CORE::UInt32 m_msgBytesWrittenToStorage;
     CORE::UInt32 m_storageCorruptionDetections;
     CORE::UInt32 m_storageDeserializationFailures;
+
+    typedef GUCEF::map< CORE::CString, CStoragePubSubIndexWriter > TIndexWriterMap;
+    TIndexWriterMap m_indexWriters;   /**< keyed by index filename, e.g. "idx.mk.fix_seq_num.su64.sidx" */
 };
 
 /*-------------------------------------------------------------------------*/

@@ -48,6 +48,11 @@
 #define GUCEF_PUBSUB_CPUBSUBCLIENTTOPICCONFIG_H
 #endif /* GUCEF_PUBSUB_CPUBSUBCLIENTTOPICCONFIG_H ? */
 
+#ifndef PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBINDEXDEF_H
+#include "pubsubpluginSTORAGE_CStoragePubSubIndexDef.h"
+#define PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBINDEXDEF_H
+#endif /* PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBINDEXDEF_H ? */
+
 #ifndef PUBSUBPLUGIN_STORAGE_MACROS_H
 #include "pubsubpluginSTORAGE_macros.h"
 #define PUBSUBPLUGIN_STORAGE_MACROS_H
@@ -81,6 +86,7 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubClientTopicConfig : 
     public:
 
     typedef GUCEF::vector< PUBSUB::CPubSubClientTopicConfig, gucef_allocator< PUBSUB::CPubSubClientTopicConfig > > TTopicConfigVector;
+    typedef GUCEF::vector< CStoragePubSubIndexDef, gucef_allocator< CStoragePubSubIndexDef > >                    TIndexDefVector;
 
     PUBSUB::CPubSubMsgBinarySerializerOptions pubsubBinarySerializerOptions;
     PUBSUB::CPubSubMsgSerializerOptions pubsubSerializerOptions;
@@ -116,6 +122,7 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubClientTopicConfig : 
     CORE::UInt32 nonAckdMsgCheckIntervalInMs;
     CORE::UInt32 maxTimeToWaitForAllMsgBatchAcksInMs;
     bool topicFollowsDirRenames;                                        /**< if true, the topic will follow the dir rename, if false, the topic will remain on the old path and thus functionally be disconnected */
+    TIndexDefVector indexDefinitions;                                   /**< optional sidecar index definitions; one .sidx file per entry */
 
     CStoragePubSubClientTopicConfig( void );
 

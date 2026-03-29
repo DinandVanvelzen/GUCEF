@@ -132,6 +132,7 @@ CInputGlobal::Initialize( void )
     m_inputDriverPluginManager = new CInputDriverPluginManager();
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefINPUT Global systems initialized" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefINPUT" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -149,7 +150,7 @@ CInputGlobal::~CInputGlobal()
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Shutting down gucefINPUT global systems" );
-
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefINPUT" );
 
     /*
      *      cleanup all singletons

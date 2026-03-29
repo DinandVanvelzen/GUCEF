@@ -101,8 +101,9 @@ CStoragePubSubClientTopicConfig::CStoragePubSubClientTopicConfig( void )
     , nonAckdMsgCheckIntervalInMs( GUCEF_DEFAULT_NOACK_RETRANSMIT_CHECK_CYCLETIME_IN_MS )
     , maxTimeToWaitForAllMsgBatchAcksInMs( GUCEF_DEFAULT_MAX_TIME_FOR_ACKING_ALL_IN_MSG_BATHC_IN_MS )
     , topicFollowsDirRenames( false )
+    , indexDefinitions()
 {GUCEF_TRACE;
-    
+
 }
 
 /*-------------------------------------------------------------------------*/
@@ -144,9 +145,10 @@ CStoragePubSubClientTopicConfig::CStoragePubSubClientTopicConfig( const CStorage
     , nonAckdMsgCheckIntervalInMs( src.nonAckdMsgCheckIntervalInMs )
     , maxTimeToWaitForAllMsgBatchAcksInMs( src.maxTimeToWaitForAllMsgBatchAcksInMs )
     , topicFollowsDirRenames( src.topicFollowsDirRenames )
+    , indexDefinitions( src.indexDefinitions )
 {GUCEF_TRACE;
-    
-    customConfig = src.customConfig;  
+
+    customConfig = src.customConfig;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -188,9 +190,10 @@ CStoragePubSubClientTopicConfig::CStoragePubSubClientTopicConfig( const PUBSUB::
     , nonAckdMsgCheckIntervalInMs( GUCEF_DEFAULT_NOACK_RETRANSMIT_CHECK_CYCLETIME_IN_MS )
     , maxTimeToWaitForAllMsgBatchAcksInMs( GUCEF_DEFAULT_MAX_TIME_FOR_ACKING_ALL_IN_MSG_BATHC_IN_MS )
     , topicFollowsDirRenames( false )
+    , indexDefinitions()
 {GUCEF_TRACE;
-    
-    LoadCustomConfig( genericConfig.customConfig );  
+
+    LoadCustomConfig( genericConfig.customConfig );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -248,6 +251,17 @@ CStoragePubSubClientTopicConfig::LoadCustomConfig( const CORE::CDataNode& config
     if ( GUCEF_NULL != serializerOptionsCfg )
         success = pubsubSerializerOptions.LoadConfig( *serializerOptionsCfg ) && success;
 
+    indexDefinitions.clear();
+    CORE::CDataNode::TConstDataNodeSet indexNodes = config.FindChildrenOfType( "index", false );
+    CORE::CDataNode::TConstDataNodeSet::const_iterator idxIt = indexNodes.begin();
+    while ( idxIt != indexNodes.end() )
+    {
+        CStoragePubSubIndexDef def;
+        if ( def.LoadConfig( **idxIt ) )
+            indexDefinitions.push_back( def );
+        ++idxIt;
+    }
+
     return success;
 }
 
@@ -299,6 +313,14 @@ CStoragePubSubClientTopicConfig::SaveCustomConfig( CORE::CDataNode& config ) con
     CORE::CDataNode* serializerOptionsCfg = config.AddChild( "PubSubMsgSerializerOptions" );
     if ( GUCEF_NULL != serializerOptionsCfg )
         success = pubsubSerializerOptions.SaveConfig( *serializerOptionsCfg ) && success;
+
+    CORE::UInt32 indexDefCount = static_cast< CORE::UInt32 >( indexDefinitions.size() );
+    for ( CORE::UInt32 i=0; i<indexDefCount; ++i )
+    {
+        CORE::CDataNode* indexNode = config.AddChild( "index" );
+        if ( GUCEF_NULL != indexNode )
+            success = indexDefinitions[ i ].SaveConfig( *indexNode ) && success;
+    }
 
     return success;
 }
@@ -377,6 +399,7 @@ CStoragePubSubClientTopicConfig::operator=( const CStoragePubSubClientTopicConfi
         nonAckdMsgCheckIntervalInMs = src.nonAckdMsgCheckIntervalInMs;
         maxTimeToWaitForAllMsgBatchAcksInMs = src.maxTimeToWaitForAllMsgBatchAcksInMs;
         topicFollowsDirRenames = src.topicFollowsDirRenames;
+        indexDefinitions = src.indexDefinitions;
 
         customConfig = src.customConfig;
     }

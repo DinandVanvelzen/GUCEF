@@ -187,6 +187,7 @@ CComCoreGlobal::Initialize( void )
     m_dnsCache = ( GUCEF_NEW CGlobalDnsCache() )->CreateSharedPtr();
     m_discoveryManager = GUCEF_NEW CDiscoveryManager();
     m_geoLocationLookupService = GUCEF_NEW CGeoLocationLookupService();
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefCOMCORE" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -203,6 +204,7 @@ CComCoreGlobal::Shutdown( void )
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefCOMCORE Global systems shutting down" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefCOMCORE" );
 
     CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
     taskManager.UnregisterTaskConsumerFactory( CPingTaskConsumer::TaskType );

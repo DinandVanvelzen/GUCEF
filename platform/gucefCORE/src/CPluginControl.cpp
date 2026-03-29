@@ -58,6 +58,11 @@
 #define GUCEF_CORE_CSIMPLISTICPLUGINLOADLOGIC_H
 #endif /* GUCEF_CORE_CSIMPLISTICPLUGINLOADLOGIC_H ? */
 
+#ifndef GUCEF_CORE_DVOSWRAP_H
+#include "DVOSWRAP.h"
+#define GUCEF_CORE_DVOSWRAP_H
+#endif /* GUCEF_CORE_DVOSWRAP_H ? */
+
 #ifndef GUCEF_CORE_DVFILEUTILS_H
 #include "dvfileutils.h"
 #define GUCEF_CORE_DVFILEUTILS_H
@@ -168,6 +173,7 @@ CPluginControl::CPluginControl( void )
     , m_pluginGroupsByName()
     , m_rootDirs()
     , m_pluginManagers()
+    , m_listedLinkBackModules()
 {GUCEF_TRACE;
 
     // Register the load logic implementations available by default
@@ -589,14 +595,31 @@ CPluginControl::RegisterPlugin( TPluginMetaDataStoragePtr& pluginMetaData ,
     if ( GUCEF_NULL == pluginMetaData->GetModulePointer() )
         return false;
 
-    // Now that we verified that the module itself has been successfully loaded we can hand of the module specifics to the appropriote
+    // Now that we verified that the module itself has been successfully loaded we can hand of the module specifics to the appropriate
     // plugin manager which in turn can check and load all symbols etc. The plugin manager will hand us a CIPlugin based
     // object in exchange for our module pointer upon a successfull registration.
     CString pluginType = pluginMetaData->GetPluginType();
+
     if ( pluginType.IsNULLOrEmpty() )
     {
-        // Without a plugin type predefined we will have to use trial and error
+        // Safety 2: Only when no plugin type was set in the metadata.
+        // GUCEFPlugin_GetLinkBackModuleDependencies is an export unique to generic plugins.
+        // If present, we can definitively identify the plugin type without trial and error,
+        // and set it in the metadata so the typed registration path is used instead.
+        if ( GUCEF_NULL != GetFunctionAddress( pluginMetaData->GetModulePointer()              ,
+                                               "GUCEFPlugin_GetLinkBackModuleDependencies"     ,
+                                               0                                                ).funcPtr )
+        {
+            pluginType = "GucefGenericPlugin";
+            pluginMetaData->SetPluginType( pluginType );
+            GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Module \"" + pluginMetaData->GetModuleFilename() +
+                    "\" exports GUCEFPlugin_GetLinkBackModuleDependencies, definitively identified as GucefGenericPlugin" );
+        }
+    }
 
+    if ( pluginType.IsNULLOrEmpty() )
+    {
+        // Without a plugin type predefined we will have to use trial and error.
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Module with name \"" +
                                 pluginMetaData->GetModuleFilename() + "\" and group \"" + groupName + "\" and version " +
                                 VersionToString( pluginMetaData->GetVersion() ) +
@@ -605,22 +628,14 @@ CPluginControl::RegisterPlugin( TPluginMetaDataStoragePtr& pluginMetaData ,
         TPluginManagerSet::iterator w = m_pluginManagers.begin();
         while ( w != m_pluginManagers.end() )
         {
-            // This plugin manager can handle a module of this type.
-            // We will try to register the module here as a plugin
             TPluginPtr pluginPtr = (*w)->RegisterPlugin( pluginMetaData->GetModulePointer(), pluginMetaData );
             if ( pluginPtr )
             {
-                // Remove the metadata entry and instead add a plugin entry
-                // Note that it is the plugin managers responsibility to correctly transfer
-                // metadata to the plugin object
                 pluginGroup.GetPluginMetaData().erase( pluginMetaData );
                 pluginGroup.GetPlugins().insert( pluginPtr );
-
-                // We registerd the module
                 GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Registered module with name \"" +
                                         pluginMetaData->GetModuleFilename() + "\" and group \"" + groupName + "\" and version " +
                                         VersionToString( pluginMetaData->GetVersion() ) + " with plugin manager of type \"" + (*w)->GetPluginType() + "\"" );
-
                 return true;
             }
             ++w;
@@ -632,44 +647,33 @@ CPluginControl::RegisterPlugin( TPluginMetaDataStoragePtr& pluginMetaData ,
                                 VersionToString( pluginMetaData->GetVersion() ) + " with any plugin manager" );
         return false;
     }
-    else
+
+    // A plugin type was defined (either originally or identified via Safety 2) so we know what manager to use
+    CPluginManager* pluginManager = GetPluginManagerForType( pluginType );
+    if ( pluginManager != GUCEF_NULL )
     {
-        // A plugin type was defined so we know what kind of manager we want to use
-        CPluginManager* pluginManager = GetPluginManagerForType( pluginType );
-        if ( pluginManager != NULL )
+        TPluginPtr pluginPtr = pluginManager->RegisterPlugin( pluginMetaData->GetModulePointer(), pluginMetaData );
+        if ( pluginPtr )
         {
-            // This plugin manager can handle a module of this type.
-            // We will try to register the module here as a plugin
-            TPluginPtr pluginPtr = pluginManager->RegisterPlugin( pluginMetaData->GetModulePointer(), pluginMetaData );
-            if ( pluginPtr )
-            {
-                // Remove the metadata entry and instead add a plugin entry
-                // Note that it is the plugin managers responsibility to correctly transfer
-                // metadata to the plugin object
-                pluginGroup.GetPluginMetaData().erase( pluginMetaData );
-                pluginGroup.GetPlugins().insert( pluginPtr );
-
-                // We registerd the module
-                GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Registered module with name \"" +
-                                        pluginMetaData->GetModuleFilename() + "\" and group \"" + groupName + "\" and version " +
-                                        VersionToString( pluginMetaData->GetVersion() ) + " with plugin manager of type \"" + pluginType + "\"" );
-
-                return true;
-            }
-
-            // We were not able to register the module even though we could load it
-            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginControl: Failed to register module with name \"" +
+            pluginGroup.GetPluginMetaData().erase( pluginMetaData );
+            pluginGroup.GetPlugins().insert( pluginPtr );
+            GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Registered module with name \"" +
                                     pluginMetaData->GetModuleFilename() + "\" and group \"" + groupName + "\" and version " +
                                     VersionToString( pluginMetaData->GetVersion() ) + " with plugin manager of type \"" + pluginType + "\"" );
+            return true;
         }
-        else
-        {
-            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginControl: Failed to register module with name \"" +
-                                    pluginMetaData->GetModuleFilename() + "\" and group \"" + groupName + "\" and version " +
-                                    VersionToString( pluginMetaData->GetVersion() ) + " with plugin manager of type \"" + pluginType +
-                                    "\", no plugin manager is registered capable of handeling the given type" );
 
-        }
+        // We were not able to register the module even though we could load it
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginControl: Failed to register module with name \"" +
+                                pluginMetaData->GetModuleFilename() + "\" and group \"" + groupName + "\" and version " +
+                                VersionToString( pluginMetaData->GetVersion() ) + " with plugin manager of type \"" + pluginType + "\"" );
+    }
+    else
+    {
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginControl: Failed to register module with name \"" +
+                                pluginMetaData->GetModuleFilename() + "\" and group \"" + groupName + "\" and version " +
+                                VersionToString( pluginMetaData->GetVersion() ) + " with plugin manager of type \"" + pluginType +
+                                "\", no plugin manager is registered capable of handeling the given type" );
     }
     return false;
 }
@@ -739,9 +743,11 @@ CPluginControl::UnloadPlugin( const CString& groupName  ,
             // It is, proceed with unload
             return UnloadPlugin( plugin, *pluginGroup, groupName );
         }
+        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Module \"" + moduleName + "\" in group \"" + groupName + "\" is not loaded. Intent to unload is satisfied." );
         return true;
     }
-    return false;
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Group \"" + groupName + "\" not found when trying to unload module \"" + moduleName + "\". Intent to unload is satisfied." );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -816,49 +822,71 @@ CPluginControl::UnloadPlugin( TPluginPtr& pluginPtr     ,
     if ( pluginPtr.IsNULL() )
         return true;
 
-    CString moduleFilename = pluginPtr->GetMetaData()->GetModuleFilename();
-    
+    TPluginMetaDataPtr pluginMetaData = pluginPtr->GetMetaData();
+    if ( pluginMetaData.IsNULL() )
+    {
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginControl: Plugin in group \"" + groupName + "\" has no metadata; cannot unload" );
+        return false;
+    }
+
+    CString moduleFilename      = pluginMetaData->GetModuleFilename();
+    void*   modulePtr           = pluginPtr->GetModulePointer();
+    TVersion version            = pluginMetaData->GetVersion();
+    CString pluginLoaderLogicToUse = pluginMetaData->GetLoaderLogicTypeName().IsNULLOrEmpty() ?
+            m_defaultPluginLoadLogicType : pluginMetaData->GetLoaderLogicTypeName();
+
     if ( !UnregisterPlugin( pluginPtr   ,
                             pluginGroup ,
                             groupName   ) )
-        return false;
-
-    // After unregistering the plugin fetch the meta data again
-    // Without the plugin linked it may not be available in the same form
-    TPluginMetaDataPtr pluginMetaData = pluginGroup.FindPluginMetaDataWithModuleName( moduleFilename );
-    if ( pluginMetaData.IsNULL() )
     {
-        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginControl: Cannot unload plugin. Failed to obtain new plugin metadata reference after unregistering plugin with module filename:" +
-                            moduleFilename );
+        // Could not unregister via the plugin manager (e.g. no manager registered for this type).
+        // Log the issue but proceed with the physical DLL unload as requested.
+        // The module's own unload callback will handle any remaining self-deregistration.
+        GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "PluginControl: Unable to cleanly unregister module \"" +
+                moduleFilename + "\" in group \"" + groupName + "\". Forcing DLL unload." );
+
+        // UnregisterPlugin normally removes the entry from m_plugins; do it manually here
+        pluginGroup.GetPlugins().erase( pluginPtr );
+    }
+    else
+    {
+        // Unregister succeeded. The metadata copy was placed back into m_pluginMetaData;
+        // re-acquire it in case the plugin manager updated the loader logic type name.
+        TPluginMetaDataPtr postUnregisterMeta = pluginGroup.FindPluginMetaDataWithModuleName( moduleFilename );
+        if ( !postUnregisterMeta.IsNULL() && !postUnregisterMeta->GetLoaderLogicTypeName().IsNULLOrEmpty() )
+            pluginLoaderLogicToUse = postUnregisterMeta->GetLoaderLogicTypeName();
+    }
+
+    if ( GUCEF_NULL == modulePtr )
+    {
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginControl: Module pointer is NULL for \"" + moduleFilename +
+                "\" in group \"" + groupName + "\"; cannot physically unload DLL" );
         return false;
     }
 
     // Check to see whether the module has a specific loader logic type defined
     // if not we will use the default.
-    CString pluginLoaderLogicToUse = pluginMetaData->GetLoaderLogicTypeName().IsNULLOrEmpty() ?
-            m_defaultPluginLoadLogicType :  pluginMetaData->GetLoaderLogicTypeName();
-
     TPluginLoadLogicMap::iterator m = m_pluginLoadLogicProviders.find( pluginLoaderLogicToUse );
     if ( m != m_pluginLoadLogicProviders.end() )
     {
         TPluginUnloadStartedEventData pluginUnloadStartedEventData( CString::StringPair( groupName, moduleFilename ) );
         if ( !NotifyObservers( PluginUnloadStartedEvent, &pluginUnloadStartedEventData ) ) return false;
 
-        (*m).second->UnloadPlugin( pluginPtr->GetModulePointer() );
+        (*m).second->UnloadPlugin( modulePtr );
 
         // We will unload the module
         GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Unloaded module with name \"" +
-                                pluginMetaData->GetModuleFilename() + "\" and group \"" + groupName + "\" and version " +
-                                VersionToString( pluginMetaData->GetVersion() ) + " using plugin loader logic of type \"" + pluginLoaderLogicToUse + '\"' );
-        
+                                moduleFilename + "\" and group \"" + groupName + "\" and version " +
+                                VersionToString( version ) + " using plugin loader logic of type \"" + pluginLoaderLogicToUse + '\"' );
+
         TPluginUnloadedEventData pluginUnloadedEventData( CString::StringPair( groupName, moduleFilename ) );
         if ( !NotifyObservers( PluginUnloadedEvent, &pluginUnloadedEventData ) ) return false;
         return true;
     }
 
-    GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginControl: Failed to find plugin loader logic of type \"" + pluginLoaderLogicToUse + 
-            "\" for unloading a plugn of type \"" + pluginMetaData->GetPluginType() + "\" and name \"" +
-            pluginMetaData->GetModuleFilename() + "\" and group \"" + groupName + "\" and version " + VersionToString( pluginMetaData->GetVersion() ) );
+    GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginControl: Failed to find plugin loader logic of type \"" + pluginLoaderLogicToUse +
+            "\" for unloading a plugin of type \"" + pluginMetaData->GetPluginType() + "\" and name \"" +
+            moduleFilename + "\" and group \"" + groupName + "\" and version " + VersionToString( version ) );
     return false;
 }
 
@@ -965,8 +993,14 @@ CPluginControl::UnloadPluginGroup( const CString& groupName )
     TStringToPluginGroupMap::iterator i = m_pluginGroupsByName.find( groupName );
     if ( i != m_pluginGroupsByName.end() )
     {
-        TPluginGroupPtr& pluginGroup = (*i).second;
-        CPluginGroup::TPluginSet& pluginSet = pluginGroup->GetPlugins();
+        // must make a copy as unregister can mess with the iterators
+        TPluginGroupPtr pluginGroup = (*i).second;
+        CPluginGroup::TPluginSet pluginSet = pluginGroup->GetPlugins();
+
+        if ( pluginSet.empty() )
+        {
+            GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Group \"" + groupName + "\" has no loaded modules. Intent to unload is satisfied." );
+        }
 
         CPluginGroup::TPluginSet::iterator n = pluginSet.begin();
         while ( n != pluginSet.end() )
@@ -979,6 +1013,10 @@ CPluginControl::UnloadPluginGroup( const CString& groupName )
                                                (*i).first  );
             ++n;
         }
+    }
+    else
+    {
+        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Group \"" + groupName + "\" not found. Intent to unload is satisfied." );
     }
 
     return success;
@@ -1402,6 +1440,37 @@ CPluginControl::AddPluginMetaDataImpl( TPluginMetaDataStoragePtr pluginMetaData 
     if ( pluginGroup.IsNULL() )
         return false;
 
+    // Before adding metadata or loading: check if the same module filename is already
+    // loaded and initialized in any plugin group. Calling Load() on an already-resident
+    // module is unsafe. If found, the caller's intent is considered satisfied without
+    // a second load.
+    if ( loadImmediately )
+    {
+        CString moduleFilename = pluginMetaData->GetModuleFilename();
+        if ( !moduleFilename.IsNULLOrEmpty() )
+        {
+            TStringToPluginGroupMap::iterator gi = m_pluginGroupsByName.begin();
+            while ( gi != m_pluginGroupsByName.end() )
+            {
+                CPluginGroup::TPluginSet& loadedPlugins = (*gi).second->GetPlugins();
+                CPluginGroup::TPluginSet::iterator pi = loadedPlugins.begin();
+                while ( pi != loadedPlugins.end() )
+                {
+                    TPluginMetaDataPtr piMeta = (*pi)->GetMetaData();
+                    if ( piMeta && moduleFilename == piMeta->GetModuleFilename() )
+                    {
+                        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Module \"" + moduleFilename +
+                            "\" is already loaded and initialized in group \"" + (*gi).first +
+                            "\", skipping duplicate load request. Intent is satisfied." );
+                        return true;
+                    }
+                    ++pi;
+                }
+                ++gi;
+            }
+        }
+    }
+
     // Add the metadata
     pluginGroup->GetPluginMetaData().insert( pluginMetaData );
 
@@ -1618,6 +1687,88 @@ CPluginControl::LoadConfig( const CDataNode& treeroot )
         errorOccured = true;
 
     return !errorOccured;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPluginControl::ListModuleForLinkBack( const CString& moduleName )
+{GUCEF_TRACE;
+
+    if ( moduleName.IsNULLOrEmpty() )
+        return false;
+
+    m_listedLinkBackModules.insert( moduleName );
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Module \"" + moduleName + "\" registered as a LinkBack module" );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPluginControl::UnlistModuleForLinkBack( const CString& moduleName )
+{GUCEF_TRACE;
+
+    if ( moduleName.IsNULLOrEmpty() )
+        return false;
+
+    m_listedLinkBackModules.erase( moduleName );
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Module \"" + moduleName + "\" unregistered as a LinkBack module, checking for dependent generic plugins to unload" );
+
+    // Collect all plugins that declared a dependency on this module.
+    // We gather them first so we can safely unload without iterator invalidation.
+    typedef GUCEF::vector< std::pair< TPluginPtr, CString > > TPluginGroupPairVector;
+    TPluginGroupPairVector toUnload;
+
+    TStringToPluginGroupMap::iterator gi = m_pluginGroupsByName.begin();
+    while ( gi != m_pluginGroupsByName.end() )
+    {
+        const CString& groupName = (*gi).first;
+        CPluginGroup::TPluginSet& plugins = (*gi).second->GetPlugins();
+        CPluginGroup::TPluginSet::iterator pi = plugins.begin();
+        while ( pi != plugins.end() )
+        {
+            TPluginMetaDataPtr meta = (*pi)->GetMetaData();
+            if ( !meta.IsNULL() )
+            {
+                CString linkBacks = meta->GetAllLinkBackModules();
+                if ( !linkBacks.IsNULLOrEmpty() )
+                {
+                    CString::StringSet declaredModules = linkBacks.ParseUniqueElements( ',', false );
+                    if ( declaredModules.find( moduleName ) != declaredModules.end() )
+                    {
+                        toUnload.push_back( std::make_pair( *pi, groupName ) );
+                    }
+                }
+            }
+            ++pi;
+        }
+        ++gi;
+    }
+
+    if ( toUnload.empty() )
+    {
+        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: No generic plugins dependent on LinkBack module \"" + moduleName + "\" found" );
+        return true;
+    }
+
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Unloading " + ToString( (UInt32) toUnload.size() ) + " generic plugin(s) dependent on LinkBack module \"" + moduleName + "\"" );
+
+    UInt32 unloadCount = 0;
+    TPluginGroupPairVector::iterator ui = toUnload.begin();
+    while ( ui != toUnload.end() )
+    {
+        TStringToPluginGroupMap::iterator gi2 = m_pluginGroupsByName.find( (*ui).second );
+        if ( gi2 != m_pluginGroupsByName.end() )
+        {
+            if ( UnloadPlugin( (*ui).first, *(*gi2).second, (*ui).second ) )
+                ++unloadCount;
+        }
+        ++ui;
+    }
+
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginControl: Unloaded " + ToString( unloadCount ) + " generic plugin(s) dependent on LinkBack module \"" + moduleName + "\"" );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -143,6 +143,7 @@ CGuiGlobal::Initialize( void )
     m_guiManager = new CGUIManager();
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefGUI Global systems initialized" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefGUI" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -160,6 +161,7 @@ CGuiGlobal::~CGuiGlobal()
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Shutting down gucefGUI global systems" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefGUI" );
 
     /*
      *      cleanup all singletons

@@ -82,6 +82,11 @@
 
 #include "pubsubpluginSTORAGE_CStoragePubSubClientTopic.h"
 
+#ifndef PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBINDEXREADER_H
+#include "pubsubpluginSTORAGE_CStoragePubSubIndexReader.h"
+#define PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBINDEXREADER_H
+#endif /* PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBINDEXREADER_H ? */
+
 #undef MoveFile
 
 /*-------------------------------------------------------------------------//
@@ -109,81 +114,6 @@ namespace STORAGE {
 //      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-CStoragePubSubClientTopic::CStorageBookmarkInfo::CStorageBookmarkInfo( const CORE::CString& vfsPath )
-    : bookmarkFormatVersion( 1 )
-    , doneWithFile( 0 )
-    , msgIndex( 0 )
-    , offsetInFile( 0 )
-    , vfsFilePath( vfsPath )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CStoragePubSubClientTopic::CStorageBookmarkInfo::CStorageBookmarkInfo( const CStorageBookmarkInfo& src )
-    : bookmarkFormatVersion( src.bookmarkFormatVersion )
-    , doneWithFile( src.doneWithFile )
-    , msgIndex( src.msgIndex )
-    , offsetInFile( src.offsetInFile )
-    , vfsFilePath( src.vfsFilePath )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-bool
-CStoragePubSubClientTopic::CStorageBookmarkInfo::operator<( const CStorageBookmarkInfo& other ) const
-{GUCEF_TRACE;
-
-    if ( vfsFilePath == other.vfsFilePath )
-    {
-        return msgIndex < other.msgIndex;
-    }
-    else
-    {
-        return vfsFilePath < other.vfsFilePath;
-    }
-}
-
-/*-------------------------------------------------------------------------*/
-
-bool
-CStoragePubSubClientTopic::CStorageBookmarkInfo::operator==( const CStorageBookmarkInfo& other ) const
-{GUCEF_TRACE;
-
-    return vfsFilePath == other.vfsFilePath && msgIndex == other.msgIndex;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CStoragePubSubClientTopic::CStorageBookmarkInfo&
-CStoragePubSubClientTopic::CStorageBookmarkInfo::operator=( const CStorageBookmarkInfo& src )
-{GUCEF_TRACE;
-
-    if ( &src != this )
-    {
-        bookmarkFormatVersion = src.bookmarkFormatVersion;
-        doneWithFile = src.doneWithFile;
-        msgIndex = src.msgIndex;
-        offsetInFile = src.offsetInFile;
-        vfsFilePath = src.vfsFilePath;
-    }
-    return *this;
-}
-
-/*-------------------------------------------------------------------------*/
-
-bool
-CStoragePubSubClientTopic::CStorageBookmarkInfo::IsEmpty( void ) const
-{GUCEF_TRACE;
-
-    return 0 == bookmarkFormatVersion;
-}
-
-/*-------------------------------------------------------------------------*/
 
 CStoragePubSubClientTopic::CContainerRangeInfo::CContainerRangeInfo( const CORE::CString& vfsPath )
     : CStorageBookmarkInfo( vfsPath )
@@ -825,7 +755,10 @@ CStoragePubSubClientTopic::PublishViaMsgPtrs( TPublishActionIdVector& publishAct
                 bufferMetaData->actionIds.clear();
 
                 // Start the timer on content for this buffer
-                m_bufferContentTimeWindowCheckTimer->SetEnabled( true );
+                if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_bufferContentTimeWindowCheckTimer )
+                {
+                    m_bufferContentTimeWindowCheckTimer->SetEnabled( true );
+                }
             }
             else
             {
@@ -978,7 +911,8 @@ CStoragePubSubClientTopic::FinalizeWriteBuffer( StorageBufferMetaData* bufferMet
     bufferMetaData->isBeingWritten = false;
 
     m_lastWriteBlockCompletion = CORE::CDateTime::NowUTCDateTime();
-    m_bufferContentTimeWindowCheckTimer->SetEnabled( false );
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != m_bufferContentTimeWindowCheckTimer )
+        m_bufferContentTimeWindowCheckTimer->SetEnabled( false );
 
     if ( !m_config.performVfsOpsASync )
     {
@@ -1616,6 +1550,74 @@ CStoragePubSubClientTopic::SubscribeStartingAtMsgDateTime( const CORE::CDateTime
 
     GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "StoragePubSubClientTopic:SubscribeStartingAtMsgDateTime: Attemping to subscribe to a topic that is not configured to support subscriptions, Topic Name: " + m_config.topicName );
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CStoragePubSubClientTopic::SubscribeStartingAtKeyValue( const CORE::CString& keyNameWithPrefix ,
+                                                         CORE::UInt64         startKeyValue     )
+{GUCEF_TRACE;
+
+    /* Parse keyNameWithPrefix: "mk:<keyName>" or "k:<keyName>" */
+    CStoragePubSubIndexDef::EKeySource keySource = CStoragePubSubIndexDef::KEY_SOURCE_META_DATA;
+    CORE::CString keyName;
+
+    if ( keyNameWithPrefix.HasSubstr( "mk:", true ) )
+    {
+        keySource = CStoragePubSubIndexDef::KEY_SOURCE_META_DATA;
+        keyName   = keyNameWithPrefix.CutChars( 3, true, 0 );
+    }
+    else if ( keyNameWithPrefix.HasSubstr( "k:", true ) )
+    {
+        keySource = CStoragePubSubIndexDef::KEY_SOURCE_KV_PAIR;
+        keyName   = keyNameWithPrefix.CutChars( 2, true, 0 );
+    }
+    else
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "StoragePubSubClientTopic:SubscribeStartingAtKeyValue: Invalid keyNameWithPrefix (expected 'mk:' or 'k:' prefix): " + keyNameWithPrefix );
+        return false;
+    }
+
+    /* Find a matching index definition */
+    const CStoragePubSubIndexDef* matchedDef = GUCEF_NULL;
+    CORE::UInt32 defCount = static_cast< CORE::UInt32 >( m_config.indexDefinitions.size() );
+    for ( CORE::UInt32 i=0; i<defCount; ++i )
+    {
+        const CStoragePubSubIndexDef& def = m_config.indexDefinitions[ i ];
+        if ( def.keySource == keySource && def.keyName == keyName )
+        {
+            matchedDef = &def;
+            break;
+        }
+    }
+
+    if ( GUCEF_NULL == matchedDef )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "StoragePubSubClientTopic:SubscribeStartingAtKeyValue: No index definition found for key: " + keyNameWithPrefix + ", Topic: " + m_config.topicName );
+        return false;
+    }
+
+    CStoragePubSubIndexReader reader( *matchedDef, m_vfsRootPath );
+    if ( !reader.LoadIndex() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "StoragePubSubClientTopic:SubscribeStartingAtKeyValue: Failed to load index for key: " + keyNameWithPrefix + ", Topic: " + m_config.topicName );
+        return false;
+    }
+
+    CStorageBookmarkInfo bookmark;
+    if ( !reader.FindStartBookmark( startKeyValue, bookmark ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "StoragePubSubClientTopic:SubscribeStartingAtKeyValue: No entry found for startKeyValue=" +
+            CORE::ToString( startKeyValue ) + " in index for key: " + keyNameWithPrefix + ", Topic: " + m_config.topicName );
+        return false;
+    }
+
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "StoragePubSubClientTopic:SubscribeStartingAtKeyValue: Resolved key=" +
+        keyNameWithPrefix + " startValue=" + CORE::ToString( startKeyValue ) + " to bookmark file=" +
+        bookmark.vfsFilePath + " msgIndex=" + CORE::ToString( bookmark.msgIndex ) + ", Topic: " + m_config.topicName );
+
+    return SubscribeStartingAtBookmarkInfo( bookmark );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2955,6 +2957,26 @@ CStoragePubSubClientTopic::StoreNextReceivedPubSubBuffer( bool onlyStoreIfBuffer
                 m_msgBytesWrittenToStorage += m_currentReadBuffer->GetDataSize();
                 AddPublishActionIdsToNotify( bufferMetaData->actionIds, true );
 
+                if ( !m_config.indexDefinitions.empty() )
+                {
+                    CORE::UInt32 idxDefCount = static_cast< CORE::UInt32 >( m_config.indexDefinitions.size() );
+                    for ( CORE::UInt32 idxDef=0; idxDef<idxDefCount; ++idxDef )
+                    {
+                        CStoragePubSubIndexDef& def = m_config.indexDefinitions[ idxDef ];
+                        CORE::CString idxFilename = def.GetIndexFilename();
+                        TIndexWriterMap::iterator writerIt = m_indexWriters.find( idxFilename );
+                        if ( writerIt == m_indexWriters.end() )
+                        {
+                            m_indexWriters.insert( std::make_pair( idxFilename, CStoragePubSubIndexWriter( def, m_vfsRootPath ) ) );
+                            writerIt = m_indexWriters.find( idxFilename );
+                        }
+                        writerIt->second.AppendContainer( m_config.pubsubBinarySerializerOptions,
+                                                          *m_currentReadBuffer                  ,
+                                                          bufferMetaData->msgOffsetIndex         ,
+                                                          vfsFilename                            );
+                    }
+                }
+
                 buffers.SignalEndOfReading();
                 m_currentReadBuffer = GUCEF_NULL;
 
@@ -2989,6 +3011,26 @@ CStoragePubSubClientTopic::StoreNextReceivedPubSubBuffer( bool onlyStoreIfBuffer
                 m_msgBytesWrittenToStorage += m_currentReadBuffer->GetDataSize();
                 m_encodeSizeRatio = (CORE::Float32) ( m_currentReadBuffer->GetDataSize() / ( 1.0f * vfs.GetFileSize( vfsStoragePath ) ) );
                 AddPublishActionIdsToNotify( bufferMetaData->actionIds, true );
+
+                if ( !m_config.indexDefinitions.empty() )
+                {
+                    CORE::UInt32 idxDefCount = static_cast< CORE::UInt32 >( m_config.indexDefinitions.size() );
+                    for ( CORE::UInt32 idxDef=0; idxDef<idxDefCount; ++idxDef )
+                    {
+                        CStoragePubSubIndexDef& def = m_config.indexDefinitions[ idxDef ];
+                        CORE::CString idxFilename = def.GetIndexFilename();
+                        TIndexWriterMap::iterator writerIt = m_indexWriters.find( idxFilename );
+                        if ( writerIt == m_indexWriters.end() )
+                        {
+                            m_indexWriters.insert( std::make_pair( idxFilename, CStoragePubSubIndexWriter( def, m_vfsRootPath ) ) );
+                            writerIt = m_indexWriters.find( idxFilename );
+                        }
+                        writerIt->second.AppendContainer( m_config.pubsubBinarySerializerOptions,
+                                                          *m_currentReadBuffer                  ,
+                                                          bufferMetaData->msgOffsetIndex         ,
+                                                          vfsFilename                            );
+                    }
+                }
 
                 buffers.SignalEndOfReading();
                 m_currentReadBuffer = GUCEF_NULL;

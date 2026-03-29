@@ -138,6 +138,15 @@ GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
     return "Generic GUCEF plugin for PUBSUB via FIX protocol (FIX 4.2 / 4.4 / FIXT 1.1)";
 }
 
+/*--------------------------------------------------------------------------*/
+
+const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUCEFPlugin_GetLinkBackModuleDependencies( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    return "gucefPUBSUB";
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

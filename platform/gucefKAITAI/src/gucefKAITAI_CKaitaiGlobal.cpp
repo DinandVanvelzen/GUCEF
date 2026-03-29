@@ -100,6 +100,7 @@ CKaitaiGlobal::Initialize( void )
     m_kaitaiSchemaRegistry = GUCEF_NEW CGlobalKaitaiSchemaRegistry();
 
     CORE::CCoreGlobal::Instance()->GetDataDrivenDStoreCodecFactory().RegisterConcreteFactory( CKaitaiDStoreCodec::CodecTypeName, &g_kaitaiDStoreCodecFactory );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefKAITAI" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -108,7 +109,8 @@ CKaitaiGlobal::~CKaitaiGlobal()
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefKATAI Global systems shutting down" );
-    
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefKAITAI" );
+
     CORE::CCoreGlobal::Instance()->GetDataDrivenDStoreCodecFactory().UnregisterConcreteFactory( CKaitaiDStoreCodec::CodecTypeName );
     
     GUCEF_DELETE static_cast< CGlobalKaitaiSchemaRegistry* >( m_kaitaiSchemaRegistry );

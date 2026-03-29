@@ -59,11 +59,12 @@ namespace CORE {
 
 enum TGenericPluginFuncPtrType
 {
-    GPLUGINFUNCPTR_LOAD        ,
-    GPLUGINFUNCPTR_UNLOAD      ,
-    GPLUGINFUNCPTR_VERSION     ,
-    GPLUGINFUNCPTR_COPYRIGHT   ,
-    GPLUGINFUNCPTR_DESCRIPTION ,
+    GPLUGINFUNCPTR_LOAD                   ,
+    GPLUGINFUNCPTR_UNLOAD                 ,
+    GPLUGINFUNCPTR_VERSION                ,
+    GPLUGINFUNCPTR_COPYRIGHT              ,
+    GPLUGINFUNCPTR_DESCRIPTION            ,
+    GPLUGINFUNCPTR_LINKBACKMODULEDEPS     ,   /* optional */
 
     GPLUGINFUNCPTR_COUNT
 };
@@ -82,7 +83,7 @@ CGenericPlugin::CGenericPlugin( void )
       m_metaData()
 {GUCEF_TRACE;
 
-    memset( m_funcPointers, 0, GPLUGINFUNCPTR_COUNT );
+    memset( m_funcPointers, 0, sizeof( m_funcPointers ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -163,7 +164,12 @@ CGenericPlugin::Link( void* modulePtr                   ,
                                                                          "GUCEFPlugin_GetCopyright" ,
                                                                          0                          ).funcPtr;
 
-        // Verify that all function pointers are loaded correctly
+        // Optional export — may be absent in older plugins
+        m_funcPointers[ GPLUGINFUNCPTR_LINKBACKMODULEDEPS ] = GetFunctionAddress( m_moduleHandle                           ,
+                                                                                  "GUCEFPlugin_GetLinkBackModuleDependencies" ,
+                                                                                  0                                          ).funcPtr;
+
+        // Verify that all mandatory function pointers are loaded correctly
         if ( ( NULL != m_funcPointers[ GPLUGINFUNCPTR_LOAD ] )        &&
              ( NULL != m_funcPointers[ GPLUGINFUNCPTR_UNLOAD ] )      &&
              ( NULL != m_funcPointers[ GPLUGINFUNCPTR_VERSION ] )     &&
@@ -223,10 +229,27 @@ CGenericPlugin::Link( void* modulePtr                   ,
                         Int32ToString( loadStatus  ) + " using module: " + PointerToString( modulePtr ) );
 
                 // Copy the given metadata and update it with info from the actual module
-                m_metaData = TPluginMetaDataStoragePtr( GUCEF_NEW CPluginMetaData( *pluginMetaData ) );                 
+                m_metaData = TPluginMetaDataStoragePtr( GUCEF_NEW CPluginMetaData( *pluginMetaData ) );
                 m_metaData->SetDescription( GetDescription() );
                 m_metaData->SetCopyright( GetCopyright() );
                 m_metaData->SetVersion( GetVersion() );
+                // Generic plugins always have this type; ensure it is set in the stored metadata
+                // even when loaded via trial-and-error (where the incoming metadata has no type).
+                m_metaData->SetPluginType( "GucefGenericPlugin" );
+
+                // If the plugin exports the optional LinkBack dependencies function, use its
+                // return value to supplement or override whatever was set in the config metadata.
+                // The hardcoded list from the binary is authoritative over the config.
+                if ( NULL != m_funcPointers[ GPLUGINFUNCPTR_LINKBACKMODULEDEPS ] )
+                {
+                    const char* linkBackDeps = reinterpret_cast< TGUCEFGENERICPLUGFPTR_GetLinkBackModuleDependencies >(
+                            m_funcPointers[ GPLUGINFUNCPTR_LINKBACKMODULEDEPS ] )();
+                    if ( NULL != linkBackDeps && '\0' != linkBackDeps[ 0 ] )
+                    {
+                        m_metaData->SetAllLinkBackModules( CString( linkBackDeps ) );
+                        GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "GenericPlugin: Plugin declared LinkBack module dependencies: " + CString( linkBackDeps ) );
+                    }
+                }
 
                 return true;
             }
@@ -247,7 +270,7 @@ CGenericPlugin::Link( void* modulePtr                   ,
         }
 
         // We failed to link the functions :(
-        memset( m_funcPointers, 0, GPLUGINFUNCPTR_COUNT );
+        memset( m_funcPointers, 0, sizeof( m_funcPointers ) );
         m_moduleHandle = NULL;
         return false;
     }
@@ -283,7 +306,7 @@ CGenericPlugin::Unlink( void )
         }
 
         // Cleanup recources
-        memset( m_funcPointers, 0, GPLUGINFUNCPTR_COUNT );
+        memset( m_funcPointers, 0, sizeof( m_funcPointers ) );
         m_moduleHandle = NULL;
         m_metaData.Unlink();
     }

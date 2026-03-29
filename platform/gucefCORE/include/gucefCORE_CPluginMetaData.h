@@ -165,6 +165,10 @@ class GUCEF_CORE_PUBLIC_CPP CPluginMetaData : public CIPluginMetaData ,
      */
     virtual bool GetLoadFailAllowed( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    void SetAllLinkBackModules( const CString& linkBackModules );
+
+    virtual CString GetAllLinkBackModules( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
     /**
      *  Optionally parameters can be specified to be available for the plugin.
      *  How, when and if they values are passed to the plugin depends on the implementation
@@ -211,6 +215,7 @@ class GUCEF_CORE_PUBLIC_CPP CPluginMetaData : public CIPluginMetaData ,
     CString m_copyright;
     TVersion m_version;
     CString m_loaderLogicTypeName;
+    CString m_linkBackModules;
     CString m_pluginType;
     CString m_moduleFilename;
     CString m_altModuleFilename;

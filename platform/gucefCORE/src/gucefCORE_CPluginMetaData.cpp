@@ -57,8 +57,9 @@ CPluginMetaData::CPluginMetaData( void )
     , m_description()         
     , m_copyright()           
     , m_version()             
-    , m_loaderLogicTypeName() 
-    , m_pluginType()          
+    , m_loaderLogicTypeName()
+    , m_linkBackModules()
+    , m_pluginType()
     , m_moduleFilename()      
     , m_altModuleFilename()   
     , m_modulePath()          
@@ -85,8 +86,9 @@ CPluginMetaData::CPluginMetaData( const CPluginMetaData& src )
     , m_description( src.m_description )                 
     , m_copyright( src.m_copyright )                     
     , m_version( src.m_version )                         
-    , m_loaderLogicTypeName( src.m_loaderLogicTypeName ) 
-    , m_pluginType( src.m_pluginType )                   
+    , m_loaderLogicTypeName( src.m_loaderLogicTypeName )
+    , m_linkBackModules( src.m_linkBackModules )
+    , m_pluginType( src.m_pluginType )
     , m_moduleFilename( src.m_moduleFilename )           
     , m_altModuleFilename( src.m_altModuleFilename )     
     , m_modulePath( src.m_modulePath )                   
@@ -107,8 +109,9 @@ CPluginMetaData::CPluginMetaData( const CIPluginMetaData& src )
     , m_description( src.GetDescription() )                 
     , m_copyright( src.GetCopyright() )                     
     , m_version( src.GetVersion() )                         
-    , m_loaderLogicTypeName( src.GetLoaderLogicTypeName() ) 
-    , m_pluginType( src.GetPluginType() )                   
+    , m_loaderLogicTypeName( src.GetLoaderLogicTypeName() )
+    , m_linkBackModules( src.GetAllLinkBackModules() )
+    , m_pluginType( src.GetPluginType() )
     , m_moduleFilename( src.GetModuleFilename() )           
     , m_altModuleFilename( src.GetAltModuleFilename() )     
     , m_modulePath( src.GetFullModulePath() )               
@@ -141,6 +144,7 @@ CPluginMetaData::operator=( const CPluginMetaData& src )
         m_copyright = src.m_copyright;
         m_version = src.m_version;
         m_loaderLogicTypeName = src.m_loaderLogicTypeName;
+        m_linkBackModules = src.m_linkBackModules;
         m_pluginType = src.m_pluginType;
         m_moduleFilename = src.m_moduleFilename;
         m_modulePath = src.m_modulePath;
@@ -222,6 +226,24 @@ CPluginMetaData::GetLoaderLogicTypeName( void ) const
 {GUCEF_TRACE;
 
     return m_loaderLogicTypeName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPluginMetaData::SetAllLinkBackModules( const CString& linkBackModules )
+{GUCEF_TRACE;
+
+    m_linkBackModules = linkBackModules;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CPluginMetaData::GetAllLinkBackModules( void ) const
+{GUCEF_TRACE;
+
+    return m_linkBackModules;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -426,6 +448,11 @@ CPluginMetaData::LoadConfig( const CDataNode& treeroot )
         {
             m_loaderLogicTypeName = value;
         }
+        value = node->GetAttributeValueOrChildValueByName( "LinkBackModules" );
+        if ( !value.IsNULLOrEmpty() )
+        {
+            m_linkBackModules = value;
+        }
         CDataNode::TVariantVector paramList = node->GetChildrenValuesByName( "Param" );
         CDataNode::TVariantVector::iterator i = paramList.begin();
         while ( i != paramList.end() )
@@ -457,6 +484,7 @@ CPluginMetaData::Clear( void )
     m_description.Clear();
     m_copyright.Clear();
     m_loaderLogicTypeName.Clear();
+    m_linkBackModules.Clear();
     m_pluginType.Clear();
     m_moduleFilename.Clear();
     m_modulePath.Clear();

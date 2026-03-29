@@ -33,6 +33,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #ifndef GUCEF_CORE_CMETRICSCLIENTMANAGER_H
 #include "gucefCORE_CMetricsClientManager.h"
 #define GUCEF_CORE_CMETRICSCLIENTMANAGER_H
@@ -126,6 +131,7 @@ CWebGlobal::Initialize( void )
 
     CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CAsyncHttpServerRequestHandler::TaskType, &g_asyncHttpServerRequestHandlerFactory );
     CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CAsyncHttpServerResponseHandler::TaskType, &g_asyncHttpServerResponseHandlerFactory );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefWEB" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -134,6 +140,7 @@ CWebGlobal::~CWebGlobal()
 {GUCEF_TRACE;
   
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefWEB Global systems shutting down" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefWEB" );
 
     CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CAsyncHttpServerRequestHandler::TaskType );
     CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CAsyncHttpServerResponseHandler::TaskType );

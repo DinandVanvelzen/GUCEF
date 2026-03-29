@@ -43,13 +43,14 @@
 //-------------------------------------------------------------------------*/
 
 #ifndef PUBSUBPLUGIN_STORAGE_EMBED_CODE
-  #define pubsubpluginSTORAGE_GUCEFPlugin_Load              GUCEFPlugin_Load      
-  #define pubsubpluginSTORAGE_GUCEFPlugin_Unload            GUCEFPlugin_Unload
-  #define pubsubpluginSTORAGE_GUCEFPlugin_GetVersion        GUCEFPlugin_GetVersion
-  #define pubsubpluginSTORAGE_GUCEFPlugin_GetCopyright      GUCEFPlugin_GetCopyright
-  #define pubsubpluginSTORAGE_GUCEFPlugin_GetDescription    GUCEFPlugin_GetDescription
-  #define PUBSUB_STORAGE_PLUGIN_CALLSPEC_PREFIX             GUCEF_PLUGIN_CALLSPEC_PREFIX
-  #define PUBSUB_STORAGE_PLUGIN_CALLSPEC_SUFFIX             GUCEF_PLUGIN_CALLSPEC_SUFFIX
+  #define pubsubpluginSTORAGE_GUCEFPlugin_Load                          GUCEFPlugin_Load
+  #define pubsubpluginSTORAGE_GUCEFPlugin_Unload                        GUCEFPlugin_Unload
+  #define pubsubpluginSTORAGE_GUCEFPlugin_GetVersion                    GUCEFPlugin_GetVersion
+  #define pubsubpluginSTORAGE_GUCEFPlugin_GetCopyright                  GUCEFPlugin_GetCopyright
+  #define pubsubpluginSTORAGE_GUCEFPlugin_GetDescription                GUCEFPlugin_GetDescription
+  #define pubsubpluginSTORAGE_GUCEFPlugin_GetLinkBackModuleDependencies GUCEFPlugin_GetLinkBackModuleDependencies
+  #define PUBSUB_STORAGE_PLUGIN_CALLSPEC_PREFIX                         GUCEF_PLUGIN_CALLSPEC_PREFIX
+  #define PUBSUB_STORAGE_PLUGIN_CALLSPEC_SUFFIX                         GUCEF_PLUGIN_CALLSPEC_SUFFIX
 #else
   #define PUBSUB_STORAGE_PLUGIN_CALLSPEC_PREFIX
   #define PUBSUB_STORAGE_PLUGIN_CALLSPEC_SUFFIX
@@ -95,7 +96,12 @@ pubsubpluginSTORAGE_GUCEFPlugin_GetCopyright( void ) PUBSUB_STORAGE_PLUGIN_CALLS
 PUBSUBPLUGIN_STORAGE_PLUGIN_PUBLIC_C const char* PUBSUB_STORAGE_PLUGIN_CALLSPEC_PREFIX
 pubsubpluginSTORAGE_GUCEFPlugin_GetDescription( void ) PUBSUB_STORAGE_PLUGIN_CALLSPEC_SUFFIX;
 
-/*---------------------------------------------------------------------------*/                 
+/*--------------------------------------------------------------------------*/
+
+PUBSUBPLUGIN_STORAGE_PLUGIN_PUBLIC_C const char* PUBSUB_STORAGE_PLUGIN_CALLSPEC_PREFIX
+pubsubpluginSTORAGE_GUCEFPlugin_GetLinkBackModuleDependencies( void ) PUBSUB_STORAGE_PLUGIN_CALLSPEC_SUFFIX;
+
+/*---------------------------------------------------------------------------*/
 
 #ifdef __cplusplus
    }

@@ -152,6 +152,19 @@ class GUCEF_CORE_PUBLIC_CPP CIPluginMetaData
      *  thus failure to load the plugin would not be considered an error and merely an informational event
      */
     virtual bool GetLoadFailAllowed( void ) const = 0;
+
+    /**
+     *  Optional comma-separated list of LinkBack module names this plugin depends on.
+     *  A LinkBack module is any framework module (e.g. gucefPUBSUB) whose global singleton
+     *  calls CPluginControl::ListModuleForLinkBack() on construction and
+     *  CPluginControl::UnlistModuleForLinkBack() on destruction.
+     *  When a listed module calls UnlistModuleForLinkBack(), CPluginControl will immediately
+     *  unload all generic (C++ link-back) plugins that declared it here, preventing use-after-free
+     *  crashes at process exit when plugin callbacks outlive the modules they link into.
+     *  Example: "gucefMT,gucefCORE,gucefPUBSUB"
+     *  No spaces should be used in the list.
+     */
+    virtual CString GetAllLinkBackModules( void ) const = 0;
 };
 
 /*-------------------------------------------------------------------------*/

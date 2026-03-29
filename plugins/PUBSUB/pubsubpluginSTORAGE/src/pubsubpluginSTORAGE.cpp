@@ -123,3 +123,12 @@ pubsubpluginSTORAGE_GUCEFPlugin_GetDescription( void ) PUBSUB_STORAGE_PLUGIN_CAL
 }
 
 /*--------------------------------------------------------------------------*/
+
+const char* PUBSUB_STORAGE_PLUGIN_CALLSPEC_PREFIX
+pubsubpluginSTORAGE_GUCEFPlugin_GetLinkBackModuleDependencies( void ) PUBSUB_STORAGE_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    return "gucefPUBSUB";
+}
+
+/*--------------------------------------------------------------------------*/

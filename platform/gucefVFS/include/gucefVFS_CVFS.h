@@ -583,8 +583,17 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     bool IsInitialized( void ) const;
 
     /**
+     *  Explicitly triggers the mounting of any archives that were deferred to a later init stage
+     *  and marks delayed archive mounting as complete. This is the programmatic equivalent of
+     *  what happens when a global config finishes loading. Call this when you configure the VFS
+     *  directly (e.g. in unit tests or applications that do not load a global config) to unblock
+     *  components that wait for the VfsInitializationCompletedEvent before operating.
+     */
+    void MountAllDelayMountedArchives( void );
+
+    /**
      *  Obtains a snapshot-in-time evaluation of the current health of the archives
-     *  mounted into the VFS plus the overall VFS health. 
+     *  mounted into the VFS plus the overall VFS health.
      */
     bool IsHealthy( void ) const;
 
@@ -783,8 +792,6 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     void OnGlobalConfigLoadFinished( CORE::CNotifier* notifier                 ,
                                      const CORE::CEvent& eventid               ,
                                      CORE::CICloneable* eventdata = GUCEF_NULL );
-
-    void MountAllDelayMountedArchives( void );
 
     VFS::CString ConformVfsDirPath( const VFS::CString& originalDirPath ) const;
 

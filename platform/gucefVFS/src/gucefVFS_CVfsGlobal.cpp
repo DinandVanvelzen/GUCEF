@@ -33,6 +33,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #ifndef GUCEF_CORE_CTASKMANAGER_H
 #include "gucefCORE_CTaskManager.h"
 #define GUCEF_CORE_CTASKMANAGER_H
@@ -178,6 +183,7 @@ CVfsGlobal::Initialize( void )
     CVFSURLHandler::Register();
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefVFS Global systems initialized" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefVFS" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -194,8 +200,9 @@ CVfsGlobal::~CVfsGlobal()
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Shutting down gucefVFS global systems" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefVFS" );
 
-    /* 
+    /*
      *  Unregister handlers
      */
     CVFSURLHandler::Unregister();

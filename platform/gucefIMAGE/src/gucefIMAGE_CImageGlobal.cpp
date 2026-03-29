@@ -125,6 +125,7 @@ CImageGlobal::Initialize( void )
     m_imageCodecPluginManager = new CImageCodecPluginManager();
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefIMAGE Global systems initialized" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefIMAGE" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -142,7 +143,8 @@ CImageGlobal::~CImageGlobal()
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "Shutting down gucefIMAGE global systems" );
-        
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefIMAGE" );
+
     CORE::CCodecRegistry& codecRegistry = CORE::CCoreGlobal::Instance()->GetCodecRegistry();
     CORE::CCodecRegistry::TCodecFamilyRegistryPtr registry;
     

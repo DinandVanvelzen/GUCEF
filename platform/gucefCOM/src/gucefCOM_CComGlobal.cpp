@@ -33,6 +33,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #ifndef GUCEF_CORE_CMETRICSCLIENTMANAGER_H
 #include "gucefCORE_CMetricsClientManager.h"
 #define GUCEF_CORE_CMETRICSCLIENTMANAGER_H
@@ -105,6 +110,7 @@ CComGlobal::Initialize( void )
 
     CORE::CMetricsClientManager::CIMetricsSystemClientPtr statsDClient( GUCEF_NEW CStatsDClient() );
     CORE::CCoreGlobal::Instance()->GetMetricsClientManager().AddMetricsClient( CStatsDClient::Type, statsDClient );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefCOM" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -113,6 +119,7 @@ CComGlobal::~CComGlobal()
 {GUCEF_TRACE;
   
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefCOM Global systems shutting down" );
+    CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefCOM" );
 
     CORE::CCoreGlobal::Instance()->GetMetricsClientManager().RemoveMetricsClient( CStatsDClient::Type );
 }

@@ -250,6 +250,24 @@ class GUCEF_CORE_PUBLIC_CPP CPluginControl : public CTSGNotifier          ,
 
     bool AdjustGroupPriority( const CString& groupName , UInt32 newPriority );
 
+    /**
+     *  Called by a framework module's global singleton on construction to announce
+     *  that its LinkBack interface is now available.
+     *  Generic (C++ link-back) plugins that list this module name in their
+     *  GetAllLinkBackModules() metadata will be safe to stay loaded while this
+     *  registration is active.
+     */
+    bool ListModuleForLinkBack( const CString& moduleName );
+
+    /**
+     *  Called by a framework module's global singleton on destruction to announce
+     *  that its LinkBack interface is about to be torn down.
+     *  All generic plugins that declared a dependency on this module name via
+     *  GetAllLinkBackModules() will be immediately unloaded to prevent
+     *  use-after-free crashes at process exit.
+     */
+    bool UnlistModuleForLinkBack( const CString& moduleName );
+
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     protected:
@@ -315,6 +333,7 @@ class GUCEF_CORE_PUBLIC_CPP CPluginControl : public CTSGNotifier          ,
     TStringToPluginGroupMap m_pluginGroupsByName;
     TStringSet m_rootDirs;
     TPluginManagerSet m_pluginManagers;
+    TStringSet m_listedLinkBackModules;
 };
 
 /*-------------------------------------------------------------------------//

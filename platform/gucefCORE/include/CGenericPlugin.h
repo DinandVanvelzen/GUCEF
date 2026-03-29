@@ -127,7 +127,7 @@ class GUCEF_CORE_PUBLIC_CPP CGenericPlugin : public CIPlugin
     private:
 
     void* m_moduleHandle;
-    TDefaultFuncPtr m_funcPointers[ 5 ];
+    TDefaultFuncPtr m_funcPointers[ 6 ];
     CString m_modulePath;
     CValueList m_params;
     TPluginMetaDataStoragePtr m_metaData;
