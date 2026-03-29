@@ -42,13 +42,14 @@
 //-------------------------------------------------------------------------*/
 
 #ifndef PUBSUBPLUGIN_TEST_EMBED_CODE
-  #define pubsubpluginTEST_GUCEFPlugin_Load              GUCEFPlugin_Load      
-  #define pubsubpluginTEST_GUCEFPlugin_Unload            GUCEFPlugin_Unload
-  #define pubsubpluginTEST_GUCEFPlugin_GetVersion        GUCEFPlugin_GetVersion
-  #define pubsubpluginTEST_GUCEFPlugin_GetCopyright      GUCEFPlugin_GetCopyright
-  #define pubsubpluginTEST_GUCEFPlugin_GetDescription    GUCEFPlugin_GetDescription
-  #define PUBSUB_TEST_PLUGIN_CALLSPEC_PREFIX             GUCEF_PLUGIN_CALLSPEC_PREFIX
-  #define PUBSUB_TEST_PLUGIN_CALLSPEC_SUFFIX             GUCEF_PLUGIN_CALLSPEC_SUFFIX
+  #define pubsubpluginTEST_GUCEFPlugin_Load                          GUCEFPlugin_Load
+  #define pubsubpluginTEST_GUCEFPlugin_Unload                        GUCEFPlugin_Unload
+  #define pubsubpluginTEST_GUCEFPlugin_GetVersion                    GUCEFPlugin_GetVersion
+  #define pubsubpluginTEST_GUCEFPlugin_GetCopyright                  GUCEFPlugin_GetCopyright
+  #define pubsubpluginTEST_GUCEFPlugin_GetDescription                GUCEFPlugin_GetDescription
+  #define pubsubpluginTEST_GUCEFPlugin_GetLinkBackModuleDependencies GUCEFPlugin_GetLinkBackModuleDependencies
+  #define PUBSUB_TEST_PLUGIN_CALLSPEC_PREFIX                         GUCEF_PLUGIN_CALLSPEC_PREFIX
+  #define PUBSUB_TEST_PLUGIN_CALLSPEC_SUFFIX                         GUCEF_PLUGIN_CALLSPEC_SUFFIX
 #else
   #define PUBSUB_TEST_PLUGIN_CALLSPEC_PREFIX
   #define PUBSUB_TEST_PLUGIN_CALLSPEC_SUFFIX
@@ -95,7 +96,12 @@ pubsubpluginTEST_GUCEFPlugin_GetCopyright( void ) PUBSUB_TEST_PLUGIN_CALLSPEC_SU
 PUBSUBPLUGIN_TEST_PLUGIN_PUBLIC_C const char* PUBSUB_TEST_PLUGIN_CALLSPEC_PREFIX
 pubsubpluginTEST_GUCEFPlugin_GetDescription( void ) PUBSUB_TEST_PLUGIN_CALLSPEC_SUFFIX;
 
-/*---------------------------------------------------------------------------*/                 
+/*--------------------------------------------------------------------------*/
+
+PUBSUBPLUGIN_TEST_PLUGIN_PUBLIC_C const char* PUBSUB_TEST_PLUGIN_CALLSPEC_PREFIX
+pubsubpluginTEST_GUCEFPlugin_GetLinkBackModuleDependencies( void ) PUBSUB_TEST_PLUGIN_CALLSPEC_SUFFIX;
+
+/*---------------------------------------------------------------------------*/
 
 #ifdef __cplusplus
    }

@@ -100,6 +100,15 @@ GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
     return "Generic GUCEF plugin which provides a GUI driver using MyGUI as the backend";
 }
 
+/*--------------------------------------------------------------------------*/
+
+const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUCEFPlugin_GetLinkBackModuleDependencies( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    return "gucefCORE,gucefGUI";
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

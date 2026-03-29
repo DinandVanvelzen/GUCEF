@@ -128,7 +128,7 @@ const char* PUBSUB_STORAGE_PLUGIN_CALLSPEC_PREFIX
 pubsubpluginSTORAGE_GUCEFPlugin_GetLinkBackModuleDependencies( void ) PUBSUB_STORAGE_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    return "gucefPUBSUB";
+    return "gucefCORE,gucefVFS,gucefPUBSUB";
 }
 
 /*--------------------------------------------------------------------------*/

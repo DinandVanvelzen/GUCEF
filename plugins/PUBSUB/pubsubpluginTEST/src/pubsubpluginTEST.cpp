@@ -131,3 +131,12 @@ pubsubpluginTEST_GUCEFPlugin_GetDescription( void ) PUBSUB_TEST_PLUGIN_CALLSPEC_
 }
 
 /*--------------------------------------------------------------------------*/
+
+const char* PUBSUB_TEST_PLUGIN_CALLSPEC_PREFIX
+pubsubpluginTEST_GUCEFPlugin_GetLinkBackModuleDependencies( void ) PUBSUB_TEST_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    return "gucefCORE,gucefVFS,gucefPUBSUB";
+}
+
+/*--------------------------------------------------------------------------*/

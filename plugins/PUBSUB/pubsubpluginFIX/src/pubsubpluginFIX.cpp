@@ -144,7 +144,7 @@ const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_GetLinkBackModuleDependencies( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    return "gucefPUBSUB";
+    return "gucefCORE,gucefCOMCORE,gucefPUBSUB";
 }
 
 /*-------------------------------------------------------------------------//

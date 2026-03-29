@@ -118,8 +118,17 @@ const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
-    static const VFS::CString description = "Generic GUCEF plugin for VFS \"Dinand Vanvelzen Pack\" archives using DVPACKSYS version " + CORE::UInt32ToString( DVPACKSYS::DVP_Version() );    
+    static const VFS::CString description = "Generic GUCEF plugin for VFS \"Dinand Vanvelzen Pack\" archives using DVPACKSYS version " + CORE::UInt32ToString( DVPACKSYS::DVP_Version() );
     return description.C_String();
+}
+
+/*--------------------------------------------------------------------------*/
+
+const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUCEFPlugin_GetLinkBackModuleDependencies( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{GUCEF_TRACE;
+
+    return "gucefCORE,gucefVFS";
 }
 
 /*-------------------------------------------------------------------------//
