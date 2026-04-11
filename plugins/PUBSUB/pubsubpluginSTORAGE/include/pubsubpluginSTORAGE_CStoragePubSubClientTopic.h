@@ -245,6 +245,19 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubClientTopic : public
     bool SubscribeStartingAtKeyValue( const CORE::CString& keyNameWithPrefix ,
                                       CORE::UInt64         startKeyValue     );
 
+    /**
+     *  Initiates an out-of-band replay of stored messages starting at the position described by startBookmark.
+     *  The replayed messages are delivered via the normal MsgsRecievedEvent and then routed back to the requesting side.
+     *  The replayRequestId, requestingSide, and requestingTopic are stored so that OnOutOfBandReplayComplete() can be
+     *  signalled when the replay subscription reaches end-of-data.
+     *  startBookmark must be BOOKMARK_TYPE_INDEX_KEY_VALUE; endBookmark BOOKMARK_TYPE_NOT_INITIALIZED means "to end of data".
+     */
+    virtual CORE::CFutureResult RequestReplay( const PUBSUB::CPubSubBookmark& startBookmark   ,
+                                               const PUBSUB::CPubSubBookmark& endBookmark     ,
+                                               CORE::UInt64                   replayRequestId ,
+                                               PUBSUB::CPubSubClientSide*     requestingSide  ,
+                                               PUBSUB::CPubSubClientTopic*    requestingTopic ) GUCEF_VIRTUAL_OVERRIDE;
+
     virtual PUBSUB::CPubSubBookmark GetCurrentBookmark( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CORE::CString& GetTopicName( void ) const GUCEF_VIRTUAL_OVERRIDE;

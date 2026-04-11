@@ -50,6 +50,11 @@
 #define GUCEF_PUBSUB_CPUBSUBCLIENTSIDE_H
 #endif /* GUCEF_PUBSUB_CPUBSUBCLIENTSIDE_H ? */
 
+#ifndef GUCEF_CORE_CFUTURERESULT_H
+#include "gucefCORE_CFutureResult.h"
+#define GUCEF_CORE_CFUTURERESULT_H
+#endif /* GUCEF_CORE_CFUTURERESULT_H ? */
+
 #ifndef GUCEF_PUBSUB_CPUBSUBFLOWROUTERCONFIG_H
 #include "gucefPUBSUB_CPubSubFlowRouterConfig.h"
 #define GUCEF_PUBSUB_CPUBSUBFLOWROUTERCONFIG_H
@@ -112,6 +117,17 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouter : public CORE::CTSGNotifier
     
     bool AcknowledgeReceiptForSide( CPubSubClientSide* msgReceiverSide ,
                                     CIPubSubMsg::TNoLockSharedPtr& msg );
+
+    /**
+     *  Called by CPubSubClientSide when a topic on that side requests replay of stored messages.
+     *  The router finds the persistence side for the route and calls RequestReplay() on it.
+     *  Returns true and assigns replayRequestIdOut if the replay was successfully initiated.
+     */
+    bool HandleReplayRequest( CPubSubClientSide*     requestingSide     ,
+                              CPubSubClientTopic*    requestingTopic    ,
+                              const CPubSubBookmark& startBookmark      ,
+                              const CPubSubBookmark& endBookmark        ,
+                              CORE::UInt64&          replayRequestIdOut );
     
     virtual void SetPulseGenerator( CORE::PulseGeneratorPtr newPulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
     
@@ -149,6 +165,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouter : public CORE::CTSGNotifier
         CPubSubClientTopic* failoverTopic;
         CPubSubClientTopic* spilloverTopic;
         CPubSubClientTopic* deadletterTopic;
+        CPubSubClientTopic* persistenceTopic;
 
         CRouteTopicLinks( void );
         CRouteTopicLinks( const CRouteTopicLinks& src );
@@ -181,6 +198,10 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouter : public CORE::CTSGNotifier
         CPubSubClientSide* deadLetterSide;
         bool deadLetterSideIsHealthy;
         CORE::CDateTime deadLetterSideLastHealthStatusChange;
+
+        CPubSubClientSide* persistenceSide;
+        bool persistenceSideIsHealthy;
+        CORE::CDateTime persistenceSideLastHealthStatusChange;
 
         CORE::CTimer routeSwitchingTimer;
         CSpilloverInfo* spilloverInfo;
@@ -238,6 +259,17 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouter : public CORE::CTSGNotifier
     typedef GUCEF::map< CPubSubClientSide*, CSpilloverInfo >       TSidePtrToSpilloverInfoMap;
     typedef GUCEF::map< CPubSubClientSide*, CSpilloverInfo* >      TSidePtrToSpilloverInfoPtrMap;
     typedef GUCEF::map< CORE::CString, CORE::CString >             TStringMap;
+
+    struct CActiveReplayRequest
+    {
+        CPubSubClientSide*   requestingSide;
+        CPubSubClientTopic*  requestingTopic;
+        CPubSubClientSide*   persistenceSide;
+        CPubSubClientTopic*  persistenceTopic;
+        CORE::UInt64         replayRequestId;
+    };
+    typedef GUCEF::map< CORE::UInt64, CActiveReplayRequest >           TReplayRequestIdToActiveReplayMap;
+    typedef GUCEF::map< CPubSubClientSide*, TReplayRequestIdToActiveReplayMap > TSidePtrToActiveReplayMap;
 
     bool NormalizeConfig( const CPubSubFlowRouterConfig& originalConfig ,
                           TPubSubClientSidePtrVector& sides             ,
@@ -321,6 +353,8 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouter : public CORE::CTSGNotifier
     TSidePtrToRouteInfoPtrVectorMap m_usedInRouteMap;
     TSidePtrToSpilloverInfoMap m_spilloverInfoMap;
     TSidePtrToSpilloverInfoPtrMap m_spilloverInfoForTargetsMap;
+    TSidePtrToActiveReplayMap m_activeReplaysBySide;        /**< per-persistence-side map of active replay requests keyed by replayRequestId */
+    CORE::UInt64 m_nextReplayRequestId;                    /**< auto-incrementing counter for assigning unique replayRequestIds */
     bool m_busyDeterminingActiveRoutes;
     MT::CReadWriteLock m_lock;
 };

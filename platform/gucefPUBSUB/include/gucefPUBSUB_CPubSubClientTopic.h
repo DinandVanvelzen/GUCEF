@@ -70,6 +70,11 @@
 #define GUCEF_PUBSUB_CIPUBSUBJOURNAL_H
 #endif /* GUCEF_PUBSUB_CIPUBSUBJOURNAL_H ? */
 
+#ifndef GUCEF_CORE_CFUTURERESULT_H
+#include "gucefCORE_CFutureResult.h"
+#define GUCEF_CORE_CFUTURERESULT_H
+#endif /* GUCEF_CORE_CFUTURERESULT_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -86,6 +91,7 @@ namespace PUBSUB {
 //-------------------------------------------------------------------------*/
 
 class CPubSubClient;
+class CPubSubClientSide;
 class CPubSubClientTopicConfig;
 
 /**
@@ -310,6 +316,37 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientTopic : public CORE::CTSGNotifier
     virtual bool SetJournal( CIPubSubJournalBasicPtr journal );
 
     virtual CIPubSubJournalBasicPtr GetJournal( void ) const;
+
+    /**
+     *  Requests that the backend replay stored messages starting at the given bookmark position.
+     *  Only relevant for backends that support the 'supportsReplay' feature.
+     *
+     *  The replay runs asynchronously on a dedicated task thread. The returned CFutureResult
+     *  represents the full replay lifecycle; it resolves when all messages have been delivered
+     *  or an error occurs. The task consumer calls requestingSide->OnReplayMsgsReceived() for
+     *  each batch and requestingSide->OnReplayComplete() when done.
+     *
+     *  @param startBookmark    Inclusive lower bound. Use BOOKMARK_TYPE_INDEX_KEY_VALUE with key field + value,
+     *                          or BOOKMARK_TYPE_NOT_INITIALIZED meaning "from beginning of data".
+     *  @param endBookmark      Inclusive upper bound. Use BOOKMARK_TYPE_NOT_INITIALIZED meaning "to end of data".
+     *  @param replayRequestId  Router-assigned unique ID for this replay request.
+     *  @param requestingSide   Side that requested the replay; will receive replayed messages via OnReplayMsgsReceived.
+     *  @param requestingTopic  Topic on requestingSide that should receive the replayed messages.
+     *  @return CFutureResult tracking the async replay task; HasNoFuture() == true on failure to initiate.
+     */
+    virtual CORE::CFutureResult RequestReplay( const CPubSubBookmark& startBookmark   ,
+                                               const CPubSubBookmark& endBookmark     ,
+                                               CORE::UInt64           replayRequestId ,
+                                               CPubSubClientSide*     requestingSide  ,
+                                               CPubSubClientTopic*    requestingTopic );
+
+    /**
+     *  Called by the persistence plugin (or the router) when the replay for a given replayRequestId
+     *  has been completed (all messages up to endKeyValue have been delivered or data is exhausted).
+     *
+     *  @param replayRequestId  The router-assigned ID of the completed replay request.
+     */
+    virtual void OnReplayComplete( CORE::UInt64 replayRequestId );
 
     /**
      *  Helper function that can be used to resolve some common macros in strings

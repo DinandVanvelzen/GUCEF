@@ -53,7 +53,8 @@ enum RouteType : CORE::Int32
     Primary         = 2 , /**< regular flow under normal conditions */
     Failover        = 3 , /**< if the primary flow fails traffic would be rerouted here as a equivelant */ 
     SpilloverBuffer = 4 , /**< if the primary is unhealthy or is a slow consumer the spill over acts as buffer for the primary route */
-    DeadLetter      = 5   /**< unable to publish on configured channels and remedies exhausted messages go here */
+    DeadLetter      = 5 , /**< unable to publish on configured channels and remedies exhausted messages go here */
+    Persistence     = 6   /**< always receives a copy of all messages flowing through the route for durable storage and replay support */
 };
 
 /*-------------------------------------------------------------------------//

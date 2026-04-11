@@ -62,6 +62,8 @@ CPubSubFlowRouter::CPubSubFlowRouter( void )
     , m_usedInRouteMap()
     , m_spilloverInfoMap()
     , m_spilloverInfoForTargetsMap()
+    , m_activeReplaysBySide()
+    , m_nextReplayRequestId( 1 )
     , m_busyDeterminingActiveRoutes( false )
     , m_lock( true )
 {GUCEF_TRACE;
@@ -86,6 +88,7 @@ CPubSubFlowRouter::CRouteTopicLinks::CRouteTopicLinks( void )
     , failoverTopic( GUCEF_NULL )
     , spilloverTopic( GUCEF_NULL )
     , deadletterTopic( GUCEF_NULL )
+    , persistenceTopic( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -100,6 +103,7 @@ CPubSubFlowRouter::CRouteTopicLinks::CRouteTopicLinks( const CRouteTopicLinks& s
     , failoverTopic( src.failoverTopic )
     , spilloverTopic( src.spilloverTopic )
     , deadletterTopic( src.deadletterTopic )
+    , persistenceTopic( src.persistenceTopic )
 {GUCEF_TRACE;
 
 }
@@ -124,6 +128,9 @@ CPubSubFlowRouter::CRouteInfo::CRouteInfo( void )
     , deadLetterSide( GUCEF_NULL )
     , deadLetterSideIsHealthy( true )
     , deadLetterSideLastHealthStatusChange( CORE::CDateTime::PastMax )
+    , persistenceSide( GUCEF_NULL )
+    , persistenceSideIsHealthy( true )
+    , persistenceSideLastHealthStatusChange( CORE::CDateTime::PastMax )
     , routeSwitchingTimer( CORE::PulseGeneratorPtr(), 1000 )
     , spilloverInfo( GUCEF_NULL )
     , routeConfig()
@@ -151,6 +158,9 @@ CPubSubFlowRouter::CRouteInfo::CRouteInfo( const CRouteInfo& src )
     , deadLetterSide( src.deadLetterSide )
     , deadLetterSideIsHealthy( src.deadLetterSideIsHealthy )
     , deadLetterSideLastHealthStatusChange( src.deadLetterSideLastHealthStatusChange )
+    , persistenceSide( src.persistenceSide )
+    , persistenceSideIsHealthy( src.persistenceSideIsHealthy )
+    , persistenceSideLastHealthStatusChange( src.persistenceSideLastHealthStatusChange )
     , routeSwitchingTimer( src.routeSwitchingTimer )
     , spilloverInfo( src.spilloverInfo )
     , routeConfig( src.routeConfig )
@@ -557,6 +567,20 @@ CPubSubFlowRouter::CRouteInfo::MatchTopicRouteConfig( const CPubSubFlowRouteTopi
                             totalSuccess = false;
                             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter:RouteInfo:MatchTopicRouteConfig: Failed to obtain topic access to topic \""  +
                                     topicRouteConfig->deadLetterSideTopicName + "\" for 'dead letter' side \"" + deadLetterSide->GetSideId() + "\"" );
+                        }
+                    }
+                }
+                if ( GUCEF_NULL != persistenceSide && !topicRouteConfig->persistenceSideTopicName.IsNULLOrEmpty() )
+                {
+                    CPubSubClientPtr persistenceSideClient = persistenceSide->GetCurrentUnderlyingPubSubClient();
+                    if ( !persistenceSideClient.IsNULL() )
+                    {
+                        topicLinks.persistenceTopic = persistenceSideClient->GetOrCreateTopicAccess( topicRouteConfig->persistenceSideTopicName, destPulseGenerator ).GetPointerAlways();
+                        if ( GUCEF_NULL == topicLinks.persistenceTopic )
+                        {
+                            totalSuccess = false;
+                            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter:RouteInfo:MatchTopicRouteConfig: Failed to obtain topic access to topic \""  +
+                                    topicRouteConfig->persistenceSideTopicName + "\" for 'persistence' side \"" + persistenceSide->GetSideId() + "\"" );
                         }
                     }
                 }
@@ -1016,6 +1040,7 @@ CPubSubFlowRouter::BuildRoutes( const CPubSubFlowRouterConfig& config ,
             CPubSubClientSidePtr failoverSide;
             CPubSubClientSidePtr spilloverSide;
             CPubSubClientSidePtr deadletterSide;
+            CPubSubClientSidePtr persistenceSide;
             TPubSubClientSidePtrVector::iterator n = sides.begin();
             while ( n != sides.end() )
             {
@@ -1048,6 +1073,12 @@ CPubSubFlowRouter::BuildRoutes( const CPubSubFlowRouterConfig& config ,
                         deadletterSide = (*n);
                         ++possibleRoutes;
                     }
+                    else
+                    if ( routeConfig->persistenceSideId == sideId )
+                    {
+                        persistenceSide = (*n);
+                        ++possibleRoutes;
+                    }
                 }
                 ++n;
             }
@@ -1064,6 +1095,7 @@ CPubSubFlowRouter::BuildRoutes( const CPubSubFlowRouterConfig& config ,
                 routeInfo.failoverSide = failoverSide.GetPointerAlways();
                 routeInfo.spilloverBufferSide = spilloverSide.GetPointerAlways();
                 routeInfo.deadLetterSide = deadletterSide.GetPointerAlways();
+                routeInfo.persistenceSide = persistenceSide.GetPointerAlways();
                 routeInfo.routeConfig = routeConfig;
 
                 totalPossibleRoutes += possibleRoutes;
@@ -1244,6 +1276,28 @@ CPubSubFlowRouter::BuildRoutes( const CPubSubFlowRouterConfig& config ,
 
                 if ( !isValid )
                     routeInfo.spilloverBufferSide = GUCEF_NULL;
+            }
+            if ( GUCEF_NULL != routeInfo.persistenceSide )
+            {
+                CPubSubClientFeatures features;
+                if ( routeInfo.persistenceSide->GetPubSubClientSupportedFeatures( features ) )
+                {
+                    // the 'persistence' side must be capable of:
+                    //      - receiving messages from the 'from' side (publishing) for durable storage
+                    // Optionally it also supports replay (supportsReplay) but that is not mandatory
+
+                    bool isValid = true;
+                    if ( !features.supportsPublishing )
+                    {
+                        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSubFlowRouter:BuildRoutes: 'persistence' side's client does not support publishing. This is invalid, disabling persistence for route: \"" +
+                            fromSide->GetSideId() + "\" -> \"" + routeInfo.persistenceSide->GetSideId() );
+                        isValid = false;
+                        ++sideClientCapabilityErrors;
+                    }
+
+                    if ( !isValid )
+                        routeInfo.persistenceSide = GUCEF_NULL;
+                }
             }
 
             // Check if the route is still partially viable even with errors
@@ -1667,6 +1721,33 @@ CPubSubFlowRouter::PublishMsgs( CPubSubClientSide* fromSide                     
 
     MT::CScopeReaderLock lock( m_lock );
 
+    // Check if this is replay output from a persistence side
+    // If so, route the replayed messages to each requesting side (out-of-band)
+    TSidePtrToActiveReplayMap::iterator replayMapIt = m_activeReplaysBySide.find( fromSide );
+    if ( replayMapIt != m_activeReplaysBySide.end() )
+    {
+        bool publishIstotalSuccess = true;
+        TReplayRequestIdToActiveReplayMap& activeReplays = (*replayMapIt).second;
+        TReplayRequestIdToActiveReplayMap::iterator replayIt = activeReplays.begin();
+        while ( replayIt != activeReplays.end() )
+        {
+            CActiveReplayRequest& replayReq = (*replayIt).second;
+            if ( GUCEF_NULL != replayReq.requestingSide && GUCEF_NULL != replayReq.requestingTopic )
+            {
+                CPubSubClientTopic* reqTopic = replayReq.requestingTopic;
+                if ( !replayReq.requestingSide->PublishMsgs( msgs, reqTopic ) )
+                {
+                    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter(" + CORE::ToString( this ) +
+                        "):PublishMsgs: Failed to deliver replayed msgs to requesting side \"" + replayReq.requestingSide->GetSideId() +
+                        "\" for replayRequestId=" + CORE::ToString( replayReq.replayRequestId ) );
+                    publishIstotalSuccess = false;
+                }
+            }
+            ++replayIt;
+        }
+        return publishIstotalSuccess;
+    }
+
     bool publishIstotalSuccess = true;
     TSidePtrToRouteInfoVectorMap::iterator i = m_routeMap.find( fromSide );
     if ( i != m_routeMap.end() )
@@ -1788,6 +1869,41 @@ CPubSubFlowRouter::PublishMsgs( CPubSubClientSide* fromSide                     
                     CORE::CString( e.what() ) );
 
                 publishIstotalSuccess = false;
+            }
+
+            // Persistence side always receives a copy of every message unconditionally
+            // This is independent of health, spillover state, or route type
+            CRouteInfo& persistenceRouteInfo = (*n);
+            if ( GUCEF_NULL != persistenceRouteInfo.persistenceSide )
+            {
+                CPubSubClientTopic* persistenceTopic = GUCEF_NULL;
+                try
+                {
+                    bool errorOccured = false;
+                    CRouteTopicLinks* topicLinks = GetTargetTopicLinks( fromTopic, persistenceRouteInfo, errorOccured );
+                    if ( !errorOccured && GUCEF_NULL != topicLinks )
+                        persistenceTopic = topicLinks->persistenceTopic;
+
+                    if ( GUCEF_NULL != persistenceTopic )
+                    {
+                        if ( !persistenceRouteInfo.persistenceSide->PublishMsgs( msgs, persistenceTopic ) )
+                        {
+                            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter(" + CORE::ToString( this ) +
+                                "):PublishMsgs: Failed to publish to persistence side \"" + persistenceRouteInfo.persistenceSide->GetSideId() + "\"" );
+                        }
+                    }
+                }
+                catch ( const timeout_exception& )
+                {
+                    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter(" + CORE::ToString( this ) +
+                        "):PublishMsgs: Timeout exception trying to publish to persistence side \"" + persistenceRouteInfo.persistenceSide->GetSideId() + "\"" );
+                }
+                catch ( const std::exception& e )
+                {
+                    GUCEF_EXCEPTION_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter(" + CORE::ToString( this ) +
+                        "):PublishMsgs: Exception trying to publish to persistence side \"" + persistenceRouteInfo.persistenceSide->GetSideId() + "\": " +
+                        CORE::CString( e.what() ) );
+                }
             }
 
             ++n;
@@ -2680,9 +2796,31 @@ CPubSubFlowRouter::OnSidePubSubClientTopicEndOfData( CPubSubClientTopic* topic )
 
     MT::CScopeReaderLock readLock( m_lock );
 
+    // Check if this side is a persistence side with active replay requests
+    // If so, the end-of-data signals replay completion for those requests
+    TSidePtrToActiveReplayMap::iterator replayMapIt = m_activeReplaysBySide.find( side );
+    if ( replayMapIt != m_activeReplaysBySide.end() )
+    {
+        TReplayRequestIdToActiveReplayMap& activeReplays = (*replayMapIt).second;
+        TReplayRequestIdToActiveReplayMap::iterator replayIt = activeReplays.begin();
+        while ( replayIt != activeReplays.end() )
+        {
+            CActiveReplayRequest& replayReq = (*replayIt).second;
+            GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter(" + CORE::PointerToString( this ) +
+                "):OnSidePubSubClientTopicEndOfData: Persistence side \"" + side->GetSideId() +
+                "\" has completed replay for replayRequestId=" + CORE::ToString( replayReq.replayRequestId ) );
+
+            if ( GUCEF_NULL != replayReq.requestingSide )
+            {
+                replayReq.requestingSide->OnReplayComplete( replayReq.replayRequestId, replayReq.requestingTopic );
+            }
+            ++replayIt;
+        }
+        activeReplays.clear();
+    }
+
     // Check if this side is a spillover and in doing so get the spillover info
     TSidePtrToSpilloverInfoMap::iterator i = m_spilloverInfoMap.find( side );
-    if ( i != m_spilloverInfoMap.end() )
     {
         // The end-of-data side is a spillover side
 
@@ -2903,6 +3041,151 @@ CPubSubFlowRouter::GetClassTypeName( void ) const
 
     static const CString classTypeName = "GUCEF::PUBSUB::CPubSubFlowRouter";
     return classTypeName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPubSubFlowRouter::HandleReplayRequest( CPubSubClientSide*     requestingSide     ,
+                                        CPubSubClientTopic*    requestingTopic    ,
+                                        const CPubSubBookmark& startBookmark      ,
+                                        const CPubSubBookmark& endBookmark        ,
+                                        CORE::UInt64&          replayRequestIdOut )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == requestingSide || GUCEF_NULL == requestingTopic )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSubFlowRouter(" + CORE::PointerToString( this ) +
+            "):HandleReplayRequest: requestingSide or requestingTopic is NULL, cannot handle replay request" );
+        return false;
+    }
+
+    MT::CScopeWriterLock lock( m_lock );
+
+    // Find the route info that has requestingSide as its toSide or fromSide
+    // We need to locate the persistence side for this route
+    CPubSubClientSide* persistenceSide = GUCEF_NULL;
+    CPubSubClientTopic* persistenceTopic = GUCEF_NULL;
+
+    TSidePtrToRouteInfoVectorMap::iterator r = m_routeMap.begin();
+    while ( r != m_routeMap.end() )
+    {
+        TRouteInfoVector& multiRouteInfo = (*r).second;
+        TRouteInfoVector::iterator n = multiRouteInfo.begin();
+        while ( n != multiRouteInfo.end() )
+        {
+            CRouteInfo& routeInfo = (*n);
+            if ( routeInfo.fromSide == requestingSide ||
+                 routeInfo.toSide == requestingSide   ||
+                 routeInfo.failoverSide == requestingSide )
+            {
+                if ( GUCEF_NULL != routeInfo.persistenceSide )
+                {
+                    persistenceSide = routeInfo.persistenceSide;
+
+                    // Find the persistence topic for the requesting topic
+                    // Look in the topic links for fromTopic matching requestingTopic
+                    TTopicRawPtrToRouteTopicLinksRawPtrMap::iterator tl = routeInfo.fromSideTopicLinks.find( requestingTopic );
+                    if ( tl != routeInfo.fromSideTopicLinks.end() )
+                    {
+                        CRouteTopicLinks* topicLinks = (*tl).second;
+                        if ( GUCEF_NULL != topicLinks )
+                            persistenceTopic = topicLinks->persistenceTopic;
+                    }
+                    break;
+                }
+            }
+            ++n;
+        }
+        if ( GUCEF_NULL != persistenceSide )
+            break;
+        ++r;
+    }
+
+    if ( GUCEF_NULL == persistenceSide )
+    {
+        // No persistence side found for this route; try the fromSide itself if it supports replay
+        // Look for the route where requestingSide is the toSide
+        r = m_routeMap.begin();
+        while ( r != m_routeMap.end() )
+        {
+            TRouteInfoVector& multiRouteInfo = (*r).second;
+            TRouteInfoVector::iterator n = multiRouteInfo.begin();
+            while ( n != multiRouteInfo.end() )
+            {
+                CRouteInfo& routeInfo = (*n);
+                if ( routeInfo.toSide == requestingSide || routeInfo.failoverSide == requestingSide )
+                {
+                    CPubSubClientSide* fromSide = routeInfo.fromSide;
+                    if ( GUCEF_NULL != fromSide )
+                    {
+                        CPubSubClientFeatures fromFeatures;
+                        if ( fromSide->GetPubSubClientSupportedFeatures( fromFeatures ) && fromFeatures.supportsReplay )
+                        {
+                            persistenceSide = fromSide;
+                            TTopicRawPtrToRouteTopicLinksRawPtrMap::iterator tl = routeInfo.fromSideTopicLinks.find( requestingTopic );
+                            if ( tl != routeInfo.fromSideTopicLinks.end() )
+                            {
+                                CRouteTopicLinks* topicLinks = (*tl).second;
+                                if ( GUCEF_NULL != topicLinks )
+                                    persistenceTopic = topicLinks->fromTopic;
+                            }
+                            break;
+                        }
+                    }
+                }
+                ++n;
+            }
+            if ( GUCEF_NULL != persistenceSide )
+                break;
+            ++r;
+        }
+    }
+
+    if ( GUCEF_NULL == persistenceSide || GUCEF_NULL == persistenceTopic )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSubFlowRouter(" + CORE::PointerToString( this ) +
+            "):HandleReplayRequest: Cannot service replay request for side \"" + requestingSide->GetSideId() +
+            "\" - no persistence side with replay support found for route and fromSide also does not support replay" );
+        return false;
+    }
+
+    // Assign the replay request ID
+    CORE::UInt64 replayRequestId = m_nextReplayRequestId++;
+    replayRequestIdOut = replayRequestId;
+
+    // Store the active replay request
+    CActiveReplayRequest replayReq;
+    replayReq.requestingSide = requestingSide;
+    replayReq.requestingTopic = requestingTopic;
+    replayReq.persistenceSide = persistenceSide;
+    replayReq.persistenceTopic = persistenceTopic;
+    replayReq.replayRequestId = replayRequestId;
+    m_activeReplaysBySide[ persistenceSide ][ replayRequestId ] = replayReq;
+
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "PubSubFlowRouter(" + CORE::PointerToString( this ) +
+        "):HandleReplayRequest: Assigned replayRequestId=" + CORE::ToString( replayRequestId ) +
+        " for side \"" + requestingSide->GetSideId() + "\" requesting replay from " +
+        startBookmark.ToString() + " to " + endBookmark.ToString() );
+
+    // Initiate the replay on the persistence topic
+    CORE::CFutureResult replayFuture = persistenceTopic->RequestReplay( startBookmark, endBookmark,
+                                                                        replayRequestId, requestingSide, requestingTopic );
+    if ( replayFuture.HasNoFuture() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "PubSubFlowRouter(" + CORE::PointerToString( this ) +
+            "):HandleReplayRequest: RequestReplay() call failed on persistence topic \"" + persistenceTopic->GetTopicName() +
+            "\" for replayRequestId=" + CORE::ToString( replayRequestId ) );
+
+        // Remove the entry we just added since the request failed
+        TSidePtrToActiveReplayMap::iterator aIt = m_activeReplaysBySide.find( persistenceSide );
+        if ( aIt != m_activeReplaysBySide.end() )
+            (*aIt).second.erase( replayRequestId );
+
+        return false;
+    }
+
+    return true;
 }
 
 /*-------------------------------------------------------------------------//

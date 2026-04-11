@@ -51,6 +51,11 @@
 #define GUCEF_CORE_CTFACTORY_H
 #endif /* GUCEF_CORE_CTFACTORY_H ? */
 
+#ifndef GUCEF_CORE_CTSHAREDPTR_H
+#include "CTSharedPtr.h"
+#define GUCEF_CORE_CTSHAREDPTR_H
+#endif /* GUCEF_CORE_CTSHAREDPTR_H ? */
+
 #ifndef GUCEF_MT_CSCOPEMUTEX_H
 #include "gucefMT_CScopeMutex.h"
 #define GUCEF_MT_CSCOPEMUTEX_H
@@ -278,6 +283,73 @@ int ChainForwardingCallback4B( CORE::CTaskPtr taskPtr, int priorResult, CORE::CT
     g_testResults.push_back( IDForChainFwdCallback4B );
     return priorResult + priorParamA + priorParamB + priorParamC + priorParamD + IDForChainFwdCallback4B;
 }
+
+/*----------------------------------------------------------------------*/
+// Helper class for member-function callback tests.
+// Inherits CTSharedObjCreator so both raw and shared-ptr tests share the same type.
+
+static int g_memberCallbackResult = 0;
+
+class MemberCallbackTest : public CORE::CTSharedObjCreator< MemberCallbackTest, MT::CMutex >
+{
+    public:
+
+    int m_value;
+
+    MemberCallbackTest( int value = 0 )
+        : CORE::CTSharedObjCreator< MemberCallbackTest, MT::CMutex >( this )
+        , m_value( value )
+    {}
+
+    // Arity-0 member (no args beyond implicit this)
+    int Method0()
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "MemberCallbackTest::Method0 called" );
+        MT::CScopeMutex lock( g_testMutex );
+        g_memberCallbackResult = m_value + 100;
+        return g_memberCallbackResult;
+    }
+
+    // Arity-1 member (one user arg)
+    int Method1( int a )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "MemberCallbackTest::Method1 called a=" + CORE::ToString( a ) );
+        MT::CScopeMutex lock( g_testMutex );
+        g_memberCallbackResult = m_value + a;
+        return g_memberCallbackResult;
+    }
+
+    // Then-member: takes CTaskPtr (mandatory chain arg)
+    int ChainMethod( CORE::CTaskPtr taskPtr )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "MemberCallbackTest::ChainMethod called taskId=" + CORE::ToString( taskPtr->GetTaskId() ) );
+        MT::CScopeMutex lock( g_testMutex );
+        g_memberCallbackResult += 200;
+        return g_memberCallbackResult;
+    }
+
+    // Forward arity-0: receives (CTaskPtr, priorResult)
+    int FwdMethod0( CORE::CTaskPtr taskPtr, int priorResult )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "MemberCallbackTest::FwdMethod0 priorResult=" + CORE::ToString( priorResult ) );
+        MT::CScopeMutex lock( g_testMutex );
+        g_memberCallbackResult = priorResult + m_value;
+        return g_memberCallbackResult;
+    }
+
+    // Forward arity-1: receives (CTaskPtr, priorResult, priorA1)
+    int FwdMethod1( CORE::CTaskPtr taskPtr, int priorResult, int priorA1 )
+    {
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "MemberCallbackTest::FwdMethod1 priorResult=" + CORE::ToString( priorResult ) + " priorA1=" + CORE::ToString( priorA1 ) );
+        MT::CScopeMutex lock( g_testMutex );
+        g_memberCallbackResult = priorResult + priorA1 + m_value;
+        return g_memberCallbackResult;
+    }
+};
+
+typedef CORE::CTSharedPtr< MemberCallbackTest, MT::CMutex > MemberCallbackTestPtr;
+
+/*----------------------------------------------------------------------*/
 
 // Memory leak detection helpers
 struct TaskMemoryTracker
@@ -1168,6 +1240,208 @@ void TestSubmitMethod()
     GUCEF_TESTFW_TESTCASE_END
 }
 
+void TestMemberCallbacksRaw()
+{
+    GUCEF_TESTFW_TESTCASE( "Test 14: Member Function Callbacks (Raw Pointer)" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 14: Member Function Callbacks (Raw Pointer)" );
+            g_memberCallbackResult = 0;
+
+            MemberCallbackTest obj( 10 );
+            CASyncTestAccess async;
+
+            // arity 0: QueueMemberCallback(&obj, &Method0)
+            {
+                g_memberCallbackResult = 0;
+                CORE::CFutureResult result = async.QueueMemberCallback( &obj, &MemberCallbackTest::Method0 );
+                ASSERT_TRUE( result.HasAFuture() );
+                CORE::CTaskPtr task = result.GetResult( 10000 );
+                ASSERT_TRUE( !task.IsNULL() );
+                ASSERT_TRUE( task->IsTaskInEndState() );
+                MT::CScopeMutex lock( g_testMutex );
+                ASSERT_TRUE( g_memberCallbackResult == 110 ); // m_value(10) + 100
+            }
+
+            // arity 1: QueueMemberCallback(&obj, &Method1, 5)
+            {
+                g_memberCallbackResult = 0;
+                CORE::CFutureResult result = async.QueueMemberCallback( &obj, &MemberCallbackTest::Method1, 5 );
+                ASSERT_TRUE( result.HasAFuture() );
+                CORE::CTaskPtr task = result.GetResult( 10000 );
+                ASSERT_TRUE( !task.IsNULL() );
+                ASSERT_TRUE( task->IsTaskInEndState() );
+                MT::CScopeMutex lock( g_testMutex );
+                ASSERT_TRUE( g_memberCallbackResult == 15 ); // m_value(10) + a(5)
+            }
+
+            ASSERT_TRUE( TestFinalTaskCountsAfterTests() );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Member Function Callbacks (Raw Pointer) test passed" );
+        }
+        catch( const std::exception& e )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Exception in TestMemberCallbacksRaw: " + CORE::ToString( e.what() ) );
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+void TestMemberCallbacksSharedPtr()
+{
+    GUCEF_TESTFW_TESTCASE( "Test 15: Member Function Callbacks (Shared Pointer)" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 15: Member Function Callbacks (Shared Pointer)" );
+            g_memberCallbackResult = 0;
+
+            MemberCallbackTestPtr obj = MemberCallbackTest::CreateSharedObj();
+            obj->m_value = 20;
+
+            CASyncTestAccess async;
+
+            // arity 0 via shared ptr: QueueMemberCallback(sharedPtr, &Method0)
+            {
+                g_memberCallbackResult = 0;
+                CORE::CFutureResult result = async.QueueMemberCallback( obj, &MemberCallbackTest::Method0 );
+                ASSERT_TRUE( result.HasAFuture() );
+                CORE::CTaskPtr task = result.GetResult( 10000 );
+                ASSERT_TRUE( !task.IsNULL() );
+                ASSERT_TRUE( task->IsTaskInEndState() );
+                MT::CScopeMutex lock( g_testMutex );
+                ASSERT_TRUE( g_memberCallbackResult == 120 ); // m_value(20) + 100
+            }
+
+            // arity 1 via shared ptr: QueueMemberCallback(sharedPtr, &Method1, 7)
+            {
+                g_memberCallbackResult = 0;
+                CORE::CFutureResult result = async.QueueMemberCallback( obj, &MemberCallbackTest::Method1, 7 );
+                ASSERT_TRUE( result.HasAFuture() );
+                CORE::CTaskPtr task = result.GetResult( 10000 );
+                ASSERT_TRUE( !task.IsNULL() );
+                ASSERT_TRUE( task->IsTaskInEndState() );
+                MT::CScopeMutex lock( g_testMutex );
+                ASSERT_TRUE( g_memberCallbackResult == 27 ); // m_value(20) + a(7)
+            }
+
+            ASSERT_TRUE( TestFinalTaskCountsAfterTests() );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Member Function Callbacks (Shared Pointer) test passed" );
+        }
+        catch( const std::exception& e )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Exception in TestMemberCallbacksSharedPtr: " + CORE::ToString( e.what() ) );
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+void TestMemberCallbackChaining()
+{
+    GUCEF_TESTFW_TESTCASE( "Test 16: Member Function Callback Chaining (ThenMemberCallback)" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 16: Member Function Callback Chaining" );
+            g_memberCallbackResult = 0;
+
+            MemberCallbackTest obj( 10 );
+            CASyncTestAccess async;
+
+            // QueueMemberCallback (arity 0) -> ThenMemberCallback
+            {
+                g_memberCallbackResult = 0;
+                CORE::CFutureResult result = async.QueueMemberCallback( &obj, &MemberCallbackTest::Method0 )
+                                                  .ThenMemberCallback( &obj, &MemberCallbackTest::ChainMethod );
+                ASSERT_TRUE( result.HasAFuture() );
+                CORE::CTaskPtr task = result.GetResult( 10000 );
+                ASSERT_TRUE( !task.IsNULL() );
+                ASSERT_TRUE( task->IsTaskInEndState() );
+                MT::CScopeMutex lock( g_testMutex );
+                // Method0: g_memberCallbackResult = 10+100 = 110
+                // ChainMethod: g_memberCallbackResult += 200  => 310
+                ASSERT_TRUE( g_memberCallbackResult == 310 );
+            }
+
+            // Shared-ptr variant: QueueMemberCallback (arity 0) -> ThenMemberCallback
+            {
+                g_memberCallbackResult = 0;
+                MemberCallbackTestPtr sharedObj = MemberCallbackTest::CreateSharedObj();
+                sharedObj->m_value = 5;
+                CORE::CFutureResult result = async.QueueMemberCallback( sharedObj, &MemberCallbackTest::Method0 )
+                                                  .ThenMemberCallback( sharedObj, &MemberCallbackTest::ChainMethod );
+                ASSERT_TRUE( result.HasAFuture() );
+                CORE::CTaskPtr task = result.GetResult( 10000 );
+                ASSERT_TRUE( !task.IsNULL() );
+                ASSERT_TRUE( task->IsTaskInEndState() );
+                MT::CScopeMutex lock( g_testMutex );
+                // Method0: g_memberCallbackResult = 5+100 = 105
+                // ChainMethod: g_memberCallbackResult += 200 => 305
+                ASSERT_TRUE( g_memberCallbackResult == 305 );
+            }
+
+            ASSERT_TRUE( TestFinalTaskCountsAfterTests() );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Member Function Callback Chaining test passed" );
+        }
+        catch( const std::exception& e )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Exception in TestMemberCallbackChaining: " + CORE::ToString( e.what() ) );
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+void TestMemberCallbackResultPassing()
+{
+    GUCEF_TESTFW_TESTCASE( "Test 17: Member Function Callback Result Passing (ThenPassToMemberCallback)" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 17: Member Function Callback Result Passing" );
+            g_memberCallbackResult = 0;
+
+            MemberCallbackTest obj( 10 );
+            CASyncTestAccess async;
+
+            // Raw: QueueMemberCallback(arity_1) -> ThenPassToMemberCallback (forwards result + a1)
+            // Method1(5) returns 15 (m_value(10)+5); FwdMethod1 gets (taskPtr, 15, 5), returns 15+5+10=30
+            {
+                g_memberCallbackResult = 0;
+                CORE::CFutureResult result =
+                    async.QueueMemberCallback( &obj, &MemberCallbackTest::Method1, 5 )
+                         .ThenPassToMemberCallback( &obj, &MemberCallbackTest::FwdMethod1 );
+                ASSERT_TRUE( result.HasAFuture() );
+                CORE::CTaskPtr task = result.GetResult( 10000 );
+                ASSERT_TRUE( !task.IsNULL() );
+                ASSERT_TRUE( task->IsTaskInEndState() );
+                MT::CScopeMutex lock( g_testMutex );
+                ASSERT_TRUE( g_memberCallbackResult == 30 );
+            }
+
+            // Shared: QueueMemberCallback(arity_1) -> ThenPassToMemberCallback
+            // Method1(3) returns 13 (m_value(10)+3); FwdMethod1 gets (taskPtr, 13, 3), returns 13+3+10=26
+            {
+                g_memberCallbackResult = 0;
+                MemberCallbackTestPtr sharedObj = MemberCallbackTest::CreateSharedObj();
+                sharedObj->m_value = 10;
+                CORE::CFutureResult result =
+                    async.QueueMemberCallback( sharedObj, &MemberCallbackTest::Method1, 3 )
+                         .ThenPassToMemberCallback( sharedObj, &MemberCallbackTest::FwdMethod1 );
+                ASSERT_TRUE( result.HasAFuture() );
+                CORE::CTaskPtr task = result.GetResult( 10000 );
+                ASSERT_TRUE( !task.IsNULL() );
+                ASSERT_TRUE( task->IsTaskInEndState() );
+                MT::CScopeMutex lock( g_testMutex );
+                ASSERT_TRUE( g_memberCallbackResult == 26 );
+            }
+
+            ASSERT_TRUE( TestFinalTaskCountsAfterTests() );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Member Function Callback Result Passing test passed" );
+        }
+        catch( const std::exception& e )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Exception in TestMemberCallbackResultPassing: " + CORE::ToString( e.what() ) );
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      MAIN TEST FUNCTION                                                 //
@@ -1197,6 +1471,10 @@ PerformASyncTests( void )
         TestClearChain();
         TestTaskTypeOperations();
         TestSubmitMethod();
+        TestMemberCallbacksRaw();
+        TestMemberCallbacksSharedPtr();
+        TestMemberCallbackChaining();
+        TestMemberCallbackResultPassing();
 
         TestFinalTaskCountsAfterTests();
     }

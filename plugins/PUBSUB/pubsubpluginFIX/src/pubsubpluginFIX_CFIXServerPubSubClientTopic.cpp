@@ -59,6 +59,11 @@
 #define GUCEF_COMCORE_CTCPCONNECTION_H
 #endif /* GUCEF_COMCORE_CTCPCONNECTION_H ? */
 
+#ifndef GUCEF_PUBSUB_CPUBSUBCLIENTSIDE_H
+#include "gucefPUBSUB_CPubSubClientSide.h"
+#define GUCEF_PUBSUB_CPUBSUBCLIENTSIDE_H
+#endif /* GUCEF_PUBSUB_CPUBSUBCLIENTSIDE_H ? */
+
 #ifndef PUBSUBPLUGIN_FIX_CFIXSERVERPUBSUBCLIENT_H
 #include "pubsubpluginFIX_CFIXServerPubSubClient.h"
 #define PUBSUBPLUGIN_FIX_CFIXSERVERPUBSUBCLIENT_H
@@ -1040,11 +1045,47 @@ CFIXServerPubSubClientTopic::HandleResendRequest( const char* msgStart          
                                                    const CFIXClientSessionFields& fields )
 {GUCEF_TRACE;
 
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL,
-        "CFIXServerPubSubClientTopic::HandleResendRequest: Sending GapFill SequenceReset" );
+    CORE::UInt64 beginSeqNo = 0;
+    if ( GUCEF_NULL != fields.beginSeqNoStart && fields.beginSeqNoLen > 0 )
+        beginSeqNo = CFIXClientMessage::ParseUInt64Inline( fields.beginSeqNoStart, fields.beginSeqNoLen );
+
+    CORE::UInt64 endSeqNo = 0; // 0 = replay to end of available data (tag 16 EndSeqNo not yet in session fields)
+
+    // Attempt out-of-band replay via the flow router / persistence side
+    PUBSUB::CPubSubClient* client = GetClient();
+    if ( GUCEF_NULL != client )
+    {
+        PUBSUB::CPubSubClientSide* parentSide = client->GetParentSide();
+        if ( GUCEF_NULL != parentSide )
+        {
+            PUBSUB::CPubSubBookmark startBookmark = PUBSUB::CPubSubBookmark::MakeIndexKeyValueBookmark(
+                "mk:fix_seq_num", CORE::CVariant( beginSeqNo ) );
+            PUBSUB::CPubSubBookmark endBookmark( PUBSUB::CPubSubBookmark::BOOKMARK_TYPE_NOT_INITIALIZED ); // 0 = to end of data
+            if ( endSeqNo != 0 )
+                endBookmark = PUBSUB::CPubSubBookmark::MakeIndexKeyValueBookmark( "mk:fix_seq_num", CORE::CVariant( endSeqNo ) );
+
+            CORE::UInt64 replayRequestId = 0;
+            if ( parentSide->OnReplayRequested( this, startBookmark, endBookmark, replayRequestId ) )
+            {
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CFIXServerPubSubClientTopic::HandleResendRequest: "
+                    "Replay initiated via router for beginSeqNo=" + CORE::ToString( beginSeqNo ) +
+                    " endSeqNo=" + CORE::ToString( endSeqNo ) +
+                    " replayRequestId=" + CORE::ToString( replayRequestId ) );
+                DeliverToSubscribers( msgStart, msgLen, fields );
+                return;
+            }
+        }
+    }
+
+    // Fallback: no persistence side available — send GapFill SequenceReset as before
+    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL,
+        "CFIXServerPubSubClientTopic::HandleResendRequest: Replay not available, falling back to GapFill SequenceReset" );
 
     if ( GUCEF_NULL == m_activeConnection )
+    {
+        DeliverToSubscribers( msgStart, msgLen, fields );
         return;
+    }
 
     const CFIXServerPubSubClientConfig& cfg = m_client->GetConfig();
     CORE::CAsciiString remoteCompId;
@@ -1052,10 +1093,6 @@ CFIXServerPubSubClientTopic::HandleResendRequest( const char* msgStart          
         remoteCompId = CORE::CAsciiString( fields.senderStart, fields.senderLen );
     else
         remoteCompId = CORE::CAsciiString( m_config.topicName );
-
-    CORE::UInt64 beginSeqNo = 0;
-    if ( GUCEF_NULL != fields.beginSeqNoStart && fields.beginSeqNoLen > 0 )
-        beginSeqNo = CFIXClientMessage::ParseUInt64Inline( fields.beginSeqNoStart, fields.beginSeqNoLen );
 
     CORE::CAsciiString seqReset = CFIXClientMessage::BuildSequenceReset(
         cfg.senderCompId, remoteCompId,
@@ -1337,6 +1374,17 @@ CFIXServerPubSubClientTopic::Unlock( void ) const
 {GUCEF_TRACE;
 
     return m_lock.Unlock();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFIXServerPubSubClientTopic::OnReplayComplete( CORE::UInt64 replayRequestId )
+{GUCEF_TRACE;
+
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL,
+        "CFIXServerPubSubClientTopic::OnReplayComplete: Replay completed for replayRequestId=" +
+        CORE::ToString( replayRequestId ) + " on topic \"" + m_config.topicName + "\"" );
 }
 
 /*-------------------------------------------------------------------------//

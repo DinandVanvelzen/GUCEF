@@ -3102,6 +3102,7 @@ CPubSubClientSide::PerformPubSubClientSetup( bool hardReset )
         // This allows getting all the way from:
         //      a message -> a topic -> a client -> a pubsub side
         m_pubsubClient->SetOpaqueUserData( this );
+        m_pubsubClient->SetParentSide( this );
         m_pubsubClient->SetPulseGenerator( GetPulseGenerator() );
 
         clientSetupWasNeeded = true;
@@ -3604,6 +3605,69 @@ CPubSubClientSide::ReadOnlyUnlock( void ) const
 {GUCEF_TRACE;
 
     return MT::CReadWriteLock::RwLockStateToLockStatus( m_rwdataLock.ReaderStop() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPubSubClientSide::OnReplayRequested( CPubSubClientTopic*    requestingTopic    ,
+                                               const CPubSubBookmark& startBookmark      ,
+                                               const CPubSubBookmark& endBookmark        ,
+                                               CORE::UInt64&          replayRequestIdOut )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_flowRouter )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CPubSubClientSide(" + m_sideId +
+            "):OnReplayRequested: No flow router is configured, cannot handle replay request" );
+        return false;
+    }
+
+    return m_flowRouter->HandleReplayRequest( this, requestingTopic, startBookmark, endBookmark, replayRequestIdOut );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPubSubClientSide::OnReplayMsgsReceived( CORE::UInt64                                    replayRequestId ,
+                                         CPubSubClientTopic*                             requestingTopic ,
+                                         const CPubSubClientTopic::TPubSubMsgsRefVector& msgs            )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == requestingTopic )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CPubSubClientSide(" + m_sideId +
+            "):OnReplayMsgsReceived: requestingTopic is NULL for replayRequestId=" + CORE::ToString( replayRequestId ) );
+        return false;
+    }
+
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CPubSubClientSide(" + m_sideId +
+        "):OnReplayMsgsReceived: Routing " + CORE::ToString( msgs.size() ) + " replayed messages"
+        " to topic \"" + requestingTopic->GetTopicName() + "\""
+        " for replayRequestId=" + CORE::ToString( replayRequestId ) );
+
+    return PublishMsgs( msgs, requestingTopic );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPubSubClientSide::OnReplayComplete( CORE::UInt64        replayRequestId ,
+                                              CPubSubClientTopic* requestingTopic )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == requestingTopic )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CPubSubClientSide(" + m_sideId +
+            "):OnReplayComplete: requestingTopic is NULL for replayRequestId=" + CORE::ToString( replayRequestId ) );
+        return;
+    }
+
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CPubSubClientSide(" + m_sideId +
+        "):OnReplayComplete: Notifying topic \"" + requestingTopic->GetTopicName() +
+        "\" that replayRequestId=" + CORE::ToString( replayRequestId ) + " is complete" );
+
+    requestingTopic->OnReplayComplete( replayRequestId );
 }
 
 /*-------------------------------------------------------------------------//

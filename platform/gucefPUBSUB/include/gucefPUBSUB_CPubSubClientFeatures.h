@@ -98,6 +98,7 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientFeatures : public CORE::CIConfigurabl
     bool supportsGlobPatternTopicNames;         /**< only relevant if 'supportsDiscoveryOfAvailableTopics'=true : whether topics can be specified with a glob pattern to be pattern matched and discovered against available topics */
     bool supportsPatternBasedAggregateTopic;    /**< whether the implementation supports representing a variable number of source topics as a singular topic represented by a topic name pattern */
     bool supportsMetrics;
+    bool supportsReplay;                        /**< whether the backend supports replaying stored messages starting at a given key value (e.g. for FIX ResendRequest use-cases) */
 
 
     CPubSubClientFeatures( void );

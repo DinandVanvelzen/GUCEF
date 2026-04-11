@@ -21,6 +21,8 @@ set( HEADER_FILES
   include/pubsubpluginSTORAGE_CStoragePubSubIndexDef.h
   include/pubsubpluginSTORAGE_CStoragePubSubIndexReader.h
   include/pubsubpluginSTORAGE_CStoragePubSubIndexWriter.h
+  include/pubsubpluginSTORAGE_CStorageReplayTaskConsumer.h
+  include/pubsubpluginSTORAGE_CStorageReplayTaskData.h
   include/pubsubpluginSTORAGE_config.h
   include/pubsubpluginSTORAGE_macros.h
 )
@@ -35,6 +37,8 @@ set( SOURCE_FILES
   src/pubsubpluginSTORAGE_CStoragePubSubIndexDef.cpp
   src/pubsubpluginSTORAGE_CStoragePubSubIndexReader.cpp
   src/pubsubpluginSTORAGE_CStoragePubSubIndexWriter.cpp
+  src/pubsubpluginSTORAGE_CStorageReplayTaskConsumer.cpp
+  src/pubsubpluginSTORAGE_CStorageReplayTaskData.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined

@@ -106,6 +106,16 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubIndexReader
 
     bool IsLoaded( void ) const;
 
+    /**
+     *  Returns the full VFS paths (in registry order) for all container files starting from
+     *  (and including) the file whose path matches startFilePath.
+     *  Useful for building the ordered file list for a replay task.
+     *  Returns false if startFilePath is not found in the registry.
+     */
+    typedef GUCEF::vector< CORE::CString, gucef_allocator< CORE::CString > > TStringVector;
+    bool GetOrderedFilePathsFromFile( const CORE::CString& startFilePath ,
+                                      TStringVector&        outPaths      ) const;
+
     private:
 
     struct IndexEntry

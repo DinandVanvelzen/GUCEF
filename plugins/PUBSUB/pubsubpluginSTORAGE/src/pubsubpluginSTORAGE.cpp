@@ -33,10 +33,30 @@
 #define GUCEF_PUBSUB_CPUBSUBGLOBAL_H
 #endif /* GUCEF_PUBSUB_CPUBSUBGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CCOREGLOBAL_H
+#include "gucefCORE_CCoreGlobal.h"
+#define GUCEF_CORE_CCOREGLOBAL_H
+#endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
+
+#ifndef GUCEF_CORE_CTASKMANAGER_H
+#include "gucefCORE_CTaskManager.h"
+#define GUCEF_CORE_CTASKMANAGER_H
+#endif /* GUCEF_CORE_CTASKMANAGER_H ? */
+
+#ifndef GUCEF_CORE_CTFACTORY_H
+#include "CTFactory.h"
+#define GUCEF_CORE_CTFACTORY_H
+#endif /* GUCEF_CORE_CTFACTORY_H ? */
+
 #ifndef PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBCLIENT_H
 #include "pubsubpluginSTORAGE_CStoragePubSubClient.h"
 #define PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBCLIENT_H
 #endif /* PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBCLIENT_H ? */
+
+#ifndef PUBSUBPLUGIN_STORAGE_CSTORAGEREPLAYTASKCONSUMER_H
+#include "pubsubpluginSTORAGE_CStorageReplayTaskConsumer.h"
+#define PUBSUBPLUGIN_STORAGE_CSTORAGEREPLAYTASKCONSUMER_H
+#endif /* PUBSUBPLUGIN_STORAGE_CSTORAGEREPLAYTASKCONSUMER_H ? */
 
 #include "pubsubpluginSTORAGE.h"
 
@@ -49,6 +69,7 @@
 using namespace GUCEF;
 
 typedef CORE::CTFactoryWithParam< PUBSUB::CPubSubClient, PUBSUBPLUGIN::STORAGE::CStoragePubSubClient, PUBSUB::CPubSubClientConfig, MT::CMutex >    TStoragePubSubClientFactory;
+typedef CORE::CTFactory< CORE::CTaskConsumer, PUBSUBPLUGIN::STORAGE::CStorageReplayTaskConsumer, MT::CMutex >                                      TStorageReplayTaskConsumerFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -57,6 +78,7 @@ typedef CORE::CTFactoryWithParam< PUBSUB::CPubSubClient, PUBSUBPLUGIN::STORAGE::
 //-------------------------------------------------------------------------*/
 
 TStoragePubSubClientFactory g_storagePubSubClientFactory;
+TStorageReplayTaskConsumerFactory g_storageReplayTaskConsumerFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -72,6 +94,9 @@ pubsubpluginSTORAGE_GUCEFPlugin_Load( CORE::UInt32 argc, const char** argv ) PUB
 
     PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory().RegisterConcreteFactory( PUBSUBPLUGIN::STORAGE::CStoragePubSubClient::TypeName, &g_storagePubSubClientFactory );
 
+    CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory(
+        PUBSUBPLUGIN::STORAGE::CStorageReplayTaskConsumer::TaskTypeName(), &g_storageReplayTaskConsumerFactory );
+
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Load finished for PUBSUB plugin STORAGE" );
     return 1;
 }
@@ -85,6 +110,9 @@ pubsubpluginSTORAGE_GUCEFPlugin_Unload( void ) PUBSUB_STORAGE_PLUGIN_CALLSPEC_SU
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Unload called on PUBSUB plugin STORAGE" );
 
     PUBSUB::CPubSubGlobal::Instance()->GetPubSubClientFactory().UnregisterConcreteFactory( PUBSUBPLUGIN::STORAGE::CStoragePubSubClient::TypeName );
+
+    CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory(
+        PUBSUBPLUGIN::STORAGE::CStorageReplayTaskConsumer::TaskTypeName() );
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Unload finished for PUBSUB plugin STORAGE" );
 }

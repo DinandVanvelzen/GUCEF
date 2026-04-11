@@ -144,6 +144,12 @@ class PUBSUBPLUGIN_FIX_PLUGIN_PRIVATE_CPP CFIXServerPubSubClientTopic
 
     virtual void Shutdown( void );
 
+    /**
+     *  Called by the flow router when an out-of-band replay initiated by this topic has completed.
+     *  Logs the completion of the replay for this topic.
+     */
+    virtual void OnReplayComplete( CORE::UInt64 replayRequestId ) GUCEF_VIRTUAL_OVERRIDE;
+
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;

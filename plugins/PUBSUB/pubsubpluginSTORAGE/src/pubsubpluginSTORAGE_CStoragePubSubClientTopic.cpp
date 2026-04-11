@@ -87,6 +87,16 @@
 #define PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBINDEXREADER_H
 #endif /* PUBSUBPLUGIN_STORAGE_CSTORAGEPUBSUBINDEXREADER_H ? */
 
+#ifndef PUBSUBPLUGIN_STORAGE_CSTORAGEREPLAYTASKDATA_H
+#include "pubsubpluginSTORAGE_CStorageReplayTaskData.h"
+#define PUBSUBPLUGIN_STORAGE_CSTORAGEREPLAYTASKDATA_H
+#endif /* PUBSUBPLUGIN_STORAGE_CSTORAGEREPLAYTASKDATA_H ? */
+
+#ifndef PUBSUBPLUGIN_STORAGE_CSTORAGEREPLAYTASKCONSUMER_H
+#include "pubsubpluginSTORAGE_CStorageReplayTaskConsumer.h"
+#define PUBSUBPLUGIN_STORAGE_CSTORAGEREPLAYTASKCONSUMER_H
+#endif /* PUBSUBPLUGIN_STORAGE_CSTORAGEREPLAYTASKCONSUMER_H ? */
+
 #undef MoveFile
 
 /*-------------------------------------------------------------------------//
@@ -3833,11 +3843,61 @@ CStoragePubSubClientTopic::SetJournal( PUBSUB::CIPubSubJournalBasicPtr journal )
 
 /*-------------------------------------------------------------------------*/
 
-PUBSUB::CIPubSubJournalBasicPtr 
+PUBSUB::CIPubSubJournalBasicPtr
 CStoragePubSubClientTopic::GetJournal( void ) const
 {GUCEF_TRACE;
 
     return m_journal;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CFutureResult
+CStoragePubSubClientTopic::RequestReplay( const PUBSUB::CPubSubBookmark& startBookmark   ,
+                                          const PUBSUB::CPubSubBookmark& endBookmark     ,
+                                          CORE::UInt64                   replayRequestId ,
+                                          PUBSUB::CPubSubClientSide*     requestingSide  ,
+                                          PUBSUB::CPubSubClientTopic*    requestingTopic )
+{GUCEF_TRACE;
+
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "StoragePubSubClientTopic:RequestReplay: Starting replay for replayRequestId=" +
+        CORE::ToString( replayRequestId ) + " from " + startBookmark.ToString() + " to " + endBookmark.ToString() +
+        ", Topic: " + m_config.topicName );
+
+    if ( GUCEF_NULL == requestingSide )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "StoragePubSubClientTopic:RequestReplay: requestingSide is null, Topic: " + m_config.topicName );
+        return CORE::CFutureResult( CORE::TASKSTATUS_TASKDATA_INVALID );
+    }
+
+    CStorageReplayTaskData* taskData = GUCEF_NEW CStorageReplayTaskData();
+    taskData->startBookmark                  = startBookmark;
+    taskData->endBookmark                    = endBookmark;
+    taskData->replayRequestId                = replayRequestId;
+    taskData->requestingSide                 = requestingSide;
+    taskData->requestingTopic                = requestingTopic;
+    taskData->vfsRootPath                    = m_vfsRootPath;
+    taskData->containerFileFilter            = '*' + GenerateVfsStorageContainerFileExt();
+    taskData->bestEffortDeserializeIsAllowed = m_config.bestEffortDeserializeIsAllowed;
+    taskData->indexDefinitions               = m_config.indexDefinitions;
+
+    CORE::CString poolName = m_config.replayThreadPoolName.IsNULLOrEmpty()
+        ? CORE::CTaskManager::DefaultThreadPoolName
+        : m_config.replayThreadPoolName;
+
+    CORE::CFutureResult future = CORE::CCoreGlobal::Instance()->GetTaskManager().QueueTask(
+        poolName                                     ,
+        CStorageReplayTaskConsumer::TaskTypeName()   ,
+        taskData                                     ,
+        GUCEF_NULL                                   ,
+        true  /* assumeOwnershipOfTaskData */        );
+
+    if ( future.HasNoFuture() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "StoragePubSubClientTopic:RequestReplay: Failed to queue replay task for replayRequestId=" +
+            CORE::ToString( replayRequestId ) + ", pool=" + poolName + ", Topic: " + m_config.topicName );
+    }
+    return future;
 }
 
 /*-------------------------------------------------------------------------//

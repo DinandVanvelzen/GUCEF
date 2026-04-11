@@ -1,5 +1,6 @@
 /*
- *  gucefPUBSUB: GUCEF module providing pub-sub communication facilities
+ *  pubsubpluginSTORAGE: Generic GUCEF plugin for PUBSUB module functionality
+ *                       providing a storage interface
  *
  *  Copyright (C) 1998 - 2022.  Dinand Vanvelzen
  *
@@ -22,12 +23,12 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
-#include "dvcppstringutils.h"
-#define GUCEF_CORE_DVCPPSTRINGUTILS_H
-#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
 
-#include "gucefPUBSUB_PubSubRouteTypes.h"    
+#include "pubsubpluginSTORAGE_CStorageReplayTaskData.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -36,7 +37,8 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace PUBSUB {
+namespace PUBSUBPLUGIN {
+namespace STORAGE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -44,40 +46,55 @@ namespace PUBSUB {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CORE::CString
-RouteTypeToString( RouteType routeType )
+CStorageReplayTaskData::CStorageReplayTaskData( void )
+    : CORE::CICloneable()
+    , startBookmark()
+    , endBookmark()
+    , replayRequestId( 0 )
+    , requestingSide( GUCEF_NULL )
+    , requestingTopic( GUCEF_NULL )
+    , vfsRootPath()
+    , containerFileFilter()
+    , bestEffortDeserializeIsAllowed( false )
+    , indexDefinitions()
+    , containerFilePaths()
+    , currentFileIndex( 0 )
+    , startMsgIndex( 0 )
 {GUCEF_TRACE;
-
-    switch ( routeType )
-    {
-        case Disabled:          return "Disabled";
-        case Active:            return "Active";
-        case Primary:           return "Primary";
-        case Failover:          return "Failover";
-        case SpilloverBuffer:   return "SpilloverBuffer";
-        case DeadLetter:        return "DeadLetter";
-        case Persistence:       return "Persistence";
-        default:                return CString::Empty;
-    }
 }
 
 /*-------------------------------------------------------------------------*/
 
-RouteType 
-StringToRouteType( const CORE::CString& routeTypeStr )
+CStorageReplayTaskData::CStorageReplayTaskData( const CStorageReplayTaskData& src )
+    : CORE::CICloneable( src )
+    , startBookmark( src.startBookmark )
+    , endBookmark( src.endBookmark )
+    , replayRequestId( src.replayRequestId )
+    , requestingSide( src.requestingSide )
+    , requestingTopic( src.requestingTopic )
+    , vfsRootPath( src.vfsRootPath )
+    , containerFileFilter( src.containerFileFilter )
+    , bestEffortDeserializeIsAllowed( src.bestEffortDeserializeIsAllowed )
+    , indexDefinitions( src.indexDefinitions )
+    , containerFilePaths( src.containerFilePaths )
+    , currentFileIndex( src.currentFileIndex )
+    , startMsgIndex( src.startMsgIndex )
+{GUCEF_TRACE;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CStorageReplayTaskData::~CStorageReplayTaskData()
+{GUCEF_TRACE;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CICloneable*
+CStorageReplayTaskData::Clone( void ) const
 {GUCEF_TRACE;
 
-    CORE::CString routeTypeStrLc = routeTypeStr.Lowercase();
-    if ( "disabled" == routeTypeStrLc ) return Disabled;
-    if ( "active" == routeTypeStrLc ) return Active;
-    if ( "primary" == routeTypeStrLc ) return Primary;
-    if ( "failover" == routeTypeStrLc ) return Failover;
-    if ( "spilloverbuffer" == routeTypeStrLc ) return SpilloverBuffer;
-    if ( "deadletter" == routeTypeStrLc ) return DeadLetter;
-    if ( "persistence" == routeTypeStrLc ) return Persistence;
-
-    // If we get here treat it as an int
-    return (RouteType) CORE::StringToInt32( routeTypeStrLc, Disabled );
+    return GUCEF_NEW CStorageReplayTaskData( *this );
 }
 
 /*-------------------------------------------------------------------------//
@@ -86,7 +103,8 @@ StringToRouteType( const CORE::CString& routeTypeStr )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace PUBSUB */
+}; /* namespace STORAGE */
+}; /* namespace PUBSUBPLUGIN */
 }; /* namespace GUCEF */
 
-/*-------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------*/

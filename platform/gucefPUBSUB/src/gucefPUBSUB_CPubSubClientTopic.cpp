@@ -466,6 +466,29 @@ CPubSubClientTopic::IsSubscriptionAtEndOfData( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+CORE::CFutureResult
+CPubSubClientTopic::RequestReplay( const CPubSubBookmark& startBookmark   ,
+                                   const CPubSubBookmark& endBookmark     ,
+                                   CORE::UInt64           replayRequestId ,
+                                   CPubSubClientSide*     requestingSide  ,
+                                   CPubSubClientTopic*    requestingTopic )
+{GUCEF_TRACE;
+
+    // default: not supported
+    return CORE::CFutureResult( CORE::TASKSTATUS_RESOURCE_NOT_AVAILABLE );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPubSubClientTopic::OnReplayComplete( CORE::UInt64 replayRequestId )
+{GUCEF_TRACE;
+
+    // default: no-op
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CPubSubClientTopic::SetJournal( CIPubSubJournalBasicPtr journal )
 {GUCEF_TRACE;

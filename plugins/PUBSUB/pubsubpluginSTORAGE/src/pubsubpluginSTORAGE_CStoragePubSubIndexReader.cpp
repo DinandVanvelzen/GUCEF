@@ -323,6 +323,48 @@ CStoragePubSubIndexReader::FindStartBookmark( CORE::UInt64                      
     return true;
 }
 
+/*-------------------------------------------------------------------------*/
+
+bool
+CStoragePubSubIndexReader::GetOrderedFilePathsFromFile( const CORE::CString& startFilePath ,
+                                                         TStringVector&        outPaths      ) const
+{GUCEF_TRACE;
+
+    if ( !m_loaded )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CStoragePubSubIndexReader:GetOrderedFilePathsFromFile: Index not loaded" );
+        return false;
+    }
+
+    // Find the registry entry whose full path matches startFilePath
+    CORE::UInt32 regCount = static_cast< CORE::UInt32 >( m_fileRegistry.size() );
+    CORE::UInt32 startIdx = regCount;
+    for ( CORE::UInt32 i=0; i<regCount; ++i )
+    {
+        CORE::CString fullPath = CORE::CombinePath( m_dirPath, m_fileRegistry[ i ].filename );
+        if ( fullPath == startFilePath )
+        {
+            startIdx = i;
+            break;
+        }
+    }
+
+    if ( startIdx >= regCount )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CStoragePubSubIndexReader:GetOrderedFilePathsFromFile: "
+            "startFilePath not found in file registry: " + startFilePath );
+        return false;
+    }
+
+    outPaths.clear();
+    outPaths.reserve( regCount - startIdx );
+    for ( CORE::UInt32 i=startIdx; i<regCount; ++i )
+    {
+        outPaths.push_back( CORE::CombinePath( m_dirPath, m_fileRegistry[ i ].filename ) );
+    }
+    return true;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
