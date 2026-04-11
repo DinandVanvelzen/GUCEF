@@ -161,6 +161,11 @@ PerformPubSubPlugin_STORAGEIndexTests( void )
     // that IsInitialized() returns true when InitializeConnectivity() is called below.
     VFS::CVfsGlobal::Instance()->GetVfs().MountAllDelayMountedArchives();
 
+    // Delete the .sidx index file left over from any prior test run.
+    // The index writer accumulates entries across runs (it appends to the same file),
+    // so without this cleanup the entry count grows beyond 300 on subsequent runs.
+    VFS::CVfsGlobal::Instance()->GetVfs().DeleteFile( "seqnr_topic/idx.k.seqNr.su64.sidx", true );
+
     // Configure the topic via generic CPubSubClientTopicConfig.
     // STORAGE-specific settings are passed through customConfig so the plugin
     // can read them via LoadCustomConfig(); no backend headers are needed here.
@@ -322,6 +327,8 @@ PerformPubSubPlugin_STORAGEIndexTests( void )
             // index_entry_count is at footer offset 0 (20 bytes from end)
             CORE::UInt32 indexEntryCount = 0;
             ::memcpy( &indexEntryCount, data + fileSize - 20, sizeof( CORE::UInt32 ) );
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 7 diagnostic: fileSize=" + CORE::ToString( fileSize ) +
+                " indexEntryCount=" + CORE::ToString( indexEntryCount ) );
             ASSERT_TRUE( indexEntryCount == 300u );
 
             // file_registry_count is at footer offset 12 (8 bytes from end, before magic)
@@ -331,6 +338,12 @@ PerformPubSubPlugin_STORAGEIndexTests( void )
         }
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END
+
+    // Release shared pointers before unloading the plugin DLL.
+    // The destructor pointers live in the plugin's memory space, so we must
+    // ensure all shared pointer ref counts reach zero while the DLL is still loaded.
+    topic.Unlink();
+    client.Unlink();
 
     if ( ownedPluginLoad )
         pluginControl.UnloadPluginGroup( "pubsubpluginSTORAGE_index_tests" );

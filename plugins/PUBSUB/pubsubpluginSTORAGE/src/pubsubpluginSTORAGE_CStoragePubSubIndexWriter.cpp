@@ -378,6 +378,30 @@ CStoragePubSubIndexWriter::Initialize( void )
         }
     }
 
+    /* Parse index entries so AppendToFile can rebuild the file without re-reading VFS */
+    m_allKeys.clear();
+    m_allFileIds.clear();
+    m_allMsgIndexes.clear();
+    if ( indexEntryCount > 0 && indexEntriesOffset < fileSize )
+    {
+        CORE::UInt32 entrySize = m_def.GetEntrySize();
+        CORE::UInt32 entryPos  = indexEntriesOffset;
+        for ( CORE::UInt32 i=0; i<indexEntryCount; ++i )
+        {
+            if ( entryPos + entrySize > fileSize )
+                break;
+            CORE::UInt64 key    = 0;
+            CORE::UInt32 fileId = 0;
+            CORE::UInt32 msgIdx = 0;
+            existing.CopyTo( entryPos, 8, &key    ); entryPos += 8;
+            existing.CopyTo( entryPos, 4, &fileId ); entryPos += 4;
+            existing.CopyTo( entryPos, 4, &msgIdx ); entryPos += 4;
+            m_allKeys.push_back( key );
+            m_allFileIds.push_back( fileId );
+            m_allMsgIndexes.push_back( msgIdx );
+        }
+    }
+
     m_initialized = true;
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CStoragePubSubIndexWriter:Initialize: Loaded existing index with " +
         CORE::ToString( m_totalEntryCount ) + " entries and " +
@@ -410,6 +434,12 @@ CStoragePubSubIndexWriter::WriteNewFile( const TUInt64Vector& keys       ,
     WriteHeader( buf, offset, m_def );
     WriteIndexEntries( buf, offset, keys, msgIndexes, regEntry.fileId );
 
+    for ( CORE::UInt32 i=0; i<newEntryCount; ++i )
+    {
+        m_allKeys.push_back( keys[ i ] );
+        m_allFileIds.push_back( regEntry.fileId );
+        m_allMsgIndexes.push_back( msgIndexes[ i ] );
+    }
     m_fileRegistry.push_back( regEntry );
     m_totalEntryCount += newEntryCount;
 
@@ -424,6 +454,12 @@ CStoragePubSubIndexWriter::WriteNewFile( const TUInt64Vector& keys       ,
     if ( !vfs.StoreAsFile( m_indexFilePath, buf, 0, true ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CStoragePubSubIndexWriter:WriteNewFile: Failed to write index file: " + m_indexFilePath );
+        for ( CORE::UInt32 i=0; i<newEntryCount; ++i )
+        {
+            m_allKeys.pop_back();
+            m_allFileIds.pop_back();
+            m_allMsgIndexes.pop_back();
+        }
         m_fileRegistry.pop_back();
         m_totalEntryCount -= newEntryCount;
         return false;
@@ -439,75 +475,70 @@ CStoragePubSubIndexWriter::AppendToFile( const TUInt64Vector& keys       ,
                                           const FileRegEntry&  regEntry   )
 {GUCEF_TRACE;
 
-    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
+    /* Build the complete .sidx from in-memory state so we never depend on
+       reading back the previously written VFS file.  The VFS may cache the
+       first version of the file and return it stale on all subsequent reads,
+       which would corrupt the index entries section.  All data we need is
+       already in m_allKeys / m_allFileIds / m_allMsgIndexes / m_fileRegistry. */
 
-    /* Load existing file */
-    CORE::CDynamicBuffer existing;
-    if ( !vfs.LoadFile( existing, m_indexFilePath, "rb" ) )
-    {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CStoragePubSubIndexWriter:AppendToFile: Failed to load existing index: " + m_indexFilePath );
-        return false;
-    }
-
-    CORE::UInt32 fileSize = existing.GetDataSize();
-    if ( fileSize < SIDX_FOOTER_SIZE )
-    {
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CStoragePubSubIndexWriter:AppendToFile: Corrupt index (too small), rewriting: " + m_indexFilePath );
-        return WriteNewFile( keys, msgIndexes, regEntry );
-    }
-
-    CORE::UInt32 footerMagic = 0;
-    existing.CopyTo( fileSize - 4, 4, &footerMagic );
-    if ( footerMagic != SIDX_FOOTER_MAGIC )
-    {
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CStoragePubSubIndexWriter:AppendToFile: Footer magic mismatch, rewriting: " + m_indexFilePath );
-        return WriteNewFile( keys, msgIndexes, regEntry );
-    }
-
-    /* Read file_registry_offset and header size from footer */
-    CORE::UInt32 fileRegistryOffset = 0;
-    CORE::UInt32 indexEntriesOffset = 0;
-    existing.CopyTo( fileSize - SIDX_FOOTER_SIZE + 4, 4, &indexEntriesOffset );
-    existing.CopyTo( fileSize - SIDX_FOOTER_SIZE + 8, 4, &fileRegistryOffset );
-
-    /* Build new output: [existing header+entries] + [new entries] + [new registry] + [new footer] */
-    CORE::UInt32 newEntryCount = static_cast< CORE::UInt32 >( keys.size() );
+    CORE::UInt32 headerSize    = ComputeHeaderSize();
     CORE::UInt32 entrySize     = m_def.GetEntrySize();
-    CORE::UInt32 newEntriesBytes = newEntryCount * entrySize;
+    CORE::UInt32 newEntryCount = static_cast< CORE::UInt32 >( keys.size() );
+    CORE::UInt32 totalEntries  = m_totalEntryCount + newEntryCount;
 
-    /* registry size with the new entry added */
+    /* registry size: existing entries + the new one */
     CORE::UInt32 newFileRegCount = static_cast< CORE::UInt32 >( m_fileRegistry.size() ) + 1u;
     CORE::UInt32 regSize = 4u;  /* count field */
     for ( CORE::UInt32 i=0; i<(CORE::UInt32)m_fileRegistry.size(); ++i )
         regSize += 26u + static_cast< CORE::UInt32 >( m_fileRegistry[ i ].filename.Length() );
     regSize += 26u + static_cast< CORE::UInt32 >( regEntry.filename.Length() );
 
-    CORE::UInt32 totalSize = fileRegistryOffset + newEntriesBytes + regSize + SIDX_FOOTER_SIZE;
+    CORE::UInt32 fileRegistryOffset = headerSize + totalEntries * entrySize;
+    CORE::UInt32 totalSize          = fileRegistryOffset + regSize + SIDX_FOOTER_SIZE;
 
     CORE::CDynamicBuffer outBuf( totalSize, false );
     outBuf.SetDataSize( totalSize );
 
-    /* Copy existing header + entries (up to fileRegistryOffset) */
-    outBuf.CopyFrom( 0, fileRegistryOffset, existing.GetConstBufferPtr() );
+    CORE::UInt32 offset = 0;
+    WriteHeader( outBuf, offset, m_def );
 
-    CORE::UInt32 offset = fileRegistryOffset;
+    /* Write all previously accumulated index entries from memory */
+    CORE::UInt32 existingCount = static_cast< CORE::UInt32 >( m_allKeys.size() );
+    for ( CORE::UInt32 i=0; i<existingCount; ++i )
+    {
+        outBuf.CopyFrom( offset, 8, &m_allKeys[ i ] );       offset += 8;
+        outBuf.CopyFrom( offset, 4, &m_allFileIds[ i ] );    offset += 4;
+        outBuf.CopyFrom( offset, 4, &m_allMsgIndexes[ i ] ); offset += 4;
+    }
 
-    /* Append new entries */
+    /* Append the new entries for this container */
     WriteIndexEntries( outBuf, offset, keys, msgIndexes, regEntry.fileId );
 
-    /* Update in-memory registry and counts */
+    /* Update in-memory state */
+    for ( CORE::UInt32 i=0; i<newEntryCount; ++i )
+    {
+        m_allKeys.push_back( keys[ i ] );
+        m_allFileIds.push_back( regEntry.fileId );
+        m_allMsgIndexes.push_back( msgIndexes[ i ] );
+    }
     m_fileRegistry.push_back( regEntry );
     m_totalEntryCount += newEntryCount;
 
     CORE::UInt32 newFileRegOffset = offset;
     WriteFileRegistry( outBuf, offset );
-
-    WriteFooter( outBuf, offset, m_totalEntryCount, indexEntriesOffset, newFileRegOffset, newFileRegCount );
+    WriteFooter( outBuf, offset, m_totalEntryCount, headerSize, newFileRegOffset, newFileRegCount );
     outBuf.SetDataSize( offset );
 
+    VFS::CVFS& vfs = VFS::CVfsGlobal::Instance()->GetVfs();
     if ( !vfs.StoreAsFile( m_indexFilePath, outBuf, 0, true ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "CStoragePubSubIndexWriter:AppendToFile: Failed to write index file: " + m_indexFilePath );
+        for ( CORE::UInt32 i=0; i<newEntryCount; ++i )
+        {
+            m_allKeys.pop_back();
+            m_allFileIds.pop_back();
+            m_allMsgIndexes.pop_back();
+        }
         m_fileRegistry.pop_back();
         m_totalEntryCount -= newEntryCount;
         return false;
@@ -592,6 +623,9 @@ CStoragePubSubIndexWriter::RebuildIndex( const PUBSUB::CPubSubMsgBinarySerialize
 
     /* Reset in-memory state */
     m_fileRegistry.clear();
+    m_allKeys.clear();
+    m_allFileIds.clear();
+    m_allMsgIndexes.clear();
     m_nextFileId      = 1;
     m_totalEntryCount = 0;
     m_initialized     = true;

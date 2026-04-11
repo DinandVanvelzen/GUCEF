@@ -106,7 +106,8 @@ PerformPubSubPlugin_STORAGETests( void )
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END
 
-    pluginControl.UnloadPluginGroup( "pubsubpluginSTORAGE_tests" );
+    // Do NOT unload here - the STORAGE index test suite that follows reuses
+    // the already-registered factory type.  It will handle its own unload.
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL pubsubpluginSTORAGE backend TESTS COMPLETED" );
 }

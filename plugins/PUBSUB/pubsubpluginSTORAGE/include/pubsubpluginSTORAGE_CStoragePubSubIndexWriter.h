@@ -172,6 +172,9 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStoragePubSubIndexWriter
     CORE::CString           m_dirPath;        /**< VFS directory path (topic root) */
     CORE::CString           m_indexFilePath;  /**< full VFS path to the .sidx file */
     TFileRegEntryVector     m_fileRegistry;   /**< in-memory registry of all indexed container files */
+    TUInt64Vector           m_allKeys;        /**< all indexed key values, in insertion order */
+    TUInt32Vector           m_allFileIds;     /**< file-id for each entry in m_allKeys */
+    TUInt32Vector           m_allMsgIndexes;  /**< msg-index for each entry in m_allKeys */
     CORE::UInt32            m_nextFileId;
     CORE::UInt32            m_totalEntryCount;
     bool                    m_initialized;
