@@ -128,7 +128,15 @@ class GUCEF_PUBSUB_EXPORT_CPP CPubSubFlowRouter : public CORE::CTSGNotifier
                               const CPubSubBookmark& startBookmark      ,
                               const CPubSubBookmark& endBookmark        ,
                               CORE::UInt64&          replayRequestIdOut );
-    
+
+    /**
+     *  Called by CPubSubClientSide::OnReplayComplete to clean up the tracking entry that was
+     *  created in HandleReplayRequest.  Safe to call even if the entry has already been removed
+     *  (e.g. it was cleared by the EndOfData path first).
+     */
+    void RemoveCompletedReplay( CPubSubClientSide* requestingSide  ,
+                                CORE::UInt64       replayRequestId );
+
     virtual void SetPulseGenerator( CORE::PulseGeneratorPtr newPulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
     
     static CPubSubClientSidePtr GetSideWithId( const TPubSubClientSidePtrVector& sides ,

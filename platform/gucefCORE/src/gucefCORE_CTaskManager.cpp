@@ -429,8 +429,8 @@ CTaskManager::QueueTask( const CString& threadPoolName  ,
                          bool assumeOwnershipOfTaskData )
 {GUCEF_TRACE;
 
-    ThreadPoolPtr threadPool = GetOrCreateThreadPool( threadPoolName, false );        
-    if ( threadPool.IsNULL() )
+    ThreadPoolPtr threadPool = GetOrCreateThreadPool( threadPoolName, false );
+    if ( !threadPool.IsNULL() )
     {
         return threadPool->QueueTask( taskType                  ,
                                       taskData                  ,

@@ -31,6 +31,11 @@
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
 
+#ifndef GUCEF_CORE_LOGGINGMACROS_H
+#include "gucefCORE_LoggingMacros.h"
+#define GUCEF_CORE_LOGGINGMACROS_H
+#endif /* GUCEF_CORE_LOGGINGMACROS_H ? */
+
 #ifndef GUCEF_CORE_CMFILEACCESS_H
 #include "CMFileAccess.h"
 #define GUCEF_CORE_CMFILEACCESS_H

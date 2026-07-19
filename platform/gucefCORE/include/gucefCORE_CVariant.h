@@ -46,6 +46,11 @@
 #define GUCEF_CORE_CDATETIME_H
 #endif /* GUCEF_CORE_CDATETIME_H ? */
 
+#ifndef GUCEF_CORE_CTIMESTAMP_H
+#include "gucefCORE_CTimestamp.h"
+#define GUCEF_CORE_CTIMESTAMP_H
+#endif /* GUCEF_CORE_CTIMESTAMP_H ? */
+
 #ifndef GUCEF_CORE_CTFRACTION_H
 #include "gucefCORE_CTFraction.h"
 #define GUCEF_CORE_CTFRACTION_H

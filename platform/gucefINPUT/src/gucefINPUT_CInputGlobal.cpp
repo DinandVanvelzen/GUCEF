@@ -58,6 +58,11 @@
 #define GUCEF_INPUT_CINPUTDRIVERPLUGINMANAGER_H
 #endif /* GUCEF_INPUT_CINPUTDRIVERPLUGINMANAGER_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #include "gucefINPUT_CInputGlobal.h"
 
 /*-------------------------------------------------------------------------//

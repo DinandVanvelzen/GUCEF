@@ -31,6 +31,7 @@ set( HEADER_FILES
   include/TestPubSubPlugin_REDISCLUSTER.h
   include/TestPubSubPlugin_STORAGE.h
   include/TestPubSubPlugin_STORAGE_Index.h
+  include/TestPubSubPlugin_STORAGE_Replay.h
   include/TestPubSubPlugin_TEST.h
   include/TestPubSubPlugin_UDP.h
   include/TestPubSubPlugin_WEB.h
@@ -56,6 +57,7 @@ set( SOURCE_FILES
   src/TestPubSubPlugin_REDISCLUSTER.cpp
   src/TestPubSubPlugin_STORAGE.cpp
   src/TestPubSubPlugin_STORAGE_Index.cpp
+  src/TestPubSubPlugin_STORAGE_Replay.cpp
   src/TestPubSubPlugin_TEST.cpp
   src/TestPubSubPlugin_UDP.cpp
   src/TestPubSubPlugin_WEB.cpp

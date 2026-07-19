@@ -60,6 +60,8 @@ CStorageReplayTaskData::CStorageReplayTaskData( void )
     , containerFilePaths()
     , currentFileIndex( 0 )
     , startMsgIndex( 0 )
+    , endFileIndex( static_cast< CORE::UInt32 >( -1 ) )
+    , endMsgIndex( static_cast< CORE::UInt32 >( -1 ) )
 {GUCEF_TRACE;
 }
 
@@ -79,6 +81,8 @@ CStorageReplayTaskData::CStorageReplayTaskData( const CStorageReplayTaskData& sr
     , containerFilePaths( src.containerFilePaths )
     , currentFileIndex( src.currentFileIndex )
     , startMsgIndex( src.startMsgIndex )
+    , endFileIndex( src.endFileIndex )
+    , endMsgIndex( src.endMsgIndex )
 {GUCEF_TRACE;
 }
 

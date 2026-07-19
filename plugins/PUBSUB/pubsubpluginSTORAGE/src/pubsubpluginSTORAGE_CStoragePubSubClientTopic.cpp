@@ -3852,6 +3852,8 @@ CStoragePubSubClientTopic::GetJournal( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+/*-------------------------------------------------------------------------*/
+
 CORE::CFutureResult
 CStoragePubSubClientTopic::RequestReplay( const PUBSUB::CPubSubBookmark& startBookmark   ,
                                           const PUBSUB::CPubSubBookmark& endBookmark     ,
@@ -3871,19 +3873,24 @@ CStoragePubSubClientTopic::RequestReplay( const PUBSUB::CPubSubBookmark& startBo
     }
 
     CStorageReplayTaskData* taskData = GUCEF_NEW CStorageReplayTaskData();
-    taskData->startBookmark                  = startBookmark;
-    taskData->endBookmark                    = endBookmark;
-    taskData->replayRequestId                = replayRequestId;
-    taskData->requestingSide                 = requestingSide;
-    taskData->requestingTopic                = requestingTopic;
-    taskData->vfsRootPath                    = m_vfsRootPath;
-    taskData->containerFileFilter            = '*' + GenerateVfsStorageContainerFileExt();
-    taskData->bestEffortDeserializeIsAllowed = m_config.bestEffortDeserializeIsAllowed;
-    taskData->indexDefinitions               = m_config.indexDefinitions;
+    taskData->startBookmark   = startBookmark;
+    taskData->endBookmark     = endBookmark;
+    taskData->replayRequestId = replayRequestId;
+    taskData->requestingSide  = requestingSide;
+    taskData->requestingTopic = requestingTopic;
 
-    CORE::CString poolName = m_config.replayThreadPoolName.IsNULLOrEmpty()
-        ? CORE::CTaskManager::DefaultThreadPoolName
-        : m_config.replayThreadPoolName;
+    // Snapshot config fields under lock so concurrent Reconfigure() calls cannot race with our reads
+    CORE::CString poolName;
+    {
+        MT::CScopeMutex lock( m_lock );
+        taskData->vfsRootPath                    = m_vfsRootPath;
+        taskData->containerFileFilter            = '*' + GenerateVfsStorageContainerFileExt();
+        taskData->bestEffortDeserializeIsAllowed = m_config.bestEffortDeserializeIsAllowed;
+        taskData->indexDefinitions               = m_config.indexDefinitions;
+        poolName = m_config.replayThreadPoolName.IsNULLOrEmpty()
+            ? CORE::CTaskManager::DefaultThreadPoolName
+            : m_config.replayThreadPoolName;
+    }
 
     CORE::CFutureResult future = CORE::CCoreGlobal::Instance()->GetTaskManager().QueueTask(
         poolName                                     ,

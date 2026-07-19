@@ -284,6 +284,92 @@ CStorageReplayTaskConsumer::OnTaskStart( CORE::CTaskPtr task )
             CORE::ToString( taskData->replayRequestId ) );
     }
 
+    // Resolve end bookmark to an (endFileIndex, endMsgIndex) pair so OnTaskCycle can honour it.
+    // Default ~0U means "no upper limit" (replay to end of all files).
+    taskData->endFileIndex = static_cast< CORE::UInt32 >( -1 );
+    taskData->endMsgIndex  = static_cast< CORE::UInt32 >( -1 );
+
+    if ( taskData->endBookmark.GetBookmarkType() == PUBSUB::CPubSubBookmark::BOOKMARK_TYPE_INDEX_KEY_VALUE )
+    {
+        const CORE::CString& keyFieldWithPrefix = taskData->endBookmark.GetBookmarkKeyField();
+        CStoragePubSubIndexDef::EKeySource keySource = CStoragePubSubIndexDef::KEY_SOURCE_META_DATA;
+        CORE::CString keyName;
+
+        if ( keyFieldWithPrefix.HasSubstr( "mk:", true ) )
+        {
+            keySource = CStoragePubSubIndexDef::KEY_SOURCE_META_DATA;
+            keyName   = keyFieldWithPrefix.CutChars( 3, true, 0 );
+        }
+        else if ( keyFieldWithPrefix.HasSubstr( "k:", true ) )
+        {
+            keySource = CStoragePubSubIndexDef::KEY_SOURCE_KV_PAIR;
+            keyName   = keyFieldWithPrefix.CutChars( 2, true, 0 );
+        }
+        else
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CStorageReplayTaskConsumer:OnTaskStart: Invalid end bookmark key field prefix (expected 'mk:' or 'k:'): " +
+                keyFieldWithPrefix + " for requestId=" + CORE::ToString( taskData->replayRequestId ) + " - will replay to end" );
+        }
+
+        if ( !keyName.IsNULLOrEmpty() )
+        {
+            const CStoragePubSubIndexDef* matchedDef = GUCEF_NULL;
+            CORE::UInt32 defCount = static_cast< CORE::UInt32 >( taskData->indexDefinitions.size() );
+            for ( CORE::UInt32 i=0; i<defCount; ++i )
+            {
+                const CStoragePubSubIndexDef& def = taskData->indexDefinitions[ i ];
+                if ( def.keySource == keySource && def.keyName == keyName )
+                {
+                    matchedDef = &def;
+                    break;
+                }
+            }
+
+            if ( GUCEF_NULL != matchedDef )
+            {
+                CStoragePubSubIndexReader endReader( *matchedDef, taskData->vfsRootPath );
+                if ( endReader.LoadIndex() )
+                {
+                    CORE::UInt64 endKeyValue = taskData->endBookmark.GetBookmarkData().AsUInt64( 0 );
+                    CStoragePubSubClientTopic::CStorageBookmarkInfo endMark;
+                    if ( endReader.FindStartBookmark( endKeyValue, endMark ) )
+                    {
+                        CORE::UInt32 fileCount = static_cast< CORE::UInt32 >( taskData->containerFilePaths.size() );
+                        for ( CORE::UInt32 i=0; i<fileCount; ++i )
+                        {
+                            if ( taskData->containerFilePaths[ i ] == endMark.vfsFilePath )
+                            {
+                                taskData->endFileIndex = i;
+                                taskData->endMsgIndex  = endMark.msgIndex;
+                                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CStorageReplayTaskConsumer:OnTaskStart: Replay requestId=" +
+                                    CORE::ToString( taskData->replayRequestId ) + " endBookmark resolved to file[" +
+                                    CORE::ToString( i ) + "]=" + endMark.vfsFilePath +
+                                    " endMsgIndex=" + CORE::ToString( endMark.msgIndex ) );
+                                break;
+                            }
+                        }
+                        if ( taskData->endFileIndex == static_cast< CORE::UInt32 >( -1 ) )
+                        {
+                            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CStorageReplayTaskConsumer:OnTaskStart: End bookmark file not in container list for requestId=" +
+                                CORE::ToString( taskData->replayRequestId ) + " - will replay to end" );
+                        }
+                    }
+                    else
+                    {
+                        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CStorageReplayTaskConsumer:OnTaskStart: End bookmark key not found in index for requestId=" +
+                            CORE::ToString( taskData->replayRequestId ) + " - will replay to end" );
+                    }
+                }
+                else
+                {
+                    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CStorageReplayTaskConsumer:OnTaskStart: Failed to load index for end bookmark, requestId=" +
+                        CORE::ToString( taskData->replayRequestId ) + " - will replay to end" );
+                }
+            }
+        }
+    }
+    // For BOOKMARK_TYPE_NOT_INITIALIZED: endFileIndex/endMsgIndex remain ~0U (replay to end)
+
     return true;
 }
 
@@ -333,11 +419,20 @@ CStorageReplayTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
     CORE::UInt32 msgCount = static_cast< CORE::UInt32 >( msgs.size() );
     CORE::UInt32 startMsg = ( taskData->currentFileIndex == 0 ) ? taskData->startMsgIndex : 0;
 
-    if ( startMsg < msgCount )
+    // Apply end bookmark cap: if this is the designated end file, clamp the message range
+    static const CORE::UInt32 noLimit = static_cast< CORE::UInt32 >( -1 );
+    CORE::UInt32 endMsg = msgCount;
+    if ( taskData->currentFileIndex == taskData->endFileIndex && taskData->endMsgIndex != noLimit )
+    {
+        CORE::UInt32 cap = taskData->endMsgIndex + 1;
+        endMsg = ( cap < msgCount ) ? cap : msgCount;
+    }
+
+    if ( startMsg < endMsg )
     {
         PUBSUB::CPubSubClientTopic::TPubSubMsgsRefVector refs;
-        refs.reserve( msgCount - startMsg );
-        for ( CORE::UInt32 i=startMsg; i<msgCount; ++i )
+        refs.reserve( endMsg - startMsg );
+        for ( CORE::UInt32 i=startMsg; i<endMsg; ++i )
         {
             refs.push_back( static_cast< PUBSUB::CIPubSubMsg* >( &msgs[ i ] ) );
         }
@@ -350,7 +445,10 @@ CStorageReplayTaskConsumer::OnTaskCycle( CORE::CTaskPtr task )
     }
 
     ++taskData->currentFileIndex;
-    return taskData->currentFileIndex >= totalFiles;
+    // Done when: all files consumed, or we just finished the designated end file
+    bool done = taskData->currentFileIndex >= totalFiles ||
+                ( taskData->endFileIndex != noLimit && taskData->currentFileIndex > taskData->endFileIndex );
+    return done;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -48,6 +48,11 @@
 #define GUCEF_GUI_H
 #endif /* GUCEF_GUI_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #include "gucefGUI_CGuiGlobal.h"
 
 /*-------------------------------------------------------------------------//

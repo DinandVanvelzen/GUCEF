@@ -11,83 +11,111 @@
 
 # Configuration for module: MemoryLeakFinder_TestApp
 
-set( HEADER_FILES
-  include/TestCallStack.h
-  include/TestConfig.h
-  include/TestLockTracer.h
-  include/TestMemoryTracking.h
-  include/TestOleApi.h
-  include/TestReporter.h
-  include/TestSentinels.h
-  include/TestStatistics.h
-  include/TestTrackerLifecycle.h
-  include/TestValidation.h
-)
 
-set( SOURCE_FILES
-  src/MemoryLeakFinder_TestApp_main.cpp
-  src/TestCallStack.cpp
-  src/TestConfig.cpp
-  src/TestLockTracer.cpp
-  src/TestMemoryTracking.cpp
-  src/TestOleApi.cpp
-  src/TestReporter.cpp
-  src/TestSentinels.cpp
-  src/TestStatistics.cpp
-  src/TestTrackerLifecycle.cpp
-  src/TestValidation.cpp
-)
 
-# Make sure the PLATFORM_HEADER_FILES variable is always defined
- set( PLATFORM_HEADER_FILES "" )
+if (WIN32)
+  set( PLATFORM_HEADER_FILES 
+    include/TestCallStack.h
+    include/TestConfig.h
+    include/TestLockTracer.h
+    include/TestMemoryTracking.h
+    include/TestOleApi.h
+    include/TestReporter.h
+    include/TestSentinels.h
+    include/TestStatistics.h
+    include/TestTrackerLifecycle.h
+    include/TestValidation.h
+  )
 
-# Make sure the PLATFORM_SOURCE_FILES variable is always defined
- set( PLATFORM_SOURCE_FILES "" )
+  set( PLATFORM_HEADER_INSTALL "WIN32" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/MemoryLeakFinder_TestApp_main.cpp
+    src/TestCallStack.cpp
+    src/TestConfig.cpp
+    src/TestLockTracer.cpp
+    src/TestMemoryTracking.cpp
+    src/TestOleApi.cpp
+    src/TestReporter.cpp
+    src/TestSentinels.cpp
+    src/TestStatistics.cpp
+    src/TestTrackerLifecycle.cpp
+    src/TestValidation.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "WIN32" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+elseif (WIN64)
+  set( PLATFORM_HEADER_FILES 
+    include/TestCallStack.h
+    include/TestConfig.h
+    include/TestLockTracer.h
+    include/TestMemoryTracking.h
+    include/TestOleApi.h
+    include/TestReporter.h
+    include/TestSentinels.h
+    include/TestStatistics.h
+    include/TestTrackerLifecycle.h
+    include/TestValidation.h
+  )
+
+  set( PLATFORM_HEADER_INSTALL "WIN64" )
+  source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
+
+  set( PLATFORM_SOURCE_FILES 
+    src/MemoryLeakFinder_TestApp_main.cpp
+    src/TestCallStack.cpp
+    src/TestConfig.cpp
+    src/TestLockTracer.cpp
+    src/TestMemoryTracking.cpp
+    src/TestOleApi.cpp
+    src/TestReporter.cpp
+    src/TestSentinels.cpp
+    src/TestStatistics.cpp
+    src/TestTrackerLifecycle.cpp
+    src/TestValidation.cpp
+  )
+
+  set( PLATFORM_SOURCE_INSTALL "WIN64" )
+  source_group( "Platform Source Files" FILES ${PLATFORM_SOURCE_FILES} )
+
+endif ()
 
 # For ease of use make a variable that has all files for this module
 set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
 
-set( MODULE_NAME "MemoryLeakFinder_TestApp" )
-if ( WIN32 )
+
+if( WIN32 )
+  set( MODULE_NAME "MemoryLeakFinder_TestApp" )
+elseif( WIN64 )
+  set( MODULE_NAME "MemoryLeakFinder_TestApp" )
+endif()
+if( WIN32 )
   add_executable( ${MODULE_NAME} WIN32 ${ALL_FILES} )
-else()
-  add_executable( ${MODULE_NAME} ${ALL_FILES} )
+elseif( WIN64 )
+  add_executable( ${MODULE_NAME} WIN32 ${ALL_FILES} )
 endif()
 
-add_dependencies( ${MODULE_NAME} MemoryLeakFinder gucefCORE gucefMT )
-target_link_libraries( ${MODULE_NAME} PUBLIC MemoryLeakFinder gucefCORE gucefMT )
-
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS
-  "GUCEF_DRGUP_TESTAPP_BUILD_MODULE;MEMCHECK_OLEAPI;MODULE_CONSENSUS_NAME=MemoryLeakFinder_TestApp;MODULE_NAME=MemoryLeakFinder_TestApp" )
-
-include_directories( ../../common/include
-  ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api
-  ../../platform/gucefMT/include
-  ../../tools/MemoryLeakFinder/include
-  include src )
-
-if ( ANDROID32 )
-  include_directories( ../../platform/gucefCORE/include/android )
-endif( ANDROID32 )
-
-if ( ANDROID64 )
-  include_directories( ../../platform/gucefCORE/include/android )
-endif( ANDROID64 )
-
-if ( LINUX32 )
-  include_directories( ../../platform/gucefCORE/include/linux )
-endif( LINUX32 )
-
-if ( LINUX64 )
-  include_directories( ../../platform/gucefCORE/include/linux )
-endif( LINUX64 )
-
 if ( WIN32 )
-  include_directories( ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
+  add_dependencies( ${MODULE_NAME} MemoryLeakFinder gucefCORE gucefMT )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRGUP_TESTAPP_BUILD_MODULE;MEMCHECK_OLEAPI;MODULE_NAME=MemoryLeakFinder_TestApp" )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
+  add_dependencies( ${MODULE_NAME} MemoryLeakFinder gucefCORE gucefMT )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
+  set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_DRGUP_TESTAPP_BUILD_MODULE;MEMCHECK_OLEAPI;MODULE_NAME=MemoryLeakFinder_TestApp" )
+endif( WIN64 )
+
+if ( WIN32 )
+  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../tools/MemoryLeakFinder/include include )
+endif( WIN32 )
+
+if ( WIN64 )
+  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../tools/MemoryLeakFinder/include include )
 endif( WIN64 )
 
 
@@ -95,7 +123,14 @@ endif( WIN64 )
 #******** START OF AUTOGENERATED TEMPLATED ADDITION CONTENT ********
 
 
+
+
+if (WIN32)
 GUCEF_config_app( ${MODULE_NAME} )
+elseif (WIN64)
+GUCEF_config_app( ${MODULE_NAME} )
+endif()
+
 
 
 #******** END OF AUTOGENERATED TEMPLATED ADDITION CONTENT ********

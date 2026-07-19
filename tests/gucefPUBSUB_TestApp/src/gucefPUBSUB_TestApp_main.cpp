@@ -128,6 +128,11 @@
 #define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_STORAGE_INDEX_H
 #endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_STORAGE_INDEX_H ? */
 
+#ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_STORAGE_REPLAY_H
+#include "TestPubSubPlugin_STORAGE_Replay.h"
+#define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_STORAGE_REPLAY_H
+#endif /* GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_STORAGE_REPLAY_H ? */
+
 #ifndef GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_TEST_H
 #include "TestPubSubPlugin_TEST.h"
 #define GUCEF_PUBSUB_TESTAPP_TESTPUBSUBPLUGIN_TEST_H
@@ -208,6 +213,7 @@ GUCEF_OSMAIN_BEGIN
         PerformPubSubPlugin_REDISCLUSTERTests();          FLUSH_LOGS;
         PerformPubSubPlugin_STORAGETests();               FLUSH_LOGS;
         PerformPubSubPlugin_STORAGEIndexTests();          FLUSH_LOGS;
+        PerformPubSubPlugin_STORAGEReplayTests();         FLUSH_LOGS;
         PerformPubSubPlugin_TESTTests();                  FLUSH_LOGS;
         PerformPubSubPlugin_UDPTests();                   FLUSH_LOGS;
         PerformPubSubPlugin_WEBTests();                   FLUSH_LOGS;

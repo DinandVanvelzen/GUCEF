@@ -117,7 +117,7 @@ class GUCEF_LOGSERVICELIB_EXPORT_CPP CLogSvcServerFileLogger : public CILogSvcSe
     private:
                                          
     typedef CORE::CTSharedPtr< CORE::CFileAccess, MT::CMutex >      TFileAccessPtr;
-    typedef CORE::CLogManager::TLoggingFormatterPtr                 TLoggingFormatterPtr;
+    typedef CORE::TLoggingFormatterPtr                               TLoggingFormatterPtr;
     
     CLogSvcServerFileLogger( const CLogSvcServerFileLogger& src );             /** <- not implemented */
     CLogSvcServerFileLogger& operator=( const CLogSvcServerFileLogger& src );  /** <- not implemented */

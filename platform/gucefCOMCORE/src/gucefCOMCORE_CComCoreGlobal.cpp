@@ -97,6 +97,11 @@
 #define GUCEF_COMCORE_CGEOLOCATIONLOOKUPSERVICE_H
 #endif /* GUCEF_COMCORE_CGEOLOCATIONLOOKUPSERVICE_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #include "gucefCOMCORE_CComCoreGlobal.h"  /* definition of the class implemented here */
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )

@@ -117,6 +117,8 @@ class PUBSUBPLUGIN_STORAGE_PLUGIN_PRIVATE_CPP CStorageReplayTaskData : public CO
     TStringVector                   containerFilePaths;      /**< ordered list of container VFS paths to replay */
     CORE::UInt32                    currentFileIndex;        /**< index into containerFilePaths for the next cycle */
     CORE::UInt32                    startMsgIndex;           /**< first-file only: skip messages before this index */
+    CORE::UInt32                    endFileIndex;            /**< last file to replay (inclusive); ~0U = no upper limit */
+    CORE::UInt32                    endMsgIndex;             /**< last message index within endFile (inclusive); ~0U = no upper limit */
 };
 
 /*-------------------------------------------------------------------------//

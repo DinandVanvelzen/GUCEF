@@ -3653,8 +3653,13 @@ CPubSubClientSide::OnReplayMsgsReceived( CORE::UInt64                           
 
 void
 CPubSubClientSide::OnReplayComplete( CORE::UInt64        replayRequestId ,
-                                              CPubSubClientTopic* requestingTopic )
+                                     CPubSubClientTopic* requestingTopic )
 {GUCEF_TRACE;
+
+    // Always clean up the flow router's tracking entry, even if requestingTopic is NULL.
+    // RemoveCompletedReplay is a no-op if the entry was already removed (e.g. by EndOfData path).
+    if ( GUCEF_NULL != m_flowRouter )
+        m_flowRouter->RemoveCompletedReplay( this, replayRequestId );
 
     if ( GUCEF_NULL == requestingTopic )
     {

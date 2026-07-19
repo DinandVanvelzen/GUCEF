@@ -110,6 +110,7 @@ PerformPubSubClientFeaturesTests( void )
             ASSERT_FALSE( f.supportsGlobPatternTopicNames );
             ASSERT_FALSE( f.supportsPatternBasedAggregateTopic );
             ASSERT_FALSE( f.supportsMetrics );
+            ASSERT_FALSE( f.supportsReplay );
         }
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END
@@ -124,12 +125,14 @@ PerformPubSubClientFeaturesTests( void )
             f.supportsBinaryPayloads = true;
             f.supportsBookmarkingConcept = true;
             f.supportsMetrics = true;
+            f.supportsReplay = true;
 
             ASSERT_TRUE( f.supportsPublishing );
             ASSERT_TRUE( f.supportsSubscribing );
             ASSERT_TRUE( f.supportsBinaryPayloads );
             ASSERT_TRUE( f.supportsBookmarkingConcept );
             ASSERT_TRUE( f.supportsMetrics );
+            ASSERT_TRUE( f.supportsReplay );
 
             // Others should still be false
             ASSERT_FALSE( f.supportsAutoReconnect );
@@ -157,6 +160,7 @@ PerformPubSubClientFeaturesTests( void )
             original.supportsDerivingBookmarkFromMsg = true;
             original.supportsDiscoveryOfAvailableTopics = true;
             original.supportsMetrics = true;
+            original.supportsReplay = true;
 
             CORE::CDataNode cfg;
             ASSERT_TRUE( original.SaveConfig( cfg ) );
@@ -176,6 +180,7 @@ PerformPubSubClientFeaturesTests( void )
             ASSERT_TRUE( loaded.supportsDerivingBookmarkFromMsg == original.supportsDerivingBookmarkFromMsg );
             ASSERT_TRUE( loaded.supportsDiscoveryOfAvailableTopics == original.supportsDiscoveryOfAvailableTopics );
             ASSERT_TRUE( loaded.supportsMetrics == original.supportsMetrics );
+            ASSERT_TRUE( loaded.supportsReplay == original.supportsReplay );
         }
         catch ( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END

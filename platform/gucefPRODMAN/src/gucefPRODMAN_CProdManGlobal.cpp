@@ -48,6 +48,11 @@
 #define GUCEF_PRODMAN_CCODECBASEDPRODUCTINFOLISTPROVIDER_H
 #endif /* GUCEF_PRODMAN_CCODECBASEDPRODUCTINFOLISTPROVIDER_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #include "gucefPRODMAN_CProdManGlobal.h"
 
 /*-------------------------------------------------------------------------//

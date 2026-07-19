@@ -52,6 +52,11 @@
 #define GUCEF_KAITAI_CKAITAIDATADRIVENDSTORECODECFACTORY_H
 #endif /* GUCEF_KAITAI_CKAITAIDATADRIVENDSTORECODECFACTORY_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #include "gucefKAITAI_CKaitaiGlobal.h"  /* definition of the class implemented here */
 
 /*-------------------------------------------------------------------------//

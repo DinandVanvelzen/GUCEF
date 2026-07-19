@@ -147,7 +147,7 @@ class CPubSubClientTopicConfig;
  *  distinct process runs or backend topic lifecycles.
  *
  */
-class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientTopic : public CORE::CTSGNotifier                                       
+class GUCEF_PUBSUB_EXPORT_CPP CPubSubClientTopic : public CORE::CTSGNotifier
 {
     public:
 

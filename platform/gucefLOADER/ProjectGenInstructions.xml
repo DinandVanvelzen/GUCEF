@@ -31,6 +31,12 @@
         <ITEM NAME="../gucefCORE/include/gucefCORE_CString.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/gucefCORE_CAsciiString.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/gucefCORE_CAsciiString.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CTimestamp.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CTimestamp.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CUtf16String.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CUtf16String.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CUtf32String.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CUtf32String.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/gucefCORE_CUtf8String.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/gucefCORE_CUtf8String.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/gucefCORE_CIDate.cpp" TYPE="FILE" />

@@ -47,6 +47,11 @@
 #define GUCEF_IMAGE_CIMAGECODECPLUGINMANAGER_H
 #endif /* GUCEF_IMAGE_CIMAGECODECPLUGINMANAGER_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #include "gucefIMAGE_CImageGlobal.h"
 
 /*-------------------------------------------------------------------------//

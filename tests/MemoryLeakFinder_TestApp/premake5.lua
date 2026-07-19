@@ -62,17 +62,65 @@ defines( { "GUCEF_DRGUP_TESTAPP_BUILD_MODULE", "MEMCHECK_OLEAPI", "MODULE_NAME=M
 
 
 configuration( { "WIN32" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestCallStack.h",
+      "include/TestConfig.h",
+      "include/TestLockTracer.h",
+      "include/TestMemoryTracking.h",
+      "include/TestOleApi.h",
+      "include/TestReporter.h",
+      "include/TestSentinels.h",
+      "include/TestStatistics.h",
+      "include/TestTrackerLifecycle.h",
+      "include/TestValidation.h"
+    } )
+
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/MemoryLeakFinder_TestApp.cpp"
+      "src/MemoryLeakFinder_TestApp_main.cpp",
+      "src/TestCallStack.cpp",
+      "src/TestConfig.cpp",
+      "src/TestLockTracer.cpp",
+      "src/TestMemoryTracking.cpp",
+      "src/TestOleApi.cpp",
+      "src/TestReporter.cpp",
+      "src/TestSentinels.cpp",
+      "src/TestStatistics.cpp",
+      "src/TestTrackerLifecycle.cpp",
+      "src/TestValidation.cpp"
     } )
 
 
 
 configuration( { "WIN64" } )
+    vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
+    files( {
+      "include/TestCallStack.h",
+      "include/TestConfig.h",
+      "include/TestLockTracer.h",
+      "include/TestMemoryTracking.h",
+      "include/TestOleApi.h",
+      "include/TestReporter.h",
+      "include/TestSentinels.h",
+      "include/TestStatistics.h",
+      "include/TestTrackerLifecycle.h",
+      "include/TestValidation.h"
+    } )
+
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/MemoryLeakFinder_TestApp.cpp"
+      "src/MemoryLeakFinder_TestApp_main.cpp",
+      "src/TestCallStack.cpp",
+      "src/TestConfig.cpp",
+      "src/TestLockTracer.cpp",
+      "src/TestMemoryTracking.cpp",
+      "src/TestOleApi.cpp",
+      "src/TestReporter.cpp",
+      "src/TestSentinels.cpp",
+      "src/TestStatistics.cpp",
+      "src/TestTrackerLifecycle.cpp",
+      "src/TestValidation.cpp"
     } )
 
 
@@ -80,7 +128,7 @@ configuration( {} )
 includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/", "../../platform/gucefMT/include/mswin", "../../platform/gucefMT/include/mswin/", "../../tools/MemoryLeakFinder/include" } )
+includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/", "../../platform/gucefMT/include/mswin", "../../platform/gucefMT/include/mswin/", "../../tools/MemoryLeakFinder/include", "include" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/", "../../platform/gucefMT/include/mswin", "../../platform/gucefMT/include/mswin/", "../../tools/MemoryLeakFinder/include" } )
+includedirs( { "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/", "../../platform/gucefMT/include/mswin", "../../platform/gucefMT/include/mswin/", "../../tools/MemoryLeakFinder/include", "include" } )
