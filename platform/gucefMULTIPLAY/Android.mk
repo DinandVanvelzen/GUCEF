@@ -22,10 +22,46 @@ LOCAL_MODULE_FILENAME := libgucefMULTIPLAY
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
-  src/gucefMULTIPLAY_CMultiPlayControl.cpp \
+  src/gucefMULTIPLAY.cpp \
+  src/gucefMULTIPLAY_CChatMessage.cpp \
+  src/gucefMULTIPLAY_CFileHashClientIntegrity.cpp \
+  src/gucefMULTIPLAY_CGameAdvertiser.cpp \
+  src/gucefMULTIPLAY_CGameBrowser.cpp \
+  src/gucefMULTIPLAY_CGameListingEntry.cpp \
+  src/gucefMULTIPLAY_CGameListingFilter.cpp \
+  src/gucefMULTIPLAY_CGucefLobby.cpp \
+  src/gucefMULTIPLAY_CGucefLobbyAuthenticator.cpp \
+  src/gucefMULTIPLAY_CGucefLobbyProtocol.cpp \
+  src/gucefMULTIPLAY_CGucefLobbyRelayAuthenticator.cpp \
+  src/gucefMULTIPLAY_CGucefLobbyServer.cpp \
+  src/gucefMULTIPLAY_CGucefLobbyServerApp.cpp \
+  src/gucefMULTIPLAY_CGucefLobbyService.cpp \
+  src/gucefMULTIPLAY_CHttpListListingProvider.cpp \
+  src/gucefMULTIPLAY_CIChatService.cpp \
+  src/gucefMULTIPLAY_CIClientIntegrity.cpp \
+  src/gucefMULTIPLAY_CIGameListingProvider.cpp \
+  src/gucefMULTIPLAY_CIIdentityProvider.cpp \
+  src/gucefMULTIPLAY_CILobby.cpp \
+  src/gucefMULTIPLAY_CILobbyService.cpp \
+  src/gucefMULTIPLAY_CIrcChatService.cpp \
+  src/gucefMULTIPLAY_CLanListingProvider.cpp \
+  src/gucefMULTIPLAY_CLaunchDescription.cpp \
+  src/gucefMULTIPLAY_CLobbyChatService.cpp \
+  src/gucefMULTIPLAY_CLobbyCreateParams.cpp \
+  src/gucefMULTIPLAY_CLobbyRules.cpp \
+  src/gucefMULTIPLAY_CLobbyServiceListingProvider.cpp \
+  src/gucefMULTIPLAY_CLobbySettingsSchema.cpp \
+  src/gucefMULTIPLAY_CLobbyState.cpp \
+  src/gucefMULTIPLAY_CLocalIdentityProvider.cpp \
+  src/gucefMULTIPLAY_CModule.cpp \
+  src/gucefMULTIPLAY_CMultiplayGlobal.cpp \
   src/gucefMULTIPLAY_CPassiveURLServerListProvider.cpp \
+  src/gucefMULTIPLAY_CPingService.cpp \
+  src/gucefMULTIPLAY_CPlayerIdentity.cpp \
+  src/gucefMULTIPLAY_CPlayerReport.cpp \
   src/gucefMULTIPLAY_CServerList.cpp \
-  src/gucefMULTIPLAY_CServerListProvider.cpp
+  src/gucefMULTIPLAY_CServerListProvider.cpp \
+  src/gucefMULTIPLAY_CTokenBucket.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
@@ -34,7 +70,10 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
-  $(MY_MODULE_PATH)/../gucefMT/include
+  $(MY_MODULE_PATH)/../gucefDRN/include \
+  $(MY_MODULE_PATH)/../gucefMT/include \
+  $(MY_MODULE_PATH)/../gucefVFS/include \
+  $(MY_MODULE_PATH)/../gucefWEB/include
 
 LOCAL_CFLAGS := -DGUCEFMULTIPLAY_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefMULTIPLAY -DMODULE_NAME=gucefMULTIPLAY -DMODULE_SEMVER=0_1_0_0
 
@@ -43,7 +82,9 @@ LOCAL_SHARED_LIBRARIES := \
   gucefCOM \
   gucefCOMCORE \
   gucefCORE \
-  gucefMT
+  gucefDRN \
+  gucefMT \
+  gucefWEB
 
 include $(BUILD_SHARED_LIBRARY)
 

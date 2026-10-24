@@ -13,21 +13,93 @@
 
 set( HEADER_FILES 
   include/gucefMULTIPLAY.h
-  include/gucefMULTIPLAY_CMultiPlayControl.h
+  include/gucefMULTIPLAY_CChatMessage.h
+  include/gucefMULTIPLAY_CFileHashClientIntegrity.h
+  include/gucefMULTIPLAY_CGameAdvertiser.h
+  include/gucefMULTIPLAY_CGameBrowser.h
+  include/gucefMULTIPLAY_CGameListingEntry.h
+  include/gucefMULTIPLAY_CGameListingFilter.h
+  include/gucefMULTIPLAY_CGucefLobby.h
+  include/gucefMULTIPLAY_CGucefLobbyAuthenticator.h
+  include/gucefMULTIPLAY_CGucefLobbyProtocol.h
+  include/gucefMULTIPLAY_CGucefLobbyRelayAuthenticator.h
+  include/gucefMULTIPLAY_CGucefLobbyServer.h
+  include/gucefMULTIPLAY_CGucefLobbyServerApp.h
+  include/gucefMULTIPLAY_CGucefLobbyService.h
+  include/gucefMULTIPLAY_CHttpListListingProvider.h
+  include/gucefMULTIPLAY_CIChatService.h
+  include/gucefMULTIPLAY_CIClientIntegrity.h
+  include/gucefMULTIPLAY_CIGameListingProvider.h
+  include/gucefMULTIPLAY_CIIdentityProvider.h
+  include/gucefMULTIPLAY_CILobby.h
+  include/gucefMULTIPLAY_CILobbyService.h
+  include/gucefMULTIPLAY_CIrcChatService.h
+  include/gucefMULTIPLAY_CLanListingProvider.h
+  include/gucefMULTIPLAY_CLaunchDescription.h
+  include/gucefMULTIPLAY_CLobbyChatService.h
+  include/gucefMULTIPLAY_CLobbyCreateParams.h
+  include/gucefMULTIPLAY_CLobbyRules.h
+  include/gucefMULTIPLAY_CLobbyServiceListingProvider.h
+  include/gucefMULTIPLAY_CLobbySettingsSchema.h
+  include/gucefMULTIPLAY_CLobbyState.h
+  include/gucefMULTIPLAY_CLocalIdentityProvider.h
+  include/gucefMULTIPLAY_CModule.h
+  include/gucefMULTIPLAY_CMultiplayGlobal.h
   include/gucefMULTIPLAY_CPassiveURLServerListProvider.h
+  include/gucefMULTIPLAY_CPingService.h
+  include/gucefMULTIPLAY_CPlayerIdentity.h
+  include/gucefMULTIPLAY_CPlayerReport.h
   include/gucefMULTIPLAY_CServerList.h
   include/gucefMULTIPLAY_CServerListProvider.h
+  include/gucefMULTIPLAY_CTokenBucket.h
   include/gucefMULTIPLAY_DLLInit.h
+  include/gucefMULTIPLAY_DataNodeUtils.h
   include/gucefMULTIPLAY_Types.h
   include/gucefMULTIPLAY_config.h
   include/gucefMULTIPLAY_macros.h
 )
 
 set( SOURCE_FILES 
-  src/gucefMULTIPLAY_CMultiPlayControl.cpp
+  src/gucefMULTIPLAY.cpp
+  src/gucefMULTIPLAY_CChatMessage.cpp
+  src/gucefMULTIPLAY_CFileHashClientIntegrity.cpp
+  src/gucefMULTIPLAY_CGameAdvertiser.cpp
+  src/gucefMULTIPLAY_CGameBrowser.cpp
+  src/gucefMULTIPLAY_CGameListingEntry.cpp
+  src/gucefMULTIPLAY_CGameListingFilter.cpp
+  src/gucefMULTIPLAY_CGucefLobby.cpp
+  src/gucefMULTIPLAY_CGucefLobbyAuthenticator.cpp
+  src/gucefMULTIPLAY_CGucefLobbyProtocol.cpp
+  src/gucefMULTIPLAY_CGucefLobbyRelayAuthenticator.cpp
+  src/gucefMULTIPLAY_CGucefLobbyServer.cpp
+  src/gucefMULTIPLAY_CGucefLobbyServerApp.cpp
+  src/gucefMULTIPLAY_CGucefLobbyService.cpp
+  src/gucefMULTIPLAY_CHttpListListingProvider.cpp
+  src/gucefMULTIPLAY_CIChatService.cpp
+  src/gucefMULTIPLAY_CIClientIntegrity.cpp
+  src/gucefMULTIPLAY_CIGameListingProvider.cpp
+  src/gucefMULTIPLAY_CIIdentityProvider.cpp
+  src/gucefMULTIPLAY_CILobby.cpp
+  src/gucefMULTIPLAY_CILobbyService.cpp
+  src/gucefMULTIPLAY_CIrcChatService.cpp
+  src/gucefMULTIPLAY_CLanListingProvider.cpp
+  src/gucefMULTIPLAY_CLaunchDescription.cpp
+  src/gucefMULTIPLAY_CLobbyChatService.cpp
+  src/gucefMULTIPLAY_CLobbyCreateParams.cpp
+  src/gucefMULTIPLAY_CLobbyRules.cpp
+  src/gucefMULTIPLAY_CLobbyServiceListingProvider.cpp
+  src/gucefMULTIPLAY_CLobbySettingsSchema.cpp
+  src/gucefMULTIPLAY_CLobbyState.cpp
+  src/gucefMULTIPLAY_CLocalIdentityProvider.cpp
+  src/gucefMULTIPLAY_CModule.cpp
+  src/gucefMULTIPLAY_CMultiplayGlobal.cpp
   src/gucefMULTIPLAY_CPassiveURLServerListProvider.cpp
+  src/gucefMULTIPLAY_CPingService.cpp
+  src/gucefMULTIPLAY_CPlayerIdentity.cpp
+  src/gucefMULTIPLAY_CPlayerReport.cpp
   src/gucefMULTIPLAY_CServerList.cpp
   src/gucefMULTIPLAY_CServerListProvider.cpp
+  src/gucefMULTIPLAY_CTokenBucket.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
@@ -41,13 +113,13 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 
 set( MODULE_NAME "gucefMULTIPLAY" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefMT )
+add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEFMULTIPLAY_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefMULTIPLAY;MODULE_NAME=gucefMULTIPLAY;MODULE_SEMVER=0_1_0_0" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include include )
+include_directories( ../../common/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefDRN/include ../gucefMT/include ../gucefVFS/include ../gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )
@@ -66,11 +138,11 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../gucefCOMCORE/include/mswin ../gucefCORE/include/mswin ../gucefMT/include/mswin )
+  include_directories( ../gucefCOMCORE/include/mswin ../gucefCORE/include/mswin ../gucefMT/include/mswin ../gucefWEB/include/mswin )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../gucefCOMCORE/include/mswin ../gucefCORE/include/mswin ../gucefMT/include/mswin )
+  include_directories( ../gucefCOMCORE/include/mswin ../gucefCORE/include/mswin ../gucefMT/include/mswin ../gucefWEB/include/mswin )
 endif( WIN64 )
 
 

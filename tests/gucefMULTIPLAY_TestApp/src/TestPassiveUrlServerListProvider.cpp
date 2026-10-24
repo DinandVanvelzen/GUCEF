@@ -221,18 +221,18 @@ XmlCodecAvailable( void )
 
 /*-------------------------------------------------------------------------*/
 
-template< typename Condition >
+/** Pumps the pulse until the provider reported its end, or the time is up */
 static bool
-PumpUntil( Condition condition, UInt32 timeoutInMs )
+PumpUntilDone( const CServerListRecorder& recorder, UInt32 timeoutInMs )
 {
     for ( UInt32 waited=0; waited<timeoutInMs; ++waited )
     {
-        if ( condition() )
+        if ( recorder.IsDone() )
             return true;
         CORE::CCoreGlobal::Instance()->GetPulseGenerator()->ForceDirectPulse();
         MT::ThreadDelay( 1 );
     }
-    return condition();
+    return recorder.IsDone();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -283,7 +283,7 @@ PerformPassiveUrlServerListProviderTests( void )
             ASSERT_TRUE( provider.IsBusy() );
             ASSERT_FALSE( provider.Start( params ) );     // one at a time
 
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.IsDone(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntilDone( recorder, 10000 ) );
             ASSERT_TRUE( 1 == recorder.finished && 0 == recorder.failed );
             ASSERT_FALSE( provider.IsBusy() );
             ASSERT_TRUE( 2 == recorder.servers.size() );
@@ -294,6 +294,9 @@ PerformPassiveUrlServerListProviderTests( void )
                 ASSERT_TRUE( 4000 == recorder.servers[ 0 ].hostAddress.GetPortInHostByteOrder() );
                 ASSERT_TRUE( "Beta" == recorder.servers[ 1 ].name );
                 ASSERT_TRUE( 4001 == recorder.servers[ 1 ].hostAddress.GetPortInHostByteOrder() );
+                // the attributes beyond name, address and port come along as extras, per entry
+                ASSERT_TRUE( "desert" == recorder.servers[ 0 ].extra.GetValueAlways( "Map" ).AsString() );
+                ASSERT_FALSE( recorder.servers[ 1 ].extra.HasKey( "Map" ) );
             }
 
             // and it can be used again, which also works with a url that was set up front
@@ -301,7 +304,7 @@ PerformPassiveUrlServerListProviderTests( void )
             ASSERT_TRUE( provider.SetURL( listUri ) );
             ASSERT_TRUE( listUri == provider.GetURL() );
             ASSERT_TRUE( provider.Start( CORE::CValueList() ) );
-            ASSERT_TRUE( PumpUntil( [&secondRecorder]() { return secondRecorder.IsDone(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntilDone( secondRecorder, 10000 ) );
             ASSERT_TRUE( 1 == secondRecorder.finished && 2 == secondRecorder.servers.size() );
         }
         catch ( ... )
@@ -323,7 +326,7 @@ PerformPassiveUrlServerListProviderTests( void )
             params.Set( "URL", "file://" + CORE::CombinePath( workDir, "missing.xml" ) );
             #endif
             ASSERT_TRUE( provider.Start( params ) );
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.IsDone(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntilDone( recorder, 10000 ) );
             ASSERT_TRUE( 1 == recorder.failed && 0 == recorder.finished );
             ASSERT_FALSE( provider.IsBusy() );
         }
@@ -346,7 +349,7 @@ PerformPassiveUrlServerListProviderTests( void )
 
             provider.Stop();
             ASSERT_FALSE( provider.IsBusy() );
-            ASSERT_TRUE( PumpUntil( [&recorder]() { return recorder.IsDone(); }, 10000 ) );
+            ASSERT_TRUE( PumpUntilDone( recorder, 10000 ) );
             ASSERT_TRUE( 1 == recorder.aborted && 0 == recorder.failed && 0 == recorder.finished );
 
             // nothing else is reported after the abort

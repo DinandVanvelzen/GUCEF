@@ -62,8 +62,9 @@ CServerList::RegisterEvents( void )
 CServerList::CServerList( void )
     : CObservingNotifier() ,
       m_serverList()       ,
+      m_toBePingedList()   ,
       m_pingers()          ,
-      m_toBePingedList()
+      m_activePings( 0 )
 {GUCEF_TRACE;
 
     SetParallelPingMax( DEFAULT_MAX_PARALLEL_PINGS );
@@ -74,8 +75,9 @@ CServerList::CServerList( void )
 CServerList::CServerList( const CServerList& src )
     : CObservingNotifier( src )        ,
       m_serverList( src.m_serverList ) ,
+      m_toBePingedList()               ,
       m_pingers()                      ,
-      m_toBePingedList()
+      m_activePings( 0 )
 {GUCEF_TRACE;
 
     SetParallelPingMax( (UInt32) src.m_pingers.size() );
@@ -86,6 +88,62 @@ CServerList::CServerList( const CServerList& src )
 CServerList::~CServerList()
 {GUCEF_TRACE;
 
+    m_toBePingedList.clear();
+    DestroyPingers( 0 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CServerList::DestroyPingers( UInt32 firstIndex )
+{GUCEF_TRACE;
+
+    for ( UInt32 i=firstIndex; i<(UInt32) m_pingers.size(); ++i )
+    {
+        COMCORE::CPing* ping = m_pingers[ i ];
+        if ( GUCEF_NULL != ping )
+        {
+            UnsubscribeFrom( ping );
+            ping->Stop();
+            ReleasePingUserData( *ping );
+            delete ping;
+        }
+    }
+    if ( firstIndex < (UInt32) m_pingers.size() )
+        m_pingers.resize( firstIndex );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CServerList::ReleasePingUserData( COMCORE::CPing& ping )
+{GUCEF_TRACE;
+
+    TServerListEntryPtr* entry = static_cast< TServerListEntryPtr* >( ping.GetUserData() );
+    delete entry;
+    ping.SetUserData( GUCEF_NULL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CServerList::StartNextPing( COMCORE::CPing& ping )
+{GUCEF_TRACE;
+
+    while ( !m_toBePingedList.empty() )
+    {
+        TServerListEntryPtr entry = m_toBePingedList.front();
+        m_toBePingedList.erase( m_toBePingedList.begin() );
+
+        ping.SetUserData( new TServerListEntryPtr( entry ) );
+        if ( ping.Start( entry->serverInfo.hostAddress.GetFirstAddressAsString(), 1 ) )
+            return true;
+
+        // this one cannot be pinged at all
+        entry->ping = -1;
+        ReleasePingUserData( ping );
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -163,51 +221,32 @@ CServerList::OnNotify( GUCEF::CORE::CNotifier* notifier                 ,
     else
     if ( eventid == COMCORE::CPing::PingReponseEvent )
     {
-        // First we handle the response
+        // the answer of the server the pinger works on
         COMCORE::CPing& ping = *static_cast< COMCORE::CPing* >( notifier );
-        UInt32 pingTime = static_cast< COMCORE::CPing::CPingEventData* >( eventdata )->GetRoundTripTime();
-        
-        TServerListEntryPtr entry = *static_cast< TServerListEntryPtr* >( ping.GetUserData() );
-        delete static_cast< TServerListEntryPtr* >( ping.GetUserData() );
-        
-        entry->ping = pingTime;
-        
-        // Now we set the ping object back to work
-        TServerInfoList::iterator n = m_toBePingedList.begin();
-        if ( n != m_toBePingedList.end() )
-        {
-            entry = (*n);
-            m_toBePingedList.erase( n );
-            
-            ping.SetUserData( new TServerListEntryPtr( entry ) );
-            ping.Start( entry->serverInfo.hostAddress.GetFirstAddressAsString() ,
-                        1                                               );
-        }
-        
-        NotifyObservers( ServerListChangedEvent );
+        TServerListEntryPtr* entry = static_cast< TServerListEntryPtr* >( ping.GetUserData() );
+        if ( GUCEF_NULL != entry )
+            (*entry)->ping = (Int32) static_cast< COMCORE::CPing::CPingEventData* >( eventdata )->GetRoundTripTime();
     }
     else
     if ( ( eventid == COMCORE::CPing::PingTimeoutEvent ) ||
          ( eventid == COMCORE::CPing::PingFailedEvent )   )
     {
         COMCORE::CPing& ping = *static_cast< COMCORE::CPing* >( notifier );
-        TServerListEntryPtr entry = *static_cast< TServerListEntryPtr* >( ping.GetUserData() );
-        delete static_cast< TServerListEntryPtr* >( ping.GetUserData() );
-        
-        entry->ping = -1;
-        
-        // Now we set the ping object back to work
-        TServerInfoList::iterator n = m_toBePingedList.begin();
-        if ( n != m_toBePingedList.end() )
-        {
-            entry = (*n);
-            m_toBePingedList.erase( n );
-            
-            ping.SetUserData( new TServerListEntryPtr( entry ) );
-            ping.Start( entry->serverInfo.hostAddress.GetFirstAddressAsString() ,
-                        1                                               );
-        }
-                
+        TServerListEntryPtr* entry = static_cast< TServerListEntryPtr* >( ping.GetUserData() );
+        if ( GUCEF_NULL != entry )
+            (*entry)->ping = -1;
+    }
+    else
+    if ( eventid == COMCORE::CPing::PingStoppedEvent )
+    {
+        // the pinger is free again: on to the next server, if any
+        COMCORE::CPing& ping = *static_cast< COMCORE::CPing* >( notifier );
+        if ( GUCEF_NULL == ping.GetUserData() )
+            return;
+        ReleasePingUserData( ping );
+        if ( !StartNextPing( ping ) && m_activePings > 0 )
+            --m_activePings;
+
         NotifyObservers( ServerListChangedEvent );
     }
 }
@@ -217,33 +256,20 @@ CServerList::OnNotify( GUCEF::CORE::CNotifier* notifier                 ,
 void
 CServerList::RefreshPings( void )
 {GUCEF_TRACE;
-    
+
     if ( !IsBusyWithPing() )
     {
-        // Shove the entire list into our ping 'todo' list
+        // Shove the entire list into our ping 'todo' list and give every pinger a server
         m_toBePingedList = m_serverList;
-        
-        if ( m_toBePingedList.size() > 0 )
+        if ( !m_toBePingedList.empty() )
         {
-            // Set things in motion
-            TServerListEntryPtr entry;
-            TServerInfoList::iterator n = m_toBePingedList.begin();
             TPingers::iterator i = m_pingers.begin();
-            while ( i != m_pingers.end() )
+            while ( i != m_pingers.end() && !m_toBePingedList.empty() )
             {
-                entry = (*n);
-                n = m_toBePingedList.erase( n );
-                (*i)->SetUserData( new TServerListEntryPtr( entry ) );
-                (*i)->Start( entry->serverInfo.hostAddress.GetFirstAddressAsString() ,
-                             1                                               );
-                
-                if ( n == m_toBePingedList.end() )
-                {
-                    break;
-                }
+                if ( StartNextPing( *(*i) ) )
+                    ++m_activePings;
                 ++i;
             }
-            
             NotifyObservers( ServerListChangedEvent );
         }
     }
@@ -255,6 +281,7 @@ void
 CServerList::StopRefreshingPings( void )
 {GUCEF_TRACE;
 
+    // the pings that run finish, no new ones start
     m_toBePingedList.clear();
 }
 
@@ -264,7 +291,7 @@ bool
 CServerList::IsBusyWithPing( void ) const
 {GUCEF_TRACE;
 
-    return m_toBePingedList.size() > 0;
+    return m_activePings > 0 || !m_toBePingedList.empty();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -277,23 +304,17 @@ CServerList::SetParallelPingMax( const UInt32 max )
     {
         UInt32 oldMax = (UInt32) m_pingers.size();
         if ( oldMax > max )
-        {
-            for ( UInt32 i=max; i<oldMax; ++i )
-            {
-                delete m_pingers[ i ];
-            }
-        }
-        
-        m_pingers.resize( max );
-        
+            DestroyPingers( max );
+
         if ( oldMax < max )
         {
+            m_pingers.resize( max );
             for ( UInt32 i=oldMax; i<max; ++i )
             {
                 m_pingers[ i ] = new COMCORE::CPing();
+                SubscribeTo( m_pingers[ i ] );
             }
         }
-                
         return true;
     }
     return false;

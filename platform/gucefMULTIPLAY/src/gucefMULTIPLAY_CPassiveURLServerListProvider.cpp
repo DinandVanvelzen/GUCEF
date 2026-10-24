@@ -168,7 +168,6 @@ CPassiveURLServerListProvider::ParseList( const CORE::CDataNode& listRoot )
     const CORE::CDataNode* root = listRoot.Find( "ServerList" );
     if ( NULL != root )
     {
-        TServerInfo serverInfo;
         const CORE::CDataNode::TKeyValuePair* att = NULL;
         CORE::CDataNode::const_iterator i = root->ConstBegin();
         const CORE::CDataNode* entryNode = NULL;
@@ -179,6 +178,7 @@ CPassiveURLServerListProvider::ParseList( const CORE::CDataNode& listRoot )
             entryNode = (*i);
             if ( "ServerEntry" == entryNode->GetName() )
             {
+                TServerInfo serverInfo;
                 att = entryNode->GetAttribute( "Name" );
                 if ( NULL != att )
                 {
@@ -207,6 +207,7 @@ CPassiveURLServerListProvider::ParseList( const CORE::CDataNode& listRoot )
                                 }
                             }
 
+                            serverInfo.extra = valueList;
                             ServerInfoEventData eData( serverInfo );
                             NotifyObservers( ServerInfoEvent, &eData );
                         }

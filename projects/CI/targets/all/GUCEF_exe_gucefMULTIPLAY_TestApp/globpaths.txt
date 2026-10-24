@@ -1,8 +1,16 @@
 common/include/*
+dependencies/json-builder/*
+dependencies/json-parser/*
 dependencies/libparsifal/*
+dependencies/monocypher/*
 platform/gucefCOM/*
 platform/gucefCORE/*
+platform/gucefDRN/*
 platform/gucefMT/*
 platform/gucefMULTIPLAY/*
+platform/gucefVFS/*
+platform/gucefWEB/*
+plugins/CORE/codecspluginMONOCYPHER/*
+plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/dstorepluginPARSIFALXML/*
 tests/gucefMULTIPLAY_TestApp/*

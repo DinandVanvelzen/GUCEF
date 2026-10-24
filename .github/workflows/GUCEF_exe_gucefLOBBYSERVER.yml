@@ -1,0 +1,165 @@
+name: target_GUCEF_exe_gucefLOBBYSERVER
+
+on:
+  workflow_dispatch:
+    inputs:
+      archiveBuildArtifacts:
+        description: 'Archive Build Artifacts?'
+        required: false
+        default: 'false'
+      targetPlatform:
+        description: 'Target platform to build?'
+        required: false
+        default: 'all'
+
+jobs:
+
+  GUCEF_exe_gucefLOBBYSERVER-all:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_gucefLOBBYSERVER
+      TARGET_PLATFORM: all
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_gucefLOBBYSERVER
+      PRODUCT_NAME: gucefLOBBYSERVER
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build gucefLOBBYSERVER for platform all
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-all/packages/*gucefLOBBYSERVER*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-all/packages/*gucefLOBBYSERVER*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-all/packages/*gucefLOBBYSERVER*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-all/packages/*gucefLOBBYSERVER*.tar.xz
+  GUCEF_exe_gucefLOBBYSERVER-linux32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_gucefLOBBYSERVER
+      TARGET_PLATFORM: linux32
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_gucefLOBBYSERVER
+      PRODUCT_NAME: gucefLOBBYSERVER
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build gucefLOBBYSERVER for platform linux32
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-linux32/packages/*gucefLOBBYSERVER*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-linux32/packages/*gucefLOBBYSERVER*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-linux32/packages/*gucefLOBBYSERVER*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-linux32/packages/*gucefLOBBYSERVER*.tar.xz
+  GUCEF_exe_gucefLOBBYSERVER-linux64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_gucefLOBBYSERVER
+      TARGET_PLATFORM: linux64
+      TARGET_PROJECT: projects/CMake/targets/GUCEF_exe_gucefLOBBYSERVER
+      PRODUCT_NAME: gucefLOBBYSERVER
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build gucefLOBBYSERVER for platform linux64
+        run: ./projects/CI/targets/ci_build.sh
+      - name: Archive Debian build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Debian packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-linux64/packages/*gucefLOBBYSERVER*.deb
+      - name: Archive RPM build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: RPM packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-linux64/packages/*gucefLOBBYSERVER*.rpm
+      - name: Archive Tarball - bz2 compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.bz2 packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-linux64/packages/*gucefLOBBYSERVER*.tar.bz2
+      - name: Archive Tarball - Xz compressed build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: tar.xz packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-linux64/packages/*gucefLOBBYSERVER*.tar.xz
+  GUCEF_exe_gucefLOBBYSERVER-win32:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_gucefLOBBYSERVER
+      TARGET_PLATFORM: win32
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_exe_gucefLOBBYSERVER
+      PRODUCT_NAME: gucefLOBBYSERVER
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build gucefLOBBYSERVER for platform win32
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-win32/packages/*gucefLOBBYSERVER*.zip
+  GUCEF_exe_gucefLOBBYSERVER-win64:
+    runs-on: self-hosted
+    env:
+      TARGET_NAME: GUCEF_exe_gucefLOBBYSERVER
+      TARGET_PLATFORM: win64
+      TARGET_PROJECT: projects\CMake\targets\GUCEF_exe_gucefLOBBYSERVER
+      PRODUCT_NAME: gucefLOBBYSERVER
+      CI_TOOL: GITHUB-ACTIONS
+      BUILD_TOOL: CMAKE
+    steps:
+      - uses: actions/checkout@master
+      - name: Build gucefLOBBYSERVER for platform win64
+        run: .\projects\CI\targets\ci_build.ps1
+      - name: Archive ZIP build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ZIP packages
+          path: |
+            ./common/bin/GUCEF_exe_gucefLOBBYSERVER-win64/packages/*gucefLOBBYSERVER*.zip

@@ -65,6 +65,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CPLUGINCONTROL_H
+#include "CPluginControl.h"
+#define GUCEF_CORE_CPLUGINCONTROL_H
+#endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
+
 #ifndef GUCEF_COMCORE_CCOMCOREGLOBAL_H
 #include "gucefCOMCORE_CComCoreGlobal.h"
 #define GUCEF_COMCORE_CCOMCOREGLOBAL_H
@@ -77,6 +82,12 @@
 
 #ifndef GUCEF_MULTIPLAY_TESTAPP_TESTPASSIVEURLSERVERLISTPROVIDER_H
 #include "TestPassiveUrlServerListProvider.h"
+#include "TestServerList.h"
+#include "TestListings.h"
+#include "TestLobby.h"
+#include "TestIdentity.h"
+#include "TestIrcChat.h"
+#include "TestGucefLobby.h"
 #define GUCEF_MULTIPLAY_TESTAPP_TESTPASSIVEURLSERVERLISTPROVIDER_H
 #endif /* GUCEF_MULTIPLAY_TESTAPP_TESTPASSIVEURLSERVERLISTPROVIDER_H ? */
 
@@ -97,6 +108,23 @@ GUCEF_OSMAIN_BEGIN
         CORE::CCoreGlobal::Instance();
         COMCORE::CComCoreGlobal::Instance();
 
+        // DRN links are encrypted by default: x25519 and the ciphers come from codecspluginMONOCYPHER
+        {
+            #ifdef GUCEF_DEBUG_MODE
+            const char* cryptoPlugins[ 2 ] = { "$MODULEDIR$/codecspluginMONOCYPHER_d", "$MODULEDIR$/codecspluginMONOCYPHER" };
+            #else
+            const char* cryptoPlugins[ 2 ] = { "$MODULEDIR$/codecspluginMONOCYPHER", "$MODULEDIR$/codecspluginMONOCYPHER_d" };
+            #endif
+            CORE::CPluginControl& pluginControl = CORE::CCoreGlobal::Instance()->GetPluginControl();
+            if ( !pluginControl.AddPluginFromDir( cryptoPlugins[ 0 ], "test", true ) )
+                pluginControl.AddPluginFromDir( cryptoPlugins[ 1 ], "test", true );
+        }
+
+        // As a child process of the tests the test app can be a lobby server and nothing else
+        if ( argc > 2 && 0 == strcmp( argv[ 1 ], GUCEF_MULTIPLAY_TESTAPP_LOBBYSERVER_ONLY_ARG ) )
+            return RunLobbyServerOnly( argv[ 2 ] );
+        SetTestAppExecutable( argv[ 0 ] );
+
         CORE::CString logFilename = CORE::RelativePath( "$CURWORKDIR$" );
         CORE::AppendToPath( logFilename, "gucefMULTIPLAY_TestApp_Log.txt" );
         CORE::CFileAccess logFileAccess( logFilename, "w" );
@@ -112,6 +140,15 @@ GUCEF_OSMAIN_BEGIN
         GUCEF_TESTFW_SET_CALLBACK( CORE::TestFrameworkLogCallback, GUCEF_NULL );
 
         PerformPassiveUrlServerListProviderTests();
+        PerformServerListTests();
+        PerformListingTests();
+        PerformLobbyTests();
+        PerformIdentityTests();
+        PerformIrcChatTests();
+        PerformGucefLobbyTests();
+
+        // The factories of the plugins the tests loaded go away with them, before the global systems do
+        CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( "test" );
 
         CORE::CLogStreamScope::FlushLogs();
 

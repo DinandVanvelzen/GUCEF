@@ -6,6 +6,8 @@
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefCOMCORE" />
             <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
             <Dependency Name="gucefMULTIPLAY" />
         </Dependencies>
         <Linker>
@@ -13,10 +15,14 @@
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefCOMCORE" />
             <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
             <Dependency Name="gucefMULTIPLAY" />
         </Linker>
         <RuntimeDependencies>
             <RuntimeDependency Name="dstorepluginPARSIFALXML" />
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
         </RuntimeDependencies>
     </Module>
 </ModuleInfoEntry>

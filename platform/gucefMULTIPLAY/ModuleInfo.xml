@@ -18,12 +18,16 @@
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefCOMCORE" />
             <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" Scope="public" />
             <Dependency Name="gucefCORE" Scope="public" />
             <Dependency Name="gucefCOMCORE" Scope="public" />
             <Dependency Name="gucefCOM" Scope="public" />
+            <Dependency Name="gucefWEB" Scope="public" />
+            <Dependency Name="gucefDRN" Scope="public" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEFMULTIPLAY_BUILD_MODULE" />

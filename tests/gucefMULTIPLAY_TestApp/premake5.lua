@@ -35,8 +35,8 @@ configuration( {} )
 kind( "ConsoleApp" )
 
 configuration( {} )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefMULTIPLAY" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefMT", "gucefMULTIPLAY" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB" } )
 
 
 configuration( {} )
@@ -46,7 +46,17 @@ defines( { "MODULE_CONSENSUS_NAME=gucefMULTIPLAY_TestApp", "MODULE_NAME=gucefMUL
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
-  "include/TestPassiveUrlServerListProvider.h"
+  "include/TestGucefLobby.h",
+  "include/TestIdentity.h",
+  "include/TestIrcChat.h",
+  "include/TestListings.h",
+  "include/TestLobby.h",
+  "include/TestLobbyRecorder.h",
+  "include/TestLobbyService.h",
+  "include/TestMemoryChannel.h",
+  "include/TestPassiveUrlServerListProvider.h",
+  "include/TestPump.h",
+  "include/TestServerList.h"
  } )
 
 
@@ -54,13 +64,21 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/TestGucefLobby.cpp",
+  "src/TestIdentity.cpp",
+  "src/TestIrcChat.cpp",
+  "src/TestListings.cpp",
+  "src/TestLobby.cpp",
+  "src/TestLobbyService.cpp",
+  "src/TestMemoryChannel.cpp",
   "src/TestPassiveUrlServerListProvider.cpp",
+  "src/TestServerList.cpp",
   "src/gucefMULTIPLAY_TestApp.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefMULTIPLAY/include", "include" } )
+includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefMT/include", "../../platform/gucefMULTIPLAY/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )
@@ -75,7 +93,7 @@ configuration( { "LINUX64" } )
 includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin" } )

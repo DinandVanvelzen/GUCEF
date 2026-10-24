@@ -21,7 +21,15 @@ LOCAL_MODULE := gucefMULTIPLAY_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestGucefLobby.cpp \
+  src/TestIdentity.cpp \
+  src/TestIrcChat.cpp \
+  src/TestListings.cpp \
+  src/TestLobby.cpp \
+  src/TestLobbyService.cpp \
+  src/TestMemoryChannel.cpp \
   src/TestPassiveUrlServerListProvider.cpp \
+  src/TestServerList.cpp \
   src/gucefMULTIPLAY_TestApp.cpp
 
 LOCAL_C_INCLUDES := \
@@ -31,8 +39,11 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
+  $(MY_MODULE_PATH)/../../platform/gucefDRN/include \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include \
-  $(MY_MODULE_PATH)/../../platform/gucefMULTIPLAY/include
+  $(MY_MODULE_PATH)/../../platform/gucefMULTIPLAY/include \
+  $(MY_MODULE_PATH)/../../platform/gucefVFS/include \
+  $(MY_MODULE_PATH)/../../platform/gucefWEB/include
 
 LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=gucefMULTIPLAY_TestApp -DMODULE_NAME=gucefMULTIPLAY_TestApp
 
@@ -41,8 +52,10 @@ LOCAL_SHARED_LIBRARIES := \
   gucefCOM \
   gucefCOMCORE \
   gucefCORE \
+  gucefDRN \
   gucefMT \
-  gucefMULTIPLAY
+  gucefMULTIPLAY \
+  gucefWEB
 
 include $(BUILD_EXECUTABLE)
 

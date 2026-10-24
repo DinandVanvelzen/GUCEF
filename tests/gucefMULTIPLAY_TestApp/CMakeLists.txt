@@ -12,11 +12,29 @@
 # Configuration for module: gucefMULTIPLAY_TestApp
 
 set( HEADER_FILES 
+  include/TestGucefLobby.h
+  include/TestIdentity.h
+  include/TestIrcChat.h
+  include/TestListings.h
+  include/TestLobby.h
+  include/TestLobbyRecorder.h
+  include/TestLobbyService.h
+  include/TestMemoryChannel.h
   include/TestPassiveUrlServerListProvider.h
+  include/TestPump.h
+  include/TestServerList.h
 )
 
 set( SOURCE_FILES 
+  src/TestGucefLobby.cpp
+  src/TestIdentity.cpp
+  src/TestIrcChat.cpp
+  src/TestListings.cpp
+  src/TestLobby.cpp
+  src/TestLobbyService.cpp
+  src/TestMemoryChannel.cpp
   src/TestPassiveUrlServerListProvider.cpp
+  src/TestServerList.cpp
   src/gucefMULTIPLAY_TestApp.cpp
 )
 
@@ -35,11 +53,11 @@ if ( WIN32 )
 else()
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 endif()
-add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT gucefMULTIPLAY )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefMT gucefMULTIPLAY )
+add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefMULTIPLAY gucefWEB )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefMULTIPLAY gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefMULTIPLAY_TestApp;MODULE_NAME=gucefMULTIPLAY_TestApp" )
 
-include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include include )
+include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )
@@ -58,11 +76,11 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
+  include_directories( ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin ../../platform/gucefWEB/include/mswin )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin )
+  include_directories( ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include/mswin ../../platform/gucefWEB/include/mswin )
 endif( WIN64 )
 
 
