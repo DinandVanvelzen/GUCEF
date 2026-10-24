@@ -64,6 +64,11 @@
 #define GUCEF_CORE_COBSERVER_H
 #endif /* GUCEF_CORE_COBSERVER_H ? */
 
+#ifndef GUCEF_CORE_CTFACTORY_H
+#include "CTFactory.h"
+#define GUCEF_CORE_CTFACTORY_H
+#endif /* GUCEF_CORE_CTFACTORY_H ? */
+
 #include "TestDedicatedTasks.h"
 
 using namespace GUCEF;
@@ -187,6 +192,48 @@ class CPoolTaskObserver : public CORE::CObserver
             ++finished;
     }
 };
+
+/** Notes the destruction of what it observes */
+class CDestructionObserver : public CORE::CObserver
+{
+    public:
+
+    CDestructionObserver( void ) : CORE::CObserver(), destroyed( false ) {}
+
+    bool destroyed;
+
+    protected:
+
+    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventid, CORE::CICloneable* eventdata ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( CORE::CNotifier::DestructionEvent == eventid )
+            destroyed = true;
+    }
+};
+
+/** Ends after its first cycle, for tasks which are queued by type */
+class CQuickConsumer : public CORE::CTaskConsumer
+{
+    public:
+
+    static const CORE::CString TaskType;
+    static MT::CTAtomic< Int32 > liveInstances;
+
+    CQuickConsumer( void ) : CORE::CTaskConsumer() { liveInstances.FetchAdd( 1 ); }
+    virtual ~CQuickConsumer() { liveInstances.FetchAdd( -1 ); }
+
+    virtual CORE::CString GetType( void ) const GUCEF_VIRTUAL_OVERRIDE { return TaskType; }
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE { return TaskType; }
+
+    virtual bool OnTaskCycle( CORE::CTaskPtr ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual void OnTaskEnded( CORE::CTaskPtr task, bool wasForced ) GUCEF_VIRTUAL_OVERRIDE { CORE::CTaskConsumer::OnTaskEnded( task, wasForced ); }
+};
+
+const CORE::CString CQuickConsumer::TaskType = "TestDedicatedTasks::CQuickConsumer";
+MT::CTAtomic< Int32 > CQuickConsumer::liveInstances( 0 );
+
+typedef CORE::CTFactory< CORE::CTaskConsumer, CQuickConsumer, MT::CMutex > TQuickConsumerFactory;
 
 }
 
@@ -364,8 +411,6 @@ PerformDedicatedTaskTests( void )
     {
         // Once unregistered and let go of, the pool is only referenced by its delegator. Handling that delegator's
         // ThreadFinishedEvent must not release the last reference to the pool from within the pool's own event handling
-        // Note: pool and delegator keep each other alive afterwards, the same as before ThreadFinishedEvent was raised
-        // for threads which end by themselves
         CORE::ThreadPoolPtr pool = taskManager.GetOrCreateThreadPool( "DedicatedTasksUnregistered" );
         TCountingConsumerPtr consumer( GUCEF_NEW CCountingConsumer( 2 ) );
         {
@@ -381,6 +426,69 @@ PerformDedicatedTaskTests( void )
         pool.Unlink();
 
         PumpFor( 200 );                                             // delivers ThreadFinishedEvent to the pool
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "DedicatedTasks: A pool which is no longer registered is destroyed once it is let go of and its threads stopped" )
+    try
+    {
+        // the threads of a pool, and the tasks it carried out, must not keep the pool alive after its use
+        TQuickConsumerFactory quickFactory;
+        taskManager.RegisterTaskConsumerFactory( CQuickConsumer::TaskType, &quickFactory );
+
+        CDestructionObserver poolObserver;
+        {
+            CORE::ThreadPoolPtr pool = taskManager.GetOrCreateThreadPool( "DedicatedTasksLetGo" );
+            poolObserver.SubscribeTo( pool.GetPointerAlways() );
+            TCountingConsumerPtr consumer( GUCEF_NEW CCountingConsumer( 2 ) );
+            {
+                CORE::CFutureResult started = pool->StartTaskWithConsumer( consumer );
+                ASSERT_FALSE( started.HasNoFuture() );
+                ASSERT_TRUE( WaitUntil( consumer->ended, 5000 ) );
+                CORE::CFutureResult queued = pool->QueueTask( CQuickConsumer::TaskType );
+                ASSERT_TRUE( queued.HasAFuture() );
+                ASSERT_FALSE( queued.GetResult( 5000 ).IsNULL() );
+            }
+            ASSERT_TRUE( pool->RequestAllThreadsToStop( true, false, 5000 ) );
+            ASSERT_TRUE( taskManager.UnregisterThreadPool( pool ) );
+            consumer.Unlink();
+        }
+        PumpFor( 200 );
+        ASSERT_TRUE( poolObserver.destroyed );
+
+        taskManager.UnregisterTaskConsumerFactory( CQuickConsumer::TaskType );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "DedicatedTasks: The consumers a pool keeps for reuse are released when their factory is unregistered" )
+    try
+    {
+        // a consumer is destroyed through the factory that made it, so it cannot outlive that factory
+        CORE::ThreadPoolPtr pool = taskManager.GetOrCreateThreadPool( "DedicatedTasksFactoryGone" );
+        {
+            TQuickConsumerFactory quickFactory;
+            taskManager.RegisterTaskConsumerFactory( CQuickConsumer::TaskType, &quickFactory );
+            {
+                CORE::CFutureResult queued = pool->QueueTask( CQuickConsumer::TaskType );
+                ASSERT_TRUE( queued.HasAFuture() );
+                ASSERT_FALSE( queued.GetResult( 5000 ).IsNULL() );
+            }
+            PumpFor( 50 );
+            ASSERT_TRUE( 1 == CQuickConsumer::liveInstances.Load() );
+
+            taskManager.UnregisterTaskConsumerFactory( CQuickConsumer::TaskType );
+            ASSERT_TRUE( 0 == CQuickConsumer::liveInstances.Load() );
+        }
+        ASSERT_TRUE( pool->RequestAllThreadsToStop( true, false, 5000 ) );
+        ASSERT_TRUE( taskManager.UnregisterThreadPool( pool ) );
     }
     catch( ... )
     {

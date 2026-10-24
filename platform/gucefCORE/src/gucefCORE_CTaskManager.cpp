@@ -838,6 +838,16 @@ CTaskManager::UnregisterTaskConsumerFactory( const CString& taskType )
 
     m_consumerFactory.UnregisterConcreteFactory( taskType );
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "TaskManager: global consumer factory unregistered of type " + taskType );
+
+    // Consumers made by the factory which the pools keep for reuse cannot outlive it
+    ThreadPoolVector threadPools;
+    GetAllThreadPools( threadPools );
+    ThreadPoolVector::iterator i = threadPools.begin();
+    while ( i != threadPools.end() )
+    {
+        (*i)->ReleaseFreeTaskConsumers( taskType );
+        ++i;
+    }
     GlobalTaskConsumerFactoryUnregisteredEventData eData( taskType );
     NotifyObserversFromThread( GlobalTaskConsumerFactoryUnregisteredEvent, &eData );
 }

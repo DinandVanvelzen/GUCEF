@@ -94,6 +94,12 @@ class GUCEF_MT_PUBLIC_CPP CActiveObject : public virtual MT::CILockable
     bool IsActive( void ) const;
 
     /**
+     *  Flag that indicates whether the thread of the last activation has ended, which stays set until the next activation
+     *  Unlike !IsActive() this is not the case for an object which was never activated
+     */
+    bool HasThreadEnded( void ) const;
+
+    /**
      *  Flag that indicates whether the thread has been asked to gracefully deactivate
      */
     bool IsDeactivationRequested( void ) const;

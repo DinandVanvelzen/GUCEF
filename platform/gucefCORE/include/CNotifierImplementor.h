@@ -299,6 +299,12 @@ class GUCEF_HIDDEN CNotifierImplementor : public MT::CILockable
     
     void ProcessEventMailbox( void );
 
+    /**
+     *  Destroys the owner notifier which was scheduled for destruction the way a regular destruction does:
+     *  the observers get the destruction event and are unlinked, then this object deletes itself
+     */
+    void DestroyScheduledOwner( void );
+
     // Adds the bi-directional link between the notifier and observer if this is a new link
     // Returns whether the this is a new link
     bool LinkObserver( CObserver* observer          ,

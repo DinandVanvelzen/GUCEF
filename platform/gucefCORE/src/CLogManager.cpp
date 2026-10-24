@@ -867,8 +867,10 @@ CLogManager::FlushThreadStreamBuffer( CLogStreamPtr buffer )
     if ( buffer.IsNULL() )
         return 0;
 
-    // Successfully swapped - now drain the back buffer
+    // Successfully swapped - now drain the back buffer, nothing to do (nor to allocate) when nothing was logged
     CVariantStream& stream = buffer->GetStream();
+    if ( 0 == stream.GetDataSize() )
+        return 0;
     
     // Process all segments in the buffer
     stream.ResetReadPosition();

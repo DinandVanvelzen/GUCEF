@@ -125,6 +125,16 @@ CActiveObject::IsActive( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CActiveObject::HasThreadEnded( void ) const
+{GUCEF_TRACE;
+
+    CObjectScopeLock lock( this );
+    return m_threadEndedNotified && !_active;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CActiveObject::CallOnThreadStartWithTimeout( Int32 maxRetries, void* taskData )
 {GUCEF_TRACE;
 

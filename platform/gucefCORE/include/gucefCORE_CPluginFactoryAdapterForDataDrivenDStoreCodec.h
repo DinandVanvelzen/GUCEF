@@ -71,6 +71,8 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+class CPluginFactoryAdapterForDataDrivenDStoreCodec;
+
 /**
  *  Internal implementation of a link to a data driven datanode codec implemented inside a plugin
  *  Each data set that results in a data driven codec will have a codec link
@@ -95,13 +97,19 @@ class GUCEF_HIDDEN CDataDrivenDStoreCodecPluginLink : public CDataDrivenDStoreCo
     virtual CString GetCopyright( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual TVersion GetVersion( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    CDataDrivenDStoreCodecPluginLink( CDataDrivenDStoreCodecMetaPtr codecMeta ,
-                                      CDStoreCodecPlugin* codecPlugin         ,
-                                      void* ddCodecData                       );
+    CDataDrivenDStoreCodecPluginLink( CDataDrivenDStoreCodecMetaPtr codecMeta                 ,
+                                      CDStoreCodecPlugin* codecPlugin                         ,
+                                      CPluginFactoryAdapterForDataDrivenDStoreCodec* factory  ,
+                                      void* ddCodecData                                       );
     
     virtual ~CDataDrivenDStoreCodecPluginLink( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     private: 
+
+    friend class CPluginFactoryAdapterForDataDrivenDStoreCodec;
+
+    /** Has the plugin destroy the data it made for this codec, the factory calls it under its lock */
+    void DestroyPluginData( void );
 
     CDataDrivenDStoreCodecPluginLink( const CDataDrivenDStoreCodecPluginLink& src );             /**< not implemented, not supported >*/
     CDataDrivenDStoreCodecPluginLink& operator=(const CDataDrivenDStoreCodecPluginLink& src );   /**< not implemented, not supported >*/
@@ -109,6 +117,7 @@ class GUCEF_HIDDEN CDataDrivenDStoreCodecPluginLink : public CDataDrivenDStoreCo
     private:
 
     CDStoreCodecPlugin* m_codecPlugin; /**< overall plugin adapter */
+    CPluginFactoryAdapterForDataDrivenDStoreCodec* m_factory; /**< the factory that made the link, NULL once detached */
     void* m_ddCodecData;  /**< data we need to hold onto for the C API for this data driven codec */
 };
 
@@ -143,8 +152,21 @@ class GUCEF_HIDDEN CPluginFactoryAdapterForDataDrivenDStoreCodec : public CTFact
     virtual CString GetConcreteClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /**
+     *  Detaches the codecs made by this factory from the plugin: the plugin destroys their data and they do nothing
+     *  from then on. Done before the plugin is unloaded, the codecs can outlive it
+     */
+    void DetachAllLinks( void );
     
     private: 
+
+    friend class CDataDrivenDStoreCodecPluginLink;
+
+    /** A link that is destroyed: the plugin destroys its data unless the link was detached already */
+    void ReleaseLink( CDataDrivenDStoreCodecPluginLink& link );
+
+    typedef GUCEF::set< CDataDrivenDStoreCodecPluginLink* > TLinkSet;
 
     CPluginFactoryAdapterForDataDrivenDStoreCodec( const CPluginFactoryAdapterForDataDrivenDStoreCodec& src );             /**< not implemented, not supported >*/
     CPluginFactoryAdapterForDataDrivenDStoreCodec& operator=(const CPluginFactoryAdapterForDataDrivenDStoreCodec& src );   /**< not implemented, not supported >*/
@@ -152,6 +174,8 @@ class GUCEF_HIDDEN CPluginFactoryAdapterForDataDrivenDStoreCodec : public CTFact
     private:
 
     CDStoreCodecPlugin* m_codecPlugin; /**< overall plugin adapter */
+    TLinkSet m_links;                  /**< the links made by this factory which are still attached */
+    MT::CMutex m_linksLock;
 };
 
 /*-------------------------------------------------------------------------//

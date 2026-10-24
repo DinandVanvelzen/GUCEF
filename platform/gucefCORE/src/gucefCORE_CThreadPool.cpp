@@ -293,6 +293,24 @@ CThreadPool::ReleaseRetiredDelegators( void )
     {
         MT::CObjectScopeLock lock( this );
         retiredDelegators.swap( m_retiredDelegators );
+
+        // A delegator that was set up but not started has no ended thread, it stays
+        TTaskDelegatorSet* delegatorSets[ 2 ] = { &m_taskDedicatedDelegators, &m_taskGenericDelegators };
+        for ( UInt32 s=0; s<2; ++s )
+        {
+            TTaskDelegatorSet& delegators = *delegatorSets[ s ];
+            TTaskDelegatorSet::iterator i = delegators.begin();
+            while ( i != delegators.end() )
+            {
+                if ( !(*i).IsNULL() && (*i)->HasThreadEnded() )
+                {
+                    retiredDelegators.insert( (*i) );
+                    delegators.erase( i++ );
+                    continue;
+                }
+                ++i;
+            }
+        }
     }
     // the delegators are released here, outside of our lock
 }
@@ -1017,6 +1035,27 @@ CThreadPool::UnregisterTaskConsumerFactory( const CString& taskType )
     MT::CObjectScopeLock lock( this );
     m_consumerFactory.UnregisterConcreteFactory( taskType );
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "ThreadPool(" + m_poolName + "): consumer factory unregistered of type " + taskType );
+    lock.EarlyUnlock();
+
+    ReleaseFreeTaskConsumers( taskType );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CThreadPool::ReleaseFreeTaskConsumers( const CString& taskType )
+{GUCEF_TRACE;
+
+    CTaskConsumerPtrSet freeConsumers;
+    {
+        MT::CObjectScopeLock lock( this );
+        TStringToTaskConsumerSetMap::iterator i = m_freeTaskConsumers.find( taskType );
+        if ( i == m_freeTaskConsumers.end() )
+            return;
+        freeConsumers.swap( (*i).second );
+        m_freeTaskConsumers.erase( i );
+    }
+    // the consumers are released here, outside of our lock
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1063,6 +1102,7 @@ CThreadPool::GetOrCreateTaskConsumerOfType( const CString& taskConsumerType ,
         {
             taskConsumer = *freeConsumers.begin();
             freeConsumers.erase( freeConsumers.begin() );
+            taskConsumer->SetThreadPool( CreateBasicSharedPtr() );
             return true;
         }
     }
@@ -1730,6 +1770,10 @@ CThreadPool::TaskCleanup( CTaskPtr task )
     // Update our 'free lists' administration for the task consumer
     if ( !taskConsumer.IsNULL() && taskConsumer->IsOwnedByThreadPool() )
     {
+        // A consumer references its pool: kept in the free list with that reference it would keep this pool alive
+        // It gets the reference back when it is used again
+        taskConsumer->SetThreadPool( ThreadPoolPtr() );
+
         MT::CObjectScopeLock lock( this );
         m_freeTaskConsumers[ taskConsumer->GetType() ].insert( taskConsumer );
     }

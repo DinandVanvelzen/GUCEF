@@ -43,6 +43,11 @@
 #define GUCEF_CORE_CTVARIANTVECTORAPI_H
 #endif /* GUCEF_CORE_CTVARIANTVECTORAPI_H ? */
 
+#ifndef GUCEF_MT_CSCOPEMUTEX_H
+#include "gucefMT_CScopeMutex.h"
+#define GUCEF_MT_CSCOPEMUTEX_H
+#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+
 #include "gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.h"
 
 /*-------------------------------------------------------------------------//
@@ -60,11 +65,13 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CDataDrivenDStoreCodecPluginLink::CDataDrivenDStoreCodecPluginLink( CDataDrivenDStoreCodecMetaPtr codecMeta ,
-                                                                    CDStoreCodecPlugin* codecPlugin         ,
-                                                                    void* ddCodecData                       )
+CDataDrivenDStoreCodecPluginLink::CDataDrivenDStoreCodecPluginLink( CDataDrivenDStoreCodecMetaPtr codecMeta                 ,
+                                                                    CDStoreCodecPlugin* codecPlugin                         ,
+                                                                    CPluginFactoryAdapterForDataDrivenDStoreCodec* factory  ,
+                                                                    void* ddCodecData                                       )
     : CDataDrivenDStoreCodec( codecMeta )
     , m_codecPlugin( codecPlugin )
+    , m_factory( factory )
     , m_ddCodecData( ddCodecData )
 {GUCEF_TRACE;
 
@@ -75,6 +82,34 @@ CDataDrivenDStoreCodecPluginLink::CDataDrivenDStoreCodecPluginLink( CDataDrivenD
 CDataDrivenDStoreCodecPluginLink::~CDataDrivenDStoreCodecPluginLink( void )
 {GUCEF_TRACE;
 
+    if ( GUCEF_NULL != m_factory )
+        m_factory->ReleaseLink( *this );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDataDrivenDStoreCodecPluginLink::DestroyPluginData( void )
+{GUCEF_TRACE;
+
+    // The plugin made the data of this codec when it created it, it destroys that data as well
+    if ( GUCEF_NULL != m_codecPlugin && GUCEF_NULL != m_ddCodecData && GUCEF_NULL != m_codecPlugin->m_api.Destroy_Data_Driven_Codec )
+    {
+        TDataDrivenDStoreCodecMeta metaCAdapter;
+        TDataDrivenDStoreCodecMeta* meta = GUCEF_NULL;
+        CDataDrivenDStoreCodecMetaPtr codecMeta = GetDataDrivenDStoreCodecMeta();
+        if ( !codecMeta.IsNULL() && codecMeta->LinkCAdapter( &metaCAdapter ) )
+            meta = &metaCAdapter;
+
+        if ( 0 != m_codecPlugin->m_api.Destroy_Data_Driven_Codec( m_codecPlugin->m_plugdata, meta, &m_ddCodecData ) )
+        {
+            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "DataDrivenDStoreCodecPluginLink: The plugin failed to destroy the data of codec \"" <<
+                ( codecMeta.IsNULL() ? CString::Empty : codecMeta->GetDataDrivenCodecTypeName() ) << "\"" );
+        }
+    }
+    m_ddCodecData = GUCEF_NULL;
+    m_codecPlugin = GUCEF_NULL;
+    m_factory = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -221,6 +256,8 @@ CDataDrivenDStoreCodecPluginLink::GetVersion( void ) const
 CPluginFactoryAdapterForDataDrivenDStoreCodec::CPluginFactoryAdapterForDataDrivenDStoreCodec( CDStoreCodecPlugin* codecPlugin )
     : CTFactoryBaseWithParam< CDataDrivenDStoreCodec, CDataDrivenDStoreCodecMetaPtr, MT::CMutex >()
     , m_codecPlugin( codecPlugin )
+    , m_links()
+    , m_linksLock()
 {GUCEF_TRACE;
 
 }
@@ -230,7 +267,38 @@ CPluginFactoryAdapterForDataDrivenDStoreCodec::CPluginFactoryAdapterForDataDrive
 CPluginFactoryAdapterForDataDrivenDStoreCodec::~CPluginFactoryAdapterForDataDrivenDStoreCodec()
 {GUCEF_TRACE;
 
+    DetachAllLinks();
     m_codecPlugin = GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPluginFactoryAdapterForDataDrivenDStoreCodec::DetachAllLinks( void )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_linksLock );
+    TLinkSet::iterator i = m_links.begin();
+    while ( i != m_links.end() )
+    {
+        (*i)->DestroyPluginData();
+        ++i;
+    }
+    m_links.clear();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPluginFactoryAdapterForDataDrivenDStoreCodec::ReleaseLink( CDataDrivenDStoreCodecPluginLink& link )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_linksLock );
+    TLinkSet::iterator i = m_links.find( &link );
+    if ( i == m_links.end() )
+        return;     // detached already
+    m_links.erase( i );
+    link.DestroyPluginData();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -338,7 +406,12 @@ CPluginFactoryAdapterForDataDrivenDStoreCodec::Create( const CDataDrivenDStoreCo
         return TProductPtr();
     }
 
-    CDataDrivenDStoreCodecPluginLinkPtr ddCodec( GUCEF_NEW CDataDrivenDStoreCodecPluginLink( param, m_codecPlugin, dataDrivenCodecPrivateData ) );
+    CDataDrivenDStoreCodecPluginLink* link = GUCEF_NEW CDataDrivenDStoreCodecPluginLink( param, m_codecPlugin, this, dataDrivenCodecPrivateData );
+    {
+        MT::CScopeMutex lock( m_linksLock );
+        m_links.insert( link );
+    }
+    CDataDrivenDStoreCodecPluginLinkPtr ddCodec( link );
 
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "PluginFactoryAdapterForDataDrivenDStoreCodec:Create: Successfully created data driven codec \"" + 
         param->GetDataDrivenCodecTypeName() + "\" using base codec \"" + param->GetBaseCodecTypeName() + "\"");

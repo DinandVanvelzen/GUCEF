@@ -82,6 +82,50 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/**
+ *  The observers that got the event being delivered. Kept inline for up to 64 observers (a pulse generator has a few
+ *  dozen) so that delivering an event does not allocate; a set takes over beyond that.
+ */
+class CNotifiedObservers
+{
+    public:
+
+    CNotifiedObservers( void )
+        : m_count( 0 )
+        , m_overflow()
+    {
+    }
+
+    bool Contains( CObserver* observer ) const
+    {
+        for ( UInt32 i=0; i<m_count; ++i )
+            if ( m_inline[ i ] == observer )
+                return true;
+        return !m_overflow.empty() && m_overflow.find( observer ) != m_overflow.end();
+    }
+
+    void Add( CObserver* observer )
+    {
+        if ( Contains( observer ) )
+            return;
+        if ( m_count < InlineCapacity )
+            m_inline[ m_count++ ] = observer;
+        else
+            m_overflow.insert( observer );
+    }
+
+    private:
+
+    enum { InlineCapacity = 64 };
+
+    CObserver* m_inline[ InlineCapacity ];
+    UInt32 m_count;
+    GUCEF::set< CObserver*, std::less< CObserver* >, gucef_allocator< CObserver* > > m_overflow;
+};
+
+/*-------------------------------------------------------------------------*/
+
+
 CNotifierImplementor::CNotifierImplementor( CNotifier* ownerNotifier )
     : m_isBusy( false )                 ,
       m_observers()                     ,
@@ -140,6 +184,25 @@ CNotifierImplementor::~CNotifierImplementor()
     assert( !m_isBusy );
 
     UnsubscribeAllFromNotifier( false );
+
+    // Requests that were never carried out still hold their copy of a callback
+    TCmdMailVector::iterator c = m_cmdMailStack.begin();
+    while ( c != m_cmdMailStack.end() )
+    {
+        GUCEF_DELETE (*c).callback;
+        (*c).callback = GUCEF_NULL;
+        ++c;
+    }
+    m_cmdMailStack.clear();
+
+    TEventMailVector::iterator e = m_eventMailStack.begin();
+    while ( e != m_eventMailStack.end() )
+    {
+        GUCEF_DELETE (*e).eventData;
+        (*e).eventData = GUCEF_NULL;
+        ++e;
+    }
+    m_eventMailStack.clear();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -228,10 +291,10 @@ CNotifierImplementor::ForceNotifyObserversOnce( const CEvent& eventid ,
 
     m_isBusy = false;
 
-    if ( m_scheduledForDestruction )
+    // The destruction event is sent while the owner notifier is already being destroyed
+    if ( m_scheduledForDestruction && CNotifier::DestructionEvent != eventid )
     {
-        m_ownerNotifier->m_imp = GUCEF_NULL;
-        GUCEF_DELETE m_ownerNotifier;
+        DestroyScheduledOwner();
         return false;
     }
 
@@ -309,16 +372,18 @@ CNotifierImplementor::Subscribe( CObserver* observer                      ,
     {
         if ( !LinkObserver( observer, true ) )
         {
-            if ( m_scheduledForDestruction )
-            {
-                lock.EarlyUnlock();
-                m_ownerNotifier->m_imp = GUCEF_NULL;
-                GUCEF_DELETE m_ownerNotifier;
-                return false;
-            }
-
+            // While the mailbox is processed the frame which processes it takes care of a scheduled destruction
             if ( !busyProcessingMailbox )
-                ProcessMailbox();
+            {
+                if ( !m_scheduledForDestruction )
+                    ProcessMailbox();
+                if ( m_scheduledForDestruction )
+                {
+                    lock.EarlyUnlock();
+                    DestroyScheduledOwner();
+                    return false;
+                }
+            }
         }
     }
     else
@@ -435,16 +500,18 @@ CNotifierImplementor::Subscribe( CObserver* observer                            
         
         LinkObserver( observer, false );
 
-        if ( m_scheduledForDestruction )
-        {
-            lock.EarlyUnlock();
-            m_ownerNotifier->m_imp = GUCEF_NULL;
-            GUCEF_DELETE m_ownerNotifier; // <- This will GUCEF_DELETE this object as well thus self-destructing
-            return false;
-        }
-
+        // While the mailbox is processed the frame which processes it takes care of a scheduled destruction
         if ( !busyProcessingMailbox )
-            ProcessMailbox();
+        {
+            if ( !m_scheduledForDestruction )
+                ProcessMailbox();
+            if ( m_scheduledForDestruction )
+            {
+                lock.EarlyUnlock();
+                DestroyScheduledOwner();
+                return false;
+            }
+        }
     }
     else
     {
@@ -653,18 +720,20 @@ CNotifierImplementor::UnsubscribeFromAllEvents( CObserver* observer            ,
 
         m_isBusy = wasBusy;
 
-        if ( m_scheduledForDestruction )
-        {
-            NotificationUnlock();
-            m_ownerNotifier->m_imp = GUCEF_NULL;
-            GUCEF_DELETE m_ownerNotifier;
-            return;
-        }
-
         // When an observer is destroyed while we deliver an event the mail waits for the end of that delivery:
         // processing it here would change the administration under the feet of the delivery
+        // While the mailbox is processed the frame which processes it takes care of a scheduled destruction
         if ( !busyProcessingMailbox && !wasBusy )
-            ProcessMailbox();
+        {
+            if ( !m_scheduledForDestruction )
+                ProcessMailbox();
+            if ( m_scheduledForDestruction )
+            {
+                NotificationUnlock();
+                DestroyScheduledOwner();
+                return;
+            }
+        }
     }
     else
     {
@@ -731,16 +800,18 @@ CNotifierImplementor::Unsubscribe( CObserver* observer                      ,
 
         m_isBusy = wasBusy;
 
-        if ( m_scheduledForDestruction )
-        {
-            lock.EarlyUnlock();
-            m_ownerNotifier->m_imp = GUCEF_NULL;
-            GUCEF_DELETE m_ownerNotifier;
-            return;
-        }
-
+        // While the mailbox is processed the frame which processes it takes care of a scheduled destruction
         if ( !busyProcessingMailbox )
-            ProcessMailbox();
+        {
+            if ( !m_scheduledForDestruction )
+                ProcessMailbox();
+            if ( m_scheduledForDestruction )
+            {
+                lock.EarlyUnlock();
+                DestroyScheduledOwner();
+                return;
+            }
+        }
     }
     else
     {
@@ -862,7 +933,7 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
         m_isBusy = true;
 
         CObserver* oPtr = GUCEF_NULL;
-        TObserverSet notifiedObservers;
+        CNotifiedObservers notifiedObservers;
 
         // Notify observers that are subscribed to this specific event (if any)       
         TNotificationList::iterator l = m_eventobservers.find( eventid );
@@ -876,7 +947,7 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
                 bool notified = false;
 
                 // After a change of the subscriptions we start over, observers that already got the event are passed by
-                if ( notifiedObservers.find( oPtr ) != notifiedObservers.end() )
+                if ( notifiedObservers.Contains( oPtr ) )
                 {
                     ++n;
                     continue;
@@ -942,7 +1013,7 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
                     }
 
                     // Add the observer to our 'notified' list
-                    notifiedObservers.insert( oPtr );
+                    notifiedObservers.Add( oPtr );
 
                     if ( !busyProcessingMailbox )
                     {
@@ -993,7 +1064,7 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
             {
                 // Check if we have not already notified this observer using a more dedicated subscription and potentially dedicated callback
                 oPtr = (*i).first;
-                if ( notifiedObservers.find( oPtr ) == notifiedObservers.end() )
+                if ( !notifiedObservers.Contains( oPtr ) )
                 {
                     GUCEF_DEBUG_LOG_EVERYTHING( "NotifierImplementor(" + CORE::PointerToString( this ) + "): Class " + m_ownerNotifier->GetClassTypeName() + 
                         ": Dispatching event \"" + eventid.GetName() + "\" to " + oPtr->GetClassTypeName() + "(" + CORE::PointerToString( oPtr ) + ")" );
@@ -1014,7 +1085,7 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
                     }
 
                     // Add the observer to our 'notified' list
-                    notifiedObservers.insert( oPtr );
+                    notifiedObservers.Add( oPtr );
 
                     if ( !busyProcessingMailbox )
                     {
@@ -1046,17 +1117,19 @@ CNotifierImplementor::NotifyObservers( CNotifier& sender          ,
 
         m_isBusy = wasBusy;
 
-        if ( m_scheduledForDestruction )
-        {            
-            m_ownerNotifier->m_imp = GUCEF_NULL;
-            lock.EarlyUnlock();
-            GUCEF_DELETE m_ownerNotifier;
-            return false;
-        }
-
         // Now we check if any requests where received while we where busy
+        // While the mailbox is processed the frame which processes it takes care of a scheduled destruction
         if ( !busyProcessingMailbox )
-            ProcessMailbox();
+        {
+            if ( !m_scheduledForDestruction )
+                ProcessMailbox();
+            if ( m_scheduledForDestruction )
+            {
+                lock.EarlyUnlock();
+                DestroyScheduledOwner();
+                return false;
+            }
+        }
     }
     else
     {
@@ -1093,7 +1166,8 @@ CNotifierImplementor::ProcessCmdMailbox( void )
     // Now we check if any command requests where received while we where busy
     // They are carried out in the order in which they were given: an unsubscribe followed by a subscribe
     // must leave the subscription in place
-    while ( !m_cmdMailStack.empty() )
+    // Once the owner notifier is scheduled for destruction the remaining mail is no longer carried out
+    while ( !m_cmdMailStack.empty() && !m_scheduledForDestruction )
     {
         TCmdMailElement cmdMailElement( m_cmdMailStack.front() );
         m_cmdMailStack.erase( m_cmdMailStack.begin() );
@@ -1101,6 +1175,7 @@ CNotifierImplementor::ProcessCmdMailbox( void )
         if ( cmdMailElement.observerIsDestroyed )
         {
             // Ignore this mail, the observer is was destroyed after sending it
+            GUCEF_DELETE cmdMailElement.callback;
             continue;
         }
 
@@ -1152,6 +1227,9 @@ CNotifierImplementor::ProcessCmdMailbox( void )
                 GUCEF_UNREACHABLE;
             }
         }
+
+        // The mail held a copy of the callback of its own, a subscription makes another copy
+        GUCEF_DELETE cmdMailElement.callback;
     }
 }
 
@@ -1163,7 +1241,8 @@ CNotifierImplementor::ProcessEventMailbox( void )
 
     // Now we check if any notifications requests where received while we where busy
     // They are delivered in the order in which they were sent, all of them
-    while ( !m_eventMailStack.empty() )
+    // Once the owner notifier is scheduled for destruction the remaining mail is no longer delivered
+    while ( !m_eventMailStack.empty() && !m_scheduledForDestruction )
     {
         TEventMailElement entry( m_eventMailStack.front() );
         m_eventMailStack.erase( m_eventMailStack.begin() );
@@ -1204,6 +1283,18 @@ CNotifierImplementor::ProcessMailbox( void )
 
     ProcessCmdMailbox();
     ProcessEventMailbox();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNotifierImplementor::DestroyScheduledOwner( void )
+{GUCEF_TRACE;
+
+    // The owner keeps its link to this object so that its destruction runs OnDeathOfOwnerNotifier()
+    m_scheduledForDestruction = false;
+    CNotifier* ownerNotifier = m_ownerNotifier;
+    GUCEF_DELETE ownerNotifier;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1286,12 +1377,19 @@ CNotifierImplementor::NotifySpecificObserver( CNotifier& sender           ,
                 }
 
                 // Process command mail if needed
+                // While the mailbox is processed the frame which processes it takes care of a scheduled destruction
                 if ( !busyProcessingMailbox )
                 {
-                    if ( !m_cmdMailStack.empty() )
+                    if ( !m_cmdMailStack.empty() && !m_scheduledForDestruction )
                     {
                         // We have command mail
                         ProcessCmdMailbox();
+                    }
+                    if ( m_scheduledForDestruction )
+                    {
+                        lock.EarlyUnlock();
+                        DestroyScheduledOwner();
+                        return false;
                     }
                 }
 
@@ -1350,7 +1448,7 @@ CNotifierImplementor::NotifySpecificObserver( CNotifier& sender           ,
             // Process command mail if needed
             if ( !busyProcessingMailbox )
             {
-                if ( !m_cmdMailStack.empty() )
+                if ( !m_cmdMailStack.empty() && !m_scheduledForDestruction )
                 {
                     // We have command mail
                     ProcessMailbox();
@@ -1358,11 +1456,11 @@ CNotifierImplementor::NotifySpecificObserver( CNotifier& sender           ,
             }
         }
 
-        if ( m_scheduledForDestruction )
+        // While the mailbox is processed the frame which processes it takes care of a scheduled destruction
+        if ( m_scheduledForDestruction && !busyProcessingMailbox )
         {
-            m_ownerNotifier->m_imp = GUCEF_NULL;
             lock.EarlyUnlock();
-            GUCEF_DELETE m_ownerNotifier;
+            DestroyScheduledOwner();
             return false;
         }
     }

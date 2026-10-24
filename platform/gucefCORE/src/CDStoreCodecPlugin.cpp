@@ -666,6 +666,10 @@ CDStoreCodecPlugin::Unlink( void )
 
     if ( IsLoaded() )
     {
+        // The data driven codecs made through the plugin can outlive it: the plugin destroys their data while it can
+        if ( GUCEF_NULL != m_ddCodecFactory )
+            m_ddCodecFactory->DetachAllLinks();
+
         // Call the module's shutdown()
         if ( GUCEF_NULL != m_api.Shutdown )
             m_api.Shutdown( &m_plugdata );
