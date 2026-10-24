@@ -14,10 +14,12 @@
 set( HEADER_FILES 
   include/TestASync.h
   include/TestAbstractFactory.h
+  include/TestAllocationCounter.h
   include/TestAsyncUriResourceRetriever.h
   include/TestCodecPlugins.h
   include/TestConfigStore.h
   include/TestCronSchedule.h
+  include/TestCryptoCodecs.h
   include/TestCyclicDynamicBuffer.h
   include/TestDStoreStreaming.h
   include/TestDataDrivenDStoreCodecs.h
@@ -68,10 +70,12 @@ set( HEADER_FILES
 set( SOURCE_FILES 
   src/TestASync.cpp
   src/TestAbstractFactory.cpp
+  src/TestAllocationCounter.cpp
   src/TestAsyncUriResourceRetriever.cpp
   src/TestCodecPlugins.cpp
   src/TestConfigStore.cpp
   src/TestCronSchedule.cpp
+  src/TestCryptoCodecs.cpp
   src/TestCyclicDynamicBuffer.cpp
   src/TestDStoreStreaming.cpp
   src/TestDataDrivenDStoreCodecs.cpp

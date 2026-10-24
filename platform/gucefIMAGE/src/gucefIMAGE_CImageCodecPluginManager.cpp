@@ -154,7 +154,10 @@ CImageCodecPluginManager::UnregisterPlugin( CORE::TPluginPtr plugin )
             ++n;
         }        
     }
-    return true;
+
+    // The plugin is shut down and its codecs taken out of the codec registry before its module is unloaded,
+    // later the module's code is gone
+    return imageCodecPlugin.IsNULL() || imageCodecPlugin->Unlink();
 }
 
 /*-------------------------------------------------------------------------*/

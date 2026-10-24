@@ -174,8 +174,11 @@ files( {
   "include/gucefCORE_CAsyncUriRetrievalTask.h",
   "include/gucefCORE_CBackoffPolicy.h",
   "include/gucefCORE_CBasicBracketLoggingFormatter.h",
+  "include/gucefCORE_CBuiltInCodecs.h",
   "include/gucefCORE_CBusyWaitPulseGeneratorDriver.h",
   "include/gucefCORE_CCharSepLoggingFormatter.h",
+  "include/gucefCORE_CCodecInstanceBase.h",
+  "include/gucefCORE_CCodecParameterInfo.h",
   "include/gucefCORE_CCoreGlobal.h",
   "include/gucefCORE_CCronSchedule.h",
   "include/gucefCORE_CDStoreBinaryCodec.h",
@@ -192,6 +195,7 @@ files( {
   "include/gucefCORE_CDate.h",
   "include/gucefCORE_CDateTime.h",
   "include/gucefCORE_CDateTimeRange.h",
+  "include/gucefCORE_CDefaultCodecInstance.h",
   "include/gucefCORE_CDeferredTask.h",
   "include/gucefCORE_CDirectoryWatcherEvents.h",
   "include/gucefCORE_CDocumentStreamWriter.h",
@@ -220,6 +224,7 @@ files( {
   "include/gucefCORE_CGlobalDataDrivenDStoreCodecFactory.h",
   "include/gucefCORE_CGloballyConfigurable.h",
   "include/gucefCORE_CICallbackStyleParser.h",
+  "include/gucefCORE_CICodecInstance.h",
   "include/gucefCORE_CIConfigurable.h",
   "include/gucefCORE_CIConsoleLogger.h",
   "include/gucefCORE_CIDataNodeSerializable.h",
@@ -243,6 +248,7 @@ files( {
   "include/gucefCORE_CIValueToDataNodeSerializer.h",
   "include/gucefCORE_CIniDataStoreCodec.h",
   "include/gucefCORE_CIniParser.h",
+  "include/gucefCORE_CInstanceBasedCodec.h",
   "include/gucefCORE_CJsonLoggingFormatter.h",
   "include/gucefCORE_CLinkedTransferBuffer.h",
   "include/gucefCORE_CLoaderDelegatedPluginLoadLogic.h",
@@ -255,6 +261,7 @@ files( {
   "include/gucefCORE_CNativeFileSystemAccess.h",
   "include/gucefCORE_COSWindow.h",
   "include/gucefCORE_CObserverSwitch.h",
+  "include/gucefCORE_COsCryptoCodecs.h",
   "include/gucefCORE_CPlatformNativeConsoleLogger.h",
   "include/gucefCORE_CPlatformNativeConsoleWindow.h",
   "include/gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.h",
@@ -273,8 +280,10 @@ files( {
   "include/gucefCORE_CResourceMetaData.h",
   "include/gucefCORE_CRollingFileAccess.h",
   "include/gucefCORE_CSchedule.h",
+  "include/gucefCORE_CSha256.h",
   "include/gucefCORE_CSimplisticPluginLoadLogic.h",
   "include/gucefCORE_CSingleTaskDelegator.h",
+  "include/gucefCORE_CSoftwareCryptoCodecs.h",
   "include/gucefCORE_CStdDataNodeSerializableTaskData.h",
   "include/gucefCORE_CStopwatch.h",
   "include/gucefCORE_CString.h",
@@ -360,6 +369,7 @@ files( {
   "include/c_api/gucefCORE_CTVariantMapAdapter_Cpp2C.h",
   "include/c_api/gucefCORE_CTVariantVectorAdapter_Cpp2C.h",
   "include/c_api/gucefCORE_c_api.h",
+  "include/c_api/gucefCORE_c_codec_plugin_api.h",
   "include/c_api/gucefCORE_c_datadriven_dstorecodec_meta.h",
   "include/c_api/gucefCORE_c_document_parser_callbacks.h",
   "include/c_api/gucefCORE_c_dstore_plugin_api.h",
@@ -494,8 +504,11 @@ files( {
   "src/gucefCORE_CAsyncUriRetrievalTask.cpp",
   "src/gucefCORE_CBackoffPolicy.cpp",
   "src/gucefCORE_CBasicBracketLoggingFormatter.cpp",
+  "src/gucefCORE_CBuiltInCodecs.cpp",
   "src/gucefCORE_CBusyWaitPulseGeneratorDriver.cpp",
   "src/gucefCORE_CCharSepLoggingFormatter.cpp",
+  "src/gucefCORE_CCodecInstanceBase.cpp",
+  "src/gucefCORE_CCodecParameterInfo.cpp",
   "src/gucefCORE_CCoreGlobal.cpp",
   "src/gucefCORE_CCronSchedule.cpp",
   "src/gucefCORE_CDStoreBinaryCodec.cpp",
@@ -512,6 +525,7 @@ files( {
   "src/gucefCORE_CDate.cpp",
   "src/gucefCORE_CDateTime.cpp",
   "src/gucefCORE_CDateTimeRange.cpp",
+  "src/gucefCORE_CDefaultCodecInstance.cpp",
   "src/gucefCORE_CDirectoryWatcherEvents.cpp",
   "src/gucefCORE_CDocumentStreamWriter.cpp",
   "src/gucefCORE_CDynamicBufferStringStream.cpp",
@@ -537,6 +551,7 @@ files( {
   "src/gucefCORE_CGlobalConfigValueList.cpp",
   "src/gucefCORE_CGlobalDataDrivenDStoreCodecFactory.cpp",
   "src/gucefCORE_CGloballyConfigurable.cpp",
+  "src/gucefCORE_CICodecInstance.cpp",
   "src/gucefCORE_CIConfigurable.cpp",
   "src/gucefCORE_CIConsoleLogger.cpp",
   "src/gucefCORE_CIDataNodeSerializable.cpp",
@@ -560,6 +575,7 @@ files( {
   "src/gucefCORE_CIValueToDataNodeSerializer.cpp",
   "src/gucefCORE_CIniDataStoreCodec.cpp",
   "src/gucefCORE_CIniParser.cpp",
+  "src/gucefCORE_CInstanceBasedCodec.cpp",
   "src/gucefCORE_CJsonLoggingFormatter.cpp",
   "src/gucefCORE_CLinkedTransferBuffer.cpp",
   "src/gucefCORE_CLoaderDelegatedPluginLoadLogic.cpp",
@@ -572,6 +588,7 @@ files( {
   "src/gucefCORE_CNativeFileSystemAccess.cpp",
   "src/gucefCORE_COSWindow.cpp",
   "src/gucefCORE_CObserverSwitch.cpp",
+  "src/gucefCORE_COsCryptoCodecs.cpp",
   "src/gucefCORE_CPlatformNativeConsoleLogger.cpp",
   "src/gucefCORE_CPlatformNativeConsoleWindow.cpp",
   "src/gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.cpp",
@@ -590,8 +607,10 @@ files( {
   "src/gucefCORE_CResourceMetaData.cpp",
   "src/gucefCORE_CRollingFileAccess.cpp",
   "src/gucefCORE_CSchedule.cpp",
+  "src/gucefCORE_CSha256.cpp",
   "src/gucefCORE_CSimplisticPluginLoadLogic.cpp",
   "src/gucefCORE_CSingleTaskDelegator.cpp",
+  "src/gucefCORE_CSoftwareCryptoCodecs.cpp",
   "src/gucefCORE_CStdDataNodeSerializableTaskData.cpp",
   "src/gucefCORE_CStopwatch.cpp",
   "src/gucefCORE_CStringLogHelper.cpp",
@@ -697,6 +716,7 @@ configuration( { "LINUX32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/linux/CXTermConsoleLogger.cpp",
+      "src/linux/gucefCORE_CAfAlgCryptoCodecs.cpp",
       "src/linux/gucefCORE_CDesktopTerminalConsoleLogger.cpp",
       "src/linux/gucefCORE_CTerminalConsoleLogger.cpp",
       "src/linux/gucefCORE_CTextLineConsoleLogger.cpp",
@@ -722,12 +742,21 @@ configuration( { "LINUX64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/linux/CXTermConsoleLogger.cpp",
+      "src/linux/gucefCORE_CAfAlgCryptoCodecs.cpp",
       "src/linux/gucefCORE_CDesktopTerminalConsoleLogger.cpp",
       "src/linux/gucefCORE_CTerminalConsoleLogger.cpp",
       "src/linux/gucefCORE_CTextLineConsoleLogger.cpp",
       "src/linux/gucefCORE_CX11EventDispatcher.cpp",
       "src/linux/gucefCORE_CX11Window.cpp",
       "src/linux/gucefCORE_pty.c"
+    } )
+
+
+
+configuration( { "OSX" } )
+    vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
+    files( {
+      "src/osx/gucefCORE_CCommonCryptoCodecs.cpp"
     } )
 
 
@@ -750,6 +779,7 @@ configuration( { "WIN32" } )
       "src/mswin/CMSWinConsoleLogger.cpp",
       "src/mswin/CWindowMsgHook.cpp",
       "src/mswin/CWndMsgHookNotifier.cpp",
+      "src/mswin/gucefCORE_CCngCryptoCodecs.cpp",
       "src/mswin/gucefCORE_CMSWin32ConsoleWindow.cpp",
       "src/mswin/gucefCORE_CMsWin32Editbox.cpp",
       "src/mswin/gucefCORE_CMsWin32Window.cpp",
@@ -777,6 +807,7 @@ configuration( { "WIN64" } )
       "src/mswin/CMSWinConsoleLogger.cpp",
       "src/mswin/CWindowMsgHook.cpp",
       "src/mswin/CWndMsgHookNotifier.cpp",
+      "src/mswin/gucefCORE_CCngCryptoCodecs.cpp",
       "src/mswin/gucefCORE_CMSWin32ConsoleWindow.cpp",
       "src/mswin/gucefCORE_CMsWin32Editbox.cpp",
       "src/mswin/gucefCORE_CMsWin32Window.cpp",

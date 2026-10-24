@@ -145,6 +145,11 @@
 #define GUCEF_CORE_CCODECREGISTRY_H
 #endif /* GUCEF_CORE_CCODECREGISTRY_H ? */
 
+#ifndef GUCEF_CORE_CBUILTINCODECS_H
+#include "gucefCORE_CBuiltInCodecs.h"
+#define GUCEF_CORE_CBUILTINCODECS_H
+#endif /* GUCEF_CORE_CBUILTINCODECS_H ? */
+
 #ifndef GUCEF_CORE_CFUNCTIONREGISTRY_H
 #include "gucefCORE_CFunctionRegistry.h"
 #define GUCEF_CORE_CFUNCTIONREGISTRY_H
@@ -398,6 +403,12 @@ CCoreGlobal::Initialize( void )
     m_dstoreCodecRegistry->Register( "ini", CDStoreCodecRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CIniDataStoreCodec() ) );
     m_dstoreCodecRegistry->Register( "dnc", CDStoreCodecRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CDataStoreBinaryCodec() ) );
 
+    /*
+     *      The codecs of gucefCORE itself: portable software and, unless configured off, the crypto of the OS
+     */
+    m_builtInCodecs = GUCEF_NEW CBuiltInCodecs( *m_codecRegistry );
+    m_builtInCodecs->RegisterCodecs();
+
     GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "gucefCORE Global systems initialized" );
     m_pluginControl->ListModuleForLinkBack( "gucefCORE" );
 }
@@ -421,6 +432,7 @@ CCoreGlobal::CCoreGlobal( void )
     , m_stdCodecPluginManager( GUCEF_NULL )      
     , m_configStore( GUCEF_NULL )                
     , m_codecRegistry( GUCEF_NULL )
+    , m_builtInCodecs( GUCEF_NULL )
     , m_functionRegistry( GUCEF_NULL )
     , m_uriResourceAccessorFactory( GUCEF_NULL )
 {GUCEF_TRACE;
@@ -441,6 +453,7 @@ CCoreGlobal::~CCoreGlobal()
     m_taskManager->UnregisterTaskConsumerFactory( CAsyncFileSystemAccessOperation::TaskType );
    
     m_uriResourceAccessorFactory->UnregisterAllConcreteFactories();
+    m_builtInCodecs->UnregisterCodecs();
     m_codecRegistry->UnregisterAll();
     m_dstoreCodecRegistry->UnregisterAll();
     m_dataDrivenDStoreCodecFactory->UnregisterAllConcreteFactories();
@@ -480,6 +493,8 @@ CCoreGlobal::~CCoreGlobal()
     m_pluginControl = GUCEF_NULL;
     GUCEF_DELETE m_sysConsole;
     m_sysConsole = GUCEF_NULL;
+    GUCEF_DELETE m_builtInCodecs;
+    m_builtInCodecs = GUCEF_NULL;
     GUCEF_DELETE m_notificationIdRegistry;
     m_notificationIdRegistry = GUCEF_NULL;
     GUCEF_DELETE m_configStore;
@@ -662,6 +677,15 @@ CCoreGlobal::GetExclusiveActivationManager( void )
 {GUCEF_TRACE;
 
     return *m_exclusiveActivationManager;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CBuiltInCodecs&
+CCoreGlobal::GetBuiltInCodecs( void )
+{GUCEF_TRACE;
+
+    return *m_builtInCodecs;
 }
 
 /*-------------------------------------------------------------------------*/

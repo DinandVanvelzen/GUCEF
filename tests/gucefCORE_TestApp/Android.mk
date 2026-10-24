@@ -23,10 +23,12 @@ LOCAL_MODULE := gucefCORE_TestApp
 LOCAL_SRC_FILES := \
   src/TestASync.cpp \
   src/TestAbstractFactory.cpp \
+  src/TestAllocationCounter.cpp \
   src/TestAsyncUriResourceRetriever.cpp \
   src/TestCodecPlugins.cpp \
   src/TestConfigStore.cpp \
   src/TestCronSchedule.cpp \
+  src/TestCryptoCodecs.cpp \
   src/TestCyclicDynamicBuffer.cpp \
   src/TestDStoreStreaming.cpp \
   src/TestDataDrivenDStoreCodecs.cpp \

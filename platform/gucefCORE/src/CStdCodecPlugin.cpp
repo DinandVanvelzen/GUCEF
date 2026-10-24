@@ -24,17 +24,33 @@
 //-------------------------------------------------------------------------*/
 
 #include <string.h>
+#include <stddef.h>
 #include <assert.h>
-
-#ifndef GUCEF_CORE_CODECPLUGINLINK_H
-#include "CodecPluginLink.h"
-#define GUCEF_CORE_CODECPLUGINLINK_H
-#endif /* GUCEF_CORE_CODECPLUGINLINK_H ? */
 
 #ifndef GUCEF_CORE_DVOSWRAP_H
 #include "DVOSWRAP.h"
 #define GUCEF_CORE_DVOSWRAP_H
 #endif /* GUCEF_CORE_DVOSWRAP_H ? */
+
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_CORE_CVALUELIST_H
+#include "CValueList.h"
+#define GUCEF_CORE_CVALUELIST_H
+#endif /* GUCEF_CORE_CVALUELIST_H ? */
+
+#ifndef GUCEF_CORE_CTVARIANTMAPADAPTER_CPP2C_H
+#include "gucefCORE_CTVariantMapAdapter_Cpp2C.h"
+#define GUCEF_CORE_CTVARIANTMAPADAPTER_CPP2C_H
+#endif /* GUCEF_CORE_CTVARIANTMAPADAPTER_CPP2C_H ? */
+
+#ifndef GUCEF_CORE_C_API_IMP_H
+#include "gucefCORE_c_api_impl.h"
+#define GUCEF_CORE_C_API_IMP_H
+#endif /* GUCEF_CORE_C_API_IMP_H ? */
 
 #ifndef GUCEF_CORE_CSTDCODECPLUGINITEM_H
 #include "CStdCodecPluginItem.h"
@@ -68,36 +84,23 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-enum
+typedef CTVariantMapAdapterCpp2C< CString, CString > TPluginParamMapAdapter;
+typedef TPluginParamMapAdapter::TLinkedMapType TPluginParamMap;
+
+/** The metadata parameters of the plugin as text, kept as long as the plugin is linked because it may keep them */
+struct CStdCodecPlugin::SPluginParams
 {
-        STDCODEC_INIT       = 0         ,
-        STDCODEC_SHUTDOWN               ,
-        STDCODEC_COPYRIGHT              ,
-        STDCODEC_VERSION                ,
-        STDCODEC_DESCRIPTION            ,
-
-        STDCODEC_CODECSETBEGIN          ,
-        STDCODEC_CODECLINK              ,
-        STDCODEC_FREECODECLINK          ,
-        STDCODEC_FREECODECITERATOR      ,
-        STDCODEC_CODECSETNEXT           ,
-
-        STDCODEC_FUNCTIONTABLESIZE
+    TPluginParamMap params;
+    TPluginParamMapAdapter adapter;
 };
 
-/*-------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      GLOBAL VARS                                                        //
+//                                                                         //
+//-------------------------------------------------------------------------*/
 
-typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TCODECPLUGFPTR_Init ) ( void** plugdata, const int argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TCODECPLUGFPTR_Shutdown ) ( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-typedef const char* ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TCODECPLUGFPTR_Copyright ) ( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-typedef TVersion ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TCODECPLUGFPTR_Version ) ( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-typedef const char* ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TCODECPLUGFPTR_Description ) ( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-
-typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TCODECPLUGFPTR_GetCodecSetBegin ) ( void* plugdata, void** iterator ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TCODECPLUGFPTR_GetCodecLink ) ( void* plugdata, void* iterator, TCodecPluginLink** codecLink ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TCODECPLUGFPTR_FreeCodecLink ) ( void* plugdata, TCodecPluginLink* codecLink ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TCODECPLUGFPTR_FreeCodecIterator ) ( void* plugdata, void* iterator ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TCODECPLUGFPTR_GetCodecSetNextItem ) ( void* plugdata, void* iterator ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+const CString CStdCodecPlugin::CodecPriorityParamName = "codecPriority";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -106,14 +109,18 @@ typedef UInt32 ( GUCEF_PLUGIN_CALLSPEC_PREFIX *TCODECPLUGFPTR_GetCodecSetNextIte
 //-------------------------------------------------------------------------*/
 
 CStdCodecPlugin::CStdCodecPlugin( void )
-    : CICodecPlugin()    ,
-      m_soHandle( NULL ) ,
-      m_pluginData()     ,
-      m_codecSet()       ,
-      m_codecList()
+    : CICodecPlugin()           ,
+      m_codecSet()              ,
+      m_codecList()             ,
+      m_soHandle( GUCEF_NULL )  ,
+      m_pluginData( GUCEF_NULL ),
+      m_metaData()              ,
+      m_pluginParams( GUCEF_NULL ),
+      m_apiVersion( 0 )
 {GUCEF_TRACE;
 
-    memset( m_fpTable, 0, STDCODEC_FUNCTIONTABLESIZE );
+    memset( &m_api, 0, sizeof( m_api ) );
+    memset( &m_coreCApi, 0, sizeof( m_coreCApi ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -122,6 +129,8 @@ CStdCodecPlugin::~CStdCodecPlugin()
 {GUCEF_TRACE;
 
     Unlink( true );
+    GUCEF_DELETE m_pluginParams;
+    m_pluginParams = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -154,69 +163,99 @@ CStdCodecPlugin::GetClassTypeName( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+UInt32
+CStdCodecPlugin::GetApiVersion( void ) const
+{GUCEF_TRACE;
+
+    return m_apiVersion;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CICodecPlugin::CCodecPtr
+CStdCodecPlugin::GetCodecPtr( const CICodec* codec ) const
+{GUCEF_TRACE;
+
+    CCodecSet::const_iterator i = m_codecSet.begin();
+    while ( i != m_codecSet.end() )
+    {
+        const CCodecFamilySet& familySet = (*i).second;
+        CCodecFamilySet::const_iterator n = familySet.begin();
+        while ( n != familySet.end() )
+        {
+            if ( (*n).second.GetPointerAlways() == codec )
+                return (*n).second;
+            ++n;
+        }
+        ++i;
+    }
+    return CCodecPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CStdCodecPlugin::GetCodecPriority( const TCodecPluginLink& codecLink ) const
+{GUCEF_TRACE;
+
+    Int32 priority = CCodecRegistry::PluginCodecPriority;
+    if ( 0 != codecLink.priorityHint )
+        priority = codecLink.priorityHint;
+
+    if ( GUCEF_NULL != m_pluginParams )
+    {
+        TPluginParamMap::const_iterator i = m_pluginParams->params.find( CodecPriorityParamName );
+        if ( i != m_pluginParams->params.end() && !(*i).second.IsNULLOrEmpty() )
+            priority = StringToInt32( (*i).second, priority );
+    }
+    return priority;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CStdCodecPlugin::LinkCodecSet( void )
 {GUCEF_TRACE;
 
-    if ( IsLoaded() )
+    if ( !IsLoaded() )
+        return;
+
+    CCodecRegistry& codecRegistry = CCoreGlobal::Instance()->GetCodecRegistry();
+    UInt32 codecCount = m_api.GetCodecCount( m_pluginData );
+    for ( UInt32 i=0; i<codecCount; ++i )
     {
-        CCodecRegistry& codecRegistry = CCoreGlobal::Instance()->GetCodecRegistry();
-        void* iterator = NULL;
-        if ( ( (TCODECPLUGFPTR_GetCodecSetBegin) m_fpTable[ STDCODEC_CODECSETBEGIN ] )( m_pluginData, &iterator ) != 0 )
+        const TCodecPluginLink* pluginLink = GUCEF_NULL;
+        if ( GUCEF_CODEC_STATUS_OK != m_api.GetCodecLink( m_pluginData, i, &pluginLink ) || GUCEF_NULL == pluginLink )
         {
-            do
-            {
-                TCodecPluginLink* codecLink = NULL;
-                if ( ( (TCODECPLUGFPTR_GetCodecLink) m_fpTable[ STDCODEC_CODECLINK ] )( m_pluginData, iterator, &codecLink ) != 0 )
-                {
-                    assert( codecLink != NULL );
-                    CCodecPtr codecItem = CCodecPtr( GUCEF_NEW CStdCodecPluginItem( m_pluginData, codecLink ) );
-                    CCodecFamilySet& familySet = m_codecSet[ codecLink->codecFamily ];
-                    familySet.insert( std::pair< CString, CCodecPtr >( codecLink->codecType, codecItem ) );
-                    CCodecFamilyList& familyList = m_codecList[ codecLink->codecFamily ];
-                    familyList.push_back( codecLink->codecType );
+            GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin:LinkCodecSet: The plugin gave no codec link for index " << i << " of " << codecCount );
+            continue;
+        }
 
-                    // Now we register the codecs from this plugin in the GUCEF codec registry
-                    // First we check if we have to add a new registry for this family
-                    CCodecRegistry::TCodecFamilyRegistryPtr familyRegistry;
-                    if ( !codecRegistry.TryLookup( codecLink->codecFamily ,
-                                                   familyRegistry         ,
-                                                   true                   ) )
-                    {
-                        familyRegistry = CCodecRegistry::TCodecFamilyRegistryTypedPtr( GUCEF_NEW CCodecRegistry::TCodecFamilyRegistry() );
-                        if ( !codecRegistry.TryRegister( codecLink->codecFamily, familyRegistry ) )
-                        {
-                            // race condition?
-                            if ( !codecRegistry.TryLookup( codecLink->codecFamily ,
-                                                           familyRegistry         ,
-                                                           true                   ) )
-                            {
-                                GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin:LinkCodecSet: Unable to register new codec family \"" + 
-                                    CString( codecLink->codecFamily ) + "\"" );
-                            }
-                        }
-                    }
+        // Only what the plugin's struct covers is read, the rest stays absent. The functions up to decode are the minimum
+        const size_t minimumLinkSize = offsetof( TCodecPluginLink, decode ) + sizeof( pluginLink->decode );
+        if ( pluginLink->structSize < minimumLinkSize || GUCEF_NULL == pluginLink->codecFamily || GUCEF_NULL == pluginLink->codecType )
+        {
+            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin:LinkCodecSet: Skipping the codec link at index " << i << ": it is incomplete (size " << pluginLink->structSize << ")" );
+            continue;
+        }
+        TCodecPluginLink codecLink;
+        memset( &codecLink, 0, sizeof( codecLink ) );
+        memcpy( &codecLink, pluginLink, pluginLink->structSize < sizeof( codecLink ) ? pluginLink->structSize : sizeof( codecLink ) );
 
-                    if ( familyRegistry )
-                    {
-                        // we now have access to a registry for this codec family
-                        // We will add this codec if there no codec already registered with such a name
-                        if ( familyRegistry->TryRegister( codecLink->codecType, codecItem ) )
-                        {
-                            GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin:LinkCodecSet: Registered new codec \"" + CString( codecLink->codecType ) + 
-                                    "\" for codec family \"" + CString( codecLink->codecFamily ) + "\"" );
-                        }
-                        else
-                        {
-                            GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin:LinkCodecSet: Unable to register new codec \"" + CString( codecLink->codecType ) + 
-                                    "\" for codec family \"" + CString( codecLink->codecFamily ) + "\"" );
-                        }
-                    }
-                }
-            }
-            while ( ( (TCODECPLUGFPTR_GetCodecSetNextItem) m_fpTable[ STDCODEC_CODECSETNEXT ] )( m_pluginData, iterator ) != 0 );
+        CString familyName( codecLink.codecFamily );
+        CString typeName( codecLink.codecType );
+        CCodecPtr codecItem = CCodecPtr( GUCEF_NEW CStdCodecPluginItem( this, m_pluginData, codecLink ) );
+        CCodecFamilySet& familySet = m_codecSet[ familyName ];
+        familySet[ typeName ] = codecItem;
+        CCodecFamilyList& familyList = m_codecList[ familyName ];
+        familyList.push_back( typeName );
 
-            ( (TCODECPLUGFPTR_FreeCodecIterator) m_fpTable[ STDCODEC_FREECODECITERATOR ] )( m_pluginData, iterator );
+        // Now we register the codec in the GUCEF codec registry, next to other providers of the same type
+        Int32 priority = GetCodecPriority( codecLink );
+        if ( !codecRegistry.RegisterCodec( familyName, typeName, codecItem, priority ) )
+        {
+            GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin:LinkCodecSet: Unable to register codec \"" << typeName <<
+                "\" for codec family \"" << familyName << "\"" );
         }
     }
 }
@@ -227,40 +266,26 @@ void
 CStdCodecPlugin::UnlinkCodecSet( void )
 {GUCEF_TRACE;
 
-    if ( IsLoaded() )
+    if ( !IsLoaded() )
+        return;
+
+    CCodecRegistry& codecRegistry = CCoreGlobal::Instance()->GetCodecRegistry();
+    CCodecSet::iterator i = m_codecSet.begin();
+    while ( i != m_codecSet.end() )
     {
-        CCodecRegistry& codecRegistry = CCoreGlobal::Instance()->GetCodecRegistry();
-        CStdCodecPluginItem* pluginItem = NULL;
-        CCodecSet::iterator i = m_codecSet.begin();
-        while ( i != m_codecSet.end() )
+        CCodecFamilySet& codecFamily = (*i).second;
+        CCodecFamilySet::iterator n = codecFamily.begin();
+        while ( n != codecFamily.end() )
         {
-            CCodecFamilySet& codecFamily = (*i).second;
-            CCodecFamilySet::iterator n = codecFamily.begin();
-            while ( n != codecFamily.end() )
-            {
-                pluginItem = static_cast< CStdCodecPluginItem* >( &( *( (*n).second ) ) );
-                TCodecPluginLink* codecLink = pluginItem->GetCodecPluginLink();
-
-                // Now we unregister the codecs from this plugin from the GUCEF codec registry
-                // First we check if family registry still exists
-                if ( codecRegistry.IsRegistered( codecLink->codecFamily ) )
-                {
-                    // we now have access to a registry for this codec family
-                    // We will remove the codec if registered
-                    CCodecRegistry::TCodecFamilyRegistryPtr familyRegistry = codecRegistry.Lookup( codecLink->codecFamily );
-                    familyRegistry->TryUnregister( codecLink->codecType );
-                }
-
-                ( (TCODECPLUGFPTR_FreeCodecLink) m_fpTable[ STDCODEC_FREECODECLINK ] )( pluginItem->GetPluginData()      ,
-                                                                                        pluginItem->GetCodecPluginLink() );
-                ++n;
-            }
-            ++i;
+            // only this provider is taken out, others of the same type stay
+            codecRegistry.UnregisterCodec( (*n).second );
+            ++n;
         }
-
-        m_codecSet.clear();
-        m_codecList.clear();
+        ++i;
     }
+
+    m_codecSet.clear();
+    m_codecList.clear();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -305,9 +330,7 @@ CStdCodecPlugin::Encode( CIOAccess& source         ,
                                             dest   );
             }
         }
-        return false;
     }
-
     return false;
 }
 
@@ -333,9 +356,7 @@ CStdCodecPlugin::Decode( CIOAccess& source         ,
                                             dest   );
             }
         }
-        return false;
     }
-
     return false;
 }
 
@@ -346,10 +367,7 @@ CStdCodecPlugin::GetDescription( void ) const
 {GUCEF_TRACE;
 
     if ( IsLoaded() )
-    {
-        return ( (TCODECPLUGFPTR_Description) m_fpTable[ STDCODEC_DESCRIPTION ] )( m_pluginData );
-    }
-
+        return m_api.Description( m_pluginData );
     return CString();
 }
 
@@ -360,10 +378,7 @@ CStdCodecPlugin::GetCopyright( void ) const
 {GUCEF_TRACE;
 
     if ( IsLoaded() )
-    {
-        return ( (TCODECPLUGFPTR_Copyright) m_fpTable[ STDCODEC_COPYRIGHT ] )( m_pluginData );
-    }
-
+        return m_api.Copyright( m_pluginData );
     return CString();
 }
 
@@ -374,9 +389,7 @@ CStdCodecPlugin::GetVersion( void ) const
 {GUCEF_TRACE;
 
     if ( IsLoaded() )
-    {
-        return ( (TCODECPLUGFPTR_Version) m_fpTable[ STDCODEC_VERSION ] )( m_pluginData );
-    }
+        return m_api.Version( m_pluginData );
 
     TVersion defaultVersion = { -1, -1, -1, -1 };
     return defaultVersion;
@@ -388,7 +401,7 @@ bool
 CStdCodecPlugin::IsLoaded( void ) const
 {GUCEF_TRACE;
 
-    return m_soHandle != NULL;
+    return m_soHandle != GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -398,73 +411,111 @@ CStdCodecPlugin::Link( void* modulePtr                   ,
                        TPluginMetaDataPtr pluginMetaData )
 {GUCEF_TRACE;
 
-    // make sure no module is already loaded
-    if ( modulePtr == NULL ) return false;
+    if ( GUCEF_NULL == modulePtr )
+        return false;
 
-    // let's see if it is a codec plugin
-    m_fpTable[ STDCODEC_DESCRIPTION ] = GetFunctionAddress( modulePtr                 ,
-                                                            "CODECPLUGIN_Description" ,
-                                                            sizeof(void*)             ).funcPtr;
-    m_fpTable[ STDCODEC_COPYRIGHT ] = GetFunctionAddress( modulePtr               ,
-                                                          "CODECPLUGIN_Copyright" ,
-                                                          sizeof(void*)           ).funcPtr;
-    m_fpTable[ STDCODEC_VERSION ] = GetFunctionAddress( modulePtr             ,
-                                                        "CODECPLUGIN_Version" ,
-                                                        sizeof(void*)         ).funcPtr;
-    m_fpTable[ STDCODEC_INIT ] = GetFunctionAddress( modulePtr                       ,
-                                                     "CODECPLUGIN_Init"              ,
-                                                     2*sizeof(void*)+sizeof(char***) ).funcPtr;
-    m_fpTable[ STDCODEC_SHUTDOWN ] = GetFunctionAddress( modulePtr              ,
-                                                         "CODECPLUGIN_Shutdown" ,
-                                                         sizeof(void*)          ).funcPtr;
-    m_fpTable[ STDCODEC_CODECSETBEGIN ] = GetFunctionAddress( modulePtr                      ,
-                                                              "CODECPLUGIN_GetCodecSetBegin" ,
-                                                              sizeof(void*)+sizeof(void**)   ).funcPtr;
-    m_fpTable[ STDCODEC_CODECLINK ] = GetFunctionAddress( modulePtr                                  ,
-                                                          "CODECPLUGIN_GetCodecLink"                 ,
-                                                          2*sizeof(void*)+sizeof(TCodecPluginLink**) ).funcPtr;
-    m_fpTable[ STDCODEC_FREECODECLINK ] = GetFunctionAddress( modulePtr                               ,
-                                                              "CODECPLUGIN_FreeCodecLink"             ,
-                                                              sizeof(void*)+sizeof(TCodecPluginLink*) ).funcPtr;
-    m_fpTable[ STDCODEC_FREECODECITERATOR ] = GetFunctionAddress( modulePtr                       ,
-                                                                  "CODECPLUGIN_FreeCodecIterator" ,
-                                                                  2*sizeof(void*)                 ).funcPtr;
-    m_fpTable[ STDCODEC_CODECSETNEXT ] = GetFunctionAddress( modulePtr                         ,
-                                                             "CODECPLUGIN_GetCodecSetNextItem" ,
-                                                             2*sizeof(void*)                   ).funcPtr;
+    CString moduleName = pluginMetaData.IsNULL() ? PointerToString( modulePtr ) : pluginMetaData->GetModuleFilename();
 
-    // Verify that we have obtained a function address for each of the functions
-    if ( ( !m_fpTable[ STDCODEC_INIT ] )              ||
-         ( !m_fpTable[ STDCODEC_SHUTDOWN ] )          ||
-         ( !m_fpTable[ STDCODEC_DESCRIPTION ] )       ||
-         ( !m_fpTable[ STDCODEC_COPYRIGHT ] )         ||
-         ( !m_fpTable[ STDCODEC_VERSION ] )           ||
-         ( !m_fpTable[ STDCODEC_CODECSETBEGIN ] )     ||
-         ( !m_fpTable[ STDCODEC_CODECLINK ] )         ||
-         ( !m_fpTable[ STDCODEC_FREECODECLINK ] )     ||
-         ( !m_fpTable[ STDCODEC_FREECODECITERATOR ] ) ||
-         ( !m_fpTable[ STDCODEC_CODECSETNEXT ] )       )
+    // The version first: nothing else of a plugin for another interface is called, its functions may not match
+    TGucefCoreCodecPluginApi api;
+    memset( &api, 0, sizeof( api ) );
+    api.GetApiVersion = (TCODECPLUGFPTR_GetApiVersion) GetFunctionAddress( modulePtr, "CODECPLUGIN_GetApiVersion", 0 ).funcPtr;
+    if ( GUCEF_NULL == api.GetApiVersion )
     {
-            m_soHandle = NULL;
-            memset( m_fpTable, 0, STDCODEC_FUNCTIONTABLESIZE );
-            return false;
+        // Without any of the codec exports it is simply another kind of module, which is tried as one
+        if ( GUCEF_NULL != GetFunctionAddress( modulePtr, "CODECPLUGIN_Init", 3*sizeof(void*) ).funcPtr )
+        {
+            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin: Refusing module \"" << moduleName << "\": it has no CODECPLUGIN_GetApiVersion, so it was built for a codec plugin interface older than " <<
+                GUCEF_CODECPLUGIN_API_VERSION_MAJOR << "." << GUCEF_CODECPLUGIN_API_VERSION_MINOR << " which this host has" );
+        }
+        return false;
     }
 
+    api.Init = (TCODECPLUGFPTR_Init) GetFunctionAddress( modulePtr, "CODECPLUGIN_Init", 3*sizeof(void*) ).funcPtr;
+    api.Shutdown = (TCODECPLUGFPTR_Shutdown) GetFunctionAddress( modulePtr, "CODECPLUGIN_Shutdown", sizeof(void*) ).funcPtr;
+    api.Description = (TCODECPLUGFPTR_Description) GetFunctionAddress( modulePtr, "CODECPLUGIN_Description", sizeof(void*) ).funcPtr;
+    api.Copyright = (TCODECPLUGFPTR_Copyright) GetFunctionAddress( modulePtr, "CODECPLUGIN_Copyright", sizeof(void*) ).funcPtr;
+    api.Version = (TCODECPLUGFPTR_Version) GetFunctionAddress( modulePtr, "CODECPLUGIN_Version", sizeof(void*) ).funcPtr;
+    api.GetCodecCount = (TCODECPLUGFPTR_GetCodecCount) GetFunctionAddress( modulePtr, "CODECPLUGIN_GetCodecCount", sizeof(void*) ).funcPtr;
+    api.GetCodecLink = (TCODECPLUGFPTR_GetCodecLink) GetFunctionAddress( modulePtr, "CODECPLUGIN_GetCodecLink", 2*sizeof(void*)+sizeof(UInt32) ).funcPtr;
+
+    return LinkApi( modulePtr, api, pluginMetaData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CStdCodecPlugin::LinkApi( void* modulePtr                       ,
+                          const TGucefCoreCodecPluginApi& api   ,
+                          TPluginMetaDataPtr pluginMetaData     )
+{GUCEF_TRACE;
+
+    // Unloading->Loading must be done explicitly
+    if ( IsLoaded() || GUCEF_NULL == modulePtr )
+        return false;
+
+    CString moduleName = pluginMetaData.IsNULL() ? PointerToString( modulePtr ) : pluginMetaData->GetModuleFilename();
+    if ( GUCEF_NULL == api.GetApiVersion )
+    {
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin: Refusing module \"" << moduleName << "\": it does not tell its codec plugin interface version" );
+        return false;
+    }
+
+    UInt32 apiVersion = api.GetApiVersion();
+    if ( GUCEF_CODECPLUGIN_API_VERSION_MAJOR != GUCEF_CODECPLUGIN_API_VERSION_GET_MAJOR( apiVersion ) )
+    {
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin: Refusing module \"" << moduleName << "\": it was built for codec plugin interface " <<
+            GUCEF_CODECPLUGIN_API_VERSION_GET_MAJOR( apiVersion ) << "." << GUCEF_CODECPLUGIN_API_VERSION_GET_MINOR( apiVersion ) <<
+            ", this host has " << GUCEF_CODECPLUGIN_API_VERSION_MAJOR << "." << GUCEF_CODECPLUGIN_API_VERSION_MINOR );
+        return false;
+    }
+
+    if ( GUCEF_NULL == api.Init || GUCEF_NULL == api.Shutdown || GUCEF_NULL == api.Description || GUCEF_NULL == api.Copyright ||
+         GUCEF_NULL == api.Version || GUCEF_NULL == api.GetCodecCount || GUCEF_NULL == api.GetCodecLink )
+    {
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin: Refusing module \"" << moduleName << "\": it lacks one or more of the required codec plugin exports" );
+        return false;
+    }
+
+    // The metadata parameters reach the plugin as text, they stay valid until Shutdown
+    GUCEF_DELETE m_pluginParams;
+    m_pluginParams = GUCEF_NEW SPluginParams();
+    if ( !pluginMetaData.IsNULL() )
+    {
+        CValueList params;
+        pluginMetaData->GetParams( params );
+        UInt32 keyCount = params.GetKeyCount();
+        for ( UInt32 i=0; i<keyCount; ++i )
+            m_pluginParams->params[ params.GetKey( i ).AsString() ] = params.GetValue( i ).AsString();
+    }
+    m_pluginParams->adapter.SetMapAccessPtr( (const TPluginParamMap*) &m_pluginParams->params );
+    GUCEF_CORE_LinkCApi( &m_coreCApi );
+
+    m_api = api;
+    m_apiVersion = apiVersion;
     m_soHandle = modulePtr;
 
     // We will now try to initialize the module
-    if ( ( (TCODECPLUGFPTR_Init) m_fpTable[ STDCODEC_INIT ] )( &m_pluginData, 0, NULL ) == 0 )
+    TCodecStatus status = m_api.Init( &m_pluginData, &m_coreCApi, m_pluginParams->adapter.GetCStyleAccess() );
+    if ( GUCEF_CODEC_STATUS_OK != status )
     {
-        m_soHandle = NULL;
-        memset( m_fpTable, 0, STDCODEC_FUNCTIONTABLESIZE );
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin: Init of module \"" << moduleName << "\" failed with status " << (Int32) status );
+        m_soHandle = GUCEF_NULL;
+        m_pluginData = GUCEF_NULL;
+        m_apiVersion = 0;
+        memset( &m_api, 0, sizeof( m_api ) );
         return false;
     }
 
     // We have loaded & linked our plugin module
-    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin: Successfully loaded module and invoked Init() using module: " + PointerToString( modulePtr ) );
+    GUCEF_SYSTEM_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin: Successfully loaded module \"" << moduleName << "\" (codec plugin interface " <<
+        GUCEF_CODECPLUGIN_API_VERSION_GET_MAJOR( apiVersion ) << "." << GUCEF_CODECPLUGIN_API_VERSION_GET_MINOR( apiVersion ) << ") and invoked Init()" );
 
     // Copy the given metadata and update it with info from the actual module
-    m_metaData = TPluginMetaDataStoragePtr( GUCEF_NEW CPluginMetaData( *pluginMetaData ) );
+    if ( !pluginMetaData.IsNULL() )
+        m_metaData = TPluginMetaDataStoragePtr( GUCEF_NEW CPluginMetaData( *pluginMetaData ) );
+    else
+        m_metaData = TPluginMetaDataStoragePtr( GUCEF_NEW CPluginMetaData() );
     m_metaData->SetDescription( GetDescription() );
     m_metaData->SetCopyright( GetCopyright() );
     m_metaData->SetVersion( GetVersion() );
@@ -492,11 +543,13 @@ CStdCodecPlugin::Unlink( bool forceEvenIfInUse )
 {GUCEF_TRACE;
 
     // Check if we have something to unload
-    if ( m_soHandle == NULL ) return true;
+    if ( m_soHandle == GUCEF_NULL ) return true;
 
     if ( !forceEvenIfInUse )
     {
-        // Check for outstanding references to our codec's
+        // Check for outstanding references to our codec's: anything beyond our own and the registry's means
+        // the code of the module is still in use (a codec or an instance of it)
+        CCodecRegistry& codecRegistry = CCoreGlobal::Instance()->GetCodecRegistry();
         CCodecSet::iterator i = m_codecSet.begin();
         while ( i != m_codecSet.end() )
         {
@@ -504,17 +557,11 @@ CStdCodecPlugin::Unlink( bool forceEvenIfInUse )
             CCodecFamilySet::iterator n = codecFamily.begin();
             while ( n != codecFamily.end() )
             {
-                // Why a reference check on 2: 
-                //      We know this class has a reference to the codec linking it into the plugin, thats 1
-                //      When codecs are successfully loaded they are registered in the global codec registry for their
-                //      respective families, thats 2.
-                //      Anyone using a codec would need to have an additional reference outstanding thus > 2
-                //      When unloading a plugin you want to always make sure nobody is using the functionality/code
-                //      from that plugin because any reference to it would become invalid leading to crashes.
-                if ( (*n).second.GetReferenceCount() > 2 )
+                UInt32 heldByRegistry = codecRegistry.GetHeldReferenceCount( (*n).second.GetPointerAlways() );
+                if ( (*n).second.GetReferenceCount() > 1 + heldByRegistry )
                 {
                     // Cannot unload the module if someone is still using one of it's codec's
-                    GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin: Unable to unlink codec module since there are outstanding references to the codecs from module: " + PointerToString( m_soHandle ) );
+                    GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin: Unable to unlink codec module since there are outstanding references to the codecs from module: " << PointerToString( m_soHandle ) );
                     return false;
                 }
                 ++n;
@@ -527,14 +574,20 @@ CStdCodecPlugin::Unlink( bool forceEvenIfInUse )
     UnlinkCodecSet();
 
     // We will now try to shut the module down
-    if ( ( (TCODECPLUGFPTR_Shutdown) m_fpTable[ STDCODEC_SHUTDOWN ] )( m_pluginData ) == 0 )
+    TCodecStatus status = m_api.Shutdown( m_pluginData );
+    if ( GUCEF_CODEC_STATUS_OK != status )
     {
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "StdCodecPlugin: Shutdown of module " << PointerToString( m_soHandle ) << " failed with status " << (Int32) status );
         return false;
     }
 
     // Module shutdown complete + no outstanding references,.. unload module
-    memset( m_fpTable, 0, STDCODEC_FUNCTIONTABLESIZE );
-    m_soHandle = NULL;
+    memset( &m_api, 0, sizeof( m_api ) );
+    m_soHandle = GUCEF_NULL;
+    m_pluginData = GUCEF_NULL;
+    m_apiVersion = 0;
+    GUCEF_DELETE m_pluginParams;
+    m_pluginParams = GUCEF_NULL;
     return true;
 }
 

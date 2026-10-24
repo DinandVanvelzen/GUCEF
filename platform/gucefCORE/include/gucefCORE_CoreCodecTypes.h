@@ -62,9 +62,34 @@ class GUCEF_CORE_PUBLIC_CPP CoreCodecTypes
     public:
     
     static const CString HashingCodec;
-    static const CString CryptographicHashCodec;
+    static const CString CryptographicHashCodec;       /**< "sha256", "sha512", ... parameter "output" = "hex" (default) or "raw" */
     static const CString ChecksumCodec;
-    static const CString CompressionCodec;
+    static const CString CompressionCodec;             /**< "zlib", "deflate", "gzip", ... parameter "level" */
+
+    /**
+     *  Authenticated encryption (AEAD): "aes-256-gcm", "chacha20-poly1305", "xchacha20-poly1305".
+     *  Parameter "key"; per call (or as parameters for one shot use) "nonce" and "aad".
+     *  Encode gives the ciphertext followed by the tag, Decode checks the tag and gives the plaintext.
+     */
+    static const CString EncryptionCodec;
+
+    /** Message authentication: "hmac-sha256". Parameter "key", Encode gives the MAC */
+    static const CString MacCodec;
+
+    /** Key derivation: "hkdf-sha256". Parameters "salt", "info", "length"; Encode turns the input secret into the derived key */
+    static const CString KeyDerivationCodec;
+
+    /**
+     *  Key agreement: "x25519". Encode: own private key -> own public key.
+     *  Decode with parameter "privateKey": the peer's public key -> the shared secret
+     */
+    static const CString KeyAgreementCodec;
+
+    /**
+     *  Signatures: "ed25519". Encode with parameter "privateKey": message -> signature.
+     *  Decode with parameters "publicKey" and "signature": verifies the message, no output
+     */
+    static const CString SignatureCodec;
 };
 
 /*-------------------------------------------------------------------------//

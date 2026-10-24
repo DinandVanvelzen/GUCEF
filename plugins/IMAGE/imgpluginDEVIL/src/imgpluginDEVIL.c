@@ -294,19 +294,112 @@ InitCodecList( void )
 
 /*---------------------------------------------------------------------------*/
 
+static UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX ImageStreamEncode( void* plugdata, void* codecData, const char* familyType, const char* codecType, TIOAccess* input, TIOAccess* output ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+static UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX ImageStreamDecode( void* pluginData, void* codecData, const char* familyType, const char* codecType, TIOAccess* input, TIOAccess* output ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+/*---------------------------------------------------------------------------*/
+
+/* The codec link API: codecData is the type name, the image codec API below is called with it */
+static TCodecStatus GUCEF_PLUGIN_CALLSPEC_PREFIX
+ImageCodecLinkEncode( void* pluginData                   ,
+                      void* codecData                    ,
+                      const TVariantMapApi* params    ,
+                      TIOAccess* input                ,
+                      TIOAccess* output               ,
+                      TCodecErrorInfo* error          ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{
+    if ( 0 != ImageStreamEncode( pluginData, NULL, "ImageCodec", (const char*) codecData, input, output ) )
+        return GUCEF_CODEC_STATUS_OK;
+    if ( NULL != error )
+    {
+        strncpy( error->message, "Unable to encode the image", GUCEF_CODEC_ERRORINFO_MESSAGE_SIZE-1 );
+        error->message[ GUCEF_CODEC_ERRORINFO_MESSAGE_SIZE-1 ] = '\0';
+    }
+    return GUCEF_CODEC_STATUS_FAILED;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static TCodecStatus GUCEF_PLUGIN_CALLSPEC_PREFIX
+ImageCodecLinkDecode( void* pluginData                   ,
+                      void* codecData                    ,
+                      const TVariantMapApi* params    ,
+                      TIOAccess* input                ,
+                      TIOAccess* output               ,
+                      TCodecErrorInfo* error          ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{
+    if ( 0 != ImageStreamDecode( pluginData, NULL, "ImageCodec", (const char*) codecData, input, output ) )
+        return GUCEF_CODEC_STATUS_OK;
+    if ( NULL != error )
+    {
+        strncpy( error->message, "Unable to decode the image", GUCEF_CODEC_ERRORINFO_MESSAGE_SIZE-1 );
+        error->message[ GUCEF_CODEC_ERRORINFO_MESSAGE_SIZE-1 ] = '\0';
+    }
+    return GUCEF_CODEC_STATUS_FAILED;
+}
+
+/*---------------------------------------------------------------------------*/
+
+/* One link per supported type, owned by the plugin from Init until Shutdown */
+static TCodecPluginLink* codecLinks = NULL;
+
+/*---------------------------------------------------------------------------*/
+
+static TCodecStatus
+BuildCodecLinks( void )
+{
+    UInt32 i = 0;
+
+    free( codecLinks );
+    codecLinks = ( TCodecPluginLink* ) calloc( codecCount > 0 ? codecCount : 1, sizeof( TCodecPluginLink ) );
+    if ( NULL == codecLinks )
+        return GUCEF_CODEC_STATUS_FAILED;
+
+    for ( i=0; i<codecCount; ++i )
+    {
+        codecLinks[ i ].structSize = sizeof( TCodecPluginLink );
+        codecLinks[ i ].codecFamily = codecFamily;
+        codecLinks[ i ].codecType = supportedTypes[ i ];
+        codecLinks[ i ].codecData = (void*) supportedTypes[ i ];
+        codecLinks[ i ].capabilities = GUCEF_CODEC_CAPABILITY_ENCODE | GUCEF_CODEC_CAPABILITY_DECODE;
+        codecLinks[ i ].encode = ImageCodecLinkEncode;
+        codecLinks[ i ].decode = ImageCodecLinkDecode;
+    }
+    return GUCEF_CODEC_STATUS_OK;
+}
+
+/*---------------------------------------------------------------------------*/
+
+static void
+FreeCodecLinks( void )
+{
+    free( codecLinks );
+    codecLinks = NULL;
+}
+
+/*---------------------------------------------------------------------------*/
+
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-CODECPLUGIN_Init( void** plugdata   ,
-                  const int argc    ,
-                  const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+CODECPLUGIN_GetApiVersion( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+{
+    return GUCEF_CODECPLUGIN_API_VERSION;
+}
+
+/*---------------------------------------------------------------------------*/
+
+TCodecStatus GUCEF_PLUGIN_CALLSPEC_PREFIX
+CODECPLUGIN_Init( void** plugdata                    ,
+                  TGucefCoreCApi* coreApi            ,
+                  const TVariantMapApi* pluginParams ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {    
     *plugdata = NULL;
 
     /* Ensure that the version we are build with is not newer then the version we are running with */
     if ( ilGetInteger( IL_VERSION_NUM ) < IL_VERSION ) 
-        return 0;   
+        return GUCEF_CODEC_STATUS_FAILED;   
     
     if ( 0 == InitCodecList() )
-        return 0;
+        return GUCEF_CODEC_STATUS_FAILED;
     
     ilInit();
     
@@ -325,12 +418,12 @@ CODECPLUGIN_Init( void** plugdata   ,
                 ilfTellProc  , 
                 ilfWriteProc );
 
-    return 1;
+    return BuildCodecLinks();
 }
 
 /*---------------------------------------------------------------------------*/
 
-UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
+TCodecStatus GUCEF_PLUGIN_CALLSPEC_PREFIX
 CODECPLUGIN_Shutdown( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     currentResource = NULL;
@@ -355,7 +448,8 @@ CODECPLUGIN_Shutdown( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 
     ilShutDown();
     
-    return 1;
+    FreeCodecLinks();
+    return GUCEF_CODEC_STATUS_OK;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -450,8 +544,8 @@ ConvertGUCEFTypeToILType( Int32 gucefType )
 
 /*---------------------------------------------------------------------------*/
 
-UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-CODECPLUGIN_Encode( void* plugdata         ,
+static UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
+ImageStreamEncode( void* plugdata         ,
                     void* codecData        ,
                     const char* familyType ,
                     const char* codecType  ,
@@ -600,8 +694,8 @@ CODECPLUGIN_Encode( void* plugdata         ,
 
 /*---------------------------------------------------------------------------*/
 
-UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-CODECPLUGIN_Decode( void* pluginData       ,
+static UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
+ImageStreamDecode( void* pluginData       ,
                     void* codecData        ,
                     const char* familyType ,
                     const char* codecType  ,
@@ -663,75 +757,27 @@ CODECPLUGIN_Decode( void* pluginData       ,
 /*---------------------------------------------------------------------------*/
 
 UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-CODECPLUGIN_GetCodecSetBegin( void* plugdata  , 
-                              void** iterator ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+CODECPLUGIN_GetCodecCount( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    *iterator = malloc( sizeof( UInt32 ) );
-    *( (UInt32*) *iterator ) = 0;
-    return 1;    
+    return NULL != codecLinks ? codecCount : 0;
 }
 
 /*---------------------------------------------------------------------------*/
 
-UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX 
-CODECPLUGIN_GetCodecLink( void* plugdata               ,
-                          void* iterator               , 
-                          TCodecPluginLink** codecLink ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
+TCodecStatus GUCEF_PLUGIN_CALLSPEC_PREFIX
+CODECPLUGIN_GetCodecLink( void* plugdata                          ,
+                          UInt32 index                            ,
+                          const TCodecPluginLink** codecLink   ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    UInt32 codecIndex = *( (UInt32*) iterator );
-    
-    if ( codecIndex < codecCount )
+    if ( NULL == codecLink )
+        return GUCEF_CODEC_STATUS_INVALID_PARAMETER;
+    if ( NULL == codecLinks || index >= codecCount )
     {
-        *codecLink = (TCodecPluginLink*) malloc( sizeof( TCodecPluginLink ) );
-        (*codecLink)->codecData = NULL;
-        (*codecLink)->codecFamily = codecFamily;
-        (*codecLink)->codecType = supportedTypes[ codecIndex ];
-        (*codecLink)->encode = CODECPLUGIN_Encode;
-        (*codecLink)->decode = CODECPLUGIN_Decode;
-        return 1;
+        *codecLink = NULL;
+        return GUCEF_CODEC_STATUS_UNSUPPORTED;
     }
-    
-    /* There is no codec with the given index */
-    return 0;
-}
-
-/*---------------------------------------------------------------------------*/
-
-UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-CODECPLUGIN_FreeCodecLink( void* plugdata              , 
-                           TCodecPluginLink* codecLink ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    free( codecLink );
-    return 1;
-}
-
-/*---------------------------------------------------------------------------*/
-
-UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-CODECPLUGIN_FreeCodecIterator( void* plugdata , 
-                               void* iterator ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    UInt32* codecIndex = (UInt32*) iterator;
-    free( codecIndex );
-    return 1;
-}
-
-/*---------------------------------------------------------------------------*/
-
-UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-CODECPLUGIN_GetCodecSetNextItem( void* plugdata ,
-                                 void* iterator ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
-{
-    UInt32* codecIndex = ( (UInt32*) iterator );
-    ++(*codecIndex);
-    
-    if ( (*codecIndex) < codecCount )
-    {
-        return 1;
-    }
-    
-    /* There are no more codecs */
-    return 0;
+    *codecLink = &codecLinks[ index ];
+    return GUCEF_CODEC_STATUS_OK;
 }
 
 /*---------------------------------------------------------------------------*/

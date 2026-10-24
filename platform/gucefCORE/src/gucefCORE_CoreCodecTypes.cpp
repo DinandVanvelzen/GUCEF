@@ -1,5 +1,5 @@
 /*
- *  gucefWEB: GUCEF module providing Web application functionality 
+ *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions 
  *  for standardized protocols
  *
  *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
@@ -44,6 +44,11 @@ const CORE::CString CoreCodecTypes::HashingCodec            = "HashingCodec";
 const CORE::CString CoreCodecTypes::CryptographicHashCodec  = "CryptographicHashCodec";
 const CORE::CString CoreCodecTypes::ChecksumCodec           = "ChecksumCodec";
 const CORE::CString CoreCodecTypes::CompressionCodec        = "CompressionCodec";
+const CORE::CString CoreCodecTypes::EncryptionCodec         = "EncryptionCodec";
+const CORE::CString CoreCodecTypes::MacCodec                = "MacCodec";
+const CORE::CString CoreCodecTypes::KeyDerivationCodec      = "KeyDerivationCodec";
+const CORE::CString CoreCodecTypes::KeyAgreementCodec       = "KeyAgreementCodec";
+const CORE::CString CoreCodecTypes::SignatureCodec          = "SignatureCodec";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

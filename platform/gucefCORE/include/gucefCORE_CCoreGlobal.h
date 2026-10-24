@@ -89,6 +89,7 @@ class CNotificationIDRegistry;
 class CStdCodecPluginManager;
 class CConfigStore;
 class CCodecRegistry;
+class CBuiltInCodecs;
 class CFunctionRegistry;
 
 //typedef CTBasicSharedPtr< CPulseGenerator, MT::CMutex > BasicPulseGeneratorPtr;
@@ -138,6 +139,9 @@ class GUCEF_CORE_PUBLIC_CPP CCoreGlobal
     CExclusiveActivationManager& GetExclusiveActivationManager( void );
 
     CCodecRegistry& GetCodecRegistry( void );
+
+    /** The codecs gucefCORE brings itself: software and OS crypto, see CBuiltInCodecs */
+    CBuiltInCodecs& GetBuiltInCodecs( void );
 
     CFunctionRegistry& GetFunctionRegistry( void );
 
@@ -190,6 +194,7 @@ class GUCEF_CORE_PUBLIC_CPP CCoreGlobal
     CStdCodecPluginManager* m_stdCodecPluginManager;
     CConfigStore* m_configStore;
     CCodecRegistry* m_codecRegistry;
+    CBuiltInCodecs* m_builtInCodecs;
     CFunctionRegistry* m_functionRegistry;
     CUriResourceAccessorFactory* m_uriResourceAccessorFactory;
 

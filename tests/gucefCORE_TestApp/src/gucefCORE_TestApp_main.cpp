@@ -224,6 +224,7 @@
 
 #ifndef GUCEF_CORE_TESTAPP_TESTCODECPLUGINS_H
 #include "TestCodecPlugins.h"
+#include "TestCryptoCodecs.h"
 #define GUCEF_CORE_TESTAPP_TESTCODECPLUGINS_H
 #endif /* GUCEF_CORE_TESTAPP_TESTCODECPLUGINS_H ? */
 
@@ -333,6 +334,7 @@ GUCEF_OSMAIN_BEGIN
         PerformXmlDStoreCodecTests();
         PerformDStoreStreamingTests();
         PerformCodecPluginTests();
+        PerformCryptoCodecTests();
         PerformPluginUnloadTests();
         PerformSfinaeUtilsTests();
         PerformRandomTests();

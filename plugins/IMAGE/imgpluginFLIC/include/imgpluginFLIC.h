@@ -49,10 +49,10 @@
 #define GUCEF_IMAGE_IMAGEDATA_H
 #endif /* GUCEF_IMAGE_IMAGEDATA_H ? */
 
-#ifndef GUCEF_CORE_CODECPLUGINLINK_H
-#include "CodecPluginLink.h"
-#define GUCEF_CORE_CODECPLUGINLINK_H
-#endif /* GUCEF_CORE_CODECPLUGINLINK_H ? */
+#ifndef GUCEF_CORE_C_CODEC_PLUGIN_API_H
+#include "gucefCORE_c_codec_plugin_api.h"   /* the codec plugin C interface */
+#define GUCEF_CORE_C_CODEC_PLUGIN_API_H
+#endif /* GUCEF_CORE_C_CODEC_PLUGIN_API_H ? */
 
 #ifndef GUCEF_IMAGE_MACROS_H
 #include "gucefIMAGE_macros.h"  /* gucefIMAGE macros, used here for the export and callspec macros */
@@ -95,11 +95,15 @@ namespace IMAGE {
 extern "C" {
 typedef ::GUCEF::CORE::TVersion NSVersion;
 typedef ::GUCEF::CORE::TCodecPluginLink NSCodecPluginLink;
+typedef ::GUCEF::CORE::TCodecStatus NSCodecStatus;
+typedef ::GUCEF::CORE::TVariantMapApi NSVariantMapApi;
 typedef ::GUCEF::CORE::TIOAccess NSIOAccess;
 typedef ::GUCEF::CORE::TValueMapParserCallbacks NSValueMapParserCallbacks;
 #else
 #define NSVersion TVersion
 #define NSCodecPluginLink TCodecPluginLink
+#define NSCodecStatus TCodecStatus
+#define NSVariantMapApi TVariantMapApi
 #define NSIOAccess TIOAccess;
 #define NSValueMapParserCallbacks TValueMapParserCallbacks;
 #endif
@@ -112,13 +116,18 @@ typedef ::GUCEF::CORE::TValueMapParserCallbacks NSValueMapParserCallbacks;
 /*---------------------------------------------------------------------------*/
 
 GUCEF_CODEC_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-CODECPLUGIN_Init( void** plugdata   ,
-                  const int argc    ,
-                  const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+CODECPLUGIN_GetApiVersion( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*---------------------------------------------------------------------------*/
 
-GUCEF_CODEC_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
+GUCEF_CODEC_EXPORT_C NSCodecStatus GUCEF_PLUGIN_CALLSPEC_PREFIX
+CODECPLUGIN_Init( void** plugdata                    ,
+                  TGucefCoreCApi* coreApi            ,
+                  const NSVariantMapApi* pluginParams ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+/*---------------------------------------------------------------------------*/
+
+GUCEF_CODEC_EXPORT_C NSCodecStatus GUCEF_PLUGIN_CALLSPEC_PREFIX
 CODECPLUGIN_Shutdown( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*---------------------------------------------------------------------------*/
@@ -139,33 +148,14 @@ CODECPLUGIN_Version( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 /*---------------------------------------------------------------------------*/
 
 GUCEF_CODEC_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-CODECPLUGIN_GetCodecSetBegin( void* plugdata  ,
-                              void** iterator ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+CODECPLUGIN_GetCodecCount( void* plugdata ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*---------------------------------------------------------------------------*/
 
-GUCEF_CODEC_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-CODECPLUGIN_GetCodecLink( void* plugdata                ,
-                          void* iterator                ,
-                          NSCodecPluginLink** codecLink ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-
-/*---------------------------------------------------------------------------*/
-
-GUCEF_CODEC_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-CODECPLUGIN_FreeCodecLink( void* plugdata               ,
-                           NSCodecPluginLink* codecLink ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-
-/*---------------------------------------------------------------------------*/
-
-GUCEF_CODEC_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-CODECPLUGIN_FreeCodecIterator( void* plugdata ,
-                               void* iterator ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
-
-/*---------------------------------------------------------------------------*/
-
-GUCEF_CODEC_EXPORT_C UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
-CODECPLUGIN_GetCodecSetNextItem( void* plugdata ,
-                                 void* iterator ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+GUCEF_CODEC_EXPORT_C NSCodecStatus GUCEF_PLUGIN_CALLSPEC_PREFIX
+CODECPLUGIN_GetCodecLink( void* plugdata                     ,
+                          UInt32 index                       ,
+                          const NSCodecPluginLink** codecLink ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 /*---------------------------------------------------------------------------*/
 

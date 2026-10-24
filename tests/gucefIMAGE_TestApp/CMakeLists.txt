@@ -16,6 +16,7 @@
 if (LINUX32)
   set( PLATFORM_HEADER_FILES 
     include/TestImageAnimation.h
+    include/TestImageCodecPlugins.h
     include/TestImageUpscaler.h
     include/TestPixelMapConversion.h
   )
@@ -25,6 +26,7 @@ if (LINUX32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestImageAnimation.cpp
+    src/TestImageCodecPlugins.cpp
     src/TestImageUpscaler.cpp
     src/TestPixelMapConversion.cpp
     src/gucefIMAGE_TestApp.cpp
@@ -36,6 +38,7 @@ if (LINUX32)
 elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
     include/TestImageAnimation.h
+    include/TestImageCodecPlugins.h
     include/TestImageUpscaler.h
     include/TestPixelMapConversion.h
   )
@@ -45,6 +48,7 @@ elseif (LINUX64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestImageAnimation.cpp
+    src/TestImageCodecPlugins.cpp
     src/TestImageUpscaler.cpp
     src/TestPixelMapConversion.cpp
     src/gucefIMAGE_TestApp.cpp
@@ -56,6 +60,7 @@ elseif (LINUX64)
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
     include/TestImageAnimation.h
+    include/TestImageCodecPlugins.h
     include/TestImageUpscaler.h
     include/TestPixelMapConversion.h
   )
@@ -65,6 +70,7 @@ elseif (WIN32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestImageAnimation.cpp
+    src/TestImageCodecPlugins.cpp
     src/TestImageUpscaler.cpp
     src/TestPixelMapConversion.cpp
     src/gucefIMAGE_TestApp.cpp
@@ -76,6 +82,7 @@ elseif (WIN32)
 elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
     include/TestImageAnimation.h
+    include/TestImageCodecPlugins.h
     include/TestImageUpscaler.h
     include/TestPixelMapConversion.h
   )
@@ -85,6 +92,7 @@ elseif (WIN64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestImageAnimation.cpp
+    src/TestImageCodecPlugins.cpp
     src/TestImageUpscaler.cpp
     src/TestPixelMapConversion.cpp
     src/gucefIMAGE_TestApp.cpp

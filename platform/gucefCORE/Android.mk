@@ -134,8 +134,11 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CAsyncUriRetrievalTask.cpp \
   src/gucefCORE_CBackoffPolicy.cpp \
   src/gucefCORE_CBasicBracketLoggingFormatter.cpp \
+  src/gucefCORE_CBuiltInCodecs.cpp \
   src/gucefCORE_CBusyWaitPulseGeneratorDriver.cpp \
   src/gucefCORE_CCharSepLoggingFormatter.cpp \
+  src/gucefCORE_CCodecInstanceBase.cpp \
+  src/gucefCORE_CCodecParameterInfo.cpp \
   src/gucefCORE_CCoreGlobal.cpp \
   src/gucefCORE_CCronSchedule.cpp \
   src/gucefCORE_CDStoreBinaryCodec.cpp \
@@ -152,6 +155,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CDate.cpp \
   src/gucefCORE_CDateTime.cpp \
   src/gucefCORE_CDateTimeRange.cpp \
+  src/gucefCORE_CDefaultCodecInstance.cpp \
   src/gucefCORE_CDirectoryWatcherEvents.cpp \
   src/gucefCORE_CDocumentStreamWriter.cpp \
   src/gucefCORE_CDynamicBufferStringStream.cpp \
@@ -177,6 +181,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CGlobalConfigValueList.cpp \
   src/gucefCORE_CGlobalDataDrivenDStoreCodecFactory.cpp \
   src/gucefCORE_CGloballyConfigurable.cpp \
+  src/gucefCORE_CICodecInstance.cpp \
   src/gucefCORE_CIConfigurable.cpp \
   src/gucefCORE_CIConsoleLogger.cpp \
   src/gucefCORE_CIDataNodeSerializable.cpp \
@@ -200,6 +205,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CIValueToDataNodeSerializer.cpp \
   src/gucefCORE_CIniDataStoreCodec.cpp \
   src/gucefCORE_CIniParser.cpp \
+  src/gucefCORE_CInstanceBasedCodec.cpp \
   src/gucefCORE_CJsonLoggingFormatter.cpp \
   src/gucefCORE_CLinkedTransferBuffer.cpp \
   src/gucefCORE_CLoaderDelegatedPluginLoadLogic.cpp \
@@ -212,6 +218,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CNativeFileSystemAccess.cpp \
   src/gucefCORE_COSWindow.cpp \
   src/gucefCORE_CObserverSwitch.cpp \
+  src/gucefCORE_COsCryptoCodecs.cpp \
   src/gucefCORE_CPlatformNativeConsoleLogger.cpp \
   src/gucefCORE_CPlatformNativeConsoleWindow.cpp \
   src/gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.cpp \
@@ -230,8 +237,10 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CResourceMetaData.cpp \
   src/gucefCORE_CRollingFileAccess.cpp \
   src/gucefCORE_CSchedule.cpp \
+  src/gucefCORE_CSha256.cpp \
   src/gucefCORE_CSimplisticPluginLoadLogic.cpp \
   src/gucefCORE_CSingleTaskDelegator.cpp \
+  src/gucefCORE_CSoftwareCryptoCodecs.cpp \
   src/gucefCORE_CStdDataNodeSerializableTaskData.cpp \
   src/gucefCORE_CStopwatch.cpp \
   src/gucefCORE_CStringLogHelper.cpp \
