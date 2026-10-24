@@ -69,6 +69,24 @@ CWebSocketMessageParser::Reset( void )
 
 /*-------------------------------------------------------------------------*/
 
+UInt32
+CWebSocketMessageParser::GetMaxMessageSize( void ) const
+{GUCEF_TRACE;
+
+    return m_maxMessageSize;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWebSocketMessageParser::SetMaxMessageSize( UInt32 maxMessageSize )
+{GUCEF_TRACE;
+
+    m_maxMessageSize = maxMessageSize;
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt16
 CWebSocketMessageParser::GetErrorCloseCode( void ) const
 {GUCEF_TRACE;

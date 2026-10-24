@@ -191,6 +191,25 @@ CWebSocketConnection::IsOpen( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+void
+CWebSocketConnection::SetMaxMessageSize( UInt32 maxMessageSizeInBytes )
+{GUCEF_TRACE;
+
+    // the parser belongs to the receiving thread, see the header
+    m_parser.SetMaxMessageSize( maxMessageSizeInBytes );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CWebSocketConnection::GetMaxMessageSize( void ) const
+{GUCEF_TRACE;
+
+    return m_parser.GetMaxMessageSize();
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CWebSocketConnection::SendFrame( UInt8 opcode, const void* data, UInt32 dataSize )
 {GUCEF_TRACE;

@@ -255,6 +255,16 @@ CWebSocketServer::SetMaxMessageSize( UInt32 maxMessageSizeInBytes )
 
 /*-------------------------------------------------------------------------*/
 
+UInt32
+CWebSocketServer::GetMaxMessageSize( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_maxMessageSize;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CWebSocketServer::OnWebSocketUpgradeRequested( CHTTPServer& server                       ,
                                                COMCORE::CTCPServerConnection& connection ,

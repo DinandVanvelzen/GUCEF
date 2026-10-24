@@ -436,6 +436,70 @@ PerformWebSocketTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test: A connection's message size limit changes at runtime, a larger message closes the connection with 1009" )
+        try
+        {
+            ++port;
+            WEB::CWebSocketServer server;
+            ASSERT_TRUE( 16 * 1024 * 1024 == server.GetMaxMessageSize() );
+            ASSERT_TRUE( server.Listen( port ) );
+            CWsRecorder recorder;
+            recorder.WatchServer( server );
+
+            CORE::CDynamicBuffer small;
+            small.SetDataSize( 500 );
+            memset( small.GetBufferPtr(), 0x11, 500 );
+            CORE::CDynamicBuffer large;
+            large.SetDataSize( 2000 );
+            memset( large.GetBufferPtr(), 0x22, 2000 );
+
+            // a limit raised at runtime takes a message the smaller one would have refused
+            WEB::CWebSocketClient raised;
+            recorder.WatchClient( raised );
+            ASSERT_TRUE( raised.Connect( UrlFor( port, "/" ) ) );
+            ASSERT_TRUE( PumpUntil( recorder.serverConnects, 1 ) );
+            ASSERT_TRUE( PumpUntil( recorder.clientConnects, 1 ) );
+            WEB::TWebSocketConnectionPtr first = recorder.serverConnections[ 0 ];
+            first->SetMaxMessageSize( 100 );
+            first->SetMaxMessageSize( 5000 );
+            ASSERT_TRUE( 5000 == first->GetMaxMessageSize() );
+            ASSERT_TRUE( raised.SendBinary( large.GetConstBufferPtr(), large.GetDataSize() ) );
+            ASSERT_TRUE( PumpUntil( recorder.serverBinaries, 1 ) );
+            ASSERT_TRUE( first->IsOpen() );
+            ASSERT_TRUE( raised.Close( 1000, "done" ) );
+            ASSERT_TRUE( PumpUntil( recorder.serverDisconnects, 1 ) );
+
+            // a lowered limit: what fits is taken, a larger message is refused and the connection closed
+            WEB::CWebSocketClient lowered;
+            recorder.WatchClient( lowered );
+            ASSERT_TRUE( lowered.Connect( UrlFor( port, "/" ) ) );
+            ASSERT_TRUE( PumpUntil( recorder.serverConnects, 2 ) );
+            ASSERT_TRUE( PumpUntil( recorder.clientConnects, 2 ) );
+            WEB::TWebSocketConnectionPtr second = recorder.serverConnections[ 1 ];
+            ASSERT_TRUE( 16 * 1024 * 1024 == second->GetMaxMessageSize() );
+            second->SetMaxMessageSize( 1000 );
+            ASSERT_TRUE( lowered.SendBinary( small.GetConstBufferPtr(), small.GetDataSize() ) );
+            ASSERT_TRUE( PumpUntil( recorder.serverBinaries, 2 ) );
+            ASSERT_TRUE( lowered.SendBinary( large.GetConstBufferPtr(), large.GetDataSize() ) );
+            ASSERT_TRUE( PumpUntil( recorder.serverDisconnects, 2 ) );
+            ASSERT_TRUE( PumpUntil( recorder.clientCloses, 2 ) );
+            ASSERT_TRUE( 2 == recorder.serverBinaries );
+            ASSERT_FALSE( second->IsOpen() );
+            ASSERT_TRUE( 2 == recorder.serverCloses.size() );
+            if ( 2 == recorder.serverCloses.size() )
+            {
+                ASSERT_TRUE( 1009 == recorder.serverCloses[ 1 ].closeCode );
+                ASSERT_FALSE( recorder.serverCloses[ 1 ].closedByPeer );
+            }
+            ASSERT_TRUE( 1009 == recorder.clientClose.closeCode );
+            ASSERT_TRUE( recorder.clientClose.closedByPeer );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Test: Sub protocol negotiation" )
         try
         {
@@ -606,11 +670,8 @@ PerformWebSocketTests( void )
             ASSERT_TRUE( httpServer.ListenOnPort( port ) );
             WEB::CWebSocketServer* server = GUCEF_NEW WEB::CWebSocketServer( httpServer );
 
-            // INTENTIONAL MEMORY LEAK: a notifier which is destroyed through ScheduleForDestruction() leaves the
-            // observers which are still subscribed with a stale back-reference to it (see the notifier observer
-            // tests in gucefCORE_TestApp). Destroying such an observer would use that stale reference, so the
-            // recorder is never destroyed. The OS reclaims the small allocation when the process ends.
-            CWsRecorder& recorder = *GUCEF_NEW CWsRecorder();
+            // the server is destroyed through ScheduleForDestruction(), which unlinks the recorder from it
+            CWsRecorder recorder;
             recorder.WatchServer( *server );
             recorder.serverToScheduleOnText = server;
 

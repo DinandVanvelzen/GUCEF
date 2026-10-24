@@ -259,6 +259,8 @@ CWebSocketClient::SetMaxMessageSize( UInt32 maxMessageSizeInBytes )
     m_maxMessageSize = maxMessageSizeInBytes;
     if ( STATE_DISCONNECTED == m_state )
         m_parser = CWebSocketMessageParser( false, m_maxMessageSize );
+    else
+        m_parser.SetMaxMessageSize( m_maxMessageSize );     // from now on, the connection stays as it is
 }
 
 /*-------------------------------------------------------------------------*/

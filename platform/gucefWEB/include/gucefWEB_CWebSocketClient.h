@@ -147,6 +147,10 @@ class GUCEF_WEB_PUBLIC_CPP CWebSocketClient : public CORE::CObservingNotifier
 
     bool SendPing( const CORE::CString& payload = CORE::CString() );
 
+    /**
+     *  The largest message taken from the server; a larger one closes the connection with 1009.
+     *  Can change at any time, call it on the thread that receives once connected.
+     */
     void SetMaxMessageSize( UInt32 maxMessageSizeInBytes );
 
     private:

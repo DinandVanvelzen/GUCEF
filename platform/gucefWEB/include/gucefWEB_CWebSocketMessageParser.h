@@ -113,6 +113,14 @@ class GUCEF_WEB_PUBLIC_CPP CWebSocketMessageParser
     void Reset( void );
 
     /**
+     *  Changes the maximum message size for the frames that are decoded from now on, including a frame of which
+     *  only a part was received so far. A message being assembled that already is larger fails with the next frame.
+     */
+    void SetMaxMessageSize( UInt32 maxMessageSize );
+
+    UInt32 GetMaxMessageSize( void ) const;
+
+    /**
      *  Strict UTF-8 validation: rejects overlong forms, surrogates and code points beyond U+10FFFF
      */
     static bool IsValidUtf8( const void* data, UInt32 size );

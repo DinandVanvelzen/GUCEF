@@ -118,6 +118,16 @@ class GUCEF_WEB_PUBLIC_CPP CWebSocketConnection : public CIWebSocketConnectionHa
 
     bool IsOpen( void ) const;
 
+    /**
+     *  The largest message this connection takes from the client from now on, starting with the server's
+     *  CWebSocketServer::SetMaxMessageSize(). A larger message is refused: the connection is closed with 1009.
+     *  The limit is checked when a frame header is read, so a too large message is not collected first.
+     *  Call it on the thread that receives (for example from within an event of the server) or before data arrives.
+     */
+    void SetMaxMessageSize( UInt32 maxMessageSizeInBytes );
+
+    UInt32 GetMaxMessageSize( void ) const;
+
     bool SendText( const CORE::CString& text );
 
     bool SendBinary( const void* data, UInt32 dataSize );

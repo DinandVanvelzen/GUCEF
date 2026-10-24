@@ -813,7 +813,8 @@ PerformJsonRpcTests( void )
                 ASSERT_TRUE( recorderA.responseList[ 0 ].id.AsUInt64() == items[ 0 ].callId && 42 == recorderA.responseList[ 0 ].result.GetValue().AsInt32() );
                 ASSERT_TRUE( recorderA.responseList[ 1 ].id.AsUInt64() == items[ 2 ].callId );
             }
-            ASSERT_FALSE( a.CallBatch( *( new WEB::CJsonRpcEndpoint::TBatchItemVector() ) ) );
+            WEB::CJsonRpcEndpoint::TBatchItemVector noItems;
+            ASSERT_FALSE( a.CallBatch( noItems ) );
         }
         catch( ... )
         {

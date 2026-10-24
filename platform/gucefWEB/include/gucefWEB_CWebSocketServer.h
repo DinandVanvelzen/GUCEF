@@ -157,7 +157,13 @@ class GUCEF_WEB_PUBLIC_CPP CWebSocketServer : public CORE::CNotifier ,
      */
     void SetSupportedSubProtocols( const TStringVector& subProtocols );
 
+    /**
+     *  The largest message a connection takes, for connections made from now on.
+     *  A connection can change its own limit at any time with CWebSocketConnection::SetMaxMessageSize().
+     */
     void SetMaxMessageSize( UInt32 maxMessageSizeInBytes );
+
+    UInt32 GetMaxMessageSize( void ) const;
 
     /** Sends to all connected clients, returns the number of clients it was sent to */
     UInt32 BroadcastText( const CORE::CString& text );
