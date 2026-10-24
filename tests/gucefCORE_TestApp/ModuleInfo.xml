@@ -18,8 +18,14 @@
             <RuntimeDependency Name="dstorepluginYAML" />
             <RuntimeDependency Name="codecspluginSTBRUMMEHASH" />
             <RuntimeDependency Name="codecspluginZLIB" />
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
             <RuntimeDependency Name="dstorepluginPROTOBUF" />
             <RuntimeDependency Name="gucefCORE_TestPlugin" />
+        </RuntimeDependencies>
+    </Module>
+    <Module Platform="linux" >
+        <RuntimeDependencies>
+            <RuntimeDependency Name="codecspluginOPENSSL" />
         </RuntimeDependencies>
     </Module>
     <Module Platform="mswin" >
