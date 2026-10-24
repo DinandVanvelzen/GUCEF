@@ -1,7 +1,8 @@
 <ModuleInfoEntry>
-    <Module Name="miniupnpc" Type="SharedLibrary" Platform="All">
+    <Module Name="miniupnpc" Type="StaticLibrary" Platform="All">
         <Preprocessor>
             <Define String="MINIUPNP_EXPORTS" />
+            <Define String="STATICLIB" />
         </Preprocessor>
     </Module>
     <Module Platform="mswin">

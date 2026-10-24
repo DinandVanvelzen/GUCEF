@@ -27,6 +27,9 @@ set( HEADER_FILES
   include/dvwinsock.h
   include/gucefCOMCORE.h
   include/gucefCOMCORE_CComCoreGlobal.h
+  include/gucefCOMCORE_CDiscoveryClientBase.h
+  include/gucefCOMCORE_CDiscoveryClientFactory.h
+  include/gucefCOMCORE_CDiscoveryEntry.h
   include/gucefCOMCORE_CDiscoveryManager.h
   include/gucefCOMCORE_CDnsCache.h
   include/gucefCOMCORE_CDnsCacheEntry.h
@@ -42,12 +45,15 @@ set( HEADER_FILES
   include/gucefCOMCORE_CIMessage.h
   include/gucefCOMCORE_CIMessageTransformer.h
   include/gucefCOMCORE_CINetworkInterface.h
+  include/gucefCOMCORE_CIPortMapper.h
   include/gucefCOMCORE_CIPv4Address.h
   include/gucefCOMCORE_CIPv4Info.h
   include/gucefCOMCORE_CIPv6Address.h
   include/gucefCOMCORE_CIPv6Info.h
+  include/gucefCOMCORE_CIRttProbe.h
   include/gucefCOMCORE_CMessageSerializer.h
   include/gucefCOMCORE_CPingTaskConsumer.h
+  include/gucefCOMCORE_CPortMappingResult.h
   include/gucefCOMCORE_CSerialPort.h
   include/gucefCOMCORE_ETypes.h
   include/gucefCOMCORE_config.h
@@ -72,6 +78,8 @@ set( SOURCE_FILES
   src/dvwinsock.c
   src/gucefCOMCORE.cpp
   src/gucefCOMCORE_CComCoreGlobal.cpp
+  src/gucefCOMCORE_CDiscoveryClientBase.cpp
+  src/gucefCOMCORE_CDiscoveryEntry.cpp
   src/gucefCOMCORE_CDiscoveryManager.cpp
   src/gucefCOMCORE_CDnsCache.cpp
   src/gucefCOMCORE_CDnsCacheEntry.cpp
@@ -87,12 +95,15 @@ set( SOURCE_FILES
   src/gucefCOMCORE_CIMessage.cpp
   src/gucefCOMCORE_CIMessageTransformer.cpp
   src/gucefCOMCORE_CINetworkInterface.cpp
+  src/gucefCOMCORE_CIPortMapper.cpp
   src/gucefCOMCORE_CIPv4Address.cpp
   src/gucefCOMCORE_CIPv4Info.cpp
   src/gucefCOMCORE_CIPv6Address.cpp
   src/gucefCOMCORE_CIPv6Info.cpp
+  src/gucefCOMCORE_CIRttProbe.cpp
   src/gucefCOMCORE_CMessageSerializer.cpp
   src/gucefCOMCORE_CPingTaskConsumer.cpp
+  src/gucefCOMCORE_CPortMappingResult.cpp
   src/gucefCOMCORE_CSerialPort.cpp
   src/socketutils.cpp
 )

@@ -14,6 +14,7 @@
 set( HEADER_FILES 
   include/TestCode_ClientServer.h
   include/TestCode_DNS.h
+  include/TestCode_Discovery.h
   include/TestCode_PingTest.h
   include/TestCode_Pump.h
   include/TestCode_SimpleTCPClient.h
@@ -22,6 +23,7 @@ set( HEADER_FILES
 set( SOURCE_FILES 
   src/TestCode_ClientServer.cpp
   src/TestCode_DNS.cpp
+  src/TestCode_Discovery.cpp
   src/TestCode_PingTest.cpp
   src/TestCode_SimpleTCPClient.cpp
   src/gucefCOMCORE_TestApp.cpp

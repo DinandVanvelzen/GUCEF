@@ -37,6 +37,8 @@ LOCAL_SRC_FILES := \
   src/dvwinsock.c \
   src/gucefCOMCORE.cpp \
   src/gucefCOMCORE_CComCoreGlobal.cpp \
+  src/gucefCOMCORE_CDiscoveryClientBase.cpp \
+  src/gucefCOMCORE_CDiscoveryEntry.cpp \
   src/gucefCOMCORE_CDiscoveryManager.cpp \
   src/gucefCOMCORE_CDnsCache.cpp \
   src/gucefCOMCORE_CDnsCacheEntry.cpp \
@@ -52,12 +54,15 @@ LOCAL_SRC_FILES := \
   src/gucefCOMCORE_CIMessage.cpp \
   src/gucefCOMCORE_CIMessageTransformer.cpp \
   src/gucefCOMCORE_CINetworkInterface.cpp \
+  src/gucefCOMCORE_CIPortMapper.cpp \
   src/gucefCOMCORE_CIPv4Address.cpp \
   src/gucefCOMCORE_CIPv4Info.cpp \
   src/gucefCOMCORE_CIPv6Address.cpp \
   src/gucefCOMCORE_CIPv6Info.cpp \
+  src/gucefCOMCORE_CIRttProbe.cpp \
   src/gucefCOMCORE_CMessageSerializer.cpp \
   src/gucefCOMCORE_CPingTaskConsumer.cpp \
+  src/gucefCOMCORE_CPortMappingResult.cpp \
   src/gucefCOMCORE_CSerialPort.cpp \
   src/socketutils.cpp
 

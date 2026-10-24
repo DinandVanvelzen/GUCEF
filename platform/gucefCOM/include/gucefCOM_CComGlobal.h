@@ -36,6 +36,11 @@
 #define GUCEF_COM_MACROS_H
 #endif /* GUCEF_COM_MACROS_H ? */
 
+#ifndef GUCEF_COM_CIIRCTRANSPORT_H
+#include "gucefCOM_CIIrcTransport.h"
+#define GUCEF_COM_CIIRCTRANSPORT_H
+#endif /* GUCEF_COM_CIIRCTRANSPORT_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -61,6 +66,9 @@ class GUCEF_COM_PUBLIC_CPP CComGlobal
 
     static CComGlobal* Instance( void );
 
+    /** Creates IRC transports by name: "tcp" here, "websocket" when gucefWEB registered it */
+    CIrcTransportFactory& GetIrcTransportFactory( void );
+
     private:
     friend class CModule;
 
@@ -75,6 +83,8 @@ class GUCEF_COM_PUBLIC_CPP CComGlobal
     CComGlobal& operator=( const CComGlobal& src ); /** <- not implemented */
 
     private:
+
+    CIrcTransportFactory* m_ircTransportFactory;
 
     static MT::CMutex g_dataLock;
     static CComGlobal* g_instance;

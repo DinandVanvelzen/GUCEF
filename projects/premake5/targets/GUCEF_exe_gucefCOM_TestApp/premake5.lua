@@ -21,157 +21,201 @@ workspace( "GUCEF_exe_gucefCOM_TestApp" )
   --
 
 filter "ALL"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "ANDROID"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "ANDROID32"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "ANDROID64"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "ARDUINO"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "EMSCRIPTEN"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "EMSCRIPTEN32"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "EMSCRIPTEN64"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "IOS"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "IPHONE"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "IPHONEOS"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "LINUX"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "LINUX32"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "LINUX64"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "MAC"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "MACOS"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "MACOSX"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "MSWIN"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "OSX"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
 
 filter "WIN32"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
   include( "tools/MemoryLeakFinder" )
 
 filter "WIN64"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )
   include( "tools/MemoryLeakFinder" )
 
 filter "WINDOWS"
+  include( "dependencies/miniupnpc" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefMT" )
+  include( "plugins/COMCORE/comcorepluginUPNP" )
   include( "tests/gucefCOM_TestApp" )

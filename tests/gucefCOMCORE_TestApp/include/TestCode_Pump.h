@@ -55,4 +55,58 @@ PumpUntil( Condition condition, GUCEF::CORE::UInt32 timeoutInMs )
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Pulses the global pulse generator from the test thread for the given time
+ */
+inline void
+PumpFor( GUCEF::CORE::UInt32 durationInMs )
+{GUCEF_TRACE;
+
+    for ( GUCEF::CORE::UInt32 waited=0; waited<durationInMs; ++waited )
+    {
+        GUCEF::CORE::CCoreGlobal::Instance()->GetPulseGenerator()->ForceDirectPulse();
+        GUCEF::MT::ThreadDelay( 1 );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Pulses until the flag, which an observer sets, is true
+ *
+ *  @return true if the flag became true before the timeout
+ */
+inline bool
+PumpUntilTrue( const bool& flag, GUCEF::CORE::UInt32 timeoutInMs )
+{GUCEF_TRACE;
+
+    for ( GUCEF::CORE::UInt32 waited=0; waited<timeoutInMs && !flag; ++waited )
+    {
+        GUCEF::CORE::CCoreGlobal::Instance()->GetPulseGenerator()->ForceDirectPulse();
+        GUCEF::MT::ThreadDelay( 1 );
+    }
+    return flag;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Pulses until the counter, which an observer increments, reaches the target
+ *
+ *  @return true if the counter reached the target before the timeout
+ */
+inline bool
+PumpUntilAtLeast( const GUCEF::CORE::UInt32& counter, GUCEF::CORE::UInt32 target, GUCEF::CORE::UInt32 timeoutInMs )
+{GUCEF_TRACE;
+
+    for ( GUCEF::CORE::UInt32 waited=0; waited<timeoutInMs && counter < target; ++waited )
+    {
+        GUCEF::CORE::CCoreGlobal::Instance()->GetPulseGenerator()->ForceDirectPulse();
+        GUCEF::MT::ThreadDelay( 1 );
+    }
+    return counter >= target;
+}
+
+/*-------------------------------------------------------------------------*/
+
 #endif /* CTESTCODE_PUMP_H ? */

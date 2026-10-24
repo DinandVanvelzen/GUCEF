@@ -50,6 +50,7 @@
 #include "TestCode_ClientServer.h"
 #include "TestCode_SimpleTCPClient.h"
 #include "TestCode_DNS.h"
+#include "TestCode_Discovery.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -87,6 +88,8 @@ GUCEF_OSMAIN_BEGIN
         PerformClientServerTests();
         PerformSimpleTCPClientTests();
         PerformPingTests();
+        PerformDiscoveryTests();
+        PerformNetworkServiceInterfaceTests();
 
         CORE::CLogStreamScope::FlushLogs();
 

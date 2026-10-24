@@ -23,6 +23,7 @@ LOCAL_MODULE := gucefCOMCORE_TestApp
 LOCAL_SRC_FILES := \
   src/TestCode_ClientServer.cpp \
   src/TestCode_DNS.cpp \
+  src/TestCode_Discovery.cpp \
   src/TestCode_PingTest.cpp \
   src/TestCode_SimpleTCPClient.cpp \
   src/gucefCOMCORE_TestApp.cpp

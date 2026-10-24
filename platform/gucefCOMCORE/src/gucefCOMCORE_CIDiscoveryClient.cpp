@@ -39,22 +39,68 @@ namespace COMCORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+const CORE::CEvent CIDiscoveryClient::EntryDiscoveredEvent = "GUCEF::COMCORE::CIDiscoveryClient::EntryDiscoveredEvent";
+const CORE::CEvent CIDiscoveryClient::EntryUpdatedEvent = "GUCEF::COMCORE::CIDiscoveryClient::EntryUpdatedEvent";
+const CORE::CEvent CIDiscoveryClient::EntryLostEvent = "GUCEF::COMCORE::CIDiscoveryClient::EntryLostEvent";
+const CORE::CEvent CIDiscoveryClient::BrowseStartedEvent = "GUCEF::COMCORE::CIDiscoveryClient::BrowseStartedEvent";
+const CORE::CEvent CIDiscoveryClient::BrowseStoppedEvent = "GUCEF::COMCORE::CIDiscoveryClient::BrowseStoppedEvent";
+const CORE::CEvent CIDiscoveryClient::DiscoveryErrorEvent = "GUCEF::COMCORE::CIDiscoveryClient::DiscoveryErrorEvent";
+
+const CORE::CString CIDiscoveryClient::AnyServiceType = "*";
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIDiscoveryClient::RegisterEvents( void )
+{GUCEF_TRACE;
+
+    EntryDiscoveredEvent.Initialize();
+    EntryUpdatedEvent.Initialize();
+    EntryLostEvent.Initialize();
+    BrowseStartedEvent.Initialize();
+    BrowseStoppedEvent.Initialize();
+    DiscoveryErrorEvent.Initialize();
+}
+
+/*-------------------------------------------------------------------------*/
+
 CIDiscoveryClient::CIDiscoveryClient( void )
     : CORE::CITypeNamed()
+    , CORE::CObservingNotifier()
     , CORE::CIConfigurable()
     , CIDiscovery()
 {GUCEF_TRACE;
 
+    RegisterEvents();
 }
 
 /*-------------------------------------------------------------------------*/
 
 CIDiscoveryClient::CIDiscoveryClient( const CIDiscoveryClient& src )
     : CORE::CITypeNamed( src )
+    , CORE::CObservingNotifier( src )
     , CORE::CIConfigurable( src )
     , CIDiscovery( src )
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIDiscoveryClient::Register( CIDiscoveryEntryPtr entry )
+{GUCEF_TRACE;
+
+    return Advertise( entry );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIDiscoveryClient::Unregister( CIDiscoveryEntryPtr entry )
+{GUCEF_TRACE;
+
+    return Withdraw( entry );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -69,6 +115,10 @@ CIDiscoveryClient&
 CIDiscoveryClient::operator=( const CIDiscoveryClient& src )
 {GUCEF_TRACE;
 
+    if ( &src != this )
+    {
+        CORE::CObservingNotifier::operator=( src );
+    }
     return *this;
 }
 

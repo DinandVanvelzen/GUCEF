@@ -1,27 +1,28 @@
 <?xml version="1.0" encoding="ISO-8859-1" ?>
 <ModuleInfoEntry>
     <Module Name="gucefCOM_TestApp" Platform="All" Type="Executable" Tags="test" >
-		<Dependencies>
-			<Dependency Name="gucefCOM" />
-			<Dependency Name="gucefCOMCORE" />
-			<Dependency Name="gucefCORE" />
-			<Dependency Name="gucefMT" />
-		</Dependencies>
-		<Linker>
-			<Dependency Name="gucefCOM" />
-			<Dependency Name="gucefCOMCORE" />
-			<Dependency Name="gucefCORE" />
-			<Dependency Name="gucefMT" />
-		</Linker>
-            <Define String="GUCEF_COM_TESTAPP_BUILD_MODULE" />
+        <Dependencies>
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefMT" />
+        </Linker>
         <Preprocessor>
-		</Preprocessor>
-		<RuntimeDependencies>
-		</RuntimeDependencies>
+            <Define String="GUCEF_COM_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="comcorepluginUPNP" />
+        </RuntimeDependencies>
     </Module>
-	<Module Platform="mswin" >
-		<RuntimeDependencies>
-			<RuntimeDependency Name="MemoryLeakFinder" />
-		</RuntimeDependencies>
-	</Module>	
+    <Module Platform="mswin" >
+        <RuntimeDependencies>
+            <RuntimeDependency Name="MemoryLeakFinder" />
+        </RuntimeDependencies>
+    </Module>
 </ModuleInfoEntry>

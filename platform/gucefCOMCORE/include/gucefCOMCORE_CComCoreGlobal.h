@@ -40,6 +40,21 @@
 #define GUCEF_COMCORE_CDNSCACHE_H
 #endif /* GUCEF_COMCORE_CDNSCACHE_H ? */
 
+#ifndef GUCEF_COMCORE_CDISCOVERYCLIENTFACTORY_H
+#include "gucefCOMCORE_CDiscoveryClientFactory.h"
+#define GUCEF_COMCORE_CDISCOVERYCLIENTFACTORY_H
+#endif /* GUCEF_COMCORE_CDISCOVERYCLIENTFACTORY_H ? */
+
+#ifndef GUCEF_COMCORE_CIRTTPROBE_H
+#include "gucefCOMCORE_CIRttProbe.h"
+#define GUCEF_COMCORE_CIRTTPROBE_H
+#endif /* GUCEF_COMCORE_CIRTTPROBE_H ? */
+
+#ifndef GUCEF_COMCORE_CIPORTMAPPER_H
+#include "gucefCOMCORE_CIPortMapper.h"
+#define GUCEF_COMCORE_CIPORTMAPPER_H
+#endif /* GUCEF_COMCORE_CIPORTMAPPER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -74,6 +89,15 @@ class GUCEF_COMCORE_EXPORT_CPP CComCoreGlobal
     
     CDiscoveryManager& GetDiscoveryManager( void );
 
+    /** Creates discovery clients by type name, for example "mdns" */
+    CDiscoveryClientFactory& GetDiscoveryClientFactory( void );
+
+    /** Creates round trip time probes by method name, for example "udp-echo" */
+    CRttProbeFactory& GetRttProbeFactory( void );
+
+    /** Creates port mappers by method name, for example "natpmp" */
+    CPortMapperFactory& GetPortMapperFactory( void );
+
     CGeoLocationLookupService& GetGeoLocationLookupService( void );
 
     private:
@@ -95,6 +119,9 @@ class GUCEF_COMCORE_EXPORT_CPP CComCoreGlobal
     CCom* m_com;
     CDnsCachePtr m_dnsCache;
     CDiscoveryManager* m_discoveryManager;
+    CDiscoveryClientFactory* m_discoveryClientFactory;
+    CRttProbeFactory* m_rttProbeFactory;
+    CPortMapperFactory* m_portMapperFactory;
     CGeoLocationLookupService* m_geoLocationLookupService;
 
     static MT::CMutex g_dataLock;

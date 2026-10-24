@@ -26,11 +26,11 @@ language( "C" )
 
 
 configuration( {} )
-kind( "SharedLib" )
+kind( "StaticLib" )
 
 
 configuration( {} )
-defines( { "MINIUPNP_EXPORTS", "MODULE_CONSENSUS_NAME=miniupnpc", "MODULE_NAME=miniupnpc" } )
+defines( { "MINIUPNP_EXPORTS", "MODULE_CONSENSUS_NAME=miniupnpc", "MODULE_NAME=miniupnpc", "STATICLIB" } )
   
 
 configuration( { ANDROID32 } )
@@ -72,7 +72,6 @@ files( {
   "miniupnpc.c",
   "miniwget.c",
   "minixml.c",
-  "upnpc.c",
   "upnpcommands.c",
   "upnperrors.c",
   "upnpreplyparse.c"

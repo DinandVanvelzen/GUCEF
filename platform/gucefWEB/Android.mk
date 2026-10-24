@@ -54,6 +54,7 @@ LOCAL_SRC_FILES := \
   src/gucefWEB_CIHTTPServerRouterController.cpp \
   src/gucefWEB_CIHttpClientBackend.cpp \
   src/gucefWEB_CIHttpServerRequestHandler.cpp \
+  src/gucefWEB_CIrcWebSocketTransport.cpp \
   src/gucefWEB_CJsonRpcClient.cpp \
   src/gucefWEB_CJsonRpcEndpoint.cpp \
   src/gucefWEB_CJsonRpcServer.cpp \

@@ -24,6 +24,18 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#define GUCEF_TESTFW_IMPL
+
+#ifndef GUCEF_MACROS_H
+#include "gucef_macros.h"
+#define GUCEF_MACROS_H
+#endif /* GUCEF_MACROS_H ? */
+
+#ifndef GUCEF_TEST_FRAMEWORK_H
+#include "gucef_test_framework.h"
+#define GUCEF_TEST_FRAMEWORK_H
+#endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
 #define GUCEF_CORE_H
@@ -39,36 +51,74 @@
 #define GUCEF_COM_H
 #endif /* GUCEF_COM_H ? */
 
+#ifndef GUCEF_COM_CCOMGLOBAL_H
+#include "gucefCOM_CComGlobal.h"
+#define GUCEF_COM_CCOMGLOBAL_H
+#endif /* GUCEF_COM_CCOMGLOBAL_H ? */
+
+#include "TestDiscovery.h"
+#include "TestRttProbes.h"
+#include "TestNatTraversal.h"
+#include "TestIrc.h"
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/*
+ *      Application entry point
+ */
 GUCEF_OSMAIN_BEGIN
 {GUCEF_TRACE;
 
-    using namespace GUCEF::CORE;
-    using namespace GUCEF::COMCORE;
-    using namespace GUCEF::COM;
-            
-    try 
-    {                               
-        
-        return 1;                                                                            
+    using namespace GUCEF;
+
+    try
+    {
+        CORE::CString logFilename = CORE::RelativePath( "$CURWORKDIR$" );
+        CORE::AppendToPath( logFilename, "gucefCOM_TestApp_Log.txt" );
+        CORE::CFileAccess logFileAccess( logFilename, "w" );
+
+        CORE::CStdLogger logger( logFileAccess );
+        CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( &logger );
+
+        CORE::CPlatformNativeConsoleLogger consoleOut;
+        if ( GUCEF_APP_TYPE == GUCEF_APP_TYPE_CONSOLE )
+            CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( consoleOut.GetLogger() );
+
+        CORE::CCoreGlobal::Instance()->GetLogManager().FlushBootstrapLogEntriesToLogs();
+
+        // The implementations register themselves when the module starts
+        COM::CComGlobal::Instance();
+
+        GUCEF_TESTFW_INIT( "gucefCOM_TestApp" );
+        GUCEF_TESTFW_SET_CALLBACK( CORE::TestFrameworkLogCallback, GUCEF_NULL );
+
+        PerformUdpDiscoveryTests();
+        PerformMdnsDiscoveryTests();
+        PerformSsdpDiscoveryTests();
+        PerformRttProbeTests();
+        PerformNatPmpTests();
+        PerformStunTests();
+        PerformUpnpPluginTests();
+        PerformIrcMessageTests();
+        PerformIrcClientTests();
+
+        CORE::CLogStreamScope::FlushLogs();
+
+        CORE::CString xmlPath = CORE::RelativePath( "$CURWORKDIR$" );
+        CORE::AppendToPath( xmlPath, "gucefCOM_TestApp_Results.xml" );
+        GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );
+        return GUCEF_TESTFW_EXITCODE;
     }
     catch ( ... )
     {
-        #ifdef DEBUG_MODE
-        //GUCEF_PrintCallstack();
-        //GUCEF_DumpCallstack( "GUCEFCallstack.txt" );
-        #endif
-        
-        ShowErrorMessage( "Unknown exception"                                                                 ,
-                          "Unhandled exception during program execution, the application will now terminate"  );                                                         
+        CORE::ShowErrorMessage( "Unknown exception"                                                                 ,
+                                "Unhandled exception during program execution, the application will now terminate"  );
     }
-    GUCEF_END;
-    return 1;                                                                                                                              
+    return 1;
 }
 GUCEF_OSMAIN_END
 

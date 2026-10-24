@@ -131,6 +131,16 @@
 #define GUCEF_WEB_CGLOBALHTTPCODECLINKS_H
 #endif /* GUCEF_WEB_CGLOBALHTTPCODECLINKS_H ? */
 
+#ifndef GUCEF_COM_CCOMGLOBAL_H
+#include "gucefCOM_CComGlobal.h"
+#define GUCEF_COM_CCOMGLOBAL_H
+#endif /* GUCEF_COM_CCOMGLOBAL_H ? */
+
+#ifndef GUCEF_WEB_CIRCWEBSOCKETTRANSPORT_H
+#include "gucefWEB_CIrcWebSocketTransport.h"
+#define GUCEF_WEB_CIRCWEBSOCKETTRANSPORT_H
+#endif /* GUCEF_WEB_CIRCWEBSOCKETTRANSPORT_H ? */
+
 #include "gucefWEB_CWebGlobal.h"  /* definition of the class implemented here */
 
 /*-------------------------------------------------------------------------//
@@ -165,6 +175,8 @@ TWinHttpClientBackendFactory g_winHttpClientBackendFactory;
 typedef CORE::CTFactory< CORE::CUriResourceAccessor, CHttpUriResourceAccessor, MT::CMutex > THttpUriResourceAccessorFactory;
 THttpUriResourceAccessorFactory g_httpUriResourceAccessorFactory;
 
+TIrcWebSocketTransportFactory g_ircWebSocketTransportFactory;
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -187,6 +199,7 @@ CWebGlobal::Initialize( void )
     // Initialize modules we depend on
     CORE::CCoreGlobal::Instance();
     COMCORE::CComCoreGlobal::Instance();
+    COM::CComGlobal::Instance();
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefWEB Global systems initializing" );
 
@@ -212,6 +225,10 @@ CWebGlobal::Initialize( void )
     CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CHttpClientRequestTaskConsumer::TaskType, &g_httpClientRequestTaskConsumerFactory );
     CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory().RegisterConcreteFactory( CHttpUriResourceAccessor::SchemeNameHttp, &g_httpUriResourceAccessorFactory );
     CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory().RegisterConcreteFactory( CHttpUriResourceAccessor::SchemeNameHttps, &g_httpUriResourceAccessorFactory );
+
+    // IRC can go over a web socket: the COM IRC client finds this transport by name
+    COM::CComGlobal::Instance()->GetIrcTransportFactory().RegisterConcreteFactory( COM::CIIrcTransport::WebSocketTransportName, &g_ircWebSocketTransportFactory );
+
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefWEB" );
 }
 
@@ -222,6 +239,8 @@ CWebGlobal::~CWebGlobal()
   
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefWEB Global systems shutting down" );
     CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefWEB" );
+
+    COM::CComGlobal::Instance()->GetIrcTransportFactory().UnregisterConcreteFactory( COM::CIIrcTransport::WebSocketTransportName );
 
     CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory().UnregisterConcreteFactory( CHttpUriResourceAccessor::SchemeNameHttp );
     CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory().UnregisterConcreteFactory( CHttpUriResourceAccessor::SchemeNameHttps );

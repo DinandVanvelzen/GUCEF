@@ -28,7 +28,25 @@ LOCAL_SRC_FILES := \
   src/CPHUDPSocket.cpp \
   src/gucefCOM.cpp \
   src/gucefCOM_CComGlobal.cpp \
-  src/gucefCOM_CStatsDClient.cpp
+  src/gucefCOM_CDnsMessage.cpp \
+  src/gucefCOM_CIIrcTransport.cpp \
+  src/gucefCOM_CIcmpRttProbe.cpp \
+  src/gucefCOM_CIrcClient.cpp \
+  src/gucefCOM_CIrcClientSettings.cpp \
+  src/gucefCOM_CIrcMessage.cpp \
+  src/gucefCOM_CIrcTcpTransport.cpp \
+  src/gucefCOM_CMdnsDiscoveryClient.cpp \
+  src/gucefCOM_CNatPmpPortMapper.cpp \
+  src/gucefCOM_CSsdpDiscoveryClient.cpp \
+  src/gucefCOM_CStatsDClient.cpp \
+  src/gucefCOM_CStunClient.cpp \
+  src/gucefCOM_CTcpConnectRttProbe.cpp \
+  src/gucefCOM_CUdpBroadcastDiscoveryClient.cpp \
+  src/gucefCOM_CUdpDiscoveryClientBase.cpp \
+  src/gucefCOM_CUdpDiscoveryCodec.cpp \
+  src/gucefCOM_CUdpEchoResponder.cpp \
+  src/gucefCOM_CUdpEchoRttProbe.cpp \
+  src/gucefCOM_CUdpMulticastDiscoveryClient.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \

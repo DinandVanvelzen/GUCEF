@@ -93,6 +93,11 @@
 #define GUCEF_WEB_TESTAPP_TESTHTTPCLIENT_H
 #endif /* GUCEF_WEB_TESTAPP_TESTHTTPCLIENT_H ? */
 
+#ifndef GUCEF_WEB_TESTIRCWEBSOCKET_H
+#include "TestIrcWebSocket.h"
+#define GUCEF_WEB_TESTIRCWEBSOCKET_H
+#endif /* GUCEF_WEB_TESTIRCWEBSOCKET_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -152,6 +157,7 @@ GUCEF_OSMAIN_BEGIN
         PerformJsonRpcTests();
         PerformChromeDevToolsTests();
         PerformHttpClientTests();
+        PerformIrcWebSocketTests();
 
         CORE::CLogStreamScope::FlushLogs();
 

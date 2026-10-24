@@ -1,5 +1,7 @@
 common/include/*
+dependencies/miniupnpc/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefMT/*
+plugins/COMCORE/comcorepluginUPNP/*
 tests/gucefCOM_TestApp/*

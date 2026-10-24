@@ -66,6 +66,30 @@ CIDiscoveryEntry::operator=( const CIDiscoveryEntry& src )
     return *this;
 }
 
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CIDiscoveryEntry::MakeEntryKey( const CORE::CString& serviceType, const CORE::CString& instanceId )
+{GUCEF_TRACE;
+
+    CORE::CString key( serviceType );
+    key += '|';
+    key += instanceId;
+    return key;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CIDiscoveryEntry::GetEntryKey( void ) const
+{GUCEF_TRACE;
+
+    CORE::CString instanceId;
+    if ( !GetApplicationInstanceId( instanceId ) || instanceId.IsNULLOrEmpty() )
+        instanceId = GetInstanceName();
+    return MakeEntryKey( GetServiceType(), instanceId );
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

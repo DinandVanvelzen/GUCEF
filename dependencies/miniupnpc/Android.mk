@@ -28,7 +28,6 @@ LOCAL_SRC_FILES := \
   miniupnpc.c \
   miniwget.c \
   minixml.c \
-  upnpc.c \
   upnpcommands.c \
   upnperrors.c \
   upnpreplyparse.c
@@ -36,7 +35,7 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)
 
-LOCAL_CFLAGS := -DMINIUPNP_EXPORTS -DMODULE_CONSENSUS_NAME=miniupnpc -DMODULE_NAME=miniupnpc
+LOCAL_CFLAGS := -DMINIUPNP_EXPORTS -DMODULE_CONSENSUS_NAME=miniupnpc -DMODULE_NAME=miniupnpc -DSTATICLIB
 
-include $(BUILD_SHARED_LIBRARY)
+include $(BUILD_STATIC_LIBRARY)
 

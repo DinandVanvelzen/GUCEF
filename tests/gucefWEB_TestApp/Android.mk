@@ -25,6 +25,7 @@ LOCAL_SRC_FILES := \
   src/TestCode_CHTTPClient.cpp \
   src/TestCode_CHTTPServer.cpp \
   src/TestHttpClient.cpp \
+  src/TestIrcWebSocket.cpp \
   src/TestJsonRpc.cpp \
   src/TestWebSocket.cpp \
   src/TestWebSocketCodec.cpp \

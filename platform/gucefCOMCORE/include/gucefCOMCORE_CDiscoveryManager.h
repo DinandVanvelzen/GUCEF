@@ -25,7 +25,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <set>
+#ifndef GUCEF_MT_CMUTEX_H
+#include "gucefMT_CMutex.h"
+#define GUCEF_MT_CMUTEX_H
+#endif /* GUCEF_MT_CMUTEX_H ? */
+
+#ifndef GUCEF_CORE_COBSERVINGNOTIFIER_H
+#include "CObservingNotifier.h"
+#define GUCEF_CORE_COBSERVINGNOTIFIER_H
+#endif /* GUCEF_CORE_COBSERVINGNOTIFIER_H ? */
 
 #ifndef GUCEF_CORE_CGLOBALLYCONFIGURABLE_H
 #include "gucefCORE_CGloballyConfigurable.h"
@@ -68,53 +76,101 @@ namespace COMCORE {
 //-------------------------------------------------------------------------*/
 
 /**
- *  Interface class which serves as the base class for all discovery clients
+ *  Combines the registered discovery clients into one: browses and advertisements go to every client, and what
+ *  the clients find is published again with the same events as CIDiscoveryClient uses, with the entries merged
+ *  by their key (service type, instance id). An entry is lost once no client knows it anymore.
+ *
+ *  LoadConfig() creates the clients its configuration names through the discovery client factory of
+ *  CComCoreGlobal, for example:
+ *      <DiscoveryManager>
+ *          <DiscoveryClient type="mdns" name="lan-mdns" />
+ *      </DiscoveryManager>
+ *  Every attribute and child of a DiscoveryClient node is handed to the LoadConfig() of the client it creates.
  */
-class GUCEF_COMCORE_EXPORT_CPP CDiscoveryManager : public virtual CORE::CGloballyConfigurable ,
+class GUCEF_COMCORE_EXPORT_CPP CDiscoveryManager : public CORE::CObservingNotifier            ,
+                                                   public virtual CORE::CGloballyConfigurable ,
                                                    public virtual CIDiscovery
 {
     public:
 
     typedef GUCEF::set< CORE::CString > TStringSet;
     typedef GUCEF::set< CIDiscoveryClientPtr > TDiscoveryClientSet;
+    typedef GUCEF::vector< CIDiscoveryClientPtr > TDiscoveryClientVector;
 
+    /**
+     *  Adds the client: it gets the active browses and advertisements and its findings are merged in
+     */
     bool RegisterDiscoveryClient( CIDiscoveryClientPtr discoveryClient );
 
     bool UnregisterDiscoveryClient( const CORE::CString& discoveryClientName );
 
+    /**
+     *  Unregisters the clients that were created through the factory with the given type, for example when the
+     *  module that provides the type goes away
+     *
+     *  @return the number of clients unregistered
+     */
+    UInt32 UnregisterDiscoveryClientsOfType( const CORE::CString& clientType );
+
+    CIDiscoveryClientPtr GetDiscoveryClient( const CORE::CString& discoveryClientName ) const;
+
+    void GetDiscoveryClients( TDiscoveryClientVector& clients ) const;
+
+    /**
+     *  Creates a client of the given type through the discovery client factory, configures it with the given
+     *  config when there is one and registers it
+     */
+    CIDiscoveryClientPtr CreateDiscoveryClient( const CORE::CString& clientType         ,
+                                                const CORE::CDataNode* config = GUCEF_NULL );
+
+    bool Browse( const CORE::CString& serviceType );
+
+    bool StopBrowse( const CORE::CString& serviceType );
+
+    bool IsBrowsing( const CORE::CString& serviceType = CORE::CString::Empty ) const;
+
+    bool Advertise( CIDiscoveryEntryPtr entry );
+
+    bool Withdraw( CIDiscoveryEntryPtr entry );
+
+    /** The merged entries currently known for the given service type, empty for all */
+    bool GetDiscoveredEntries( const CORE::CString& serviceType ,
+                               TIDiscoveryEntrySet& entries     ) const;
+
     virtual bool FindCapability( const CORE::CString& capabilityId ,
-                                 TIDiscoveryEntrySet& entries      ) const;
+                                 TIDiscoveryEntrySet& entries      ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool FindApplication( const CORE::CString& applicationId ,
-                                 TIDiscoveryEntrySet& entries        ) const;
+                                 TIDiscoveryEntrySet& entries        ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool FindHost( const COMCORE::CHostAddress& host ,
-                           TIDiscoveryEntrySet& entries      ) const;
+                           TIDiscoveryEntrySet& entries      ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool Register( CIDiscoveryEntryPtr entry );
+    /** The same operation as Advertise() */
+    virtual bool Register( CIDiscoveryEntryPtr entry ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual bool Unregister( CIDiscoveryEntryPtr entry );
-
-    /**
-     *      Attempts to store the given tree in the file
-     *      given according to the method of the codec metadata
-     *
-     *      @param tree the data tree you wish to store
-     *      @return wheter storing the tree was successfull
-     */
-    virtual bool SaveConfig( CORE::CDataNode& tree ) const;
+    /** The same operation as Withdraw() */
+    virtual bool Unregister( CIDiscoveryEntryPtr entry ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
-     *      Attempts to load data from the given file to the
-     *      root node given. The root data will be replaced
-     *      and any children the node may already have will be deleted.
-     *
-     *      @param treeroot pointer to the node that is to act as root of the data tree
-     *      @return whether building the tree from the given file was successfull.
+     *  Saves a DiscoveryManager node with a DiscoveryClient node per client
      */
-    virtual bool LoadConfig( const CORE::CDataNode& treeroot );
+    virtual bool SaveConfig( CORE::CDataNode& tree ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual const CString& GetClassTypeName( void ) const;
+    /**
+     *  Looks for the DiscoveryManager node, which is either the given node or a child of it, and creates and
+     *  configures the clients its DiscoveryClient nodes name. A client that is already registered under the
+     *  same name is configured again instead.
+     */
+    virtual bool LoadConfig( const CORE::CDataNode& treeroot ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    protected:
+
+    virtual void OnNotify( CORE::CNotifier* notifier                 ,
+                           const CORE::CEvent& eventId               ,
+                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
@@ -127,9 +183,29 @@ class GUCEF_COMCORE_EXPORT_CPP CDiscoveryManager : public virtual CORE::CGloball
     CDiscoveryManager( void );
     ~CDiscoveryManager();
 
+    bool OnClientEntryFound( const CORE::CString& clientName, const CIDiscoveryEntryPtr& entry );
+    bool OnClientEntryLost( const CORE::CString& clientName, const CIDiscoveryEntryPtr& entry );
+    bool ForgetClientEntries( const CORE::CString& clientName );
+
     private:
 
+    struct SMergedEntry
+    {
+        CIDiscoveryEntryPtr entry;
+        TStringSet clientNames;     /**< the clients that currently know the entry */
+    };
+    typedef struct SMergedEntry TMergedEntry;
+    typedef GUCEF::map< CORE::CString, TMergedEntry >           TMergedEntryMap;
+    typedef GUCEF::map< CORE::CString, CIDiscoveryEntryPtr >    TAdvertisedEntryMap;
+    typedef GUCEF::map< CORE::CString, CORE::CString >          TStringMap;
+    typedef GUCEF::vector< CIDiscoveryEntryPtr >                TEntryVector;
+
     TDiscoveryClientSet m_clients;
+    TStringMap m_clientTypes;               /**< client name -> the factory type it was created with */
+    TStringSet m_browsedServiceTypes;
+    TAdvertisedEntryMap m_advertised;
+    TMergedEntryMap m_merged;
+    mutable MT::CMutex m_dataLock;
 };
 
 /*-------------------------------------------------------------------------//

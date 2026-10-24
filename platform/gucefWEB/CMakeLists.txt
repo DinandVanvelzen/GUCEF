@@ -45,6 +45,7 @@ set( HEADER_FILES
   include/gucefWEB_CIHttpClientBackend.h
   include/gucefWEB_CIHttpServerRequestHandler.h
   include/gucefWEB_CIWebSocketUpgradeHandler.h
+  include/gucefWEB_CIrcWebSocketTransport.h
   include/gucefWEB_CJsonRpcClient.h
   include/gucefWEB_CJsonRpcEndpoint.h
   include/gucefWEB_CJsonRpcServer.h
@@ -107,6 +108,7 @@ set( SOURCE_FILES
   src/gucefWEB_CIHTTPServerRouterController.cpp
   src/gucefWEB_CIHttpClientBackend.cpp
   src/gucefWEB_CIHttpServerRequestHandler.cpp
+  src/gucefWEB_CIrcWebSocketTransport.cpp
   src/gucefWEB_CJsonRpcClient.cpp
   src/gucefWEB_CJsonRpcEndpoint.cpp
   src/gucefWEB_CJsonRpcServer.cpp

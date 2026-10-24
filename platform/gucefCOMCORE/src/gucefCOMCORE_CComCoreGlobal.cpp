@@ -148,6 +148,9 @@ CComCoreGlobal::CComCoreGlobal( void )
     : m_com( GUCEF_NULL )
     , m_dnsCache()
     , m_discoveryManager( GUCEF_NULL )
+    , m_discoveryClientFactory( GUCEF_NULL )
+    , m_rttProbeFactory( GUCEF_NULL )
+    , m_portMapperFactory( GUCEF_NULL )
     , m_geoLocationLookupService( GUCEF_NULL )
 {GUCEF_TRACE;
 
@@ -179,6 +182,9 @@ CComCoreGlobal::Initialize( void )
     CUDPChannel::RegisterEvents();
     CDnsCache::RegisterEvents();
     CDnsCacheEntry::RegisterEvents();
+    CIDiscoveryClient::RegisterEvents();
+    CIRttProbe::RegisterEvents();
+    CIPortMapper::RegisterEvents();
     
     CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
 
@@ -190,6 +196,9 @@ CComCoreGlobal::Initialize( void )
 
     m_com = GUCEF_NEW CCom();
     m_dnsCache = ( GUCEF_NEW CGlobalDnsCache() )->CreateSharedPtr();
+    m_discoveryClientFactory = GUCEF_NEW CDiscoveryClientFactory();
+    m_rttProbeFactory = GUCEF_NEW CRttProbeFactory();
+    m_portMapperFactory = GUCEF_NEW CPortMapperFactory();
     m_discoveryManager = GUCEF_NEW CDiscoveryManager();
     m_geoLocationLookupService = GUCEF_NEW CGeoLocationLookupService();
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefCOMCORE" );
@@ -219,6 +228,12 @@ CComCoreGlobal::Shutdown( void )
     m_geoLocationLookupService = GUCEF_NULL;
     GUCEF_DELETE m_discoveryManager;
     m_discoveryManager = GUCEF_NULL;
+    GUCEF_DELETE m_portMapperFactory;
+    m_portMapperFactory = GUCEF_NULL;
+    GUCEF_DELETE m_rttProbeFactory;
+    m_rttProbeFactory = GUCEF_NULL;
+    GUCEF_DELETE m_discoveryClientFactory;
+    m_discoveryClientFactory = GUCEF_NULL;
     m_dnsCache.Unlink();
     GUCEF_DELETE m_com;
     m_com = GUCEF_NULL;
@@ -293,6 +308,33 @@ CComCoreGlobal::GetDiscoveryManager( void )
 {GUCEF_TRACE;
 
     return *m_discoveryManager;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDiscoveryClientFactory&
+CComCoreGlobal::GetDiscoveryClientFactory( void )
+{GUCEF_TRACE;
+
+    return *m_discoveryClientFactory;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRttProbeFactory&
+CComCoreGlobal::GetRttProbeFactory( void )
+{GUCEF_TRACE;
+
+    return *m_rttProbeFactory;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPortMapperFactory&
+CComCoreGlobal::GetPortMapperFactory( void )
+{GUCEF_TRACE;
+
+    return *m_portMapperFactory;
 }
 
 /*-------------------------------------------------------------------------*/

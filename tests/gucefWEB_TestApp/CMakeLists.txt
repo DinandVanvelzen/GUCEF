@@ -16,6 +16,7 @@ set( HEADER_FILES
   include/TestCode_CHTTPClient.h
   include/TestCode_CHTTPServer.h
   include/TestHttpClient.h
+  include/TestIrcWebSocket.h
   include/TestJsonRpc.h
   include/TestWebSocket.h
   include/TestWebSocketCodec.h
@@ -26,6 +27,7 @@ set( SOURCE_FILES
   src/TestCode_CHTTPClient.cpp
   src/TestCode_CHTTPServer.cpp
   src/TestHttpClient.cpp
+  src/TestIrcWebSocket.cpp
   src/TestJsonRpc.cpp
   src/TestWebSocket.cpp
   src/TestWebSocketCodec.cpp
