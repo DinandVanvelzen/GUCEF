@@ -1,0 +1,16 @@
+common/include/*
+platform/gucefAUDIO/*
+platform/gucefCOM/*
+platform/gucefCORE/*
+platform/gucefDRN/*
+platform/gucefGAMEGUI/*
+platform/gucefGUI/*
+platform/gucefIMAGE/*
+platform/gucefINPUT/*
+platform/gucefMT/*
+platform/gucefMULTIPLAY/*
+platform/gucefVFS/*
+platform/gucefVIDEO/*
+platform/gucefWEB/*
+plugins/GUI/guidriverNull/*
+tests/gucefGAMEGUI_TestApp/*

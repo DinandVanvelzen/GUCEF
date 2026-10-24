@@ -1,0 +1,41 @@
+<ModuleInfoEntry>
+    <Module Name="gucefGAMEGUI_TestApp" Type="Executable" Platform="mswin;linux;android" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="gucefVIDEO" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefMULTIPLAY" />
+            <Dependency Name="gucefGAMEGUI" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="gucefVIDEO" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefMULTIPLAY" />
+            <Dependency Name="gucefGAMEGUI" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE" />
+        </Preprocessor>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="guidriverNull" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

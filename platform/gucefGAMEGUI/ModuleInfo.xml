@@ -1,0 +1,48 @@
+<ModuleInfoEntry>
+    <Module Name="gucefGAMEGUI" Type="SharedLibrary" Platform="All" Tags="platform">
+		<ModuleMetaData>
+			<License>APACHEv2</License>
+			<SemVer>0.1.0.0</SemVer>
+			<DescriptionHeadline>GUCEF module providing prebaked GUI forms for rapid game development</DescriptionHeadline>
+			<DescriptionDetails></DescriptionDetails>
+			<Authors>
+				<Author>Dinand Vanvelzen</Author>
+			</Authors>
+			<Maintainers>
+				<Maintainer>Dinand Vanvelzen</Maintainer>
+			</Maintainers>
+		</ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefVFS" />
+            <Dependency Name="gucefIMAGE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="gucefAUDIO" />
+            <Dependency Name="gucefVIDEO" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefMULTIPLAY" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" Scope="public" />
+            <Dependency Name="gucefCORE" Scope="public" />
+            <Dependency Name="gucefVFS" Scope="public" />
+            <Dependency Name="gucefIMAGE" Scope="public" />
+            <Dependency Name="gucefINPUT" Scope="public" />
+            <Dependency Name="gucefAUDIO" Scope="public" />
+            <Dependency Name="gucefVIDEO" Scope="public" />
+            <Dependency Name="gucefGUI" Scope="public" />
+            <Dependency Name="gucefCOMCORE" Scope="public" />
+            <Dependency Name="gucefCOM" Scope="public" />
+            <Dependency Name="gucefWEB" Scope="public" />
+            <Dependency Name="gucefMULTIPLAY" Scope="public" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_GAMEGUI_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>
