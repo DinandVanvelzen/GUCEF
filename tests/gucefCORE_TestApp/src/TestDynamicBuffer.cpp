@@ -263,6 +263,71 @@ PerformDynamicBufferTests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "DynamicBuffer: Text without a terminating null becomes a string of exactly the data, nothing beyond it" )
+    try
+    {
+        // the bytes after the data are there in memory, they must not end up in the string
+        CORE::CDynamicBuffer buffer;
+        buffer.Append( "abcX", 4 );
+        buffer.SetDataSize( 3 );
+        CORE::CString text = CORE::ToString( buffer );
+        ASSERT_TRUE( text == "abc" );
+        ASSERT_TRUE( 3 == text.Length() );
+
+        // text with its null terminator in the data keeps working
+        CORE::CDynamicBuffer terminated;
+        terminated.Append( "abc", 4 );
+        ASSERT_TRUE( CORE::ToString( terminated ) == "abc" );
+
+        // a sized string of exactly the text
+        CORE::CString sized( "defY", 3, true );
+        ASSERT_TRUE( sized == "def" && 3 == sized.Length() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "DynamicBuffer: Downshift moves the data to the front and reads nothing past the data" )
+    try
+    {
+        // 10 bytes of data in a buffer of 16, the 6 bytes after the data are sentinels
+        CORE::CDynamicBuffer buffer( 16, false );
+        buffer.CopyFrom( 16, "0123456789######" );
+        buffer.SetDataSize( 10 );
+        ASSERT_TRUE( 16 == buffer.GetBufferSize() );
+
+        ASSERT_TRUE( buffer.Downshift( 3 ) );
+        ASSERT_TRUE( 7 == buffer.GetDataSize() );
+        ASSERT_TRUE( 0 == memcmp( buffer.GetConstBufferPtr(), "3456789", 7 ) );
+
+        // What was after the data was not read: no sentinel moved into the bytes the data left
+        const char* raw = buffer.AsConstTypePtr< char >();
+        for ( UInt32 i=7; i<10; ++i )
+            ASSERT_TRUE( '#' != raw[ i ] );
+        ASSERT_TRUE( 0 == memcmp( raw + 10, "######", 6 ) );
+
+        // A shift larger than half the data, and one of all of it
+        ASSERT_TRUE( buffer.Downshift( 5 ) );
+        ASSERT_TRUE( 2 == buffer.GetDataSize() && 0 == memcmp( buffer.GetConstBufferPtr(), "89", 2 ) );
+        ASSERT_TRUE( buffer.Downshift( 2 ) );
+        ASSERT_TRUE( 0 == buffer.GetDataSize() );
+        ASSERT_FALSE( buffer.Downshift( 1 ) );
+
+        // Data that fills the buffer exactly: reading past it would leave the allocation
+        CORE::CDynamicBuffer full( 8, false );
+        full.CopyFrom( 8, "abcdefgh" );
+        ASSERT_TRUE( 8 == full.GetDataSize() && 8 == full.GetBufferSize() );
+        ASSERT_TRUE( full.Downshift( 3 ) );
+        ASSERT_TRUE( 5 == full.GetDataSize() && 0 == memcmp( full.GetConstBufferPtr(), "defgh", 5 ) );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/

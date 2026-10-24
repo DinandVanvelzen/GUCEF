@@ -882,9 +882,10 @@ size_t utf8size_s(const void *str, size_t bufferSize )
     size++;
   }
 
-  if ( bufferSize > 0 )
+  if ( size < bufferSize )
   {
       // we are including the null terminating byte in the size calculation
+      // (a buffer without one has nothing beyond its last byte to count)
       size++;
   }
   return size;
