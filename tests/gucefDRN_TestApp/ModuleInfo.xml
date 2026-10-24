@@ -4,12 +4,16 @@
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
 			<Dependency Name="gucefCOMCORE" />
+			<Dependency Name="gucefCOM" />
+			<Dependency Name="gucefWEB" />
 			<Dependency Name="gucefDRN" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
 			<Dependency Name="gucefCOMCORE" />
+			<Dependency Name="gucefCOM" />
+			<Dependency Name="gucefWEB" />
 			<Dependency Name="gucefDRN" />
         </Linker>
         <Preprocessor>
@@ -18,6 +22,9 @@
 		<RuntimeDependencies>
 			<RuntimeDependency Name="dstorepluginJSONPARSER" />
 			<RuntimeDependency Name="dstorepluginPARSIFALXML" />
+			<RuntimeDependency Name="codecspluginSTBRUMMEHASH" />
+			<RuntimeDependency Name="codecspluginMONOCYPHER" />
+			<RuntimeDependency Name="codecspluginOPENSSL" />
 		</RuntimeDependencies>
     </Module>
 </ModuleInfoEntry>

@@ -38,7 +38,9 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../gucefCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../gucefDRN/include \
-  $(MY_MODULE_PATH)/../gucefMT/include
+  $(MY_MODULE_PATH)/../gucefMT/include \
+  $(MY_MODULE_PATH)/../gucefVFS/include \
+  $(MY_MODULE_PATH)/../gucefWEB/include
 
 LOCAL_CFLAGS := -DGUCEF_SMDRN_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefSMDRN -DMODULE_NAME=gucefSMDRN -DMODULE_SEMVER=0_1_0_0
 

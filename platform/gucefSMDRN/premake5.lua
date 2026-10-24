@@ -74,7 +74,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../gucefCOM/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefDRN/include", "../gucefMT/include", "include" } )
+includedirs( { "../../common/include", "../gucefCOM/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefDRN/include", "../gucefMT/include", "../gucefVFS/include", "../gucefWEB/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../gucefCOMCORE/include/android", "../gucefCORE/include/android" } )

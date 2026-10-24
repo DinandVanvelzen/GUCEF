@@ -17,8 +17,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
  */
 
-#ifndef GUCEF_SMDRN_CZONECLIENT_H
-#define GUCEF_SMDRN_CZONECLIENT_H
+#ifndef GUCEF_SMDRN_CZONEARBITER_H
+#define GUCEF_SMDRN_CZONEARBITER_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -30,6 +30,11 @@
 #include "gucefDRN_CDRNNode.h"
 #define GUCEF_DRN_CDRNNODE_H
 #endif /* GUCEF_DRN_CDRNNODE_H ? */
+
+#ifndef GUCEF_DRN_CDRNSESSION_H
+#include "gucefDRN_CDRNSession.h"
+#define GUCEF_DRN_CDRNSESSION_H
+#endif /* GUCEF_DRN_CDRNSESSION_H ? */
 
 #ifndef GUCEF_SMDRN_MACROS_H
 #include "gucefSMDRN_macros.h"         /* often used gucefSMDRN macros */
@@ -55,7 +60,8 @@ class GUCEF_SMDRN_EXPORT_CPP CZoneArbiter
 {
     public:
     
-    void GetListenAddress( COMCORE::CHostAddress& listenAddress ) const;
+    /** The endpoints zone clients link to: those the node of the arbiter listens on */
+    DRN::CDRNEndpointList GetListenEndpoints( void ) const;
 
     private:
 
@@ -65,6 +71,7 @@ class GUCEF_SMDRN_EXPORT_CPP CZoneArbiter
     private:
     
     DRN::CDRNNode m_drnNode;
+    DRN::CDRNSession* m_zoneSession;        /**< the arbiter is the server of the zone's session */
 };
 
 /*-------------------------------------------------------------------------//
@@ -78,7 +85,7 @@ class GUCEF_SMDRN_EXPORT_CPP CZoneArbiter
 
 /*-------------------------------------------------------------------------*/
           
-#endif /* GUCEF_SMDRN_CZONECLIENT_H ? */
+#endif /* GUCEF_SMDRN_CZONEARBITER_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

@@ -67,32 +67,32 @@ configuration( { WIN64 } )
 kind( "WindowedApp" )
   
 configuration( { LINUX32 } )
-links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
-  links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+  links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
   
 
 configuration( { LINUX32 } )
 defines( { "GUCEF_DRN_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRN_TestApp" } )
   
 configuration( { LINUX64 } )
-links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
-  links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+  links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
   
 
 configuration( { LINUX64 } )
 defines( { "GUCEF_DRN_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRN_TestApp" } )
   
 configuration( { WIN32 } )
-links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
-  links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+  links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
   
 
 configuration( { WIN32 } )
 defines( { "GUCEF_DRN_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRN_TestApp" } )
   
 configuration( { WIN64 } )
-links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
-  links( { "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT" } )
+links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+  links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
   
 
 configuration( { WIN64 } )
@@ -102,12 +102,34 @@ defines( { "GUCEF_DRN_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefDRN_TestApp" } )
 configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/TestCode_PeerToPeer.h"
+      "include/TestDRNAllocationCounter.h",
+      "include/TestDRNEncryption.h",
+      "include/TestDRNHandshake.h",
+      "include/TestDRNLinks.h",
+      "include/TestDRNLossyChannel.h",
+      "include/TestDRNMemoryChannel.h",
+      "include/TestDRNRelay.h",
+      "include/TestDRNReplication.h",
+      "include/TestDRNSecurity.h",
+      "include/TestDRNSessions.h",
+      "include/TestDRNTestUtils.h",
+      "include/TestDRNWire.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/TestCode_PeerToPeer.cpp",
+      "src/TestDRNAllocationCounter.cpp",
+      "src/TestDRNEncryption.cpp",
+      "src/TestDRNHandshake.cpp",
+      "src/TestDRNLinks.cpp",
+      "src/TestDRNLossyChannel.cpp",
+      "src/TestDRNMemoryChannel.cpp",
+      "src/TestDRNRelay.cpp",
+      "src/TestDRNReplication.cpp",
+      "src/TestDRNSecurity.cpp",
+      "src/TestDRNSessions.cpp",
+      "src/TestDRNTestUtils.cpp",
+      "src/TestDRNWire.cpp",
       "src/gucefDRN_TestApp.cpp"
     } )
 
@@ -116,12 +138,34 @@ configuration( { "LINUX32" } )
 configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/TestCode_PeerToPeer.h"
+      "include/TestDRNAllocationCounter.h",
+      "include/TestDRNEncryption.h",
+      "include/TestDRNHandshake.h",
+      "include/TestDRNLinks.h",
+      "include/TestDRNLossyChannel.h",
+      "include/TestDRNMemoryChannel.h",
+      "include/TestDRNRelay.h",
+      "include/TestDRNReplication.h",
+      "include/TestDRNSecurity.h",
+      "include/TestDRNSessions.h",
+      "include/TestDRNTestUtils.h",
+      "include/TestDRNWire.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/TestCode_PeerToPeer.cpp",
+      "src/TestDRNAllocationCounter.cpp",
+      "src/TestDRNEncryption.cpp",
+      "src/TestDRNHandshake.cpp",
+      "src/TestDRNLinks.cpp",
+      "src/TestDRNLossyChannel.cpp",
+      "src/TestDRNMemoryChannel.cpp",
+      "src/TestDRNRelay.cpp",
+      "src/TestDRNReplication.cpp",
+      "src/TestDRNSecurity.cpp",
+      "src/TestDRNSessions.cpp",
+      "src/TestDRNTestUtils.cpp",
+      "src/TestDRNWire.cpp",
       "src/gucefDRN_TestApp.cpp"
     } )
 
@@ -130,12 +174,34 @@ configuration( { "LINUX64" } )
 configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/TestCode_PeerToPeer.h"
+      "include/TestDRNAllocationCounter.h",
+      "include/TestDRNEncryption.h",
+      "include/TestDRNHandshake.h",
+      "include/TestDRNLinks.h",
+      "include/TestDRNLossyChannel.h",
+      "include/TestDRNMemoryChannel.h",
+      "include/TestDRNRelay.h",
+      "include/TestDRNReplication.h",
+      "include/TestDRNSecurity.h",
+      "include/TestDRNSessions.h",
+      "include/TestDRNTestUtils.h",
+      "include/TestDRNWire.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/TestCode_PeerToPeer.cpp",
+      "src/TestDRNAllocationCounter.cpp",
+      "src/TestDRNEncryption.cpp",
+      "src/TestDRNHandshake.cpp",
+      "src/TestDRNLinks.cpp",
+      "src/TestDRNLossyChannel.cpp",
+      "src/TestDRNMemoryChannel.cpp",
+      "src/TestDRNRelay.cpp",
+      "src/TestDRNReplication.cpp",
+      "src/TestDRNSecurity.cpp",
+      "src/TestDRNSessions.cpp",
+      "src/TestDRNTestUtils.cpp",
+      "src/TestDRNWire.cpp",
       "src/gucefDRN_TestApp.cpp"
     } )
 
@@ -144,18 +210,40 @@ configuration( { "WIN32" } )
 configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/TestCode_PeerToPeer.h"
+      "include/TestDRNAllocationCounter.h",
+      "include/TestDRNEncryption.h",
+      "include/TestDRNHandshake.h",
+      "include/TestDRNLinks.h",
+      "include/TestDRNLossyChannel.h",
+      "include/TestDRNMemoryChannel.h",
+      "include/TestDRNRelay.h",
+      "include/TestDRNReplication.h",
+      "include/TestDRNSecurity.h",
+      "include/TestDRNSessions.h",
+      "include/TestDRNTestUtils.h",
+      "include/TestDRNWire.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
-      "src/TestCode_PeerToPeer.cpp",
+      "src/TestDRNAllocationCounter.cpp",
+      "src/TestDRNEncryption.cpp",
+      "src/TestDRNHandshake.cpp",
+      "src/TestDRNLinks.cpp",
+      "src/TestDRNLossyChannel.cpp",
+      "src/TestDRNMemoryChannel.cpp",
+      "src/TestDRNRelay.cpp",
+      "src/TestDRNReplication.cpp",
+      "src/TestDRNSecurity.cpp",
+      "src/TestDRNSessions.cpp",
+      "src/TestDRNTestUtils.cpp",
+      "src/TestDRNWire.cpp",
       "src/gucefDRN_TestApp.cpp"
     } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefMT/include" } )
+includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include" } )
 
 configuration( { "LINUX32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "include" } )
@@ -164,7 +252,7 @@ configuration( { "LINUX64" } )
 includedirs( { "../../platform/gucefCOMCORE/include/linux", "../../platform/gucefCORE/include/linux", "include" } )
 
 configuration( { "WIN32" } )
-includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "include" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin", "include" } )
 
 configuration( { "WIN64" } )
-includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "include" } )
+includedirs( { "../../platform/gucefCOMCORE/include/mswin", "../../platform/gucefCORE/include/mswin", "../../platform/gucefMT/include/mswin", "../../platform/gucefWEB/include/mswin", "include" } )

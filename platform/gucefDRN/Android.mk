@@ -23,31 +23,80 @@ LOCAL_MODULE_FILENAME := libgucefDRN
 
 LOCAL_SRC_FILES := \
   src/gucefDRN.cpp \
-  src/gucefDRN_CDRNDataGroup.cpp \
-  src/gucefDRN_CDRNDataGroupProperties.cpp \
+  src/gucefDRN_CDRNAnonymousAuthenticator.cpp \
+  src/gucefDRN_CDRNBanList.cpp \
+  src/gucefDRN_CDRNBulkTransfer.cpp \
+  src/gucefDRN_CDRNClock.cpp \
+  src/gucefDRN_CDRNConnector.cpp \
+  src/gucefDRN_CDRNCrypto.cpp \
+  src/gucefDRN_CDRNDataGrid.cpp \
+  src/gucefDRN_CDRNDataGridSettings.cpp \
+  src/gucefDRN_CDRNDataItem.cpp \
   src/gucefDRN_CDRNDataStream.cpp \
+  src/gucefDRN_CDRNDataStreamSettings.cpp \
+  src/gucefDRN_CDRNEndpoint.cpp \
+  src/gucefDRN_CDRNEndpointList.cpp \
+  src/gucefDRN_CDRNGlobal.cpp \
+  src/gucefDRN_CDRNLatencyInfo.cpp \
+  src/gucefDRN_CDRNLatencyMeter.cpp \
+  src/gucefDRN_CDRNLinkMonitor.cpp \
+  src/gucefDRN_CDRNLinkReliability.cpp \
   src/gucefDRN_CDRNNode.cpp \
+  src/gucefDRN_CDRNNodeSettings.cpp \
+  src/gucefDRN_CDRNPacketCodec.cpp \
+  src/gucefDRN_CDRNPacketProtection.cpp \
   src/gucefDRN_CDRNPeerLink.cpp \
-  src/gucefDRN_CDRNPeerLinkData.cpp \
+  src/gucefDRN_CDRNReachabilityManager.cpp \
+  src/gucefDRN_CDRNRelayChannel.cpp \
+  src/gucefDRN_CDRNRelayService.cpp \
+  src/gucefDRN_CDRNReplicator.cpp \
+  src/gucefDRN_CDRNSecurityPolicy.cpp \
+  src/gucefDRN_CDRNSession.cpp \
+  src/gucefDRN_CDRNSessionRecorder.cpp \
+  src/gucefDRN_CDRNSessionSettings.cpp \
+  src/gucefDRN_CDRNSharedSecretAuthenticator.cpp \
+  src/gucefDRN_CDRNStreamFramer.cpp \
+  src/gucefDRN_CDRNTcpChannel.cpp \
+  src/gucefDRN_CDRNTcpChannelListener.cpp \
+  src/gucefDRN_CDRNTokenAuthenticator.cpp \
+  src/gucefDRN_CDRNUdpChannel.cpp \
+  src/gucefDRN_CDRNUdpChannelListener.cpp \
+  src/gucefDRN_CDRNVariantCodec.cpp \
+  src/gucefDRN_CDRNVotePolicy.cpp \
+  src/gucefDRN_CDRNWebSocketChannel.cpp \
+  src/gucefDRN_CDRNWebSocketChannelListener.cpp \
+  src/gucefDRN_CDRNWireReader.cpp \
+  src/gucefDRN_CDRNWireWriter.cpp \
   src/gucefDRN_CGUCEFDRNModule.cpp \
-  src/gucefDRN_CIDRNPeerLinkCrypter.cpp \
-  src/gucefDRN_CIDRNPeerValidator.cpp
+  src/gucefDRN_CIDRNAccessPolicy.cpp \
+  src/gucefDRN_CIDRNAuthenticator.cpp \
+  src/gucefDRN_CIDRNBanList.cpp \
+  src/gucefDRN_CIDRNChannel.cpp \
+  src/gucefDRN_CIDRNChannelListener.cpp \
+  src/gucefDRN_CIDRNLatencyMeter.cpp \
+  src/gucefDRN_CIDRNSessionComponent.cpp \
+  src/gucefDRN_CIDRNWriteValidator.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../gucefCOM/include \
   $(MY_MODULE_PATH)/../gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include/c_api \
-  $(MY_MODULE_PATH)/../gucefMT/include
+  $(MY_MODULE_PATH)/../gucefMT/include \
+  $(MY_MODULE_PATH)/../gucefVFS/include \
+  $(MY_MODULE_PATH)/../gucefWEB/include
 
 LOCAL_CFLAGS := -DGUCEF_DRN_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefDRN -DMODULE_NAME=gucefDRN -DMODULE_SEMVER=0_1_0_0
 
 
 LOCAL_SHARED_LIBRARIES := \
+  gucefCOM \
   gucefCOMCORE \
   gucefCORE \
-  gucefMT
+  gucefMT \
+  gucefWEB
 
 include $(BUILD_SHARED_LIBRARY)
 

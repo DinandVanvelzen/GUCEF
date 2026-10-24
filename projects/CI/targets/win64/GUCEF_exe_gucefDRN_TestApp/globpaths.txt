@@ -2,10 +2,16 @@ common/include/*
 dependencies/json-builder/*
 dependencies/json-parser/*
 dependencies/libparsifal/*
-platform/gucefCOMCORE/*
+dependencies/monocypher/*
+dependencies/stbrumme-hash-library/*
+platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefDRN/*
 platform/gucefMT/*
+platform/gucefVFS/*
+platform/gucefWEB/*
+plugins/CORE/codecspluginMONOCYPHER/*
+plugins/CORE/codecspluginSTBRUMMEHASH/*
 plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/dstorepluginPARSIFALXML/*
 tests/gucefDRN_TestApp/*

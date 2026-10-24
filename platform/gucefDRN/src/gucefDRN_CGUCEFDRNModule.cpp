@@ -23,25 +23,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_DRN_CDRNDATAGROUP_H
-#include "gucefDRN_CDRNDataGroup.h"
-#define GUCEF_DRN_CDRNDATAGROUP_H
-#endif /* GUCEF_DRN_CDRNDATAGROUP_H ? */
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
 
-#ifndef GUCEF_DRN_CDRNDATASTREAM_H
-#include "gucefDRN_CDRNDataStream.h"
-#define GUCEF_DRN_CDRNDATASTREAM_H
-#endif /* GUCEF_DRN_CDRNDATASTREAM_H ? */
-
-#ifndef GUCEF_DRN_CDRNNODE_H
-#include "gucefDRN_CDRNNode.h"
-#define GUCEF_DRN_CDRNNODE_H
-#endif /* GUCEF_DRN_CDRNNODE_H ? */
-
-#ifndef GUCEF_DRN_CDRNPEERLINK_H
-#include "gucefDRN_CDRNPeerLink.h"
-#define GUCEF_DRN_CDRNPEERLINK_H
-#endif /* GUCEF_DRN_CDRNPEERLINK_H ? */
+#ifndef GUCEF_DRN_CDRNGLOBAL_H
+#include "gucefDRN_CDRNGlobal.h"
+#define GUCEF_DRN_CDRNGLOBAL_H
+#endif /* GUCEF_DRN_CDRNGLOBAL_H ? */
 
 #include "gucefDRN_CGUCEFDRNModule.h"  /* definition of the class implemented here */
 
@@ -66,10 +56,7 @@ CGUCEFDRNModule::Load( void )
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefDRN Module loaded" );
 
-    CDRNNode::RegisterEvents();
-    CDRNPeerLink::RegisterEvents();
-    CDRNDataGroup::RegisterEvents();
-    CDRNDataStream::RegisterEvents();
+    CDRNGlobal::Instance();
     
     return true;
 }
@@ -81,6 +68,7 @@ CGUCEFDRNModule::Unload( void )
 {GUCEF_TRACE;
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefDRN Module unloading" );
+    CDRNGlobal::Deinstance();
     
     return true;
 }

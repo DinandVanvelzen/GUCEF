@@ -76,30 +76,15 @@
 #define GUCEF_DRN_CDRNPEERLINK_H
 #endif /* GUCEF_DRN_CDRNPEERLINK_H ? */
 
-#ifndef GUCEF_DRN_CDRNDATAGROUP_H
-#include "gucefDRN_CDRNDataGroup.h"
-#define GUCEF_DRN_CDRNDATAGROUP_H
-#endif /* GUCEF_DRN_CDRNDATAGROUP_H ? */
+#ifndef GUCEF_DRN_CDRNSESSION_H
+#include "gucefDRN_CDRNSession.h"
+#define GUCEF_DRN_CDRNSESSION_H
+#endif /* GUCEF_DRN_CDRNSESSION_H ? */
 
-#ifndef GUCEF_DRN_CDRNDATAGROUPPROPERTIES_H
-#include "gucefDRN_CDRNDataGroupProperties.h"
-#define GUCEF_DRN_CDRNDATAGROUPPROPERTIES_H
-#endif /* GUCEF_DRN_CDRNDATAGROUPPROPERTIES_H ? */
-
-#ifndef GUCEF_DRN_CDRNDATASTREAM_H
-#include "gucefDRN_CDRNDataStream.h"
-#define GUCEF_DRN_CDRNDATASTREAM_H
-#endif /* GUCEF_DRN_CDRNDATASTREAM_H ? */
-
-#ifndef GUCEF_DRN_CIDRNPEERVALIDATOR_H
-#include "gucefDRN_CIDRNPeerValidator.h"
-#define GUCEF_DRN_CIDRNPEERVALIDATOR_H
-#endif /* GUCEF_DRN_CIDRNPEERVALIDATOR_H ? */
-
-#ifndef GUCEF_DRN_CIDRNPEERLINKCRYPTER_H
-#include "gucefDRN_CIDRNPeerLinkCrypter.h"
-#define GUCEF_DRN_CIDRNPEERLINKCRYPTER_H
-#endif /* GUCEF_DRN_CIDRNPEERVALIDATOR_H ? */
+#ifndef GUCEF_DRN_CDRNPACKETPROTECTION_H
+#include "gucefDRN_CDRNPacketProtection.h"
+#define GUCEF_DRN_CDRNPACKETPROTECTION_H
+#endif /* GUCEF_DRN_CDRNPACKETPROTECTION_H ? */
 
 #endif /* __cplusplus ? */
 /*--------------------------------------------------------------------------*/
