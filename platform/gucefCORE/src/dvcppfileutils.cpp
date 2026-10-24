@@ -1324,22 +1324,48 @@ DeleteDir( const CString& path       ,
            const bool deleteContents )
 {GUCEF_TRACE;
 
+    // . and .. name another directory than the one the path seems to be about: never deleted
+    CString lastSegment = path.ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR );
+    while ( lastSegment.Length() > 1 && GUCEF_DIRSEPCHAR == lastSegment[ lastSegment.Length() - 1 ] )
+        lastSegment = lastSegment.CutChars( 1, false );
+    Int32 lastSep = lastSegment.HasChar( GUCEF_DIRSEPCHAR, false );
+    if ( lastSep >= 0 )
+        lastSegment = lastSegment.CutChars( (UInt32) lastSep + 1, true );
+    if ( "." == lastSegment || ".." == lastSegment )
+    {
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "DeleteDir: Refusing to delete " << path << ", . and .. are not deleted" );
+        return false;
+    }
+
     const CString actualPath = RelativePath( path );
     if ( !DirExists( actualPath ) )
         return false;
 
     if ( deleteContents )
     {
-        // The entries are gathered first, removing entries while a listing is open is not portable
+        // The entries are gathered first, removing entries while a listing is open is not portable.
+        // A symlink is removed as the link: what it points to is outside the directory and stays
         CString::StringVector files;
         CString::StringVector dirs;
+        CString::StringVector links;
         CFileSystemIterator it;
         if ( it.FindFirst( actualPath ) )
         {
             do
             {
-                const CString entryPath = CombinePath( actualPath, it.GetResourceName() );
-                if ( it.IsADirectory() && !it.IsSymlink() )
+                const CString name = it.GetResourceName();
+                if ( name.IsNULLOrEmpty() || "." == name || ".." == name ||
+                     -1 < name.HasChar( GUCEF_DIRSEPCHAR, true ) || -1 < name.HasChar( GUCEF_DIRSEPCHAROPPOSITE, true ) )
+                {
+                    GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "DeleteDir: Refusing to delete " << actualPath << ", its listing has the entry \"" << name << "\"" );
+                    it.FindClose();
+                    return false;
+                }
+                const CString entryPath = CombinePath( actualPath, name );
+                if ( it.IsSymlink() )
+                    links.push_back( entryPath );
+                else
+                if ( it.IsADirectory() )
                     dirs.push_back( entryPath );
                 else
                     files.push_back( entryPath );
@@ -1353,6 +1379,23 @@ DeleteDir( const CString& path       ,
             if ( !DeleteFile( (*i) ) )
             {
                 GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "DeleteDir: Failed to delete file " << (*i) << " in " << actualPath );
+                return false;
+            }
+        }
+        for ( CString::StringVector::const_iterator i = links.begin(); i != links.end(); ++i )
+        {
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+            // A link to a directory is removed as a directory, which leaves its target alone
+            std::wstring wLink = ToWString( (*i) );
+            bool removed = 0 != ::RemoveDirectoryW( wLink.c_str() ) || 0 != ::DeleteFileW( wLink.c_str() );
+            #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+            bool removed = 0 == ::unlink( (*i).C_String() );
+            #else
+            bool removed = false;
+            #endif
+            if ( !removed )
+            {
+                GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "DeleteDir: Failed to delete the link " << (*i) << " in " << actualPath );
                 return false;
             }
         }
@@ -3471,6 +3514,18 @@ CFileSystemIterator::FindFirst( const CString& path )
         return false;
     }
 
+    // The listing has . and .., which are no entries of the directory: a caller recursing into them leaves it
+    while ( 0 == wcscmp( L".", m_osData->find.name ) || 0 == wcscmp( L"..", m_osData->find.name ) )
+    {
+        if ( 0 != _wfindnext64( m_osData->find_handle, &m_osData->find ) )
+        {
+            _findclose( m_osData->find_handle );
+            m_osData->find_handle = 0;
+            m_osData->rootPath.Clear();
+            return false;
+        }
+    }
+
     /*
      *	Successfully obtained first entry
      */
@@ -3580,7 +3635,14 @@ CFileSystemIterator::FindNext( void )
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
-    return !_wfindnext64( m_osData->find_handle, &m_osData->find );
+    // . and .. are skipped wherever they are in the listing
+    do
+    {
+        if ( 0 != _wfindnext64( m_osData->find_handle, &m_osData->find ) )
+            return false;
+    }
+    while ( 0 == wcscmp( L".", m_osData->find.name ) || 0 == wcscmp( L"..", m_osData->find.name ) );
+    return true;
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
@@ -3589,23 +3651,32 @@ CFileSystemIterator::FindNext( void )
     m_osData->entry = readdir( m_osData->dir );
     if ( GUCEF_NULL != m_osData->entry )
     {
-        // We need to take glob patterns into account
-        if ( !m_osData->resourceGlobFilter.IsNULLOrEmpty() )
+        // . and .. are skipped wherever they are: the order of a listing is the file system's, often a hash order.
+        // A caller recursing into them would leave the directory. We also need to take glob patterns into account
+        bool isSkipable = false;
+        do
         {
-            bool isSkipable = false;
-            do
+            isSkipable = false;
+            if ( ( 0 == strcmp( ".", m_osData->entry->d_name ) )  ||
+                 ( 0 == strcmp( "..", m_osData->entry->d_name ) ) )
             {
-                isSkipable = false;
+                isSkipable = true;
+                m_osData->entry = ::readdir( m_osData->dir );
+            }
+            else
+            if ( !m_osData->resourceGlobFilter.IsNULLOrEmpty() )
+            {
                 CString entryName( m_osData->entry->d_name );
-                if ( !m_osData->resourceGlobFilter.WildcardEquals( entryName, '*', true, true ) )
+                // The entry name is matched against the pattern, as in FindFirst(): a name is no pattern
+                if ( !entryName.WildcardEquals( m_osData->resourceGlobFilter, '*', true, false ) )
                 {
                     // Skip because we have a pattern to match and the current entry is not a match
                     isSkipable = true;
                     m_osData->entry = ::readdir( m_osData->dir );
                 }
             }
-            while ( isSkipable && ( GUCEF_NULL != m_osData->entry ) );
         }
+        while ( isSkipable && ( GUCEF_NULL != m_osData->entry ) );
 
         if ( GUCEF_NULL != m_osData->entry  )
         {
@@ -3751,8 +3822,10 @@ CFileSystemIterator::IsSymlink( void ) const
     {
         #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
-        // @TODO: implement for Windows
-        return false;
+        // A symbolic link or a junction is a reparse point
+        std::wstring wEntryPath = ToWString( CombinePath( m_osData->rootPath, GetResourceName() ) );
+        DWORD attributes = ::GetFileAttributesW( wEntryPath.c_str() );
+        return INVALID_FILE_ATTRIBUTES != attributes && 0 != ( attributes & FILE_ATTRIBUTE_REPARSE_POINT );
 
         #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 

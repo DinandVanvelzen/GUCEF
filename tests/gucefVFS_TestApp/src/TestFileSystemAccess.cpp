@@ -216,6 +216,16 @@ PerformVfsDirectoryTests( void )
             ASSERT_TRUE( CORE::CreateDirs( CORE::CombinePath( roDir, "keep" ) ) );
             ASSERT_FALSE( vfs.DeleteDir( "fsadirro/keep", true ) || !CORE::DirExists( CORE::CombinePath( roDir, "keep" ) ) );
 
+            // A path that leaves the archive deletes nothing outside it
+            const CORE::CString sibling = MakeTestDir( "sibling" );
+            const CORE::CString siblingFile = CORE::CombinePath( sibling, "keep.txt" );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( siblingFile, "keep" ) );
+            ASSERT_FALSE( vfs.DeleteDir( "fsadirrw/../sibling", true ) );
+            ASSERT_FALSE( vfs.DeleteDir( "fsadirrw/x/../../sibling", true ) );
+            ASSERT_FALSE( vfs.DeleteDir( "fsadirrw/..", true ) );
+            ASSERT_TRUE( CORE::FileExists( siblingFile ) && CORE::DirExists( rwDir ) );
+            CORE::DeleteDir( sibling, true );
+
             // the special directory stubs
             CORE::TSpecialDirSet specialDirs;
             specialDirs.insert( CORE::SPECIALDIR_HOME_DIR );

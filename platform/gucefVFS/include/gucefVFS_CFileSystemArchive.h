@@ -189,6 +189,11 @@ class GUCEF_VFS_PUBLIC_CPP CFileSystemArchive : public CArchive
     
     private:
 
+    /** Whether a path of the archive stays in it: no ".." segment takes it out of the root */
+    static bool IsWithinArchive( const CString& archivePath );
+
+    private:
+
     CORE::CString GetVfsPathForFileSystemPath( const CORE::CString& fsPath ) const;
 
     void OnDirectoryWatcherEvent( CORE::CNotifier* notifier    ,

@@ -229,6 +229,8 @@ bool
 CFileSystemArchive::DeleteFile( const CString& filePath )
 {GUCEF_TRACE;
 
+    if ( !IsWithinArchive( filePath ) )
+        return false;
     CString path = CORE::CombinePath( m_rootDir, filePath.ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR ) );    
     if ( CORE::FileExists( path ) )
     {
@@ -923,10 +925,28 @@ CFileSystemArchive::CreateDir( const CString& dirPath )
 /*-------------------------------------------------------------------------*/
 
 bool
+CFileSystemArchive::IsWithinArchive( const CString& archivePath )
+{GUCEF_TRACE;
+
+    CString::StringVector segments = archivePath.ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR ).ParseElements( GUCEF_DIRSEPCHAR, false );
+    for ( CString::StringVector::const_iterator i = segments.begin(); i != segments.end(); ++i )
+    {
+        if ( ".." == (*i) )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileSystemArchive: The path " << archivePath << " leaves the archive" );
+            return false;
+        }
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CFileSystemArchive::DeleteDir( const CString& dirPath, bool deleteContents )
 {GUCEF_TRACE;
 
-    if ( !m_writable )
+    if ( !m_writable || !IsWithinArchive( dirPath ) )
         return false;
     CString path = CORE::CombinePath( m_rootDir, dirPath.ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR ) );
     if ( !CORE::DirExists( path ) )

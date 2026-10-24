@@ -527,6 +527,133 @@ PerformFileUtilsTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    // The recursive deletes below run only when the listing is known to be free of . and ..
+    bool iteratorIsSafe = false;
+
+    GUCEF_TESTFW_TESTCASE( "Test: CFileSystemIterator never lists . or .., wherever the file system puts them in the listing" )
+        try
+        {
+            // In a sandbox of the working dir (a disk file system, which lists in hash order), never in a real dir
+            CORE::CString sandbox = CORE::CombinePath( CORE::RelativePath( "$CURWORKDIR$" ), "gucefCORE_TestApp_IteratorDots" );
+            CORE::CString dir = CORE::CombinePath( sandbox, "listed" );
+            ASSERT_TRUE( CORE::CreateDirs( CORE::CombinePath( dir, "sub" ) ) );
+            for ( UInt32 i=0; i<64; ++i )
+                ASSERT_TRUE( CORE::WriteStringAsTextFile( CORE::CombinePath( dir, "file" + CORE::ToString( i ) + ".txt" ), "x" ) );
+
+            UInt32 entries = 0;
+            UInt32 dots = 0;
+            CORE::CFileSystemIterator it;
+            if ( it.FindFirst( dir ) )
+            {
+                do
+                {
+                    ++entries;
+                    CORE::CString name = it.GetResourceName();
+                    if ( "." == name || ".." == name )
+                        ++dots;
+                }
+                while ( it.FindNext() );
+                it.FindClose();
+            }
+            ASSERT_TRUE( 0 == dots );
+            ASSERT_TRUE( 65 == entries );
+            iteratorIsSafe = 0 == dots;
+
+            // Removed one by one: a recursive delete is only safe once the listing is
+            for ( UInt32 i=0; i<64; ++i )
+                CORE::DeleteFile( CORE::CombinePath( dir, "file" + CORE::ToString( i ) + ".txt" ) );
+            CORE::DeleteDir( CORE::CombinePath( dir, "sub" ), false );
+            CORE::DeleteDir( dir, false );
+            CORE::DeleteDir( sandbox, false );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: CFileSystemIterator with a glob pattern lists the matching entries only, wherever they are in the listing" )
+        try
+        {
+            CORE::CString dir = CORE::CombinePath( CORE::RelativePath( "$CURWORKDIR$" ), "gucefCORE_TestApp_IteratorGlob" );
+            ASSERT_TRUE( CORE::CreateDirs( dir ) );
+            // Names that are part of the pattern itself, which a match the wrong way around takes for matches
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+            static const char* names[] = { "a.txt", "b.txt", "t", "x", "tx", "xt", ".t", "txt", "c.dat", "d.dat" };
+            #else
+            // where a name may have a '*', a name taken for the pattern matches wrongly
+            static const char* names[] = { "a.txt", "b.txt", "t", "x", "tx", "xt", ".t", "txt", "c.dat", "d.dat", "t*", "x*", ".t*", "*t", "z.*" };
+            #endif
+            const UInt32 nameCount = sizeof( names ) / sizeof( names[ 0 ] );
+            for ( UInt32 i=0; i<nameCount; ++i )
+                ASSERT_TRUE( CORE::WriteStringAsTextFile( CORE::CombinePath( dir, names[ i ] ), "x" ) );
+
+            CORE::CString::StringSet found;
+            CORE::CFileSystemIterator it;
+            if ( it.FindFirst( CORE::CombinePath( dir, "*.txt" ) ) )
+            {
+                do
+                {
+                    found.insert( it.GetResourceName() );
+                }
+                while ( it.FindNext() );
+                it.FindClose();
+            }
+            ASSERT_TRUE( 2 == found.size() );
+            ASSERT_TRUE( found.find( "a.txt" ) != found.end() && found.find( "b.txt" ) != found.end() );
+
+            for ( UInt32 i=0; i<nameCount; ++i )
+                CORE::DeleteFile( CORE::CombinePath( dir, names[ i ] ) );
+            CORE::DeleteDir( dir, false );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: DeleteDir removes what is in the directory only: not its parent, not what a symlink in it points to" )
+        GUCEF_TESTFW_SKIP_IF( !iteratorIsSafe, "The directory listing is not safe for a recursive delete" );
+        try
+        {
+            // The sandbox has sentinels next to the directory that is deleted and in a directory a symlink points to
+            CORE::CString sandbox = CORE::CombinePath( CORE::RelativePath( "$CURWORKDIR$" ), "gucefCORE_TestApp_DeleteDirSandbox" );
+            CORE::CString victim = CORE::CombinePath( sandbox, "victim" );
+            CORE::CString outside = CORE::CombinePath( sandbox, "outside" );
+            CORE::CString parentSentinel = CORE::CombinePath( sandbox, "sentinel.txt" );
+            CORE::CString outsideSentinel = CORE::CombinePath( outside, "sentinel.txt" );
+            ASSERT_TRUE( CORE::CreateDirs( CORE::CombinePath( victim, "sub" ) ) );
+            ASSERT_TRUE( CORE::CreateDirs( outside ) );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( parentSentinel, "keep" ) );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( outsideSentinel, "keep" ) );
+            for ( UInt32 i=0; i<64; ++i )
+                ASSERT_TRUE( CORE::WriteStringAsTextFile( CORE::CombinePath( victim, "file" + CORE::ToString( i ) + ".txt" ), "x" ) );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( CORE::CombinePath( CORE::CombinePath( victim, "sub" ), "deep.txt" ), "x" ) );
+            #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+            ASSERT_TRUE( 0 == ::symlink( outside.C_String(), CORE::CombinePath( victim, "linkToOutside" ).C_String() ) );
+            #endif
+
+            // . and .. are no directories to delete
+            ASSERT_FALSE( CORE::DeleteDir( CORE::CombinePath( victim, "." ), true ) );
+            ASSERT_FALSE( CORE::DeleteDir( CORE::CombinePath( victim, ".." ), true ) );
+            ASSERT_TRUE( CORE::FileExists( parentSentinel ) && CORE::DirExists( victim ) );
+
+            ASSERT_TRUE( CORE::DeleteDir( victim, true ) );
+            ASSERT_FALSE( CORE::DirExists( victim ) );
+            ASSERT_TRUE( CORE::FileExists( parentSentinel ) );
+            ASSERT_TRUE( CORE::FileExists( outsideSentinel ) );
+
+            CORE::DeleteFile( outsideSentinel );
+            CORE::DeleteFile( parentSentinel );
+            CORE::DeleteDir( outside, false );
+            CORE::DeleteDir( sandbox, false );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
     GUCEF_TESTFW_TESTCASE( "Test: CFileSystemIterator releases the directory when a listing ends" )
         try
