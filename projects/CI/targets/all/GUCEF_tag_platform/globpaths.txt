@@ -3,6 +3,7 @@ platform/gucefAUDIO/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefDRN/*
+platform/gucefGAMEGUI/*
 platform/gucefGUI/*
 platform/gucefIMAGE/*
 platform/gucefINPUT/*

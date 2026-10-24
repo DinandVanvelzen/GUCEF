@@ -8,6 +8,7 @@
 # free to make use of it in any way you like.
 #-------------------------------------------------------------------
 #
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../apps/gucefLOBBYSERVER ${CMAKE_BINARY_DIR}/gucefLOBBYSERVER )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../apps/gucefPATCHERAPP ${CMAKE_BINARY_DIR}/gucefPATCHERAPP )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../apps/gucefPRODMANAPP ${CMAKE_BINARY_DIR}/gucefPRODMANAPP )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/DVPACKSYS ${CMAKE_BINARY_DIR}/DVPACKSYS )
@@ -80,6 +81,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/libyaml $
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/lua ${CMAKE_BINARY_DIR}/lua )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/miniupnpc ${CMAKE_BINARY_DIR}/miniupnpc )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/minizip ${CMAKE_BINARY_DIR}/minizip )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/monocypher ${CMAKE_BINARY_DIR}/monocypher )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/ncnn ${CMAKE_BINARY_DIR}/ncnn )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/openexr ${CMAKE_BINARY_DIR}/OpenEXR )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../dependencies/opus ${CMAKE_BINARY_DIR}/opus )
@@ -99,6 +101,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOM ${CM
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCOMCORE ${CMAKE_BINARY_DIR}/gucefCOMCORE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefCORE ${CMAKE_BINARY_DIR}/gucefCORE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefDRN ${CMAKE_BINARY_DIR}/gucefDRN )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefGAMEGUI ${CMAKE_BINARY_DIR}/gucefGAMEGUI )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefGUI ${CMAKE_BINARY_DIR}/gucefGUI )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefIMAGE ${CMAKE_BINARY_DIR}/gucefIMAGE )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../platform/gucefINPUT ${CMAKE_BINARY_DIR}/gucefINPUT )
@@ -121,6 +124,9 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUDIO/audiodri
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUDIO/audiodriverWEBAUDIO ${CMAKE_BINARY_DIR}/audiodriverWEBAUDIO )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMCORE/comcorepluginDBL ${CMAKE_BINARY_DIR}/comcorepluginDBL )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMCORE/comcorepluginGEOOSM ${CMAKE_BINARY_DIR}/comcorepluginGEOOSM )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMCORE/comcorepluginUPNP ${CMAKE_BINARY_DIR}/comcorepluginUPNP )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginMONOCYPHER ${CMAKE_BINARY_DIR}/codecspluginMONOCYPHER )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginOPENSSL ${CMAKE_BINARY_DIR}/codecspluginOPENSSL )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginSTBRUMMEHASH ${CMAKE_BINARY_DIR}/codecspluginSTBRUMMEHASH )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginZLIB ${CMAKE_BINARY_DIR}/codecspluginZLIB )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstorepluginJSONPARSER ${CMAKE_BINARY_DIR}/dstorepluginJSONPARSER )
@@ -190,6 +196,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefCOM_TestApp
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefCORE_TestApp ${CMAKE_BINARY_DIR}/gucefCORE_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefCORE_TestPlugin ${CMAKE_BINARY_DIR}/gucefCORE_TestPlugin )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefDRN_TestApp ${CMAKE_BINARY_DIR}/gucefDRN_TestApp )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefGAMEGUI_TestApp ${CMAKE_BINARY_DIR}/gucefGAMEGUI_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefGUI_TestApp ${CMAKE_BINARY_DIR}/gucefGUI_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefIMAGE_TestApp ${CMAKE_BINARY_DIR}/gucefIMAGE_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefINPUT_TestApp ${CMAKE_BINARY_DIR}/gucefINPUT_TestApp )

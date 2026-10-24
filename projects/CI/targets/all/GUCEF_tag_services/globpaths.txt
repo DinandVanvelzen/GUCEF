@@ -1,10 +1,13 @@
 /*
+apps/gucefLOBBYSERVER/*
 common/include/*
 dependencies//*
 platform/gucefCOM/*
 platform/gucefCORE/*
+platform/gucefDRN/*
 platform/gucefIMAGE/*
 platform/gucefMT/*
+platform/gucefMULTIPLAY/*
 platform/gucefPUBSUB/*
 platform/gucefVFS/*
 platform/gucefWEB/*

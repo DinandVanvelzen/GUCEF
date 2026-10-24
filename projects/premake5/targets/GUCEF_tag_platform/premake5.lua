@@ -26,6 +26,7 @@ filter "ALL"
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )
   include( "platform/gucefDRN" )
+  include( "platform/gucefGAMEGUI" )
   include( "platform/gucefGUI" )
   include( "platform/gucefIMAGE" )
   include( "platform/gucefINPUT" )

@@ -49,12 +49,14 @@ platform/gucefAUDIO/include/*
 platform/gucefCOMCORE/include/*
 platform/gucefCOM/include/*
 platform/gucefCORE/include/*
-platform/gucefDRN/*
+platform/gucefDRN/include/*
+platform/gucefGAMEGUI/*
 platform/gucefGUI/*
 platform/gucefIMAGE/include/*
 platform/gucefINPUT/*
 platform/gucefMT/include/*
 platform/gucefMT/src//*
+platform/gucefMULTIPLAY/include/*
 platform/gucefPUBSUB/include/*
 platform/gucefVFS/include/*
 platform/gucefVIDEO/include/*
@@ -81,6 +83,7 @@ plugins/SHARED/pluginglueAWSSDK/include/*
 plugins/VIDEO/videocodecpluginWEBM/*
 tests/MemoryLeakFinder_TestApp/*
 tests/gucefDRN_TestApp/*
+tests/gucefGAMEGUI_TestApp/*
 tests/gucefGUI_TestApp/*
 tests/gucefIMAGE_TestApp/*
 tests/gucefINPUT_TestApp/*

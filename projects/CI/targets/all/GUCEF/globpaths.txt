@@ -1,4 +1,5 @@
 /*
+apps/gucefLOBBYSERVER/*
 apps/gucefPATCHERAPP/*
 apps/gucefPRODMANAPP/*
 common/include/*
@@ -14,6 +15,7 @@ tests/gucefCOM_TestApp/*
 tests/gucefCORE_TestApp/*
 tests/gucefCORE_TestPlugin/*
 tests/gucefDRN_TestApp/*
+tests/gucefGAMEGUI_TestApp/*
 tests/gucefGUI_TestApp/*
 tests/gucefIMAGE_TestApp/*
 tests/gucefINPUT_TestApp/*
