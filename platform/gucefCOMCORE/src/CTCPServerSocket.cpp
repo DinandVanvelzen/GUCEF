@@ -444,6 +444,11 @@ CTCPServerSocket::AcceptClients( void )
                                                                 (struct sockaddr*) &clientcon->_data->clientaddr ,
                                                                 &aint                                            ,
                                                                 &error                                           );
+                    if ( INVALID_SOCKET == clientcon->_data->sockid )
+                    {
+                        clientcon->_data->sockid = 0;
+                        return;
+                    }
 
                     /*
                      *      Client Connected
@@ -458,9 +463,11 @@ CTCPServerSocket::AcceptClients( void )
                      *      Set the socket into the desired mode of operation
                      *      ie blocking or non-blocking mode
                      */
-                    if ( !SetBlockingMode( _data->sockid ,
-                                            _blocking     ) )
+                    if ( !SetBlockingMode( clientcon->_data->sockid ,
+                                           _blocking                ) )
                     {
+                        int closeError = 0;
+                        dvsocket_closesocket( clientcon->_data->sockid, &closeError );
                         clientcon->_data->sockid = 0;
                         return;
                     }

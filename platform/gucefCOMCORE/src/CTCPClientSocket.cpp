@@ -720,25 +720,49 @@ CTCPClientSocket::OnPulse( CORE::CNotifier* notifier                 ,
                 return;
             }
 
+            // A connect in progress has finished once the socket is readable or writable, either way. Which way has to
+            // be known before anything is read: a server can talk first, and its data must not come before the connect.
+            if ( m_isConnecting && ( FD_ISSET( _data->sockid, &readfds ) || FD_ISSET( _data->sockid, &writefds ) ) )
+            {
+                int connectError = 0;
+                int optionSize = (int) sizeof( connectError );
+                int getOptionError = 0;
+                if ( 0 > dvsocket_getsockopt( _data->sockid, SOL_SOCKET, SO_ERROR, (char*) &connectError, &optionSize, &getOptionError ) )
+                    connectError = getOptionError;
+
+                if ( 0 != connectError )
+                {
+                    m_lastConnFailed = true;
+                    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): The connection could not be made: " + CORE::Int32ToString( connectError ) );
+                    Unlock();
+
+                    TSocketErrorEventData eData( connectError );
+                    if ( !NotifyObservers( SocketErrorEvent, &eData ) ) return;
+
+                    CloseImp();
+                    return;
+                }
+
+                GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Socket is now connected to the server, TCP channel established" );
+
+                // We are now connected
+                m_isConnecting = false;
+                if ( !NotifyObservers( ConnectedEvent ) ) return;
+
+                // An observer may have closed the connection again
+                if ( !_active )
+                {
+                    Unlock();
+                    return;
+                }
+            }
+
             if ( FD_ISSET( _data->sockid, &readfds ) )
             {
                 /* data can be read from the socket */
                 // false means this object was deleted by one of the observers, we must not touch it anymore
                 if ( !CheckRecieveBuffer() )
                     return;
-            }
-            else
-            if ( m_isConnecting )
-            {
-                // Check if the socket is now ready for writing
-                if ( FD_ISSET( _data->sockid, &writefds ) )
-                {
-                    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Socket is now connected to the server, TCP channel established" );
-
-                    // We are now connected
-                    m_isConnecting = false;
-                    if ( !NotifyObservers( ConnectedEvent ) ) return;
-                }
             }
         }
         else

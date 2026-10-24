@@ -110,6 +110,7 @@ struct CUDPSocket::SUDPSockData
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
     std::vector< struct mmsghdr > msgs;
     std::vector< struct iovec > iovecs;
+    GUCEF::vector< struct sockaddr_in > sourceAddresses;    /* where recvmmsg() writes the sender of each packet */
     #endif
 };
 
@@ -250,11 +251,24 @@ CUDPSocket::SetNrOfReceiveBuffers( UInt32 nrOfReceiveBuffers ,
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):SetNrOfReceiveBuffers: Attempt to set nrOfReceiveBuffers to 0, this is not allowed. Forcing to 1" );
     }
 
+    // The logical receive buffers and the packet entries are views on the underlying receive buffer.
+    // Resizing the underlying buffer can move its memory, so drop every view first: resizing a vector
+    // of views afterwards would copy them and with that read memory which was already released
+    UInt32 oldNrOfReceiveBuffers = (UInt32) m_receiveBuffers.size();
+    UInt32 oldBufferSize = m_maxRecievedDataBufferSize;
+    TUdpPacketsRecievedEventData& infoStruct = m_udpPacketsReceivedEventData.GetData();
+    infoStruct.packets.clear();
+    infoStruct.packetsReceived = 0;
+    m_receiveBuffers.clear();
+
     if ( !m_underlyingReceiveBuffer.SetBufferSize( nrOfReceiveBuffers * newBufferSize ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):SetNrOfReceiveBuffers: Failed to allocate enough memory for " + CORE::UInt32ToString( nrOfReceiveBuffers ) +
             " receive buffers with each buffer having a size of " + CORE::UInt32ToString( newBufferSize ) + " bytes."
             " Total required bytes for underlying buffer in bytes = " + CORE::UInt32ToString( nrOfReceiveBuffers * newBufferSize ) );
+
+        // A failed resize leaves the underlying buffer as it was, so the previous views are still valid
+        LinkReceiveBuffers( oldNrOfReceiveBuffers, oldBufferSize );
         return false;
     }
     GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):SetNrOfReceiveBuffers: Successfully allocated enough memory for " + CORE::UInt32ToString( nrOfReceiveBuffers ) +
@@ -262,38 +276,52 @@ CUDPSocket::SetNrOfReceiveBuffers( UInt32 nrOfReceiveBuffers ,
         " Total required bytes for underlying buffer in bytes = " + CORE::UInt32ToString( nrOfReceiveBuffers * newBufferSize ) );
 
     m_maxRecievedDataBufferSize = newBufferSize;
+    LinkReceiveBuffers( nrOfReceiveBuffers, newBufferSize );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUDPSocket::LinkReceiveBuffers( UInt32 nrOfReceiveBuffers, UInt32 bufferSize )
+{GUCEF_TRACE;
 
     TUdpPacketsRecievedEventData& infoStruct = m_udpPacketsReceivedEventData.GetData();
+    infoStruct.packets.clear();
     infoStruct.packets.resize( nrOfReceiveBuffers );
     infoStruct.packetsReceived = 0;
 
+    m_receiveBuffers.clear();
     m_receiveBuffers.resize( nrOfReceiveBuffers );
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
     _data->msgs.resize( nrOfReceiveBuffers );
     _data->iovecs.resize( nrOfReceiveBuffers );
+    _data->sourceAddresses.resize( nrOfReceiveBuffers );
     #endif
 
-    for ( UInt32 i=0; i<m_receiveBuffers.size(); ++i )
+    for ( UInt32 i=0; i<nrOfReceiveBuffers; ++i )
     {
         CORE::CDynamicBuffer& linkedBuffer = m_receiveBuffers[ i ];
-        linkedBuffer.LinkTo( m_underlyingReceiveBuffer.GetBufferPtr( i * newBufferSize ), newBufferSize );
+        linkedBuffer.LinkTo( m_underlyingReceiveBuffer.GetBufferPtr( i * bufferSize ), bufferSize );
         infoStruct.packets[ i ].dataBuffer.LinkTo( &linkedBuffer );
 
         #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
         memset( &_data->iovecs[ i ], 0, sizeof( _data->iovecs[ i ] ) );
-        _data->iovecs[ i ].iov_base         = m_underlyingReceiveBuffer.GetBufferPtr( i * newBufferSize );
-        _data->iovecs[ i ].iov_len          = newBufferSize;
+        _data->iovecs[ i ].iov_base         = m_underlyingReceiveBuffer.GetBufferPtr( i * bufferSize );
+        _data->iovecs[ i ].iov_len          = bufferSize;
         memset( &_data->msgs[ i ], 0, sizeof( _data->msgs[ i ] ) );
         _data->msgs[ i ].msg_hdr.msg_iov    = &_data->iovecs[ i ];
         _data->msgs[ i ].msg_hdr.msg_iovlen = 1;
+        memset( &_data->sourceAddresses[ i ], 0, sizeof( _data->sourceAddresses[ i ] ) );
+        _data->msgs[ i ].msg_hdr.msg_name    = &_data->sourceAddresses[ i ];
+        _data->msgs[ i ].msg_hdr.msg_namelen = sizeof( struct sockaddr_in );
         #endif
 
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):SetNrOfReceiveBuffers: Linked logical receive buffer " +
                 CORE::UInt32ToString( i+1 ) + "/" + CORE::UInt32ToString( nrOfReceiveBuffers ) );
     }
 
-    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -750,6 +778,10 @@ CUDPSocket::PerformRead( UInt32 readIndex, UInt32& packetsRead )
 
     UInt32 maxPackets = (UInt32) m_receiveBuffers.size() - readIndex;
 
+    // recvmmsg() sets the name length to what it wrote: give every entry the full room again
+    for ( UInt32 i=readIndex; i<readIndex+maxPackets; ++i )
+        _data->msgs[ i ].msg_hdr.msg_namelen = sizeof( struct sockaddr_in );
+
     struct timespec timeout;
     memset( &timeout, 0, sizeof( timeout ) );
     int retval = recvmmsg( _data->sockid, &_data->msgs[ readIndex ], maxPackets, 0, &timeout );
@@ -938,10 +970,17 @@ CUDPSocket::Open( const CORE::CString& localaddr ,
 {GUCEF_TRACE;
 
     CHostAddress address( localaddr, port );
-    CIPv4Address& ipv4Address = m_hostAddress.GetIPv4Addresses()[ 0 ];
+    if ( address.GetIPv4Addresses().empty() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Unable to resolve the local address \"" + localaddr + "\" to open the socket on" );
+        return false;
+    }
 
+    // Open() takes the address and keeps it, with the port the system assigned when 0 was asked for
+    CIPv4Address ipv4Address = address.GetFirstIPv4Address();
     bool success = Open( ipv4Address );
-    m_hostAddress = address;
+    if ( success )
+        m_hostAddress = CHostAddress( m_hostAddress.GetFirstIPv4Address(), address.GetHostname() );
     return success;
 }
 
@@ -1435,7 +1474,13 @@ CUDPSocket::Close( bool shutdownOnly )
             // A socket close will trigger a shutdown sequence if one hasnt occured yet and will also free up the related
             // system resources
             int errorCode = 0;
-            if ( 0 == dvsocket_closesocket( _data->sockid, &errorCode ) )
+            int closeResult = dvsocket_closesocket( _data->sockid, &errorCode );
+
+            // The descriptor is no longer ours either way: the system may hand the number to the next socket,
+            // which a second close would take away from it
+            _data->sockid = 0;
+
+            if ( 0 == closeResult )
             {
                 GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Closed socket at " + m_hostAddress.GetFirstIPv4Address().AddressAndPortAsString() );
 

@@ -64,7 +64,7 @@ namespace COMCORE {
  *  Attempts to set whether or not the socket operations will block
  *  If they block the socket is in what is called blocking mode.
  */
-bool
+GUCEF_COMCORE_EXPORT_CPP bool
 SetBlockingMode( SOCKET sock ,
                  bool block  );
                  

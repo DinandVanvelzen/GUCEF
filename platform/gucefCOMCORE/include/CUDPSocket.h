@@ -460,6 +460,12 @@ class GUCEF_COMCORE_EXPORT_CPP CUDPSocket : public CSocket
 
     void RegisterEventHandlers( void );
 
+    /**
+     *  Links the logical receive buffers and their packet entries to slices of the underlying receive buffer
+     *  The underlying receive buffer must already hold at least nrOfReceiveBuffers * bufferSize bytes
+     */
+    void LinkReceiveBuffers( UInt32 nrOfReceiveBuffers, UInt32 bufferSize );
+
     private:
 
     struct SUDPSockData;            /**< forward declaration of platform data storage structure */

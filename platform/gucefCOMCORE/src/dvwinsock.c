@@ -46,6 +46,30 @@
 
 #include "dvwinsock.h"                 /* wrapper for global winsock API */
 
+/*
+ *  Writing to a stream socket whose peer is gone raises SIGPIPE where there is such a signal, which ends the
+ *  process unless the application handles it. The sends here report it as the EPIPE error instead: per call with
+ *  MSG_NOSIGNAL, or per socket with SO_NOSIGPIPE on the platforms that have that option instead.
+ */
+#ifdef MSG_NOSIGNAL
+  #define DVSOCKET_SEND_FLAGS     MSG_NOSIGNAL
+#else
+  #define DVSOCKET_SEND_FLAGS     0
+#endif
+
+/*-------------------------------------------------------------------------*/
+
+static void
+dvsocket_disable_sigpipe( SOCKET sock )
+{
+    #ifdef SO_NOSIGPIPE
+    int noSigPipe = 1;
+    setsockopt( sock, SOL_SOCKET, SO_NOSIGPIPE, (const char*) &noSigPipe, sizeof( noSigPipe ) );
+    #else
+    (void) sock;
+    #endif
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -203,6 +227,8 @@ dvsocket_socket( int af       ,
         WSAIoctl( sock, SIO_UDP_CONNRESET, &bNewBehavior, sizeof bNewBehavior, NULL, 0, &dwBytesReturned, NULL, NULL );
     }
     #endif
+
+    dvsocket_disable_sigpipe( sock );
     
     *error = 0;
     return sock;
@@ -267,6 +293,7 @@ dvsocket_accept( SOCKET s              ,
         *error = LastSocketError;
         return sock;
     }
+    dvsocket_disable_sigpipe( sock );
     *error = 0;
     return sock;
 }
@@ -283,10 +310,10 @@ dvsocket_send( SOCKET s        ,
     int retval = 0;
     if ( len > 0 && GUCEF_NULL != buf )
     {
-        if ( ( retval = send( s       ,
-                              buf     ,
-                              len     ,
-                              flags   ) ) == SOCKET_ERROR )
+        if ( ( retval = send( s                           ,
+                              buf                         ,
+                              len                         ,
+                              flags | DVSOCKET_SEND_FLAGS ) ) == SOCKET_ERROR )
         {
             *error = LastSocketError;
             return retval;
@@ -310,12 +337,12 @@ dvsocket_sendto( SOCKET s                  ,
     int retval = 0;
     if ( len > 0 && GUCEF_NULL != buf )
     {
-        if ( ( retval = sendto( s     ,
-                                buf   ,
-                                len   ,
-                                flags ,
-                                to    ,
-                                tolen ) ) == SOCKET_ERROR )
+        if ( ( retval = sendto( s                           ,
+                                buf                         ,
+                                len                         ,
+                                flags | DVSOCKET_SEND_FLAGS ,
+                                to                          ,
+                                tolen                       ) ) == SOCKET_ERROR )
         {
             *error = LastSocketError;
             return retval;
