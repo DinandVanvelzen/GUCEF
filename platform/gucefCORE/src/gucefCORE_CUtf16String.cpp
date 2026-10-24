@@ -2928,31 +2928,48 @@ CUtf16String::NotEquals( const CUtf16String& otherStr ,
 /*-------------------------------------------------------------------------*/
 
 bool
-CUtf16String::WildcardEquals( const CUtf16String& strWithWildcards  ,
-                               UInt32 wildCardToken                  ,
-                               bool caseSensitive                    ,
-                               bool biDirectional                    ) const
+CUtf16String::WildcardEquals( const CUtf16String& strWithWildcards ,
+                              UInt32 wildCardToken ,
+                              bool caseSensitive ,
+                              bool biDirectional ) const
 {GUCEF_TRACE;
-    const CUtf16String& a = caseSensitive ? *this             : Lowercase();
-    const CUtf16String& b = caseSensitive ? strWithWildcards  : strWithWildcards.Lowercase();
 
-    StringVector parts = b.ParseElements( wildCardToken, true );
-    if ( parts.empty() )
+    // Either string may be the pattern, when asked for
+    if ( biDirectional && strWithWildcards.WildcardEquals( *this, wildCardToken, caseSensitive, false ) )
         return true;
 
-    UInt32 aPos = 0u;
-    for ( UInt32 i = 0u; i < (UInt32)parts.size(); ++i )
+    const CUtf16String text = caseSensitive ? *this : Lowercase();
+    const CUtf16String pattern = caseSensitive ? strWithWildcards : strWithWildcards.Lowercase();
+
+    // Without a wildcard it is a plain comparison
+    Int32 firstWildcard = pattern.HasChar( wildCardToken, true );
+    if ( firstWildcard < 0 )
+        return text == pattern;
+
+    // The whole string is matched: the part before the first wildcard starts it, the part after the last one ends
+    // it, and the parts between the wildcards come in that order in between, a wildcard standing for any characters
+    bool anchoredStart = 0 != firstWildcard;
+    bool anchoredEnd = pattern.HasChar( wildCardToken, false ) != (Int32) pattern.Length() - 1;
+    StringVector segments = pattern.ParseElements( wildCardToken, false );
+    UInt32 textLength = text.Length();
+    UInt32 position = 0;
+    for ( size_t i=0; i<segments.size(); ++i )
     {
-        if ( parts[ i ].IsNULLOrEmpty() )
+        const CUtf16String& segment = segments[ i ];
+        UInt32 segmentLength = segment.Length();
+        if ( 0 == segmentLength )
             continue;
-        Int32 found = a.HasSubstr( parts[ i ], (Int32)aPos, true, true );
-        if ( found < 0 )
-        {
-            if ( biDirectional )
-                return strWithWildcards.WildcardEquals( *this, wildCardToken, caseSensitive, false );
+        if ( position + segmentLength > textLength )
             return false;
+        if ( i + 1 == segments.size() && anchoredEnd )
+        {
+            UInt32 endStart = textLength - segmentLength;
+            return text.HasSubstr( segment, (Int32) endStart, true ) == (Int32) endStart;
         }
-        aPos = (UInt32)found + parts[ i ].m_length;
+        Int32 found = text.HasSubstr( segment, (Int32) position, true );
+        if ( found < 0 || ( 0 == i && anchoredStart && 0 != found ) )
+            return false;
+        position = (UInt32) found + segmentLength;
     }
     return true;
 }

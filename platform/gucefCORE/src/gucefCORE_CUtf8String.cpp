@@ -2776,34 +2776,48 @@ CUtf8String::ForceToAscii( char asciiReplacement ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CUtf8String::WildcardEquals( const CUtf8String& strWithWildcards    ,
+CUtf8String::WildcardEquals( const CUtf8String& strWithWildcards ,
                              const UInt32 wildCardToken /* = '*' */ ,
-                             const bool caseSensitive /* = true */  ,
+                             const bool caseSensitive /* = true */ ,
                              const bool biDirectional /* = false */ ) const
 {GUCEF_TRACE;
 
-    if ( biDirectional )
-    {
-        if ( strWithWildcards.WildcardEquals( *this, wildCardToken, caseSensitive, false ) )
-            return true;
-    }
-
-    if ( strWithWildcards == wildCardToken || *this == wildCardToken )
+    // Either string may be the pattern, when asked for
+    if ( biDirectional && strWithWildcards.WildcardEquals( *this, wildCardToken, caseSensitive, false ) )
         return true;
 
-    // If the string does not actually have wildcards treat it like a regular string compare
-    if ( -1 == strWithWildcards.HasChar( wildCardToken ) )
-        return Equals( strWithWildcards, caseSensitive );
+    const CUtf8String text = caseSensitive ? *this : Lowercase();
+    const CUtf8String pattern = caseSensitive ? strWithWildcards : strWithWildcards.Lowercase();
 
-    CUtf8String::StringVector segs = strWithWildcards.ParseElements( wildCardToken, false );
-    Int32 lastSeg = 0;
-    CUtf8String::StringVector::iterator i = segs.begin();
-    while ( i != segs.end() )
+    // Without a wildcard it is a plain comparison
+    Int32 firstWildcard = pattern.HasChar( wildCardToken, true );
+    if ( firstWildcard < 0 )
+        return text == pattern;
+
+    // The whole string is matched: the part before the first wildcard starts it, the part after the last one ends
+    // it, and the parts between the wildcards come in that order in between, a wildcard standing for any characters
+    bool anchoredStart = 0 != firstWildcard;
+    bool anchoredEnd = pattern.HasChar( wildCardToken, false ) != (Int32) pattern.Length() - 1;
+    StringVector segments = pattern.ParseElements( wildCardToken, false );
+    UInt32 textLength = text.Length();
+    UInt32 position = 0;
+    for ( size_t i=0; i<segments.size(); ++i )
     {
-        lastSeg = HasSubstr( (*i), lastSeg, true );
-        if ( 0 > lastSeg )
+        const CUtf8String& segment = segments[ i ];
+        UInt32 segmentLength = segment.Length();
+        if ( 0 == segmentLength )
+            continue;
+        if ( position + segmentLength > textLength )
             return false;
-        ++i;
+        if ( i + 1 == segments.size() && anchoredEnd )
+        {
+            UInt32 endStart = textLength - segmentLength;
+            return text.HasSubstr( segment, (Int32) endStart, true ) == (Int32) endStart;
+        }
+        Int32 found = text.HasSubstr( segment, (Int32) position, true );
+        if ( found < 0 || ( 0 == i && anchoredStart && 0 != found ) )
+            return false;
+        position = (UInt32) found + segmentLength;
     }
     return true;
 }
@@ -2816,9 +2830,6 @@ CUtf8String::WildcardEquals( const StringSet& strsWithWildcards     ,
                              const bool caseSensitive /* = true */  ,
                              const bool biDirectional /* = false */ ) const
 {GUCEF_TRACE;
-
-    if ( strsWithWildcards.empty() )
-        return WildcardEquals( Empty, wildCardToken, caseSensitive, biDirectional );
 
     StringSet::const_iterator i = strsWithWildcards.begin();
     while ( i != strsWithWildcards.end() )

@@ -113,6 +113,59 @@ PerformTypedStringTests( void )
     GUCEF_TESTFW_TESTCASE_END
 
     /* ------------------------------------------------------------------ */
+    snprintf( tcName, sizeof( tcName ), "[%s] WildcardEquals matches the whole string against the pattern", typeName );
+    GUCEF_TESTFW_TESTCASE( tcName )
+    try
+    {
+        // '*' stands for any characters, the rest of the pattern matches from the start to the end of the string
+        ASSERT_TRUE( StringType( "a.txt" ).WildcardEquals( StringType( "*.txt" ), '*', true, false ) );
+        ASSERT_FALSE( StringType( "b.txt.bak" ).WildcardEquals( StringType( "*.txt" ), '*', true, false ) );
+        ASSERT_FALSE( StringType( "xa.txt" ).WildcardEquals( StringType( "a*" ), '*', true, false ) );
+        ASSERT_TRUE( StringType( "abc" ).WildcardEquals( StringType( "a*" ), '*', true, false ) );
+        ASSERT_TRUE( StringType( "abc" ).WildcardEquals( StringType( "a*c" ), '*', true, false ) );
+        ASSERT_FALSE( StringType( "abcd" ).WildcardEquals( StringType( "a*c" ), '*', true, false ) );
+        ASSERT_TRUE( StringType( "ac" ).WildcardEquals( StringType( "a*c" ), '*', true, false ) );
+        ASSERT_FALSE( StringType( "a" ).WildcardEquals( StringType( "a*a" ), '*', true, false ) );     // the ends do not overlap
+        ASSERT_TRUE( StringType( "x_neon.c" ).WildcardEquals( StringType( "*_neon.c" ), '*', true, false ) );
+        ASSERT_FALSE( StringType( "x_neon.cpp" ).WildcardEquals( StringType( "*_neon.c" ), '*', true, false ) );
+        ASSERT_TRUE( StringType( "abXcdYef" ).WildcardEquals( StringType( "ab*cd*ef" ), '*', true, false ) );
+        ASSERT_FALSE( StringType( "abXefYcd" ).WildcardEquals( StringType( "ab*cd*ef" ), '*', true, false ) );
+        ASSERT_TRUE( StringType( "anything" ).WildcardEquals( StringType( "*" ), '*', true, false ) );
+        ASSERT_TRUE( StringType( "" ).WildcardEquals( StringType( "*" ), '*', true, false ) );
+        ASSERT_TRUE( StringType( "a.b" ).WildcardEquals( StringType( "**.b" ), '*', true, false ) );
+
+        // Without a '*' it is a plain comparison
+        ASSERT_TRUE( StringType( "abc" ).WildcardEquals( StringType( "abc" ), '*', true, false ) );
+        ASSERT_FALSE( StringType( "abcd" ).WildcardEquals( StringType( "abc" ), '*', true, false ) );
+        ASSERT_FALSE( StringType( "abc" ).WildcardEquals( StringType( "b" ), '*', true, false ) );
+
+        // A string that has a '*' itself is no pattern: it does not match everything
+        ASSERT_FALSE( StringType( "*" ).WildcardEquals( StringType( "*.txt" ), '*', true, false ) );
+        ASSERT_FALSE( StringType( "x*" ).WildcardEquals( StringType( "*.txt" ), '*', true, false ) );
+
+        // Case
+        ASSERT_FALSE( StringType( "A.TXT" ).WildcardEquals( StringType( "*.txt" ), '*', true, false ) );
+        ASSERT_TRUE( StringType( "A.TXT" ).WildcardEquals( StringType( "*.txt" ), '*', false, false ) );
+        ASSERT_TRUE( StringType( "ABC" ).WildcardEquals( StringType( "abc" ), '*', false, false ) );
+
+        // Both ways: either string may be the pattern
+        ASSERT_TRUE( StringType( "*.txt" ).WildcardEquals( StringType( "a.txt" ), '*', true, true ) );
+        ASSERT_TRUE( StringType( "a.txt" ).WildcardEquals( StringType( "*.txt" ), '*', true, true ) );
+        ASSERT_FALSE( StringType( "*.txt" ).WildcardEquals( StringType( "a.txt" ), '*', true, false ) );
+        ASSERT_FALSE( StringType( "a.dat" ).WildcardEquals( StringType( "*.txt" ), '*', true, true ) );
+
+        // A set of patterns: any of them, so no patterns match nothing
+        typename StringType::StringSet patterns;
+        patterns.insert( StringType( "*.txt" ) );
+        patterns.insert( StringType( "*.dat" ) );
+        ASSERT_TRUE( StringType( "a.dat" ).WildcardEquals( patterns, '*', true, false ) );
+        ASSERT_FALSE( StringType( "a.bin" ).WildcardEquals( patterns, '*', true, false ) );
+        ASSERT_FALSE( StringType( "a.bin" ).WildcardEquals( typename StringType::StringSet(), '*', true, false ) );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
     snprintf( tcName, sizeof( tcName ), "[%s] Append", typeName );
     GUCEF_TESTFW_TESTCASE( tcName )
     try
