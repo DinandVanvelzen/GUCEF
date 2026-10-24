@@ -1354,7 +1354,7 @@ CVFS::DecodeFile( const CORE::CString& originalFilepath ,
     CORE::CCodecRegistry::TICodecPtr codec = codecRegistry.TryGetCodec( codecFamily, decodeCodec );
     if ( codec.IsNULL() )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "VFS:DecodeFile: Cannot encode file due to inability to obtain codec " +
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "VFS:DecodeFile: Cannot decode file due to inability to obtain codec " +
             decodeCodec + " for codec family " + codecFamily );
         return false;
     }
@@ -1373,9 +1373,9 @@ CVFS::DecodeFile( const CORE::CString& originalFilepath ,
         return false;
     }
 
-    if ( !codec->Encode( *originalFile->GetAccess(), *targetFile->GetAccess() ) )
+    if ( !codec->Decode( *originalFile->GetAccess(), *targetFile->GetAccess() ) )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "VFS:DecodeFile: Failed to encode file \"" + originalFilepath +
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "VFS:DecodeFile: Failed to decode file \"" + originalFilepath +
             "\" using codec \"" + decodeCodec + "\" from codec family \"" + codecFamily + "\"" );
         return false;
     }

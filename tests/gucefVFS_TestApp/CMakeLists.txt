@@ -20,6 +20,7 @@ set( HEADER_FILES
   include/TestItvArchive.h
   include/TestLibArchive.h
   include/TestMountFromResource.h
+  include/TestVfsCodecs.h
   include/TestVfsConfig.h
   include/TestZipArchiveWriter.h
 )
@@ -33,6 +34,7 @@ set( SOURCE_FILES
   src/TestItvArchive.cpp
   src/TestLibArchive.cpp
   src/TestMountFromResource.cpp
+  src/TestVfsCodecs.cpp
   src/TestVfsConfig.cpp
   src/TestZipArchiveWriter.cpp
   src/gucefVFS_TestApp.cpp

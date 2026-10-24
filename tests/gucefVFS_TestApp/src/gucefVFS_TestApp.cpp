@@ -93,6 +93,11 @@
 #include "TestVfsConfig.h"
 #define GUCEF_VFS_TESTAPP_TESTVFSCONFIG_H
 #endif /* GUCEF_VFS_TESTAPP_TESTVFSCONFIG_H ? */
+
+#ifndef GUCEF_VFS_TESTAPP_TESTVFSCODECS_H
+#include "TestVfsCodecs.h"
+#define GUCEF_VFS_TESTAPP_TESTVFSCODECS_H
+#endif /* GUCEF_VFS_TESTAPP_TESTVFSCODECS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -384,6 +389,7 @@ GUCEF_OSMAIN_BEGIN
         PerformCueBinArchiveTests();
         PerformFileSystemAccessTests();
         PerformVfsConfigTests();
+        PerformVfsCodecTests();
 
         CORE::CLogStreamScope::FlushLogs();
 
