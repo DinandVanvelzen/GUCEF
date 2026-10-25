@@ -1,0 +1,33 @@
+<ModuleInfoEntry>
+    <Module Name="inputdriverWAYLAND" Type="SharedLibrary" Platform="linux" Tags="plugin">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>1.0.0.0</SemVer>
+            <DescriptionHeadline>Input driver for Wayland: the pointer and keyboard of the seat for the windows of the Wayland window driver</DescriptionHeadline>
+            <DescriptionDetails>Mouse (position in pixels of the window buffer, buttons, wheel in notches from smooth and high resolution scrolling) and keyboard (keys with the codes of the X11 driver, UTF-8 text with compose sequences, key repeat from the pulses of the application) of the seat of the compositor, with hot plug of devices and release of held buttons and keys when the focus goes. libxkbcommon is loaded when asked for.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="pluginglueWAYLAND" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefINPUT" />
+            <Dependency Name="pluginglueWAYLAND" />
+        </Linker>
+        <Preprocessor>
+            <Define String="INPUTDRIVERWAYLAND_BUILD_MODULE" />
+            <Define String="BUILD_GUCEF_INPUT_PLUGIN_DLL" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

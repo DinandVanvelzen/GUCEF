@@ -1,0 +1,28 @@
+<ModuleInfoEntry>
+    <Module Name="pluginglueWAYLAND" Type="SharedLibrary" Platform="linux">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>Shared owner of the connection to the Wayland compositor for the Wayland window and input plugins</DescriptionHeadline>
+            <DescriptionDetails>Makes the one connection of the process to the compositor, binds the globals the plugins use (compositor, xdg-shell, seat, monitors, scale and cursor extensions), pumps it from the pulse generator of the application without blocking, hands the pointer and keyboard events of the seat to listeners and keeps the pointer image. The system libraries are loaded when asked for and everything of the protocol goes through function tables, so the library builds without the Wayland development packages and tests with a fake compositor.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_PLUGINGLUE_WAYLAND_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>

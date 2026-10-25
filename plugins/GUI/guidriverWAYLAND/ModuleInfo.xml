@@ -1,0 +1,32 @@
+<ModuleInfoEntry>
+    <Module Name="guidriverWAYLAND" Type="SharedLibrary" Platform="linux" Tags="plugin">
+        <ModuleMetaData>
+            <License>APACHEv2</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>Window driver for Wayland compositors: native windows with OpenGL through EGL</DescriptionHeadline>
+            <DescriptionDetails>Window backend "Wayland": xdg-shell toplevel windows with server side decorations when the compositor offers them and libdecor when it does not, fractional and whole scales, frame callbacks that pace the window with the compositor, the pointer image, full screen as a request. EGL, libwayland-egl and libdecor are loaded when asked for, so the plugin loads on a system without Wayland and says that it is not available.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="pluginglueWAYLAND" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefGUI" />
+            <Dependency Name="pluginglueWAYLAND" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUIDRIVERWAYLAND_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>
