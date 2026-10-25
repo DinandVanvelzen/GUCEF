@@ -48,6 +48,7 @@ vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/MockPubSubClient.h",
   "include/TestBasicPubSubMsg.h",
+  "include/TestBinaryPubSubJournal.h",
   "include/TestCode_PubSubMsgBinaryStorageTest.h",
   "include/TestPubSubBookmark.h",
   "include/TestPubSubClientConfig.h",
@@ -79,6 +80,7 @@ vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/MockPubSubClient.cpp",
   "src/TestBasicPubSubMsg.cpp",
+  "src/TestBinaryPubSubJournal.cpp",
   "src/TestCode_PubSubMsgBinaryStorageTest.cpp",
   "src/TestPubSubBookmark.cpp",
   "src/TestPubSubClientConfig.cpp",
@@ -106,7 +108,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefPUBSUB/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefPUBSUB/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )

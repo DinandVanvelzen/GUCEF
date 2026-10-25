@@ -2,6 +2,7 @@
 <ModuleInfoEntry>
     <Module Name="gucefPUBSUB_TestApp" Platform="All" Type="Executable" Tags="test" >
 		<Dependencies>
+			<Dependency Name="gucefTestHeaders" />
 			<Dependency Name="gucefPUBSUB" />
 			<Dependency Name="gucefVFS" />
 			<Dependency Name="gucefWEB" />

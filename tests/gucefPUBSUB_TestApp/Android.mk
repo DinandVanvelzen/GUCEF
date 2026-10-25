@@ -23,6 +23,7 @@ LOCAL_MODULE := gucefPUBSUB_TestApp
 LOCAL_SRC_FILES := \
   src/MockPubSubClient.cpp \
   src/TestBasicPubSubMsg.cpp \
+  src/TestBinaryPubSubJournal.cpp \
   src/TestCode_PubSubMsgBinaryStorageTest.cpp \
   src/TestPubSubBookmark.cpp \
   src/TestPubSubClientConfig.cpp \
@@ -50,6 +51,7 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../common/test/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \

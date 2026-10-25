@@ -32,6 +32,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CREDACTOR_H
+#include "gucefCORE_CRedactor.h"
+#define GUCEF_CORE_CREDACTOR_H
+#endif /* GUCEF_CORE_CREDACTOR_H ? */
+
 #include "gucefPUBSUB_CBinaryPubSubJournal.h"    
 
 /*-------------------------------------------------------------------------//
@@ -149,13 +154,13 @@ CBinaryPubSubJournal::LoadConfig( const CPubSubJournalConfig& config )
             }
             else
             {
-                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "BinaryPubSubJournal:LoadConfig: Failed to get resource access for journal resource " + m_config.journalResource.ToUriInStringForm() );
+                GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "BinaryPubSubJournal:LoadConfig: Failed to get resource access for journal resource " << CORE::CRedactor::ForUrl().RedactUrl( m_config.journalResource.ToUriInStringForm() ) );
                 return false;
             }
         }
         else
         {
-            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "BinaryPubSubJournal:LoadConfig: Failed to create resource accessor for journal resource " + m_config.journalResource.ToUriInStringForm() );
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "BinaryPubSubJournal:LoadConfig: Failed to create resource accessor for journal resource " << CORE::CRedactor::ForUrl().RedactUrl( m_config.journalResource.ToUriInStringForm() ) );
             return false;
         }
     }
