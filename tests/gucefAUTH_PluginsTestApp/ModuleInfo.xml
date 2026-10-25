@@ -1,0 +1,34 @@
+<ModuleInfoEntry>
+    <Module Name="gucefAUTH_PluginsTestApp" Type="Executable" Platform="All" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="authpluginSTEAM" />
+            <Dependency Name="authpluginEOS" />
+            <Dependency Name="authpluginANDROID" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="authpluginSTEAM" />
+            <Dependency Name="authpluginEOS" />
+            <Dependency Name="authpluginANDROID" />
+        </Linker>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
+            <RuntimeDependency Name="httpclientpluginCURL" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>
