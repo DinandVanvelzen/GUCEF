@@ -1,4 +1,5 @@
 common/include/*
+common/test/include/*
 dependencies/DVPACKSYS/*
 dependencies/aws-cpp-sdk-core/*
 dependencies/aws-cpp-sdk-s3/*

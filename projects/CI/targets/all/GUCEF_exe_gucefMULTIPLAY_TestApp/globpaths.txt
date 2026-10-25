@@ -1,8 +1,10 @@
 common/include/*
+common/test/include/*
 dependencies/json-builder/*
 dependencies/json-parser/*
 dependencies/libparsifal/*
 dependencies/monocypher/*
+platform/gucefAUTH/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefDRN/*

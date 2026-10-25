@@ -1,0 +1,17 @@
+common/include/*
+common/test/include/*
+dependencies/curl/*
+dependencies/json-builder/*
+dependencies/json-parser/*
+dependencies/monocypher/*
+platform/gucefAUTH/*
+platform/gucefCOM/*
+platform/gucefCORE/*
+platform/gucefMT/*
+platform/gucefVFS/*
+platform/gucefWEB/*
+plugins/CORE/codecspluginMONOCYPHER/*
+plugins/CORE/codecspluginZLIB/*
+plugins/CORE/dstorepluginJSONPARSER/*
+plugins/WEB/httpclientpluginCURL/*
+tests/gucefAUTH_TestApp/*

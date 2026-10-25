@@ -2,6 +2,7 @@
 apps/gucefLOBBYSERVER/*
 common/include/*
 dependencies//*
+platform/gucefAUTH/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefDRN/*

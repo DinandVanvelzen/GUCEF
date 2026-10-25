@@ -1,4 +1,5 @@
 common/include/*
+common/test/include/*
 dependencies/DevIL/DevIL/*
 dependencies/FreeImage/*
 dependencies/Little-CMS/*
@@ -47,6 +48,8 @@ dependencies/pcre/*
 dependencies/tiff/libtiff/*
 dependencies/zlib/*
 platform/gucefAUDIO/include/*
+platform/gucefAUTH/include/*
+platform/gucefAUTHGUI/*
 platform/gucefCOM/include/*
 platform/gucefCOMCORE/include/*
 platform/gucefCORE/include/*
@@ -70,6 +73,7 @@ plugins/GUI/guidriverMyGUI/*
 plugins/GUI/guidriverNull/*
 plugins/GUI/guidriverOgre/*
 plugins/GUI/guidriverRmlUI/*
+plugins/GUI/guidriverWAYLAND/*
 plugins/GUI/guidriverXWinGL/*
 plugins/IMAGE/imgpluginDEVIL/*
 plugins/IMAGE/imgpluginFLIC/*
@@ -77,13 +81,17 @@ plugins/IMAGE/imgpluginFreeImage/*
 plugins/IMAGE/imgpluginITV/*
 plugins/IMAGE/imgupscalepluginNCNN/*
 plugins/INPUT/inputdriverOIS/*
+plugins/INPUT/inputdriverWAYLAND/*
 plugins/INPUT/inputdriverXWINMSG/*
 plugins/PUBSUB/pubsubpluginAWSSNS/*
 plugins/PUBSUB/pubsubpluginAWSSQS/*
 plugins/SHARED/pluginglueAWSSDK/include/*
+plugins/SHARED/pluginglueWAYLAND/*
 plugins/VIDEO/videocodecpluginWEBM/*
+tests/gucefAUTHGUI_TestApp/*
 tests/gucefDRN_TestApp/*
 tests/gucefGAMEGUI_TestApp/*
 tests/gucefGUI_TestApp/*
+tests/gucefGUI_WaylandTestApp/*
 tests/gucefIMAGE_TestApp/*
 tests/gucefINPUT_TestApp/*

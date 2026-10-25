@@ -50,6 +50,7 @@ filter "ALL"
   include( "dependencies/redis-plus-plus/src/sw/redis++" )
   include( "dependencies/stbrumme-hash-library" )
   include( "dependencies/zziplib" )
+  include( "platform/gucefAUTH" )
   include( "platform/gucefCOM" )
   include( "platform/gucefCOMCORE" )
   include( "platform/gucefCORE" )

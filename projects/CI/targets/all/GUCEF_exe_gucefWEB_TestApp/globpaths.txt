@@ -1,4 +1,5 @@
 common/include/*
+common/test/include/*
 dependencies/curl/*
 dependencies/json-builder/*
 dependencies/json-parser/*

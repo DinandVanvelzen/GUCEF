@@ -1,5 +1,10 @@
 common/include/*
+common/test/include/*
+dependencies/freetype/*
+dependencies/monocypher/*
+dependencies/zlib/*
 platform/gucefAUDIO/*
+platform/gucefAUTH/*
 platform/gucefCOM/*
 platform/gucefCORE/*
 platform/gucefDRN/*
@@ -12,5 +17,7 @@ platform/gucefMULTIPLAY/*
 platform/gucefVFS/*
 platform/gucefVIDEO/*
 platform/gucefWEB/*
+plugins/CORE/codecspluginMONOCYPHER/*
+plugins/GUI/fontpluginFREETYPE/*
 plugins/GUI/guidriverNull/*
 tests/gucefGAMEGUI_TestApp/*

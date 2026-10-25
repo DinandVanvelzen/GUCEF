@@ -1,0 +1,335 @@
+#-------------------------------------------------------------------
+# This file is part of the CMake build system for GUCEF
+#     (Galaxy Unlimited Framework)
+# For the latest info, see http://www.VanvelzenSoftware.com/
+#
+# The contents of this file are placed in the public domain. Feel
+# free to make use of it in any way you like.
+#-------------------------------------------------------------------
+
+######################################################################
+# GUCEF_exe_gucefAUTH_TestApp BUILD SYSTEM
+# Welcome to the CMake build system for GUCEF_exe_gucefAUTH_TestApp.
+# This is the main file where we prepare the general build environment
+# and provide build configuration options.
+######################################################################
+
+cmake_minimum_required(VERSION 2.6)
+set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
+cmake_policy(SET CMP0003 NEW)
+
+if ( DEFINED ENV{GUCEF_HOME} )
+  set( GUCEF_HOME_DIR "$ENV{GUCEF_HOME}" )
+  STRING(REGEX REPLACE "\\\\" "/" GUCEF_HOME_DIR ${GUCEF_HOME_DIR})
+  message(STATUS "Setting CMake variable GUCEF_HOME_DIR based on env var GUCEF_HOME to ${GUCEF_HOME_DIR}")
+endif()
+if ( DEFINED ENV{GUCEF_SOURCE_DIR} )
+  set( GUCEF_SOURCE_DIR "$ENV{GUCEF_SOURCE_DIR}" )
+  STRING(REGEX REPLACE "\\\\" "/" GUCEF_SOURCE_DIR ${GUCEF_SOURCE_DIR})
+  message(STATUS "Setting CMake variable GUCEF_SOURCE_DIR based on env var GUCEF_SOURCE_DIR to ${GUCEF_SOURCE_DIR}")
+endif()
+
+if ( NOT DEFINED GUCEF_HOME_DIR )
+  set( GUCEF_HOME_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../" )
+  message(STATUS "GUCEF_HOME_DIR not defined, defaulting to CMake file relative dir: ${GUCEF_HOME_DIR}")
+endif()
+if ( NOT DEFINED GUCEF_SOURCE_DIR )
+  set( GUCEF_SOURCE_DIR ${GUCEF_HOME_DIR} )
+  message(STATUS "GUCEF_SOURCE_DIR not defined, defaulting to GUCEF_HOME_DIR: ${GUCEF_HOME_DIR}")
+endif()
+if ( NOT DEFINED GUCEF_BINARY_DIR )
+  set( GUCEF_BINARY_DIR "${CMAKE_BINARY_DIR}" )
+endif()
+
+set( CMAKE_INSTALL_PREFIX "${GUCEF_BINARY_DIR}/dist" CACHE PATH
+        "Install path prefix, prepended onto install directories." FORCE )
+
+message(STATUS "Source dir: ${GUCEF_SOURCE_DIR}")
+message(STATUS "Binary dir: ${GUCEF_BINARY_DIR}")
+message(STATUS "CMake Binary dir: ${CMAKE_BINARY_DIR}")
+
+
+
+project( GUCEF_exe_gucefAUTH_TestApp )
+
+# The platform is known once project() has loaded the toolchain (cross builds) and found the compiler (pointer size)
+if ( NOT DEFINED GUCEF_SYSTEM_NAME )
+  if ( DEFINED CMAKE_SYSTEM_NAME )
+    set( GUCEF_SYSTEM_NAME ${CMAKE_SYSTEM_NAME} )
+  else()
+    set( GUCEF_SYSTEM_NAME ${CMAKE_HOST_SYSTEM_NAME} )
+  endif()
+endif()
+
+if ( GUCEF_SYSTEM_NAME STREQUAL "Linux" )
+  if ( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+    set( LINUX64 TRUE )
+    set( GUCEF_TARGET_PLATFORM "LINUX64" )
+    message(STATUS "Determined that pointer size is 8 bytes so this is a 64bit system")
+  else ()
+    set( LINUX32 TRUE )
+    set( GUCEF_TARGET_PLATFORM "LINUX32" )
+    message(STATUS "Determined that pointer size is 4 bytes so this is a 32bit system")
+  endif()
+endif()
+
+if ( GUCEF_SYSTEM_NAME STREQUAL "Android" )
+  if ( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+    set( ANDROID64 TRUE )
+    set( GUCEF_TARGET_PLATFORM "ANDROID64" )
+    message(STATUS "Determined that pointer size is 8 bytes so this is a 64bit Android system")
+  else ()
+    set( ANDROID32 TRUE )
+    set( GUCEF_TARGET_PLATFORM "ANDROID32" )
+    message(STATUS "Determined that pointer size is 4 bytes so this is a 32bit Android system")
+  endif()
+endif()
+
+if ( GUCEF_SYSTEM_NAME STREQUAL "Emscripten" )
+  if ( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+    set( EMSCRIPTEN64 TRUE )
+    set( GUCEF_TARGET_PLATFORM "EMSCRIPTEN64" )
+    message(STATUS "Determined that pointer size is 8 bytes so this is a 64bit WebAssembly (Emscripten) system")
+  else ()
+    set( EMSCRIPTEN32 TRUE )
+    set( GUCEF_TARGET_PLATFORM "EMSCRIPTEN32" )
+    message(STATUS "Determined that pointer size is 4 bytes so this is a 32bit WebAssembly (Emscripten) system")
+  endif()
+endif()
+
+message(STATUS "CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}" )
+message(STATUS "GUCEF_TARGET_PLATFORM: ${GUCEF_TARGET_PLATFORM}" )
+
+# Include necessary submodules
+set(CMAKE_MODULE_PATH
+  "${GUCEF_SOURCE_DIR}/projects/CMake"
+  "${GUCEF_SOURCE_DIR}/projects/CMake/Utils"
+  "${GUCEF_SOURCE_DIR}/projects/CMake/Packages"
+)
+include(CMakeDependentOption)
+include(MacroLogFeature)
+include(GUCEFConfigTargets)
+include(PreprocessorUtils)
+set(GUCEF_TEMPLATES_DIR "${GUCEF_SOURCE_DIR}/projects/CMake/Templates")
+set(GUCEF_WORK_DIR ${GUCEF_BINARY_DIR})
+
+
+#####################################################################
+# Set up the basic build environment
+#####################################################################
+
+if (CMAKE_BUILD_TYPE STREQUAL "")
+  # CMake defaults to leaving CMAKE_BUILD_TYPE empty. This screws up
+  # differentiation between debug and release builds.
+  set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Choose the type of build, options are: None (CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel." FORCE)
+endif ()
+
+# determine GUCEF_exe_gucefAUTH_TestApp version numbers
+include(GUCEFGetVersion)
+GUCEF_get_version(${GUCEF_SOURCE_DIR}/common/include/gucef_prerequisites.h)
+message(STATUS "Configuring GUCEF_exe_gucefAUTH_TestApp ${GUCEF_VERSION}")
+
+if (NOT APPLE)
+  # Create debug libraries with _d postfix
+  set(CMAKE_DEBUG_POSTFIX "_d")
+endif ()
+
+# ---- SIMD Options ----
+option(USE_SIMD "Enable SIMD optimizations (SSE/NEON/WASM)" ON)
+option(TUNE_FOR_LOCAL "Tune for local CPU (may reduce portability)" OFF)
+
+include(CheckCXXCompilerFlag)
+
+if (USE_SIMD)
+  if (MSVC)
+    add_compile_options(/fp:fast)
+
+  elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
+          CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+
+    if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+      # WebAssembly SIMD
+      check_cxx_compiler_flag("-msimd128" HAS_WASM_SIMD)
+      if (HAS_WASM_SIMD)
+        message(STATUS "Enabling WebAssembly SIMD")
+        add_compile_options(-msimd128)
+        add_definitions(-DHAVE_WASM_SIMD)
+      endif()
+
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|i.86")
+      # x86/x64 SSE
+      check_cxx_compiler_flag("-msse" HAS_SSE)
+      if (HAS_SSE)
+        message(STATUS "Enabling SSE on x86/x64")
+        add_compile_options(-msse)
+        add_definitions(-DHAVE_SSE)
+      endif()
+
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "armv7")
+      # 32-bit ARM NEON
+      check_cxx_compiler_flag("-mfpu=neon" HAS_NEON)
+      if (HAS_NEON)
+        message(STATUS "Enabling NEON on 32-bit ARM")
+        add_compile_options(-mfpu=neon)
+        add_definitions(-DHAVE_NEON)
+      endif()
+
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+      # 64-bit ARM (NEON is mandatory)
+      message(STATUS "AArch64: NEON always available")
+      add_compile_options(-march=armv8-a)
+      add_definitions(-DHAVE_NEON)
+
+      if (TUNE_FOR_LOCAL)
+        # Optional tuning for your local board (e.g. Rockchip RK3588S big cores)
+        check_cxx_compiler_flag("-mcpu=cortex-a76" HAS_A76)
+        if (HAS_A76)
+          message(STATUS "Tuning for Cortex-A76 (local build)")
+          add_compile_options(-mcpu=cortex-a76)
+        endif()
+      endif()
+    endif()
+
+  endif()
+else()
+  message(STATUS "SIMD optimizations disabled")
+endif()
+
+if (CMAKE_COMPILER_IS_GNUCXX)
+  # Test for GCC visibility
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag(-fvisibility=hidden GUCEF_GCC_VISIBILITY)
+  if (GUCEF_GCC_VISIBILITY)
+    # determine gcc version
+    execute_process(COMMAND ${CMAKE_CXX_COMPILER} -dumpversion
+      OUTPUT_VARIABLE GUCEF_GCC_VERSION)
+    message(STATUS "Detected g++ ${GUCEF_GCC_VERSION}")
+    message(STATUS "Enabling GCC visibility flags")
+    set(GUCEF_GCC_VISIBILITY_FLAGS "-DGUCEF_GCC_VISIBILITY -fvisibility=hidden")
+
+    # check if we can safely add -fvisibility-inlines-hidden
+    string(TOLOWER "${CMAKE_BUILD_TYPE}" GUCEF_BUILD_TYPE)
+    if (GUCEF_BUILD_TYPE STREQUAL "debug" AND GUCEF_GCC_VERSION VERSION_LESS "4.2")
+      message(STATUS "Skipping -fvisibility-inlines-hidden due to possible bug in g++ < 4.2")
+    else ()
+      set(GUCEF_GCC_VISIBILITY_FLAGS "${GUCEF_GCC_VISIBILITY_FLAGS} -fvisibility-inlines-hidden")
+    endif ()
+  endif (GUCEF_GCC_VISIBILITY)
+endif (CMAKE_COMPILER_IS_GNUCXX)
+
+# determine system endianess
+include(TestBigEndian)
+test_big_endian(GUCEF_TEST_BIG_ENDIAN)
+
+# Add common include path
+include_directories("${GUCEF_SOURCE_DIR}/common/include")
+
+# Specify build paths
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${GUCEF_BINARY_DIR}/lib")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${GUCEF_BINARY_DIR}/lib")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${GUCEF_BINARY_DIR}/bin")
+
+# Set up iPhone overrides.
+if (GUCEF_BUILD_PLATFORM_IPHONE)
+  # Force gcc <= 4.2 on iPhone
+  include(CMakeForceCompiler)
+  CMAKE_FORCE_C_COMPILER(gcc-4.2 GNU)
+  CMAKE_FORCE_CXX_COMPILER(gcc-4.2 GNU)
+
+  # Set build variables
+  set(CMAKE_OSX_SYSROOT iphoneos3.0)
+  set(CMAKE_OSX_ARCHITECTURES "$(ARCHS_UNIVERSAL_IPHONE_OS)")
+  set(CMAKE_EXE_LINKER_FLAGS "-framework Foundation -framework CoreGraphics -framework QuartzCore -framework UIKit ${GUCEF_SOURCE_DIR}/iPhoneDependencies/lib/release/libboost_date_time.a ${GUCEF_SOURCE_DIR}/iPhoneDependencies/lib/release/libboost_thread.a")
+  set(XCODE_ATTRIBUTE_SDKROOT iphoneos3.0)
+  set(GUCEF_BUILD_RENDERSYSTEM_GLES TRUE CACHE BOOL "Forcing OpenGL ES RenderSystem for iPhone" FORCE)
+  set(GUCEF_STATIC TRUE CACHE BOOL "Forcing static build for iPhone" FORCE)
+  set(GUCEF_SET_USE_BOOST TRUE CACHE BOOL "Forcing use of Boost libraries for iPhone" FORCE)
+  set(GUCEF_USE_BOOST TRUE CACHE BOOL "Forcing use of Boost libraries for iPhone" FORCE)
+  set(Boost_FOUND TRUE CACHE BOOL "Forcing use of Boost libraries for iPhone" FORCE)
+  set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.yourcompany.\${PRODUCT_NAME:rfc1034identifier}")
+
+  add_definitions(-fno-regmove)
+  remove_definitions(-msse)
+elseif (APPLE AND NOT GUCEF_BUILD_PLATFORM_IPHONE)
+  # Force gcc <= 4.0 on Mac OS X because 4.2 is not supported prior to Mac OS X 10.5
+  include(CMakeForceCompiler)
+  CMAKE_FORCE_C_COMPILER(gcc-4.0 GNU)
+  CMAKE_FORCE_CXX_COMPILER(gcc-4.0 GNU)
+
+  # Set 10.4 as the base SDK by default
+  set(XCODE_ATTRIBUTE_SDKROOT macosx10.4)
+  
+endif ()
+
+######################################################################
+# Provide user options to customise the build process
+######################################################################
+
+# Customise what to build
+option(GUCEF_STATIC "Static build" FALSE)
+set(GUCEF_CONFIG_ALLOCATOR 2 CACHE STRING
+"Specify the memory allocator to use. Possible values:
+  1 - Standard allocator
+  2 - nedmalloc
+  3 - User-provided allocator"
+)
+option(GUCEF_CONFIG_MEMTRACK_DEBUG "Enable GUCEF's memory tracker in debug mode" FALSE)
+option(GUCEF_CONFIG_MEMTRACK_RELEASE "Enable GUCEF's memory tracker in release mode" FALSE)
+
+
+###################################################################
+# configure global build settings based on selected build options
+###################################################################
+
+include(ConfigureBuild)
+
+##################################################################
+# Now setup targets
+##################################################################
+
+# Add all relevant modules for the target
+include( GUCEF_exe_gucefAUTH_TestApp_ModuleDirs.cmake )
+
+# Provide CPack packaging target
+include( GUCEF_exe_gucefAUTH_TestApp_Packaging.cmake )
+
+##################################################################
+# Add documentation capability if feasible
+##################################################################
+
+# Add documentation generation if Doxygen is available
+option(BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ON)
+
+if(BUILD_DOCUMENTATION)
+    find_package(Doxygen)
+    if(DOXYGEN_FOUND)
+        # Add a documentation target that generates docs for the entire solution
+        set(DOXYGEN_INPUT_DIR "${GUCEF_SOURCE_DIR}")
+        set(DOXYGEN_OUTPUT_DIR "${GUCEF_BINARY_DIR}/docs/doxygen")
+        set(DOXYGEN_CONFIG_IN "${GUCEF_SOURCE_DIR}/projects/CMake/Templates/Doxyfile.in")
+        set(DOXYGEN_CONFIG_OUT "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile")
+        
+        # Create docs directory
+        file(MAKE_DIRECTORY ${DOXYGEN_OUTPUT_DIR})
+        
+        # Configure the Doxyfile
+        configure_file(${DOXYGEN_CONFIG_IN} ${DOXYGEN_CONFIG_OUT} @ONLY)
+
+        # Add the main documentation target
+        add_custom_target(DOCS
+            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIG_OUT}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMENT "Generating API documentation with Doxygen for GUCEF_exe_gucefAUTH_TestApp"
+            VERBATIM
+        )
+
+        # Set target properties to organize in IDE
+        set_target_properties(DOCS PROPERTIES
+            FOLDER "Documentation"
+        )
+        
+        message(STATUS "Documentation target 'DOCS' will be available for GUCEF_exe_gucefAUTH_TestApp")
+    else()
+        message(WARNING "Doxygen not found: Documentation will not be available")
+    endif()
+endif()

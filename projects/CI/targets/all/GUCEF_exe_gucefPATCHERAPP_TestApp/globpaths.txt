@@ -1,4 +1,5 @@
 common/include/*
+common/test/include/*
 dependencies/libparsifal/*
 platform/gucefCOM/*
 platform/gucefCORE/*

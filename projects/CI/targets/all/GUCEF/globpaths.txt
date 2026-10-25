@@ -3,6 +3,7 @@ apps/gucefLOBBYSERVER/*
 apps/gucefPATCHERAPP/*
 apps/gucefPRODMANAPP/*
 common/include/*
+common/test/include/*
 dependencies/*
 platform/*
 plugins/*
@@ -10,6 +11,9 @@ tests/AncestryDotComBackup_TestApp/*
 tests/MemoryLeakFinder_TestApp/*
 tests/ProjectGen_TestApp/*
 tests/gucefAUDIO_TestApp/*
+tests/gucefAUTHGUI_TestApp/*
+tests/gucefAUTH_PluginsTestApp/*
+tests/gucefAUTH_TestApp/*
 tests/gucefCOMCORE_TestApp/*
 tests/gucefCOM_TestApp/*
 tests/gucefCORE_TestApp/*
@@ -17,11 +21,13 @@ tests/gucefCORE_TestPlugin/*
 tests/gucefDRN_TestApp/*
 tests/gucefGAMEGUI_TestApp/*
 tests/gucefGUI_TestApp/*
+tests/gucefGUI_WaylandTestApp/*
 tests/gucefIMAGE_TestApp/*
 tests/gucefINPUT_TestApp/*
 tests/gucefKAITAI_TestApp/*
 tests/gucefLOADER_TestApp/*
 tests/gucefMT_TestApp/*
+tests/gucefMULTIPLAY_EosTestApp/*
 tests/gucefMULTIPLAY_TestApp/*
 tests/gucefPATCHERAPP_TestApp/*
 tests/gucefPRODMAN_TestApp/*
