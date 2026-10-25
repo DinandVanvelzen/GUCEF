@@ -65,7 +65,7 @@
 /*-------------------------------------------------------------------------*/
 
 #undef GUCEF_USER_LOG
-#define GUCEF_USER_LOG( logLevel, logMessage ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_USER, logLevel ).GetStream() << logMessage; }
+#define GUCEF_USER_LOG( logLevel, logMessage ) { if ( ::GUCEF::CORE::CLogStreamScope::IsUserLogEnabled() ) { ::GUCEF::CORE::CLogStreamScope( ::GUCEF::CORE::LOG_USER, logLevel ).GetStream() << logMessage; } }
 
 /*-------------------------------------------------------------------------*/
 

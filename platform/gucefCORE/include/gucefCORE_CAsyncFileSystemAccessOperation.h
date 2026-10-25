@@ -106,6 +106,11 @@ class GUCEF_HIDDEN CFileSystemAccessTaskData : public CICloneable
     CFileSystemAccessTaskData& operator=( const CFileSystemAccessTaskData& src );
 
     virtual CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** Type check of future data without RTTI, see CICloneable::CloneableAs() */
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    static const char* CloneableTypeName( void );
 };
 
 /*-------------------------------------------------------------------------*/

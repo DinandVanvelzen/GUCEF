@@ -101,6 +101,9 @@ class GUCEF_CORE_PUBLIC_CPP CPulseGenerator : public CNotifier ,
 
     bool IsPulsingPeriodicly( void ) const;
 
+    /** The number of requestors (timers, sockets) that have periodic pulses requested: what is still asking for pulses */
+    UInt32 GetNrOfPeriodicPulseRequestors( void ) const;
+
     UInt32 GetRequiredPulseDeltaInMilliSecs( void ) const;
 
     Float64 GetActualPulseDeltaInMilliSecs( void ) const;

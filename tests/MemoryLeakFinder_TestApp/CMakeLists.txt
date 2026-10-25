@@ -111,11 +111,11 @@ if ( WIN64 )
 endif( WIN64 )
 
 if ( WIN32 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../tools/MemoryLeakFinder/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../tools/MemoryLeakFinder/include include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../tools/MemoryLeakFinder/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../tools/MemoryLeakFinder/include include )
 endif( WIN64 )
 
 

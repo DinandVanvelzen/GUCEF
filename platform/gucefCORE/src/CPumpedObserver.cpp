@@ -237,8 +237,18 @@ void
 CPumpedObserver::Shutdown( void )
 {GUCEF_TRACE;
 
-    CObserverScopeLock lock( this );
-
+    /*
+     *  The lock of this observer is not held here, on purpose.
+     *  The notification lock of a pumped observer is the lock of its mailbox. The pulse generator holds its own
+     *  notification lock while it delivers a pulse, which takes the lock of the mailbox of every observer on it.
+     *  Unsubscribing from the pulse generator takes the notification lock of the pulse generator. Doing that
+     *  while holding the mailbox lock is the opposite order: with another thread pumping the pulse generator
+     *  that is a deadlock. A thread which is not the pulse thread has to be able to destroy a pumped observer.
+     *
+     *  ClearMailbox() takes the mailbox lock itself, so it waits for a delivery in progress, and from then on
+     *  new mail is refused. SetPulseGenerator() waits for a pulse that is being delivered, after that no more
+     *  pulses reach this observer.
+     */
     ClearMailbox( false );
     SetPulseGenerator( PulseGeneratorPtr() );
     SignalUpcomingObserverDestruction();

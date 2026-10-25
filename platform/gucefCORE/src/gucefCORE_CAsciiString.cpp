@@ -645,9 +645,9 @@ CAsciiString::Append( const char *appendstr ,
                       UInt32 len            )
 {GUCEF_TRACE;
 
-    if ( ( appendstr != m_string ) &&
-         ( appendstr != NULL )     &&
-         ( len > 0 )                )
+    // Note that the string may be appended to itself: the new buffer is filled before the current one is released
+    if ( ( appendstr != NULL ) &&
+         ( len > 0 )            )
     {
         if ( m_length > 0 )
         {
@@ -664,14 +664,15 @@ CAsciiString::Append( const char *appendstr ,
         }
         else
         {
+            char* newString = GUCEF_NEW char[ len+1 ];
+            assert( newString != NULL );
+            memcpy( newString, appendstr, len );
+            newString[ len ] = 0;
             if ( !m_linked )
                 GUCEF_DELETE []m_string;
+            m_string = newString;
             m_length = len;
             m_linked = false;
-            m_string = GUCEF_NEW char[ m_length+1 ];
-            assert( m_string );
-            memcpy( m_string, appendstr, m_length );
-            m_string[ m_length ] = 0;
         }
     }
 }

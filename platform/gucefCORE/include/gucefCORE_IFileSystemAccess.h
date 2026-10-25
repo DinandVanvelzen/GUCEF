@@ -80,7 +80,7 @@ class CFileSystemAccessTaskData;
 
 /**
  *  A file system: the operations of browsing and changing files and directories, whatever the file system is (the one of the
- *  operating system, the VFS, ...). See docs/gucefCORE_FileSystemAccess.md.
+ *  operating system, the VFS, ...).
  *
  *  The synchronous operations run on the calling thread. The async variants run the same operation on a thread of a pool of the
  *  task manager: they return FILESYSTEMACCESS_SUCCESS when it was queued and give a future, whose result is read with the

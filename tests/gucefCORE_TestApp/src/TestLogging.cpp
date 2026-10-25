@@ -395,6 +395,156 @@ class CLoggingTestWorker : public MT::CActiveObject
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Thread which does one thing for the log manager and then finishes: log a message, or flush the logs
+ */
+class CLoggingTestOneShot : public MT::CActiveObject
+{
+    public:
+
+    enum EAction
+    {
+        ACTION_LOG   ,
+        ACTION_FLUSH
+    };
+
+    CLoggingTestOneShot( EAction action, const CORE::CString& message )
+        : MT::CActiveObject()
+        , m_action( action )
+        , m_message( message )
+    {}
+
+    virtual ~CLoggingTestOneShot()
+    {}
+
+    /** blocks until the thread finished or the timeout expired, returns whether it finished */
+    bool WaitForCompletion( UInt32 timeoutInMs )
+    {
+        UInt32 waitedInMs = 0;
+        while ( IsActive() && waitedInMs < timeoutInMs )
+        {
+            MT::ThreadDelay( 5 );
+            waitedInMs += 5;
+        }
+        return !IsActive();
+    }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        return this;
+    }
+
+    protected:
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        return true;
+    }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( ACTION_LOG == m_action )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, m_message );
+        }
+        else
+        {
+            CORE::CLogStreamScope::FlushLogs();
+        }
+        return true; // done, the thread ends
+    }
+
+    private:
+
+    EAction m_action;
+    CORE::CString m_message;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/*-------------------------------------------------------------------------*/
+
+/** Counts how often the argument of a user log message was built: a disabled message must not build it */
+static UInt32 g_userLogArgumentEvaluations = 0;
+
+static CORE::CString
+UserLogExpensiveArgument( void )
+{
+    ++g_userLogArgumentEvaluations;
+    return CORE::CString( "an argument that is expensive to build and that nobody reads when the user log is off" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Thread which logs a number of user messages and then finishes
+ */
+class CUserLogSwitchWorker : public MT::CActiveObject
+{
+    public:
+
+    explicit CUserLogSwitchWorker( UInt32 nrOfMessages )
+        : MT::CActiveObject()
+        , m_nrOfMessages( nrOfMessages )
+    {}
+
+    virtual ~CUserLogSwitchWorker()
+    {}
+
+    bool WaitForCompletion( UInt32 timeoutInMs )
+    {
+        UInt32 waitedInMs = 0;
+        while ( IsActive() && waitedInMs < timeoutInMs )
+        {
+            MT::ThreadDelay( 5 );
+            waitedInMs += 5;
+        }
+        return !IsActive();
+    }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        return this;
+    }
+
+    protected:
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        return true;
+    }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        for ( UInt32 i=0; i<m_nrOfMessages; ++i )
+        {
+            GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "UserLogSwitchWorkerMessage " << UserLogExpensiveArgument() );
+        }
+        return true; // done, the thread ends
+    }
+
+    private:
+
+    UInt32 m_nrOfMessages;
+};
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+RunUserLogSwitchWorker( UInt32 nrOfMessages )
+{
+    CUserLogSwitchWorker* worker = GUCEF_NEW CUserLogSwitchWorker( nrOfMessages );
+    if ( !worker->Activate() )
+    {
+        GUCEF_DELETE worker;
+        return false;
+    }
+    bool done = worker->WaitForCompletion( 10000 );
+    if ( done )
+        GUCEF_DELETE worker;
+    return done;
+}
+
 void
 PerformLoggingTests( void )
 {
@@ -832,6 +982,118 @@ PerformLoggingTests( void )
         CORE::DeleteFile( logFile );
     GUCEF_TESTFW_TESTCASE_END
 
+    // Test 17d: the user log is a switch that is looked at before anything of the message is built
+    GUCEF_TESTFW_TESTCASE( "Test 17d: GUCEF_USER_LOG disabled builds nothing and reaches no logger" )
+        PreDrainThreadBuffer();
+        CORE::CLogManager& logMgr = CORE::CCoreGlobal::Instance()->GetLogManager();
+        ASSERT_TRUE( logMgr.IsUserLogEnabled() );       // the default keeps the behaviour of programs that never set it
+
+        CTestCaptureLogger captureLogger;
+        logMgr.AddLogger( &captureLogger );
+
+        // on: the message arrives
+        GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "UserLogSwitchOnMessage" );
+        CORE::CLogStreamScope::FlushLogs();
+        ASSERT_TRUE( captureLogger.HasEntryWith( "UserLogSwitchOnMessage" ) );
+
+        // off: not the user messages, nothing else is touched
+        logMgr.SetUserLogEnabled( false );
+        ASSERT_FALSE( logMgr.IsUserLogEnabled() );
+        g_userLogArgumentEvaluations = 0;
+        GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "UserLogSwitchOffMessage " << UserLogExpensiveArgument() );
+        GUCEF_USER_LOG( CORE::LOGLEVEL_CRITICAL, "UserLogSwitchOffMessage " << UserLogExpensiveArgument() )     // no semicolon, as it is used in the code
+        GUCEF_USER_LOGSTR( CORE::LOGLEVEL_NORMAL, "UserLogSwitchOffMessage " + UserLogExpensiveArgument() );
+        logMgr.Log( CORE::LOG_USER, CORE::LOGLEVEL_NORMAL, CORE::CString( "UserLogSwitchOffMessageDirect" ) );
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "UserLogSwitchOffOtherMessage" );
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "UserLogSwitchOffWarning" );
+        CORE::CLogStreamScope::FlushLogs();
+        ASSERT_TRUE( 0 == g_userLogArgumentEvaluations );
+        ASSERT_FALSE( captureLogger.HasEntryWith( "UserLogSwitchOffMessage" ) );
+        ASSERT_TRUE( captureLogger.HasEntryWith( "UserLogSwitchOffOtherMessage" ) );
+        ASSERT_TRUE( captureLogger.HasEntryWith( "UserLogSwitchOffWarning" ) );
+
+        // as the body of an if without braces, as the macros are used in code
+        if ( 0 == g_userLogArgumentEvaluations )
+            GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "UserLogSwitchOffMessage " << UserLogExpensiveArgument() )
+        else
+            GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "UserLogSwitchOffMessage " << UserLogExpensiveArgument() )
+        ASSERT_TRUE( 0 == g_userLogArgumentEvaluations );
+
+        // back on, all of it again
+        logMgr.SetUserLogEnabled( true );
+        ASSERT_TRUE( logMgr.IsUserLogEnabled() );
+        GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "UserLogSwitchOnAgain " << UserLogExpensiveArgument() );
+        CORE::CLogStreamScope::FlushLogs();
+        ASSERT_TRUE( 1 == g_userLogArgumentEvaluations );
+        ASSERT_TRUE( captureLogger.HasEntryWith( "UserLogSwitchOnAgain" ) );
+
+        // the other threads see the switch too
+        logMgr.SetUserLogEnabled( false );
+        g_userLogArgumentEvaluations = 0;
+        ASSERT_TRUE( RunUserLogSwitchWorker( 1000 ) );
+        CORE::CLogStreamScope::FlushLogs();
+        ASSERT_TRUE( 0 == g_userLogArgumentEvaluations );
+        ASSERT_FALSE( captureLogger.HasEntryWith( "UserLogSwitchWorkerMessage" ) );
+        logMgr.SetUserLogEnabled( true );
+        ASSERT_TRUE( RunUserLogSwitchWorker( 1 ) );
+        CORE::CLogStreamScope::FlushLogs();
+        ASSERT_TRUE( 1 == g_userLogArgumentEvaluations );
+        ASSERT_TRUE( captureLogger.HasEntryWith( "UserLogSwitchWorkerMessage" ) );
+
+        logMgr.RemoveLogger( &captureLogger );
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 17e: the cost of a user log message that is switched off: a test of a flag, no message built
+    GUCEF_TESTFW_TESTCASE( "Test 17e: A million disabled GUCEF_USER_LOG calls evaluate nothing and cost nanoseconds each" )
+        PreDrainThreadBuffer();
+        CORE::CLogManager& logMgr = CORE::CCoreGlobal::Instance()->GetLogManager();
+        CTestCaptureLogger captureLogger;
+        logMgr.AddLogger( &captureLogger );
+        logMgr.SetUserLogEnabled( false );
+
+        const UInt32 nrOfCalls = 1000000;
+        g_userLogArgumentEvaluations = 0;
+        const UInt64 start = MT::PrecisionTickCount();
+        for ( UInt32 i=0; i<nrOfCalls; ++i )
+            GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "Expensive to build " << UserLogExpensiveArgument() << " and " << i << " and " << UserLogExpensiveArgument() )
+        const UInt64 ticks = MT::PrecisionTickCount() - start;
+        const Float64 nsPerCall = ( ticks * 1000000000.0 / MT::PrecisionTimerResolution() ) / nrOfCalls;
+        logMgr.SetUserLogEnabled( true );
+        CORE::CLogStreamScope::FlushLogs();
+
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GUCEF_USER_LOG disabled: " << nsPerCall << " ns per call over " << nrOfCalls << " calls" );
+        ASSERT_TRUE( 0 == g_userLogArgumentEvaluations );
+        ASSERT_FALSE( captureLogger.HasEntryWith( "Expensive to build" ) );
+        ASSERT_TRUE( nsPerCall < 50.0 );
+
+        // for comparison: the same message enabled does build the whole thing
+        g_userLogArgumentEvaluations = 0;
+        GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "Expensive to build " << UserLogExpensiveArgument() );
+        CORE::CLogStreamScope::FlushLogs();
+        ASSERT_TRUE( 1 == g_userLogArgumentEvaluations );
+        ASSERT_TRUE( captureLogger.HasEntryWith( "Expensive to build" ) );
+
+        logMgr.RemoveLogger( &captureLogger );
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 17f: a user action log that is switched on has user messages to log
+    GUCEF_TESTFW_TESTCASE( "Test 17f: Switching the user action log file on switches the user messages on" )
+        PreDrainThreadBuffer();
+        CORE::CLogManager& logMgr = CORE::CCoreGlobal::Instance()->GetLogManager();
+        const CORE::CString logFile = CORE::RelativePath( "$TEMPDIR$/gucefCORE_TestApp/UserActionsSwitch.log" );
+        CORE::DeleteFile( logFile );
+        logMgr.SetUserLogEnabled( false );
+        ASSERT_TRUE( logMgr.SetUserActionLogEnabled( true, logFile ) );
+        ASSERT_TRUE( logMgr.IsUserLogEnabled() );
+        GUCEF_USER_LOG( CORE::LOGLEVEL_CRITICAL, "UserActionAfterTheFileWasSwitchedOn" );
+        CORE::CLogStreamScope::FlushLogs();
+        ASSERT_TRUE( logMgr.SetUserActionLogEnabled( false, CORE::CString::Empty ) );
+        CORE::CString content;
+        ASSERT_TRUE( CORE::LoadTextFileAsString( logFile, content ) );
+        ASSERT_TRUE( content.HasSubstr( "UserActionAfterTheFileWasSwitchedOn" ) >= 0 );
+        CORE::DeleteFile( logFile );
+    GUCEF_TESTFW_TESTCASE_END
+
     // Test 18: Thread ID is correctly captured in the segment metadata
     GUCEF_TESTFW_TESTCASE( "Test 18: Thread ID preserved through streaming path" )
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 18: Thread ID preserved through streaming path" );
@@ -1075,6 +1337,55 @@ PerformLoggingTests( void )
             ASSERT_TRUE( LoggingTestNrOfMsgsPerThread == CountEntriesWith( captureLogger, prefix, worker.threadId, wrongThreadIds ) );
             ASSERT_TRUE( 0 == wrongThreadIds );
 
+            logMgr.RemoveLogger( &captureLogger );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Test 24: Flushing from several different threads, as happens when the pulse thread and other threads
+    // flush the logs, must leave the buffers of the logging threads usable and must not lose messages.
+    // The buffers of a thread are swapped under the lock of the buffer being swapped out. A flush which hangs
+    // is reported as failed here, the threads that hang are left behind (that is the reason they are not deleted).
+    GUCEF_TESTFW_TESTCASE( "Test 24: Flushing the logs from different threads keeps the buffers of a logging thread usable" )
+        try
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Test 24: Flushing the logs from different threads keeps the buffers of a logging thread usable" );
+            PreDrainThreadBuffer();
+
+            CORE::CLogManager& logMgr = CORE::CCoreGlobal::Instance()->GetLogManager();
+            CTestCaptureLogger captureLogger;
+            logMgr.AddLogger( &captureLogger );
+
+            // A thread which logged and is gone, its buffers stay behind in the log manager
+            CLoggingTestOneShot* logger = GUCEF_NEW CLoggingTestOneShot( CLoggingTestOneShot::ACTION_LOG, "LogFlushThreadsTest-Msg" );
+            ASSERT_TRUE( logger->Activate() );
+            bool loggerDone = logger->WaitForCompletion( 30000 );
+            ASSERT_TRUE( loggerDone );
+            if ( loggerDone )
+                GUCEF_DELETE logger;
+
+            // Flushes from one thread after the other, each of them swaps the buffers of the thread which logged
+            bool allFlushesDone = true;
+            for ( UInt32 i=0; i<6 && allFlushesDone; ++i )
+            {
+                CLoggingTestOneShot* flusher = GUCEF_NEW CLoggingTestOneShot( CLoggingTestOneShot::ACTION_FLUSH, CORE::CString::Empty );
+                ASSERT_TRUE( flusher->Activate() );
+                allFlushesDone = flusher->WaitForCompletion( 10000 );
+                if ( allFlushesDone )
+                    GUCEF_DELETE flusher;
+            }
+            ASSERT_TRUE( allFlushesDone );
+
+            if ( allFlushesDone )
+            {
+                ASSERT_TRUE( captureLogger.HasEntryWith( "LogFlushThreadsTest-Msg" ) );
+
+                // and the thread running the tests can still flush
+                CORE::CLogStreamScope::FlushLogs();
+            }
             logMgr.RemoveLogger( &captureLogger );
         }
         catch ( ... )

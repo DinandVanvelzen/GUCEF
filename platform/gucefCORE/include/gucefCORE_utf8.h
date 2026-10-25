@@ -215,6 +215,10 @@ utf8codepoint(const void *utf8_restrict str,
 // Calculates the size of the next utf8 codepoint in str.
 utf8_nonnull utf8_weak size_t utf8codepointcalcsize(const void *str);
 
+// DV edit: same as utf8codepointcalcsize() but never looks at more than bufferSize bytes. When the buffer ends before
+// the sequence the lead byte announces, the size announced is returned: it then is larger than what is left of the buffer.
+utf8_nonnull utf8_weak size_t utf8codepointcalcsize_s(const void *str, size_t bufferSize);
+
 // Returns the size of the given codepoint in bytes.
 utf8_weak size_t utf8codepointsize(utf8_int32_t chr);
 
@@ -481,24 +485,75 @@ void *utf8dup_ex(const void *src, void *(*alloc_func_ptr)(void *, size_t),
 
 void *utf8fry(const void *str);
 
+// DV edit: number of bytes of the code point that starts at s. The lead byte gives the size, but a sequence never runs
+// over a null byte and never beyond limit bytes (limit is only used to know how much may be read, pass (size_t)-1 if there is none).
+// Content that is cut off, as happens when it is received in pieces, would otherwise have the lead byte swallow the null
+// terminator and every function walking the string would carry on beyond the end of the buffer.
+// For well formed content the result is the size the lead byte gives.
+static size_t utf8seqlen(const unsigned char *s, size_t limit) {
+  size_t size = 1;
+  size_t i;
+
+  if (0xf0 == (0xf8 & *s)) {
+    size = 4;
+  } else if (0xe0 == (0xf0 & *s)) {
+    size = 3;
+  } else if (0xc0 == (0xe0 & *s)) {
+    size = 2;
+  }
+
+  for (i = 1; i < size && i < limit; i++) {
+    if ('\0' == s[i]) {
+      return i;
+    }
+  }
+  return size;
+}
+
+// DV edit: decodes the code point at s and returns the number of bytes it takes.
+// A cut off sequence (continuation bytes missing) does not hold a code point, it decodes as U+FFFD.
+static size_t utf8decode(const char *s, utf8_uint32_t *out_codepoint, size_t limit) {
+  char b[4];
+  size_t n = utf8seqlen((const unsigned char *)s, limit);
+  size_t i;
+
+  for (i = 0; i < 4; i++) {
+    b[i] = (i < n) ? s[i] : 0;
+  }
+
+  if ((0xf0 == (0xf8 & b[0]) && n < 4) || (0xe0 == (0xf0 & b[0]) && n < 3) ||
+      (0xc0 == (0xe0 & b[0]) && n < 2)) {
+    *out_codepoint = 0xfffd;
+    return n;
+  }
+
+  if (0xf0 == (0xf8 & b[0])) {
+    // 4 byte utf8 codepoint
+    *out_codepoint = ((0x07 & b[0]) << 18) | ((0x3f & b[1]) << 12) |
+                     ((0x3f & b[2]) << 6) | (0x3f & b[3]);
+    return n;
+  } else if (0xe0 == (0xf0 & b[0])) {
+    // 3 byte utf8 codepoint
+    *out_codepoint =
+        ((0x0f & b[0]) << 12) | ((0x3f & b[1]) << 6) | (0x3f & b[2]);
+    return n;
+  } else if (0xc0 == (0xe0 & b[0])) {
+    // 2 byte utf8 codepoint
+    *out_codepoint = ((0x1f & b[0]) << 6) | (0x3f & b[1]);
+    return n;
+  }
+
+  // 1 byte utf8 codepoint otherwise
+  *out_codepoint = b[0];
+  return 1;
+}
+
 size_t utf8len(const void *str) {
   const unsigned char *s = (const unsigned char *)str;
   size_t length = 0;
 
   while ('\0' != *s) {
-    if (0xf0 == (0xf8 & *s)) {
-      // 4-byte utf8 code point (began with 0b11110xxx)
-      s += 4;
-    } else if (0xe0 == (0xf0 & *s)) {
-      // 3-byte utf8 code point (began with 0b1110xxxx)
-      s += 3;
-    } else if (0xc0 == (0xe0 & *s)) {
-      // 2-byte utf8 code point (began with 0b110xxxxx)
-      s += 2;
-    } else { // if (0x00 == (0x80 & *s)) {
-      // 1-byte ascii (began with 0b0xxxxxxx)
-      s += 1;
-    }
+    s += utf8seqlen(s, (size_t)-1);
 
     // no matter the bytes we marched s forward by, it was
     // only 1 utf8 codepoint
@@ -517,28 +572,9 @@ size_t utf8len_s_withaddr(const void *str, size_t bufferSize, const char** nullT
 
   while ( bytes < bufferSize && '\0' != *s ) 
   {
-    if (0xf0 == (0xf8 & *s)) 
-    {
-      // 4-byte utf8 code point (began with 0b11110xxx)
-      s += 4; bytes += 4;
-    } 
-    else 
-    if (0xe0 == (0xf0 & *s)) 
-    {
-      // 3-byte utf8 code point (began with 0b1110xxxx)
-      s += 3; bytes += 3;
-    } 
-    else 
-    if (0xc0 == (0xe0 & *s)) 
-    {
-      // 2-byte utf8 code point (began with 0b110xxxxx)
-      s += 2; bytes += 2;
-    } 
-    else 
-    { // if (0x00 == (0x80 & *s)) {
-      // 1-byte ascii (began with 0b0xxxxxxx)
-      s += 1; bytes += 1;
-    }
+    // 1 to 4 bytes depending on the lead byte, but cut off content ends at the null or the end of the buffer
+    size_t seqLen = utf8seqlen(s, bufferSize - bytes);
+    s += seqLen; bytes += seqLen;
 
     if ( bytes < bufferSize && '\0' == *s && NULL != nullTermAddress )
         *nullTermAddress = (const char*) s;    
@@ -1243,25 +1279,7 @@ void *utf8codepoint(const void *utf8_restrict str,
 
   const char *s = (const char *)str;
 
-  if (0xf0 == (0xf8 & s[0])) {
-    // 4 byte utf8 codepoint
-    *out_codepoint = ((0x07 & s[0]) << 18) | ((0x3f & s[1]) << 12) |
-                     ((0x3f & s[2]) << 6) | (0x3f & s[3]);
-    s += 4;
-  } else if (0xe0 == (0xf0 & s[0])) {
-    // 3 byte utf8 codepoint
-    *out_codepoint =
-        ((0x0f & s[0]) << 12) | ((0x3f & s[1]) << 6) | (0x3f & s[2]);
-    s += 3;
-  } else if (0xc0 == (0xe0 & s[0])) {
-    // 2 byte utf8 codepoint
-    *out_codepoint = ((0x1f & s[0]) << 6) | (0x3f & s[1]);
-    s += 2;
-  } else {
-    // 1 byte utf8 codepoint otherwise
-    *out_codepoint = s[0];
-    s += 1;
-  }
+  s += utf8decode(s, out_codepoint, (size_t)-1);
 
   return (void *)s;
 }
@@ -1271,21 +1289,16 @@ size_t utf8codepointcalcsize(const void *str)
   if (NULL == str)
     return 0;
 
-  const char *s = (const char *)str;
+  // 1 to 4 bytes depending on the lead byte, cut off content ends at its null terminator
+  return utf8seqlen((const unsigned char *)str, (size_t)-1);
+}
 
-  if (0xf0 == (0xf8 & s[0])) {
-    // 4 byte utf8 codepoint
-    return 4;
-  } else if (0xe0 == (0xf0 & s[0])) {
-    // 3 byte utf8 codepoint
-    return 3;
-  } else if (0xc0 == (0xe0 & s[0])) {
-    // 2 byte utf8 codepoint
-    return 2;
-  }
+size_t utf8codepointcalcsize_s(const void *str, size_t bufferSize)
+{
+  if (NULL == str || 0 == bufferSize)
+    return 0;
 
-  // 1 byte utf8 codepoint otherwise
-  return 1;
+  return utf8seqlen((const unsigned char *)str, bufferSize);
 }
 
 size_t utf8codepointsize(utf8_int32_t chr) {
@@ -1364,7 +1377,9 @@ void utf8lwr(void *utf8_restrict str) {
     const utf8_int32_t lwr_cp = utf8lwrcodepoint(cp);
     const size_t size = utf8codepointsize(lwr_cp);
 
-    if (lwr_cp != cp) {
+    // DV edit: the case converted code point replaces the original in place, which cannot be done when it takes more
+    // room than the original had. That is the case for a cut off sequence, whose decoded value is not a real code point.
+    if (lwr_cp != cp && size <= (size_t)((char *)pn - (char *)p)) {
       utf8catcodepoint(p, lwr_cp, size);
     }
 
@@ -1384,7 +1399,9 @@ void utf8upr(void *utf8_restrict str) {
     const utf8_int32_t lwr_cp = utf8uprcodepoint(cp);
     const size_t size = utf8codepointsize(lwr_cp);
 
-    if (lwr_cp != cp) {
+    // DV edit: the case converted code point replaces the original in place, which cannot be done when it takes more
+    // room than the original had. That is the case for a cut off sequence, whose decoded value is not a real code point.
+    if (lwr_cp != cp && size <= (size_t)((char *)pn - (char *)p)) {
       utf8catcodepoint(p, lwr_cp, size);
     }
 
@@ -1732,21 +1749,7 @@ void *utf8rcodepoint(const void *utf8_restrict str,
   if ( NULL == str )
     return NULL;
 
-  if (0xf0 == (0xf8 & s[0])) {
-    // 4 byte utf8 codepoint
-    *out_codepoint = ((0x07 & s[0]) << 18) | ((0x3f & s[1]) << 12) |
-                     ((0x3f & s[2]) << 6) | (0x3f & s[3]);
-  } else if (0xe0 == (0xf0 & s[0])) {
-    // 3 byte utf8 codepoint
-    *out_codepoint =
-        ((0x0f & s[0]) << 12) | ((0x3f & s[1]) << 6) | (0x3f & s[2]);
-  } else if (0xc0 == (0xe0 & s[0])) {
-    // 2 byte utf8 codepoint
-    *out_codepoint = ((0x1f & s[0]) << 6) | (0x3f & s[1]);
-  } else {
-    // 1 byte utf8 codepoint otherwise
-    *out_codepoint = s[0];
-  }
+  utf8decode(s, out_codepoint, (size_t)-1);
 
   do {
     s--;

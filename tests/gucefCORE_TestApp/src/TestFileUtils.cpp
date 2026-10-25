@@ -437,6 +437,45 @@ PerformFileUtilsTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test: SetOwnerOnlyAccess restricts a file and a directory to the user" )
+        try
+        {
+            CORE::CString dir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_OwnerOnly" );
+            ASSERT_TRUE( CORE::CreateDirs( dir ) );
+            CORE::CString path = CORE::CombinePath( dir, "secret.bin" );
+            ASSERT_TRUE( CORE::WriteFileAtomically( path, "key material", 12 ) );
+
+            ASSERT_TRUE( CORE::SetOwnerOnlyAccess( path ) );
+            ASSERT_TRUE( CORE::SetOwnerOnlyAccess( dir ) );
+            // nothing changes about being able to use them
+            CORE::CString content;
+            ASSERT_TRUE( CORE::LoadTextFileAsString( path, content, false ) && content == "key material" );
+
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+            struct stat info;
+            ASSERT_TRUE( 0 == ::stat( dir.C_String(), &info ) && 0700 == ( info.st_mode & 0777 ) );
+            ASSERT_TRUE( 0 == ::stat( path.C_String(), &info ) && 0600 == ( info.st_mode & 0777 ) );
+            // a file made by replacing it is a new file: it is restricted again
+            ASSERT_TRUE( CORE::WriteFileAtomically( path, "replaced", 8 ) );
+            ASSERT_TRUE( CORE::SetOwnerOnlyAccess( path ) );
+            ASSERT_TRUE( 0 == ::stat( path.C_String(), &info ) && 0600 == ( info.st_mode & 0777 ) );
+            // a file that is open to others is closed to them
+            ::chmod( path.C_String(), 0666 );
+            ASSERT_TRUE( CORE::SetOwnerOnlyAccess( path ) );
+            ASSERT_TRUE( 0 == ::stat( path.C_String(), &info ) && 0600 == ( info.st_mode & 0777 ) );
+            #endif
+
+            // what is not there and what is not a path
+            ASSERT_FALSE( CORE::SetOwnerOnlyAccess( CORE::CombinePath( dir, "missing.bin" ) ) );
+            ASSERT_FALSE( CORE::SetOwnerOnlyAccess( CORE::CString::Empty ) );
+            CORE::Remove_Directory( dir.C_String(), 1 );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     // Regression: on Linux MoveFile ignored the overwrite flag and always replaced an existing target
     GUCEF_TESTFW_TESTCASE( "Test: MoveFile honors the overwrite flag" )
         try

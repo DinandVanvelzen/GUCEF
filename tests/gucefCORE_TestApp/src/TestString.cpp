@@ -1263,6 +1263,369 @@ PerformUtf8StringFromByteRangeRegressionTests( void )
 /*-------------------------------------------------------------------------*/
 
 /**
+ *  Appending a UTF-8 sequence in pieces, as a streaming decoder does, must give the same string as appending
+ *  it in one go whatever the split points are. Every piece is its own exact size heap allocation so that
+ *  any read or write beyond it is reported by AddressSanitizer
+ */
+static void
+AppendPiecesAndCompare( const CORE::CUtf8String& prefix  ,
+                        const char* bytes                ,
+                        UInt32 byteCount                 ,
+                        UInt32 cutMask                   ,
+                        bool includeTerminatorInPieces   ,
+                        bool& allOk                      )
+{
+    // reference: the whole content in one go
+    CORE::CUtf8String expected( prefix );
+    expected.Append( bytes, byteCount );
+
+    CORE::CUtf8String pieced( prefix );
+    UInt32 start = 0;
+    for ( UInt32 i=1; i<=byteCount; ++i )
+    {
+        // bit n of the mask set means: cut after byte n+1
+        if ( i == byteCount || 0 != ( cutMask & ( 1 << ( i-1 ) ) ) )
+        {
+            UInt32 pieceSize = i - start;
+            UInt32 allocSize = includeTerminatorInPieces ? pieceSize+1 : pieceSize;
+            char* piece = new char[ allocSize ];
+            memcpy( piece, bytes+start, pieceSize );
+            if ( includeTerminatorInPieces )
+                piece[ pieceSize ] = '\0';
+            pieced.Append( piece, allocSize );
+            delete[] piece;
+            start = i;
+        }
+    }
+
+    // The result must be self consistent and equal to the one go result
+    CORE::CUtf8String fromScratch( pieced.C_String(), pieced.ByteSize()-1 );
+    if ( pieced.ByteSize() != expected.ByteSize()             ||
+         0 != memcmp( pieced.C_String(), expected.C_String(), expected.ByteSize() ) ||
+         pieced.Length() != expected.Length()                 ||
+         pieced.Length() != fromScratch.Length()              ||
+         pieced.Length() != pieced.Uppercase().Length()       ||
+         !( pieced == expected ) )
+    {
+        allOk = false;
+    }
+}
+
+static void
+PerformUtf8AppendIncompleteSequenceTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "[CUtf8String] Append of a sequence in pieces at every split point equals Append in one go" )
+    try
+    {
+        static const char ascii[]  = { 'A', 0 };
+        static const char twoB[]   = { '\xC3', '\xA9', 0 };                      // U+00E9
+        static const char threeB[] = { '\xE2', '\x82', '\xAC', 0 };              // euro sign
+        static const char fourB[]  = { '\xF0', '\x9F', '\x98', '\x80', 0 };      // U+1F600
+        static const char mixed[]  = { 'a', '\xC3', '\xA9', '\xE2', '\x82', '\xAC', '\xF0', '\x9F', '\x98', '\x80', 'z', 0 };
+        static const char* const sequences[] = { ascii, twoB, threeB, fourB, mixed };
+        static const UInt32 sequenceSizes[] = { 1, 2, 3, 4, 11 };
+        static const char* const prefixes[] = { "", "ab", "\xC3\xA9", "\xE2\x82\xAC\xC3\xA9x" };
+
+        bool allOk = true;
+        for ( UInt32 s=0; s<5; ++s )
+        {
+            for ( UInt32 p=0; p<4; ++p )
+            {
+                UInt32 combinations = 1 << ( sequenceSizes[ s ]-1 );
+                for ( UInt32 mask=0; mask<combinations; ++mask )
+                {
+                    AppendPiecesAndCompare( CORE::CUtf8String( prefixes[ p ] ), sequences[ s ], sequenceSizes[ s ], mask, false, allOk );
+                    AppendPiecesAndCompare( CORE::CUtf8String( prefixes[ p ] ), sequences[ s ], sequenceSizes[ s ], mask, true, allOk );
+                }
+            }
+        }
+        ASSERT_TRUE( allOk );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "[CUtf8String] Append of the euro sign byte by byte" )
+    try
+    {
+        CORE::CUtf8String str;
+        str.Append( "\xE2", 1 );
+        ASSERT_TRUE( 2 == str.ByteSize() );
+        str.Append( "\x82", 1 );
+        ASSERT_TRUE( 3 == str.ByteSize() );
+        str.Append( "\xAC", 1 );
+        ASSERT_TRUE( 4 == str.ByteSize() );
+        ASSERT_TRUE( 1 == str.Length() );
+        ASSERT_TRUE( 0 == memcmp( str.C_String(), "\xE2\x82\xAC", 4 ) );
+
+        // and the string keeps working as a string afterwards
+        str.Append( "x", 1 );
+        ASSERT_TRUE( 2 == str.Length() );
+        ASSERT_TRUE( 5 == str.ByteSize() );
+        ASSERT_TRUE( str == CORE::CUtf8String( "\xE2\x82\xAC" "x" ) );
+        ASSERT_TRUE( 1 == str.HasChar( (char) 'x', true ) );
+        ASSERT_TRUE( 0x20AC == str.CodepointAtIndex( 0 ) );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "[CUtf8String] Append of the other overloads on an incomplete sequence" )
+    try
+    {
+        // Append( const char* ) and Append( CUtf8String ) with the continuation bytes
+        CORE::CUtf8String viaCString( "a\xE2" );
+        viaCString.Append( "\x82\xAC" );
+        ASSERT_TRUE( 2 == viaCString.Length() );
+        ASSERT_TRUE( viaCString == CORE::CUtf8String( "a\xE2\x82\xAC" ) );
+
+        CORE::CUtf8String viaString( "\xC3" );
+        viaString.Append( CORE::CUtf8String( "\xA9" "b" ) );
+        ASSERT_TRUE( 2 == viaString.Length() );
+        ASSERT_TRUE( viaString == CORE::CUtf8String( "\xC3\xA9" "b" ) );
+
+        CORE::CUtf8String viaOperator( "\xF0\x9F" );
+        viaOperator += CORE::CUtf8String( "\x98\x80" );
+        ASSERT_TRUE( 1 == viaOperator.Length() );
+        ASSERT_TRUE( 5 == viaOperator.ByteSize() );
+
+        CORE::CUtf8String viaCodePoint( "\xE2\x82" );
+        viaCodePoint.Append( (UInt32) 'q' );
+        ASSERT_TRUE( 0 == memcmp( viaCodePoint.C_String(), "\xE2\x82q", 4 ) );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "[CUtf8String] Append of the string to itself and of a part of itself" )
+    try
+    {
+        // growing the buffer moves it, the bytes to append must not be read from the old one
+        CORE::CUtf8String str( "ab\xC3\xA9" );
+        str.Append( str );
+        ASSERT_TRUE( str == CORE::CUtf8String( "ab\xC3\xA9" "ab\xC3\xA9" ) );
+        ASSERT_TRUE( 6 == str.Length() );
+        str += str;
+        ASSERT_TRUE( 12 == str.Length() );
+        ASSERT_TRUE( 17 == str.ByteSize() );
+
+        CORE::CUtf8String part( "0123456789" );
+        part.Append( part.C_String()+5, 5 );
+        ASSERT_TRUE( part == "012345678956789" );
+        ASSERT_TRUE( 15 == part.Length() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "[CUtf8String] Append to a string with spare room and to a linked string" )
+    try
+    {
+        CORE::CUtf8String roomy;
+        roomy.Reserve( 64 );
+        roomy.Set( "\xE2\x82", 2, false );          // cut off, with plenty of unused room behind it
+        roomy.Append( "\xAC" "x", 2 );
+        ASSERT_TRUE( 2 == roomy.Length() );
+        ASSERT_TRUE( roomy == CORE::CUtf8String( "\xE2\x82\xAC" "x" ) );
+
+        const char linkedContent[] = "h\xC3\xA9";
+        CORE::CUtf8String linked;
+        linked.LinkTo( linkedContent );
+        linked.Append( "llo", 3 );
+        ASSERT_TRUE( 5 == linked.Length() );
+        ASSERT_TRUE( linked == CORE::CUtf8String( "h\xC3\xA9llo" ) );
+        ASSERT_TRUE( 0 == strcmp( linkedContent, "h\xC3\xA9" ) );   // the external buffer is left alone
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "[CUtf8String] A string ending in a cut off sequence stays inside its buffer for the string operations" )
+    try
+    {
+        static const char* const cutOff[] = { "\xE2", "\xE2\x82", "\xF0", "\xF0\x9F", "\xF0\x9F\x98", "\xC3", "a\xC3", "ab\xE2\x82", "aab\xE2" };
+        for ( UInt32 i=0; i<9; ++i )
+        {
+            CORE::CUtf8String str( cutOff[ i ] );
+            UInt32 byteLength = (UInt32) strlen( cutOff[ i ] );
+            ASSERT_TRUE( str.ByteSize() == byteLength+1 );
+
+            // none of these may walk beyond the terminator of the string
+            CORE::CUtf8String upper = str.Uppercase();
+            CORE::CUtf8String lower = str.Lowercase();
+            ASSERT_TRUE( upper.ByteSize() == str.ByteSize() );
+            ASSERT_TRUE( lower.ByteSize() == str.ByteSize() );
+            str.HasChar( 'z', true );
+            str.HasChar( 'z', false );
+            str.Trim( true );
+            str.Trim( false );
+            str.ReplaceChar( 'a', 'b' );
+            str.RemoveChar( 'a' );
+            str.CompactRepeatingChar( 'a' );
+            str.SubstrToChar( 'a', true );
+            str.SubstrToChar( 'a', false );
+            str.SubstrFromRange( 0, str.Length() );
+            str.CodepointAtIndex( 0 );
+            str.CodepointAtIndex( str.Length()-1 );
+            str.STL_String();
+            ASSERT_TRUE( str == CORE::CUtf8String( cutOff[ i ] ) );
+        }
+
+        // the bytes of the cut off sequence are carried over as they are
+        ASSERT_TRUE( CORE::CUtf8String( "ab\xE2\x82" ).ReplaceChar( 'a', 'z' ) == CORE::CUtf8String( "zb\xE2\x82" ) );
+        ASSERT_TRUE( CORE::CUtf8String( "ab\xE2\x82" ).RemoveChar( 'a' ) == CORE::CUtf8String( "b\xE2\x82" ) );
+        ASSERT_TRUE( CORE::CUtf8String( "aab\xF0\x9F" ).CompactRepeatingChar( 'a' ) == CORE::CUtf8String( "ab\xF0\x9F" ) );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "[CUtf8String] Append of invalid sequences is memory safe and consistent with building the string in one go" )
+    try
+    {
+        static const char overlong2[] = { '\xC0', '\x80' };
+        static const char overlong3[] = { '\xE0', '\x80', '\x80' };
+        static const char strayCont[] = { '\x80', '\x80', 'a' };
+        static const char leadThenAscii[] = { '\xE2', 'a', 'b', 'c' };
+        static const char leadAtEnd[] = { 'a', 'b', '\xF0' };
+        static const char leadLeadCont[] = { '\xE2', '\xE2', '\x82', '\xAC' };
+        static const char* const inputs[] = { overlong2, overlong3, strayCont, leadThenAscii, leadAtEnd, leadLeadCont };
+        static const UInt32 inputSizes[] = { 2, 3, 3, 4, 3, 4 };
+
+        bool allOk = true;
+        for ( UInt32 i=0; i<6; ++i )
+        {
+            for ( UInt32 mask=0; mask < (UInt32) ( 1 << ( inputSizes[ i ]-1 ) ); ++mask )
+            {
+                // The one go reference is a string created from the same bytes: both must give the same string
+                CORE::CUtf8String reference( inputs[ i ], inputSizes[ i ] );
+
+                CORE::CUtf8String pieced;
+                UInt32 start = 0;
+                for ( UInt32 n=1; n<=inputSizes[ i ]; ++n )
+                {
+                    if ( n == inputSizes[ i ] || 0 != ( mask & ( 1 << ( n-1 ) ) ) )
+                    {
+                        char* piece = new char[ n-start ];
+                        memcpy( piece, inputs[ i ]+start, n-start );
+                        pieced.Append( piece, n-start );
+                        delete[] piece;
+                        start = n;
+                    }
+                }
+                if ( pieced.ByteSize() != reference.ByteSize() ||
+                     0 != memcmp( pieced.C_String(), reference.C_String(), reference.ByteSize() ) ||
+                     pieced.Length() != reference.Length() )
+                {
+                    allOk = false;
+                }
+                // walking all code points must stay inside the buffer (checked by AddressSanitizer)
+                pieced.Uppercase();
+                pieced.STL_String();
+            }
+        }
+        ASSERT_TRUE( allOk );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  UTF-8 input that is cut off (the continuation bytes of its last sequence are missing) must not be read beyond its
+ *  terminator or the end of the byte range it was given. The cut off sequence is no code point, it decodes as U+FFFD
+ */
+template < class TString >
+static void
+PerformTypedCutOffUtf8InputTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( ( CORE::CString( "[" ) + StringTypeName< TString >() + "] UTF-8 input with a cut off last sequence stays inside its buffer" ).C_String() )
+    try
+    {
+        static const char* const cutOff[] = { "\xE2", "\xE2\x82", "\xF0", "\xF0\x9F", "\xF0\x9F\x98", "\xC3", "a\xC3", "ab\xE2\x82" };
+        static const UInt32 sizes[] = { 1, 2, 1, 2, 3, 1, 2, 4 };
+        static const UInt32 lengths[] = { 1, 1, 1, 1, 1, 1, 2, 3 };
+        for ( UInt32 i=0; i<8; ++i )
+        {
+            // exact size heap buffers: any read beyond is reported by AddressSanitizer
+            char* terminated = new char[ sizes[ i ]+1 ];
+            memcpy( terminated, cutOff[ i ], sizes[ i ] );
+            terminated[ sizes[ i ] ] = '\0';
+            char* unterminated = new char[ sizes[ i ] ];
+            memcpy( unterminated, cutOff[ i ], sizes[ i ] );
+
+            TString fromTerminated( terminated );
+            ASSERT_TRUE( lengths[ i ] == fromTerminated.Length() );
+            ASSERT_TRUE( 0xFFFD == fromTerminated[ lengths[ i ]-1 ] );
+
+            TString appended( "x" );
+            appended.Append( terminated );
+            ASSERT_TRUE( lengths[ i ]+1 == appended.Length() );
+            ASSERT_TRUE( 0xFFFD == appended[ lengths[ i ] ] );
+
+            TString fromRange( unterminated, sizes[ i ] );
+            ASSERT_TRUE( fromRange.Length() <= lengths[ i ] );   // a range ending in the middle of a sequence may leave that sequence out
+
+            delete[] terminated;
+            delete[] unterminated;
+        }
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  A UTF-16 surrogate pair appended in two pieces is one code point, as it is when appended in one go
+ */
+static void
+PerformUtf16AppendSplitSurrogatePairTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "[CUtf16String] Append of a surrogate pair in pieces equals Append in one go" )
+    try
+    {
+        const UInt16 pair[] = { 0xD83D, 0xDE00 };      // U+1F600
+
+        CORE::CUtf16String oneGo( "ab" );
+        oneGo.Append( pair, 2, -1 );
+        ASSERT_TRUE( 3 == oneGo.Length() );
+
+        CORE::CUtf16String inPieces( "ab" );
+        inPieces.Append( pair, 1, -1 );
+        inPieces.Append( pair+1, 1, -1 );
+        ASSERT_TRUE( inPieces.ByteSize() == oneGo.ByteSize() );
+        ASSERT_TRUE( 3 == inPieces.Length() );
+        ASSERT_TRUE( inPieces == oneGo );
+        ASSERT_TRUE( 0x1F600 == inPieces[ 2 ] );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  A string can be appended to itself
+ */
+template < class TString >
+static void
+PerformTypedSelfAppendTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( ( CORE::CString( "[" ) + StringTypeName< TString >() + "] A string appended to itself doubles its content" ).C_String() )
+    try
+    {
+        TString str( "abc" );
+        str += str;
+        ASSERT_TRUE( 6 == str.Length() );
+        ASSERT_TRUE( str == TString( "abcabc" ) );
+
+        str += str;
+        ASSERT_TRUE( 12 == str.Length() );
+        ASSERT_TRUE( str == TString( "abcabcabcabc" ) );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
  *  An empty string is empty whatever storage it has: the writable C string of an empty string is "", not NULL,
  *  and empty strings with and without storage are equal
  */
@@ -1270,7 +1633,7 @@ template < class TString >
 static void
 PerformTypedEmptyStringTests( void )
 {
-    GUCEF_TESTFW_TESTCASE( ( CORE::CString( "[" ) + typeid( TString ).name() + "] An empty string gives a writable empty C string and equals any other empty string" ).C_String() )
+    GUCEF_TESTFW_TESTCASE( ( CORE::CString( "[" ) + StringTypeName< TString >() + "] An empty string gives a writable empty C string and equals any other empty string" ).C_String() )
     try
     {
         TString empty;
@@ -1319,6 +1682,14 @@ PerformStringTests( void )
     PerformUtf32StringViewTests();
     PerformUtf8ReverseIterationRegressionTests();
     PerformUtf8StringFromByteRangeRegressionTests();
+    PerformUtf8AppendIncompleteSequenceTests();
+    PerformTypedCutOffUtf8InputTests< CORE::CUtf16String >();
+    PerformTypedCutOffUtf8InputTests< CORE::CUtf32String >();
+    PerformUtf16AppendSplitSurrogatePairTests();
+    PerformTypedSelfAppendTests< CORE::CAsciiString >();
+    PerformTypedSelfAppendTests< CORE::CUtf8String  >();
+    PerformTypedSelfAppendTests< CORE::CUtf16String >();
+    PerformTypedSelfAppendTests< CORE::CUtf32String >();
     PerformTypedEmptyStringTests< CORE::CAsciiString >();
     PerformTypedEmptyStringTests< CORE::CUtf8String  >();
     PerformTypedEmptyStringTests< CORE::CUtf16String >();

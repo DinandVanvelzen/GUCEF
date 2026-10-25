@@ -74,8 +74,7 @@ void
 CTSGObserver::Shutdown( void )
 {GUCEF_TRACE;
 
-    CObserverScopeLock lock( this );
-
+    // No lock is held while shutting down, see CPumpedObserver::Shutdown() for why
     CPumpedObserver::Shutdown();
     m_parentNotifier = GUCEF_NULL;
 }

@@ -34,6 +34,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#include "gucef_test_log_callback.h"
+#define GUCEF_TEST_LOG_CALLBACK_H
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
 #define GUCEF_CORE_H
@@ -122,8 +127,10 @@
 #ifndef GUCEF_CORE_TESTAPP_TESTDATANODE_H
 #include "TestDataNode.h"
 #include "TestWeakPtr.h"
+#include "TestX11EventDispatcher.h"
 #include "TestSysConsole.h"
 #include "TestConfigStore.h"
+#include "TestScopedValue.h"
 #define GUCEF_CORE_TESTAPP_TESTDATANODE_H
 #endif /* GUCEF_CORE_TESTAPP_TESTDATANODE_H ? */
 
@@ -233,6 +240,31 @@
 #define GUCEF_CORE_TESTAPP_TESTRANDOM_H
 #endif /* GUCEF_CORE_TESTAPP_TESTRANDOM_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTBASE64URL_H
+#include "TestBase64Url.h"
+#define GUCEF_CORE_TESTAPP_TESTBASE64URL_H
+#endif /* GUCEF_CORE_TESTAPP_TESTBASE64URL_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTREDACTOR_H
+#include "TestRedactor.h"
+#define GUCEF_CORE_TESTAPP_TESTREDACTOR_H
+#endif /* GUCEF_CORE_TESTAPP_TESTREDACTOR_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTBIGUNSIGNED_H
+#include "TestBigUnsigned.h"
+#define GUCEF_CORE_TESTAPP_TESTBIGUNSIGNED_H
+#endif /* GUCEF_CORE_TESTAPP_TESTBIGUNSIGNED_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTBROWSERLAUNCHER_H
+#include "TestBrowserLauncher.h"
+#define GUCEF_CORE_TESTAPP_TESTBROWSERLAUNCHER_H
+#endif /* GUCEF_CORE_TESTAPP_TESTBROWSERLAUNCHER_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTUSERNAMES_H
+#include "TestUserNames.h"
+#define GUCEF_CORE_TESTAPP_TESTUSERNAMES_H
+#endif /* GUCEF_CORE_TESTAPP_TESTUSERNAMES_H ? */
+
 #ifndef GUCEF_CORE_TESTAPP_TESTRATELIMITING_H
 #include "TestRateLimiting.h"
 #define GUCEF_CORE_TESTAPP_TESTRATELIMITING_H
@@ -282,7 +314,7 @@ GUCEF_OSMAIN_BEGIN
             GUCEF::CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( console.GetLogger() );
 
         GUCEF_TESTFW_INIT( "gucefCORE_TestApp" );
-        GUCEF_TESTFW_SET_CALLBACK( GUCEF::CORE::TestFrameworkLogCallback, GUCEF_NULL );
+        GUCEF_TESTFW_SET_CALLBACK( GUCEF::TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
         //GUCEF::CORE::CGUCEFApplication::Instance()->main( argc, argv, true );
         
@@ -306,8 +338,10 @@ GUCEF_OSMAIN_BEGIN
         PerformDataNodeBinarySerializerTests();
         PerformDataNodeTests();
         PerformWeakPtrTests();
+        PerformX11EventDispatcherTests();
         PerformSysConsoleTests();
         PerformConfigStoreTests();
+        PerformScopedValueTests();
         PerformIniParserTests();        
         PerformSharedPtrTests();
         PerformTokenizerTests();
@@ -335,6 +369,11 @@ GUCEF_OSMAIN_BEGIN
         PerformDStoreStreamingTests();
         PerformCodecPluginTests();
         PerformCryptoCodecTests();
+        PerformBase64UrlTests();
+        PerformRedactorTests();
+        PerformBigUnsignedTests();
+        PerformBrowserLauncherTests();
+        PerformUserNameTests();
         PerformPluginUnloadTests();
         PerformSfinaeUtilsTests();
         PerformRandomTests();

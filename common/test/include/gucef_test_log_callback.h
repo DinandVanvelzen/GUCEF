@@ -1,6 +1,7 @@
 /*
- *  gucefCORE: GUCEF module providing O/S abstraction and generic types
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  gucef common header: test framework event callback that writes to the GUCEF log, for tests
+ *
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -17,8 +18,8 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#ifndef GUCEF_CORE_TESTFWLOGCALLBACK_H
-#define GUCEF_CORE_TESTFWLOGCALLBACK_H
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#define GUCEF_TEST_LOG_CALLBACK_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -43,7 +44,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace CORE {
+namespace TESTFW {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -52,7 +53,7 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 /**
- *  Reusable callback that routes test framework events to the GUCEF logging system.
+ *  Test support: reusable callback that routes test framework events to the GUCEF logging system.
  *  Pass to GUCEF_TESTFW_SET_CALLBACK() in any test application's main().
  */
 inline void TestFrameworkLogCallback(
@@ -109,9 +110,9 @@ inline void TestFrameworkLogCallback(
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace CORE */
+}; /* namespace TESTFW */
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_CORE_TESTFWLOGCALLBACK_H ? */
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */

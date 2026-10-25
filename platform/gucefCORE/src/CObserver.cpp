@@ -87,18 +87,29 @@ void
 CObserver::SignalUpcomingObserverDestruction( void )
 {GUCEF_TRACE;
 
-    CObserverScopeLock lock( this );
-
     /*
      *  Neatly un-subscribe from all notifiers
+     *
+     *  Our lock is only held while we look at our own administration, never while we call a notifier.
+     *  A notifier holds its notification lock while it delivers an event to us, which can take our lock.
+     *  Calling the notifier while holding our lock is the opposite order and is a deadlock when the notifier
+     *  is delivering from another thread at that moment. The notifier takes its lock to remove us, which
+     *  waits for a delivery in progress, and has us updated through UnlinkFrom().
      */
-    TNotifierList listcopy( m_notifiers );
+    TNotifierList listcopy;
+    {
+        CObserverScopeLock lock( this );
+        listcopy = m_notifiers;
+    }
+
     TNotifierList::iterator i( listcopy.begin() );
     while ( i != listcopy.end() )
     {
         (*i)->OnObserverDestroy( this );
         ++i;
     }
+
+    CObserverScopeLock lock( this );
     m_notifiers.clear();
 }
 
@@ -128,12 +139,15 @@ void
 CObserver::UnsubscribeAllFromObserver( void )
 {GUCEF_TRACE;
 
-    CObserverScopeLock lock( this );
-
     /*
      *  Neatly un-subscribe from all notifiers
+     *  Our lock is not held while calling a notifier, see SignalUpcomingObserverDestruction()
      */
-    TNotifierList listcopy( m_notifiers );
+    TNotifierList listcopy;
+    {
+        CObserverScopeLock lock( this );
+        listcopy = m_notifiers;
+    }
     TNotifierList::iterator i( listcopy.begin() );
     while ( i != listcopy.end() )
     {

@@ -87,7 +87,9 @@ class GUCEF_CORE_PUBLIC_CPP CoreCodecTypes
 
     /**
      *  Signatures: "ed25519". Encode with parameter "privateKey": message -> signature.
-     *  Decode with parameters "publicKey" and "signature": verifies the message, no output
+     *  Decode with parameters "publicKey" and "signature": verifies the message, no output.
+     *  "rsa-pkcs1-sha256", "rsa-pkcs1-sha384", "rsa-pkcs1-sha512": RSASSA-PKCS1-v1_5 verification only.
+     *  Decode with parameters "modulus", "exponent" and "signature" (big endian bytes), see CRsaPkcs1VerifyCodec
      */
     static const CString SignatureCodec;
 };

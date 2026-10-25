@@ -47,6 +47,12 @@
   #include <unistd.h>
   #include <errno.h>
 
+  // getrandom() is part of Android's C library from API level 28, below that only the device file exists.
+  // Defining GUCEF_CORE_CRANDOM_NO_GETRANDOM on any platform makes it use the device file only
+  #if ( !defined( GUCEF_CORE_CRANDOM_NO_GETRANDOM ) && ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) && ( !defined( __ANDROID_API__ ) || ( __ANDROID_API__ < 28 ) ) )
+    #define GUCEF_CORE_CRANDOM_NO_GETRANDOM
+  #endif
+
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -124,6 +130,11 @@ CRandom::GetRandomBytes( void* buffer, UInt32 byteCount )
     // Emscripten provides the random device as part of its file system, backed by the entropy of the browser or node
     return ReadRandomFromUrandom( bytes, bytesLeft );
 
+    #elif defined( GUCEF_CORE_CRANDOM_NO_GETRANDOM )
+
+    // The C library of this Android API level has no getrandom(), the device file is the interface
+    return ReadRandomFromUrandom( bytes, bytesLeft );
+
     #else
 
     while ( bytesLeft > 0 )
@@ -142,7 +153,7 @@ CRandom::GetRandomBytes( void* buffer, UInt32 byteCount )
     }
     return true;
 
-    #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ? */
+    #endif /* getrandom() or the device file ? */
 
     #else
 

@@ -48,6 +48,11 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_CORE_CREDACTOR_H
+#include "gucefCORE_CRedactor.h"
+#define GUCEF_CORE_CREDACTOR_H
+#endif /* GUCEF_CORE_CREDACTOR_H ? */
+
 #include "gucefCORE_CAsyncUriRetrievalTask.h"
 
 /*-------------------------------------------------------------------------//
@@ -340,7 +345,7 @@ CAsyncUriRetrievalTaskConsumer::OnTaskCycle( CTaskPtr task )
     if ( m_taskData->success && m_bytesTransferred > m_lastReportedBytes )
         Report( CAsyncUriResourceRetriever::RetrievalProgressEvent, m_bytesTransferred, m_totalBytes, CString() );
     if ( !m_taskData->success && m_taskData->errorText.IsNULLOrEmpty() && !m_stoppedEarly )
-        m_taskData->errorText = "The resource accessor could not retrieve \"" + m_taskData->uri.ToUriInStringForm() + "\"";
+        m_taskData->errorText = "The resource accessor could not retrieve \"" + CRedactor::ForUrl().RedactUrl( m_taskData->uri.ToUriInStringForm() ) + "\"";
     return true;
 }
 

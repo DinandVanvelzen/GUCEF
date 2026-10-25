@@ -331,6 +331,17 @@ CPulseGenerator::IsPulsingPeriodicly( void ) const
     return m_periodicUpdateRequestors.size() > 0 && !m_forcedStopOfPeriodPulses;
 }
 
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CPulseGenerator::GetNrOfPeriodicPulseRequestors( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex dataLock( m_dataLock );
+
+    return (UInt32) m_periodicUpdateRequestors.size();
+}
+
 /*--------------------------------------------------------------------------*/
     
 UInt32

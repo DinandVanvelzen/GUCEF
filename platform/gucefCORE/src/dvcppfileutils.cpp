@@ -75,6 +75,7 @@
 
   #include <windows.h>		/* WIN32 API */
   #include <winioctl.h>
+  #include <aclapi.h>
   #include <Shlobj.h>
   #undef min
   #undef max
@@ -1274,6 +1275,69 @@ WriteFileAtomically( const CString& path          ,
 {GUCEF_TRACE;
 
     return WriteFileAtomically( path, buffer.GetConstBufferPtr(), buffer.GetDataSize() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+SetOwnerOnlyAccess( const CString& path )
+{GUCEF_TRACE;
+
+    if ( path.IsNULLOrEmpty() )
+        return false;
+    CString actualPath = RelativePath( path );
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    HANDLE token = NULL;
+    if ( FALSE == ::OpenProcessToken( ::GetCurrentProcess(), TOKEN_QUERY, &token ) )
+        return false;
+
+    DWORD userInfoSize = 0;
+    ::GetTokenInformation( token, TokenUser, NULL, 0, &userInfoSize );
+    if ( 0 == userInfoSize )
+    {
+        ::CloseHandle( token );
+        return false;
+    }
+    CDynamicBuffer userInfo( userInfoSize, true );
+    BOOL gotUser = ::GetTokenInformation( token, TokenUser, userInfo.GetBufferPtr(), userInfoSize, &userInfoSize );
+    ::CloseHandle( token );
+    if ( FALSE == gotUser )
+        return false;
+    PTOKEN_USER user = static_cast< PTOKEN_USER >( userInfo.GetBufferPtr() );
+
+    EXPLICIT_ACCESSW access;
+    ::ZeroMemory( &access, sizeof( access ) );
+    access.grfAccessPermissions = FILE_ALL_ACCESS;
+    access.grfAccessMode = SET_ACCESS;
+    access.grfInheritance = DirExists( actualPath ) ? SUB_CONTAINERS_AND_OBJECTS_INHERIT : NO_INHERITANCE;
+    access.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+    access.Trustee.TrusteeType = TRUSTEE_IS_USER;
+    access.Trustee.ptstrName = (LPWSTR) user->User.Sid;
+
+    PACL acl = NULL;
+    if ( ERROR_SUCCESS != ::SetEntriesInAclW( 1, &access, NULL, &acl ) )
+        return false;
+
+    std::wstring wActualPath = ToWString( actualPath );
+    DWORD result = ::SetNamedSecurityInfoW( (LPWSTR) wActualPath.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION, NULL, NULL, acl, NULL );
+    ::LocalFree( acl );
+    return ERROR_SUCCESS == result;
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+
+    struct stat fileStat;
+    if ( 0 != ::stat( actualPath.C_String(), &fileStat ) )
+        return false;
+    mode_t mode = S_ISDIR( fileStat.st_mode ) ? ( S_IRWXU ) : ( S_IRUSR | S_IWUSR );
+    return 0 == ::chmod( actualPath.C_String(), mode );
+
+    #else
+
+    return false;
+
+    #endif
 }
 
 /*-------------------------------------------------------------------------*/

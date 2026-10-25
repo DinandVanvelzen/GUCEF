@@ -57,7 +57,9 @@
 /*
  *  A generic plugin that does nothing but what the tests ask of it through environment variables:
  *  GUCEF_TESTPLUGIN_LOAD_THROWS=1 and GUCEF_TESTPLUGIN_UNLOAD_THROWS=1 make GUCEFPlugin_Load() and GUCEFPlugin_Unload()
- *  throw, as a broken plugin would.
+ *  throw, as a broken plugin would. GUCEF_TESTPLUGIN_LOAD_FAILS=1 makes GUCEFPlugin_Load() return that it failed, and
+ *  GUCEF_TESTPLUGIN_LOAD_ADDS_FAILING_CONFIGURABLE=1 makes it bring along a global configurable that fails to load its config,
+ *  as the globals of a module that a plugin starts can.
  *  It counts the calls of Load and Unload in GUCEF_TESTPLUGIN_LOADS and GUCEF_TESTPLUGIN_UNLOADS.
  */
 

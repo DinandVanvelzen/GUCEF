@@ -196,6 +196,17 @@ WriteFileAtomically( const CString& path          ,
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Restricts a file or a directory to the user that runs the process, for keys and credentials.
+ *  Linux and Android: mode 0600 for a file, 0700 for a directory. Windows: a protected ACL (no inheritance from the
+ *  parent) with full control for the current user only; a directory passes that on to what is created in it.
+ *  False when the path does not exist or the restriction could not be applied.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+SetOwnerOnlyAccess( const CString& path );
+
+/*-------------------------------------------------------------------------*/
+
 GUCEF_CORE_PUBLIC_CPP bool
 DirExists( const CString& path );
 

@@ -50,6 +50,26 @@
 #define GUCEF_CORE_CSHA256_H
 #endif /* GUCEF_CORE_CSHA256_H ? */
 
+#ifndef GUCEF_CORE_CSHA512_H
+#include "gucefCORE_CSha512.h"
+#define GUCEF_CORE_CSHA512_H
+#endif /* GUCEF_CORE_CSHA512_H ? */
+
+#ifndef GUCEF_CORE_CRSAPKCS1CODECS_H
+#include "gucefCORE_CRsaPkcs1Codecs.h"
+#define GUCEF_CORE_CRSAPKCS1CODECS_H
+#endif /* GUCEF_CORE_CRSAPKCS1CODECS_H ? */
+
+#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
+#include "dvcppstringutils.h"
+#define GUCEF_CORE_DVCPPSTRINGUTILS_H
+#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
+
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_CORE_CDYNAMICBUFFERACCESS_H
 #include "CDynamicBufferAccess.h"
 #define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
@@ -81,6 +101,7 @@
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
 #include "TestAllocationCounter.h"
+#include "TestRsaVectors.h"
 #include "TestCryptoCodecs.h"
 
 /*-------------------------------------------------------------------------//
@@ -92,6 +113,9 @@
 #define ERRORHERE       GUCEF_TESTFW_ERRORHERE
 #define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
 #define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
+
+/** Ends the test case with a failure when a codec or instance that has to be there is not: the catch of the test case records it */
+#define REQUIRE_CODEC(c) do { if ( (c).IsNULL() ) throw 0; } while (0)
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -1041,7 +1065,7 @@ PerformBuiltInCodecTests( void )
         {
             TICodecPtrVector software;
             builtIns.GetSoftwareCodecs( software );
-            ASSERT_TRUE( 3 == software.size() );
+            ASSERT_TRUE( 6 == software.size() );
 
             TICodecPtrVector osCodecs;
             builtIns.GetOsCryptoCodecs( osCodecs );
@@ -1414,6 +1438,799 @@ PerformPluginHashAndKdfTests( void )
     GUCEF_TESTFW_TESTCASE_END
 }
 
+
+/*-------------------------------------------------------------------------*/
+
+static TICodecPtr
+GetRsaCodec( const char* type )
+{GUCEF_TRACE;
+
+    return CORE::CCoreGlobal::Instance()->GetCodecRegistry().TryGetCodec( CORE::CoreCodecTypes::SignatureCodec, type );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static CORE::CValueList
+RsaParams( const CORE::CDynamicBuffer& modulus, const CORE::CDynamicBuffer& exponent, const CORE::CDynamicBuffer& signature )
+{GUCEF_TRACE;
+
+    CORE::CValueList params;
+    params.Set( "modulus", CORE::CVariant( modulus ) );
+    params.Set( "exponent", CORE::CVariant( exponent ) );
+    params.Set( "signature", CORE::CVariant( signature ) );
+    return params;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** One shot verification, true when the signature is accepted. The outcome is in codec->GetLastStatus() */
+static bool
+RsaVerify( TICodecPtr& codec                    ,
+           const CORE::CDynamicBuffer& message  ,
+           const CORE::CDynamicBuffer& modulus  ,
+           const CORE::CDynamicBuffer& exponent ,
+           const CORE::CDynamicBuffer& signature,
+           bool allowShortKey = false           )
+{GUCEF_TRACE;
+
+    CORE::CValueList params = RsaParams( modulus, exponent, signature );
+    if ( allowShortKey )
+        params.Set( "allowShortKey", CORE::CVariant( true ) );
+    CORE::CDynamicBuffer output;
+    return RunOneShot( codec, false, message, params, output ) && 0 == output.GetDataSize();
+}
+
+/*-------------------------------------------------------------------------*/
+
+static CORE::CDynamicBuffer
+Exponent65537( void )
+{GUCEF_TRACE;
+
+    return FromHex( "010001" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static CORE::CDynamicBuffer
+FlippedBit( const CORE::CDynamicBuffer& source, UInt32 byteIndex, UInt8 mask )
+{GUCEF_TRACE;
+
+    CORE::CDynamicBuffer copy( source );
+    copy.AsTypePtr< UInt8 >()[ byteIndex ] ^= mask;
+    return copy;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformSoftwareSha512Tests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "Test: SHA-512 and SHA-384 in software give the FIPS 180-4 answers, in one go and in pieces" )
+        try
+        {
+            UInt8 digest[ 64 ];
+            CORE::CDynamicBuffer result;
+
+            CORE::CSha512::Hash( "abc", 3, digest );
+            result.CopyFrom( 64, digest );
+            result.SetDataSize( 64 );
+            ASSERT_TRUE( "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f" == ToHex( result ) );
+            CORE::CSha512::Hash( "", 0, digest );
+            result.CopyFrom( 64, digest );
+            result.SetDataSize( 64 );
+            ASSERT_TRUE( "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e" == ToHex( result ) );
+            CORE::CSha512::Hash384( "abc", 3, digest );
+            result.CopyFrom( 48, digest );
+            result.SetDataSize( 48 );
+            ASSERT_TRUE( "cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7" == ToHex( result ) );
+            CORE::CSha512::Hash384( "", 0, digest );
+            result.CopyFrom( 48, digest );
+            result.SetDataSize( 48 );
+            ASSERT_TRUE( "38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b" == ToHex( result ) );
+
+            // the 112 byte message needs a second block for the padding
+            const char* message = "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu";
+            for ( UInt32 split=0; split<=112; ++split )
+            {
+                CORE::CSha512 sha512( false );
+                sha512.Update( message, split );
+                sha512.Update( message + split, 112 - split );
+                sha512.Final( digest );
+                result.CopyFrom( 64, digest );
+                result.SetDataSize( 64 );
+                ASSERT_TRUE( "8e959b75dae313da8cf4f72814fc143f8f7779c6eb9f7fa17299aeadb6889018501d289e4900f7e4331b99dec4b5433ac7d329eeb6dd26545e96e55b874be909" == ToHex( result ) );
+
+                CORE::CSha512 sha384( true );
+                ASSERT_TRUE( 48 == sha384.GetDigestSize() && 64 == sha512.GetDigestSize() );
+                sha384.Update( message, split );
+                sha384.Update( message + split, 112 - split );
+                sha384.Final( digest );
+                result.CopyFrom( 48, digest );
+                result.SetDataSize( 48 );
+                ASSERT_TRUE( "09330c33f71147e83d192fc782cd1b4753111b173b3b05d22fa08086e3b0f712fcc7c71a557e2db966c3e9fa91746039" == ToHex( result ) );
+            }
+
+            // a million times 'a' in pieces that do not line up with the block size, and reuse after Reset
+            CORE::CSha512 sha512( false );
+            CORE::CSha512 sha384( true );
+            for ( UInt32 round=0; round<2; ++round )
+            {
+                for ( UInt32 i=0; i<1000; ++i )
+                {
+                    UInt8 chunk[ 1000 ];
+                    memset( chunk, 'a', sizeof( chunk ) );
+                    sha512.Update( chunk, 1000 );
+                    sha384.Update( chunk, 1000 );
+                }
+                sha512.Final( digest );
+                result.CopyFrom( 64, digest );
+                result.SetDataSize( 64 );
+                ASSERT_TRUE( "e718483d0ce769644e2e42c7bc15b4638e1f98b13b2044285632a803afa973ebde0ff244877ea60a4cb0432ce577c31beb009c5c2c49aa2e4eadb217ad8cc09b" == ToHex( result ) );
+                sha384.Final( digest );
+                result.CopyFrom( 48, digest );
+                result.SetDataSize( 48 );
+                ASSERT_TRUE( "9d0e1809716474cb086e834e310a4a1ced149e9c00f248527972cec5704c2a5b07b8b3dc38ecc4ebae97ddd87f3d8985" == ToHex( result ) );
+                sha512.Reset();
+                sha384.Reset();
+            }
+
+            // 1000 bytes in steps of 1, 3, 127, 128 and 129 give one answer
+            UInt8 pattern[ 1000 ];
+            for ( UInt32 i=0; i<1000; ++i )
+                pattern[ i ] = (UInt8) ( i * 7 + 3 );
+            const UInt32 steps[ 5 ] = { 1, 3, 127, 128, 129 };
+            for ( UInt32 q=0; q<5; ++q )
+            {
+                CORE::CSha512 shaA( false );
+                CORE::CSha512 shaB( true );
+                for ( UInt32 offset=0; offset<1000; offset+=steps[ q ] )
+                {
+                    UInt32 count = 1000 - offset < steps[ q ] ? 1000 - offset : steps[ q ];
+                    shaA.Update( pattern + offset, count );
+                    shaB.Update( pattern + offset, count );
+                }
+                shaA.Final( digest );
+                result.CopyFrom( 64, digest );
+                result.SetDataSize( 64 );
+                ASSERT_TRUE( "00e36fccf193e59697a92b5ab24666ce6326d7fa16bf10832d0991ddc591112e9dfa6a636950ed9c4d67344a760654c2ff7785e1d60094d651038735b5dccabd" == ToHex( result ) );
+                shaB.Final( digest );
+                result.CopyFrom( 48, digest );
+                result.SetDataSize( 48 );
+                ASSERT_TRUE( "94c38db521ca733b8904c2d14b6e82d33dcfcc26e1318c579dbee1fc2f472019034e792263b9d46e90e700de2f6e7e91" == ToHex( result ) );
+            }
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformRsaSignatureTests( void )
+{GUCEF_TRACE;
+
+    CORE::CCodecRegistry& registry = CORE::CCoreGlobal::Instance()->GetCodecRegistry();
+    const CORE::CDynamicBuffer message = FromText( g_rsaMessage );
+    const CORE::CDynamicBuffer modulusA = FromHex( g_rsaKeyAModulusHex );
+    const CORE::CDynamicBuffer modulusB = FromHex( g_rsaKeyBModulusHex );
+    const CORE::CDynamicBuffer e65537 = Exponent65537();
+
+    GUCEF_TESTFW_TESTCASE( "Test: The RSA PKCS#1 v1.5 signature codecs are found by name in the SignatureCodec family, at the software priority, verify only" )
+        try
+        {
+            const char* types[ 3 ] = { "rsa-pkcs1-sha256", "rsa-pkcs1-sha384", "rsa-pkcs1-sha512" };
+            ASSERT_TRUE( 25 == CORE::CCodecRegistry::SoftwareCodecPriority );
+            for ( UInt32 t=0; t<3; ++t )
+            {
+                TICodecPtr codec = GetRsaCodec( types[ t ] );
+                ASSERT_TRUE( !codec.IsNULL() );
+                if ( codec.IsNULL() )
+                    continue;
+                ASSERT_TRUE( types[ t ] == codec->GetType() );
+                ASSERT_TRUE( CORE::CoreCodecTypes::SignatureCodec == codec->GetFamilyName() );
+                ASSERT_TRUE( IsBuiltInCodec( codec ) && !IsOsCodec( codec ) );
+                ASSERT_TRUE( types[ t ] == CORE::CRsaPkcs1VerifyCodec::GetTypeName( (CORE::CRsaPkcs1VerifyCodec::EHashAlgorithm) t ) );
+
+                UInt32 capabilities = codec->GetCapabilities();
+                ASSERT_TRUE( 0 != ( capabilities & GUCEF_CODEC_CAPABILITY_DECODE ) );
+                ASSERT_TRUE( 0 == ( capabilities & GUCEF_CODEC_CAPABILITY_ENCODE ) );
+                ASSERT_TRUE( 0 != ( capabilities & GUCEF_CODEC_CAPABILITY_INSTANCES ) );
+
+                // the encode direction is not supported and says so
+                CORE::CDynamicBuffer output;
+                CORE::CValueList params = RsaParams( modulusA, e65537, FromHex( g_rsaKeyASignatureSha256Hex ) );
+                ASSERT_FALSE( RunOneShot( codec, true, message, params, output ) );
+                ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_UNSUPPORTED == codec->GetLastStatus() );
+                ASSERT_TRUE( 0 == output.GetDataSize() );
+
+                // the parameters are described
+                CORE::CCodecParameterInfoList info;
+                codec->GetParameterInfo( info );
+                bool hasModulus = false, hasExponent = false, hasSignature = false, hasShortKey = false;
+                for ( UInt32 i=0; i<(UInt32) info.size(); ++i )
+                {
+                    if ( "modulus" == info[ i ].GetName() ) hasModulus = info[ i ].GetIsRequired();
+                    if ( "exponent" == info[ i ].GetName() ) hasExponent = info[ i ].GetIsRequired();
+                    if ( "signature" == info[ i ].GetName() ) hasSignature = !info[ i ].GetIsRequired();
+                    if ( "allowShortKey" == info[ i ].GetName() ) hasShortKey = !info[ i ].GetIsRequired();
+                }
+                ASSERT_TRUE( hasModulus && hasExponent && hasSignature && hasShortKey );
+
+                TICodecPtrVector providers;
+                ASSERT_TRUE( registry.GetCodecs( CORE::CoreCodecTypes::SignatureCodec, types[ t ], providers ) );
+                ASSERT_TRUE( 1 == providers.size() );
+
+                // priority 25: a provider below it is not used, one above it is, and the built in one is back after
+                TICodecPtr lower( CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CTaggedTestCodec( CORE::CoreCodecTypes::SignatureCodec, types[ t ], "lower" ) ) );
+                TICodecPtr higher( CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CTaggedTestCodec( CORE::CoreCodecTypes::SignatureCodec, types[ t ], "higher" ) ) );
+                ASSERT_TRUE( registry.RegisterCodec( lower, CORE::CCodecRegistry::SoftwareCodecPriority - 1 ) );
+                ASSERT_TRUE( registry.TryGetCodec( CORE::CoreCodecTypes::SignatureCodec, types[ t ] ) == codec );
+                ASSERT_TRUE( registry.RegisterCodec( higher, CORE::CCodecRegistry::SoftwareCodecPriority + 1 ) );
+                ASSERT_TRUE( registry.TryGetCodec( CORE::CoreCodecTypes::SignatureCodec, types[ t ] ) == higher );
+                providers.clear();
+                ASSERT_TRUE( registry.GetCodecs( CORE::CoreCodecTypes::SignatureCodec, types[ t ], providers ) && 3 == providers.size() );
+                ASSERT_TRUE( providers[ 0 ] == higher && providers[ 1 ] == codec && providers[ 2 ] == lower );
+                ASSERT_TRUE( registry.UnregisterCodec( higher ) );
+                ASSERT_TRUE( registry.UnregisterCodec( lower ) );
+                ASSERT_TRUE( registry.TryGetCodec( CORE::CoreCodecTypes::SignatureCodec, types[ t ] ) == codec );
+            }
+
+            // the family keeps ed25519 and the others next to the RSA types
+            ASSERT_TRUE( registry.TryGetCodec( CORE::CoreCodecTypes::SignatureCodec, "rsa-pkcs1-sha1" ).IsNULL() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: RFC 7515 appendix A.2: the RS256 example JWS verifies with its JWK, a changed message or signature does not" )
+        try
+        {
+            TICodecPtr codec = GetRsaCodec( "rsa-pkcs1-sha256" );
+            ASSERT_TRUE( !codec.IsNULL() );
+            REQUIRE_CODEC( codec );
+
+            CORE::CDynamicBuffer n, e, signature;
+            ASSERT_TRUE( CORE::Base64UrlDecode( g_rfc7515A2Modulus, n ) && 256 == n.GetDataSize() );
+            ASSERT_TRUE( CORE::Base64UrlDecode( "AQAB", e ) && 3 == e.GetDataSize() );
+            ASSERT_TRUE( CORE::Base64UrlDecode( g_rfc7515A2Signature, signature ) && 256 == signature.GetDataSize() );
+            CORE::CDynamicBuffer signingInput = FromText( g_rfc7515A2SigningInput );
+
+            ASSERT_TRUE( RsaVerify( codec, signingInput, n, e, signature ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_OK == codec->GetLastStatus() );
+
+            // the signature of the RFC is one of exactly the right size
+            ASSERT_TRUE( 0x70 == static_cast< const UInt8* >( signature.GetConstBufferPtr() )[ 0 ] && 0x2e == static_cast< const UInt8* >( signature.GetConstBufferPtr() )[ 1 ] );
+
+            // every byte of the signing input changed, one at a time
+            for ( UInt32 i=0; i<signingInput.GetDataSize(); ++i )
+            {
+                ASSERT_FALSE( RsaVerify( codec, FlippedBit( signingInput, i, 0x01 ), n, e, signature ) );
+                ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_AUTHENTICATION_FAILED == codec->GetLastStatus() );
+            }
+
+            // the signing input cut short or extended
+            CORE::CDynamicBuffer shorter( signingInput );
+            shorter.SetDataSize( signingInput.GetDataSize() - 1 );
+            ASSERT_FALSE( RsaVerify( codec, shorter, n, e, signature ) );
+            ASSERT_FALSE( RsaVerify( codec, CORE::CDynamicBuffer(), n, e, signature ) );
+            CORE::CDynamicBuffer longer( signingInput );
+            longer.Append( ".", 1, true );
+            ASSERT_FALSE( RsaVerify( codec, longer, n, e, signature ) );
+
+            // other hash functions of the same family do not take it
+            TICodecPtr sha384 = GetRsaCodec( "rsa-pkcs1-sha384" );
+            TICodecPtr sha512 = GetRsaCodec( "rsa-pkcs1-sha512" );
+            ASSERT_FALSE( RsaVerify( sha384, signingInput, n, e, signature ) );
+            ASSERT_FALSE( RsaVerify( sha512, signingInput, n, e, signature ) );
+
+            // the key of another pair
+            ASSERT_FALSE( RsaVerify( codec, signingInput, modulusB, e, signature ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A Google style RS256 ID token verifies from its JWK, and every tampered variant is refused" )
+        try
+        {
+            TICodecPtr codec = GetRsaCodec( "rsa-pkcs1-sha256" );
+            ASSERT_TRUE( !codec.IsNULL() );
+            REQUIRE_CODEC( codec );
+
+            // split the token the way a JWT consumer does: the signing input is everything before the last '.'
+            CORE::CString token = g_googleStyleJwt;
+            const char* lastDot = strrchr( token.C_String(), '.' );
+            ASSERT_TRUE( GUCEF_NULL != lastDot );
+            if ( GUCEF_NULL == lastDot )
+                throw 0;
+            const UInt32 signingInputLength = (UInt32) ( lastDot - token.C_String() );
+            CORE::CDynamicBuffer signingInput;
+            signingInput.Append( token.C_String(), signingInputLength, true );
+            CORE::CDynamicBuffer signature, n, e;
+            ASSERT_TRUE( CORE::Base64UrlDecode( lastDot + 1, signature ) && 256 == signature.GetDataSize() );
+            ASSERT_TRUE( CORE::Base64UrlDecode( g_googleStyleJwkModulus, n ) && 256 == n.GetDataSize() );
+            ASSERT_TRUE( CORE::Base64UrlDecode( "AQAB", e ) );
+            ASSERT_TRUE( 0 == memcmp( n.GetConstBufferPtr(), modulusA.GetConstBufferPtr(), 256 ) );
+
+            ASSERT_TRUE( RsaVerify( codec, signingInput, n, e, signature ) );
+
+            // a bit flipped in each byte of the signature, in the low and the high bit
+            for ( UInt32 i=0; i<256; ++i )
+            {
+                ASSERT_FALSE( RsaVerify( codec, signingInput, n, e, FlippedBit( signature, i, 0x01 ) ) );
+                ASSERT_FALSE( RsaVerify( codec, signingInput, n, e, FlippedBit( signature, i, 0x80 ) ) );
+            }
+
+            // a bit flipped in each byte of the header and payload
+            for ( UInt32 i=0; i<signingInput.GetDataSize(); ++i )
+                ASSERT_FALSE( RsaVerify( codec, FlippedBit( signingInput, i, 0x04 ), n, e, signature ) );
+
+            // the payload of another token with the signature of this one, and the header with the algorithm none
+            const char* firstDot = strchr( token.C_String(), '.' );
+            ASSERT_TRUE( GUCEF_NULL != firstDot && firstDot < lastDot );
+            const UInt32 headerLength = (UInt32) ( firstDot - token.C_String() );
+            CORE::CString otherPayload, noneHeader;
+            const char* otherPayloadJson = "{\"iss\":\"https://accounts.google.com\",\"sub\":\"110169484474386276334\",\"email\":\"admin@example.com\",\"exp\":1700003600}";
+            const char* noneHeaderJson = "{\"alg\":\"none\",\"typ\":\"JWT\"}";
+            ASSERT_TRUE( CORE::Base64UrlEncode( otherPayloadJson, (UInt32) strlen( otherPayloadJson ), otherPayload ) );
+            ASSERT_TRUE( CORE::Base64UrlEncode( noneHeaderJson, (UInt32) strlen( noneHeaderJson ), noneHeader ) );
+            CORE::CString swapped = CORE::CString( token.C_String(), headerLength ) + "." + otherPayload;
+            ASSERT_FALSE( RsaVerify( codec, FromText( swapped.C_String() ), n, e, signature ) );
+            CORE::CString noneToken = noneHeader + CORE::CString( firstDot, (UInt32) ( lastDot - firstDot ) );
+            ASSERT_FALSE( RsaVerify( codec, FromText( noneToken.C_String() ), n, e, signature ) );
+
+            // the token cut short: the signing input and the signature both
+            CORE::CDynamicBuffer cutInput( signingInput );
+            cutInput.SetDataSize( signingInput.GetDataSize() - 1 );
+            ASSERT_FALSE( RsaVerify( codec, cutInput, n, e, signature ) );
+            for ( UInt32 cut=1; cut<=3; ++cut )
+            {
+                CORE::CDynamicBuffer cutSignature( signature );
+                cutSignature.SetDataSize( 256 - cut );
+                ASSERT_FALSE( RsaVerify( codec, signingInput, n, e, cutSignature ) );
+                ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+            }
+            ASSERT_FALSE( RsaVerify( codec, signingInput, n, e, CORE::CDynamicBuffer() ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() || CORE::GUCEF_CODEC_STATUS_MISSING_PARAMETER == codec->GetLastStatus() );
+
+            // a signature longer than the modulus: one byte more, whatever it is
+            for ( UInt32 extra=0; extra<2; ++extra )
+            {
+                CORE::CDynamicBuffer longer;
+                const UInt8 extraByte = (UInt8) ( 0 == extra ? 0x00 : 0xFF );
+                longer.Append( &extraByte, 1, true );
+                longer.Append( signature );
+                ASSERT_FALSE( RsaVerify( codec, signingInput, n, e, longer ) );
+                ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+                CORE::CDynamicBuffer trailing( signature );
+                trailing.Append( &extraByte, 1, true );
+                ASSERT_FALSE( RsaVerify( codec, signingInput, n, e, trailing ) );
+                ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+            }
+
+            // the key of another pair
+            ASSERT_FALSE( RsaVerify( codec, signingInput, modulusB, e, signature ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_AUTHENTICATION_FAILED == codec->GetLastStatus() );
+
+            // the same key written with leading zero bytes, as an ASN.1 integer would
+            CORE::CDynamicBuffer paddedModulus = FromHex( "0000" );
+            paddedModulus.Append( n );
+            CORE::CDynamicBuffer paddedExponent = FromHex( "000000010001" );
+            ASSERT_TRUE( RsaVerify( codec, signingInput, paddedModulus, paddedExponent, signature ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Public keys that are not acceptable are refused: exponent zero, even, too small or too large, a modulus that is small, even, empty or too large" )
+        try
+        {
+            TICodecPtr codec = GetRsaCodec( "rsa-pkcs1-sha256" );
+            ASSERT_TRUE( !codec.IsNULL() );
+            REQUIRE_CODEC( codec );
+            const CORE::CDynamicBuffer signature = FromHex( g_rsaKeyASignatureSha256Hex );
+            ASSERT_TRUE( RsaVerify( codec, message, modulusA, e65537, signature ) );
+
+            // the exponent
+            const char* badExponents[] =
+            {
+                "00",                   // zero
+                "0000",                 // zero, longer
+                "01",                   // one
+                "02",                   // even
+                "03",                   // odd but below 65537
+                "010000",               // 65536, even
+                "010002",               // even
+                "fffffffe",             // even
+                "010000000000000001",   // 2^64 + 1: more than 64 bits
+                "ffffffffffffffffff",   // 72 bits
+                "0100000000000000000000000000000000000000000000000000000000000000001"   // 33 bytes
+            };
+            for ( UInt32 i=0; i<sizeof( badExponents ) / sizeof( badExponents[ 0 ] ); ++i )
+            {
+                CORE::CDynamicBuffer exponent = FromHex( strlen( badExponents[ i ] ) % 2 ? ( CORE::CString( "0" ) + badExponents[ i ] ).C_String() : badExponents[ i ] );
+                ASSERT_FALSE( RsaVerify( codec, message, modulusA, exponent, signature ) );
+                ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+            }
+            ASSERT_FALSE( RsaVerify( codec, message, modulusA, CORE::CDynamicBuffer(), signature ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() || CORE::GUCEF_CODEC_STATUS_MISSING_PARAMETER == codec->GetLastStatus() );
+
+            // exponents that are fine as exponents but are not the one of the signature, the largest 64 bit odd one included
+            const char* otherExponents[] = { "010003", "ffffffff", "ffffffffffffffff", "0000000000010001ff" };
+            for ( UInt32 i=0; i<sizeof( otherExponents ) / sizeof( otherExponents[ 0 ] ); ++i )
+            {
+                ASSERT_FALSE( RsaVerify( codec, message, modulusA, FromHex( otherExponents[ i ] ), signature ) );
+                ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_AUTHENTICATION_FAILED == codec->GetLastStatus() || CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+            }
+
+            // the modulus: empty, zero, one, even, small, too large
+            ASSERT_FALSE( RsaVerify( codec, message, CORE::CDynamicBuffer(), e65537, signature ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() || CORE::GUCEF_CODEC_STATUS_MISSING_PARAMETER == codec->GetLastStatus() );
+            ASSERT_FALSE( RsaVerify( codec, message, FromHex( "00" ), e65537, signature ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+            ASSERT_FALSE( RsaVerify( codec, message, FromHex( "01" ), e65537, signature ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+            ASSERT_FALSE( RsaVerify( codec, message, FromHex( "0000" ), e65537, signature ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+
+            CORE::CDynamicBuffer evenModulus = FlippedBit( modulusA, 255, 0x01 );
+            ASSERT_FALSE( RsaVerify( codec, message, evenModulus, e65537, signature ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+            ASSERT_FALSE( RsaVerify( codec, message, evenModulus, e65537, signature, true ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+
+            // a modulus of 2047 bits is below the minimum, one of 2048 is not
+            CORE::CDynamicBuffer shortModulus = FromHex( g_rsaKeyAModulusHex );
+            shortModulus.AsTypePtr< UInt8 >()[ 0 ] &= 0x7F;
+            shortModulus.AsTypePtr< UInt8 >()[ 0 ] |= 0x40;
+            ASSERT_FALSE( RsaVerify( codec, message, shortModulus, e65537, signature ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+
+            // a 1024 bit key is refused, unless the switch for short keys is set
+            const CORE::CDynamicBuffer modulus1024 = FromHex( g_rsaKey1024ModulusHex );
+            const CORE::CDynamicBuffer signature1024 = FromHex( g_rsaKey1024Signature256Hex );
+            ASSERT_FALSE( RsaVerify( codec, message, modulus1024, e65537, signature1024 ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+            ASSERT_TRUE( RsaVerify( codec, message, modulus1024, e65537, signature1024, true ) );
+            CORE::CValueList switchOff = RsaParams( modulus1024, e65537, signature1024 );
+            switchOff.Set( "allowShortKey", CORE::CVariant( false ) );
+            CORE::CDynamicBuffer output;
+            ASSERT_FALSE( RunOneShot( codec, false, message, switchOff, output ) );
+            ASSERT_FALSE( RsaVerify( codec, FromText( "another message" ), modulus1024, e65537, signature1024, true ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_AUTHENTICATION_FAILED == codec->GetLastStatus() );
+
+            // the switch has a floor: 512 bits. A 511 bit modulus is refused with it, as is the 2048 bit one with 8200 bits
+            CORE::CDynamicBuffer modulus511 = Repeated( 0xFF, 64 );
+            modulus511.AsTypePtr< UInt8 >()[ 0 ] = 0x7F;
+            ASSERT_FALSE( RsaVerify( codec, message, modulus511, e65537, FromHex( "00" ), true ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+            CORE::CDynamicBuffer modulusHuge = Repeated( 0xFF, 1026 );
+            ASSERT_FALSE( RsaVerify( codec, message, modulusHuge, e65537, Repeated( 0x01, 1026 ) ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+            ASSERT_FALSE( RsaVerify( codec, message, modulusHuge, e65537, Repeated( 0x01, 1026 ), true ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+
+            // the largest accepted size, 8192 bits, is a key; a signature that is not valid for it is refused on its merit
+            CORE::CDynamicBuffer modulus8192 = Repeated( 0xFF, 1024 );
+            ASSERT_FALSE( RsaVerify( codec, message, modulus8192, e65537, Repeated( 0x01, 1024 ) ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_AUTHENTICATION_FAILED == codec->GetLastStatus() );
+
+            // required parameters
+            CORE::CDynamicBuffer out;
+            CORE::CValueList noModulus;
+            noModulus.Set( "exponent", CORE::CVariant( e65537 ) );
+            noModulus.Set( "signature", CORE::CVariant( signature ) );
+            ASSERT_FALSE( RunOneShot( codec, false, message, noModulus, out ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_MISSING_PARAMETER == codec->GetLastStatus() );
+            CORE::CValueList noExponent;
+            noExponent.Set( "modulus", CORE::CVariant( modulusA ) );
+            noExponent.Set( "signature", CORE::CVariant( signature ) );
+            ASSERT_FALSE( RunOneShot( codec, false, message, noExponent, out ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_MISSING_PARAMETER == codec->GetLastStatus() );
+            CORE::CValueList noSignature;
+            noSignature.Set( "modulus", CORE::CVariant( modulusA ) );
+            noSignature.Set( "exponent", CORE::CVariant( e65537 ) );
+            ASSERT_FALSE( RunOneShot( codec, false, message, noSignature, out ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_MISSING_PARAMETER == codec->GetLastStatus() );
+            ASSERT_FALSE( RunOneShot( codec, false, message, CORE::CValueList(), out ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_MISSING_PARAMETER == codec->GetLastStatus() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A signature that is not below the modulus, or is zero, or has the wrong length, is refused" )
+        try
+        {
+            TICodecPtr codec = GetRsaCodec( "rsa-pkcs1-sha256" );
+            ASSERT_TRUE( !codec.IsNULL() );
+            REQUIRE_CODEC( codec );
+
+            // equal to the modulus, above it by one and by a lot, all ones, zero, one
+            CORE::CDynamicBuffer aboveByOne( modulusA );
+            aboveByOne.AsTypePtr< UInt8 >()[ 255 ] += 1;
+            const CORE::CDynamicBuffer candidates[ 6 ] = { modulusA, aboveByOne, Repeated( 0xFF, 256 ), Repeated( 0x00, 256 ), FromHex( "00" ), Repeated( 0x00, 255 ) };
+            for ( UInt32 i=0; i<6; ++i )
+            {
+                ASSERT_FALSE( RsaVerify( codec, message, modulusA, e65537, candidates[ i ] ) );
+                ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_AUTHENTICATION_FAILED == codec->GetLastStatus() || CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == codec->GetLastStatus() );
+            }
+            CORE::CDynamicBuffer one = Repeated( 0x00, 255 );
+            one.Append( "\x01", 1, true );
+            ASSERT_FALSE( RsaVerify( codec, message, modulusA, e65537, one ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_AUTHENTICATION_FAILED == codec->GetLastStatus() );
+            ASSERT_FALSE( RsaVerify( codec, message, modulusA, e65537, modulusA ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_AUTHENTICATION_FAILED == codec->GetLastStatus() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The padding is checked in full: other block types, padding bytes, DigestInfo forms, trailing bytes, a short padding and a missing separator are refused" )
+        try
+        {
+            TICodecPtr codec = GetRsaCodec( "rsa-pkcs1-sha256" );
+            ASSERT_TRUE( !codec.IsNULL() );
+            REQUIRE_CODEC( codec );
+
+            // control: the encoding the tests below start from is accepted, and is the one of the independent implementation
+            ASSERT_TRUE( RsaVerify( codec, message, modulusA, e65537, FromHex( g_rsaCraftedControlHex ) ) );
+            ASSERT_TRUE( g_rsaCraftedControlHex == ToHex( FromHex( g_rsaKeyASignatureSha256Hex ) ) );
+
+            const char* crafted[] =
+            {
+                g_rsaCraftedBlockType2Hex,
+                g_rsaCraftedPaddingByteChangedHex,
+                g_rsaCraftedNoNullParamsHex,
+                g_rsaCraftedTrailingGarbageHex,
+                g_rsaCraftedShortPaddingHex,
+                g_rsaCraftedLeadingOneHex,
+                g_rsaCraftedNoZeroSeparatorHex,
+                g_rsaCraftedWrongDigestLengthHex
+            };
+            for ( UInt32 i=0; i<sizeof( crafted ) / sizeof( crafted[ 0 ] ); ++i )
+            {
+                CORE::CDynamicBuffer signature = FromHex( crafted[ i ] );
+                ASSERT_TRUE( 256 == signature.GetDataSize() );
+                ASSERT_FALSE( RsaVerify( codec, message, modulusA, e65537, signature ) );
+                ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_AUTHENTICATION_FAILED == codec->GetLastStatus() );
+                if ( CORE::GUCEF_CODEC_STATUS_AUTHENTICATION_FAILED != codec->GetLastStatus() )
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Crafted signature " << i << " was not refused for the right reason" );
+            }
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: RS384 and RS512 verify signatures of an independent implementation, 2048, 3072 and 4096 bit keys, and a signature of one hash is refused by the others" )
+        try
+        {
+            TICodecPtr sha256 = GetRsaCodec( "rsa-pkcs1-sha256" );
+            TICodecPtr sha384 = GetRsaCodec( "rsa-pkcs1-sha384" );
+            TICodecPtr sha512 = GetRsaCodec( "rsa-pkcs1-sha512" );
+            ASSERT_TRUE( !sha256.IsNULL() && !sha384.IsNULL() && !sha512.IsNULL() );
+            REQUIRE_CODEC( sha256 );
+            REQUIRE_CODEC( sha384 );
+            REQUIRE_CODEC( sha512 );
+
+            const CORE::CDynamicBuffer sig256 = FromHex( g_rsaKeyASignatureSha256Hex );
+            const CORE::CDynamicBuffer sig384 = FromHex( g_rsaKeyASignatureSha384Hex );
+            const CORE::CDynamicBuffer sig512 = FromHex( g_rsaKeyASignatureSha512Hex );
+            ASSERT_TRUE( RsaVerify( sha256, message, modulusA, e65537, sig256 ) );
+            ASSERT_TRUE( RsaVerify( sha384, message, modulusA, e65537, sig384 ) );
+            ASSERT_TRUE( RsaVerify( sha512, message, modulusA, e65537, sig512 ) );
+
+            ASSERT_FALSE( RsaVerify( sha256, message, modulusA, e65537, sig384 ) );
+            ASSERT_FALSE( RsaVerify( sha256, message, modulusA, e65537, sig512 ) );
+            ASSERT_FALSE( RsaVerify( sha384, message, modulusA, e65537, sig256 ) );
+            ASSERT_FALSE( RsaVerify( sha384, message, modulusA, e65537, sig512 ) );
+            ASSERT_FALSE( RsaVerify( sha512, message, modulusA, e65537, sig256 ) );
+            ASSERT_FALSE( RsaVerify( sha512, message, modulusA, e65537, sig384 ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_AUTHENTICATION_FAILED == sha512->GetLastStatus() );
+
+            for ( UInt32 i=0; i<256; i+=5 )
+            {
+                ASSERT_FALSE( RsaVerify( sha384, message, modulusA, e65537, FlippedBit( sig384, i, 0x10 ) ) );
+                ASSERT_FALSE( RsaVerify( sha512, message, modulusA, e65537, FlippedBit( sig512, i, 0x10 ) ) );
+            }
+            ASSERT_FALSE( RsaVerify( sha384, FromText( "RSA PKCS1 v1.5 test messagE" ), modulusA, e65537, sig384 ) );
+            ASSERT_FALSE( RsaVerify( sha512, FromText( "RSA PKCS1 v1.5 test messagE" ), modulusA, e65537, sig512 ) );
+
+            // other key sizes
+            ASSERT_TRUE( RsaVerify( sha384, message, FromHex( g_rsaKey3072ModulusHex ), e65537, FromHex( g_rsaKey3072Signature384Hex ) ) );
+            ASSERT_FALSE( RsaVerify( sha256, message, FromHex( g_rsaKey3072ModulusHex ), e65537, FromHex( g_rsaKey3072Signature384Hex ) ) );
+            ASSERT_TRUE( RsaVerify( sha256, message, FromHex( g_rsaKey4096ModulusHex ), e65537, FromHex( g_rsaKey4096Signature256Hex ) ) );
+            CORE::CDynamicBuffer sig4096 = FromHex( g_rsaKey4096Signature256Hex );
+            ASSERT_TRUE( 512 == sig4096.GetDataSize() );
+            ASSERT_FALSE( RsaVerify( sha256, message, FromHex( g_rsaKey4096ModulusHex ), e65537, FlippedBit( sig4096, 511, 0x01 ) ) );
+            ASSERT_FALSE( RsaVerify( sha256, message, FromHex( g_rsaKey4096ModulusHex ), e65537, FlippedBit( sig4096, 0, 0x01 ) ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: An instance keeps its key for many messages, takes the message in pieces, takes the signature per call and does not allocate per call" )
+        try
+        {
+            TICodecPtr codec = GetRsaCodec( "rsa-pkcs1-sha256" );
+            ASSERT_TRUE( !codec.IsNULL() );
+            REQUIRE_CODEC( codec );
+
+            CORE::CDynamicBuffer n, e, signature;
+            ASSERT_TRUE( CORE::Base64UrlDecode( g_rfc7515A2Modulus, n ) && CORE::Base64UrlDecode( "AQAB", e ) && CORE::Base64UrlDecode( g_rfc7515A2Signature, signature ) );
+            CORE::CDynamicBuffer signingInput = FromText( g_rfc7515A2SigningInput );
+            const CORE::CDynamicBuffer sigA = FromHex( g_rsaKeyASignatureSha256Hex );
+
+            // key and signature at creation
+            CORE::CICodecInstancePtr instance;
+            ASSERT_TRUE( codec->CreateInstance( RsaParams( n, e, signature ), instance ) && !instance.IsNULL() );
+            REQUIRE_CODEC( instance );
+            ASSERT_TRUE( 0 == instance->GetOverhead() );
+
+            CORE::CDynamicBuffer output;
+            ASSERT_TRUE( instance->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, signingInput.GetConstBufferPtr(), signingInput.GetDataSize(), GUCEF_NULL, output ) );
+            ASSERT_TRUE( 0 == output.GetDataSize() && CORE::GUCEF_CODEC_STATUS_OK == instance->GetLastStatus() );
+
+            // a refused message does not spoil the next one
+            ASSERT_FALSE( instance->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, "something else", 14, GUCEF_NULL, output ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_AUTHENTICATION_FAILED == instance->GetLastStatus() );
+            ASSERT_TRUE( instance->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, signingInput.GetConstBufferPtr(), signingInput.GetDataSize(), GUCEF_NULL, output ) );
+
+            // the message in pieces of every size, the last piece carrying FINAL
+            const UInt8* data = static_cast< const UInt8* >( signingInput.GetConstBufferPtr() );
+            const UInt32 total = signingInput.GetDataSize();
+            for ( UInt32 piece=1; piece<=total; piece+=7 )
+            {
+                UInt32 offset = 0;
+                UInt32 flags = GUCEF_CODEC_PROCESS_BEGIN | GUCEF_CODEC_PROCESS_DECODE;
+                bool ok = true;
+                while ( total - offset > piece )
+                {
+                    ok = instance->Process( flags, data + offset, piece, GUCEF_NULL, output ) && ok;
+                    offset += piece;
+                    flags = GUCEF_CODEC_PROCESS_UPDATE | GUCEF_CODEC_PROCESS_DECODE;
+                }
+                ok = instance->Process( flags | GUCEF_CODEC_PROCESS_FINAL, data + offset, total - offset, GUCEF_NULL, output ) && ok;
+                ASSERT_TRUE( ok );
+                ASSERT_TRUE( 0 == output.GetDataSize() );
+            }
+
+            // BEGIN drops a message that was not finished
+            ASSERT_TRUE( instance->Process( GUCEF_CODEC_PROCESS_BEGIN | GUCEF_CODEC_PROCESS_DECODE, "unfinished", 10, GUCEF_NULL, output ) );
+            ASSERT_TRUE( instance->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, signingInput.GetConstBufferPtr(), total, GUCEF_NULL, output ) );
+
+            // the encode direction is refused cleanly
+            ASSERT_FALSE( instance->Process( GUCEF_CODEC_PROCESS_ENCODE_MESSAGE, signingInput.GetConstBufferPtr(), total, GUCEF_NULL, output ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_UNSUPPORTED == instance->GetLastStatus() );
+            ASSERT_TRUE( 0 == output.GetDataSize() );
+            ASSERT_FALSE( instance->Process( GUCEF_CODEC_PROCESS_DECODE | GUCEF_CODEC_PROCESS_ENCODE | GUCEF_CODEC_PROCESS_FINAL, "x", 1, GUCEF_NULL, output ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == instance->GetLastStatus() );
+
+            // a key without a signature: the signature comes per call as the call argument "aad", the one of the call wins
+            CORE::CValueList keyOnly;
+            keyOnly.Set( "modulus", CORE::CVariant( n ) );
+            keyOnly.Set( "exponent", CORE::CVariant( e ) );
+            CORE::CICodecInstancePtr keyInstance;
+            ASSERT_TRUE( codec->CreateInstance( keyOnly, keyInstance ) && !keyInstance.IsNULL() );
+            REQUIRE_CODEC( keyInstance );
+            ASSERT_FALSE( keyInstance->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, signingInput.GetConstBufferPtr(), total, GUCEF_NULL, output ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_MISSING_PARAMETER == keyInstance->GetLastStatus() );
+
+            CORE::SCodecCallArgs args;
+            memset( &args, 0, sizeof( args ) );
+            args.structSize = sizeof( args );
+            args.aad = signature.GetConstBufferPtr();
+            args.aadSize = signature.GetDataSize();
+            ASSERT_TRUE( keyInstance->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, signingInput.GetConstBufferPtr(), total, &args, output ) );
+            args.aad = sigA.GetConstBufferPtr();
+            ASSERT_FALSE( keyInstance->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, signingInput.GetConstBufferPtr(), total, &args, output ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_AUTHENTICATION_FAILED == keyInstance->GetLastStatus() );
+            args.aadSize = 100;
+            ASSERT_FALSE( keyInstance->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, signingInput.GetConstBufferPtr(), total, &args, output ) );
+            ASSERT_TRUE( CORE::GUCEF_CODEC_STATUS_INVALID_PARAMETER == keyInstance->GetLastStatus() );
+
+            CORE::CICodecInstancePtr withBoth;
+            ASSERT_TRUE( codec->CreateInstance( RsaParams( n, e, signature ), withBoth ) && !withBoth.IsNULL() );
+            args.aad = sigA.GetConstBufferPtr();
+            args.aadSize = sigA.GetDataSize();
+            if ( !withBoth.IsNULL() )
+                ASSERT_FALSE( withBoth->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, signingInput.GetConstBufferPtr(), total, &args, output ) );
+
+            // no allocation per call, with the signature at creation and per call
+            if ( CORETEST::IsAllocationCountingAvailable() )
+            {
+                bool succeeded = false;
+                ASSERT_TRUE( 0 == CountAllocationsOfProcess( instance, GUCEF_CODEC_PROCESS_DECODE_MESSAGE, signingInput, GUCEF_NULL, succeeded ) );
+                ASSERT_TRUE( succeeded );
+                args.aad = signature.GetConstBufferPtr();
+                args.aadSize = signature.GetDataSize();
+                ASSERT_TRUE( 0 == CountAllocationsOfProcess( keyInstance, GUCEF_CODEC_PROCESS_DECODE_MESSAGE, signingInput, &args, succeeded ) );
+                ASSERT_TRUE( succeeded );
+
+                // and a refused signature does not allocate either
+                CORE::CDynamicBuffer wrongMessage = FromText( "not what was signed" );
+                CORE::CDynamicBuffer scratch;
+                keyInstance->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, wrongMessage.GetConstBufferPtr(), wrongMessage.GetDataSize(), &args, scratch );
+                CORETEST::StartAllocationCounting();
+                for ( UInt32 i=0; i<50; ++i )
+                    keyInstance->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, wrongMessage.GetConstBufferPtr(), wrongMessage.GetDataSize(), &args, scratch );
+                ASSERT_TRUE( 0 == CORETEST::StopAllocationCounting() );
+            }
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Verifying with a 2048 and a 4096 bit key and the exponent 65537 takes well under 10 milliseconds, key set up included" )
+        try
+        {
+            TICodecPtr codec = GetRsaCodec( "rsa-pkcs1-sha256" );
+            ASSERT_TRUE( !codec.IsNULL() );
+            REQUIRE_CODEC( codec );
+
+            struct SKeyCase { const char* modulusHex; const char* signatureHex; UInt32 rounds; };
+            const SKeyCase cases[ 2 ] =
+            {
+                { g_rsaKeyAModulusHex, g_rsaKeyASignatureSha256Hex, 50 },
+                { g_rsaKey4096ModulusHex, g_rsaKey4096Signature256Hex, 20 }
+            };
+            for ( UInt32 c=0; c<2; ++c )
+            {
+                const CORE::CDynamicBuffer modulus = FromHex( cases[ c ].modulusHex );
+                const CORE::CDynamicBuffer signature = FromHex( cases[ c ].signatureHex );
+                const Float64 ticksPerMs = MT::PrecisionTimerResolution() / 1000.0;
+
+                // one shot: a new key set up for every verification
+                UInt64 start = MT::PrecisionTickCount();
+                bool allVerified = true;
+                for ( UInt32 i=0; i<cases[ c ].rounds; ++i )
+                    allVerified = RsaVerify( codec, message, modulus, e65537, signature ) && allVerified;
+                Float64 oneShotMs = ( MT::PrecisionTickCount() - start ) / ticksPerMs / cases[ c ].rounds;
+                ASSERT_TRUE( allVerified );
+
+                // an instance with its key set up once
+                CORE::CICodecInstancePtr instance;
+                ASSERT_TRUE( codec->CreateInstance( RsaParams( modulus, e65537, signature ), instance ) && !instance.IsNULL() );
+                REQUIRE_CODEC( instance );
+                CORE::CDynamicBuffer output;
+                start = MT::PrecisionTickCount();
+                for ( UInt32 i=0; i<cases[ c ].rounds; ++i )
+                    allVerified = instance->Process( GUCEF_CODEC_PROCESS_DECODE_MESSAGE, message.GetConstBufferPtr(), message.GetDataSize(), GUCEF_NULL, output ) && allVerified;
+                Float64 instanceMs = ( MT::PrecisionTickCount() - start ) / ticksPerMs / cases[ c ].rounds;
+                ASSERT_TRUE( allVerified );
+
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "RSA " << modulus.GetDataSize() * 8 << " bit verification: " << oneShotMs << " ms one shot including key set up, " << instanceMs << " ms with a prepared instance" );
+                ASSERT_TRUE( oneShotMs < 10.0 );
+                ASSERT_TRUE( instanceMs < 10.0 );
+            }
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
 /*-------------------------------------------------------------------------*/
 
 void
@@ -1440,6 +2257,8 @@ PerformCryptoCodecTests( void )
     PerformPluginHashAndKdfTests();
     PerformInstanceAllocationTests();
     PerformBuiltInCodecTests();
+    PerformSoftwareSha512Tests();
+    PerformRsaSignatureTests();
 
     CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( CryptoPluginGroup );
 

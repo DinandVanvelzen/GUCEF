@@ -177,6 +177,19 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public CORE::CObserver
     /** The file of the user action log, empty when it is off */
     CString GetUserActionLogFile( void ) const;
 
+    /**
+     *  Whether the messages of the user log (LOG_USER, GUCEF_USER_LOG) are made at all, for every logger: the console, the
+     *  log files and the user action log. When it is off GUCEF_USER_LOG does not build the message, the arguments of the
+     *  macro are not evaluated: a read of one integer is all it costs. It is on unless a program switches it off, which
+     *  keeps the behaviour of programs that never set it. Switching on the user action log with SetUserActionLogEnabled()
+     *  switches it on as well. Messages of the user log that are logged without the macros are dropped here too.
+     *  Messages that were made while it was on and are not yet with the loggers when it is switched off are dropped
+     *  with it. It can be set from any thread.
+     */
+    void SetUserLogEnabled( bool enabled );
+
+    bool IsUserLogEnabled( void ) const;
+
     bool AddLoggingFormatterFactory( const CString& name                        ,
                                      TLoggingFormatterFactory* formatterFactory ,
                                      bool overrideDefault = true                );

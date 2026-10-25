@@ -135,6 +135,24 @@ CFileSystemAccessTaskData::Clone( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+const char*
+CFileSystemAccessTaskData::GetCloneableTypeName( void ) const
+{GUCEF_TRACE;
+
+    return CloneableTypeName();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CFileSystemAccessTaskData::CloneableTypeName( void )
+{GUCEF_TRACE;
+
+    return "GUCEF::CORE::CFileSystemAccessTaskData";
+}
+
+/*-------------------------------------------------------------------------*/
+
 CAsyncFileSystemAccessOperation::CAsyncFileSystemAccessOperation( void )
     : CTaskConsumer()
 {GUCEF_TRACE;
@@ -165,7 +183,7 @@ CAsyncFileSystemAccessOperation::OnTaskCycle( CTaskPtr task )
 
     if ( task.IsNULL() )
         return true;
-    CFileSystemAccessTaskData* data = static_cast< CFileSystemAccessTaskData* >( task->GetTaskData() );
+    CFileSystemAccessTaskData* data = CICloneable::CloneableAs< CFileSystemAccessTaskData >( task->GetTaskData() );
     if ( GUCEF_NULL == data )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "AsyncFileSystemAccessOperation: No task data to work on" );

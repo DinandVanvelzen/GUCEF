@@ -74,6 +74,13 @@ class CPulseGenerator;
  *  will simply function as a pass-trough notifier. Override to manipulate
  *  the event data before it is sent to the observers.
  *  Keep in mind that the CTSGNotifier will become the source notifier !!!
+ *
+ *  Threading: a CTSGNotifier can be created and destroyed on any thread, also while another thread pumps the
+ *  pulse generator it is on and while the notifiers it is subscribed to are delivering events. The destructor
+ *  waits for a delivery in progress and does not return before the object is unsubscribed everywhere.
+ *  An observer's lock is therefore never held while a notifier is called (see CObserver::SignalUpcomingObserverDestruction()
+ *  and CPumpedObserver::Shutdown()): a notifier holds its own lock while delivering to an observer, taking
+ *  the locks in the opposite order from another thread is a deadlock.
  */
 class GUCEF_CORE_PUBLIC_CPP CTSGNotifier : public CNotifier  ,
                                            public CIObserver

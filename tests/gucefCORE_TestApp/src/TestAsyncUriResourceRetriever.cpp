@@ -93,6 +93,16 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_CORE_CILOGGER_H
+#include "CILogger.h"
+#define GUCEF_CORE_CILOGGER_H
+#endif /* GUCEF_CORE_CILOGGER_H ? */
+
+#ifndef GUCEF_CORE_CLOGMANAGER_H
+#include "CLogManager.h"
+#define GUCEF_CORE_CLOGMANAGER_H
+#endif /* GUCEF_CORE_CLOGMANAGER_H ? */
+
 #ifndef GUCEF_TEST_FRAMEWORK_H
 #include "gucef_test_framework.h"
 #define GUCEF_TEST_FRAMEWORK_H
@@ -185,6 +195,68 @@ class CRetrievalRecorder : public CORE::CObservingNotifier
 
 /*-------------------------------------------------------------------------*/
 
+/** Keeps the text of every log message that is logged while it is attached to the log manager */
+class CRetrieverLogCapture : public CORE::CILogger
+{
+    public:
+
+    CRetrieverLogCapture( void )
+        : CORE::CILogger()
+        , m_text()
+        , m_lock()
+    {
+        CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( this );
+    }
+
+    virtual ~CRetrieverLogCapture()
+    {
+        CORE::CCoreGlobal::Instance()->GetLogManager().RemoveLogger( this );
+    }
+
+    /** logs that are still on their way to the loggers are delivered first */
+    CORE::CString GetText( void )
+    {
+        CORE::CCoreGlobal::Instance()->GetLogManager().FlushLogs();
+        MT::CScopeMutex lock( m_lock );
+        return m_text;
+    }
+
+    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CString& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        MT::CScopeMutex lock( m_lock );
+        m_text += logMessage;
+        m_text += "\n";
+    }
+
+    virtual void Log( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CVariantStream& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
+    }
+
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CString& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        Log( logMsgType, logLevel, logMessage, threadId, timestamp );
+    }
+
+    virtual void LogWithoutFormatting( const CORE::TLogMsgType logMsgType, const Int32 logLevel, const CORE::CVariantStream& logMessage, const UInt32 threadId, const CORE::CTimestamp& timestamp ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        Log( logMsgType, logLevel, logMessage.ToString(), threadId, timestamp );
+    }
+
+    virtual void FlushLog( void ) GUCEF_VIRTUAL_OVERRIDE {}
+
+    virtual void SetMinimalLogLevel( const Int32 logLevel ) GUCEF_VIRTUAL_OVERRIDE {}
+
+    virtual Int32 GetMinimalLogLevel( void ) const GUCEF_VIRTUAL_OVERRIDE { return CORE::LOGLEVEL_EVERYTHING; }
+
+    private:
+
+    CORE::CString m_text;
+    MT::CMutex m_lock;
+};
+
+/*-------------------------------------------------------------------------*/
+
 /**
  *  Accessor of the scheme "slowtest" which delivers a lot of data in small chunks with a pause in between,
  *  for as long as it is not stopped by the destination refusing data. Its resource is 100000 chunks of 1000 bytes.
@@ -232,6 +304,34 @@ class CSlowTestAccessor : public CORE::CUriResourceAccessor
 const CORE::CString CSlowTestAccessor::SchemeName = "slowtest";
 
 typedef CORE::CTFactory< CORE::CUriResourceAccessor, CSlowTestAccessor, MT::CMutex > TSlowTestAccessorFactory;
+
+/** Condition for PumpUntil(): the recorder saw progress of a retrieval */
+class CHasProgress
+{
+    public:
+
+    CHasProgress( const CRetrievalRecorder& recorder ) : m_recorder( recorder ) {}
+    bool operator()( void ) const { return m_recorder.progress > 0; }
+
+    private:
+
+    const CRetrievalRecorder& m_recorder;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Condition for PumpUntil(): the recorder saw the end of a retrieval */
+class CIsFinished
+{
+    public:
+
+    CIsFinished( const CRetrievalRecorder& recorder ) : m_recorder( recorder ) {}
+    bool operator()( void ) const { return m_recorder.IsFinished(); }
+
+    private:
+
+    const CRetrievalRecorder& m_recorder;
+};
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -494,6 +594,43 @@ PerformAsyncUriResourceRetrieverTests( void )
             ASSERT_TRUE( retriever.Retrieve( CORE::CUri( "data:text/plain;base64,SGVsbG8gYXN5bmM=" ), received2 ).HasAFuture() );
             ASSERT_TRUE( PumpUntil( [&recorder2]() { return recorder2.IsFinished(); }, 10000 ) );
             ASSERT_TRUE( 1 == recorder2.completed );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The log and the error text of a retrieval hold no secrets of the uri" )
+        try
+        {
+            CRetrieverLogCapture capture;
+            CORE::CAsyncUriResourceRetriever retriever;
+            CRetrievalRecorder recorder( retriever );
+            CORE::CDynamicBuffer received;
+            ASSERT_TRUE( retriever.Retrieve( CORE::CUri( "slowtest://anything" ), received ).HasAFuture() );
+            ASSERT_TRUE( PumpUntil( CHasProgress( recorder ), 10000 ) );
+
+            // refused since the retriever is busy
+            CORE::CDynamicBuffer refused;
+            ASSERT_FALSE( retriever.Retrieve( CORE::CUri( "slowtest://user:SECRETPASSWORD@host/p?token=SECRETTOKEN#SECRETFRAGMENT" ), refused ).HasAFuture() );
+            retriever.Cancel( true );
+            ASSERT_TRUE( PumpUntil( CIsFinished( recorder ), 10000 ) );
+
+            // a retrieval which fails, the resource accessor gets the whole uri
+            CRetrievalRecorder failRecorder( retriever );
+            CORE::CDynamicBuffer nothing;
+            ASSERT_TRUE( retriever.Retrieve( CORE::CUri( FileUri( CORE::CombinePath( tempDir, "doesnotexist.bin" ) ) + "?token=SECRETTOKEN" ), nothing ).HasAFuture() );
+            ASSERT_TRUE( PumpUntil( CIsFinished( failRecorder ), 10000 ) );
+            ASSERT_TRUE( 1 == failRecorder.failed );
+            ASSERT_FALSE( failRecorder.lastError.IsNULLOrEmpty() );
+            ASSERT_TRUE( failRecorder.lastError.HasSubstr( "SECRET", true ) < 0 );
+            ASSERT_TRUE( failRecorder.lastError.HasSubstr( "doesnotexist.bin", true ) >= 0 );
+
+            CORE::CString logged = capture.GetText();
+            ASSERT_TRUE( logged.HasSubstr( "already busy", true ) >= 0 );
+            ASSERT_TRUE( logged.HasSubstr( "SECRET", true ) < 0 );
+            ASSERT_TRUE( logged.HasSubstr( "slowtest://***@host/p?token=***#***", true ) >= 0 );
         }
         catch ( ... )
         {

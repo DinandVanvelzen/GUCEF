@@ -84,6 +84,17 @@ class GUCEF_CORE_PUBLIC_CPP CProcess
                  bool detach = false                     );
 
     /**
+     *  With this on a process that is launched afterwards (Linux, macOS and other POSIX systems; Windows leaves this alone) is
+     *  isolated from this one: its standard input, output and error are /dev/null, so it writes nothing to the terminal of
+     *  this process and reads nothing from it, and no file descriptor of this process but those three is open in it (the
+     *  sockets and the display connection of this process do not leak into it). The environment and the working directory
+     *  are not touched. Together with 'detach' of Launch() the child has no terminal and no signals of ours either. Off by default.
+     */
+    void SetIsolateFromParent( bool isolate );
+
+    bool GetIsolateFromParent( void ) const;
+
+    /**
      *  Process id of the launched process, 0 if no process was launched
      */
     UInt32 GetProcessId( void ) const;
@@ -131,6 +142,7 @@ class GUCEF_CORE_PUBLIC_CPP CProcess
     UInt32 m_processId;
     void* m_osHandle;       // Windows process handle, unused elsewhere
     bool m_isDetached;
+    bool m_isolate;
     bool m_hasExited;
     Int32 m_exitCode;
 };

@@ -67,7 +67,7 @@ namespace CORE {
 
 namespace {
 
-/** The data of the ended task of a future, NULL while it is not ready */
+/** The data of the ended task of a future, NULL while it is not ready or when the future does not carry file system access data */
 const CFileSystemAccessTaskData*
 GetEndedTaskData( const CFutureResult& future, CTaskPtr& task )
 {GUCEF_TRACE;
@@ -77,7 +77,7 @@ GetEndedTaskData( const CFutureResult& future, CTaskPtr& task )
     task = future.GetResult();
     if ( task.IsNULL() )
         return GUCEF_NULL;
-    return static_cast< const CFileSystemAccessTaskData* >( task->GetTaskData() );
+    return CICloneable::CloneableAs< CFileSystemAccessTaskData >( task->GetTaskData() );
 }
 
 }

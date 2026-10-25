@@ -327,6 +327,10 @@ class GUCEF_CORE_PUBLIC_CPP CPluginControl : public CTSGNotifier          ,
 
     CPluginManager* GetPluginManagerForType( const CString& pluginType );
 
+    /** The meta data of a module of a group, of the plugin if it is loaded and else of what is known of it */
+    TPluginMetaDataPtr GetMetaDataOfModule( const CString& groupName  ,
+                                            const CString& moduleName ) const;
+
     TPluginLoadLogicMap m_pluginLoadLogicProviders;
     CString m_defaultPluginLoadLogicType;
     TPluginGroupMap m_pluginGroupsByPriority;

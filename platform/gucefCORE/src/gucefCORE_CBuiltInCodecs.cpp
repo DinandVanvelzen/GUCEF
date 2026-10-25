@@ -42,6 +42,11 @@
 #define GUCEF_CORE_CSOFTWARECRYPTOCODECS_H
 #endif /* GUCEF_CORE_CSOFTWARECRYPTOCODECS_H ? */
 
+#ifndef GUCEF_CORE_CRSAPKCS1CODECS_H
+#include "gucefCORE_CRsaPkcs1Codecs.h"
+#define GUCEF_CORE_CRSAPKCS1CODECS_H
+#endif /* GUCEF_CORE_CRSAPKCS1CODECS_H ? */
+
 #ifndef GUCEF_CORE_COSCRYPTOCODECS_H
 #include "gucefCORE_COsCryptoCodecs.h"
 #define GUCEF_CORE_COSCRYPTOCODECS_H
@@ -104,6 +109,9 @@ CBuiltInCodecs::RegisterCodecs( void )
         m_softwareCodecs.push_back( CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CSha256Codec() ) );
         m_softwareCodecs.push_back( CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CHmacSha256Codec() ) );
         m_softwareCodecs.push_back( CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CHkdfSha256Codec() ) );
+        m_softwareCodecs.push_back( CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CRsaPkcs1VerifyCodec( CRsaPkcs1VerifyCodec::HASH_SHA256 ) ) );
+        m_softwareCodecs.push_back( CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CRsaPkcs1VerifyCodec( CRsaPkcs1VerifyCodec::HASH_SHA384 ) ) );
+        m_softwareCodecs.push_back( CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CRsaPkcs1VerifyCodec( CRsaPkcs1VerifyCodec::HASH_SHA512 ) ) );
 
         TICodecPtrVector::iterator i = m_softwareCodecs.begin();
         while ( i != m_softwareCodecs.end() )

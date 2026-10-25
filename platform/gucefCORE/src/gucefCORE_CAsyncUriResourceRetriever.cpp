@@ -43,6 +43,11 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_CORE_CREDACTOR_H
+#include "gucefCORE_CRedactor.h"
+#define GUCEF_CORE_CREDACTOR_H
+#endif /* GUCEF_CORE_CREDACTOR_H ? */
+
 #include "gucefCORE_CAsyncUriRetrievalTask.h"
 #include "gucefCORE_CAsyncUriResourceRetriever.h"
 
@@ -203,7 +208,7 @@ CAsyncUriResourceRetriever::QueueRetrieval( const CUri& uri            ,
 
     if ( m_busy )
     {
-        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "AsyncUriResourceRetriever: A retrieval is already busy, cannot start retrieving \"" + uri.ToUriInStringForm() + "\"" );
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "AsyncUriResourceRetriever: A retrieval is already busy, cannot start retrieving \"" << CRedactor::ForUrl().RedactUrl( uri.ToUriInStringForm() ) << "\"" );
         return CFutureResult( TTaskStatus::TASKSTATUS_QUEUEING_FAILED );
     }
 
@@ -231,7 +236,7 @@ CAsyncUriResourceRetriever::QueueRetrieval( const CUri& uri            ,
     {
         // Ownership of the task data is only transferred on success
         GUCEF_DELETE taskData;
-        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "AsyncUriResourceRetriever: Failed to queue the retrieval of \"" + uri.ToUriInStringForm() + "\"" );
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "AsyncUriResourceRetriever: Failed to queue the retrieval of \"" << CRedactor::ForUrl().RedactUrl( uri.ToUriInStringForm() ) << "\"" );
         return future;
     }
 

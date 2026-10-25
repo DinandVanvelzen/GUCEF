@@ -48,6 +48,11 @@
 #define GUCEF_MT_CSCOPEMUTEX_H
 #endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
 
+#ifndef GUCEF_CORE_CREDACTOR_H
+#include "gucefCORE_CRedactor.h"
+#define GUCEF_CORE_CREDACTOR_H
+#endif /* GUCEF_CORE_CREDACTOR_H ? */
+
 #include "gucefCORE_CPluginFactoryAdapterForDataDrivenDStoreCodec.h"
 
 /*-------------------------------------------------------------------------//
@@ -368,17 +373,17 @@ CPluginFactoryAdapterForDataDrivenDStoreCodec::Create( const CDataDrivenDStoreCo
                 }
                 else
                 {
-                    GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginFactoryAdapterForDataDrivenDStoreCodec:Create: Failed to load resource into ram buffer for " + resourceUri );
+                    GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginFactoryAdapterForDataDrivenDStoreCodec:Create: Failed to load resource into ram buffer for " << CRedactor::ForUrl().RedactUrl( resourceUri ) );
                 }
             }
             else
             {
-                GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginFactoryAdapterForDataDrivenDStoreCodec:Create: Failed to parse Uri accessor for " + resourceUri );
+                GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginFactoryAdapterForDataDrivenDStoreCodec:Create: Failed to parse Uri accessor for " << CRedactor::ForUrl().RedactUrl( resourceUri ) );
             }
         }
         else
         {
-            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginFactoryAdapterForDataDrivenDStoreCodec:Create: Failed to parse Uri string: " + resourceValue );
+            GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "PluginFactoryAdapterForDataDrivenDStoreCodec:Create: Failed to parse Uri string: " << CRedactor::ForUrl().RedactUrl( resourceValue ) );
         }
 
         if ( !resourceLoadSuccess )

@@ -599,7 +599,19 @@ CUtf8String::CodepointPtrAtIndex( const char* str        ,
     UInt32 cp = 0; UInt32 i=0;
     while ( i<index && bytesFromStart < byteSize )
     {
-        const char* newCpPos = (const char*) utf8codepoint( cpPos, &cp );
+        const char* newCpPos = GUCEF_NULL;
+        const UInt32 sequenceSize = (UInt32) utf8codepointcalcsize_s( cpPos, byteSize-bytesFromStart );
+        if ( sequenceSize > byteSize-bytesFromStart )
+        {
+            // The sequence is cut off by the end of the buffer. We must not decode it: its continuation bytes are not ours to read.
+            // It runs past the end and thus is handled by the check on offsets beyond the buffer below
+            newCpPos = cpPos + sequenceSize;
+            cp = 1;
+        }
+        else
+        {
+            newCpPos = (const char*) utf8codepoint( cpPos, &cp );
+        }
         if ( 0 == cp && i < index )
         {
             // there is a disconnect between the given bytesize & length vs where we found a null terminator
@@ -1106,6 +1118,59 @@ CUtf8String::GetCharacterRepeatCount( const Int32 searchChar ) const
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Copies a code point which was decoded from the bytes srcStart up to srcEnd to dest, as utf8catcodepoint() does.
+ *  Bytes which are not a well formed sequence (cut off, stray continuation bytes, overlong forms) do not decode to a code point
+ *  which encodes to the same number of bytes, so they are carried over as they are instead of being encoded as something else
+ *  which could take more room than there is. Returns NULL when there is not enough room, as utf8catcodepoint() does.
+ */
+static char*
+CatDecodedCodePoint( char* dest, size_t spaceLeft, UInt32 cp, const char* srcStart, const char* srcEnd )
+{GUCEF_TRACE;
+
+    const size_t consumed = (size_t) ( srcEnd - srcStart );
+    if ( utf8codepointsize( (utf8_int32_t) cp ) == consumed )
+        return (char*) utf8catcodepoint( dest, (utf8_int32_t) cp, spaceLeft );
+
+    if ( consumed > spaceLeft )
+        return GUCEF_NULL;
+    memcpy( dest, srcStart, consumed );
+    return dest + consumed;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Tells whether the used bytes end in a lead byte whose continuation bytes are not (all) there. Only the last 3 bytes
+ *  can hold such a lead byte. The decision mirrors the way the code points are counted so it never misses one;
+ *  for content that is not well formed it may say yes for a lead byte which is not counted as a lead byte
+ */
+static bool
+EndsInPossiblyIncompleteSequence( const char* str, UInt32 usedBytes )
+{GUCEF_TRACE;
+
+    UInt32 window = usedBytes < 3 ? usedBytes : 3;
+    for ( UInt32 i=1; i<=window; ++i )
+    {
+        const unsigned char leadByte = (unsigned char) str[ usedBytes-i ];
+        UInt32 sequenceSize = 1;
+        if ( 0xf0 == ( 0xf8 & leadByte ) )
+            sequenceSize = 4;
+        else
+        if ( 0xe0 == ( 0xf0 & leadByte ) )
+            sequenceSize = 3;
+        else
+        if ( 0xc0 == ( 0xe0 & leadByte ) )
+            sequenceSize = 2;
+
+        if ( sequenceSize > i )
+            return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CUtf8String::Append( const UInt32 utf32CodePoint )
 {GUCEF_TRACE;
@@ -1143,6 +1208,20 @@ CUtf8String::Append( const char* appendstr    ,
     if ( appendstr == GUCEF_NULL || 0 == byteSize )
         return;
 
+    if ( !m_linked && GUCEF_NULL != m_string && appendstr >= m_string && appendstr < m_string + m_byteSize )
+    {
+        // We are asked to append (part of) ourselves. Growing the buffer would invalidate the source
+        // so we work from a copy of the bytes
+        char* copy = (char*) malloc( byteSize );
+        if ( GUCEF_NULL != copy )
+        {
+            memcpy( copy, appendstr, byteSize );
+            Append( copy, byteSize, lengthInCodePoints );
+            free( copy );
+        }
+        return;
+    }
+
     // we always determine the length ourselves in order to either use direct or to sanity check the lengh given
     // as being a shorter subset of the available string
     const char* inputNullAddress = GUCEF_NULL;
@@ -1163,52 +1242,54 @@ CUtf8String::Append( const char* appendstr    ,
 
     // we could only be using a subset of the buffer via Reserve()
     // As such make sure we know the end of the actually used space
-    char* addNullAddress = GUCEF_NULL;
-    if ( m_byteSize != m_length+1 )
-        m_length = (UInt32) utf8len_s_withaddr( m_string, m_byteSize, (const char**) &addNullAddress );
+    // The end is kept as an offset: the buffer can be moved by Reserve() below, which would leave any address into it dangling
+    UInt32 usedBytes = 0;
+    if ( m_byteSize == m_length+1 )
+    {
+        usedBytes = m_length; // no need to seek in this case, small optimization for ASCII text
+    }
     else
-        addNullAddress = m_string + m_length; // no need to seek in this case, small optimization for ASCII text
+    {
+        // The terminator is searched for per byte instead of per code point: a lead byte at the end of the content
+        // whose continuation bytes are not there yet (data arriving in pieces) would otherwise swallow the terminator.
+        // For well formed content both give the same position.
+        const char* nullPos = (const char*) memchr( m_string, 0, m_byteSize );
+        usedBytes = GUCEF_NULL != nullPos ? (UInt32) ( nullPos - m_string ) : m_byteSize;
+        m_length = (UInt32) utf8len_s( m_string, usedBytes );
+    }
 
     // Since we are combining strings we need to work codepoint wise not byte buffer wise
     // this is because the underlying byte buffer may actually be larger than nessesary
     // due to Reserve() style usage. Hence we dont just want to append at the end of that
 
-    UInt32 usedBytes = (UInt32) ( addNullAddress - m_string );
-    UInt32 unusedBytes = ((m_byteSize-usedBytes)-1);
+    // If the content so far ends in an incomplete sequence then the appended bytes complete it.
+    // The code points of both parts do not add up in that case.
+    const bool mustRecount = EndsInPossiblyIncompleteSequence( m_string, usedBytes );
+    const UInt32 lengthSoFar = m_length;
 
-   // Check for a null terminator
+    UInt32 neededBytes = usedBytes + 1 + byteSize; // content + terminator + what we add
+    if ( GUCEF_NULL != inputNullAddress )
+        --neededBytes; // input brings its own terminator
+
+    if ( GUCEF_NULL == Reserve( neededBytes ) )
+        return;
+
+    char* addNullAddress = m_string + usedBytes;
+    memcpy( addNullAddress, appendstr, byteSize );
+
     if ( GUCEF_NULL != inputNullAddress )
     {
-        const char* originalAddress = m_string;
-        UInt32 neededBytes = ( m_byteSize - unusedBytes ) + byteSize - 1;
-        if ( GUCEF_NULL != Reserve( neededBytes ) )
-        {
-            // did realloc move the memory or enlarge from current address?
-            // don't seek if we dont have to
-            if ( GUCEF_NULL == addNullAddress || m_string != originalAddress )
-                m_length = (UInt32) utf8len_s_withaddr( m_string, m_byteSize, (const char**) &addNullAddress ); // redetermine address of \0
-            memcpy( (char*)addNullAddress, appendstr, byteSize );
-            m_length += lengthInCodePoints;
-        }
+        // Input had a null-terminator
+        if ( mustRecount )
+            m_length = (UInt32) utf8len_s( m_string, m_byteSize );
+        else
+            m_length = lengthSoFar + lengthInCodePoints;
     }
     else
     {
         // Add the null-terminator since input didnt have one
-        const char* originalAddress = m_string;
-        UInt32 neededBytes = ( m_byteSize - unusedBytes ) + byteSize;
-        if ( GUCEF_NULL != Reserve( neededBytes ) )
-        {
-            // did realloc move the memory or enlarge from current address?
-            // don't seek if we dont have to
-            if ( GUCEF_NULL == addNullAddress || m_string != originalAddress )
-                m_length = (UInt32) utf8len_s_withaddr( m_string, m_byteSize, (const char**) &addNullAddress ); // redetermine address of \0
-            memcpy( addNullAddress, appendstr, byteSize );
-            m_string[ m_byteSize-1 ] = '\0';
-            char* nullPtr;
-            m_length = (UInt32) utf8len_s_withaddr( m_string, m_byteSize, (const char**) &nullPtr );
-            if ( GUCEF_NULL != nullPtr )
-                *nullPtr = '\0';
-        }
+        m_string[ m_byteSize-1 ] = '\0';
+        m_length = (UInt32) utf8len_s( m_string, m_byteSize );
     }
 }
 
@@ -1453,12 +1534,13 @@ CUtf8String::ReplaceChar( Int32 oldchar ,
             for ( UInt32 i=0; i<m_length; ++i )
             {
                 // Grab code point from current string
+                const char* prevCpPos = srcCpPos;
                 srcCpPos = (const char*) utf8codepoint( srcCpPos, &cp );
                 char* newDestCpPos = GUCEF_NULL;
                 if ( cp != oldchar )
                 {
                     // This one doesnt need replacing, just concat it into the pre-allocated destination buffer
-                    newDestCpPos = (char*) utf8catcodepoint( destCpPos, cp, (size_t) bufferSpaceLeft );
+                    newDestCpPos = CatDecodedCodePoint( destCpPos, (size_t) bufferSpaceLeft, cp, prevCpPos, srcCpPos );
                 }
                 else
                 {
@@ -2009,11 +2091,12 @@ CUtf8String::RemoveChar( const Int32 charToRemove ) const
             for ( UInt32 i=0; i<m_length; ++i )
             {
                 // Grab code point from current string
+                const char* prevCpPos = srcCpPos;
                 srcCpPos = (const char*) utf8codepoint( srcCpPos, &cp );
                 if ( cp != charToRemove )
                 {
                     // This one can stay, just concat it into the pre-allocated destination buffer
-                    char* newDestCpPos = (char*) utf8catcodepoint( destCpPos, cp, (size_t) bufferSpaceLeft );
+                    char* newDestCpPos = CatDecodedCodePoint( destCpPos, (size_t) bufferSpaceLeft, cp, prevCpPos, srcCpPos );
                     bufferSpaceLeft -= (Int32)( newDestCpPos - destCpPos );
                     destCpPos = newDestCpPos;
                 }
@@ -2064,10 +2147,11 @@ CUtf8String::CompactRepeatingChar( const Int32 charToCompact ) const
             for ( UInt32 i=0; i<m_length; ++i )
             {
                 // Grab code point from current string
+                const char* prevCpPos = srcCpPos;
                 srcCpPos = (const char*) utf8codepoint( srcCpPos, &cp );
 
                 // This one can stay, just concat it into the pre-allocated destination buffer
-                char* newDestCpPos = (char*) utf8catcodepoint( destCpPos, cp, (size_t) bufferSpaceLeft );
+                char* newDestCpPos = CatDecodedCodePoint( destCpPos, (size_t) bufferSpaceLeft, cp, prevCpPos, srcCpPos );
                 bufferSpaceLeft -= (Int32)( newDestCpPos - destCpPos );
                 destCpPos = newDestCpPos;
 
@@ -2077,13 +2161,14 @@ CUtf8String::CompactRepeatingChar( const Int32 charToCompact ) const
                     for ( i; i<m_length; ++i )
                     {
                         // Grab code point from current string
+                        prevCpPos = srcCpPos;
                         srcCpPos = (const char*) utf8codepoint( srcCpPos, &cp );
 
                         // Skip all that now match the code point we wish to compact
                         if ( cp != charToCompact )
                         {
                             // This one can stay, just concat it into the pre-allocated destination buffer
-                            newDestCpPos = (char*) utf8catcodepoint( destCpPos, cp, (size_t) bufferSpaceLeft );
+                            newDestCpPos = CatDecodedCodePoint( destCpPos, (size_t) bufferSpaceLeft, cp, prevCpPos, srcCpPos );
                             bufferSpaceLeft -= (Int32)( newDestCpPos - destCpPos );
                             destCpPos = newDestCpPos;
 

@@ -25,6 +25,9 @@ LOCAL_SRC_FILES := \
   src/TestAbstractFactory.cpp \
   src/TestAllocationCounter.cpp \
   src/TestAsyncUriResourceRetriever.cpp \
+  src/TestBase64Url.cpp \
+  src/TestBigUnsigned.cpp \
+  src/TestBrowserLauncher.cpp \
   src/TestCodecPlugins.cpp \
   src/TestConfigStore.cpp \
   src/TestCronSchedule.cpp \
@@ -57,7 +60,9 @@ LOCAL_SRC_FILES := \
   src/TestProcess.cpp \
   src/TestRandom.cpp \
   src/TestRateLimiting.cpp \
+  src/TestRedactor.cpp \
   src/TestSchedule.cpp \
+  src/TestScopedValue.cpp \
   src/TestSfinaeUtils.cpp \
   src/TestSharedPtr.cpp \
   src/TestStopwatch.cpp \
@@ -67,6 +72,7 @@ LOCAL_SRC_FILES := \
   src/TestTimestamp.cpp \
   src/TestTokenizer.cpp \
   src/TestUri.cpp \
+  src/TestUserNames.cpp \
   src/TestVariant.cpp \
   src/TestVariantBinarySerializer.cpp \
   src/TestVariantMapAdapter.cpp \
@@ -74,6 +80,7 @@ LOCAL_SRC_FILES := \
   src/TestVars.cpp \
   src/TestVersion.cpp \
   src/TestWeakPtr.cpp \
+  src/TestX11EventDispatcher.cpp \
   src/TestXmlDStoreCodec.cpp \
   src/gucefCORE_TestApp_main.cpp
 
@@ -81,6 +88,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/src \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../common/test/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \
   $(MY_MODULE_PATH)/../../platform/gucefMT/include

@@ -43,6 +43,11 @@
 #define GUCEF_CORE_CCONFIGSTORE_H
 #endif /* GUCEF_CORE_CCONFIGSTORE_H ? */
 
+#ifndef GUCEF_CORE_CFAULTTOLERANTCONFIGSCOPE_H
+#include "gucefCORE_CFaultTolerantConfigScope.h"
+#define GUCEF_CORE_CFAULTTOLERANTCONFIGSCOPE_H
+#endif /* GUCEF_CORE_CFAULTTOLERANTCONFIGSCOPE_H ? */
+
 #ifndef GUCEF_CORE_CGLOBALLYCONFIGURABLE_H
 #include "gucefCORE_CGloballyConfigurable.h"
 #define GUCEF_CORE_CGLOBALLYCONFIGURABLE_H
@@ -160,6 +165,58 @@ class CReadingConfigurable : public CORE::CGloballyConfigurable
 
 /*-------------------------------------------------------------------------*/
 
+/** A configurable whose config cannot be loaded */
+class CFailingConfigurable : public CORE::CGloballyConfigurable
+{
+    public:
+
+    CFailingConfigurable( void ) : CORE::CGloballyConfigurable( false ) {}
+
+    virtual bool SaveConfig( CORE::CDataNode& cfg ) const GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool LoadConfig( const CORE::CDataNode& cfg ) GUCEF_VIRTUAL_OVERRIDE { return false; }
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CORE::CString classTypeName = "CFailingConfigurable";
+        return classTypeName;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Whether the config applies as a whole while the configurables exist that there are now, the ones that cannot load their config included */
+bool
+ConfigAppliesAsAWhole( CORE::CConfigStore& configStore )
+{
+    CORE::CDataNode config;
+    return configStore.ApplyConsolidatedConfig( config );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** A scope that ends on a return from the block it is in */
+bool
+FaultTolerantEarlyReturn( CORE::CConfigStore& configStore, bool returnEarly )
+{
+    CORE::CFaultTolerantConfigScope faultTolerantScope( configStore );
+    if ( returnEarly )
+        return false;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** A scope that ends on an exception that unwinds the block it is in */
+void
+FaultTolerantThrowing( CORE::CConfigStore& configStore )
+{
+    CORE::CFaultTolerantConfigScope faultTolerantScope( configStore );
+    throw 42;
+}
+
+/*-------------------------------------------------------------------------*/
+
 /** The content of a text file, empty when there is none */
 CORE::CString
 ReadText( const CORE::CString& path )
@@ -382,6 +439,89 @@ PerformConfigStoreTests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "ConfigStore: A fault tolerant config scope makes the configurables of it optional, ends on every way out of the block and nests with the innermost counting" )
+    try
+    {
+        CORE::CConfigStore& configStore = CORE::CCoreGlobal::Instance()->GetConfigStore();
+        ASSERT_TRUE( ConfigAppliesAsAWhole( configStore ) );
+
+        // no scope: a configurable that cannot load its config fails the config
+        {
+            CFailingConfigurable plain;
+            ASSERT_FALSE( ConfigAppliesAsAWhole( configStore ) );
+        }
+        ASSERT_TRUE( ConfigAppliesAsAWhole( configStore ) );
+
+        // in a scope the configurable is optional, after the block the scope is gone
+        {
+            CORE::CFaultTolerantConfigScope faultTolerantScope;
+            CFailingConfigurable optional;
+            ASSERT_TRUE( ConfigAppliesAsAWhole( configStore ) );
+        }
+        {
+            CFailingConfigurable afterScope;
+            ASSERT_FALSE( ConfigAppliesAsAWhole( configStore ) );
+        }
+
+        // the scope ends when the block is left by a return
+        ASSERT_FALSE( FaultTolerantEarlyReturn( configStore, true ) );
+        ASSERT_TRUE( FaultTolerantEarlyReturn( configStore, false ) );
+        {
+            CFailingConfigurable afterReturn;
+            ASSERT_FALSE( ConfigAppliesAsAWhole( configStore ) );
+        }
+
+        // and when an exception unwinds it
+        bool caught = false;
+        try
+        {
+            FaultTolerantThrowing( configStore );
+        }
+        catch ( int )
+        {
+            caught = true;
+        }
+        ASSERT_TRUE( caught );
+        {
+            CFailingConfigurable afterThrow;
+            ASSERT_FALSE( ConfigAppliesAsAWhole( configStore ) );
+        }
+
+        // nesting: the innermost counts, the outer one is back in effect when the inner one ends
+        {
+            CORE::CFaultTolerantConfigScope outerScope( configStore );
+            CFailingConfigurable inOuter;
+            ASSERT_TRUE( ConfigAppliesAsAWhole( configStore ) );
+            {
+                CORE::CFaultTolerantConfigScope innerScope( configStore, false );
+                {
+                    CFailingConfigurable inInner;
+                    ASSERT_FALSE( ConfigAppliesAsAWhole( configStore ) );
+                }
+                ASSERT_TRUE( ConfigAppliesAsAWhole( configStore ) );
+                {
+                    CORE::CFaultTolerantConfigScope innermostScope;
+                    CFailingConfigurable inInnermost;
+                    ASSERT_TRUE( ConfigAppliesAsAWhole( configStore ) );
+                }
+            }
+            {
+                CFailingConfigurable backInOuter;
+                ASSERT_TRUE( ConfigAppliesAsAWhole( configStore ) );
+            }
+        }
+        {
+            CFailingConfigurable afterAll;
+            ASSERT_FALSE( ConfigAppliesAsAWhole( configStore ) );
+        }
+        ASSERT_TRUE( ConfigAppliesAsAWhole( configStore ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/

@@ -137,7 +137,9 @@ MutexCreate( void )
     mutex->reentrancyCount = 0;
     mutex->lockedByThread = 0;
 
-    if ( pthread_mutex_init( &mutex->id, &attr ) != 0 )
+    int initResult = pthread_mutex_init( &mutex->id, &attr );
+    pthread_mutexattr_destroy( &attr );
+    if ( initResult != 0 )
     {
         free( mutex );
         return GUCEF_NULL;

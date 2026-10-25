@@ -48,7 +48,7 @@ namespace CORE {
 
 /**
  *  Cryptographically secure random number generation using the O/S provided facilities:
- *  - Linux/Android: getrandom() with /dev/urandom as fallback
+ *  - Linux/Android: getrandom() with /dev/urandom as fallback, Android below API level 28 has /dev/urandom only
  *  - Windows: BCryptGenRandom()
  *  All members are thread-safe.
  */

@@ -145,7 +145,9 @@ CMutex::CMutex( void )
     pthread_mutexattr_init( &attr );
     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
 
-    if ( pthread_mutex_init( &_mutexdata->id, &attr ) != 0 )
+    int initResult = pthread_mutex_init( &_mutexdata->id, &attr );
+    pthread_mutexattr_destroy( &attr );
+    if ( initResult != 0 )
     {
         GUCEF_DELETE _mutexdata;
         _mutexdata = GUCEF_NULL;
@@ -278,7 +280,8 @@ CMutex::Lock( UInt32 lockWaitTimeoutInMs ) const
 
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
-    if ( pthread_mutex_lock( &((TMutexData*)_mutexdata)->id ) < 0 )
+    /* pthreads reports failure as a positive errno value, never as a negative one */
+    if ( 0 != pthread_mutex_lock( &((TMutexData*)_mutexdata)->id ) )
     {
         return LOCKSTATUS_OPERATION_FAILED;
     }
@@ -343,13 +346,19 @@ CMutex::Unlock( void ) const
     
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
+    bool wasLocked = ((TMutexData*)_mutexdata)->isLocked;
     ((TMutexData*)_mutexdata)->isLocked = false;
-    GUCEF_TRACE_EXCLUSIVE_LOCK_RELEASED( ((TMutexData*)_mutexdata)->id );
+    GUCEF_TRACE_EXCLUSIVE_LOCK_RELEASED( &((TMutexData*)_mutexdata)->id );
 
-    if ( pthread_mutex_unlock( &((TMutexData*)_mutexdata)->id ) < 0 )
+    /* pthreads reports failure as a positive errno value (EPERM when we do not own the lock), never as a negative one */
+    if ( 0 != pthread_mutex_unlock( &((TMutexData*)_mutexdata)->id ) )
     {
-        ((TMutexData*)_mutexdata)->isLocked = true;
-        GUCEF_TRACE_EXCLUSIVE_LOCK_OBTAINED( ((TMutexData*)_mutexdata)->id );
+        /* the lock is still held by its owner, undo our administration update */
+        ((TMutexData*)_mutexdata)->isLocked = wasLocked;
+        if ( wasLocked )
+        {
+            GUCEF_TRACE_EXCLUSIVE_LOCK_OBTAINED( &((TMutexData*)_mutexdata)->id );
+        }
         return LOCKSTATUS_OPERATION_FAILED;
     }
     return LOCKSTATUS_OPERATION_SUCCESS;

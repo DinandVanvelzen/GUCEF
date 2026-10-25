@@ -28,6 +28,11 @@
 #include <string.h>
 #include <stdexcept>
 
+#ifndef GUCEF_CORE_CGLOBALLYCONFIGURABLE_H
+#include "gucefCORE_CGloballyConfigurable.h"
+#define GUCEF_CORE_CGLOBALLYCONFIGURABLE_H
+#endif /* GUCEF_CORE_CGLOBALLYCONFIGURABLE_H ? */
+
 #include "gucefCORE_TestPlugin.h"
 
 /*-------------------------------------------------------------------------//
@@ -35,6 +40,37 @@
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+/** A configurable of the process, as the globals that plugins bring along are, whose config always fails */
+class CFailingConfigurable : public GUCEF::CORE::CGloballyConfigurable
+{
+    public:
+
+    CFailingConfigurable( void ) : GUCEF::CORE::CGloballyConfigurable( false ) {}
+
+    virtual bool SaveConfig( GUCEF::CORE::CDataNode& cfg ) const GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool LoadConfig( const GUCEF::CORE::CDataNode& cfg ) GUCEF_VIRTUAL_OVERRIDE { return false; }
+
+    virtual const GUCEF::CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const GUCEF::CORE::CString classTypeName = "GUCEF::CORE::TestPlugin::CFailingConfigurable";
+        return classTypeName;
+    }
+};
+
+static CFailingConfigurable* g_failingConfigurable = GUCEF_NULL;
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+IsFlagSet( const char* variable )
+{
+    const char* value = getenv( variable );
+    return GUCEF_NULL != value && 0 == strcmp( value, "1" );
+}
+
+/*-------------------------------------------------------------------------*/
 
 /** Counts calls in an environment variable, which the tests read; the module itself may be gone by then */
 static void
@@ -56,9 +92,12 @@ GUCEF::CORE::Int32 GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_Load( GUCEF::CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     CountCall( "GUCEF_TESTPLUGIN_LOADS" );
-    const char* throws = getenv( "GUCEF_TESTPLUGIN_LOAD_THROWS" );
-    if ( GUCEF_NULL != throws && 0 == strcmp( throws, "1" ) )
+    if ( IsFlagSet( "GUCEF_TESTPLUGIN_LOAD_THROWS" ) )
         throw std::runtime_error( "gucefCORE_TestPlugin: Load fails on purpose" );
+    if ( IsFlagSet( "GUCEF_TESTPLUGIN_LOAD_FAILS" ) )
+        return 0;
+    if ( IsFlagSet( "GUCEF_TESTPLUGIN_LOAD_ADDS_FAILING_CONFIGURABLE" ) && GUCEF_NULL == g_failingConfigurable )
+        g_failingConfigurable = new CFailingConfigurable();
     return 1;
 }
 
@@ -68,6 +107,8 @@ void GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
     CountCall( "GUCEF_TESTPLUGIN_UNLOADS" );
+    delete g_failingConfigurable;
+    g_failingConfigurable = GUCEF_NULL;
     const char* throws = getenv( "GUCEF_TESTPLUGIN_UNLOAD_THROWS" );
     if ( GUCEF_NULL != throws && 0 == strcmp( throws, "1" ) )
         throw std::runtime_error( "gucefCORE_TestPlugin: Unload fails on purpose" );

@@ -95,6 +95,11 @@
 #define GUCEF_CORE_CPLATFORMNATIVECONSOLELOGGER_H
 #endif /* GUCEF_CORE_CPLATFORMNATIVECONSOLELOGGER_H ? */
 
+#ifndef GUCEF_CORE_CLOGSTREAMSCOPE_H
+#include "gucefCORE_CLogStreamScope.h"
+#define GUCEF_CORE_CLOGSTREAMSCOPE_H
+#endif /* GUCEF_CORE_CLOGSTREAMSCOPE_H ? */
+
 #ifndef GUCEF_CORE_CUSERACTIONLOGGER_H
 #include "gucefCORE_CUserActionLogger.h"
 #define GUCEF_CORE_CUSERACTIONLOGGER_H
@@ -450,7 +455,28 @@ CLogManager::SetUserActionLogEnabled( bool enabled, const CString& filePath )
     }
     m_userActionLogger = logger;
     AddLogger( m_userActionLogger );
+
+    // a log of what the user does has nothing to log when the user messages are not made
+    SetUserLogEnabled( true );
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLogManager::SetUserLogEnabled( bool enabled )
+{GUCEF_TRACE;
+
+    CLogStreamScope::SetUserLogEnabled( enabled );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLogManager::IsUserLogEnabled( void ) const
+{GUCEF_TRACE;
+
+    return CLogStreamScope::IsUserLogEnabled();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -610,6 +636,10 @@ CLogManager::Log( const TLogMsgType logMsgType ,
                   const Int32 logLevel         )
 {GUCEF_TRACE;
 
+    // the user log is off: the caller gets a stream that goes nowhere, see CLogStreamScope
+    if ( LOG_USER == logMsgType && !CLogStreamScope::IsUserLogEnabled() )
+        return CLogStreamPtr();
+
     // Get or create per-thread buffers
     UInt32 threadId = MT::GetCurrentTaskID();
     CThreadLogBuffers* buffers = GetOrCreateThreadBuffers( threadId );
@@ -655,6 +685,9 @@ CLogManager::Log( const TLogMsgType logMsgType ,
                   const UInt32 threadId        ,
                   const CTimestamp& timestamp  )
 {GUCEF_TRACE;
+
+    if ( LOG_USER == logMsgType && !CLogStreamScope::IsUserLogEnabled() )
+        return;
 
     MT::CObjectScopeLock lock( this );
 
@@ -723,6 +756,9 @@ CLogManager::Log( const TLogMsgType logMsgType     ,
                   const UInt32 threadId            ,
                   const CTimestamp& timestamp      )
 {GUCEF_TRACE;
+
+    if ( LOG_USER == logMsgType && !CLogStreamScope::IsUserLogEnabled() )
+        return;
 
     MT::CObjectScopeLock lock( this );
 

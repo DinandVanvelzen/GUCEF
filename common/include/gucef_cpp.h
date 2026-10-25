@@ -206,6 +206,38 @@ namespace GUCEF {
 
 /*-------------------------------------------------------------------------*/
 
+#if defined(__cplusplus)
+  /*
+   *  Run time type information (RTTI) can be disabled at compile time, in which case dynamic_cast and typeid
+   *  cannot be used. GUCEF_RTTI_IS_SUPPORTED is defined when the compiler has RTTI enabled.
+   *  Preferably code does not need RTTI at all (virtual accessor, class type name check + static_cast).
+   *  Where dynamic_cast or typeid is the sensible choice, always provide the alternative:
+   *
+   *      #ifdef GUCEF_RTTI_IS_SUPPORTED
+   *      T* t = dynamic_cast< T* >( base );
+   *      #else
+   *      T* t = <type name or tag check> ? static_cast< T* >( base ) : NULL;
+   *      #endif
+   *
+   *  The detection can be overridden: define GUCEF_FORCE_RTTI_DISABLED to make the code take the no-RTTI
+   *  path even when the compiler has RTTI (to test that path), or GUCEF_FORCE_RTTI_ENABLED to skip detection.
+   */
+  #undef GUCEF_RTTI_IS_SUPPORTED
+  #if defined( GUCEF_FORCE_RTTI_DISABLED )
+    /* explicitly disabled */
+  #elif defined( GUCEF_FORCE_RTTI_ENABLED )
+    #define GUCEF_RTTI_IS_SUPPORTED 1
+  #elif defined( __clang__ ) && defined( __has_feature )
+    #if __has_feature( cxx_rtti )
+      #define GUCEF_RTTI_IS_SUPPORTED 1
+    #endif
+  #elif defined( __GXX_RTTI ) || defined( __cpp_rtti ) || defined( _CPPRTTI )
+    #define GUCEF_RTTI_IS_SUPPORTED 1
+  #endif
+#endif
+
+/*-------------------------------------------------------------------------*/
+
 #if __cplusplus >= 201103L
     #define GUCEF_DELETED_MEMBER = delete
 #else

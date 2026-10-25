@@ -49,17 +49,34 @@
 
   #include <windows.h>
 
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) )
 
-  #include <spawn.h>
+  // posix_spawn() is part of Android's C library from API level 28, below that a child process is made with
+  // fork() and execve(). Defining GUCEF_CORE_CPROCESS_NO_POSIX_SPAWN on any platform selects fork() and execve()
+  #if ( !defined( GUCEF_CORE_CPROCESS_NO_POSIX_SPAWN ) && ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) && ( !defined( __ANDROID_API__ ) || ( __ANDROID_API__ < 28 ) ) )
+    #define GUCEF_CORE_CPROCESS_NO_POSIX_SPAWN
+  #endif
+
+  #ifndef GUCEF_CORE_CPROCESS_NO_POSIX_SPAWN
+    #include <spawn.h>
+  #endif
   #include <signal.h>
   #include <errno.h>
   #include <string.h>
+  #include <stdlib.h>
+  #include <paths.h>
+  #include <fcntl.h>
   #include <unistd.h>
+  #include <dirent.h>
   #include <sys/types.h>
   #include <sys/wait.h>
 
-  extern char** environ;
+  #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS )
+    #include <crt_externs.h>
+    #define environ ( *_NSGetEnviron() )
+  #else
+    extern char** environ;
+  #endif
 
 #endif
 
@@ -82,6 +99,7 @@ CProcess::CProcess( void )
     : m_processId( 0 )
     , m_osHandle( GUCEF_NULL )
     , m_isDetached( false )
+    , m_isolate( false )
     , m_hasExited( false )
     , m_exitCode( 0 )
 {GUCEF_TRACE;
@@ -115,6 +133,24 @@ CProcess::ReleaseHandle( void )
     }
 
     #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProcess::SetIsolateFromParent( bool isolate )
+{GUCEF_TRACE;
+
+    m_isolate = isolate;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CProcess::GetIsolateFromParent( void ) const
+{GUCEF_TRACE;
+
+    return m_isolate;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -186,7 +222,261 @@ CProcess::SplitCommandLine( const CString& commandLine )
 
 /*-------------------------------------------------------------------------*/
 
-#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) )
+
+/**
+ *  The file descriptors this process has open apart from the standard three: what an isolated child must not get. The directory
+ *  that lists them is itself a descriptor while it is read, which is closed again before the list is used, so it is left out.
+ */
+static void
+ListInheritableDescriptors( GUCEF::vector< int >& descriptors )
+{GUCEF_TRACE;
+
+    descriptors.clear();
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS )
+    DIR* directory = opendir( "/dev/fd" );
+    #else
+    DIR* directory = opendir( "/proc/self/fd" );
+    #endif
+    if ( GUCEF_NULL != directory )
+    {
+        const int directoryDescriptor = dirfd( directory );
+        struct dirent* entry = GUCEF_NULL;
+        while ( GUCEF_NULL != ( entry = readdir( directory ) ) )
+        {
+            char* end = GUCEF_NULL;
+            const long value = strtol( entry->d_name, &end, 10 );
+            if ( end != entry->d_name && '\0' == *end && value > 2 && value != directoryDescriptor )
+                descriptors.push_back( (int) value );
+        }
+        closedir( directory );
+        return;
+    }
+
+    // no listing: every number up to the limit
+    long limit = sysconf( _SC_OPEN_MAX );
+    if ( limit < 0 || limit > 65536 )
+        limit = 65536;
+    for ( long fd=3; fd<limit; ++fd )
+        descriptors.push_back( (int) fd );
+}
+
+/*-------------------------------------------------------------------------*/
+
+#ifndef GUCEF_CORE_CPROCESS_NO_POSIX_SPAWN
+
+/**
+ *  Starts the child process with posix_spawn()
+ *  @return 0 if the process was started, otherwise the error code of why not
+ */
+static int
+SpawnChildProcess( const CString& exePath       ,
+                   char* const* argv            ,
+                   char* const* envp            ,
+                   const CString& workingDir    ,
+                   bool detach                  ,
+                   bool isolate                 ,
+                   const GUCEF::vector< int >& descriptorsToClose ,
+                   pid_t& pid                   )
+{GUCEF_TRACE;
+
+    posix_spawn_file_actions_t fileActions;
+    posix_spawnattr_t spawnAttr;
+    posix_spawn_file_actions_init( &fileActions );
+    posix_spawnattr_init( &spawnAttr );
+
+    bool success = true;
+    short spawnFlags = 0;
+
+    if ( isolate )
+    {
+        // nothing of the terminal in, nothing of ours out: the three standard streams are /dev/null
+        success = 0 == posix_spawn_file_actions_addopen( &fileActions, 0, "/dev/null", O_RDONLY, 0 ) &&
+                  0 == posix_spawn_file_actions_addopen( &fileActions, 1, "/dev/null", O_WRONLY, 0 ) &&
+                  0 == posix_spawn_file_actions_addopen( &fileActions, 2, "/dev/null", O_WRONLY, 0 );
+        #ifdef POSIX_SPAWN_CLOEXEC_DEFAULT
+        spawnFlags |= POSIX_SPAWN_CLOEXEC_DEFAULT;
+        #else
+        for ( size_t i=0; i<descriptorsToClose.size() && success; ++i )
+            success = 0 == posix_spawn_file_actions_addclose( &fileActions, descriptorsToClose[ i ] );
+        #endif
+    }
+
+    if ( !workingDir.IsNULLOrEmpty() )
+    {
+        #if ( ( defined( __GLIBC__ ) && ( __GLIBC__ > 2 || ( __GLIBC__ == 2 && __GLIBC_MINOR__ >= 29 ) ) ) || ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) && defined( __ANDROID_API__ ) && ( __ANDROID_API__ >= 34 ) ) )
+        success = 0 == posix_spawn_file_actions_addchdir_np( &fileActions, workingDir.C_String() );
+        #else
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CProcess: Setting the working dir of a child process is not supported by this C library" );
+        success = false;
+        #endif
+    }
+
+    if ( detach )
+    {
+        #ifdef POSIX_SPAWN_SETSID
+        spawnFlags |= POSIX_SPAWN_SETSID;
+        #else
+        spawnFlags |= POSIX_SPAWN_SETPGROUP;
+        #endif
+    }
+    if ( 0 != spawnFlags )
+        success = success && 0 == posix_spawnattr_setflags( &spawnAttr, spawnFlags );
+
+    int spawnResult = EINVAL;
+    if ( success )
+        spawnResult = posix_spawnp( &pid, exePath.C_String(), &fileActions, &spawnAttr, argv, envp );
+
+    posix_spawn_file_actions_destroy( &fileActions );
+    posix_spawnattr_destroy( &spawnAttr );
+    return spawnResult;
+}
+
+#else /* GUCEF_CORE_CPROCESS_NO_POSIX_SPAWN ? */
+
+/**
+ *  Starts the child process with fork() and execve(), for C libraries without posix_spawn().
+ *  Everything the child needs is prepared before the fork, after it only functions which are safe to
+ *  call between fork() and execve() in a multi threaded process are used: setsid(), chdir(), execve(),
+ *  write() and _exit(). Whether the exe could be executed is passed from the child to us through a pipe
+ *  which is closed by a successful execve().
+ *  @return 0 if the process was started, otherwise the error code of why not
+ */
+static int
+SpawnChildProcess( const CString& exePath       ,
+                   char* const* argv            ,
+                   char* const* envp            ,
+                   const CString& workingDir    ,
+                   bool detach                  ,
+                   bool isolate                 ,
+                   const GUCEF::vector< int >& descriptorsToClose ,
+                   pid_t& pid                   )
+{GUCEF_TRACE;
+
+    // The files to try executing: as given if it holds a directory, otherwise in every directory of the search path
+    GUCEF::vector< CString > candidates;
+    if ( GUCEF_NULL != strchr( exePath.C_String(), '/' ) )
+    {
+        candidates.push_back( exePath );
+    }
+    else
+    {
+        const char* searchPath = getenv( "PATH" );
+        if ( GUCEF_NULL == searchPath )
+            searchPath = _PATH_DEFPATH;
+        const char* dirStart = searchPath;
+        for ( ; ; )
+        {
+            const char* dirEnd = strchr( dirStart, ':' );
+            size_t dirLength = GUCEF_NULL == dirEnd ? strlen( dirStart ) : (size_t) ( dirEnd - dirStart );
+            CString candidate;
+            if ( dirLength > 0 )
+            {
+                candidate.Append( dirStart, (UInt32) dirLength );
+                candidate += "/";
+            }
+            candidate += exePath;
+            candidates.push_back( candidate );
+            if ( GUCEF_NULL == dirEnd )
+                break;
+            dirStart = dirEnd + 1;
+        }
+    }
+    GUCEF::vector< const char* > candidatePaths;
+    for ( size_t i=0; i<candidates.size(); ++i )
+        candidatePaths.push_back( candidates[ i ].C_String() );
+    const char* const* candidatePathArray = &candidatePaths[ 0 ];
+    const size_t candidateCount = candidatePaths.size();
+    const char* workingDirPath = workingDir.IsNULLOrEmpty() ? GUCEF_NULL : workingDir.C_String();
+
+    const int* closeList = descriptorsToClose.empty() ? GUCEF_NULL : &descriptorsToClose[ 0 ];
+    const size_t closeCount = descriptorsToClose.size();
+
+    int errorPipe[ 2 ] = { -1, -1 };
+    if ( 0 != pipe2( errorPipe, O_CLOEXEC ) )
+        return errno;
+
+    pid = fork();
+    if ( pid < 0 )
+    {
+        int forkError = errno;
+        close( errorPipe[ 0 ] );
+        close( errorPipe[ 1 ] );
+        return forkError;
+    }
+
+    if ( 0 == pid )
+    {
+        // The child, nothing but the functions that are safe here
+        int childError = 0;
+        if ( detach && setsid() < 0 )
+            childError = errno;
+        if ( 0 == childError && isolate )
+        {
+            // open() and dup2() and close() are safe here; the descriptors were listed before the fork
+            int devNull = open( "/dev/null", O_RDWR );
+            if ( devNull < 0 )
+                childError = errno;
+            else
+            {
+                for ( int standard=0; standard<3; ++standard )
+                    if ( dup2( devNull, standard ) < 0 )
+                        childError = errno;
+                if ( devNull > 2 )
+                    close( devNull );
+            }
+            for ( size_t i=0; i<closeCount; ++i )
+                close( closeList[ i ] );
+        }
+        if ( 0 == childError && GUCEF_NULL != workingDirPath && 0 != chdir( workingDirPath ) )
+            childError = errno;
+        if ( 0 == childError )
+        {
+            bool accessDenied = false;
+            for ( size_t i=0; i<candidateCount; ++i )
+            {
+                execve( candidatePathArray[ i ], argv, envp );
+                childError = errno;
+                if ( EACCES == childError )
+                    accessDenied = true;
+            }
+            if ( accessDenied )
+                childError = EACCES;
+        }
+        ssize_t written = write( errorPipe[ 1 ], &childError, sizeof( childError ) );
+        (void) written;
+        _exit( 127 );
+    }
+
+    // The pipe is closed when the child executes the exe, or holds why that failed
+    close( errorPipe[ 1 ] );
+    int childError = 0;
+    size_t bytesRead = 0;
+    while ( bytesRead < sizeof( childError ) )
+    {
+        ssize_t result = read( errorPipe[ 0 ], reinterpret_cast< char* >( &childError ) + bytesRead, sizeof( childError ) - bytesRead );
+        if ( result < 0 && EINTR == errno )
+            continue;
+        if ( result <= 0 )
+            break;
+        bytesRead += (size_t) result;
+    }
+    close( errorPipe[ 0 ] );
+
+    if ( sizeof( childError ) == bytesRead )
+    {
+        // The child never became the exe, it is on its way out
+        int status = 0;
+        while ( waitpid( pid, &status, 0 ) < 0 && EINTR == errno ) {}
+        pid = 0;
+        return 0 != childError ? childError : ENOEXEC;
+    }
+    return 0;
+}
+
+#endif /* GUCEF_CORE_CPROCESS_NO_POSIX_SPAWN ? */
+
+/*-------------------------------------------------------------------------*/
 
 bool
 CProcess::Launch( const CString& exePath          ,
@@ -231,42 +521,13 @@ CProcess::Launch( const CString& exePath          ,
         envp.push_back( const_cast< char* >( envStrings[ i ].c_str() ) );
     envp.push_back( GUCEF_NULL );
 
-    posix_spawn_file_actions_t fileActions;
-    posix_spawnattr_t spawnAttr;
-    posix_spawn_file_actions_init( &fileActions );
-    posix_spawnattr_init( &spawnAttr );
-
-    bool success = true;
-
-    if ( !workingDir.IsNULLOrEmpty() )
-    {
-        #if ( defined( __GLIBC__ ) && ( __GLIBC__ > 2 || ( __GLIBC__ == 2 && __GLIBC_MINOR__ >= 29 ) ) )
-        success = 0 == posix_spawn_file_actions_addchdir_np( &fileActions, workingDir.C_String() );
-        #else
-        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CProcess: Setting the working dir of a child process is not supported by this C library" );
-        success = false;
-        #endif
-    }
-
-    if ( detach )
-    {
-        #ifdef POSIX_SPAWN_SETSID
-        success = success && 0 == posix_spawnattr_setflags( &spawnAttr, POSIX_SPAWN_SETSID );
-        #else
-        success = success && 0 == posix_spawnattr_setflags( &spawnAttr, POSIX_SPAWN_SETPGROUP );
-        #endif
-    }
+    GUCEF::vector< int > descriptorsToClose;
+    if ( m_isolate )
+        ListInheritableDescriptors( descriptorsToClose );
 
     pid_t pid = 0;
-    int spawnResult = EINVAL;
-    if ( success )
-    {
-        spawnResult = posix_spawnp( &pid, exePath.C_String(), &fileActions, &spawnAttr, &argv[ 0 ], &envp[ 0 ] );
-        success = 0 == spawnResult;
-    }
-
-    posix_spawn_file_actions_destroy( &fileActions );
-    posix_spawnattr_destroy( &spawnAttr );
+    int spawnResult = SpawnChildProcess( exePath, &argv[ 0 ], &envp[ 0 ], workingDir, detach, m_isolate, descriptorsToClose, pid );
+    bool success = 0 == spawnResult;
 
     if ( !success )
     {

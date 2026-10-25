@@ -125,6 +125,7 @@ LOCAL_SRC_FILES := \
   src/dvmd5utils.c \
   src/dvstrutils.cpp \
   src/gucefCORE.cpp \
+  src/gucefCORE_BrowserLauncher.cpp \
   src/gucefCORE_CASync.cpp \
   src/gucefCORE_CAbstractFactoryBase.cpp \
   src/gucefCORE_CAsciiString.cpp \
@@ -134,6 +135,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CAsyncUriRetrievalTask.cpp \
   src/gucefCORE_CBackoffPolicy.cpp \
   src/gucefCORE_CBasicBracketLoggingFormatter.cpp \
+  src/gucefCORE_CBigUnsigned.cpp \
   src/gucefCORE_CBuiltInCodecs.cpp \
   src/gucefCORE_CBusyWaitPulseGeneratorDriver.cpp \
   src/gucefCORE_CCharSepLoggingFormatter.cpp \
@@ -165,6 +167,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CEnumerator.cpp \
   src/gucefCORE_CEventAggregateTrigger.cpp \
   src/gucefCORE_CExternalThreadScope.cpp \
+  src/gucefCORE_CFaultTolerantConfigScope.cpp \
   src/gucefCORE_CFileSystemDirectoryWatcher.cpp \
   src/gucefCORE_CFileSystemEntryListIterator.cpp \
   src/gucefCORE_CFileSystemUriResourceAccessor.cpp \
@@ -234,10 +237,13 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CPulseGenerator.cpp \
   src/gucefCORE_CRandom.cpp \
   src/gucefCORE_CRateLimiter.cpp \
+  src/gucefCORE_CRedactor.cpp \
   src/gucefCORE_CResourceMetaData.cpp \
   src/gucefCORE_CRollingFileAccess.cpp \
+  src/gucefCORE_CRsaPkcs1Codecs.cpp \
   src/gucefCORE_CSchedule.cpp \
   src/gucefCORE_CSha256.cpp \
+  src/gucefCORE_CSha512.cpp \
   src/gucefCORE_CSimplisticPluginLoadLogic.cpp \
   src/gucefCORE_CSingleTaskDelegator.cpp \
   src/gucefCORE_CSoftwareCryptoCodecs.cpp \

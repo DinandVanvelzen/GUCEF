@@ -48,6 +48,19 @@ namespace CORE {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+volatile Int32 CLogStreamScope::g_userLogDisabled = 0;
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLogStreamScope::SetUserLogEnabled( bool enabled )
+{GUCEF_TRACE;
+
+    g_userLogDisabled = enabled ? 0 : 1;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CLogStreamScope::CLogStreamScope( const TLogMsgType logMsgType ,
                                   const Int32 logLevel         )
     : m_stream()

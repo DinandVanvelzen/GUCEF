@@ -79,6 +79,25 @@ using namespace GUCEF;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/** Data that names its class, as futures and event data do that are checked by their users */
+class CNamedData : public CORE::CICloneable
+{
+    public:
+
+    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NEW CNamedData( *this ); }
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE { return CloneableTypeName(); }
+    static const char* CloneableTypeName( void ) { return "GUCEF::TEST::CNamedData"; }
+};
+
+class COtherNamedData : public CORE::CICloneable
+{
+    public:
+
+    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NEW COtherNamedData( *this ); }
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE { return CloneableTypeName(); }
+    static const char* CloneableTypeName( void ) { return "GUCEF::TEST::COtherNamedData"; }
+};
+
 /** A thread GUCEF's task manager knows nothing about that does some work and then completes a source */
 class CCompletingThread : public MT::CActiveObject
 {
@@ -270,10 +289,69 @@ PerformBasicTests( void )
 
         CORE::CTaskPtr task = future.GetResult( 1000 );
         ASSERT_TRUE( task->HasTaskData() );
+    #ifdef GUCEF_RTTI_IS_SUPPORTED
         CORE::TCloneableString* delivered = dynamic_cast< CORE::TCloneableString* >( task->GetTaskData() );
+    #else
+        // without RTTI there is no type check for this generic data class: this test put a TCloneableString in, the value check below verifies it
+        CORE::TCloneableString* delivered = static_cast< CORE::TCloneableString* >( task->GetTaskData() );
+    #endif
         ASSERT_TRUE( GUCEF_NULL != delivered );
         if ( GUCEF_NULL != delivered )
             ASSERT_TRUE( delivered->GetData() == "the outcome" );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Cloneable type check: Works by name without RTTI, and agrees with RTTI where that is available" )
+    try
+    {
+        CNamedData named;
+        COtherNamedData other;
+        CORE::TCloneableString text( "abc" );
+        CORE::CICloneable* namedBase = &named;
+        CORE::CICloneable* otherBase = &other;
+        CORE::CICloneable* textBase = &text;
+
+        // classes that do not say what they are never match
+        ASSERT_TRUE( GUCEF_NULL == textBase->GetCloneableTypeName() );
+        ASSERT_FALSE( textBase->IsCloneableType( "GUCEF::CORE::TCloneableString" ) );
+        ASSERT_FALSE( textBase->IsCloneableType( GUCEF_NULL ) );
+        ASSERT_TRUE( GUCEF_NULL == CORE::CICloneable::CloneableAs< CNamedData >( textBase ) );
+
+        // classes that do say what they are match themselves only
+        ASSERT_TRUE( namedBase->IsCloneableType( CNamedData::CloneableTypeName() ) );
+        ASSERT_TRUE( &named == CORE::CICloneable::CloneableAs< CNamedData >( namedBase ) );
+        ASSERT_TRUE( GUCEF_NULL == CORE::CICloneable::CloneableAs< CNamedData >( otherBase ) );
+        ASSERT_TRUE( &other == CORE::CICloneable::CloneableAs< COtherNamedData >( otherBase ) );
+        ASSERT_TRUE( GUCEF_NULL == CORE::CICloneable::CloneableAs< CNamedData >( static_cast< CORE::CICloneable* >( GUCEF_NULL ) ) );
+        const CORE::CICloneable* constBase = namedBase;
+        ASSERT_TRUE( GUCEF_NULL != CORE::CICloneable::CloneableAs< CNamedData >( constBase ) );
+
+        // a clone says the same
+        CORE::CICloneable* copy = namedBase->Clone();
+        ASSERT_TRUE( GUCEF_NULL != CORE::CICloneable::CloneableAs< CNamedData >( copy ) );
+        delete copy;
+
+        // type names, as factories key on them: same for the same type, different for another, with or without RTTI
+        ASSERT_TRUE( CORE::ToString< CNamedData >() == CORE::ToString< CNamedData >() );
+        ASSERT_TRUE( CORE::ToString< CNamedData >() != CORE::ToString< COtherNamedData >() );
+        ASSERT_TRUE( CORE::ToString< CNamedData >().HasSubstr( "CNamedData" ) > -1 );
+
+        // the cutting of the name out of the compiler's function signature, whatever the compiler of this build
+        ASSERT_TRUE( "my::Type" == CORE::TypeNameFromToStringSignature( "CString ToString() [with typeNameParam = my::Type]" ) );
+        ASSERT_TRUE( "my::Type" == CORE::TypeNameFromToStringSignature( "CString ToString() [typeNameParam = my::Type]" ) );
+        ASSERT_TRUE( "my::Type" == CORE::TypeNameFromToStringSignature( "CString ToString() [with typeNameParam = my::Type; CString = CUtf8String]" ) );
+        ASSERT_TRUE( "class my::Type" == CORE::TypeNameFromToStringSignature( "class CString __cdecl GUCEF::CORE::ToString<class my::Type>(void)" ) );
+        ASSERT_TRUE( "CString unknown()" == CORE::TypeNameFromToStringSignature( "CString unknown()" ) );
+
+    #ifdef GUCEF_RTTI_IS_SUPPORTED
+        // RTTI is on in this build: the RTTI answer is the same as the name based one
+        ASSERT_TRUE( GUCEF_NULL != dynamic_cast< CNamedData* >( namedBase ) );
+        ASSERT_TRUE( GUCEF_NULL == dynamic_cast< CNamedData* >( otherBase ) );
+    #endif
     }
     catch( ... )
     {

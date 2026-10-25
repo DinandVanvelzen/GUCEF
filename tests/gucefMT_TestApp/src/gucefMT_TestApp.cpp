@@ -34,6 +34,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#include "gucef_test_log_callback.h"
+#define GUCEF_TEST_LOG_CALLBACK_H
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */
+
 #ifndef GUCEF_MT_H
 #include "gucefMT.h"
 #define GUCEF_MT_H
@@ -207,7 +212,7 @@ GUCEF_OSMAIN_BEGIN
             GUCEF::CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( console.GetLogger() );
 
         GUCEF_TESTFW_INIT( "gucefMT_TestApp" );
-        GUCEF_TESTFW_SET_CALLBACK( GUCEF::CORE::TestFrameworkLogCallback, GUCEF_NULL );
+        GUCEF_TESTFW_SET_CALLBACK( GUCEF::TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
         GUCEF::CORE::CString xmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
         GUCEF::CORE::AppendToPath( xmlPath, "gucefMT_TestApp_Results.xml" );

@@ -88,6 +88,11 @@
 #define GUCEF_CORE_CCOREGLOBAL_H
 #endif /* GUCEF_CORE_CCOREGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_CFAULTTOLERANTCONFIGSCOPE_H
+#include "gucefCORE_CFaultTolerantConfigScope.h"
+#define GUCEF_CORE_CFAULTTOLERANTCONFIGSCOPE_H
+#endif /* GUCEF_CORE_CFAULTTOLERANTCONFIGSCOPE_H ? */
+
 #include "CPluginControl.h"     /* definition of the class implemented here */
 
 #ifndef GUCEF_CORE_GUCEF_ESSENTIALS_H
@@ -130,6 +135,34 @@ const CEvent CPluginControl::UnloadOfAllPluginsStartedEvent = "GUCEF::CORE::CPlu
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+namespace {
+
+/**
+ *  The outcome of a step (load, register, unregister, unload) for a plugin, for the step of all of them: a plugin that is
+ *  allowed to fail ("LoadFailAllowed") never fails the whole, at whichever step it fails
+ */
+template< typename TMetaDataPtr >
+bool
+OutcomeOfStep( bool stepSucceeded, const TMetaDataPtr& metaData, const char* step, const CString& groupName )
+{GUCEF_TRACE;
+
+    if ( stepSucceeded )
+        return true;
+    if ( !metaData.IsNULL() && metaData->GetLoadFailAllowed() )
+    {
+        GUCEF_LOG( LOGLEVEL_NORMAL, "PluginControl: " << step << " failed for module \"" << metaData->GetModuleFilename() <<
+                "\" in group \"" << groupName << "\" which is allowed to fail (LoadFailAllowed=True), the failure is ignored" );
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+}
+
+/*-------------------------------------------------------------------------*/
 
 void
 CPluginControl::RegisterEvents( void )
@@ -219,7 +252,9 @@ CPluginControl::LoadAllPluginsOfType( const CString& pluginTypeToLoad )
         while ( n != pluginGroups.end() )
         {
             TPluginGroupPtr& pluginGroup = (*n).second;
-            CPluginGroup::TPluginMetaDataSet& pluginMetaDataSet = pluginGroup->GetPluginMetaData();
+
+            // Pull a copy of the plugin group info, it will get altered as we load invalidating the collection
+            CPluginGroup::TPluginMetaDataSet pluginMetaDataSet = pluginGroup->GetPluginMetaData();
 
             CPluginGroup::TPluginMetaDataSet::iterator m = pluginMetaDataSet.begin();
             while ( m != pluginMetaDataSet.end() )
@@ -229,10 +264,11 @@ CPluginControl::LoadAllPluginsOfType( const CString& pluginTypeToLoad )
                 if ( pluginTypeToLoad == pluginMetaData->GetPluginType() )
                 {
                     // Try to load this module since it is of the type we are looking for
-                    success = success && LoadPlugin( pluginMetaData ,
-                                                     *pluginGroup   ,
-                                                     (*n).first     ,
-                                                     true           );
+                    bool loadSuccess = LoadPlugin( pluginMetaData ,
+                                                   *pluginGroup   ,
+                                                   (*n).first     ,
+                                                   true           );
+                    success = OutcomeOfStep( loadSuccess, pluginMetaData, "Loading", (*n).first ) && success;
                 }
                 ++m;
             }
@@ -261,7 +297,9 @@ CPluginControl::LoadAllPluginsOfTypeInGroup( const CString& pluginTypeToLoad ,
     if ( i != m_pluginGroupsByName.end() )
     {
         TPluginGroupPtr& pluginGroup = (*i).second;
-        CPluginGroup::TPluginMetaDataSet& pluginMetaDataSet = pluginGroup->GetPluginMetaData();
+
+        // Pull a copy of the plugin group info, it will get altered as we load invalidating the collection
+        CPluginGroup::TPluginMetaDataSet pluginMetaDataSet = pluginGroup->GetPluginMetaData();
 
         CPluginGroup::TPluginMetaDataSet::iterator n = pluginMetaDataSet.begin();
         while ( n != pluginMetaDataSet.end() )
@@ -271,10 +309,11 @@ CPluginControl::LoadAllPluginsOfTypeInGroup( const CString& pluginTypeToLoad ,
             if ( pluginTypeToLoad == pluginMetaData->GetPluginType() )
             {
                 // Try to load this module since it is of the type we are looking for
-                success = success && LoadPlugin( pluginMetaData ,
-                                                 *pluginGroup   ,
-                                                 (*i).first     ,
-                                                 true           );
+                bool loadSuccess = LoadPlugin( pluginMetaData ,
+                                               *pluginGroup   ,
+                                               (*i).first     ,
+                                               true           );
+                success = OutcomeOfStep( loadSuccess, pluginMetaData, "Loading", (*i).first ) && success;
             }
             ++n;
         }
@@ -309,10 +348,11 @@ CPluginControl::LoadPluginGroup( const CString& groupName )
             TPluginMetaDataStoragePtr pluginMetaData = (*n);
 
             // Try to load this module since it is of the type we are looking for
-            success = success && LoadPlugin( pluginMetaData ,
-                                             *pluginGroup   ,
-                                             (*i).first     ,
-                                             true           );
+            bool loadSuccess = LoadPlugin( pluginMetaData ,
+                                           *pluginGroup   ,
+                                           (*i).first     ,
+                                           true           );
+            success = OutcomeOfStep( loadSuccess, pluginMetaData, "Loading", (*i).first ) && success;
             ++n;
         }
     }
@@ -358,10 +398,7 @@ CPluginControl::LoadAll( bool registerAll                  ,
                                                    *pluginGroup   ,
                                                    (*n).first     ,
                                                    false          );
-                    if ( !loadSuccess )
-                        if ( pluginMetaData->GetLoadFailAllowed() )
-                            loadSuccess = true; // ignore
-                    success = success && loadSuccess;
+                    success = OutcomeOfStep( loadSuccess, pluginMetaData, "Loading", (*n).first ) && success;
                 }
                 ++m;
             }
@@ -419,11 +456,7 @@ CPluginControl::RegisterAll( bool registerOnlyIfLoadImmediatelySet )
                         bool registerSuccess = RegisterPlugin( pluginMetaData ,
                                                                *pluginGroup   ,
                                                                (*n).first     );
-                        if ( !registerSuccess )
-                            if ( pluginMetaData->GetLoadFailAllowed() )
-                                registerSuccess = true; // ignore
-
-                        success = success && registerSuccess;
+                        success = OutcomeOfStep( registerSuccess, pluginMetaData, "Registering", (*n).first ) && success;
                     }
                 }
                 ++m;
@@ -465,6 +498,9 @@ CPluginControl::LoadPlugin( TPluginMetaDataStoragePtr& pluginMetaData ,
     }
     
     MT::CObjectScopeLock lock( this );
+
+    // What the module starts when it is loaded is part of a plugin that may be allowed to fail
+    CFaultTolerantConfigScope faultTolerantScope( pluginMetaData->GetLoadFailAllowed() );
 
     // Check to see whether the module has a specific loader logic type defined
     // if not we will use the default.
@@ -595,6 +631,9 @@ CPluginControl::RegisterPlugin( TPluginMetaDataStoragePtr& pluginMetaData ,
     if ( GUCEF_NULL == pluginMetaData->GetModulePointer() )
         return false;
 
+    // What the plugin starts when it is registered, the Load() of a generic plugin for example, is part of a plugin that may be allowed to fail
+    CFaultTolerantConfigScope faultTolerantScope( pluginMetaData->GetLoadFailAllowed() );
+
     // Now that we verified that the module itself has been successfully loaded we can hand of the module specifics to the appropriate
     // plugin manager which in turn can check and load all symbols etc. The plugin manager will hand us a CIPlugin based
     // object in exchange for our module pointer upon a successfull registration.
@@ -700,6 +739,26 @@ CPluginControl::GetPluginManagerForType( const CString& pluginType )
         ++w;
     }
     return NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TPluginMetaDataPtr
+CPluginControl::GetMetaDataOfModule( const CString& groupName  ,
+                                     const CString& moduleName ) const
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    TStringToPluginGroupMap::const_iterator i = m_pluginGroupsByName.find( groupName );
+    if ( i != m_pluginGroupsByName.end() )
+    {
+        const TPluginGroupPtr& pluginGroup = (*i).second;
+        TPluginPtr plugin = pluginGroup->FindPluginWithModuleName( moduleName );
+        if ( !plugin.IsNULL() )
+            return plugin->GetMetaData();
+        return pluginGroup->FindPluginMetaDataWithModuleName( moduleName );
+    }
+    return TPluginMetaDataPtr();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -921,7 +980,9 @@ CPluginControl::UnloadAllPluginsOfTypeInGroup( const CString& pluginTypeToLoad ,
     if ( i != m_pluginGroupsByName.end() )
     {
         TPluginGroupPtr& pluginGroup = (*i).second;
-        CPluginGroup::TPluginSet& pluginSet = pluginGroup->GetPlugins();
+
+        // must make a copy as unloading alters the collection
+        CPluginGroup::TPluginSet pluginSet = pluginGroup->GetPlugins();
 
         // Look for a plugin of the given type
         CPluginGroup::TPluginSet::iterator n = pluginSet.begin();
@@ -935,9 +996,10 @@ CPluginControl::UnloadAllPluginsOfTypeInGroup( const CString& pluginTypeToLoad ,
                 if ( pluginTypeToLoad == pluginMetaData->GetPluginType() )
                 {
                     // Try to unload this module since it is of the type we are looking for
-                    success = success && UnloadPlugin( plugin       ,
+                    bool unloadSuccess = UnloadPlugin( plugin       ,
                                                        *pluginGroup ,
                                                        (*i).first  );
+                    success = OutcomeOfStep( unloadSuccess, pluginMetaData, "Unloading", (*i).first ) && success;
                 }
             }
             ++n;
@@ -968,19 +1030,23 @@ CPluginControl::UnloadAllPluginsOfType( const CString& pluginTypeToUnload )
         {
             const CString& pluginGroupName = (*n).first;
             TPluginGroupPtr& pluginGroup = (*n).second;
-            CPluginGroup::TPluginSet& pluginSet = pluginGroup->GetPlugins();
+
+            // must make a copy as unloading alters the collection
+            CPluginGroup::TPluginSet pluginSet = pluginGroup->GetPlugins();
 
             CPluginGroup::TPluginSet::iterator m = pluginSet.begin();
             while ( m != pluginSet.end() )
             {
                 TPluginPtr plugin = (*m);
+                TPluginMetaDataPtr pluginMetaData = plugin->GetMetaData();
 
-                if ( pluginTypeToUnload == plugin->GetMetaData()->GetPluginType() )
+                if ( pluginMetaData && pluginTypeToUnload == pluginMetaData->GetPluginType() )
                 {
                     // Try to unload this module since it is of the type we are looking for
-                    success = success && UnloadPlugin( plugin          ,
+                    bool unloadSuccess = UnloadPlugin( plugin          ,
                                                        *pluginGroup    ,
                                                        pluginGroupName );
+                    success = OutcomeOfStep( unloadSuccess, pluginMetaData, "Unloading", pluginGroupName ) && success;
                 }
                 ++m;
             }
@@ -1020,11 +1086,13 @@ CPluginControl::UnloadPluginGroup( const CString& groupName )
         while ( n != pluginSet.end() )
         {
             TPluginPtr plugin = (*n);
+            TPluginMetaDataPtr pluginMetaData = plugin->GetMetaData();
 
             // Try to unload this module since it is of the type we are looking for
-            success = success && UnloadPlugin( plugin       ,
+            bool unloadSuccess = UnloadPlugin( plugin       ,
                                                *pluginGroup ,
                                                (*i).first  );
+            success = OutcomeOfStep( unloadSuccess, pluginMetaData, "Unloading", (*i).first ) && success;
             ++n;
         }
     }
@@ -1114,7 +1182,9 @@ CPluginControl::UnregisterAll( void )
         TStringSet::iterator n = modules.begin();
         while ( n != modules.end() )
         {
-            success = success && UnregisterPlugin( (*i), (*n) );
+            TPluginMetaDataPtr pluginMetaData = GetMetaDataOfModule( (*i), (*n) );
+            bool unregisterSuccess = UnregisterPlugin( (*i), (*n) );
+            success = OutcomeOfStep( unregisterSuccess, pluginMetaData, "Unregistering", (*i) ) && success;
             ++n;
         }
         ++i;
@@ -1161,7 +1231,9 @@ CPluginControl::UnloadAll( void )
         TStringSet::iterator n = modules.begin();
         while ( n != modules.end() )
         {
-            success = success && UnloadPlugin( (*i), (*n) );
+            TPluginMetaDataPtr pluginMetaData = GetMetaDataOfModule( (*i), (*n) );
+            bool unloadSuccess = UnloadPlugin( (*i), (*n) );
+            success = OutcomeOfStep( unloadSuccess, pluginMetaData, "Unloading", (*i) ) && success;
             ++n;
         }
         ++i;

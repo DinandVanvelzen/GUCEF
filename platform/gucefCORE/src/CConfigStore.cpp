@@ -33,6 +33,11 @@
 #define GUCEF_MT_COBJECTSCOPELOCK_H
 #endif /* GUCEF_MT_COBJECTSCOPELOCK_H ? */
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
 #define GUCEF_CORE_CCOREGLOBAL_H
@@ -130,6 +135,9 @@ CConfigStore::CConfigStore( void )
     , m_configfiles()
     , m_configureables()
     , m_newConfigureables()
+    , m_optionalConfigurables()
+    , m_configurableScopes()
+    , m_configurableScopeThreadId( 0 )
     , m_isBusyLoadingConfig( false )
     , m_globalConfigIsLoaded( false )
     , m_globalBootstrapConfigIsLoaded( false )
@@ -269,6 +277,33 @@ CConfigStore::Register( CGloballyConfigurable* configobj )
         m_configureables.insert( configobj );
     else
         m_newConfigureables.insert( configobj );
+
+    // A configurable that comes along with something that may fail is one that may fail as well
+    if ( !m_configurableScopes.empty() && 0 != m_configurableScopes.back() && m_configurableScopeThreadId == MT::GetCurrentTaskID() )
+        m_optionalConfigurables.insert( configobj );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CConfigStore::BeginConfigurableScope( bool configurablesAreOptional )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    if ( m_configurableScopes.empty() )
+        m_configurableScopeThreadId = MT::GetCurrentTaskID();
+    m_configurableScopes.push_back( configurablesAreOptional ? 1 : 0 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CConfigStore::EndConfigurableScope( void )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    if ( !m_configurableScopes.empty() )
+        m_configurableScopes.pop_back();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -279,6 +314,7 @@ CConfigStore::Unregister( CGloballyConfigurable* configobj )
 
     MT::CObjectScopeLock lock( this );
     
+    m_optionalConfigurables.erase( configobj );
     if ( m_isBusyLoadingConfig )
         return false;
 
@@ -770,8 +806,15 @@ CConfigStore::ApplyConfigData( const CDataNode& loadedConfig ,
         {
             if ( !(*i)->LoadConfig( loadedConfig ) )
             {
-                errorOccured = true;
-                GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for a configureable with type name \"" + (*i)->GetClassTypeName() + "\"" );
+                if ( m_optionalConfigurables.find( *i ) == m_optionalConfigurables.end() )
+                {
+                    errorOccured = true;
+                    GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for a configureable with type name \"" << (*i)->GetClassTypeName() << "\"" );
+                }
+                else
+                {
+                    GUCEF_WARNING_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for an optional configureable (it came with a plugin that may fail) with type name \"" << (*i)->GetClassTypeName() << "\"" );
+                }
             }
         }
         ++i;
@@ -789,8 +832,15 @@ CConfigStore::ApplyConfigData( const CDataNode& loadedConfig ,
             {
                 if ( !(*i)->LoadConfig( loadedConfig ) )
                 {
-                    errorOccured = true;
-                    GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for a late-addition configureable with type name \"" + (*i)->GetClassTypeName() + "\"" );
+                    if ( m_optionalConfigurables.find( *i ) == m_optionalConfigurables.end() )
+                    {
+                        errorOccured = true;
+                        GUCEF_ERROR_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for a late-addition configureable with type name \"" << (*i)->GetClassTypeName() << "\"" );
+                    }
+                    else
+                    {
+                        GUCEF_WARNING_LOG( LOGLEVEL_IMPORTANT, "ConfigStore:ApplyConfigData: Loading of config failed for an optional late-addition configureable (it came with a plugin that may fail) with type name \"" << (*i)->GetClassTypeName() << "\"" );
+                    }
                 }            
             }
 

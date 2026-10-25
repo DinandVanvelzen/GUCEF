@@ -256,11 +256,39 @@ Utf8SeqLen( unsigned char leadByte )
 
 /*-------------------------------------------------------------------------*/
 
+/*
+ *  Returns the number of bytes of the sequence starting at p that are actually there: a sequence stops at a null
+ *  and at limit bytes, whichever comes first. This keeps cut off input (continuation bytes still to arrive) from
+ *  running over its terminator or the end of its buffer.
+ *  complete tells whether all the bytes the lead byte announces are there. *p must not be '\0'.
+ */
 static inline UInt32
-Utf8DecodeOne( const char*& ptr )
+Utf8SeqLenAt( const char* p, UInt32 limit, bool& complete )
+{
+    const UInt32 announced = Utf8SeqLen( static_cast<unsigned char>( *p ) );
+    UInt32 present = 1u;
+    while ( present < announced && present < limit && '\0' != p[ present ] )
+        ++present;
+    complete = ( present == announced );
+    return present;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static inline UInt32
+Utf8DecodeOne( const char*& ptr, UInt32 limit = 0xFFFFFFFFu )
 {
     unsigned char lead = static_cast<unsigned char>( *ptr );
     UInt32 cp = 0u;
+
+    /* A cut off sequence does not hold a code point, it decodes as U+FFFD */
+    bool complete = true;
+    const UInt32 present = Utf8SeqLenAt( ptr, limit, complete );
+    if ( !complete )
+    {
+        ptr += present;
+        return 0xFFFDu;
+    }
     if ( lead < 0x80u )
     {
         cp = lead;
@@ -357,7 +385,8 @@ Utf8CountCodePoints( const char* src )
     const char* p = src;
     while ( '\0' != *p )
     {
-        p += Utf8SeqLen( static_cast<unsigned char>( *p ) );
+        bool complete = true;
+        p += Utf8SeqLenAt( p, 0xFFFFFFFFu, complete );
         ++count;
     }
     return count;
@@ -374,9 +403,10 @@ Utf8CountCodePointsInBytes( const char* src, UInt32 byteSize )
     UInt32 i = 0u;
     while ( i < byteSize && '\0' != src[ i ] )
     {
-        UInt32 seqLen = Utf8SeqLen( static_cast<unsigned char>( src[ i ] ) );
-        if ( i + seqLen > byteSize )
-            break;
+        bool complete = true;
+        UInt32 seqLen = Utf8SeqLenAt( src+i, byteSize-i, complete );
+        if ( !complete && i + seqLen >= byteSize )
+            break;   /* cut off by the end of the buffer */
         i += seqLen;
         ++count;
     }
@@ -450,7 +480,7 @@ Utf8BytesToUtf16Alloc( const char* src, UInt32 byteSize,
     const char* end = src + byteSize;
     while ( p < end && '\0' != *p )
     {
-        UInt32 cp = Utf8DecodeOne( p );
+        UInt32 cp = Utf8DecodeOne( p, (UInt32) ( end - p ) );
         ++cpCount;
         cuCount += ( cp >= 0x10000u ) ? 2u : 1u;
     }
@@ -465,7 +495,7 @@ Utf8BytesToUtf16Alloc( const char* src, UInt32 byteSize,
     UInt32 out = 0u;
     for ( UInt32 i = 0u; i < cpCount; ++i )
     {
-        UInt32 cp = Utf8DecodeOne( p );
+        UInt32 cp = Utf8DecodeOne( p, (UInt32) ( end - p ) );
         out += Utf16EncodeOne( cp, buf + out );
     }
     buf[ cuCount ] = 0u;
@@ -1489,6 +1519,14 @@ CUtf16String::Append( const UInt16* appendStr              ,
     UInt32 addLen = ( lengthInCodePoints >= 0 )
                     ? static_cast<UInt32>( lengthInCodePoints )
                     : Utf16CountCodePoints( appendStr, codeUnits );
+
+    /* A surrogate pair which is cut in two by the append (data arriving in pieces): each half was counted as a code point
+       of its own, together they are one */
+    if ( oldCU > 0u && GUCEF_NULL != m_string && addLen > 0u && m_length > 0u &&
+         IsHighSurrogate( m_string[ oldCU-1u ] ) && IsLowSurrogate( appendStr[ 0 ] ) )
+    {
+        --addLen;
+    }
 
     UInt16* newBuf = GUCEF_NEW UInt16[ newCU + 1u ];
     assert( GUCEF_NULL != newBuf );

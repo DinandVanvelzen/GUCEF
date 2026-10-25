@@ -26,6 +26,7 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>
 #include <typeinfo> 
 
 #ifndef GUCEF_CORE_ESTRUCTS_H
@@ -48,6 +49,8 @@
 
 namespace GUCEF {
 namespace CORE {
+
+class CDynamicBuffer;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -395,6 +398,30 @@ Base64Decode( const CString& base64Str, void* byteBuffer, UInt32 bufferSize, UIn
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Encodes binary data as base64url (RFC 4648 section 5): the alphabet with '-' and '_' in place of '+' and '/'.
+ *  Without padding ('=') unless 'pad' is set, as JWT and JWS use it. One allocation for the result.
+ *  @return false, with an empty 'result', when 'data' is NULL for a length above 0 or the text cannot be allocated
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+Base64UrlEncode( const void* data, UInt32 length, CString& result, bool pad = false );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Decodes base64url text (RFC 4648 section 5) into 'result', which is replaced. No allocation once 'result' has
+ *  grown to the size needed. The decoder is strict:
+ *  - padding is optional, but when it is there the text must be a whole number of groups of 4 with 1 or 2 '='
+ *  - only the characters A-Z a-z 0-9 '-' '_' are accepted: '+', '/', whitespace and anything else is refused
+ *  - a text length that leaves 1 character in the last group is refused
+ *  - the unused bits of the last character must be 0, so every byte sequence has one text only
+ *  Empty text gives empty data. On failure 'result' is empty.
+ */
+GUCEF_CORE_PUBLIC_CPP bool
+Base64UrlDecode( const CString& text, CDynamicBuffer& result );
+
+/*-------------------------------------------------------------------------*/
+
 GUCEF_CORE_PUBLIC_CPP CString
 FloatToString( const float value );
 
@@ -493,6 +520,41 @@ IsAbsolutePath( const CString& path );
 
 GUCEF_CORE_PUBLIC_CPP CString
 GetHostname( void );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The login name of the user the process runs as, as UTF-8 (the account name, for example "dinand"), empty when it cannot be
+ *  determined or the platform has no users (Android, WebAssembly). Thread safe.
+ *  Linux and macOS: the password database entry of the effective user id, then the environment variables USER and LOGNAME.
+ *  Windows: GetUserNameW(), then USERNAME.
+ */
+GUCEF_CORE_PUBLIC_CPP CString
+GetCurrentUserName( void );
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The full name of the user the process runs as, as UTF-8 (for example "Dinand van Velzen"), empty when the system has none
+ *  recorded or the platform has no users. Thread safe.
+ *  Linux and macOS: the first comma separated field of the GECOS field of the password database entry; empty when that
+ *  is empty, callers fall back to GetCurrentUserName().
+ *  Windows: GetUserNameExW( NameDisplay ), which only accounts that have a display name give; the login name when it does not.
+ */
+GUCEF_CORE_PUBLIC_CPP CString
+GetCurrentUserDisplayName( void );
+
+/*-------------------------------------------------------------------------*/
+
+/** The user name from the environment ("USER", then "LOGNAME"; "USERNAME" on Windows) as GetEnv() sees it, so overrides apply; empty when there is none */
+GUCEF_CORE_PUBLIC_CPP CString
+GetUserNameFromEnvironment( void );
+
+/*-------------------------------------------------------------------------*/
+
+/** The full name in a GECOS field of the password database: the text before the first comma, trimmed; empty for an empty field */
+GUCEF_CORE_PUBLIC_CPP CString
+GetDisplayNameFromGecos( const CString& gecos );
 
 /*-------------------------------------------------------------------------*/
 
@@ -624,8 +686,58 @@ inline CString ToString( const T value,
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Cuts the name of the type out of the text of a compiler of the signature of the function template ToString< T >()
+ *  ( __PRETTY_FUNCTION__ or __FUNCSIG__ ). Used when RTTI is not available to get a type name from.
+ */
+inline CString
+TypeNameFromToStringSignature( const char* signature )
+{
+    CString text( signature );
+    const char* start = strstr( signature, "typeNameParam = " );    // GCC and Clang: "... [with typeNameParam = Type]"
+    const char* end = GUCEF_NULL;
+    if ( GUCEF_NULL != start )
+    {
+        start += 16;
+        end = strrchr( start, ']' );
+        const char* more = strchr( start, ';' );                    // GCC adds the other typedefs it resolved: "; CString = ..."
+        if ( GUCEF_NULL != more && ( GUCEF_NULL == end || more < end ) )
+            end = more;
+    }
+    else
+    {
+        start = strstr( signature, "ToString<" );                   // Visual C++: "... ToString<Type>(void)"
+        if ( GUCEF_NULL != start )
+        {
+            start += 9;
+            end = strrchr( start, '>' );
+        }
+    }
+    if ( GUCEF_NULL == start || GUCEF_NULL == end || end < start )
+        return text;                                                // the whole signature is unique per type as well
+    return text.SubstrFromRange( (UInt32) ( start - signature ), (UInt32) ( end - signature ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  A name of the type that is the same for the same type and different for another, used for example as the
+ *  key of a factory. Uses typeid when RTTI is available, else the signature of this function template, so
+ *  this works with RTTI disabled as well. The text can differ between the two.
+ */
 template < typename typeNameParam >
-inline CString ToString( void ) { return typeid( typeNameParam ).name(); }
+inline CString ToString( void )
+{
+    #ifdef GUCEF_RTTI_IS_SUPPORTED
+    return typeid( typeNameParam ).name();
+    #elif defined( _MSC_VER )
+    return TypeNameFromToStringSignature( __FUNCSIG__ );
+    #elif defined( __GNUC__ ) || defined( __clang__ )
+    return TypeNameFromToStringSignature( __PRETTY_FUNCTION__ );
+    #else
+    #error "No way to get a type name without RTTI on this compiler"
+    #endif
+}
 
 /*-------------------------------------------------------------------------*/
 

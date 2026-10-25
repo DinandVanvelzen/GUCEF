@@ -75,6 +75,26 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_CORE_CTSGNOTIFIER_H
+#include "CTSGNotifier.h"
+#define GUCEF_CORE_CTSGNOTIFIER_H
+#endif /* GUCEF_CORE_CTSGNOTIFIER_H ? */
+
+#ifndef GUCEF_MT_CACTIVEOBJECT_H
+#include "gucefMT_CActiveObject.h"
+#define GUCEF_MT_CACTIVEOBJECT_H
+#endif /* GUCEF_MT_CACTIVEOBJECT_H ? */
+
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
+
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_CORE_CEVENTAGGREGATETRIGGER_H
 #include "gucefCORE_CEventAggregateTrigger.h"
 #define GUCEF_CORE_CEVENTAGGREGATETRIGGER_H
@@ -576,6 +596,536 @@ class CTriggeredSubscriber : public CObserver
         return classTypeName;
     }
 };
+
+/*-------------------------------------------------------------------------*/
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      THREADING                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/** An event sent by CThreadedNotifier from a thread of its own, to be delivered on the pulse thread */
+static const CEvent& ThreadedTestEvent( void )
+{
+    static const CEvent event( "GUCEF::CORE::TestNotifierObserver::ThreadedTestEvent" );
+    event.EnsureInitialized();
+    return event;
+}
+
+/*-------------------------------------------------------------------------*/
+
+class CThreadedNotifier : public CTSGNotifier
+{
+    public:
+
+    CThreadedNotifier( const PulseGeneratorPtr& pulseGenerator ) : CTSGNotifier( pulseGenerator, false, false ) {}
+    virtual ~CThreadedNotifier() {}
+
+    void Send( void ) { NotifyObserversFromThread( ThreadedTestEvent() ); }
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CString typeName = "CThreadedNotifier";
+        return typeName;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** An application style object: a thread safe notifier that delivers on the thread which pumps its pulse generator */
+class CTestGatewayNotifier : public CTSGNotifier
+{
+    public:
+
+    CTestGatewayNotifier( const PulseGeneratorPtr& pulseGenerator ) : CTSGNotifier( pulseGenerator, false, false ) {}
+    virtual ~CTestGatewayNotifier() {}
+
+    void Post( void ) { NotifyObserversFromThread(); }
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CString typeName = "CTestGatewayNotifier";
+        return typeName;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Pumps a pulse generator, as the thread of an application does */
+class CPulsePumpThread : public MT::CActiveObject
+{
+    public:
+
+    CPulsePumpThread( const PulseGeneratorPtr& pulseGenerator ) : MT::CActiveObject(), m_pulseGenerator( pulseGenerator ), m_pulses( 0 ) {}
+    virtual ~CPulsePumpThread() {}
+
+    UInt32 GetPulses( void ) const { return m_pulses.Load(); }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    protected:
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        m_pulseGenerator->ForceDirectPulse();
+        ++m_pulses;
+        return false;
+    }
+
+    private:
+
+    PulseGeneratorPtr m_pulseGenerator;
+    MT::CTAtomic< UInt32 > m_pulses;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Sends events from a thread of its own */
+class CSenderThread : public MT::CActiveObject
+{
+    public:
+
+    CSenderThread( CThreadedNotifier* notifier ) : MT::CActiveObject(), m_notifier( notifier ), m_sent( 0 ) {}
+    virtual ~CSenderThread() {}
+
+    UInt32 GetSent( void ) const { return m_sent.Load(); }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    protected:
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        m_notifier->Send();
+        ++m_sent;
+        MT::PrecisionDelay( 1 );    // not a flood: events have to meet the creation and destruction of the observers
+        return false;
+    }
+
+    private:
+
+    CThreadedNotifier* m_notifier;
+    MT::CTAtomic< UInt32 > m_sent;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Creates and destroys gateway notifiers on a thread which is not the thread that pumps their pulse generator */
+class CChurnThread : public MT::CActiveObject
+{
+    public:
+
+    CChurnThread( const PulseGeneratorPtr& pulseGenerator, CThreadedNotifier* observed, UInt32 rounds )
+        : MT::CActiveObject()
+        , m_pulseGenerator( pulseGenerator )
+        , m_observed( observed )
+        , m_rounds( rounds )
+        , m_done( 0 )
+    {}
+    virtual ~CChurnThread() {}
+
+    UInt32 GetRoundsDone( void ) const { return m_done.Load(); }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    protected:
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        {
+            CTestGatewayNotifier gateway( m_pulseGenerator );
+            if ( GUCEF_NULL != m_observed )
+                gateway.SubscribeTo( m_observed, ThreadedTestEvent() );
+            gateway.Post();
+        }
+        return ++m_done >= m_rounds;
+    }
+
+    private:
+
+    PulseGeneratorPtr m_pulseGenerator;
+    CThreadedNotifier* m_observed;
+    UInt32 m_rounds;
+    MT::CTAtomic< UInt32 > m_done;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Waits for the churn thread to do its rounds. Gives up when it makes no progress for the given time
+ *  @return whether all rounds were done
+ */
+static bool
+WaitForChurn( CChurnThread& churn, UInt32 rounds, UInt32 stallLimitInMs )
+{
+    UInt32 lastDone = 0;
+    UInt32 stalledMs = 0;
+    while ( churn.GetRoundsDone() < rounds )
+    {
+        MT::ThreadDelay( 10 );
+        UInt32 done = churn.GetRoundsDone();
+        if ( done != lastDone )
+        {
+            lastDone = done;
+            stalledMs = 0;
+        }
+        else
+        {
+            stalledMs += 10;
+            if ( stalledMs >= stallLimitInMs )
+                return false;
+        }
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformNotifierThreadingTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "Test: Gateway notifiers can be created and destroyed on a thread that does not pump their pulse generator while it is being pumped" )
+    try
+    {
+        const UInt32 rounds = 2000;
+        PulseGeneratorPtr pulseGenerator = CPulseGenerator::CreateSharedObj();
+
+        // the pump thread has an object of its own on the generator so that every pulse has an observer to deliver to
+        CTestGatewayNotifier resident( pulseGenerator );
+
+        CPulsePumpThread pump( pulseGenerator );
+        ASSERT_TRUE( pump.Activate( GUCEF_NULL, 1, 1 ) );
+
+        CChurnThread churn( pulseGenerator, GUCEF_NULL, rounds );
+        ASSERT_TRUE( churn.Activate( GUCEF_NULL, 1, 1 ) );
+
+        bool completed = WaitForChurn( churn, rounds, 5000 );
+        ASSERT_TRUE( completed );
+        if ( completed )
+        {
+            churn.Deactivate( false, true );
+            pump.Deactivate( false, true );
+            ASSERT_TRUE( pump.GetPulses() > 0 );
+        }
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Gateway notifiers subscribed to a notifier that sends from another thread can be destroyed on a thread that does not pump their pulse generator" )
+    try
+    {
+        const UInt32 rounds = 3000;
+        PulseGeneratorPtr pulseGenerator = CPulseGenerator::CreateSharedObj();
+        CTestGatewayNotifier resident( pulseGenerator );
+        CThreadedNotifier observed( pulseGenerator );
+
+        CPulsePumpThread pump( pulseGenerator );
+        ASSERT_TRUE( pump.Activate( GUCEF_NULL, 1, 1 ) );
+        CSenderThread sender( &observed );
+        ASSERT_TRUE( sender.Activate( GUCEF_NULL, 1, 1 ) );
+
+        CChurnThread churn( pulseGenerator, &observed, rounds );
+        ASSERT_TRUE( churn.Activate( GUCEF_NULL, 1, 1 ) );
+
+        bool completed = WaitForChurn( churn, rounds, 5000 );
+        ASSERT_TRUE( completed );
+        if ( completed )
+        {
+            churn.Deactivate( false, true );
+            sender.Deactivate( false, true );
+            pump.Deactivate( false, true );
+            ASSERT_TRUE( sender.GetSent() > 0 );
+        }
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      FUNCTOR SUBSCRIPTIONS                                              //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/** Counts what arrives through its functor handlers and what arrives through OnNotify() */
+class CFunctorProbe : public CObserver
+{
+    public:
+
+    typedef CTEventHandlerFunctor< CFunctorProbe > TProbeCallback;
+
+    UInt32 m_firstHandlerCalls;
+    UInt32 m_secondHandlerCalls;
+    UInt32 m_standardNotifies;          /**< events of the notifier itself: subscribe, unsubscribe, modify, destruction */
+    UInt32 m_destructionNotifies;
+    UInt32 m_modifyNotifies;
+    UInt32 m_customNotifies;            /**< any other event that arrived through OnNotify() */
+    CEvent m_lastCustomNotifyEvent;
+    CEvent m_lastHandlerEvent;
+    MT::CTAtomic< UInt32 > m_handlerThreadId;
+    bool m_deleteSelfInHandler;
+    bool* m_deletedFlag;
+
+    CFunctorProbe( void )
+        : CObserver()
+        , m_firstHandlerCalls( 0 )
+        , m_secondHandlerCalls( 0 )
+        , m_standardNotifies( 0 )
+        , m_destructionNotifies( 0 )
+        , m_modifyNotifies( 0 )
+        , m_customNotifies( 0 )
+        , m_lastCustomNotifyEvent()
+        , m_lastHandlerEvent()
+        , m_handlerThreadId( 0 )
+        , m_deleteSelfInHandler( false )
+        , m_deletedFlag( GUCEF_NULL )
+    {}
+
+    virtual ~CFunctorProbe() { UnsubscribeAllFromObserver(); }
+
+    void OnFirstHandler( CNotifier* notifier, const CEvent& eventId, CICloneable* eventData )
+    {
+        ++m_firstHandlerCalls;
+        m_lastHandlerEvent = eventId;
+        m_handlerThreadId = MT::GetCurrentTaskID();
+        if ( m_deleteSelfInHandler )
+        {
+            if ( GUCEF_NULL != m_deletedFlag )
+                *m_deletedFlag = true;
+            delete this;
+        }
+    }
+
+    void OnSecondHandler( CNotifier* notifier, const CEvent& eventId, CICloneable* eventData )
+    {
+        ++m_secondHandlerCalls;
+        m_lastHandlerEvent = eventId;
+    }
+
+    virtual void OnNotify( CNotifier* notifier, const CEvent& eventId, CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        if ( CNotifier::DestructionEvent == eventId )
+        {
+            ++m_standardNotifies;
+            ++m_destructionNotifies;
+        }
+        else
+        if ( CNotifier::ModifyEvent == eventId )
+        {
+            ++m_standardNotifies;
+            ++m_modifyNotifies;
+        }
+        else
+        if ( CNotifier::SubscribeEvent == eventId || CNotifier::UnsubscribeEvent == eventId )
+        {
+            ++m_standardNotifies;
+        }
+        else
+        {
+            ++m_customNotifies;
+            m_lastCustomNotifyEvent = eventId;
+        }
+    }
+
+    virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CString classTypeName = "CFunctorProbe";
+        return classTypeName;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Sends one event from a thread of its own and remembers which thread that was */
+class COneShotSenderThread : public MT::CActiveObject
+{
+    public:
+
+    COneShotSenderThread( CThreadedNotifier* notifier ) : MT::CActiveObject(), m_notifier( notifier ), m_senderThreadId( 0 ) {}
+    virtual ~COneShotSenderThread() {}
+
+    UInt32 GetSenderThreadId( void ) const { return m_senderThreadId.Load(); }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    protected:
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        m_senderThreadId = MT::GetCurrentTaskID();
+        m_notifier->Send();
+        return true;
+    }
+
+    private:
+
+    CThreadedNotifier* m_notifier;
+    MT::CTAtomic< UInt32 > m_senderThreadId;
+};
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformNotifierFunctorTests( void )
+{
+    const CEvent eventA( "GUCEF::CORE::TestNotifierObserver::FunctorEventA" );
+    const CEvent eventB( "GUCEF::CORE::TestNotifierObserver::FunctorEventB" );
+
+    // The events of the notifier itself are not recorded with a subscription: a functor given for one of them is never
+    // called, the observer hears of them through OnNotify() as it always did
+    GUCEF_TESTFW_TESTCASE( "A functor registered for the DestructionEvent is not invoked while OnNotify() is" )
+    try
+    {
+        CMyNotifier* notifier = new CMyNotifier();
+        CFunctorProbe probe;
+        CFunctorProbe::TProbeCallback destructionCallback( &probe, &CFunctorProbe::OnFirstHandler );
+        probe.SubscribeTo( notifier, CNotifier::DestructionEvent, destructionCallback );
+        CFunctorProbe::TProbeCallback modifyCallback( &probe, &CFunctorProbe::OnSecondHandler );
+        probe.SubscribeTo( notifier, CNotifier::ModifyEvent, modifyCallback );
+
+        notifier->DoNotifyObservers();
+        ASSERT_TRUE( 1 == probe.m_modifyNotifies );
+        ASSERT_TRUE( 0 == probe.m_secondHandlerCalls );
+
+        delete notifier;
+        ASSERT_TRUE( 1 == probe.m_destructionNotifies );
+        ASSERT_TRUE( 0 == probe.m_firstHandlerCalls );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // The dedicated subscription of an observer goes first and the observer is then considered notified: the catch all
+    // does not get that event a second time, it gets the others
+    GUCEF_TESTFW_TESTCASE( "An observer subscribed to all events of a notifier and with a functor to one: the functor gets its event, OnNotify() the others" )
+    try
+    {
+        CMyNotifier notifier;
+        CFunctorProbe probe;
+        probe.SubscribeTo( &notifier );
+        CFunctorProbe::TProbeCallback callback( &probe, &CFunctorProbe::OnFirstHandler );
+        probe.SubscribeTo( &notifier, eventA, callback );
+
+        notifier.DoNotifyObservers( eventA );
+        ASSERT_TRUE( 1 == probe.m_firstHandlerCalls );
+        ASSERT_TRUE( 0 == probe.m_customNotifies );
+
+        notifier.DoNotifyObservers( eventB );
+        ASSERT_TRUE( 1 == probe.m_firstHandlerCalls );
+        ASSERT_TRUE( 1 == probe.m_customNotifies );
+        ASSERT_TRUE( eventB == probe.m_lastCustomNotifyEvent );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "A second functor subscription for the same notifier, event and observer replaces the first one" )
+    try
+    {
+        CMyNotifier notifier;
+        CFunctorProbe probe;
+        CFunctorProbe::TProbeCallback firstCallback( &probe, &CFunctorProbe::OnFirstHandler );
+        CFunctorProbe::TProbeCallback secondCallback( &probe, &CFunctorProbe::OnSecondHandler );
+        probe.SubscribeTo( &notifier, eventA, firstCallback );
+        probe.SubscribeTo( &notifier, eventA, secondCallback );
+
+        notifier.DoNotifyObservers( eventA );
+        ASSERT_TRUE( 0 == probe.m_firstHandlerCalls );
+        ASSERT_TRUE( 1 == probe.m_secondHandlerCalls );
+        ASSERT_TRUE( 0 == probe.m_customNotifies );
+
+        // another event is another subscription: both handlers can live side by side for different events
+        CFunctorProbe::TProbeCallback otherEventCallback( &probe, &CFunctorProbe::OnFirstHandler );
+        probe.SubscribeTo( &notifier, eventB, otherEventCallback );
+        notifier.DoNotifyObservers( eventB );
+        notifier.DoNotifyObservers( eventA );
+        ASSERT_TRUE( 1 == probe.m_firstHandlerCalls );
+        ASSERT_TRUE( 2 == probe.m_secondHandlerCalls );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "An observer with a functor subscription that is destroyed inside its own callback does not disturb the delivery to the others" )
+    try
+    {
+        CMyNotifier notifier;
+        bool doomedDeleted = false;
+        CFunctorProbe* doomed = new CFunctorProbe();
+        doomed->m_deleteSelfInHandler = true;
+        doomed->m_deletedFlag = &doomedDeleted;
+        CFunctorProbe survivor;
+
+        CFunctorProbe::TProbeCallback doomedCallback( doomed, &CFunctorProbe::OnFirstHandler );
+        doomed->SubscribeTo( &notifier, eventA, doomedCallback );
+        CFunctorProbe::TProbeCallback survivorCallback( &survivor, &CFunctorProbe::OnFirstHandler );
+        survivor.SubscribeTo( &notifier, eventA, survivorCallback );
+
+        notifier.DoNotifyObservers( eventA );
+        ASSERT_TRUE( doomedDeleted );
+        ASSERT_TRUE( 1 == survivor.m_firstHandlerCalls );
+
+        notifier.DoNotifyObservers( eventA );
+        ASSERT_TRUE( 2 == survivor.m_firstHandlerCalls );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // The handler is called by the notifier, which for a gateway notifier is on the thread that pumps its pulse generator
+    // and not on the thread that sent the event
+    GUCEF_TESTFW_TESTCASE( "A functor of an observer of a gateway notifier runs on the thread that pumps the pulse generator" )
+    try
+    {
+        PulseGeneratorPtr pulseGenerator = CPulseGenerator::CreateSharedObj();
+        CThreadedNotifier observed( pulseGenerator );
+        CFunctorProbe probe;
+        CFunctorProbe::TProbeCallback callback( &probe, &CFunctorProbe::OnFirstHandler );
+        probe.SubscribeTo( &observed, ThreadedTestEvent(), callback );
+
+        UInt32 pumpThreadId = MT::GetCurrentTaskID();
+        COneShotSenderThread sender( &observed );
+        ASSERT_TRUE( sender.Activate( GUCEF_NULL, 1, 1 ) );
+
+        UInt32 waitedMs = 0;
+        while ( 0 == probe.m_firstHandlerCalls && waitedMs < 5000 )
+        {
+            pulseGenerator->ForceDirectPulse();
+            MT::ThreadDelay( 1 );
+            ++waitedMs;
+        }
+        sender.Deactivate( false, true );
+
+        ASSERT_TRUE( 1 == probe.m_firstHandlerCalls );
+        ASSERT_TRUE( 0 == probe.m_customNotifies );
+        ASSERT_TRUE( pumpThreadId == probe.m_handlerThreadId.Load() );
+        ASSERT_TRUE( pumpThreadId != sender.GetSenderThreadId() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
 
 /*-------------------------------------------------------------------------*/
 
@@ -1645,6 +2195,9 @@ PerformNotifierObserverTests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    PerformNotifierThreadingTests();
+    PerformNotifierFunctorTests();
 
     CORE::CLogStreamScope::FlushLogs();
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ALL NOTIFIER-OBSERVER TESTS COMPLETED" );

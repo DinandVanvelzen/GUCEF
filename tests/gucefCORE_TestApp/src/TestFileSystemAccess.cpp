@@ -56,6 +56,16 @@
 #define GUCEF_CORE_CGLOBPATTERN_H
 #endif /* GUCEF_CORE_CGLOBPATTERN_H ? */
 
+#ifndef GUCEF_CORE_CFUTURERESULTSOURCE_H
+#include "gucefCORE_CFutureResultSource.h"
+#define GUCEF_CORE_CFUTURERESULTSOURCE_H
+#endif /* GUCEF_CORE_CFUTURERESULTSOURCE_H ? */
+
+#ifndef GUCEF_CORE_CLONEABLES_H
+#include "cloneables.h"
+#define GUCEF_CORE_CLONEABLES_H
+#endif /* GUCEF_CORE_CLONEABLES_H ? */
+
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
 #define GUCEF_CORE_CCOREGLOBAL_H
@@ -467,7 +477,9 @@ PerformNativeFileSystemAccessTests( void )
             // the iterator, at the interface level of CFileSystemIterator
             CORE::TFileSystemIteratorPtr iterator;
             ASSERT_TRUE( CORE::FILESYSTEMACCESS_SUCCESS == access->TryGetFileSystemIterator( b, iterator ) && !iterator.IsNULL() );
+        #ifdef GUCEF_RTTI_IS_SUPPORTED
             ASSERT_TRUE( GUCEF_NULL != dynamic_cast< CORE::CFileSystemIterator* >( iterator.GetPointerAlways() ) );
+        #endif
             CORE::CString::StringSet names = ListNames( *iterator, b );
             ASSERT_TRUE( 3 == names.size() && names.count( "other.txt" ) && names.count( "m1.txt" ) && names.count( "m2.txt" ) );
             ASSERT_TRUE( CORE::FILESYSTEMACCESS_NOT_A_DIRECTORY == access->TryGetFileSystemIterator( CORE::CombinePath( b, "m1.txt" ), iterator ) );
@@ -560,9 +572,34 @@ PerformNativeFileSystemAccessTests( void )
             ASSERT_TRUE( CORE::FILESYSTEMACCESS_SUCCESS == AwaitResult( future ) );
             CORE::TFileSystemIteratorPtr iterator;
             ASSERT_TRUE( CORE::IFileSystemAccess::TryGetAsyncIterator( future, iterator ) && !iterator.IsNULL() );
+        #ifdef GUCEF_RTTI_IS_SUPPORTED
             ASSERT_TRUE( GUCEF_NULL != dynamic_cast< CORE::CFileSystemEntryListIterator* >( iterator.GetPointerAlways() ) );
+        #endif
             CORE::CString::StringSet names = ListNames( *iterator, dir );
             ASSERT_TRUE( 2 == names.size() && names.count( "d/" ) && names.count( "g.txt" ) );
+
+            // it is an iterator over entries in memory: what is made on disk after the listing does not show up in it
+            const CORE::CString lateFile = CORE::CombinePath( dir, "late.txt" );
+            ASSERT_TRUE( WriteFile( lateFile, "late" ) );
+            CORE::CString::StringSet snapshotNames = ListNames( *iterator, dir );
+            ASSERT_TRUE( CORE::FILESYSTEMACCESS_SUCCESS == access->TryDeleteFile( lateFile ) );
+            ASSERT_TRUE( 2 == snapshotNames.size() && 0 == snapshotNames.count( "late.txt" ) );
+
+            // a future that carries other data than a file system access result is not one
+            CORE::CFutureResultSource foreign;
+            CORE::CFutureResult foreignFuture = foreign.GetFuture();
+            ASSERT_TRUE( foreign.Complete( GUCEF_NEW CORE::TCloneableString( "something else" ), true ) );
+            CORE::CResourceMetaData foreignMeta;
+            CORE::TFileSystemEntryType foreignType = CORE::FILESYSTEMENTRYTYPE_NONE;
+            CORE::TFileSystemIteratorPtr foreignIterator;
+            CORE::IFileSystemAccess::TFileSystemAccessResultVector foreignResults;
+            CORE::TFileSystemAccessResult foreignResult = CORE::FILESYSTEMACCESS_SUCCESS;
+            ASSERT_FALSE( CORE::IFileSystemAccess::TryGetAsyncMetaData( foreignFuture, foreignMeta ) );
+            ASSERT_FALSE( CORE::IFileSystemAccess::TryGetAsyncEntryType( foreignFuture, foreignType ) );
+            ASSERT_FALSE( CORE::IFileSystemAccess::TryGetAsyncIterator( foreignFuture, foreignIterator ) );
+            ASSERT_FALSE( CORE::IFileSystemAccess::TryGetAsyncPerFileResults( foreignFuture, foreignResults ) );
+            ASSERT_TRUE( CORE::IFileSystemAccess::TryGetAsyncResult( foreignFuture, foreignResult ) && CORE::FILESYSTEMACCESS_FAILED == foreignResult );
+
             ASSERT_TRUE( iterator->FindFirst( dir ) );
             while ( "g.txt" != iterator->GetResourceName() && iterator->FindNext() ) {}
             ASSERT_TRUE( iterator->TryReadMetaData( metaData ) && 8 == metaData.resourceSizeInBytes );

@@ -540,6 +540,9 @@ class GUCEF_CORE_PUBLIC_CPP CDynamicBuffer : public CICloneable
      *  Utility member function:
      *  Performs easy casting to the given type as a pointer at the given offset
      *
+     *  There has to be at least one T worth of data at the offset. A buffer without data therefore always refuses,
+     *  there is no pointer to give. Check GetDataSize() first if the buffer can be empty.
+     *
      *  @throw EIllegalCast thrown when the cast cannot be performed with the data available in the buffer
      */
     template< typename T >
@@ -731,7 +734,7 @@ CDynamicBuffer::AppendValue( const T value, const bool appendToLogicalData )
 
 /*-------------------------------------------------------------------------*/
 
-inline CString ToString( const CDynamicBuffer& src ) {GUCEF_TRACE; return CString( src.AsConstTypePtr< char >(), src.GetDataSize(), src.GetDataSize(), true ); }
+inline CString ToString( const CDynamicBuffer& src ) {GUCEF_TRACE; return 0 == src.GetDataSize() ? CString() : CString( src.AsConstTypePtr< char >(), src.GetDataSize(), src.GetDataSize(), true ); }
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

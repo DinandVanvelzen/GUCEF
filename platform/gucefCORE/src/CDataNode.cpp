@@ -28,6 +28,11 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_CORE_CVALUELIST_H
+#include "CValueList.h"
+#define GUCEF_CORE_CVALUELIST_H
+#endif /* GUCEF_CORE_CVALUELIST_H ? */
+
 #include "CDataNode.h"  /* definition of the class implemented here */
 
 #ifndef GUCEF_CORE_GUCEF_ESSENTIALS_H
@@ -2062,6 +2067,142 @@ CDataNode::GetValuesOfChildByName( const CString& name           ,
 /*-------------------------------------------------------------------------*/
 
 bool
+CDataNode::SetValuesOfChildByName( const CString& name                 ,
+                                   const CString::StringVector& values ,
+                                   bool linkIfPossible                 ,
+                                   const CString& childName            )
+{GUCEF_TRACE;
+
+    CDataNode* collectionNode = FindOrAddChild( name, GUCEF_DATATYPE_ARRAY );
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != collectionNode )
+    {
+        CString::StringVector::const_iterator i = values.begin();
+        while ( i != values.end() )
+        {
+            collectionNode->AddValueAsChild( (*i), linkIfPossible, childName );
+            ++i;
+        }
+
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::GetValuesOfChildByName( const CString& name              ,
+                                   CString::StringVector& outValues ) const
+{GUCEF_TRACE;
+
+    outValues.clear();
+
+    TVariantVector varValues;
+    if ( GetValuesOfChildByName( name, varValues, true ) )
+    {
+        outValues.reserve( varValues.size() );
+        TVariantVector::const_iterator i = varValues.begin();
+        while ( i != varValues.end() )
+        {
+            outValues.push_back( (*i).AsString() );
+            ++i;
+        }
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::GetStringListByName( const CString& name              ,
+                                CString::StringVector& outValues ,
+                                char separator                   ) const
+{GUCEF_TRACE;
+
+    outValues.clear();
+
+    const CDataNode* child = FindChild( name );
+    if ( GUCEF_NULL == child && !IsAttribute( name ) )
+        return false;
+
+    CString::StringVector elements;
+    if ( GUCEF_NULL != child && child->HasChildren() )
+    {
+        TVariantVector childValues = child->GetChildrenValues();
+        elements.reserve( childValues.size() );
+        TVariantVector::const_iterator i = childValues.begin();
+        while ( i != childValues.end() )
+        {
+            elements.push_back( (*i).AsString() );
+            ++i;
+        }
+    }
+    else
+    {
+        CString text = GetAttributeValueOrChildValueByName( name ).AsString( CString::Empty, true );
+        if ( !text.IsNULLOrEmpty() )
+            elements = text.ParseElements( separator, false );
+    }
+
+    outValues.reserve( elements.size() );
+    CString::StringVector::const_iterator e = elements.begin();
+    while ( e != elements.end() )
+    {
+        CString element = (*e).Trim( true ).Trim( false );
+        if ( !element.IsNULLOrEmpty() )
+            outValues.push_back( element );
+        ++e;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::SetAttributesOfChildByName( const CString& name      ,
+                                       const CValueList& values )
+{GUCEF_TRACE;
+
+    CDataNode* child = FindOrAddChild( name, GUCEF_DATATYPE_OBJECT );
+    if GUCEF_PREDICT_TRUE( GUCEF_NULL != child )
+    {
+        UInt32 keyCount = values.GetKeyCount();
+        for ( UInt32 i=0; i<keyCount; ++i )
+        {
+            const CValueList::TVariantVector& keyValues = values.GetValueVector( i );
+            child->SetAttribute( values.GetKey( i ).AsString(), keyValues.empty() ? CString::Empty : keyValues[ 0 ].AsString() );
+        }
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CDataNode::GetAttributesOfChildByName( const CString& name ,
+                                       CValueList& outValues ) const
+{GUCEF_TRACE;
+
+    outValues.DeleteAll();
+
+    const CDataNode* child = FindChild( name );
+    if ( GUCEF_NULL == child )
+        return false;
+
+    TAttributeMap::const_iterator i = child->AttributeBegin();
+    while ( i != child->AttributeEnd() )
+    {
+        outValues.Set( (*i).first, (*i).second.AsString() );
+        ++i;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CDataNode::SetMappedValuesOfChildByName( const CString& name                  ,
                                          const CDataNode::TVariantMap& values ,
                                          bool linkIfPossible                  )
@@ -2322,7 +2463,7 @@ CDataNode::GetChildAtIndex( UInt32 index ) const
         CDataNode* child = firstChild;
 
         UInt32 i=0;
-        while ( firstChild != child && i < index )
+        while ( GUCEF_NULL != child && i < index )
         {
             child = child->_pnext;
             ++i;

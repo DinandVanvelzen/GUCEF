@@ -290,6 +290,48 @@ PerformDynamicBufferTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "DynamicBuffer: A buffer without data becomes an empty string, while the typed access to data that is not there is refused" )
+    try
+    {
+        CORE::CDynamicBuffer empty;
+        ASSERT_TRUE( CORE::ToString( empty ).IsNULLOrEmpty() );
+
+        CORE::CDynamicBuffer reserved( 16, false );
+        ASSERT_TRUE( 0 == reserved.GetDataSize() );
+        ASSERT_TRUE( CORE::ToString( reserved ).IsNULLOrEmpty() );
+
+        // typed access needs at least one element of the type in the data: the contract is that it throws otherwise
+        bool refused = false;
+        try
+        {
+            empty.AsConstTypePtr< char >();
+        }
+        catch ( const CORE::CDynamicBuffer::EIllegalCast& )
+        {
+            refused = true;
+        }
+        ASSERT_TRUE( refused );
+
+        refused = false;
+        CORE::CDynamicBuffer two;
+        two.Append( "ab", 2 );
+        try
+        {
+            two.AsConstTypePtr< UInt32 >();
+        }
+        catch ( const CORE::CDynamicBuffer::EIllegalCast& )
+        {
+            refused = true;
+        }
+        ASSERT_TRUE( refused );
+        ASSERT_TRUE( GUCEF_NULL != two.AsConstTypePtr< char >( 1 ) );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "DynamicBuffer: Downshift moves the data to the front and reads nothing past the data" )
     try
     {

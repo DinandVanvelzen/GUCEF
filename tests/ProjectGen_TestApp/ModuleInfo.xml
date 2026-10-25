@@ -2,6 +2,7 @@
 <ModuleInfoEntry>
     <Module Name="ProjectGen_TestApp" Platform="All" Type="Executable" Tags="test" >
         <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
             <Dependency Name="ProjectGen" />

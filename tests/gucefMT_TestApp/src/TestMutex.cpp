@@ -33,6 +33,11 @@
 #define GUCEF_MT_CSCOPEMUTEX_H
 #endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
 
+#ifndef GUCEF_MT_MUTEX_H
+#include "gucefMT_mutex.h"
+#define GUCEF_MT_MUTEX_H
+#endif /* GUCEF_MT_MUTEX_H ? */
+
 #ifndef GUCEF_MT_CACTIVEOBJECT_H
 #include "gucefMT_CActiveObject.h"
 #define GUCEF_MT_CACTIVEOBJECT_H
@@ -209,11 +214,153 @@ class CMutexIsLockedProbeThread : public MT::CActiveObject
     volatile bool m_sawLocked;
 };
 
+/**
+ *  Active object which locks a mutex and keeps holding it until told to release it.
+ *  Used to have a lock owned by a thread other than the one calling Unlock().
+ */
+class CMutexHolderThread : public MT::CActiveObject
+{
+    public:
+
+    CMutexHolderThread( MT::CMutex& mutex )
+        : MT::CActiveObject()
+        , m_mutex( mutex )
+        , m_holding( false )
+        , m_release( false )
+    {}
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+        return true;
+    }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        if ( MT::LOCKSTATUS_OPERATION_SUCCESS == m_mutex.Lock( MUTEX_TEST_LOCK_TIMEOUT_IN_MS ) )
+        {
+            m_holding = true;
+            MT::UInt32 waitedInMs = 0;
+            while ( !m_release && waitedInMs < MUTEX_TEST_LOCK_TIMEOUT_IN_MS )
+            {
+                MT::PrecisionDelay( 5 );
+                waitedInMs += 5;
+            }
+            m_mutex.Unlock();
+            m_holding = false;
+        }
+        return true; // stop cycling
+    }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    bool WaitUntilHolding( MT::UInt32 timeoutInMs )
+    {
+        MT::UInt32 waitedInMs = 0;
+        while ( !m_holding && waitedInMs < timeoutInMs )
+        {
+            MT::PrecisionDelay( 5 );
+            waitedInMs += 5;
+        }
+        return m_holding;
+    }
+
+    void Release( void ) { m_release = true; }
+
+    private:
+
+    MT::CMutex& m_mutex;
+    volatile bool m_holding;
+    volatile bool m_release;
+};
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+/**
+ *  pthreads reports failure as a positive errno value. An unlock that the OS
+ *  refused (unlocked mutex, or a mutex owned by another thread) must be
+ *  reported as a failure and must leave the mutex state untouched.
+ */
+static void
+PerformFailedUnlockIsReportedTest( void )
+{
+    GUCEF_TESTFW_TESTCASE( "Mutex: Unlock of a mutex that is not locked reports failure" )
+    try
+    {
+        MT::CMutex mutex;
+
+        // Never locked
+        ASSERT_TRUE( MT::LOCKSTATUS_OPERATION_FAILED == mutex.Unlock() );
+        ASSERT_FALSE( mutex.IsLocked() );
+
+        // Balanced lock/unlock, then one unlock too many
+        ASSERT_TRUE( MT::LOCKSTATUS_OPERATION_SUCCESS == mutex.Lock( MUTEX_TEST_LOCK_TIMEOUT_IN_MS ) );
+        ASSERT_TRUE( MT::LOCKSTATUS_OPERATION_SUCCESS == mutex.Unlock() );
+        ASSERT_TRUE( MT::LOCKSTATUS_OPERATION_FAILED == mutex.Unlock() );
+
+        // The failed unlocks must not have corrupted the mutex
+        ASSERT_TRUE( MT::LOCKSTATUS_OPERATION_SUCCESS == mutex.Lock( MUTEX_TEST_LOCK_TIMEOUT_IN_MS ) );
+        ASSERT_TRUE( MT::LOCKSTATUS_OPERATION_SUCCESS == mutex.Unlock() );
+        ASSERT_FALSE( mutex.IsLocked() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Mutex: Unlock from a thread that does not own the lock reports failure" )
+    try
+    {
+        MT::CMutex mutex;
+        CMutexHolderThread holder( mutex );
+        ASSERT_TRUE( holder.Activate( GUCEF_NULL, true ) );
+        ASSERT_TRUE( holder.WaitUntilHolding( MUTEX_TEST_LOCK_TIMEOUT_IN_MS ) );
+
+        // We are not the owner, the unlock must be refused and reported as such
+        ASSERT_TRUE( MT::LOCKSTATUS_OPERATION_FAILED == mutex.Unlock() );
+
+        // The owner still holds it
+        ASSERT_TRUE( mutex.IsLocked() );
+
+        holder.Release();
+        MT::UInt32 waitResult = holder.WaitForThreadToFinish( 5000 );
+        ASSERT_TRUE( GUCEF_THREAD_WAIT_OK == waitResult || GUCEF_THREAD_WAIT_ABANDONEND == waitResult );
+        ASSERT_FALSE( mutex.IsLocked() );
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Mutex: C mutex unlock of an unlocked mutex reports failure" )
+    try
+    {
+        struct MT::SMutex* mutex = MT::MutexCreate();
+        ASSERT_TRUE( GUCEF_NULL != mutex );
+        if ( GUCEF_NULL != mutex )
+        {
+            ASSERT_TRUE( GUCEF_MUTEX_OPERATION_FAILED == MT::MutexUnlock( mutex ) );
+            ASSERT_TRUE( GUCEF_MUTEX_OPERATION_SUCCESS == MT::MutexLock( mutex, MUTEX_TEST_LOCK_TIMEOUT_IN_MS ) );
+            ASSERT_TRUE( GUCEF_MUTEX_OPERATION_SUCCESS == MT::MutexUnlock( mutex ) );
+            ASSERT_TRUE( GUCEF_MUTEX_OPERATION_FAILED == MT::MutexUnlock( mutex ) );
+            ASSERT_TRUE( 0 == MT::MutexLocked( mutex ) );
+            MT::MutexDestroy( mutex );
+        }
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
 
 static void
 PerformBasicMutexTests( void )
@@ -698,6 +845,7 @@ PerformMutexTests( void )
     GUCEF_TESTFW_SUITE_SCOPE( "Mutex" );
 
     PerformBasicMutexTests();
+    PerformFailedUnlockIsReportedTest();
     PerformScopeMutexTests();
     PerformRecursiveMutexTests();
     PerformMutexTimeoutTest();

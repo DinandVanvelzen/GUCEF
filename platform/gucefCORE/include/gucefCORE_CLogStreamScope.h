@@ -91,6 +91,16 @@ class GUCEF_CORE_PUBLIC_CPP CLogStreamScope
      */
     static void FlushLogs( void );
 
+    /**
+     *  Whether the messages of the user log (LOG_USER, GUCEF_USER_LOG) are made at all, see CLogManager::SetUserLogEnabled().
+     *  The user log macro looks at this before it builds anything of the message: a single read of an aligned
+     *  integer, safe to read from any thread, no lock and no call into the log manager. Enabled until it is set otherwise
+     */
+    static bool IsUserLogEnabled( void );
+
+    /** Use CLogManager::SetUserLogEnabled(), which also applies to messages that are not made with the macros */
+    static void SetUserLogEnabled( bool enabled );
+
     private:
 
     CLogStreamScope( const CLogStreamScope& src );              /**< not implemented, don't use */
@@ -98,7 +108,18 @@ class GUCEF_CORE_PUBLIC_CPP CLogStreamScope
 
     CLogStreamPtr m_stream;
     bool m_discard;     /**< no logging to be had (as during the shutdown of logging): m_stream is ours and goes nowhere */
+
+    /** Zero while the user log is on: what is never set up is on, also while the statics of the modules are made */
+    static volatile Int32 g_userLogDisabled;
 };
+
+/*-------------------------------------------------------------------------*/
+
+inline bool
+CLogStreamScope::IsUserLogEnabled( void )
+{
+    return 0 == g_userLogDisabled;
+}
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

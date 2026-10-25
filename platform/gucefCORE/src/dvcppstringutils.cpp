@@ -48,6 +48,11 @@
 
 #include "dvcppstringutils.h"   /* function prototypes of the functions implemented here */
 
+#ifndef GUCEF_CORE_CDYNAMICBUFFER_H
+#include "CDynamicBuffer.h"
+#define GUCEF_CORE_CDYNAMICBUFFER_H
+#endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
+
 #ifndef GUCEF_CORE_NO_MD5_SUPPORT
   #ifndef GUCEF_CORE_DVMD5UTILS_H
   #include "dvmd5utils.h"
@@ -234,21 +239,10 @@ ConvertByteToHexChars( const char byte ,
                        char& hexCharB  )
 {GUCEF_TRACE;
 
-    Int32 digitIndex1 = 0;
-    Int32 digitIndex2 = 0;
-
-    DivisionRemainder( byte                ,
-                       16                  ,
-                       digitIndex1         ,
-                       digitIndex2         );
-
-    if ( digitIndex1 < 0 )
-        digitIndex1 *= -1;
-    if ( digitIndex2 < 0 )
-        digitIndex2 *= -1;
-
-    hexCharA = g_hexDigits[ digitIndex2 ];
-    hexCharB = g_hexDigits[ digitIndex1 ];
+    // The byte is a value from 0 to 255, also when char is signed on this platform: the bytes from 0x80 on are those of UTF-8
+    const UInt8 value = (UInt8) byte;
+    hexCharA = g_hexDigits[ value >> 4 ];
+    hexCharB = g_hexDigits[ value & 0x0F ];
 }
 
 /*-------------------------------------------------------------------------*/
@@ -277,15 +271,10 @@ ConvertBytesToHexString( const void* byteBuffer ,
 
     for ( UInt32 i=0; i<bufferSize; ++i )
     {
-        DivisionRemainder( charByteBuffer[ i ] ,
-                           16                  ,
-                           digitIndex1         ,
-                           digitIndex2         );
-
-        if ( digitIndex1 < 0 )
-            digitIndex1 *= -1;
-        if ( digitIndex2 < 0 )
-            digitIndex2 *= -1;
+        // A byte is a value from 0 to 255, also when char is signed on this platform
+        const UInt8 value = (UInt8) charByteBuffer[ i ];
+        digitIndex2 = value >> 4;
+        digitIndex1 = value & 0x0F;
 
         if ( addSpaces )
         {
@@ -410,6 +399,7 @@ Base64Encode( const CString& toBeEncodedStr )
 /*-------------------------------------------------------------------------*/
 
 static const char* base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static const char* base64url_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 static const int base64_table[ 256 ] =
 {
@@ -425,75 +415,198 @@ static const int base64_table[ 256 ] =
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  The base64 encoder behind Base64Encode() and Base64UrlEncode(): one allocation for the result, no work per character
+ *  beyond the table lookups. False when the result cannot be allocated
+ */
+static bool
+EncodeBase64( const void* byteBuffer, UInt32 bufferSize, const char* alphabet, bool pad, CString& result )
+{GUCEF_TRACE;
+
+    // The text must fit in 32 bits
+    if ( bufferSize > ( GUCEF_UINT32MAX / 4 ) * 3 - 3 )
+        return false;
+
+    const UInt32 groupCount = bufferSize / 3;
+    const UInt32 remainder = bufferSize % 3;
+    const UInt32 base64StrLength = groupCount * 4 + ( 0 == remainder ? 0 : ( pad ? 4 : remainder + 1 ) );
+    if ( 0 == base64StrLength )
+    {
+        result = CString::Empty;
+        return true;
+    }
+
+    // Base64 encoding can really add up wrt size requirements
+    // We need to sanity check that we were able to allocate enough memory
+    char* str = result.Reserve( base64StrLength+1, (Int32) base64StrLength );
+    if ( GUCEF_NULL == str || base64StrLength+1 != result.ByteSize() )
+        return false;
+    char* base64StringBuffer = str;
+
+    const unsigned char* bytes = static_cast< const unsigned char* >( byteBuffer );
+    for ( UInt32 group=0; group<groupCount; ++group )
+    {
+        const UInt32 triple = ( (UInt32) bytes[ 0 ] << 16 ) | ( (UInt32) bytes[ 1 ] << 8 ) | (UInt32) bytes[ 2 ];
+        str[ 0 ] = alphabet[ ( triple >> 18 ) & 0x3F ];
+        str[ 1 ] = alphabet[ ( triple >> 12 ) & 0x3F ];
+        str[ 2 ] = alphabet[ ( triple >> 6 ) & 0x3F ];
+        str[ 3 ] = alphabet[ triple & 0x3F ];
+        bytes += 3;
+        str += 4;
+    }
+
+    if ( 1 == remainder )
+    {
+        const UInt32 single = (UInt32) bytes[ 0 ];
+        str[ 0 ] = alphabet[ single >> 2 ];
+        str[ 1 ] = alphabet[ ( single & 0x03 ) << 4 ];
+        if ( pad )
+        {
+            str[ 2 ] = '=';
+            str[ 3 ] = '=';
+        }
+    }
+    else
+    if ( 2 == remainder )
+    {
+        const UInt32 pair = ( (UInt32) bytes[ 0 ] << 8 ) | (UInt32) bytes[ 1 ];
+        str[ 0 ] = alphabet[ pair >> 10 ];
+        str[ 1 ] = alphabet[ ( pair >> 4 ) & 0x3F ];
+        str[ 2 ] = alphabet[ ( pair & 0x0F ) << 2 ];
+        if ( pad )
+            str[ 3 ] = '=';
+    }
+
+    base64StringBuffer[ base64StrLength ] = '\0';
+    result.DetermineLength();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CString
 Base64Encode( const void* byteBuffer, UInt32 bufferSize )
 {GUCEF_TRACE;
 
     CString result;
-    UInt32 base64StrLength = ( ( bufferSize + 2 ) / 3 ) * 4;
-    char* base64StringBuffer = result.Reserve( base64StrLength+1, (Int32) base64StrLength );
-    char* str = base64StringBuffer;
-
-    // Base64 encoding can really add up wrt size requirements
-    // We need to sanity check that we were able to allocate enough memory
-    if ( GUCEF_NULL == str || base64StrLength+1 != result.ByteSize() )
+    if ( !EncodeBase64( byteBuffer, bufferSize, base64_chars, true, result ) )
         return CString::Empty;
-
-    memset( base64StringBuffer, '=', base64StrLength );
-    const char* charByteBuffer = (const char*) byteBuffer;
-
-    int i = 0;
-    int j = 0;
-    unsigned char char_array_3[3];
-    unsigned char char_array_4[4];
-
-    for ( size_t pos = 0; pos < bufferSize; ++pos )
-    {
-        char_array_3[ i++ ] = charByteBuffer[ pos ];
-        if ( i == 3 )
-        {
-            char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
-            char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
-            char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
-            char_array_4[3] = char_array_3[2] & 0x3f;
-
-            for ( i=0; i<4; ++i )
-            {
-                *str = base64_chars[ char_array_4[ i ] ];
-                ++str;
-            }
-            i=0;
-        }
-    }
-
-    if ( i > 0 )
-    {
-        for(j = i; j < 3; j++)
-            char_array_3[j] = '\0';
-
-        char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
-        char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
-        char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
-        char_array_4[3] = char_array_3[2] & 0x3f;
-
-        for (j = 0; (j < i + 1); j++)
-        {
-            *str = base64_chars[ char_array_4[ j ] ];
-            ++str;
-        }
-
-        while( (i++ < 3) )
-        {
-            *str = '=';
-            ++str;
-        }
-
-    }
-
-    base64StringBuffer[ base64StrLength ] = '\0';
-    result.DetermineLength();
-
     return result;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+Base64UrlEncode( const void* data, UInt32 length, CString& result, bool pad )
+{GUCEF_TRACE;
+
+    result = CString::Empty;
+    if ( GUCEF_NULL == data && length > 0 )
+        return false;
+    if ( !EncodeBase64( data, length, base64url_chars, pad, result ) )
+    {
+        result = CString::Empty;
+        return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The value of a base64url character, 0x80 for any character that is not in the alphabet */
+static inline UInt32
+Base64UrlValue( unsigned char c )
+{
+    if ( c >= 'A' && c <= 'Z' )
+        return (UInt32) ( c - 'A' );
+    if ( c >= 'a' && c <= 'z' )
+        return (UInt32) ( c - 'a' ) + 26;
+    if ( c >= '0' && c <= '9' )
+        return (UInt32) ( c - '0' ) + 52;
+    if ( '-' == c )
+        return 62;
+    if ( '_' == c )
+        return 63;
+    return 0x80;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+Base64UrlDecode( const CString& text, CDynamicBuffer& result )
+{GUCEF_TRACE;
+
+    result.Clear( true );
+    if ( text.IsNULLOrEmpty() )
+        return true;
+
+    const unsigned char* p = (const unsigned char*) text.C_String();
+    UInt32 length = text.ByteSize() - 1;
+
+    // padding is optional, but when it is there the text must be a whole number of groups
+    UInt32 padCount = 0;
+    while ( padCount < length && '=' == p[ length - 1 - padCount ] )
+        ++padCount;
+    if ( padCount > 0 && ( padCount > 2 || 0 != length % 4 ) )
+        return false;
+    length -= padCount;
+
+    const UInt32 remainder = length % 4;
+    if ( 1 == remainder )
+        return false;
+
+    const UInt32 groupCount = length / 4;
+    const UInt32 byteCount = groupCount * 3 + ( 0 == remainder ? 0 : remainder - 1 );
+    if ( 0 == byteCount )
+        return false;
+    if ( result.GetBufferSize() < byteCount && !result.SetBufferSize( byteCount, false, true ) )
+        return false;
+
+    UInt8* out = static_cast< UInt8* >( result.GetBufferPtr() );
+    UInt32 invalid = 0;                 // 0x80 once a character is not in the alphabet
+    bool nonCanonical = false;          // bits that belong to no byte are set
+    for ( UInt32 group=0; group<groupCount; ++group )
+    {
+        const UInt32 a = Base64UrlValue( p[ 0 ] );
+        const UInt32 b = Base64UrlValue( p[ 1 ] );
+        const UInt32 c = Base64UrlValue( p[ 2 ] );
+        const UInt32 d = Base64UrlValue( p[ 3 ] );
+        invalid |= a | b | c | d;
+        const UInt32 triple = ( a << 18 ) | ( b << 12 ) | ( c << 6 ) | d;
+        out[ 0 ] = (UInt8) ( triple >> 16 );
+        out[ 1 ] = (UInt8) ( triple >> 8 );
+        out[ 2 ] = (UInt8) triple;
+        p += 4;
+        out += 3;
+    }
+
+    if ( 2 == remainder )
+    {
+        const UInt32 a = Base64UrlValue( p[ 0 ] );
+        const UInt32 b = Base64UrlValue( p[ 1 ] );
+        invalid |= a | b;
+
+        // the bits that do not belong to a byte must be zero, else two texts would decode to the same bytes
+        nonCanonical = 0 != ( b & 0x0F );
+        out[ 0 ] = (UInt8) ( ( a << 2 ) | ( b >> 4 ) );
+    }
+    else
+    if ( 3 == remainder )
+    {
+        const UInt32 a = Base64UrlValue( p[ 0 ] );
+        const UInt32 b = Base64UrlValue( p[ 1 ] );
+        const UInt32 c = Base64UrlValue( p[ 2 ] );
+        invalid |= a | b | c;
+        nonCanonical = 0 != ( c & 0x03 );
+        out[ 0 ] = (UInt8) ( ( a << 2 ) | ( b >> 4 ) );
+        out[ 1 ] = (UInt8) ( ( b << 4 ) | ( c >> 2 ) );
+    }
+
+    if ( 0 != ( invalid & 0x80 ) || nonCanonical )
+        return false;
+
+    result.SetDataSize( byteCount );
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -508,6 +621,11 @@ Base64Decode( const CString& base64Str, void* byteBuffer, UInt32 bufferSize, UIn
 
     UInt32 base64StrLen = base64Str.ByteSize()-1;
     const unsigned char* p = (const unsigned char*) base64Str.C_String();
+
+    // One character more than whole groups cannot be the end of any data: the last group would hold no byte, and decoding it
+    // would read past the end of the text
+    if ( 1 == base64StrLen % 4 )
+        return false;
 
     UInt32 j = 0,
         pad1 = base64StrLen % 4 || p[ base64StrLen-1 ] == '=',

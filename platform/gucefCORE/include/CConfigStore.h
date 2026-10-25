@@ -59,6 +59,7 @@ namespace CORE {
 class CIConfigurable;
 class CGloballyConfigurable;
 class CDataNode;
+class CFaultTolerantConfigScope;
 
 /*-------------------------------------------------------------------------*/
 
@@ -156,11 +157,23 @@ class GUCEF_CORE_PUBLIC_CPP CConfigStore : public CTSGNotifier
      *  "<file>.previous"), and the bootstrap config gets the new location, in the form with a variable when the folder is
      *  in one of the directories UnresolveVars() knows. The config is used and saved there from then on
      */
-    bool SetConfigLocation( const CString& location );
+    bool SetConfigLocation( const CString& location );
 
     private:
 
     friend class CGloballyConfigurable;
+    friend class CFaultTolerantConfigScope;
+
+    /**
+     *  Opens a scope of configurables: the configurables that register after it, on the thread that opened it, are optional
+     *  when configurablesAreOptional is true. Not for direct use: a scope that is not closed on every path out of a block
+     *  keeps every later configurable optional, so the pair is bracketed by CFaultTolerantConfigScope which also describes
+     *  the semantics
+     */
+    void BeginConfigurableScope( bool configurablesAreOptional );
+
+    /** Closes the innermost scope that BeginConfigurableScope() opened */
+    void EndConfigurableScope( void );
 
     void Register( CGloballyConfigurable* configobj );
 
@@ -196,6 +209,7 @@ class GUCEF_CORE_PUBLIC_CPP CConfigStore : public CTSGNotifier
     private:
 
     typedef GUCEF::set< CGloballyConfigurable* > TConfigurableSet;
+    typedef GUCEF::vector< UInt8 > TUInt8Vector;
 
     CString _codectype;
     CString m_bootstrapConfigFile;
@@ -203,6 +217,9 @@ class GUCEF_CORE_PUBLIC_CPP CConfigStore : public CTSGNotifier
     CString::StringVector m_configfiles;
     TConfigurableSet m_configureables;
     TConfigurableSet m_newConfigureables;
+    TConfigurableSet m_optionalConfigurables;   /**< registered in a scope of optional configurables */
+    TUInt8Vector m_configurableScopes;          /**< per open scope: whether its configurables are optional */
+    UInt32 m_configurableScopeThreadId;         /**< the thread that began the open scopes */
     bool m_isBusyLoadingConfig;
     bool m_globalConfigIsLoaded;
     bool m_globalBootstrapConfigIsLoaded;

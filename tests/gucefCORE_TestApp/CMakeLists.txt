@@ -16,6 +16,9 @@ set( HEADER_FILES
   include/TestAbstractFactory.h
   include/TestAllocationCounter.h
   include/TestAsyncUriResourceRetriever.h
+  include/TestBase64Url.h
+  include/TestBigUnsigned.h
+  include/TestBrowserLauncher.h
   include/TestCodecPlugins.h
   include/TestConfigStore.h
   include/TestCronSchedule.h
@@ -46,7 +49,10 @@ set( HEADER_FILES
   include/TestProcess.h
   include/TestRandom.h
   include/TestRateLimiting.h
+  include/TestRedactor.h
+  include/TestRsaVectors.h
   include/TestSchedule.h
+  include/TestScopedValue.h
   include/TestSfinaeUtils.h
   include/TestSharedPtr.h
   include/TestStopwatch.h
@@ -56,6 +62,7 @@ set( HEADER_FILES
   include/TestTimestamp.h
   include/TestTokenizer.h
   include/TestUri.h
+  include/TestUserNames.h
   include/TestVariant.h
   include/TestVariantBinarySerializer.h
   include/TestVariantMapAdapter.h
@@ -63,6 +70,7 @@ set( HEADER_FILES
   include/TestVars.h
   include/TestVersion.h
   include/TestWeakPtr.h
+  include/TestX11EventDispatcher.h
   include/TestXmlDStoreCodec.h
   src/TestFreeList.h
 )
@@ -72,6 +80,9 @@ set( SOURCE_FILES
   src/TestAbstractFactory.cpp
   src/TestAllocationCounter.cpp
   src/TestAsyncUriResourceRetriever.cpp
+  src/TestBase64Url.cpp
+  src/TestBigUnsigned.cpp
+  src/TestBrowserLauncher.cpp
   src/TestCodecPlugins.cpp
   src/TestConfigStore.cpp
   src/TestCronSchedule.cpp
@@ -104,7 +115,9 @@ set( SOURCE_FILES
   src/TestProcess.cpp
   src/TestRandom.cpp
   src/TestRateLimiting.cpp
+  src/TestRedactor.cpp
   src/TestSchedule.cpp
+  src/TestScopedValue.cpp
   src/TestSfinaeUtils.cpp
   src/TestSharedPtr.cpp
   src/TestStopwatch.cpp
@@ -114,6 +127,7 @@ set( SOURCE_FILES
   src/TestTimestamp.cpp
   src/TestTokenizer.cpp
   src/TestUri.cpp
+  src/TestUserNames.cpp
   src/TestVariant.cpp
   src/TestVariantBinarySerializer.cpp
   src/TestVariantMapAdapter.cpp
@@ -121,6 +135,7 @@ set( SOURCE_FILES
   src/TestVars.cpp
   src/TestVersion.cpp
   src/TestWeakPtr.cpp
+  src/TestX11EventDispatcher.cpp
   src/TestXmlDStoreCodec.cpp
   src/gucefCORE_TestApp_main.cpp
 )
@@ -144,7 +159,7 @@ add_dependencies( ${MODULE_NAME} gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CORE_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefCORE_TestApp;MODULE_NAME=gucefCORE_TestApp" )
 
-include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include src )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include src )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/android )

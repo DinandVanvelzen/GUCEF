@@ -28,6 +28,8 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#include <string.h>
+
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
@@ -49,6 +51,14 @@ namespace CORE {
 //      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+static bool
+IsHexDigit( char c )
+{
+    return ( c >= '0' && c <= '9' ) || ( c >= 'a' && c <= 'f' ) || ( c >= 'A' && c <= 'F' );
+}
+
+/*-------------------------------------------------------------------------*/
 
 bool
 CUrlEncoder::EncodeToAscii( const CORE::CUtf8String& strToBeEncoded ,
@@ -182,55 +192,69 @@ CUrlEncoder::DecodeFromAscii( const CORE::CAsciiString& strToBeDecoded ,
     // since the hex encoding takes 3 bytes per utf8 byte we can count on the ascii string being >= the length of
     // the utf8 decoded string. This helps avoid unneeded memory allocations
     decodedStr.Reserve( strToBeDecoded.ByteSize(), 0 );
-         
-    // Since the input is just ASCII we only have to worry about a few cases and no variable length encoding
+
+    // A code point of UTF-8 is up to 4 bytes, each of them an escape of its own (%C3%BC). The bytes are collected
+    // until they are a complete code point
     UInt32 utf8BytesCollected = 0;    
     char utf8TempBuffer[ 5 ] = { 0, 0, 0, 0, 0 };
-    for ( UInt32 i=0; i<strToBeDecoded.Length(); ++i )
+    const UInt32 length = strToBeDecoded.Length();
+    for ( UInt32 i=0; i<length; ++i )
     {
         char codePoint = strToBeDecoded[ i ];
-
-        while ( '%' == codePoint && utf8BytesCollected < 4 )
+        if ( '%' == codePoint )
         {
-            // Since we have found an encoding marker we need to check the next 2 chars
-            if ( i+2<strToBeDecoded.Length() )
-            {
-                char hexCharA = strToBeDecoded[ i+1 ];
-                char hexCharB = strToBeDecoded[ i+2 ];
-                ConvertHexCharsToByte( hexCharA, hexCharB, utf8TempBuffer[ utf8BytesCollected ] ); 
-                ++utf8BytesCollected; 
-                i+=2;
-            }
-            else
-            {
-                // We should not have run out of bytes at this point
+            // Since we have found an encoding marker we need the next 2 chars, and they have to be hex digits
+            if ( i+2 >= length || utf8BytesCollected >= 4 )
                 return false;
-            }
+            char hexCharA = strToBeDecoded[ i+1 ];
+            char hexCharB = strToBeDecoded[ i+2 ];
+            if ( !IsHexDigit( hexCharA ) || !IsHexDigit( hexCharB ) )
+                return false;
+            ConvertHexCharsToByte( hexCharA, hexCharB, utf8TempBuffer[ utf8BytesCollected ] ); 
+            ++utf8BytesCollected; 
+            i+=2;
+
+            // How many bytes the code point has follows from its first byte
+            const UInt8 firstByte = (UInt8) utf8TempBuffer[ 0 ];
+            UInt32 bytesNeeded = 0;
+            if ( firstByte < 0x80 )
+                bytesNeeded = 1;
+            else
+            if ( firstByte >= 0xC2 && firstByte <= 0xDF )
+                bytesNeeded = 2;
+            else
+            if ( firstByte >= 0xE0 && firstByte <= 0xEF )
+                bytesNeeded = 3;
+            else
+            if ( firstByte >= 0xF0 && firstByte <= 0xF4 )
+                bytesNeeded = 4;
+            else
+                return false;   // not a first byte of a code point
 
             // Did we gather enough bytes to generate a complete utf8 code point?
-            UInt32 utf32CodePoint = 0;
-            Int32 bytesInCurrentUtf8CodePoint = CUtf8String::EncodeUtf8CodePointToUtf32( utf8TempBuffer, 5, utf32CodePoint ); 
-            if ( -1 != bytesInCurrentUtf8CodePoint )
+            if ( utf8BytesCollected == bytesNeeded )
             {
-                decodedStr += utf32CodePoint;   // Add a previously URL encoded code point
+                UInt32 utf32CodePoint = 0;
+                if ( -1 == CUtf8String::EncodeUtf8CodePointToUtf32( utf8TempBuffer, 5, utf32CodePoint ) )
+                    return false;
+                decodedStr.Append( utf32CodePoint );   // Add a previously URL encoded code point
                 memset( utf8TempBuffer, 0, 5 );
                 utf8BytesCollected = 0;
             }
         }
-
-        if ( 0 == utf8BytesCollected )
-        {
-            // ASCII fits within UTF8 so a cast will do
-            decodedStr += (Int32) codePoint;
-        }
         else
         {
             // Malformed: We should not have any partial UTF8 code points that we could not complete
-            return false;
+            if ( 0 != utf8BytesCollected )
+                return false;
+
+            // ASCII fits within UTF8 so a cast will do
+            decodedStr.Append( (Int32) codePoint );
         }
     }
     
-    return true;
+    // Malformed: the last escapes were not a complete code point
+    return 0 == utf8BytesCollected;
 }
 
 /*-------------------------------------------------------------------------*/
