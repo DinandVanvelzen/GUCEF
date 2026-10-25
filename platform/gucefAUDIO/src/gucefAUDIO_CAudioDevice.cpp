@@ -91,6 +91,24 @@ CAudioDevice::GetLatencyInFrames( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+CNullAudioDevice*
+CAudioDevice::AsNullDevice( void )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CAudioPushDevice*
+CAudioDevice::AsPushDevice( void )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
 IAudioDeviceCallback*
 CAudioDevice::GetCallback( void ) const
 {GUCEF_TRACE;

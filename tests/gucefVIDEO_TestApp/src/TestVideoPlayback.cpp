@@ -260,7 +260,7 @@ AUDIO::CNullAudioDevice*
 Null( AUDIO::CAudioEngine& engine )
 {
     AUDIO::TAudioDevicePtr device = engine.GetDevice();
-    return dynamic_cast< AUDIO::CNullAudioDevice* >( device.GetPointerAlways() );
+    return ( device.IsNULL() ? GUCEF_NULL : device->AsNullDevice() );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -199,7 +199,7 @@ PerformAudioAlsaTests( void )
             const UInt32 expected = device->GetFormat().GetSampleRate() * 3 / 10;
             ASSERT_TRUE( asked > expected / 2 && asked < expected * 3 );
             ASSERT_TRUE( 0 == silence.lost.Load() );
-            AUDIO::CAudioPushDevice* push = dynamic_cast< AUDIO::CAudioPushDevice* >( device.GetPointerAlways() );
+            AUDIO::CAudioPushDevice* push = ( device.IsNULL() ? GUCEF_NULL : device->AsPushDevice() );
             ASSERT_TRUE( GUCEF_NULL != push && push->GetTotalFramesPushed() == asked );
         }
         catch( ... )

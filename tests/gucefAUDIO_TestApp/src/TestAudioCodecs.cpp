@@ -248,7 +248,7 @@ PerformRegistryTests( void )
 
         AUDIO::CWavAudioCodec wav;
         CORE::CICloneable* clone = wav.Clone();
-        ASSERT_TRUE( GUCEF_NULL != clone && GUCEF_NULL != dynamic_cast< AUDIO::CWavAudioCodec* >( clone ) );
+        ASSERT_TRUE( GUCEF_NULL != clone && GUCEF_NULL != CORE::CICloneable::CloneableAs< AUDIO::CWavAudioCodec >( clone ) );
         GUCEF_DELETE clone;
     }
     catch( ... )

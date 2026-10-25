@@ -75,6 +75,8 @@ class GUCEF_AUDIO_PUBLIC_CPP CNullAudioDevice : public CAudioDevice
 
     virtual UInt32 GetPeriodSizeInFrames( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual CNullAudioDevice* AsNullDevice( void ) GUCEF_VIRTUAL_OVERRIDE;
+
     /**
      *  Plays 'frameCount' frames: asks the callback for audio (or hands it silence to record) as a real device would,
      *  in pieces of the period size. Does nothing when the device is not started. Returns the number of frames made.

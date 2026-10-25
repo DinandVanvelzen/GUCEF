@@ -1,6 +1,7 @@
 <ModuleInfoEntry>
     <Module Name="gucefVFS_TestApp" Type="Executable" Platform="All" Tags="test">
         <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
             <Dependency Name="gucefVFS" />

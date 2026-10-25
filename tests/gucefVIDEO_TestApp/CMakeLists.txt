@@ -45,7 +45,7 @@ add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCORE gucefIMAGE gucefMT gucefVI
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCORE gucefIMAGE gucefMT gucefVIDEO )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_VIDEO_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefVIDEO_TestApp;MODULE_NAME=gucefVIDEO_TestApp" )
 
-include_directories( ../../common/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/android )

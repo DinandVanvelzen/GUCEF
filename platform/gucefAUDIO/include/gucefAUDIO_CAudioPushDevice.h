@@ -108,6 +108,8 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioPushDevice : public CAudioDevice
 
     virtual UInt32 GetPeriodSizeInFrames( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual CAudioPushDevice* AsPushDevice( void ) GUCEF_VIRTUAL_OVERRIDE;
+
     /** Times the backend ran dry since the device was made */
     UInt64 GetUnderrunCount( void ) const;
 

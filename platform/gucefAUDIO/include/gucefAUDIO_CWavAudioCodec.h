@@ -87,6 +87,11 @@ class GUCEF_AUDIO_PUBLIC_CPP CWavAudioCodec : public CIAudioCodec
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see CORE::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
+
     protected:
 
     virtual bool OpenSourceImpl( CORE::CIOAccess* input, const TIOAccessPtr& owner, const CORE::CValueList& options, TAudioSourcePtr& source ) GUCEF_VIRTUAL_OVERRIDE;

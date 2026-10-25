@@ -55,6 +55,9 @@ namespace AUDIO {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+class CNullAudioDevice;
+class CAudioPushDevice;
+
 /**
  *  An audio device that has been opened: it plays or records in one format until it is stopped or closed.
  *  Drivers make these, everything else only uses them. The device does nothing until Start() and
@@ -90,6 +93,12 @@ class GUCEF_AUDIO_PUBLIC_CPP CAudioDevice
 
     /** Frames between giving audio to the device and hearing it, as far as the driver knows, else 0 */
     virtual UInt32 GetLatencyInFrames( void ) const;
+
+    /** This device as the null device, NULL when it is none; no run time type information needed */
+    virtual CNullAudioDevice* AsNullDevice( void );
+
+    /** This device as a push device (also a driver's own kind of it), NULL when it is none; no run time type information needed */
+    virtual CAudioPushDevice* AsPushDevice( void );
 
     protected:
 

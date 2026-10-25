@@ -151,19 +151,19 @@ if ( WIN64 )
 endif( WIN64 )
 
 if ( LINUX32 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefIMAGE/include ../../platform/gucefMT/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefIMAGE/include ../../platform/gucefMT/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefIMAGE/include ../../platform/gucefMT/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefIMAGE/include ../../platform/gucefMT/include include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../common/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefIMAGE/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin include )
 endif( WIN64 )
 
 

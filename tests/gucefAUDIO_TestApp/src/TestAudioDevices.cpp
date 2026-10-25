@@ -233,7 +233,7 @@ AUDIO::CNullAudioDevice*
 AsNull( const AUDIO::TAudioDevicePtr& device )
 {
     AUDIO::TAudioDevicePtr copy( device );
-    return dynamic_cast< AUDIO::CNullAudioDevice* >( copy.GetPointerAlways() );
+    return ( copy.IsNULL() ? GUCEF_NULL : copy->AsNullDevice() );
 }
 
 }

@@ -38,6 +38,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#include "gucef_test_log_callback.h"
+#define GUCEF_TEST_LOG_CALLBACK_H
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
 #define GUCEF_CORE_H
@@ -378,7 +383,7 @@ GUCEF_OSMAIN_BEGIN
         VFS::CVfsGlobal::Instance();
 
         GUCEF_TESTFW_INIT( "gucefVFS_TestApp" );
-        GUCEF_TESTFW_SET_CALLBACK( CORE::TestFrameworkLogCallback, GUCEF_NULL );
+        GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
         PerformVFSFileLoadUnloadTest();
         PerformZipArchiveWriterTests();

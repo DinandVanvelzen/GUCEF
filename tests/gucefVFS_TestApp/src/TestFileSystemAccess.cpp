@@ -274,7 +274,7 @@ PerformVfsFileSystemAccessTests( void )
             ASSERT_TRUE( CORE::FILESYSTEMACCESS_SUCCESS == access->TryGetEntryType( "/fsa", type ) && CORE::FILESYSTEMENTRYTYPE_DIRECTORY == type );
             CORE::TFileSystemIteratorPtr iterator;
             ASSERT_TRUE( CORE::FILESYSTEMACCESS_SUCCESS == access->TryGetFileSystemIterator( "/", iterator ) );
-            ASSERT_TRUE( GUCEF_NULL != dynamic_cast< CORE::CFileSystemEntryListIterator* >( iterator.GetPointerAlways() ) );
+            ASSERT_FALSE( iterator.IsNULL() );
             ASSERT_TRUE( Contains( ListNames( *iterator, "/" ), "fsa/" ) );
             ASSERT_TRUE( CORE::FILESYSTEMACCESS_SUCCESS == access->TryGetFileSystemIterator( "/fsa", iterator ) );
             CORE::CString::StringVector names = ListNames( *iterator, "/fsa" );

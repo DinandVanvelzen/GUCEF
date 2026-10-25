@@ -32,6 +32,11 @@
 #define GUCEF_TESTFW_H
 #endif /* GUCEF_TESTFW_H ? */
 
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#include "gucef_test_log_callback.h"
+#define GUCEF_TEST_LOG_CALLBACK_H
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
 #define GUCEF_CORE_H
@@ -213,7 +218,7 @@ GUCEF_OSMAIN_BEGIN
         IMAGE::CImageGlobal::Instance();
 
         GUCEF_TESTFW_INIT( "gucefIMAGE_TestApp" );
-        GUCEF_TESTFW_SET_CALLBACK( CORE::TestFrameworkLogCallback, GUCEF_NULL );
+        GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
         PerformImageAnimationTests();
         PerformPixelMapConversionTests();

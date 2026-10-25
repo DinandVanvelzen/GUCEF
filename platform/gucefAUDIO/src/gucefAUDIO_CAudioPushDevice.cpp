@@ -244,6 +244,15 @@ CAudioPushDevice::IsStarted( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+CAudioPushDevice*
+CAudioPushDevice::AsPushDevice( void )
+{GUCEF_TRACE;
+
+    return this;
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32
 CAudioPushDevice::GetPeriodSizeInFrames( void ) const
 {GUCEF_TRACE;

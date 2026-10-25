@@ -27,6 +27,7 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../common/test/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \

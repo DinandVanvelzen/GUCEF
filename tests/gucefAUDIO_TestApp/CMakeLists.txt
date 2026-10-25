@@ -69,7 +69,7 @@ if ( EMSCRIPTEN64 )
   target_link_libraries( ${MODULE_NAME} PUBLIC audiodriverWEBAUDIO )
 endif( EMSCRIPTEN64 )
 
-include_directories( ../../common/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCORE/include/android )

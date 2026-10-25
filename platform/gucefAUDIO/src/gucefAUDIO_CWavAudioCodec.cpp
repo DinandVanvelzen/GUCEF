@@ -364,6 +364,24 @@ CWavAudioCodec::Clone( void ) const
     return GUCEF_NEW CWavAudioCodec( *this );
 }
 
+/*-------------------------------------------------------------------------*/
+
+const char*
+CWavAudioCodec::GetCloneableTypeName( void ) const
+{GUCEF_TRACE;
+
+    return CloneableTypeName();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CWavAudioCodec::CloneableTypeName( void )
+{GUCEF_TRACE;
+
+    return "GUCEF::AUDIO::CWavAudioCodec";
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

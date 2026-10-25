@@ -115,7 +115,7 @@ AUDIO::CNullAudioDevice*
 Null( AUDIO::CAudioEngine& engine )
 {
     AUDIO::TAudioDevicePtr device = engine.GetDevice();
-    return dynamic_cast< AUDIO::CNullAudioDevice* >( device.GetPointerAlways() );
+    return ( device.IsNULL() ? GUCEF_NULL : device->AsNullDevice() );
 }
 
 /** The audio thread does its work (the null device is driven by hand) and then the application side catches up */

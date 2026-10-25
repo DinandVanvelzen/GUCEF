@@ -318,7 +318,7 @@ PerformAudioStreamTests( void )
         ASSERT_FALSE( started.HasNoFuture() );
 
         AUDIO::TAudioDevicePtr device = engine.GetDevice();
-        AUDIO::CNullAudioDevice* null = dynamic_cast< AUDIO::CNullAudioDevice* >( device.GetPointerAlways() );
+        AUDIO::CNullAudioDevice* null = ( device.IsNULL() ? GUCEF_NULL : device->AsNullDevice() );
         ASSERT_TRUE( GUCEF_NULL != null );
         for ( UInt32 i=0; i<30 && GUCEF_NULL != null; ++i )
         {

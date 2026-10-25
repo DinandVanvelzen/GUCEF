@@ -102,6 +102,15 @@ CNullAudioDevice::IsStarted( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+CNullAudioDevice*
+CNullAudioDevice::AsNullDevice( void )
+{GUCEF_TRACE;
+
+    return this;
+}
+
+/*-------------------------------------------------------------------------*/
+
 UInt32
 CNullAudioDevice::GetPeriodSizeInFrames( void ) const
 {GUCEF_TRACE;

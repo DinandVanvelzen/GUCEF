@@ -696,6 +696,10 @@ CISO9660Archive::GetImageAccessForReading( void ) const
 
     // A file on disk gets its own access per file window, so concurrent readers do not disturb each other.
     // Other kinds of images (memory, descriptors, windows on other archives) cannot be copied cheaply and are shared.
+    // The image can be any kind of access handed to us by the caller and nothing in it tells us it is a file, so
+    // the check is a run time type check. Without RTTI every image is treated as one that is shared, which is
+    // correct but the readers then take turns.
+    #ifdef GUCEF_RTTI_IS_SUPPORTED
     CORE::CFileAccess* fileImage = dynamic_cast< CORE::CFileAccess* >( m_image.GetPointerAlways() );
     if ( GUCEF_NULL != fileImage )
     {
@@ -703,6 +707,7 @@ CISO9660Archive::GetImageAccessForReading( void ) const
         if ( GUCEF_NULL != clone )
             return CORE::IOAccessPtr( static_cast< CORE::CIOAccess* >( clone ) );
     }
+    #endif /* GUCEF_RTTI_IS_SUPPORTED ? */
     return m_image;
 }
 

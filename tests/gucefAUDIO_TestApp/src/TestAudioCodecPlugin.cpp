@@ -409,7 +409,7 @@ PerformAudioCodecPluginTests( void )
         CORE::CFutureResult started = engine.Start( voice );
         ASSERT_FALSE( started.HasNoFuture() );
         CORE::CFutureResult ended = engine.GetEndedResult( voice );
-        AUDIO::CNullAudioDevice* device = dynamic_cast< AUDIO::CNullAudioDevice* >( engine.GetDevice().GetPointerAlways() );
+        AUDIO::CNullAudioDevice* device = ( engine.GetDevice().IsNULL() ? GUCEF_NULL : engine.GetDevice()->AsNullDevice() );
         ASSERT_TRUE( GUCEF_NULL != device );
         device->Render( 2205 + 512 );
         ASSERT_TRUE( engine.WaitFor( ended, 2000 ) );
