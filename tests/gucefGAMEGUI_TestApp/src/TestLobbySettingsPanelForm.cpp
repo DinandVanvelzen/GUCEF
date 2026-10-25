@@ -53,6 +53,8 @@ class CSettingRecorder : public CORE::CObserver
 {
     public:
 
+    typedef CORE::CTEventHandlerFunctor< CSettingRecorder > TEventCallback;
+
     UInt32 count;
     CORE::CString key;
     CORE::CString value;
@@ -61,14 +63,15 @@ class CSettingRecorder : public CORE::CObserver
     CSettingRecorder( CORE::CNotifier* panel )
         : CORE::CObserver(), count( 0 ), key(), value(), proposed( false )
     {
-        SubscribeTo( panel, GAMEGUI::CLobbySettingsPanelForm::SettingChangedEvent );
+        TEventCallback callback( this, &CSettingRecorder::OnSettingChanged );
+        SubscribeTo( panel, GAMEGUI::CLobbySettingsPanelForm::SettingChangedEvent, callback );
     }
 
     virtual ~CSettingRecorder() { UnsubscribeAllFromObserver(); }
 
-    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    void OnSettingChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
-        if ( GAMEGUI::CLobbySettingsPanelForm::SettingChangedEvent != eventId || GUCEF_NULL == eventData )
+        if ( GUCEF_NULL == eventData )
             return;
         const GAMEGUI::CSettingChangedEventData* change = static_cast< const GAMEGUI::CSettingChangedEventData* >( eventData );
         ++count;
@@ -115,17 +118,17 @@ PerformLobbySettingsPanelFormTests( void )
         ASSERT_TRUE( 6 == panel.GetSettingCount() && GUCEF_NULL == panel.GetControl( "map" ) );     // not built yet
         ASSERT_TRUE( panel.Build( MakeHolder( context, "Holder" ) ) );
 
-        ASSERT_TRUE( GUCEF_NULL != dynamic_cast< GUI::CCombobox* >( panel.GetControl( "map" ) ) );
-        ASSERT_TRUE( GUCEF_NULL != dynamic_cast< GUI::CSpinner* >( panel.GetControl( "speed" ) ) );
-        ASSERT_TRUE( GUCEF_NULL != dynamic_cast< GUI::CSpinner* >( panel.GetControl( "handicap" ) ) );
-        ASSERT_TRUE( GUCEF_NULL != dynamic_cast< GUI::CCheckbox* >( panel.GetControl( "fog" ) ) );
-        ASSERT_TRUE( GUCEF_NULL != dynamic_cast< GUI::CSpinner* >( panel.GetControl( "gravity" ) ) );
-        ASSERT_TRUE( GUCEF_NULL != dynamic_cast< GUI::CEditbox* >( panel.GetControl( "motd" ) ) );
+        ASSERT_TRUE( GUCEF_NULL != GAMEGUI::WidgetAs< GUI::CCombobox >( panel.GetControl( "map" ), "Combobox" ) );
+        ASSERT_TRUE( GUCEF_NULL != GAMEGUI::WidgetAs< GUI::CSpinner >( panel.GetControl( "speed" ), "Spinner" ) );
+        ASSERT_TRUE( GUCEF_NULL != GAMEGUI::WidgetAs< GUI::CSpinner >( panel.GetControl( "handicap" ), "Spinner" ) );
+        ASSERT_TRUE( GUCEF_NULL != GAMEGUI::WidgetAs< GUI::CCheckbox >( panel.GetControl( "fog" ), "Checkbox" ) );
+        ASSERT_TRUE( GUCEF_NULL != GAMEGUI::WidgetAs< GUI::CSpinner >( panel.GetControl( "gravity" ), "Spinner" ) );
+        ASSERT_TRUE( GUCEF_NULL != GAMEGUI::WidgetAs< GUI::CEditbox >( panel.GetControl( "motd" ), "Editbox" ) );
         ASSERT_TRUE( GUCEF_NULL == panel.GetControl( "nothing" ) );
 
         // the definitions arrive in the controls: items, range, step, decimals
         GUI::CCombobox::TStringVector items;
-        dynamic_cast< GUI::CCombobox* >( panel.GetControl( "map" ) )->GetListItems( items );
+        GAMEGUI::WidgetAs< GUI::CCombobox >( panel.GetControl( "map" ), "Combobox" )->GetListItems( items );
         ASSERT_TRUE( 2 == items.size() && "dust" == items[ 0 ] && "ice" == items[ 1 ] );
         GUI::CWidget* speed = panel.GetControl( "speed" );
         ASSERT_TRUE( 1 == speed->GetIntProperty( "Min" ) && 5 == speed->GetIntProperty( "Max" ) && 0 == speed->GetIntProperty( "Decimals" ) );
@@ -157,7 +160,7 @@ PerformLobbySettingsPanelFormTests( void )
         panel.SetValues( given );
         ASSERT_TRUE( "ice" == panel.GetValue( "map" ) && "5" == panel.GetValue( "speed" ) && "true" == panel.GetValue( "fog" ) );
         ASSERT_TRUE( "1.5" == panel.GetValue( "gravity" ) && "welcome" == panel.GetValue( "motd" ) && "0" == panel.GetValue( "handicap" ) );
-        ASSERT_TRUE( 1 == dynamic_cast< GUI::CCombobox* >( panel.GetControl( "map" ) )->GetSelectedIndex() && panel.GetControl( "fog" )->GetBoolProperty( "Checked" ) );
+        ASSERT_TRUE( 1 == GAMEGUI::WidgetAs< GUI::CCombobox >( panel.GetControl( "map" ), "Combobox" )->GetSelectedIndex() && panel.GetControl( "fog" )->GetBoolProperty( "Checked" ) );
     }
     catch ( ... )
     {
@@ -184,7 +187,7 @@ PerformLobbySettingsPanelFormTests( void )
         panel.GetControl( "speed" )->ChangeValueByUser( "Value", "4" );
         ASSERT_TRUE( 1 == recorder.count && "speed" == recorder.key && "4" == recorder.value && !recorder.proposed );
         ASSERT_TRUE( "4" == panel.GetValue( "speed" ) );
-        ASSERT_TRUE( dynamic_cast< GUI::CSpinner* >( panel.GetControl( "speed" ) )->StepValue( 1 ) );
+        ASSERT_TRUE( GAMEGUI::WidgetAs< GUI::CSpinner >( panel.GetControl( "speed" ), "Spinner" )->StepValue( 1 ) );
         ASSERT_TRUE( "5" == panel.GetValue( "speed" ) );
 
         // the same value again is no change
@@ -311,7 +314,7 @@ PerformLobbySettingsPanelFormTests( void )
         // the boss changes the map: the lobby has it, the panel of a player shows it
         ASSERT_TRUE( PickItem( context, bossPanel.GetControl( "map" ), 1 ) );
         ASSERT_TRUE( "ice" == fixture.alice->GetState().GetSetting( "map" ) && 1 == bossRecorder.count && "map" == bossRecorder.key && !bossRecorder.proposed );
-        ASSERT_TRUE( "ice" == playerPanel.GetValue( "map" ) && 1 == dynamic_cast< GUI::CCombobox* >( playerPanel.GetControl( "map" ) )->GetSelectedIndex() );
+        ASSERT_TRUE( "ice" == playerPanel.GetValue( "map" ) && 1 == GAMEGUI::WidgetAs< GUI::CCombobox >( playerPanel.GetControl( "map" ), "Combobox" )->GetSelectedIndex() );
 
         // the boss sets the vote setting directly
         bossPanel.GetControl( "speed" )->ChangeValueByUser( "Value", "2" );
@@ -352,6 +355,216 @@ PerformLobbySettingsPanelFormTests( void )
         // taking the lobby away leaves a plain form
         playerPanel.SetLobby( MULTIPLAY::CILobbyPtr() );
         ASSERT_TRUE( playerPanel.GetLobby().IsNULL() && 6 == playerPanel.GetSettingCount() && playerPanel.IsSettingEditable( "map" ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "SettingsPanel: A unit is shown after the control, and a setting that depends on another is enabled while that one has the value, without a lobby" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateFormContext();
+        GUI::CGUIContext* context = ContextOf( contextPtr );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL == context )
+            return;
+
+        MULTIPLAY::CLobbySettingsSchema schema;
+        MULTIPLAY::CLobbySettingDef timer;
+        timer.key = "timer";
+        timer.label = "Turn timer";
+        timer.type = MULTIPLAY::CLobbySettingDef::TYPE_BOOL;
+        timer.defaultValue = "true";
+        schema.AddSetting( timer );
+        MULTIPLAY::CLobbySettingDef seconds;
+        seconds.key = "seconds";
+        seconds.label = "Seconds per turn";
+        seconds.type = MULTIPLAY::CLobbySettingDef::TYPE_INT;
+        seconds.hasRange = true;
+        seconds.minValue = 15;
+        seconds.maxValue = 3600;
+        seconds.step = 5;
+        seconds.defaultValue = "180";
+        seconds.unit = "s";
+        seconds.enabledByKey = "timer";
+        seconds.enabledByValue = "true";
+        schema.AddSetting( seconds );
+        MULTIPLAY::CLobbySettingDef mode;
+        mode.key = "mode";
+        mode.label = "Mode";
+        mode.type = MULTIPLAY::CLobbySettingDef::TYPE_ENUM;
+        mode.options.push_back( "plain" );
+        mode.options.push_back( "bonus" );
+        mode.defaultValue = "plain";
+        mode.unit = "x";
+        schema.AddSetting( mode );
+        MULTIPLAY::CLobbySettingDef bonus;
+        bonus.key = "bonus";
+        bonus.label = "Bonus";
+        bonus.type = MULTIPLAY::CLobbySettingDef::TYPE_STRING;
+        bonus.defaultValue = "gold";
+        bonus.unit = "pts";
+        bonus.enabledByKey = "mode";
+        bonus.enabledByValue = "bonus";
+        schema.AddSetting( bonus );
+        MULTIPLAY::CLobbySettingDef stray;
+        stray.key = "stray";
+        stray.type = MULTIPLAY::CLobbySettingDef::TYPE_INT;
+        stray.defaultValue = "1";
+        stray.enabledByKey = "nosuch";
+        stray.enabledByValue = "true";
+        schema.AddSetting( stray );
+
+        GAMEGUI::CLobbySettingsPanelForm panel;
+        panel.SetSchema( schema );
+        ASSERT_TRUE( panel.Build( MakeHolder( context, "Holder" ) ) );
+        CSettingRecorder recorder( &panel );
+
+        // units are labels after the controls of settings that have one, in the room left by the control
+        ASSERT_TRUE( "s" == panel.GetUnitText( "seconds" ) && "x" == panel.GetUnitText( "mode" ) && "pts" == panel.GetUnitText( "bonus" ) );
+        ASSERT_TRUE( panel.GetUnitText( "timer" ).IsNULLOrEmpty() && panel.GetUnitText( "stray" ).IsNULLOrEmpty() && panel.GetUnitText( "nosuch" ).IsNULLOrEmpty() );
+        ASSERT_TRUE( GUCEF_NULL != panel.GetWidget( "Unit1" ) && GUCEF_NULL == panel.GetWidget( "Unit0" ) && GUCEF_NULL == panel.GetWidget( "Unit4" ) );
+        context->FlushChanges();
+        GUI::CWidget* secondsControl = panel.GetControl( "seconds" );
+        GUI::CWidget* secondsUnit = panel.GetWidget( "Unit1" );
+        ASSERT_TRUE( secondsControl->GetRect().left + secondsControl->GetRect().width <= secondsUnit->GetRect().left + 1 );
+        ASSERT_TRUE( secondsUnit->GetRect().width > 0 && secondsUnit->GetRect().left + secondsUnit->GetRect().width <= secondsControl->GetParentWidget()->GetRect().left + secondsControl->GetParentWidget()->GetRect().width + 1 );
+        ASSERT_TRUE( secondsControl->GetRect().width > 0 && secondsControl->GetRect().top == secondsUnit->GetRect().top );
+        // a setting without a unit keeps the whole width
+        GUI::CWidget* strayControl = panel.GetControl( "stray" );
+        ASSERT_TRUE( strayControl->GetRect().width > secondsControl->GetRect().width );
+
+        // the timer is on: seconds can be edited; the gate on a key the schema lacks is no gate
+        ASSERT_TRUE( panel.IsGateOpen( "seconds" ) && panel.IsSettingEditable( "seconds" ) && panel.IsGateOpen( "timer" ) );
+        ASSERT_TRUE( panel.IsGateOpen( "stray" ) && panel.IsSettingEditable( "stray" ) );
+        ASSERT_TRUE( panel.GetControl( "seconds" )->GetProperty( "Tooltip" ).IsNULLOrEmpty() );
+
+        // changing the controlling setting closes the gate, at once; the value stays
+        panel.GetControl( "seconds" )->ChangeValueByUser( "Value", "90" );
+        ASSERT_TRUE( "seconds" == recorder.key && "90" == recorder.value && "90" == panel.GetValue( "seconds" ) );
+        ClickWidget( context, panel.GetControl( "timer" ) );
+        ASSERT_TRUE( "timer" == recorder.key && "false" == recorder.value );
+        ASSERT_FALSE( panel.IsGateOpen( "seconds" ) || panel.IsSettingEditable( "seconds" ) );
+        ASSERT_TRUE( panel.IsSettingEditable( "timer" ) && panel.IsSettingEditable( "mode" ) );
+        ASSERT_TRUE( "90" == panel.GetValue( "seconds" ) && "s" == panel.GetUnitText( "seconds" ) );
+        ASSERT_TRUE( 0 <= panel.GetControl( "seconds" )->GetProperty( "Tooltip" ).HasSubstr( "Turn timer" ) );
+
+        // a change of a gated setting does not get through
+        UInt32 count = recorder.count;
+        panel.GetControl( "seconds" )->ChangeValueByUser( "Value", "120" );
+        ASSERT_TRUE( count == recorder.count && "90" == panel.GetValue( "seconds" ) );
+        CORE::CValueList values;
+        panel.GetValues( values );
+        ASSERT_TRUE( "90" == values.GetValueAlways( "seconds" ).AsString() && "false" == values.GetValueAlways( "timer" ).AsString() );
+
+        // and open again
+        ClickWidget( context, panel.GetControl( "timer" ) );
+        ASSERT_TRUE( panel.IsGateOpen( "seconds" ) && panel.IsSettingEditable( "seconds" ) && "90" == panel.GetValue( "seconds" ) );
+        ASSERT_TRUE( panel.GetControl( "seconds" )->GetProperty( "Tooltip" ).IsNULLOrEmpty() );
+        panel.GetControl( "seconds" )->ChangeValueByUser( "Value", "120" );
+        ASSERT_TRUE( "seconds" == recorder.key && "120" == recorder.value );
+
+        // the value that opens it can be a choice: bonus is editable in the mode bonus only
+        ASSERT_FALSE( panel.IsSettingEditable( "bonus" ) );
+        ASSERT_TRUE( PickItem( context, panel.GetControl( "mode" ), 1 ) );
+        ASSERT_TRUE( "mode" == recorder.key && "bonus" == recorder.value );
+        ASSERT_TRUE( panel.IsSettingEditable( "bonus" ) && "gold" == panel.GetValue( "bonus" ) );
+        ASSERT_TRUE( PickItem( context, panel.GetControl( "mode" ), 0 ) );
+        ASSERT_FALSE( panel.IsSettingEditable( "bonus" ) );
+        ASSERT_TRUE( "gold" == panel.GetValue( "bonus" ) );
+
+        // values given from the outside count as well
+        CORE::CValueList given;
+        given.SetAllowMultipleValues( false );
+        given.Set( "timer", "false" );
+        given.Set( "mode", "bonus" );
+        panel.SetValues( given );
+        ASSERT_FALSE( panel.IsSettingEditable( "seconds" ) );
+        ASSERT_TRUE( panel.IsSettingEditable( "bonus" ) );
+        given.Set( "timer", "true" );
+        panel.SetValues( given );
+        ASSERT_TRUE( panel.IsSettingEditable( "seconds" ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "SettingsPanel: In a lobby a gated setting follows the setting it depends on, also when the change comes from another member or from a vote" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateFormContext();
+        GUI::CGUIContext* context = ContextOf( contextPtr );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL == context )
+            return;
+
+        CLobbyFixture fixture;
+        MULTIPLAY::CLobbySettingDef timer;
+        timer.key = "timer";
+        timer.label = "Turn timer";
+        timer.type = MULTIPLAY::CLobbySettingDef::TYPE_BOOL;
+        timer.defaultValue = "true";
+        timer.changePolicy = MULTIPLAY::CLobbySettingDef::CHANGEPOLICY_VOTE;
+        fixture.params.schema.AddSetting( timer );
+        MULTIPLAY::CLobbySettingDef seconds;
+        seconds.key = "seconds";
+        seconds.label = "Seconds per turn";
+        seconds.type = MULTIPLAY::CLobbySettingDef::TYPE_INT;
+        seconds.hasRange = true;
+        seconds.minValue = 15;
+        seconds.maxValue = 3600;
+        seconds.step = 5;
+        seconds.defaultValue = "180";
+        seconds.unit = "s";
+        seconds.enabledByKey = "timer";
+        seconds.enabledByValue = "true";
+        seconds.changePolicy = MULTIPLAY::CLobbySettingDef::CHANGEPOLICY_ANY;
+        fixture.params.schema.AddSetting( seconds );
+        ASSERT_TRUE( fixture.Setup() );
+
+        GAMEGUI::CLobbySettingsPanelForm bossPanel;
+        GAMEGUI::CLobbySettingsPanelForm playerPanel;
+        ASSERT_TRUE( bossPanel.Build( MakeHolder( context, "BossHolder" ) ) && playerPanel.Build( MakeHolder( context, "PlayerHolder", 1 ) ) );
+        bossPanel.SetLobby( fixture.alice );
+        playerPanel.SetLobby( fixture.bob );
+        ASSERT_TRUE( 8 == bossPanel.GetSettingCount() && "s" == playerPanel.GetUnitText( "seconds" ) );
+        ASSERT_TRUE( bossPanel.IsSettingEditable( "seconds" ) && playerPanel.IsSettingEditable( "seconds" ) );
+
+        // a player changes the seconds: the lobby has it
+        playerPanel.GetControl( "seconds" )->ChangeValueByUser( "Value", "90" );
+        ASSERT_TRUE( "90" == fixture.alice->GetState().GetSetting( "seconds" ) && "90" == bossPanel.GetValue( "seconds" ) );
+
+        // the boss turns the timer off: the panel of the player, which did nothing, sees the setting go away
+        ClickWidget( context, bossPanel.GetControl( "timer" ) );
+        ASSERT_TRUE( "false" == fixture.alice->GetState().GetSetting( "timer" ) );
+        ASSERT_FALSE( bossPanel.IsSettingEditable( "seconds" ) || playerPanel.IsSettingEditable( "seconds" ) );
+        ASSERT_FALSE( bossPanel.IsGateOpen( "seconds" ) || playerPanel.IsGateOpen( "seconds" ) );
+        ASSERT_TRUE( "90" == fixture.alice->GetState().GetSetting( "seconds" ) && "90" == playerPanel.GetValue( "seconds" ) && "90" == bossPanel.GetValue( "seconds" ) );
+
+        // the lobby still takes a value for it (the server keeps checking values), a panel that is asked to change it does not
+        ASSERT_TRUE( fixture.alice->SetSetting( "seconds", "60" ) );
+        ASSERT_TRUE( "60" == fixture.alice->GetState().GetSetting( "seconds" ) && "60" == playerPanel.GetValue( "seconds" ) );
+        ASSERT_FALSE( playerPanel.IsSettingEditable( "seconds" ) );
+
+        // the timer back on, and the player proposes it off: nothing changes until the vote passes
+        ClickWidget( context, bossPanel.GetControl( "timer" ) );
+        ASSERT_TRUE( "true" == fixture.alice->GetState().GetSetting( "timer" ) );
+        ASSERT_TRUE( bossPanel.IsSettingEditable( "seconds" ) && playerPanel.IsSettingEditable( "seconds" ) );
+        ClickWidget( context, playerPanel.GetControl( "timer" ) );
+        ASSERT_TRUE( fixture.alice->GetState().activeVote.IsActive() && "timer" == fixture.alice->GetState().activeVote.key );
+        ASSERT_TRUE( bossPanel.IsSettingEditable( "seconds" ) && playerPanel.IsSettingEditable( "seconds" ) );
+        ASSERT_TRUE( fixture.carol->Vote( fixture.alice->GetState().activeVote.id, true ) );
+        ASSERT_TRUE( "false" == fixture.alice->GetState().GetSetting( "timer" ) );
+        ASSERT_FALSE( bossPanel.IsSettingEditable( "seconds" ) || playerPanel.IsSettingEditable( "seconds" ) );
+        ASSERT_TRUE( "60" == bossPanel.GetValue( "seconds" ) );
+
+        // without the lobby the panel is a plain form again, with the gate evaluated on its own values
+        playerPanel.SetLobby( MULTIPLAY::CILobbyPtr() );
+        ASSERT_TRUE( playerPanel.IsGateOpen( "seconds" ) && playerPanel.IsSettingEditable( "seconds" ) );
     }
     catch ( ... )
     {

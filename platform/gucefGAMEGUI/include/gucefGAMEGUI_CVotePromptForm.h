@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_GUI_CFORMEX_H
 #include "gucefGUI_CFormEx.h"
 #define GUCEF_GUI_CFORMEX_H
@@ -135,17 +140,23 @@ class GUCEF_GAMEGUI_EXPORT_CPP CVotePromptForm : public GUI::CFormEx
 
     virtual void OnPostLayoutLoad( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CVotePromptForm > TEventCallback;
 
     void BuildLayout( CORE::CDataNode& layout );
     void ShowVote( void );
     bool CanVoteOn( const MULTIPLAY::CLobbyVote& vote ) const;
     void OpenForLobbyVote( const MULTIPLAY::CLobbyVote& vote );
     void SetLabelText( const char* widgetName, const CORE::CString& text );
+
+    void OnYesActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnNoActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnFrameStarted( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnNavigation( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnLobbyVoteStarted( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnLobbyVoteEnded( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnLobbyStateChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     CVotePromptForm( const CVotePromptForm& src );
     CVotePromptForm& operator=( const CVotePromptForm& src );

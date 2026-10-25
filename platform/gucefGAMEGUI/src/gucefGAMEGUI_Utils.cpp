@@ -27,6 +27,11 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_AUTH_NAMES_H
+#include "gucefAUTH_Names.h"
+#define GUCEF_AUTH_NAMES_H
+#endif /* GUCEF_AUTH_NAMES_H ? */
+
 #include "gucefGAMEGUI_Utils.h"
 
 /*-------------------------------------------------------------------------//
@@ -119,6 +124,19 @@ GetSecondsUntil( const CORE::CDateTime& deadline )
 /*-------------------------------------------------------------------------*/
 
 CORE::CString
+FormatCountdown( Int64 timeInMs )
+{GUCEF_TRACE;
+
+    Int64 seconds = timeInMs <= 0 ? 0 : ( timeInMs + 999 ) / 1000;
+    CORE::CString secondsText = CORE::Int64ToString( seconds % 60 );
+    if ( secondsText.Length() < 2 )
+        secondsText = "0" + secondsText;
+    return CORE::Int64ToString( seconds / 60 ) + ":" + secondsText;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
 JoinLines( const CORE::CString::StringVector& lines )
 {GUCEF_TRACE;
 
@@ -130,6 +148,43 @@ JoinLines( const CORE::CString::StringVector& lines )
         text += lines[ i ];
     }
     return text;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+GetAccountProviderNames( const MULTIPLAY::CPlayerIdentity& identity, CORE::CString::StringVector& names )
+{GUCEF_TRACE;
+
+    names.clear();
+    const UInt32 keyCount = identity.accounts.GetKeyCount();
+    for ( UInt32 i=0; i<keyCount; ++i )
+    {
+        const CORE::CString name = AUTH::GetAccountProviderDisplayName( identity.accounts.GetKey( i ).AsString() );
+        bool known = false;
+        for ( size_t n=0; n<names.size(); ++n )
+            known = known || names[ n ] == name;
+        if ( !known )
+            names.push_back( name );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+MakeAccountsSummary( const MULTIPLAY::CPlayerIdentity& identity, UInt32 maxNames )
+{GUCEF_TRACE;
+
+    CORE::CString::StringVector names;
+    GetAccountProviderNames( identity, names );
+    if ( names.empty() )
+        return "Guest";
+    CORE::CString summary;
+    for ( size_t n=0; n<names.size() && n<maxNames; ++n )
+        summary += ( 0 == n ? "" : ", " ) + names[ n ];
+    if ( names.size() > maxNames )
+        summary += " +" + CORE::UInt32ToString( (UInt32)( names.size() - maxNames ) );
+    return summary;
 }
 
 /*-------------------------------------------------------------------------//

@@ -60,33 +60,43 @@ class CBrowserFormRecorder : public CORE::CObserver
     MULTIPLAY::CGameListingEntry lastJoin;
     MULTIPLAY::CGameListingEntry lastSpectate;
 
+    typedef CORE::CTEventHandlerFunctor< CBrowserFormRecorder > TEventCallback;
+
     CBrowserFormRecorder( CORE::CNotifier* form )
         : CORE::CObserver(), joins( 0 ), spectates( 0 ), creates( 0 ), directs( 0 ), lastJoin(), lastSpectate()
     {
-        SubscribeTo( form );
+        TEventCallback joinCallback( this, &CBrowserFormRecorder::OnJoinRequested );
+        SubscribeTo( form, GAMEGUI::CServerBrowserForm::JoinRequestedEvent, joinCallback );
+        TEventCallback spectateCallback( this, &CBrowserFormRecorder::OnSpectateRequested );
+        SubscribeTo( form, GAMEGUI::CServerBrowserForm::SpectateRequestedEvent, spectateCallback );
+        TEventCallback createCallback( this, &CBrowserFormRecorder::OnCreateRequested );
+        SubscribeTo( form, GAMEGUI::CServerBrowserForm::CreateRequestedEvent, createCallback );
+        TEventCallback directCallback( this, &CBrowserFormRecorder::OnDirectConnectRequested );
+        SubscribeTo( form, GAMEGUI::CServerBrowserForm::DirectConnectRequestedEvent, directCallback );
     }
 
     virtual ~CBrowserFormRecorder() { UnsubscribeAllFromObserver(); }
 
-    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    void OnJoinRequested( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
-        if ( GAMEGUI::CServerBrowserForm::JoinRequestedEvent == eventId )
-        {
-            ++joins;
-            lastJoin = *static_cast< MULTIPLAY::CGameListingEntry* >( eventData );
-        }
-        else
-        if ( GAMEGUI::CServerBrowserForm::SpectateRequestedEvent == eventId )
-        {
-            ++spectates;
-            lastSpectate = *static_cast< MULTIPLAY::CGameListingEntry* >( eventData );
-        }
-        else
-        if ( GAMEGUI::CServerBrowserForm::CreateRequestedEvent == eventId )
-            ++creates;
-        else
-        if ( GAMEGUI::CServerBrowserForm::DirectConnectRequestedEvent == eventId )
-            ++directs;
+        ++joins;
+        lastJoin = *static_cast< MULTIPLAY::CGameListingEntry* >( eventData );
+    }
+
+    void OnSpectateRequested( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        ++spectates;
+        lastSpectate = *static_cast< MULTIPLAY::CGameListingEntry* >( eventData );
+    }
+
+    void OnCreateRequested( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        ++creates;
+    }
+
+    void OnDirectConnectRequested( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        ++directs;
     }
 };
 
@@ -429,6 +439,42 @@ PerformServerBrowserFormTests( void )
         // without a browser there is nothing to refresh
         form.SetBrowser( GUCEF_NULL );
         ASSERT_TRUE( !IsWidgetEnabled( form, "Refresh" ) && !form.RefreshListings() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "ServerBrowser: The handlers are subscribed to the widgets once, and the form lets go of a browser that goes away" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateFormContext();
+        GUI::CGUIContext* context = ContextOf( contextPtr );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL == context )
+            return;
+
+        GAMEGUI::CServerBrowserForm form( context );
+        ASSERT_TRUE( form.Open() );
+
+        // a button each, a filter control each, the three events of the list
+        const UInt32 widgetSubscriptions = GetEventSubscriptionCount( form );
+        ASSERT_TRUE( 13 == widgetSubscriptions );
+        ASSERT_TRUE( form.Open() && widgetSubscriptions == GetEventSubscriptionCount( form ) );
+
+        CBrowserFixture* fixture = GUCEF_NEW CBrowserFixture();
+        form.SetBrowser( &fixture->browser );
+        ASSERT_TRUE( &fixture->browser == form.GetBrowser() && widgetSubscriptions + 1 == GetEventSubscriptionCount( form ) );
+        fixture->AddFourListings();
+        GUI::CGridView* grid = form.GetWidgetAs< GUI::CGridView >( "Listings" );
+        ASSERT_TRUE( GUCEF_NULL != grid && 4 == grid->GetRowCount() );
+
+        // the browser goes away under the form
+        GUCEF_DELETE fixture;
+        fixture = GUCEF_NULL;
+        ASSERT_TRUE( GUCEF_NULL == form.GetBrowser() && widgetSubscriptions == GetEventSubscriptionCount( form ) );
+        ASSERT_TRUE( GUCEF_NULL != grid && 0 == grid->GetRowCount() && !IsWidgetEnabled( form, "Refresh" ) );
     }
     catch ( ... )
     {

@@ -54,6 +54,8 @@ class CLobbyFormRecorder : public CORE::CObserver
 {
     public:
 
+    typedef CORE::CTEventHandlerFunctor< CLobbyFormRecorder > TEventCallback;
+
     UInt32 launches;
     UInt32 lefts;
     MULTIPLAY::CLaunchDescription launch;
@@ -62,20 +64,26 @@ class CLobbyFormRecorder : public CORE::CObserver
     CLobbyFormRecorder( CORE::CNotifier* form )
         : CORE::CObserver(), launches( 0 ), lefts( 0 ), launch(), leftReason()
     {
-        SubscribeTo( form );
+        TEventCallback launchCallback( this, &CLobbyFormRecorder::OnLaunch );
+        SubscribeTo( form, GAMEGUI::CLobbyForm::LaunchEvent, launchCallback );
+        TEventCallback leftCallback( this, &CLobbyFormRecorder::OnLeft );
+        SubscribeTo( form, GAMEGUI::CLobbyForm::LeftEvent, leftCallback );
     }
 
     virtual ~CLobbyFormRecorder() { UnsubscribeAllFromObserver(); }
 
-    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    void OnLaunch( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
-        if ( GAMEGUI::CLobbyForm::LaunchEvent == eventId && GUCEF_NULL != eventData )
+        if ( GUCEF_NULL != eventData )
         {
             ++launches;
             launch = *static_cast< MULTIPLAY::CLaunchDescription* >( eventData );
         }
-        else
-        if ( GAMEGUI::CLobbyForm::LeftEvent == eventId && GUCEF_NULL != eventData )
+    }
+
+    void OnLeft( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        if ( GUCEF_NULL != eventData )
         {
             ++lefts;
             leftReason = static_cast< GAMEGUI::CLobbyForm::TLeftEventData* >( eventData )->GetData();
@@ -92,7 +100,7 @@ ChooseFromSlotMenu( GUI::CGUIContext* context, GUI::CGridView* grid, Int32 row, 
     Int32 x = 0, y = 0;
     RowPoint( context, grid, row, x, y );
     ClickAt( context, x, y, GUI::MOUSEBUTTON_RIGHT );
-    GUI::CPopupMenu* menu = dynamic_cast< GUI::CPopupMenu* >( context->GetPopup() );
+    GUI::CPopupMenu* menu = GAMEGUI::WidgetAs< GUI::CPopupMenu >( context->GetPopup(), "PopupMenu" );
     if ( GUCEF_NULL == menu )
         return false;
     GUI::CPopupMenu::TStringVector items = menu->GetItems();
@@ -118,7 +126,7 @@ SlotMenuItems( GUI::CGUIContext* context, GUI::CGridView* grid, Int32 row )
     Int32 x = 0, y = 0;
     RowPoint( context, grid, row, x, y );
     ClickAt( context, x, y, GUI::MOUSEBUTTON_RIGHT );
-    GUI::CPopupMenu* menu = dynamic_cast< GUI::CPopupMenu* >( context->GetPopup() );
+    GUI::CPopupMenu* menu = GAMEGUI::WidgetAs< GUI::CPopupMenu >( context->GetPopup(), "PopupMenu" );
     if ( GUCEF_NULL != menu )
     {
         items = menu->GetItems();

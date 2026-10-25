@@ -23,6 +23,7 @@ set( HEADER_FILES
   include/gucefGAMEGUI_CModule.h
   include/gucefGAMEGUI_CPlayerProfileForm.h
   include/gucefGAMEGUI_CServerBrowserForm.h
+  include/gucefGAMEGUI_CTurnWaitOverlayForm.h
   include/gucefGAMEGUI_CVotePromptForm.h
   include/gucefGAMEGUI_Utils.h
   include/gucefGAMEGUI_config.h
@@ -41,6 +42,7 @@ set( SOURCE_FILES
   src/gucefGAMEGUI_CModule.cpp
   src/gucefGAMEGUI_CPlayerProfileForm.cpp
   src/gucefGAMEGUI_CServerBrowserForm.cpp
+  src/gucefGAMEGUI_CTurnWaitOverlayForm.cpp
   src/gucefGAMEGUI_CVotePromptForm.cpp
   src/gucefGAMEGUI_Utils.cpp
 )
@@ -56,13 +58,13 @@ set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFO
 
 set( MODULE_NAME "gucefGAMEGUI" )
 add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+add_dependencies( ${MODULE_NAME} gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GAMEGUI_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefGAMEGUI;MODULE_NAME=gucefGAMEGUI;MODULE_SEMVER=0_1_0_0" )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefAUDIO/include ../gucefAUDIO/include/c_api ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefDRN/include ../gucefGUI/include ../gucefIMAGE/include ../gucefINPUT/include ../gucefMT/include ../gucefMULTIPLAY/include ../gucefVFS/include ../gucefVIDEO/include ../gucefVIDEO/include/c_api ../gucefWEB/include include )
+include_directories( ../../common/include ../gucefAUDIO/include ../gucefAUDIO/include/c_api ../gucefAUTH/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefDRN/include ../gucefGUI/include ../gucefIMAGE/include ../gucefINPUT/include ../gucefMT/include ../gucefMULTIPLAY/include ../gucefVFS/include ../gucefVIDEO/include ../gucefVIDEO/include/c_api ../gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )

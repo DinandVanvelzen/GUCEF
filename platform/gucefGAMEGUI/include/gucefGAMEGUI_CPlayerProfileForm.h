@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_GUI_CFORMEX_H
 #include "gucefGUI_CFormEx.h"
 #define GUCEF_GUI_CFORMEX_H
@@ -64,6 +69,9 @@ namespace GAMEGUI {
  *  The profile of the local player: the name the others see, and the id of the profile (read only). Save checks
  *  the name, hands it to the identity provider when there is one, and notifies ProfileChangedEvent with the
  *  identity as it is now (a CPlayerIdentity); a name that did not change is not a change.
+ *  With SetAccountsEnabled() the form also has a line with the accounts linked to the profile ("Guest", or the providers of the
+ *  accounts in the identity) and a button "Log in / accounts", which only notifies AccountsRequestedEvent: the application opens
+ *  the account page of its settings (gucefAUTHGUI) or the login window then. Without it the form is as it was.
  *  The layout is built in code and made for BuildDarkTheme().
  */
 class GUCEF_GAMEGUI_EXPORT_CPP CPlayerProfileForm : public GUI::CFormEx
@@ -72,6 +80,7 @@ class GUCEF_GAMEGUI_EXPORT_CPP CPlayerProfileForm : public GUI::CFormEx
 
     static const CORE::CEvent ProfileChangedEvent;      /**< MULTIPLAY::CPlayerIdentity */
     static const CORE::CEvent CancelledEvent;           /**< no data */
+    static const CORE::CEvent AccountsRequestedEvent;   /**< no data: the player wants to log in with an account or to see the linked ones */
 
     static void RegisterEvents( void );
 
@@ -105,6 +114,14 @@ class GUCEF_GAMEGUI_EXPORT_CPP CPlayerProfileForm : public GUI::CFormEx
 
     MULTIPLAY::CIIdentityProvider* GetIdentityProvider( void ) const;
 
+    /** Shows the line with the linked accounts and the button that leads to logging in; takes effect at once when the form is not open, else at the next Open() */
+    void SetAccountsEnabled( bool enabled );
+
+    bool GetAccountsEnabled( void ) const;
+
+    /** The line with the linked accounts, empty without SetAccountsEnabled() */
+    CORE::CString GetAccountsText( void );
+
     /** The name as typed */
     CORE::CString GetDisplayNameText( void );
 
@@ -128,14 +145,23 @@ class GUCEF_GAMEGUI_EXPORT_CPP CPlayerProfileForm : public GUI::CFormEx
 
     virtual void OnPostLayoutLoad( void ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Only the standard events (destruction of the identity provider) arrive here, the others have their own handler */
     virtual void OnNotify( CORE::CNotifier* notifier                 ,
                            const CORE::CEvent& eventId               ,
                            CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
+    typedef CORE::CTEventHandlerFunctor< CPlayerProfileForm > TEventCallback;
+
     void BuildLayout( CORE::CDataNode& layout );
     void ShowIdentity( void );
+
+    void OnSaveActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnCancelActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnAccountsActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnNameTextEntered( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnNavigation( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     CPlayerProfileForm( const CPlayerProfileForm& src );
     CPlayerProfileForm& operator=( const CPlayerProfileForm& src );
@@ -145,6 +171,8 @@ class GUCEF_GAMEGUI_EXPORT_CPP CPlayerProfileForm : public GUI::CFormEx
     MULTIPLAY::CPlayerIdentity m_identity;
     MULTIPLAY::CIIdentityProvider* m_provider;
     bool m_open;
+    bool m_accountsEnabled;
+    bool m_builtWithAccounts;
 };
 
 /*-------------------------------------------------------------------------//

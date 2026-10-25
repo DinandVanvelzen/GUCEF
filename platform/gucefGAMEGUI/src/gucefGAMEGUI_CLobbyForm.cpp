@@ -97,6 +97,27 @@ const char* const MenuMakeBoss = "Make boss";
 const char* const MenuBan = "Kick and ban";
 const char* const MenuReport = "Report player";
 
+const Int32 ContentTop = WindowContentTop;
+const Int32 FooterHeight = WindowFooterHeight;
+const Int32 SpectatorsHeight = 70;
+
+/** The window is nine tenths of the screen within these limits; narrower than the first it has one column, from the second on the settings get more room */
+const Int32 MinWindowWidth = 640;
+const Int32 MaxWindowWidth = 2400;
+const Int32 MaxWindowHeight = 1100;
+const Int32 NarrowBelowWidth = 760;
+const Int32 WideFromWidth = 1700;
+
+/** Two UDims added: "0.29,-84" and "0,68" are "0.29,-16" */
+CORE::CString
+AddUDim( const CORE::CString& a, const CORE::CString& b )
+{
+    GUI::CUDim first, second;
+    GUI::CUDim::FromString( a, first );
+    GUI::CUDim::FromString( b, second );
+    return GUI::CUDim( first.GetRelativeValue() + second.GetRelativeValue(), first.GetPixelValue() + second.GetPixelValue() ).ToString();
+}
+
 }
 
 /*-------------------------------------------------------------------------//
@@ -128,6 +149,8 @@ CLobbyForm::CLobbyForm( void )
     , m_aiType( "ai" )
     , m_reportReason( "Reported from the lobby" )
     , m_countdown( -1 )
+    , m_tier( TIER_NORMAL )
+    , m_subscribedToFrames( false )
     , m_updating( false )
 {GUCEF_TRACE;
 
@@ -149,6 +172,8 @@ CLobbyForm::CLobbyForm( GUI::CIGUIContext* context )
     , m_aiType( "ai" )
     , m_reportReason( "Reported from the lobby" )
     , m_countdown( -1 )
+    , m_tier( TIER_NORMAL )
+    , m_subscribedToFrames( false )
     , m_updating( false )
 {GUCEF_TRACE;
 
@@ -177,54 +202,172 @@ CLobbyForm::~CLobbyForm()
 /*-------------------------------------------------------------------------*/
 
 void
+CLobbyForm::AddFooter( CORE::CDataNode& window )
+{GUCEF_TRACE;
+
+    // the status and the buttons: a strip along the bottom edge that nothing else uses
+    CORE::CDataNode* footer = GUI::CFormLayout::AddWidgetNode( window, "Panel", "ButtonRow", "0,1 1," + CORE::Int32ToString( -( FooterHeight + 1 ) ), "1,-2 0," + CORE::Int32ToString( FooterHeight ) );
+    GUI::CFormLayout::SetWidgetNodeProperty( *footer, GUI::EWidgetProperty_BackgroundColour, "18,20,26,255" );
+    CORE::CDataNode* status = GUI::CFormLayout::AddWidgetNode( *footer, "Label", "Status", "0,20 0,8", "1,-40 0,24" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *status, GUI::EWidgetProperty_TextColour, "255,110,110,255" );
+    CORE::CDataNode* leave = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "Leave", "1,-120 1,-52", "0,100 0,38" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *leave, GUI::EWidgetProperty_Text, "Leave" );
+    CORE::CDataNode* voteStart = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "VoteStart", "1,-250 1,-52", "0,120 0,38" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *voteStart, GUI::EWidgetProperty_Text, "Vote start" );
+    CORE::CDataNode* forceStart = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "ForceStart", "1,-380 1,-52", "0,120 0,38" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *forceStart, GUI::EWidgetProperty_Text, "Force start" );
+    CORE::CDataNode* start = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "Start", "1,-500 1,-52", "0,110 0,38" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *start, GUI::EWidgetProperty_Text, "Start" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *start, GUI::EWidgetProperty_StyleClass, "Primary" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::AddPlayerControls( CORE::CDataNode& parent, const CORE::CString& x, const CORE::CString& y, const CORE::CString& half )
+{GUCEF_TRACE;
+
+    // 'x' and 'y' are the corner of the controls, 'half' the width of the left half in the scale and pixels of a UDim ("0.29,-10")
+    // Faction and colour on a line, ready and spectate on the next
+    CORE::CDataNode* factionLabel = GUI::CFormLayout::AddWidgetNode( parent, "Label", "FactionLabel", x + " " + y, "0,64 0,32" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *factionLabel, GUI::EWidgetProperty_Text, "Faction" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *factionLabel, GUI::EWidgetProperty_VTextAlign, "Center" );
+    GUI::CFormLayout::AddWidgetNode( parent, "Combobox", "Faction", AddUDim( x, "0,68" ) + " " + y, half + " 0,32" );
+    CORE::CDataNode* colourLabel = GUI::CFormLayout::AddWidgetNode( parent, "Label", "ColourLabel", AddUDim( x, AddUDim( half, "0,84" ) ) + " " + y, "0,56 0,32" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *colourLabel, GUI::EWidgetProperty_Text, "Colour" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *colourLabel, GUI::EWidgetProperty_VTextAlign, "Center" );
+    GUI::CFormLayout::AddWidgetNode( parent, "Combobox", "Colour", AddUDim( x, AddUDim( half, "0,144" ) ) + " " + y, half + " 0,32" );
+    CORE::CDataNode* ready = GUI::CFormLayout::AddWidgetNode( parent, "Checkbox", "Ready", x + " " + AddUDim( y, "0,36" ), "0,110 0,32" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *ready, GUI::EWidgetProperty_Text, "Ready" );
+    CORE::CDataNode* spectate = GUI::CFormLayout::AddWidgetNode( parent, "Checkbox", "Spectate", AddUDim( x, "0,120" ) + " " + AddUDim( y, "0,36" ), "0,150 0,32" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *spectate, GUI::EWidgetProperty_Text, "Spectate" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CLobbyForm::BuildLayout( CORE::CDataNode& layout )
 {GUCEF_TRACE;
 
-    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "LobbyForm", "0.04,0 0.04,0", "0.92,0 0.92,0" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *window, "Title", "Lobby" );
+    const CORE::CString top = CORE::Int32ToString( ContentTop );
+    const CORE::CString columnsTop = CORE::Int32ToString( ContentTop + 36 );
 
-    // how the start goes
-    CORE::CDataNode* countdown = GUI::CFormLayout::AddWidgetNode( *window, "Label", "Countdown", "0,20 0,48", "1,-40 0,28" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *countdown, "TextColour", "255,220,120,255" );
+    // most of the screen, in the middle of it, within limits: the player can move it and fold it up
+    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "LobbyForm", "0.5,0 0.5,0", "0.92,0 0.92,0" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Title, "Lobby" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_HAlign, "Center" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_VAlign, "Center" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_MinSize, "0,640 0,480" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_MaxSize, "0," + CORE::Int32ToString( MaxWindowWidth ) + " 0," + CORE::Int32ToString( MaxWindowHeight ) );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Clip, "true" );
 
-    // the slots and the settings
-    CORE::CDataNode* slots = GUI::CFormLayout::AddWidgetNode( *window, "GridView", "Slots", "0,20 0,84", "0.6,-20 0.34,0" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *slots, "Columns", "Slot\nTeam\nPlayer\nFaction\nColour\nReady\nLatency" );
-    GUI::CFormLayout::AddWidgetNode( *window, "Panel", "SettingsHolder", "0.6,10 0,84", "0.4,-30 0.34,0" );
+    if ( TIER_NARROW == m_tier )
+    {
+        // one column that scrolls as a whole: the countdown and the vote, the slots, the local player, the settings, the spectators, the chat
+        CORE::CDataNode* body = GUI::CFormLayout::AddWidgetNode( *window, "ScrollPanel", "Body", "0,0 0," + top, "1,0 1," + CORE::Int32ToString( -( FooterHeight + ContentTop + 8 ) ) );
+        GUI::CFormLayout::SetWidgetNodeProperty( *body, GUI::EWidgetProperty_BottomPadding, "12" );
+        CORE::CDataNode* list = GUI::CFormLayout::AddWidgetNode( *body, "VBox", "BodyList", "0,0 0,0", "1,0 0,0" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *list, GUI::EWidgetProperty_AutoHeight, "true" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *list, GUI::EWidgetProperty_Padding, "16" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *list, GUI::EWidgetProperty_Spacing, "10" );
 
-    // the local player, and the spectators
-    CORE::CDataNode* factionLabel = GUI::CFormLayout::AddWidgetNode( *window, "Label", "FactionLabel", "0,20 0.34,96", "0,70 0,32" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *factionLabel, "Text", "Faction" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *factionLabel, "VTextAlign", "Center" );
-    GUI::CFormLayout::AddWidgetNode( *window, "Combobox", "Faction", "0,94 0.34,96", "0,130 0,32" );
-    CORE::CDataNode* colourLabel = GUI::CFormLayout::AddWidgetNode( *window, "Label", "ColourLabel", "0,236 0.34,96", "0,60 0,32" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *colourLabel, "Text", "Colour" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *colourLabel, "VTextAlign", "Center" );
-    GUI::CFormLayout::AddWidgetNode( *window, "Combobox", "Colour", "0,300 0.34,96", "0,130 0,32" );
-    CORE::CDataNode* ready = GUI::CFormLayout::AddWidgetNode( *window, "Checkbox", "Ready", "0,440 0.34,96", "0,90 0,32" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *ready, "Text", "Ready" );
-    CORE::CDataNode* spectate = GUI::CFormLayout::AddWidgetNode( *window, "Checkbox", "Spectate", "0,540 0.34,96", "0,130 0,32" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *spectate, "Text", "Spectate" );
+        CORE::CDataNode* countdown = GUI::CFormLayout::AddWidgetNode( *list, "Label", "Countdown", "0,0 0,0", "1,0 0,28" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *countdown, GUI::EWidgetProperty_TextColour, "255,220,120,255" );
+        CORE::CDataNode* vote = GUI::CFormLayout::AddWidgetNode( *list, "Label", "Vote", "0,0 0,0", "1,0 0,28" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *vote, GUI::EWidgetProperty_TextColour, "255,220,120,255" );
+        CORE::CDataNode* slots = GUI::CFormLayout::AddWidgetNode( *list, "GridView", "Slots", "0,0 0,0", "1,0 0,200" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *slots, GUI::EWidgetProperty_Columns, "#\nTeam\nPlayer\nFaction\nColour\nReady\nPing" );
+        CORE::CDataNode* player = GUI::CFormLayout::AddWidgetNode( *list, "Panel", "PlayerRow", "0,0 0,0", "1,0 0,72" );
+        AddPlayerControls( *player, "0,0", "0,0", "0.5,-73" );
+        CORE::CDataNode* settingsLabel = GUI::CFormLayout::AddWidgetNode( *list, "Label", "SettingsLabel", "0,0 0,0", "1,0 0,24" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *settingsLabel, GUI::EWidgetProperty_Text, "Game settings" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *settingsLabel, GUI::EWidgetProperty_TextColour, "150,172,214,255" );
+        CORE::CDataNode* holder = GUI::CFormLayout::AddWidgetNode( *list, "VBox", "SettingsHolder", "0,0 0,0", "1,0 0,0" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *holder, GUI::EWidgetProperty_AutoHeight, "true" );
+        GUI::CFormLayout::AddWidgetNode( *list, "Listbox", "Spectators", "0,0 0,0", "1,0 0," + CORE::Int32ToString( SpectatorsHeight ) );
+        GUI::CFormLayout::AddWidgetNode( *list, "Panel", "ChatHolder", "0,0 0,0", "1,0 0,300" );
+        AddFooter( *window );
+        return;
+    }
 
-    CORE::CDataNode* vote = GUI::CFormLayout::AddWidgetNode( *window, "Label", "Vote", "0,20 0.34,138", "0.6,-20 0,28" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *vote, "TextColour", "255,220,120,255" );
-    GUI::CFormLayout::AddWidgetNode( *window, "Listbox", "Spectators", "0.6,10 0.34,96", "0.4,-30 0,70" );
+    // two columns, the left one a part of the window, in a very wide window less of it so the settings have room for columns of groups
+    const bool wide = TIER_WIDE == m_tier;
+    const CORE::CString leftWidth = wide ? "0.45,-30" : "0.58,-30";
+    const CORE::CString rightPosition = wide ? "0.45,10" : "0.58,10";
+    const CORE::CString rightWidth = wide ? "0.55,-30" : "0.42,-30";
+    const CORE::CString half = wide ? "0.225,-90" : "0.29,-90";
 
-    // the chat of the lobby
-    GUI::CFormLayout::AddWidgetNode( *window, "Panel", "ChatHolder", "0,20 0.34,176", "1,-40 0.66,-286" );
+    // how the start goes on the left, a vote on the right
+    CORE::CDataNode* countdown = GUI::CFormLayout::AddWidgetNode( *window, "Label", "Countdown", "0,20 0," + top, leftWidth + " 0,28" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *countdown, GUI::EWidgetProperty_TextColour, "255,220,120,255" );
+    CORE::CDataNode* vote = GUI::CFormLayout::AddWidgetNode( *window, "Label", "Vote", rightPosition + " 0," + top, rightWidth + " 0,28" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *vote, GUI::EWidgetProperty_TextColour, "255,220,120,255" );
 
-    // status and buttons
-    CORE::CDataNode* status = GUI::CFormLayout::AddWidgetNode( *window, "Label", "Status", "0,20 1,-100", "1,-40 0,24" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *status, "TextColour", "255,110,110,255" );
-    CORE::CDataNode* leave = GUI::CFormLayout::AddWidgetNode( *window, "Button", "Leave", "1,-136 1,-56", "0,120 0,38" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *leave, "Text", "Leave" );
-    CORE::CDataNode* voteStart = GUI::CFormLayout::AddWidgetNode( *window, "Button", "VoteStart", "1,-276 1,-56", "0,130 0,38" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *voteStart, "Text", "Vote start" );
-    CORE::CDataNode* forceStart = GUI::CFormLayout::AddWidgetNode( *window, "Button", "ForceStart", "1,-416 1,-56", "0,130 0,38" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *forceStart, "Text", "Force start" );
-    CORE::CDataNode* start = GUI::CFormLayout::AddWidgetNode( *window, "Button", "Start", "1,-556 1,-56", "0,130 0,38" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *start, "Text", "Start" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *start, "StyleClass", "Primary" );
+    // the left column: the slots, the local player, the chat
+    CORE::CDataNode* slots = GUI::CFormLayout::AddWidgetNode( *window, "GridView", "Slots", "0,20 0," + columnsTop, leftWidth + " 0.3,0" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *slots, GUI::EWidgetProperty_Columns, "#\nTeam\nPlayer\nFaction\nColour\nReady\nPing" );
+    AddPlayerControls( *window, "0,20", "0.3," + CORE::Int32ToString( ContentTop + 44 ), half );
+    GUI::CFormLayout::AddWidgetNode( *window, "Panel", "ChatHolder", "0,20 0.3," + CORE::Int32ToString( ContentTop + 124 ), leftWidth + " 0.7," + CORE::Int32ToString( -( ContentTop + 124 + FooterHeight + 8 ) ) );
+
+    // the right column: the game settings in a scroll panel, the spectators below them
+    CORE::CDataNode* holder = GUI::CFormLayout::AddWidgetNode( *window, "ScrollPanel", "SettingsHolder", rightPosition + " 0," + columnsTop,
+                                                                rightWidth + " 1," + CORE::Int32ToString( -( ContentTop + 36 + SpectatorsHeight + 10 + FooterHeight + 8 ) ) );
+    GUI::CFormLayout::SetWidgetNodeProperty( *holder, GUI::EWidgetProperty_BackgroundColour, "28,31,38,255" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *holder, GUI::EWidgetProperty_BorderColour, "58,64,78,255" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *holder, GUI::EWidgetProperty_BottomPadding, "4" );
+    GUI::CFormLayout::AddWidgetNode( *window, "Listbox", "Spectators", rightPosition + " 1," + CORE::Int32ToString( -( SpectatorsHeight + FooterHeight + 8 ) ), rightWidth + " 0," + CORE::Int32ToString( SpectatorsHeight ) );
+
+    AddFooter( *window );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLobbyForm::TTier
+CLobbyForm::GetTierForScreen( void )
+{GUCEF_TRACE;
+
+    GUI::CGUIContext* context = GetGUIContext();
+    if ( GUCEF_NULL == context )
+        return TIER_NORMAL;
+    Int32 width = (Int32) ( (Float32) context->GetLogicalWidth() * 0.92f );
+    Int32 minimum = (Int32) context->GetLogicalWidth() < MinWindowWidth ? (Int32) context->GetLogicalWidth() : MinWindowWidth;
+    if ( width < minimum )
+        width = minimum;
+    if ( width > MaxWindowWidth )
+        width = MaxWindowWidth;
+    return width < NarrowBelowWidth ? TIER_NARROW : ( width >= WideFromWidth ? TIER_WIDE : TIER_NORMAL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLobbyForm::LoadForCurrentSize( void )
+{GUCEF_TRACE;
+
+    m_tier = GetTierForScreen();
+    CORE::CDataNode layout;
+    GUI::CFormLayout::InitLayout( layout );
+    BuildLayout( layout );
+    return LoadLayout( layout );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::UpdateLayoutMode( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == GetRootWidget() || GetTierForScreen() == m_tier )
+        return;
+
+    // the layout of another size of window: the lobby shown comes back as it was
+    const bool wasShown = IsVisible();
+    if ( !LoadForCurrentSize() )
+        return;
+    if ( wasShown )
+        Show();
+    else
+        Hide();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -233,12 +376,18 @@ bool
 CLobbyForm::Build( void )
 {GUCEF_TRACE;
 
-    CORE::CDataNode layout;
-    GUI::CFormLayout::InitLayout( layout );
-    BuildLayout( layout );
-    if ( !LoadLayout( layout ) )
+    if ( !LoadForCurrentSize() )
         return false;
     Hide();
+
+    // the layout follows the size of the screen: one column that scrolls when the window is narrow, more room for the settings when it is wide
+    GUI::CGUIContext* context = GetGUIContext();
+    if ( GUCEF_NULL != context && !m_subscribedToFrames )
+    {
+        TEventCallback callback( this, &CLobbyForm::OnFrameStarted );
+        SubscribeTo( context, GUI::CGUIContext::FrameStartedEvent, callback );
+        m_subscribedToFrames = true;
+    }
     return true;
 }
 
@@ -250,6 +399,7 @@ CLobbyForm::Open( void )
 
     if ( GUCEF_NULL == GetRootWidget() && !Build() )
         return false;
+    UpdateLayoutMode();
     Refresh();
     return Show();
 }
@@ -277,38 +427,68 @@ CLobbyForm::OnPostLayoutLoad( void )
 
     GUI::CFormEx::OnPostLayoutLoad();
 
-    const char* buttons[] = { "Start", "ForceStart", "VoteStart", "Leave" };
-    for ( UInt32 i=0; i<4; ++i )
+    TEventCallback startCallback( this, &CLobbyForm::OnStartActivated );
+    TEventCallback forceStartCallback( this, &CLobbyForm::OnForceStartActivated );
+    TEventCallback leaveCallback( this, &CLobbyForm::OnLeaveActivated );
+    GUI::CWidget* button = GetWidget( "Start" );
+    if ( GUCEF_NULL != button )
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, startCallback );
+    button = GetWidget( "VoteStart" );
+    if ( GUCEF_NULL != button )
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, startCallback );
+    button = GetWidget( "ForceStart" );
+    if ( GUCEF_NULL != button )
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, forceStartCallback );
+    button = GetWidget( "Leave" );
+    if ( GUCEF_NULL != button )
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, leaveCallback );
+
+    GUI::CWidget* control = GetWidget( "Faction" );
+    if ( GUCEF_NULL != control )
     {
-        GUI::CWidget* button = GetWidget( buttons[ i ] );
-        if ( GUCEF_NULL != button )
-            SubscribeTo( button, GUI::CWidget::ActivatedEvent );
+        TEventCallback callback( this, &CLobbyForm::OnFactionChanged );
+        SubscribeTo( control, GUI::CWidget::ValueChangedEvent, callback );
     }
-    const char* controls[] = { "Faction", "Colour", "Ready", "Spectate" };
-    for ( UInt32 i=0; i<4; ++i )
+    control = GetWidget( "Colour" );
+    if ( GUCEF_NULL != control )
     {
-        GUI::CWidget* control = GetWidget( controls[ i ] );
-        if ( GUCEF_NULL != control )
-            SubscribeTo( control, GUI::CWidget::ValueChangedEvent );
+        TEventCallback callback( this, &CLobbyForm::OnColourChanged );
+        SubscribeTo( control, GUI::CWidget::ValueChangedEvent, callback );
     }
+    control = GetWidget( "Ready" );
+    if ( GUCEF_NULL != control )
+    {
+        TEventCallback callback( this, &CLobbyForm::OnReadyChanged );
+        SubscribeTo( control, GUI::CWidget::ValueChangedEvent, callback );
+    }
+    control = GetWidget( "Spectate" );
+    if ( GUCEF_NULL != control )
+    {
+        TEventCallback callback( this, &CLobbyForm::OnSpectateChanged );
+        SubscribeTo( control, GUI::CWidget::ValueChangedEvent, callback );
+    }
+
     GUI::CWidget* slots = GetWidget( "Slots" );
     if ( GUCEF_NULL != slots )
     {
-        SubscribeTo( slots, GUI::CWidget::ItemActivatedEvent );
-        SubscribeTo( slots, GUI::CWidget::MouseClickEvent );
+        TEventCallback activatedCallback( this, &CLobbyForm::OnSlotsItemActivated );
+        SubscribeTo( slots, GUI::CWidget::ItemActivatedEvent, activatedCallback );
+        TEventCallback clickCallback( this, &CLobbyForm::OnSlotsClicked );
+        SubscribeTo( slots, GUI::CWidget::MouseClickEvent, clickCallback );
 
-        GUI::CGridView* grid = dynamic_cast< GUI::CGridView* >( slots );
+        GUI::CGridView* grid = GetWidgetAs< GUI::CGridView >( "Slots" );
         if ( GUCEF_NULL != grid )
         {
             GUCEF::vector< Int32 > widths;
-            widths.push_back( 60 );     // slot
-            widths.push_back( 60 );     // team
-            widths.push_back( 220 );    // player
-            widths.push_back( 120 );    // faction
-            widths.push_back( 100 );    // colour
-            widths.push_back( 70 );     // ready
-            widths.push_back( 90 );     // latency
-            grid->SetIntListProperty( "ColumnWidths", widths );
+            widths.push_back( 30 );     // slot
+            widths.push_back( 64 );     // team
+            widths.push_back( 140 );    // player
+            widths.push_back( 100 );    // faction
+            widths.push_back( 84 );     // colour
+            widths.push_back( 72 );     // ready
+            widths.push_back( 62 );     // latency
+            grid->SetIntListProperty( GUI::EWidgetProperty_ColumnWidths, widths );
+            grid->SetBoolProperty( GUI::EWidgetProperty_FitColumns, true );
         }
     }
 
@@ -359,7 +539,22 @@ CLobbyForm::SetLobby( MULTIPLAY::CILobbyPtr lobby )
     m_lobby = lobby;
     m_countdown = -1;
     if ( !m_lobby.IsNULL() )
-        SubscribeTo( m_lobby.GetPointerAlways() );
+    {
+        CORE::CNotifier* lobbyNotifier = m_lobby.GetPointerAlways();
+        TEventCallback stateCallback( this, &CLobbyForm::OnLobbyStateChanged );
+        SubscribeTo( lobbyNotifier, MULTIPLAY::CILobby::LobbyStateChangedEvent, stateCallback );
+        TEventCallback countdownCallback( this, &CLobbyForm::OnLobbyCountdown );
+        SubscribeTo( lobbyNotifier, MULTIPLAY::CILobby::CountdownEvent, countdownCallback );
+        TEventCallback voteCallback( this, &CLobbyForm::OnLobbyVoteChanged );
+        SubscribeTo( lobbyNotifier, MULTIPLAY::CILobby::VoteStartedEvent, voteCallback );
+        SubscribeTo( lobbyNotifier, MULTIPLAY::CILobby::VoteEndedEvent, voteCallback );
+        TEventCallback launchCallback( this, &CLobbyForm::OnLobbyLaunch );
+        SubscribeTo( lobbyNotifier, MULTIPLAY::CILobby::LaunchEvent, launchCallback );
+        TEventCallback closedCallback( this, &CLobbyForm::OnLobbyClosed );
+        SubscribeTo( lobbyNotifier, MULTIPLAY::CILobby::LobbyClosedEvent, closedCallback );
+        TEventCallback refusedCallback( this, &CLobbyForm::OnLobbyRequestRefused );
+        SubscribeTo( lobbyNotifier, MULTIPLAY::CILobby::RequestRefusedEvent, refusedCallback );
+    }
 
     ApplyLobbyToChildren();
     SetLabelText( "Status", CORE::CString::Empty );
@@ -485,7 +680,7 @@ CLobbyForm::SetLabelText( const char* widgetName, const CORE::CString& text )
 
     GUI::CWidget* label = GetWidget( widgetName );
     if ( GUCEF_NULL != label )
-        label->SetProperty( "Text", text );
+        label->SetProperty( GUI::EWidgetProperty_Text, text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -622,7 +817,7 @@ CLobbyForm::ShowControls( void )
 
         GUI::CWidget* root = GetRootWidget();
         if ( GUCEF_NULL != root )
-            root->SetProperty( "Title", state.name.IsNULLOrEmpty() ? CORE::CString( "Lobby" ) : state.name );
+            root->SetProperty( GUI::EWidgetProperty_Title, state.name.IsNULLOrEmpty() ? CORE::CString( "Lobby" ) : state.name );
 
         if ( GUCEF_NULL != faction )
         {
@@ -651,9 +846,9 @@ CLobbyForm::ShowControls( void )
             colour->SetSelectedIndex( index );
         }
         if ( GUCEF_NULL != ready )
-            ready->SetBoolProperty( "Checked", isMember && me->ready );
+            ready->SetBoolProperty( GUI::EWidgetProperty_Checked, isMember && me->ready );
         if ( GUCEF_NULL != spectate )
-            spectate->SetBoolProperty( "Checked", isMember && me->IsSpectator() );
+            spectate->SetBoolProperty( GUI::EWidgetProperty_Checked, isMember && me->IsSpectator() );
 
         if ( GUCEF_NULL != m_chat && m_chat->GetSingleChannel() != state.chatChannel )
             m_chat->SetSingleChannel( state.chatChannel );
@@ -664,9 +859,9 @@ CLobbyForm::ShowControls( void )
     else
     {
         if ( GUCEF_NULL != ready )
-            ready->SetBoolProperty( "Checked", false );
+            ready->SetBoolProperty( GUI::EWidgetProperty_Checked, false );
         if ( GUCEF_NULL != spectate )
-            spectate->SetBoolProperty( "Checked", false );
+            spectate->SetBoolProperty( GUI::EWidgetProperty_Checked, false );
     }
 
     bool hasFactions = !m_lobby.IsNULL() && !m_lobby->GetSchema().factions.empty();
@@ -782,7 +977,7 @@ CLobbyForm::GetCountdownText( void )
 {GUCEF_TRACE;
 
     GUI::CWidget* label = GetWidget( "Countdown" );
-    return GUCEF_NULL != label ? label->GetProperty( "Text" ) : CORE::CString::Empty;
+    return GUCEF_NULL != label ? label->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -792,7 +987,7 @@ CLobbyForm::GetStatusText( void )
 {GUCEF_TRACE;
 
     GUI::CWidget* label = GetWidget( "Status" );
-    return GUCEF_NULL != label ? label->GetProperty( "Text" ) : CORE::CString::Empty;
+    return GUCEF_NULL != label ? label->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -802,7 +997,7 @@ CLobbyForm::GetVoteText( void )
 {GUCEF_TRACE;
 
     GUI::CWidget* label = GetWidget( "Vote" );
-    return GUCEF_NULL != label ? label->GetProperty( "Text" ) : CORE::CString::Empty;
+    return GUCEF_NULL != label ? label->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -895,7 +1090,8 @@ CLobbyForm::OpenSlotMenu( Int32 x, Int32 y, Int32 row )
         m_slotMenu = static_cast< GUI::CPopupMenu* >( context->CreateWidget( "PopupMenu", "LobbyForm#Menu", GUCEF_NULL ) );
         if ( GUCEF_NULL == m_slotMenu )
             return;
-        SubscribeTo( m_slotMenu, GUI::CWidget::ItemActivatedEvent );
+        TEventCallback callback( this, &CLobbyForm::OnSlotMenuActivated );
+        SubscribeTo( m_slotMenu, GUI::CWidget::ItemActivatedEvent, callback );
     }
     m_menuSlot = slot.index;
     m_menuMember = slot.memberId;
@@ -937,124 +1133,250 @@ CLobbyForm::OnSlotMenuItem( const CORE::CString& item )
 /*-------------------------------------------------------------------------*/
 
 void
-CLobbyForm::OnNotify( CORE::CNotifier* notifier    ,
-                      const CORE::CEvent& eventId  ,
-                      CORE::CICloneable* eventData )
+CLobbyForm::OnFrameStarted( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( !m_lobby.IsNULL() && notifier == m_lobby.GetPointerAlways() )
-    {
-        if ( MULTIPLAY::CILobby::LobbyStateChangedEvent == eventId )
-        {
-            if ( MULTIPLAY::LOBBYPHASE_COUNTDOWN != m_lobby->GetState().phase )
-                m_countdown = -1;
-            Refresh();
-        }
-        else
-        if ( MULTIPLAY::CILobby::CountdownEvent == eventId && GUCEF_NULL != eventData )
-        {
-            m_countdown = static_cast< const MULTIPLAY::CILobby::TCountdownEventData* >( eventData )->GetData();
-            ShowTexts();
-        }
-        else
-        if ( MULTIPLAY::CILobby::VoteStartedEvent == eventId || MULTIPLAY::CILobby::VoteEndedEvent == eventId )
-        {
-            Refresh();
-        }
-        else
-        if ( MULTIPLAY::CILobby::LaunchEvent == eventId )
-        {
-            NotifyObservers( LaunchEvent, eventData );
-        }
-        else
-        if ( MULTIPLAY::CILobby::LobbyClosedEvent == eventId && GUCEF_NULL != eventData )
-        {
-            const MULTIPLAY::CILobby::TLobbyClosedEventData* closed = static_cast< const MULTIPLAY::CILobby::TLobbyClosedEventData* >( eventData );
-            SetLabelText( "Status", "The lobby closed: " + closed->GetData() );
-            Refresh();
-            TLeftEventData reason( closed->GetData() );
-            NotifyObservers( LeftEvent, &reason );
-        }
-        else
-        if ( MULTIPLAY::CILobby::RequestRefusedEvent == eventId && GUCEF_NULL != eventData )
-        {
-            const MULTIPLAY::CLobbyRefusalEventData* refusal = static_cast< const MULTIPLAY::CLobbyRefusalEventData* >( eventData );
-            SetLabelText( "Status", "Not allowed (" + refusal->what + "): " + refusal->reason );
-        }
-        return;
-    }
+    UpdateLayoutMode();
+}
 
-    if ( GUCEF_NULL != m_slotMenu && notifier == m_slotMenu && GUI::CWidget::ItemActivatedEvent == eventId && GUCEF_NULL != eventData )
-    {
-        GUI::CItemEventData* item = static_cast< GUI::CItemEventData* >( eventData );
-        GUI::CGUIContext* context = GetGUIContext();
-        if ( GUCEF_NULL != context && context->GetPopup() == m_slotMenu )
-            context->ClosePopup();
-        OnSlotMenuItem( item->item );
-        return;
-    }
+/*-------------------------------------------------------------------------*/
 
-    if ( GUI::CWidget::ActivatedEvent == eventId )
-    {
-        if ( notifier == GetWidget( "Start" ) )
-            RequestStart();
-        else
-        if ( notifier == GetWidget( "VoteStart" ) )
-            RequestStart();
-        else
-        if ( notifier == GetWidget( "ForceStart" ) )
-            ForceStart();
-        else
-        if ( notifier == GetWidget( "Leave" ) )
-            Leave();
+void
+CLobbyForm::OnLobbyStateChanged( CORE::CNotifier* notifier    ,
+                                 const CORE::CEvent& eventId  ,
+                                 CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_lobby.IsNULL() )
         return;
-    }
-    if ( GUI::CWidget::ValueChangedEvent == eventId )
+    if ( MULTIPLAY::LOBBYPHASE_COUNTDOWN != m_lobby->GetState().phase )
+        m_countdown = -1;
+    Refresh();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnLobbyCountdown( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    m_countdown = static_cast< const MULTIPLAY::CILobby::TCountdownEventData* >( eventData )->GetData();
+    ShowTexts();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnLobbyVoteChanged( CORE::CNotifier* notifier    ,
+                                const CORE::CEvent& eventId  ,
+                                CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    Refresh();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnLobbyLaunch( CORE::CNotifier* notifier    ,
+                           const CORE::CEvent& eventId  ,
+                           CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    NotifyObservers( LaunchEvent, eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnLobbyClosed( CORE::CNotifier* notifier    ,
+                           const CORE::CEvent& eventId  ,
+                           CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    const MULTIPLAY::CILobby::TLobbyClosedEventData* closed = static_cast< const MULTIPLAY::CILobby::TLobbyClosedEventData* >( eventData );
+    SetLabelText( "Status", "The lobby closed: " + closed->GetData() );
+    Refresh();
+    TLeftEventData reason( closed->GetData() );
+    NotifyObservers( LeftEvent, &reason );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnLobbyRequestRefused( CORE::CNotifier* notifier    ,
+                                   const CORE::CEvent& eventId  ,
+                                   CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    const MULTIPLAY::CLobbyRefusalEventData* refusal = static_cast< const MULTIPLAY::CLobbyRefusalEventData* >( eventData );
+    SetLabelText( "Status", "Not allowed (" + refusal->what + "): " + refusal->reason );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnSlotMenuActivated( CORE::CNotifier* notifier    ,
+                                 const CORE::CEvent& eventId  ,
+                                 CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData || GUCEF_NULL == m_slotMenu )
+        return;
+    GUI::CItemEventData* item = static_cast< GUI::CItemEventData* >( eventData );
+    GUI::CGUIContext* context = GetGUIContext();
+    if ( GUCEF_NULL != context && context->GetPopup() == m_slotMenu )
+        context->ClosePopup();
+    OnSlotMenuItem( item->item );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnStartActivated( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    RequestStart();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnForceStartActivated( CORE::CNotifier* notifier    ,
+                                   const CORE::CEvent& eventId  ,
+                                   CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    ForceStart();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnLeaveActivated( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    Leave();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnReadyChanged( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_updating || m_lobby.IsNULL() )
+        return;
+    SetLabelText( "Status", CORE::CString::Empty );
+    m_lobby->SetReady( static_cast< GUI::CWidget* >( notifier )->GetBoolProperty( GUI::EWidgetProperty_Checked ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnSpectateChanged( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_updating || m_lobby.IsNULL() )
+        return;
+    SetLabelText( "Status", CORE::CString::Empty );
+    m_lobby->SetSpectator( static_cast< GUI::CWidget* >( notifier )->GetBoolProperty( GUI::EWidgetProperty_Checked ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnFactionChanged( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    ApplyChoice( true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnColourChanged( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    ApplyChoice( false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::ApplyChoice( bool isFaction )
+{GUCEF_TRACE;
+
+    if ( m_updating || m_lobby.IsNULL() )
+        return;
+    SetLabelText( "Status", CORE::CString::Empty );
+
+    const MULTIPLAY::CLobbySettingsSchema& schema = m_lobby->GetSchema();
+    const CORE::CString::StringVector& options = isFaction ? schema.factions : schema.colours;
+    GUI::CCombobox* combo = GetWidgetAs< GUI::CCombobox >( isFaction ? "Faction" : "Colour" );
+    Int32 selected = GUCEF_NULL != combo ? combo->GetSelectedIndex() : -1;
+    if ( selected >= 0 && selected < (Int32) options.size() )
     {
-        if ( m_updating || m_lobby.IsNULL() )
-            return;
-        SetLabelText( "Status", CORE::CString::Empty );
-        if ( notifier == GetWidget( "Ready" ) )
-            m_lobby->SetReady( GetWidget( "Ready" )->GetBoolProperty( "Checked" ) );
+        if ( isFaction )
+            m_lobby->SetFaction( options[ selected ] );
         else
-        if ( notifier == GetWidget( "Spectate" ) )
-            m_lobby->SetSpectator( GetWidget( "Spectate" )->GetBoolProperty( "Checked" ) );
-        else
-        if ( notifier == GetWidget( "Faction" ) || notifier == GetWidget( "Colour" ) )
-        {
-            bool isFaction = notifier == GetWidget( "Faction" );
-            const MULTIPLAY::CLobbySettingsSchema& schema = m_lobby->GetSchema();
-            const CORE::CString::StringVector& options = isFaction ? schema.factions : schema.colours;
-            GUI::CCombobox* combo = GetWidgetAs< GUI::CCombobox >( isFaction ? "Faction" : "Colour" );
-            Int32 selected = GUCEF_NULL != combo ? combo->GetSelectedIndex() : -1;
-            if ( selected >= 0 && selected < (Int32) options.size() )
-            {
-                if ( isFaction )
-                    m_lobby->SetFaction( options[ selected ] );
-                else
-                    m_lobby->SetColour( options[ selected ] );
-            }
-        }
-        return;
+            m_lobby->SetColour( options[ selected ] );
     }
-    if ( GUI::CWidget::ItemActivatedEvent == eventId && GUCEF_NULL != eventData && notifier == GetWidget( "Slots" ) )
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnSlotsItemActivated( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    GUI::CItemEventData* item = static_cast< GUI::CItemEventData* >( eventData );
+    if ( GUI::EVENTPHASE_TUNNEL != item->phase )
+        OnSlotActivated( item->index );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnSlotsClicked( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    GUI::CPointerEventData* pointer = static_cast< GUI::CPointerEventData* >( eventData );
+    if ( GUI::MOUSEBUTTON_RIGHT == pointer->button && GUI::EVENTPHASE_TUNNEL != pointer->phase )
     {
-        GUI::CItemEventData* item = static_cast< GUI::CItemEventData* >( eventData );
-        if ( GUI::EVENTPHASE_TUNNEL != item->phase )
-            OnSlotActivated( item->index );
-        return;
+        GUI::CGridView* grid = GetWidgetAs< GUI::CGridView >( "Slots" );
+        OpenSlotMenu( pointer->x, pointer->y, GUCEF_NULL != grid ? grid->GetRowAt( pointer->localY ) : -1 );
     }
-    if ( GUI::CWidget::MouseClickEvent == eventId && GUCEF_NULL != eventData && notifier == GetWidget( "Slots" ) )
-    {
-        GUI::CPointerEventData* pointer = static_cast< GUI::CPointerEventData* >( eventData );
-        if ( GUI::MOUSEBUTTON_RIGHT == pointer->button && GUI::EVENTPHASE_TUNNEL != pointer->phase )
-        {
-            GUI::CGridView* grid = GetWidgetAs< GUI::CGridView >( "Slots" );
-            OpenSlotMenu( pointer->x, pointer->y, GUCEF_NULL != grid ? grid->GetRowAt( pointer->localY ) : -1 );
-        }
-        return;
-    }
-    GUI::CFormEx::OnNotify( notifier, eventId, eventData );
 }
 
 /*-------------------------------------------------------------------------*/

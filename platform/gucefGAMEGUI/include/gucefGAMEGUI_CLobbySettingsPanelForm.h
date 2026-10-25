@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_GUI_CFORMEX_H
 #include "gucefGUI_CFormEx.h"
 #define GUCEF_GUI_CFORMEX_H
@@ -85,7 +90,13 @@ class GUCEF_GAMEGUI_EXPORT_CPP CSettingChangedEventData : public CORE::CICloneab
  *  control per setting of the schema, a label next to it:
  *      BOOL   a check box              INT and FLOAT   a spinner (range, step and decimals from the definition)
  *      ENUM   a combo box              STRING          an edit box (the change is made on Enter or when the focus leaves)
- *  Settings with a group are placed in a group box with the name of the group.
+ *  Settings with a group are placed in a group box with the name of the group. The groups stand below each other, each as high as its
+ *  rows need (side by side in two or three columns when the panel is wide enough: 420 pixels for each), in a scroll panel that fills the placeholder: what does not fit is scrolled. A label that is wider than the room it has next to
+ *  its control is broken into lines, its row grows with them (also when the width of the panel changes). A placeholder that is a scroll panel itself
+ *  or is as high as its content (AutoHeight) is the room of the groups, there the form adds no scroll panel of its own. A setting with a unit (INT, FLOAT, ENUM and
+ *  STRING) shows it after the control. A setting with enabledByKey is enabled only while the setting it names has the value
+ *  enabledByValue (checked whenever any setting changes, whoever changed it, so a change that arrives from the network counts
+ *  too); while it is disabled it keeps and shows its value, and a change of it is not sent. A key the schema does not have is no gate.
  *
  *  Bound to a lobby (SetLobby()) the schema and the values are the lobby's. A change of the player goes to
  *  CILobby::SetSetting(), which applies it or, for a setting with the VOTE policy and a member that is not the boss,
@@ -142,6 +153,12 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbySettingsPanelForm : public GUI::CFormEx
     /** The text of the label of a setting (the text of the check box for a BOOL) */
     CORE::CString GetLabelText( const CORE::CString& key );
 
+    /** The text of the unit label after the control of a setting, empty when it has no unit */
+    CORE::CString GetUnitText( const CORE::CString& key );
+
+    /** Whether the setting it depends on has the value it needs, true when it depends on none; whether the player may change it is IsSettingEditable() */
+    bool IsGateOpen( const CORE::CString& key );
+
     /** The value the control of the setting shows, in the text form lobbies keep it */
     CORE::CString GetValue( const CORE::CString& key );
 
@@ -160,17 +177,16 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbySettingsPanelForm : public GUI::CFormEx
 
     virtual void OnPostLayoutLoad( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CLobbySettingsPanelForm > TEventCallback;
 
     struct SControl
     {
         MULTIPLAY::CLobbySettingDef def;
         CORE::CString widgetName;
         CORE::CString labelName;                    /**< empty for a check box, which carries its own text */
+        CORE::CString unitName;                     /**< empty without a unit */
     };
     typedef struct SControl TControl;
     typedef GUCEF::vector< TControl > TControlVector;
@@ -178,6 +194,10 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbySettingsPanelForm : public GUI::CFormEx
 
     void BuildLayout( CORE::CDataNode& layout );
     void AddControlNodes( CORE::CDataNode& parent, UInt32 index );
+    void AddBlockNodes( CORE::CDataNode& parent, UInt32 first, UInt32 count, bool grouped, UInt32& groupCount );
+    UInt32 GetColumnsForWidth( Int32 width ) const;
+    void UpdateColumns( void );
+    void FitRows( void );
     bool Rebuild( void );
     Int32 FindControlIndex( const CORE::CString& key ) const;
     Int32 FindControlIndexOfWidget( CORE::CNotifier* widget );
@@ -187,7 +207,12 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbySettingsPanelForm : public GUI::CFormEx
     void ShowControl( const TControl& control, const CORE::CString& value );
     bool CanChange( const TControl& control ) const;
     bool IsProposal( const TControl& control ) const;
+    bool IsGateOpen( const TControl& control ) const;
     void Commit( UInt32 index );
+
+    void OnFrameStarted( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnLobbyStateChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnControlChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     CLobbySettingsPanelForm( const CLobbySettingsPanelForm& src );
     CLobbySettingsPanelForm& operator=( const CLobbySettingsPanelForm& src );
@@ -199,6 +224,11 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbySettingsPanelForm : public GUI::CFormEx
     TValueMap m_values;
     MULTIPLAY::CILobbyPtr m_lobby;
     TControlVector m_controls;
+    bool m_hostMakesRoom;                           /**< the placeholder scrolls or is as high as its content: the form does not scroll */
+    UInt32 m_columns;                               /**< the columns of groups the layout has */
+    UInt32 m_wantedColumns;                         /**< the columns the width of the panel has room for */
+    Int32 m_fittedWidth;                            /**< the width of the panel the rows were fitted to */
+    bool m_subscribedToFrames;
     bool m_updating;
 };
 

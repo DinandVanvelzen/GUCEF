@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_GUI_CFORMEX_H
 #include "gucefGUI_CFormEx.h"
 #define GUCEF_GUI_CFORMEX_H
@@ -157,11 +162,14 @@ class GUCEF_GAMEGUI_EXPORT_CPP CChatForm : public GUI::CFormEx
 
     virtual void OnPostLayoutLoad( void ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Only the standard events (destruction of the chat service) arrive here, the others have their own handler */
     virtual void OnNotify( CORE::CNotifier* notifier                 ,
                            const CORE::CEvent& eventId               ,
                            CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CChatForm > TEventCallback;
 
     struct STab
     {
@@ -186,6 +194,18 @@ class GUCEF_GAMEGUI_EXPORT_CPP CChatForm : public GUI::CFormEx
     void OnChatPresence( const MULTIPLAY::CChatPresenceEventData& presence );
     void OpenMemberMenu( Int32 x, Int32 y, Int32 row );
     void SendInput( void );
+
+    void OnServiceChatMessage( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnServiceChatPresence( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnServiceChatTopic( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnServiceChatError( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnActiveTabChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnMemberItemActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnMemberClicked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnMenuItemActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnInputTextEntered( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSendActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnCloseActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     CChatForm( const CChatForm& src );
     CChatForm& operator=( const CChatForm& src );

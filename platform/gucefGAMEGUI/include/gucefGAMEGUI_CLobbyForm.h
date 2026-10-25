@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_GUI_CFORMEX_H
 #include "gucefGUI_CFormEx.h"
 #define GUCEF_GUI_CFORMEX_H
@@ -208,13 +213,18 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbyForm : public GUI::CFormEx
 
     virtual void OnPostLayoutLoad( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
 
+    typedef CORE::CTEventHandlerFunctor< CLobbyForm > TEventCallback;
+
+    enum TTier { TIER_NARROW, TIER_NORMAL, TIER_WIDE };
+
     void BuildLayout( CORE::CDataNode& layout );
+    void AddFooter( CORE::CDataNode& window );
+    void AddPlayerControls( CORE::CDataNode& parent, const CORE::CString& x, const CORE::CString& y, const CORE::CString& half );
+    TTier GetTierForScreen( void );
+    bool LoadForCurrentSize( void );
+    void UpdateLayoutMode( void );
     void ApplyLobbyToChildren( void );
     void ShowSlots( void );
     void ShowSpectators( void );
@@ -225,6 +235,25 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbyForm : public GUI::CFormEx
     void OpenSlotMenu( Int32 x, Int32 y, Int32 row );
     void OnSlotMenuItem( const CORE::CString& item );
     void OnSlotActivated( Int32 row );
+    void ApplyChoice( bool isFaction );
+
+    void OnFrameStarted( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnLobbyStateChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnLobbyCountdown( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnLobbyVoteChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnLobbyLaunch( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnLobbyClosed( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnLobbyRequestRefused( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSlotMenuActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnStartActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnForceStartActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnLeaveActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnReadyChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSpectateChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnFactionChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnColourChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSlotsItemActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSlotsClicked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     CLobbyForm( const CLobbyForm& src );
     CLobbyForm& operator=( const CLobbyForm& src );
@@ -242,6 +271,8 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbyForm : public GUI::CFormEx
     CORE::CString m_aiType;
     CORE::CString m_reportReason;
     Int32 m_countdown;
+    TTier m_tier;                   /**< the layout: one column that scrolls as a whole (narrow), two columns, or two with more room for the settings (wide) */
+    bool m_subscribedToFrames;
     bool m_updating;
 };
 

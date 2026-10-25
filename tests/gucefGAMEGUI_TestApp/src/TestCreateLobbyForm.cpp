@@ -53,6 +53,8 @@ class CCreateRecorder : public CORE::CObserver
 {
     public:
 
+    typedef CORE::CTEventHandlerFunctor< CCreateRecorder > TEventCallback;
+
     UInt32 creates;
     UInt32 cancels;
     GAMEGUI::CCreateLobbyRequest last;
@@ -60,21 +62,26 @@ class CCreateRecorder : public CORE::CObserver
     CCreateRecorder( CORE::CNotifier* form )
         : CORE::CObserver(), creates( 0 ), cancels( 0 ), last()
     {
-        SubscribeTo( form );
+        TEventCallback createCallback( this, &CCreateRecorder::OnCreateRequested );
+        SubscribeTo( form, GAMEGUI::CCreateLobbyForm::CreateRequestedEvent, createCallback );
+        TEventCallback cancelCallback( this, &CCreateRecorder::OnCancelled );
+        SubscribeTo( form, GAMEGUI::CCreateLobbyForm::CancelledEvent, cancelCallback );
     }
 
     virtual ~CCreateRecorder() { UnsubscribeAllFromObserver(); }
 
-    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    void OnCreateRequested( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
-        if ( GAMEGUI::CCreateLobbyForm::CreateRequestedEvent == eventId && GUCEF_NULL != eventData )
+        if ( GUCEF_NULL != eventData )
         {
             ++creates;
             last = *static_cast< GAMEGUI::CCreateLobbyRequest* >( eventData );
         }
-        else
-        if ( GAMEGUI::CCreateLobbyForm::CancelledEvent == eventId )
-            ++cancels;
+    }
+
+    void OnCancelled( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        ++cancels;
     }
 };
 

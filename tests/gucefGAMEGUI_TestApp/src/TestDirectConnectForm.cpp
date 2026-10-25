@@ -52,6 +52,8 @@ class CDirectRecorder : public CORE::CObserver
 {
     public:
 
+    typedef CORE::CTEventHandlerFunctor< CDirectRecorder > TEventCallback;
+
     UInt32 connects;
     UInt32 cancels;
     GAMEGUI::CDirectConnectRequest last;
@@ -59,21 +61,26 @@ class CDirectRecorder : public CORE::CObserver
     CDirectRecorder( CORE::CNotifier* form )
         : CORE::CObserver(), connects( 0 ), cancels( 0 ), last()
     {
-        SubscribeTo( form );
+        TEventCallback connectCallback( this, &CDirectRecorder::OnConnectRequested );
+        SubscribeTo( form, GAMEGUI::CDirectConnectForm::ConnectRequestedEvent, connectCallback );
+        TEventCallback cancelCallback( this, &CDirectRecorder::OnCancelled );
+        SubscribeTo( form, GAMEGUI::CDirectConnectForm::CancelledEvent, cancelCallback );
     }
 
     virtual ~CDirectRecorder() { UnsubscribeAllFromObserver(); }
 
-    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    void OnConnectRequested( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
-        if ( GAMEGUI::CDirectConnectForm::ConnectRequestedEvent == eventId && GUCEF_NULL != eventData )
+        if ( GUCEF_NULL != eventData )
         {
             ++connects;
             last = *static_cast< GAMEGUI::CDirectConnectRequest* >( eventData );
         }
-        else
-        if ( GAMEGUI::CDirectConnectForm::CancelledEvent == eventId )
-            ++cancels;
+    }
+
+    void OnCancelled( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        ++cancels;
     }
 };
 

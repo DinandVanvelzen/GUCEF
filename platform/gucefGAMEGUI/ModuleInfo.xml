@@ -25,6 +25,7 @@
             <Dependency Name="gucefCOMCORE" />
             <Dependency Name="gucefCOM" />
             <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
             <Dependency Name="gucefMULTIPLAY" />
         </Dependencies>
         <Linker>
@@ -39,6 +40,7 @@
             <Dependency Name="gucefCOMCORE" Scope="public" />
             <Dependency Name="gucefCOM" Scope="public" />
             <Dependency Name="gucefWEB" Scope="public" />
+            <Dependency Name="gucefAUTH" Scope="public" />
             <Dependency Name="gucefMULTIPLAY" Scope="public" />
         </Linker>
         <Preprocessor>

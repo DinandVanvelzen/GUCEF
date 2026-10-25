@@ -84,6 +84,11 @@
 #define GUCEF_GAMEGUI_CVOTEPROMPTFORM_H
 #endif /* GUCEF_GAMEGUI_CVOTEPROMPTFORM_H ? */
 
+#ifndef GUCEF_GAMEGUI_CTURNWAITOVERLAYFORM_H
+#include "gucefGAMEGUI_CTurnWaitOverlayForm.h"
+#define GUCEF_GAMEGUI_CTURNWAITOVERLAYFORM_H
+#endif /* GUCEF_GAMEGUI_CTURNWAITOVERLAYFORM_H ? */
+
 #ifndef GUCEF_GAMEGUI_CCONNECTINGFORM_H
 #include "gucefGAMEGUI_CConnectingForm.h"
 #define GUCEF_GAMEGUI_CCONNECTINGFORM_H
@@ -149,6 +154,7 @@ CGameGuiGlobal::Initialize( void )
     CLobbySettingsPanelForm::RegisterEvents();
     CChatForm::RegisterEvents();
     CVotePromptForm::RegisterEvents();
+    CTurnWaitOverlayForm::RegisterEvents();
     CConnectingForm::RegisterEvents();
     CDirectConnectForm::RegisterEvents();
     CPlayerProfileForm::RegisterEvents();

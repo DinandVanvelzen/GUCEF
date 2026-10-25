@@ -120,6 +120,13 @@ PerformGameGuiGlobalTests( void )
         ASSERT_TRUE( "35 ms" == GAMEGUI::FormatPing( 35 ) );
         ASSERT_TRUE( "2/4" == GAMEGUI::FormatPlayers( 2, 4 ) && "2" == GAMEGUI::FormatPlayers( 2, 0 ) );
         ASSERT_TRUE( "a b" == GAMEGUI::TrimText( "  a b \t" ) );
+
+        // a time left as m:ss, rounded up to whole seconds
+        ASSERT_TRUE( "0:00" == GAMEGUI::FormatCountdown( 0 ) && "0:00" == GAMEGUI::FormatCountdown( -1 ) && "0:00" == GAMEGUI::FormatCountdown( -90000 ) );
+        ASSERT_TRUE( "0:01" == GAMEGUI::FormatCountdown( 1 ) && "0:01" == GAMEGUI::FormatCountdown( 999 ) && "0:01" == GAMEGUI::FormatCountdown( 1000 ) && "0:02" == GAMEGUI::FormatCountdown( 1001 ) );
+        ASSERT_TRUE( "0:05" == GAMEGUI::FormatCountdown( 5000 ) && "0:10" == GAMEGUI::FormatCountdown( 9001 ) && "0:59" == GAMEGUI::FormatCountdown( 59000 ) );
+        ASSERT_TRUE( "1:00" == GAMEGUI::FormatCountdown( 59001 ) && "1:00" == GAMEGUI::FormatCountdown( 60000 ) && "1:01" == GAMEGUI::FormatCountdown( 60001 ) );
+        ASSERT_TRUE( "3:00" == GAMEGUI::FormatCountdown( 180000 ) && "62:03" == GAMEGUI::FormatCountdown( 3723000 ) && "100:00" == GAMEGUI::FormatCountdown( 6000000 ) );
         CORE::CDateTime time;
         ASSERT_TRUE( -1 == GAMEGUI::GetSecondsUntil( time ) );
         time = CORE::CDateTime::NowUTCDateTime();

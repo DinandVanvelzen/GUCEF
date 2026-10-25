@@ -53,6 +53,8 @@ class CVoteRecorder : public CORE::CObserver
 {
     public:
 
+    typedef CORE::CTEventHandlerFunctor< CVoteRecorder > TEventCallback;
+
     UInt32 casts;
     UInt32 closes;
     CORE::CString voteId;
@@ -61,23 +63,28 @@ class CVoteRecorder : public CORE::CObserver
     CVoteRecorder( CORE::CNotifier* form )
         : CORE::CObserver(), casts( 0 ), closes( 0 ), voteId(), yes( false )
     {
-        SubscribeTo( form );
+        TEventCallback castCallback( this, &CVoteRecorder::OnVoteCast );
+        SubscribeTo( form, GAMEGUI::CVotePromptForm::VoteCastEvent, castCallback );
+        TEventCallback closedCallback( this, &CVoteRecorder::OnClosed );
+        SubscribeTo( form, GAMEGUI::CVotePromptForm::ClosedEvent, closedCallback );
     }
 
     virtual ~CVoteRecorder() { UnsubscribeAllFromObserver(); }
 
-    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    void OnVoteCast( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
-        if ( GAMEGUI::CVotePromptForm::VoteCastEvent == eventId && GUCEF_NULL != eventData )
+        if ( GUCEF_NULL != eventData )
         {
             const GAMEGUI::CVoteCastEventData* cast = static_cast< const GAMEGUI::CVoteCastEventData* >( eventData );
             ++casts;
             voteId = cast->voteId;
             yes = cast->yes;
         }
-        else
-        if ( GAMEGUI::CVotePromptForm::ClosedEvent == eventId )
-            ++closes;
+    }
+
+    void OnClosed( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        ++closes;
     }
 };
 

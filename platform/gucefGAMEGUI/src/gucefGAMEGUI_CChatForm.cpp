@@ -161,11 +161,11 @@ CChatForm::BuildLayout( CORE::CDataNode& layout )
     if ( !single )
     {
         CORE::CDataNode* tabs = GUI::CFormLayout::AddWidgetNode( *panel, "TabControl", "ChatTabs", "0,0 0,0", "1,0 0," + CORE::Int32ToString( tabsHeight ) );
-        GUI::CFormLayout::SetWidgetNodeProperty( *tabs, "TabHeight", CORE::Int32ToString( tabsHeight ) );
+        GUI::CFormLayout::SetWidgetNodeProperty( *tabs, GUI::EWidgetProperty_TabHeight, CORE::Int32ToString( tabsHeight ) );
     }
 
     CORE::CDataNode* topic = GUI::CFormLayout::AddWidgetNode( *panel, "Label", "Topic", "0,0 0," + CORE::Int32ToString( tabsHeight + 2 ), "1,0 0," + CORE::Int32ToString( topicHeight ) );
-    GUI::CFormLayout::SetWidgetNodeProperty( *topic, "TextColour", "170,175,190,255" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *topic, GUI::EWidgetProperty_TextColour, "170,175,190,255" );
 
     GUI::CFormLayout::AddWidgetNode( *panel, "Textbox", "Messages", "0,0 0," + CORE::Int32ToString( top ),
                                      "1,-168 1," + CORE::Int32ToString( -( top + bottom ) ) );
@@ -175,12 +175,12 @@ CChatForm::BuildLayout( CORE::CDataNode& layout )
     const Int32 buttonsWidth = single ? 88 : 176;
     GUI::CFormLayout::AddWidgetNode( *panel, "Editbox", "Input", "0,0 1,-32", "1," + CORE::Int32ToString( -( buttonsWidth + 8 ) ) + " 0,32" );
     CORE::CDataNode* send = GUI::CFormLayout::AddWidgetNode( *panel, "Button", "Send", "1," + CORE::Int32ToString( -buttonsWidth ) + " 1,-32", "0,80 0,32" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *send, "Text", "Send" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *send, "StyleClass", "Primary" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *send, GUI::EWidgetProperty_Text, "Send" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *send, GUI::EWidgetProperty_StyleClass, "Primary" );
     if ( !single )
     {
         CORE::CDataNode* close = GUI::CFormLayout::AddWidgetNode( *panel, "Button", "Close", "1,-88 1,-32", "0,80 0,32" );
-        GUI::CFormLayout::SetWidgetNodeProperty( *close, "Text", "Close" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *close, GUI::EWidgetProperty_Text, "Close" );
     }
 }
 
@@ -223,22 +223,36 @@ CChatForm::OnPostLayoutLoad( void )
 
     GUI::CWidget* tabs = GetWidget( "ChatTabs" );
     if ( GUCEF_NULL != tabs )
-        SubscribeTo( tabs, GUI::CTabControl::ActiveTabChangedEvent );
+    {
+        TEventCallback callback( this, &CChatForm::OnActiveTabChanged );
+        SubscribeTo( tabs, GUI::CTabControl::ActiveTabChangedEvent, callback );
+    }
     GUI::CWidget* members = GetWidget( "Members" );
     if ( GUCEF_NULL != members )
     {
-        SubscribeTo( members, GUI::CWidget::ItemActivatedEvent );
-        SubscribeTo( members, GUI::CWidget::MouseClickEvent );
+        TEventCallback activatedCallback( this, &CChatForm::OnMemberItemActivated );
+        SubscribeTo( members, GUI::CWidget::ItemActivatedEvent, activatedCallback );
+        TEventCallback clickCallback( this, &CChatForm::OnMemberClicked );
+        SubscribeTo( members, GUI::CWidget::MouseClickEvent, clickCallback );
     }
     GUI::CWidget* input = GetWidget( "Input" );
     if ( GUCEF_NULL != input )
-        SubscribeTo( input, GUI::CEditbox::TextEnteredEvent );
+    {
+        TEventCallback callback( this, &CChatForm::OnInputTextEntered );
+        SubscribeTo( input, GUI::CEditbox::TextEnteredEvent, callback );
+    }
     GUI::CWidget* send = GetWidget( "Send" );
     if ( GUCEF_NULL != send )
-        SubscribeTo( send, GUI::CWidget::ActivatedEvent );
+    {
+        TEventCallback callback( this, &CChatForm::OnSendActivated );
+        SubscribeTo( send, GUI::CWidget::ActivatedEvent, callback );
+    }
     GUI::CWidget* close = GetWidget( "Close" );
     if ( GUCEF_NULL != close )
-        SubscribeTo( close, GUI::CWidget::ActivatedEvent );
+    {
+        TEventCallback callback( this, &CChatForm::OnCloseActivated );
+        SubscribeTo( close, GUI::CWidget::ActivatedEvent, callback );
+    }
 
     ShowTabs();
     ShowActiveTab();
@@ -256,7 +270,14 @@ CChatForm::SetService( MULTIPLAY::CIChatService* service )
     if ( GUCEF_NULL == m_service )
         return;
 
-    SubscribeTo( m_service );
+    TEventCallback messageCallback( this, &CChatForm::OnServiceChatMessage );
+    SubscribeTo( m_service, MULTIPLAY::CIChatService::ChatMessageEvent, messageCallback );
+    TEventCallback presenceCallback( this, &CChatForm::OnServiceChatPresence );
+    SubscribeTo( m_service, MULTIPLAY::CIChatService::ChatPresenceEvent, presenceCallback );
+    TEventCallback topicCallback( this, &CChatForm::OnServiceChatTopic );
+    SubscribeTo( m_service, MULTIPLAY::CIChatService::ChatTopicEvent, topicCallback );
+    TEventCallback errorCallback( this, &CChatForm::OnServiceChatError );
+    SubscribeTo( m_service, MULTIPLAY::CIChatService::ChatErrorEvent, errorCallback );
 
     CORE::CString::StringVector channels;
     m_service->GetChannels( channels );
@@ -490,7 +511,7 @@ CChatForm::GetShownTopic( void )
 {GUCEF_TRACE;
 
     GUI::CWidget* topic = GetWidget( "Topic" );
-    return GUCEF_NULL != topic ? topic->GetProperty( "Text" ) : CORE::CString::Empty;
+    return GUCEF_NULL != topic ? topic->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -521,8 +542,8 @@ CChatForm::ShowTabs( void )
 
     bool wasUpdating = m_updating;
     m_updating = true;
-    tabs->SetStringListProperty( "Tabs", titles );
-    tabs->SetIntProperty( "ActiveTab", m_active < 0 ? 0 : m_active );
+    tabs->SetStringListProperty( GUI::EWidgetProperty_Tabs, titles );
+    tabs->SetIntProperty( GUI::EWidgetProperty_ActiveTab, m_active < 0 ? 0 : m_active );
     m_updating = wasUpdating;
 }
 
@@ -536,7 +557,7 @@ CChatForm::ScrollMessagesToEnd( void )
     if ( GUCEF_NULL == messages )
         return;
     Int32 hidden = (Int32) messages->GetDisplayLines().size() - messages->GetVisibleLineCount();
-    messages->SetIntProperty( "ScrollPosition", hidden > 0 ? hidden : 0 );
+    messages->SetIntProperty( GUI::EWidgetProperty_ScrollPosition, hidden > 0 ? hidden : 0 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -586,9 +607,9 @@ CChatForm::ShowActiveTab( void )
     if ( m_active < 0 || m_active >= (Int32) m_tabs.size() )
     {
         if ( GUCEF_NULL != messages )
-            messages->SetProperty( "Text", CORE::CString::Empty );
+            messages->SetProperty( GUI::EWidgetProperty_Text, CORE::CString::Empty );
         if ( GUCEF_NULL != topic )
-            topic->SetProperty( "Text", CORE::CString::Empty );
+            topic->SetProperty( GUI::EWidgetProperty_Text, CORE::CString::Empty );
         ShowMembers();
         return;
     }
@@ -597,7 +618,7 @@ CChatForm::ShowActiveTab( void )
     bool hadUnread = tab.unread > 0;
     tab.unread = 0;
     if ( GUCEF_NULL != messages )
-        messages->SetProperty( "Text", JoinLines( tab.lines ) );
+        messages->SetProperty( GUI::EWidgetProperty_Text, JoinLines( tab.lines ) );
     if ( GUCEF_NULL != topic )
     {
         CORE::CString text;
@@ -607,7 +628,7 @@ CChatForm::ShowActiveTab( void )
             if ( GUCEF_NULL != channel )
                 text = channel->GetTopic();
         }
-        topic->SetProperty( "Text", text );
+        topic->SetProperty( GUI::EWidgetProperty_Text, text );
     }
     ScrollMessagesToEnd();
     ShowMembers();
@@ -639,7 +660,7 @@ CChatForm::AppendLine( UInt32 tabIndex, const CORE::CString& line )
         if ( GUCEF_NULL != messages )
         {
             if ( trimmed )
-                messages->SetProperty( "Text", JoinLines( tab.lines ) );
+                messages->SetProperty( GUI::EWidgetProperty_Text, JoinLines( tab.lines ) );
             else
                 messages->AppendLine( line );
             ScrollMessagesToEnd();
@@ -813,9 +834,9 @@ CChatForm::SendInput( void )
     GUI::CWidget* input = GetWidget( "Input" );
     if ( GUCEF_NULL == input )
         return;
-    CORE::CString text = input->GetProperty( "Text" );
+    CORE::CString text = input->GetProperty( GUI::EWidgetProperty_Text );
     if ( SendText( text ) )
-        input->SetProperty( "Text", CORE::CString::Empty );
+        input->SetProperty( GUI::EWidgetProperty_Text, CORE::CString::Empty );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -840,7 +861,8 @@ CChatForm::OpenMemberMenu( Int32 x, Int32 y, Int32 row )
         m_memberMenu = static_cast< GUI::CPopupMenu* >( context->CreateWidget( "PopupMenu", "ChatForm#Menu", GUCEF_NULL ) );
         if ( GUCEF_NULL == m_memberMenu )
             return;
-        SubscribeTo( m_memberMenu, GUI::CWidget::ItemActivatedEvent );
+        TEventCallback callback( this, &CChatForm::OnMenuItemActivated );
+        SubscribeTo( m_memberMenu, GUI::CWidget::ItemActivatedEvent, callback );
     }
     m_menuUser = user;
     GUI::CPopupMenu::TStringVector items;
@@ -852,103 +874,178 @@ CChatForm::OpenMemberMenu( Int32 x, Int32 y, Int32 row )
 /*-------------------------------------------------------------------------*/
 
 void
+CChatForm::OnServiceChatMessage( CORE::CNotifier* notifier    ,
+                                 const CORE::CEvent& eventId  ,
+                                 CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != eventData )
+        OnChatMessage( *static_cast< const MULTIPLAY::CChatMessage* >( eventData ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChatForm::OnServiceChatPresence( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != eventData )
+        OnChatPresence( *static_cast< const MULTIPLAY::CChatPresenceEventData* >( eventData ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChatForm::OnServiceChatTopic( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+
+    const MULTIPLAY::CChatTopicEventData* topic = static_cast< const MULTIPLAY::CChatTopicEventData* >( eventData );
+    if ( m_active >= 0 && m_active < (Int32) m_tabs.size() && !m_tabs[ m_active ].direct && m_tabs[ m_active ].name == topic->channel )
+    {
+        GUI::CWidget* label = GetWidget( "Topic" );
+        if ( GUCEF_NULL != label )
+            label->SetProperty( GUI::EWidgetProperty_Text, topic->topic );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChatForm::OnServiceChatError( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+
+    const MULTIPLAY::CIChatService::TChatErrorEventData* error = static_cast< const MULTIPLAY::CIChatService::TChatErrorEventData* >( eventData );
+    GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ChatForm: The chat service reports: " << error->GetData() );
+    if ( m_active >= 0 )
+        AppendLine( (UInt32) m_active, "* " + error->GetData() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChatForm::OnActiveTabChanged( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_updating || GUCEF_NULL == eventData )
+        return;
+    const GUI::CTabControl::TActiveTabChangedEventData* tab = static_cast< const GUI::CTabControl::TActiveTabChangedEventData* >( eventData );
+    if ( tab->GetData() < (UInt32) m_tabs.size() && (Int32) tab->GetData() != m_active )
+    {
+        m_active = (Int32) tab->GetData();
+        ShowActiveTab();
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChatForm::OnMemberItemActivated( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    GUI::CItemEventData* item = static_cast< GUI::CItemEventData* >( eventData );
+    if ( GUI::EVENTPHASE_TUNNEL != item->phase )
+        OpenDirectConversation( item->item );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChatForm::OnMemberClicked( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    GUI::CPointerEventData* pointer = static_cast< GUI::CPointerEventData* >( eventData );
+    if ( GUI::MOUSEBUTTON_RIGHT == pointer->button && GUI::EVENTPHASE_TUNNEL != pointer->phase )
+    {
+        GUI::CListbox* members = GetWidgetAs< GUI::CListbox >( "Members" );
+        OpenMemberMenu( pointer->x, pointer->y, GUCEF_NULL != members ? members->GetRowAt( pointer->localY ) : -1 );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChatForm::OnMenuItemActivated( CORE::CNotifier* notifier    ,
+                                const CORE::CEvent& eventId  ,
+                                CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData || GUCEF_NULL == m_memberMenu )
+        return;
+    GUI::CItemEventData* item = static_cast< GUI::CItemEventData* >( eventData );
+    GUI::CGUIContext* context = GetGUIContext();
+    if ( GUCEF_NULL != context && context->GetPopup() == m_memberMenu )
+        context->ClosePopup();
+    if ( DirectMessageItem == item->item )
+        OpenDirectConversation( m_menuUser );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChatForm::OnInputTextEntered( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    SendInput();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChatForm::OnSendActivated( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    SendInput();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChatForm::OnCloseActivated( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_active >= 0 )
+        CloseTab( (UInt32) m_active );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CChatForm::OnNotify( CORE::CNotifier* notifier    ,
                      const CORE::CEvent& eventId  ,
                      CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL != m_service && notifier == m_service )
-    {
-        if ( CORE::CINotifier::DestructionEvent == eventId )
-        {
-            m_service = GUCEF_NULL;
-            return;
-        }
-        if ( MULTIPLAY::CIChatService::ChatMessageEvent == eventId && GUCEF_NULL != eventData )
-        {
-            OnChatMessage( *static_cast< const MULTIPLAY::CChatMessage* >( eventData ) );
-            return;
-        }
-        if ( MULTIPLAY::CIChatService::ChatPresenceEvent == eventId && GUCEF_NULL != eventData )
-        {
-            OnChatPresence( *static_cast< const MULTIPLAY::CChatPresenceEventData* >( eventData ) );
-            return;
-        }
-        if ( MULTIPLAY::CIChatService::ChatTopicEvent == eventId && GUCEF_NULL != eventData )
-        {
-            const MULTIPLAY::CChatTopicEventData* topic = static_cast< const MULTIPLAY::CChatTopicEventData* >( eventData );
-            if ( m_active >= 0 && m_active < (Int32) m_tabs.size() && !m_tabs[ m_active ].direct && m_tabs[ m_active ].name == topic->channel )
-            {
-                GUI::CWidget* label = GetWidget( "Topic" );
-                if ( GUCEF_NULL != label )
-                    label->SetProperty( "Text", topic->topic );
-            }
-            return;
-        }
-        if ( MULTIPLAY::CIChatService::ChatErrorEvent == eventId && GUCEF_NULL != eventData )
-        {
-            const MULTIPLAY::CIChatService::TChatErrorEventData* error = static_cast< const MULTIPLAY::CIChatService::TChatErrorEventData* >( eventData );
-            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "ChatForm: The chat service reports: " << error->GetData() );
-            if ( m_active >= 0 )
-                AppendLine( (UInt32) m_active, "* " + error->GetData() );
-            return;
-        }
-        return;
-    }
-
-    if ( GUI::CTabControl::ActiveTabChangedEvent == eventId )
-    {
-        if ( m_updating || GUCEF_NULL == eventData )
-            return;
-        const GUI::CTabControl::TActiveTabChangedEventData* tab = static_cast< const GUI::CTabControl::TActiveTabChangedEventData* >( eventData );
-        if ( tab->GetData() < (UInt32) m_tabs.size() && (Int32) tab->GetData() != m_active )
-        {
-            m_active = (Int32) tab->GetData();
-            ShowActiveTab();
-        }
-        return;
-    }
-    if ( GUI::CWidget::ItemActivatedEvent == eventId && GUCEF_NULL != eventData )
-    {
-        GUI::CItemEventData* item = static_cast< GUI::CItemEventData* >( eventData );
-        if ( notifier == m_memberMenu && GUCEF_NULL != m_memberMenu )
-        {
-            GUI::CGUIContext* context = GetGUIContext();
-            if ( GUCEF_NULL != context && context->GetPopup() == m_memberMenu )
-                context->ClosePopup();
-            if ( DirectMessageItem == item->item )
-                OpenDirectConversation( m_menuUser );
-            return;
-        }
-        if ( notifier == GetWidget( "Members" ) && GUI::EVENTPHASE_TUNNEL != item->phase )
-            OpenDirectConversation( item->item );
-        return;
-    }
-    if ( GUI::CWidget::MouseClickEvent == eventId && GUCEF_NULL != eventData && notifier == GetWidget( "Members" ) )
-    {
-        GUI::CPointerEventData* pointer = static_cast< GUI::CPointerEventData* >( eventData );
-        if ( GUI::MOUSEBUTTON_RIGHT == pointer->button && GUI::EVENTPHASE_TUNNEL != pointer->phase )
-        {
-            GUI::CListbox* members = GetWidgetAs< GUI::CListbox >( "Members" );
-            OpenMemberMenu( pointer->x, pointer->y, GUCEF_NULL != members ? members->GetRowAt( pointer->localY ) : -1 );
-        }
-        return;
-    }
-    if ( GUI::CEditbox::TextEnteredEvent == eventId )
-    {
-        SendInput();
-        return;
-    }
-    if ( GUI::CWidget::ActivatedEvent == eventId )
-    {
-        if ( notifier == GetWidget( "Send" ) )
-            SendInput();
-        else
-        if ( notifier == GetWidget( "Close" ) && m_active >= 0 )
-            CloseTab( (UInt32) m_active );
-        return;
-    }
-    GUI::CFormEx::OnNotify( notifier, eventId, eventData );
+    // the standard events do not reach the handlers of the subscriptions
+    if ( GUCEF_NULL != m_service && notifier == m_service && CORE::CINotifier::DestructionEvent == eventId )
+        m_service = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_CORE_CTIMER_H
 #include "CTimer.h"
 #define GUCEF_CORE_CTIMER_H
@@ -124,14 +129,9 @@ class CTestLobbyHost : public GUCEF::CORE::CObserver
 
     virtual const GUCEF::CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    protected:
-
-    virtual void OnNotify( GUCEF::CORE::CNotifier* notifier                 ,
-                           const GUCEF::CORE::CEvent& eventId               ,
-                           GUCEF::CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
 
+    typedef GUCEF::CORE::CTEventHandlerFunctor< CTestLobbyHost > TEventCallback;
     typedef GUCEF::vector< CTestLobby* > TLobbyVector;
     typedef GUCEF::map< GUCEF::CORE::CString, GUCEF::CORE::CString::StringVector > TEndpointMap;
 
@@ -147,6 +147,7 @@ class CTestLobbyHost : public GUCEF::CORE::CObserver
     void CancelCountdown( void );
     void Launch( void );
     void OnSecond( void );
+    void OnTimerUpdate( GUCEF::CORE::CNotifier* notifier, const GUCEF::CORE::CEvent& eventId, GUCEF::CORE::CICloneable* eventData );
     void ApplyLeaveOutcome( const GUCEF::CORE::CString& memberId                         ,
                             const GUCEF::MULTIPLAY::CLobbyVote& voteBefore               ,
                             const GUCEF::MULTIPLAY::CLobbyRules::TLeaveOutcome& outcome  ,

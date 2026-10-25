@@ -162,19 +162,23 @@ void
 CVotePromptForm::BuildLayout( CORE::CDataNode& layout )
 {GUCEF_TRACE;
 
-    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "VotePromptForm", "0.5,-260 0.5,-140", "0,520 0,280" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *window, "Title", "Vote" );
+    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "VotePromptForm", "0.5,0 0.5,0", "0.9,0 0.9,0" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Title, "Vote" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_HAlign, "Center" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_VAlign, "Center" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_MaxSize, "0,520 0,280" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Clip, "true" );
 
     CORE::CDataNode* what = GUI::CFormLayout::AddWidgetNode( *window, "Label", "What", "0,20 0,56", "1,-40 0,72" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *what, "WordWrap", "true" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *what, GUI::EWidgetProperty_WordWrap, "true" );
     GUI::CFormLayout::AddWidgetNode( *window, "Label", "Tally", "0,20 0,136", "1,-40 0,24" );
     GUI::CFormLayout::AddWidgetNode( *window, "Label", "TimeLeft", "0,20 0,164", "1,-40 0,24" );
 
     CORE::CDataNode* yes = GUI::CFormLayout::AddWidgetNode( *window, "Button", "Yes", "1,-252 1,-56", "0,112 0,38" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *yes, "Text", "Yes" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *yes, "StyleClass", "Primary" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *yes, GUI::EWidgetProperty_Text, "Yes" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *yes, GUI::EWidgetProperty_StyleClass, "Primary" );
     CORE::CDataNode* no = GUI::CFormLayout::AddWidgetNode( *window, "Button", "No", "1,-128 1,-56", "0,112 0,38" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *no, "Text", "No" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *no, GUI::EWidgetProperty_Text, "No" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -201,19 +205,30 @@ CVotePromptForm::OnPostLayoutLoad( void )
 
     GUI::CFormEx::OnPostLayoutLoad();
 
-    const char* buttons[] = { "Yes", "No" };
-    for ( UInt32 i=0; i<2; ++i )
+    GUI::CWidget* button = GetWidget( "Yes" );
+    if ( GUCEF_NULL != button )
     {
-        GUI::CWidget* button = GetWidget( buttons[ i ] );
-        if ( GUCEF_NULL != button )
-            SubscribeTo( button, GUI::CWidget::ActivatedEvent );
+        TEventCallback callback( this, &CVotePromptForm::OnYesActivated );
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, callback );
+    }
+    button = GetWidget( "No" );
+    if ( GUCEF_NULL != button )
+    {
+        TEventCallback callback( this, &CVotePromptForm::OnNoActivated );
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, callback );
     }
     GUI::CWidget* root = GetRootWidget();
     if ( GUCEF_NULL != root )
-        SubscribeTo( root, GUI::CWidget::NavigationEvent );
+    {
+        TEventCallback callback( this, &CVotePromptForm::OnNavigation );
+        SubscribeTo( root, GUI::CWidget::NavigationEvent, callback );
+    }
     GUI::CGUIContext* context = GetGUIContext();
     if ( GUCEF_NULL != context )
-        SubscribeTo( context, GUI::CGUIContext::FrameStartedEvent );
+    {
+        TEventCallback callback( this, &CVotePromptForm::OnFrameStarted );
+        SubscribeTo( context, GUI::CGUIContext::FrameStartedEvent, callback );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -224,7 +239,7 @@ CVotePromptForm::SetLabelText( const char* widgetName, const CORE::CString& text
 
     GUI::CWidget* label = GetWidget( widgetName );
     if ( GUCEF_NULL != label )
-        label->SetProperty( "Text", text );
+        label->SetProperty( GUI::EWidgetProperty_Text, text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -391,7 +406,13 @@ CVotePromptForm::SetLobby( MULTIPLAY::CILobbyPtr lobby )
     if ( m_lobby.IsNULL() )
         return;
 
-    SubscribeTo( m_lobby.GetPointerAlways() );
+    CORE::CNotifier* lobbyNotifier = m_lobby.GetPointerAlways();
+    TEventCallback startedCallback( this, &CVotePromptForm::OnLobbyVoteStarted );
+    SubscribeTo( lobbyNotifier, MULTIPLAY::CILobby::VoteStartedEvent, startedCallback );
+    TEventCallback endedCallback( this, &CVotePromptForm::OnLobbyVoteEnded );
+    SubscribeTo( lobbyNotifier, MULTIPLAY::CILobby::VoteEndedEvent, endedCallback );
+    TEventCallback stateCallback( this, &CVotePromptForm::OnLobbyStateChanged );
+    SubscribeTo( lobbyNotifier, MULTIPLAY::CILobby::LobbyStateChangedEvent, stateCallback );
     OpenForLobbyVote( m_lobby->GetState().activeVote );
 }
 
@@ -407,69 +428,107 @@ CVotePromptForm::GetLobby( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CVotePromptForm::OnNotify( CORE::CNotifier* notifier    ,
-                           const CORE::CEvent& eventId  ,
-                           CORE::CICloneable* eventData )
+CVotePromptForm::OnYesActivated( CORE::CNotifier* notifier    ,
+                                 const CORE::CEvent& eventId  ,
+                                 CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( GUI::CWidget::ActivatedEvent == eventId )
+    Cast( true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVotePromptForm::OnNoActivated( CORE::CNotifier* notifier    ,
+                                const CORE::CEvent& eventId  ,
+                                CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    Cast( false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVotePromptForm::OnFrameStarted( CORE::CNotifier* notifier    ,
+                                 const CORE::CEvent& eventId  ,
+                                 CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    Update();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVotePromptForm::OnNavigation( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    GUI::CNavigationEventData* navigation = static_cast< GUI::CNavigationEventData* >( eventData );
+    if ( GUI::NAVIGATION_CANCEL == navigation->direction && GUI::EVENTPHASE_TUNNEL != navigation->phase && m_open )
     {
-        if ( notifier == GetWidget( "Yes" ) )
-            Cast( true );
-        else
-        if ( notifier == GetWidget( "No" ) )
-            Cast( false );
+        navigation->handled = true;
+        Cast( false );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVotePromptForm::OnLobbyVoteStarted( CORE::CNotifier* notifier    ,
+                                     const CORE::CEvent& eventId  ,
+                                     CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    const MULTIPLAY::CLobbyVoteEventData* started = static_cast< const MULTIPLAY::CLobbyVoteEventData* >( eventData );
+    OpenForLobbyVote( started->vote );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVotePromptForm::OnLobbyVoteEnded( CORE::CNotifier* notifier    ,
+                                   const CORE::CEvent& eventId  ,
+                                   CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    const MULTIPLAY::CLobbyVoteEventData* ended = static_cast< const MULTIPLAY::CLobbyVoteEventData* >( eventData );
+    if ( m_open && ended->vote.id == m_vote.id )
+    {
+        Close();
+        NotifyObservers( ClosedEvent );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVotePromptForm::OnLobbyStateChanged( CORE::CNotifier* notifier    ,
+                                      const CORE::CEvent& eventId  ,
+                                      CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( !m_open || m_lobby.IsNULL() )
+        return;
+
+    // the tally moves on, and the vote is gone or answered by another route
+    const MULTIPLAY::CLobbyVote& current = m_lobby->GetState().activeVote;
+    if ( !current.IsActive() || current.id != m_vote.id || current.voters.find( m_lobby->GetLocalMemberId() ) != current.voters.end() )
+    {
+        Close();
+        NotifyObservers( ClosedEvent );
         return;
     }
-    if ( GUI::CGUIContext::FrameStartedEvent == eventId )
-    {
-        Update();
-        return;
-    }
-    if ( GUI::CWidget::NavigationEvent == eventId && GUCEF_NULL != eventData )
-    {
-        GUI::CNavigationEventData* navigation = static_cast< GUI::CNavigationEventData* >( eventData );
-        if ( GUI::NAVIGATION_CANCEL == navigation->direction && GUI::EVENTPHASE_TUNNEL != navigation->phase && m_open )
-        {
-            navigation->handled = true;
-            Cast( false );
-        }
-        return;
-    }
-    if ( !m_lobby.IsNULL() && notifier == m_lobby.GetPointerAlways() )
-    {
-        if ( MULTIPLAY::CILobby::VoteStartedEvent == eventId && GUCEF_NULL != eventData )
-        {
-            const MULTIPLAY::CLobbyVoteEventData* started = static_cast< const MULTIPLAY::CLobbyVoteEventData* >( eventData );
-            OpenForLobbyVote( started->vote );
-            return;
-        }
-        if ( MULTIPLAY::CILobby::VoteEndedEvent == eventId && GUCEF_NULL != eventData )
-        {
-            const MULTIPLAY::CLobbyVoteEventData* ended = static_cast< const MULTIPLAY::CLobbyVoteEventData* >( eventData );
-            if ( m_open && ended->vote.id == m_vote.id )
-            {
-                Close();
-                NotifyObservers( ClosedEvent );
-            }
-            return;
-        }
-        if ( MULTIPLAY::CILobby::LobbyStateChangedEvent == eventId && m_open )
-        {
-            // the tally moves on, and the vote is gone or answered by another route
-            const MULTIPLAY::CLobbyVote& current = m_lobby->GetState().activeVote;
-            if ( !current.IsActive() || current.id != m_vote.id || current.voters.find( m_lobby->GetLocalMemberId() ) != current.voters.end() )
-            {
-                Close();
-                NotifyObservers( ClosedEvent );
-                return;
-            }
-            m_vote = current;
-            ShowVote();
-        }
-        return;
-    }
-    GUI::CFormEx::OnNotify( notifier, eventId, eventData );
+    m_vote = current;
+    ShowVote();
 }
 
 /*-------------------------------------------------------------------------*/

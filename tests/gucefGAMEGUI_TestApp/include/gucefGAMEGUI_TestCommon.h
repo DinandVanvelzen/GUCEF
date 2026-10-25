@@ -31,6 +31,11 @@
 #define GUCEF_CORE_H
 #endif /* GUCEF_CORE_H ? */
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_GUI_H
 #include "gucefGUI.h"
 #define GUCEF_GUI_H
@@ -66,6 +71,24 @@ GUCEF::GUI::TBitmapFontPtr MakeTestFont( GUCEF::Int32 width, GUCEF::Int32 height
 
 /** A context of the null driver at 1280 x 960 in the dark theme, with the fixed width test font */
 GUCEF::GUI::TGuiContextPtr CreateFormContext( void );
+
+/**
+ *  A context of the null driver of the given size in the dark theme: with the font of the game user interfaces (Noto Sans at 18 pixels,
+ *  through the FreeType plugin) when 'realFont' is set and the plugin is there, else with the fixed width test font
+ */
+GUCEF::GUI::TGuiContextPtr CreateSizedFormContext( GUCEF::UInt32 width, GUCEF::UInt32 height, bool realFont );
+
+/** Whether the context draws with the real font */
+bool HasRealFont( GUCEF::GUI::CGUIContext* context );
+
+/** The last frame of a context as RGBA pixels at its size */
+GUCEF::IMAGE::TPixelMapPtr CaptureFrame( GUCEF::GUI::CGUIContext* context );
+
+/**
+ *  Writes RGBA pixels as a PNG file. The directory is in the environment variable GUCEF_TEST_SHOT_DIR: without it nothing is
+ *  written and false is returned (the shots are for people to look at, not part of what a test checks).
+ */
+bool WriteShot( const GUCEF::IMAGE::TPixelMapPtr& pixels, const GUCEF::CORE::CString& name );
 
 /** The context of a context pointer as the forms want it */
 GUCEF::GUI::CGUIContext* ContextOf( GUCEF::GUI::TGuiContextPtr& contextPtr );
@@ -104,6 +127,12 @@ bool IsWidgetEnabled( GUCEF::GUI::CForm& form, const GUCEF::CORE::CString& name 
 /** Pulses the global pulse generator from the test thread for the given time, for timers of the lobby doubles */
 void PumpFor( GUCEF::UInt32 durationInMs );
 
+/** The subscriptions of a form to events of its own choosing: the count the notifiers keep minus the four standard events every link to a notifier has */
+inline GUCEF::UInt32 GetEventSubscriptionCount( GUCEF::CORE::CObservingNotifier& observer )
+{
+    return observer.GetObserverSubscriptionCount() - 4 * observer.GetObserverNotifierCount();
+}
+
 /*-------------------------------------------------------------------------*/
 
 /** Counts one event of one notifier */
@@ -111,33 +140,37 @@ class CEventCount : public GUCEF::CORE::CObserver
 {
     public:
 
+    typedef GUCEF::CORE::CTEventHandlerFunctor< CEventCount > TEventCallback;
+
     GUCEF::CORE::CEvent eventId;
     GUCEF::UInt32 count;
 
     CEventCount( GUCEF::CORE::CNotifier* notifier, const GUCEF::CORE::CEvent& id )
         : GUCEF::CORE::CObserver(), eventId( id ), count( 0 )
     {
-        SubscribeTo( notifier, id );
+        TEventCallback callback( this, &CEventCount::OnEvent );
+        SubscribeTo( notifier, id, callback );
     }
 
     virtual ~CEventCount() { UnsubscribeAllFromObserver(); }
 
-    virtual void OnNotify( GUCEF::CORE::CNotifier* notifier, const GUCEF::CORE::CEvent& id, GUCEF::CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    void OnEvent( GUCEF::CORE::CNotifier* notifier, const GUCEF::CORE::CEvent& id, GUCEF::CORE::CICloneable* eventData )
     {
-        if ( id == eventId )
-            ++count;
+        ++count;
     }
 };
 
 /*-------------------------------------------------------------------------*/
 
 void PerformGameGuiGlobalTests( void );
+void PerformFormLayoutTests( void );
 void PerformServerBrowserFormTests( void );
 void PerformCreateLobbyFormTests( void );
 void PerformLobbySettingsPanelFormTests( void );
 void PerformLobbyFormTests( void );
 void PerformChatFormTests( void );
 void PerformVotePromptFormTests( void );
+void PerformTurnWaitOverlayFormTests( void );
 void PerformConnectingFormTests( void );
 void PerformDirectConnectFormTests( void );
 void PerformPlayerProfileFormTests( void );

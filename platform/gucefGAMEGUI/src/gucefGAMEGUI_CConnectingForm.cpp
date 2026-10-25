@@ -122,20 +122,24 @@ void
 CConnectingForm::BuildLayout( CORE::CDataNode& layout )
 {GUCEF_TRACE;
 
-    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "ConnectingForm", "0.5,-260 0.5,-150", "0,520 0,300" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *window, "Title", "Connecting" );
+    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "ConnectingForm", "0.5,0 0.5,0", "0.9,0 0.9,0" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Title, "Connecting" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_HAlign, "Center" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_VAlign, "Center" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_MaxSize, "0,520 0,300" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Clip, "true" );
 
     CORE::CDataNode* status = GUI::CFormLayout::AddWidgetNode( *window, "Label", "Status", "0,20 0,56", "1,-40 0,28" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *status, "WordWrap", "true" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *status, GUI::EWidgetProperty_WordWrap, "true" );
     GUI::CFormLayout::AddWidgetNode( *window, "Label", "Endpoint", "0,20 0,92", "1,-40 0,28" );
     CORE::CDataNode* relay = GUI::CFormLayout::AddWidgetNode( *window, "Label", "Relay", "0,20 0,124", "1,-40 0,28" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *relay, "TextColour", "255,200,90,255" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *relay, GUI::EWidgetProperty_TextColour, "255,200,90,255" );
 
     GUI::CFormLayout::AddWidgetNode( *window, "ProgressBar", "Progress", "0,20 0,168", "1,-40 0,22" );
     GUI::CFormLayout::AddWidgetNode( *window, "Label", "ProgressText", "0,20 0,196", "1,-40 0,24" );
 
     CORE::CDataNode* cancel = GUI::CFormLayout::AddWidgetNode( *window, "Button", "Cancel", "1,-128 1,-56", "0,112 0,38" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *cancel, "Text", "Cancel" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *cancel, GUI::EWidgetProperty_Text, "Cancel" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -164,10 +168,16 @@ CConnectingForm::OnPostLayoutLoad( void )
 
     GUI::CWidget* cancel = GetWidget( "Cancel" );
     if ( GUCEF_NULL != cancel )
-        SubscribeTo( cancel, GUI::CWidget::ActivatedEvent );
+    {
+        TEventCallback callback( this, &CConnectingForm::OnCancelActivated );
+        SubscribeTo( cancel, GUI::CWidget::ActivatedEvent, callback );
+    }
     GUI::CWidget* root = GetRootWidget();
     if ( GUCEF_NULL != root )
-        SubscribeTo( root, GUI::CWidget::NavigationEvent );
+    {
+        TEventCallback callback( this, &CConnectingForm::OnNavigation );
+        SubscribeTo( root, GUI::CWidget::NavigationEvent, callback );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -178,7 +188,7 @@ CConnectingForm::SetLabelText( const char* widgetName, const CORE::CString& text
 
     GUI::CWidget* label = GetWidget( widgetName );
     if ( GUCEF_NULL != label )
-        label->SetProperty( "Text", text );
+        label->SetProperty( GUI::EWidgetProperty_Text, text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -211,7 +221,7 @@ CConnectingForm::Begin( const CORE::CString::StringVector& endpoints, const CORE
 
     GUI::CWidget* cancel = GetWidget( "Cancel" );
     if ( GUCEF_NULL != cancel )
-        cancel->SetProperty( "Text", "Cancel" );
+        cancel->SetProperty( GUI::EWidgetProperty_Text, "Cancel" );
 
     m_open = true;
     ShowCurrentEndpoint();
@@ -313,7 +323,7 @@ CConnectingForm::SetProgress( Float32 fraction, const CORE::CString& caption )
 
     GUI::CWidget* bar = GetWidget( "Progress" );
     if ( GUCEF_NULL != bar )
-        bar->SetProperty( "Value", CORE::FloatToString( fraction * 100.0f ) );
+        bar->SetProperty( GUI::EWidgetProperty_Value, CORE::FloatToString( fraction * 100.0f ) );
     SetLabelText( "ProgressText", caption );
 }
 
@@ -356,7 +366,7 @@ CConnectingForm::ReportFailed( const CORE::CString& reason )
     SetLabelText( "Status", "Could not connect: " + reason );
     GUI::CWidget* cancel = GetWidget( "Cancel" );
     if ( GUCEF_NULL != cancel )
-        cancel->SetProperty( "Text", "Close" );
+        cancel->SetProperty( GUI::EWidgetProperty_Text, "Close" );
     TFailedEventData eventData( reason );
     NotifyObservers( FailedEvent, &eventData );
 }
@@ -402,28 +412,31 @@ CConnectingForm::HasFailed( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CConnectingForm::OnNotify( CORE::CNotifier* notifier    ,
-                           const CORE::CEvent& eventId  ,
-                           CORE::CICloneable* eventData )
+CConnectingForm::OnCancelActivated( CORE::CNotifier* notifier    ,
+                                    const CORE::CEvent& eventId  ,
+                                    CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( GUI::CWidget::ActivatedEvent == eventId )
-    {
-        if ( notifier == GetWidget( "Cancel" ) && m_open )
-            Cancel();
+    if ( m_open )
+        Cancel();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CConnectingForm::OnNavigation( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
         return;
-    }
-    if ( GUI::CWidget::NavigationEvent == eventId && GUCEF_NULL != eventData )
+    GUI::CNavigationEventData* navigation = static_cast< GUI::CNavigationEventData* >( eventData );
+    if ( GUI::NAVIGATION_CANCEL == navigation->direction && GUI::EVENTPHASE_TUNNEL != navigation->phase && m_open )
     {
-        GUI::CNavigationEventData* navigation = static_cast< GUI::CNavigationEventData* >( eventData );
-        if ( GUI::NAVIGATION_CANCEL == navigation->direction && GUI::EVENTPHASE_TUNNEL != navigation->phase && m_open )
-        {
-            navigation->handled = true;
-            Cancel();
-        }
-        return;
+        navigation->handled = true;
+        Cancel();
     }
-    GUI::CFormEx::OnNotify( notifier, eventId, eventData );
 }
 
 /*-------------------------------------------------------------------------*/

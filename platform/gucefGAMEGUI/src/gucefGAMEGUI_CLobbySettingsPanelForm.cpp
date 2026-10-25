@@ -59,6 +59,16 @@
 #define GUCEF_GUI_CGUICONTEXT_H
 #endif /* GUCEF_GUI_CGUICONTEXT_H ? */
 
+#ifndef GUCEF_GUI_CGUIGLOBAL_H
+#include "gucefGUI_CGuiGlobal.h"
+#define GUCEF_GUI_CGUIGLOBAL_H
+#endif /* GUCEF_GUI_CGUIGLOBAL_H ? */
+
+#ifndef GUCEF_GUI_CWIDGETTYPEREGISTRY_H
+#include "gucefGUI_CWidgetTypeRegistry.h"
+#define GUCEF_GUI_CWIDGETTYPEREGISTRY_H
+#endif /* GUCEF_GUI_CWIDGETTYPEREGISTRY_H ? */
+
 #ifndef GUCEF_GAMEGUI_UTILS_H
 #include "gucefGAMEGUI_Utils.h"
 #define GUCEF_GAMEGUI_UTILS_H
@@ -93,6 +103,24 @@ const CORE::CString CLobbySettingsPanelForm::ProposeSuffix = " (propose)";
 namespace {
 
 const Int32 RowHeight = 32;
+const Int32 ControlHeight = 32;
+const Int32 UnitWidth = 40;
+const Int32 GroupPadding = 10;
+const Int32 CaptionHeight = 22;
+const Int32 ScrollBarWidth = 16;
+
+/** The groups go in columns of at least this width, up to this many */
+const Int32 MinColumnWidth = 420;
+const Int32 MaxColumns = 3;
+
+/** A group box with its rows, or a setting that is in none, for the columns */
+struct SBlock
+{
+    UInt32 first;
+    UInt32 count;
+    bool grouped;
+    Int32 height;
+};
 
 /** The digits after the point a spinner needs to show multiples of the step */
 UInt32
@@ -108,22 +136,6 @@ CountDecimals( Float64 step )
         ++decimals;
     }
     return decimals;
-}
-
-/** Whether two values of a setting are the same value, "4" and "4.0" are for a number */
-bool
-SameValue( const MULTIPLAY::CLobbySettingDef& def, const CORE::CString& a, const CORE::CString& b )
-{
-    switch ( def.type )
-    {
-        case MULTIPLAY::CLobbySettingDef::TYPE_BOOL:
-            return CORE::StringToBool( a, false ) == CORE::StringToBool( b, false );
-        case MULTIPLAY::CLobbySettingDef::TYPE_INT:
-        case MULTIPLAY::CLobbySettingDef::TYPE_FLOAT:
-            return fabs( CORE::StringToDouble( a, 0.0 ) - CORE::StringToDouble( b, 0.0 ) ) < 1e-9;
-        default:
-            return a == b;
-    }
 }
 
 const CORE::CString&
@@ -194,6 +206,11 @@ CLobbySettingsPanelForm::CLobbySettingsPanelForm( void )
     , m_values()
     , m_lobby()
     , m_controls()
+    , m_hostMakesRoom( false )
+    , m_columns( 1 )
+    , m_wantedColumns( 1 )
+    , m_fittedWidth( -1 )
+    , m_subscribedToFrames( false )
     , m_updating( false )
 {GUCEF_TRACE;
 
@@ -222,40 +239,118 @@ CLobbySettingsPanelForm::AddControlNodes( CORE::CDataNode& parent, UInt32 index 
     if ( MULTIPLAY::CLobbySettingDef::TYPE_BOOL == def.type )
     {
         CORE::CDataNode* box = GUI::CFormLayout::AddWidgetNode( *row, "Checkbox", control.widgetName, "0,0 0,0", "1,0 1,0" );
-        GUI::CFormLayout::SetWidgetNodeProperty( *box, "Text", LabelOf( def ) );
+        GUI::CFormLayout::SetWidgetNodeProperty( *box, GUI::EWidgetProperty_Text, LabelOf( def ) );
         return;
     }
 
     CORE::CDataNode* label = GUI::CFormLayout::AddWidgetNode( *row, "Label", control.labelName, "0,0 0,0", "0.45,-8 1,0" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *label, "Text", LabelOf( def ) );
-    GUI::CFormLayout::SetWidgetNodeProperty( *label, "VTextAlign", "Center" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *label, GUI::EWidgetProperty_Text, LabelOf( def ) );
+    GUI::CFormLayout::SetWidgetNodeProperty( *label, GUI::EWidgetProperty_VTextAlign, "Center" );
 
+    // a unit is shown after the value, in the room the control leaves for it; the control keeps its height in a taller row
+    const bool hasUnit = !control.unitName.IsNULLOrEmpty();
+    const CORE::CString controlSize = ( hasUnit ? "0.55," + CORE::Int32ToString( -UnitWidth ) : CORE::CString( "0.55,0" ) ) + " 0," + CORE::Int32ToString( ControlHeight );
+    const CORE::CString controlPosition = hasUnit ? "1," + CORE::Int32ToString( -UnitWidth ) + " 0.5,0" : CORE::CString( "1,0 0.5,0" );
+
+    CORE::CDataNode* controlNode = GUCEF_NULL;
     switch ( def.type )
     {
         case MULTIPLAY::CLobbySettingDef::TYPE_INT:
         case MULTIPLAY::CLobbySettingDef::TYPE_FLOAT:
         {
-            CORE::CDataNode* spinner = GUI::CFormLayout::AddWidgetNode( *row, "Spinner", control.widgetName, "0.45,0 0,0", "0.55,0 1,0" );
+            CORE::CDataNode* spinner = GUI::CFormLayout::AddWidgetNode( *row, "Spinner", control.widgetName, controlPosition, controlSize );
             bool isInt = MULTIPLAY::CLobbySettingDef::TYPE_INT == def.type;
             Float64 step = def.step > 0.0 ? def.step : ( isInt ? 1.0 : 0.1 );
-            GUI::CFormLayout::SetWidgetNodeProperty( *spinner, "Min", CORE::DoubleToString( def.hasRange ? def.minValue : -1000000.0 ) );
-            GUI::CFormLayout::SetWidgetNodeProperty( *spinner, "Max", CORE::DoubleToString( def.hasRange ? def.maxValue : 1000000.0 ) );
-            GUI::CFormLayout::SetWidgetNodeProperty( *spinner, "Step", CORE::DoubleToString( step ) );
-            GUI::CFormLayout::SetWidgetNodeProperty( *spinner, "Decimals", CORE::UInt32ToString( isInt ? 0 : CountDecimals( step ) ) );
+            GUI::CFormLayout::SetWidgetNodeProperty( *spinner, GUI::EWidgetProperty_Min, CORE::DoubleToString( def.hasRange ? def.minValue : -1000000.0 ) );
+            GUI::CFormLayout::SetWidgetNodeProperty( *spinner, GUI::EWidgetProperty_Max, CORE::DoubleToString( def.hasRange ? def.maxValue : 1000000.0 ) );
+            GUI::CFormLayout::SetWidgetNodeProperty( *spinner, GUI::EWidgetProperty_Step, CORE::DoubleToString( step ) );
+            GUI::CFormLayout::SetWidgetNodeProperty( *spinner, GUI::EWidgetProperty_Decimals, CORE::UInt32ToString( isInt ? 0 : CountDecimals( step ) ) );
+            controlNode = spinner;
             break;
         }
         case MULTIPLAY::CLobbySettingDef::TYPE_ENUM:
         {
-            CORE::CDataNode* combo = GUI::CFormLayout::AddWidgetNode( *row, "Combobox", control.widgetName, "0.45,0 0,0", "0.55,0 1,0" );
-            GUI::CFormLayout::SetWidgetNodeProperty( *combo, "Items", JoinLines( def.options ) );
+            CORE::CDataNode* combo = GUI::CFormLayout::AddWidgetNode( *row, "Combobox", control.widgetName, controlPosition, controlSize );
+            GUI::CFormLayout::SetWidgetNodeProperty( *combo, GUI::EWidgetProperty_Items, JoinLines( def.options ) );
+            controlNode = combo;
             break;
         }
         default:
         {
-            GUI::CFormLayout::AddWidgetNode( *row, "Editbox", control.widgetName, "0.45,0 0,0", "0.55,0 1,0" );
+            controlNode = GUI::CFormLayout::AddWidgetNode( *row, "Editbox", control.widgetName, controlPosition, controlSize );
             break;
         }
     }
+    if ( GUCEF_NULL != controlNode )
+    {
+        // against the right edge of the row (or of the room left for the unit), so rounding cannot push it out
+        GUI::CFormLayout::SetWidgetNodeProperty( *controlNode, GUI::EWidgetProperty_HAlign, "Right" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *controlNode, GUI::EWidgetProperty_VAlign, "Center" );
+    }
+
+    if ( hasUnit )
+    {
+        CORE::CDataNode* unit = GUI::CFormLayout::AddWidgetNode( *row, "Label", control.unitName, "1," + CORE::Int32ToString( -UnitWidth + 4 ) + " 0,0", "0," + CORE::Int32ToString( UnitWidth - 4 ) + " 1,0" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *unit, GUI::EWidgetProperty_Text, def.unit );
+        GUI::CFormLayout::SetWidgetNodeProperty( *unit, GUI::EWidgetProperty_VTextAlign, "Center" );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbySettingsPanelForm::FitRows( void )
+{GUCEF_TRACE;
+
+    GUI::CGUIContext* context = GetGUIContext();
+    GUI::CWidget* root = GetRootWidget();
+    if ( GUCEF_NULL == context || GUCEF_NULL == root )
+        return;
+
+    // a label that does not fit next to its control is broken into lines and its row is as high as they need
+    context->FlushChanges();
+    for ( UInt32 i=0; i<(UInt32)m_controls.size(); ++i )
+    {
+        if ( m_controls[ i ].labelName.IsNULLOrEmpty() )
+            continue;
+        GUI::CWidget* label = GetWidget( m_controls[ i ].labelName );
+        GUI::CWidget* row = GUCEF_NULL != label ? label->GetParentWidget() : GUCEF_NULL;
+        if ( GUCEF_NULL == row || label->GetRect().width <= 0 )
+            continue;
+
+        CORE::CString font = label->GetProperty( GUI::EWidgetProperty_Font );
+        CORE::CString text = label->GetProperty( GUI::EWidgetProperty_Text );
+        Int32 width = 0, height = 0;
+        Int32 rowHeight = RowHeight;
+        bool wrap = false;
+        if ( context->MeasureText( font, text, 0, width, height ) && width > label->GetRect().width )
+        {
+            context->MeasureText( font, text, label->GetRect().width, width, height );
+            wrap = true;
+            if ( height + 8 > rowHeight )
+                rowHeight = height + 8;
+        }
+        label->SetBoolProperty( GUI::EWidgetProperty_WordWrap, wrap );
+        row->SetProperty( GUI::EWidgetProperty_Size, "1,0 0," + CORE::Int32ToString( rowHeight ) );
+    }
+    m_fittedWidth = root->GetRect().width;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbySettingsPanelForm::AddBlockNodes( CORE::CDataNode& parent, UInt32 first, UInt32 count, bool grouped, UInt32& groupCount )
+{GUCEF_TRACE;
+
+    if ( !grouped )
+    {
+        AddControlNodes( parent, first );
+        return;
+    }
+    CORE::CDataNode* groupNode = GUI::CFormLayout::AddWidgetNode( parent, "GroupBox", "Group" + CORE::UInt32ToString( groupCount++ ), "0,0 0,0", "1,0 0,0" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *groupNode, GUI::EWidgetProperty_Caption, m_controls[ first ].def.group );
+    for ( UInt32 i=first; i<first+count; ++i )
+        AddControlNodes( *groupNode, i );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -264,32 +359,113 @@ void
 CLobbySettingsPanelForm::BuildLayout( CORE::CDataNode& layout )
 {GUCEF_TRACE;
 
-    CORE::CDataNode* panel = GUI::CFormLayout::AddWidgetNode( layout, "Panel", "LobbySettingsPanel", "0,0 0,0", "1,0 1,0" );
-    CORE::CDataNode* list = GUI::CFormLayout::AddWidgetNode( *panel, "VBox", "Settings", "0,0 0,0", "1,0 1,0" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *list, "Spacing", "6" );
+    // the groups below each other, as high as their rows need: in a scroll panel of its own, unless the host of the form scrolls or
+    // makes room for all of it
+    CORE::CDataNode* parent = &layout;
+    if ( !m_hostMakesRoom )
+    {
+        parent = GUI::CFormLayout::AddWidgetNode( layout, "ScrollPanel", "LobbySettingsPanel", "0,0 0,0", "1,0 1,0" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *parent, GUI::EWidgetProperty_BottomPadding, "4" );
+    }
 
-    // consecutive settings of one group share a group box
-    CORE::CString currentGroup;
-    CORE::CDataNode* groupNode = GUCEF_NULL;
-    UInt32 groupCount = 0;
+    // consecutive settings of one group share a group box: the blocks are those boxes and the settings that are in none
+    typedef GUCEF::vector< SBlock > TBlockVector;
+    TBlockVector blocks;
     for ( UInt32 i=0; i<(UInt32)m_controls.size(); ++i )
     {
         const CORE::CString& group = m_controls[ i ].def.group;
         if ( group.IsNULLOrEmpty() )
         {
-            groupNode = GUCEF_NULL;
-            currentGroup.Clear();
-            AddControlNodes( *list, i );
-            continue;
+            SBlock block = { i, 1, false, RowHeight };
+            blocks.push_back( block );
         }
-        if ( GUCEF_NULL == groupNode || group != currentGroup )
+        else
+        if ( !blocks.empty() && blocks.back().grouped && m_controls[ blocks.back().first ].def.group == group )
         {
-            groupNode = GUI::CFormLayout::AddWidgetNode( *list, "GroupBox", "Group" + CORE::UInt32ToString( groupCount++ ), "0,0 0,0", "1,0 0,0" );
-            GUI::CFormLayout::SetWidgetNodeProperty( *groupNode, "Caption", group );
-            currentGroup = group;
+            ++blocks.back().count;
         }
-        AddControlNodes( *groupNode, i );
+        else
+        {
+            SBlock block = { i, 1, true, 0 };
+            blocks.push_back( block );
+        }
     }
+    Int32 total = 0;
+    for ( UInt32 b=0; b<(UInt32)blocks.size(); ++b )
+    {
+        if ( blocks[ b ].grouped )
+            blocks[ b ].height = 2 * GroupPadding + CaptionHeight + (Int32) blocks[ b ].count * ( RowHeight + 4 );
+        total += blocks[ b ].height + 6;
+    }
+
+    UInt32 groupCount = 0;
+    if ( m_columns <= 1 )
+    {
+        CORE::CDataNode* list = GUI::CFormLayout::AddWidgetNode( *parent, "VBox", "Settings", "0,0 0,0", "1,0 0,0" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *list, GUI::EWidgetProperty_AutoHeight, "true" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *list, GUI::EWidgetProperty_Padding, "4" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *list, GUI::EWidgetProperty_Spacing, "6" );
+        for ( UInt32 b=0; b<(UInt32)blocks.size(); ++b )
+            AddBlockNodes( *list, blocks[ b ].first, blocks[ b ].count, blocks[ b ].grouped, groupCount );
+        return;
+    }
+
+    // several columns side by side, filled in turn with about as much height each
+    CORE::CDataNode* list = GUI::CFormLayout::AddWidgetNode( *parent, "HBox", "Settings", "0,0 0,0", "1,0 0,0" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *list, GUI::EWidgetProperty_AutoHeight, "true" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *list, GUI::EWidgetProperty_Padding, "4" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *list, GUI::EWidgetProperty_Spacing, "12" );
+    CORE::CString columnWidth = CORE::CString( CORE::DoubleToString( 1.0 / (Float64) m_columns ) ) + ",-12 0,0";
+    GUCEF::vector< CORE::CDataNode* > columns;
+    for ( UInt32 c=0; c<m_columns; ++c )
+    {
+        CORE::CDataNode* column = GUI::CFormLayout::AddWidgetNode( *list, "VBox", "Column" + CORE::UInt32ToString( c ), "0,0 0,0", columnWidth );
+        GUI::CFormLayout::SetWidgetNodeProperty( *column, GUI::EWidgetProperty_AutoHeight, "true" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *column, GUI::EWidgetProperty_Spacing, "6" );
+        columns.push_back( column );
+    }
+    Int32 filled = 0;
+    UInt32 column = 0;
+    for ( UInt32 b=0; b<(UInt32)blocks.size(); ++b )
+    {
+        // the next column when this block would sit mostly beyond the share of the column
+        if ( column + 1 < m_columns && filled + ( blocks[ b ].height + 6 ) / 2 > total * (Int32) ( column + 1 ) / (Int32) m_columns )
+            ++column;
+        AddBlockNodes( *columns[ column ], blocks[ b ].first, blocks[ b ].count, blocks[ b ].grouped, groupCount );
+        filled += blocks[ b ].height + 6;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CLobbySettingsPanelForm::GetColumnsForWidth( Int32 width ) const
+{GUCEF_TRACE;
+
+    Int32 columns = width / MinColumnWidth;
+    return columns < 1 ? 1 : ( columns > MaxColumns ? (UInt32) MaxColumns : (UInt32) columns );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbySettingsPanelForm::UpdateColumns( void )
+{GUCEF_TRACE;
+
+    GUI::CGUIContext* context = GetGUIContext();
+    if ( GUCEF_NULL == context || GUCEF_NULL == m_placeholder )
+        return;
+    context->FlushChanges();
+    Int32 width = m_placeholder->GetRect().width;
+    if ( width <= 0 )
+        return;
+    // the room of the groups is the width less the scroll bar of the panel they scroll in
+    if ( GUI::CGuiGlobal::Instance()->GetWidgetTypeRegistry().IsA( m_placeholder->GetType(), "ScrollPanel" ) )
+        width -= m_placeholder->GetIntProperty( GUI::EWidgetProperty_ScrollBarWidth );
+    else
+    if ( !m_hostMakesRoom )
+        width -= ScrollBarWidth;
+    m_wantedColumns = GetColumnsForWidth( width );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -306,20 +482,26 @@ CLobbySettingsPanelForm::Rebuild( void )
         control.def = m_schema.settings[ i ];
         control.widgetName = "Setting" + CORE::UInt32ToString( i );
         if ( MULTIPLAY::CLobbySettingDef::TYPE_BOOL != control.def.type )
+        {
             control.labelName = "Label" + CORE::UInt32ToString( i );
+            if ( !control.def.unit.IsNULLOrEmpty() )
+                control.unitName = "Unit" + CORE::UInt32ToString( i );
+        }
         m_controls.push_back( control );
     }
 
     if ( GUCEF_NULL == m_placeholder )
         return true;
 
+    // as many columns as the room has: a wide window gets the groups side by side
+    UpdateColumns();
+    m_columns = m_wantedColumns;
+
     CORE::CDataNode layout;
     GUI::CFormLayout::InitLayout( layout );
     BuildLayout( layout );
     return LoadLayout( layout );
 }
-
-/*-------------------------------------------------------------------------*/
 
 bool
 CLobbySettingsPanelForm::Build( GUI::CWidget* placeholder )
@@ -330,6 +512,7 @@ CLobbySettingsPanelForm::Build( GUI::CWidget* placeholder )
     SetContext( placeholder->GetContext() );
     SetParent( placeholder );
     m_placeholder = placeholder;
+    m_hostMakesRoom = GUI::CGuiGlobal::Instance()->GetWidgetTypeRegistry().IsA( placeholder->GetType(), "ScrollPanel" ) || placeholder->GetBoolProperty( GUI::EWidgetProperty_AutoHeight );
     return Rebuild();
 }
 
@@ -341,6 +524,8 @@ CLobbySettingsPanelForm::OnPostLayoutLoad( void )
 
     GUI::CFormEx::OnPostLayoutLoad();
 
+    // one handler for the widget of every setting, which of them it is follows from the widget
+    TEventCallback controlCallback( this, &CLobbySettingsPanelForm::OnControlChanged );
     for ( UInt32 i=0; i<(UInt32)m_controls.size(); ++i )
     {
         GUI::CWidget* widget = GetWidget( m_controls[ i ].widgetName );
@@ -348,13 +533,23 @@ CLobbySettingsPanelForm::OnPostLayoutLoad( void )
             continue;
         if ( MULTIPLAY::CLobbySettingDef::TYPE_STRING == m_controls[ i ].def.type )
         {
-            SubscribeTo( widget, GUI::CEditbox::TextEnteredEvent );
-            SubscribeTo( widget, GUI::CWidget::KeyboardFocusLostEvent );
+            SubscribeTo( widget, GUI::CEditbox::TextEnteredEvent, controlCallback );
+            SubscribeTo( widget, GUI::CWidget::KeyboardFocusLostEvent, controlCallback );
         }
         else
-            SubscribeTo( widget, GUI::CWidget::ValueChangedEvent );
+            SubscribeTo( widget, GUI::CWidget::ValueChangedEvent, controlCallback );
     }
+    FitRows();
     Refresh();
+
+    // the rows follow the width of the panel
+    GUI::CGUIContext* context = GetGUIContext();
+    if ( GUCEF_NULL != context && !m_subscribedToFrames )
+    {
+        TEventCallback callback( this, &CLobbySettingsPanelForm::OnFrameStarted );
+        SubscribeTo( context, GUI::CGUIContext::FrameStartedEvent, callback );
+        m_subscribedToFrames = true;
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -406,7 +601,8 @@ CLobbySettingsPanelForm::SetLobby( MULTIPLAY::CILobbyPtr lobby )
     m_lobby = lobby;
     if ( !m_lobby.IsNULL() )
     {
-        SubscribeTo( m_lobby.GetPointerAlways() );
+        TEventCallback callback( this, &CLobbySettingsPanelForm::OnLobbyStateChanged );
+        SubscribeTo( m_lobby.GetPointerAlways(), MULTIPLAY::CILobby::LobbyStateChangedEvent, callback );
         m_schema = m_lobby->GetSchema();
         m_values.clear();
     }
@@ -485,7 +681,20 @@ CLobbySettingsPanelForm::GetLabelText( const CORE::CString& key )
         return CORE::CString::Empty;
     const TControl& control = m_controls[ index ];
     GUI::CWidget* label = GetWidget( control.labelName.IsNULLOrEmpty() ? control.widgetName : control.labelName );
-    return GUCEF_NULL != label ? label->GetProperty( "Text" ) : CORE::CString::Empty;
+    return GUCEF_NULL != label ? label->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CLobbySettingsPanelForm::GetUnitText( const CORE::CString& key )
+{GUCEF_TRACE;
+
+    Int32 index = FindControlIndex( key );
+    if ( index < 0 || m_controls[ index ].unitName.IsNULLOrEmpty() )
+        return CORE::CString::Empty;
+    GUI::CWidget* unit = GetWidget( m_controls[ index ].unitName );
+    return GUCEF_NULL != unit ? unit->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -534,17 +743,17 @@ CLobbySettingsPanelForm::ReadControl( const TControl& control )
     {
         case MULTIPLAY::CLobbySettingDef::TYPE_BOOL:
         {
-            return widget->GetBoolProperty( "Checked" ) ? "true" : "false";
+            return widget->GetBoolProperty( GUI::EWidgetProperty_Checked ) ? "true" : "false";
         }
         case MULTIPLAY::CLobbySettingDef::TYPE_INT:
         case MULTIPLAY::CLobbySettingDef::TYPE_FLOAT:
         {
-            GUI::CSpinner* spinner = dynamic_cast< GUI::CSpinner* >( widget );
-            return GUCEF_NULL != spinner ? spinner->GetValueText() : widget->GetProperty( "Value" );
+            GUI::CSpinner* spinner = WidgetAs< GUI::CSpinner >( widget, "Spinner" );
+            return GUCEF_NULL != spinner ? spinner->GetValueText() : widget->GetProperty( GUI::EWidgetProperty_Value );
         }
         case MULTIPLAY::CLobbySettingDef::TYPE_ENUM:
         {
-            GUI::CCombobox* combo = dynamic_cast< GUI::CCombobox* >( widget );
+            GUI::CCombobox* combo = WidgetAs< GUI::CCombobox >( widget, "Combobox" );
             if ( GUCEF_NULL == combo )
                 return CORE::CString::Empty;
             Int32 selected = combo->GetSelectedIndex();
@@ -554,7 +763,7 @@ CLobbySettingsPanelForm::ReadControl( const TControl& control )
         }
         default:
         {
-            return widget->GetProperty( "Text" );
+            return widget->GetProperty( GUI::EWidgetProperty_Text );
         }
     }
 }
@@ -573,18 +782,18 @@ CLobbySettingsPanelForm::ShowControl( const TControl& control, const CORE::CStri
     {
         case MULTIPLAY::CLobbySettingDef::TYPE_BOOL:
         {
-            widget->SetProperty( "Checked", CORE::StringToBool( value, false ) ? "true" : "false" );
+            widget->SetProperty( GUI::EWidgetProperty_Checked, CORE::StringToBool( value, false ) ? "true" : "false" );
             break;
         }
         case MULTIPLAY::CLobbySettingDef::TYPE_INT:
         case MULTIPLAY::CLobbySettingDef::TYPE_FLOAT:
         {
-            widget->SetProperty( "Value", value );
+            widget->SetProperty( GUI::EWidgetProperty_Value, value );
             break;
         }
         case MULTIPLAY::CLobbySettingDef::TYPE_ENUM:
         {
-            GUI::CCombobox* combo = dynamic_cast< GUI::CCombobox* >( widget );
+            GUI::CCombobox* combo = WidgetAs< GUI::CCombobox >( widget, "Combobox" );
             if ( GUCEF_NULL == combo )
                 break;
             Int32 found = -1;
@@ -602,7 +811,7 @@ CLobbySettingsPanelForm::ShowControl( const TControl& control, const CORE::CStri
         }
         default:
         {
-            widget->SetProperty( "Text", value );
+            widget->SetProperty( GUI::EWidgetProperty_Text, value );
             break;
         }
     }
@@ -661,7 +870,34 @@ CLobbySettingsPanelForm::IsSettingEditable( const CORE::CString& key )
     if ( index < 0 )
         return false;
     GUI::CWidget* widget = GetWidget( m_controls[ index ].widgetName );
-    return GUCEF_NULL != widget && widget->GetBoolProperty( "Enabled" );
+    return GUCEF_NULL != widget && widget->GetBoolProperty( GUI::EWidgetProperty_Enabled );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLobbySettingsPanelForm::IsGateOpen( const TControl& control ) const
+{GUCEF_TRACE;
+
+    if ( !control.def.HasEnabledBy() )
+        return true;
+
+    // a gate on a setting the schema does not have is no gate
+    Int32 index = FindControlIndex( control.def.enabledByKey );
+    if ( index < 0 )
+        return true;
+    const TControl& controller = m_controls[ index ];
+    return control.def.IsEnabledByValue( controller.def, GetKnownValue( controller ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLobbySettingsPanelForm::IsGateOpen( const CORE::CString& key )
+{GUCEF_TRACE;
+
+    Int32 index = FindControlIndex( key );
+    return index < 0 || IsGateOpen( m_controls[ index ] );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -683,6 +919,7 @@ CLobbySettingsPanelForm::Refresh( void )
     if ( m_updating )
         return;
     m_updating = true;
+    bool labelsChanged = false;
 
     for ( UInt32 i=0; i<(UInt32)m_controls.size(); ++i )
     {
@@ -696,16 +933,21 @@ CLobbySettingsPanelForm::Refresh( void )
         if ( !typing )
             ShowControl( control, GetKnownValue( control ) );
 
+        // a setting that depends on another is editable while that one has the value, and keeps its value when it is not
         bool canChange = CanChange( control );
+        bool gateOpen = IsGateOpen( control );
         bool proposal = canChange && IsProposal( control );
-        widget->SetEnabled( canChange );
+        widget->SetEnabled( canChange && gateOpen );
 
         CORE::CString label = LabelOf( control.def );
         if ( proposal )
             label += ProposeSuffix;
         GUI::CWidget* labelWidget = GetWidget( control.labelName.IsNULLOrEmpty() ? control.widgetName : control.labelName );
-        if ( GUCEF_NULL != labelWidget )
-            labelWidget->SetProperty( "Text", label );
+        if ( GUCEF_NULL != labelWidget && labelWidget->GetProperty( GUI::EWidgetProperty_Text ) != label )
+        {
+            labelWidget->SetProperty( GUI::EWidgetProperty_Text, label );
+            labelsChanged = true;
+        }
 
         CORE::CString tip;
         if ( proposal )
@@ -713,10 +955,20 @@ CLobbySettingsPanelForm::Refresh( void )
         else
         if ( !canChange && !m_lobby.IsNULL() && MULTIPLAY::CLobbySettingDef::CHANGEPOLICY_BOSS == control.def.changePolicy )
             tip = "Only the boss changes this";
-        widget->SetProperty( "Tooltip", tip );
+        else
+        if ( !gateOpen )
+        {
+            Int32 controllerIndex = FindControlIndex( control.def.enabledByKey );
+            tip = "Available when " + LabelOf( m_controls[ controllerIndex ].def ) + " is " + control.def.enabledByValue;
+        }
+        widget->SetProperty( GUI::EWidgetProperty_Tooltip, tip );
     }
 
     m_updating = false;
+
+    // a label that says "(propose)" now may need another line
+    if ( labelsChanged )
+        FitRows();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -731,12 +983,20 @@ CLobbySettingsPanelForm::Commit( UInt32 index )
 
     CORE::CString value = ReadControl( control );
     CORE::CString known = GetKnownValue( control );
-    if ( SameValue( control.def, value, known ) )
+    if ( control.def.IsSameValue( value, known ) )
         return;
+
+    // a setting that is gated off keeps its value, whoever asks
+    if ( !IsGateOpen( control ) )
+    {
+        Refresh();
+        return;
+    }
 
     if ( m_lobby.IsNULL() )
     {
         m_values[ control.def.key ] = value;
+        Refresh();          // other settings can depend on this one
         CSettingChangedEventData eventData( control.def.key, value, false );
         NotifyObservers( SettingChangedEvent, &eventData );
         return;
@@ -759,28 +1019,57 @@ CLobbySettingsPanelForm::Commit( UInt32 index )
 /*-------------------------------------------------------------------------*/
 
 void
-CLobbySettingsPanelForm::OnNotify( CORE::CNotifier* notifier    ,
-                                   const CORE::CEvent& eventId  ,
-                                   CORE::CICloneable* eventData )
+CLobbySettingsPanelForm::OnFrameStarted( CORE::CNotifier* notifier    ,
+                                         const CORE::CEvent& eventId  ,
+                                         CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( !m_lobby.IsNULL() && notifier == m_lobby.GetPointerAlways() )
-    {
-        if ( MULTIPLAY::CILobby::LobbyStateChangedEvent == eventId )
-            Refresh();
+    GUI::CGUIContext* context = GetGUIContext();
+    GUI::CWidget* root = GetRootWidget();
+    if ( GUCEF_NULL == context || GUCEF_NULL == root )
         return;
-    }
 
-    if ( GUI::CWidget::ValueChangedEvent == eventId || GUI::CEditbox::TextEnteredEvent == eventId || GUI::CWidget::KeyboardFocusLostEvent == eventId )
+    context->FlushChanges();
+    if ( root->GetRect().width != m_fittedWidth && root->GetRect().width > 0 )
     {
-        if ( m_updating )
+        // a wider or narrower panel has more or fewer columns of groups, what the player set goes along
+        UpdateColumns();
+        if ( m_wantedColumns != m_columns )
+        {
+            if ( m_lobby.IsNULL() )
+                for ( UInt32 i=0; i<(UInt32)m_controls.size(); ++i )
+                    m_values[ m_controls[ i ].def.key ] = ReadControl( m_controls[ i ] );
+            Rebuild();
             return;
-        Int32 index = FindControlIndexOfWidget( notifier );
-        if ( index >= 0 )
-            Commit( (UInt32) index );
-        return;
+        }
+        FitRows();
     }
-    GUI::CFormEx::OnNotify( notifier, eventId, eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbySettingsPanelForm::OnLobbyStateChanged( CORE::CNotifier* notifier    ,
+                                              const CORE::CEvent& eventId  ,
+                                              CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    Refresh();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbySettingsPanelForm::OnControlChanged( CORE::CNotifier* notifier    ,
+                                           const CORE::CEvent& eventId  ,
+                                           CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_updating )
+        return;
+    Int32 index = FindControlIndexOfWidget( notifier );
+    if ( index >= 0 )
+        Commit( (UInt32) index );
 }
 
 /*-------------------------------------------------------------------------*/

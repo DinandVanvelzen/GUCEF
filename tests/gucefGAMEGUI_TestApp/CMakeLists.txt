@@ -31,6 +31,7 @@ if (ANDROID32)
     src/TestConnectingForm.cpp
     src/TestCreateLobbyForm.cpp
     src/TestDirectConnectForm.cpp
+    src/TestFormLayouts.cpp
     src/TestGameGuiCommon.cpp
     src/TestGameGuiGlobal.cpp
     src/TestLobbyForm.cpp
@@ -38,6 +39,7 @@ if (ANDROID32)
     src/TestLobbySettingsPanelForm.cpp
     src/TestPlayerProfileForm.cpp
     src/TestServerBrowserForm.cpp
+    src/TestTurnWaitOverlayForm.cpp
     src/TestVotePromptForm.cpp
     src/gucefGAMEGUI_TestApp.cpp
   )
@@ -63,6 +65,7 @@ elseif (ANDROID64)
     src/TestConnectingForm.cpp
     src/TestCreateLobbyForm.cpp
     src/TestDirectConnectForm.cpp
+    src/TestFormLayouts.cpp
     src/TestGameGuiCommon.cpp
     src/TestGameGuiGlobal.cpp
     src/TestLobbyForm.cpp
@@ -70,6 +73,7 @@ elseif (ANDROID64)
     src/TestLobbySettingsPanelForm.cpp
     src/TestPlayerProfileForm.cpp
     src/TestServerBrowserForm.cpp
+    src/TestTurnWaitOverlayForm.cpp
     src/TestVotePromptForm.cpp
     src/gucefGAMEGUI_TestApp.cpp
   )
@@ -95,6 +99,7 @@ elseif (LINUX32)
     src/TestConnectingForm.cpp
     src/TestCreateLobbyForm.cpp
     src/TestDirectConnectForm.cpp
+    src/TestFormLayouts.cpp
     src/TestGameGuiCommon.cpp
     src/TestGameGuiGlobal.cpp
     src/TestLobbyForm.cpp
@@ -102,6 +107,7 @@ elseif (LINUX32)
     src/TestLobbySettingsPanelForm.cpp
     src/TestPlayerProfileForm.cpp
     src/TestServerBrowserForm.cpp
+    src/TestTurnWaitOverlayForm.cpp
     src/TestVotePromptForm.cpp
     src/gucefGAMEGUI_TestApp.cpp
   )
@@ -127,6 +133,7 @@ elseif (LINUX64)
     src/TestConnectingForm.cpp
     src/TestCreateLobbyForm.cpp
     src/TestDirectConnectForm.cpp
+    src/TestFormLayouts.cpp
     src/TestGameGuiCommon.cpp
     src/TestGameGuiGlobal.cpp
     src/TestLobbyForm.cpp
@@ -134,6 +141,7 @@ elseif (LINUX64)
     src/TestLobbySettingsPanelForm.cpp
     src/TestPlayerProfileForm.cpp
     src/TestServerBrowserForm.cpp
+    src/TestTurnWaitOverlayForm.cpp
     src/TestVotePromptForm.cpp
     src/gucefGAMEGUI_TestApp.cpp
   )
@@ -159,6 +167,7 @@ elseif (WIN32)
     src/TestConnectingForm.cpp
     src/TestCreateLobbyForm.cpp
     src/TestDirectConnectForm.cpp
+    src/TestFormLayouts.cpp
     src/TestGameGuiCommon.cpp
     src/TestGameGuiGlobal.cpp
     src/TestLobbyForm.cpp
@@ -166,6 +175,7 @@ elseif (WIN32)
     src/TestLobbySettingsPanelForm.cpp
     src/TestPlayerProfileForm.cpp
     src/TestServerBrowserForm.cpp
+    src/TestTurnWaitOverlayForm.cpp
     src/TestVotePromptForm.cpp
     src/gucefGAMEGUI_TestApp.cpp
   )
@@ -191,6 +201,7 @@ elseif (WIN64)
     src/TestConnectingForm.cpp
     src/TestCreateLobbyForm.cpp
     src/TestDirectConnectForm.cpp
+    src/TestFormLayouts.cpp
     src/TestGameGuiCommon.cpp
     src/TestGameGuiGlobal.cpp
     src/TestLobbyForm.cpp
@@ -198,6 +209,7 @@ elseif (WIN64)
     src/TestLobbySettingsPanelForm.cpp
     src/TestPlayerProfileForm.cpp
     src/TestServerBrowserForm.cpp
+    src/TestTurnWaitOverlayForm.cpp
     src/TestVotePromptForm.cpp
     src/gucefGAMEGUI_TestApp.cpp
   )
@@ -239,63 +251,63 @@ elseif( WIN64 )
 endif()
 
 if ( ANDROID32 )
-  add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGAMEGUI_TestApp" )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGAMEGUI_TestApp" )
 endif( ANDROID64 )
 
 if ( LINUX32 )
-  add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGAMEGUI_TestApp" )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGAMEGUI_TestApp" )
 endif( LINUX64 )
 
 if ( WIN32 )
-  add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGAMEGUI_TestApp" )
 endif( WIN32 )
 
 if ( WIN64 )
-  add_dependencies( ${MODULE_NAME} gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
-  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+  add_dependencies( ${MODULE_NAME} gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
+  target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUDIO gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefGAMEGUI gucefGUI gucefIMAGE gucefINPUT gucefMT gucefMULTIPLAY gucefVFS gucefVIDEO gucefWEB )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE;MODULE_NAME=gucefGAMEGUI_TestApp" )
 endif( WIN64 )
 
 if ( ANDROID32 )
-  include_directories( ../../common/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefGAMEGUI/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefGAMEGUI/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include include )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../common/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefGAMEGUI/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include ../../platform/gucefCORE/include/android ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefGAMEGUI/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include include )
 endif( ANDROID64 )
 
 if ( LINUX32 )
-  include_directories( ../../common/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefGAMEGUI/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefGAMEGUI/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../common/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefGAMEGUI/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/linux ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/linux ../../platform/gucefDRN/include ../../platform/gucefGAMEGUI/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include include )
 endif( LINUX64 )
 
 if ( WIN32 )
-  include_directories( ../../common/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefGAMEGUI/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefGAMEGUI/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../common/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefGAMEGUI/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin include )
+  include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUDIO/include ../../platform/gucefAUDIO/include/c_api ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCOMCORE/include/mswin ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefCORE/include/mswin ../../platform/gucefDRN/include ../../platform/gucefGAMEGUI/include ../../platform/gucefGUI/include ../../platform/gucefIMAGE/include ../../platform/gucefINPUT/include ../../platform/gucefMT/include ../../platform/gucefMT/include/mswin ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefVIDEO/include ../../platform/gucefVIDEO/include/c_api ../../platform/gucefWEB/include ../../platform/gucefWEB/include/mswin include )
 endif( WIN64 )
 
 

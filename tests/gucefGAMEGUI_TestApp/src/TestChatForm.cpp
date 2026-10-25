@@ -53,20 +53,23 @@ class CSentRecorder : public CORE::CObserver
 {
     public:
 
+    typedef CORE::CTEventHandlerFunctor< CSentRecorder > TEventCallback;
+
     UInt32 count;
     MULTIPLAY::CChatMessage last;
 
     CSentRecorder( CORE::CNotifier* form )
         : CORE::CObserver(), count( 0 ), last()
     {
-        SubscribeTo( form, GAMEGUI::CChatForm::MessageSentEvent );
+        TEventCallback callback( this, &CSentRecorder::OnMessageSent );
+        SubscribeTo( form, GAMEGUI::CChatForm::MessageSentEvent, callback );
     }
 
     virtual ~CSentRecorder() { UnsubscribeAllFromObserver(); }
 
-    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    void OnMessageSent( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
-        if ( GAMEGUI::CChatForm::MessageSentEvent == eventId && GUCEF_NULL != eventData )
+        if ( GUCEF_NULL != eventData )
         {
             ++count;
             last = *static_cast< MULTIPLAY::CChatMessage* >( eventData );
@@ -79,20 +82,23 @@ class CHeardRecorder : public CORE::CObserver
 {
     public:
 
+    typedef CORE::CTEventHandlerFunctor< CHeardRecorder > TEventCallback;
+
     UInt32 count;
     MULTIPLAY::CChatMessage last;
 
     CHeardRecorder( CORE::CNotifier* service )
         : CORE::CObserver(), count( 0 ), last()
     {
-        SubscribeTo( service, MULTIPLAY::CIChatService::ChatMessageEvent );
+        TEventCallback callback( this, &CHeardRecorder::OnMessageHeard );
+        SubscribeTo( service, MULTIPLAY::CIChatService::ChatMessageEvent, callback );
     }
 
     virtual ~CHeardRecorder() { UnsubscribeAllFromObserver(); }
 
-    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    void OnMessageHeard( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
-        if ( MULTIPLAY::CIChatService::ChatMessageEvent == eventId && GUCEF_NULL != eventData )
+        if ( GUCEF_NULL != eventData )
         {
             ++count;
             last = *static_cast< MULTIPLAY::CChatMessage* >( eventData );
@@ -131,7 +137,7 @@ static void
 ClickTab( GUI::CGUIContext* context, GUI::CWidget* tabs, UInt32 index )
 {
     context->FlushChanges();
-    GUI::CTabControl* control = dynamic_cast< GUI::CTabControl* >( tabs );
+    GUI::CTabControl* control = GAMEGUI::WidgetAs< GUI::CTabControl >( tabs, "TabControl" );
     GUI::CRect tab = control->GetTabRect( index );
     ClickAt( context, tabs->GetRect().left + tab.left + tab.width / 2, tabs->GetRect().top + tab.top + tab.height / 2 );
     context->RenderFrame( 500 );
@@ -229,6 +235,44 @@ PerformChatFormTests( void )
         ASSERT_TRUE( GAMEGUI::CChatForm::FormatMessage( message ) == "[" + GAMEGUI::FormatClock( time ) + "] Bob: timed" );
         message.time = CORE::CDateTime();
         ASSERT_TRUE( "Bob: timed" == GAMEGUI::CChatForm::FormatMessage( message ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Chat: The handlers are subscribed again when the layout is rebuilt, and the form lets go of a service that goes away" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateFormContext();
+        GUI::CGUIContext* context = ContextOf( contextPtr );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL == context )
+            return;
+
+        CTestChatService* service = GUCEF_NEW CTestChatService();
+        ASSERT_TRUE( ConnectUser( *service, "Alice" ) && service->JoinChannel( "general" ) );
+
+        GAMEGUI::CChatForm chat;
+        ASSERT_TRUE( chat.Build( MakeChatHolder( context ) ) );
+
+        // the tab control, the members (two events), the input, Send and Close
+        const UInt32 withTabs = GetEventSubscriptionCount( chat );
+        ASSERT_TRUE( 6 == withTabs );
+        chat.SetService( service );
+        ASSERT_TRUE( withTabs + 4 == GetEventSubscriptionCount( chat ) );
+
+        // the layout of a single channel has no tabs and no Close button, and the service stays subscribed
+        chat.SetSingleChannel( "general" );
+        ASSERT_TRUE( 4 + 4 == GetEventSubscriptionCount( chat ) );
+        ASSERT_TRUE( 1 == chat.GetTabCount() && chat.SendText( "still heard" ) );
+
+        // the service goes away under the form
+        GUCEF_DELETE service;
+        service = GUCEF_NULL;
+        ASSERT_TRUE( GUCEF_NULL == chat.GetService() && 4 == GetEventSubscriptionCount( chat ) );
+        ASSERT_FALSE( chat.SendText( "nobody to hear it" ) );
     }
     catch ( ... )
     {
@@ -344,7 +388,7 @@ PerformChatFormTests( void )
         // the menu of the right mouse button
         ASSERT_TRUE( chat.CloseTab( 2 ) && 2 == chat.GetTabCount() );
         ClickMember( context, members, 2, GUI::MOUSEBUTTON_RIGHT, 1 );
-        GUI::CPopupMenu* menu = dynamic_cast< GUI::CPopupMenu* >( context->GetPopup() );
+        GUI::CPopupMenu* menu = GAMEGUI::WidgetAs< GUI::CPopupMenu >( context->GetPopup(), "PopupMenu" );
         ASSERT_TRUE( GUCEF_NULL != menu && 1 == menu->GetItems().size() && "Direct message" == menu->GetItems()[ 0 ] );
         if ( GUCEF_NULL != menu )
         {

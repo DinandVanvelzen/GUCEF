@@ -1,6 +1,7 @@
 <ModuleInfoEntry>
     <Module Name="gucefGAMEGUI_TestApp" Type="Executable" Platform="mswin;linux;android" Tags="test">
         <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
             <Dependency Name="gucefHeaders" />
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
@@ -13,6 +14,7 @@
             <Dependency Name="gucefCOMCORE" />
             <Dependency Name="gucefCOM" />
             <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
             <Dependency Name="gucefMULTIPLAY" />
             <Dependency Name="gucefGAMEGUI" />
         </Dependencies>
@@ -28,6 +30,7 @@
             <Dependency Name="gucefCOMCORE" />
             <Dependency Name="gucefCOM" />
             <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefAUTH" />
             <Dependency Name="gucefMULTIPLAY" />
             <Dependency Name="gucefGAMEGUI" />
         </Linker>
@@ -36,6 +39,8 @@
         </Preprocessor>
         <RuntimeDependencies>
             <RuntimeDependency Name="guidriverNull" />
+            <RuntimeDependency Name="fontpluginFREETYPE" />
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
         </RuntimeDependencies>
     </Module>
 </ModuleInfoEntry>

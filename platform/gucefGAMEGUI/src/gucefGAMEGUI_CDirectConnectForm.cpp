@@ -167,25 +167,29 @@ void
 CDirectConnectForm::BuildLayout( CORE::CDataNode& layout )
 {GUCEF_TRACE;
 
-    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "DirectConnectForm", "0.5,-240 0.5,-150", "0,480 0,300" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *window, "Title", "Direct connect" );
+    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "DirectConnectForm", "0.5,0 0.5,0", "0.9,0 0.9,0" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Title, "Direct connect" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_HAlign, "Center" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_VAlign, "Center" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_MaxSize, "0,480 0,300" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Clip, "true" );
 
     CORE::CDataNode* addressLabel = GUI::CFormLayout::AddWidgetNode( *window, "Label", "AddressLabel", "0,20 0,56", "1,-40 0,24" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *addressLabel, "Text", "Address (host:port or tcp://host:port)" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *addressLabel, GUI::EWidgetProperty_Text, "Address (host:port or tcp://host:port)" );
     GUI::CFormLayout::AddWidgetNode( *window, "Editbox", "Address", "0,20 0,84", "1,-40 0,36" );
 
     CORE::CDataNode* passwordLabel = GUI::CFormLayout::AddWidgetNode( *window, "Label", "PasswordLabel", "0,20 0,132", "1,-40 0,24" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *passwordLabel, "Text", "Password, if the game has one" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *passwordLabel, GUI::EWidgetProperty_Text, "Password, if the game has one" );
     GUI::CFormLayout::AddWidgetNode( *window, "Editbox", "Password", "0,20 0,160", "1,-40 0,36" );
 
     CORE::CDataNode* error = GUI::CFormLayout::AddWidgetNode( *window, "Label", "Error", "0,20 0,204", "1,-40 0,24" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *error, "TextColour", "255,110,110,255" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *error, GUI::EWidgetProperty_TextColour, "255,110,110,255" );
 
     CORE::CDataNode* connect = GUI::CFormLayout::AddWidgetNode( *window, "Button", "Connect", "1,-252 1,-56", "0,112 0,38" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *connect, "Text", "Connect" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *connect, "StyleClass", "Primary" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *connect, GUI::EWidgetProperty_Text, "Connect" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *connect, GUI::EWidgetProperty_StyleClass, "Primary" );
     CORE::CDataNode* cancel = GUI::CFormLayout::AddWidgetNode( *window, "Button", "Cancel", "1,-128 1,-56", "0,112 0,38" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *cancel, "Text", "Cancel" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *cancel, GUI::EWidgetProperty_Text, "Cancel" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -212,23 +216,31 @@ CDirectConnectForm::OnPostLayoutLoad( void )
 
     GUI::CFormEx::OnPostLayoutLoad();
 
-    const char* buttons[] = { "Connect", "Cancel" };
-    for ( UInt32 i=0; i<2; ++i )
+    GUI::CWidget* button = GetWidget( "Connect" );
+    if ( GUCEF_NULL != button )
     {
-        GUI::CWidget* button = GetWidget( buttons[ i ] );
-        if ( GUCEF_NULL != button )
-            SubscribeTo( button, GUI::CWidget::ActivatedEvent );
+        TEventCallback callback( this, &CDirectConnectForm::OnConnectActivated );
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, callback );
     }
-    const char* fields[] = { "Address", "Password" };
-    for ( UInt32 i=0; i<2; ++i )
+    button = GetWidget( "Cancel" );
+    if ( GUCEF_NULL != button )
     {
-        GUI::CWidget* field = GetWidget( fields[ i ] );
-        if ( GUCEF_NULL != field )
-            SubscribeTo( field, GUI::CEditbox::TextEnteredEvent );
+        TEventCallback callback( this, &CDirectConnectForm::OnCancelActivated );
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, callback );
     }
+    TEventCallback fieldCallback( this, &CDirectConnectForm::OnFieldTextEntered );
+    GUI::CWidget* field = GetWidget( "Address" );
+    if ( GUCEF_NULL != field )
+        SubscribeTo( field, GUI::CEditbox::TextEnteredEvent, fieldCallback );
+    field = GetWidget( "Password" );
+    if ( GUCEF_NULL != field )
+        SubscribeTo( field, GUI::CEditbox::TextEnteredEvent, fieldCallback );
     GUI::CWidget* root = GetRootWidget();
     if ( GUCEF_NULL != root )
-        SubscribeTo( root, GUI::CWidget::NavigationEvent );
+    {
+        TEventCallback callback( this, &CDirectConnectForm::OnNavigation );
+        SubscribeTo( root, GUI::CWidget::NavigationEvent, callback );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -242,7 +254,7 @@ CDirectConnectForm::Open( void )
 
     GUI::CWidget* error = GetWidget( "Error" );
     if ( GUCEF_NULL != error )
-        error->SetProperty( "Text", CORE::CString::Empty );
+        error->SetProperty( GUI::EWidgetProperty_Text, CORE::CString::Empty );
 
     m_open = true;
     bool shown = ShowModal();
@@ -280,7 +292,7 @@ CDirectConnectForm::SetAddress( const CORE::CString& address )
 
     GUI::CWidget* field = GetWidget( "Address" );
     if ( GUCEF_NULL != field )
-        field->SetProperty( "Text", address );
+        field->SetProperty( GUI::EWidgetProperty_Text, address );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -290,7 +302,7 @@ CDirectConnectForm::GetAddress( void )
 {GUCEF_TRACE;
 
     GUI::CWidget* field = GetWidget( "Address" );
-    return GUCEF_NULL != field ? field->GetProperty( "Text" ) : CORE::CString::Empty;
+    return GUCEF_NULL != field ? field->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -301,7 +313,7 @@ CDirectConnectForm::SetPassword( const CORE::CString& password )
 
     GUI::CWidget* field = GetWidget( "Password" );
     if ( GUCEF_NULL != field )
-        field->SetProperty( "Text", password );
+        field->SetProperty( GUI::EWidgetProperty_Text, password );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -311,7 +323,7 @@ CDirectConnectForm::GetPassword( void )
 {GUCEF_TRACE;
 
     GUI::CWidget* field = GetWidget( "Password" );
-    return GUCEF_NULL != field ? field->GetProperty( "Text" ) : CORE::CString::Empty;
+    return GUCEF_NULL != field ? field->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -367,17 +379,17 @@ CDirectConnectForm::Connect( void )
     if ( address.IsNULLOrEmpty() )
     {
         if ( GUCEF_NULL != error )
-            error->SetProperty( "Text", "Enter the address of the game" );
+            error->SetProperty( GUI::EWidgetProperty_Text, "Enter the address of the game" );
         return false;
     }
     if ( !ParseAddress( address, m_defaultScheme, endpoint ) )
     {
         if ( GUCEF_NULL != error )
-            error->SetProperty( "Text", "The address needs a host and a port, such as 192.168.1.5:7777" );
+            error->SetProperty( GUI::EWidgetProperty_Text, "The address needs a host and a port, such as 192.168.1.5:7777" );
         return false;
     }
     if ( GUCEF_NULL != error )
-        error->SetProperty( "Text", CORE::CString::Empty );
+        error->SetProperty( GUI::EWidgetProperty_Text, CORE::CString::Empty );
 
     CDirectConnectRequest request( address, endpoint, GetPassword() );
     Close();
@@ -402,43 +414,59 @@ CDirectConnectForm::GetErrorText( void )
 {GUCEF_TRACE;
 
     GUI::CWidget* error = GetWidget( "Error" );
-    return GUCEF_NULL != error ? error->GetProperty( "Text" ) : CORE::CString::Empty;
+    return GUCEF_NULL != error ? error->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CDirectConnectForm::OnNotify( CORE::CNotifier* notifier    ,
-                              const CORE::CEvent& eventId  ,
-                              CORE::CICloneable* eventData )
+CDirectConnectForm::OnConnectActivated( CORE::CNotifier* notifier    ,
+                                        const CORE::CEvent& eventId  ,
+                                        CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( GUI::CWidget::ActivatedEvent == eventId )
-    {
-        if ( notifier == GetWidget( "Connect" ) )
-            Connect();
-        else
-        if ( notifier == GetWidget( "Cancel" ) )
-            Cancel();
+    Connect();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDirectConnectForm::OnCancelActivated( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    Cancel();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDirectConnectForm::OnFieldTextEntered( CORE::CNotifier* notifier    ,
+                                        const CORE::CEvent& eventId  ,
+                                        CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_open )
+        Connect();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDirectConnectForm::OnNavigation( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
         return;
-    }
-    if ( GUI::CEditbox::TextEnteredEvent == eventId )
+    GUI::CNavigationEventData* navigation = static_cast< GUI::CNavigationEventData* >( eventData );
+    if ( GUI::NAVIGATION_CANCEL == navigation->direction && GUI::EVENTPHASE_TUNNEL != navigation->phase && m_open )
     {
-        if ( m_open )
-            Connect();
-        return;
+        navigation->handled = true;
+        Cancel();
     }
-    if ( GUI::CWidget::NavigationEvent == eventId && GUCEF_NULL != eventData )
-    {
-        GUI::CNavigationEventData* navigation = static_cast< GUI::CNavigationEventData* >( eventData );
-        if ( GUI::NAVIGATION_CANCEL == navigation->direction && GUI::EVENTPHASE_TUNNEL != navigation->phase && m_open )
-        {
-            navigation->handled = true;
-            Cancel();
-        }
-        return;
-    }
-    GUI::CFormEx::OnNotify( notifier, eventId, eventData );
 }
 
 /*-------------------------------------------------------------------------*/

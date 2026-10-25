@@ -52,6 +52,8 @@ class CConnectingRecorder : public CORE::CObserver
 {
     public:
 
+    typedef CORE::CTEventHandlerFunctor< CConnectingRecorder > TEventCallback;
+
     UInt32 cancels;
     UInt32 connects;
     UInt32 failures;
@@ -60,20 +62,29 @@ class CConnectingRecorder : public CORE::CObserver
     CConnectingRecorder( CORE::CNotifier* form )
         : CORE::CObserver(), cancels( 0 ), connects( 0 ), failures( 0 ), failure()
     {
-        SubscribeTo( form );
+        TEventCallback cancelCallback( this, &CConnectingRecorder::OnCancelRequested );
+        SubscribeTo( form, GAMEGUI::CConnectingForm::CancelRequestedEvent, cancelCallback );
+        TEventCallback connectedCallback( this, &CConnectingRecorder::OnConnected );
+        SubscribeTo( form, GAMEGUI::CConnectingForm::ConnectedEvent, connectedCallback );
+        TEventCallback failedCallback( this, &CConnectingRecorder::OnFailed );
+        SubscribeTo( form, GAMEGUI::CConnectingForm::FailedEvent, failedCallback );
     }
 
     virtual ~CConnectingRecorder() { UnsubscribeAllFromObserver(); }
 
-    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    void OnCancelRequested( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
-        if ( GAMEGUI::CConnectingForm::CancelRequestedEvent == eventId )
-            ++cancels;
-        else
-        if ( GAMEGUI::CConnectingForm::ConnectedEvent == eventId )
-            ++connects;
-        else
-        if ( GAMEGUI::CConnectingForm::FailedEvent == eventId && GUCEF_NULL != eventData )
+        ++cancels;
+    }
+
+    void OnConnected( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        ++connects;
+    }
+
+    void OnFailed( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        if ( GUCEF_NULL != eventData )
         {
             ++failures;
             failure = static_cast< GAMEGUI::CConnectingForm::TFailedEventData* >( eventData )->GetData();

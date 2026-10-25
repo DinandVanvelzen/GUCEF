@@ -76,6 +76,7 @@ namespace GAMEGUI {
 
 const CORE::CEvent CPlayerProfileForm::ProfileChangedEvent = "GUCEF::GAMEGUI::CPlayerProfileForm::ProfileChangedEvent";
 const CORE::CEvent CPlayerProfileForm::CancelledEvent = "GUCEF::GAMEGUI::CPlayerProfileForm::CancelledEvent";
+const CORE::CEvent CPlayerProfileForm::AccountsRequestedEvent = "GUCEF::GAMEGUI::CPlayerProfileForm::AccountsRequestedEvent";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -89,6 +90,7 @@ CPlayerProfileForm::RegisterEvents( void )
 
     ProfileChangedEvent.Initialize();
     CancelledEvent.Initialize();
+    AccountsRequestedEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -98,6 +100,8 @@ CPlayerProfileForm::CPlayerProfileForm( void )
     , m_identity()
     , m_provider( GUCEF_NULL )
     , m_open( false )
+    , m_accountsEnabled( false )
+    , m_builtWithAccounts( false )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -110,6 +114,8 @@ CPlayerProfileForm::CPlayerProfileForm( GUI::CIGUIContext* context )
     , m_identity()
     , m_provider( GUCEF_NULL )
     , m_open( false )
+    , m_accountsEnabled( false )
+    , m_builtWithAccounts( false )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -129,27 +135,39 @@ void
 CPlayerProfileForm::BuildLayout( CORE::CDataNode& layout )
 {GUCEF_TRACE;
 
-    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "PlayerProfileForm", "0.5,-240 0.5,-150", "0,480 0,300" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *window, "Title", "Player profile" );
+    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "PlayerProfileForm", "0.5,0 0.5,0", "0.9,0 0.9,0" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Title, "Player profile" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_HAlign, "Center" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_VAlign, "Center" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_MaxSize, m_accountsEnabled ? "0,480 0,340" : "0,480 0,300" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Clip, "true" );
 
     CORE::CDataNode* nameLabel = GUI::CFormLayout::AddWidgetNode( *window, "Label", "NameLabel", "0,20 0,56", "1,-40 0,24" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *nameLabel, "Text", "The name other players see" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *nameLabel, GUI::EWidgetProperty_Text, "The name other players see" );
     CORE::CDataNode* name = GUI::CFormLayout::AddWidgetNode( *window, "Editbox", "DisplayName", "0,20 0,84", "1,-40 0,36" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *name, "MaxLength", CORE::UInt32ToString( MaxDisplayNameLength ) );
+    GUI::CFormLayout::SetWidgetNodeProperty( *name, GUI::EWidgetProperty_MaxLength, CORE::UInt32ToString( MaxDisplayNameLength ) );
 
     CORE::CDataNode* idLabel = GUI::CFormLayout::AddWidgetNode( *window, "Label", "UserIdLabel", "0,20 0,132", "1,-40 0,24" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *idLabel, "Text", "The id of this profile" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *idLabel, GUI::EWidgetProperty_Text, "The id of this profile" );
     CORE::CDataNode* id = GUI::CFormLayout::AddWidgetNode( *window, "Editbox", "UserId", "0,20 0,160", "1,-40 0,36" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *id, "ReadOnly", "true" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *id, GUI::EWidgetProperty_ReadOnly, "true" );
 
-    CORE::CDataNode* error = GUI::CFormLayout::AddWidgetNode( *window, "Label", "Error", "0,20 0,204", "1,-40 0,24" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *error, "TextColour", "255,110,110,255" );
+    if ( m_accountsEnabled )
+    {
+        // the accounts linked to the profile, and the way to log in with more of them
+        CORE::CDataNode* accounts = GUI::CFormLayout::AddWidgetNode( *window, "Label", "AccountsText", "0,20 0,204", "1,-230 0,34" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *accounts, GUI::EWidgetProperty_VTextAlign, "Center" );
+        CORE::CDataNode* login = GUI::CFormLayout::AddWidgetNode( *window, "Button", "Accounts", "1,-190 0,204", "0,170 0,34" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *login, GUI::EWidgetProperty_Text, "Log in / accounts" );
+    }
+    CORE::CDataNode* error = GUI::CFormLayout::AddWidgetNode( *window, "Label", "Error", m_accountsEnabled ? "0,20 0,244" : "0,20 0,204", "1,-40 0,24" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *error, GUI::EWidgetProperty_TextColour, "255,110,110,255" );
 
     CORE::CDataNode* save = GUI::CFormLayout::AddWidgetNode( *window, "Button", "Save", "1,-252 1,-56", "0,112 0,38" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *save, "Text", "Save" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *save, "StyleClass", "Primary" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *save, GUI::EWidgetProperty_Text, "Save" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *save, GUI::EWidgetProperty_StyleClass, "Primary" );
     CORE::CDataNode* cancel = GUI::CFormLayout::AddWidgetNode( *window, "Button", "Cancel", "1,-128 1,-56", "0,112 0,38" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *cancel, "Text", "Cancel" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *cancel, GUI::EWidgetProperty_Text, "Cancel" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -163,6 +181,7 @@ CPlayerProfileForm::Build( void )
     BuildLayout( layout );
     if ( !LoadLayout( layout ) )
         return false;
+    m_builtWithAccounts = m_accountsEnabled;
     ShowIdentity();
     Hide();
     m_open = false;
@@ -177,19 +196,36 @@ CPlayerProfileForm::OnPostLayoutLoad( void )
 
     GUI::CFormEx::OnPostLayoutLoad();
 
-    const char* buttons[] = { "Save", "Cancel" };
-    for ( UInt32 i=0; i<2; ++i )
+    GUI::CWidget* button = GetWidget( "Save" );
+    if ( GUCEF_NULL != button )
     {
-        GUI::CWidget* button = GetWidget( buttons[ i ] );
-        if ( GUCEF_NULL != button )
-            SubscribeTo( button, GUI::CWidget::ActivatedEvent );
+        TEventCallback callback( this, &CPlayerProfileForm::OnSaveActivated );
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, callback );
+    }
+    button = GetWidget( "Cancel" );
+    if ( GUCEF_NULL != button )
+    {
+        TEventCallback callback( this, &CPlayerProfileForm::OnCancelActivated );
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, callback );
+    }
+    button = GetWidget( "Accounts" );
+    if ( GUCEF_NULL != button )
+    {
+        TEventCallback callback( this, &CPlayerProfileForm::OnAccountsActivated );
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, callback );
     }
     GUI::CWidget* name = GetWidget( "DisplayName" );
     if ( GUCEF_NULL != name )
-        SubscribeTo( name, GUI::CEditbox::TextEnteredEvent );
+    {
+        TEventCallback callback( this, &CPlayerProfileForm::OnNameTextEntered );
+        SubscribeTo( name, GUI::CEditbox::TextEnteredEvent, callback );
+    }
     GUI::CWidget* root = GetRootWidget();
     if ( GUCEF_NULL != root )
-        SubscribeTo( root, GUI::CWidget::NavigationEvent );
+    {
+        TEventCallback callback( this, &CPlayerProfileForm::OnNavigation );
+        SubscribeTo( root, GUI::CWidget::NavigationEvent, callback );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -200,13 +236,57 @@ CPlayerProfileForm::ShowIdentity( void )
 
     GUI::CWidget* name = GetWidget( "DisplayName" );
     if ( GUCEF_NULL != name )
-        name->SetProperty( "Text", m_identity.displayName );
+        name->SetProperty( GUI::EWidgetProperty_Text, m_identity.displayName );
     GUI::CWidget* id = GetWidget( "UserId" );
     if ( GUCEF_NULL != id )
-        id->SetProperty( "Text", m_identity.userId );
+        id->SetProperty( GUI::EWidgetProperty_Text, m_identity.userId );
+    GUI::CWidget* accounts = GetWidget( "AccountsText" );
+    if ( GUCEF_NULL != accounts )
+    {
+        // the providers of the accounts once each, "Guest" when the profile has none
+        CORE::CString::StringVector names;
+        GetAccountProviderNames( m_identity, names );
+        CORE::CString text;
+        for ( size_t i=0; i<names.size(); ++i )
+            text += ( 0 == i ? "" : ", " ) + names[ i ];
+        accounts->SetProperty( GUI::EWidgetProperty_Text, text.IsNULLOrEmpty() ? CORE::CString( "Guest" ) : "Accounts: " + text );
+    }
     GUI::CWidget* error = GetWidget( "Error" );
     if ( GUCEF_NULL != error )
-        error->SetProperty( "Text", CORE::CString::Empty );
+        error->SetProperty( GUI::EWidgetProperty_Text, CORE::CString::Empty );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPlayerProfileForm::SetAccountsEnabled( bool enabled )
+{GUCEF_TRACE;
+
+    if ( enabled == m_accountsEnabled )
+        return;
+    m_accountsEnabled = enabled;
+    // a form that exists and is not in use gets its new layout now, one in use at the next Open()
+    if ( GUCEF_NULL != GetRootWidget() && !m_open )
+        Build();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CPlayerProfileForm::GetAccountsEnabled( void ) const
+{GUCEF_TRACE;
+
+    return m_accountsEnabled;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CPlayerProfileForm::GetAccountsText( void )
+{GUCEF_TRACE;
+
+    GUI::CWidget* accounts = GetWidget( "AccountsText" );
+    return GUCEF_NULL != accounts ? accounts->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -215,8 +295,11 @@ bool
 CPlayerProfileForm::Open( void )
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL == GetRootWidget() && !Build() )
-        return false;
+    if ( GUCEF_NULL == GetRootWidget() || m_builtWithAccounts != m_accountsEnabled )
+    {
+        if ( !Build() )
+            return false;
+    }
 
     if ( GUCEF_NULL != m_provider )
         m_provider->GetIdentity( m_identity );
@@ -303,7 +386,7 @@ CPlayerProfileForm::GetDisplayNameText( void )
 {GUCEF_TRACE;
 
     GUI::CWidget* name = GetWidget( "DisplayName" );
-    return GUCEF_NULL != name ? name->GetProperty( "Text" ) : CORE::CString::Empty;
+    return GUCEF_NULL != name ? name->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -314,7 +397,7 @@ CPlayerProfileForm::SetDisplayNameText( const CORE::CString& name )
 
     GUI::CWidget* field = GetWidget( "DisplayName" );
     if ( GUCEF_NULL != field )
-        field->SetProperty( "Text", name );
+        field->SetProperty( GUI::EWidgetProperty_Text, name );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -328,11 +411,11 @@ CPlayerProfileForm::Save( void )
     if ( name.IsNULLOrEmpty() )
     {
         if ( GUCEF_NULL != error )
-            error->SetProperty( "Text", "Enter a name" );
+            error->SetProperty( GUI::EWidgetProperty_Text, "Enter a name" );
         return false;
     }
     if ( GUCEF_NULL != error )
-        error->SetProperty( "Text", CORE::CString::Empty );
+        error->SetProperty( GUI::EWidgetProperty_Text, CORE::CString::Empty );
 
     if ( name == m_identity.displayName )
     {
@@ -344,7 +427,7 @@ CPlayerProfileForm::Save( void )
     if ( GUCEF_NULL != m_provider && !m_provider->SetDisplayName( name ) )
     {
         if ( GUCEF_NULL != error )
-            error->SetProperty( "Text", "The name could not be saved" );
+            error->SetProperty( GUI::EWidgetProperty_Text, "The name could not be saved" );
         return false;
     }
 
@@ -374,7 +457,71 @@ CPlayerProfileForm::GetErrorText( void )
 {GUCEF_TRACE;
 
     GUI::CWidget* error = GetWidget( "Error" );
-    return GUCEF_NULL != error ? error->GetProperty( "Text" ) : CORE::CString::Empty;
+    return GUCEF_NULL != error ? error->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPlayerProfileForm::OnSaveActivated( CORE::CNotifier* notifier    ,
+                                     const CORE::CEvent& eventId  ,
+                                     CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    Save();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPlayerProfileForm::OnCancelActivated( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    Cancel();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPlayerProfileForm::OnAccountsActivated( CORE::CNotifier* notifier    ,
+                                         const CORE::CEvent& eventId  ,
+                                         CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_accountsEnabled )
+        NotifyObservers( AccountsRequestedEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPlayerProfileForm::OnNameTextEntered( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_open )
+        Save();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPlayerProfileForm::OnNavigation( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    GUI::CNavigationEventData* navigation = static_cast< GUI::CNavigationEventData* >( eventData );
+    if ( GUI::NAVIGATION_CANCEL == navigation->direction && GUI::EVENTPHASE_TUNNEL != navigation->phase && m_open )
+    {
+        navigation->handled = true;
+        Cancel();
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -385,37 +532,9 @@ CPlayerProfileForm::OnNotify( CORE::CNotifier* notifier    ,
                               CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
+    // the standard events do not reach the handlers of the subscriptions
     if ( CORE::CINotifier::DestructionEvent == eventId && GUCEF_NULL != m_provider && notifier == m_provider )
-    {
         m_provider = GUCEF_NULL;
-        return;
-    }
-    if ( GUI::CWidget::ActivatedEvent == eventId )
-    {
-        if ( notifier == GetWidget( "Save" ) )
-            Save();
-        else
-        if ( notifier == GetWidget( "Cancel" ) )
-            Cancel();
-        return;
-    }
-    if ( GUI::CEditbox::TextEnteredEvent == eventId )
-    {
-        if ( m_open )
-            Save();
-        return;
-    }
-    if ( GUI::CWidget::NavigationEvent == eventId && GUCEF_NULL != eventData )
-    {
-        GUI::CNavigationEventData* navigation = static_cast< GUI::CNavigationEventData* >( eventData );
-        if ( GUI::NAVIGATION_CANCEL == navigation->direction && GUI::EVENTPHASE_TUNNEL != navigation->phase && m_open )
-        {
-            navigation->handled = true;
-            Cancel();
-        }
-        return;
-    }
-    GUI::CFormEx::OnNotify( notifier, eventId, eventData );
 }
 
 /*-------------------------------------------------------------------------*/

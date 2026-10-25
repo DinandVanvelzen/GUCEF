@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_GUI_CFORMEX_H
 #include "gucefGUI_CFormEx.h"
 #define GUCEF_GUI_CFORMEX_H
@@ -91,7 +96,14 @@ class GUCEF_GAMEGUI_EXPORT_CPP CCreateLobbyRequest : public CORE::CICloneable
  *  the topology, the slots and the defaults of the fields. The params the form makes are the template with what the
  *  player filled in. The lobby services come from SetServiceNames(), or are those of the lobby service factory of
  *  gucefMULTIPLAY.
- *  The layout is built in code and made for BuildDarkTheme().
+ *  The layout is built in code and made for BuildDarkTheme(). The window is nine tenths of the screen (at least 560 x 460, at most
+ *  2000 x 1000) in the middle of it, which the player can move and fold up. On a window of 700 pixels or more it has two columns: the
+ *  general fields (widgets Name, Password, MaxPlayers, Spectators, Where, Service) on the left and the game settings on the right, in
+ *  the scroll panel SettingsHolder that fills the column. A window of 1500 or more gives the general fields a column of 480 pixels
+ *  and the settings the rest, with the groups of the settings side by side (up to three columns). A narrower window has one column
+ *  (the scroll panel Body) with the
+ *  general fields above the game settings, scrolling as a whole. The error and the buttons are in a strip along the bottom edge,
+ *  ButtonRow, that no other widget uses. The layout follows the size of the screen while the form is open; what the player filled in stays.
  */
 class GUCEF_GAMEGUI_EXPORT_CPP CCreateLobbyForm : public GUI::CFormEx
 {
@@ -162,15 +174,25 @@ class GUCEF_GAMEGUI_EXPORT_CPP CCreateLobbyForm : public GUI::CFormEx
 
     virtual void OnPostLayoutLoad( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
 
+    typedef CORE::CTEventHandlerFunctor< CCreateLobbyForm > TEventCallback;
+
     void BuildLayout( CORE::CDataNode& layout );
+    void AddGeneralFields( CORE::CDataNode& parent );
+    void AddFooter( CORE::CDataNode& window );
+    enum TTier { TIER_NARROW, TIER_NORMAL, TIER_WIDE };
+    TTier GetTierForScreen( void );
+    bool LoadForCurrentSize( void );
+    void UpdateLayoutMode( void );
     void ShowTemplate( void );
     void ShowServiceNames( void );
+
+    void OnFrameStarted( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnCreateActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnCancelActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnFieldTextEntered( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnNavigation( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     CCreateLobbyForm( const CCreateLobbyForm& src );
     CCreateLobbyForm& operator=( const CCreateLobbyForm& src );
@@ -180,7 +202,9 @@ class GUCEF_GAMEGUI_EXPORT_CPP CCreateLobbyForm : public GUI::CFormEx
     MULTIPLAY::CLobbyCreateParams m_template;
     CORE::CString::StringVector m_serviceNames;
     CLobbySettingsPanelForm* m_settingsPanel;
+    TTier m_tier;                   /**< the layout: one column that scrolls as a whole (narrow), two columns, or two with columns of groups (wide) */
     bool m_open;
+    bool m_subscribedToFrames;
 };
 
 /*-------------------------------------------------------------------------//

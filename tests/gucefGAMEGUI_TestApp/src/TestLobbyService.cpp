@@ -131,7 +131,8 @@ CTestLobbyHost::CTestLobbyHost( const CORE::CString& lobbyId                 ,
         m_rules.maxPlayers = params.maxPlayers;
     m_rules.allowSpectators = m_rules.allowSpectators && params.allowSpectators;
 
-    SubscribeTo( &m_timer );
+    TEventCallback callback( this, &CTestLobbyHost::OnTimerUpdate );
+    SubscribeTo( &m_timer, CORE::CTimer::TimerUpdateEvent, callback );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -847,13 +848,12 @@ CTestLobbyHost::OnSecond( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CTestLobbyHost::OnNotify( CORE::CNotifier* notifier                 ,
-                          const CORE::CEvent& eventId               ,
-                          CORE::CICloneable* eventData /* = GUCEF_NULL */ )
+CTestLobbyHost::OnTimerUpdate( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( notifier == &m_timer && CORE::CTimer::TimerUpdateEvent == eventId )
-        OnSecond();
+    OnSecond();
 }
 
 /*-------------------------------------------------------------------------*/

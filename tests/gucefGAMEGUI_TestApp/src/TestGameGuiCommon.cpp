@@ -33,6 +33,11 @@
 #define GUCEF_CORE_CPLUGINCONTROL_H
 #endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
 
+#ifndef GUCEF_CORE_DVCPPOSWRAP_H
+#include "DVCPPOSWRAP.h"
+#define GUCEF_CORE_DVCPPOSWRAP_H
+#endif /* GUCEF_CORE_DVCPPOSWRAP_H ? */
+
 #ifndef GUCEF_MT_DVMTOSWRAP_H
 #include "gucefMT_dvmtoswrap.h"
 #define GUCEF_MT_DVMTOSWRAP_H
@@ -81,7 +86,7 @@ CreateNullContext( void )
     if ( GUCEF_NULL == manager.GetGuiDriver( "Null" ) )
         LoadTestPlugin( "guidriverNull", "guidriver" );
     GUI::TGuiContextPtr context = manager.CreateGUIContext( "Null", GUI::TWindowContextPtr() );
-    GUI::CGUIContext* guiContext = dynamic_cast< GUI::CGUIContext* >( context.GetPointerAlways() );
+    GUI::CGUIContext* guiContext = context.IsNULL() ? GUCEF_NULL : context->AsGUIContext();
     if ( GUCEF_NULL != guiContext )
         guiContext->SetLogicalResolution( 640, 480 );
     return context;
@@ -145,6 +150,176 @@ CreateFormContext( void )
         context->SetTheme( theme );
     }
     return contextPtr;
+}
+
+/*-------------------------------------------------------------------------*/
+
+GUI::TGuiContextPtr
+CreateSizedFormContext( UInt32 width, UInt32 height, bool realFont )
+{GUCEF_TRACE;
+
+    GUI::TGuiContextPtr contextPtr = CreateNullContext();
+    GUI::CGUIContext* context = ContextOf( contextPtr );
+    if ( GUCEF_NULL == context )
+        return contextPtr;
+    context->SetLogicalResolution( width, height );
+
+    CORE::CString fontName = "Test";
+    if ( realFont )
+    {
+        GUI::CFontRasterizerRegistry& registry = GUI::CGuiGlobal::Instance()->GetFontRasterizerRegistry();
+        if ( GUCEF_NULL == registry.Get( "FreeType" ) )
+            LoadTestPlugin( "fontpluginFREETYPE", "fontplugin" );
+        if ( GUCEF_NULL != registry.Get( "FreeType" ) && GUI::CGuiGlobal::Instance()->MountData() &&
+             context->RegisterFont( "UI", GUI::CGuiGlobal::DefaultUiFontPath, 18 ) )
+            fontName = "UI";
+    }
+    if ( "Test" == fontName )
+        context->RegisterFont( "Test", MakeTestFont( 8, 10 ) );
+
+    CORE::CDataNode theme;
+    GUI::BuildDarkTheme( theme, fontName );
+    context->SetTheme( theme );
+    return contextPtr;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+HasRealFont( GUI::CGUIContext* context )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != context && !context->GetBitmapFont( "UI" ).IsNULL();
+}
+
+/*-------------------------------------------------------------------------*/
+
+IMAGE::TPixelMapPtr
+CaptureFrame( GUI::CGUIContext* context )
+{GUCEF_TRACE;
+
+    IMAGE::TPixelMapPtr pixels;
+    if ( GUCEF_NULL != context )
+    {
+        context->RenderFrame( 16 );
+        context->CaptureFrame( pixels );
+    }
+    return pixels;
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+UInt32
+Crc32( const UInt8* data, size_t size, UInt32 crc )
+{
+    static UInt32 table[ 256 ];
+    static bool tableMade = false;
+    if ( !tableMade )
+    {
+        for ( UInt32 n=0; n<256; ++n )
+        {
+            UInt32 c = n;
+            for ( UInt32 k=0; k<8; ++k )
+                c = ( c & 1 ) ? 0xedb88320u ^ ( c >> 1 ) : c >> 1;
+            table[ n ] = c;
+        }
+        tableMade = true;
+    }
+    crc = ~crc;
+    for ( size_t i=0; i<size; ++i )
+        crc = table[ ( crc ^ data[ i ] ) & 0xff ] ^ ( crc >> 8 );
+    return ~crc;
+}
+
+void
+Put32( GUCEF::vector< UInt8 >& out, UInt32 value )
+{
+    out.push_back( (UInt8) ( value >> 24 ) );
+    out.push_back( (UInt8) ( value >> 16 ) );
+    out.push_back( (UInt8) ( value >> 8 ) );
+    out.push_back( (UInt8) value );
+}
+
+void
+PutChunk( GUCEF::vector< UInt8 >& out, const char* type, const GUCEF::vector< UInt8 >& data )
+{
+    Put32( out, (UInt32) data.size() );
+    GUCEF::vector< UInt8 > body( type, type + 4 );
+    body.insert( body.end(), data.begin(), data.end() );
+    out.insert( out.end(), body.begin(), body.end() );
+    Put32( out, Crc32( &body[ 0 ], body.size(), 0 ) );
+}
+
+}
+
+bool
+WriteShot( const IMAGE::TPixelMapPtr& pixels, const CORE::CString& name )
+{GUCEF_TRACE;
+
+    CORE::CString directory = CORE::GetEnv( "GUCEF_TEST_SHOT_DIR" );
+    if ( directory.IsNULLOrEmpty() || pixels.IsNULL() )
+        return false;
+    UInt32 width = pixels->GetWidthInPixels();
+    UInt32 height = pixels->GetHeightInPixels();
+    const UInt8* rgba = static_cast< const UInt8* >( pixels->GetDataPtr() );
+
+    // the scan lines, each with filter type 0, in stored (not compressed) deflate blocks
+    GUCEF::vector< UInt8 > raw;
+    raw.reserve( (size_t) height * ( width * 4 + 1 ) );
+    for ( UInt32 y=0; y<height; ++y )
+    {
+        raw.push_back( 0 );
+        raw.insert( raw.end(), rgba + (size_t) y * width * 4, rgba + (size_t) ( y + 1 ) * width * 4 );
+    }
+    GUCEF::vector< UInt8 > zlib;
+    zlib.push_back( 0x78 );
+    zlib.push_back( 0x01 );
+    size_t position = 0;
+    UInt32 a = 1, b = 0;
+    for ( size_t i=0; i<raw.size(); ++i )
+    {
+        a = ( a + raw[ i ] ) % 65521;
+        b = ( b + a ) % 65521;
+    }
+    do
+    {
+        size_t count = raw.size() - position;
+        if ( count > 65535 )
+            count = 65535;
+        bool last = position + count >= raw.size();
+        zlib.push_back( last ? 1 : 0 );
+        zlib.push_back( (UInt8) ( count & 0xff ) );
+        zlib.push_back( (UInt8) ( count >> 8 ) );
+        zlib.push_back( (UInt8) ( ~count & 0xff ) );
+        zlib.push_back( (UInt8) ( ( ~count >> 8 ) & 0xff ) );
+        zlib.insert( zlib.end(), raw.begin() + position, raw.begin() + position + count );
+        position += count;
+    }
+    while ( position < raw.size() );
+    Put32( zlib, ( b << 16 ) | a );
+
+    GUCEF::vector< UInt8 > header;
+    Put32( header, width );
+    Put32( header, height );
+    header.push_back( 8 );      // bits per channel
+    header.push_back( 6 );      // RGBA
+    header.push_back( 0 );
+    header.push_back( 0 );
+    header.push_back( 0 );
+
+    GUCEF::vector< UInt8 > png;
+    static const UInt8 signature[ 8 ] = { 0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a };
+    png.insert( png.end(), signature, signature + 8 );
+    PutChunk( png, "IHDR", header );
+    PutChunk( png, "IDAT", zlib );
+    PutChunk( png, "IEND", GUCEF::vector< UInt8 >() );
+
+    CORE::CString path = directory;
+    CORE::AppendToPath( path, name + ".png" );
+    CORE::CFileAccess file( path, "wb" );
+    return file.IsValid() && png.size() == file.Write( &png[ 0 ], 1, (UInt32) png.size() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -268,7 +443,7 @@ PickItem( GUI::CGUIContext* context, GUI::CWidget* combobox, Int32 index )
         return false;
     ClickWidget( context, combobox );
     context->FlushChanges();
-    GUI::CListbox* list = dynamic_cast< GUI::CListbox* >( context->GetPopup() );
+    GUI::CListbox* list = GAMEGUI::WidgetAs< GUI::CListbox >( context->GetPopup(), "Listbox" );
     if ( GUCEF_NULL == list )
         return false;
     const GUI::CRect& rect = list->GetRect();

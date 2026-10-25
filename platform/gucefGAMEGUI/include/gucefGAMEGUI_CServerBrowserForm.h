@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_GUI_CFORMEX_H
 #include "gucefGUI_CFormEx.h"
 #define GUCEF_GUI_CFORMEX_H
@@ -171,11 +176,14 @@ class GUCEF_GAMEGUI_EXPORT_CPP CServerBrowserForm : public GUI::CFormEx
 
     virtual void OnPostLayoutLoad( void ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Only the standard events (destruction of the browser) arrive here, the others have their own handler */
     virtual void OnNotify( CORE::CNotifier* notifier                 ,
                            const CORE::CEvent& eventId               ,
                            CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CServerBrowserForm > TEventCallback;
 
     void BuildLayout( CORE::CDataNode& layout );
     void ReadFilterFromControls( void );
@@ -184,6 +192,17 @@ class GUCEF_GAMEGUI_EXPORT_CPP CServerBrowserForm : public GUI::CFormEx
     void SortListed( void );
     bool IsBefore( const MULTIPLAY::CGameListingEntry& a, const MULTIPLAY::CGameListingEntry& b ) const;
     static CORE::CString KindText( const MULTIPLAY::CGameListingEntry& listing );
+
+    void OnBrowserListChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnJoinActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSpectateActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnCreateActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnDirectConnectActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnRefreshActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnFilterChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSelectionChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnColumnClicked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnListingActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     CServerBrowserForm( const CServerBrowserForm& src );
     CServerBrowserForm& operator=( const CServerBrowserForm& src );

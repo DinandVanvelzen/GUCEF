@@ -97,6 +97,8 @@ class CProfileRecorder : public CORE::CObserver
 {
     public:
 
+    typedef CORE::CTEventHandlerFunctor< CProfileRecorder > TEventCallback;
+
     UInt32 changes;
     UInt32 cancels;
     MULTIPLAY::CPlayerIdentity last;
@@ -104,21 +106,26 @@ class CProfileRecorder : public CORE::CObserver
     CProfileRecorder( CORE::CNotifier* form )
         : CORE::CObserver(), changes( 0 ), cancels( 0 ), last()
     {
-        SubscribeTo( form );
+        TEventCallback changedCallback( this, &CProfileRecorder::OnProfileChanged );
+        SubscribeTo( form, GAMEGUI::CPlayerProfileForm::ProfileChangedEvent, changedCallback );
+        TEventCallback cancelCallback( this, &CProfileRecorder::OnCancelled );
+        SubscribeTo( form, GAMEGUI::CPlayerProfileForm::CancelledEvent, cancelCallback );
     }
 
     virtual ~CProfileRecorder() { UnsubscribeAllFromObserver(); }
 
-    virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
+    void OnProfileChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
-        if ( GAMEGUI::CPlayerProfileForm::ProfileChangedEvent == eventId && GUCEF_NULL != eventData )
+        if ( GUCEF_NULL != eventData )
         {
             ++changes;
             last = *static_cast< MULTIPLAY::CPlayerIdentity* >( eventData );
         }
-        else
-        if ( GAMEGUI::CPlayerProfileForm::CancelledEvent == eventId )
-            ++cancels;
+    }
+
+    void OnCancelled( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        ++cancels;
     }
 };
 
@@ -226,6 +233,56 @@ PerformPlayerProfileFormTests( void )
         GAMEGUI::CPlayerProfileForm lazy( context );
         lazy.SetIdentity( identity );
         ASSERT_TRUE( lazy.Open() && "First" == lazy.GetDisplayNameText() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "PlayerProfile: The accounts button and line are there when asked, with the accounts of the identity, and the form only tells the host" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateSizedFormContext( 1242, 952, true );
+        GUI::CGUIContext* context = ContextOf( contextPtr );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL == context )
+            return;
+
+        MULTIPLAY::CPlayerIdentity identity;
+        identity.userId = "guid-1";
+        identity.displayName = "First";
+        GAMEGUI::CPlayerProfileForm form( context );
+        CEventCount requests( &form, GAMEGUI::CPlayerProfileForm::AccountsRequestedEvent );
+        form.SetIdentity( identity );
+
+        // as it was
+        ASSERT_FALSE( form.GetAccountsEnabled() );
+        ASSERT_TRUE( form.Open() && GUCEF_NULL == form.GetWidget( "Accounts" ) && GUCEF_NULL == form.GetWidget( "AccountsText" ) );
+        ASSERT_TRUE( 300 == form.GetRootWidget()->GetRect().height && form.GetAccountsText().IsNULLOrEmpty() );
+        form.Close();
+
+        // with the accounts: the line says guest, the button tells the host
+        form.SetAccountsEnabled( true );
+        ASSERT_TRUE( form.GetAccountsEnabled() && form.Open() );
+        context->FlushChanges();
+        ASSERT_TRUE( GUCEF_NULL != form.GetWidget( "Accounts" ) && "Log in / accounts" == form.GetWidget( "Accounts" )->GetProperty( "Text" ) );
+        ASSERT_TRUE( 340 == form.GetRootWidget()->GetRect().height && "Guest" == form.GetAccountsText() );
+        ClickWidget( context, form.GetWidget( "Accounts" ) );
+        ASSERT_TRUE( 1 == requests.count && form.IsOpen() );
+        form.Cancel();
+
+        // linked accounts of the identity: the providers, once each
+        identity.accounts.SetAllowMultipleValues( true );
+        identity.accounts.Set( "google", "1234" );
+        identity.accounts.Set( "steam", "7656" );
+        form.SetIdentity( identity );
+        ASSERT_TRUE( form.Open() );
+        ASSERT_TRUE( "Accounts: Google, Steam" == form.GetAccountsText() );
+
+        // the window keeps its controls apart
+        form.SetDisplayNameText( "Second" );
+        ASSERT_TRUE( form.Save() );
     }
     catch ( ... )
     {

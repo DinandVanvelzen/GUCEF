@@ -33,6 +33,7 @@ LOCAL_SRC_FILES := \
   src/gucefGAMEGUI_CModule.cpp \
   src/gucefGAMEGUI_CPlayerProfileForm.cpp \
   src/gucefGAMEGUI_CServerBrowserForm.cpp \
+  src/gucefGAMEGUI_CTurnWaitOverlayForm.cpp \
   src/gucefGAMEGUI_CVotePromptForm.cpp \
   src/gucefGAMEGUI_Utils.cpp
 
@@ -41,6 +42,7 @@ LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../gucefAUDIO/include \
   $(MY_MODULE_PATH)/../gucefAUDIO/include/c_api \
+  $(MY_MODULE_PATH)/../gucefAUTH/include \
   $(MY_MODULE_PATH)/../gucefCOM/include \
   $(MY_MODULE_PATH)/../gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
@@ -61,6 +63,7 @@ LOCAL_CFLAGS := -DGUCEF_GAMEGUI_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefGAMEGU
 
 LOCAL_SHARED_LIBRARIES := \
   gucefAUDIO \
+  gucefAUTH \
   gucefCOM \
   gucefCOMCORE \
   gucefCORE \
