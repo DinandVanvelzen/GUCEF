@@ -56,6 +56,7 @@ set( HEADER_FILES
   include/gucefGUI_CPushButton.h
   include/gucefGUI_CRenderContext.h
   include/gucefGUI_CRoutedEventData.h
+  include/gucefGUI_CScrollPanel.h
   include/gucefGUI_CSettingsForm.h
   include/gucefGUI_CSettingsPageForm.h
   include/gucefGUI_CSlider.h
@@ -75,12 +76,14 @@ set( HEADER_FILES
   include/gucefGUI_CWidgetFactory.h
   include/gucefGUI_CWidgetHandler.h
   include/gucefGUI_CWidgetPainter.h
+  include/gucefGUI_CWidgetPropertyValue.h
   include/gucefGUI_CWidgetTypeRegistry.h
   include/gucefGUI_CWindow.h
   include/gucefGUI_CWindowContext.h
   include/gucefGUI_CWindowManager.h
   include/gucefGUI_CWindowManagerBackend.h
   include/gucefGUI_ETypes.h
+  include/gucefGUI_EWidgetProperty.h
   include/gucefGUI_StandardThemes.h
   include/gucefGUI_StandardWidgetTypes.h
   include/gucefGUI_Types.h
@@ -134,6 +137,7 @@ set( SOURCE_FILES
   src/gucefGUI_CPushButton.cpp
   src/gucefGUI_CRenderContext.cpp
   src/gucefGUI_CRoutedEventData.cpp
+  src/gucefGUI_CScrollPanel.cpp
   src/gucefGUI_CSettingsForm.cpp
   src/gucefGUI_CSettingsPageForm.cpp
   src/gucefGUI_CSlider.cpp
@@ -153,11 +157,13 @@ set( SOURCE_FILES
   src/gucefGUI_CWidgetFactory.cpp
   src/gucefGUI_CWidgetHandler.cpp
   src/gucefGUI_CWidgetPainter.cpp
+  src/gucefGUI_CWidgetPropertyValue.cpp
   src/gucefGUI_CWidgetTypeRegistry.cpp
   src/gucefGUI_CWindow.cpp
   src/gucefGUI_CWindowContext.cpp
   src/gucefGUI_CWindowManager.cpp
   src/gucefGUI_CWindowManagerBackend.cpp
+  src/gucefGUI_EWidgetProperty.cpp
   src/gucefGUI_StandardThemes.cpp
   src/gucefGUI_StandardWidgetTypes.cpp
   src/gucefGUI_Types.cpp

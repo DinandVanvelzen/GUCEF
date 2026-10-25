@@ -153,11 +153,14 @@ class GUCEF_GUI_PUBLIC_CPP CVideoSettingsForm : public CSettingsPageForm
 
     virtual void OnPostLayoutLoad( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CVideoSettingsForm > TEventCallback;
+
+    /** The button that stops what the progress shows was activated */
+    void OnStopProgressActivated( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData );
 
     void FillResolutions( bool fullscreen, UInt32 width, UInt32 height );
 

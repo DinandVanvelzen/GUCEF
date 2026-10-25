@@ -297,7 +297,7 @@ RunRenderTests( const char* driverName, GUI::TGuiContextPtr ( *createContext )( 
     try
     {
         GUI::TGuiContextPtr contextPtr = createContext();
-        GUI::CGUIContext* context = dynamic_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        GUI::CGUIContext* context = ( contextPtr.IsNULL() ? GUCEF_NULL : contextPtr->AsGUIContext() );
         ASSERT_TRUE( GUCEF_NULL != context );
         GUI::CWidget* screen = Screen( context );
         GUI::CWidget* panel = context->CreateWidget( "Panel", "Panel", screen );
@@ -343,10 +343,10 @@ RunRenderTests( const char* driverName, GUI::TGuiContextPtr ( *createContext )( 
     try
     {
         GUI::TGuiContextPtr contextPtr = createContext();
-        GUI::CGUIContext* context = dynamic_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        GUI::CGUIContext* context = ( contextPtr.IsNULL() ? GUCEF_NULL : contextPtr->AsGUIContext() );
         ASSERT_TRUE( GUCEF_NULL != context );
         GUI::CWidget* screen = Screen( context );
-        GUI::CGroupBox* group = dynamic_cast< GUI::CGroupBox* >( context->CreateWidget( "GroupBox", "Group", screen ) );
+        GUI::CGroupBox* group = GUI::CWidget::As< GUI::CGroupBox >( context->CreateWidget( "GroupBox", "Group", screen ) );
         ASSERT_TRUE( GUCEF_NULL != group );
         if ( GUCEF_NULL == group )
             return;
@@ -545,6 +545,85 @@ RunRenderTests( const char* driverName, GUI::TGuiContextPtr ( *createContext )( 
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( ( prefix + "A window has a fold button and folds up to its title bar, a scroll panel cuts off what is scrolled out and draws its scroll bar" ).C_String() )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = createContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        GUI::CWidget* screen = Screen( context );
+
+        // a window: the title bar with a glyph on the fold button, the body with a red child
+        GUI::CWindow* window = static_cast< GUI::CWindow* >( context->CreateWidget( "Window", "Window", screen ) );
+        window->SetProperty( "Position", "0,20 0,20" );
+        window->SetProperty( "Size", "0,200 0,100" );
+        window->SetIntProperty( "TitleHeight", 20 );
+        window->SetColourProperty( "BackgroundColour", Blue );
+        window->SetColourProperty( "TitleBarColour", GUI::CColour( 40, 60, 110, 255 ) );
+        window->SetColourProperty( "TitleColour", White );
+        GUI::CWidget* child = context->CreateWidget( "Panel", "Child", window );
+        child->SetProperty( "Position", "0,10 0,40" );
+        child->SetProperty( "Size", "0,50 0,20" );
+        child->SetColourProperty( "BackgroundColour", Red );
+
+        IMAGE::TPixelMapPtr pixels;
+        ASSERT_TRUE( Capture( context, pixels ) );
+        ASSERT_TRUE( Near( PixelAt( pixels, 40, 25 ), GUI::CColour( 40, 60, 110, 255 ) ) );
+        ASSERT_TRUE( Near( PixelAt( pixels, 40, 105 ), Blue ) && Near( PixelAt( pixels, 40, 70 ), Red ) );
+        UInt32 glyph = 0;
+        for ( Int32 y=20; y<40; ++y )
+            for ( Int32 x=200; x<220; ++x )
+                if ( Near( PixelAt( pixels, x, y ), White ) )
+                    ++glyph;
+        ASSERT_TRUE( glyph >= 10 && glyph <= 40 );
+
+        // folded up: the title bar and the glyph, nothing of the body and its child
+        window->SetBoolProperty( "Collapsed", true );
+        ASSERT_TRUE( Capture( context, pixels ) );
+        ASSERT_TRUE( Near( PixelAt( pixels, 40, 25 ), GUI::CColour( 40, 60, 110, 255 ) ) );
+        ASSERT_TRUE( Near( PixelAt( pixels, 40, 105 ), Black ) && Near( PixelAt( pixels, 40, 70 ), Black ) );
+        UInt32 foldedGlyph = 0;
+        for ( Int32 y=20; y<40; ++y )
+            for ( Int32 x=200; x<220; ++x )
+                if ( Near( PixelAt( pixels, x, y ), White ) )
+                    ++foldedGlyph;
+        ASSERT_TRUE( foldedGlyph == glyph );
+        window->SetBoolProperty( "Collapsed", false );
+        ASSERT_TRUE( Capture( context, pixels ) );
+        ASSERT_TRUE( Near( PixelAt( pixels, 40, 70 ), Red ) );
+
+        // a scroll panel of 100 x 60 with a content of 100: a red and a blue part, the scroll bar on the right
+        GUI::CScrollPanel* scroll = static_cast< GUI::CScrollPanel* >( context->CreateWidget( "ScrollPanel", "Scroll", screen ) );
+        scroll->SetProperty( "Position", "0,300 0,140" );
+        scroll->SetProperty( "Size", "0,100 0,60" );
+        scroll->SetColourProperty( "TrackColour", GUI::CColour( 30, 30, 30, 255 ) );
+        scroll->SetColourProperty( "ThumbColour", Yellow );
+        GUI::CWidget* top = context->CreateWidget( "Panel", "Top", scroll );
+        top->SetProperty( "Size", "1,0 0,50" );
+        top->SetColourProperty( "BackgroundColour", Red );
+        GUI::CWidget* bottom = context->CreateWidget( "Panel", "Bottom", scroll );
+        bottom->SetProperty( "Position", "0,0 0,50" );
+        bottom->SetProperty( "Size", "1,0 0,50" );
+        bottom->SetColourProperty( "BackgroundColour", Blue );
+        ASSERT_TRUE( Capture( context, pixels ) );
+        ASSERT_TRUE( Near( PixelAt( pixels, 320, 160 ), Red ) && Near( PixelAt( pixels, 320, 195 ), Blue ) );
+        ASSERT_TRUE( Near( PixelAt( pixels, 320, 205 ), Black ) );
+        ASSERT_TRUE( Near( PixelAt( pixels, 394, 142 ), Yellow ) );
+        ASSERT_TRUE( Near( PixelAt( pixels, 394, 198 ), GUI::CColour( 30, 30, 30, 255 ) ) );
+
+        // scrolled to the end: the blue part is at the top, the thumb at the bottom
+        scroll->SetScrollPosition( 40 );
+        ASSERT_TRUE( Capture( context, pixels ) );
+        ASSERT_TRUE( Near( PixelAt( pixels, 320, 145 ), Red ) && Near( PixelAt( pixels, 320, 195 ), Blue ) );
+        ASSERT_TRUE( Near( PixelAt( pixels, 394, 195 ), Yellow ) && Near( PixelAt( pixels, 394, 142 ), GUI::CColour( 30, 30, 30, 255 ) ) );
+        ASSERT_TRUE( Near( PixelAt( pixels, 320, 139 ), Black ) && Near( PixelAt( pixels, 320, 201 ), Black ) );
+        context->DestroyWidget( screen );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 }
@@ -615,7 +694,7 @@ PerformGuiRenderTests( void )
     try
     {
         GUI::TGuiContextPtr contextPtr = CreateRmlUiContext();
-        GUI::CGUIContext* context = dynamic_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        GUI::CGUIContext* context = ( contextPtr.IsNULL() ? GUCEF_NULL : contextPtr->AsGUIContext() );
         ASSERT_TRUE( GUCEF_NULL != context );
         ASSERT_TRUE( GUCEF_NULL != context && "RmlUi" == context->GetDriver()->GetDriverName() );
         ASSERT_TRUE( GUCEF_NULL != context && context->GetDriver()->HasCapability( "CaptureFrame" ) );
@@ -1049,6 +1128,100 @@ PerformGuiRenderTests( void )
             if ( 0 != wrong )
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Present case " << (UInt32) c << ": " << wrong << " pixels differ" );
             ASSERT_TRUE( 0 == wrong );
+        }
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Render (RmlUi): The pointer of the window is where the widget is drawn: a thin bar is hit at its drawn pixels in windows of every size and present mode" )
+    try
+    {
+        struct SWindow { UInt32 width; UInt32 height; };
+        const SWindow windows[] = { { 1079, 843 }, { 1280, 960 }, { 1600, 1200 }, { 3840, 1080 } };
+        const GUI::TPresentMode modes[] = { GUI::PRESENTMODE_NEAREST, GUI::PRESENTMODE_INTEGER, GUI::PRESENTMODE_LINEAR, GUI::PRESENTMODE_STRETCH };
+        const GUI::CColour barColour( 255, 0, 255, 255 );
+        for ( size_t w=0; w<sizeof( windows ) / sizeof( windows[ 0 ] ); ++w )
+        {
+            // the picture at its own size (a game screen) and the picture that is the size of the window (a layer over it)
+            for ( UInt32 own=0; own<2; ++own )
+            {
+                for ( size_t m=0; m<sizeof( modes ) / sizeof( modes[ 0 ] ); ++m )
+                {
+                    if ( 1 == own && GUI::PRESENTMODE_NEAREST != modes[ m ] )
+                        continue;
+                    GUI::TGuiContextPtr rmlPtr = CreateRmlUiContextInWindow( windows[ w ].width, windows[ w ].height );
+                    GUI::CGUIContext* rml = static_cast< GUI::CGUIContext* >( rmlPtr.GetPointerAlways() );
+                    ASSERT_TRUE( GUCEF_NULL != rml );
+                    if ( GUCEF_NULL == rml )
+                        continue;
+                    if ( 1 == own )
+                        rml->SetLogicalResolution( 0, 0 );
+                    rml->SetPresentMode( modes[ m ] );
+
+                    // a 16 pixel bar of the picture, near its right edge, as high as most of the picture
+                    const Int32 pictureWidth = (Int32) rml->GetLogicalWidth();
+                    const Int32 pictureHeight = (Int32) rml->GetLogicalHeight();
+                    GUI::CWidget* screen = Screen( rml );
+                    GUI::CWidget* bar = rml->CreateWidget( "Panel", "Bar", screen );
+                    bar->SetProperty( "Position", "0," + CORE::Int32ToString( pictureWidth - 40 ) + " 0,10" );
+                    bar->SetProperty( "Size", "0,16 0," + CORE::Int32ToString( pictureHeight - 20 ) );
+                    bar->SetColourProperty( "BackgroundColour", barColour );
+                    rml->FlushChanges();
+                    rml->RenderFrame( 16 );
+                    IMAGE::TPixelMapPtr presented;
+                    ASSERT_TRUE( rml->CapturePresentedFrame( presented ) && !presented.IsNULL() );
+                    if ( presented.IsNULL() )
+                        continue;
+
+                    // the pixels of the window that show the bar, found in the picture the window shows, and what the pointer says there
+                    Int32 left = -1, right = -1, top = -1, bottom = -1;
+                    for ( Int32 y=0; y<(Int32) windows[ w ].height; ++y )
+                    {
+                        for ( Int32 x=0; x<(Int32) windows[ w ].width; ++x )
+                        {
+                            if ( Near( PixelAt( presented, x, y ), barColour ) )
+                            {
+                                if ( left < 0 || x < left ) left = x;
+                                if ( x > right ) right = x;
+                                if ( top < 0 || y < top ) top = y;
+                                if ( y > bottom ) bottom = y;
+                            }
+                        }
+                    }
+                    ASSERT_TRUE( left >= 0 && right - left >= 8 && bottom - top >= 100 );
+                    if ( left < 0 )
+                        continue;
+                    UInt32 wrong = 0;
+                    const Int32 centreY = ( top + bottom ) / 2;
+                    // inside the drawn bar: hit; clearly outside it: not hit
+                    for ( Int32 x=left+1; x<right; ++x )
+                    {
+                        rml->ProcessWindowMouseMove( x, centreY );
+                        if ( rml->HitTest( rml->GetPointerX(), rml->GetPointerY() ) != bar )
+                            ++wrong;
+                    }
+                    rml->ProcessWindowMouseMove( left + 1, top + 2 );
+                    if ( rml->HitTest( rml->GetPointerX(), rml->GetPointerY() ) != bar )
+                        ++wrong;
+                    rml->ProcessWindowMouseMove( right - 1, bottom - 2 );
+                    if ( rml->HitTest( rml->GetPointerX(), rml->GetPointerY() ) != bar )
+                        ++wrong;
+                    // (a picture that is scaled up with a filter has a soft edge of up to a picture pixel, 8 window pixels is further out than that is wide)
+                    rml->ProcessWindowMouseMove( left - 8, centreY );
+                    if ( rml->HitTest( rml->GetPointerX(), rml->GetPointerY() ) == bar )
+                        ++wrong;
+                    rml->ProcessWindowMouseMove( right + 8, centreY );
+                    if ( rml->HitTest( rml->GetPointerX(), rml->GetPointerY() ) == bar )
+                        ++wrong;
+                    if ( 0 != wrong )
+                        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Window " << windows[ w ].width << "x" << windows[ w ].height << ", mode " << (Int32) modes[ m ] << ", own " << own << ": " << wrong << " places where the bar is drawn and the pointer says otherwise, the bar is drawn at " << left << ".." << right );
+                    ASSERT_TRUE( 0 == wrong );
+                    rml->DestroyWidget( screen );
+                }
+            }
         }
     }
     catch ( ... )

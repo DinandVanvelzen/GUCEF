@@ -66,6 +66,7 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CPushButton.cpp \
   src/gucefGUI_CRenderContext.cpp \
   src/gucefGUI_CRoutedEventData.cpp \
+  src/gucefGUI_CScrollPanel.cpp \
   src/gucefGUI_CSettingsForm.cpp \
   src/gucefGUI_CSettingsPageForm.cpp \
   src/gucefGUI_CSlider.cpp \
@@ -85,11 +86,13 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CWidgetFactory.cpp \
   src/gucefGUI_CWidgetHandler.cpp \
   src/gucefGUI_CWidgetPainter.cpp \
+  src/gucefGUI_CWidgetPropertyValue.cpp \
   src/gucefGUI_CWidgetTypeRegistry.cpp \
   src/gucefGUI_CWindow.cpp \
   src/gucefGUI_CWindowContext.cpp \
   src/gucefGUI_CWindowManager.cpp \
   src/gucefGUI_CWindowManagerBackend.cpp \
+  src/gucefGUI_EWidgetProperty.cpp \
   src/gucefGUI_StandardThemes.cpp \
   src/gucefGUI_StandardWidgetTypes.cpp \
   src/gucefGUI_Types.cpp \

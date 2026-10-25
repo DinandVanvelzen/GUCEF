@@ -26,6 +26,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_GUI_CWIDGET_H
 #include "gucefGUI_CWidget.h"
 #define GUCEF_GUI_CWIDGET_H
@@ -90,19 +95,38 @@ class GUCEF_GUI_PUBLIC_CPP CCombobox : public CWidget
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "Combobox"; }
+
     static CWidget* Create( void );
 
     protected:
 
     virtual bool OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue ) GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CCombobox > TEventCallback;
+
+    /** The user picked a row of the list */
+    void OnListValueChanged( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData );
+
+    /** A row of the list was activated */
+    void OnListItemActivated( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData );
+
+    /** A form was hidden: the list goes with it */
+    void OnFormHidden( CORE::CNotifier* notifier    ,
+                       const CORE::CEvent& eventId  ,
+                       CORE::CICloneable* eventData );
+
+    /** Closes the list and changes the selection to the row that was picked */
+    void PickFromList( void );
 
     CCombobox( const CCombobox& src );
     CCombobox& operator=( const CCombobox& src );

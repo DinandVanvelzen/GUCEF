@@ -586,11 +586,13 @@ CRmlUIWidgetElement::OnRender( void )
         for ( size_t i=chain.size(); i>1; --i )
         {
             const GUI::CWidget* ancestor = chain[ i-1 ];
-            opacity *= ancestor->GetFloatProperty( "Opacity" );
-            if ( ancestor->GetBoolProperty( "Clip" ) )
+            if ( !ancestor->AreChildrenShown() )
+                return;
+            opacity *= ancestor->GetFloatProperty( GUI::EWidgetProperty_Opacity );
+            if ( ancestor->GetBoolProperty( GUI::EWidgetProperty_Clip ) )
                 clip = clip.Intersection( ancestor->GetRect() );
         }
-        opacity *= m_widget->GetFloatProperty( "Opacity" );
+        opacity *= m_widget->GetFloatProperty( GUI::EWidgetProperty_Opacity );
         clip = clip.Intersection( m_widget->GetRect() );
         if ( clip.IsEmpty() || opacity <= 0.0f )
             return;

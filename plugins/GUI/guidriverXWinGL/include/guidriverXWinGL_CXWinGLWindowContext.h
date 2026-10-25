@@ -31,6 +31,16 @@
 #define GUCEF_CORE_CX11WINDOW_H
 #endif /* GUCEF_CORE_CX11WINDOW_H ? */
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
+#ifndef GUCEF_CORE_CX11EVENTDISPATCHER_H
+#include "gucefCORE_CX11EventDispatcher.h"
+#define GUCEF_CORE_CX11EVENTDISPATCHER_H
+#endif /* GUCEF_CORE_CX11EVENTDISPATCHER_H ? */
+
 #ifndef GUCEF_CORE_CTSHAREDPTR_H
 #include "CTSharedPtr.h"
 #define GUCEF_CORE_CTSHAREDPTR_H
@@ -102,13 +112,18 @@ class GUIDRIVERXWINGL_PUBLIC_CPP CXWinGLWindowContext : public GUI::CWindowConte
 
     virtual const CORE::CString& GetClassTypeName( void ) const;
 
-    protected:
-
-    virtual void OnNotify( CORE::CNotifier* notifier          ,
-                           const CORE::CEvent& eventID        ,
-                           CORE::CICloneable* evenData = NULL );
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CXWinGLWindowContext > TEventCallback;
+
+    void OnWindowPaint( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnWindowResize( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnWindowClose( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnWindowActivation( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+
+    /** Draws a frame: the observers redraw the window, then the buffers are swapped */
+    void Redraw( void );
 
     CXWinGLWindowContext( const CXWinGLWindowContext& src );            /**< private because: must be unique */
     CXWinGLWindowContext& operator=( const CXWinGLWindowContext& src ); /**< private because: must be unique */
@@ -125,6 +140,7 @@ class GUIDRIVERXWINGL_PUBLIC_CPP CXWinGLWindowContext : public GUI::CWindowConte
     void* m_renderContext;          /**< GLXContext */
     bool m_isCoreProfile;
     bool m_shown;                   /**< mapped or exposed: before that a swap can wait for a window that is not shown (XWayland) */
+    CORE::CX11ActivationTokenProvider* m_activation;    /**< gives the launcher of the browser the startup id of the last key or button press while this window exists; NULL when somebody else's provider is installed */
 };
 
 /*-------------------------------------------------------------------------*/

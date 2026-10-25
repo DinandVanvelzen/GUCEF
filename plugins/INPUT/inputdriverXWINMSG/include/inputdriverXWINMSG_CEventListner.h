@@ -97,6 +97,7 @@ class GUCEF_INPUT_PLUGIN_PRIVATE_CPP CEventListner : public CORE::CObserver
     Int32 m_mouseY;
     Int32 m_wheel;
     Int32 m_horizontalWheel;
+    UInt32 m_movesSinceButtonChange;
     ::XIM m_inputMethod;
     ::XIC m_inputContext;
 };

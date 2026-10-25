@@ -314,14 +314,17 @@ CSoftwareRenderer::RenderWidget( CGUIContext& context, const CWidget& widget, co
     if ( !widget.IsVisible() )
         return;
     const CRect& rect = widget.GetRect();
-    Float32 widgetOpacity = opacity * widget.GetFloatProperty( "Opacity" );
+    Float32 widgetOpacity = opacity * widget.GetFloatProperty( EWidgetProperty_Opacity );
 
     // the widget's own drawing stays within the widget
     TCommandVector commands;
     CWidgetPainter::Paint( widget, context, commands );
     Execute( context, commands, rect.left, rect.top, clip.Intersection( rect ), widgetOpacity, target );
 
-    CRect childClip = widget.GetBoolProperty( "Clip" ) ? clip.Intersection( rect ) : clip;
+    // what a collapsed window hides is not drawn
+    if ( !widget.AreChildrenShown() )
+        return;
+    CRect childClip = widget.GetBoolProperty( EWidgetProperty_Clip ) ? clip.Intersection( rect ) : clip;
     const CWidget::TWidgetVector& children = widget.GetChildren();
     for ( UInt32 i=0; i<(UInt32)children.size(); ++i )
         RenderWidget( context, *children[ i ], childClip, widgetOpacity, target );

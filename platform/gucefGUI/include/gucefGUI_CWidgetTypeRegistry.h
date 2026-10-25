@@ -35,6 +35,16 @@
 #define GUCEF_GUI_MACROS_H
 #endif /* GUCEF_GUI_MACROS_H ? */
 
+#ifndef GUCEF_GUI_EWIDGETPROPERTY_H
+#include "gucefGUI_EWidgetProperty.h"
+#define GUCEF_GUI_EWIDGETPROPERTY_H
+#endif /* GUCEF_GUI_EWIDGETPROPERTY_H ? */
+
+#ifndef GUCEF_GUI_CWIDGETPROPERTYVALUE_H
+#include "gucefGUI_CWidgetPropertyValue.h"
+#define GUCEF_GUI_CWIDGETPROPERTYVALUE_H
+#endif /* GUCEF_GUI_CWIDGETPROPERTYVALUE_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -93,6 +103,7 @@ class GUCEF_GUI_PUBLIC_CPP CPropertyDescriptor
     typedef GUCEF::vector< CString > TStringVector;
 
     CString name;
+    EWidgetProperty id;         /**< the standard property 'name' is, EWidgetProperty_Unknown for any other; the constructors work it out from the name */
     TValueType valueType;
     CString defaultValue;
     UInt32 flags;
@@ -103,6 +114,14 @@ class GUCEF_GUI_PUBLIC_CPP CPropertyDescriptor
     CPropertyDescriptor( void );
 
     CPropertyDescriptor( const CString& propertyName  ,
+                         TValueType type              ,
+                         const CString& defaultVal    ,
+                         UInt32 propertyFlags         ,
+                         const CString& propertyCategory ,
+                         const CString& propertyDescription );
+
+    /** Describes a standard property: the name is the one of the id */
+    CPropertyDescriptor( EWidgetProperty property     ,
                          TValueType type              ,
                          const CString& defaultVal    ,
                          UInt32 propertyFlags         ,
@@ -145,6 +164,72 @@ class GUCEF_GUI_PUBLIC_CPP CWidgetTypeInfo
 /*-------------------------------------------------------------------------*/
 
 /**
+ *  What the registry knows about one widget type, worked out once: the chain of types it extends and the
+ *  descriptors of its properties, found by the id of a standard property in one step (the most derived type
+ *  that describes the property wins) and by name for the properties that have no id. The widgets of the
+ *  type keep a pointer to it; a change of the registry (registering or unregistering a type) makes the next
+ *  CWidgetTypeRegistry::ResolveType() return a new one and the old one stays valid, so a pointer held across
+ *  such a change is never dangling, only out of date (compare GetGeneration()).
+ *  The descriptors are copies owned by this object.
+ */
+class GUCEF_GUI_PUBLIC_CPP CResolvedWidgetType
+{
+    public:
+
+    typedef GUCEF::vector< const CPropertyDescriptor* > TDescriptorVector;
+    typedef GUCEF::vector< CString > TStringVector;
+
+    const CString& GetTypeName( void ) const;
+
+    /** The type and every registered type it extends, most derived first */
+    const TStringVector& GetTypeChain( void ) const;
+
+    /** True when the type is 'baseTypeName' or extends it */
+    bool IsA( const CString& baseTypeName ) const;
+    bool IsA( const char* baseTypeName ) const;
+
+    /** Every property of the type including inherited ones, base properties first */
+    const TDescriptorVector& GetProperties( void ) const;
+
+    /** The descriptor of a standard property, NULL when the type has none */
+    const CPropertyDescriptor* FindProperty( EWidgetProperty property ) const;
+
+    /** The descriptor of any property by name, NULL when the type has none */
+    const CPropertyDescriptor* FindProperty( const CString& propertyName ) const;
+
+    /** The default of a standard property as a value that remembers what it was read as; NULL when the type has no such property */
+    const CWidgetPropertyValue* FindDefault( EWidgetProperty property ) const;
+
+    /** The generation of the registry this was made in: it is current while the registry still has this generation */
+    UInt32 GetGeneration( void ) const;
+
+    private:
+
+    friend class CWidgetTypeRegistry;
+
+    CResolvedWidgetType( const CString& typeName, UInt32 generation );
+
+    CResolvedWidgetType( const CResolvedWidgetType& src );
+    CResolvedWidgetType& operator=( const CResolvedWidgetType& src );
+
+    typedef GUCEF::vector< CPropertyDescriptor > TDescriptorStorage;
+    typedef GUCEF::vector< CWidgetPropertyValue > TValueStorage;
+    typedef GUCEF::map< CString, const CPropertyDescriptor* > TDescriptorMap;
+
+    CString m_typeName;
+    UInt32 m_generation;
+    TStringVector m_chain;
+    TDescriptorStorage m_descriptors;
+    TValueStorage m_defaults;
+    TDescriptorVector m_all;
+    TDescriptorMap m_custom;
+    const CPropertyDescriptor* m_byId[ EWidgetProperty_Count ];
+    const CWidgetPropertyValue* m_defaultById[ EWidgetProperty_Count ];
+};
+
+/*-------------------------------------------------------------------------*/
+
+/**
  *  The registry of widget types. gucefGUI registers its own types at start; applications and
  *  plugins can register more. A type can only be used when the active driver has a handler for it
  *  or for one of its base types.
@@ -178,6 +263,17 @@ class GUCEF_GUI_PUBLIC_CPP CWidgetTypeRegistry
     /** The descriptor for the property of the type, searching the base types too. NULL when unknown */
     const CPropertyDescriptor* FindProperty( const CString& typeName, const CString& propertyName ) const;
 
+    const CPropertyDescriptor* FindProperty( const CString& typeName, EWidgetProperty property ) const;
+
+    /**
+     *  The type as worked out once (see CResolvedWidgetType), NULL when the type is not registered. The
+     *  object lives as long as the registry; a registering or unregistering makes the next call return a new one.
+     */
+    const CResolvedWidgetType* ResolveType( const CString& typeName ) const;
+
+    /** Changes with every registering and unregistering of a type; no two registries have the same one */
+    UInt32 GetGeneration( void ) const;
+
     /** Makes a facade of the given type, NULL when the type is unknown */
     CWidget* CreateWidget( const CString& typeName ) const;
 
@@ -187,8 +283,15 @@ class GUCEF_GUI_PUBLIC_CPP CWidgetTypeRegistry
     CWidgetTypeRegistry& operator=( const CWidgetTypeRegistry& src );
 
     typedef GUCEF::map< CString, CWidgetTypeInfo > TTypeMap;
+    typedef GUCEF::map< CString, CResolvedWidgetType* > TResolvedMap;
+    typedef GUCEF::vector< CResolvedWidgetType* > TResolvedVector;
+
+    void ForgetResolvedTypes( void );
 
     TTypeMap m_types;
+    mutable TResolvedMap m_resolved;
+    mutable TResolvedVector m_retired;
+    UInt32 m_generation;
     mutable MT::CMutex m_lock;
 };
 

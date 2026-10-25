@@ -71,11 +71,11 @@ namespace {
 Int32
 RowHeightOf( const CWidget& widget )
 {
-    Int32 rowHeight = widget.GetIntProperty( "RowHeight" );
+    Int32 rowHeight = widget.GetIntProperty( EWidgetProperty_RowHeight );
     if ( rowHeight > 0 )
         return rowHeight;
     if ( GUCEF_NULL != widget.GetContext() )
-        return widget.GetContext()->GetLineHeight( widget.GetProperty( "Font" ) );
+        return widget.GetContext()->GetLineHeight( widget.GetProperty( EWidgetProperty_Font ) );
     return 16;
 }
 
@@ -130,8 +130,8 @@ bool
 CTextbox::Clear( void )
 {GUCEF_TRACE;
 
-    SetIntProperty( "ScrollPosition", 0 );
-    return SetProperty( "Text", CString::Empty );
+    SetIntProperty( EWidgetProperty_ScrollPosition, 0 );
+    return SetProperty( EWidgetProperty_Text, CString::Empty );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -159,7 +159,7 @@ CTextbox::InsertLineAtIndex( const UInt32 lineIndex ,
     if ( lineIndex > (UInt32) lines.size() )
         return false;
     lines.insert( lines.begin() + lineIndex, text );
-    return SetProperty( "Text", JoinStringList( lines ) );
+    return SetProperty( EWidgetProperty_Text, JoinStringList( lines ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -168,8 +168,8 @@ bool
 CTextbox::AppendLine( const CString& text )
 {GUCEF_TRACE;
 
-    CString current = GetProperty( "Text" );
-    return SetProperty( "Text", current.IsNULLOrEmpty() ? text : current + '\n' + text );
+    CString current = GetProperty( EWidgetProperty_Text );
+    return SetProperty( EWidgetProperty_Text, current.IsNULLOrEmpty() ? text : current + '\n' + text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -178,7 +178,7 @@ CString
 CTextbox::GetTextAsString( void ) const
 {GUCEF_TRACE;
 
-    return GetProperty( "Text" );
+    return GetProperty( EWidgetProperty_Text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -187,7 +187,7 @@ CTextbox::TStringVector
 CTextbox::GetText( void ) const
 {GUCEF_TRACE;
 
-    return SplitStringList( GetProperty( "Text" ) );
+    return SplitStringList( GetProperty( EWidgetProperty_Text ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -205,14 +205,14 @@ CTextbox::TStringVector
 CTextbox::GetDisplayLines( void ) const
 {GUCEF_TRACE;
 
-    CString text = GetProperty( "Text" );
+    CString text = GetProperty( EWidgetProperty_Text );
     CGUIContext* context = GetContext();
     if ( GUCEF_NULL != context )
     {
-        TBitmapFontPtr font = context->GetBitmapFont( GetProperty( "Font" ) );
+        TBitmapFontPtr font = context->GetBitmapFont( GetProperty( EWidgetProperty_Font ) );
         if ( !font.IsNULL() )
         {
-            CBitmapFont::TStringVector broken = font->BreakLines( text, GetBoolProperty( "WordWrap" ) ? GetRect().width : 0 );
+            CBitmapFont::TStringVector broken = font->BreakLines( text, GetBoolProperty( EWidgetProperty_WordWrap ) ? GetRect().width : 0 );
             return TStringVector( broken.begin(), broken.end() );
         }
     }
@@ -232,10 +232,10 @@ CTextbox::GetVisibleLineCount( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CTextbox::OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue )
+CTextbox::OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue )
 {GUCEF_TRACE;
 
-    if ( name == "Text" )
+    if ( property == EWidgetProperty_Text )
         NotifyObservers( TextChangedEvent );
 }
 
@@ -251,11 +251,14 @@ CTextbox::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventD
     Int32 maxScroll = (Int32) GetDisplayLines().size() - GetVisibleLineCount();
     if ( maxScroll < 0 )
         maxScroll = 0;
-    Int32 scroll = GetIntProperty( "ScrollPosition" ) - wheel->delta;
+    Int32 scroll = GetIntProperty( EWidgetProperty_ScrollPosition ) - wheel->delta;
     if ( scroll < 0 ) scroll = 0;
     if ( scroll > maxScroll ) scroll = maxScroll;
-    ChangeValueByUser( "ScrollPosition", CORE::Int32ToString( scroll ) );
-    return true;
+
+    // with nothing left to scroll the wheel is for what the text box is in
+    if ( scroll == GetIntProperty( EWidgetProperty_ScrollPosition ) )
+        return false;
+    return ChangeValueByUser( EWidgetProperty_ScrollPosition, CORE::Int32ToString( scroll ) );
 }
 
 /*-------------------------------------------------------------------------*/

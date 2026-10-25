@@ -134,7 +134,7 @@ bool
 CVideoView::Play( void )
 {GUCEF_TRACE;
 
-    CString source = GetProperty( "Source" );
+    CString source = GetProperty( EWidgetProperty_Source );
     if ( source.IsNULLOrEmpty() )
         return false;
     VFS::TBasicVfsResourcePtr file = VFS::CVfsGlobal::Instance()->GetVfs().GetFile( source );
@@ -175,7 +175,7 @@ CVideoView::Play( const VIDEO::TVideoSourcePtr& source )
         m_player.Close();
         return false;
     }
-    SetBoolProperty( "Playing", true );
+    SetBoolProperty( EWidgetProperty_Playing, true );
     ShowFrame();
     return true;
 }
@@ -200,7 +200,7 @@ CVideoView::Start( void )
         m_player.Close();
         return false;
     }
-    SetBoolProperty( "Playing", true );
+    SetBoolProperty( EWidgetProperty_Playing, true );
     ShowFrame();
     return true;
 }
@@ -214,7 +214,7 @@ CVideoView::Stop( void )
     if ( m_player.IsOpen() )
         m_player.Close();
     m_file.Unlink();
-    SetBoolProperty( "Playing", false );
+    SetBoolProperty( EWidgetProperty_Playing, false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -235,7 +235,7 @@ bool
 CVideoView::IsPlaying( void ) const
 {GUCEF_TRACE;
 
-    return GetBoolProperty( "Playing" );
+    return GetBoolProperty( EWidgetProperty_Playing );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -295,7 +295,7 @@ CVideoView::OnUpdate( UInt32 deltaInMs )
         ShowFrame();
     if ( m_player.IsEnded() )
     {
-        if ( GetBoolProperty( "Loop" ) && !m_file.IsNULL() )
+        if ( GetBoolProperty( EWidgetProperty_Loop ) && !m_file.IsNULL() )
         {
             m_player.Close();
             Start();
@@ -312,7 +312,7 @@ bool
 CVideoView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData )
 {GUCEF_TRACE;
 
-    if ( ( MouseClickEvent == eventId || KeyDownEvent == eventId ) && IsPlaying() && GetBoolProperty( "SkipOnInput" ) )
+    if ( ( MouseClickEvent == eventId || KeyDownEvent == eventId ) && IsPlaying() && GetBoolProperty( EWidgetProperty_SkipOnInput ) )
     {
         Skip();
         return true;
@@ -323,11 +323,11 @@ CVideoView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& even
 /*-------------------------------------------------------------------------*/
 
 void
-CVideoView::OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue )
+CVideoView::OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue )
 {GUCEF_TRACE;
 
-    CImageFrame::OnPropertyChanged( name, oldValue, newValue );
-    if ( name == "Source" && GetBoolProperty( "AutoPlay" ) && !newValue.IsNULLOrEmpty() )
+    CImageFrame::OnPropertyChanged( property, oldValue, newValue );
+    if ( property == EWidgetProperty_Source && GetBoolProperty( EWidgetProperty_AutoPlay ) && !newValue.IsNULLOrEmpty() )
         Play();
 }
 

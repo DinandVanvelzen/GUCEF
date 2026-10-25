@@ -148,16 +148,16 @@ CImageFrame::SetImage( const IMAGE::TPixelMapPtr& pixels )
     const CString& name = GetOwnImageName();
     if ( !context->RegisterImage( name, pixels ) )
         return false;
-    if ( GetProperty( "Image" ) == name )
+    if ( GetProperty( EWidgetProperty_Image ) == name )
     {
         // the same name, other pixels: the handler has to look again
-        Touch( "Image" );
+        Touch( EWidgetProperty_Image );
         NotifyObservers( ImageChangedEvent );
-        if ( !IsPropertySet( "Size" ) )
+        if ( !IsPropertySet( EWidgetProperty_Size ) )
             context->InvalidateLayout();
         return true;
     }
-    return SetProperty( "Image", name );
+    return SetProperty( EWidgetProperty_Image, name );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -166,7 +166,7 @@ bool
 CImageFrame::SetImageName( const CString& imageName )
 {GUCEF_TRACE;
 
-    return SetProperty( "Image", imageName );
+    return SetProperty( EWidgetProperty_Image, imageName );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -175,7 +175,7 @@ CString
 CImageFrame::GetImageName( void ) const
 {GUCEF_TRACE;
 
-    return GetProperty( "Image" );
+    return GetProperty( EWidgetProperty_Image );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -203,7 +203,7 @@ CImageFrame::SetAnimation( const TStringVector& images, const TUInt32Vector& dur
     m_animationFrame = 0;
     m_animationTime = 0;
     m_animationPlaying = true;
-    return SetProperty( "Image", images[ 0 ] );
+    return SetProperty( EWidgetProperty_Image, images[ 0 ] );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -287,7 +287,7 @@ CImageFrame::OnUpdate( UInt32 deltaInMs )
     if ( frame != m_animationFrame )
     {
         m_animationFrame = frame;
-        SetProperty( "Image", m_animationImages[ frame ] );
+        SetProperty( EWidgetProperty_Image, m_animationImages[ frame ] );
     }
     if ( !m_animationPlaying )
         NotifyObservers( AnimationEndedEvent );
@@ -300,7 +300,7 @@ CImageFrame::GetNaturalSize( Int32& width, Int32& height ) const
 {GUCEF_TRACE;
 
     width = height = 0;
-    CRect subRect = GetRectProperty( "SubRect" );
+    CRect subRect = GetRectProperty( EWidgetProperty_SubRect );
     if ( !subRect.IsEmpty() )
     {
         width = subRect.width;
@@ -308,19 +308,19 @@ CImageFrame::GetNaturalSize( Int32& width, Int32& height ) const
         return true;
     }
     CGUIContext* context = GetContext();
-    return GUCEF_NULL != context && context->GetImageLogicalSize( GetProperty( "Image" ), width, height );
+    return GUCEF_NULL != context && context->GetImageLogicalSize( GetProperty( EWidgetProperty_Image ), width, height );
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CImageFrame::OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue )
+CImageFrame::OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue )
 {GUCEF_TRACE;
 
-    if ( name == "Image" )
+    if ( property == EWidgetProperty_Image )
     {
         NotifyObservers( ImageChangedEvent );
-        if ( !IsPropertySet( "Size" ) && GUCEF_NULL != GetContext() )
+        if ( !IsPropertySet( EWidgetProperty_Size ) && GUCEF_NULL != GetContext() )
             GetContext()->InvalidateLayout();
     }
 }

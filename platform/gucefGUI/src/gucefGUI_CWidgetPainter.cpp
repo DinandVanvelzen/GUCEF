@@ -64,6 +64,8 @@
 #include "gucefGUI_CPopupMenu.h"
 #include "gucefGUI_CGridView.h"
 #include "gucefGUI_CAudioPlayer.h"
+#include "gucefGUI_CWindow.h"
+#include "gucefGUI_CScrollPanel.h"
 
 #include "gucefGUI_CWidgetPainter.h"
 
@@ -99,16 +101,24 @@ const UInt64 TooltipDelayInMs = 600;
 bool
 IsA( const CWidget& widget, const char* type )
 {
-    return CGuiGlobal::Instance()->GetWidgetTypeRegistry().IsA( widget.GetType(), type );
+    const CResolvedWidgetType* resolved = widget.GetResolvedType();
+    return GUCEF_NULL != resolved && resolved->IsA( type );
 }
 
-/** A colour property, 'fallback' when it is not set (empty) */
-CColour
-ColourOr( const CWidget& widget, const char* name, const CColour& fallback )
+/** The widget as the class T when its registered type is T::GetRegisteredTypeName() or derives from it, else NULL; no run time type information needed */
+template < class T >
+const T*
+AsType( const CWidget& widget )
 {
-    CString value = widget.GetProperty( name );
+    return IsA( widget, T::GetRegisteredTypeName() ) ? static_cast< const T* >( &widget ) : GUCEF_NULL;
+}
+
+/** A colour property, 'fallback' when it is not set (empty) or no colour */
+CColour
+ColourOr( const CWidget& widget, EWidgetProperty property, const CColour& fallback )
+{
     CColour colour;
-    if ( value.IsNULLOrEmpty() || !CColour::FromString( value, colour ) )
+    if ( !widget.TryGetColourProperty( property, colour ) )
         return fallback;
     return colour;
 }
@@ -197,13 +207,37 @@ PopClip( CWidgetPainter::TCommandVector& commands )
     commands.push_back( command );
 }
 
+/** Clips what is added to the commands while the scope lives: the clip is popped when the scope ends, on every way out of the block */
+class CClipScope
+{
+    public:
+
+    CClipScope( CWidgetPainter::TCommandVector& commands, const CRect& rect )
+        : m_commands( commands )
+    {
+        PushClip( m_commands, rect );
+    }
+
+    ~CClipScope()
+    {
+        PopClip( m_commands );
+    }
+
+    private:
+
+    CClipScope( const CClipScope& src );
+    CClipScope& operator=( const CClipScope& src );
+
+    CWidgetPainter::TCommandVector& m_commands;
+};
+
 /** The text colour, grey when the widget is disabled */
 CColour
 TextColourOf( const CWidget& widget )
 {
     if ( !widget.IsEffectivelyEnabled() )
-        return ColourOr( widget, "DisabledTextColour", DisabledTextColour );
-    return ColourOr( widget, "TextColour", CColour( 255, 255, 255, 255 ) );
+        return ColourOr( widget, EWidgetProperty_DisabledTextColour, DisabledTextColour );
+    return ColourOr( widget, EWidgetProperty_TextColour, CColour( 255, 255, 255, 255 ) );
 }
 
 /** A small arrow pointing down, for the combo box */
@@ -214,6 +248,27 @@ DownArrow( CWidgetPainter::TCommandVector& commands, const CRect& box, const CCo
     Int32 cy = box.top + box.height / 2;
     for ( Int32 i=0; i<4; ++i )
         Line( commands, cx - 3 + i, cy - 1 + i, cx + 3 - i, cy - 1 + i, colour );
+}
+
+/** The glyph of the fold button of a window: a chevron up that rolls the window up, down that unrolls it, two pixels thick */
+void
+FoldChevron( CWidgetPainter::TCommandVector& commands, const CRect& box, bool collapsed, const CColour& colour )
+{
+    Int32 cx = box.left + box.width / 2;
+    Int32 cy = box.top + box.height / 2;
+    for ( Int32 thickness=0; thickness<2; ++thickness )
+    {
+        if ( collapsed )
+        {
+            Line( commands, cx - 5, cy - 3 + thickness, cx, cy + 2 + thickness, colour );
+            Line( commands, cx, cy + 2 + thickness, cx + 5, cy - 3 + thickness, colour );
+        }
+        else
+        {
+            Line( commands, cx - 5, cy + 2 + thickness, cx, cy - 3 + thickness, colour );
+            Line( commands, cx, cy - 3 + thickness, cx + 5, cy + 2 + thickness, colour );
+        }
+    }
 }
 
 /** A small arrow pointing up, for an ascending sort in a header */
@@ -325,11 +380,11 @@ void
 CWidgetPainter::PaintBox( const CWidget& widget, const CRect& area, TCommandVector& commands )
 {GUCEF_TRACE;
 
-    Fill( commands, area, ColourOr( widget, "BackgroundColour", CColour( 0, 0, 0, 0 ) ) );
-    if ( widget.HasProperty( "BackgroundImage" ) )
-        Image( commands, widget.GetProperty( "BackgroundImage" ), area, CRect(), CColour( 255, 255, 255, 255 ) );
-    if ( widget.HasProperty( "BorderColour" ) )
-        Stroke( commands, area, ColourOr( widget, "BorderColour", CColour( 0, 0, 0, 0 ) ), widget.GetIntProperty( "BorderWidth" ) );
+    Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, CColour( 0, 0, 0, 0 ) ) );
+    if ( widget.HasProperty( EWidgetProperty_BackgroundImage ) )
+        Image( commands, widget.GetPropertyRef( EWidgetProperty_BackgroundImage ), area, CRect(), CColour( 255, 255, 255, 255 ) );
+    if ( widget.HasProperty( EWidgetProperty_BorderColour ) )
+        Stroke( commands, area, ColourOr( widget, EWidgetProperty_BorderColour, CColour( 0, 0, 0, 0 ) ), widget.GetIntProperty( EWidgetProperty_BorderWidth ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -338,17 +393,17 @@ void
 CWidgetPainter::PaintImage( const CWidget& widget, CGUIContext& context, const CRect& area, TCommandVector& commands )
 {GUCEF_TRACE;
 
-    Fill( commands, area, ColourOr( widget, "BackgroundColour", CColour( 0, 0, 0, 0 ) ) );
-    CString image = widget.GetProperty( "Image" );
+    Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, CColour( 0, 0, 0, 0 ) ) );
+    CString image = widget.GetPropertyRef( EWidgetProperty_Image );
     Int32 imageWidth = 0, imageHeight = 0;
     if ( image.IsNULLOrEmpty() || !context.GetImageLogicalSize( image, imageWidth, imageHeight ) )
         return;
 
-    CRect source = widget.GetRectProperty( "SubRect" );
+    CRect source = widget.GetRectProperty( EWidgetProperty_SubRect );
     Int32 w = source.IsEmpty() ? imageWidth : source.width;
     Int32 h = source.IsEmpty() ? imageHeight : source.height;
-    CRect target = FitImage( w, h, area, widget.GetProperty( "ScaleMode" ) );
-    Image( commands, image, target, source, ColourOr( widget, "Tint", CColour( 255, 255, 255, 255 ) ) );
+    CRect target = FitImage( w, h, area, widget.GetPropertyRef( EWidgetProperty_ScaleMode ) );
+    Image( commands, image, target, source, ColourOr( widget, EWidgetProperty_Tint, CColour( 255, 255, 255, 255 ) ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -357,7 +412,7 @@ void
 CWidgetPainter::PaintButton( const CWidget& widget, CGUIContext& context, const CRect& area, TCommandVector& commands )
 {GUCEF_TRACE;
 
-    const CButton* button = dynamic_cast< const CButton* >( &widget );
+    const CButton* button = AsType< CButton >( widget );
     CString image = GUCEF_NULL != button ? button->GetCurrentImage() : CString::Empty;
     UInt32 state = widget.GetState();
     bool checkbox = IsA( widget, "Checkbox" );
@@ -377,13 +432,13 @@ CWidgetPainter::PaintButton( const CWidget& widget, CGUIContext& context, const 
         Stroke( commands, box, 0 != ( state & CWidget::STATE_HOVERED ) ? FocusColour : BoxBorderColour, 1 );
         if ( 0 != ( state & CWidget::STATE_CHECKED ) )
             Fill( commands, CRect( box.left + 3, box.top + 3, size - 6, size - 6 ), TextColourOf( widget ) );
-        PaintText( context, widget.GetProperty( "Font" ), widget.GetProperty( "Text" ), CRect( area.left + size + 4, area.top, area.width - size - 4, area.height ),
+        PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), widget.GetPropertyRef( EWidgetProperty_Text ), CRect( area.left + size + 4, area.top, area.width - size - 4, area.height ),
                    "Left", "Center", false, TextColourOf( widget ), commands );
         return;
     }
     else
     {
-        CColour background = ColourOr( widget, "BackgroundColour", CColour( 0, 0, 0, 0 ) );
+        CColour background = ColourOr( widget, EWidgetProperty_BackgroundColour, CColour( 0, 0, 0, 0 ) );
         if ( 0 == background.a )
         {
             if ( 0 != ( state & CWidget::STATE_PRESSED ) && 0 != ( state & CWidget::STATE_HOVERED ) )
@@ -404,7 +459,7 @@ CWidgetPainter::PaintButton( const CWidget& widget, CGUIContext& context, const 
     if ( 0 != ( state & CWidget::STATE_FOCUSED ) && image.IsNULLOrEmpty() )
         Stroke( commands, CRect( area.left + 1, area.top + 1, area.width - 2, area.height - 2 ), FocusColour, 1 );
 
-    PaintText( context, widget.GetProperty( "Font" ), widget.GetProperty( "Text" ), area, "Center", "Center", false, TextColourOf( widget ), commands );
+    PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), widget.GetPropertyRef( EWidgetProperty_Text ), area, "Center", "Center", false, TextColourOf( widget ), commands );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -413,12 +468,12 @@ void
 CWidgetPainter::PaintEditbox( const CWidget& widget, CGUIContext& context, const CRect& area, TCommandVector& commands )
 {GUCEF_TRACE;
 
-    Fill( commands, area, ColourOr( widget, "BackgroundColour", FieldColour ) );
-    if ( !widget.IsPropertySet( "BackgroundColour" ) )
+    Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, FieldColour ) );
+    if ( !widget.IsPropertySet( EWidgetProperty_BackgroundColour ) )
         Stroke( commands, area, widget.HasFocus() ? FocusColour : BoxBorderColour, 1 );
 
-    CString font = widget.GetProperty( "Font" );
-    CString text = widget.GetProperty( "Text" );
+    CString font = widget.GetPropertyRef( EWidgetProperty_Font );
+    CString text = widget.GetPropertyRef( EWidgetProperty_Text );
     Int32 lineHeight = context.GetLineHeight( font );
     Int32 width = 0, height = 0;
     context.MeasureText( font, text, 0, width, height );
@@ -426,10 +481,10 @@ CWidgetPainter::PaintEditbox( const CWidget& widget, CGUIContext& context, const
     Int32 y = area.top + ( area.height - lineHeight ) / 2;
 
     PushClip( commands, area );
-    if ( widget.GetBoolProperty( "Selected" ) && width > 0 )
-        Fill( commands, CRect( x, y, width, lineHeight ), ColourOr( widget, "SelectionColour", CColour( 60, 90, 160, 255 ) ) );
+    if ( widget.GetBoolProperty( EWidgetProperty_Selected ) && width > 0 )
+        Fill( commands, CRect( x, y, width, lineHeight ), ColourOr( widget, EWidgetProperty_SelectionColour, CColour( 60, 90, 160, 255 ) ) );
     Text( commands, font, text, x, y, TextColourOf( widget ) );
-    if ( widget.GetBoolProperty( "CaretVisible" ) )
+    if ( widget.GetBoolProperty( EWidgetProperty_CaretVisible ) )
         Fill( commands, CRect( x + width, y, 1, lineHeight ), TextColourOf( widget ) );
     PopClip( commands );
 }
@@ -440,17 +495,17 @@ void
 CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CRect& area, TCommandVector& commands )
 {GUCEF_TRACE;
 
-    CString font = widget.GetProperty( "Font" );
-    CColour textColour = ColourOr( widget, "TextColour", CColour( 255, 255, 255, 255 ) );
-    CColour disabledColour = ColourOr( widget, "DisabledTextColour", DisabledTextColour );
-    CColour selectionColour = ColourOr( widget, "SelectionColour", CColour( 0, 0, 0, 0 ) );
-    CColour hoverColour = ColourOr( widget, "HoverColour", CColour( 0, 0, 0, 0 ) );
-    Int32 hoverIndex = widget.GetIntProperty( "HoverIndex" );
-    Int32 scroll = widget.GetIntProperty( "ScrollPosition" );
+    CString font = widget.GetPropertyRef( EWidgetProperty_Font );
+    CColour textColour = ColourOr( widget, EWidgetProperty_TextColour, CColour( 255, 255, 255, 255 ) );
+    CColour disabledColour = ColourOr( widget, EWidgetProperty_DisabledTextColour, DisabledTextColour );
+    CColour selectionColour = ColourOr( widget, EWidgetProperty_SelectionColour, CColour( 0, 0, 0, 0 ) );
+    CColour hoverColour = ColourOr( widget, EWidgetProperty_HoverColour, CColour( 0, 0, 0, 0 ) );
+    Int32 hoverIndex = widget.GetIntProperty( EWidgetProperty_HoverIndex );
+    Int32 scroll = widget.GetIntProperty( EWidgetProperty_ScrollPosition );
 
     PushClip( commands, area );
 
-    if ( const CListbox* list = dynamic_cast< const CListbox* >( &widget ) )
+    if ( const CListbox* list = AsType< CListbox >( widget ) )
     {
         Int32 rowHeight = list->GetRowHeight();
         CListbox::TStringVector items = list->GetItems();
@@ -466,10 +521,10 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
         }
     }
     else
-    if ( const CTreeview* tree = dynamic_cast< const CTreeview* >( &widget ) )
+    if ( const CTreeview* tree = AsType< CTreeview >( widget ) )
     {
         Int32 rowHeight = tree->GetRowHeight();
-        Int32 indent = widget.GetIntProperty( "Indent" );
+        Int32 indent = widget.GetIntProperty( EWidgetProperty_Indent );
         CTreeview::TRowVector rows = tree->GetVisibleRows();
         CString selected = tree->GetSelectedItem();
         for ( Int32 row = scroll, y = area.top; row < (Int32) rows.size() && y < area.Bottom(); ++row, y += rowHeight )
@@ -494,33 +549,37 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
         }
     }
     else
-    if ( const CTextbox* textbox = dynamic_cast< const CTextbox* >( &widget ) )
+    if ( const CTextbox* textbox = AsType< CTextbox >( widget ) )
     {
         Int32 rowHeight = context.GetLineHeight( font );
-        if ( widget.GetIntProperty( "RowHeight" ) > 0 )
-            rowHeight = widget.GetIntProperty( "RowHeight" );
+        if ( widget.GetIntProperty( EWidgetProperty_RowHeight ) > 0 )
+            rowHeight = widget.GetIntProperty( EWidgetProperty_RowHeight );
         CTextbox::TStringVector lines = textbox->GetDisplayLines();
         for ( Int32 line = scroll, y = area.top; line < (Int32) lines.size() && y < area.Bottom(); ++line, y += rowHeight )
             Text( commands, font, lines[ line ], area.left, y, textColour );
     }
     else
-    if ( const CGridView* grid = dynamic_cast< const CGridView* >( &widget ) )
+    if ( const CGridView* grid = AsType< CGridView >( widget ) )
     {
         Int32 rowHeight = grid->GetRowHeight();
         GUCEF::vector< Int32 > widths = grid->GetColumnWidths();
-        CGridView::TStringVector columns = widget.GetStringListProperty( "Columns" );
-        Fill( commands, CRect( area.left, area.top, area.width, rowHeight ), ColourOr( widget, "HeaderColour", CColour( 50, 50, 50, 255 ) ) );
+        CGridView::TStringVector columns = widget.GetStringListProperty( EWidgetProperty_Columns );
+        Fill( commands, CRect( area.left, area.top, area.width, rowHeight ), ColourOr( widget, EWidgetProperty_HeaderColour, CColour( 50, 50, 50, 255 ) ) );
         Int32 x = area.left;
-        Int32 sortColumn = widget.GetIntProperty( "SortColumn" );
+        Int32 sortColumn = widget.GetIntProperty( EWidgetProperty_SortColumn );
         for ( UInt32 c=0; c<(UInt32)widths.size(); ++c )
         {
             if ( c < (UInt32) columns.size() )
+            {
+                // a title that is wider than its column is cut off at the column
+                CClipScope clipScope( commands, CRect( x, area.top, widths[ c ], rowHeight ) );
                 Text( commands, font, columns[ c ], x + 2, area.top, textColour );
+            }
             if ( (Int32) c == sortColumn && widths[ c ] > 16 )
             {
                 // the arrow of the sort, at the right of the title
                 CRect arrowBox( x + widths[ c ] - 14, area.top, 12, rowHeight );
-                if ( widget.GetBoolProperty( "SortAscending" ) )
+                if ( widget.GetBoolProperty( EWidgetProperty_SortAscending ) )
                     UpArrow( commands, arrowBox, textColour );
                 else
                     DownArrow( commands, arrowBox, textColour );
@@ -537,8 +596,11 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
             x = area.left;
             for ( UInt32 c=0; c<(UInt32)widths.size(); ++c )
             {
-                if ( c < (UInt32) cells.size() )
+                if ( c < (UInt32) cells.size() && !cells[ c ].IsNULLOrEmpty() )
+                {
+                    CClipScope clipScope( commands, CRect( x, y, widths[ c ], rowHeight ) );
                     Text( commands, font, cells[ c ], x + 2, y, textColour );
+                }
                 x += widths[ c ];
             }
             if ( row == hoverIndex )
@@ -546,7 +608,7 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
         }
     }
     else
-    if ( const CPopupMenu* menu = dynamic_cast< const CPopupMenu* >( &widget ) )
+    if ( const CPopupMenu* menu = AsType< CPopupMenu >( widget ) )
     {
         Int32 rowHeight = menu->GetRowHeight();
         CPopupMenu::TStringVector items = menu->GetItems();
@@ -591,8 +653,8 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
     if ( IsA( widget, "Label" ) )
     {
         PaintBox( widget, area, commands );
-        PaintText( context, widget.GetProperty( "Font" ), widget.GetProperty( "Text" ), area, widget.GetProperty( "HTextAlign" ),
-                   widget.GetProperty( "VTextAlign" ), widget.GetBoolProperty( "WordWrap" ), TextColourOf( widget ), commands );
+        PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), widget.GetPropertyRef( EWidgetProperty_Text ), area, widget.GetPropertyRef( EWidgetProperty_HTextAlign ),
+                   widget.GetPropertyRef( EWidgetProperty_VTextAlign ), widget.GetBoolProperty( EWidgetProperty_WordWrap ), TextColourOf( widget ), commands );
         return;
     }
     if ( IsA( widget, "Editbox" ) )
@@ -602,15 +664,15 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
     }
     if ( IsA( widget, "Listbox" ) || IsA( widget, "Treeview" ) || IsA( widget, "Textbox" ) || IsA( widget, "GridView" ) || IsA( widget, "PopupMenu" ) )
     {
-        Fill( commands, area, ColourOr( widget, "BackgroundColour", CColour( 0, 0, 0, 0 ) ) );
+        Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, CColour( 0, 0, 0, 0 ) ) );
         PaintRows( widget, context, area, commands );
         return;
     }
     if ( IsA( widget, "DrawSurface" ) )
     {
-        Fill( commands, area, ColourOr( widget, "BackgroundColour", CColour( 0, 0, 0, 0 ) ) );
+        Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, CColour( 0, 0, 0, 0 ) ) );
         const CDrawSurface& surface = static_cast< const CDrawSurface& >( widget );
-        bool clip = widget.GetBoolProperty( "Clip" );
+        bool clip = widget.GetBoolProperty( EWidgetProperty_Clip );
         if ( clip )
             PushClip( commands, area );
         commands.insert( commands.end(), surface.GetCommands().begin(), surface.GetCommands().end() );
@@ -620,88 +682,88 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
     }
     if ( IsA( widget, "Combobox" ) )
     {
-        Fill( commands, area, ColourOr( widget, "BackgroundColour", FieldColour ) );
+        Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, FieldColour ) );
         Stroke( commands, area, widget.HasFocus() ? FocusColour : BoxBorderColour, 1 );
         CRect arrow( area.Right() - area.height, area.top, area.height, area.height );
         DownArrow( commands, arrow, TextColourOf( widget ) );
         PushClip( commands, CRect( area.left, area.top, area.width - area.height, area.height ) );
-        PaintText( context, widget.GetProperty( "Font" ), widget.GetProperty( "Text" ), CRect( area.left + 2, area.top, area.width - 2, area.height ),
+        PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), widget.GetPropertyRef( EWidgetProperty_Text ), CRect( area.left + 2, area.top, area.width - 2, area.height ),
                    "Left", "Center", false, TextColourOf( widget ), commands );
         PopClip( commands );
         return;
     }
-    if ( const CSpinner* spinner = dynamic_cast< const CSpinner* >( &widget ) )
+    if ( const CSpinner* spinner = AsType< CSpinner >( widget ) )
     {
-        Fill( commands, area, ColourOr( widget, "BackgroundColour", FieldColour ) );
+        Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, FieldColour ) );
         Stroke( commands, area, widget.HasFocus() ? FocusColour : BoxBorderColour, 1 );
         Int32 part = area.width / 4;
         CColour colour = TextColourOf( widget );
-        PaintText( context, widget.GetProperty( "Font" ), "-", CRect( 0, 0, part, area.height ), "Center", "Center", false, colour, commands );
-        PaintText( context, widget.GetProperty( "Font" ), "+", CRect( area.width - part, 0, part, area.height ), "Center", "Center", false, colour, commands );
-        PaintText( context, widget.GetProperty( "Font" ), spinner->GetValueText(), area, "Center", "Center", false, colour, commands );
+        PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), "-", CRect( 0, 0, part, area.height ), "Center", "Center", false, colour, commands );
+        PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), "+", CRect( area.width - part, 0, part, area.height ), "Center", "Center", false, colour, commands );
+        PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), spinner->GetValueText(), area, "Center", "Center", false, colour, commands );
         return;
     }
-    if ( const CSlider* slider = dynamic_cast< const CSlider* >( &widget ) )
+    if ( const CSlider* slider = AsType< CSlider >( widget ) )
     {
-        CString trackImage = widget.GetProperty( "TrackImage" );
+        CString trackImage = widget.GetPropertyRef( EWidgetProperty_TrackImage );
         if ( !trackImage.IsNULLOrEmpty() )
             Image( commands, trackImage, area, CRect(), CColour( 255, 255, 255, 255 ) );
         else
-            Fill( commands, area, ColourOr( widget, "TrackColour", BoxColour ) );
+            Fill( commands, area, ColourOr( widget, EWidgetProperty_TrackColour, BoxColour ) );
         CRect thumb = slider->GetThumbRect();
-        CString thumbImage = widget.GetProperty( "ThumbImage" );
+        CString thumbImage = widget.GetPropertyRef( EWidgetProperty_ThumbImage );
         if ( !thumbImage.IsNULLOrEmpty() )
             Image( commands, thumbImage, thumb, CRect(), CColour( 255, 255, 255, 255 ) );
         else
-            Fill( commands, thumb, ColourOr( widget, "ThumbColour", BoxBorderColour ) );
+            Fill( commands, thumb, ColourOr( widget, EWidgetProperty_ThumbColour, BoxBorderColour ) );
         if ( widget.HasFocus() )
             Stroke( commands, area, FocusColour, 1 );
         return;
     }
-    if ( const CProgressBar* progress = dynamic_cast< const CProgressBar* >( &widget ) )
+    if ( const CProgressBar* progress = AsType< CProgressBar >( widget ) )
     {
-        Fill( commands, area, ColourOr( widget, "BackgroundColour", FieldColour ) );
+        Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, FieldColour ) );
         CRect bar( 0, 0, (Int32) ( (Float32) area.width * progress->GetFraction() + 0.5f ), area.height );
-        CString barImage = widget.GetProperty( "BarImage" );
+        CString barImage = widget.GetPropertyRef( EWidgetProperty_BarImage );
         if ( !barImage.IsNULLOrEmpty() )
             Image( commands, barImage, bar, CRect(), CColour( 255, 255, 255, 255 ) );
         else
-            Fill( commands, bar, ColourOr( widget, "BarColour", CColour( 60, 140, 60, 255 ) ) );
+            Fill( commands, bar, ColourOr( widget, EWidgetProperty_BarColour, CColour( 60, 140, 60, 255 ) ) );
         return;
     }
-    if ( const CTabControl* tabs = dynamic_cast< const CTabControl* >( &widget ) )
+    if ( const CTabControl* tabs = AsType< CTabControl >( widget ) )
     {
-        Fill( commands, area, ColourOr( widget, "BackgroundColour", CColour( 0, 0, 0, 0 ) ) );
-        CTabControl::TStringVector titles = widget.GetStringListProperty( "Tabs" );
+        Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, CColour( 0, 0, 0, 0 ) ) );
+        CTabControl::TStringVector titles = widget.GetStringListProperty( EWidgetProperty_Tabs );
         for ( UInt32 i=0; i<(UInt32)titles.size(); ++i )
         {
             CRect header = tabs->GetTabRect( i );
             bool active = (Int32) i == tabs->GetActiveTab();
-            Fill( commands, header, ColourOr( widget, active ? "ActiveTabColour" : "TabColour", BoxColour ) );
+            Fill( commands, header, ColourOr( widget, active ? EWidgetProperty_ActiveTabColour : EWidgetProperty_TabColour, BoxColour ) );
             Stroke( commands, header, BoxBorderColour, 1 );
-            PaintText( context, widget.GetProperty( "Font" ), titles[ i ], header, "Center", "Center", false, TextColourOf( widget ), commands );
+            PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), titles[ i ], header, "Center", "Center", false, TextColourOf( widget ), commands );
         }
         return;
     }
-    if ( const CMenuBar* bar = dynamic_cast< const CMenuBar* >( &widget ) )
+    if ( const CMenuBar* bar = AsType< CMenuBar >( widget ) )
     {
-        Fill( commands, area, ColourOr( widget, "BackgroundColour", BoxColour ) );
+        Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, BoxColour ) );
         CMenuBar::TStringVector menus = bar->GetMenus();
-        Int32 open = widget.GetIntProperty( "OpenMenu" );
-        Int32 hover = widget.GetIntProperty( "HoverIndex" );
+        Int32 open = widget.GetIntProperty( EWidgetProperty_OpenMenu );
+        Int32 hover = widget.GetIntProperty( EWidgetProperty_HoverIndex );
         for ( UInt32 i=0; i<(UInt32)menus.size(); ++i )
         {
             CRect title = bar->GetMenuRect( i );
             if ( (Int32) i == open || (Int32) i == hover )
-                Fill( commands, title, ColourOr( widget, "HoverColour", BoxHoverColour ) );
-            PaintText( context, widget.GetProperty( "Font" ), menus[ i ], title, "Center", "Center", false, TextColourOf( widget ), commands );
+                Fill( commands, title, ColourOr( widget, EWidgetProperty_HoverColour, BoxHoverColour ) );
+            PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), menus[ i ], title, "Center", "Center", false, TextColourOf( widget ), commands );
         }
         return;
     }
-    if ( const CAudioPlayer* player = dynamic_cast< const CAudioPlayer* >( &widget ) )
+    if ( const CAudioPlayer* player = AsType< CAudioPlayer >( widget ) )
     {
-        Fill( commands, area, ColourOr( widget, "BackgroundColour", FieldColour ) );
-        CColour colour = ColourOr( widget, "BarColour", CColour( 60, 140, 60, 255 ) );
+        Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, FieldColour ) );
+        CColour colour = ColourOr( widget, EWidgetProperty_BarColour, CColour( 60, 140, 60, 255 ) );
         Int32 size = area.height - 6;
         if ( size < 4 )
             size = 4;
@@ -721,10 +783,10 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
                 Line( commands, symbol.left, symbol.top + i, symbol.left + half, symbol.top + i, colour );
             }
         }
-        Int32 seconds = widget.GetIntProperty( "PositionInMs" ) / 1000;
+        Int32 seconds = widget.GetIntProperty( EWidgetProperty_PositionInMs ) / 1000;
         char time[ 32 ];
         snprintf( time, sizeof( time ), "%d:%02d", seconds / 60, seconds % 60 );
-        PaintText( context, widget.GetProperty( "Font" ), time, CRect( symbol.Right() + 4, 0, area.width - symbol.Right() - 4, area.height ),
+        PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), time, CRect( symbol.Right() + 4, 0, area.width - symbol.Right() - 4, area.height ),
                    "Left", "Center", false, TextColourOf( widget ), commands );
         return;
     }
@@ -734,13 +796,13 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
     if ( IsA( widget, "GroupBox" ) )
     {
         // the frame; its top line goes through the middle of the caption, with a gap where the caption is
-        CString caption = widget.GetProperty( "Caption" );
-        CString font = widget.GetProperty( "Font" );
+        CString caption = widget.GetPropertyRef( EWidgetProperty_Caption );
+        CString font = widget.GetPropertyRef( EWidgetProperty_Font );
         Int32 captionHeight = caption.IsNULLOrEmpty() ? 0 : context.GetLineHeight( font );
         Int32 lineY = captionHeight / 2;
         Int32 right = area.width - 1;
         Int32 bottom = area.height - 1;
-        CColour frame = ColourOr( widget, "FrameColour", CColour( 120, 120, 130, 255 ) );
+        CColour frame = ColourOr( widget, EWidgetProperty_FrameColour, CColour( 120, 120, 130, 255 ) );
         Line( commands, 0, lineY, 0, bottom, frame );
         Line( commands, right, lineY, right, bottom, frame );
         Line( commands, 0, bottom, right, bottom, frame );
@@ -760,13 +822,49 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
             Line( commands, 0, 0, right, 0, frame );
         }
     }
-    if ( IsA( widget, "Window" ) && widget.GetBoolProperty( "TitleVisible" ) )
+    if ( IsA( widget, "Window" ) && widget.GetBoolProperty( EWidgetProperty_TitleVisible ) )
     {
-        Int32 titleHeight = widget.GetIntProperty( "TitleHeight" );
+        Int32 titleHeight = widget.GetIntProperty( EWidgetProperty_TitleHeight );
         CRect title( 0, 0, area.width, titleHeight );
-        Fill( commands, title, ColourOr( widget, "TitleBarColour", BoxColour ) );
-        PaintText( context, widget.GetProperty( "Font" ), widget.GetProperty( "Title" ), CRect( 4, 0, area.width - 8, titleHeight ),
-                   "Left", "Center", false, ColourOr( widget, "TitleColour", CColour( 255, 255, 255, 255 ) ), commands );
+        CColour titleColour = ColourOr( widget, EWidgetProperty_TitleColour, CColour( 255, 255, 255, 255 ) );
+        Fill( commands, title, ColourOr( widget, EWidgetProperty_TitleBarColour, BoxColour ) );
+
+        // the fold button at the right end of the title bar, with the title in what is left
+        Int32 textRight = area.width - 8;
+        const CWindow* window = CWidget::ToWindow( &widget );
+        CRect fold = GUCEF_NULL != window ? window->GetFoldButtonRect() : CRect();
+        if ( !fold.IsEmpty() )
+        {
+            textRight = fold.left - 4;
+            if ( widget.GetBoolProperty( EWidgetProperty_FoldButtonPressed ) )
+                Fill( commands, fold, ColourOr( widget, EWidgetProperty_FoldButtonPressedColour, CColour( 255, 255, 255, 60 ) ) );
+            else
+            if ( widget.GetBoolProperty( EWidgetProperty_FoldButtonHovered ) )
+                Fill( commands, fold, ColourOr( widget, EWidgetProperty_FoldButtonHoverColour, CColour( 255, 255, 255, 30 ) ) );
+            FoldChevron( commands, fold, window->IsCollapsed(), titleColour );
+        }
+        PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), widget.GetPropertyRef( EWidgetProperty_Title ), CRect( 10, 0, textRight - 10 > 0 ? textRight - 10 : 0, titleHeight ),
+                   "Left", "Center", false, titleColour, commands );
+    }
+    if ( const CScrollPanel* scrollPanel = CWidget::ToScrollPanel( &widget ) )
+    {
+        // the scroll bar: a track the full height at the right end of the column and, when the content does not fit, the thumb
+        // inside it, a few pixels from its edges; the whole width of the track is where the pointer grabs it
+        CRect track = scrollPanel->GetTrackRect();
+        if ( scrollPanel->IsScrollable() && !track.IsEmpty() )
+        {
+            Fill( commands, track, ColourOr( widget, EWidgetProperty_TrackColour, FieldColour ) );
+            Fill( commands, CRect( track.left, track.top, 1, track.height ), ColourOr( widget, EWidgetProperty_TrackEdgeColour, CColour( 58, 64, 78, 255 ) ) );
+            CRect thumb = scrollPanel->GetThumbRect();
+            thumb = CRect( thumb.left + 2, thumb.top + 2, thumb.width > 4 ? thumb.width - 4 : thumb.width, thumb.height > 4 ? thumb.height - 4 : thumb.height );
+            EWidgetProperty colourName = EWidgetProperty_ThumbColour;
+            if ( scrollPanel->IsThumbDragged() )
+                colourName = EWidgetProperty_ThumbPressedColour;
+            else
+            if ( widget.GetBoolProperty( EWidgetProperty_ThumbHovered ) )
+                colourName = EWidgetProperty_ThumbHoverColour;
+            Fill( commands, thumb, ColourOr( widget, colourName, BoxBorderColour ) );
+        }
     }
 }
 
@@ -780,10 +878,10 @@ CWidgetPainter::PaintOverlay( CGUIContext& context, TCommandVector& commands )
     CWidget* hovered = context.GetHovered();
     if ( GUCEF_NULL != hovered && context.GetHoverDurationInMs() >= TooltipDelayInMs )
     {
-        CString tooltip = hovered->GetProperty( "Tooltip" );
+        CString tooltip = hovered->GetPropertyRef( EWidgetProperty_Tooltip );
         if ( !tooltip.IsNULLOrEmpty() )
         {
-            CString font = hovered->GetProperty( "Font" );
+            CString font = hovered->GetPropertyRef( EWidgetProperty_Font );
             Int32 width = 0, height = 0;
             context.MeasureText( font, tooltip, 0, width, height );
             if ( 0 == height )

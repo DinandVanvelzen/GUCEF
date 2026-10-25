@@ -57,6 +57,55 @@ CRoutedEventData::Clone( void ) const
     return GUCEF_NEW CRoutedEventData( *this );
 }
 
+const char*
+CRoutedEventData::GetCloneableTypeName( void ) const
+{
+    return CloneableTypeName();
+}
+
+const char*
+CRoutedEventData::CloneableTypeName( void )
+{
+    return "GUCEF::GUI::CRoutedEventData";
+}
+
+CRoutedEventData*
+CRoutedEventData::FromCloneable( MT::CICloneable* data )
+{
+    return const_cast< CRoutedEventData* >( FromCloneable( const_cast< const MT::CICloneable* >( data ) ) );
+}
+
+const CRoutedEventData*
+CRoutedEventData::FromCloneable( const MT::CICloneable* data )
+{
+    if ( GUCEF_NULL == data )
+        return GUCEF_NULL;
+    if ( data->IsCloneableType( CRoutedEventData::CloneableTypeName() ) )
+        return static_cast< const CRoutedEventData* >( data );
+    if ( data->IsCloneableType( CPointerEventData::CloneableTypeName() ) )
+        return static_cast< const CPointerEventData* >( data );
+    if ( data->IsCloneableType( CWheelEventData::CloneableTypeName() ) )
+        return static_cast< const CWheelEventData* >( data );
+    if ( data->IsCloneableType( CKeyEventData::CloneableTypeName() ) )
+        return static_cast< const CKeyEventData* >( data );
+    if ( data->IsCloneableType( CTextEventData::CloneableTypeName() ) )
+        return static_cast< const CTextEventData* >( data );
+    if ( data->IsCloneableType( CNavigationEventData::CloneableTypeName() ) )
+        return static_cast< const CNavigationEventData* >( data );
+    if ( data->IsCloneableType( CFocusEventData::CloneableTypeName() ) )
+        return static_cast< const CFocusEventData* >( data );
+    if ( data->IsCloneableType( CValueChangedEventData::CloneableTypeName() ) )
+        return static_cast< const CValueChangedEventData* >( data );
+    if ( data->IsCloneableType( CItemEventData::CloneableTypeName() ) )
+        return static_cast< const CItemEventData* >( data );
+    return GUCEF_NULL;
+}
+
+void
+CRoutedEventData::SetLocalOrigin( Int32 widgetLeft, Int32 widgetTop )
+{
+}
+
 /*-------------------------------------------------------------------------*/
 
 CPointerEventData::CPointerEventData( void )
@@ -82,6 +131,25 @@ CPointerEventData::Clone( void ) const
     return GUCEF_NEW CPointerEventData( *this );
 }
 
+const char*
+CPointerEventData::GetCloneableTypeName( void ) const
+{
+    return CloneableTypeName();
+}
+
+const char*
+CPointerEventData::CloneableTypeName( void )
+{
+    return "GUCEF::GUI::CPointerEventData";
+}
+
+void
+CPointerEventData::SetLocalOrigin( Int32 widgetLeft, Int32 widgetTop )
+{
+    localX = x - widgetLeft;
+    localY = y - widgetTop;
+}
+
 /*-------------------------------------------------------------------------*/
 
 CWheelEventData::CWheelEventData( void )
@@ -105,6 +173,25 @@ CWheelEventData::Clone( void ) const
     return GUCEF_NEW CWheelEventData( *this );
 }
 
+const char*
+CWheelEventData::GetCloneableTypeName( void ) const
+{
+    return CloneableTypeName();
+}
+
+const char*
+CWheelEventData::CloneableTypeName( void )
+{
+    return "GUCEF::GUI::CWheelEventData";
+}
+
+void
+CWheelEventData::SetLocalOrigin( Int32 widgetLeft, Int32 widgetTop )
+{
+    localX = x - widgetLeft;
+    localY = y - widgetTop;
+}
+
 /*-------------------------------------------------------------------------*/
 
 CKeyEventData::CKeyEventData( void )
@@ -122,6 +209,18 @@ MT::CICloneable*
 CKeyEventData::Clone( void ) const
 {
     return GUCEF_NEW CKeyEventData( *this );
+}
+
+const char*
+CKeyEventData::GetCloneableTypeName( void ) const
+{
+    return CloneableTypeName();
+}
+
+const char*
+CKeyEventData::CloneableTypeName( void )
+{
+    return "GUCEF::GUI::CKeyEventData";
 }
 
 /*-------------------------------------------------------------------------*/
@@ -142,6 +241,18 @@ CTextEventData::Clone( void ) const
     return GUCEF_NEW CTextEventData( *this );
 }
 
+const char*
+CTextEventData::GetCloneableTypeName( void ) const
+{
+    return CloneableTypeName();
+}
+
+const char*
+CTextEventData::CloneableTypeName( void )
+{
+    return "GUCEF::GUI::CTextEventData";
+}
+
 /*-------------------------------------------------------------------------*/
 
 CNavigationEventData::CNavigationEventData( void )
@@ -158,6 +269,18 @@ MT::CICloneable*
 CNavigationEventData::Clone( void ) const
 {
     return GUCEF_NEW CNavigationEventData( *this );
+}
+
+const char*
+CNavigationEventData::GetCloneableTypeName( void ) const
+{
+    return CloneableTypeName();
+}
+
+const char*
+CNavigationEventData::CloneableTypeName( void )
+{
+    return "GUCEF::GUI::CNavigationEventData";
 }
 
 /*-------------------------------------------------------------------------*/
@@ -178,11 +301,24 @@ CFocusEventData::Clone( void ) const
     return GUCEF_NEW CFocusEventData( *this );
 }
 
+const char*
+CFocusEventData::GetCloneableTypeName( void ) const
+{
+    return CloneableTypeName();
+}
+
+const char*
+CFocusEventData::CloneableTypeName( void )
+{
+    return "GUCEF::GUI::CFocusEventData";
+}
+
 /*-------------------------------------------------------------------------*/
 
 CValueChangedEventData::CValueChangedEventData( void )
     : CRoutedEventData()
-    , propertyName()
+    , property( EWidgetProperty_Unknown )
+    , customPropertyName()
     , oldValue()
     , newValue()
 {
@@ -192,10 +328,86 @@ CValueChangedEventData::~CValueChangedEventData()
 {
 }
 
+const CString&
+CValueChangedEventData::GetPropertyName( void ) const
+{
+    return EWidgetProperty_Unknown == property ? customPropertyName : WidgetPropertyToString( property );
+}
+
+void
+CValueChangedEventData::SetPropertyName( const CString& name )
+{
+    property = StringToWidgetProperty( name );
+    customPropertyName = EWidgetProperty_Unknown == property ? name : CString::Empty;
+}
+
 MT::CICloneable*
 CValueChangedEventData::Clone( void ) const
 {
     return GUCEF_NEW CValueChangedEventData( *this );
+}
+
+const char*
+CValueChangedEventData::GetCloneableTypeName( void ) const
+{
+    return CloneableTypeName();
+}
+
+const char*
+CValueChangedEventData::CloneableTypeName( void )
+{
+    return "GUCEF::GUI::CValueChangedEventData";
+}
+
+/*-------------------------------------------------------------------------*/
+
+CPropertyChangedEventData::CPropertyChangedEventData( void )
+    : MT::CICloneable()
+    , property( EWidgetProperty_Unknown )
+    , customPropertyName()
+{
+}
+
+CPropertyChangedEventData::CPropertyChangedEventData( EWidgetProperty changedProperty )
+    : MT::CICloneable()
+    , property( changedProperty )
+    , customPropertyName()
+{
+}
+
+CPropertyChangedEventData::CPropertyChangedEventData( const CString& changedPropertyName )
+    : MT::CICloneable()
+    , property( StringToWidgetProperty( changedPropertyName ) )
+    , customPropertyName( EWidgetProperty_Unknown == property ? changedPropertyName : CString::Empty )
+{
+}
+
+CPropertyChangedEventData::~CPropertyChangedEventData()
+{
+}
+
+const CString&
+CPropertyChangedEventData::GetPropertyName( void ) const
+{
+    return EWidgetProperty_Unknown == property ? customPropertyName : WidgetPropertyToString( property );
+}
+
+MT::CICloneable*
+CPropertyChangedEventData::Clone( void ) const
+{
+    return GUCEF_NEW CPropertyChangedEventData( *this );
+}
+
+const char*
+CPropertyChangedEventData::GetCloneableTypeName( void ) const
+{
+    return CloneableTypeName();
+}
+
+const char*
+CPropertyChangedEventData::CloneableTypeName( void )
+{
+    return "GUCEF::GUI::CPropertyChangedEventData";
 }
 
 /*-------------------------------------------------------------------------*/
@@ -215,6 +427,18 @@ MT::CICloneable*
 CItemEventData::Clone( void ) const
 {
     return GUCEF_NEW CItemEventData( *this );
+}
+
+const char*
+CItemEventData::GetCloneableTypeName( void ) const
+{
+    return CloneableTypeName();
+}
+
+const char*
+CItemEventData::CloneableTypeName( void )
+{
+    return "GUCEF::GUI::CItemEventData";
 }
 
 /*-------------------------------------------------------------------------//

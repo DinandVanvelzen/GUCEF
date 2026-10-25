@@ -909,7 +909,7 @@ PerformSaveDialogTests( void )
         Int32 x = 0, y = 0;
         RowPoint( context, grid, grid->GetSelectedRow(), x, y );
         ClickAt( context, x, y, GUI::MOUSEBUTTON_RIGHT );
-        GUI::CPopupMenu* menu = dynamic_cast< GUI::CPopupMenu* >( context->GetPopup() );
+        GUI::CPopupMenu* menu = GUI::CWidget::As< GUI::CPopupMenu >( context->GetPopup() );
         ASSERT_TRUE( GUCEF_NULL != menu );
         if ( GUCEF_NULL != menu )
         {

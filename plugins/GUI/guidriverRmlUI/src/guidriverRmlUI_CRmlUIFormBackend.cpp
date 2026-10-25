@@ -105,7 +105,7 @@ CRmlUIFormBackend::Adopt( Rml::ElementDocument* document )
         m_context->GetRmlContext()->UnloadDocument( document );
         return false;
     }
-    m_root->SetProperty( "Size", "1,0 1,0" );
+    m_root->SetProperty( GUI::EWidgetProperty_Size, "1,0 1,0" );
     m_document = document;
     m_context->RegisterNativeDocument( m_root, document );
     return true;

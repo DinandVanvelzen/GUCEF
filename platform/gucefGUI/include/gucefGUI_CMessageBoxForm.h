@@ -26,6 +26,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_GUI_CFORMEX_H
 #include "gucefGUI_CFormEx.h"
 #define GUCEF_GUI_CFORMEX_H
@@ -106,11 +111,34 @@ class GUCEF_GUI_PUBLIC_CPP CMessageBoxForm : public CFormEx
 
     virtual void OnPostLayoutLoad( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CMessageBoxForm > TEventCallback;
+
+    /** A button of the slot was activated: chooses what the slot means */
+    void OnButton1Activated( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData );
+
+    void OnButton2Activated( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData );
+
+    void OnButton3Activated( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData );
+
+    /** Enter in the text chooses the first button that is there */
+    void OnInputTextEntered( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData );
+
+    /** Escape chooses the last button */
+    void OnNavigation( CORE::CNotifier* notifier    ,
+                       const CORE::CEvent& eventId  ,
+                       CORE::CICloneable* eventData );
+
+    void ChooseSlot( UInt32 slot );
 
     void BuildLayout( CORE::CDataNode& layout );
 

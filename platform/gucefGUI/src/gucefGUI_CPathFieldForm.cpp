@@ -145,8 +145,8 @@ CPathFieldForm::Build( CWidget* placeholder )
     CORE::CDataNode* field = CFormLayout::AddWidgetNode( layout, "Panel", "PathField", "0,0 0,0", "1,0 1,0" );
     CFormLayout::AddWidgetNode( *field, "Editbox", "Path", "0,0 0,0", "1,-48 1,0" );
     CORE::CDataNode* browse = CFormLayout::AddWidgetNode( *field, "Button", "Browse", "1,-40 0,0", "0,40 1,0" );
-    CFormLayout::SetWidgetNodeProperty( *browse, "Text", "..." );
-    CFormLayout::SetWidgetNodeProperty( *browse, "Tooltip", PATHKIND_DIRECTORY == m_kind ? "Choose the folder" : "Choose the file" );
+    CFormLayout::SetWidgetNodeProperty( *browse, EWidgetProperty_Text, "..." );
+    CFormLayout::SetWidgetNodeProperty( *browse, EWidgetProperty_Tooltip, PATHKIND_DIRECTORY == m_kind ? "Choose the folder" : "Choose the file" );
     return LoadLayout( layout );
 }
 
@@ -159,7 +159,10 @@ CPathFieldForm::OnPostLayoutLoad( void )
     CFormEx::OnPostLayoutLoad();
     CWidget* browse = GetWidget( "Browse" );
     if ( GUCEF_NULL != browse )
-        SubscribeTo( browse, CWidget::ActivatedEvent );
+    {
+        TEventCallback activatedCallback( this, &CPathFieldForm::OnBrowseActivated );
+        SubscribeTo( browse, CWidget::ActivatedEvent, activatedCallback );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -170,7 +173,7 @@ CPathFieldForm::SetPath( const CString& path )
 
     CWidget* line = GetWidget( "Path" );
     if ( GUCEF_NULL != line )
-        line->SetProperty( "Text", path );
+        line->SetProperty( EWidgetProperty_Text, path );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -180,7 +183,7 @@ CPathFieldForm::GetPath( void )
 {GUCEF_TRACE;
 
     CWidget* line = GetWidget( "Path" );
-    return GUCEF_NULL != line ? line->GetProperty( "Text" ) : CString::Empty;
+    return GUCEF_NULL != line ? line->GetProperty( EWidgetProperty_Text ) : CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -286,7 +289,8 @@ CPathFieldForm::MakeDialog( void )
         m_dialog = GUCEF_NULL;
         return false;
     }
-    SubscribeTo( m_dialog, CFileSystemDialogForm::AcceptedEvent );
+    TEventCallback acceptedCallback( this, &CPathFieldForm::OnDialogAccepted );
+    SubscribeTo( m_dialog, CFileSystemDialogForm::AcceptedEvent, acceptedCallback );
     return true;
 }
 
@@ -321,29 +325,32 @@ CPathFieldForm::GetDialog( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CPathFieldForm::OnNotify( CORE::CNotifier* notifier    ,
-                          const CORE::CEvent& eventId  ,
-                          CORE::CICloneable* eventData )
+CPathFieldForm::OnBrowseActivated( CORE::CNotifier* notifier    ,
+                                   const CORE::CEvent& eventId  ,
+                                   CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( CWidget::ActivatedEvent == eventId && notifier == GetWidget( "Browse" ) )
-    {
-        OpenDialog();
+    OpenDialog();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPathFieldForm::OnDialogAccepted( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_dialog )
         return;
-    }
-    if ( CFileSystemDialogForm::AcceptedEvent == eventId && notifier == m_dialog )
+    const CFileSystemDialogForm::TSelectionVector& selection = m_dialog->GetSelection();
+    CWidget* line = GetWidget( "Path" );
+    if ( !selection.empty() && GUCEF_NULL != line )
     {
-        const CFileSystemDialogForm::TSelectionVector& selection = m_dialog->GetSelection();
-        CWidget* line = GetWidget( "Path" );
-        if ( !selection.empty() && GUCEF_NULL != line )
-        {
-            // chosen by the user: as if it was typed
-            line->ChangeValueByUser( "Text", selection.front().path );
-            NotifyObservers( PathChosenEvent );
-        }
-        return;
+        // chosen by the user: as if it was typed
+        line->ChangeValueByUser( EWidgetProperty_Text, selection.front().path );
+        NotifyObservers( PathChosenEvent );
     }
-    CFormEx::OnNotify( notifier, eventId, eventData );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -67,6 +67,22 @@ class GUCEF_GUI_PUBLIC_CPP CGeneralSettings : public CORE::CIConfigurable
     /** The name of the config section: SaveConfig() writes it in the node it gets, LoadConfig() reads it from there */
     static const CString ConfigSectionName;
 
+    /** The window system the application opens its window on, when the platform has more than one (Linux: X11, also through XWayland, and Wayland) */
+    enum EWindowSystem
+    {
+        WINDOWSYSTEM_X11 = 0 ,      /**< X11, on Wayland sessions through XWayland */
+        WINDOWSYSTEM_WAYLAND ,      /**< Wayland natively */
+        WINDOWSYSTEM_AUTO           /**< Wayland where the session offers it and the driver can use it, else X11 */
+    };
+
+    /** "auto", "wayland" or "x11" (also "xwayland"), in any case; false for anything else */
+    static bool ParseWindowSystem( const CString& text, EWindowSystem& windowSystem );
+
+    static const char* WindowSystemToString( EWindowSystem windowSystem );
+
+    /** What window system an application opens its window on: auto is Wayland when it is available, else X11 */
+    static EWindowSystem ResolveWindowSystem( EWindowSystem requested, bool waylandAvailable );
+
     CGeneralSettings( void );
 
     CGeneralSettings( const CGeneralSettings& src );
@@ -103,6 +119,11 @@ class GUCEF_GUI_PUBLIC_CPP CGeneralSettings : public CORE::CIConfigurable
 
     const CString& GetUserActionLogFile( void ) const;
 
+    /** The window system for the window of the application, X11 by default; ignored where the platform has one window system */
+    void SetWindowSystem( EWindowSystem windowSystem );
+
+    EWindowSystem GetWindowSystem( void ) const;
+
     /** Writes the settings as the section ConfigSectionName in 'tree' */
     virtual bool SaveConfig( CORE::CDataNode& tree ) const GUCEF_VIRTUAL_OVERRIDE;
 
@@ -119,6 +140,7 @@ class GUCEF_GUI_PUBLIC_CPP CGeneralSettings : public CORE::CIConfigurable
     INPUT::KeyCode m_developerConsoleKey;
     bool m_userActionLog;
     CString m_userActionLogFile;
+    EWindowSystem m_windowSystem;
 };
 
 /*-------------------------------------------------------------------------//

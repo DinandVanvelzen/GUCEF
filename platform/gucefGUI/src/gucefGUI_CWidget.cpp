@@ -86,6 +86,7 @@ const CORE::CEvent CWidget::MouseDoubleClickEvent = "GUCEF::GUI::CWidget::MouseD
 const CORE::CEvent CWidget::MouseTripleClickEvent = "GUCEF::GUI::CWidget::MouseTripleClickEvent";
 const CORE::CEvent CWidget::MouseFocusReceivedEvent = "GUCEF::GUI::CWidget::MouseFocusReceivedEvent";
 const CORE::CEvent CWidget::MouseFocusLostEvent = "GUCEF::GUI::CWidget::MouseFocusLostEvent";
+const CORE::CEvent CWidget::MouseCaptureLostEvent = "GUCEF::GUI::CWidget::MouseCaptureLostEvent";
 const CORE::CEvent CWidget::MouseWheelEvent = "GUCEF::GUI::CWidget::MouseWheelEvent";
 const CORE::CEvent CWidget::KeyDownEvent = "GUCEF::GUI::CWidget::KeyDownEvent";
 const CORE::CEvent CWidget::KeyUpEvent = "GUCEF::GUI::CWidget::KeyUpEvent";
@@ -104,6 +105,15 @@ const CORE::CEvent CWidget::ItemActivatedEvent = "GUCEF::GUI::CWidget::ItemActiv
 //-------------------------------------------------------------------------*/
 
 namespace {
+
+/** The number of bits set in a word */
+UInt32
+CountBits( UInt32 word )
+{
+    word = word - ( ( word >> 1 ) & 0x55555555 );
+    word = ( word & 0x33333333 ) + ( ( word >> 2 ) & 0x33333333 );
+    return ( ( ( word + ( word >> 4 ) ) & 0x0F0F0F0F ) * 0x01010101 ) >> 24;
+}
 
 /** Escapes a value so it fits on one line of a properties file */
 CString
@@ -152,19 +162,7 @@ UnescapeLine( const CString& value )
 void
 SetLocalCoordinates( CRoutedEventData& eventData, const CWidget& widget )
 {
-    CPointerEventData* pointer = dynamic_cast< CPointerEventData* >( &eventData );
-    if ( GUCEF_NULL != pointer )
-    {
-        pointer->localX = pointer->x - widget.GetRect().left;
-        pointer->localY = pointer->y - widget.GetRect().top;
-        return;
-    }
-    CWheelEventData* wheel = dynamic_cast< CWheelEventData* >( &eventData );
-    if ( GUCEF_NULL != wheel )
-    {
-        wheel->localX = wheel->x - widget.GetRect().left;
-        wheel->localY = wheel->y - widget.GetRect().top;
-    }
+    eventData.SetLocalOrigin( widget.GetRect().left, widget.GetRect().top );
 }
 
 }
@@ -190,6 +188,7 @@ CWidget::RegisterEvents( void )
     MouseTripleClickEvent.Initialize();
     MouseFocusReceivedEvent.Initialize();
     MouseFocusLostEvent.Initialize();
+    MouseCaptureLostEvent.Initialize();
     MouseWheelEvent.Initialize();
     KeyDownEvent.Initialize();
     KeyUpEvent.Initialize();
@@ -213,8 +212,13 @@ CWidget::CWidget( void )
     , m_handler( GUCEF_NULL )
     , m_parent( GUCEF_NULL )
     , m_children()
-    , m_properties()
-    , m_dirtyProperties()
+    , m_explicitMask()
+    , m_explicit()
+    , m_customProperties()
+    , m_dirtyMask()
+    , m_dirtyCustomProperties()
+    , m_resolvedType( GUCEF_NULL )
+    , m_resolvedGeneration( 0 )
     , m_applierOverrides()
     , m_rect()
     , m_state( 0 )
@@ -238,8 +242,13 @@ CWidget::CWidget( const CString& widgetTypeName )
     , m_handler( GUCEF_NULL )
     , m_parent( GUCEF_NULL )
     , m_children()
-    , m_properties()
-    , m_dirtyProperties()
+    , m_explicitMask()
+    , m_explicit()
+    , m_customProperties()
+    , m_dirtyMask()
+    , m_dirtyCustomProperties()
+    , m_resolvedType( GUCEF_NULL )
+    , m_resolvedGeneration( 0 )
     , m_applierOverrides()
     , m_rect()
     , m_state( 0 )
@@ -302,7 +311,7 @@ bool
 CWidget::SetVisibility( const bool isVisible )
 {GUCEF_TRACE;
 
-    return SetBoolProperty( "Visible", isVisible );
+    return SetBoolProperty( EWidgetProperty_Visible, isVisible );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -311,7 +320,7 @@ bool
 CWidget::IsVisible( void ) const
 {GUCEF_TRACE;
 
-    return GetBoolProperty( "Visible" );
+    return GetBoolProperty( EWidgetProperty_Visible );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -334,7 +343,7 @@ bool
 CWidget::SetEnabled( const bool isEnabled )
 {GUCEF_TRACE;
 
-    return SetBoolProperty( "Enabled", isEnabled );
+    return SetBoolProperty( EWidgetProperty_Enabled, isEnabled );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -343,7 +352,7 @@ bool
 CWidget::IsEnabled( void ) const
 {GUCEF_TRACE;
 
-    return GetBoolProperty( "Enabled" );
+    return GetBoolProperty( EWidgetProperty_Enabled );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -352,7 +361,7 @@ bool
 CWidget::SetPosition( const CUVector& newPos )
 {GUCEF_TRACE;
 
-    return SetProperty( "Position", newPos.ToString() );
+    return SetProperty( EWidgetProperty_Position, newPos.ToString() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -361,7 +370,7 @@ bool
 CWidget::GetPosition( CUVector& pos ) const
 {GUCEF_TRACE;
 
-    return CUVector::FromString( GetProperty( "Position" ), pos );
+    return CUVector::FromString( GetPropertyRef( EWidgetProperty_Position ), pos );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -370,7 +379,7 @@ bool
 CWidget::SetSize( const CUVector& newSize )
 {GUCEF_TRACE;
 
-    return SetProperty( "Size", newSize.ToString() );
+    return SetProperty( EWidgetProperty_Size, newSize.ToString() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -379,7 +388,7 @@ bool
 CWidget::GetSize( CUVector& size ) const
 {GUCEF_TRACE;
 
-    CString value = GetProperty( "Size" );
+    const CString& value = GetPropertyRef( EWidgetProperty_Size );
     if ( value.IsNULLOrEmpty() )
     {
         // no size set: the natural size
@@ -505,12 +514,12 @@ void
 CWidget::ApplyEnabledBy( void )
 {GUCEF_TRACE;
 
-    CString source = GetProperty( "EnabledBy" );
-    if ( source.IsNULLOrEmpty() )
-        return;
-    CWidget* checkbox = FindInTree( source );
-    if ( GUCEF_NULL != checkbox )
-        SetEnabled( checkbox->GetBoolProperty( "Checked" ) );
+    CString source = GetProperty( EWidgetProperty_EnabledBy );
+    if ( source.IsNULLOrEmpty() )
+        return;
+    CWidget* checkbox = FindInTree( source );
+    if ( GUCEF_NULL != checkbox )
+        SetEnabled( checkbox->GetBoolProperty( EWidgetProperty_Checked ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -525,13 +534,13 @@ CWidget::UpdateEnabledByDependents( void )
     while ( GUCEF_NULL != root->m_parent )
         root = root->m_parent;
 
-    const bool checked = GetBoolProperty( "Checked" );
+    const bool checked = GetBoolProperty( EWidgetProperty_Checked );
     TWidgetVector pending;
     pending.push_back( const_cast< CWidget* >( root ) );
     for ( UInt32 i=0; i<(UInt32)pending.size(); ++i )
     {
         CWidget* candidate = pending[ i ];
-        if ( candidate != this && candidate->GetProperty( "EnabledBy" ) == m_name )
+        if ( candidate != this && candidate->GetPropertyRef( EWidgetProperty_EnabledBy ) == m_name )
             candidate->SetEnabled( checked );
         pending.insert( pending.end(), candidate->m_children.begin(), candidate->m_children.end() );
     }
@@ -549,9 +558,9 @@ CWidget::ApplyEnabledByLinksOfSubtree( void )
     for ( UInt32 i=0; i<(UInt32)pending.size(); ++i )
     {
         CWidget* widget = pending[ i ];
-        if ( !widget->GetProperty( "EnabledBy" ).IsNULLOrEmpty() )
-            widget->ApplyEnabledBy();
-        if ( GUCEF_NULL != widget->GetPropertyDescriptor( "Checked" ) )
+        if ( !widget->GetPropertyRef( EWidgetProperty_EnabledBy ).IsNULLOrEmpty() )
+            widget->ApplyEnabledBy();
+        if ( GUCEF_NULL != widget->GetPropertyDescriptor( EWidgetProperty_Checked ) )
             widget->UpdateEnabledByDependents();
         pending.insert( pending.end(), widget->m_children.begin(), widget->m_children.end() );
     }
@@ -659,83 +668,197 @@ CWidget::SetName( const CString& name )
 
 /*-------------------------------------------------------------------------*/
 
-const CPropertyDescriptor*
-CWidget::GetPropertyDescriptor( const CString& name ) const
-{GUCEF_TRACE;
+/*-------------------------------------------------------------------------*/
 
-    return CGuiGlobal::Instance()->GetWidgetTypeRegistry().FindProperty( m_widgetTypeName, name );
+CWidget::SPropertyMask::SPropertyMask( void )
+{
+    for ( UInt32 i=0; i<(UInt32)PROPERTYMASKWORDS; ++i )
+        words[ i ] = 0;
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CWidget::SetProperty( const CString& name, const CString& value )
-{GUCEF_TRACE;
-
-    if ( name.IsNULLOrEmpty() )
-        return false;
-
-    CString normalized = value;
-    const CPropertyDescriptor* descriptor = GetPropertyDescriptor( name );
-    if ( GUCEF_NULL != descriptor && !value.IsNULLOrEmpty() && !descriptor->Validate( value, normalized ) )
-    {
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "Widget \"" << GetNamePath() << "\" (" << m_widgetTypeName << "): the value \"" << value
-                           << "\" does not fit property \"" << name << "\" of type " << CPropertyDescriptor::ValueTypeToString( descriptor->valueType ) );
-        return false;
-    }
-
-    TPropertyMap::iterator i = m_properties.find( name );
-    if ( i != m_properties.end() && (*i).second == normalized )
-        return true;
-
-    CString oldValue = GetProperty( name );
-    m_properties[ name ] = normalized;
-    CString newValue = GetProperty( name );
-
-    MarkDirty( name );
-    if ( oldValue != newValue )
-    {
-        if ( GUCEF_NULL != descriptor && descriptor->HasFlag( CPropertyDescriptor::FLAG_AFFECTSLAYOUT ) && GUCEF_NULL != m_context )
-            m_context->InvalidateLayout();
-        if ( name == "Visible" && GUCEF_NULL != m_context )
-            m_context->OnWidgetVisibilityChanged( this );
-        if ( ( name == "Enabled" || name == "Checked" ) )
-        {
-            m_stateDirty = true;
-            if ( GUCEF_NULL != m_context )
-                m_context->MarkThemeDependentDirty( *this );
-        }
-
-        OnPropertyChanged( name, oldValue, newValue );
-
-        // options that depend on a check box follow it
-        if ( name == "Checked" )
-            UpdateEnabledByDependents();
-        else
-        if ( name == "EnabledBy" )
-            ApplyEnabledBy();
-
-        CORE::TCloneableString eventData( name );
-        NotifyObservers( PropertyChangedEvent, &eventData );
-    }
-    return true;
-}
+CWidget::SPropertyMask::Test( EWidgetProperty property ) const
+{
+    return 0 != ( words[ (UInt32) property >> 5 ] & ( (UInt32) 1 << ( (UInt32) property & 31 ) ) );
+}
 
 /*-------------------------------------------------------------------------*/
 
-CString
-CWidget::GetProperty( const CString& name ) const
+void
+CWidget::SPropertyMask::Set( EWidgetProperty property )
+{
+    words[ (UInt32) property >> 5 ] |= ( (UInt32) 1 << ( (UInt32) property & 31 ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWidget::SPropertyMask::Reset( EWidgetProperty property )
+{
+    words[ (UInt32) property >> 5 ] &= ~( (UInt32) 1 << ( (UInt32) property & 31 ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::SPropertyMask::IsEmpty( void ) const
+{
+    for ( UInt32 i=0; i<(UInt32)PROPERTYMASKWORDS; ++i )
+        if ( 0 != words[ i ] )
+            return false;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CWidget::SPropertyMask::CountBelow( EWidgetProperty property ) const
+{
+    UInt32 count = 0;
+    const UInt32 word = (UInt32) property >> 5;
+    for ( UInt32 i=0; i<word; ++i )
+        count += CountBits( words[ i ] );
+    count += CountBits( words[ word ] & ( ( (UInt32) 1 << ( (UInt32) property & 31 ) ) - 1 ) );
+    return count;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CWidget::SPropertyMask::NextSet( UInt32 from ) const
+{
+    while ( from < (UInt32) EWidgetProperty_Count )
+    {
+        const UInt32 word = from >> 5;
+        UInt32 bits = words[ word ] >> ( from & 31 );
+        if ( 0 == bits )
+        {
+            from = ( word + 1 ) << 5;
+            continue;
+        }
+        while ( 0 == ( bits & 1 ) )
+        {
+            bits >>= 1;
+            ++from;
+        }
+        return from;
+    }
+    return (UInt32) EWidgetProperty_Count;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CWidget::SExplicitProperty::SExplicitProperty( EWidgetProperty id )
+    : property( id )
+    , value()
+{
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CResolvedWidgetType*
+CWidget::GetResolvedType( void ) const
+{
+    // the registry changes rarely: until it does the answer is the pointer held
+    CWidgetTypeRegistry& registry = CGuiGlobal::Instance()->GetWidgetTypeRegistry();
+    if ( GUCEF_NULL != m_resolvedType && m_resolvedGeneration == registry.GetGeneration() )
+        return m_resolvedType;
+    UInt32 generation = registry.GetGeneration();
+    m_resolvedType = registry.ResolveType( m_widgetTypeName );
+    m_resolvedGeneration = generation;
+    return m_resolvedType;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CPropertyDescriptor*
+CWidget::GetPropertyDescriptor( EWidgetProperty property ) const
 {GUCEF_TRACE;
 
-    TPropertyMap::const_iterator i = m_properties.find( name );
-    if ( i != m_properties.end() )
-        return (*i).second;
+    const CResolvedWidgetType* type = GetResolvedType();
+    return GUCEF_NULL == type ? GUCEF_NULL : type->FindProperty( property );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CPropertyDescriptor*
+CWidget::GetPropertyDescriptor( const CString& name ) const
+{GUCEF_TRACE;
+
+    const CResolvedWidgetType* type = GetResolvedType();
+    return GUCEF_NULL == type ? GUCEF_NULL : type->FindProperty( name );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CWidgetPropertyValue*
+CWidget::FindExplicitValue( EWidgetProperty property, const CString& customName ) const
+{
+    if ( EWidgetProperty_Unknown == property )
+    {
+        TCustomPropertyMap::const_iterator i = m_customProperties.find( customName );
+        return i == m_customProperties.end() ? GUCEF_NULL : &(*i).second;
+    }
+    if ( (UInt32) property >= (UInt32) EWidgetProperty_Count || !m_explicitMask.Test( property ) )
+        return GUCEF_NULL;
+    return &m_explicit[ m_explicitMask.CountBelow( property ) ].value;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CWidgetPropertyValue*
+CWidget::FindExplicitValue( EWidgetProperty property, const CString& customName )
+{
+    return const_cast< CWidgetPropertyValue* >( static_cast< const CWidget* >( this )->FindExplicitValue( property, customName ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CWidgetPropertyValue&
+CWidget::ResolveValue( EWidgetProperty property ) const
+{
+    static const CWidgetPropertyValue emptyValue;
+    if ( (UInt32) property >= (UInt32) EWidgetProperty_Count )
+        return emptyValue;
+
+    if ( m_explicitMask.Test( property ) )
+        return m_explicit[ m_explicitMask.CountBelow( property ) ].value;
 
     // Visible, Enabled and Checked are the state a theme selects on, not something a theme sets
-    CString themeValue;
-    if ( GUCEF_NULL != m_context && name != "Visible" && name != "Enabled" && name != "Checked" &&
-         m_context->GetThemeProperty( *this, name, themeValue ) )
-        return themeValue;
+    if ( GUCEF_NULL != m_context && !IsWidgetStateProperty( property ) )
+    {
+        const CWidgetPropertyValue* themeValue = m_context->FindThemeValue( *this, property );
+        if ( GUCEF_NULL != themeValue )
+            return *themeValue;
+    }
+
+    const CResolvedWidgetType* type = GetResolvedType();
+    if ( GUCEF_NULL != type )
+    {
+        const CWidgetPropertyValue* defaultValue = type->FindDefault( property );
+        if ( GUCEF_NULL != defaultValue )
+            return *defaultValue;
+    }
+    return emptyValue;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CWidget::ResolveCustomText( const CString& name ) const
+{
+    TCustomPropertyMap::const_iterator i = m_customProperties.find( name );
+    if ( i != m_customProperties.end() )
+        return (*i).second.GetText();
+
+    if ( GUCEF_NULL != m_context )
+    {
+        const CWidgetPropertyValue* themeValue = m_context->FindThemeValue( *this, name );
+        if ( GUCEF_NULL != themeValue )
+            return themeValue->GetText();
+    }
 
     const CPropertyDescriptor* descriptor = GetPropertyDescriptor( name );
     if ( GUCEF_NULL != descriptor )
@@ -746,14 +869,186 @@ CWidget::GetProperty( const CString& name ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CWidget::SetPropertyImpl( EWidgetProperty property, const CString& customName, const CString& value )
+{GUCEF_TRACE;
+
+    const bool isCustom = EWidgetProperty_Unknown == property;
+    if ( isCustom && customName.IsNULLOrEmpty() )
+        return false;
+    const CString& name = isCustom ? customName : WidgetPropertyToString( property );
+
+    CString normalized;
+    const CString* newText = &value;
+    const CResolvedWidgetType* type = GetResolvedType();
+    const CPropertyDescriptor* descriptor = GUCEF_NULL == type ? GUCEF_NULL : ( isCustom ? type->FindProperty( customName ) : type->FindProperty( property ) );
+    if ( GUCEF_NULL != descriptor && !value.IsNULLOrEmpty() )
+    {
+        if ( !descriptor->Validate( value, normalized ) )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "Widget \"" << GetNamePath() << "\" (" << m_widgetTypeName << "): the value \"" << value
+                               << "\" does not fit property \"" << name << "\" of type " << CPropertyDescriptor::ValueTypeToString( descriptor->valueType ) );
+            return false;
+        }
+        newText = &normalized;
+    }
+
+    CWidgetPropertyValue* existing = FindExplicitValue( property, customName );
+    if ( GUCEF_NULL != existing && existing->GetText() == *newText )
+        return true;
+
+    CString oldValue = isCustom ? ResolveCustomText( customName ) : ResolveValue( property ).GetText();
+    if ( GUCEF_NULL == existing )
+    {
+        if ( isCustom )
+            existing = &m_customProperties[ customName ];
+        else
+        {
+            UInt32 place = m_explicitMask.CountBelow( property );
+            m_explicit.insert( m_explicit.begin() + place, SExplicitProperty( property ) );
+            m_explicitMask.Set( property );
+            existing = &m_explicit[ place ].value;
+        }
+    }
+    existing->SetText( *newText );
+    CString newValue = isCustom ? ResolveCustomText( customName ) : ResolveValue( property ).GetText();
+
+    if ( isCustom )
+        MarkDirty( customName );
+    else
+        MarkDirty( property );
+    if ( oldValue != newValue )
+    {
+        if ( GUCEF_NULL != descriptor && descriptor->HasFlag( CPropertyDescriptor::FLAG_AFFECTSLAYOUT ) && GUCEF_NULL != m_context )
+            m_context->InvalidateLayout();
+        if ( EWidgetProperty_Visible == property && GUCEF_NULL != m_context )
+            m_context->OnWidgetVisibilityChanged( this );
+        if ( EWidgetProperty_Enabled == property || EWidgetProperty_Checked == property )
+        {
+            m_stateDirty = true;
+            if ( GUCEF_NULL != m_context )
+                m_context->MarkThemeDependentDirty( *this );
+        }
+
+        if ( isCustom )
+            OnCustomPropertyChanged( customName, oldValue, newValue );
+        else
+            OnPropertyChanged( property, oldValue, newValue );
+
+        // options that depend on a check box follow it
+        if ( EWidgetProperty_Checked == property )
+            UpdateEnabledByDependents();
+        else
+        if ( EWidgetProperty_EnabledBy == property )
+            ApplyEnabledBy();
+
+        if ( isCustom )
+        {
+            CPropertyChangedEventData eventData( customName );
+            NotifyObservers( PropertyChangedEvent, &eventData );
+        }
+        else
+        {
+            CPropertyChangedEventData eventData( property );
+            NotifyObservers( PropertyChangedEvent, &eventData );
+        }
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::SetProperty( EWidgetProperty property, const CString& value )
+{GUCEF_TRACE;
+
+    if ( EWidgetProperty_Unknown == property || (UInt32) property >= (UInt32) EWidgetProperty_Count )
+        return false;
+    return SetPropertyImpl( property, CString::Empty, value );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::SetProperty( const CString& name, const CString& value )
+{GUCEF_TRACE;
+
+    if ( name.IsNULLOrEmpty() )
+        return false;
+    return SetPropertyImpl( StringToWidgetProperty( name ), name, value );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CWidget::GetPropertyRef( EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    return ResolveValue( property ).GetText();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CWidget::GetPropertyRef( const CString& name ) const
+{GUCEF_TRACE;
+
+    EWidgetProperty property = StringToWidgetProperty( name );
+    if ( EWidgetProperty_Unknown != property )
+        return ResolveValue( property ).GetText();
+    return ResolveCustomText( name );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CWidget::GetProperty( EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    return ResolveValue( property ).GetText();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CWidget::GetProperty( const CString& name ) const
+{GUCEF_TRACE;
+
+    return GetPropertyRef( name );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::GetExplicitProperty( EWidgetProperty property, CString& value ) const
+{GUCEF_TRACE;
+
+    const CWidgetPropertyValue* explicitValue = FindExplicitValue( property, CString::Empty );
+    if ( GUCEF_NULL == explicitValue )
+        return false;
+    value = explicitValue->GetText();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CWidget::GetExplicitProperty( const CString& name, CString& value ) const
 {GUCEF_TRACE;
 
-    TPropertyMap::const_iterator i = m_properties.find( name );
-    if ( i == m_properties.end() )
+    const CWidgetPropertyValue* explicitValue = FindExplicitValue( StringToWidgetProperty( name ), name );
+    if ( GUCEF_NULL == explicitValue )
         return false;
-    value = (*i).second;
+    value = explicitValue->GetText();
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::IsPropertySet( EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != FindExplicitValue( property, CString::Empty );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -762,7 +1057,64 @@ bool
 CWidget::IsPropertySet( const CString& name ) const
 {GUCEF_TRACE;
 
-    return m_properties.find( name ) != m_properties.end();
+    return GUCEF_NULL != FindExplicitValue( StringToWidgetProperty( name ), name );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::ResetPropertyImpl( EWidgetProperty property, const CString& customName )
+{GUCEF_TRACE;
+
+    const bool isCustom = EWidgetProperty_Unknown == property;
+    if ( GUCEF_NULL == FindExplicitValue( property, customName ) )
+        return true;
+
+    CString oldValue = isCustom ? ResolveCustomText( customName ) : ResolveValue( property ).GetText();
+    if ( isCustom )
+        m_customProperties.erase( customName );
+    else
+    {
+        m_explicit.erase( m_explicit.begin() + m_explicitMask.CountBelow( property ) );
+        m_explicitMask.Reset( property );
+    }
+    CString newValue = isCustom ? ResolveCustomText( customName ) : ResolveValue( property ).GetText();
+    if ( isCustom )
+        MarkDirty( customName );
+    else
+        MarkDirty( property );
+    if ( oldValue != newValue )
+    {
+        const CPropertyDescriptor* descriptor = isCustom ? GetPropertyDescriptor( customName ) : GetPropertyDescriptor( property );
+        if ( GUCEF_NULL != descriptor && descriptor->HasFlag( CPropertyDescriptor::FLAG_AFFECTSLAYOUT ) && GUCEF_NULL != m_context )
+            m_context->InvalidateLayout();
+        if ( EWidgetProperty_Visible == property && GUCEF_NULL != m_context )
+            m_context->OnWidgetVisibilityChanged( this );
+        if ( isCustom )
+        {
+            OnCustomPropertyChanged( customName, oldValue, newValue );
+            CPropertyChangedEventData eventData( customName );
+            NotifyObservers( PropertyChangedEvent, &eventData );
+        }
+        else
+        {
+            OnPropertyChanged( property, oldValue, newValue );
+            CPropertyChangedEventData eventData( property );
+            NotifyObservers( PropertyChangedEvent, &eventData );
+        }
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::ResetProperty( EWidgetProperty property )
+{GUCEF_TRACE;
+
+    if ( EWidgetProperty_Unknown == property || (UInt32) property >= (UInt32) EWidgetProperty_Count )
+        return true;
+    return ResetPropertyImpl( property, CString::Empty );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -771,35 +1123,21 @@ bool
 CWidget::ResetProperty( const CString& name )
 {GUCEF_TRACE;
 
-    TPropertyMap::iterator i = m_properties.find( name );
-    if ( i == m_properties.end() )
-        return true;
-
-    CString oldValue = GetProperty( name );
-    m_properties.erase( i );
-    CString newValue = GetProperty( name );
-    MarkDirty( name );
-    if ( oldValue != newValue )
-    {
-        const CPropertyDescriptor* descriptor = GetPropertyDescriptor( name );
-        if ( GUCEF_NULL != descriptor && descriptor->HasFlag( CPropertyDescriptor::FLAG_AFFECTSLAYOUT ) && GUCEF_NULL != m_context )
-            m_context->InvalidateLayout();
-        if ( name == "Visible" && GUCEF_NULL != m_context )
-            m_context->OnWidgetVisibilityChanged( this );
-        OnPropertyChanged( name, oldValue, newValue );
-        CORE::TCloneableString eventData( name );
-        NotifyObservers( PropertyChangedEvent, &eventData );
-    }
-    return true;
+    return ResetPropertyImpl( StringToWidgetProperty( name ), name );
 }
 
 /*-------------------------------------------------------------------------*/
 
-const CWidget::TPropertyMap&
+CWidget::TPropertyMap
 CWidget::GetExplicitProperties( void ) const
 {GUCEF_TRACE;
 
-    return m_properties;
+    TPropertyMap properties;
+    for ( UInt32 i=0; i<(UInt32)m_explicit.size(); ++i )
+        properties[ WidgetPropertyToString( m_explicit[ i ].property ) ] = m_explicit[ i ].value.GetText();
+    for ( TCustomPropertyMap::const_iterator c=m_customProperties.begin(); c!=m_customProperties.end(); ++c )
+        properties[ (*c).first ] = (*c).second.GetText();
+    return properties;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -809,13 +1147,18 @@ CWidget::GetPropertyNames( void ) const
 {GUCEF_TRACE;
 
     TStringVector names;
-    CWidgetTypeRegistry::TDescriptorVector descriptors = CGuiGlobal::Instance()->GetWidgetTypeRegistry().GetProperties( m_widgetTypeName );
-    for ( UInt32 i=0; i<(UInt32)descriptors.size(); ++i )
-        names.push_back( descriptors[ i ]->name );
+    const CResolvedWidgetType* type = GetResolvedType();
+    if ( GUCEF_NULL != type )
+    {
+        const CResolvedWidgetType::TDescriptorVector& descriptors = type->GetProperties();
+        for ( UInt32 i=0; i<(UInt32)descriptors.size(); ++i )
+            names.push_back( descriptors[ i ]->name );
+    }
 
     // properties set on the widget the type does not know (newer versions, backend hints)
-    TPropertyMap::const_iterator p = m_properties.begin();
-    while ( p != m_properties.end() )
+    TPropertyMap explicitProperties = GetExplicitProperties();
+    TPropertyMap::const_iterator p = explicitProperties.begin();
+    while ( p != explicitProperties.end() )
     {
         bool known = false;
         for ( UInt32 n=0; n<(UInt32)names.size(); ++n )
@@ -836,10 +1179,109 @@ CWidget::GetPropertyNames( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CWidget::GetBoolProperty( EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    return ResolveValue( property ).AsBool();
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CWidget::GetIntProperty( EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    return ResolveValue( property ).AsInt();
+}
+
+/*-------------------------------------------------------------------------*/
+
+Float32
+CWidget::GetFloatProperty( EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    return ResolveValue( property ).AsFloat();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CColour
+CWidget::GetColourProperty( EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    return ResolveValue( property ).AsColour();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::TryGetColourProperty( EWidgetProperty property, CColour& colour ) const
+{GUCEF_TRACE;
+
+    return ResolveValue( property ).TryAsColour( colour );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CUDim
+CWidget::GetUDimProperty( EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    CUDim dim;
+    CUDim::FromString( GetPropertyRef( property ), dim );
+    return dim;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CUVector
+CWidget::GetUVectorProperty( EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    CUVector vec;
+    CUVector::FromString( GetPropertyRef( property ), vec );
+    return vec;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRect
+CWidget::GetRectProperty( EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    CRect rect;
+    CRect::FromString( GetPropertyRef( property ), rect );
+    return rect;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CWidget::TStringVector
+CWidget::GetStringListProperty( EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    return SplitStringList( GetPropertyRef( property ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF::vector< Int32 >
+CWidget::GetIntListProperty( EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    return SplitIntList( GetPropertyRef( property ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CWidget::GetBoolProperty( const CString& name ) const
 {GUCEF_TRACE;
 
-    return CORE::StringToBool( GetProperty( name ), false );
+    EWidgetProperty property = StringToWidgetProperty( name );
+    if ( EWidgetProperty_Unknown != property )
+        return ResolveValue( property ).AsBool();
+    return CORE::StringToBool( ResolveCustomText( name ), false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -848,7 +1290,10 @@ Int32
 CWidget::GetIntProperty( const CString& name ) const
 {GUCEF_TRACE;
 
-    return CORE::StringToInt32( GetProperty( name ), 0 );
+    EWidgetProperty property = StringToWidgetProperty( name );
+    if ( EWidgetProperty_Unknown != property )
+        return ResolveValue( property ).AsInt();
+    return CORE::StringToInt32( ResolveCustomText( name ), 0 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -857,7 +1302,10 @@ Float32
 CWidget::GetFloatProperty( const CString& name ) const
 {GUCEF_TRACE;
 
-    return CORE::StringToFloat( GetProperty( name ), 0.0f );
+    EWidgetProperty property = StringToWidgetProperty( name );
+    if ( EWidgetProperty_Unknown != property )
+        return ResolveValue( property ).AsFloat();
+    return CORE::StringToFloat( ResolveCustomText( name ), 0.0f );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -866,8 +1314,11 @@ CColour
 CWidget::GetColourProperty( const CString& name ) const
 {GUCEF_TRACE;
 
+    EWidgetProperty property = StringToWidgetProperty( name );
+    if ( EWidgetProperty_Unknown != property )
+        return ResolveValue( property ).AsColour();
     CColour colour( 0, 0, 0, 0 );
-    CColour::FromString( GetProperty( name ), colour );
+    CColour::FromString( ResolveCustomText( name ), colour );
     return colour;
 }
 
@@ -878,7 +1329,7 @@ CWidget::GetUDimProperty( const CString& name ) const
 {GUCEF_TRACE;
 
     CUDim dim;
-    CUDim::FromString( GetProperty( name ), dim );
+    CUDim::FromString( GetPropertyRef( name ), dim );
     return dim;
 }
 
@@ -889,7 +1340,7 @@ CWidget::GetUVectorProperty( const CString& name ) const
 {GUCEF_TRACE;
 
     CUVector vec;
-    CUVector::FromString( GetProperty( name ), vec );
+    CUVector::FromString( GetPropertyRef( name ), vec );
     return vec;
 }
 
@@ -900,7 +1351,7 @@ CWidget::GetRectProperty( const CString& name ) const
 {GUCEF_TRACE;
 
     CRect rect;
-    CRect::FromString( GetProperty( name ), rect );
+    CRect::FromString( GetPropertyRef( name ), rect );
     return rect;
 }
 
@@ -910,7 +1361,7 @@ CWidget::TStringVector
 CWidget::GetStringListProperty( const CString& name ) const
 {GUCEF_TRACE;
 
-    return SplitStringList( GetProperty( name ) );
+    return SplitStringList( GetPropertyRef( name ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -919,7 +1370,61 @@ GUCEF::vector< Int32 >
 CWidget::GetIntListProperty( const CString& name ) const
 {GUCEF_TRACE;
 
-    return SplitIntList( GetProperty( name ) );
+    return SplitIntList( GetPropertyRef( name ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::SetBoolProperty( EWidgetProperty property, bool value )
+{GUCEF_TRACE;
+
+    return SetProperty( property, value ? "true" : "false" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::SetIntProperty( EWidgetProperty property, Int32 value )
+{GUCEF_TRACE;
+
+    return SetProperty( property, CORE::Int32ToString( value ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::SetFloatProperty( EWidgetProperty property, Float32 value )
+{GUCEF_TRACE;
+
+    return SetProperty( property, CORE::FloatToString( value ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::SetColourProperty( EWidgetProperty property, const CColour& value )
+{GUCEF_TRACE;
+
+    return SetProperty( property, value.ToString() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::SetStringListProperty( EWidgetProperty property, const TStringVector& value )
+{GUCEF_TRACE;
+
+    return SetProperty( property, JoinStringList( value ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::SetIntListProperty( EWidgetProperty property, const GUCEF::vector< Int32 >& value )
+{GUCEF_TRACE;
+
+    return SetProperty( property, JoinIntList( value ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1038,6 +1543,15 @@ CWidget::HasProperty( const CString& widgetProperty ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CWidget::HasProperty( EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != GetPropertyDescriptor( property ) || IsPropertySet( property );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CWidget::LoadProperties( CORE::CIOAccess& propertyStorage )
 {GUCEF_TRACE;
 
@@ -1064,8 +1578,9 @@ bool
 CWidget::SaveProperties( CORE::CIOAccess& propertyStorage ) const
 {GUCEF_TRACE;
 
-    TPropertyMap::const_iterator i = m_properties.begin();
-    while ( i != m_properties.end() )
+    TPropertyMap explicitProperties = GetExplicitProperties();
+    TPropertyMap::const_iterator i = explicitProperties.begin();
+    while ( i != explicitProperties.end() )
     {
         CString line = (*i).first + '=' + EscapeLine( (*i).second ) + '\n';
         if ( line.ByteSize() - 1 != propertyStorage.Write( line.C_String(), 1, line.ByteSize() - 1 ) )
@@ -1103,8 +1618,21 @@ CWidget::IsEffectivelyVisible( void ) const
 {GUCEF_TRACE;
 
     for ( const CWidget* w=this; GUCEF_NULL != w; w=w->m_parent )
+    {
         if ( !w->IsVisible() )
             return false;
+        if ( GUCEF_NULL != w->m_parent && !w->m_parent->AreChildrenShown() )
+            return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::AreChildrenShown( void ) const
+{GUCEF_TRACE;
+
     return true;
 }
 
@@ -1129,7 +1657,7 @@ CWidget::GetState( void ) const
     UInt32 state = m_state;
     if ( !IsEffectivelyEnabled() )
         state |= STATE_DISABLED;
-    if ( HasProperty( "Checked" ) && GetBoolProperty( "Checked" ) )
+    if ( HasProperty( EWidgetProperty_Checked ) && GetBoolProperty( EWidgetProperty_Checked ) )
         state |= STATE_CHECKED;
     return state;
 }
@@ -1178,7 +1706,7 @@ bool
 CWidget::IsFocusable( void ) const
 {GUCEF_TRACE;
 
-    return GetBoolProperty( "Focusable" ) && IsEffectivelyVisible() && IsEffectivelyEnabled();
+    return GetBoolProperty( EWidgetProperty_Focusable ) && IsEffectivelyVisible() && IsEffectivelyEnabled();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1400,8 +1928,121 @@ CWidget::GetClassTypeName( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CWidget::IsRegisteredAs( const char* registeredTypeName ) const
+{GUCEF_TRACE;
+
+    return CGuiGlobal::Instance()->GetWidgetTypeRegistry().IsA( m_widgetTypeName, registeredTypeName );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CScrollPanel*
+CWidget::AsScrollPanel( void )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CScrollPanel*
+CWidget::AsScrollPanel( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CWindow*
+CWidget::AsWindow( void )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CWindow*
+CWidget::AsWindow( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CScrollPanel*
+CWidget::ToScrollPanel( CWidget* widget )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != widget ? widget->AsScrollPanel() : GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CScrollPanel*
+CWidget::ToScrollPanel( const CWidget* widget )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != widget ? widget->AsScrollPanel() : GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CWindow*
+CWidget::ToWindow( CWidget* widget )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != widget ? widget->AsWindow() : GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CWindow*
+CWidget::ToWindow( const CWidget* widget )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != widget ? widget->AsWindow() : GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
-CWidget::OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue )
+CWidget::OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWidget::OnCustomPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWidget::OnDescendantFocusReceived( CWidget* descendant )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWidget::AdjustSize( Int32& width, Int32& height, const CRect& area ) const
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWidget::AdjustPlacement( CRect& rect, const CRect& area, bool sizeFromArea )
 {GUCEF_TRACE;
 
 }
@@ -1435,22 +2076,44 @@ CWidget::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventDa
 /*-------------------------------------------------------------------------*/
 
 bool
-CWidget::ChangeValueByUser( const CString& name, const CString& value )
+CWidget::ChangeValueByUserImpl( EWidgetProperty property, const CString& customName, const CString& value )
 {GUCEF_TRACE;
 
-    CString oldValue = GetProperty( name );
-    if ( !SetProperty( name, value ) )
+    const bool isCustom = EWidgetProperty_Unknown == property;
+    CString oldValue = isCustom ? GetPropertyRef( customName ) : GetPropertyRef( property );
+    if ( !( isCustom ? SetProperty( customName, value ) : SetProperty( property, value ) ) )
         return false;
-    CString newValue = GetProperty( name );
+    CString newValue = isCustom ? GetPropertyRef( customName ) : GetPropertyRef( property );
     if ( oldValue == newValue )
         return true;
 
     CValueChangedEventData eventData;
-    eventData.propertyName = name;
+    eventData.property = property;
+    eventData.customPropertyName = isCustom ? customName : CString::Empty;
     eventData.oldValue = oldValue;
     eventData.newValue = newValue;
     DispatchEvent( ValueChangedEvent, eventData );
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::ChangeValueByUser( EWidgetProperty property, const CString& value )
+{GUCEF_TRACE;
+
+    if ( EWidgetProperty_Unknown == property )
+        return false;
+    return ChangeValueByUserImpl( property, CString::Empty, value );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CWidget::ChangeValueByUser( const CString& name, const CString& value )
+{GUCEF_TRACE;
+
+    return ChangeValueByUserImpl( StringToWidgetProperty( name ), name, value );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1468,6 +2131,15 @@ CWidget::ActivateItem( Int32 index, const CString& item )
 /*-------------------------------------------------------------------------*/
 
 void
+CWidget::Touch( EWidgetProperty property )
+{GUCEF_TRACE;
+
+    MarkDirty( property );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CWidget::Touch( const CString& name )
 {GUCEF_TRACE;
 
@@ -1477,12 +2149,53 @@ CWidget::Touch( const CString& name )
 /*-------------------------------------------------------------------------*/
 
 void
+CWidget::MarkDirty( EWidgetProperty property )
+{GUCEF_TRACE;
+
+    if ( (UInt32) property >= (UInt32) EWidgetProperty_Count || EWidgetProperty_Unknown == property )
+        return;
+    m_dirtyMask.Set( property );
+    if ( GUCEF_NULL != m_context )
+        m_context->OnWidgetDirty( this );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CWidget::MarkDirty( const CString& name )
 {GUCEF_TRACE;
 
-    m_dirtyProperties.insert( name );
+    EWidgetProperty property = StringToWidgetProperty( name );
+    if ( EWidgetProperty_Unknown != property )
+        m_dirtyMask.Set( property );
+    else
+        m_dirtyCustomProperties.insert( name );
     if ( GUCEF_NULL != m_context )
         m_context->OnWidgetDirty( this );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWidget::MarkAllPropertiesDirty( void )
+{GUCEF_TRACE;
+
+    const CResolvedWidgetType* type = GetResolvedType();
+    if ( GUCEF_NULL != type )
+    {
+        const CResolvedWidgetType::TDescriptorVector& descriptors = type->GetProperties();
+        for ( UInt32 i=0; i<(UInt32)descriptors.size(); ++i )
+        {
+            if ( EWidgetProperty_Unknown != descriptors[ i ]->id )
+                m_dirtyMask.Set( descriptors[ i ]->id );
+            else
+                m_dirtyCustomProperties.insert( descriptors[ i ]->name );
+        }
+    }
+    for ( UInt32 i=0; i<(UInt32)m_explicit.size(); ++i )
+        m_dirtyMask.Set( m_explicit[ i ].property );
+    for ( TCustomPropertyMap::const_iterator c=m_customProperties.begin(); c!=m_customProperties.end(); ++c )
+        m_dirtyCustomProperties.insert( (*c).first );
 }
 
 /*-------------------------------------------------------------------------*/

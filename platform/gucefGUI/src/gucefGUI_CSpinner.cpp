@@ -82,8 +82,8 @@ Float32
 CSpinner::Clamp( Float32 value ) const
 {GUCEF_TRACE;
 
-    Float32 minimum = GetFloatProperty( "Min" );
-    Float32 maximum = GetFloatProperty( "Max" );
+    Float32 minimum = GetFloatProperty( EWidgetProperty_Min );
+    Float32 maximum = GetFloatProperty( EWidgetProperty_Max );
     if ( value < minimum ) value = minimum;
     if ( value > maximum ) value = maximum;
     return value;
@@ -113,7 +113,7 @@ bool
 CSpinner::SetValueFloat32( const Float32 value )
 {GUCEF_TRACE;
 
-    return SetFloatProperty( "Value", Clamp( value ) );
+    return SetFloatProperty( EWidgetProperty_Value, Clamp( value ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -142,7 +142,7 @@ Float32
 CSpinner::GetValueFloat32( void ) const
 {GUCEF_TRACE;
 
-    return GetFloatProperty( "Value" );
+    return GetFloatProperty( EWidgetProperty_Value );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -151,8 +151,8 @@ bool
 CSpinner::StepValue( Int32 steps )
 {GUCEF_TRACE;
 
-    Float32 value = Clamp( GetValueFloat32() + (Float32) steps * GetFloatProperty( "Step" ) );
-    return ChangeValueByUser( "Value", CORE::FloatToString( value ) );
+    Float32 value = Clamp( GetValueFloat32() + (Float32) steps * GetFloatProperty( EWidgetProperty_Step ) );
+    return ChangeValueByUser( EWidgetProperty_Value, CORE::FloatToString( value ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -161,7 +161,7 @@ CString
 CSpinner::GetValueText( void ) const
 {GUCEF_TRACE;
 
-    Int32 decimals = GetIntProperty( "Decimals" );
+    Int32 decimals = GetIntProperty( EWidgetProperty_Decimals );
     if ( decimals <= 0 )
         return CORE::Int32ToString( GetValueInt32() );
     char buffer[ 64 ];
@@ -178,7 +178,7 @@ CSpinner::GetNaturalSize( Int32& width, Int32& height ) const
     width = height = 0;
     if ( GUCEF_NULL == GetContext() )
         return false;
-    GetContext()->MeasureText( GetProperty( "Font" ), CORE::FloatToString( GetFloatProperty( "Max" ) ), 0, width, height );
+    GetContext()->MeasureText( GetProperty( EWidgetProperty_Font ), CORE::FloatToString( GetFloatProperty( EWidgetProperty_Max ) ), 0, width, height );
     width += 32;
     height += 4;
     return true;

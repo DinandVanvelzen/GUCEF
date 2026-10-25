@@ -140,16 +140,16 @@ CMessageBoxForm::BuildLayout( CORE::CDataNode& layout )
 {GUCEF_TRACE;
 
     CORE::CDataNode* window = CFormLayout::AddWidgetNode( layout, "Window", "MessageBoxForm", "0.5,-280 0.5,-130", "0,560 0,260" );
-    CFormLayout::SetWidgetNodeProperty( *window, "Title", "Message" );
+    CFormLayout::SetWidgetNodeProperty( *window, EWidgetProperty_Title, "Message" );
     CORE::CDataNode* text = CFormLayout::AddWidgetNode( *window, "Label", "Text", "0,20 0,52", "1,-40 1,-180" );
-    CFormLayout::SetWidgetNodeProperty( *text, "WordWrap", "true" );
+    CFormLayout::SetWidgetNodeProperty( *text, EWidgetProperty_WordWrap, "true" );
     CFormLayout::AddWidgetNode( *window, "Editbox", "Input", "0,20 1,-120", "1,-40 0,36" );
     for ( UInt32 i=0; i<MaxButtons; ++i )
     {
         CORE::CDataNode* button = CFormLayout::AddWidgetNode( *window, "Button", ButtonNames[ i ],
                                                               "1," + CORE::Int32ToString( -128 - 124 * (Int32) ( MaxButtons - 1 - i ) ) + " 1,-60",
                                                               "0,112 0,38" );
-        CFormLayout::SetWidgetNodeProperty( *button, "Text", "OK" );
+        CFormLayout::SetWidgetNodeProperty( *button, EWidgetProperty_Text, "OK" );
     }
 }
 
@@ -176,18 +176,36 @@ CMessageBoxForm::OnPostLayoutLoad( void )
 
     CFormEx::OnPostLayoutLoad();
 
-    for ( UInt32 i=0; i<MaxButtons; ++i )
+    CWidget* button = GetWidget( ButtonNames[ 0 ] );
+    if ( GUCEF_NULL != button )
     {
-        CWidget* button = GetWidget( ButtonNames[ i ] );
-        if ( GUCEF_NULL != button )
-            SubscribeTo( button, CWidget::ActivatedEvent );
+        TEventCallback callback( this, &CMessageBoxForm::OnButton1Activated );
+        SubscribeTo( button, CWidget::ActivatedEvent, callback );
+    }
+    button = GetWidget( ButtonNames[ 1 ] );
+    if ( GUCEF_NULL != button )
+    {
+        TEventCallback callback( this, &CMessageBoxForm::OnButton2Activated );
+        SubscribeTo( button, CWidget::ActivatedEvent, callback );
+    }
+    button = GetWidget( ButtonNames[ 2 ] );
+    if ( GUCEF_NULL != button )
+    {
+        TEventCallback callback( this, &CMessageBoxForm::OnButton3Activated );
+        SubscribeTo( button, CWidget::ActivatedEvent, callback );
     }
     CWidget* input = GetWidget( "Input" );
     if ( GUCEF_NULL != input )
-        SubscribeTo( input, CEditbox::TextEnteredEvent );
+    {
+        TEventCallback callback( this, &CMessageBoxForm::OnInputTextEntered );
+        SubscribeTo( input, CEditbox::TextEnteredEvent, callback );
+    }
     CWidget* root = GetRootWidget();
     if ( GUCEF_NULL != root )
-        SubscribeTo( root, CWidget::NavigationEvent );
+    {
+        TEventCallback callback( this, &CMessageBoxForm::OnNavigation );
+        SubscribeTo( root, CWidget::NavigationEvent, callback );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -215,22 +233,22 @@ CMessageBoxForm::Show( const CString& title, const CString& text, const CString*
         CWidget* button = GetWidget( ButtonNames[ i ] );
         if ( GUCEF_NULL != button )
         {
-            button->SetProperty( "Text", ButtonText( results[ i ] ) );
+            button->SetProperty( EWidgetProperty_Text, ButtonText( results[ i ] ) );
             button->SetVisibility( MESSAGEBOXRESULT_NONE != results[ i ] );
-            button->SetProperty( "StyleClass", MESSAGEBOXRESULT_OK == results[ i ] || MESSAGEBOXRESULT_YES == results[ i ] ? "Primary" : "" );
+            button->SetProperty( EWidgetProperty_StyleClass, MESSAGEBOXRESULT_OK == results[ i ] || MESSAGEBOXRESULT_YES == results[ i ] ? "Primary" : "" );
         }
     }
 
     CWidget* root = GetRootWidget();
-    root->SetProperty( "Title", title );
+    root->SetProperty( EWidgetProperty_Title, title );
     CWidget* label = GetWidget( "Text" );
     if ( GUCEF_NULL != label )
-        label->SetProperty( "Text", text );
+        label->SetProperty( EWidgetProperty_Text, text );
     CWidget* input = GetWidget( "Input" );
     if ( GUCEF_NULL != input )
     {
         input->SetVisibility( GUCEF_NULL != initialInput );
-        input->SetProperty( "Text", GUCEF_NULL != initialInput ? *initialInput : CString::Empty );
+        input->SetProperty( EWidgetProperty_Text, GUCEF_NULL != initialInput ? *initialInput : CString::Empty );
     }
 
     m_result = MESSAGEBOXRESULT_NONE;
@@ -291,7 +309,7 @@ CMessageBoxForm::GetInputText( void )
 {GUCEF_TRACE;
 
     CWidget* input = GetWidget( "Input" );
-    return GUCEF_NULL != input ? input->GetProperty( "Text" ) : CString::Empty;
+    return GUCEF_NULL != input ? input->GetProperty( EWidgetProperty_Text ) : CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -306,48 +324,82 @@ CMessageBoxForm::IsOpen( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CMessageBoxForm::OnNotify( CORE::CNotifier* notifier    ,
-                           const CORE::CEvent& eventId  ,
-                           CORE::CICloneable* eventData )
+CMessageBoxForm::ChooseSlot( UInt32 slot )
 {GUCEF_TRACE;
 
-    if ( CWidget::ActivatedEvent == eventId )
+    if ( MESSAGEBOXRESULT_NONE != m_buttonResults[ slot ] )
+        Choose( m_buttonResults[ slot ] );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMessageBoxForm::OnButton1Activated( CORE::CNotifier* notifier    ,
+                                     const CORE::CEvent& eventId  ,
+                                     CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    ChooseSlot( 0 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMessageBoxForm::OnButton2Activated( CORE::CNotifier* notifier    ,
+                                     const CORE::CEvent& eventId  ,
+                                     CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    ChooseSlot( 1 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMessageBoxForm::OnButton3Activated( CORE::CNotifier* notifier    ,
+                                     const CORE::CEvent& eventId  ,
+                                     CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    ChooseSlot( 2 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMessageBoxForm::OnInputTextEntered( CORE::CNotifier* notifier    ,
+                                     const CORE::CEvent& eventId  ,
+                                     CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    // Enter chooses the first button that is there
+    for ( UInt32 i=0; i<MaxButtons; ++i )
     {
-        for ( UInt32 i=0; i<MaxButtons; ++i )
+        if ( MESSAGEBOXRESULT_NONE != m_buttonResults[ i ] )
         {
-            if ( notifier == GetWidget( ButtonNames[ i ] ) && MESSAGEBOXRESULT_NONE != m_buttonResults[ i ] )
-            {
-                Choose( m_buttonResults[ i ] );
-                return;
-            }
+            Choose( m_buttonResults[ i ] );
+            return;
         }
-        return;
     }
-    if ( CEditbox::TextEnteredEvent == eventId )
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMessageBoxForm::OnNavigation( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    CNavigationEventData* navigation = static_cast< CNavigationEventData* >( eventData );
+    if ( NAVIGATION_CANCEL == navigation->direction && EVENTPHASE_TUNNEL != navigation->phase && m_open )
     {
-        // Enter chooses the first button that is there
-        for ( UInt32 i=0; i<MaxButtons; ++i )
-        {
-            if ( MESSAGEBOXRESULT_NONE != m_buttonResults[ i ] )
-            {
-                Choose( m_buttonResults[ i ] );
-                return;
-            }
-        }
-        return;
+        // Escape chooses the last button: Cancel, No or OK
+        navigation->handled = true;
+        Choose( m_buttonResults[ MaxButtons - 1 ] );
     }
-    if ( CWidget::NavigationEvent == eventId && GUCEF_NULL != eventData )
-    {
-        CNavigationEventData* navigation = static_cast< CNavigationEventData* >( eventData );
-        if ( NAVIGATION_CANCEL == navigation->direction && EVENTPHASE_TUNNEL != navigation->phase && m_open )
-        {
-            // Escape chooses the last button: Cancel, No or OK
-            navigation->handled = true;
-            Choose( m_buttonResults[ MaxButtons - 1 ] );
-        }
-        return;
-    }
-    CFormEx::OnNotify( notifier, eventId, eventData );
 }
 
 /*-------------------------------------------------------------------------*/

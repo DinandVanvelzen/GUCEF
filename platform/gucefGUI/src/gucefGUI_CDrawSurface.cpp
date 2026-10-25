@@ -236,7 +236,7 @@ CDrawSurface::Commit( void )
     m_building.clear();
     ++m_revision;
     // a runtime property, so the handler sees the new drawing with the next batch of changes
-    SetProperty( "Revision", CORE::UInt32ToString( m_revision ) );
+    SetProperty( EWidgetProperty_Revision, CORE::UInt32ToString( m_revision ) );
 }
 
 /*-------------------------------------------------------------------------*/

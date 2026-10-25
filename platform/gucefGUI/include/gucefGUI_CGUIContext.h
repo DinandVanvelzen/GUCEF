@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_CORE_CDATANODE_H
 #include "CDataNode.h"
 #define GUCEF_CORE_CDATANODE_H
@@ -72,6 +77,7 @@ namespace GUI {
 
 class CGUIDriver;
 class CForm;
+class CScrollPanel;
 
 /**
  *  The part of a GUI context that is the same for every backend. A driver derives its context from
@@ -240,13 +246,25 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
      *  and "Property" children with "name" and "value". The most specific matching style wins
      *  (name before class before type, more states before fewer). Visible, Enabled and Checked are the
      *  state styles select on and are never taken from the theme.
+     *
+     *  The tree is read once, when it is set: every style is kept with the readings of its attributes and
+     *  the styles are indexed by the id of the standard properties they set (by name for any other), so
+     *  looking up a value takes only the styles that set the property and compares no property names.
      */
     bool SetTheme( const CORE::CDataNode& theme );
 
     const CORE::CDataNode& GetTheme( void ) const;
 
     /** The value the theme gives the property of the widget in its current state */
+    bool GetThemeProperty( const CWidget& widget, EWidgetProperty property, CString& value ) const;
     bool GetThemeProperty( const CWidget& widget, const CString& name, CString& value ) const;
+
+    /**
+     *  The same without a copy: NULL when the theme gives no value. The value (which remembers what it was read as)
+     *  is good until the next SetTheme().
+     */
+    const CWidgetPropertyValue* FindThemeValue( const CWidget& widget, EWidgetProperty property ) const;
+    const CWidgetPropertyValue* FindThemeValue( const CWidget& widget, const CString& name ) const;
 
     /*
      *  Presentation
@@ -327,6 +345,13 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     void InjectMouseButton( TMouseButton button, bool down );
 
     void InjectMouseWheel( Int32 delta );
+
+    /**
+     *  Ends the press of the widget that holds the pointer without a release (the window lost the focus, the input was
+     *  cancelled): the widget gets MouseCaptureLostEvent. Done by the context itself when that widget is hidden or disabled
+     *  or when a layer above takes the input. The reason (optional) is what the user action log says.
+     */
+    void CancelPointerCapture( const char* reason = GUCEF_NULL );
 
     void InjectKey( INPUT::KeyCode keyCode, bool down, UInt32 modifiers );
 
@@ -417,13 +442,28 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     /** The driver's handler for a widget type, the type chain is searched by the context */
     virtual CWidgetHandler* GetWidgetHandler( const CString& widgetType );
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual CGUIContext* AsGUIContext( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 
     friend class CWidget;
+
+    typedef CORE::CTEventHandlerFunctor< CGUIContext > TEventCallback;
+
+    /** The window context wants the layers drawn */
+    void OnWindowRedraw( CORE::CNotifier* notifier    ,
+                         const CORE::CEvent& eventId  ,
+                         CORE::CICloneable* eventData );
+
+    /** The window context changed size */
+    void OnWindowSize( CORE::CNotifier* notifier    ,
+                       const CORE::CEvent& eventId  ,
+                       CORE::CICloneable* eventData );
+
+    /** The window was activated or deactivated */
+    void OnWindowActivate( CORE::CNotifier* notifier    ,
+                           const CORE::CEvent& eventId  ,
+                           CORE::CICloneable* eventData );
 
     void OnWidgetDirty( CWidget* widget );
     void OnWidgetDestroyed( CWidget* widget );
@@ -433,13 +473,16 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     void FlushLayoutIfNeeded( void );
     void ResolveSize( const CWidget& widget, const CRect& area, Int32& width, Int32& height ) const;
     void LayoutChildren( CWidget& widget );
+    void LayoutScrollPanel( CScrollPanel& panel );
+    bool ScrollPanelByKey( INPUT::KeyCode keyCode, UInt32 modifiers );
+    void ShiftSubtree( CWidget& widget, Int32 dy );
     void PlaceWidget( CWidget& widget, const CRect& area, bool sizeFromArea );
     void ApplyLayoutResult( CWidget& widget, const CRect& rect );
-    void UpdatePointerTarget( void );
-    void ForgetInteraction( CWidget* widget );
+    /** Updates the hover for the pointer position; the widget at the position (what HitTest finds, also when it takes no input) */
+    CWidget* UpdatePointerTarget( void );
+    void ForgetInteraction( CWidget* widget, bool widgetIsIntact );
     void ProcessPendingDestroys( void );
     CWidget* GetKeyboardTarget( void ) const;
-    bool StyleMatches( const CORE::CDataNode& style, const CWidget& widget, bool ignoreState, Int32& score ) const;
     void SetHovered( CWidget* widget );
     void DispatchPointer( CWidget* target, const CORE::CEvent& eventId, TMouseButton button, UInt32 clickCount );
     bool AcceptsInput( const CWidget* widget ) const;
@@ -447,6 +490,7 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     CWidget* GetRootOf( CWidget* widget ) const;
     void CollectFocusable( CWidget* widget, TWidgetVector& focusable ) const;
     void FlushWidget( CWidget& widget );
+    void ApplyPropertyToHandler( CWidget& widget, CWidgetHandler& handler, const CString& name, const CString& value );
     void MarkThemeDependentDirty( CWidget& widget );
 
     private:
@@ -454,9 +498,50 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     CGUIContext( const CGUIContext& src );
     CGUIContext& operator=( const CGUIContext& src );
 
+    /** Keeps the widgets that observers run for alive while an event is dispatched, see the implementation */
+    class CDispatchScope;
+    friend class CDispatchScope;
+
     typedef GUCEF::map< CString, TImageEntry > TImageMap;
     typedef GUCEF::map< CString, TBitmapFontPtr > TFontMap;
     typedef GUCEF::map< CString, CWidgetHandler* > THandlerCache;
+
+    /** A property a style of the theme sets */
+    struct SThemeProperty
+    {
+        EWidgetProperty property;
+        CString name;
+        CWidgetPropertyValue value;
+    };
+
+    /** A style of the theme with the readings of its attributes */
+    struct SThemeStyle
+    {
+        CString type;
+        CString styleClass;
+        CString name;
+        bool hasState;
+        GUCEF::vector< UInt32 > stateFlags;                 /**< CWidget::EState flags of the state names; 0 for a name that is none */
+        GUCEF::vector< SThemeProperty > properties;
+
+        SThemeStyle( void );
+    };
+
+    /** Where a style of the index sets a property: the style and the (last) mention of the property in it */
+    struct SThemeIndexEntry
+    {
+        UInt32 style;
+        UInt32 property;
+    };
+
+    typedef GUCEF::vector< SThemeIndexEntry > TThemeIndexVector;
+
+    /** The styles of the theme by the property they set, in the order of the theme: a property that no style sets is found without looking at a style */
+    typedef GUCEF::map< CString, TThemeIndexVector > TThemeCustomIndex;
+
+    bool StyleMatches( const SThemeStyle& style, const CWidget& widget, bool ignoreState, Int32& score, UInt32& widgetState, bool& widgetStateKnown ) const;
+    const CWidgetPropertyValue* FindThemeValue( const CWidget& widget, const TThemeIndexVector& index ) const;
+    void CompileTheme( void );
 
     CGUIDriver* m_driver;
     TWindowContextPtr m_windowContext;
@@ -470,6 +555,10 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     TFontMap m_fonts;
     THandlerCache m_handlerCache;
     CORE::CDataNode m_theme;
+    GUCEF::vector< SThemeStyle > m_themeStyles;
+    GUCEF::vector< UInt32 > m_themeStateStyles;
+    TThemeIndexVector m_themeIndex[ EWidgetProperty_Count ];
+    TThemeCustomIndex m_themeCustomIndex;
     UInt32 m_logicalWidth;
     UInt32 m_logicalHeight;
     UInt32 m_renderScale;
@@ -488,6 +577,7 @@ class GUCEF_GUI_PUBLIC_CPP CGUIContext : public CIGUIContext                ,
     CWidget* m_hovered;
     CWidget* m_pressed;
     TMouseButton m_pressedButton;
+    UInt32 m_pressedMoveCount;
     CWidget* m_focus;
     CWidget* m_popup;
     CWidget* m_lastClickTarget;

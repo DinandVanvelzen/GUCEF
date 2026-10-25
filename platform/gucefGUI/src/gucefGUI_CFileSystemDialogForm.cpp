@@ -321,7 +321,8 @@ CFileSystemDialogForm::CFileSystemDialogForm( EMode mode, CIGUIContext* context 
 {GUCEF_TRACE;
 
     RegisterEvents();
-    SubscribeTo( &m_messageBox, CMessageBoxForm::ClosedEvent );
+    TEventCallback messageBoxClosedCallback( this, &CFileSystemDialogForm::OnMessageBoxClosed );
+    SubscribeTo( &m_messageBox, CMessageBoxForm::ClosedEvent, messageBoxClosedCallback );
     if ( MODE_OPEN_DIRECTORY == mode || MODE_SAVE_DIRECTORY == mode )
         m_options.mustExist = MODE_OPEN_DIRECTORY == mode;
 }
@@ -331,8 +332,8 @@ CFileSystemDialogForm::CFileSystemDialogForm( EMode mode, CIGUIContext* context 
 CFileSystemDialogForm::~CFileSystemDialogForm()
 {GUCEF_TRACE;
 
-    StopSearch();
     UnsubscribeAllFromObserver();
+    StopSearch();
     CGUIContext* context = GetGUIContext();
     if ( GUCEF_NULL != m_contextMenu && GUCEF_NULL != context )
         context->DestroyWidget( m_contextMenu );
@@ -547,8 +548,8 @@ CFileSystemDialogForm::GetChoice( const CString& id )
         if ( GUCEF_NULL == widget )
             return CString::Empty;
         if ( m_choices[ i ].options.empty() )
-            return CORE::BoolToString( widget->GetBoolProperty( "Checked" ) );
-        CCombobox* list = dynamic_cast< CCombobox* >( widget );
+            return CORE::BoolToString( widget->GetBoolProperty( EWidgetProperty_Checked ) );
+        CCombobox* list = CWidget::As< CCombobox >( widget );
         return GUCEF_NULL != list ? list->GetText() : CString::Empty;
     }
     return CString::Empty;
@@ -569,10 +570,10 @@ CFileSystemDialogForm::SetChoice( const CString& id, const CString& value )
             return;
         if ( m_choices[ i ].options.empty() )
         {
-            widget->SetProperty( "Checked", CORE::BoolToString( CORE::StringToBool( value, false ) ) );
+            widget->SetProperty( EWidgetProperty_Checked, CORE::BoolToString( CORE::StringToBool( value, false ) ) );
             return;
         }
-        CCombobox* list = dynamic_cast< CCombobox* >( widget );
+        CCombobox* list = CWidget::As< CCombobox >( widget );
         for ( UInt32 o=0; GUCEF_NULL != list && o<(UInt32)m_choices[ i ].options.size(); ++o )
             if ( m_choices[ i ].options[ o ] == value )
                 list->SetSelectedIndex( (Int32) o );
@@ -588,7 +589,7 @@ CFileSystemDialogForm::BuildLayout( CORE::CDataNode& layout )
 
     const bool fileMode = IsFileMode();
     CORE::CDataNode* window = CFormLayout::AddWidgetNode( layout, "Window", "FileSystemDialog", "0.05,0 0.05,0", "0.9,0 0.9,0" );
-    CFormLayout::SetWidgetNodeProperty( *window, "Title", m_options.title );
+    CFormLayout::SetWidgetNodeProperty( *window, EWidgetProperty_Title, m_options.title );
 
     // the tool bar: back, forward, up, the path, the search
     struct SButtonSpec { const char* name; const char* text; const char* position; const char* size; };
@@ -598,44 +599,44 @@ CFileSystemDialogForm::BuildLayout( CORE::CDataNode& layout )
     for ( UInt32 i=0; i<sizeof( toolButtons ) / sizeof( toolButtons[ 0 ] ); ++i )
     {
         CORE::CDataNode* button = CFormLayout::AddWidgetNode( *window, "Button", toolButtons[ i ].name, toolButtons[ i ].position, toolButtons[ i ].size );
-        CFormLayout::SetWidgetNodeProperty( *button, "Text", toolButtons[ i ].text );
+        CFormLayout::SetWidgetNodeProperty( *button, EWidgetProperty_Text, toolButtons[ i ].text );
     }
     CFormLayout::AddWidgetNode( *window, "Editbox", "Path", "0,248 0,48", "1,-834 0,34" );
     CORE::CDataNode* searchLabel = CFormLayout::AddWidgetNode( *window, "Label", "SearchLabel", "1,-576 0,52", "0,64 0,28" );
-    CFormLayout::SetWidgetNodeProperty( *searchLabel, "Text", "Search" );
+    CFormLayout::SetWidgetNodeProperty( *searchLabel, EWidgetProperty_Text, "Search" );
     CFormLayout::AddWidgetNode( *window, "Editbox", "Search", "1,-508 0,48", "0,200 0,34" );
     CORE::CDataNode* subfolders = CFormLayout::AddWidgetNode( *window, "Checkbox", "SearchSubfolders", "1,-300 0,48", "0,156 0,34" );
-    CFormLayout::SetWidgetNodeProperty( *subfolders, "Text", "Subfolders" );
+    CFormLayout::SetWidgetNodeProperty( *subfolders, EWidgetProperty_Text, "Subfolders" );
     CORE::CDataNode* hidden = CFormLayout::AddWidgetNode( *window, "Checkbox", "ShowHidden", "1,-136 0,48", "0,120 0,34" );
-    CFormLayout::SetWidgetNodeProperty( *hidden, "Text", "Hidden" );
+    CFormLayout::SetWidgetNodeProperty( *hidden, EWidgetProperty_Text, "Hidden" );
 
     // the roots and the places on the left
     CORE::CDataNode* rootsLabel = CFormLayout::AddWidgetNode( *window, "Label", "RootsLabel", "0,16 0,94", "0,240 0,26" );
-    CFormLayout::SetWidgetNodeProperty( *rootsLabel, "Text", "Locations" );
+    CFormLayout::SetWidgetNodeProperty( *rootsLabel, EWidgetProperty_Text, "Locations" );
     CFormLayout::AddWidgetNode( *window, "Listbox", "Roots", "0,16 0,122", "0,240 0.35,-60" );
     CORE::CDataNode* placesLabel = CFormLayout::AddWidgetNode( *window, "Label", "PlacesLabel", "0,16 0.35,70", "0,240 0,26" );
-    CFormLayout::SetWidgetNodeProperty( *placesLabel, "Text", "Places" );
+    CFormLayout::SetWidgetNodeProperty( *placesLabel, EWidgetProperty_Text, "Places" );
     CFormLayout::AddWidgetNode( *window, "Listbox", "Places", "0,16 0.35,98", "0,240 0.65,-264" );
 
     // the folder
     CORE::CDataNode* entries = CFormLayout::AddWidgetNode( *window, "GridView", "Entries", "0,272 0,94", "1,-288 1,-288" );
-    CFormLayout::SetWidgetNodeProperty( *entries, "Columns", "Name\nSize\nType\nModified" );
-    CFormLayout::SetWidgetNodeProperty( *entries, "MultiSelect", CORE::BoolToString( m_options.multiSelect && !IsSaveMode() ) );
+    CFormLayout::SetWidgetNodeProperty( *entries, EWidgetProperty_Columns, "Name\nSize\nType\nModified" );
+    CFormLayout::SetWidgetNodeProperty( *entries, EWidgetProperty_MultiSelect, CORE::BoolToString( m_options.multiSelect && !IsSaveMode() ) );
     CFormLayout::AddWidgetNode( *window, "Label", "Status", "0,272 1,-188", "1,-288 0,26" );
 
     // the name of what is chosen, and the file types
     CORE::CDataNode* nameLabel = CFormLayout::AddWidgetNode( *window, "Label", "NameLabel", "0,16 1,-140", "0,120 0,28" );
-    CFormLayout::SetWidgetNodeProperty( *nameLabel, "Text", fileMode ? "File name:" : "Folder:" );
+    CFormLayout::SetWidgetNodeProperty( *nameLabel, EWidgetProperty_Text, fileMode ? "File name:" : "Folder:" );
     CFormLayout::AddWidgetNode( *window, "Editbox", "Name", "0,140 1,-144", fileMode ? "1,-480 0,34" : "1,-156 0,34" );
     if ( fileMode )
     {
         CORE::CDataNode* types = CFormLayout::AddWidgetNode( *window, "Combobox", "FileTypes", "1,-328 1,-144", "0,312 0,34" );
-        CFormLayout::SetWidgetNodeProperty( *types, "DropDownRows", "8" );
+        CFormLayout::SetWidgetNodeProperty( *types, EWidgetProperty_DropDownRows, "8" );
     }
 
     // the buttons, and the app's choices between the new folder button and them
     CORE::CDataNode* newFolder = CFormLayout::AddWidgetNode( *window, "Button", "NewFolder", "0,16 1,-82", "0,140 0,38" );
-    CFormLayout::SetWidgetNodeProperty( *newFolder, "Text", "New folder" );
+    CFormLayout::SetWidgetNodeProperty( *newFolder, EWidgetProperty_Text, "New folder" );
     Int32 x = 172;
     for ( UInt32 i=0; i<(UInt32)m_choices.size(); ++i )
     {
@@ -643,31 +644,31 @@ CFileSystemDialogForm::BuildLayout( CORE::CDataNode& layout )
         if ( m_choices[ i ].options.empty() )
         {
             CORE::CDataNode* box = CFormLayout::AddWidgetNode( *window, "Checkbox", name, "0," + CORE::Int32ToString( x ) + " 1,-80", "0,200 0,34" );
-            CFormLayout::SetWidgetNodeProperty( *box, "Text", m_choices[ i ].label );
+            CFormLayout::SetWidgetNodeProperty( *box, EWidgetProperty_Text, m_choices[ i ].label );
             x += 212;
         }
         else
         {
             CORE::CDataNode* label = CFormLayout::AddWidgetNode( *window, "Label", "ChoiceLabel" + CORE::UInt32ToString( i ), "0," + CORE::Int32ToString( x ) + " 1,-76", "0,120 0,28" );
-            CFormLayout::SetWidgetNodeProperty( *label, "Text", m_choices[ i ].label );
+            CFormLayout::SetWidgetNodeProperty( *label, EWidgetProperty_Text, m_choices[ i ].label );
             CORE::CDataNode* list = CFormLayout::AddWidgetNode( *window, "Combobox", name, "0," + CORE::Int32ToString( x + 124 ) + " 1,-80", "0,180 0,34" );
             CString items;
             for ( UInt32 o=0; o<(UInt32)m_choices[ i ].options.size(); ++o )
                 items += ( o > 0 ? "\n" : "" ) + m_choices[ i ].options[ o ];
-            CFormLayout::SetWidgetNodeProperty( *list, "Items", items );
+            CFormLayout::SetWidgetNodeProperty( *list, EWidgetProperty_Items, items );
             x += 316;
         }
     }
     if ( MODE_OPEN_FILE == m_mode && m_options.acceptDirectoriesToo )
     {
         CORE::CDataNode* openFolder = CFormLayout::AddWidgetNode( *window, "Button", "OpenFolder", "1,-424 1,-82", "0,160 0,38" );
-        CFormLayout::SetWidgetNodeProperty( *openFolder, "Text", "Open folder" );
+        CFormLayout::SetWidgetNodeProperty( *openFolder, EWidgetProperty_Text, "Open folder" );
     }
     CORE::CDataNode* accept = CFormLayout::AddWidgetNode( *window, "Button", "Accept", "1,-252 1,-82", "0,112 0,38" );
-    CFormLayout::SetWidgetNodeProperty( *accept, "Text", m_options.acceptLabel );
-    CFormLayout::SetWidgetNodeProperty( *accept, "StyleClass", "Primary" );
+    CFormLayout::SetWidgetNodeProperty( *accept, EWidgetProperty_Text, m_options.acceptLabel );
+    CFormLayout::SetWidgetNodeProperty( *accept, EWidgetProperty_StyleClass, "Primary" );
     CORE::CDataNode* cancel = CFormLayout::AddWidgetNode( *window, "Button", "Cancel", "1,-128 1,-82", "0,112 0,38" );
-    CFormLayout::SetWidgetNodeProperty( *cancel, "Text", "Cancel" );
+    CFormLayout::SetWidgetNodeProperty( *cancel, EWidgetProperty_Text, "Cancel" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -693,57 +694,125 @@ CFileSystemDialogForm::OnPostLayoutLoad( void )
 
     CFormEx::OnPostLayoutLoad();
 
-    const char* buttons[] = { "Back", "Forward", "Up", "NewFolder", "OpenFolder", "Accept", "Cancel" };
-    for ( UInt32 i=0; i<sizeof( buttons ) / sizeof( buttons[ 0 ] ); ++i )
-    {
-        CWidget* button = GetWidget( buttons[ i ] );
-        if ( GUCEF_NULL != button )
-            SubscribeTo( button, CWidget::ActivatedEvent );
-    }
-    CWidget* widget = GetWidget( "Path" );
+    // every widget the dialog listens to is subscribed to where it is looked up: the widgets of a layout that is loaded again are new
+    CWidget* widget = GetWidget( "Back" );
     if ( GUCEF_NULL != widget )
-        SubscribeTo( widget, CEditbox::TextEnteredEvent );
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnBackActivated );
+        SubscribeTo( widget, CWidget::ActivatedEvent, callback );
+    }
+    widget = GetWidget( "Forward" );
+    if ( GUCEF_NULL != widget )
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnForwardActivated );
+        SubscribeTo( widget, CWidget::ActivatedEvent, callback );
+    }
+    widget = GetWidget( "Up" );
+    if ( GUCEF_NULL != widget )
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnUpActivated );
+        SubscribeTo( widget, CWidget::ActivatedEvent, callback );
+    }
+    widget = GetWidget( "NewFolder" );
+    if ( GUCEF_NULL != widget )
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnNewFolderActivated );
+        SubscribeTo( widget, CWidget::ActivatedEvent, callback );
+    }
+    widget = GetWidget( "OpenFolder" );
+    if ( GUCEF_NULL != widget )
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnOpenFolderActivated );
+        SubscribeTo( widget, CWidget::ActivatedEvent, callback );
+    }
+    widget = GetWidget( "Accept" );
+    if ( GUCEF_NULL != widget )
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnAcceptActivated );
+        SubscribeTo( widget, CWidget::ActivatedEvent, callback );
+    }
+    widget = GetWidget( "Cancel" );
+    if ( GUCEF_NULL != widget )
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnCancelActivated );
+        SubscribeTo( widget, CWidget::ActivatedEvent, callback );
+    }
+    widget = GetWidget( "Path" );
+    if ( GUCEF_NULL != widget )
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnPathTextEntered );
+        SubscribeTo( widget, CEditbox::TextEnteredEvent, callback );
+    }
     widget = GetWidget( "Name" );
     if ( GUCEF_NULL != widget )
-        SubscribeTo( widget, CEditbox::TextEnteredEvent );
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnNameTextEntered );
+        SubscribeTo( widget, CEditbox::TextEnteredEvent, callback );
+    }
     widget = GetWidget( "Search" );
     if ( GUCEF_NULL != widget )
-        SubscribeTo( widget, CEditbox::TextChangedEvent );
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnSearchTextChanged );
+        SubscribeTo( widget, CEditbox::TextChangedEvent, callback );
+    }
     widget = GetWidget( "SearchSubfolders" );
     if ( GUCEF_NULL != widget )
     {
-        SubscribeTo( widget, CCheckbox::BoxCheckedEvent );
-        SubscribeTo( widget, CCheckbox::BoxUncheckedEvent );
+        TEventCallback checkedCallback( this, &CFileSystemDialogForm::OnSearchSubfoldersChecked );
+        SubscribeTo( widget, CCheckbox::BoxCheckedEvent, checkedCallback );
+        TEventCallback uncheckedCallback( this, &CFileSystemDialogForm::OnSearchSubfoldersUnchecked );
+        SubscribeTo( widget, CCheckbox::BoxUncheckedEvent, uncheckedCallback );
     }
     widget = GetWidget( "ShowHidden" );
     if ( GUCEF_NULL != widget )
     {
-        SubscribeTo( widget, CCheckbox::BoxCheckedEvent );
-        SubscribeTo( widget, CCheckbox::BoxUncheckedEvent );
+        TEventCallback checkedCallback( this, &CFileSystemDialogForm::OnShowHiddenChecked );
+        SubscribeTo( widget, CCheckbox::BoxCheckedEvent, checkedCallback );
+        TEventCallback uncheckedCallback( this, &CFileSystemDialogForm::OnShowHiddenUnchecked );
+        SubscribeTo( widget, CCheckbox::BoxUncheckedEvent, uncheckedCallback );
     }
     widget = GetWidget( "Roots" );
     if ( GUCEF_NULL != widget )
-        SubscribeTo( widget, CListbox::SelectionChangedEvent );
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnRootsSelectionChanged );
+        SubscribeTo( widget, CListbox::SelectionChangedEvent, callback );
+    }
     widget = GetWidget( "Places" );
     if ( GUCEF_NULL != widget )
-        SubscribeTo( widget, CListbox::SelectionChangedEvent );
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnPlacesSelectionChanged );
+        SubscribeTo( widget, CListbox::SelectionChangedEvent, callback );
+    }
     widget = GetWidget( "FileTypes" );
     if ( GUCEF_NULL != widget )
-        SubscribeTo( widget, CWidget::ValueChangedEvent );
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnFileTypesValueChanged );
+        SubscribeTo( widget, CWidget::ValueChangedEvent, callback );
+    }
     widget = GetWidget( "Entries" );
     if ( GUCEF_NULL != widget )
     {
-        SubscribeTo( widget, CGridView::SelectionChangedEvent );
-        SubscribeTo( widget, CGridView::ColumnClickedEvent );
-        SubscribeTo( widget, CWidget::ItemActivatedEvent );
-        SubscribeTo( widget, CWidget::MouseClickEvent );
+        TEventCallback selectionCallback( this, &CFileSystemDialogForm::OnEntriesSelectionChanged );
+        SubscribeTo( widget, CGridView::SelectionChangedEvent, selectionCallback );
+        TEventCallback columnCallback( this, &CFileSystemDialogForm::OnEntriesColumnClicked );
+        SubscribeTo( widget, CGridView::ColumnClickedEvent, columnCallback );
+        TEventCallback itemCallback( this, &CFileSystemDialogForm::OnEntriesItemActivated );
+        SubscribeTo( widget, CWidget::ItemActivatedEvent, itemCallback );
+        TEventCallback clickCallback( this, &CFileSystemDialogForm::OnEntriesMouseClick );
+        SubscribeTo( widget, CWidget::MouseClickEvent, clickCallback );
     }
     CWidget* root = GetRootWidget();
     if ( GUCEF_NULL != root )
-        SubscribeTo( root, CWidget::NavigationEvent );
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnNavigation );
+        SubscribeTo( root, CWidget::NavigationEvent, callback );
+    }
     CGUIContext* context = GetGUIContext();
     if ( GUCEF_NULL != context )
-        SubscribeTo( context, CGUIContext::FrameStartedEvent );
+    {
+        TEventCallback callback( this, &CFileSystemDialogForm::OnFrameStarted );
+        SubscribeTo( context, CGUIContext::FrameStartedEvent, callback );
+    }
 
     // the file types
     CCombobox* types = GetWidgetAs< CCombobox >( "FileTypes" );
@@ -809,13 +878,13 @@ CFileSystemDialogForm::Open( void )
     if ( GUCEF_NULL == GetRootWidget() && !Build() )
         return false;
 
-    GetRootWidget()->SetProperty( "Title", m_options.title );
+    GetRootWidget()->SetProperty( EWidgetProperty_Title, m_options.title );
     CWidget* accept = GetWidget( "Accept" );
     if ( GUCEF_NULL != accept )
-        accept->SetProperty( "Text", m_options.acceptLabel );
+        accept->SetProperty( EWidgetProperty_Text, m_options.acceptLabel );
     CWidget* hidden = GetWidget( "ShowHidden" );
     if ( GUCEF_NULL != hidden )
-        hidden->SetProperty( "Checked", CORE::BoolToString( m_options.showHidden ) );
+        hidden->SetProperty( EWidgetProperty_Checked, CORE::BoolToString( m_options.showHidden ) );
 
     // where to start
     UInt32 root = 0;
@@ -867,7 +936,7 @@ CFileSystemDialogForm::GoTo( UInt32 root, const CString& directory, bool remembe
     m_updatingWidgets = true;
     CWidget* path = GetWidget( "Path" );
     if ( GUCEF_NULL != path )
-        path->SetProperty( "Text", m_currentDirectory );
+        path->SetProperty( EWidgetProperty_Text, m_currentDirectory );
     CListbox* roots = GetWidgetAs< CListbox >( "Roots" );
     if ( GUCEF_NULL != roots && roots->GetSelectedIndex() != (Int32) root )
         roots->SetSelectedIndex( (Int32) root );
@@ -1178,11 +1247,11 @@ CFileSystemDialogForm::ShowEntries( void )
             widths.push_back( width * 13 / 100 );
             widths.push_back( width * 15 / 100 );
             widths.push_back( width - widths[ 0 ] - widths[ 1 ] - widths[ 2 ] );
-            grid->SetIntListProperty( "ColumnWidths", widths );
+            grid->SetIntListProperty( EWidgetProperty_ColumnWidths, widths );
         }
         grid->SetRows( rows );
-        grid->SetIntProperty( "SortColumn", m_sortColumn );
-        grid->SetBoolProperty( "SortAscending", m_sortAscending );
+        grid->SetIntProperty( EWidgetProperty_SortColumn, m_sortColumn );
+        grid->SetBoolProperty( EWidgetProperty_SortAscending, m_sortAscending );
         m_updatingWidgets = false;
     }
     UpdateStatus();
@@ -1220,7 +1289,7 @@ CFileSystemDialogForm::UpdateStatus( void )
             text += ( i > 0 ? ", " : "" ) + m_options.filesToSave[ i ] + ( exists ? " (exists)" : "" );
         }
     }
-    status->SetProperty( "Text", text );
+    status->SetProperty( EWidgetProperty_Text, text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1356,11 +1425,11 @@ CFileSystemDialogForm::SetSearch( const CString& glob, bool includeSubfolders )
 
     m_updatingWidgets = true;
     CWidget* search = GetWidget( "Search" );
-    if ( GUCEF_NULL != search && search->GetProperty( "Text" ) != glob )
-        search->SetProperty( "Text", glob );
+    if ( GUCEF_NULL != search && search->GetProperty( EWidgetProperty_Text ) != glob )
+        search->SetProperty( EWidgetProperty_Text, glob );
     CWidget* subfolders = GetWidget( "SearchSubfolders" );
-    if ( GUCEF_NULL != subfolders && subfolders->GetBoolProperty( "Checked" ) != includeSubfolders )
-        subfolders->SetProperty( "Checked", CORE::BoolToString( includeSubfolders ) );
+    if ( GUCEF_NULL != subfolders && subfolders->GetBoolProperty( EWidgetProperty_Checked ) != includeSubfolders )
+        subfolders->SetProperty( EWidgetProperty_Checked, CORE::BoolToString( includeSubfolders ) );
     m_updatingWidgets = false;
 
     if ( !glob.IsNULLOrEmpty() && includeSubfolders )
@@ -1569,7 +1638,7 @@ CFileSystemDialogForm::SetName( const CString& name )
     if ( GUCEF_NULL != field )
     {
         m_updatingWidgets = true;
-        field->SetProperty( "Text", name );
+        field->SetProperty( EWidgetProperty_Text, name );
         m_updatingWidgets = false;
     }
 }
@@ -1581,7 +1650,7 @@ CFileSystemDialogForm::GetName( void )
 {GUCEF_TRACE;
 
     CWidget* field = GetWidget( "Name" );
-    return GUCEF_NULL != field ? field->GetProperty( "Text" ) : CString::Empty;
+    return GUCEF_NULL != field ? field->GetProperty( EWidgetProperty_Text ) : CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1662,7 +1731,7 @@ CFileSystemDialogForm::OnNameEntered( void )
         // a glob in the name field is a search, as in the dialogs of Windows and Qt
         CWidget* subfolders = GetWidget( "SearchSubfolders" );
         SetName( CString::Empty );
-        SetSearch( name, GUCEF_NULL != subfolders && subfolders->GetBoolProperty( "Checked" ) );
+        SetSearch( name, GUCEF_NULL != subfolders && subfolders->GetBoolProperty( EWidgetProperty_Checked ) );
         return;
     }
     Accept();
@@ -1677,7 +1746,7 @@ CFileSystemDialogForm::OnPathEntered( void )
     CWidget* field = GetWidget( "Path" );
     if ( GUCEF_NULL == field )
         return;
-    CString path = field->GetProperty( "Text" );
+    CString path = field->GetProperty( EWidgetProperty_Text );
     if ( path.IsNULLOrEmpty() )
         return;
 
@@ -1731,7 +1800,8 @@ CFileSystemDialogForm::OnContextMenu( Int32 x, Int32 y )
         m_contextMenu = static_cast< CPopupMenu* >( context->CreateWidget( "PopupMenu", "FileSystemDialog#Menu", GUCEF_NULL ) );
         if ( GUCEF_NULL == m_contextMenu )
             return;
-        SubscribeTo( m_contextMenu, CWidget::ItemActivatedEvent );
+        TEventCallback itemCallback( this, &CFileSystemDialogForm::OnContextMenuItemActivated );
+        SubscribeTo( m_contextMenu, CWidget::ItemActivatedEvent, itemCallback );
     }
     CPopupMenu::TStringVector items;
     CORE::IFileSystemAccess* access = GetCurrentAccess();
@@ -2220,146 +2290,369 @@ CFileSystemDialogForm::GetSelection( void ) const
 
 /*-------------------------------------------------------------------------*/
 
-void
-CFileSystemDialogForm::OnNotify( CORE::CNotifier* notifier    ,
-                                 const CORE::CEvent& eventId  ,
-                                 CORE::CICloneable* eventData )
+bool
+CFileSystemDialogForm::IsListening( void ) const
 {GUCEF_TRACE;
 
-    if ( CMessageBoxForm::ClosedEvent == eventId )
-    {
-        OnAnswer( m_messageBox.GetResult() );
+    return m_open && !m_updatingWidgets;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnMessageBoxClosed( CORE::CNotifier* notifier    ,
+                                           const CORE::CEvent& eventId  ,
+                                           CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    OnAnswer( m_messageBox.GetResult() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnFrameStarted( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_searching )
+        PollSearch();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnBackActivated( CORE::CNotifier* notifier    ,
+                                        const CORE::CEvent& eventId  ,
+                                        CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_open )
+        GoBack();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnForwardActivated( CORE::CNotifier* notifier    ,
+                                           const CORE::CEvent& eventId  ,
+                                           CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_open )
+        GoForward();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnUpActivated( CORE::CNotifier* notifier    ,
+                                      const CORE::CEvent& eventId  ,
+                                      CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_open )
+        GoUp();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnNewFolderActivated( CORE::CNotifier* notifier    ,
+                                             const CORE::CEvent& eventId  ,
+                                             CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_open )
+        OnContextMenuItem( MenuNewFolder );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnOpenFolderActivated( CORE::CNotifier* notifier    ,
+                                              const CORE::CEvent& eventId  ,
+                                              CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_open )
+        AcceptCurrentDirectory();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnAcceptActivated( CORE::CNotifier* notifier    ,
+                                          const CORE::CEvent& eventId  ,
+                                          CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_open )
+        Accept();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnCancelActivated( CORE::CNotifier* notifier    ,
+                                          const CORE::CEvent& eventId  ,
+                                          CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_open )
+        Cancel();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnContextMenuItemActivated( CORE::CNotifier* notifier    ,
+                                                   const CORE::CEvent& eventId  ,
+                                                   CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
         return;
-    }
-    if ( CGUIContext::FrameStartedEvent == eventId )
-    {
-        if ( m_searching )
-            PollSearch();
+    CItemEventData* item = static_cast< CItemEventData* >( eventData );
+    CGUIContext* context = GetGUIContext();
+    if ( GUCEF_NULL != context && context->GetPopup() == m_contextMenu )
+        context->ClosePopup();
+    OnContextMenuItem( item->item );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnEntriesItemActivated( CORE::CNotifier* notifier    ,
+                                               const CORE::CEvent& eventId  ,
+                                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( !m_open )
         return;
-    }
-    if ( !m_open && notifier != m_contextMenu )
-    {
-        CFormEx::OnNotify( notifier, eventId, eventData );
+    CRoutedEventData* routed = static_cast< CRoutedEventData* >( eventData );
+    if ( GUCEF_NULL == routed || EVENTPHASE_TUNNEL != routed->phase )
+        OnRowsActivated();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnEntriesMouseClick( CORE::CNotifier* notifier    ,
+                                            const CORE::CEvent& eventId  ,
+                                            CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( !m_open || GUCEF_NULL == eventData )
         return;
-    }
-    if ( CWidget::ActivatedEvent == eventId )
-    {
-        if ( notifier == GetWidget( "Back" ) )          GoBack();
-        else if ( notifier == GetWidget( "Forward" ) )  GoForward();
-        else if ( notifier == GetWidget( "Up" ) )       GoUp();
-        else if ( notifier == GetWidget( "NewFolder" ) ) OnContextMenuItem( MenuNewFolder );
-        else if ( notifier == GetWidget( "OpenFolder" ) ) AcceptCurrentDirectory();
-        else if ( notifier == GetWidget( "Accept" ) )   Accept();
-        else if ( notifier == GetWidget( "Cancel" ) )   Cancel();
-        return;
-    }
-    if ( CWidget::ItemActivatedEvent == eventId )
-    {
-        if ( notifier == m_contextMenu && GUCEF_NULL != eventData )
-        {
-            CItemEventData* item = static_cast< CItemEventData* >( eventData );
-            CGUIContext* context = GetGUIContext();
-            if ( GUCEF_NULL != context && context->GetPopup() == m_contextMenu )
-                context->ClosePopup();
-            OnContextMenuItem( item->item );
-            return;
-        }
-        if ( notifier == GetWidget( "Entries" ) )
-        {
-            CRoutedEventData* routed = static_cast< CRoutedEventData* >( eventData );
-            if ( GUCEF_NULL == routed || EVENTPHASE_TUNNEL != routed->phase )
-                OnRowsActivated();
-        }
-        return;
-    }
-    if ( CWidget::MouseClickEvent == eventId && notifier == GetWidget( "Entries" ) && GUCEF_NULL != eventData )
-    {
-        CPointerEventData* pointer = static_cast< CPointerEventData* >( eventData );
-        if ( MOUSEBUTTON_RIGHT == pointer->button && EVENTPHASE_TUNNEL != pointer->phase )
-            OnContextMenu( pointer->x, pointer->y );
-        return;
-    }
-    if ( m_updatingWidgets )
-        return;
-    if ( CGridView::SelectionChangedEvent == eventId )
-    {
+    CPointerEventData* pointer = static_cast< CPointerEventData* >( eventData );
+    if ( MOUSEBUTTON_RIGHT == pointer->button && EVENTPHASE_TUNNEL != pointer->phase )
+        OnContextMenu( pointer->x, pointer->y );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnEntriesSelectionChanged( CORE::CNotifier* notifier    ,
+                                                  const CORE::CEvent& eventId  ,
+                                                  CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( IsListening() )
         OnSelectionChanged();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnEntriesColumnClicked( CORE::CNotifier* notifier    ,
+                                               const CORE::CEvent& eventId  ,
+                                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( !IsListening() || GUCEF_NULL == eventData )
         return;
-    }
-    if ( CGridView::ColumnClickedEvent == eventId && GUCEF_NULL != eventData )
-    {
-        CGridView::TColumnClickedEventData* column = static_cast< CGridView::TColumnClickedEventData* >( eventData );
-        Int32 clicked = (Int32) column->GetData().column;
-        m_sortAscending = clicked == m_sortColumn ? !m_sortAscending : true;
-        m_sortColumn = clicked;
-        SortEntries();
-        ShowEntries();
+    CGridView::TColumnClickedEventData* column = static_cast< CGridView::TColumnClickedEventData* >( eventData );
+    Int32 clicked = (Int32) column->GetData().column;
+    m_sortAscending = clicked == m_sortColumn ? !m_sortAscending : true;
+    m_sortColumn = clicked;
+    SortEntries();
+    ShowEntries();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnPathTextEntered( CORE::CNotifier* notifier    ,
+                                          const CORE::CEvent& eventId  ,
+                                          CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( IsListening() )
+        OnPathEntered();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnNameTextEntered( CORE::CNotifier* notifier    ,
+                                          const CORE::CEvent& eventId  ,
+                                          CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( IsListening() )
+        OnNameEntered();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnSearchTextChanged( CORE::CNotifier* notifier    ,
+                                            const CORE::CEvent& eventId  ,
+                                            CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( !IsListening() )
         return;
-    }
-    if ( CEditbox::TextEnteredEvent == eventId )
+    CWidget* search = GetWidget( "Search" );
+    CWidget* subfolders = GetWidget( "SearchSubfolders" );
+    if ( GUCEF_NULL != search )
+        SetSearch( search->GetProperty( EWidgetProperty_Text ), GUCEF_NULL != subfolders && subfolders->GetBoolProperty( EWidgetProperty_Checked ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::ApplySearchSubfolders( bool includeSubfolders )
+{GUCEF_TRACE;
+
+    CWidget* search = GetWidget( "Search" );
+    SetSearch( GUCEF_NULL != search ? search->GetProperty( EWidgetProperty_Text ) : CString::Empty, includeSubfolders );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnSearchSubfoldersChecked( CORE::CNotifier* notifier    ,
+                                                  const CORE::CEvent& eventId  ,
+                                                  CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( IsListening() )
+        ApplySearchSubfolders( true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnSearchSubfoldersUnchecked( CORE::CNotifier* notifier    ,
+                                                    const CORE::CEvent& eventId  ,
+                                                    CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( IsListening() )
+        ApplySearchSubfolders( false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::ApplyShowHidden( bool showHidden )
+{GUCEF_TRACE;
+
+    m_options.showHidden = showHidden;
+    ShowEntries();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnShowHiddenChecked( CORE::CNotifier* notifier    ,
+                                            const CORE::CEvent& eventId  ,
+                                            CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( IsListening() )
+        ApplyShowHidden( true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnShowHiddenUnchecked( CORE::CNotifier* notifier    ,
+                                              const CORE::CEvent& eventId  ,
+                                              CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( IsListening() )
+        ApplyShowHidden( false );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnRootsSelectionChanged( CORE::CNotifier* notifier    ,
+                                                const CORE::CEvent& eventId  ,
+                                                CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    CWidget* roots = GetWidget( "Roots" );
+    if ( !IsListening() || GUCEF_NULL == roots )
+        return;
+    Int32 index = roots->GetIntProperty( EWidgetProperty_SelectedIndex );
+    if ( index >= 0 && index < (Int32) m_roots.size() && (UInt32) index != m_currentRoot )
+        GoTo( (UInt32) index, m_roots[ index ].initialDirectory, true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnPlacesSelectionChanged( CORE::CNotifier* notifier    ,
+                                                 const CORE::CEvent& eventId  ,
+                                                 CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    CWidget* places = GetWidget( "Places" );
+    if ( IsListening() && GUCEF_NULL != places )
+        OnPlaceChosen( places->GetIntProperty( EWidgetProperty_SelectedIndex ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnFileTypesValueChanged( CORE::CNotifier* notifier    ,
+                                                const CORE::CEvent& eventId  ,
+                                                CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    CWidget* types = GetWidget( "FileTypes" );
+    if ( !IsListening() || GUCEF_NULL == types )
+        return;
+    Int32 selected = types->GetIntProperty( EWidgetProperty_SelectedIndex );
+    if ( selected >= 0 && (UInt32) selected != m_selectedFileType )
+        SetSelectedFileType( (UInt32) selected );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemDialogForm::OnNavigation( CORE::CNotifier* notifier    ,
+                                     const CORE::CEvent& eventId  ,
+                                     CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( !IsListening() || GUCEF_NULL == eventData )
+        return;
+    CNavigationEventData* navigation = static_cast< CNavigationEventData* >( eventData );
+    if ( NAVIGATION_CANCEL == navigation->direction && EVENTPHASE_TUNNEL != navigation->phase && !m_messageBox.IsOpen() )
     {
-        if ( notifier == GetWidget( "Path" ) )
-            OnPathEntered();
+        navigation->handled = true;
+        if ( m_searching )
+            StopSearch();
         else
-        if ( notifier == GetWidget( "Name" ) )
-            OnNameEntered();
-        return;
+            Cancel();
     }
-    if ( CEditbox::TextChangedEvent == eventId && notifier == GetWidget( "Search" ) )
-    {
-        CWidget* subfolders = GetWidget( "SearchSubfolders" );
-        SetSearch( GetWidget( "Search" )->GetProperty( "Text" ), GUCEF_NULL != subfolders && subfolders->GetBoolProperty( "Checked" ) );
-        return;
-    }
-    if ( CCheckbox::BoxCheckedEvent == eventId || CCheckbox::BoxUncheckedEvent == eventId )
-    {
-        if ( notifier == GetWidget( "SearchSubfolders" ) )
-        {
-            CWidget* search = GetWidget( "Search" );
-            SetSearch( GUCEF_NULL != search ? search->GetProperty( "Text" ) : CString::Empty, CCheckbox::BoxCheckedEvent == eventId );
-        }
-        else
-        if ( notifier == GetWidget( "ShowHidden" ) )
-        {
-            m_options.showHidden = CCheckbox::BoxCheckedEvent == eventId;
-            ShowEntries();
-        }
-        return;
-    }
-    if ( CListbox::SelectionChangedEvent == eventId )
-    {
-        if ( notifier == GetWidget( "Roots" ) )
-        {
-            Int32 index = GetWidgetAs< CListbox >( "Roots" )->GetSelectedIndex();
-            if ( index >= 0 && index < (Int32) m_roots.size() && (UInt32) index != m_currentRoot )
-                GoTo( (UInt32) index, m_roots[ index ].initialDirectory, true );
-        }
-        else
-        if ( notifier == GetWidget( "Places" ) )
-            OnPlaceChosen( GetWidgetAs< CListbox >( "Places" )->GetSelectedIndex() );
-        return;
-    }
-    if ( CWidget::ValueChangedEvent == eventId && notifier == GetWidget( "FileTypes" ) )
-    {
-        CCombobox* types = GetWidgetAs< CCombobox >( "FileTypes" );
-        if ( GUCEF_NULL != types && types->GetSelectedIndex() >= 0 && (UInt32) types->GetSelectedIndex() != m_selectedFileType )
-            SetSelectedFileType( (UInt32) types->GetSelectedIndex() );
-        return;
-    }
-    if ( CWidget::NavigationEvent == eventId && GUCEF_NULL != eventData )
-    {
-        CNavigationEventData* navigation = static_cast< CNavigationEventData* >( eventData );
-        if ( NAVIGATION_CANCEL == navigation->direction && EVENTPHASE_TUNNEL != navigation->phase && !m_messageBox.IsOpen() )
-        {
-            navigation->handled = true;
-            if ( m_searching )
-                StopSearch();
-            else
-                Cancel();
-        }
-        return;
-    }
-    CFormEx::OnNotify( notifier, eventId, eventData );
 }
 
 /*-------------------------------------------------------------------------*/

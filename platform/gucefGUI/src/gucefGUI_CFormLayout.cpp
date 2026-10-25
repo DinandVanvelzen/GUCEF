@@ -340,6 +340,17 @@ CFormLayout::AddWidgetNode( CORE::CDataNode& parentNode ,
 /*-------------------------------------------------------------------------*/
 
 void
+CFormLayout::SetWidgetNodeProperty( CORE::CDataNode& widgetNode, EWidgetProperty property, const CString& value )
+{GUCEF_TRACE;
+
+    if ( EWidgetProperty_Unknown == property || (UInt32) property >= (UInt32) EWidgetProperty_Count )
+        return;
+    SetWidgetNodeProperty( widgetNode, WidgetPropertyToString( property ), value );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CFormLayout::SetWidgetNodeProperty( CORE::CDataNode& widgetNode, const CString& name, const CString& value )
 {GUCEF_TRACE;
 
@@ -375,10 +386,10 @@ CFormLayout::Build( CGUIContext& context, CORE::CDataNode& widgetNode, CWidget* 
 
     CString position = widgetNode.GetAttributeValue( "position" ).AsString();
     if ( !position.IsNULLOrEmpty() )
-        widget->SetProperty( "Position", position );
+        widget->SetProperty( EWidgetProperty_Position, position );
     CString size = widgetNode.GetAttributeValue( "size" ).AsString();
     if ( !size.IsNULLOrEmpty() )
-        widget->SetProperty( "Size", size );
+        widget->SetProperty( EWidgetProperty_Size, size );
 
     CString driverName = GUCEF_NULL != context.GetDriver() ? context.GetDriver()->GetDriverName() : CString::Empty;
     CORE::CDataNode::iterator i = widgetNode.Begin();
@@ -435,11 +446,11 @@ CFormLayout::UpdateNode( const CWidget& widget, CORE::CDataNode& widgetNode, TWi
     widgetNode.SetAttribute( "name", widget.GetName() );
 
     CString value;
-    if ( widget.GetExplicitProperty( "Position", value ) )
+    if ( widget.GetExplicitProperty( EWidgetProperty_Position, value ) )
         widgetNode.SetAttribute( "position", value );
     else
         widgetNode.DelAttribute( "position" );
-    if ( widget.GetExplicitProperty( "Size", value ) && !value.IsNULLOrEmpty() )
+    if ( widget.GetExplicitProperty( EWidgetProperty_Size, value ) && !value.IsNULLOrEmpty() )
         widgetNode.SetAttribute( "size", value );
     else
         widgetNode.DelAttribute( "size" );

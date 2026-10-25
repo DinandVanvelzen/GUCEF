@@ -72,7 +72,7 @@ bool
 CGroupBox::SetCaption( const CString& caption )
 {GUCEF_TRACE;
 
-    return SetProperty( "Caption", caption );
+    return SetProperty( EWidgetProperty_Caption, caption );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -81,7 +81,7 @@ CString
 CGroupBox::GetCaption( void ) const
 {GUCEF_TRACE;
 
-    return GetProperty( "Caption" );
+    return GetProperty( EWidgetProperty_Caption );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -91,9 +91,9 @@ CGroupBox::GetCaptionHeight( void ) const
 {GUCEF_TRACE;
 
     CGUIContext* context = GetContext();
-    if ( GUCEF_NULL == context || GetProperty( "Caption" ).IsNULLOrEmpty() )
+    if ( GUCEF_NULL == context || GetProperty( EWidgetProperty_Caption ).IsNULLOrEmpty() )
         return 0;
-    return context->GetLineHeight( GetProperty( "Font" ) );
+    return context->GetLineHeight( GetProperty( EWidgetProperty_Font ) );
 }
 
 /*-------------------------------------------------------------------------*/

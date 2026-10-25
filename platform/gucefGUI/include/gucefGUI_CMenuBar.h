@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_GUI_CWIDGET_H
 #include "gucefGUI_CWidget.h"
 #define GUCEF_GUI_CWIDGET_H
@@ -79,17 +84,28 @@ class GUCEF_GUI_PUBLIC_CPP CMenuBar : public CWidget
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "MenuBar"; }
+
     static CWidget* Create( void );
 
     protected:
 
     virtual bool OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CMenuBar > TEventCallback;
+
+    /** An item of the menu that is open was chosen */
+    void OnPopupItemActivated( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData );
+
+    /** A form was hidden: the menu goes with it */
+    void OnFormHidden( CORE::CNotifier* notifier    ,
+                       const CORE::CEvent& eventId  ,
+                       CORE::CICloneable* eventData );
 
     CMenuBar( const CMenuBar& src );
     CMenuBar& operator=( const CMenuBar& src );

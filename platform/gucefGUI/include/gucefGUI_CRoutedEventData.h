@@ -40,6 +40,11 @@
 #define GUCEF_GUI_TYPES_H
 #endif /* GUCEF_GUI_TYPES_H ? */
 
+#ifndef GUCEF_GUI_EWIDGETPROPERTY_H
+#include "gucefGUI_EWidgetProperty.h"
+#define GUCEF_GUI_EWIDGETPROPERTY_H
+#endif /* GUCEF_GUI_EWIDGETPROPERTY_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -75,6 +80,21 @@ class GUCEF_GUI_PUBLIC_CPP CRoutedEventData : public MT::CICloneable
     virtual ~CRoutedEventData();
 
     virtual MT::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see MT::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
+
+    /**
+     *  The data as routed event data when it is one of the classes of this file that are routed, else NULL
+     *  (also for NULL); for the subclass itself use MT::CICloneable::CloneableAs()
+     */
+    static CRoutedEventData* FromCloneable( MT::CICloneable* data );
+    static const CRoutedEventData* FromCloneable( const MT::CICloneable* data );
+
+    /** Sets the position relative to the top left of the widget that is notified, for the data that has one; the others ignore it */
+    virtual void SetLocalOrigin( Int32 widgetLeft, Int32 widgetTop );
 };
 
 /*-------------------------------------------------------------------------*/
@@ -97,6 +117,13 @@ class GUCEF_GUI_PUBLIC_CPP CPointerEventData : public CRoutedEventData
     virtual ~CPointerEventData();
 
     virtual MT::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see MT::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
+
+    virtual void SetLocalOrigin( Int32 widgetLeft, Int32 widgetTop ) GUCEF_VIRTUAL_OVERRIDE;
 };
 
 /*-------------------------------------------------------------------------*/
@@ -116,6 +143,13 @@ class GUCEF_GUI_PUBLIC_CPP CWheelEventData : public CRoutedEventData
     virtual ~CWheelEventData();
 
     virtual MT::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see MT::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
+
+    virtual void SetLocalOrigin( Int32 widgetLeft, Int32 widgetTop ) GUCEF_VIRTUAL_OVERRIDE;
 };
 
 /*-------------------------------------------------------------------------*/
@@ -131,6 +165,11 @@ class GUCEF_GUI_PUBLIC_CPP CKeyEventData : public CRoutedEventData
     virtual ~CKeyEventData();
 
     virtual MT::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see MT::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
 };
 
 /*-------------------------------------------------------------------------*/
@@ -146,6 +185,11 @@ class GUCEF_GUI_PUBLIC_CPP CTextEventData : public CRoutedEventData
     virtual ~CTextEventData();
 
     virtual MT::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see MT::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
 };
 
 /*-------------------------------------------------------------------------*/
@@ -160,6 +204,11 @@ class GUCEF_GUI_PUBLIC_CPP CNavigationEventData : public CRoutedEventData
     virtual ~CNavigationEventData();
 
     virtual MT::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see MT::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
 };
 
 /*-------------------------------------------------------------------------*/
@@ -174,6 +223,11 @@ class GUCEF_GUI_PUBLIC_CPP CFocusEventData : public CRoutedEventData
     virtual ~CFocusEventData();
 
     virtual MT::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see MT::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
 };
 
 /*-------------------------------------------------------------------------*/
@@ -183,14 +237,51 @@ class GUCEF_GUI_PUBLIC_CPP CValueChangedEventData : public CRoutedEventData
 {
     public:
 
-    CString propertyName;
+    EWidgetProperty property;       /**< the standard property that changed; EWidgetProperty_Unknown for another property, which customPropertyName names */
+    CString customPropertyName;
     CString oldValue;
     CString newValue;
 
     CValueChangedEventData( void );
     virtual ~CValueChangedEventData();
 
+    /** The name of the property that changed, the same for a standard property as the id turned into text */
+    const CString& GetPropertyName( void ) const;
+
+    /** Sets the property by name: a standard name becomes its id */
+    void SetPropertyName( const CString& name );
+
     virtual MT::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see MT::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** The data of CWidget::PropertyChangedEvent: which property of the widget changed. Not routed, so no CRoutedEventData. */
+class GUCEF_GUI_PUBLIC_CPP CPropertyChangedEventData : public MT::CICloneable
+{
+    public:
+
+    EWidgetProperty property;       /**< the standard property that changed; EWidgetProperty_Unknown for another property, which customPropertyName names */
+    CString customPropertyName;
+
+    CPropertyChangedEventData( void );
+    explicit CPropertyChangedEventData( EWidgetProperty changedProperty );
+    explicit CPropertyChangedEventData( const CString& changedPropertyName );
+    virtual ~CPropertyChangedEventData();
+
+    const CString& GetPropertyName( void ) const;
+
+    virtual MT::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see MT::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
 };
 
 /*-------------------------------------------------------------------------*/
@@ -207,6 +298,11 @@ class GUCEF_GUI_PUBLIC_CPP CItemEventData : public CRoutedEventData
     virtual ~CItemEventData();
 
     virtual MT::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see MT::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
 };
 
 /*-------------------------------------------------------------------------//

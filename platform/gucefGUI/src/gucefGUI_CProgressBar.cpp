@@ -69,7 +69,7 @@ Float32
 CProgressBar::GetValue( void ) const
 {GUCEF_TRACE;
 
-    return GetFloatProperty( "Value" );
+    return GetFloatProperty( EWidgetProperty_Value );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -78,7 +78,7 @@ bool
 CProgressBar::SetValue( Float32 value )
 {GUCEF_TRACE;
 
-    return SetFloatProperty( "Value", value );
+    return SetFloatProperty( EWidgetProperty_Value, value );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -87,8 +87,8 @@ Float32
 CProgressBar::GetFraction( void ) const
 {GUCEF_TRACE;
 
-    Float32 minimum = GetFloatProperty( "Min" );
-    Float32 range = GetFloatProperty( "Max" ) - minimum;
+    Float32 minimum = GetFloatProperty( EWidgetProperty_Min );
+    Float32 range = GetFloatProperty( EWidgetProperty_Max ) - minimum;
     if ( range <= 0.0f )
         return 0.0f;
     Float32 fraction = ( GetValue() - minimum ) / range;

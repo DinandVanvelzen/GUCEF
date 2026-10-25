@@ -144,7 +144,7 @@ class GUCEF_GUI_PUBLIC_CPP CForm : public CORE::CObservingNotifier
     /** A widget of the form by name (at any depth) or by path ("Panel/OkButton"); the root by its own name */
     virtual CWidget* GetWidget( const CString& widgetName );
 
-    /** GetWidget() cast to the type asked for, NULL when it is another type */
+    /** GetWidget() as the class asked for, NULL when it is another widget type: T has to have GetRegisteredTypeName(), see CWidget::As() */
     template < class T >
     T* GetWidgetAs( const CString& widgetName );
 
@@ -193,7 +193,7 @@ template < class T >
 T*
 CForm::GetWidgetAs( const CString& widgetName )
 {
-    return dynamic_cast< T* >( GetWidget( widgetName ) );
+    return CWidget::As< T >( GetWidget( widgetName ) );
 }
 
 /*-------------------------------------------------------------------------//

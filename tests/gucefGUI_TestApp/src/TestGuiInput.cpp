@@ -83,6 +83,8 @@ class CScriptedInputDriver : public INPUT::CInputDriver
     void Move( const Int32 contextId, const Int32 deviceId, const Int32 x, const Int32 y ) { InjectMouseMove( contextId, deviceId, x, y, 0, 0 ); }
     void Button( const Int32 contextId, const Int32 deviceId, const UInt32 button, const bool pressed ) { InjectMouseButtonChange( contextId, deviceId, button, pressed ); }
     void Wheel( const Int32 contextId, const Int32 deviceId, const Int32 value, const Int32 delta ) { InjectMouseVariableChange( contextId, deviceId, INPUT::CMouse::MOUSEVARIABLE_WHEEL, value, delta ); }
+    void HorizontalWheel( const Int32 contextId, const Int32 deviceId, const Int32 value, const Int32 delta ) { InjectMouseVariableChange( contextId, deviceId, INPUT::CMouse::MOUSEVARIABLE_HORIZONTAL_WHEEL, value, delta ); }
+    void Variable( const Int32 contextId, const Int32 deviceId, const UInt32 variable, const Int32 value, const Int32 delta ) { InjectMouseVariableChange( contextId, deviceId, variable, value, delta ); }
     void Key( const Int32 contextId, const Int32 deviceId, const INPUT::KeyCode key, const bool pressed ) { InjectKeyboardKeyChange( contextId, deviceId, key, pressed ); }
     void Text( const Int32 contextId, const Int32 deviceId, const CORE::CString& text ) { InjectKeyboardText( contextId, deviceId, text ); }
 
@@ -126,14 +128,14 @@ class CTargetCount : public CORE::CObserver
     {
         if ( id != eventId )
             return;
-        GUI::CRoutedEventData* routed = dynamic_cast< GUI::CRoutedEventData* >( eventData );
+        GUI::CRoutedEventData* routed = GUI::CRoutedEventData::FromCloneable( eventData );
         if ( GUCEF_NULL != routed && routed->source != notifier )
             return;
         ++count;
-        GUI::CWheelEventData* wheel = dynamic_cast< GUI::CWheelEventData* >( eventData );
+        GUI::CWheelEventData* wheel = CORE::CICloneable::CloneableAs< GUI::CWheelEventData >( eventData );
         if ( GUCEF_NULL != wheel )
             lastWheelDelta = wheel->delta;
-        GUI::CPointerEventData* pointer = dynamic_cast< GUI::CPointerEventData* >( eventData );
+        GUI::CPointerEventData* pointer = CORE::CICloneable::CloneableAs< GUI::CPointerEventData >( eventData );
         if ( GUCEF_NULL != pointer )
             lastButton = pointer->button;
     }
@@ -275,6 +277,125 @@ PerformGuiInputTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Input: A scroll panel scrolls with the wheel of a mouse (a notch towards the user is down), over a disabled button too, and with its thumb and track, through the adapter" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateNullContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        GUI::CWidget* root = context->CreateWidget( "Panel", "Screen", GUCEF_NULL );
+        root->SetProperty( "Size", "1,0 1,0" );
+        GUI::CScrollPanel* panel = static_cast< GUI::CScrollPanel* >( context->CreateWidget( "ScrollPanel", "Scroll", root ) );
+        panel->SetProperty( "Position", "0,10 0,20" );
+        panel->SetProperty( "Size", "0,200 0,100" );
+        GUI::CWidget* first = context->CreateWidget( "Button", "First", panel );
+        first->SetProperty( "Size", "1,0 0,40" );
+        GUI::CWidget* second = context->CreateWidget( "Button", "Second", panel );
+        second->SetProperty( "Position", "0,0 0,60" );
+        second->SetProperty( "Size", "1,0 0,300" );
+        second->SetEnabled( false );
+        ASSERT_TRUE( context->ShowRoot( root, false ) );
+        context->FlushChanges();
+        ASSERT_TRUE( panel->IsScrollable() );
+
+        CScriptedInputDriver driver;
+        driver.Mouse( TestMouseId );
+        GUI::CGUIInputAdapter adapter( *context );
+        adapter.Attach();
+
+        // over the enabled button, then over the disabled one
+        driver.Move( 1, TestMouseId, 40, 40 );
+        driver.Wheel( 1, TestMouseId, -1, -1 );
+        ASSERT_TRUE( 48 == panel->GetScrollPosition() );
+        driver.Move( 1, TestMouseId, 40, 100 );
+        driver.Wheel( 1, TestMouseId, -2, -1 );
+        ASSERT_TRUE( 96 == panel->GetScrollPosition() );
+        driver.Wheel( 1, TestMouseId, -1, 1 );
+        ASSERT_TRUE( 48 == panel->GetScrollPosition() );
+        panel->SetScrollPosition( 0 );
+        context->FlushChanges();
+
+        // the thumb dragged, then a click on the track
+        const GUI::CRect track = panel->GetTrackRect();
+        const GUI::CRect thumb = panel->GetThumbRect();
+        const Int32 x = 10 + track.left + track.width / 2;
+        driver.Move( 1, TestMouseId, x, 20 + thumb.top + thumb.height / 2 );
+        driver.Button( 1, TestMouseId, 0, true );
+        driver.Move( 1, TestMouseId, x, 20 + thumb.top + thumb.height / 2 + 10 );
+        ASSERT_TRUE( panel->IsThumbDragged() && panel->GetScrollPosition() > 0 );
+        driver.Button( 1, TestMouseId, 0, false );
+        ASSERT_FALSE( panel->IsThumbDragged() );
+        panel->SetScrollPosition( 0 );
+        context->FlushChanges();
+        driver.Move( 1, TestMouseId, x, 20 + track.Bottom() - 3 );
+        driver.Button( 1, TestMouseId, 0, true );
+        driver.Button( 1, TestMouseId, 0, false );
+        ASSERT_TRUE( panel->GetScrollPosition() >= 90 );
+        driver.NoMouse( TestMouseId );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Input: The wheel as a window system driver sends it in bursts (a wheel flung, both axes, a mouse that never moved, huge counts, unknown variables) never breaks the adapter" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateNullContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        GUI::CWidget* root = context->CreateWidget( "Panel", "Screen", GUCEF_NULL );
+        root->SetProperty( "Size", "1,0 1,0" );
+        GUI::CScrollPanel* panel = static_cast< GUI::CScrollPanel* >( context->CreateWidget( "ScrollPanel", "Scroll", root ) );
+        panel->SetProperty( "Position", "0,10 0,20" );
+        panel->SetProperty( "Size", "0,200 0,100" );
+        GUI::CWidget* content = context->CreateWidget( "Button", "Content", panel );
+        content->SetProperty( "Size", "1,0 0,400" );
+        ASSERT_TRUE( context->ShowRoot( root, false ) );
+        context->FlushChanges();
+
+        CScriptedInputDriver driver;
+        driver.Mouse( TestMouseId );
+        GUI::CGUIInputAdapter adapter( *context );
+        adapter.Attach();
+
+        // a mouse that was never moved: the wheel goes to whatever is at the origin, which is nothing of the panel
+        driver.Wheel( 1, TestMouseId, -1, -1 );
+        ASSERT_TRUE( 0 == panel->GetScrollPosition() );
+
+        // a wheel flung: dozens of groups at once, in both directions, with the horizontal one in between
+        driver.Move( 1, TestMouseId, 40, 40 );
+        for ( Int32 i=0; i<40; ++i )
+        {
+            driver.Wheel( 1, TestMouseId, -( i + 1 ), -1 );
+            driver.HorizontalWheel( 1, TestMouseId, i + 1, 1 );
+        }
+        ASSERT_TRUE( panel->GetScrollPosition() > 0 );
+        for ( Int32 i=0; i<80; ++i )
+            driver.Wheel( 1, TestMouseId, i, 1 );
+        ASSERT_TRUE( 0 == panel->GetScrollPosition() );
+
+        // counts that no wheel has: they scroll as far as there is to scroll and no further
+        driver.Wheel( 1, TestMouseId, -2147483647, -2147483647 );
+        const Int32 end = panel->GetScrollPosition();
+        ASSERT_TRUE( end > 0 );
+        driver.Wheel( 1, TestMouseId, 2147483647, 2147483647 );
+        ASSERT_TRUE( 0 == panel->GetScrollPosition() );
+        driver.Wheel( 1, TestMouseId, 0, 0 );
+        driver.Variable( 1, TestMouseId, 7, 5, 5 );
+        driver.Variable( 1, TestMouseId, 0xFFFFFFFFu, 5, 5 );
+        ASSERT_TRUE( 0 == panel->GetScrollPosition() );
+
+        // a device that is gone: the input has nowhere to go and says so, without a fuss
+        driver.NoMouse( TestMouseId );
+        driver.Wheel( 1, TestMouseId, -1, -1 );
+        ASSERT_TRUE( 0 == panel->GetScrollPosition() );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Input: The highest layer of a window that shows something takes the input" )
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
     if ( !IsInBrowser() )
@@ -344,8 +465,8 @@ PerformGuiInputTests( void )
         GUI::CGUIManager& manager = GUI::CGuiGlobal::Instance()->GetGuiManager();
         GUI::TGuiContextPtr bottomPtr = manager.CreateGUIContext( "Null", window );
         GUI::TGuiContextPtr topPtr = manager.CreateGUIContext( "Null", window );
-        GUI::CGUIContext* bottom = dynamic_cast< GUI::CGUIContext* >( bottomPtr.GetPointerAlways() );
-        GUI::CGUIContext* top = dynamic_cast< GUI::CGUIContext* >( topPtr.GetPointerAlways() );
+        GUI::CGUIContext* bottom = ( bottomPtr.IsNULL() ? GUCEF_NULL : bottomPtr->AsGUIContext() );
+        GUI::CGUIContext* top = ( topPtr.IsNULL() ? GUCEF_NULL : topPtr->AsGUIContext() );
         ASSERT_TRUE( GUCEF_NULL != bottom && GUCEF_NULL != top );
         if ( GUCEF_NULL != bottom && GUCEF_NULL != top )
         {
@@ -508,6 +629,114 @@ PerformGuiInputTests( void )
         adapter.Detach();
         driver.NoMouse( TestMouseId );
         driver.NoKeyboard( TestKeyboardId );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Input: A pointer move in a window of hundreds of widgets under a theme of dozens of styles is cheap, a mouse that reports a thousand times a second must not starve the application" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateNullContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+
+        // a theme the size of a game's: styles by type, class, name and state, none of which says anything about the clipping or the input of a widget
+        CORE::CDataNode theme( "GUITheme" );
+        for ( UInt32 n=0; n<80; ++n )
+        {
+            CORE::CDataNode* style = theme.AddChild( "Style" );
+            style->SetAttribute( "type", 0 == n % 2 ? "Button" : "Panel" );
+            if ( 0 == n % 3 )
+                style->SetAttribute( "state", "hover" );
+            if ( 0 == n % 5 )
+                style->SetAttribute( "class", "Class" + CORE::UInt32ToString( n ) );
+            for ( UInt32 p=0; p<4; ++p )
+            {
+                CORE::CDataNode* property = style->AddChild( "Property" );
+                property->SetAttribute( "name", 0 == p ? "TextColour" : "Other" + CORE::UInt32ToString( p ) );
+                property->SetAttribute( "value", "10,10,10,255" );
+            }
+        }
+        ASSERT_TRUE( context->SetTheme( theme ) );
+
+        // 20 rows of 10 buttons
+        GUI::CWidget* root = context->CreateWidget( "Panel", "Root", GUCEF_NULL );
+        root->SetProperty( "Size", "1,0 1,0" );
+        for ( UInt32 row=0; row<20; ++row )
+        {
+            GUI::CWidget* group = context->CreateWidget( "Panel", "Row" + CORE::UInt32ToString( row ), root );
+            group->SetProperty( "Position", "0,0 0," + CORE::UInt32ToString( row * 20 ) );
+            group->SetProperty( "Size", "1,0 0,20" );
+            for ( UInt32 column=0; column<10; ++column )
+            {
+                GUI::CWidget* button = context->CreateWidget( "Button", "Button" + CORE::UInt32ToString( column ), group );
+                button->SetProperty( "Position", "0," + CORE::UInt32ToString( column * 60 ) + " 0,0" );
+                button->SetProperty( "Size", "0,56 0,18" );
+            }
+        }
+        context->ShowRoot( root, false );
+        context->FlushChanges();
+        ASSERT_TRUE( context->GetOwnedWidgets().size() > 200 );
+
+        const UInt64 start = MT::PrecisionTickCount();
+        const UInt32 moves = 200;
+        for ( UInt32 i=0; i<moves; ++i )
+            context->InjectMouseMove( (Int32) ( ( i * 7 ) % 600 ), (Int32) ( ( i * 3 ) % 400 ) );
+        const UInt64 elapsedMs = ( MT::PrecisionTickCount() - start ) * 1000 / MT::PrecisionTimerResolution();
+
+        // the whole run, in a debug build too: 1.5 ms a move is more than ten times what it needs
+        ASSERT_TRUE( elapsedMs < 300 );
+
+        context->DestroyWidget( root );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Input: A theme can still set the clipping of a widget, which the hit test honours" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateNullContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+
+        CORE::CDataNode theme( "GUITheme" );
+        CORE::CDataNode* style = theme.AddChild( "Style" );
+        style->SetAttribute( "name", "Clipped" );
+        CORE::CDataNode* property = style->AddChild( "Property" );
+        property->SetAttribute( "name", "Clip" );
+        property->SetAttribute( "value", "true" );
+        style = theme.AddChild( "Style" );
+        style->SetAttribute( "name", "Ghost" );
+        property = style->AddChild( "Property" );
+        property->SetAttribute( "name", "InputTransparent" );
+        property->SetAttribute( "value", "true" );
+        ASSERT_TRUE( context->SetTheme( theme ) );
+
+        GUI::CWidget* root = context->CreateWidget( "Panel", "Root", GUCEF_NULL );
+        root->SetProperty( "Size", "1,0 1,0" );
+        GUI::CWidget* clipped = context->CreateWidget( "Panel", "Clipped", root );
+        clipped->SetProperty( "Position", "0,10 0,10" );
+        clipped->SetProperty( "Size", "0,100 0,100" );
+        GUI::CWidget* sticksOut = context->CreateWidget( "Button", "SticksOut", clipped );
+        sticksOut->SetProperty( "Position", "0,150 0,0" );
+        sticksOut->SetProperty( "Size", "0,100 0,50" );
+        GUI::CWidget* ghost = context->CreateWidget( "Panel", "Ghost", root );
+        ghost->SetProperty( "Position", "0,300 0,300" );
+        ghost->SetProperty( "Size", "0,50 0,50" );
+        context->ShowRoot( root, false );
+        context->FlushChanges();
+
+        ASSERT_TRUE( clipped->GetBoolProperty( "Clip" ) );
+        ASSERT_TRUE( context->HitTest( 20, 20 ) == clipped );
+        // outside the clipping panel: not reachable through the child that sticks out of it
+        ASSERT_TRUE( context->HitTest( 170, 20 ) == root );
+        ASSERT_TRUE( context->HitTest( 320, 320 ) == root );
+
+        context->DestroyWidget( root );
     }
     catch ( ... )
     {

@@ -71,6 +71,9 @@ class GUCEF_GUI_PUBLIC_CPP CSlider : public CWidget
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "Slider"; }
+
     static CWidget* Create( void );
 
     static CWidget* CreateScrollbar( void );

@@ -84,13 +84,16 @@ class GUCEF_GUI_PUBLIC_CPP CEditbox : public CWidget
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "Editbox"; }
+
     static CWidget* Create( void );
 
     protected:
 
     virtual bool OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue ) GUCEF_VIRTUAL_OVERRIDE;
 
     virtual void OnUpdate( UInt32 deltaInMs ) GUCEF_VIRTUAL_OVERRIDE;
 

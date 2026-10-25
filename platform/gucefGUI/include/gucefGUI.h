@@ -239,6 +239,16 @@
 #define GUCEF_GUI_CROUTEDEVENTDATA_H
 #endif /* GUCEF_GUI_CROUTEDEVENTDATA_H ? */
 
+#ifndef GUCEF_GUI_EWIDGETPROPERTY_H
+#include "gucefGUI_EWidgetProperty.h"
+#define GUCEF_GUI_EWIDGETPROPERTY_H
+#endif /* GUCEF_GUI_EWIDGETPROPERTY_H ? */
+
+#ifndef GUCEF_GUI_CWIDGETPROPERTYVALUE_H
+#include "gucefGUI_CWidgetPropertyValue.h"
+#define GUCEF_GUI_CWIDGETPROPERTYVALUE_H
+#endif /* GUCEF_GUI_CWIDGETPROPERTYVALUE_H ? */
+
 #ifndef GUCEF_GUI_CWIDGETTYPEREGISTRY_H
 #include "gucefGUI_CWidgetTypeRegistry.h"
 #define GUCEF_GUI_CWIDGETTYPEREGISTRY_H
@@ -338,6 +348,11 @@
 #include "gucefGUI_CGroupBox.h"
 #define GUCEF_GUI_CGROUPBOX_H
 #endif /* GUCEF_GUI_CGROUPBOX_H ? */
+
+#ifndef GUCEF_GUI_CSCROLLPANEL_H
+#include "gucefGUI_CScrollPanel.h"
+#define GUCEF_GUI_CSCROLLPANEL_H
+#endif /* GUCEF_GUI_CSCROLLPANEL_H ? */
 
 #ifndef GUCEF_GUI_CIMAGEFRAME_H
 #include "gucefGUI_CImageFrame.h"

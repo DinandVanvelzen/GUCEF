@@ -131,13 +131,16 @@ class GUCEF_GUI_PUBLIC_CPP CListbox : public CWidget
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "Listbox"; }
+
     static CWidget* Create( void );
 
     protected:
 
     virtual bool OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventData ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 

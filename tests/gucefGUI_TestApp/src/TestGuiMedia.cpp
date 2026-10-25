@@ -260,7 +260,7 @@ PerformGuiMediaTests( void )
         ASSERT_FALSE( player->IsPaused() );
 
         // the null device plays only what it is asked to: 10 ms per step, 300 ms of sound
-        AUDIO::CNullAudioDevice* device = dynamic_cast< AUDIO::CNullAudioDevice* >( engine.GetDevice().GetPointerAlways() );
+        AUDIO::CNullAudioDevice* device = ( engine.GetDevice().IsNULL() ? GUCEF_NULL : engine.GetDevice()->AsNullDevice() );
         ASSERT_TRUE( GUCEF_NULL != device );
         Int32 position = 0;
         for ( UInt32 i=0; i<400 && 0 == ended.count && GUCEF_NULL != device; ++i )

@@ -132,7 +132,7 @@ CAudioPlayer::Play( void )
 {GUCEF_TRACE;
 
     Stop();
-    CString source = GetProperty( "Source" );
+    CString source = GetProperty( EWidgetProperty_Source );
     if ( GUCEF_NULL == m_engine || source.IsNULLOrEmpty() )
         return false;
 
@@ -172,8 +172,8 @@ CAudioPlayer::Play( const AUDIO::TAudioSourcePtr& audioSource )
     m_voice = m_engine->CreateVoice( audioSource, m_bus );
     if ( m_voice.IsNULL() )
         return false;
-    m_voice->SetVolume( GetFloatProperty( "Volume" ) );
-    m_voice->SetLoopCount( GetBoolProperty( "Loop" ) ? 0 : 1 );
+    m_voice->SetVolume( GetFloatProperty( EWidgetProperty_Volume ) );
+    m_voice->SetLoopCount( GetBoolProperty( EWidgetProperty_Loop ) ? 0 : 1 );
     CORE::CFutureResult started = m_engine->Start( m_voice );
     if ( started.HasNoFuture() )
     {
@@ -181,7 +181,7 @@ CAudioPlayer::Play( const AUDIO::TAudioSourcePtr& audioSource )
         return false;
     }
     m_paused = false;
-    SetBoolProperty( "Playing", true );
+    SetBoolProperty( EWidgetProperty_Playing, true );
     return true;
 }
 
@@ -222,7 +222,7 @@ CAudioPlayer::Stop( void )
     m_voice.Unlink();
     m_file.Unlink();
     m_paused = false;
-    SetBoolProperty( "Playing", false );
+    SetBoolProperty( EWidgetProperty_Playing, false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -231,7 +231,7 @@ bool
 CAudioPlayer::IsPlaying( void ) const
 {GUCEF_TRACE;
 
-    return GetBoolProperty( "Playing" );
+    return GetBoolProperty( EWidgetProperty_Playing );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -271,12 +271,12 @@ CAudioPlayer::OnUpdate( UInt32 deltaInMs )
         return;
     UInt32 rate = m_voice->GetSource().IsNULL() ? 0 : m_voice->GetSource()->GetFormat().GetSampleRate();
     if ( rate > 0 )
-        SetIntProperty( "PositionInMs", (Int32) ( m_voice->GetPositionInFrames() * 1000 / rate ) );
+        SetIntProperty( EWidgetProperty_PositionInMs, (Int32) ( m_voice->GetPositionInFrames() * 1000 / rate ) );
     if ( AUDIO::AUDIOVOICESTATE_ENDED == m_voice->GetState() )
     {
         m_voice.Unlink();
         m_file.Unlink();
-        SetBoolProperty( "Playing", false );
+        SetBoolProperty( EWidgetProperty_Playing, false );
         NotifyObservers( AudioEndedEvent );
     }
 }
@@ -297,13 +297,13 @@ CAudioPlayer::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& ev
 /*-------------------------------------------------------------------------*/
 
 void
-CAudioPlayer::OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue )
+CAudioPlayer::OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue )
 {GUCEF_TRACE;
 
-    if ( name == "Volume" && !m_voice.IsNULL() )
-        m_voice->SetVolume( GetFloatProperty( "Volume" ) );
+    if ( property == EWidgetProperty_Volume && !m_voice.IsNULL() )
+        m_voice->SetVolume( GetFloatProperty( EWidgetProperty_Volume ) );
     else
-    if ( name == "Source" && GetBoolProperty( "AutoPlay" ) && !newValue.IsNULLOrEmpty() )
+    if ( property == EWidgetProperty_Source && GetBoolProperty( EWidgetProperty_AutoPlay ) && !newValue.IsNULLOrEmpty() )
         Play();
 }
 

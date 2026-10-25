@@ -61,6 +61,9 @@ class GUCEF_GUI_PUBLIC_CPP CTabContentPane : public CPanel
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "TabContentPane"; }
+
     static CWidget* Create( void );
 
     private:

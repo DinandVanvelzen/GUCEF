@@ -144,14 +144,14 @@ class CTargetCount : public CORE::CObserver
     {
         if ( id != eventId )
             return;
-        GUI::CRoutedEventData* routed = dynamic_cast< GUI::CRoutedEventData* >( eventData );
+        GUI::CRoutedEventData* routed = GUI::CRoutedEventData::FromCloneable( eventData );
         if ( GUCEF_NULL != routed && routed->source != notifier )
             return;
         ++count;
-        GUI::CWheelEventData* wheel = dynamic_cast< GUI::CWheelEventData* >( eventData );
+        GUI::CWheelEventData* wheel = CORE::CICloneable::CloneableAs< GUI::CWheelEventData >( eventData );
         if ( GUCEF_NULL != wheel )
             lastWheelDelta = wheel->delta;
-        GUI::CPointerEventData* pointer = dynamic_cast< GUI::CPointerEventData* >( eventData );
+        GUI::CPointerEventData* pointer = CORE::CICloneable::CloneableAs< GUI::CPointerEventData >( eventData );
         if ( GUCEF_NULL != pointer )
             lastButton = pointer->button;
     }

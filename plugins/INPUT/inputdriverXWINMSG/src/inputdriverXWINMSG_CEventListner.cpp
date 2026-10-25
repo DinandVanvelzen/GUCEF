@@ -23,6 +23,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
 #include "inputdriverXWINMSG_CEventListner.h"
 
 #define XK_MISCELLANY
@@ -56,6 +61,7 @@ CEventListner::CEventListner( ::Window window                  ,
       m_mouseY( 0 )             ,
       m_wheel( 0 )              ,
       m_horizontalWheel( 0 )    ,
+      m_movesSinceButtonChange( 0 )   ,
       m_inputMethod( GUCEF_NULL ) ,
       m_inputContext( GUCEF_NULL )
 {GUCEF_TRACE;
@@ -72,7 +78,7 @@ CEventListner::CEventListner( ::Window window                  ,
                           KeyPressMask | KeyReleaseMask |
                           ButtonPressMask | ButtonReleaseMask |
                           PointerMotionMask | Button1MotionMask |
-                          EnterWindowMask | LeaveWindowMask;
+                          EnterWindowMask | LeaveWindowMask | FocusChangeMask;
     ::XSelectInput( display, window, eventMask );
 
     // an input method makes text in the user's language and layout as UTF-8; without one XLookupString gives Latin-1
@@ -406,6 +412,13 @@ CEventListner::OnX11Event( ::XEvent& event )
         case ButtonRelease:
         {
             bool pressed = ButtonPress == event.type;
+            if ( event.xbutton.button < Button4 || event.xbutton.button > 7 )
+            {
+                const char* direction = pressed ? " down" : " up";
+                GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "X11 input: button " << event.xbutton.button << direction << " at " << event.xbutton.x << "," << event.xbutton.y
+                                << ", state " << event.xbutton.state << ", " << m_movesSinceButtonChange << " moves since the last button change" );
+                m_movesSinceButtonChange = 0;
+            }
             Int32 deltaX = event.xbutton.x - m_mouseX;
             Int32 deltaY = event.xbutton.y - m_mouseY;
             m_mouseX = event.xbutton.x;
@@ -428,6 +441,7 @@ CEventListner::OnX11Event( ::XEvent& event )
                     {
                         Int32 delta = Button4 == event.xbutton.button ? 1 : -1;
                         m_wheel += delta;
+                        GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "X11 input: wheel notch " << delta << " at " << event.xbutton.x << "," << event.xbutton.y );
                         m_callbacks.onMouseVarChanged( m_callbacks.userData, 0, 0, m_wheel, delta );
                     }
                     return;
@@ -458,6 +472,9 @@ CEventListner::OnX11Event( ::XEvent& event )
         case LeaveNotify :
         case EnterNotify :
         {
+            const char* movement = EnterNotify == event.type ? "enters" : "leaves";
+            GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "X11 input: the pointer " << movement << " the window at " << event.xcrossing.x << "," << event.xcrossing.y
+                            << " (mode " << event.xcrossing.mode << ", detail " << event.xcrossing.detail << ", state " << event.xcrossing.state << ")" );
             Int32 deltaX = event.xcrossing.x - m_mouseX;
             Int32 deltaY = event.xcrossing.y - m_mouseY;
 
@@ -467,8 +484,16 @@ CEventListner::OnX11Event( ::XEvent& event )
             m_callbacks.onMouseMove( m_callbacks.userData, 0, m_mouseX, m_mouseY, deltaX, deltaY );
             return;
         }
+        case FocusIn :
+        case FocusOut :
+        {
+            const char* focus = FocusIn == event.type ? "gets" : "loses";
+            GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "X11 input: the window " << focus << " the keyboard focus (mode " << event.xfocus.mode << ", detail " << event.xfocus.detail << ")" );
+            return;
+        }
         case MotionNotify:
         {
+            ++m_movesSinceButtonChange;
             Int32 deltaX = event.xmotion.x - m_mouseX;
             Int32 deltaY = event.xmotion.y - m_mouseY;
 

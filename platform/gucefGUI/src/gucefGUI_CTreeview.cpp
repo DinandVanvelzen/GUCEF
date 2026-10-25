@@ -60,11 +60,11 @@ namespace {
 Int32
 RowHeightOf( const CWidget& widget )
 {
-    Int32 rowHeight = widget.GetIntProperty( "RowHeight" );
+    Int32 rowHeight = widget.GetIntProperty( EWidgetProperty_RowHeight );
     if ( rowHeight > 0 )
         return rowHeight;
     if ( GUCEF_NULL != widget.GetContext() )
-        return widget.GetContext()->GetLineHeight( widget.GetProperty( "Font" ) );
+        return widget.GetContext()->GetLineHeight( widget.GetProperty( EWidgetProperty_Font ) );
     return 16;
 }
 
@@ -73,7 +73,7 @@ TextWidthOf( const CWidget& widget, const CString& text )
 {
     Int32 width = 0, height = 0;
     if ( GUCEF_NULL != widget.GetContext() )
-        widget.GetContext()->MeasureText( widget.GetProperty( "Font" ), text, 0, width, height );
+        widget.GetContext()->MeasureText( widget.GetProperty( EWidgetProperty_Font ), text, 0, width, height );
     return width;
 }
 
@@ -122,7 +122,7 @@ bool
 CTreeview::IsExpanded( const CString& path ) const
 {GUCEF_TRACE;
 
-    TStringVector expanded = GetStringListProperty( "ExpandedItems" );
+    TStringVector expanded = GetStringListProperty( EWidgetProperty_ExpandedItems );
     for ( UInt32 i=0; i<(UInt32)expanded.size(); ++i )
         if ( expanded[ i ] == path )
             return true;
@@ -135,14 +135,14 @@ bool
 CTreeview::SetExpanded( const CString& path, bool expanded )
 {GUCEF_TRACE;
 
-    TStringVector current = GetStringListProperty( "ExpandedItems" );
+    TStringVector current = GetStringListProperty( EWidgetProperty_ExpandedItems );
     TStringVector result;
     for ( UInt32 i=0; i<(UInt32)current.size(); ++i )
         if ( current[ i ] != path )
             result.push_back( current[ i ] );
     if ( expanded )
         result.push_back( path );
-    return SetStringListProperty( "ExpandedItems", result );
+    return SetStringListProperty( EWidgetProperty_ExpandedItems, result );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -151,7 +151,7 @@ CString
 CTreeview::GetSelectedItem( void ) const
 {GUCEF_TRACE;
 
-    return GetProperty( "SelectedItem" );
+    return GetProperty( EWidgetProperty_SelectedItem );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -160,7 +160,7 @@ bool
 CTreeview::SetSelectedItem( const CString& path )
 {GUCEF_TRACE;
 
-    return SetProperty( "SelectedItem", path );
+    return SetProperty( EWidgetProperty_SelectedItem, path );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -179,7 +179,7 @@ CTreeview::GetVisibleRows( void ) const
 {GUCEF_TRACE;
 
     // every node in the order it first appears, parents before children
-    TStringVector items = GetStringListProperty( "Items" );
+    TStringVector items = GetStringListProperty( EWidgetProperty_Items );
     TStringVector nodes;
     GUCEF::set< CString > known;
     for ( UInt32 i=0; i<(UInt32)items.size(); ++i )
@@ -236,7 +236,7 @@ CTreeview::GetRowAt( Int32 localY ) const
     Int32 rowHeight = GetRowHeight();
     if ( localY < 0 || rowHeight <= 0 )
         return -1;
-    Int32 row = GetIntProperty( "ScrollPosition" ) + localY / rowHeight;
+    Int32 row = GetIntProperty( EWidgetProperty_ScrollPosition ) + localY / rowHeight;
     return row < (Int32) GetVisibleRows().size() ? row : -1;
 }
 
@@ -248,12 +248,12 @@ CTreeview::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
 
     if ( MouseMoveEvent == eventId )
     {
-        SetIntProperty( "HoverIndex", GetRowAt( static_cast< CPointerEventData* >( &eventData )->localY ) );
+        SetIntProperty( EWidgetProperty_HoverIndex, GetRowAt( static_cast< CPointerEventData* >( &eventData )->localY ) );
         return true;
     }
     if ( MouseFocusLostEvent == eventId )
     {
-        SetIntProperty( "HoverIndex", -1 );
+        SetIntProperty( EWidgetProperty_HoverIndex, -1 );
         return true;
     }
     TRowVector rows = GetVisibleRows();
@@ -266,7 +266,7 @@ CTreeview::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
         if ( index < 0 )
             return false;
         const TRow& row = rows[ index ];
-        Int32 indent = GetIntProperty( "Indent" );
+        Int32 indent = GetIntProperty( EWidgetProperty_Indent );
         bool onToggle = pointer->localX >= row.depth * indent && pointer->localX < ( row.depth + 1 ) * indent;
         if ( row.hasChildren && ( onToggle || 2 == pointer->clickCount ) )
             SetExpanded( row.path, !row.expanded );
@@ -275,7 +275,7 @@ CTreeview::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
             if ( 2 == pointer->clickCount )
                 ActivateItem( index, row.path );
             else
-                ChangeValueByUser( "SelectedItem", row.path );
+                ChangeValueByUser( EWidgetProperty_SelectedItem, row.path );
         }
         return true;
     }
@@ -284,11 +284,14 @@ CTreeview::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
         Int32 visible = GetRowHeight() > 0 ? GetRect().height / GetRowHeight() : 0;
         Int32 maxScroll = (Int32) rows.size() - visible;
         if ( maxScroll < 0 ) maxScroll = 0;
-        Int32 scroll = GetIntProperty( "ScrollPosition" ) - static_cast< CWheelEventData* >( &eventData )->delta;
+        Int32 scroll = GetIntProperty( EWidgetProperty_ScrollPosition ) - static_cast< CWheelEventData* >( &eventData )->delta;
         if ( scroll < 0 ) scroll = 0;
         if ( scroll > maxScroll ) scroll = maxScroll;
-        ChangeValueByUser( "ScrollPosition", CORE::Int32ToString( scroll ) );
-        return true;
+
+        // with nothing left to scroll the wheel is for what the tree is in
+        if ( scroll == GetIntProperty( EWidgetProperty_ScrollPosition ) )
+            return false;
+        return ChangeValueByUser( EWidgetProperty_ScrollPosition, CORE::Int32ToString( scroll ) );
     }
     if ( NavigationEvent == eventId )
     {
@@ -299,9 +302,9 @@ CTreeview::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
             if ( rows[ i ].path == selected )
                 current = (Int32) i;
         if ( NAVIGATION_UP == direction && current > 0 )
-            return ChangeValueByUser( "SelectedItem", rows[ current - 1 ].path );
+            return ChangeValueByUser( EWidgetProperty_SelectedItem, rows[ current - 1 ].path );
         if ( NAVIGATION_DOWN == direction && current + 1 < (Int32) rows.size() )
-            return ChangeValueByUser( "SelectedItem", rows[ current + 1 ].path );
+            return ChangeValueByUser( EWidgetProperty_SelectedItem, rows[ current + 1 ].path );
         if ( current < 0 )
             return false;
         if ( NAVIGATION_RIGHT == direction && rows[ current ].hasChildren )

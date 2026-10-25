@@ -90,6 +90,7 @@ CCombobox::CCombobox( void )
 CCombobox::~CCombobox()
 {GUCEF_TRACE;
 
+    UnsubscribeAllFromObserver();
     if ( GUCEF_NULL != m_list && GUCEF_NULL != GetContext() )
         GetContext()->DestroyWidget( m_list );
     m_list = GUCEF_NULL;
@@ -110,7 +111,7 @@ bool
 CCombobox::SetText( const CString& text )
 {GUCEF_TRACE;
 
-    return SetProperty( "Text", text );
+    return SetProperty( EWidgetProperty_Text, text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -119,7 +120,7 @@ CString
 CCombobox::GetText( void ) const
 {GUCEF_TRACE;
 
-    return GetProperty( "Text" );
+    return GetProperty( EWidgetProperty_Text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -128,7 +129,7 @@ bool
 CCombobox::SetListItems( const TStringVector& items )
 {GUCEF_TRACE;
 
-    return SetStringListProperty( "Items", items );
+    return SetStringListProperty( EWidgetProperty_Items, items );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -137,7 +138,7 @@ bool
 CCombobox::GetListItems( TStringVector& items ) const
 {GUCEF_TRACE;
 
-    items = GetStringListProperty( "Items" );
+    items = GetStringListProperty( EWidgetProperty_Items );
     return true;
 }
 
@@ -147,8 +148,8 @@ bool
 CCombobox::ClearList( void )
 {GUCEF_TRACE;
 
-    SetIntProperty( "SelectedIndex", -1 );
-    return SetProperty( "Items", CString::Empty );
+    SetIntProperty( EWidgetProperty_SelectedIndex, -1 );
+    return SetProperty( EWidgetProperty_Items, CString::Empty );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -157,7 +158,7 @@ Int32
 CCombobox::GetSelectedIndex( void ) const
 {GUCEF_TRACE;
 
-    return GetIntProperty( "SelectedIndex" );
+    return GetIntProperty( EWidgetProperty_SelectedIndex );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -166,7 +167,7 @@ bool
 CCombobox::SetSelectedIndex( Int32 index )
 {GUCEF_TRACE;
 
-    return SetIntProperty( "SelectedIndex", index );
+    return SetIntProperty( EWidgetProperty_SelectedIndex, index );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -183,7 +184,7 @@ CCombobox::SetExpanded( bool expanded )
     {
         if ( GUCEF_NULL != m_list && context->GetPopup() == m_list )
             context->ClosePopup();
-        return SetBoolProperty( "Expanded", false );
+        return SetBoolProperty( EWidgetProperty_Expanded, false );
     }
 
     if ( GUCEF_NULL == m_list )
@@ -191,22 +192,25 @@ CCombobox::SetExpanded( bool expanded )
         m_list = static_cast< CListbox* >( context->CreateWidget( "Listbox", GetName() + "#List", GUCEF_NULL ) );
         if ( GUCEF_NULL == m_list )
             return false;
-        SubscribeTo( m_list, CWidget::ValueChangedEvent );
-        SubscribeTo( m_list, CWidget::ItemActivatedEvent );
-        SubscribeTo( context, CGUIContext::FormHiddenEvent );
+        TEventCallback valueChangedCallback( this, &CCombobox::OnListValueChanged );
+        SubscribeTo( m_list, CWidget::ValueChangedEvent, valueChangedCallback );
+        TEventCallback itemActivatedCallback( this, &CCombobox::OnListItemActivated );
+        SubscribeTo( m_list, CWidget::ItemActivatedEvent, itemActivatedCallback );
+        TEventCallback formHiddenCallback( this, &CCombobox::OnFormHidden );
+        SubscribeTo( context, CGUIContext::FormHiddenEvent, formHiddenCallback );
     }
-    TStringVector items = GetStringListProperty( "Items" );
-    Int32 rows = GetIntProperty( "DropDownRows" );
+    TStringVector items = GetStringListProperty( EWidgetProperty_Items );
+    Int32 rows = GetIntProperty( EWidgetProperty_DropDownRows );
     if ( rows <= 0 || rows > (Int32) items.size() )
         rows = (Int32) items.size();
     m_list->SetItems( items );
-    m_list->SetProperty( "Font", GetProperty( "Font" ) );
-    m_list->SetProperty( "TextColour", GetProperty( "TextColour" ) );
-    m_list->SetProperty( "BackgroundColour", GetProperty( "BackgroundColour" ) );
+    m_list->SetProperty( EWidgetProperty_Font, GetProperty( EWidgetProperty_Font ) );
+    m_list->SetProperty( EWidgetProperty_TextColour, GetProperty( EWidgetProperty_TextColour ) );
+    m_list->SetProperty( EWidgetProperty_BackgroundColour, GetProperty( EWidgetProperty_BackgroundColour ) );
     m_list->SetSelectedIndex( GetSelectedIndex() );
     m_list->SetSize( CUVector( CUDim( 0.0f, GetRect().width ), CUDim( 0.0f, rows * m_list->GetRowHeight() ) ) );
     context->ShowPopup( m_list, GetRect().left, GetRect().Bottom() );
-    return SetBoolProperty( "Expanded", true );
+    return SetBoolProperty( EWidgetProperty_Expanded, true );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -218,32 +222,32 @@ CCombobox::GetNaturalSize( Int32& width, Int32& height ) const
     width = height = 0;
     if ( GUCEF_NULL == GetContext() )
         return false;
-    TStringVector items = GetStringListProperty( "Items" );
+    TStringVector items = GetStringListProperty( EWidgetProperty_Items );
     for ( UInt32 i=0; i<(UInt32)items.size(); ++i )
     {
         Int32 w = 0, h = 0;
-        GetContext()->MeasureText( GetProperty( "Font" ), items[ i ], 0, w, h );
+        GetContext()->MeasureText( GetProperty( EWidgetProperty_Font ), items[ i ], 0, w, h );
         if ( w > width ) width = w;
     }
     width += 24;
-    height = GetContext()->GetLineHeight( GetProperty( "Font" ) ) + 4;
+    height = GetContext()->GetLineHeight( GetProperty( EWidgetProperty_Font ) ) + 4;
     return true;
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CCombobox::OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue )
+CCombobox::OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue )
 {GUCEF_TRACE;
 
-    if ( name == "SelectedIndex" )
+    if ( property == EWidgetProperty_SelectedIndex )
     {
-        TStringVector items = GetStringListProperty( "Items" );
+        TStringVector items = GetStringListProperty( EWidgetProperty_Items );
         Int32 index = CORE::StringToInt32( newValue, -1 );
-        SetProperty( "Text", index >= 0 && index < (Int32) items.size() ? items[ index ] : CString::Empty );
+        SetProperty( EWidgetProperty_Text, index >= 0 && index < (Int32) items.size() ? items[ index ] : CString::Empty );
     }
     else
-    if ( name == "Text" )
+    if ( property == EWidgetProperty_Text )
         NotifyObservers( TextChangedEvent );
 }
 
@@ -255,7 +259,7 @@ CCombobox::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
 
     if ( ActivatedEvent == eventId || ( MouseClickEvent == eventId && MOUSEBUTTON_LEFT == static_cast< CPointerEventData* >( &eventData )->button ) )
     {
-        SetExpanded( !GetBoolProperty( "Expanded" ) );
+        SetExpanded( !GetBoolProperty( EWidgetProperty_Expanded ) );
         return true;
     }
     return false;
@@ -264,24 +268,54 @@ CCombobox::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
 /*-------------------------------------------------------------------------*/
 
 void
-CCombobox::OnNotify( CORE::CNotifier* notifier                 ,
-                     const CORE::CEvent& eventId               ,
-                     CORE::CICloneable* eventData /* = NULL */ )
+CCombobox::PickFromList( void )
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL != m_list && notifier == m_list )
-    {
-        if ( CWidget::ValueChangedEvent == eventId || CWidget::ItemActivatedEvent == eventId )
-        {
-            Int32 picked = m_list->GetSelectedIndex();
-            SetExpanded( false );
-            ChangeValueByUser( "SelectedIndex", CORE::Int32ToString( picked ) );
-        }
+    Int32 picked = m_list->GetSelectedIndex();
+    SetExpanded( false );
+    ChangeValueByUser( EWidgetProperty_SelectedIndex, CORE::Int32ToString( picked ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCombobox::OnListValueChanged( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_list )
         return;
-    }
-    if ( CGUIContext::FormHiddenEvent == eventId && GUCEF_NULL != m_list && GUCEF_NULL != GetContext() && GetContext()->GetPopup() != m_list )
-        SetBoolProperty( "Expanded", false );
-    CWidget::OnNotify( notifier, eventId, eventData );
+
+    // scrolling the list is not picking from it
+    const CValueChangedEventData* changed = static_cast< const CValueChangedEventData* >( eventData );
+    if ( GUCEF_NULL != changed && changed->property == EWidgetProperty_ScrollPosition )
+        return;
+    PickFromList();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCombobox::OnListItemActivated( CORE::CNotifier* notifier    ,
+                                const CORE::CEvent& eventId  ,
+                                CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_list )
+        PickFromList();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCombobox::OnFormHidden( CORE::CNotifier* notifier    ,
+                         const CORE::CEvent& eventId  ,
+                         CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_list && GUCEF_NULL != GetContext() && GetContext()->GetPopup() != m_list )
+        SetBoolProperty( EWidgetProperty_Expanded, false );
 }
 
 /*-------------------------------------------------------------------------*/

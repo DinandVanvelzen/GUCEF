@@ -75,7 +75,7 @@ CTabControl*
 CTabContentPane::GetParentTabControl( void )
 {GUCEF_TRACE;
 
-    return dynamic_cast< CTabControl* >( GetParentWidget() );
+    return CWidget::As< CTabControl >( GetParentWidget() );
 }
 
 /*-------------------------------------------------------------------------*/

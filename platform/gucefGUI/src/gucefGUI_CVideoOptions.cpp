@@ -33,6 +33,11 @@
 #define GUCEF_GUI_CVIDEOSETTINGS_H
 #endif /* GUCEF_GUI_CVIDEOSETTINGS_H ? */
 
+#ifndef GUCEF_MT_CSCOPEMUTEX_H
+#include "gucefMT_CScopeMutex.h"
+#define GUCEF_MT_CSCOPEMUTEX_H
+#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+
 #include "gucefGUI_CVideoOptions.h"
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
@@ -62,6 +67,34 @@ namespace GUI {
 //-------------------------------------------------------------------------*/
 
 namespace {
+
+struct SDisplayModeSources
+{
+    MT::CMutex lock;
+    GUCEF::map< CString, CVideoOptions::SDisplayModeSource > sources;
+    CString selected;
+};
+
+/** Made once and kept: the plugins of window drivers unregister their source when they unload, which can be after the statics of this library are gone */
+SDisplayModeSources&
+GetDisplayModeSources( void )
+{
+    static SDisplayModeSources* sources = new SDisplayModeSources();
+    return *sources;
+}
+
+/** The source that was selected, if there is one registered under that name */
+bool
+GetSelectedSource( CVideoOptions::SDisplayModeSource& source )
+{
+    SDisplayModeSources& sources = GetDisplayModeSources();
+    MT::CScopeMutex lock( sources.lock );
+    GUCEF::map< CString, CVideoOptions::SDisplayModeSource >::const_iterator i = sources.sources.find( sources.selected );
+    if ( sources.selected.IsNULLOrEmpty() || i == sources.sources.end() )
+        return false;
+    source = (*i).second;
+    return true;
+}
 
 CVideoOptions::TDisplayMode
 MakeDisplayMode( UInt32 width, UInt32 height, UInt32 depth, UInt32 frequency )
@@ -279,8 +312,8 @@ CVideoOptions::GetCommonGameResolutions( void )
     {
         static const UInt32 sizes[][ 2 ] = { { 640, 480 }, { 800, 600 }, { 1024, 768 }, { 1280, 720 }, { 1280, 800 }, { 1280, 960 },
                                              { 1280, 1024 }, { 1366, 768 }, { 1440, 900 }, { 1600, 900 }, { 1600, 1200 }, { 1680, 1050 },
-                                             { 1920, 1080 }, { 1920, 1200 }, { 2560, 1080 }, { 2560, 1440 }, { 2560, 1600 }, { 3440, 1440 },
-                                             { 3840, 2160 } };
+                                             { 1920, 1080 }, { 1920, 1200 }, { 2560, 1080 }, { 2560, 1440 }, { 2560, 1600 }, { 3840, 1080 },
+                                             { 3840, 1200 }, { 3440, 1440 }, { 3840, 1600 }, { 5120, 1440 }, { 3840, 2160 }, { 5120, 2160 } };
         for ( UInt32 i=0; i<sizeof( sizes ) / sizeof( sizes[ 0 ] ); ++i )
             resolutions.push_back( MakeDisplayMode( sizes[ i ][ 0 ], sizes[ i ][ 1 ], 32, 60 ) );
     }
@@ -328,6 +361,83 @@ CVideoOptions::GetCommonResolutions( bool fullscreen, TDisplayModeVector& resolu
         if ( GUCEF_NULL != best )
             resolutions.push_back( *best );
     }
+
+    // the largest mode of the display is always offered: a display can have a size that no list of usual sizes holds
+    const TDisplayMode* native = GUCEF_NULL;
+    for ( UInt32 i=0; i<(UInt32)m_displayModes.size(); ++i )
+    {
+        const TDisplayMode& mode = m_displayModes[ i ];
+        if ( GUCEF_NULL == native || mode.widthInPixels * mode.heightInPixels > native->widthInPixels * native->heightInPixels ||
+             ( mode.widthInPixels * mode.heightInPixels == native->widthInPixels * native->heightInPixels && mode.widthInPixels > native->widthInPixels ) )
+            native = &mode;
+    }
+    if ( GUCEF_NULL == native )
+        return;
+
+    const UInt64 nativeArea = (UInt64) native->widthInPixels * native->heightInPixels;
+    UInt32 insertAt = (UInt32) resolutions.size();
+    for ( UInt32 i=0; i<(UInt32)resolutions.size(); ++i )
+    {
+        if ( resolutions[ i ].widthInPixels == native->widthInPixels && resolutions[ i ].heightInPixels == native->heightInPixels )
+            return;
+        if ( insertAt == (UInt32) resolutions.size() && (UInt64) resolutions[ i ].widthInPixels * resolutions[ i ].heightInPixels > nativeArea )
+            insertAt = i;
+    }
+
+    // at its highest frequency
+    const TDisplayMode* best = native;
+    for ( UInt32 i=0; i<(UInt32)m_displayModes.size(); ++i )
+    {
+        const TDisplayMode& mode = m_displayModes[ i ];
+        if ( mode.widthInPixels == native->widthInPixels && mode.heightInPixels == native->heightInPixels &&
+             ( mode.frequency > best->frequency || ( mode.frequency == best->frequency && mode.depthInBits > best->depthInBits ) ) )
+            best = &mode;
+    }
+    resolutions.insert( resolutions.begin() + insertAt, *best );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVideoOptions::RegisterDisplayModeSource( const CString& name, const SDisplayModeSource& source )
+{GUCEF_TRACE;
+
+    SDisplayModeSources& sources = GetDisplayModeSources();
+    MT::CScopeMutex lock( sources.lock );
+    sources.sources[ name ] = source;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVideoOptions::UnregisterDisplayModeSource( const CString& name )
+{GUCEF_TRACE;
+
+    SDisplayModeSources& sources = GetDisplayModeSources();
+    MT::CScopeMutex lock( sources.lock );
+    sources.sources.erase( name );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CVideoOptions::SelectDisplayModeSource( const CString& name )
+{GUCEF_TRACE;
+
+    SDisplayModeSources& sources = GetDisplayModeSources();
+    MT::CScopeMutex lock( sources.lock );
+    sources.selected = name;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CVideoOptions::GetSelectedDisplayModeSource( void )
+{GUCEF_TRACE;
+
+    SDisplayModeSources& sources = GetDisplayModeSources();
+    MT::CScopeMutex lock( sources.lock );
+    return sources.selected;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -335,6 +445,10 @@ CVideoOptions::GetCommonResolutions( bool fullscreen, TDisplayModeVector& resolu
 bool
 CVideoOptions::RetrieveCurrentDisplayModeFromOS( TDisplayMode& displayMode )
 {GUCEF_TRACE;
+
+    SDisplayModeSource source;
+    if ( GetSelectedSource( source ) && GUCEF_NULL != source.retrieveCurrentMode && source.retrieveCurrentMode( displayMode ) )
+        return true;
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
@@ -382,6 +496,17 @@ CVideoOptions::RetrieveCurrentDisplayModeFromOS( TDisplayMode& displayMode )
 bool
 CVideoOptions::RetrieveOptionsFromOS( CVideoOptions& options )
 {GUCEF_TRACE;
+
+    SDisplayModeSource source;
+    if ( GetSelectedSource( source ) && GUCEF_NULL != source.retrieveOptions )
+    {
+        CVideoOptions fromSource;
+        if ( source.retrieveOptions( fromSource ) && !fromSource.GetDisplayModes().empty() )
+        {
+            options = fromSource;
+            return true;
+        }
+    }
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     

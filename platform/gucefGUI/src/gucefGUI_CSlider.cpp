@@ -92,7 +92,7 @@ Float32
 CSlider::GetValue( void ) const
 {GUCEF_TRACE;
 
-    return GetFloatProperty( "Value" );
+    return GetFloatProperty( EWidgetProperty_Value );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -101,7 +101,7 @@ bool
 CSlider::SetValue( Float32 value )
 {GUCEF_TRACE;
 
-    return SetFloatProperty( "Value", Snap( value ) );
+    return SetFloatProperty( EWidgetProperty_Value, Snap( value ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -110,7 +110,7 @@ bool
 CSlider::IsVertical( void ) const
 {GUCEF_TRACE;
 
-    return GetProperty( "Orientation" ) == "Vertical";
+    return GetProperty( EWidgetProperty_Orientation ) == "Vertical";
 }
 
 /*-------------------------------------------------------------------------*/
@@ -119,9 +119,9 @@ Float32
 CSlider::Snap( Float32 value ) const
 {GUCEF_TRACE;
 
-    Float32 minimum = GetFloatProperty( "Min" );
-    Float32 maximum = GetFloatProperty( "Max" );
-    Float32 step = GetFloatProperty( "Step" );
+    Float32 minimum = GetFloatProperty( EWidgetProperty_Min );
+    Float32 maximum = GetFloatProperty( EWidgetProperty_Max );
+    Float32 step = GetFloatProperty( EWidgetProperty_Step );
     if ( step > 0.0f )
     {
         Float32 steps = ( value - minimum ) / step;
@@ -141,15 +141,15 @@ CSlider::GetThumbLength( void ) const
     Int32 length = IsVertical() ? GetRect().height : GetRect().width;
     if ( GetType() == "Scrollbar" )
     {
-        Float32 range = GetFloatProperty( "Max" ) - GetFloatProperty( "Min" );
-        Float32 page = GetFloatProperty( "PageSize" );
+        Float32 range = GetFloatProperty( EWidgetProperty_Max ) - GetFloatProperty( EWidgetProperty_Min );
+        Float32 page = GetFloatProperty( EWidgetProperty_PageSize );
         if ( range + page > 0.0f )
         {
             Int32 thumb = (Int32) ( (Float32) length * page / ( range + page ) );
             return thumb < 8 ? 8 : thumb;
         }
     }
-    Int32 thumb = GetIntProperty( "ThumbSize" );
+    Int32 thumb = GetIntProperty( EWidgetProperty_ThumbSize );
     return thumb > length ? length : thumb;
 }
 
@@ -159,8 +159,8 @@ CRect
 CSlider::GetThumbRect( void ) const
 {GUCEF_TRACE;
 
-    Float32 minimum = GetFloatProperty( "Min" );
-    Float32 range = GetFloatProperty( "Max" ) - minimum;
+    Float32 minimum = GetFloatProperty( EWidgetProperty_Min );
+    Float32 range = GetFloatProperty( EWidgetProperty_Max ) - minimum;
     Float32 fraction = range > 0.0f ? ( GetValue() - minimum ) / range : 0.0f;
     Int32 thumb = GetThumbLength();
     if ( IsVertical() )
@@ -184,8 +184,8 @@ CSlider::ValueAt( Int32 localX, Int32 localY ) const
     Float32 fraction = travel > 0 ? (Float32) position / (Float32) travel : 0.0f;
     if ( fraction < 0.0f ) fraction = 0.0f;
     if ( fraction > 1.0f ) fraction = 1.0f;
-    Float32 minimum = GetFloatProperty( "Min" );
-    return Snap( minimum + fraction * ( GetFloatProperty( "Max" ) - minimum ) );
+    Float32 minimum = GetFloatProperty( EWidgetProperty_Min );
+    return Snap( minimum + fraction * ( GetFloatProperty( EWidgetProperty_Max ) - minimum ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -199,9 +199,9 @@ CSlider::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventDa
         CPointerEventData* pointer = static_cast< CPointerEventData* >( &eventData );
         if ( MouseDownEvent == eventId && MOUSEBUTTON_LEFT != pointer->button )
             return false;
-        return ChangeValueByUser( "Value", CORE::FloatToString( ValueAt( pointer->localX, pointer->localY ) ) );
+        return ChangeValueByUser( EWidgetProperty_Value, CORE::FloatToString( ValueAt( pointer->localX, pointer->localY ) ) );
     }
-    Float32 step = GetFloatProperty( "Step" );
+    Float32 step = GetFloatProperty( EWidgetProperty_Step );
     if ( step <= 0.0f )
         step = 1.0f;
     if ( MouseWheelEvent == eventId )
@@ -210,7 +210,7 @@ CSlider::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventDa
         // a vertical scroll bar goes down when the wheel turns towards the user
         if ( IsVertical() )
             delta = -delta;
-        return ChangeValueByUser( "Value", CORE::FloatToString( Snap( GetValue() + (Float32) delta * step ) ) );
+        return ChangeValueByUser( EWidgetProperty_Value, CORE::FloatToString( Snap( GetValue() + (Float32) delta * step ) ) );
     }
     if ( NavigationEvent == eventId )
     {
@@ -220,7 +220,7 @@ CSlider::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventDa
         if ( NAVIGATION_LEFT == direction || NAVIGATION_UP == direction ) change = -step;
         if ( 0.0f == change )
             return false;
-        return ChangeValueByUser( "Value", CORE::FloatToString( Snap( GetValue() + change ) ) );
+        return ChangeValueByUser( EWidgetProperty_Value, CORE::FloatToString( Snap( GetValue() + change ) ) );
     }
     return false;
 }

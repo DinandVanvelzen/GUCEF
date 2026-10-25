@@ -63,6 +63,9 @@ class GUCEF_GUI_PUBLIC_CPP CProgressBar : public CWidget
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The name this widget type is registered under: what GetType() of the widgets of this class says */
+    static const char* GetRegisteredTypeName( void ) { return "ProgressBar"; }
+
     static CWidget* Create( void );
 
     private:

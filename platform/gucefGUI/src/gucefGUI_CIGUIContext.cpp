@@ -59,6 +59,15 @@ CIGUIContext::~CIGUIContext()
 
 }
 
+/*-------------------------------------------------------------------------*/
+
+CGUIContext*
+CIGUIContext::AsGUIContext( void )
+{GUCEF_TRACE;
+
+    return GUCEF_NULL;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

@@ -75,7 +75,7 @@ class GUCEF_GUI_PUBLIC_CPP CLabel : public CWidget
 
     protected:
 
-    virtual void OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
 

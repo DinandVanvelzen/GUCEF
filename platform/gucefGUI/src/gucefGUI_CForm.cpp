@@ -155,7 +155,7 @@ CGUIContext*
 CForm::GetGUIContext( void )
 {GUCEF_TRACE;
 
-    return dynamic_cast< CGUIContext* >( m_context );
+    return GUCEF_NULL != m_context ? m_context->AsGUIContext() : GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

@@ -113,7 +113,7 @@ CreateNullContext( void )
         #endif
     }
     GUI::TGuiContextPtr context = manager.CreateGUIContext( "Null", GUI::TWindowContextPtr() );
-    GUI::CGUIContext* guiContext = dynamic_cast< GUI::CGUIContext* >( context.GetPointerAlways() );
+    GUI::CGUIContext* guiContext = ( context.IsNULL() ? GUCEF_NULL : context->AsGUIContext() );
     if ( GUCEF_NULL != guiContext )
         guiContext->SetLogicalResolution( 640, 480 );
     return context;
@@ -164,7 +164,7 @@ CreateRmlUiContextInWindow( UInt32 windowWidth, UInt32 windowHeight )
     if ( window.IsNULL() )
         return GUI::TGuiContextPtr();
     GUI::TGuiContextPtr context = manager.CreateGUIContext( "RmlUi", window );
-    GUI::CGUIContext* guiContext = dynamic_cast< GUI::CGUIContext* >( context.GetPointerAlways() );
+    GUI::CGUIContext* guiContext = ( context.IsNULL() ? GUCEF_NULL : context->AsGUIContext() );
     if ( GUCEF_NULL != guiContext )
         guiContext->SetLogicalResolution( 640, 480 );
     return context;
@@ -300,7 +300,7 @@ class CEventRecorder : public CORE::CObserver
 
     virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
     {
-        GUI::CRoutedEventData* routed = dynamic_cast< GUI::CRoutedEventData* >( eventData );
+        GUI::CRoutedEventData* routed = GUI::CRoutedEventData::FromCloneable( eventData );
         if ( GUCEF_NULL == routed )
             return;
         SRecord record;
@@ -309,7 +309,7 @@ class CEventRecorder : public CORE::CObserver
         record.phase = routed->phase;
         record.localX = record.localY = -1;
         record.clickCount = 0;
-        GUI::CPointerEventData* pointer = dynamic_cast< GUI::CPointerEventData* >( eventData );
+        GUI::CPointerEventData* pointer = CORE::CICloneable::CloneableAs< GUI::CPointerEventData >( eventData );
         if ( GUCEF_NULL != pointer )
         {
             record.localX = pointer->localX;
@@ -441,7 +441,7 @@ PerformGuiCoreTests( void )
     try
     {
         GUI::TGuiContextPtr contextPtr = CreateNullContext();
-        GUI::CGUIContext* context = dynamic_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        GUI::CGUIContext* context = ( contextPtr.IsNULL() ? GUCEF_NULL : contextPtr->AsGUIContext() );
         ASSERT_TRUE( GUCEF_NULL != context );
         ASSERT_TRUE( GUCEF_NULL != context->GetDriver() && "Null" == context->GetDriver()->GetDriverName() );
         ASSERT_TRUE( GUI::CGUIDriver::InterfaceVersion == context->GetDriver()->GetInterfaceVersion() );

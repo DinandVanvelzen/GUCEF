@@ -228,7 +228,7 @@ CSettingsForm::SetTitle( const CString& title )
     m_title = title;
     CWidget* root = GetRootWidget();
     if ( GUCEF_NULL != root )
-        root->SetProperty( "Title", title );
+        root->SetProperty( EWidgetProperty_Title, title );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -247,7 +247,7 @@ CSettingsForm::BuildLayout( CORE::CDataNode& layout )
 {GUCEF_TRACE;
 
     CORE::CDataNode* window = CFormLayout::AddWidgetNode( layout, "Window", "SettingsForm", "0.08,0 0.06,0", "0.84,0 0.88,0" );
-    CFormLayout::SetWidgetNodeProperty( *window, "Title", m_title );
+    CFormLayout::SetWidgetNodeProperty( *window, EWidgetProperty_Title, m_title );
 
     CString tabs;
     for ( UInt32 i=0; i<(UInt32)m_pages.size(); ++i )
@@ -257,17 +257,17 @@ CSettingsForm::BuildLayout( CORE::CDataNode& layout )
         tabs += m_pages[ i ]->GetTitle();
     }
     CORE::CDataNode* pages = CFormLayout::AddWidgetNode( *window, "TabControl", "Pages", "0,16 0,56", "1,-32 1,-128" );
-    CFormLayout::SetWidgetNodeProperty( *pages, "Tabs", tabs );
+    CFormLayout::SetWidgetNodeProperty( *pages, EWidgetProperty_Tabs, tabs );
     for ( UInt32 i=0; i<(UInt32)m_pages.size(); ++i )
         CFormLayout::AddWidgetNode( *pages, "TabContentPane", "Page" + CORE::UInt32ToString( i ) );
 
     CORE::CDataNode* ok = CFormLayout::AddWidgetNode( *window, "Button", "Ok", "1,-376 1,-56", "0,112 0,38" );
-    CFormLayout::SetWidgetNodeProperty( *ok, "Text", "OK" );
-    CFormLayout::SetWidgetNodeProperty( *ok, "StyleClass", "Primary" );
+    CFormLayout::SetWidgetNodeProperty( *ok, EWidgetProperty_Text, "OK" );
+    CFormLayout::SetWidgetNodeProperty( *ok, EWidgetProperty_StyleClass, "Primary" );
     CORE::CDataNode* apply = CFormLayout::AddWidgetNode( *window, "Button", "Apply", "1,-252 1,-56", "0,112 0,38" );
-    CFormLayout::SetWidgetNodeProperty( *apply, "Text", "Apply" );
+    CFormLayout::SetWidgetNodeProperty( *apply, EWidgetProperty_Text, "Apply" );
     CORE::CDataNode* cancel = CFormLayout::AddWidgetNode( *window, "Button", "Cancel", "1,-128 1,-56", "0,112 0,38" );
-    CFormLayout::SetWidgetNodeProperty( *cancel, "Text", "Cancel" );
+    CFormLayout::SetWidgetNodeProperty( *cancel, EWidgetProperty_Text, "Cancel" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -303,19 +303,34 @@ CSettingsForm::OnPostLayoutLoad( void )
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "SettingsForm: Cannot build the settings page \"" << page->GetTitle() << "\"" );
             continue;
         }
-        SubscribeTo( page, CSettingsPageForm::PageChangedEvent );
+        TEventCallback pageChangedCallback( this, &CSettingsForm::OnPageChanged );
+        SubscribeTo( page, CSettingsPageForm::PageChangedEvent, pageChangedCallback );
     }
 
-    const char* buttons[] = { "Ok", "Apply", "Cancel" };
-    for ( UInt32 i=0; i<3; ++i )
+    CWidget* ok = GetWidget( "Ok" );
+    if ( GUCEF_NULL != ok )
     {
-        CWidget* button = GetWidget( buttons[ i ] );
-        if ( GUCEF_NULL != button )
-            SubscribeTo( button, CWidget::ActivatedEvent );
+        TEventCallback okCallback( this, &CSettingsForm::OnOkActivated );
+        SubscribeTo( ok, CWidget::ActivatedEvent, okCallback );
+    }
+    CWidget* apply = GetWidget( "Apply" );
+    if ( GUCEF_NULL != apply )
+    {
+        TEventCallback applyCallback( this, &CSettingsForm::OnApplyActivated );
+        SubscribeTo( apply, CWidget::ActivatedEvent, applyCallback );
+    }
+    CWidget* cancel = GetWidget( "Cancel" );
+    if ( GUCEF_NULL != cancel )
+    {
+        TEventCallback cancelCallback( this, &CSettingsForm::OnCancelActivated );
+        SubscribeTo( cancel, CWidget::ActivatedEvent, cancelCallback );
     }
     CWidget* root = GetRootWidget();
     if ( GUCEF_NULL != root )
-        SubscribeTo( root, CWidget::NavigationEvent );
+    {
+        TEventCallback navigationCallback( this, &CSettingsForm::OnNavigation );
+        SubscribeTo( root, CWidget::NavigationEvent, navigationCallback );
+    }
     UpdateButtons();
 }
 
@@ -354,6 +369,48 @@ CSettingsForm::Open( void )
         m_pages[ i ]->ReadSettings();
     UpdateButtons();
     return ShowModal();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CSettingsForm::Open( const CString& pageTitle )
+{GUCEF_TRACE;
+
+    if ( !Open() )
+        return false;
+    SelectPage( pageTitle );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CSettingsForm::SelectPage( const CString& title )
+{GUCEF_TRACE;
+
+    CTabControl* tabs = GetWidgetAs< CTabControl >( "Pages" );
+    if ( GUCEF_NULL == tabs )
+        return false;
+    for ( UInt32 i=0; i<(UInt32)m_pages.size(); ++i )
+        if ( m_pages[ i ]->GetTitle() == title )
+            return tabs->SetActiveTab( i );
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CSettingsForm::GetSelectedPageTitle( void ) const
+{GUCEF_TRACE;
+
+    const CTabControl* tabs = const_cast< CSettingsForm* >( this )->GetWidgetAs< CTabControl >( "Pages" );
+    if ( GUCEF_NULL == tabs )
+        return CString::Empty;
+    const Int32 active = tabs->GetActiveTab();
+    if ( active < 0 || active >= (Int32)m_pages.size() )
+        return CString::Empty;
+    return m_pages[ (UInt32) active ]->GetTitle();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -412,39 +469,63 @@ CSettingsForm::Close( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CSettingsForm::OnNotify( CORE::CNotifier* notifier    ,
-                         const CORE::CEvent& eventId  ,
-                         CORE::CICloneable* eventData )
+CSettingsForm::OnPageChanged( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( CSettingsPageForm::PageChangedEvent == eventId )
-    {
-        UpdateButtons();
+    UpdateButtons();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CSettingsForm::OnOkActivated( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    Ok();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CSettingsForm::OnApplyActivated( CORE::CNotifier* notifier    ,
+                                 const CORE::CEvent& eventId  ,
+                                 CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    Apply();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CSettingsForm::OnCancelActivated( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    Cancel();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CSettingsForm::OnNavigation( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
         return;
-    }
-    if ( CWidget::ActivatedEvent == eventId )
+    CNavigationEventData* navigation = static_cast< CNavigationEventData* >( eventData );
+    if ( NAVIGATION_CANCEL == navigation->direction && EVENTPHASE_TUNNEL != navigation->phase && IsVisible() )
     {
-        if ( notifier == GetWidget( "Ok" ) )
-            Ok();
-        else
-        if ( notifier == GetWidget( "Apply" ) )
-            Apply();
-        else
-        if ( notifier == GetWidget( "Cancel" ) )
-            Cancel();
-        return;
+        navigation->handled = true;
+        Cancel();
     }
-    if ( CWidget::NavigationEvent == eventId && GUCEF_NULL != eventData )
-    {
-        CNavigationEventData* navigation = static_cast< CNavigationEventData* >( eventData );
-        if ( NAVIGATION_CANCEL == navigation->direction && EVENTPHASE_TUNNEL != navigation->phase && IsVisible() )
-        {
-            navigation->handled = true;
-            Cancel();
-        }
-        return;
-    }
-    CFormEx::OnNotify( notifier, eventId, eventData );
 }
 
 /*-------------------------------------------------------------------------*/

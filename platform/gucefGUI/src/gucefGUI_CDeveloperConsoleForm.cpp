@@ -155,13 +155,13 @@ CDeveloperConsoleForm::Build( void )
     CORE::CDataNode layout;
     CFormLayout::InitLayout( layout );
     CORE::CDataNode* panel = CFormLayout::AddWidgetNode( layout, "Panel", "DeveloperConsole", "0,0 0,0", "1,0 " + CORE::FloatToString( m_height ) + ",0" );
-    CFormLayout::SetWidgetNodeProperty( *panel, "BackgroundColour", "14,16,20,236" );
-    CFormLayout::SetWidgetNodeProperty( *panel, "BorderColour", "74,136,232,255" );
-    CFormLayout::SetWidgetNodeProperty( *panel, "BorderWidth", "1" );
+    CFormLayout::SetWidgetNodeProperty( *panel, EWidgetProperty_BackgroundColour, "14,16,20,236" );
+    CFormLayout::SetWidgetNodeProperty( *panel, EWidgetProperty_BorderColour, "74,136,232,255" );
+    CFormLayout::SetWidgetNodeProperty( *panel, EWidgetProperty_BorderWidth, "1" );
     CORE::CDataNode* output = CFormLayout::AddWidgetNode( *panel, "Textbox", "Output", "0,8 0,8", "1,-16 1,-60" );
-    CFormLayout::SetWidgetNodeProperty( *output, "BackgroundColour", "0,0,0,0" );
-    CFormLayout::SetWidgetNodeProperty( *output, "BorderColour", "0,0,0,0" );
-    CFormLayout::SetWidgetNodeProperty( *output, "WordWrap", "true" );
+    CFormLayout::SetWidgetNodeProperty( *output, EWidgetProperty_BackgroundColour, "0,0,0,0" );
+    CFormLayout::SetWidgetNodeProperty( *output, EWidgetProperty_BorderColour, "0,0,0,0" );
+    CFormLayout::SetWidgetNodeProperty( *output, EWidgetProperty_WordWrap, "true" );
     CFormLayout::AddWidgetNode( *panel, "Editbox", "CommandLine", "0,8 1,-44", "1,-16 0,36" );
 
     if ( !LoadLayout( layout ) )
@@ -183,13 +183,22 @@ CDeveloperConsoleForm::OnPostLayoutLoad( void )
 
     CWidget* root = GetRootWidget();
     if ( GUCEF_NULL != root )
-        SubscribeTo( root, CWidget::TextInputEvent );
+    {
+        TEventCallback textInputCallback( this, &CDeveloperConsoleForm::OnTextInput );
+        SubscribeTo( root, CWidget::TextInputEvent, textInputCallback );
+    }
     CWidget* commandLine = GetWidget( "CommandLine" );
     if ( GUCEF_NULL != commandLine )
-        SubscribeTo( commandLine, CEditbox::TextEnteredEvent );
+    {
+        TEventCallback textEnteredCallback( this, &CDeveloperConsoleForm::OnCommandLineTextEntered );
+        SubscribeTo( commandLine, CEditbox::TextEnteredEvent, textEnteredCallback );
+    }
     CGUIContext* context = GetGUIContext();
     if ( GUCEF_NULL != context )
-        SubscribeTo( context, CGUIContext::FrameStartedEvent );
+    {
+        TEventCallback frameStartedCallback( this, &CDeveloperConsoleForm::OnFrameStarted );
+        SubscribeTo( context, CGUIContext::FrameStartedEvent, frameStartedCallback );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -203,8 +212,14 @@ CDeveloperConsoleForm::AttachToKeyboards( void )
     m_keyboardsAttached = true;
 
     INPUT::CInputController& controller = INPUT::CInputGlobal::Instance()->GetInputController();
-    SubscribeTo( &controller, INPUT::CInputController::KeyboardAttachedEvent );
-    controller.SubscribeToAllKeyboards( &AsObserver() );
+    TEventCallback attachedCallback( this, &CDeveloperConsoleForm::OnKeyboardAttached );
+    SubscribeTo( &controller, INPUT::CInputController::KeyboardAttachedEvent, attachedCallback );
+
+    // only the keys matter: the other events of the keyboards are not subscribed to
+    TEventCallback keyStateCallback( this, &CDeveloperConsoleForm::OnKeyStateChanged );
+    const INPUT::CInputController::TKeyboardMap& keyboards = controller.GetKeyboardMap();
+    for ( INPUT::CInputController::TKeyboardMap::const_iterator i = keyboards.begin(); i != keyboards.end(); ++i )
+        SubscribeTo( (*i).second, INPUT::CKeyboard::KeyStateChangedEvent, keyStateCallback );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -297,7 +312,7 @@ CDeveloperConsoleForm::SetHeight( Float32 fractionOfContext )
     m_height = fractionOfContext;
     CWidget* root = GetRootWidget();
     if ( GUCEF_NULL != root )
-        root->SetProperty( "Size", "1,0 " + CORE::FloatToString( m_height ) + ",0" );
+        root->SetProperty( EWidgetProperty_Size, "1,0 " + CORE::FloatToString( m_height ) + ",0" );
     ApplySlidePosition();
 }
 
@@ -430,7 +445,7 @@ CDeveloperConsoleForm::ApplySlidePosition( void )
         return;
     // above the top of the context when gone, at the top when all the way down
     Float32 top = -m_height * ( 1.0f - m_slide );
-    root->SetProperty( "Position", "0,0 " + CORE::FloatToString( top ) + ",0" );
+    root->SetProperty( EWidgetProperty_Position, "0,0 " + CORE::FloatToString( top ) + ",0" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -455,12 +470,12 @@ CDeveloperConsoleForm::AppendLine( const CString& line )
                 text += '\n';
             text += lines[ i ];
         }
-        output->SetProperty( "Text", text );
+        output->SetProperty( EWidgetProperty_Text, text );
     }
 
     // the newest line in view
     Int32 hidden = (Int32) output->GetDisplayLines().size() - output->GetVisibleLineCount();
-    output->SetIntProperty( "ScrollPosition", hidden > 0 ? hidden : 0 );
+    output->SetIntProperty( EWidgetProperty_ScrollPosition, hidden > 0 ? hidden : 0 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -495,57 +510,85 @@ CDeveloperConsoleForm::OnCommandEntered( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CDeveloperConsoleForm::OnNotify( CORE::CNotifier* notifier    ,
-                                 const CORE::CEvent& eventId  ,
-                                 CORE::CICloneable* eventData )
+CDeveloperConsoleForm::OnKeyStateChanged( CORE::CNotifier* notifier    ,
+                                          const CORE::CEvent& eventId  ,
+                                          CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( INPUT::CKeyboard::KeyStateChangedEvent == eventId && GUCEF_NULL != eventData )
-    {
-        const INPUT::CKeyStateChangedEventData* key = static_cast< INPUT::CKeyStateChangedEventData* >( eventData );
-        if ( !m_enabled || !key->GetKeyPressedState() )
-            return;
-        if ( AnyInputContext != m_inputContextId && key->GetContextId() != m_inputContextId )
-            return;
-        if ( key->GetKeyCode() == m_consoleKey )
-        {
-            // the character the key types next is not for the command line
-            m_swallowText = true;
-            Toggle();
-        }
-        else
-        {
-            m_swallowText = false;
-        }
+    if ( GUCEF_NULL == eventData )
         return;
-    }
-    if ( CWidget::TextInputEvent == eventId && GUCEF_NULL != eventData )
-    {
-        CTextEventData* text = static_cast< CTextEventData* >( eventData );
-        if ( m_swallowText && EVENTPHASE_BUBBLE != text->phase )
-        {
-            m_swallowText = false;
-            text->handled = true;
-        }
+    const INPUT::CKeyStateChangedEventData* key = static_cast< INPUT::CKeyStateChangedEventData* >( eventData );
+    if ( !m_enabled || !key->GetKeyPressedState() )
         return;
-    }
-    if ( CEditbox::TextEnteredEvent == eventId )
-    {
-        OnCommandEntered();
+    if ( AnyInputContext != m_inputContextId && key->GetContextId() != m_inputContextId )
         return;
-    }
-    if ( CGUIContext::FrameStartedEvent == eventId && GUCEF_NULL != eventData )
+    if ( key->GetKeyCode() == m_consoleKey )
     {
-        Update( static_cast< CORE::TCloneableUInt32* >( eventData )->GetData() );
-        return;
+        // the character the key types next is not for the command line
+        m_swallowText = true;
+        Toggle();
     }
-    if ( INPUT::CInputController::KeyboardAttachedEvent == eventId && GUCEF_NULL != eventData )
+    else
     {
-        Int32 deviceId = static_cast< INPUT::CInputController::TKeyboardAttachedEventData* >( eventData )->GetData();
-        INPUT::CInputGlobal::Instance()->GetInputController().GetKeyboard( deviceId ).Subscribe( &AsObserver() );
-        return;
+        m_swallowText = false;
     }
-    CFormEx::OnNotify( notifier, eventId, eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDeveloperConsoleForm::OnTextInput( CORE::CNotifier* notifier    ,
+                                    const CORE::CEvent& eventId  ,
+                                    CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    CTextEventData* text = static_cast< CTextEventData* >( eventData );
+    if ( m_swallowText && EVENTPHASE_BUBBLE != text->phase )
+    {
+        m_swallowText = false;
+        text->handled = true;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDeveloperConsoleForm::OnCommandLineTextEntered( CORE::CNotifier* notifier    ,
+                                                 const CORE::CEvent& eventId  ,
+                                                 CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    OnCommandEntered();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDeveloperConsoleForm::OnFrameStarted( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    Update( static_cast< CORE::TCloneableUInt32* >( eventData )->GetData() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDeveloperConsoleForm::OnKeyboardAttached( CORE::CNotifier* notifier    ,
+                                           const CORE::CEvent& eventId  ,
+                                           CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
+        return;
+    Int32 deviceId = static_cast< INPUT::CInputController::TKeyboardAttachedEventData* >( eventData )->GetData();
+    TEventCallback keyStateCallback( this, &CDeveloperConsoleForm::OnKeyStateChanged );
+    SubscribeTo( &INPUT::CInputGlobal::Instance()->GetInputController().GetKeyboard( deviceId ), INPUT::CKeyboard::KeyStateChangedEvent, keyStateCallback );
 }
 
 /*-------------------------------------------------------------------------*/

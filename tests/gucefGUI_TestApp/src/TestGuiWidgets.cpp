@@ -77,14 +77,14 @@ class CCounter : public CORE::CObserver
     {
         if ( id != eventId )
             return;
-        GUI::CRoutedEventData* routed = dynamic_cast< GUI::CRoutedEventData* >( eventData );
+        GUI::CRoutedEventData* routed = GUI::CRoutedEventData::FromCloneable( eventData );
         if ( GUCEF_NULL != routed && routed->source != notifier )
             return;     // only the target phase
         ++count;
-        GUI::CValueChangedEventData* changed = dynamic_cast< GUI::CValueChangedEventData* >( eventData );
+        GUI::CValueChangedEventData* changed = CORE::CICloneable::CloneableAs< GUI::CValueChangedEventData >( eventData );
         if ( GUCEF_NULL != changed )
             lastValue = changed->newValue;
-        GUI::CItemEventData* item = dynamic_cast< GUI::CItemEventData* >( eventData );
+        GUI::CItemEventData* item = CORE::CICloneable::CloneableAs< GUI::CItemEventData >( eventData );
         if ( GUCEF_NULL != item )
         {
             lastIndex = item->index;
@@ -317,7 +317,7 @@ PerformGuiWidgetTests( void )
         GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
         GUI::CWidget* screen = MakeScreen( context );
 
-        GUI::CGroupBox* group = dynamic_cast< GUI::CGroupBox* >( context->CreateWidget( "GroupBox", "Options", screen ) );
+        GUI::CGroupBox* group = GUI::CWidget::As< GUI::CGroupBox >( context->CreateWidget( "GroupBox", "Options", screen ) );
         ASSERT_TRUE( GUCEF_NULL != group );
         if ( GUCEF_NULL == group )
             return;
@@ -442,6 +442,44 @@ PerformGuiWidgetTests( void )
         Click( context, 400, 400 );
         ASSERT_FALSE( combo->GetBoolProperty( "Expanded" ) );
         ASSERT_TRUE( 2 == combo->GetSelectedIndex() );
+        context->DestroyWidget( screen );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Widgets: The wheel scrolls the list of a combo box without closing it or picking from it" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateNullContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        context->RegisterFont( "Test", MakeTestFont( 8, 10 ) );
+        GUI::CWidget* screen = MakeScreen( context );
+        GUI::CCombobox* combo = static_cast< GUI::CCombobox* >( context->CreateWidget( "Combobox", "Size", screen ) );
+        combo->SetProperty( "Position", "0,50 0,50" );
+        combo->SetProperty( "Size", "0,100 0,20" );
+        combo->SetProperty( "Font", "Test" );
+        combo->SetIntProperty( "DropDownRows", 4 );
+        GUI::CCombobox::TStringVector items;
+        for ( UInt32 i=0; i<20; ++i )
+            items.push_back( "Item " + CORE::UInt32ToString( i ) );
+        combo->SetListItems( items );
+        combo->SetSelectedIndex( 1 );
+        CCounter changed( combo, GUI::CWidget::ValueChangedEvent );
+        context->FlushChanges();
+
+        Click( context, 60, 60 );
+        ASSERT_TRUE( combo->GetBoolProperty( "Expanded" ) && GUCEF_NULL != context->GetPopup() );
+        context->FlushChanges();
+        GUI::CWidget* list = context->GetPopup();
+        context->InjectMouseMove( list->GetRect().left + 10, list->GetRect().top + 10 );
+        context->InjectMouseWheel( -1 );
+        context->FlushChanges();
+        ASSERT_TRUE( 1 == list->GetIntProperty( "ScrollPosition" ) );
+        ASSERT_TRUE( combo->GetBoolProperty( "Expanded" ) && context->GetPopup() == list );
+        ASSERT_TRUE( 1 == combo->GetSelectedIndex() && 0 == changed.count );
         context->DestroyWidget( screen );
     }
     catch ( ... )

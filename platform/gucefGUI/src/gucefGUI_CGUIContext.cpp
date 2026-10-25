@@ -89,6 +89,11 @@
 #define GUCEF_GUI_CGROUPBOX_H
 #endif /* GUCEF_GUI_CGROUPBOX_H ? */
 
+#ifndef GUCEF_GUI_CSCROLLPANEL_H
+#include "gucefGUI_CScrollPanel.h"
+#define GUCEF_GUI_CSCROLLPANEL_H
+#endif /* GUCEF_GUI_CSCROLLPANEL_H ? */
+
 #include "gucefGUI_CGUIContext.h"
 
 /*-------------------------------------------------------------------------//
@@ -113,6 +118,15 @@ const CORE::CEvent CGUIContext::FormHiddenEvent = "GUCEF::GUI::CGUIContext::Form
 
 /** Two clicks within this time and distance make a double click */
 static const UInt32 DOUBLECLICK_TIME_MS = 400;
+
+/** A widget as the user action log names it: where it is in the tree and what it is */
+static CString
+DescribeWidget( const CWidget* widget )
+{
+    if ( GUCEF_NULL == widget )
+        return "nothing";
+    return widget->GetNamePath() + " (" + widget->GetClassTypeName() + ")";
+}
 static const Int32 DOUBLECLICK_DISTANCE = 4;
 
 /*-------------------------------------------------------------------------//
@@ -138,13 +152,22 @@ StateFromName( const CString& name )
 bool
 HasStyleClass( const CWidget& widget, const CString& styleClass )
 {
-    CString classes = widget.GetExplicitProperties().count( "StyleClass" ) > 0 ? widget.GetExplicitProperties().find( "StyleClass" )->second : CString::Empty;
-    if ( classes.IsNULLOrEmpty() )
+    // only what is set on the widget itself counts; the classes are separated by spaces, empty ones do not count
+    CString classes;
+    if ( !widget.GetExplicitProperty( EWidgetProperty_StyleClass, classes ) || classes.IsNULLOrEmpty() )
         return false;
-    CString::StringVector parts = classes.ParseElements( ' ', false );
-    for ( UInt32 i=0; i<(UInt32)parts.size(); ++i )
-        if ( parts[ i ] == styleClass )
+    const UInt32 length = classes.Length();
+    const UInt32 wanted = styleClass.Length();
+    UInt32 start = 0;
+    while ( start <= length )
+    {
+        UInt32 end = start;
+        while ( end < length && ' ' != classes[ end ] )
+            ++end;
+        if ( end - start == wanted && 0 == strncmp( classes.C_String() + start, styleClass.C_String(), wanted ) )
             return true;
+        start = end + 1;
+    }
     return false;
 }
 
@@ -210,6 +233,10 @@ CGUIContext::CGUIContext( CGUIDriver* driver, TWindowContextPtr windowContext )
     , m_fonts()
     , m_handlerCache()
     , m_theme()
+    , m_themeStyles()
+    , m_themeStateStyles()
+    , m_themeIndex()
+    , m_themeCustomIndex()
     , m_logicalWidth( 0 )
     , m_logicalHeight( 0 )
     , m_renderScale( 1 )
@@ -228,6 +255,7 @@ CGUIContext::CGUIContext( CGUIDriver* driver, TWindowContextPtr windowContext )
     , m_hovered( GUCEF_NULL )
     , m_pressed( GUCEF_NULL )
     , m_pressedButton( MOUSEBUTTON_NONE )
+    , m_pressedMoveCount( 0 )
     , m_focus( GUCEF_NULL )
     , m_popup( GUCEF_NULL )
     , m_lastClickTarget( GUCEF_NULL )
@@ -249,8 +277,12 @@ CGUIContext::CGUIContext( CGUIDriver* driver, TWindowContextPtr windowContext )
     RegisterEvents();
     if ( !m_windowContext.IsNULL() )
     {
-        SubscribeTo( m_windowContext.GetPointerAlways(), CWindowContext::WindowContextRedrawEvent );
-        SubscribeTo( m_windowContext.GetPointerAlways(), CWindowContext::WindowContextSizeEvent );
+        TEventCallback redrawCallback( this, &CGUIContext::OnWindowRedraw );
+        SubscribeTo( m_windowContext.GetPointerAlways(), CWindowContext::WindowContextRedrawEvent, redrawCallback );
+        TEventCallback sizeCallback( this, &CGUIContext::OnWindowSize );
+        SubscribeTo( m_windowContext.GetPointerAlways(), CWindowContext::WindowContextSizeEvent, sizeCallback );
+        TEventCallback activateCallback( this, &CGUIContext::OnWindowActivate );
+        SubscribeTo( m_windowContext.GetPointerAlways(), CWindowContext::WindowContextActivateEvent, activateCallback );
         m_windowContext->RegisterGuiLayer( this );
     }
 }
@@ -310,6 +342,7 @@ CGUIContext::CreateWidget( const CString& widgetType, const CString& widgetName,
     }
 
     widget->m_widgetTypeName = widgetType;
+    widget->m_resolvedType = GUCEF_NULL;
     widget->m_name = widgetName;
     widget->m_context = this;
     widget->m_handler = GetWidgetHandler( widgetType );
@@ -329,9 +362,7 @@ CGUIContext::CreateWidget( const CString& widgetType, const CString& widgetName,
         widget->m_handler->CreateNative( *widget );
 
     // the native object starts at the values of every property
-    CWidgetTypeRegistry::TDescriptorVector descriptors = registry.GetProperties( widgetType );
-    for ( UInt32 i=0; i<(UInt32)descriptors.size(); ++i )
-        widget->m_dirtyProperties.insert( descriptors[ i ]->name );
+    widget->MarkAllPropertiesDirty();
     widget->m_stateDirty = true;
     widget->m_rectDirty = true;
     m_dirtyWidgets.insert( widget );
@@ -367,7 +398,7 @@ CGUIContext::DestroyWidget( CWidget* widget )
         for ( UInt32 i=0; i<(UInt32)m_pendingDestroy.size(); ++i )
             if ( m_pendingDestroy[ i ] == widget )
                 return;
-        ForgetInteraction( widget );
+        ForgetInteraction( widget, true );
         if ( GUCEF_NULL == widget->m_parent )
             HideRoot( widget );
         else
@@ -383,7 +414,7 @@ CGUIContext::DestroyWidget( CWidget* widget )
     for ( UInt32 i=0; i<(UInt32)children.size(); ++i )
         DestroyWidget( children[ i ] );
 
-    ForgetInteraction( widget );
+    ForgetInteraction( widget, true );
     if ( GUCEF_NULL == widget->m_parent )
         HideRoot( widget );
     if ( GUCEF_NULL != widget->m_handler )
@@ -412,7 +443,7 @@ CGUIContext::ProcessPendingDestroys( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CGUIContext::ForgetInteraction( CWidget* widget )
+CGUIContext::ForgetInteraction( CWidget* widget, bool widgetIsIntact )
 {GUCEF_TRACE;
 
     // the widget or one below it is going away: no hover, press, focus or popup may point into it
@@ -420,8 +451,15 @@ CGUIContext::ForgetInteraction( CWidget* widget )
         SetHovered( GUCEF_NULL );
     if ( GUCEF_NULL != m_pressed && IsDescendantOf( m_pressed, widget ) )
     {
-        m_pressed->SetStateFlag( CWidget::STATE_PRESSED, false );
-        m_pressed = GUCEF_NULL;
+        if ( widgetIsIntact )
+        {
+            CancelPointerCapture( "the widget is going away" );
+        }
+        else
+        {
+            m_pressed->SetStateFlag( CWidget::STATE_PRESSED, false );
+            m_pressed = GUCEF_NULL;
+        }
     }
     if ( GUCEF_NULL != m_focus && IsDescendantOf( m_focus, widget ) )
         SetFocus( GUCEF_NULL );
@@ -600,7 +638,7 @@ CGUIContext::HideRoot( CWidget* root )
             m_modalRoots.erase( root );
             if ( m_popup == root )
                 m_popup = GUCEF_NULL;
-            ForgetInteraction( root );
+            ForgetInteraction( root, true );
             m_rootOrderDirty = true;
             CORE::TCloneableString eventData( root->GetName() );
             NotifyObservers( FormHiddenEvent, &eventData );
@@ -916,6 +954,83 @@ CGUIContext::MeasureText( const CString& fontName, const CString& text, Int32 ma
 
 /*-------------------------------------------------------------------------*/
 
+CGUIContext::SThemeStyle::SThemeStyle( void )
+    : type()
+    , styleClass()
+    , name()
+    , hasState( false )
+    , stateFlags()
+    , properties()
+{
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUIContext::CompileTheme( void )
+{GUCEF_TRACE;
+
+    m_themeStyles.clear();
+    m_themeStateStyles.clear();
+    m_themeCustomIndex.clear();
+    for ( UInt32 i=0; i<(UInt32)EWidgetProperty_Count; ++i )
+        m_themeIndex[ i ].clear();
+
+    for ( CORE::CDataNode::const_iterator s=m_theme.ConstBegin(); s!=m_theme.ConstEnd(); ++s )
+    {
+        const CORE::CDataNode* styleNode = (*s);
+        if ( styleNode->GetName() != "Style" )
+            continue;
+
+        SThemeStyle style;
+        style.type = styleNode->GetAttributeValue( "type" ).AsString();
+        style.styleClass = styleNode->GetAttributeValue( "class" ).AsString();
+        style.name = styleNode->GetAttributeValue( "name" ).AsString();
+        CString states = styleNode->GetAttributeValue( "state" ).AsString();
+        style.hasState = !states.IsNULLOrEmpty();
+        if ( style.hasState )
+        {
+            CString::StringVector parts = states.ParseElements( ',', false );
+            for ( UInt32 i=0; i<(UInt32)parts.size(); ++i )
+                style.stateFlags.push_back( StateFromName( parts[ i ] ) );
+        }
+        for ( CORE::CDataNode::const_iterator p=styleNode->ConstBegin(); p!=styleNode->ConstEnd(); ++p )
+        {
+            const CORE::CDataNode* propertyNode = (*p);
+            if ( propertyNode->GetName() != "Property" )
+                continue;
+            SThemeProperty property;
+            property.name = propertyNode->GetAttributeValue( "name" ).AsString();
+            property.property = StringToWidgetProperty( property.name );
+            property.value.SetText( propertyNode->GetAttributeValue( "value" ).AsString() );
+            property.value.ReadAll();
+            style.properties.push_back( property );
+        }
+
+        // a style is in the index of a property once, with the last mention of the property in the style
+        const UInt32 styleIndex = (UInt32) m_themeStyles.size();
+        for ( UInt32 p=0; p<(UInt32)style.properties.size(); ++p )
+        {
+            TThemeIndexVector& index = EWidgetProperty_Unknown != style.properties[ p ].property ?
+                                       m_themeIndex[ style.properties[ p ].property ] : m_themeCustomIndex[ style.properties[ p ].name ];
+            if ( !index.empty() && index.back().style == styleIndex )
+                index.back().property = p;
+            else
+            {
+                SThemeIndexEntry entry;
+                entry.style = styleIndex;
+                entry.property = p;
+                index.push_back( entry );
+            }
+        }
+        if ( style.hasState )
+            m_themeStateStyles.push_back( styleIndex );
+        m_themeStyles.push_back( style );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CGUIContext::SetTheme( const CORE::CDataNode& theme )
 {GUCEF_TRACE;
@@ -923,13 +1038,14 @@ CGUIContext::SetTheme( const CORE::CDataNode& theme )
     m_theme = theme;
     m_layoutDirty = true;
 
+    // the styles by the properties they set: the values of the widgets are asked for all the time (also by the hit test of every pointer move)
+    CompileTheme();
+
     // every property of every widget may now have another value
     for ( TWidgetSet::iterator i=m_widgets.begin(); i!=m_widgets.end(); ++i )
     {
         CWidget* widget = *i;
-        CWidget::TStringVector names = widget->GetPropertyNames();
-        for ( UInt32 n=0; n<(UInt32)names.size(); ++n )
-            widget->m_dirtyProperties.insert( names[ n ] );
+        widget->MarkAllPropertiesDirty();
         m_dirtyWidgets.insert( widget );
     }
     return true;
@@ -947,41 +1063,41 @@ CGUIContext::GetTheme( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CGUIContext::StyleMatches( const CORE::CDataNode& style, const CWidget& widget, bool ignoreState, Int32& score ) const
+CGUIContext::StyleMatches( const SThemeStyle& style, const CWidget& widget, bool ignoreState, Int32& score, UInt32& widgetState, bool& widgetStateKnown ) const
 {GUCEF_TRACE;
 
     score = 0;
-    CString type = style.GetAttributeValue( "type" ).AsString();
-    if ( !type.IsNULLOrEmpty() )
+    if ( !style.type.IsNULLOrEmpty() )
     {
-        if ( !CGuiGlobal::Instance()->GetWidgetTypeRegistry().IsA( widget.GetType(), type ) )
+        const CResolvedWidgetType* widgetType = widget.GetResolvedType();
+        if ( GUCEF_NULL == widgetType || !widgetType->IsA( style.type ) )
             return false;
         score += 1;
     }
-    CString styleClass = style.GetAttributeValue( "class" ).AsString();
-    if ( !styleClass.IsNULLOrEmpty() )
+    if ( !style.styleClass.IsNULLOrEmpty() )
     {
-        if ( !HasStyleClass( widget, styleClass ) )
+        if ( !HasStyleClass( widget, style.styleClass ) )
             return false;
         score += 100;
     }
-    CString name = style.GetAttributeValue( "name" ).AsString();
-    if ( !name.IsNULLOrEmpty() )
+    if ( !style.name.IsNULLOrEmpty() )
     {
-        if ( widget.GetName() != name )
+        if ( widget.GetName() != style.name )
             return false;
         score += 10000;
     }
-    CString states = style.GetAttributeValue( "state" ).AsString();
-    if ( !states.IsNULLOrEmpty() )
+    if ( style.hasState )
     {
         if ( ignoreState )
             return true;
-        UInt32 widgetState = widget.GetState();
-        CString::StringVector parts = states.ParseElements( ',', false );
-        for ( UInt32 i=0; i<(UInt32)parts.size(); ++i )
+        if ( !widgetStateKnown )
         {
-            UInt32 flag = StateFromName( parts[ i ] );
+            widgetState = widget.GetState();
+            widgetStateKnown = true;
+        }
+        for ( UInt32 i=0; i<(UInt32)style.stateFlags.size(); ++i )
+        {
+            UInt32 flag = style.stateFlags[ i ];
             if ( 0 == flag || 0 == ( widgetState & flag ) )
                 return false;
             score += 10;
@@ -992,40 +1108,77 @@ CGUIContext::StyleMatches( const CORE::CDataNode& style, const CWidget& widget, 
 
 /*-------------------------------------------------------------------------*/
 
+const CWidgetPropertyValue*
+CGUIContext::FindThemeValue( const CWidget& widget, const TThemeIndexVector& index ) const
+{GUCEF_TRACE;
+
+    // only the styles that set the property matter; of the styles that fit the widget equally well the last one wins
+    const CWidgetPropertyValue* found = GUCEF_NULL;
+    Int32 bestScore = -1;
+    UInt32 widgetState = 0;
+    bool widgetStateKnown = false;
+    for ( UInt32 i=0; i<(UInt32)index.size(); ++i )
+    {
+        const SThemeStyle& style = m_themeStyles[ index[ i ].style ];
+        Int32 score = 0;
+        if ( !StyleMatches( style, widget, false, score, widgetState, widgetStateKnown ) || score < bestScore )
+            continue;
+        found = &style.properties[ index[ i ].property ].value;
+        bestScore = score;
+    }
+    return found;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CWidgetPropertyValue*
+CGUIContext::FindThemeValue( const CWidget& widget, EWidgetProperty property ) const
+{GUCEF_TRACE;
+
+    if ( (UInt32) property >= (UInt32) EWidgetProperty_Count || m_themeIndex[ property ].empty() )
+        return GUCEF_NULL;
+    return FindThemeValue( widget, m_themeIndex[ property ] );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CWidgetPropertyValue*
+CGUIContext::FindThemeValue( const CWidget& widget, const CString& name ) const
+{GUCEF_TRACE;
+
+    EWidgetProperty property = StringToWidgetProperty( name );
+    if ( EWidgetProperty_Unknown != property )
+        return FindThemeValue( widget, property );
+    TThemeCustomIndex::const_iterator indexed = m_themeCustomIndex.find( name );
+    if ( indexed == m_themeCustomIndex.end() )
+        return GUCEF_NULL;
+    return FindThemeValue( widget, (*indexed).second );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::GetThemeProperty( const CWidget& widget, EWidgetProperty property, CString& value ) const
+{GUCEF_TRACE;
+
+    const CWidgetPropertyValue* found = FindThemeValue( widget, property );
+    if ( GUCEF_NULL == found )
+        return false;
+    value = found->GetText();
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CGUIContext::GetThemeProperty( const CWidget& widget, const CString& name, CString& value ) const
 {GUCEF_TRACE;
 
-    if ( 0 == m_theme.GetNrOfChildNodes() )
+    const CWidgetPropertyValue* found = FindThemeValue( widget, name );
+    if ( GUCEF_NULL == found )
         return false;
-
-    bool found = false;
-    Int32 bestScore = -1;
-    CORE::CDataNode::const_iterator i = m_theme.ConstBegin();
-    while ( i != m_theme.ConstEnd() )
-    {
-        const CORE::CDataNode* style = (*i);
-        ++i;
-        if ( style->GetName() != "Style" )
-            continue;
-        Int32 score = 0;
-        if ( !StyleMatches( *style, widget, false, score ) || score < bestScore )
-            continue;
-
-        CORE::CDataNode::const_iterator p = style->ConstBegin();
-        while ( p != style->ConstEnd() )
-        {
-            const CORE::CDataNode* property = (*p);
-            ++p;
-            if ( property->GetName() == "Property" && property->GetAttributeValue( "name" ).AsString() == name )
-            {
-                value = property->GetAttributeValue( "value" ).AsString();
-                bestScore = score;
-                found = true;
-            }
-        }
-    }
-    return found;
+    value = found->GetText();
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1034,26 +1187,21 @@ void
 CGUIContext::MarkThemeDependentDirty( CWidget& widget )
 {GUCEF_TRACE;
 
-    if ( 0 == m_theme.GetNrOfChildNodes() )
-        return;
-
-    CORE::CDataNode::const_iterator i = m_theme.ConstBegin();
-    while ( i != m_theme.ConstEnd() )
+    // the styles that select on a state: what they set may now be another value
+    for ( UInt32 i=0; i<(UInt32)m_themeStateStyles.size(); ++i )
     {
-        const CORE::CDataNode* style = (*i);
-        ++i;
-        if ( style->GetName() != "Style" || style->GetAttributeValue( "state" ).AsString().IsNULLOrEmpty() )
-            continue;
+        const SThemeStyle& style = m_themeStyles[ m_themeStateStyles[ i ] ];
         Int32 score = 0;
-        if ( !StyleMatches( *style, widget, true, score ) )
+        UInt32 widgetState = 0;
+        bool widgetStateKnown = false;
+        if ( !StyleMatches( style, widget, true, score, widgetState, widgetStateKnown ) )
             continue;
-        CORE::CDataNode::const_iterator p = style->ConstBegin();
-        while ( p != style->ConstEnd() )
+        for ( UInt32 p=0; p<(UInt32)style.properties.size(); ++p )
         {
-            const CORE::CDataNode* property = (*p);
-            ++p;
-            if ( property->GetName() == "Property" )
-                widget.m_dirtyProperties.insert( property->GetAttributeValue( "name" ).AsString() );
+            if ( EWidgetProperty_Unknown != style.properties[ p ].property )
+                widget.m_dirtyMask.Set( style.properties[ p ].property );
+            else
+                widget.m_dirtyCustomProperties.insert( style.properties[ p ].name );
         }
         m_dirtyWidgets.insert( &widget );
     }
@@ -1319,6 +1467,73 @@ CGUIContext::DispatchPointer( CWidget* target, const CORE::CEvent& eventId, TMou
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  While observers run for an event the widgets they run for must not be deleted: a widget that is destroyed meanwhile is taken
+ *  out of the tree and deleted when the outermost dispatch is done. This is the dispatch: the destruction of what waits is
+ *  at the end of the scope, also when the dispatch returns early or an exception unwinds it
+ */
+class CGUIContext::CDispatchScope
+{
+    public:
+
+    explicit CDispatchScope( CGUIContext& context )
+        : m_context( context )
+    {
+        ++m_context.m_dispatchDepth;
+    }
+
+    ~CDispatchScope()
+    {
+        --m_context.m_dispatchDepth;
+        m_context.ProcessPendingDestroys();
+    }
+
+    private:
+
+    CDispatchScope( const CDispatchScope& src );
+    CDispatchScope& operator=( const CDispatchScope& src );
+
+    CGUIContext& m_context;
+};
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUIContext::CancelPointerCapture( const char* reason )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_pressed )
+        return;
+
+    CString cause = "cancelled";
+    if ( GUCEF_NULL != reason )
+        cause = reason;
+    GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "GUI layer " << m_layer << ": the pointer capture of " << DescribeWidget( m_pressed ) << " is lost after "
+                    << m_pressedMoveCount << " moves: " << cause );
+
+    // the widget that was pressed loses the pointer without a release (the button state of the pointer is forgotten too)
+    CWidget* pressed = m_pressed;
+    TMouseButton button = m_pressedButton;
+    m_pressed = GUCEF_NULL;
+    m_pressedButton = MOUSEBUTTON_NONE;
+    m_pressedMoveCount = 0;
+    if ( MOUSEBUTTON_NONE != button )
+        m_buttonStates &= ~( 1u << (UInt32) button );
+    pressed->SetStateFlag( CWidget::STATE_PRESSED, false );
+
+    CDispatchScope dispatchScope( *this );
+    CPointerEventData eventData;
+    eventData.x = m_pointerX;
+    eventData.y = m_pointerY;
+    eventData.button = button;
+    eventData.buttonStates = m_buttonStates;
+    eventData.modifiers = m_modifiers;
+    pressed->DispatchDirectEvent( CWidget::MouseCaptureLostEvent, eventData );
+    pressed->OnDefaultAction( CWidget::MouseCaptureLostEvent, eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CGUIContext::InjectMouseMove( Int32 x, Int32 y )
 {GUCEF_TRACE;
@@ -1328,8 +1543,12 @@ CGUIContext::InjectMouseMove( Int32 x, Int32 y )
     m_pointerY = y;
 
     ++m_dispatchDepth;
-    UpdatePointerTarget();
-    CWidget* target = GUCEF_NULL != m_pressed ? m_pressed : HitTest( x, y );
+    // the hit test is the costly part of a move: once is enough, unless the handlers of a change of hover changed what is there
+    CWidget* previousHover = m_hovered;
+    CWidget* found = UpdatePointerTarget();
+    CWidget* target = GUCEF_NULL != m_pressed ? m_pressed : ( previousHover != m_hovered ? HitTest( x, y ) : found );
+    if ( GUCEF_NULL != m_pressed )
+        ++m_pressedMoveCount;
     if ( GUCEF_NULL != target && AcceptsInput( target ) )
         DispatchPointer( target, CWidget::MouseMoveEvent, MOUSEBUTTON_NONE, 0 );
     --m_dispatchDepth;
@@ -1350,6 +1569,11 @@ CGUIContext::InjectMouseButton( TMouseButton button, bool down )
     {
         m_buttonStates |= bit;
         CWidget* target = HitTest( m_pointerX, m_pointerY );
+        CString inputNote;
+        if ( GUCEF_NULL != target && !AcceptsInput( target ) )
+            inputNote = ", which takes no input";
+        GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "GUI layer " << m_layer << ": mouse button " << (int) button << " down at " << m_pointerX << "," << m_pointerY
+                        << " over " << DescribeWidget( target ) << inputNote );
 
         // a press outside the popup closes it and is used up by that
         if ( GUCEF_NULL != m_popup && ( GUCEF_NULL == target || !IsDescendantOf( target, m_popup ) ) )
@@ -1376,6 +1600,7 @@ CGUIContext::InjectMouseButton( TMouseButton button, bool down )
             {
                 m_pressed = target;
                 m_pressedButton = button;
+                m_pressedMoveCount = 0;
                 target->SetStateFlag( CWidget::STATE_PRESSED, true );
             }
             DispatchPointer( target, CWidget::MouseDownEvent, button, 0 );
@@ -1389,6 +1614,9 @@ CGUIContext::InjectMouseButton( TMouseButton button, bool down )
             CWidget* pressed = m_pressed;
             m_pressed = GUCEF_NULL;
             m_pressedButton = MOUSEBUTTON_NONE;
+            GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "GUI layer " << m_layer << ": mouse button " << (int) button << " up at " << m_pointerX << "," << m_pointerY
+                            << " after " << m_pressedMoveCount << " moves, pressed " << DescribeWidget( pressed ) );
+            m_pressedMoveCount = 0;
             pressed->SetStateFlag( CWidget::STATE_PRESSED, false );
             DispatchPointer( pressed, CWidget::MouseUpEvent, button, 0 );
 
@@ -1446,10 +1674,26 @@ void
 CGUIContext::InjectMouseWheel( Int32 delta )
 {GUCEF_TRACE;
 
+    // no wheel turns this far in one event; the widgets multiply the notches into distances and add them to positions
+    const Int32 maxDelta = 65536;
+    if ( delta > maxDelta )
+        delta = maxDelta;
+    else
+    if ( delta < -maxDelta )
+        delta = -maxDelta;
+
     FlushLayoutIfNeeded();
     CWidget* target = HitTest( m_pointerX, m_pointerY );
-    if ( GUCEF_NULL == target || !AcceptsInput( target ) || 0 == delta )
+
+    // a widget that takes no input (disabled, or in something disabled) does not stop the wheel: it goes to what it is in
+    while ( GUCEF_NULL != target && !AcceptsInput( target ) )
+        target = target->m_parent;
+    if ( GUCEF_NULL == target || 0 == delta )
+    {
+        if ( 0 != delta )
+            GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "GUI layer " << m_layer << ": wheel " << delta << " at " << m_pointerX << "," << m_pointerY << " over nothing that takes input" );
         return;
+    }
 
     ++m_dispatchDepth;
     CWheelEventData eventData;
@@ -1457,13 +1701,24 @@ CGUIContext::InjectMouseWheel( Int32 delta )
     eventData.y = m_pointerY;
     eventData.delta = delta;
     eventData.modifiers = m_modifiers;
+    CWidget* taker = GUCEF_NULL;
     if ( !target->DispatchEvent( CWidget::MouseWheelEvent, eventData ) )
     {
-        // the first widget at or above the target that does something with the wheel (scrolling)
+        // the first widget at or above the target that does something with the wheel (scrolling), one that has nothing to scroll leaves it to the next
         for ( CWidget* w=target; GUCEF_NULL != w; w=w->m_parent )
             if ( w->OnDefaultAction( CWidget::MouseWheelEvent, eventData ) )
+            {
+                taker = w;
                 break;
+            }
     }
+    else
+        taker = target;
+    CString takerNote = ", not used by anything";
+    if ( GUCEF_NULL != taker )
+        takerNote = ", used by " + DescribeWidget( taker );
+    GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "GUI layer " << m_layer << ": wheel " << delta << " at " << m_pointerX << "," << m_pointerY << " over " << DescribeWidget( target )
+                    << takerNote );
     --m_dispatchDepth;
     ProcessPendingDestroys();
 }
@@ -1506,9 +1761,9 @@ CGUIContext::InjectKey( INPUT::KeyCode keyCode, bool down, UInt32 modifiers )
     const CORE::CEvent& eventId = down ? CWidget::KeyDownEvent : CWidget::KeyUpEvent;
     if ( !target->DispatchEvent( eventId, eventData ) && down && !target->OnDefaultAction( eventId, eventData ) )
     {
-        // keys nobody wanted become navigation
+        // keys nobody wanted scroll the page they are on, else they become navigation
         bool shift = 0 != ( modifiers & INPUT::KEYMOD_SHIFT );
-        switch ( keyCode )
+        if ( !ScrollPanelByKey( keyCode, modifiers ) ) switch ( keyCode )
         {
             case INPUT::KEYCODE_TAB: InjectNavigation( shift ? NAVIGATION_PREVIOUS : NAVIGATION_NEXT ); break;
             case INPUT::KEYCODE_UP: InjectNavigation( NAVIGATION_UP ); break;
@@ -1523,6 +1778,39 @@ CGUIContext::InjectKey( INPUT::KeyCode keyCode, bool down, UInt32 modifiers )
     }
     --m_dispatchDepth;
     ProcessPendingDestroys();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGUIContext::ScrollPanelByKey( INPUT::KeyCode keyCode, UInt32 modifiers )
+{GUCEF_TRACE;
+
+    if ( 0 != ( modifiers & ( INPUT::KEYMOD_CTRL | INPUT::KEYMOD_ALT | INPUT::KEYMOD_META ) ) )
+        return false;
+
+    // the scroll panel around the focused widget, else the one below the pointer; the arrows are for moving the focus when there is one
+    CWidget* start = m_focus;
+    const bool lines = GUCEF_NULL == start;
+    if ( GUCEF_NULL != start )
+    {
+        // a widget that types or picks has these keys for itself
+        CWidgetTypeRegistry& registry = CGuiGlobal::Instance()->GetWidgetTypeRegistry();
+        const CString& type = start->GetType();
+        if ( registry.IsA( type, "Editbox" ) || registry.IsA( type, "Textbox" ) || registry.IsA( type, "Spinner" ) || registry.IsA( type, "Combobox" ) )
+            return false;
+    }
+    else
+    {
+        start = HitTest( m_pointerX, m_pointerY );
+    }
+    for ( CWidget* w=start; GUCEF_NULL != w; w=w->m_parent )
+    {
+        CScrollPanel* scrollPanel = CWidget::ToScrollPanel( w );
+        if ( GUCEF_NULL != scrollPanel && scrollPanel->IsScrollable() && AcceptsInput( scrollPanel ) )
+            return scrollPanel->ScrollByKey( keyCode, lines );
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1608,16 +1896,19 @@ CGUIContext::HitTestWidget( CWidget* widget, Int32 x, Int32 y ) const
     if ( !widget->IsVisible() )
         return GUCEF_NULL;
     bool inside = widget->m_rect.Contains( x, y );
-    if ( !inside && widget->GetBoolProperty( "Clip" ) )
+    if ( !inside && widget->GetBoolProperty( EWidgetProperty_Clip ) )
         return GUCEF_NULL;
 
-    for ( Int32 i=(Int32)widget->m_children.size()-1; i>=0; --i )
+    if ( widget->AreChildrenShown() )
     {
-        CWidget* hit = HitTestWidget( widget->m_children[ i ], x, y );
-        if ( GUCEF_NULL != hit )
-            return hit;
+        for ( Int32 i=(Int32)widget->m_children.size()-1; i>=0; --i )
+        {
+            CWidget* hit = HitTestWidget( widget->m_children[ i ], x, y );
+            if ( GUCEF_NULL != hit )
+                return hit;
+        }
     }
-    if ( inside && !widget->GetBoolProperty( "InputTransparent" ) )
+    if ( inside && !widget->GetBoolProperty( EWidgetProperty_InputTransparent ) )
         return widget;
     return GUCEF_NULL;
 }
@@ -1669,16 +1960,22 @@ CGUIContext::AcceptsInput( const CWidget* widget ) const
 
 /*-------------------------------------------------------------------------*/
 
-void
+CWidget*
 CGUIContext::UpdatePointerTarget( void )
 {GUCEF_TRACE;
 
-    CWidget* hit = HitTest( m_pointerX, m_pointerY );
+    // a press that can no longer be released into the widget (it was disabled or hidden, a layer above took the input)
+    if ( GUCEF_NULL != m_pressed && ( !AcceptsInput( m_pressed ) || HasHigherLayerTakingInput() ) )
+        CancelPointerCapture( HasHigherLayerTakingInput() ? "a layer above takes the input" : "the widget takes no input any more" );
+
+    CWidget* found = HitTest( m_pointerX, m_pointerY );
+    CWidget* hit = found;
     if ( GUCEF_NULL != hit && !AcceptsInput( hit ) )
         hit = GUCEF_NULL;
     if ( GUCEF_NULL != m_pressed && hit != m_pressed )
         hit = GUCEF_NULL;  // while a widget is pressed only that one shows hover
     SetHovered( hit );
+    return found;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1768,6 +2065,14 @@ CGUIContext::SetFocus( CWidget* widget )
         eventData.other = old;
         widget->DispatchDirectEvent( CWidget::KeyboardFocusReceivedEvent, eventData );
         widget->OnDefaultAction( CWidget::KeyboardFocusReceivedEvent, eventData );
+
+        // containers that scroll show what got the focus
+        if ( widget == m_focus )
+        {
+            FlushLayoutIfNeeded();
+            for ( CWidget* ancestor=widget->m_parent; GUCEF_NULL != ancestor; ancestor=ancestor->m_parent )
+                ancestor->OnDescendantFocusReceived( widget );
+        }
     }
     return true;
 }
@@ -1782,6 +2087,8 @@ CGUIContext::CollectFocusable( CWidget* widget, TWidgetVector& focusable ) const
         return;
     if ( widget->IsFocusable() )
         focusable.push_back( widget );
+    if ( !widget->AreChildrenShown() )
+        return;
     for ( UInt32 i=0; i<(UInt32)widget->m_children.size(); ++i )
         CollectFocusable( widget->m_children[ i ], focusable );
 }
@@ -1826,7 +2133,7 @@ CGUIContext::Navigate( TNavigation direction )
     GUCEF::vector< std::pair< Int32, UInt32 > > indexed;
     for ( UInt32 i=0; i<(UInt32)focusable.size(); ++i )
     {
-        Int32 tabIndex = focusable[ i ]->GetIntProperty( "TabIndex" );
+        Int32 tabIndex = focusable[ i ]->GetIntProperty( EWidgetProperty_TabIndex );
         if ( tabIndex >= 0 )
             indexed.push_back( std::pair< Int32, UInt32 >( tabIndex, i ) );
     }
@@ -1834,7 +2141,7 @@ CGUIContext::Navigate( TNavigation direction )
     for ( UInt32 i=0; i<(UInt32)indexed.size(); ++i )
         ordered.push_back( focusable[ indexed[ i ].second ] );
     for ( UInt32 i=0; i<(UInt32)focusable.size(); ++i )
-        if ( focusable[ i ]->GetIntProperty( "TabIndex" ) < 0 )
+        if ( focusable[ i ]->GetIntProperty( EWidgetProperty_TabIndex ) < 0 )
             ordered.push_back( focusable[ i ] );
 
     if ( GUCEF_NULL == m_focus || !IsDescendantOf( m_focus, scope ) )
@@ -1853,7 +2160,8 @@ CGUIContext::Navigate( TNavigation direction )
     }
 
     // an explicit neighbour first
-    const char* neighbourProperty = NAVIGATION_UP == direction ? "NavUp" : NAVIGATION_DOWN == direction ? "NavDown" : NAVIGATION_LEFT == direction ? "NavLeft" : "NavRight";
+    const EWidgetProperty neighbourProperty = NAVIGATION_UP == direction ? EWidgetProperty_NavUp : NAVIGATION_DOWN == direction ? EWidgetProperty_NavDown :
+                                              NAVIGATION_LEFT == direction ? EWidgetProperty_NavLeft : EWidgetProperty_NavRight;
     CString neighbourName = m_focus->GetProperty( neighbourProperty );
     if ( !neighbourName.IsNULLOrEmpty() )
     {
@@ -1995,8 +2303,10 @@ CGUIContext::FlushWidget( CWidget& widget )
 {GUCEF_TRACE;
 
     CWidgetHandler* handler = widget.m_handler;
-    CWidget::TStringSet properties;
-    properties.swap( widget.m_dirtyProperties );
+    CWidget::SPropertyMask dirtyMask = widget.m_dirtyMask;
+    CWidget::TStringSet dirtyCustom;
+    dirtyCustom.swap( widget.m_dirtyCustomProperties );
+    widget.m_dirtyMask = CWidget::SPropertyMask();
 
     if ( GUCEF_NULL == handler )
     {
@@ -2009,15 +2319,30 @@ CGUIContext::FlushWidget( CWidget& widget )
         widget.m_parentDirty = false;
         handler->ApplyParent( widget );
     }
-    for ( CWidget::TStringSet::iterator i=properties.begin(); i!=properties.end(); ++i )
+
+    // the drivers take the names: the id turns into the name here, once per change; the order is that of the names (the ids are in it)
+    CWidget::TStringSet::const_iterator custom = dirtyCustom.begin();
+    if ( !dirtyMask.IsEmpty() || !dirtyCustom.empty() )
     {
-        const CString& name = *i;
-        CString value = widget.GetProperty( name );
-        CWidget::TApplierOverrideMap::iterator o = widget.m_applierOverrides.find( name );
-        if ( o != widget.m_applierOverrides.end() && GUCEF_NULL != (*o).second )
-            (*o).second( *handler, widget, value );
-        else
-            handler->ApplyProperty( widget, name, value );
+        for ( UInt32 id=dirtyMask.NextSet( 1 ); id<(UInt32)EWidgetProperty_Count; id=dirtyMask.NextSet( id + 1 ) )
+        {
+            const EWidgetProperty property = (EWidgetProperty) id;
+            const CString& name = WidgetPropertyToString( property );
+            while ( custom != dirtyCustom.end() && (*custom) < name )
+            {
+                CString customValue = widget.GetPropertyRef( *custom );
+                ApplyPropertyToHandler( widget, *handler, *custom, customValue );
+                ++custom;
+            }
+            CString value = widget.GetPropertyRef( property );
+            ApplyPropertyToHandler( widget, *handler, name, value );
+        }
+        while ( custom != dirtyCustom.end() )
+        {
+            CString customValue = widget.GetPropertyRef( *custom );
+            ApplyPropertyToHandler( widget, *handler, *custom, customValue );
+            ++custom;
+        }
     }
     if ( widget.m_stateDirty )
     {
@@ -2034,6 +2359,24 @@ CGUIContext::FlushWidget( CWidget& widget )
         widget.m_childOrderDirty = false;
         handler->ApplyChildOrder( widget );
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUIContext::ApplyPropertyToHandler( CWidget& widget, CWidgetHandler& handler, const CString& name, const CString& value )
+{GUCEF_TRACE;
+
+    if ( !widget.m_applierOverrides.empty() )
+    {
+        CWidget::TApplierOverrideMap::iterator o = widget.m_applierOverrides.find( name );
+        if ( o != widget.m_applierOverrides.end() && GUCEF_NULL != (*o).second )
+        {
+            (*o).second( handler, widget, value );
+            return;
+        }
+    }
+    handler.ApplyProperty( widget, name, value );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2067,7 +2410,7 @@ void
 CGUIContext::ResolveSize( const CWidget& widget, const CRect& area, Int32& width, Int32& height ) const
 {GUCEF_TRACE;
 
-    CString sizeValue = widget.GetProperty( "Size" );
+    CString sizeValue = widget.GetProperty( EWidgetProperty_Size );
     Int32 naturalWidth = 0, naturalHeight = 0;
     bool natural = sizeValue.IsNULLOrEmpty();
     if ( natural )
@@ -2077,6 +2420,7 @@ CGUIContext::ResolveSize( const CWidget& widget, const CRect& area, Int32& width
     {
         width = naturalWidth;
         height = naturalHeight;
+        widget.AdjustSize( width, height, area );
         return;
     }
     CUVector size;
@@ -2085,8 +2429,9 @@ CGUIContext::ResolveSize( const CWidget& widget, const CRect& area, Int32& width
     height = size.GetY().Resolve( area.height );
 
     // a widget that sizes its height to its content (a group box) keeps the width of its Size
-    if ( widget.GetBoolProperty( "AutoHeight" ) && widget.GetNaturalSize( naturalWidth, naturalHeight ) )
+    if ( widget.GetBoolProperty( EWidgetProperty_AutoHeight ) && widget.GetNaturalSize( naturalWidth, naturalHeight ) )
         height = naturalHeight;
+    widget.AdjustSize( width, height, area );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2105,17 +2450,23 @@ CGUIContext::PlaceWidget( CWidget& widget, const CRect& area, bool sizeFromArea 
         Int32 width = 0, height = 0;
         ResolveSize( widget, area, width, height );
 
-        CUVector position = widget.GetUVectorProperty( "Position" );
+        // a size that is the part of a small parent less pixels can come out negative: there is nothing of the widget then
+        if ( width < 0 )
+            width = 0;
+        if ( height < 0 )
+            height = 0;
+
+        CUVector position = widget.GetUVectorProperty( EWidgetProperty_Position );
         Int32 x = position.GetX().Resolve( area.width );
         Int32 y = position.GetY().Resolve( area.height );
 
         // the position may be the centre or far edge of the widget instead of its top left
-        CString hAlign = widget.GetProperty( "HAlign" );
+        CString hAlign = widget.GetProperty( EWidgetProperty_HAlign );
         if ( hAlign == "Center" )
             x -= width / 2;
         else if ( hAlign == "Right" )
             x -= width;
-        CString vAlign = widget.GetProperty( "VAlign" );
+        CString vAlign = widget.GetProperty( EWidgetProperty_VAlign );
         if ( vAlign == "Center" )
             y -= height / 2;
         else if ( vAlign == "Bottom" )
@@ -2124,6 +2475,7 @@ CGUIContext::PlaceWidget( CWidget& widget, const CRect& area, bool sizeFromArea 
         rect = CRect( area.left + x, area.top + y, width, height );
     }
 
+    widget.AdjustPlacement( rect, area, sizeFromArea );
     ApplyLayoutResult( widget, rect );
     LayoutChildren( widget );
 }
@@ -2144,14 +2496,81 @@ CGUIContext::ApplyLayoutResult( CWidget& widget, const CRect& rect )
 /*-------------------------------------------------------------------------*/
 
 void
+CGUIContext::ShiftSubtree( CWidget& widget, Int32 dy )
+{GUCEF_TRACE;
+
+    const CRect& rect = widget.m_rect;
+    ApplyLayoutResult( widget, CRect( rect.left, rect.top + dy, rect.width, rect.height ) );
+    for ( UInt32 i=0; i<(UInt32)widget.m_children.size(); ++i )
+        ShiftSubtree( *widget.m_children[ i ], dy );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUIContext::LayoutScrollPanel( CScrollPanel& panel )
+{GUCEF_TRACE;
+
+    // the children are placed in the area of the column left of the scroll bar, moved up by the scroll position
+    const CRect& rect = panel.m_rect;
+    const CRect view = panel.GetViewportRect();
+    Int32 viewWidth = view.width;
+    Int32 viewHeight = rect.height < 0 ? 0 : rect.height;
+    Int32 requested = panel.GetIntProperty( EWidgetProperty_ScrollPosition );
+    Int32 scroll = requested < 0 ? 0 : requested;
+
+    CRect area( rect.left + view.left, rect.top - scroll, viewWidth, viewHeight );
+    Int32 bottom = rect.top - scroll;
+    for ( UInt32 i=0; i<(UInt32)panel.m_children.size(); ++i )
+    {
+        CWidget& child = *panel.m_children[ i ];
+        PlaceWidget( child, area, false );
+        if ( child.IsVisible() && child.m_rect.Bottom() > bottom )
+            bottom = child.m_rect.Bottom();
+    }
+
+    // the content from its top edge, as if it were not scrolled
+    Int32 content = bottom - ( rect.top - scroll );
+    if ( content > 0 )
+        content += panel.GetIntProperty( EWidgetProperty_BottomPadding );
+    panel.SetExtent( content, viewHeight );
+
+    Int32 maxScroll = panel.GetMaxScrollPosition();
+    if ( scroll > maxScroll )
+    {
+        // the content became smaller than what was scrolled out
+        for ( UInt32 i=0; i<(UInt32)panel.m_children.size(); ++i )
+            ShiftSubtree( *panel.m_children[ i ], scroll - maxScroll );
+        scroll = maxScroll;
+    }
+    if ( scroll != requested )
+        panel.SetIntProperty( EWidgetProperty_ScrollPosition, scroll );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CGUIContext::LayoutChildren( CWidget& widget )
 {GUCEF_TRACE;
 
-    if ( widget.m_children.empty() )
+    // what a collapsed window hides is not laid out, it is when the window is expanded
+    if ( !widget.AreChildrenShown() )
         return;
 
     CWidgetTypeRegistry& registry = CGuiGlobal::Instance()->GetWidgetTypeRegistry();
     const CString& type = widget.GetType();
+    if ( registry.IsA( type, "ScrollPanel" ) )
+    {
+        CScrollPanel* scrollPanel = widget.AsScrollPanel();
+        if ( GUCEF_NULL != scrollPanel )
+        {
+            LayoutScrollPanel( *scrollPanel );
+            return;
+        }
+    }
+
+    if ( widget.m_children.empty() )
+        return;
     bool hbox = registry.IsA( type, "HBox" );
     bool vbox = registry.IsA( type, "VBox" );
     bool grid = registry.IsA( type, "Grid" );
@@ -2160,7 +2579,7 @@ CGUIContext::LayoutChildren( CWidget& widget )
     if ( registry.IsA( type, "TabControl" ) )
     {
         // the pages fill the area below the tabs
-        Int32 header = widget.GetIntProperty( "TabHeight" );
+        Int32 header = widget.GetIntProperty( EWidgetProperty_TabHeight );
         CRect pages( widget.m_rect.left, widget.m_rect.top + header, widget.m_rect.width, widget.m_rect.height - header );
         if ( pages.height < 0 )
             pages.height = 0;
@@ -2183,13 +2602,13 @@ CGUIContext::LayoutChildren( CWidget& widget )
     }
 
     // the containers: children are put in the content area (the rectangle less the padding)
-    Int32 padding = widget.GetIntProperty( "Padding" );
-    Int32 spacing = widget.GetIntProperty( "Spacing" );
+    Int32 padding = widget.GetIntProperty( EWidgetProperty_Padding );
+    Int32 spacing = widget.GetIntProperty( EWidgetProperty_Spacing );
     CRect content( widget.m_rect.left + padding, widget.m_rect.top + padding, widget.m_rect.width - 2*padding, widget.m_rect.height - 2*padding );
     if ( registry.IsA( type, "GroupBox" ) )
     {
         // the caption is in the top line of the frame: the children start below it
-        CGroupBox* groupBox = dynamic_cast< CGroupBox* >( &widget );
+        CGroupBox* groupBox = CWidget::As< CGroupBox >( &widget );
         Int32 caption = GUCEF_NULL != groupBox ? groupBox->GetCaptionHeight() : 0;
         content.top += caption;
         content.height -= caption;
@@ -2216,7 +2635,7 @@ CGUIContext::LayoutChildren( CWidget& widget )
             if ( hbox )
             {
                 Int32 y = content.top;
-                CString align = child.GetProperty( "VAlign" );
+                CString align = child.GetProperty( EWidgetProperty_VAlign );
                 if ( align == "Center" ) y = content.top + ( content.height - h ) / 2;
                 else if ( align == "Bottom" ) y = content.Bottom() - h;
                 cell = CRect( content.left + offset, y, w, h );
@@ -2226,7 +2645,7 @@ CGUIContext::LayoutChildren( CWidget& widget )
             else
             {
                 Int32 x = content.left;
-                CString align = child.GetProperty( "HAlign" );
+                CString align = child.GetProperty( EWidgetProperty_HAlign );
                 if ( align == "Center" ) x = content.left + ( content.width - w ) / 2;
                 else if ( align == "Right" ) x = content.Right() - w;
                 cell = CRect( x, content.top + offset, w, h );
@@ -2239,7 +2658,7 @@ CGUIContext::LayoutChildren( CWidget& widget )
     }
 
     // grid: equal columns, each row as high as its highest child
-    Int32 columns = widget.GetIntProperty( "Columns" );
+    Int32 columns = widget.GetIntProperty( EWidgetProperty_Columns );
     if ( columns < 1 )
         columns = 1;
     Int32 cellWidth = ( content.width - ( columns - 1 ) * spacing ) / columns;
@@ -2422,30 +2841,54 @@ CGUIContext::GetWidgetHandler( const CString& widgetType )
 
 /*-------------------------------------------------------------------------*/
 
-void
-CGUIContext::OnNotify( CORE::CNotifier* notifier                 ,
-                       const CORE::CEvent& eventId               ,
-                       CORE::CICloneable* eventData /* = NULL */ )
+CGUIContext*
+CGUIContext::AsGUIContext( void )
 {GUCEF_TRACE;
 
-    if ( CWindowContext::WindowContextRedrawEvent == eventId )
-    {
-        // the lowest layer draws all layers of the window, in their order
-        if ( !IsBottomLayer() )
-            return;
-        UInt64 tick = MT::PrecisionTickCount();
-        UInt64 resolution = MT::PrecisionTimerResolution();
-        UInt32 delta = 0;
-        if ( 0 != m_lastRealTick && 0 != resolution )
-            delta = (UInt32) ( ( tick - m_lastRealTick ) * 1000 / resolution );
-        m_lastRealTick = tick;
-        RenderWindowLayers( delta );
-    }
-    else
-    if ( CWindowContext::WindowContextSizeEvent == eventId )
-    {
-        m_layoutDirty = true;
-    }
+    return this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUIContext::OnWindowRedraw( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    // the lowest layer draws all layers of the window, in their order
+    if ( !IsBottomLayer() )
+        return;
+    UInt64 tick = MT::PrecisionTickCount();
+    UInt64 resolution = MT::PrecisionTimerResolution();
+    UInt32 delta = 0;
+    if ( 0 != m_lastRealTick && 0 != resolution )
+        delta = (UInt32) ( ( tick - m_lastRealTick ) * 1000 / resolution );
+    m_lastRealTick = tick;
+    RenderWindowLayers( delta );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUIContext::OnWindowSize( CORE::CNotifier* notifier    ,
+                           const CORE::CEvent& eventId  ,
+                           CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    m_layoutDirty = true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGUIContext::OnWindowActivate( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    // the window was activated or deactivated: a press whose release goes to another window never ends
+    CancelPointerCapture( "the window was activated or deactivated" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2463,7 +2906,7 @@ void
 CGUIContext::OnWidgetDestroyed( CWidget* widget )
 {GUCEF_TRACE;
 
-    ForgetInteraction( widget );
+    ForgetInteraction( widget, false );
     m_widgets.erase( widget );
     m_dirtyWidgets.erase( widget );
     m_updateWidgets.erase( widget );
@@ -2518,7 +2961,7 @@ CGUIContext::OnWidgetVisibilityChanged( CWidget* widget )
 {GUCEF_TRACE;
 
     if ( !widget->IsVisible() )
-        ForgetInteraction( widget );
+        ForgetInteraction( widget, true );
     m_layoutDirty = true;
 }
 

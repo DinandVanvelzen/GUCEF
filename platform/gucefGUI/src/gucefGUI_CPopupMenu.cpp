@@ -60,11 +60,11 @@ namespace {
 Int32
 RowHeightOf( const CWidget& widget )
 {
-    Int32 rowHeight = widget.GetIntProperty( "RowHeight" );
+    Int32 rowHeight = widget.GetIntProperty( EWidgetProperty_RowHeight );
     if ( rowHeight > 0 )
         return rowHeight;
     if ( GUCEF_NULL != widget.GetContext() )
-        return widget.GetContext()->GetLineHeight( widget.GetProperty( "Font" ) );
+        return widget.GetContext()->GetLineHeight( widget.GetProperty( EWidgetProperty_Font ) );
     return 16;
 }
 
@@ -73,7 +73,7 @@ TextWidthOf( const CWidget& widget, const CString& text )
 {
     Int32 width = 0, height = 0;
     if ( GUCEF_NULL != widget.GetContext() )
-        widget.GetContext()->MeasureText( widget.GetProperty( "Font" ), text, 0, width, height );
+        widget.GetContext()->MeasureText( widget.GetProperty( EWidgetProperty_Font ), text, 0, width, height );
     return width;
 }
 
@@ -111,7 +111,7 @@ CPopupMenu::ShowAt( Int32 x, Int32 y )
 
     if ( GUCEF_NULL == GetContext() )
         return false;
-    SetIntProperty( "HoverIndex", -1 );
+    SetIntProperty( EWidgetProperty_HoverIndex, -1 );
     return GetContext()->ShowPopup( this, x, y );
 }
 
@@ -132,7 +132,7 @@ CPopupMenu::TStringVector
 CPopupMenu::GetItems( void ) const
 {GUCEF_TRACE;
 
-    return GetStringListProperty( "Items" );
+    return GetStringListProperty( EWidgetProperty_Items );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -141,7 +141,7 @@ bool
 CPopupMenu::SetItems( const TStringVector& items )
 {GUCEF_TRACE;
 
-    return SetStringListProperty( "Items", items );
+    return SetStringListProperty( EWidgetProperty_Items, items );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -153,7 +153,7 @@ CPopupMenu::IsItemSelectable( Int32 index ) const
     TStringVector items = GetItems();
     if ( index < 0 || index >= (Int32) items.size() || items[ index ] == "-" )
         return false;
-    GUCEF::vector< Int32 > disabled = GetIntListProperty( "DisabledItems" );
+    GUCEF::vector< Int32 > disabled = GetIntListProperty( EWidgetProperty_DisabledItems );
     for ( UInt32 i=0; i<(UInt32)disabled.size(); ++i )
         if ( disabled[ i ] == index )
             return false;
@@ -209,7 +209,7 @@ CPopupMenu::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& even
     if ( MouseMoveEvent == eventId )
     {
         Int32 row = GetRowAt( static_cast< CPointerEventData* >( &eventData )->localY );
-        SetIntProperty( "HoverIndex", IsItemSelectable( row ) ? row : -1 );
+        SetIntProperty( EWidgetProperty_HoverIndex, IsItemSelectable( row ) ? row : -1 );
         return true;
     }
     if ( MouseClickEvent == eventId && MOUSEBUTTON_LEFT == static_cast< CPointerEventData* >( &eventData )->button )
@@ -225,7 +225,7 @@ CPopupMenu::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& even
     if ( NavigationEvent == eventId )
     {
         TNavigation direction = static_cast< CNavigationEventData* >( &eventData )->direction;
-        Int32 hover = GetIntProperty( "HoverIndex" );
+        Int32 hover = GetIntProperty( EWidgetProperty_HoverIndex );
         Int32 count = (Int32) GetItems().size();
         if ( NAVIGATION_UP == direction || NAVIGATION_DOWN == direction )
         {
@@ -234,7 +234,7 @@ CPopupMenu::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& even
             {
                 if ( IsItemSelectable( next ) )
                 {
-                    SetIntProperty( "HoverIndex", next );
+                    SetIntProperty( EWidgetProperty_HoverIndex, next );
                     break;
                 }
             }

@@ -92,7 +92,7 @@ CPanel::GetNaturalSize( Int32& width, Int32& height ) const
     if ( type == "HBox" || type == "VBox" )
         return GetStackNaturalSize( type == "HBox", width, height );
 
-    CString image = GetProperty( "BackgroundImage" );
+    CString image = GetProperty( EWidgetProperty_BackgroundImage );
     return !image.IsNULLOrEmpty() && context->GetImageLogicalSize( image, width, height );
 }
 
@@ -106,8 +106,8 @@ CPanel::GetStackNaturalSize( bool horizontal, Int32& width, Int32& height ) cons
     if ( GUCEF_NULL == GetContext() )
         return false;
 
-    Int32 padding = GetIntProperty( "Padding" );
-    Int32 spacing = GetIntProperty( "Spacing" );
+    Int32 padding = GetIntProperty( EWidgetProperty_Padding );
+    Int32 spacing = GetIntProperty( EWidgetProperty_Spacing );
     Int32 count = 0;
     const TWidgetVector& children = GetChildren();
     for ( UInt32 i=0; i<(UInt32)children.size(); ++i )
@@ -118,6 +118,11 @@ CPanel::GetStackNaturalSize( bool horizontal, Int32& width, Int32& height ) cons
         children[ i ]->GetSize( size );
         Int32 w = size.GetX().GetPixelValue();
         Int32 h = size.GetY().GetPixelValue();
+
+        // a child that is as high as its own children need (a group box, a container with AutoHeight) counts with that height
+        Int32 childWidth = 0, childHeight = 0;
+        if ( children[ i ]->GetBoolProperty( EWidgetProperty_AutoHeight ) && children[ i ]->GetNaturalSize( childWidth, childHeight ) )
+            h = childHeight;
         if ( horizontal )
         {
             width += w;

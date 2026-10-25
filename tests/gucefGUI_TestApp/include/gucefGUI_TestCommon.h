@@ -69,6 +69,9 @@ void PerformGuiLayoutTests( void );
 void PerformGuiMediaTests( void );
 void PerformGuiRenderTests( void );
 void PerformGuiInputTests( void );
+void PerformGuiWindowTests( void );
+void PerformGuiScrollPanelTests( void );
+void PerformGuiPropertyTests( void );
 
 void PerformGuiBrowserTests( void );
 void PerformGuiFontTests( void );

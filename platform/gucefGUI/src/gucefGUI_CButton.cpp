@@ -104,7 +104,7 @@ bool
 CButton::SetButtonText( const CString& newText )
 {GUCEF_TRACE;
 
-    return SetProperty( "Text", newText );
+    return SetProperty( EWidgetProperty_Text, newText );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -113,7 +113,7 @@ bool
 CButton::GetButtonText( CString& text ) const
 {GUCEF_TRACE;
 
-    text = GetProperty( "Text" );
+    text = GetProperty( EWidgetProperty_Text );
     return true;
 }
 
@@ -123,20 +123,20 @@ CString
 CButton::GetCurrentImage( void ) const
 {GUCEF_TRACE;
 
-    CString normal = GetProperty( "NormalImage" );
+    CString normal = GetProperty( EWidgetProperty_NormalImage );
     CString image;
     UInt32 state = GetState();
     if ( 0 != ( state & STATE_DISABLED ) )
-        image = GetProperty( "DisabledImage" );
+        image = GetProperty( EWidgetProperty_DisabledImage );
     else
     if ( 0 != ( state & STATE_PRESSED ) && 0 != ( state & STATE_HOVERED ) )
-        image = GetProperty( "PushedImage" );
+        image = GetProperty( EWidgetProperty_PushedImage );
     else
     if ( 0 != ( state & STATE_HOVERED ) )
-        image = GetProperty( "HoverImage" );
+        image = GetProperty( EWidgetProperty_HoverImage );
     else
     if ( 0 != ( state & STATE_CHECKED ) )
-        image = GetProperty( "CheckedImage" );
+        image = GetProperty( EWidgetProperty_CheckedImage );
     return image.IsNULLOrEmpty() ? normal : image;
 }
 
@@ -152,11 +152,11 @@ CButton::GetNaturalSize( Int32& width, Int32& height ) const
         return false;
 
     // the picture decides the size, else the text with a small margin
-    CString normal = GetProperty( "NormalImage" );
+    CString normal = GetProperty( EWidgetProperty_NormalImage );
     if ( !normal.IsNULLOrEmpty() && context->GetImageLogicalSize( normal, width, height ) )
         return true;
-    CString text = GetProperty( "Text" );
-    if ( !text.IsNULLOrEmpty() && context->MeasureText( GetProperty( "Font" ), text, 0, width, height ) )
+    CString text = GetProperty( EWidgetProperty_Text );
+    if ( !text.IsNULLOrEmpty() && context->MeasureText( GetProperty( EWidgetProperty_Font ), text, 0, width, height ) )
     {
         width += 8;
         height += 4;

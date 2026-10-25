@@ -101,6 +101,15 @@ class GUCEF_GUI_PUBLIC_CPP CSettingsForm : public CFormEx
     /** Puts the settings in every page and shows the form, modal */
     bool Open( void );
 
+    /** Open() with the page of that title in front (the page that was in front when there is none such) */
+    bool Open( const CString& pageTitle );
+
+    /** Brings the page of that title to the front; false when there is no such page or the form is not built */
+    bool SelectPage( const CString& title );
+
+    /** The title of the page that is in front, empty when the form is not built */
+    CString GetSelectedPageTitle( void ) const;
+
     /** Applies the pages with changes; false when one of them failed */
     bool Apply( void );
 
@@ -122,11 +131,31 @@ class GUCEF_GUI_PUBLIC_CPP CSettingsForm : public CFormEx
 
     virtual void OnPostLayoutLoad( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CSettingsForm > TEventCallback;
+
+    /** The user changed a value on a page */
+    void OnPageChanged( CORE::CNotifier* notifier    ,
+                        const CORE::CEvent& eventId  ,
+                        CORE::CICloneable* eventData );
+
+    void OnOkActivated( CORE::CNotifier* notifier    ,
+                        const CORE::CEvent& eventId  ,
+                        CORE::CICloneable* eventData );
+
+    void OnApplyActivated( CORE::CNotifier* notifier    ,
+                           const CORE::CEvent& eventId  ,
+                           CORE::CICloneable* eventData );
+
+    void OnCancelActivated( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData );
+
+    /** Escape cancels */
+    void OnNavigation( CORE::CNotifier* notifier    ,
+                       const CORE::CEvent& eventId  ,
+                       CORE::CICloneable* eventData );
 
     void BuildLayout( CORE::CDataNode& layout );
 

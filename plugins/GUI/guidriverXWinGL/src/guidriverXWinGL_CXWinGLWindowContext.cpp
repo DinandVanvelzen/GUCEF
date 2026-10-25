@@ -24,6 +24,8 @@
 //-------------------------------------------------------------------------*/
 
 #include <GL/glx.h>
+#include <limits.h>
+#include <unistd.h>
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -39,6 +41,16 @@
 #include "gucefCORE_CX11EventDispatcher.h"
 #define GUCEF_CORE_CX11EVENTDISPATCHER_H
 #endif /* GUCEF_CORE_CX11EVENTDISPATCHER_H ? */
+
+#ifndef GUCEF_CORE_BROWSERLAUNCHER_H
+#include "gucefCORE_BrowserLauncher.h"
+#define GUCEF_CORE_BROWSERLAUNCHER_H
+#endif /* GUCEF_CORE_BROWSERLAUNCHER_H ? */
+
+#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
+#include "dvcppstringutils.h"
+#define GUCEF_CORE_DVCPPSTRINGUTILS_H
+#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
 #ifndef GUCEF_CORE_CGUCEFAPPLICATION_H
 #include "CGUCEFApplication.h"
@@ -79,6 +91,18 @@ GetGlProcAddress( const char* name )
     return (void*) glXGetProcAddressARB( (const GLubyte*) name );
 }
 
+/** The name of the program: what the startup id of a browser that is launched names as its launcher */
+static CORE::CString
+ProgramName( void )
+{
+    char path[ PATH_MAX ];
+    const ssize_t length = ::readlink( "/proc/self/exe", path, sizeof( path ) - 1 );
+    if ( length <= 0 )
+        return "gucef";
+    path[ length ] = '\0';
+    return CORE::ExtractFilename( CORE::CString( path ) );
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -93,10 +117,18 @@ CXWinGLWindowContext::CXWinGLWindowContext( void )
       m_window()               ,
       m_renderContext( NULL )  ,
       m_isCoreProfile( false ) ,
-      m_shown( false )
+      m_shown( false )         ,
+      m_activation( NULL )
 {GUCEF_TRACE;
 
-    SubscribeTo( &m_window );
+    TEventCallback paint( this, &CXWinGLWindowContext::OnWindowPaint );
+    SubscribeTo( &m_window, CORE::CX11Window::WindowPaintEvent, paint );
+    TEventCallback resize( this, &CXWinGLWindowContext::OnWindowResize );
+    SubscribeTo( &m_window, CORE::CX11Window::WindowResizeEvent, resize );
+    TEventCallback close( this, &CXWinGLWindowContext::OnWindowClose );
+    SubscribeTo( &m_window, CORE::CX11Window::WindowCloseEvent, close );
+    TEventCallback activation( this, &CXWinGLWindowContext::OnWindowActivation );
+    SubscribeTo( &m_window, CORE::CX11Window::WindowActivationEvent, activation );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -104,6 +136,7 @@ CXWinGLWindowContext::CXWinGLWindowContext( void )
 CXWinGLWindowContext::~CXWinGLWindowContext()
 {GUCEF_TRACE;
 
+    UnsubscribeAllFromObserver();
     Shutdown();
 }
 
@@ -161,6 +194,14 @@ CXWinGLWindowContext::Shutdown( void )
 	CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
     pulseGenerator->RequestStopOfPeriodicUpdates( this );
     UnsubscribeFrom( pulseGenerator.GetPointerAlways() );
+
+    if ( NULL != m_activation )
+    {
+        if ( CORE::GetActivationTokenProvider() == m_activation )
+            CORE::SetActivationTokenProvider( GUCEF_NULL );
+        delete m_activation;
+        m_activation = NULL;
+    }
 
     if ( NULL != m_renderContext )
     {
@@ -380,7 +421,15 @@ CXWinGLWindowContext::Initialize( const GUI::CString& title                ,
     // Grab the main app pulse generator and set the update interval for the context to the desired refresh rate
     CORE::PulseGeneratorPtr pulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
     pulseGenerator->RequestPeriodicPulses( this, 1000 / videoSettings.GetFrequency() );
-    SubscribeTo( pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent );
+    TEventCallback pulse( this, &CXWinGLWindowContext::OnPulse );
+    SubscribeTo( pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent, pulse );
+
+    // a browser that a login opens gets the time of the last key or button press of the user as its startup id, so it opens in front of the window
+    if ( GUCEF_NULL == CORE::GetActivationTokenProvider() )
+    {
+        m_activation = new CORE::CX11ActivationTokenProvider( ProgramName() );
+        CORE::SetActivationTokenProvider( m_activation );
+    }
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CXWinGLWindowContext: Succesfully created OpenGL rendering context" );
 
@@ -452,56 +501,78 @@ CXWinGLWindowContext::GetClassTypeName( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CXWinGLWindowContext::OnNotify( CORE::CNotifier* notifier   ,
-                                const CORE::CEvent& eventID ,
-                                CORE::CICloneable* evenData )
+CXWinGLWindowContext::Redraw( void )
 {GUCEF_TRACE;
 
-    if ( eventID == CORE::CX11Window::WindowPaintEvent )
-        m_shown = true;
+    // Clear the screen in preparation for the redraw
+    glClear( GL_COLOR_BUFFER_BIT );
 
-    if ( ( eventID == CORE::CPulseGenerator::PulseEvent && m_shown ) ||
-         ( eventID == CORE::CX11Window::WindowPaintEvent ) )
-    {
-        // Clear the screen in preparation for the redraw
-        glClear( GL_COLOR_BUFFER_BIT );
+    // Notify that we are going to redraw the window
+    NotifyObservers( WindowContextRedrawEvent );
 
-        // Notify that we are going to redraw the window
-        NotifyObservers( WindowContextRedrawEvent );
-
-        // Swap our front and back buffers
-        ::glXSwapBuffers( m_window.GetDisplay(), m_window.GetWindow() );
-    }
-    else
-    if ( eventID == CORE::CX11Window::WindowResizeEvent )
-    {
-        int dummy, width, height;
-        if ( m_window.GetClientArea( dummy, dummy, width, height ) )
-        {
-            glViewport( 0, 0, width, height );
-            if ( !m_isCoreProfile )
-            {
-                glMatrixMode( GL_PROJECTION );
-                glLoadIdentity();
-                glOrtho( 0, width, height, 0, -1, 1 );
-                glMatrixMode( GL_MODELVIEW );
-            }
-        }
-        NotifyObservers( WindowContextSizeEvent );
-    }
-    else
-    if ( eventID == CORE::CX11Window::WindowCloseEvent )
-    {
-        NotifyObservers( WindowContextCloseRequestEvent );
-    }
-    else
-    if ( eventID == CORE::CX11Window::WindowActivationEvent )
-    {
-        m_shown = true;
-        NotifyObservers( WindowContextActivateEvent );
-    }
+    // Swap our front and back buffers
+    ::glXSwapBuffers( m_window.GetDisplay(), m_window.GetWindow() );
 }
 
+/*-------------------------------------------------------------------------*/
+
+void
+CXWinGLWindowContext::OnWindowPaint( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    m_shown = true;
+    Redraw();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CXWinGLWindowContext::OnPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_shown )
+        Redraw();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CXWinGLWindowContext::OnWindowResize( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    int dummy, width, height;
+    if ( m_window.GetClientArea( dummy, dummy, width, height ) )
+    {
+        glViewport( 0, 0, width, height );
+        if ( !m_isCoreProfile )
+        {
+            glMatrixMode( GL_PROJECTION );
+            glLoadIdentity();
+            glOrtho( 0, width, height, 0, -1, 1 );
+            glMatrixMode( GL_MODELVIEW );
+        }
+    }
+    NotifyObservers( WindowContextSizeEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CXWinGLWindowContext::OnWindowClose( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    NotifyObservers( WindowContextCloseRequestEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CXWinGLWindowContext::OnWindowActivation( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    m_shown = true;
+    NotifyObservers( WindowContextActivateEvent );
+}
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

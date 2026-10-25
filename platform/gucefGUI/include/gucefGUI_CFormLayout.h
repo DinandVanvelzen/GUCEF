@@ -154,7 +154,13 @@ class GUCEF_GUI_PUBLIC_CPP CFormLayout
                                            const CString& position = CString::Empty    ,
                                            const CString& size = CString::Empty        );
 
-    /** Sets a property of a Widget node, replacing the value it had */
+    /**
+     *  Sets a property of a Widget node, replacing the value it had. The node is a config tree and holds text, as the
+     *  format does: the name of the property is written as the text of the id, the value is text. A standard property is
+     *  named by its EWidgetProperty, any other property (a backend hint, a property of a widget type an application
+     *  registered) by its name.
+     */
+    static void SetWidgetNodeProperty( CORE::CDataNode& widgetNode, EWidgetProperty property, const CString& value );
     static void SetWidgetNodeProperty( CORE::CDataNode& widgetNode, const CString& name, const CString& value );
 
     private:

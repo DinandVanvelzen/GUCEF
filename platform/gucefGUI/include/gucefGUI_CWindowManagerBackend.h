@@ -119,6 +119,15 @@ class GUCEF_GUI_PUBLIC_CPP CWindowManagerBackend : public CORE::CObservingNotifi
     virtual bool ApplyVideoSettings( TWindowContextPtr& windowContext ,
                                      const CVideoSettings& settings   ) = 0;
 
+    /**
+     *  Whether windows can be made with this backend in this session. A backend that depends on a display server
+     *  that may not be there (Wayland) says so here; the default is that it can.
+     */
+    virtual bool IsAvailable( void ) const;
+
+    /** Why the backend is not available, in words for a log; empty while it is */
+    virtual CString GetAvailabilityDescription( void ) const;
+
     virtual bool SaveConfig( CORE::CDataNode& config ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool LoadConfig( const CORE::CDataNode& config ) GUCEF_VIRTUAL_OVERRIDE;

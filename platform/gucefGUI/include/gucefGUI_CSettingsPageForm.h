@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_CORE_CTABSTRACTFACTORY_H
 #include "CTAbstractFactory.h"
 #define GUCEF_CORE_CTABSTRACTFACTORY_H
@@ -101,10 +106,6 @@ class GUCEF_GUI_PUBLIC_CPP CSettingsPageForm : public CFormEx
     /** Subscribes to the value changes of the widgets */
     virtual void OnPostLayoutLoad( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     /** Marks the page as changed or not; changes the widgets make while settings are read do not count */
     void SetHasChanges( bool hasChanges );
 
@@ -113,12 +114,56 @@ class GUCEF_GUI_PUBLIC_CPP CSettingsPageForm : public CFormEx
 
     bool IsReadingSettings( void ) const;
 
+    /**
+     *  Marks the page as reading settings for the time of a scope, the way SetReadingSettings( true ) does, and puts back
+     *  what it was when the scope ends: at the end of the block, on a return from it and when an exception unwinds it.
+     *  Use it instead of the pair of SetReadingSettings() calls around the code that puts the settings in the widgets:
+     *
+     *      {
+     *          CReadingSettingsScope readingSettings( *this );
+     *          <put the settings in the widgets>
+     *      }
+     */
+    class CReadingSettingsScope
+    {
+        public:
+
+        explicit CReadingSettingsScope( CSettingsPageForm& page )
+            : m_page( page )
+            , m_wasReadingSettings( page.IsReadingSettings() )
+        {
+            m_page.SetReadingSettings( true );
+        }
+
+        ~CReadingSettingsScope()
+        {
+            m_page.SetReadingSettings( m_wasReadingSettings );
+        }
+
+        private:
+
+        CReadingSettingsScope( const CReadingSettingsScope& src );              /* Copying doesnt make sense */
+        CReadingSettingsScope& operator=( const CReadingSettingsScope& src );   /* Copying doesnt make sense */
+
+        CSettingsPageForm& m_page;
+        bool m_wasReadingSettings;
+    };
+
     /** The value as text of a widget of the page by name, empty when there is no such widget */
+    CString GetWidgetProperty( const CString& widgetName, EWidgetProperty property );
     CString GetWidgetProperty( const CString& widgetName, const CString& propertyName );
 
+    bool SetWidgetProperty( const CString& widgetName, EWidgetProperty property, const CString& value );
     bool SetWidgetProperty( const CString& widgetName, const CString& propertyName, const CString& value );
 
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CSettingsPageForm > TEventCallback;
+
+    /** A value changed in a widget of the page: the value changes of every widget bubble up to the root */
+    void OnRootValueChanged( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData );
 
     CSettingsPageForm( const CSettingsPageForm& src );
     CSettingsPageForm& operator=( const CSettingsPageForm& src );

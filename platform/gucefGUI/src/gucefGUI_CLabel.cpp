@@ -92,7 +92,7 @@ bool
 CLabel::SetText( const CString& text )
 {GUCEF_TRACE;
 
-    return SetProperty( "Text", text );
+    return SetProperty( EWidgetProperty_Text, text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -101,7 +101,7 @@ bool
 CLabel::GetText( CString& text ) const
 {GUCEF_TRACE;
 
-    text = GetProperty( "Text" );
+    text = GetProperty( EWidgetProperty_Text );
     return true;
 }
 
@@ -111,7 +111,7 @@ CString
 CLabel::GetText( void ) const
 {GUCEF_TRACE;
 
-    return GetProperty( "Text" );
+    return GetProperty( EWidgetProperty_Text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -123,19 +123,19 @@ CLabel::GetNaturalSize( Int32& width, Int32& height ) const
     width = height = 0;
     if ( GUCEF_NULL == GetContext() )
         return false;
-    return GetContext()->MeasureText( GetProperty( "Font" ), GetProperty( "Text" ), 0, width, height );
+    return GetContext()->MeasureText( GetProperty( EWidgetProperty_Font ), GetProperty( EWidgetProperty_Text ), 0, width, height );
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CLabel::OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue )
+CLabel::OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue )
 {GUCEF_TRACE;
 
-    if ( name == "Text" )
+    if ( property == EWidgetProperty_Text )
     {
         NotifyObservers( TextChangedEvent );
-        if ( !IsPropertySet( "Size" ) && GUCEF_NULL != GetContext() )
+        if ( !IsPropertySet( EWidgetProperty_Size ) && GUCEF_NULL != GetContext() )
             GetContext()->InvalidateLayout();
     }
 }

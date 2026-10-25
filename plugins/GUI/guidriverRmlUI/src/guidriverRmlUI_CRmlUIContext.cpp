@@ -693,7 +693,7 @@ CRmlUIContext::OnNotify( CORE::CNotifier* notifier    ,
 
     if ( GUCEF_NULL == m_rmlContext || GUCEF_NULL == eventData || m_nativeDocuments.empty() )
         return;
-    GUI::CRoutedEventData* routed = dynamic_cast< GUI::CRoutedEventData* >( eventData );
+    GUI::CRoutedEventData* routed = GUI::CRoutedEventData::FromCloneable( eventData );
     if ( GUCEF_NULL == routed || routed->source != notifier || GUI::EVENTPHASE_TARGET != routed->phase )
         return;
     TDocumentMap::iterator i = m_nativeDocuments.find( static_cast< GUI::CWidget* >( routed->source ) );

@@ -104,7 +104,7 @@ bool
 CEditbox::SetText( const CString& text )
 {GUCEF_TRACE;
 
-    return SetProperty( "Text", LimitText( text ) );
+    return SetProperty( EWidgetProperty_Text, LimitText( text ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -113,7 +113,7 @@ CString
 CEditbox::GetText( void ) const
 {GUCEF_TRACE;
 
-    return GetProperty( "Text" );
+    return GetProperty( EWidgetProperty_Text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -122,9 +122,9 @@ bool
 CEditbox::SetSelectedText( const CString& text )
 {GUCEF_TRACE;
 
-    if ( GetBoolProperty( "Selected" ) )
+    if ( GetBoolProperty( EWidgetProperty_Selected ) )
     {
-        SetBoolProperty( "Selected", false );
+        SetBoolProperty( EWidgetProperty_Selected, false );
         return SetText( text );
     }
     return SetText( GetText() + text );
@@ -136,7 +136,7 @@ bool
 CEditbox::GetSelectedText( CString& text ) const
 {GUCEF_TRACE;
 
-    if ( !GetBoolProperty( "Selected" ) )
+    if ( !GetBoolProperty( EWidgetProperty_Selected ) )
     {
         text.Clear();
         return false;
@@ -151,7 +151,7 @@ void
 CEditbox::Clear( void )
 {GUCEF_TRACE;
 
-    SetBoolProperty( "Selected", false );
+    SetBoolProperty( EWidgetProperty_Selected, false );
     SetText( CString::Empty );
 }
 
@@ -161,7 +161,7 @@ CString
 CEditbox::LimitText( const CString& text ) const
 {GUCEF_TRACE;
 
-    Int32 maxLength = GetIntProperty( "MaxLength" );
+    Int32 maxLength = GetIntProperty( EWidgetProperty_MaxLength );
     if ( maxLength <= 0 )
         return text;
     TCodePointVector codePoints;
@@ -184,7 +184,7 @@ CEditbox::GetNaturalSize( Int32& width, Int32& height ) const
     if ( GUCEF_NULL == GetContext() )
         return false;
     Int32 w = 0;
-    if ( !GetContext()->MeasureText( GetProperty( "Font" ), "M", 0, w, height ) )
+    if ( !GetContext()->MeasureText( GetProperty( EWidgetProperty_Font ), "M", 0, w, height ) )
         return false;
     width = w * 16;
     height += 4;
@@ -194,13 +194,13 @@ CEditbox::GetNaturalSize( Int32& width, Int32& height ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CEditbox::OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue )
+CEditbox::OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue )
 {GUCEF_TRACE;
 
-    if ( name == "Text" )
+    if ( property == EWidgetProperty_Text )
         NotifyObservers( TextChangedEvent );
     else
-    if ( name == "Selected" )
+    if ( property == EWidgetProperty_Selected )
         NotifyObservers( SelectionChangedEvent );
 }
 
@@ -210,7 +210,7 @@ bool
 CEditbox::NeedsUpdate( void ) const
 {GUCEF_TRACE;
 
-    return HasFocus() || GetBoolProperty( "CaretVisible" );
+    return HasFocus() || GetBoolProperty( EWidgetProperty_CaretVisible );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -221,7 +221,7 @@ CEditbox::OnUpdate( UInt32 deltaInMs )
 
     if ( !HasFocus() )
     {
-        SetBoolProperty( "CaretVisible", false );
+        SetBoolProperty( EWidgetProperty_CaretVisible, false );
         return;
     }
     // the caret blinks twice a second
@@ -229,7 +229,7 @@ CEditbox::OnUpdate( UInt32 deltaInMs )
     if ( m_blinkTime >= 500 )
     {
         m_blinkTime %= 500;
-        SetBoolProperty( "CaretVisible", !GetBoolProperty( "CaretVisible" ) );
+        SetBoolProperty( EWidgetProperty_CaretVisible, !GetBoolProperty( EWidgetProperty_CaretVisible ) );
     }
 }
 
@@ -241,21 +241,21 @@ CEditbox::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventD
 
     if ( KeyboardFocusReceivedEvent == eventId )
     {
-        if ( GetBoolProperty( "SelectAllOnFocus" ) && !GetText().IsNULLOrEmpty() )
-            SetBoolProperty( "Selected", true );
+        if ( GetBoolProperty( EWidgetProperty_SelectAllOnFocus ) && !GetText().IsNULLOrEmpty() )
+            SetBoolProperty( EWidgetProperty_Selected, true );
         m_blinkTime = 0;
-        SetBoolProperty( "CaretVisible", true );
+        SetBoolProperty( EWidgetProperty_CaretVisible, true );
         return true;
     }
     if ( KeyboardFocusLostEvent == eventId )
     {
-        SetBoolProperty( "Selected", false );
-        SetBoolProperty( "CaretVisible", false );
+        SetBoolProperty( EWidgetProperty_Selected, false );
+        SetBoolProperty( EWidgetProperty_CaretVisible, false );
         return true;
     }
     if ( TextInputEvent == eventId )
     {
-        if ( GetBoolProperty( "ReadOnly" ) )
+        if ( GetBoolProperty( EWidgetProperty_ReadOnly ) )
             return false;
         CTextEventData* textData = static_cast< CTextEventData* >( &eventData );
         TCodePointVector codePoints;
@@ -266,11 +266,11 @@ CEditbox::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventD
                 typed.Append( codePoints[ i ] );
         if ( typed.IsNULLOrEmpty() )
             return false;
-        CString text = GetBoolProperty( "Selected" ) ? CString::Empty : GetText();
-        SetBoolProperty( "Selected", false );
-        ChangeValueByUser( "Text", LimitText( text + typed ) );
+        CString text = GetBoolProperty( EWidgetProperty_Selected ) ? CString::Empty : GetText();
+        SetBoolProperty( EWidgetProperty_Selected, false );
+        ChangeValueByUser( EWidgetProperty_Text, LimitText( text + typed ) );
         m_blinkTime = 0;
-        SetBoolProperty( "CaretVisible", true );
+        SetBoolProperty( EWidgetProperty_CaretVisible, true );
         return true;
     }
     if ( KeyDownEvent == eventId )
@@ -278,18 +278,18 @@ CEditbox::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventD
         CKeyEventData* key = static_cast< CKeyEventData* >( &eventData );
         if ( INPUT::KEYCODE_BACK == key->keyCode )
         {
-            if ( GetBoolProperty( "ReadOnly" ) )
+            if ( GetBoolProperty( EWidgetProperty_ReadOnly ) )
                 return true;
             CString text;
-            if ( !GetBoolProperty( "Selected" ) )
+            if ( !GetBoolProperty( EWidgetProperty_Selected ) )
             {
                 TCodePointVector codePoints;
                 DecodeUtf8( GetText(), codePoints );
                 for ( UInt32 i=0; i+1<(UInt32)codePoints.size(); ++i )
                     text.Append( codePoints[ i ] );
             }
-            SetBoolProperty( "Selected", false );
-            ChangeValueByUser( "Text", text );
+            SetBoolProperty( EWidgetProperty_Selected, false );
+            ChangeValueByUser( EWidgetProperty_Text, text );
             return true;
         }
         if ( INPUT::KEYCODE_RETURN == key->keyCode || INPUT::KEYCODE_NUMPADENTER == key->keyCode )
@@ -301,7 +301,7 @@ CEditbox::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventD
              INPUT::KEYCODE_HOME == key->keyCode || INPUT::KEYCODE_END == key->keyCode )
         {
             // the caret stays at the end; moving it only drops the selection
-            SetBoolProperty( "Selected", false );
+            SetBoolProperty( EWidgetProperty_Selected, false );
             return true;
         }
     }

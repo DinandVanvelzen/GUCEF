@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_CORE_CLONEABLES_H
 #include "cloneables.h"
 #define GUCEF_CORE_CLONEABLES_H
@@ -147,11 +152,34 @@ class GUCEF_GUI_PUBLIC_CPP CDeveloperConsoleForm : public CFormEx
 
     virtual void OnPostLayoutLoad( void ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CDeveloperConsoleForm > TEventCallback;
+
+    /** A key of a keyboard changed state: the console key toggles the console */
+    void OnKeyStateChanged( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData );
+
+    /** A keyboard was attached: its keys are watched too */
+    void OnKeyboardAttached( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData );
+
+    /** Text typed in the console: the character of the console key is swallowed */
+    void OnTextInput( CORE::CNotifier* notifier    ,
+                      const CORE::CEvent& eventId  ,
+                      CORE::CICloneable* eventData );
+
+    /** Enter in the command line */
+    void OnCommandLineTextEntered( CORE::CNotifier* notifier    ,
+                                   const CORE::CEvent& eventId  ,
+                                   CORE::CICloneable* eventData );
+
+    /** A frame of the context starts: the slide moves on */
+    void OnFrameStarted( CORE::CNotifier* notifier    ,
+                         const CORE::CEvent& eventId  ,
+                         CORE::CICloneable* eventData );
 
     void AttachToKeyboards( void );
 

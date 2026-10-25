@@ -97,7 +97,7 @@ bool
 CTabControl::SetActiveTab( const UInt32 tabIndex )
 {GUCEF_TRACE;
 
-    return SetIntProperty( "ActiveTab", (Int32) tabIndex );
+    return SetIntProperty( EWidgetProperty_ActiveTab, (Int32) tabIndex );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -106,7 +106,7 @@ Int32
 CTabControl::GetActiveTab( void ) const
 {GUCEF_TRACE;
 
-    return GetIntProperty( "ActiveTab" );
+    return GetIntProperty( EWidgetProperty_ActiveTab );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -119,7 +119,7 @@ CTabControl::GetTabContentPane( const UInt32 tabIndex )
     const TWidgetVector& children = GetChildren();
     for ( UInt32 i=0; i<(UInt32)children.size(); ++i )
     {
-        CTabContentPane* pane = dynamic_cast< CTabContentPane* >( children[ i ] );
+        CTabContentPane* pane = CWidget::As< CTabContentPane >( children[ i ] );
         if ( GUCEF_NULL == pane )
             continue;
         if ( index == tabIndex )
@@ -135,7 +135,7 @@ UInt32
 CTabControl::GetTabCount( void ) const
 {GUCEF_TRACE;
 
-    return (UInt32) GetStringListProperty( "Tabs" ).size();
+    return (UInt32) GetStringListProperty( EWidgetProperty_Tabs ).size();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -148,7 +148,7 @@ CTabControl::GetTabRect( UInt32 tabIndex ) const
     if ( 0 == count || tabIndex >= count )
         return CRect();
     Int32 width = GetRect().width / (Int32) count;
-    return CRect( (Int32) tabIndex * width, 0, width, GetIntProperty( "TabHeight" ) );
+    return CRect( (Int32) tabIndex * width, 0, width, GetIntProperty( EWidgetProperty_TabHeight ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -162,7 +162,7 @@ CTabControl::ShowActivePane( void )
     const TWidgetVector& children = GetChildren();
     for ( UInt32 i=0; i<(UInt32)children.size(); ++i )
     {
-        CTabContentPane* pane = dynamic_cast< CTabContentPane* >( children[ i ] );
+        CTabContentPane* pane = CWidget::As< CTabContentPane >( children[ i ] );
         if ( GUCEF_NULL == pane )
             continue;
         pane->SetVisibility( (Int32) index == active );
@@ -182,10 +182,10 @@ CTabControl::OnChildrenChanged( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CTabControl::OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue )
+CTabControl::OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue )
 {GUCEF_TRACE;
 
-    if ( name == "ActiveTab" )
+    if ( property == EWidgetProperty_ActiveTab )
     {
         ShowActivePane();
         TActiveTabChangedEventData eventData( (UInt32) GetActiveTab() );
@@ -212,7 +212,7 @@ CTabControl::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eve
         {
             if ( GetTabRect( i ).Contains( pointer->localX, pointer->localY ) )
             {
-                ChangeValueByUser( "ActiveTab", CORE::Int32ToString( (Int32) i ) );
+                ChangeValueByUser( EWidgetProperty_ActiveTab, CORE::Int32ToString( (Int32) i ) );
                 return true;
             }
         }
@@ -223,9 +223,9 @@ CTabControl::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eve
         CNavigationEventData* nav = static_cast< CNavigationEventData* >( &eventData );
         Int32 active = GetActiveTab();
         if ( NAVIGATION_LEFT == nav->direction && active > 0 )
-            return ChangeValueByUser( "ActiveTab", CORE::Int32ToString( active - 1 ) );
+            return ChangeValueByUser( EWidgetProperty_ActiveTab, CORE::Int32ToString( active - 1 ) );
         if ( NAVIGATION_RIGHT == nav->direction && active + 1 < (Int32) count )
-            return ChangeValueByUser( "ActiveTab", CORE::Int32ToString( active + 1 ) );
+            return ChangeValueByUser( EWidgetProperty_ActiveTab, CORE::Int32ToString( active + 1 ) );
     }
     return false;
 }

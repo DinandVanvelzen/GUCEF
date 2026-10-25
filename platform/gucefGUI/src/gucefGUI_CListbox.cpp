@@ -77,11 +77,11 @@ namespace {
 Int32
 RowHeightOf( const CWidget& widget )
 {
-    Int32 rowHeight = widget.GetIntProperty( "RowHeight" );
+    Int32 rowHeight = widget.GetIntProperty( EWidgetProperty_RowHeight );
     if ( rowHeight > 0 )
         return rowHeight;
     if ( GUCEF_NULL != widget.GetContext() )
-        return widget.GetContext()->GetLineHeight( widget.GetProperty( "Font" ) );
+        return widget.GetContext()->GetLineHeight( widget.GetProperty( EWidgetProperty_Font ) );
     return 16;
 }
 
@@ -133,7 +133,7 @@ bool
 CListbox::SetAllowMultiSelect( bool allowMultiselect )
 {GUCEF_TRACE;
 
-    return SetBoolProperty( "MultiSelect", allowMultiselect );
+    return SetBoolProperty( EWidgetProperty_MultiSelect, allowMultiselect );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -142,7 +142,7 @@ bool
 CListbox::GetAllowMultiSelect( void ) const
 {GUCEF_TRACE;
 
-    return GetBoolProperty( "MultiSelect" );
+    return GetBoolProperty( EWidgetProperty_MultiSelect );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -160,10 +160,10 @@ bool
 CListbox::Clear( void )
 {GUCEF_TRACE;
 
-    SetProperty( "SelectedIndices", CString::Empty );
-    SetIntProperty( "SelectedIndex", -1 );
-    SetIntProperty( "ScrollPosition", 0 );
-    return SetProperty( "Items", CString::Empty );
+    SetProperty( EWidgetProperty_SelectedIndices, CString::Empty );
+    SetIntProperty( EWidgetProperty_SelectedIndex, -1 );
+    SetIntProperty( EWidgetProperty_ScrollPosition, 0 );
+    return SetProperty( EWidgetProperty_Items, CString::Empty );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -211,7 +211,7 @@ bool
 CListbox::GetText( CString& text ) const
 {GUCEF_TRACE;
 
-    text = GetProperty( "Items" );
+    text = GetProperty( EWidgetProperty_Items );
     return true;
 }
 
@@ -225,14 +225,14 @@ CListbox::SetLineSelection( const UInt32 lineIndex ,
     if ( !GetAllowMultiSelect() )
         return SetSelectedIndex( isSelected ? (Int32) lineIndex : -1 );
 
-    GUCEF::vector< Int32 > selected = GetIntListProperty( "SelectedIndices" );
+    GUCEF::vector< Int32 > selected = GetIntListProperty( EWidgetProperty_SelectedIndices );
     GUCEF::vector< Int32 > result;
     for ( UInt32 i=0; i<(UInt32)selected.size(); ++i )
         if ( selected[ i ] != (Int32) lineIndex )
             result.push_back( selected[ i ] );
     if ( isSelected )
         result.push_back( (Int32) lineIndex );
-    return SetIntListProperty( "SelectedIndices", result );
+    return SetIntListProperty( EWidgetProperty_SelectedIndices, result );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -293,7 +293,7 @@ CListbox::TStringVector
 CListbox::GetItems( void ) const
 {GUCEF_TRACE;
 
-    return GetStringListProperty( "Items" );
+    return GetStringListProperty( EWidgetProperty_Items );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -302,7 +302,7 @@ bool
 CListbox::SetItems( const TStringVector& items )
 {GUCEF_TRACE;
 
-    return SetStringListProperty( "Items", items );
+    return SetStringListProperty( EWidgetProperty_Items, items );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -311,7 +311,7 @@ Int32
 CListbox::GetSelectedIndex( void ) const
 {GUCEF_TRACE;
 
-    return GetIntProperty( "SelectedIndex" );
+    return GetIntProperty( EWidgetProperty_SelectedIndex );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -320,7 +320,7 @@ bool
 CListbox::SetSelectedIndex( Int32 index )
 {GUCEF_TRACE;
 
-    return SetIntProperty( "SelectedIndex", index );
+    return SetIntProperty( EWidgetProperty_SelectedIndex, index );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -329,7 +329,7 @@ bool
 CListbox::IsItemDisabled( Int32 index ) const
 {GUCEF_TRACE;
 
-    GUCEF::vector< Int32 > disabled = GetIntListProperty( "DisabledItems" );
+    GUCEF::vector< Int32 > disabled = GetIntListProperty( EWidgetProperty_DisabledItems );
     for ( UInt32 i=0; i<(UInt32)disabled.size(); ++i )
         if ( disabled[ i ] == index )
             return true;
@@ -344,7 +344,7 @@ CListbox::IsItemSelected( Int32 index ) const
 
     if ( !GetAllowMultiSelect() )
         return index >= 0 && index == GetSelectedIndex();
-    GUCEF::vector< Int32 > selected = GetIntListProperty( "SelectedIndices" );
+    GUCEF::vector< Int32 > selected = GetIntListProperty( EWidgetProperty_SelectedIndices );
     for ( UInt32 i=0; i<(UInt32)selected.size(); ++i )
         if ( selected[ i ] == index )
             return true;
@@ -379,7 +379,7 @@ CListbox::GetRowAt( Int32 localY ) const
     Int32 rowHeight = GetRowHeight();
     if ( localY < 0 || rowHeight <= 0 || localY >= GetRect().height )
         return -1;
-    Int32 row = GetIntProperty( "ScrollPosition" ) + localY / rowHeight;
+    Int32 row = GetIntProperty( EWidgetProperty_ScrollPosition ) + localY / rowHeight;
     return row < (Int32) GetItems().size() ? row : -1;
 }
 
@@ -389,7 +389,7 @@ void
 CListbox::ScrollToRow( Int32 index )
 {GUCEF_TRACE;
 
-    Int32 scroll = GetIntProperty( "ScrollPosition" );
+    Int32 scroll = GetIntProperty( EWidgetProperty_ScrollPosition );
     Int32 visible = GetVisibleRowCount();
     if ( index < scroll )
         scroll = index;
@@ -398,7 +398,7 @@ CListbox::ScrollToRow( Int32 index )
         scroll = index - visible + 1;
     if ( scroll < 0 )
         scroll = 0;
-    SetIntProperty( "ScrollPosition", scroll );
+    SetIntProperty( EWidgetProperty_ScrollPosition, scroll );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -412,29 +412,29 @@ CListbox::SelectByUser( Int32 index )
     if ( GetAllowMultiSelect() )
     {
         bool wasSelected = IsItemSelected( index );
-        CString oldValue = GetProperty( "SelectedIndices" );
+        CString oldValue = GetProperty( EWidgetProperty_SelectedIndices );
         SetLineSelection( (UInt32) index, !wasSelected );
         CValueChangedEventData eventData;
-        eventData.propertyName = "SelectedIndices";
+        eventData.property = EWidgetProperty_SelectedIndices;
         eventData.oldValue = oldValue;
-        eventData.newValue = GetProperty( "SelectedIndices" );
+        eventData.newValue = GetProperty( EWidgetProperty_SelectedIndices );
         DispatchEvent( ValueChangedEvent, eventData );
         NotifyObservers( wasSelected ? ItemDeselectedEvent : ItemSelectedEvent );
         return;
     }
-    ChangeValueByUser( "SelectedIndex", CORE::Int32ToString( index ) );
+    ChangeValueByUser( EWidgetProperty_SelectedIndex, CORE::Int32ToString( index ) );
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CListbox::OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue )
+CListbox::OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue )
 {GUCEF_TRACE;
 
-    if ( name == "SelectedIndex" || name == "SelectedIndices" )
+    if ( property == EWidgetProperty_SelectedIndex || property == EWidgetProperty_SelectedIndices )
     {
         NotifyObservers( SelectionChangedEvent );
-        if ( name == "SelectedIndex" && CORE::StringToInt32( newValue, -1 ) >= 0 )
+        if ( property == EWidgetProperty_SelectedIndex && CORE::StringToInt32( newValue, -1 ) >= 0 )
             NotifyObservers( ItemSelectedEvent );
     }
 }
@@ -448,12 +448,12 @@ CListbox::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventD
     if ( MouseMoveEvent == eventId )
     {
         CPointerEventData* pointer = static_cast< CPointerEventData* >( &eventData );
-        SetIntProperty( "HoverIndex", GetRowAt( pointer->localY ) );
+        SetIntProperty( EWidgetProperty_HoverIndex, GetRowAt( pointer->localY ) );
         return true;
     }
     if ( MouseFocusLostEvent == eventId )
     {
-        SetIntProperty( "HoverIndex", -1 );
+        SetIntProperty( EWidgetProperty_HoverIndex, -1 );
         return true;
     }
     if ( MouseClickEvent == eventId )
@@ -478,11 +478,14 @@ CListbox::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventD
         Int32 maxScroll = (Int32) GetItems().size() - GetVisibleRowCount();
         if ( maxScroll < 0 )
             maxScroll = 0;
-        Int32 scroll = GetIntProperty( "ScrollPosition" ) - wheel->delta;
+        Int32 scroll = GetIntProperty( EWidgetProperty_ScrollPosition ) - wheel->delta;
         if ( scroll < 0 ) scroll = 0;
         if ( scroll > maxScroll ) scroll = maxScroll;
-        ChangeValueByUser( "ScrollPosition", CORE::Int32ToString( scroll ) );
-        return true;
+
+        // with nothing left to scroll the wheel is for what the list is in
+        if ( scroll == GetIntProperty( EWidgetProperty_ScrollPosition ) )
+            return false;
+        return ChangeValueByUser( EWidgetProperty_ScrollPosition, CORE::Int32ToString( scroll ) );
     }
     if ( NavigationEvent == eventId )
     {

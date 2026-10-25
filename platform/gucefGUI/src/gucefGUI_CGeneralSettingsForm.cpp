@@ -120,6 +120,9 @@ CGeneralSettingsForm::ApplyGeneralSettings( const CGeneralSettings& settings, CD
     logManager.SetNativeConsoleLoggerInOwnWindow( settings.GetConsoleLogOwnWindow() );
     logManager.SetNativeConsoleLoggerEnabled( settings.GetConsoleLogWindow() );
     logManager.SetUserActionLogEnabled( settings.GetUserActionLog(), settings.GetUserActionLogFile() );
+
+    // what the player does is not even made into messages unless this is on, for all loggers (the console as well as the file)
+    logManager.SetUserLogEnabled( settings.GetUserActionLog() );
     if ( GUCEF_NULL != console )
     {
         console->SetConsoleKey( settings.GetDeveloperConsoleKey() );
@@ -157,27 +160,27 @@ CGeneralSettingsForm::BuildLayout( CORE::CDataNode& layout )
 
     // the options in groups below each other; an option that only means something with another is indented below it
     CORE::CDataNode* groups = CFormLayout::AddWidgetNode( *page, "VBox", "Groups", "0,24 0,24", "1,-48 1,-48" );
-    CFormLayout::SetWidgetNodeProperty( *groups, "Spacing", "16" );
+    CFormLayout::SetWidgetNodeProperty( *groups, EWidgetProperty_Spacing, "16" );
 
     CORE::CDataNode* logGroup = CFormLayout::AddWidgetNode( *groups, "GroupBox", "LogGroup", "0,0 0,0", "1,0 0,0" );
-    CFormLayout::SetWidgetNodeProperty( *logGroup, "Caption", "Log" );
+    CFormLayout::SetWidgetNodeProperty( *logGroup, EWidgetProperty_Caption, "Log" );
 
     CORE::CDataNode* logWindow = CFormLayout::AddWidgetNode( *logGroup, "Checkbox", "ConsoleLogWindow", "0,0 0,0", "1,0 0,32" );
-    CFormLayout::SetWidgetNodeProperty( *logWindow, "Text", "Show the log in a console" );
+    CFormLayout::SetWidgetNodeProperty( *logWindow, EWidgetProperty_Text, "Show the log in a console" );
 
     CORE::CDataNode* ownWindow = CFormLayout::AddWidgetNode( *logGroup, "Checkbox", "ConsoleLogOwnWindow", "0,0 0,0", "1,-28 0,32" );
-    CFormLayout::SetWidgetNodeProperty( *ownWindow, "HAlign", "Right" );
-    CFormLayout::SetWidgetNodeProperty( *ownWindow, "EnabledBy", "ConsoleLogWindow" );
-    CFormLayout::SetWidgetNodeProperty( *ownWindow, "Text", "In a window of its own, not in the console the program was started from" );
+    CFormLayout::SetWidgetNodeProperty( *ownWindow, EWidgetProperty_HAlign, "Right" );
+    CFormLayout::SetWidgetNodeProperty( *ownWindow, EWidgetProperty_EnabledBy, "ConsoleLogWindow" );
+    CFormLayout::SetWidgetNodeProperty( *ownWindow, EWidgetProperty_Text, "In a window of its own, not in the console the program was started from" );
 
     CORE::CDataNode* userActionLog = CFormLayout::AddWidgetNode( *logGroup, "Checkbox", "UserActionLog", "0,0 0,0", "1,0 0,32" );
-    CFormLayout::SetWidgetNodeProperty( *userActionLog, "Text", "Keep a log of what I do, for finding problems" );
+    CFormLayout::SetWidgetNodeProperty( *userActionLog, EWidgetProperty_Text, "Keep a log of what I do, for finding problems" );
 
     CORE::CDataNode* developerGroup = CFormLayout::AddWidgetNode( *groups, "GroupBox", "DeveloperGroup", "0,0 0,0", "1,0 0,0" );
-    CFormLayout::SetWidgetNodeProperty( *developerGroup, "Caption", "Developer" );
+    CFormLayout::SetWidgetNodeProperty( *developerGroup, EWidgetProperty_Caption, "Developer" );
 
     CORE::CDataNode* console = CFormLayout::AddWidgetNode( *developerGroup, "Checkbox", "DeveloperConsole", "0,0 0,0", "1,0 0,32" );
-    CFormLayout::SetWidgetNodeProperty( *console, "Text", "Developer console, drops down with the " + GetKeyDisplayName( m_settings.GetDeveloperConsoleKey() ) + " key" );
+    CFormLayout::SetWidgetNodeProperty( *console, EWidgetProperty_Text, "Developer console, drops down with the " + GetKeyDisplayName( m_settings.GetDeveloperConsoleKey() ) + " key" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -190,10 +193,10 @@ CGeneralSettingsForm::ReadSettings( void )
         return;
 
     SetReadingSettings( true );
-    SetWidgetProperty( "ConsoleLogWindow", "Checked", CORE::BoolToString( m_settings.GetConsoleLogWindow() ) );
-    SetWidgetProperty( "ConsoleLogOwnWindow", "Checked", CORE::BoolToString( m_settings.GetConsoleLogOwnWindow() ) );
-    SetWidgetProperty( "DeveloperConsole", "Checked", CORE::BoolToString( m_settings.GetDeveloperConsole() ) );
-    SetWidgetProperty( "UserActionLog", "Checked", CORE::BoolToString( m_settings.GetUserActionLog() ) );
+    SetWidgetProperty( "ConsoleLogWindow", EWidgetProperty_Checked, CORE::BoolToString( m_settings.GetConsoleLogWindow() ) );
+    SetWidgetProperty( "ConsoleLogOwnWindow", EWidgetProperty_Checked, CORE::BoolToString( m_settings.GetConsoleLogOwnWindow() ) );
+    SetWidgetProperty( "DeveloperConsole", EWidgetProperty_Checked, CORE::BoolToString( m_settings.GetDeveloperConsole() ) );
+    SetWidgetProperty( "UserActionLog", EWidgetProperty_Checked, CORE::BoolToString( m_settings.GetUserActionLog() ) );
     SetReadingSettings( false );
     SetHasChanges( false );
 }
@@ -206,10 +209,10 @@ CGeneralSettingsForm::ApplySettings( void )
 
     if ( GUCEF_NULL != GetRootWidget() )
     {
-        m_settings.SetConsoleLogWindow( CORE::StringToBool( GetWidgetProperty( "ConsoleLogWindow", "Checked" ), false ) );
-        m_settings.SetConsoleLogOwnWindow( CORE::StringToBool( GetWidgetProperty( "ConsoleLogOwnWindow", "Checked" ), true ) );
-        m_settings.SetDeveloperConsole( CORE::StringToBool( GetWidgetProperty( "DeveloperConsole", "Checked" ), false ) );
-        m_settings.SetUserActionLog( CORE::StringToBool( GetWidgetProperty( "UserActionLog", "Checked" ), false ) );
+        m_settings.SetConsoleLogWindow( CORE::StringToBool( GetWidgetProperty( "ConsoleLogWindow", EWidgetProperty_Checked ), false ) );
+        m_settings.SetConsoleLogOwnWindow( CORE::StringToBool( GetWidgetProperty( "ConsoleLogOwnWindow", EWidgetProperty_Checked ), true ) );
+        m_settings.SetDeveloperConsole( CORE::StringToBool( GetWidgetProperty( "DeveloperConsole", EWidgetProperty_Checked ), false ) );
+        m_settings.SetUserActionLog( CORE::StringToBool( GetWidgetProperty( "UserActionLog", EWidgetProperty_Checked ), false ) );
     }
     ApplyGeneralSettings( m_settings, m_console );
     SetHasChanges( false );

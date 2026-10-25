@@ -82,6 +82,7 @@ CSettingsPageForm::CSettingsPageForm( void )
 CSettingsPageForm::~CSettingsPageForm()
 {GUCEF_TRACE;
 
+    UnsubscribeAllFromObserver();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -145,6 +146,18 @@ CSettingsPageForm::IsReadingSettings( void ) const
 /*-------------------------------------------------------------------------*/
 
 CString
+CSettingsPageForm::GetWidgetProperty( const CString& widgetName, EWidgetProperty property )
+{GUCEF_TRACE;
+
+    CWidget* widget = GetWidget( widgetName );
+    if ( GUCEF_NULL == widget )
+        return CString::Empty;
+    return widget->GetProperty( property );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
 CSettingsPageForm::GetWidgetProperty( const CString& widgetName, const CString& propertyName )
 {GUCEF_TRACE;
 
@@ -152,6 +165,18 @@ CSettingsPageForm::GetWidgetProperty( const CString& widgetName, const CString& 
     if ( GUCEF_NULL == widget )
         return CString::Empty;
     return widget->GetProperty( propertyName );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CSettingsPageForm::SetWidgetProperty( const CString& widgetName, EWidgetProperty property, const CString& value )
+{GUCEF_TRACE;
+
+    CWidget* widget = GetWidget( widgetName );
+    if ( GUCEF_NULL == widget )
+        return false;
+    return widget->SetProperty( property, value );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -185,35 +210,41 @@ CSettingsPageForm::OnPostLayoutLoad( void )
     // the value changes of every widget of the page bubble up to its root
     CWidget* root = GetRootWidget();
     if ( GUCEF_NULL != root )
-        SubscribeTo( root, CWidget::ValueChangedEvent );
+    {
+        TEventCallback valueChangedCallback( this, &CSettingsPageForm::OnRootValueChanged );
+        SubscribeTo( root, CWidget::ValueChangedEvent, valueChangedCallback );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CSettingsPageForm::OnNotify( CORE::CNotifier* notifier    ,
-                             const CORE::CEvent& eventId  ,
-                             CORE::CICloneable* eventData )
+CSettingsPageForm::OnRootValueChanged( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( CWidget::ValueChangedEvent == eventId && GUCEF_NULL != eventData )
-    {
-        CRoutedEventData* routed = static_cast< CRoutedEventData* >( eventData );
-        if ( EVENTPHASE_TUNNEL == routed->phase || GUCEF_NULL == routed->source )
-            return;
-        if ( EVENTPHASE_TARGET == routed->phase && routed->source != GetRootWidget() )
-            return;
-
-        // the page reacts to changes made while settings are read too (lists that depend on other values)
-        OnValueChanged( *routed->source );
-        if ( !m_readingSettings )
-        {
-            m_hasChanges = true;
-            NotifyObservers( PageChangedEvent );
-        }
+    if ( GUCEF_NULL == eventData )
         return;
+
+    // the data of this event is always a CValueChangedEventData
+    const CValueChangedEventData* changed = static_cast< const CValueChangedEventData* >( eventData );
+    if ( EVENTPHASE_TUNNEL == changed->phase || GUCEF_NULL == changed->source )
+        return;
+    if ( EVENTPHASE_TARGET == changed->phase && changed->source != GetRootWidget() )
+        return;
+
+    // where a list or the page is scrolled to is not a setting
+    if ( changed->property == EWidgetProperty_ScrollPosition )
+        return;
+
+    // the page reacts to changes made while settings are read too (lists that depend on other values)
+    OnValueChanged( *changed->source );
+    if ( !m_readingSettings )
+    {
+        m_hasChanges = true;
+        NotifyObservers( PageChangedEvent );
     }
-    CFormEx::OnNotify( notifier, eventId, eventData );
 }
 
 /*-------------------------------------------------------------------------*/

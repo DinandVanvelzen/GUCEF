@@ -190,9 +190,12 @@ configuration( { "ANDROID32" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
+      "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
+      "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
     } )
 
@@ -213,9 +216,12 @@ configuration( { "ANDROID64" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
+      "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
+      "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
     } )
 
@@ -236,9 +242,12 @@ configuration( { "EMSCRIPTEN32" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
+      "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
+      "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
     } )
 
@@ -259,9 +268,12 @@ configuration( { "EMSCRIPTEN64" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
+      "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
+      "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
     } )
 
@@ -282,9 +294,12 @@ configuration( { "LINUX32" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
+      "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
+      "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
     } )
 
@@ -305,9 +320,12 @@ configuration( { "LINUX64" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
+      "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
+      "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
     } )
 
@@ -328,9 +346,12 @@ configuration( { "WIN32" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
+      "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
+      "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
     } )
 
@@ -351,15 +372,18 @@ configuration( { "WIN64" } )
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
+      "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
+      "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
+      "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
     } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../dependencies/RmlUi/Include", "../../dependencies/RmlUi/Include/RmlUi", "../../dependencies/RmlUi/Include/RmlUi/Config", "../../dependencies/RmlUi/Include/RmlUi/Core", "../../dependencies/RmlUi/Include/RmlUi/Core/Containers", "../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib", "../../dependencies/RmlUi/Include/RmlUi/Core/Elements", "../../dependencies/RmlUi/Include/RmlUi/Debugger", "../../dependencies/RmlUi/Include/RmlUi/Lottie", "../../dependencies/RmlUi/Include/RmlUi/Lua", "../../dependencies/RmlUi/Include/RmlUi/SVG", "../../dependencies/RmlUi/Source/Core", "../../dependencies/RmlUi/Source/Core/Elements", "../../dependencies/RmlUi/Source/Core/FontEngineDefault", "../../dependencies/RmlUi/Source/Core/Layout", "../../dependencies/freetype/include", "../../dependencies/freetype/include/freetype", "../../dependencies/freetype/include/freetype/config", "../../dependencies/freetype/include/freetype/internal", "../../dependencies/freetype/include/freetype/internal/services", "../../dependencies/freetype/src", "../../dependencies/freetype/src/winfonts", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../plugins/GUI/fontpluginFREETYPE/include", "../../plugins/GUI/guidriverNull/include", "../../plugins/GUI/guidriverRmlUI/include", "../../plugins/GUI/guidriverRmlUIOpenGL/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../dependencies/RmlUi/Include", "../../dependencies/RmlUi/Include/RmlUi", "../../dependencies/RmlUi/Include/RmlUi/Config", "../../dependencies/RmlUi/Include/RmlUi/Core", "../../dependencies/RmlUi/Include/RmlUi/Core/Containers", "../../dependencies/RmlUi/Include/RmlUi/Core/Containers/itlib", "../../dependencies/RmlUi/Include/RmlUi/Core/Elements", "../../dependencies/RmlUi/Include/RmlUi/Debugger", "../../dependencies/RmlUi/Include/RmlUi/Lottie", "../../dependencies/RmlUi/Include/RmlUi/Lua", "../../dependencies/RmlUi/Include/RmlUi/SVG", "../../dependencies/RmlUi/Source/Core", "../../dependencies/RmlUi/Source/Core/Elements", "../../dependencies/RmlUi/Source/Core/FontEngineDefault", "../../dependencies/RmlUi/Source/Core/Layout", "../../dependencies/freetype/include", "../../dependencies/freetype/include/freetype", "../../dependencies/freetype/include/freetype/config", "../../dependencies/freetype/include/freetype/internal", "../../dependencies/freetype/include/freetype/internal/services", "../../dependencies/freetype/src", "../../dependencies/freetype/src/winfonts", "../../platform/gucefAUDIO/include", "../../platform/gucefAUDIO/include/c_api", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefGUI/include", "../../platform/gucefIMAGE/include", "../../platform/gucefINPUT/include", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefVIDEO/include", "../../platform/gucefVIDEO/include/c_api", "../../plugins/GUI/fontpluginFREETYPE/include", "../../plugins/GUI/guidriverNull/include", "../../plugins/GUI/guidriverRmlUI/include", "../../plugins/GUI/guidriverRmlUIOpenGL/include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCORE/include/android", "include" } )

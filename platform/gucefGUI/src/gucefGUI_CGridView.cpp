@@ -193,7 +193,7 @@ UInt32
 CGridView::GetRowCount( void ) const
 {GUCEF_TRACE;
 
-    return (UInt32) GetStringListProperty( "Rows" ).size();
+    return (UInt32) GetStringListProperty( EWidgetProperty_Rows ).size();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -202,8 +202,8 @@ UInt32
 CGridView::GetColumnCount( void ) const
 {GUCEF_TRACE;
 
-    UInt32 columns = (UInt32) GetStringListProperty( "Columns" ).size();
-    TStringVector rows = GetStringListProperty( "Rows" );
+    UInt32 columns = (UInt32) GetStringListProperty( EWidgetProperty_Columns ).size();
+    TStringVector rows = GetStringListProperty( EWidgetProperty_Rows );
     for ( UInt32 i=0; i<(UInt32)rows.size(); ++i )
     {
         UInt32 cells = (UInt32) rows[ i ].ParseElements( '\t', true ).size();
@@ -219,7 +219,7 @@ CGridView::TStringVector
 CGridView::GetRowCells( UInt32 rowIndex ) const
 {GUCEF_TRACE;
 
-    TStringVector rows = GetStringListProperty( "Rows" );
+    TStringVector rows = GetStringListProperty( EWidgetProperty_Rows );
     TStringVector cells;
     if ( rowIndex >= (UInt32) rows.size() )
         return cells;
@@ -237,7 +237,7 @@ CGridView::SetText( const UInt32 columnIndex ,
                     const CString& text      )
 {GUCEF_TRACE;
 
-    TStringVector rows = GetStringListProperty( "Rows" );
+    TStringVector rows = GetStringListProperty( EWidgetProperty_Rows );
     while ( rows.size() <= rowIndex )
         rows.push_back( CString::Empty );
     TStringVector cells = GetRowCells( rowIndex );
@@ -245,7 +245,7 @@ CGridView::SetText( const UInt32 columnIndex ,
         cells.push_back( CString::Empty );
     cells[ columnIndex ] = text;
     rows[ rowIndex ] = JoinCells( cells );
-    SetStringListProperty( "Rows", rows );
+    SetStringListProperty( EWidgetProperty_Rows, rows );
     TGridItemAddedEventData eventData;
     eventData.GetData().column = columnIndex;
     eventData.GetData().row = rowIndex;
@@ -293,11 +293,11 @@ void
 CGridView::Clear( void )
 {GUCEF_TRACE;
 
-    SetIntProperty( "SelectedRow", -1 );
-    SetProperty( "SelectedRows", CString::Empty );
-    SetIntProperty( "AnchorRow", -1 );
-    SetIntProperty( "ScrollPosition", 0 );
-    SetProperty( "Rows", CString::Empty );
+    SetIntProperty( EWidgetProperty_SelectedRow, -1 );
+    SetProperty( EWidgetProperty_SelectedRows, CString::Empty );
+    SetIntProperty( EWidgetProperty_AnchorRow, -1 );
+    SetIntProperty( EWidgetProperty_ScrollPosition, 0 );
+    SetProperty( EWidgetProperty_Rows, CString::Empty );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -309,11 +309,11 @@ CGridView::SetRows( const TRowVector& rows )
     TStringVector joined;
     for ( size_t i=0; i<rows.size(); ++i )
         joined.push_back( JoinCells( rows[ i ] ) );
-    SetIntProperty( "SelectedRow", -1 );
-    SetProperty( "SelectedRows", CString::Empty );
-    SetIntProperty( "AnchorRow", -1 );
-    SetIntProperty( "ScrollPosition", 0 );
-    SetStringListProperty( "Rows", joined );
+    SetIntProperty( EWidgetProperty_SelectedRow, -1 );
+    SetProperty( EWidgetProperty_SelectedRows, CString::Empty );
+    SetIntProperty( EWidgetProperty_AnchorRow, -1 );
+    SetIntProperty( EWidgetProperty_ScrollPosition, 0 );
+    SetStringListProperty( EWidgetProperty_Rows, joined );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -322,7 +322,7 @@ void
 CGridView::SetAllowMultiSelect( bool allowMultiSelect )
 {GUCEF_TRACE;
 
-    SetBoolProperty( "MultiSelect", allowMultiSelect );
+    SetBoolProperty( EWidgetProperty_MultiSelect, allowMultiSelect );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -331,7 +331,7 @@ bool
 CGridView::GetAllowMultiSelect( void ) const
 {GUCEF_TRACE;
 
-    return GetBoolProperty( "MultiSelect" );
+    return GetBoolProperty( EWidgetProperty_MultiSelect );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -340,7 +340,7 @@ Int32
 CGridView::GetSelectedRow( void ) const
 {GUCEF_TRACE;
 
-    Int32 row = GetIntProperty( "SelectedRow" );
+    Int32 row = GetIntProperty( EWidgetProperty_SelectedRow );
     return row >= 0 && row < (Int32) GetRowCount() ? row : -1;
 }
 
@@ -370,7 +370,7 @@ CGridView::GetSelectedRows( void ) const
             rows.push_back( row );
         return rows;
     }
-    return SortedUnique( GetIntListProperty( "SelectedRows" ), (Int32) GetRowCount() );
+    return SortedUnique( GetIntListProperty( EWidgetProperty_SelectedRows ), (Int32) GetRowCount() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -382,9 +382,9 @@ CGridView::SetSelectedRows( const TInt32Vector& rows )
     TInt32Vector valid = SortedUnique( rows, (Int32) GetRowCount() );
     if ( !GetAllowMultiSelect() && valid.size() > 1 )
         valid.resize( 1 );
-    SetIntListProperty( "SelectedRows", valid );
-    SetIntProperty( "AnchorRow", valid.empty() ? -1 : valid.front() );
-    SetIntProperty( "SelectedRow", valid.empty() ? -1 : valid.front() );
+    SetIntListProperty( EWidgetProperty_SelectedRows, valid );
+    SetIntProperty( EWidgetProperty_AnchorRow, valid.empty() ? -1 : valid.front() );
+    SetIntProperty( EWidgetProperty_SelectedRow, valid.empty() ? -1 : valid.front() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -421,15 +421,15 @@ CGridView::ScrollToRow( Int32 row )
 
     if ( row < 0 )
         return;
-    Int32 scroll = GetIntProperty( "ScrollPosition" );
+    Int32 scroll = GetIntProperty( EWidgetProperty_ScrollPosition );
     Int32 visible = GetVisibleRowCount();
     if ( row < scroll )
         scroll = row;
     else
     if ( visible > 0 && row >= scroll + visible )
         scroll = row - visible + 1;
-    if ( scroll != GetIntProperty( "ScrollPosition" ) )
-        SetIntProperty( "ScrollPosition", scroll );
+    if ( scroll != GetIntProperty( EWidgetProperty_ScrollPosition ) )
+        SetIntProperty( EWidgetProperty_ScrollPosition, scroll );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -438,7 +438,7 @@ void
 CGridView::SortRows( UInt32 column, bool ascending )
 {GUCEF_TRACE;
 
-    TStringVector rows = GetStringListProperty( "Rows" );
+    TStringVector rows = GetStringListProperty( EWidgetProperty_Rows );
     TInt32Vector selected = GetSelectedRows();
     Int32 cursor = GetSelectedRow();
 
@@ -469,18 +469,18 @@ CGridView::SortRows( UInt32 column, bool ascending )
         sorted.push_back( rows[ order[ i ] ] );
         newIndexOf[ order[ i ] ] = (Int32) i;
     }
-    SetStringListProperty( "Rows", sorted );
-    SetIntProperty( "SortColumn", (Int32) column );
-    SetBoolProperty( "SortAscending", ascending );
+    SetStringListProperty( EWidgetProperty_Rows, sorted );
+    SetIntProperty( EWidgetProperty_SortColumn, (Int32) column );
+    SetBoolProperty( EWidgetProperty_SortAscending, ascending );
 
     // the selection stays with its rows
     TInt32Vector moved;
     for ( size_t i=0; i<selected.size(); ++i )
         moved.push_back( newIndexOf[ selected[ i ] ] );
-    SetIntListProperty( "SelectedRows", SortedUnique( moved, (Int32) sorted.size() ) );
-    SetIntProperty( "SelectedRow", cursor >= 0 ? newIndexOf[ cursor ] : -1 );
-    Int32 anchor = GetIntProperty( "AnchorRow" );
-    SetIntProperty( "AnchorRow", anchor >= 0 && anchor < (Int32) newIndexOf.size() ? newIndexOf[ anchor ] : -1 );
+    SetIntListProperty( EWidgetProperty_SelectedRows, SortedUnique( moved, (Int32) sorted.size() ) );
+    SetIntProperty( EWidgetProperty_SelectedRow, cursor >= 0 ? newIndexOf[ cursor ] : -1 );
+    Int32 anchor = GetIntProperty( EWidgetProperty_AnchorRow );
+    SetIntProperty( EWidgetProperty_AnchorRow, anchor >= 0 && anchor < (Int32) newIndexOf.size() ? newIndexOf[ anchor ] : -1 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -492,22 +492,22 @@ CGridView::SelectByUser( const TInt32Vector& rows, Int32 cursorRow )
     if ( !GetAllowMultiSelect() )
     {
         // one row: only SelectedRow changes, as it always did
-        ChangeValueByUser( "SelectedRow", CORE::Int32ToString( cursorRow ) );
+        ChangeValueByUser( EWidgetProperty_SelectedRow, CORE::Int32ToString( cursorRow ) );
         return;
     }
     TInt32Vector valid = SortedUnique( rows, (Int32) GetRowCount() );
-    CString oldValue = GetProperty( "SelectedRows" );
-    SetIntListProperty( "SelectedRows", valid );
-    CString newValue = GetProperty( "SelectedRows" );
+    CString oldValue = GetProperty( EWidgetProperty_SelectedRows );
+    SetIntListProperty( EWidgetProperty_SelectedRows, valid );
+    CString newValue = GetProperty( EWidgetProperty_SelectedRows );
     if ( oldValue != newValue )
     {
         CValueChangedEventData eventData;
-        eventData.propertyName = "SelectedRows";
+        eventData.property = EWidgetProperty_SelectedRows;
         eventData.oldValue = oldValue;
         eventData.newValue = newValue;
         DispatchEvent( ValueChangedEvent, eventData );
     }
-    ChangeValueByUser( "SelectedRow", CORE::Int32ToString( cursorRow ) );
+    ChangeValueByUser( EWidgetProperty_SelectedRow, CORE::Int32ToString( cursorRow ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -523,7 +523,7 @@ CGridView::MoveCursorByUser( Int32 row, bool extend )
     if ( row >= count ) row = count - 1;
 
     TInt32Vector rows;
-    Int32 anchor = GetIntProperty( "AnchorRow" );
+    Int32 anchor = GetIntProperty( EWidgetProperty_AnchorRow );
     if ( extend && GetAllowMultiSelect() && anchor >= 0 && anchor < count )
     {
         for ( Int32 r = ( anchor < row ? anchor : row ); r <= ( anchor < row ? row : anchor ); ++r )
@@ -532,7 +532,7 @@ CGridView::MoveCursorByUser( Int32 row, bool extend )
     else
     {
         rows.push_back( row );
-        SetIntProperty( "AnchorRow", row );
+        SetIntProperty( EWidgetProperty_AnchorRow, row );
     }
     SelectByUser( rows, row );
     ScrollToRow( row );
@@ -541,11 +541,11 @@ CGridView::MoveCursorByUser( Int32 row, bool extend )
 /*-------------------------------------------------------------------------*/
 
 void
-CGridView::OnPropertyChanged( const CString& name, const CString& oldValue, const CString& newValue )
+CGridView::OnPropertyChanged( EWidgetProperty property, const CString& oldValue, const CString& newValue )
 {GUCEF_TRACE;
 
-    CWidget::OnPropertyChanged( name, oldValue, newValue );
-    if ( name == "SelectedRow" || name == "SelectedRows" )
+    CWidget::OnPropertyChanged( property, oldValue, newValue );
+    if ( property == EWidgetProperty_SelectedRow || property == EWidgetProperty_SelectedRows )
         NotifyObservers( SelectionChangedEvent );
 }
 
@@ -555,7 +555,7 @@ void
 CGridView::GetSelectedItems( TGridIndexVector& gridIndexList )
 {GUCEF_TRACE;
 
-    Int32 row = GetIntProperty( "SelectedRow" );
+    Int32 row = GetIntProperty( EWidgetProperty_SelectedRow );
     if ( row < 0 || row >= (Int32) GetRowCount() )
         return;
     UInt32 columns = GetColumnCount();
@@ -574,10 +574,30 @@ GUCEF::vector< Int32 >
 CGridView::GetColumnWidths( void ) const
 {GUCEF_TRACE;
 
-    GUCEF::vector< Int32 > widths = GetIntListProperty( "ColumnWidths" );
+    GUCEF::vector< Int32 > widths = GetIntListProperty( EWidgetProperty_ColumnWidths );
     UInt32 columns = GetColumnCount();
     if ( widths.size() >= columns && !widths.empty() )
+    {
+        // the widths are relative to each other: the columns fill the grid, whatever its size
+        if ( GetBoolProperty( EWidgetProperty_FitColumns ) )
+        {
+            Int64 total = 0;
+            for ( UInt32 i=0; i<columns; ++i )
+                total += widths[ i ] > 0 ? widths[ i ] : 0;
+            Int32 available = GetRect().width;
+            if ( total > 0 && available > 0 )
+            {
+                Int32 used = 0;
+                for ( UInt32 i=0; i<columns; ++i )
+                {
+                    Int32 width = i + 1 == columns ? available - used : (Int32) ( (Int64) ( widths[ i ] > 0 ? widths[ i ] : 0 ) * available / total );
+                    widths[ i ] = width > 0 ? width : 0;
+                    used += widths[ i ];
+                }
+            }
+        }
         return widths;
+    }
     widths.clear();
     if ( 0 == columns )
         return widths;
@@ -593,10 +613,10 @@ Int32
 CGridView::GetRowHeight( void ) const
 {GUCEF_TRACE;
 
-    Int32 rowHeight = GetIntProperty( "RowHeight" );
+    Int32 rowHeight = GetIntProperty( EWidgetProperty_RowHeight );
     if ( rowHeight > 0 )
         return rowHeight;
-    return GUCEF_NULL != GetContext() ? GetContext()->GetLineHeight( GetProperty( "Font" ) ) : 16;
+    return GUCEF_NULL != GetContext() ? GetContext()->GetLineHeight( GetProperty( EWidgetProperty_Font ) ) : 16;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -608,7 +628,7 @@ CGridView::GetRowAt( Int32 localY ) const
     Int32 rowHeight = GetRowHeight();
     if ( rowHeight <= 0 || localY < rowHeight )
         return -1;
-    Int32 row = GetIntProperty( "ScrollPosition" ) + ( localY - rowHeight ) / rowHeight;
+    Int32 row = GetIntProperty( EWidgetProperty_ScrollPosition ) + ( localY - rowHeight ) / rowHeight;
     return row < (Int32) GetRowCount() ? row : -1;
 }
 
@@ -637,12 +657,12 @@ CGridView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
 
     if ( MouseMoveEvent == eventId )
     {
-        SetIntProperty( "HoverIndex", GetRowAt( static_cast< CPointerEventData* >( &eventData )->localY ) );
+        SetIntProperty( EWidgetProperty_HoverIndex, GetRowAt( static_cast< CPointerEventData* >( &eventData )->localY ) );
         return true;
     }
     if ( MouseFocusLostEvent == eventId )
     {
-        SetIntProperty( "HoverIndex", -1 );
+        SetIntProperty( EWidgetProperty_HoverIndex, -1 );
         return true;
     }
     if ( MouseClickEvent == eventId && MOUSEBUTTON_LEFT == static_cast< CPointerEventData* >( &eventData )->button )
@@ -659,9 +679,9 @@ CGridView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
             clickedColumn.GetData().column = (UInt32) column;
             clickedColumn.GetData().row = 0;
             NotifyObservers( ColumnClickedEvent, &clickedColumn );
-            if ( GetBoolProperty( "Sortable" ) )
+            if ( GetBoolProperty( EWidgetProperty_Sortable ) )
             {
-                bool ascending = column == GetIntProperty( "SortColumn" ) ? !GetBoolProperty( "SortAscending" ) : true;
+                bool ascending = column == GetIntProperty( EWidgetProperty_SortColumn ) ? !GetBoolProperty( EWidgetProperty_SortAscending ) : true;
                 SortRows( (UInt32) column, ascending );
             }
             return true;
@@ -676,7 +696,7 @@ CGridView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
         NotifyObservers( GridItemClickedEvent, &clicked );
         if ( 2 == pointer->clickCount )
         {
-            ActivateItem( row, GetStringListProperty( "Rows" )[ row ] );
+            ActivateItem( row, GetStringListProperty( EWidgetProperty_Rows )[ row ] );
             return true;
         }
 
@@ -697,7 +717,7 @@ CGridView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
             }
             if ( !wasSelected )
                 toggled.push_back( row );
-            SetIntProperty( "AnchorRow", row );
+            SetIntProperty( EWidgetProperty_AnchorRow, row );
             SelectByUser( toggled, row );
         }
         else
@@ -724,7 +744,7 @@ CGridView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
             {
                 if ( current < 0 )
                     return false;
-                ActivateItem( current, GetStringListProperty( "Rows" )[ current ] );
+                ActivateItem( current, GetStringListProperty( EWidgetProperty_Rows )[ current ] );
                 return true;
             }
             default:
@@ -755,11 +775,14 @@ CGridView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& event
         Int32 visible = GetRowHeight() > 0 ? GetRect().height / GetRowHeight() - 1 : 0;
         Int32 maxScroll = (Int32) GetRowCount() - visible;
         if ( maxScroll < 0 ) maxScroll = 0;
-        Int32 scroll = GetIntProperty( "ScrollPosition" ) - static_cast< CWheelEventData* >( &eventData )->delta;
+        Int32 scroll = GetIntProperty( EWidgetProperty_ScrollPosition ) - static_cast< CWheelEventData* >( &eventData )->delta;
         if ( scroll < 0 ) scroll = 0;
         if ( scroll > maxScroll ) scroll = maxScroll;
-        ChangeValueByUser( "ScrollPosition", CORE::Int32ToString( scroll ) );
-        return true;
+
+        // with nothing left to scroll the wheel is for what the grid is in
+        if ( scroll == GetIntProperty( EWidgetProperty_ScrollPosition ) )
+            return false;
+        return ChangeValueByUser( EWidgetProperty_ScrollPosition, CORE::Int32ToString( scroll ) );
     }
     return false;
 }

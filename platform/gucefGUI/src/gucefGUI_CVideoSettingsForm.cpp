@@ -139,6 +139,7 @@ CVideoSettingsForm::CVideoSettingsForm( void )
 CVideoSettingsForm::~CVideoSettingsForm()
 {GUCEF_TRACE;
 
+    UnsubscribeAllFromObserver();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -255,11 +256,11 @@ CVideoSettingsForm::BuildLayout( CORE::CDataNode& layout )
         if ( '\0' != rows[ r ].label[ 0 ] )
         {
             CORE::CDataNode* label = CFormLayout::AddWidgetNode( *page, "Label", CString( rows[ r ].name ) + "Label", LabelPosition( r ), LabelSize );
-            CFormLayout::SetWidgetNodeProperty( *label, "Text", rows[ r ].label );
+            CFormLayout::SetWidgetNodeProperty( *label, EWidgetProperty_Text, rows[ r ].label );
         }
         CORE::CDataNode* control = CFormLayout::AddWidgetNode( *page, rows[ r ].type, rows[ r ].name, ControlPosition( r ), ControlSize );
         if ( CString( "Combobox" ) == rows[ r ].type )
-            CFormLayout::SetWidgetNodeProperty( *control, "DropDownRows", "10" );
+            CFormLayout::SetWidgetNodeProperty( *control, EWidgetProperty_DropDownRows, "10" );
     }
 
     CORE::CDataNode::iterator i = page->Begin();
@@ -269,30 +270,30 @@ CVideoSettingsForm::BuildLayout( CORE::CDataNode& layout )
         ++i;
         CString name = node->GetAttributeValue( "name" ).AsString();
         if ( name == "DisplayMode" )
-            CFormLayout::SetWidgetNodeProperty( *node, "Items", "Window\nFull screen" );
+            CFormLayout::SetWidgetNodeProperty( *node, EWidgetProperty_Items, "Window\nFull screen" );
         else
         if ( name == "VSync" )
-            CFormLayout::SetWidgetNodeProperty( *node, "Text", "Wait for the vertical blank (vsync)" );
+            CFormLayout::SetWidgetNodeProperty( *node, EWidgetProperty_Text, "Wait for the vertical blank (vsync)" );
         else
         if ( name == "PresentMode" )
-            CFormLayout::SetWidgetNodeProperty( *node, "Items", "Sharp pixels\nSmooth\nWhole multiples\nStretched" );
+            CFormLayout::SetWidgetNodeProperty( *node, EWidgetProperty_Items, "Sharp pixels\nSmooth\nWhole multiples\nStretched" );
         else
         if ( name == "Sharpness" )
         {
-            CFormLayout::SetWidgetNodeProperty( *node, "Min", "0" );
-            CFormLayout::SetWidgetNodeProperty( *node, "Max", "100" );
-            CFormLayout::SetWidgetNodeProperty( *node, "Step", "5" );
+            CFormLayout::SetWidgetNodeProperty( *node, EWidgetProperty_Min, "0" );
+            CFormLayout::SetWidgetNodeProperty( *node, EWidgetProperty_Max, "100" );
+            CFormLayout::SetWidgetNodeProperty( *node, EWidgetProperty_Step, "5" );
         }
     }
 
     CORE::CDataNode* progressText = CFormLayout::AddWidgetNode( *page, "Label", "ProgressText", "0,24 1,-84", "1,-48 0,28" );
-    CFormLayout::SetWidgetNodeProperty( *progressText, "Visible", "false" );
+    CFormLayout::SetWidgetNodeProperty( *progressText, EWidgetProperty_Visible, "false" );
     CORE::CDataNode* progress = CFormLayout::AddWidgetNode( *page, "ProgressBar", "Progress", "0,24 1,-52", "1,-184 0,24" );
-    CFormLayout::SetWidgetNodeProperty( *progress, "Max", "1000" );
-    CFormLayout::SetWidgetNodeProperty( *progress, "Visible", "false" );
+    CFormLayout::SetWidgetNodeProperty( *progress, EWidgetProperty_Max, "1000" );
+    CFormLayout::SetWidgetNodeProperty( *progress, EWidgetProperty_Visible, "false" );
     CORE::CDataNode* stop = CFormLayout::AddWidgetNode( *page, "Button", "StopProgress", "1,-144 1,-56", "0,120 0,32" );
-    CFormLayout::SetWidgetNodeProperty( *stop, "Text", "Stop" );
-    CFormLayout::SetWidgetNodeProperty( *stop, "Visible", "false" );
+    CFormLayout::SetWidgetNodeProperty( *stop, EWidgetProperty_Text, "Stop" );
+    CFormLayout::SetWidgetNodeProperty( *stop, EWidgetProperty_Visible, "false" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -304,23 +305,21 @@ CVideoSettingsForm::OnPostLayoutLoad( void )
     CSettingsPageForm::OnPostLayoutLoad();
     CWidget* stop = GetWidget( "StopProgress" );
     if ( GUCEF_NULL != stop )
-        SubscribeTo( stop, CWidget::ActivatedEvent );
+    {
+        TEventCallback activatedCallback( this, &CVideoSettingsForm::OnStopProgressActivated );
+        SubscribeTo( stop, CWidget::ActivatedEvent, activatedCallback );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CVideoSettingsForm::OnNotify( CORE::CNotifier* notifier    ,
-                              const CORE::CEvent& eventId  ,
-                              CORE::CICloneable* eventData )
+CVideoSettingsForm::OnStopProgressActivated( CORE::CNotifier* notifier    ,
+                                             const CORE::CEvent& eventId  ,
+                                             CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( CWidget::ActivatedEvent == eventId && GUCEF_NULL != notifier && notifier == GetWidget( "StopProgress" ) )
-    {
-        NotifyObservers( ProgressStoppedEvent );
-        return;
-    }
-    CSettingsPageForm::OnNotify( notifier, eventId, eventData );
+    NotifyObservers( ProgressStoppedEvent );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -441,7 +440,7 @@ CVideoSettingsForm::ReadSettings( void )
     if ( GUCEF_NULL != displayMode )
         displayMode->SetSelectedIndex( m_settings.GetFullscreenState() ? 1 : 0 );
     FillResolutions( m_settings.GetFullscreenState(), m_settings.GetResolutionWidthInPixels(), m_settings.GetResolutionHeightInPixels() );
-    SetWidgetProperty( "VSync", "Checked", CORE::BoolToString( m_settings.GetVSyncState() ) );
+    SetWidgetProperty( "VSync", EWidgetProperty_Checked, CORE::BoolToString( m_settings.GetVSyncState() ) );
     CCombobox* presentMode = GetWidgetAs< CCombobox >( "PresentMode" );
     if ( GUCEF_NULL != presentMode )
         presentMode->SetSelectedIndex( (Int32) m_settings.GetPresentMode() );
@@ -453,7 +452,7 @@ CVideoSettingsForm::ReadSettings( void )
         sharpness = CORE::StringToFloat( (*p).second, DefaultSharpness );
     CWidget* sharpnessSlider = GetWidget( "Sharpness" );
     if ( GUCEF_NULL != sharpnessSlider )
-        sharpnessSlider->SetFloatProperty( "Value", sharpness * 100.0f );
+        sharpnessSlider->SetFloatProperty( EWidgetProperty_Value, sharpness * 100.0f );
 
     FillChoices( "ImageUpscaler", m_imageUpscalers, m_settings.GetImageUpscaler() );
 
@@ -542,7 +541,7 @@ CVideoSettingsForm::GetSettingsFromWidgets( void )
                 settings.SetFrequency( mode.frequency );
         }
     }
-    settings.SetVSyncState( CORE::StringToBool( GetWidgetProperty( "VSync", "Checked" ), false ) );
+    settings.SetVSyncState( CORE::StringToBool( GetWidgetProperty( "VSync", EWidgetProperty_Checked ), false ) );
     CCombobox* presentMode = GetWidgetAs< CCombobox >( "PresentMode" );
     if ( GUCEF_NULL != presentMode && presentMode->GetSelectedIndex() >= 0 )
         settings.SetPresentMode( (TPresentMode) presentMode->GetSelectedIndex() );
@@ -552,7 +551,7 @@ CVideoSettingsForm::GetSettingsFromWidgets( void )
     CVideoSettings::TParameterMap parameters = settings.GetPresentFilterParameters();
     CWidget* sharpnessSlider = GetWidget( "Sharpness" );
     if ( GUCEF_NULL != sharpnessSlider )
-        parameters[ SharpnessParameter ] = CORE::FloatToString( sharpnessSlider->GetFloatProperty( "Value" ) / 100.0f );
+        parameters[ SharpnessParameter ] = CORE::FloatToString( sharpnessSlider->GetFloatProperty( EWidgetProperty_Value ) / 100.0f );
     settings.SetPresentFilterParameters( parameters );
 
     CString upscaler = GetChoice( "ImageUpscaler" );
@@ -608,13 +607,13 @@ CVideoSettingsForm::ShowProgress( const CString& text, Float32 fraction )
     CWidget* progressText = GetWidget( "ProgressText" );
     if ( GUCEF_NULL != progressText )
     {
-        progressText->SetProperty( "Text", text );
+        progressText->SetProperty( EWidgetProperty_Text, text );
         progressText->SetVisibility( true );
     }
     CWidget* progress = GetWidget( "Progress" );
     if ( GUCEF_NULL != progress )
     {
-        progress->SetFloatProperty( "Value", fraction * 1000.0f );
+        progress->SetFloatProperty( EWidgetProperty_Value, fraction * 1000.0f );
         progress->SetVisibility( true );
     }
     CWidget* stop = GetWidget( "StopProgress" );
@@ -642,7 +641,7 @@ CVideoSettingsForm::IsProgressShown( void ) const
 
     CVideoSettingsForm* self = const_cast< CVideoSettingsForm* >( this );
     CWidget* progress = self->GetWidget( "Progress" );
-    return GUCEF_NULL != progress && progress->GetBoolProperty( "Visible" );
+    return GUCEF_NULL != progress && progress->GetBoolProperty( EWidgetProperty_Visible );
 }
 
 /*-------------------------------------------------------------------------*/

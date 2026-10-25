@@ -52,6 +52,51 @@ const CString CGeneralSettings::ConfigSectionName = "GeneralSettings";
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+bool
+CGeneralSettings::ParseWindowSystem( const CString& text, EWindowSystem& windowSystem )
+{GUCEF_TRACE;
+
+    const CString lower = text.Lowercase().Trim( true ).Trim( false );
+    if ( "auto" == lower )
+        windowSystem = WINDOWSYSTEM_AUTO;
+    else
+    if ( "wayland" == lower )
+        windowSystem = WINDOWSYSTEM_WAYLAND;
+    else
+    if ( "x11" == lower || "xwayland" == lower )
+        windowSystem = WINDOWSYSTEM_X11;
+    else
+        return false;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CGeneralSettings::WindowSystemToString( EWindowSystem windowSystem )
+{GUCEF_TRACE;
+
+    switch ( windowSystem )
+    {
+        case WINDOWSYSTEM_AUTO :    return "auto";
+        case WINDOWSYSTEM_WAYLAND : return "wayland";
+        default :                   return "x11";
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CGeneralSettings::EWindowSystem
+CGeneralSettings::ResolveWindowSystem( EWindowSystem requested, bool waylandAvailable )
+{GUCEF_TRACE;
+
+    if ( WINDOWSYSTEM_AUTO == requested )
+        return waylandAvailable ? WINDOWSYSTEM_WAYLAND : WINDOWSYSTEM_X11;
+    return requested;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CGeneralSettings::CGeneralSettings( void )
     : CORE::CIConfigurable()
     , m_consoleLogWindow( false )
@@ -60,6 +105,7 @@ CGeneralSettings::CGeneralSettings( void )
     , m_developerConsoleKey( INPUT::KEYCODE_GRAVE )
     , m_userActionLog( false )
     , m_userActionLogFile( "$CACHEDIR$/GUCEF/UserActions.log" )
+    , m_windowSystem( WINDOWSYSTEM_X11 )
 {GUCEF_TRACE;
 
 }
@@ -74,6 +120,7 @@ CGeneralSettings::CGeneralSettings( const CGeneralSettings& src )
     , m_developerConsoleKey( src.m_developerConsoleKey )
     , m_userActionLog( src.m_userActionLog )
     , m_userActionLogFile( src.m_userActionLogFile )
+    , m_windowSystem( src.m_windowSystem )
 {GUCEF_TRACE;
 
 }
@@ -99,6 +146,7 @@ CGeneralSettings::operator=( const CGeneralSettings& src )
         m_developerConsoleKey = src.m_developerConsoleKey;
         m_userActionLog = src.m_userActionLog;
         m_userActionLogFile = src.m_userActionLogFile;
+        m_windowSystem = src.m_windowSystem;
     }
     return *this;
 }
@@ -213,6 +261,24 @@ CGeneralSettings::GetUserActionLogFile( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+void
+CGeneralSettings::SetWindowSystem( EWindowSystem windowSystem )
+{GUCEF_TRACE;
+
+    m_windowSystem = windowSystem;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CGeneralSettings::EWindowSystem
+CGeneralSettings::GetWindowSystem( void ) const
+{GUCEF_TRACE;
+
+    return m_windowSystem;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CGeneralSettings::SaveConfig( CORE::CDataNode& tree ) const
 {GUCEF_TRACE;
@@ -226,6 +292,7 @@ CGeneralSettings::SaveConfig( CORE::CDataNode& tree ) const
     section->SetAttribute( "developerConsoleKey", INPUT::KeyCodeToString( m_developerConsoleKey ) );
     section->SetAttribute( "userActionLog", m_userActionLog );
     section->SetAttribute( "userActionLogFile", m_userActionLogFile );
+    section->SetAttribute( "windowSystem", CString( WindowSystemToString( m_windowSystem ) ) );
     return true;
 }
 
@@ -247,6 +314,9 @@ CGeneralSettings::LoadConfig( const CORE::CDataNode& treeroot )
     m_userActionLog = section->GetAttributeValueOrChildValueByName( "userActionLog" ).AsBool( m_userActionLog, true );
     // the path as it is written, so its variables ($CACHEDIR$, ...) stay when it is saved again
     m_userActionLogFile = section->GetAttributeValueOrChildValueByName( "userActionLogFile" ).AsString( m_userActionLogFile, false );
+    const CString windowSystem = section->GetAttributeValueOrChildValueByName( "windowSystem" ).AsString( CString::Empty, true );
+    if ( !windowSystem.IsNULLOrEmpty() && !ParseWindowSystem( windowSystem, m_windowSystem ) )
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_IMPORTANT, "CGeneralSettings: The window system \"" << windowSystem << "\" of the settings is not auto, wayland or x11: it stays " << WindowSystemToString( m_windowSystem ) );
     CString key = section->GetAttributeValueOrChildValueByName( "developerConsoleKey" ).AsString( CString::Empty, true );
     if ( !key.IsNULLOrEmpty() )
     {

@@ -65,11 +65,11 @@ namespace {
 Int32
 RowHeightOf( const CWidget& widget )
 {
-    Int32 rowHeight = widget.GetIntProperty( "RowHeight" );
+    Int32 rowHeight = widget.GetIntProperty( EWidgetProperty_RowHeight );
     if ( rowHeight > 0 )
         return rowHeight;
     if ( GUCEF_NULL != widget.GetContext() )
-        return widget.GetContext()->GetLineHeight( widget.GetProperty( "Font" ) );
+        return widget.GetContext()->GetLineHeight( widget.GetProperty( EWidgetProperty_Font ) );
     return 16;
 }
 
@@ -78,7 +78,7 @@ TextWidthOf( const CWidget& widget, const CString& text )
 {
     Int32 width = 0, height = 0;
     if ( GUCEF_NULL != widget.GetContext() )
-        widget.GetContext()->MeasureText( widget.GetProperty( "Font" ), text, 0, width, height );
+        widget.GetContext()->MeasureText( widget.GetProperty( EWidgetProperty_Font ), text, 0, width, height );
     return width;
 }
 
@@ -98,6 +98,7 @@ CMenuBar::CMenuBar( void )
 CMenuBar::~CMenuBar()
 {GUCEF_TRACE;
 
+    UnsubscribeAllFromObserver();
     if ( GUCEF_NULL != m_popup && GUCEF_NULL != GetContext() )
         GetContext()->DestroyWidget( m_popup );
     m_popup = GUCEF_NULL;
@@ -118,7 +119,7 @@ CMenuBar::TStringVector
 CMenuBar::GetMenus( void ) const
 {GUCEF_TRACE;
 
-    TStringVector items = GetStringListProperty( "Items" );
+    TStringVector items = GetStringListProperty( EWidgetProperty_Items );
     TStringVector menus;
     for ( UInt32 i=0; i<(UInt32)items.size(); ++i )
     {
@@ -139,7 +140,7 @@ CMenuBar::TStringVector
 CMenuBar::GetMenuItems( const CString& menu ) const
 {GUCEF_TRACE;
 
-    TStringVector items = GetStringListProperty( "Items" );
+    TStringVector items = GetStringListProperty( EWidgetProperty_Items );
     TStringVector result;
     CString prefix = menu + '/';
     for ( UInt32 i=0; i<(UInt32)items.size(); ++i )
@@ -181,17 +182,19 @@ CMenuBar::OpenMenu( Int32 menuIndex )
         m_popup = static_cast< CPopupMenu* >( context->CreateWidget( "PopupMenu", GetName() + "#Menu", GUCEF_NULL ) );
         if ( GUCEF_NULL == m_popup )
             return false;
-        SubscribeTo( m_popup, CWidget::ItemActivatedEvent );
-        SubscribeTo( context, CGUIContext::FormHiddenEvent );
+        TEventCallback itemActivatedCallback( this, &CMenuBar::OnPopupItemActivated );
+        SubscribeTo( m_popup, CWidget::ItemActivatedEvent, itemActivatedCallback );
+        TEventCallback formHiddenCallback( this, &CMenuBar::OnFormHidden );
+        SubscribeTo( context, CGUIContext::FormHiddenEvent, formHiddenCallback );
     }
     m_popup->SetItems( GetMenuItems( menus[ menuIndex ] ) );
-    m_popup->SetProperty( "Font", GetProperty( "Font" ) );
-    m_popup->SetProperty( "TextColour", GetProperty( "TextColour" ) );
-    m_popup->SetProperty( "BackgroundColour", GetProperty( "BackgroundColour" ) );
-    m_popup->SetProperty( "HoverColour", GetProperty( "HoverColour" ) );
+    m_popup->SetProperty( EWidgetProperty_Font, GetProperty( EWidgetProperty_Font ) );
+    m_popup->SetProperty( EWidgetProperty_TextColour, GetProperty( EWidgetProperty_TextColour ) );
+    m_popup->SetProperty( EWidgetProperty_BackgroundColour, GetProperty( EWidgetProperty_BackgroundColour ) );
+    m_popup->SetProperty( EWidgetProperty_HoverColour, GetProperty( EWidgetProperty_HoverColour ) );
     CRect title = GetMenuRect( (UInt32) menuIndex );
     m_openMenuName = menus[ menuIndex ];
-    SetIntProperty( "OpenMenu", menuIndex );
+    SetIntProperty( EWidgetProperty_OpenMenu, menuIndex );
     return m_popup->ShowAt( GetRect().left + title.left, GetRect().Bottom() );
 }
 
@@ -201,7 +204,7 @@ bool
 CMenuBar::CloseMenu( void )
 {GUCEF_TRACE;
 
-    SetIntProperty( "OpenMenu", -1 );
+    SetIntProperty( EWidgetProperty_OpenMenu, -1 );
     if ( GUCEF_NULL == m_popup )
         return false;
     return m_popup->Close();
@@ -235,12 +238,12 @@ CMenuBar::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventD
         for ( UInt32 i=0; i<(UInt32)menus.size(); ++i )
             if ( GetMenuRect( i ).Contains( pointer->localX, pointer->localY ) )
                 hover = (Int32) i;
-        SetIntProperty( "HoverIndex", hover );
+        SetIntProperty( EWidgetProperty_HoverIndex, hover );
         return true;
     }
     if ( MouseFocusLostEvent == eventId )
     {
-        SetIntProperty( "HoverIndex", -1 );
+        SetIntProperty( EWidgetProperty_HoverIndex, -1 );
         return true;
     }
     if ( MouseClickEvent == eventId && MOUSEBUTTON_LEFT == static_cast< CPointerEventData* >( &eventData )->button )
@@ -250,7 +253,7 @@ CMenuBar::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventD
         {
             if ( GetMenuRect( i ).Contains( pointer->localX, pointer->localY ) )
             {
-                if ( GetIntProperty( "OpenMenu" ) == (Int32) i )
+                if ( GetIntProperty( EWidgetProperty_OpenMenu ) == (Int32) i )
                     CloseMenu();
                 else
                     OpenMenu( (Int32) i );
@@ -264,23 +267,28 @@ CMenuBar::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& eventD
 /*-------------------------------------------------------------------------*/
 
 void
-CMenuBar::OnNotify( CORE::CNotifier* notifier                 ,
-                    const CORE::CEvent& eventId               ,
-                    CORE::CICloneable* eventData /* = NULL */ )
+CMenuBar::OnPopupItemActivated( CORE::CNotifier* notifier    ,
+                                const CORE::CEvent& eventId  ,
+                                CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL != m_popup && notifier == m_popup && CWidget::ItemActivatedEvent == eventId )
-    {
-        // the popup closes before it reports the item, so the menu was remembered when it opened
-        CItemEventData* item = static_cast< CItemEventData* >( eventData );
-        SetIntProperty( "OpenMenu", -1 );
-        if ( GUCEF_NULL != item )
-            ActivateItem( item->index, m_openMenuName + '/' + item->item );
-        return;
-    }
-    if ( CGUIContext::FormHiddenEvent == eventId && GUCEF_NULL != m_popup && GUCEF_NULL != GetContext() && GetContext()->GetPopup() != m_popup )
-        SetIntProperty( "OpenMenu", -1 );
-    CWidget::OnNotify( notifier, eventId, eventData );
+    // the popup closes before it reports the item, so the menu was remembered when it opened
+    CItemEventData* item = static_cast< CItemEventData* >( eventData );
+    SetIntProperty( EWidgetProperty_OpenMenu, -1 );
+    if ( GUCEF_NULL != item )
+        ActivateItem( item->index, m_openMenuName + '/' + item->item );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMenuBar::OnFormHidden( CORE::CNotifier* notifier    ,
+                        const CORE::CEvent& eventId  ,
+                        CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_popup && GUCEF_NULL != GetContext() && GetContext()->GetPopup() != m_popup )
+        SetIntProperty( EWidgetProperty_OpenMenu, -1 );
 }
 
 /*-------------------------------------------------------------------------*/

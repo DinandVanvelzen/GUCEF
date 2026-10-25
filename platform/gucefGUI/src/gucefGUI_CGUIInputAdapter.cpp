@@ -27,6 +27,11 @@
 #define GUCEF_INPUT_CINPUTGLOBAL_H
 #endif /* GUCEF_INPUT_CINPUTGLOBAL_H ? */
 
+#ifndef GUCEF_CORE_LOGGING_H
+#include "gucefCORE_Logging.h"
+#define GUCEF_CORE_LOGGING_H
+#endif /* GUCEF_CORE_LOGGING_H ? */
+
 #ifndef GUCEF_INPUT_CINPUTCONTROLLER_H
 #include "CInputController.h"
 #define GUCEF_INPUT_CINPUTCONTROLLER_H
@@ -218,8 +223,19 @@ CGUIInputAdapter::OnNotify( CORE::CNotifier* notifier    ,
     if ( INPUT::CMouse::MouseVariableChangedEvent == eventId )
     {
         const INPUT::CMouseVariableChangedEventData* data = static_cast< INPUT::CMouseVariableChangedEventData* >( eventData );
-        if ( IsForUs( data->GetContextId() ) && INPUT::CMouse::MOUSEVARIABLE_WHEEL == data->GetVariableIndex() && 0 != data->GetValueDelta() )
-            m_guiContext->InjectMouseWheel( data->GetValueDelta() );
+        if ( INPUT::CMouse::MOUSEVARIABLE_WHEEL == data->GetVariableIndex() && 0 != data->GetValueDelta() )
+        {
+            if ( IsForUs( data->GetContextId() ) )
+                m_guiContext->InjectMouseWheel( data->GetValueDelta() );
+            else
+            {
+                CORE::CString reason = "a layer above takes the input";
+                if ( m_inputContextId != data->GetContextId() && AnyInputContext != m_inputContextId )
+                    reason = "it listens to input context " + CORE::Int32ToString( m_inputContextId );
+                GUCEF_USER_LOG( CORE::LOGLEVEL_NORMAL, "GUI layer " << m_guiContext->GetLayer() << ": wheel " << data->GetValueDelta() << " of input context " << data->GetContextId()
+                                << " is not for this GUI (" << reason << ")" );
+            }
+        }
     }
     else
     if ( INPUT::CKeyboard::KeyStateChangedEvent == eventId )

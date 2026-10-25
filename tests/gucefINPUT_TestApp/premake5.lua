@@ -189,7 +189,7 @@ configuration( { "WIN64" } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefINPUT/include", "../../platform/gucefMT/include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefINPUT/include", "../../platform/gucefMT/include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "include" } )
