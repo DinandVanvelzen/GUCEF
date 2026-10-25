@@ -132,7 +132,7 @@ CMdnsDiscoveryClient::CMdnsDiscoveryClient( void )
     , m_announcements()
 {GUCEF_TRACE;
 
-    SubscribeTo( &m_socket );
+    RegisterSocketEventHandlers();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -151,7 +151,19 @@ CMdnsDiscoveryClient::CMdnsDiscoveryClient( const CORE::PulseGeneratorPtr& pulse
     , m_announcements()
 {GUCEF_TRACE;
 
-    SubscribeTo( &m_socket );
+    RegisterSocketEventHandlers();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMdnsDiscoveryClient::RegisterSocketEventHandlers( void )
+{GUCEF_TRACE;
+
+    TEventCallback callback( this, &CMdnsDiscoveryClient::OnSocketPackets );
+    SubscribeTo( &m_socket                                    ,
+                 COMCORE::CUDPSocket::UDPPacketsRecievedEvent ,
+                 callback                                     );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -290,7 +302,7 @@ CMdnsDiscoveryClient::SendMessage( const CDnsMessage& message, const COMCORE::CI
     Int32 sent = m_socket.SendPacketTo( destination, m_sendBuffer.GetConstBufferPtr(), (UInt16) m_sendBuffer.GetDataSize() );
     if ( sent != (Int32) m_sendBuffer.GetDataSize() )
     {
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "MdnsDiscoveryClient(" << GetDiscoveryClientName() << "): Failed to send a message to " << destination.AddressAndPortAsString() );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "MdnsDiscoveryClient(" << GetDiscoveryClientName() << "): Failed to send a message to " << destination.AddressAndPortAsString() );
         return false;
     }
     return true;
@@ -537,6 +549,18 @@ CMdnsDiscoveryClient::OnBrowseStopped( const CORE::CString& serviceType )
         else
             ++i;
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CMdnsDiscoveryClient::OnIdle( void )
+{GUCEF_TRACE;
+
+    m_socket.Close();
+    m_querySchedules.clear();
+    m_announcements.clear();
+    m_instances.clear();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1036,7 +1060,7 @@ CMdnsDiscoveryClient::OnPacket( const COMCORE::CIPv4Address& source, const CORE:
     CDnsMessage message;
     if ( !message.Deserialize( packet.GetConstBufferPtr(), packet.GetDataSize() ) )
     {
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "MdnsDiscoveryClient(" << GetDiscoveryClientName() << "): Ignoring a malformed message from " << source.AddressAndPortAsString() );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "MdnsDiscoveryClient(" << GetDiscoveryClientName() << "): Ignoring a malformed message from " << source.AddressAndPortAsString() );
         return true;
     }
 
@@ -1048,27 +1072,21 @@ CMdnsDiscoveryClient::OnPacket( const COMCORE::CIPv4Address& source, const CORE:
 /*-------------------------------------------------------------------------*/
 
 void
-CMdnsDiscoveryClient::OnNotify( CORE::CNotifier* notifier    ,
-                                const CORE::CEvent& eventId  ,
-                                CORE::CICloneable* eventData )
+CMdnsDiscoveryClient::OnSocketPackets( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( notifier == &m_socket )
-    {
-        if ( COMCORE::CUDPSocket::UDPPacketsRecievedEvent == eventId && GUCEF_NULL != eventData )
-        {
-            const COMCORE::CUDPSocket::TUdpPacketsRecievedEventData& data = static_cast< COMCORE::CUDPSocket::UDPPacketsRecievedEventData* >( eventData )->GetData();
-            for ( UInt32 i=0; i<data.packetsReceived; ++i )
-            {
-                const COMCORE::CUDPSocket::TPacketEntry& packet = data.packets[ i ];
-                if ( !OnPacket( packet.sourceAddress, packet.dataBuffer.GetData() ) )
-                    return;
-            }
-        }
+    if ( GUCEF_NULL == eventData )
         return;
-    }
 
-    COMCORE::CDiscoveryClientBase::OnNotify( notifier, eventId, eventData );
+    const COMCORE::CUDPSocket::TUdpPacketsRecievedEventData& data = static_cast< COMCORE::CUDPSocket::UDPPacketsRecievedEventData* >( eventData )->GetData();
+    for ( UInt32 i=0; i<data.packetsReceived; ++i )
+    {
+        const COMCORE::CUDPSocket::TPacketEntry& packet = data.packets[ i ];
+        if ( !OnPacket( packet.sourceAddress, packet.dataBuffer.GetData() ) )
+            return;
+    }
 }
 
 /*-------------------------------------------------------------------------*/

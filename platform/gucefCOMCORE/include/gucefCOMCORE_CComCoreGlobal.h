@@ -55,6 +55,11 @@
 #define GUCEF_COMCORE_CIPORTMAPPER_H
 #endif /* GUCEF_COMCORE_CIPORTMAPPER_H ? */
 
+#ifndef GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H
+#include "gucefCOMCORE_CTlsProviderRegistry.h"
+#define GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H
+#endif /* GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -100,6 +105,12 @@ class GUCEF_COMCORE_EXPORT_CPP CComCoreGlobal
 
     CGeoLocationLookupService& GetGeoLocationLookupService( void );
 
+    /**
+     *  The providers of TLS (the OpenSSL of the system on Linux, others from plugins and later the TLS of the OS).
+     *  The system provider is registered but loads nothing until TLS is first used, see CTlsProviderRegistry
+     */
+    CTlsProviderRegistry& GetTlsProviderRegistry( void );
+
     private:
     friend class CModule;
 
@@ -123,6 +134,7 @@ class GUCEF_COMCORE_EXPORT_CPP CComCoreGlobal
     CRttProbeFactory* m_rttProbeFactory;
     CPortMapperFactory* m_portMapperFactory;
     CGeoLocationLookupService* m_geoLocationLookupService;
+    CTlsProviderRegistry* m_tlsProviderRegistry;
 
     static MT::CMutex g_dataLock;
     static CComCoreGlobal* g_instance;

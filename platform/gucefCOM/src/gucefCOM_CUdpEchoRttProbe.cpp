@@ -82,8 +82,7 @@ CUdpEchoRttProbe::CUdpEchoRttProbe( void )
 {GUCEF_TRACE;
 
     m_socket.SetNrOfReceiveBuffers( 16, 64 );
-    SubscribeTo( &m_socket );
-    SubscribeTo( &m_timer );
+    RegisterEventHandlers();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -105,8 +104,24 @@ CUdpEchoRttProbe::CUdpEchoRttProbe( const CORE::PulseGeneratorPtr& pulseGenerato
 {GUCEF_TRACE;
 
     m_socket.SetNrOfReceiveBuffers( 16, 64 );
-    SubscribeTo( &m_socket );
-    SubscribeTo( &m_timer );
+    RegisterEventHandlers();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUdpEchoRttProbe::RegisterEventHandlers( void )
+{GUCEF_TRACE;
+
+    TEventCallback socketCallback( this, &CUdpEchoRttProbe::OnSocketPackets );
+    SubscribeTo( &m_socket                                    ,
+                 COMCORE::CUDPSocket::UDPPacketsRecievedEvent ,
+                 socketCallback                               );
+
+    TEventCallback timerCallback( this, &CUdpEchoRttProbe::OnProbeTimer );
+    SubscribeTo( &m_timer                                     ,
+                 CORE::CTimer::TimerUpdateEvent               ,
+                 timerCallback                                );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -114,8 +129,8 @@ CUdpEchoRttProbe::CUdpEchoRttProbe( const CORE::PulseGeneratorPtr& pulseGenerato
 CUdpEchoRttProbe::~CUdpEchoRttProbe()
 {GUCEF_TRACE;
 
-    m_timer.SetEnabled( false );
     UnsubscribeAllFromObserver();
+    m_timer.SetEnabled( false );
     m_socket.Close();
 }
 
@@ -213,6 +228,9 @@ CUdpEchoRttProbe::Stop( void )
     m_isActive = false;
     m_timer.SetEnabled( false );
     m_outstanding.clear();
+
+    // nothing is measured any more: the socket is not kept, Start() opens it again
+    m_socket.Close();
     COMCORE::CRttProbeEventData eData( m_target, 0, m_probesSent > 0 ? m_probesSent-1 : 0 );
     NotifyObservers( ProbeFinishedEvent, &eData );
 }
@@ -249,6 +267,7 @@ CUdpEchoRttProbe::CheckFinished( void )
     {
         m_isActive = false;
         m_timer.SetEnabled( false );
+        m_socket.Close();
         COMCORE::CRttProbeEventData eData( m_target, 0, m_probesSent-1 );
         return NotifyObservers( ProbeFinishedEvent, &eData );
     }
@@ -258,68 +277,70 @@ CUdpEchoRttProbe::CheckFinished( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CUdpEchoRttProbe::OnNotify( CORE::CNotifier* notifier    ,
-                            const CORE::CEvent& eventId  ,
-                            CORE::CICloneable* eventData )
+CUdpEchoRttProbe::OnSocketPackets( CORE::CNotifier* notifier    ,
+                                   const CORE::CEvent& eventId  ,
+                                   CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( !m_isActive || GUCEF_NULL == eventData )
+        return;
+
+    UInt64 now = GetTimeInMicroSecs();
+    const COMCORE::CUDPSocket::TUdpPacketsRecievedEventData& data = static_cast< COMCORE::CUDPSocket::UDPPacketsRecievedEventData* >( eventData )->GetData();
+    for ( UInt32 i=0; i<data.packetsReceived; ++i )
+    {
+        const CORE::CDynamicBuffer& buffer = data.packets[ i ].dataBuffer.GetData();
+        UInt32 sequence = 0;
+        UInt64 sendTime = 0;
+        if ( !ReadEchoPacket( buffer.GetConstBufferPtr(), buffer.GetDataSize(), sequence, sendTime ) )
+            continue;
+
+        // Only answers to probes still waiting count: late ones already timed out
+        TOutstandingProbeMap::iterator n = m_outstanding.find( sequence );
+        if ( n == m_outstanding.end() || (*n).second != sendTime )
+            continue;
+        m_outstanding.erase( n );
+
+        COMCORE::CRttProbeEventData eData( m_target, now >= sendTime ? now - sendTime : 0, sequence );
+        if ( !NotifyObservers( ProbeResultEvent, &eData ) )
+            return;
+    }
+    CheckFinished();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUdpEchoRttProbe::OnProbeTimer( CORE::CNotifier* notifier    ,
+                                const CORE::CEvent& eventId  ,
+                                CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     if ( !m_isActive )
         return;
 
-    if ( notifier == &m_socket )
+    UInt64 now = GetTimeInMicroSecs();
+    TOutstandingProbeMap::iterator n = m_outstanding.begin();
+    while ( n != m_outstanding.end() )
     {
-        if ( COMCORE::CUDPSocket::UDPPacketsRecievedEvent != eventId || GUCEF_NULL == eventData )
+        if ( now - (*n).second >= m_timeoutInMicroSecs )
+        {
+            UInt32 sequence = (*n).first;
+            m_outstanding.erase( n++ );
+            COMCORE::CRttProbeEventData eData( m_target, 0, sequence );
+            if ( !NotifyObservers( ProbeTimeoutEvent, &eData ) )
+                return;
+        }
+        else
+            ++n;
+    }
+
+    if ( m_isActive && ( 0 == m_count || m_probesSent < m_count ) && now >= m_nextProbeInMicroSecs )
+    {
+        if ( !SendProbe( now ) )
             return;
-
-        UInt64 now = GetTimeInMicroSecs();
-        const COMCORE::CUDPSocket::TUdpPacketsRecievedEventData& data = static_cast< COMCORE::CUDPSocket::UDPPacketsRecievedEventData* >( eventData )->GetData();
-        for ( UInt32 i=0; i<data.packetsReceived; ++i )
-        {
-            const CORE::CDynamicBuffer& buffer = data.packets[ i ].dataBuffer.GetData();
-            UInt32 sequence = 0;
-            UInt64 sendTime = 0;
-            if ( !ReadEchoPacket( buffer.GetConstBufferPtr(), buffer.GetDataSize(), sequence, sendTime ) )
-                continue;
-
-            // Only answers to probes still waiting count: late ones already timed out
-            TOutstandingProbeMap::iterator n = m_outstanding.find( sequence );
-            if ( n == m_outstanding.end() || (*n).second != sendTime )
-                continue;
-            m_outstanding.erase( n );
-
-            COMCORE::CRttProbeEventData eData( m_target, now >= sendTime ? now - sendTime : 0, sequence );
-            if ( !NotifyObservers( ProbeResultEvent, &eData ) )
-                return;
-        }
-        CheckFinished();
-        return;
     }
-
-    if ( notifier == &m_timer && CORE::CTimer::TimerUpdateEvent == eventId )
-    {
-        UInt64 now = GetTimeInMicroSecs();
-        TOutstandingProbeMap::iterator n = m_outstanding.begin();
-        while ( n != m_outstanding.end() )
-        {
-            if ( now - (*n).second >= m_timeoutInMicroSecs )
-            {
-                UInt32 sequence = (*n).first;
-                m_outstanding.erase( n++ );
-                COMCORE::CRttProbeEventData eData( m_target, 0, sequence );
-                if ( !NotifyObservers( ProbeTimeoutEvent, &eData ) )
-                    return;
-            }
-            else
-                ++n;
-        }
-
-        if ( m_isActive && ( 0 == m_count || m_probesSent < m_count ) && now >= m_nextProbeInMicroSecs )
-        {
-            if ( !SendProbe( now ) )
-                return;
-        }
-        CheckFinished();
-    }
+    CheckFinished();
 }
 
 /*-------------------------------------------------------------------------*/

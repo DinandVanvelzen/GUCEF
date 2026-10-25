@@ -55,6 +55,21 @@
 #define GUCEF_WEB_CWEBSOCKETHANDSHAKE_H
 #endif /* GUCEF_WEB_CWEBSOCKETHANDSHAKE_H ? */
 
+#ifndef GUCEF_TEST_TLS_SERVER_H
+#include "gucef_test_tls_server.h"
+#define GUCEF_TEST_TLS_SERVER_H
+#endif /* GUCEF_TEST_TLS_SERVER_H ? */
+
+#ifndef GUCEF_TEST_TLS_TERMINATOR_H
+#include "gucef_test_tls_terminator.h"
+#define GUCEF_TEST_TLS_TERMINATOR_H
+#endif /* GUCEF_TEST_TLS_TERMINATOR_H ? */
+
+#ifndef GUCEF_TEST_NO_TLS_PROVIDER_H
+#include "gucef_test_no_tls_provider.h"
+#define GUCEF_TEST_NO_TLS_PROVIDER_H
+#endif /* GUCEF_TEST_NO_TLS_PROVIDER_H ? */
+
 #ifndef GUCEF_TEST_FRAMEWORK_H
 #include "gucef_test_framework.h"
 #define GUCEF_TEST_FRAMEWORK_H
@@ -715,7 +730,7 @@ PerformWebSocketTests( void )
 
             // unusable urls are refused right away
             ASSERT_FALSE( client.Connect( "http://127.0.0.1/" ) );
-            ASSERT_FALSE( client.Connect( "wss://127.0.0.1/" ) );
+            ASSERT_FALSE( client.Connect( "ftp://127.0.0.1/" ) );
             ASSERT_FALSE( client.Connect( "ws://" ) );
             ASSERT_FALSE( client.Connect( "ws://host:notaport/" ) );
         }
@@ -750,6 +765,87 @@ PerformWebSocketTests( void )
             ASSERT_TRUE( recorder.clientTextMessages[ 0 ] == "ping pong" );
             client.Disconnect();
             ASSERT_TRUE( PumpUntil( recorder.serverDisconnects, 1 ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: wss:// echo through a TLS terminator, and the failures of the TLS layer reach the client as errors" )
+        CORE::CString whyNoTls;
+        GUCEF_TESTFW_SKIP_IF( !TESTFW::CTlsTestCerts::IsToolAvailable(), "the openssl command line tool is not available" );
+        GUCEF_TESTFW_SKIP_IF( !COMCORE::CComCoreGlobal::Instance()->GetTlsProviderRegistry().IsAnyAvailable( whyNoTls ), "this system has no TLS provider" );
+        try
+        {
+            TESTFW::CTlsTestCerts certs;
+            ASSERT_TRUE( certs.IsReady() );
+
+            ++port;
+            WEB::CWebSocketServer server;
+            ASSERT_TRUE( server.Listen( port ) );
+            CWsRecorder serverRecorder;
+            serverRecorder.echoServer = true;
+            serverRecorder.WatchServer( server );
+
+            TESTFW::CTlsTestTerminator terminator;
+            ASSERT_TRUE( terminator.Start( certs.GetPath( "good.crt" ), certs.GetPath( "good.key" ), port ) );
+            const CORE::CString url = "wss://localhost:" + CORE::UInt32ToString( terminator.GetPort() ) + "/secure?x=1";
+
+            // the certificate of the test authority is trusted: text and binary messages go both ways
+            {
+                COMCORE::CTlsSettings settings;
+                settings.SetCaBundlePath( certs.GetPath( "ca.crt" ) );
+                settings.SetUseSystemTrust( false );
+
+                WEB::CWebSocketClient client;
+                client.SetTlsSettings( settings );
+                CWsRecorder recorder;
+                recorder.WatchClient( client );
+                ASSERT_TRUE( client.Connect( url ) );
+                ASSERT_TRUE( PumpUntil( recorder.clientConnects, 1 ) );
+                ASSERT_TRUE( client.IsConnected() );
+                ASSERT_TRUE( client.SendText( "over tls" ) );
+                ASSERT_TRUE( PumpUntil( recorder.clientTexts, 1 ) );
+                ASSERT_TRUE( 1 == recorder.clientTextMessages.size() && recorder.clientTextMessages[ 0 ] == "over tls" );
+
+                CORE::CDynamicBuffer large;
+                large.SetDataSize( 200000 );
+                for ( UInt32 i=0; i<large.GetDataSize(); ++i )
+                    large.AsTypePtr< UInt8 >()[ i ] = (UInt8) ( i * 31 + 7 );
+                ASSERT_TRUE( client.SendBinary( large.GetConstBufferPtr(), large.GetDataSize() ) );
+                ASSERT_TRUE( PumpUntil( recorder.clientBinaries, 1, 15000 ) );
+                ASSERT_TRUE( 1 == recorder.clientBinaryMessages.size() && 200000 == recorder.clientBinaryMessages[ 0 ].GetDataSize() );
+                if ( 1 == recorder.clientBinaryMessages.size() )
+                    ASSERT_TRUE( 0 == memcmp( large.GetConstBufferPtr(), recorder.clientBinaryMessages[ 0 ].GetConstBufferPtr(), large.GetDataSize() ) );
+
+                // what the server saw is the resource of the url and no trace of TLS
+                ASSERT_TRUE( PumpUntil( serverRecorder.serverConnects, 1 ) );
+                ASSERT_TRUE( 1 == serverRecorder.serverPeers.size() && serverRecorder.serverPeers[ 0 ].requestUri == "/secure?x=1" );
+                client.Disconnect();
+            }
+
+            // the system trust store does not know the authority of the test: the certificate is refused and the error says why
+            {
+                WEB::CWebSocketClient client;
+                CWsRecorder recorder;
+                recorder.WatchClient( client );
+                ASSERT_TRUE( client.Connect( url ) );
+                ASSERT_TRUE( PumpUntil( recorder.clientCloses, 1 ) );
+                ASSERT_TRUE( recorder.clientErrors >= 1 );
+                ASSERT_TRUE( 0 == recorder.clientConnects );
+                ASSERT_TRUE( 1006 == recorder.clientClose.closeCode );
+            }
+
+            // without a TLS provider wss:// is refused at once, ws:// is not affected
+            {
+                TESTFW::CNoTlsProviderScope noTls;
+                WEB::CWebSocketClient client;
+                ASSERT_FALSE( client.Connect( url ) );
+                ASSERT_TRUE( client.GetState() == WEB::CWebSocketClient::STATE_DISCONNECTED );
+                ASSERT_TRUE( client.Connect( UrlFor( port, "/plain" ) ) );
+                client.Disconnect();
+            }
         }
         catch( ... )
         {

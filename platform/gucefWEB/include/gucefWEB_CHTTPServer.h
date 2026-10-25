@@ -94,6 +94,13 @@ class GUCEF_WEB_PUBLIC_CPP CHttpServerSettings : public CORE::CIConfigurable
     bool processRequestsAsync;
     bool allowWebSocketUpgrades;
 
+    /**
+     *  IPv4 address to listen on as dotted text, for example "127.0.0.1" to serve this machine only.
+     *  Empty (the default) and "0.0.0.0" listen on every NIC. An address that is not a dotted IPv4 address
+     *  makes Listen() fail rather than listening wider than was asked for.
+     */
+    CORE::CString bindAddress;
+
     virtual bool SaveConfig( CORE::CDataNode& cfg ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool LoadConfig( const CORE::CDataNode& cfg ) GUCEF_VIRTUAL_OVERRIDE;
@@ -141,6 +148,12 @@ class GUCEF_WEB_PUBLIC_CPP CHTTPServer : public CORE::CObservingNotifier
     bool ListenOnPort( const UInt16 port );
 
     bool Listen( void );
+
+    /**
+     *  The port the server is listening on, 0 when it is not. For a server that was told to listen on port 0
+     *  this is the free port the system picked
+     */
+    UInt16 GetBoundPort( void ) const;
 
     bool IsActive( void ) const;
 
@@ -209,6 +222,8 @@ class GUCEF_WEB_PUBLIC_CPP CHTTPServer : public CORE::CObservingNotifier
                               TStringVector& headerFields ) const;
 
     void RegisterEventHandlers( void );
+
+    void ApplyBindAddress( void );
 
     void
     OnClientConnectedEvent( CORE::CNotifier* notifier    ,

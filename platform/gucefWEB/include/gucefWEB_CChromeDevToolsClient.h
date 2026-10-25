@@ -33,6 +33,11 @@
 #define GUCEF_CORE_CNOTIFIER_H
 #endif /* GUCEF_CORE_CNOTIFIER_H ? */
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_WEB_CHTTPCLIENT_H
 #include "gucefWEB_CHTTPClient.h"
 #define GUCEF_WEB_CHTTPCLIENT_H
@@ -240,10 +245,26 @@ class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
     {
         public:
         explicit CEventSink( CChromeDevToolsClient& client ) : CORE::CObserver(), m_client( client ) {}
-        virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                               const CORE::CEvent& eventid               ,
-                               CORE::CICloneable* eventdata /* = NULL */ ) GUCEF_VIRTUAL_OVERRIDE;
+
+        /** Subscribes to the events of the clients of the owner that it reports on, one handler per notifier */
+        void RegisterEventHandlers( void );
+
         private:
+
+        typedef CORE::CTEventHandlerFunctor< CEventSink > TEventCallback;
+
+        void OnHttpNotification( CORE::CNotifier* notifier    ,
+                                 const CORE::CEvent& eventId  ,
+                                 CORE::CICloneable* eventData );
+
+        void OnWebSocketNotification( CORE::CNotifier* notifier    ,
+                                      const CORE::CEvent& eventId  ,
+                                      CORE::CICloneable* eventData );
+
+        void OnRpcNotificationEvent( CORE::CNotifier* notifier    ,
+                                     const CORE::CEvent& eventId  ,
+                                     CORE::CICloneable* eventData );
+
         CChromeDevToolsClient& m_client;
     };
 

@@ -38,6 +38,11 @@
 #define GUCEF_WEB_CWEBGLOBAL_H
 #endif /* GUCEF_WEB_CWEBGLOBAL_H ? */
 
+#ifndef GUCEF_WEB_CNATIVEHTTPCLIENTBACKEND_H
+#include "gucefWEB_CNativeHttpClientBackend.h"
+#define GUCEF_WEB_CNATIVEHTTPCLIENTBACKEND_H
+#endif /* GUCEF_WEB_CNATIVEHTTPCLIENTBACKEND_H ? */
+
 #include "gucefWEB_CHttpClientBackendSelection.h"
 
 /*-------------------------------------------------------------------------//
@@ -113,6 +118,62 @@ CIHttpClientBackendPtr
 CHttpClientBackendSelection::GetBackendForScheme( const CString& scheme )
 {GUCEF_TRACE;
 
+    return FindBackendForScheme( scheme, true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CHttpClientBackendSelection::IsSchemeSupported( const CString& scheme )
+{GUCEF_TRACE;
+
+    return !FindBackendForScheme( scheme.Lowercase(), false ).IsNULL();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CHttpClientBackendSelection::DescribeAvailableBackends( void )
+{GUCEF_TRACE;
+
+    THttpClientBackendFactory& factory = CWebGlobal::Instance()->GetHttpClientBackendFactory();
+
+    CString description;
+    MT::CScopeMutex lock( m_lock );
+    for ( TStringVector::const_reverse_iterator i = m_preferredBackends.rbegin(); i != m_preferredBackends.rend(); ++i )
+    {
+        const CString& backendName = (*i);
+        TBackendMap::iterator existing = m_backends.find( backendName );
+        CIHttpClientBackendPtr backend;
+        if ( existing != m_backends.end() )
+        {
+            backend = (*existing).second;
+        }
+        else
+        if ( factory.IsConstructible( backendName ) )
+        {
+            backend = factory.Create( backendName );
+            if ( !backend.IsNULL() )
+                m_backends[ backendName ] = backend;
+        }
+        if ( backend.IsNULL() )
+            continue;
+
+        if ( !description.IsNULLOrEmpty() )
+            description += ", ";
+        description += backendName;
+        if ( backend->SupportsScheme( "https" ) )
+            description += " (https)";
+    }
+    return description;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CIHttpClientBackendPtr
+CHttpClientBackendSelection::FindBackendForScheme( const CString& scheme, bool logWhenNone )
+{GUCEF_TRACE;
+
     THttpClientBackendFactory& factory = CWebGlobal::Instance()->GetHttpClientBackendFactory();
 
     MT::CScopeMutex lock( m_lock );
@@ -137,9 +198,26 @@ CHttpClientBackendSelection::GetBackendForScheme( const CString& scheme )
             return backend;
     }
 
-    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "HttpClientBackendSelection: None of the preferred HTTP client backends is available for \"" + scheme +
-        "\". For https a backend provided by a plugin, such as httpclientpluginCURL, has to be loaded" );
+    if ( logWhenNone )
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "HttpClientBackendSelection: None of the preferred HTTP client backends is available for \"" << scheme <<
+            "\": " << DescribeUnsupportedScheme( scheme ) << ". For https install what it says is missing, or load a plugin that provides a backend for it, such as httpclientpluginCURL" );
     return CIHttpClientBackendPtr();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CHttpClientBackendSelection::DescribeUnsupportedScheme( const CString& scheme )
+{GUCEF_TRACE;
+
+    if ( scheme.Equals( "https", false ) )
+    {
+        CString whyNot;
+        if ( !CNativeHttpClientBackend::IsHttpsAvailable( whyNot ) )
+            return "no HTTPS support: " + whyNot;
+        return "no HTTP client backend that is preferred carries https";
+    }
+    return "the scheme \"" + scheme + "\" is not supported";
 }
 
 /*-------------------------------------------------------------------------//

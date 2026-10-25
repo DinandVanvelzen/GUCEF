@@ -26,11 +26,17 @@
 #include <string>
 #include <vector>
 #include <stdio.h>
+#include <string.h>
 
 #ifndef GUCEF_CORE_COBSERVER_H
 #include "CObserver.h"
 #define GUCEF_CORE_COBSERVER_H
 #endif /* GUCEF_CORE_COBSERVER_H ? */
+
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
@@ -42,10 +48,20 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
-#ifndef GUCEF_COMCORE_CTCPCLIENTSOCKET_H
-#include "CTCPClientSocket.h"
-#define GUCEF_COMCORE_CTCPCLIENTSOCKET_H
-#endif /* GUCEF_COMCORE_CTCPCLIENTSOCKET_H ? */
+#ifndef GUCEF_COMCORE_CTLSCLIENTCONNECTION_H
+#include "gucefCOMCORE_CTlsClientConnection.h"
+#define GUCEF_COMCORE_CTLSCLIENTCONNECTION_H
+#endif /* GUCEF_COMCORE_CTLSCLIENTCONNECTION_H ? */
+
+#ifndef GUCEF_COMCORE_CCOMCOREGLOBAL_H
+#include "gucefCOMCORE_CComCoreGlobal.h"
+#define GUCEF_COMCORE_CCOMCOREGLOBAL_H
+#endif /* GUCEF_COMCORE_CCOMCOREGLOBAL_H ? */
+
+#ifndef GUCEF_WEB_CHTTPPROXYENVIRONMENT_H
+#include "gucefWEB_CHttpProxyEnvironment.h"
+#define GUCEF_WEB_CHTTPPROXYENVIRONMENT_H
+#endif /* GUCEF_WEB_CHTTPPROXYENVIRONMENT_H ? */
 
 #ifndef GUCEF_WEB_CHTTPCLIENTBACKENDREQUESTBASE_H
 #include "gucefWEB_CHttpClientBackendRequestBase.h"
@@ -53,6 +69,11 @@
 #endif /* GUCEF_WEB_CHTTPCLIENTBACKENDREQUESTBASE_H ? */
 
 #include "gucefWEB_CNativeHttpClientBackend.h"
+
+#ifndef GUCEF_CORE_CREDACTOR_H
+#include "gucefCORE_CRedactor.h"
+#define GUCEF_CORE_CREDACTOR_H
+#endif /* GUCEF_CORE_CREDACTOR_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -103,13 +124,11 @@ class CNativeHttpClientRequest : public CHttpClientBackendRequestBase ,
 
     protected:
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     virtual void OnFinish( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CNativeHttpClientRequest > TEventCallback;
 
     enum EBodyFraming
     {
@@ -127,7 +146,21 @@ class CNativeHttpClientRequest : public CHttpClientBackendRequestBase ,
         CHUNK_TRAILERS
     };
 
+    /** how far the tunnel through a proxy is for a https request: the CONNECT is answered, then TLS starts inside it */
+    enum ETunnelState
+    {
+        TUNNEL_NONE,            /**< no tunnel: direct, or http through a proxy */
+        TUNNEL_CONNECTING,      /**< connecting to the proxy */
+        TUNNEL_WAIT_RESPONSE,   /**< CONNECT sent, the answer of the proxy is awaited */
+        TUNNEL_HANDSHAKE,       /**< TLS with the server inside the tunnel */
+        TUNNEL_DONE
+    };
+
     void BuildRequestHeader( std::string& header ) const;
+    void BuildTlsSettings( COMCORE::CTlsSettings& settings ) const;
+    void SendConnect( void );
+    void ProcessProxyResponse( const char* data, UInt32 dataSize );
+    void OnTlsError( const COMCORE::CTlsError& error );
     void SendRequest( void );
     void SendMoreRequestBody( void );
     void ProcessReceivedData( const char* data, UInt32 dataSize );
@@ -135,7 +168,24 @@ class CNativeHttpClientRequest : public CHttpClientBackendRequestBase ,
     void ProcessBodyData( const char* data, UInt32 dataSize );
     void ProcessChunkedData( const char* data, UInt32 dataSize );
 
-    COMCORE::CTCPClientSocket m_socket;
+    void RegisterSocketEventHandlers( void );
+    void OnSocketConnected( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSocketHandshakeCompleted( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSocketTlsError( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSocketDataReceived( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSocketDataSent( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSocketDisconnected( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnSocketError( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+
+    COMCORE::CTlsClientConnection m_socket;
+    COMCORE::CTlsSettings m_tlsSettings;
+    bool m_secure;                  /**< a https request */
+    bool m_viaProxy;
+    CString m_proxyHost;
+    UInt16 m_proxyPort;
+    CString m_proxyAuthorization;   /**< value of Proxy-Authorization, from the credentials in the proxy of the environment */
+    ETunnelState m_tunnelState;
+    CORE::CDynamicBuffer m_proxyResponseBuffer;     /**< raw bytes: what follows the proxy header is TLS */
 
     bool m_finalHeaderReceived;
     std::string m_headerBuffer;
@@ -151,6 +201,22 @@ class CNativeHttpClientRequest : public CHttpClientBackendRequestBase ,
 //      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+/** The position of the first occurrence of 'needle' in 'data', 'dataSize' when there is none */
+static UInt32
+FindBytes( const char* data, UInt32 dataSize, const char* needle, UInt32 needleSize )
+{
+    if ( dataSize < needleSize )
+        return dataSize;
+    for ( UInt32 i = 0; i + needleSize <= dataSize; ++i )
+    {
+        if ( 0 == memcmp( data + i, needle, needleSize ) )
+            return i;
+    }
+    return dataSize;
+}
+
+/*-------------------------------------------------------------------------*/
 
 static std::string
 ToStdString( const CString& str )
@@ -173,6 +239,14 @@ CNativeHttpClientRequest::CNativeHttpClientRequest( const CHttpRequestData& requ
     : CHttpClientBackendRequestBase( request, options, response, transferInfo, observer )
     , CORE::CObserver()
     , m_socket( pulseGenerator, false )
+    , m_tlsSettings()
+    , m_secure( false )
+    , m_viaProxy( false )
+    , m_proxyHost()
+    , m_proxyPort( 0 )
+    , m_proxyAuthorization()
+    , m_tunnelState( TUNNEL_NONE )
+    , m_proxyResponseBuffer()
     , m_finalHeaderReceived( false )
     , m_headerBuffer()
     , m_framing( BODY_NONE )
@@ -182,7 +256,49 @@ CNativeHttpClientRequest::CNativeHttpClientRequest( const CHttpRequestData& requ
     , m_uploadComplete( true )
 {GUCEF_TRACE;
 
-    SubscribeTo( &m_socket );
+    RegisterSocketEventHandlers();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNativeHttpClientRequest::RegisterSocketEventHandlers( void )
+{GUCEF_TRACE;
+
+    TEventCallback connectedCallback( this, &CNativeHttpClientRequest::OnSocketConnected );
+    SubscribeTo( &m_socket                                        ,
+                 COMCORE::CTCPClientSocket::ConnectedEvent        ,
+                 connectedCallback                                );
+
+    TEventCallback handshakeCallback( this, &CNativeHttpClientRequest::OnSocketHandshakeCompleted );
+    SubscribeTo( &m_socket                                        ,
+                 COMCORE::CTlsClientConnection::HandshakeCompletedEvent ,
+                 handshakeCallback                                );
+
+    TEventCallback tlsErrorCallback( this, &CNativeHttpClientRequest::OnSocketTlsError );
+    SubscribeTo( &m_socket                                        ,
+                 COMCORE::CTlsClientConnection::TlsErrorEvent     ,
+                 tlsErrorCallback                                 );
+
+    TEventCallback dataReceivedCallback( this, &CNativeHttpClientRequest::OnSocketDataReceived );
+    SubscribeTo( &m_socket                                        ,
+                 COMCORE::CTCPClientSocket::DataRecievedEvent     ,
+                 dataReceivedCallback                             );
+
+    TEventCallback dataSentCallback( this, &CNativeHttpClientRequest::OnSocketDataSent );
+    SubscribeTo( &m_socket                                        ,
+                 COMCORE::CTCPClientSocket::DataSentEvent         ,
+                 dataSentCallback                                 );
+
+    TEventCallback disconnectedCallback( this, &CNativeHttpClientRequest::OnSocketDisconnected );
+    SubscribeTo( &m_socket                                        ,
+                 COMCORE::CTCPClientSocket::DisconnectedEvent     ,
+                 disconnectedCallback                             );
+
+    TEventCallback errorCallback( this, &CNativeHttpClientRequest::OnSocketError );
+    SubscribeTo( &m_socket                                        ,
+                 COMCORE::CTCPClientSocket::SocketErrorEvent      ,
+                 errorCallback                                    );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -210,16 +326,205 @@ bool
 CNativeHttpClientRequest::Start( void )
 {GUCEF_TRACE;
 
-    bool useProxy = !m_options.proxyHost.IsNULLOrEmpty();
-    CString host = useProxy ? m_options.proxyHost : m_request.GetHostName();
-    UInt16 port = useProxy ? m_options.proxyPort : m_request.GetPort();
+    m_secure = m_request.requestProtocol.Equals( "https", false );
+    CString targetHost = m_request.GetHostName();
+    UInt16 targetPort = m_request.GetPort();
 
-    if ( !m_socket.ConnectTo( host, port, false ) )
+    // The proxy that is asked for in the options, else the one of the environment
+    m_viaProxy = false;
+    if ( !m_options.proxyHost.IsNULLOrEmpty() )
     {
-        Finish( false, "Unable to connect to " + host + ":" + CORE::ToString( port ) );
+        m_viaProxy = true;
+        m_proxyHost = m_options.proxyHost;
+        m_proxyPort = m_options.proxyPort;
+    }
+    else
+    if ( m_options.useEnvironmentProxy )
+    {
+        CHttpProxyEnvironment::TProxy proxy;
+        if ( CHttpProxyEnvironment::Lookup( m_request.requestProtocol, targetHost, targetPort, proxy ) )
+        {
+            m_viaProxy = true;
+            m_proxyHost = proxy.host;
+            m_proxyPort = proxy.port;
+            m_proxyAuthorization = CHttpProxyEnvironment::GetBasicAuthorization( proxy );
+        }
+    }
+
+    if ( m_secure )
+    {
+        // https needs a TLS provider, which is the one thing the system may not have: everything else works without
+        CString whyNot;
+        if ( !CNativeHttpClientBackend::IsHttpsAvailable( whyNot ) )
+        {
+            m_transferInfo.errorClass = HTTPERRORCLASS_NO_BACKEND;
+            Finish( false, "no HTTPS support: " + whyNot );
+            return false;
+        }
+        BuildTlsSettings( m_tlsSettings );
+    }
+
+    CString host = m_viaProxy ? m_proxyHost : targetHost;
+    UInt16 port = m_viaProxy ? m_proxyPort : targetPort;
+    m_tunnelState = m_viaProxy && m_secure ? TUNNEL_CONNECTING : TUNNEL_NONE;
+
+    // https straight to the server: TLS from the start. Through a proxy the connection is plain until the proxy opened the tunnel
+    bool started = m_secure && !m_viaProxy ? m_socket.ConnectTo( host, port, &m_tlsSettings, false ) : m_socket.ConnectTo( host, port, false );
+    if ( !started )
+    {
+        if ( m_socket.GetLastError().IsError() )
+        {
+            OnTlsError( m_socket.GetLastError() );
+            return false;
+        }
+
+        // The authority of a URL can carry credentials as user info, which the description of the failure must not repeat
+        CString target = host + ":" + CORE::ToString( port );
+        if ( host.HasChar( '@', true ) >= 0 )
+            target = CORE::CRedactor::ForUrl().RedactUrl( target );
+
+        // The socket only does not start for a host that has no address: an unknown name
+        bool isName = false;
+        for ( UInt32 i=0; i<host.Length(); ++i )
+        {
+            char c = host[ i ];
+            if ( ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) )
+                isName = true;
+        }
+        m_transferInfo.errorClass = isName ? HTTPERRORCLASS_DNS : HTTPERRORCLASS_CONNECT;
+        Finish( false, "Unable to connect to " + target );
         return false;
     }
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNativeHttpClientRequest::BuildTlsSettings( COMCORE::CTlsSettings& settings ) const
+{GUCEF_TRACE;
+
+    settings.AddAlpnProtocol( "http/1.1" );
+    if ( !m_options.verifyPeer )
+        settings.DisableVerificationInsecurely();
+
+    // The authorities that were asked for are the ones that count
+    if ( !m_options.caBundlePath.IsNULLOrEmpty() )
+    {
+        settings.SetCaBundlePath( m_options.caBundlePath );
+        settings.SetUseSystemTrust( false );
+    }
+    if ( m_options.connectTimeoutInMs > 0 )
+        settings.SetHandshakeTimeoutInMs( m_options.connectTimeoutInMs );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNativeHttpClientRequest::OnTlsError( const COMCORE::CTlsError& error )
+{GUCEF_TRACE;
+
+    // A failure of the socket underneath has its own event and description
+    if ( COMCORE::TLSERR_CONNECT == error.errorClass )
+        return;
+
+    switch ( error.errorClass )
+    {
+        case COMCORE::TLSERR_NO_PROVIDER:
+            m_transferInfo.errorClass = HTTPERRORCLASS_NO_BACKEND;
+            break;
+        case COMCORE::TLSERR_HANDSHAKE_TIMEOUT:
+            m_transferInfo.errorClass = HTTPERRORCLASS_TIMEOUT;
+            break;
+        case COMCORE::TLSERR_PEER_CLOSED:
+        case COMCORE::TLSERR_TRUNCATED:
+            m_transferInfo.errorClass = HTTPERRORCLASS_CONNECT;
+            break;
+        case COMCORE::TLSERR_INTERNAL:
+            m_transferInfo.errorClass = HTTPERRORCLASS_OTHER;
+            break;
+        default:
+            m_transferInfo.errorClass = HTTPERRORCLASS_TLS;
+            break;
+    }
+
+    // The host is named here, not by the error: the user info of a URL never gets in
+    CString host = CORE::CRedactor::ForUrl().RedactUrl( m_request.GetHostName() );
+    Finish( false, error.GetDescription( host ), GUCEF_COMCORE_TLS_ERRORCODE_BASE + (Int32) error.errorClass );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNativeHttpClientRequest::SendConnect( void )
+{GUCEF_TRACE;
+
+    CString authority = m_request.GetHostName() + ":" + CORE::ToString( m_request.GetPort() );
+    CString connect = "CONNECT " + authority + " HTTP/1.1\r\n";
+    connect += "Host: " + authority + "\r\n";
+    if ( !m_proxyAuthorization.IsNULLOrEmpty() )
+        connect += "Proxy-Authorization: " + m_proxyAuthorization + "\r\n";
+    connect += "\r\n";
+
+    m_tunnelState = TUNNEL_WAIT_RESPONSE;
+    m_proxyResponseBuffer.Clear();
+    m_socket.Send( connect.C_String(), connect.ByteSize() > 0 ? connect.ByteSize()-1 : 0 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNativeHttpClientRequest::ProcessProxyResponse( const char* data, UInt32 dataSize )
+{GUCEF_TRACE;
+
+    m_proxyResponseBuffer.Append( data, dataSize );
+    const char* buffered = static_cast< const char* >( m_proxyResponseBuffer.GetConstBufferPtr() );
+    UInt32 bufferedSize = m_proxyResponseBuffer.GetDataSize();
+    UInt32 headerEnd = FindBytes( buffered, bufferedSize, "\r\n\r\n", 4 );
+    UInt32 terminatorSize = 4;
+    if ( bufferedSize == headerEnd )
+    {
+        headerEnd = FindBytes( buffered, bufferedSize, "\n\n", 2 );
+        terminatorSize = 2;
+    }
+    if ( bufferedSize == headerEnd )
+    {
+        if ( bufferedSize > MaxHeaderSize )
+            Finish( false, "The proxy sent a response header that is too large" );
+        return;
+    }
+
+    // The status line is in the first bytes: a bounded, zero terminated copy of those is read
+    char statusLine[ 64 ];
+    UInt32 statusLineSize = headerEnd < sizeof( statusLine ) - 1 ? headerEnd : (UInt32) sizeof( statusLine ) - 1;
+    memcpy( statusLine, buffered, statusLineSize );
+    statusLine[ statusLineSize ] = '\0';
+    int status = 0;
+    if ( 1 != sscanf( statusLine, "HTTP/%*d.%*d %d", &status ) )
+    {
+        m_transferInfo.errorClass = HTTPERRORCLASS_CONNECT;
+        Finish( false, "The proxy did not reply with a valid HTTP response to the CONNECT" );
+        return;
+    }
+    if ( status < 200 || status > 299 )
+    {
+        m_transferInfo.errorClass = HTTPERRORCLASS_CONNECT;
+        Finish( false, "The proxy refused to open a tunnel to " + CORE::CRedactor::ForUrl().RedactUrl( m_request.GetHostName() ) + ": HTTP status " + CORE::ToString( status ), status );
+        return;
+    }
+
+    // The tunnel is open: TLS with the server starts. Whatever came behind the header of the proxy is the start of that
+    CORE::CDynamicBuffer leftover;
+    leftover.CopyFrom( m_proxyResponseBuffer, 0, bufferedSize - ( headerEnd + terminatorSize ), headerEnd + terminatorSize );
+    m_proxyResponseBuffer.Clear();
+    m_tunnelState = TUNNEL_HANDSHAKE;
+    if ( !m_socket.StartTls( m_tlsSettings, m_request.GetHostName(), leftover.GetConstBufferPtr(), leftover.GetDataSize() ) )
+    {
+        if ( m_socket.GetLastError().IsError() )
+            OnTlsError( m_socket.GetLastError() );
+        else
+            Finish( false, "TLS could not be started in the tunnel" );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -237,9 +542,9 @@ void
 CNativeHttpClientRequest::BuildRequestHeader( std::string& header ) const
 {GUCEF_TRACE;
 
-    // A proxy is given the absolute URL, a server the path
+    // A proxy is given the absolute URL, a server the path. A https request has a tunnel through the proxy: the server gets that path
     CString target;
-    if ( !m_options.proxyHost.IsNULLOrEmpty() )
+    if ( m_viaProxy && !m_secure )
     {
         target = m_request.GetUrl();
     }
@@ -254,6 +559,8 @@ CNativeHttpClientRequest::BuildRequestHeader( std::string& header ) const
     header = ToStdString( GetRequestMethod() ) + " " + ToStdString( target ) + " HTTP/1.1\r\n";
     header += "Host: " + ToStdString( m_request.requestHost ) + "\r\n";
     header += "Connection: close\r\n";
+    if ( m_viaProxy && !m_secure && !m_proxyAuthorization.IsNULLOrEmpty() )
+        header += "Proxy-Authorization: " + ToStdString( m_proxyAuthorization ) + "\r\n";
 
     CString::StringVector fields;
     GetRequestHeaderFields( fields );
@@ -571,31 +878,92 @@ CNativeHttpClientRequest::ProcessReceivedData( const char* data, UInt32 dataSize
 /*-------------------------------------------------------------------------*/
 
 void
-CNativeHttpClientRequest::OnNotify( CORE::CNotifier* notifier                 ,
-                                    const CORE::CEvent& eventId               ,
-                                    CORE::CICloneable* eventData /* = NULL */ )
+CNativeHttpClientRequest::OnSocketConnected( CORE::CNotifier* notifier    ,
+                                             const CORE::CEvent& eventId  ,
+                                             CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( notifier != &m_socket || IsFinished() )
+    if ( IsFinished() )
         return;
 
-    if ( COMCORE::CTCPClientSocket::ConnectedEvent == eventId )
+    // For TLS this is after the handshake. Through a proxy it is the connection to the proxy, which is asked for the tunnel first
+    OnConnected();
+    if ( TUNNEL_CONNECTING == m_tunnelState )
+        SendConnect();
+    else
+        SendRequest();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNativeHttpClientRequest::OnSocketHandshakeCompleted( CORE::CNotifier* notifier    ,
+                                                      const CORE::CEvent& eventId  ,
+                                                      CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( IsFinished() )
+        return;
+
+    // Only the handshake inside a tunnel is of interest here: a direct one is followed by ConnectedEvent
+    if ( TUNNEL_HANDSHAKE == m_tunnelState )
     {
-        OnConnected();
+        m_tunnelState = TUNNEL_DONE;
         SendRequest();
     }
-    else
-    if ( COMCORE::CTCPClientSocket::DataRecievedEvent == eventId )
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNativeHttpClientRequest::OnSocketTlsError( CORE::CNotifier* notifier    ,
+                                            const CORE::CEvent& eventId  ,
+                                            CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( IsFinished() )
+        return;
+
+    COMCORE::TTlsErrorEventData* errorData = static_cast< COMCORE::TTlsErrorEventData* >( eventData );
+    if ( GUCEF_NULL != errorData )
+        OnTlsError( errorData->GetData() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNativeHttpClientRequest::OnSocketDataReceived( CORE::CNotifier* notifier    ,
+                                                const CORE::CEvent& eventId  ,
+                                                CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( IsFinished() )
+        return;
+
+    COMCORE::CTCPClientSocket::TDataRecievedEventData* receivedData = static_cast< COMCORE::CTCPClientSocket::TDataRecievedEventData* >( eventData );
+    if ( GUCEF_NULL != receivedData )
     {
-        COMCORE::CTCPClientSocket::TDataRecievedEventData* receivedData = static_cast< COMCORE::CTCPClientSocket::TDataRecievedEventData* >( eventData );
-        if ( GUCEF_NULL != receivedData )
-        {
-            const CORE::CDynamicBuffer& buffer = receivedData->GetData();
+        const CORE::CDynamicBuffer& buffer = receivedData->GetData();
+        if ( TUNNEL_WAIT_RESPONSE == m_tunnelState )
+            ProcessProxyResponse( buffer.AsConstTypePtr< char >(), buffer.GetDataSize() );
+        else
             ProcessReceivedData( buffer.AsConstTypePtr< char >(), buffer.GetDataSize() );
-        }
     }
-    else
-    if ( COMCORE::CTCPClientSocket::DataSentEvent == eventId )
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNativeHttpClientRequest::OnSocketDataSent( CORE::CNotifier* notifier    ,
+                                            const CORE::CEvent& eventId  ,
+                                            CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( IsFinished() )
+        return;
+
+    // What goes to the proxy to open the tunnel is not part of the request
+    if ( TUNNEL_NONE == m_tunnelState || TUNNEL_DONE == m_tunnelState )
     {
         COMCORE::CTCPClientSocket::TDataSentEventData* sentData = static_cast< COMCORE::CTCPClientSocket::TDataSentEventData* >( eventData );
         if ( GUCEF_NULL != sentData )
@@ -603,21 +971,56 @@ CNativeHttpClientRequest::OnNotify( CORE::CNotifier* notifier                 ,
         if ( !m_uploadComplete && !IsFinished() )
             SendMoreRequestBody();
     }
-    else
-    if ( COMCORE::CTCPClientSocket::DisconnectedEvent == eventId )
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNativeHttpClientRequest::OnSocketDisconnected( CORE::CNotifier* notifier    ,
+                                                const CORE::CEvent& eventId  ,
+                                                CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( IsFinished() )
+        return;
+
+    if ( TUNNEL_NONE != m_tunnelState && TUNNEL_DONE != m_tunnelState )
     {
-        if ( m_finalHeaderReceived && BODY_UNTIL_CLOSE == m_framing )
-            Finish( true, CString::Empty );
+        m_transferInfo.errorClass = HTTPERRORCLASS_CONNECT;
+        Finish( false, "The proxy closed the connection before the tunnel was open" );
+    }
+    else
+    if ( m_finalHeaderReceived && BODY_UNTIL_CLOSE == m_framing )
+    {
+        // A body that ends at the end of the connection is only complete when the end was announced: without the close
+        // notification of TLS anyone on the path could have cut it
+        if ( m_secure && !m_socket.GetSessionInfo().peerClosedCleanly )
+        {
+            m_transferInfo.errorClass = HTTPERRORCLASS_CONNECT;
+            Finish( false, "The server closed the connection without the TLS close notification, the response may be incomplete" );
+        }
         else
-            Finish( false, "The connection was closed before the response was complete" );
+            Finish( true, CString::Empty );
     }
     else
-    if ( COMCORE::CTCPClientSocket::SocketErrorEvent == eventId )
-    {
-        COMCORE::CTCPClientSocket::TSocketErrorEventData* errorData = static_cast< COMCORE::CTCPClientSocket::TSocketErrorEventData* >( eventData );
-        Int32 errorCode = GUCEF_NULL != errorData ? errorData->GetData() : -1;
-        Finish( false, "Socket error " + CORE::ToString( errorCode ), errorCode );
-    }
+        Finish( false, "The connection was closed before the response was complete" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CNativeHttpClientRequest::OnSocketError( CORE::CNotifier* notifier    ,
+                                         const CORE::CEvent& eventId  ,
+                                         CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( IsFinished() )
+        return;
+
+    COMCORE::CTCPClientSocket::TSocketErrorEventData* errorData = static_cast< COMCORE::CTCPClientSocket::TSocketErrorEventData* >( eventData );
+    Int32 errorCode = GUCEF_NULL != errorData ? errorData->GetData() : -1;
+    m_transferInfo.errorClass = HTTPERRORCLASS_CONNECT;
+    Finish( false, "Socket error " + CORE::ToString( errorCode ), errorCode );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -647,10 +1050,28 @@ CNativeHttpClientBackend::GetBackendName( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+CNativeHttpClientBackend::IsHttpsAvailable( CString& whyNot )
+{GUCEF_TRACE;
+
+    return COMCORE::CComCoreGlobal::Instance()->GetTlsProviderRegistry().IsAnyAvailable( whyNot );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CNativeHttpClientBackend::SupportsScheme( const CString& scheme ) const
 {GUCEF_TRACE;
 
-    return scheme.Equals( "http", false );
+    if ( scheme.Equals( "http", false ) )
+        return true;
+
+    // https needs a TLS provider, which this system may or may not have at this moment
+    if ( scheme.Equals( "https", false ) )
+    {
+        CString whyNot;
+        return IsHttpsAvailable( whyNot );
+    }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -668,6 +1089,7 @@ CNativeHttpClientBackend::StartRequest( const CHttpRequestData& request         
     {
         transferInfo.success = false;
         transferInfo.errorCode = -1;
+        transferInfo.errorClass = HTTPERRORCLASS_NO_BACKEND;
         transferInfo.errorDescription = "The native HTTP client backend does not support \"" + request.requestProtocol + "\"";
         return CIHttpClientBackendRequestPtr();
     }

@@ -35,10 +35,15 @@
 #define GUCEF_CORE_COBSERVINGNOTIFIER_H
 #endif /* GUCEF_CORE_COBSERVINGNOTIFIER_H ? */
 
-#ifndef GUCEF_COMCORE_CTCPCLIENTSOCKET_H
-#include "CTCPClientSocket.h"
-#define GUCEF_COMCORE_CTCPCLIENTSOCKET_H
-#endif /* GUCEF_COMCORE_CTCPCLIENTSOCKET_H ? */
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
+#ifndef GUCEF_COMCORE_CTLSCLIENTCONNECTION_H
+#include "gucefCOMCORE_CTlsClientConnection.h"
+#define GUCEF_COMCORE_CTLSCLIENTCONNECTION_H
+#endif /* GUCEF_COMCORE_CTLSCLIENTCONNECTION_H ? */
 
 #ifndef GUCEF_WEB_CWEBSOCKETMESSAGEPARSER_H
 #include "gucefWEB_CWebSocketMessageParser.h"
@@ -66,8 +71,10 @@ namespace WEB {
 //-------------------------------------------------------------------------*/
 
 /**
- *  Web socket (RFC 6455) client with a message oriented API for plain ws:// connections.
- *  (wss:// requires TLS which is not available in this module)
+ *  Web socket (RFC 6455) client with a message oriented API for ws:// and wss:// connections.
+ *  wss:// goes through the TLS layer of gucefCOMCORE (CTlsClientConnection): the certificate of the server
+ *  is verified against the trust store of the system, or against what SetTlsSettings() says. When no TLS
+ *  provider is available the connect fails with an ErrorEvent that says why, everything else works.
  *
  *  The opening handshake is performed as a HTTP/1.1 upgrade request over the TCP connection. After the
  *  server accepted it the connection is handed to the web socket protocol: Connect() returns immediately,
@@ -116,7 +123,8 @@ class GUCEF_WEB_PUBLIC_CPP CWebSocketClient : public CORE::CObservingNotifier
     virtual ~CWebSocketClient();
 
     /**
-     *  Starts connecting to the given ws:// url, for example ws://localhost:9222/devtools/page/ABC?x=y
+     *  Starts connecting to the given ws:// or wss:// url, for example ws://localhost:9222/devtools/page/ABC?x=y
+     *  (wss:// uses port 443 unless the url says otherwise and needs a TLS provider, see SetTlsSettings())
      *  @param subProtocols     sub protocols to offer in order of preference
      *  @param extraHeaders     additional headers for the upgrade request such as Origin or Cookie
      *  @return false if the url is not usable or a connection is already in progress
@@ -153,14 +161,43 @@ class GUCEF_WEB_PUBLIC_CPP CWebSocketClient : public CORE::CObservingNotifier
      */
     void SetMaxMessageSize( UInt32 maxMessageSizeInBytes );
 
+    /**
+     *  How wss:// connections are secured: the trust store, the CA to add, the timeout of the handshake. Taken at Connect().
+     *  The default verifies the certificate against the trust store of the system. The ALPN protocol "http/1.1" is added
+     *  by Connect() since the upgrade is a HTTP/1.1 request.
+     */
+    void SetTlsSettings( const COMCORE::CTlsSettings& settings );
+
+    const COMCORE::CTlsSettings& GetTlsSettings( void ) const;
+
     private:
 
     CWebSocketClient( const CWebSocketClient& src );
     CWebSocketClient& operator=( const CWebSocketClient& src );
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventid               ,
-                           CORE::CICloneable* eventdata /* = NULL */ ) GUCEF_VIRTUAL_OVERRIDE;
+    typedef CORE::CTEventHandlerFunctor< CWebSocketClient > TEventCallback;
+
+    void RegisterSocketEventHandlers( void );
+
+    void OnTcpConnected( CORE::CNotifier* notifier    ,
+                         const CORE::CEvent& eventId  ,
+                         CORE::CICloneable* eventData );
+
+    void OnTcpDisconnected( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData );
+
+    void OnTlsError( CORE::CNotifier* notifier    ,
+                     const CORE::CEvent& eventId  ,
+                     CORE::CICloneable* eventData );
+
+    void OnTcpSocketError( CORE::CNotifier* notifier    ,
+                           const CORE::CEvent& eventId  ,
+                           CORE::CICloneable* eventData );
+
+    void OnTcpDataReceived( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData );
 
     bool SendFrame( bool fin, UInt8 opcode, const void* data, UInt32 dataSize );
 
@@ -186,7 +223,9 @@ class GUCEF_WEB_PUBLIC_CPP CWebSocketClient : public CORE::CObservingNotifier
 
     private:
 
-    COMCORE::CTCPClientSocket m_socket;
+    COMCORE::CTlsClientConnection m_socket;
+    COMCORE::CTlsSettings m_tlsSettings;
+    CORE::CString m_tlsFailure;          /**< what the TLS layer said about the failure that is about to be reported */
     EState m_state;
     CORE::CString m_host;
     UInt16 m_port;
@@ -195,7 +234,7 @@ class GUCEF_WEB_PUBLIC_CPP CWebSocketClient : public CORE::CObservingNotifier
     TStringVector m_offeredSubProtocols;
     CORE::CString m_subProtocol;
     std::string m_handshakeBuffer;
-    std::string m_upgradeRequest;
+    CORE::CString m_upgradeRequest;
     CWebSocketMessageParser m_parser;
     UInt32 m_maxMessageSize;
     SWebSocketCloseInfo m_closeInfo;

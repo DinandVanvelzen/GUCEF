@@ -64,7 +64,7 @@ CIrcWebSocketTransport::CIrcWebSocketTransport( void )
     , m_isConnected( false )
 {GUCEF_TRACE;
 
-    SubscribeTo( &m_webSocket );
+    RegisterWebSocketEventHandlers();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -75,7 +75,34 @@ CIrcWebSocketTransport::CIrcWebSocketTransport( const CORE::PulseGeneratorPtr& p
     , m_isConnected( false )
 {GUCEF_TRACE;
 
-    SubscribeTo( &m_webSocket );
+    RegisterWebSocketEventHandlers();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIrcWebSocketTransport::RegisterWebSocketEventHandlers( void )
+{GUCEF_TRACE;
+
+    TEventCallback connectedCallback( this, &CIrcWebSocketTransport::OnWebSocketConnected );
+    SubscribeTo( &m_webSocket                  ,
+                 CWebSocketClient::ConnectedEvent ,
+                 connectedCallback             );
+
+    TEventCallback textCallback( this, &CIrcWebSocketTransport::OnWebSocketTextMessage );
+    SubscribeTo( &m_webSocket                  ,
+                 CWebSocketClient::TextMessageEvent ,
+                 textCallback                  );
+
+    TEventCallback closedCallback( this, &CIrcWebSocketTransport::OnWebSocketClosed );
+    SubscribeTo( &m_webSocket                  ,
+                 CWebSocketClient::ClosedEvent ,
+                 closedCallback                );
+
+    TEventCallback errorCallback( this, &CIrcWebSocketTransport::OnWebSocketError );
+    SubscribeTo( &m_webSocket                  ,
+                 CWebSocketClient::ErrorEvent  ,
+                 errorCallback                 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -100,7 +127,9 @@ CIrcWebSocketTransport::Connect( const COM::CIrcClientSettings& settings )
     CORE::CString path = settings.webSocketPath.IsNULLOrEmpty() ? CORE::CString( "/" ) : settings.webSocketPath;
     if ( !path.StartsWith( "/" ) )
         path = "/" + path;
-    CORE::CString url = "ws://" + settings.server + ":" + CORE::UInt16ToString( settings.port ) + path;
+    CORE::CString url = ( settings.useTls ? "wss://" : "ws://" ) + settings.server + ":" + CORE::UInt16ToString( settings.port ) + path;
+    if ( settings.useTls )
+        m_webSocket.SetTlsSettings( settings.tls );
 
     CWebSocketClient::TStringVector subProtocols;
     subProtocols.push_back( SubProtocol );
@@ -151,56 +180,71 @@ CIrcWebSocketTransport::GetTransportName( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CIrcWebSocketTransport::OnNotify( CORE::CNotifier* notifier    ,
-                                  const CORE::CEvent& eventId  ,
-                                  CORE::CICloneable* eventData )
+CIrcWebSocketTransport::OnWebSocketConnected( CORE::CNotifier* notifier    ,
+                                              const CORE::CEvent& eventId  ,
+                                              CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( notifier != &m_webSocket )
+    // A server that picked another sub protocol speaks something else than IRC lines in text messages
+    if ( !m_webSocket.GetSubProtocol().IsNULLOrEmpty() && m_webSocket.GetSubProtocol() != SubProtocol )
+    {
+        TTransportErrorEventData eData( "The server did not accept the " + SubProtocol + " sub protocol" );
+        if ( !NotifyObservers( TransportErrorEvent, &eData ) ) return;
+        m_webSocket.Close();
+        return;
+    }
+    m_isConnected = true;
+    NotifyObservers( ConnectedEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIrcWebSocketTransport::OnWebSocketTextMessage( CORE::CNotifier* notifier    ,
+                                                const CORE::CEvent& eventId  ,
+                                                CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
         return;
 
-    if ( CWebSocketClient::ConnectedEvent == eventId )
-    {
-        // A server that picked another sub protocol speaks something else than IRC lines in text messages
-        if ( !m_webSocket.GetSubProtocol().IsNULLOrEmpty() && m_webSocket.GetSubProtocol() != SubProtocol )
-        {
-            TTransportErrorEventData eData( "The server did not accept the " + SubProtocol + " sub protocol" );
-            if ( !NotifyObservers( TransportErrorEvent, &eData ) ) return;
-            m_webSocket.Close();
-            return;
-        }
-        m_isConnected = true;
-        NotifyObservers( ConnectedEvent );
-    }
-    else
-    if ( CWebSocketClient::TextMessageEvent == eventId && GUCEF_NULL != eventData )
-    {
-        const CORE::CString& text = static_cast< TWebSocketTextMessageEventData* >( eventData )->GetData().text;
+    const CORE::CString& text = static_cast< TWebSocketTextMessageEventData* >( eventData )->GetData().text;
 
-        // One line per message, a sender may still end it with CR LF
-        const char* str = text.C_String();
-        UInt32 size = text.ByteSize() > 0 ? text.ByteSize() - 1 : 0;
-        while ( size > 0 && ( '\r' == str[ size-1 ] || '\n' == str[ size-1 ] ) )
-            --size;
-        if ( 0 == size )
-            return;
+    // One line per message, a sender may still end it with CR LF
+    const char* str = text.C_String();
+    UInt32 size = text.ByteSize() > 0 ? text.ByteSize() - 1 : 0;
+    while ( size > 0 && ( '\r' == str[ size-1 ] || '\n' == str[ size-1 ] ) )
+        --size;
+    if ( 0 == size )
+        return;
 
-        TLineReceivedEventData eData( size == text.ByteSize() - 1 ? text : CORE::CString( str, size ) );
-        NotifyObservers( LineReceivedEvent, &eData );
-    }
-    else
-    if ( CWebSocketClient::ClosedEvent == eventId )
-    {
-        m_isConnected = false;
-        NotifyObservers( DisconnectedEvent );
-    }
-    else
-    if ( CWebSocketClient::ErrorEvent == eventId )
-    {
-        CORE::CString description = GUCEF_NULL != eventData ? static_cast< CORE::TCloneableString* >( eventData )->GetData() : CORE::CString( "WebSocket error" );
-        TTransportErrorEventData eData( description );
-        NotifyObservers( TransportErrorEvent, &eData );
-    }
+    TLineReceivedEventData eData( size == text.ByteSize() - 1 ? text : CORE::CString( str, size ) );
+    NotifyObservers( LineReceivedEvent, &eData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIrcWebSocketTransport::OnWebSocketClosed( CORE::CNotifier* notifier    ,
+                                           const CORE::CEvent& eventId  ,
+                                           CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    m_isConnected = false;
+    NotifyObservers( DisconnectedEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIrcWebSocketTransport::OnWebSocketError( CORE::CNotifier* notifier    ,
+                                          const CORE::CEvent& eventId  ,
+                                          CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    CORE::CString description = GUCEF_NULL != eventData ? static_cast< CORE::TCloneableString* >( eventData )->GetData() : CORE::CString( "WebSocket error" );
+    TTransportErrorEventData eData( description );
+    NotifyObservers( TransportErrorEvent, &eData );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -26,6 +26,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_COMCORE_CTLSSETTINGS_H
+#include "gucefCOMCORE_CTlsSettings.h"
+#define GUCEF_COMCORE_CTLSSETTINGS_H
+#endif /* GUCEF_COMCORE_CTLSSETTINGS_H ? */
+
 #ifndef GUCEF_CORE_CICONFIGURABLE_H
 #include "gucefCORE_CIConfigurable.h"
 #define GUCEF_CORE_CICONFIGURABLE_H
@@ -60,7 +65,9 @@ class GUCEF_COM_PUBLIC_CPP CIrcClientSettings : public CORE::CIConfigurable
     public:
 
     CORE::CString server;
-    UInt16 port;                                    /**< 6667 by default */
+    UInt16 port;                                    /**< 6667 by default, with useTls from a configuration 6697 unless the configuration gives a port */
+    bool useTls;                                    /**< over TLS: IRC over TCP with TLS (port 6697), or wss:// for the WebSocket. The certificate of the server is verified */
+    COMCORE::CTlsSettings tls;                      /**< how TLS is done when useTls: the CA to trust and the like. In config the child "Tls" */
     bool useWebSocket;                              /**< over a WebSocket with the text.ircv3.net sub protocol, when the transport is available */
     CORE::CString webSocketPath;                    /**< the resource of the WebSocket url, "/" by default */
     CORE::CString nick;

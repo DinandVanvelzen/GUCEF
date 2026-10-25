@@ -60,9 +60,11 @@ CHttpClientRequestOptions::CHttpClientRequestOptions( void )
     , followRedirects( true )
     , maxRedirects( 10 )
     , verifyPeer( true )
+    , caBundlePath()
     , cookieJar()
     , proxyHost()
     , proxyPort( 0 )
+    , useEnvironmentProxy( true )
     , userAgent( DefaultUserAgent )
 {GUCEF_TRACE;
 
@@ -82,9 +84,11 @@ CHttpClientRequestOptions::CHttpClientRequestOptions( const CHttpClientRequestOp
     , followRedirects( src.followRedirects )
     , maxRedirects( src.maxRedirects )
     , verifyPeer( src.verifyPeer )
+    , caBundlePath( src.caBundlePath )
     , cookieJar( src.cookieJar )
     , proxyHost( src.proxyHost )
     , proxyPort( src.proxyPort )
+    , useEnvironmentProxy( src.useEnvironmentProxy )
     , userAgent( src.userAgent )
 {GUCEF_TRACE;
 
@@ -115,9 +119,11 @@ CHttpClientRequestOptions::operator=( const CHttpClientRequestOptions& src )
         followRedirects = src.followRedirects;
         maxRedirects = src.maxRedirects;
         verifyPeer = src.verifyPeer;
+        caBundlePath = src.caBundlePath;
         cookieJar = src.cookieJar;
         proxyHost = src.proxyHost;
         proxyPort = src.proxyPort;
+        useEnvironmentProxy = src.useEnvironmentProxy;
         userAgent = src.userAgent;
     }
     return *this;
@@ -134,11 +140,29 @@ CHttpClientRequestOptions::Clone( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+const char*
+HttpTransferErrorClassToString( THttpTransferErrorClass errorClass )
+{
+    switch ( errorClass )
+    {
+        case HTTPERRORCLASS_NO_BACKEND :    return "no-backend";
+        case HTTPERRORCLASS_DNS :           return "dns";
+        case HTTPERRORCLASS_CONNECT :       return "connect";
+        case HTTPERRORCLASS_TLS :           return "tls";
+        case HTTPERRORCLASS_TIMEOUT :       return "timeout";
+        case HTTPERRORCLASS_OTHER :         return "other";
+        default :                           return "none";
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 CHttpClientTransferInfo::CHttpClientTransferInfo( void )
     : CORE::CICloneable()
     , success( false )
     , errorCode( 0 )
     , errorDescription()
+    , errorClass( HTTPERRORCLASS_NONE )
     , wasCancelled( false )
     , timedOut( false )
     , effectiveUrl()

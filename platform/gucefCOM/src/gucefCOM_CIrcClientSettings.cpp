@@ -93,6 +93,8 @@ CIrcClientSettings::CIrcClientSettings( void )
     : CORE::CIConfigurable()
     , server()
     , port( 6667 )
+    , useTls( false )
+    , tls()
     , useWebSocket( false )
     , webSocketPath( "/" )
     , nick()
@@ -115,6 +117,8 @@ CIrcClientSettings::CIrcClientSettings( const CIrcClientSettings& src )
     : CORE::CIConfigurable( src )
     , server( src.server )
     , port( src.port )
+    , useTls( src.useTls )
+    , tls( src.tls )
     , useWebSocket( src.useWebSocket )
     , webSocketPath( src.webSocketPath )
     , nick( src.nick )
@@ -147,6 +151,8 @@ CIrcClientSettings::operator=( const CIrcClientSettings& src )
     {
         server = src.server;
         port = src.port;
+        useTls = src.useTls;
+        tls = src.tls;
         useWebSocket = src.useWebSocket;
         webSocketPath = src.webSocketPath;
         nick = src.nick;
@@ -187,6 +193,7 @@ CIrcClientSettings::SaveConfig( CORE::CDataNode& config ) const
 
     config.SetAttribute( "server", server );
     config.SetAttribute( "port", port );
+    config.SetAttribute( "useTls", useTls );
     config.SetAttribute( "useWebSocket", useWebSocket );
     config.SetAttribute( "webSocketPath", webSocketPath );
     config.SetAttribute( "nick", nick );
@@ -198,7 +205,9 @@ CIrcClientSettings::SaveConfig( CORE::CDataNode& config ) const
     config.SetAttribute( "wantedCapabilities", JoinList( wantedCapabilities ) );
     config.SetAttribute( "autoJoinChannels", JoinList( autoJoinChannels ) );
     config.SetAttribute( "pingTimeoutInSecs", pingTimeoutInSecs );
-    return true;
+
+    CORE::CDataNode* tlsNode = config.FindOrAddChild( "Tls" );
+    return GUCEF_NULL != tlsNode && tls.SaveConfig( *tlsNode );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -208,7 +217,17 @@ CIrcClientSettings::LoadConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
 
     server = config.GetAttributeValueOrChildValueByName( "server" ).AsString( server, true );
-    port = config.GetAttributeValueOrChildValueByName( "port" ).AsUInt16( port, true );
+    useTls = config.GetAttributeValueOrChildValueByName( "useTls" ).AsBool( useTls, true );
+    useWebSocket = config.GetAttributeValueOrChildValueByName( "useWebSocket" ).AsBool( useWebSocket, true );
+
+    // the usual port of IRC over TLS, unless the configuration names one
+    if ( useTls && !useWebSocket && config.GetAttributeValueOrChildValueByName( "port" ).IsNULLOrEmpty() )
+        port = 6697;
+    else
+        port = config.GetAttributeValueOrChildValueByName( "port" ).AsUInt16( port, true );
+    const CORE::CDataNode* tlsNode = config.FindChild( "Tls" );
+    if ( GUCEF_NULL != tlsNode )
+        tls.LoadConfig( *tlsNode );
     useWebSocket = config.GetAttributeValueOrChildValueByName( "useWebSocket" ).AsBool( useWebSocket, true );
     webSocketPath = config.GetAttributeValueOrChildValueByName( "webSocketPath" ).AsString( webSocketPath, true );
     nick = config.GetAttributeValueOrChildValueByName( "nick" ).AsString( nick, true );

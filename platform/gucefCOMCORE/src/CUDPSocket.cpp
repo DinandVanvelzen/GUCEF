@@ -394,8 +394,8 @@ CUDPSocket::SendPacketTo( const CIPv4Address& dest ,
         m_bytesTransmitted += returnValue;
         ++m_nrOfDataSentEvents;
 
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):SendPacketTo: Sent " + CORE::UInt16ToString( datasize ) +
-            " bytes to " + dest.AddressAndPortAsString() + " from " + m_hostAddress.GetFirstIPv4Address().AddressAndPortAsString() );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "):SendPacketTo: Sent " << datasize <<
+            " bytes to " << dest.AddressAndPortAsString() << " from " << m_hostAddress.GetFirstIPv4Address().AddressAndPortAsString() );
     }
     else
     {
@@ -521,7 +521,7 @@ CUDPSocket::Update( bool performRead )
 
         if ( eventData.packetsReceived > 0 )
         {
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):Update: Received " + CORE::UInt32ToString( eventData.packetsReceived ) + " packets in one cycle" );
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "):Update: Received " << eventData.packetsReceived << " packets in one cycle" );
 
             // Send an event notifying people that the data was recieved
             if ( !NotifyObservers( UDPPacketsRecievedEvent, &m_udpPacketsReceivedEventData ) ) return false;
@@ -544,7 +544,7 @@ CUDPSocket::Update( bool performRead )
         {
             // We reached out max bulk operation size per notification
             // However there is more work to do
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):Update: Max operations per Update() cycle reached for the current nr of read buffers" );
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "):Update: Max operations per Update() cycle reached for the current nr of read buffers" );
             return true;
         }
         else
@@ -598,7 +598,7 @@ CUDPSocket::OnPulse( CORE::CNotifier* notifier                 ,
             if ( !m_pulseGenerator.IsNULL() )
             {
                 m_pulseGenerator->RequestImmediatePulse();
-                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):OnPulse: Max update cycles per pulse reached, will request an immediate pulse (CPU burst mode)" );
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "):OnPulse: Max update cycles per pulse reached, will request an immediate pulse (CPU burst mode)" );
             }
         }
     }
@@ -1024,8 +1024,8 @@ CUDPSocket::Open( const CIPv4Address& localaddr )
 
         return false;
     }
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set blocking mode \"" +
-        CORE::BoolToString( _blocking ) + "\" on socket" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set blocking mode \"" <<
+        CORE::BoolToString( _blocking ) << "\" on socket" );
 
     int allowAddressReuse = 1;
     if ( 0 > dvsocket_setsockopt( _data->sockid, SOL_SOCKET, SO_REUSEADDR, (const char*) &allowAddressReuse, sizeof(int), &errorCode ) )
@@ -1033,7 +1033,7 @@ CUDPSocket::Open( const CIPv4Address& localaddr )
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Failed to set address reuse mode \"" + CORE::BoolToString( allowAddressReuse != 0 )
             + "\" on socket. Error code: " + CORE::UInt32ToString( errorCode ) );
     }
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set address reuse mode \"" + CORE::BoolToString( allowAddressReuse != 0 ) + "\" on socket" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set address reuse mode \"" << CORE::BoolToString( allowAddressReuse != 0 ) << "\" on socket" );
 
     #ifdef SO_REUSEPORT
     int allowPortReuse = 1;
@@ -1042,7 +1042,7 @@ CUDPSocket::Open( const CIPv4Address& localaddr )
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Failed to set port reuse mode \"" + CORE::BoolToString( allowPortReuse != 0 )
             + "\" on socket. Error code: " + CORE::UInt32ToString( errorCode ) );
     }
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set port reuse mode \"" + CORE::BoolToString( allowPortReuse != 0 ) + "\" on socket" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set port reuse mode \"" << CORE::BoolToString( allowPortReuse != 0 ) << "\" on socket" );
     #endif
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
@@ -1057,7 +1057,7 @@ CUDPSocket::Open( const CIPv4Address& localaddr )
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Failed to set receive timeout \"0\" on socket"
                 + ". Error code: " + CORE::UInt32ToString( errorCode ) );
         }
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set receive timeout \"0\" on socket" );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set receive timeout \"0\" on socket" );
     }
     #endif
 
@@ -1069,14 +1069,14 @@ CUDPSocket::Open( const CIPv4Address& localaddr )
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Failed to set multicast loopback (dis)allowed mode \"" + CORE::BoolToString( loopch != 0 )
             + "\" on socket. Error code: " + CORE::UInt32ToString( errorCode ) );
     }
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set multicast loopback mode \"" + CORE::BoolToString( loopch != 0 ) + "\" on socket" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set multicast loopback mode \"" << CORE::BoolToString( loopch != 0 ) << "\" on socket" );
 
     if ( 0 > dvsocket_setsockopt( _data->sockid, IPPROTO_IP, IP_MULTICAST_TTL, (const char*) &m_multicastTTL, sizeof(m_multicastTTL), &errorCode ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Failed to set multicast TTL to " + CORE::Int32ToString( m_multicastTTL )
             + "\" on socket. Error code: " + CORE::UInt32ToString( errorCode ) );
     }
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set multicast TTL to \"" + CORE::Int32ToString( m_multicastTTL ) + "\" on socket" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set multicast TTL to \"" << m_multicastTTL << "\" on socket" );
 
     // This option is needed on the socket in order to be able to transmit broadcast messages
     // If not set the socket will not be able to transmit broadcast messages in the local network subnet.
@@ -1086,7 +1086,7 @@ CUDPSocket::Open( const CIPv4Address& localaddr )
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Failed to set broadcast option to " + CORE::BoolToString( m_allowBroadcast )
             + "\" on socket. Error code: " + CORE::UInt32ToString( errorCode ) );
     }
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set broadcast option to \"" + CORE::BoolToString( m_allowBroadcast ) + "\" on socket" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set broadcast option to \"" << CORE::BoolToString( m_allowBroadcast ) << "\" on socket" );
 
     _data->localaddress.sin_family = AF_INET;
     _data->localaddress.sin_port = ipv4Address.GetPort();
@@ -1164,7 +1164,7 @@ CUDPSocket::SetOsLevelSocketReceiveBufferSize( UInt32 osLevelSocketReceiveBuffer
                 return false;
             }
         }
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set OS level socket receive buffer size to " + CORE::Int32ToString( socketReceiveBufferSize ) );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set OS level socket receive buffer size to " << socketReceiveBufferSize );
 
         #else
 
@@ -1176,7 +1176,7 @@ CUDPSocket::SetOsLevelSocketReceiveBufferSize( UInt32 osLevelSocketReceiveBuffer
 
             return false;
         }
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "): Successfully set OS level socket receive buffer size to " + CORE::Int32ToString( socketReceiveBufferSize ) );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "): Successfully set OS level socket receive buffer size to " << socketReceiveBufferSize );
 
         #endif
     }
@@ -1201,8 +1201,8 @@ CUDPSocket::GetOsLevelSocketReceiveBufferSize( void ) const
             return m_osLevelSocketReceiveBufferSize;
         }
 
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UDPSocket(" + CORE::PointerToString( this ) + "):GetOsLevelSocketReceiveBufferSize: OS level receive buffer size is: " +
-                CORE::Int32ToString( actualSocketReceiveBufferSize ) );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UDPSocket(" << CORE::PointerToString( this ) << "):GetOsLevelSocketReceiveBufferSize: OS level receive buffer size is: " <<
+                actualSocketReceiveBufferSize );
         return (UInt32) actualSocketReceiveBufferSize;
     }
 

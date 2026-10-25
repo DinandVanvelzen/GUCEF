@@ -35,6 +35,11 @@
 #define GUCEF_CORE_CTIMER_H
 #endif /* GUCEF_CORE_CTIMER_H ? */
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_COMCORE_CIDISCOVERYCLIENT_H
 #include "gucefCOMCORE_CIDiscoveryClient.h"
 #define GUCEF_COMCORE_CIDISCOVERYCLIENT_H
@@ -141,6 +146,14 @@ class GUCEF_COMCORE_EXPORT_CPP CDiscoveryClientBase : public CIDiscoveryClient
     virtual void OnHousekeeping( UInt64 nowInMs );
 
     /**
+     *  The client neither browses nor advertises any more, which is when it has no use for what it opened for that:
+     *  close the sockets (which leaves the groups), drop the schedules. It is called after the last browse is stopped or the
+     *  last entry is withdrawn, also when the browse or the advertisement did not start. The next Browse() or Advertise()
+     *  opens what it needs again
+     */
+    virtual void OnIdle( void );
+
+    /**
      *  Records an entry that was heard on the network: new entries are reported as discovered, changed ones as
      *  updated, unchanged ones only get their TTL renewed. Entries of service types that are not browsed and
      *  entries this client advertises itself are ignored.
@@ -171,11 +184,15 @@ class GUCEF_COMCORE_EXPORT_CPP CDiscoveryClientBase : public CIDiscoveryClient
     /** The browsed service types */
     void GetBrowsedServiceTypes( CORE::CString::StringSet& serviceTypes ) const;
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CDiscoveryClientBase > TEventCallback;
+
+    void RegisterEventHandlers( void );
+
+    void OnHousekeepingTimer( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData );
 
     struct SDiscoveredEntry
     {
@@ -191,6 +208,7 @@ class GUCEF_COMCORE_EXPORT_CPP CDiscoveryClientBase : public CIDiscoveryClient
     CDiscoveryClientBase& operator=( const CDiscoveryClientBase& src );
 
     void UpdateHousekeepingTimer( void );
+    void ReleaseIfIdle( void );
     bool ExpireEntries( UInt64 nowInMs );
 
     private:

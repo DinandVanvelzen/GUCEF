@@ -31,6 +31,11 @@
 #define GUCEF_CORE_CDYNAMICBUFFER_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_COMCORE_CUDPSOCKET_H
 #include "CUDPSocket.h"
 #define GUCEF_COMCORE_CUDPSOCKET_H
@@ -128,9 +133,8 @@ class GUCEF_COM_PUBLIC_CPP CUdpDiscoveryClientBase : public COMCORE::CDiscoveryC
 
     virtual void OnHousekeeping( UInt64 nowInMs ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
+    /** Nothing is browsed or advertised: the socket is closed, which also leaves the groups it joined */
+    virtual void OnIdle( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     /** Closes the socket after withdrawing everything. Derived classes call it from their destructor */
     void Shutdown( void );
@@ -138,6 +142,7 @@ class GUCEF_COM_PUBLIC_CPP CUdpDiscoveryClientBase : public COMCORE::CDiscoveryC
     private:
 
     typedef GUCEF::map< CORE::CString, UInt64 > TAnnounceTimeMap;
+    typedef CORE::CTEventHandlerFunctor< CUdpDiscoveryClientBase > TEventCallback;
 
     CUdpDiscoveryClientBase( const CUdpDiscoveryClientBase& src );
     CUdpDiscoveryClientBase& operator=( const CUdpDiscoveryClientBase& src );
@@ -146,6 +151,12 @@ class GUCEF_COM_PUBLIC_CPP CUdpDiscoveryClientBase : public COMCORE::CDiscoveryC
     bool SendBeacon( const CORE::CDynamicBuffer& beacon );
     bool Announce( const COMCORE::CIDiscoveryEntry& entry, UInt64 nowInMs );
     bool OnPacket( const COMCORE::CIPv4Address& source, const CORE::CDynamicBuffer& packet );
+
+    void RegisterSocketEventHandlers( void );
+
+    void OnSocketPackets( CORE::CNotifier* notifier    ,
+                          const CORE::CEvent& eventId  ,
+                          CORE::CICloneable* eventData );
 
     private:
 

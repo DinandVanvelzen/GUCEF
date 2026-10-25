@@ -29,6 +29,16 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
+#ifndef GUCEF_CORE_DVCPPFILEUTILS_H
+#include "dvcppfileutils.h"
+#define GUCEF_CORE_DVCPPFILEUTILS_H
+#endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
+
+#ifndef GUCEF_CORE_DVCPPOSWRAP_H
+#include "DVCPPOSWRAP.h"
+#define GUCEF_CORE_DVCPPOSWRAP_H
+#endif /* GUCEF_CORE_DVCPPOSWRAP_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -113,6 +123,97 @@ CCurlHttpClientRequest::CCurlHttpClientRequest( CCurlHttpClientContextPtr contex
 {GUCEF_TRACE;
 
     m_errorBuffer[ 0 ] = '\0';
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CCurlHttpClientRequest::ResolveCaBundle( const CORE::CString& configuredPath )
+{GUCEF_TRACE;
+
+    // What the caller asks for is used as is: a file that cannot be read makes https requests fail, it never makes them unverified
+    if ( !configuredPath.IsNULLOrEmpty() )
+        return configuredPath;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    // curl uses the certificate store of Windows
+    return CORE::CString::Empty;
+
+    #else
+
+    // The standard variable of OpenSSL and of tools built on it
+    CORE::CString fromEnvironment = CORE::GetEnv( "SSL_CERT_FILE" );
+    if ( !fromEnvironment.IsNULLOrEmpty() )
+        return fromEnvironment;
+
+    // The bundle of the system: Debian and Ubuntu, RHEL and Fedora, Alpine and macOS, openSUSE, RHEL (extracted store).
+    // None of them: curl falls back on the default locations of the TLS library it was built with
+    static const char* const systemBundles[] =
+    {
+        "/etc/ssl/certs/ca-certificates.crt"            ,
+        "/etc/pki/tls/certs/ca-bundle.crt"              ,
+        "/etc/ssl/cert.pem"                             ,
+        "/etc/ssl/ca-bundle.pem"                        ,
+        "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
+    };
+    for ( size_t i=0; i<sizeof( systemBundles ) / sizeof( systemBundles[ 0 ] ); ++i )
+    {
+        CORE::CString bundle = systemBundles[ i ];
+        if ( CORE::FileExists( bundle ) )
+            return bundle;
+    }
+    return CORE::CString::Empty;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+WEB::THttpTransferErrorClass
+CCurlHttpClientRequest::ClassifyCurlResult( CURLcode result )
+{GUCEF_TRACE;
+
+    switch ( result )
+    {
+        case CURLE_COULDNT_RESOLVE_HOST :
+        case CURLE_COULDNT_RESOLVE_PROXY :
+        {
+            return WEB::HTTPERRORCLASS_DNS;
+        }
+        case CURLE_COULDNT_CONNECT :
+        case CURLE_SEND_ERROR :
+        case CURLE_RECV_ERROR :
+        case CURLE_GOT_NOTHING :
+        case CURLE_PARTIAL_FILE :
+        {
+            return WEB::HTTPERRORCLASS_CONNECT;
+        }
+        case CURLE_SSL_CONNECT_ERROR :
+        case CURLE_PEER_FAILED_VERIFICATION :
+        case CURLE_SSL_CERTPROBLEM :
+        case CURLE_SSL_CIPHER :
+        case CURLE_SSL_CACERT_BADFILE :
+        case CURLE_SSL_ISSUER_ERROR :
+        case CURLE_SSL_CRL_BADFILE :
+        case CURLE_SSL_ENGINE_NOTFOUND :
+        case CURLE_SSL_ENGINE_SETFAILED :
+        case CURLE_SSL_ENGINE_INITFAILED :
+        case CURLE_SSL_INVALIDCERTSTATUS :
+        case CURLE_SSL_PINNEDPUBKEYNOTMATCH :
+        case CURLE_USE_SSL_FAILED :
+        {
+            return WEB::HTTPERRORCLASS_TLS;
+        }
+        case CURLE_OPERATION_TIMEDOUT :
+        {
+            return WEB::HTTPERRORCLASS_TIMEOUT;
+        }
+        default :
+        {
+            return WEB::HTTPERRORCLASS_OTHER;
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -202,6 +303,14 @@ CCurlHttpClientRequest::SetupEasyHandle( void )
     // Same as the other backends: the headers are given as is, no decoding of the content
     curl_easy_setopt( m_easy, CURLOPT_SSL_VERIFYPEER, m_options.verifyPeer ? 1L : 0L );
     curl_easy_setopt( m_easy, CURLOPT_SSL_VERIFYHOST, m_options.verifyPeer ? 2L : 0L );
+
+    // The authorities that are trusted: the build of curl has no bundle of its own, so one is given here
+    if ( m_options.verifyPeer )
+    {
+        CORE::CString caBundle = ResolveCaBundle( m_options.caBundlePath );
+        if ( !caBundle.IsNULLOrEmpty() )
+            curl_easy_setopt( m_easy, CURLOPT_CAINFO, caBundle.C_String() );
+    }
 
     // An empty proxy stops curl from looking at the proxy environment variables so that the proxy
     // options are the only thing deciding, same as for the other backends
@@ -331,6 +440,7 @@ CCurlHttpClientRequest::OnCurlDone( CURLcode result )
     {
         CORE::CString description = '\0' != m_errorBuffer[ 0 ] ? CORE::CString( m_errorBuffer ) : CORE::CString( curl_easy_strerror( result ) );
         m_transferInfo.timedOut = CURLE_OPERATION_TIMEDOUT == result;
+        m_transferInfo.errorClass = ClassifyCurlResult( result );
         Finish( false, description, (CORE::Int32) result );
     }
 }

@@ -81,6 +81,17 @@ class HTTPCLIENTPLUGIN_CURL_PRIVATE_CPP CCurlHttpClientRequest : public WEB::CHt
     /** called by the driver for bookkeeping of whether the easy handle is part of its multi handle */
     void SetIsInMulti( bool isInMulti );
 
+    /**
+     *  The file with the trusted certificate authorities for a https request: the configured path when given, otherwise
+     *  the environment variable SSL_CERT_FILE, otherwise the first bundle of the system that exists (Linux: Debian and Ubuntu,
+     *  RHEL, /etc/ssl/cert.pem). Empty when there is none and curl is to use the defaults of its TLS library; on Windows curl
+     *  uses the certificate store of the system and only a configured path is returned.
+     */
+    static CORE::CString ResolveCaBundle( const CORE::CString& configuredPath );
+
+    /** the kind of failure a curl result code stands for */
+    static WEB::THttpTransferErrorClass ClassifyCurlResult( CURLcode result );
+
     protected:
 
     virtual void OnFinish( void ) GUCEF_VIRTUAL_OVERRIDE;

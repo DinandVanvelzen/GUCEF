@@ -50,6 +50,9 @@ files( {
   "include/TestCode_CHTTPClient.h",
   "include/TestCode_CHTTPServer.h",
   "include/TestHttpClient.h",
+  "include/TestHttpHeaderParsing.h",
+  "include/TestHttpRedaction.h",
+  "include/TestHttpServerBind.h",
   "include/TestIrcWebSocket.h",
   "include/TestJsonRpc.h",
   "include/TestWebSocket.h",
@@ -65,6 +68,9 @@ files( {
   "src/TestCode_CHTTPClient.cpp",
   "src/TestCode_CHTTPServer.cpp",
   "src/TestHttpClient.cpp",
+  "src/TestHttpHeaderParsing.cpp",
+  "src/TestHttpRedaction.cpp",
+  "src/TestHttpServerBind.cpp",
   "src/TestIrcWebSocket.cpp",
   "src/TestJsonRpc.cpp",
   "src/TestWebSocket.cpp",
@@ -74,7 +80,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )

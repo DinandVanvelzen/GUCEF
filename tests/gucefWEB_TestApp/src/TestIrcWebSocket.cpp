@@ -58,6 +58,21 @@
 #define GUCEF_WEB_CWEBGLOBAL_H
 #endif /* GUCEF_WEB_CWEBGLOBAL_H ? */
 
+#ifndef GUCEF_COMCORE_H
+#include "gucefCOMCORE.h"
+#define GUCEF_COMCORE_H
+#endif /* GUCEF_COMCORE_H ? */
+
+#ifndef GUCEF_TEST_TLS_SERVER_H
+#include "gucef_test_tls_server.h"
+#define GUCEF_TEST_TLS_SERVER_H
+#endif /* GUCEF_TEST_TLS_SERVER_H ? */
+
+#ifndef GUCEF_TEST_TLS_TERMINATOR_H
+#include "gucef_test_tls_terminator.h"
+#define GUCEF_TEST_TLS_TERMINATOR_H
+#endif /* GUCEF_TEST_TLS_TERMINATOR_H ? */
+
 #ifndef GUCEF_TEST_FRAMEWORK_H
 #include "gucef_test_framework.h"
 #define GUCEF_TEST_FRAMEWORK_H
@@ -424,6 +439,62 @@ PerformIrcWebSocketTests( void )
             client.Disconnect( "bye" );
             ASSERT_TRUE( PumpUntilTrue( server.quitReceived, 5000 ) );
             ASSERT_TRUE( PumpUntilAtLeast( recorder.disconnected, 1, 5000 ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The IRC client talks over a WebSocket with TLS (wss) when the settings say useTls" )
+        GUCEF_TESTFW_SKIP_IF( !EnsureHashCodecPlugin(), "The sha1 codec for the WebSocket handshake is not available" );
+        CORE::CString whyNoTls;
+        GUCEF_TESTFW_SKIP_IF( !TESTFW::CTlsTestCerts::IsToolAvailable(), "the openssl command line tool is not available" );
+        GUCEF_TESTFW_SKIP_IF( !COMCORE::CComCoreGlobal::Instance()->GetTlsProviderRegistry().IsAnyAvailable( whyNoTls ), "this system has no TLS provider" );
+        try
+        {
+            TESTFW::CTlsTestCerts certs;
+            ASSERT_TRUE( certs.IsReady() );
+            CFakeIrcWebSocketServer server;
+            ASSERT_TRUE( server.Start() );
+            TESTFW::CTlsTestTerminator terminator;
+            ASSERT_TRUE( terminator.Start( certs.GetPath( "good.crt" ), certs.GetPath( "good.key" ), IrcWebSocketPort ) );
+
+            COM::CIrcClient client;
+            CIrcRecorder recorder;
+            recorder.SubscribeTo( &client );
+
+            COM::CIrcClientSettings settings;
+            settings.server = "localhost";
+            settings.port = terminator.GetPort();
+            settings.useWebSocket = true;
+            settings.useTls = true;
+            settings.tls.SetCaBundlePath( certs.GetPath( "ca.crt" ) );
+            settings.tls.SetUseSystemTrust( false );
+            settings.webSocketPath = "/irc";
+            settings.nick = "securetester";
+            ASSERT_TRUE( client.Connect( settings ) );
+            ASSERT_TRUE( PumpUntilAtLeast( recorder.registered, 1, 10000 ) );
+            ASSERT_TRUE( server.subProtocol == "text.ircv3.net" );
+            ASSERT_TRUE( client.PrivMsg( "#web", "hello over tls" ) );
+            ASSERT_TRUE( PumpUntilAtLeast( recorder.messages, 1, 5000 ) );
+            ASSERT_TRUE( server.lastPrivMsg == "hello over tls" );
+
+            client.Disconnect( "bye" );
+            ASSERT_TRUE( PumpUntilTrue( server.quitReceived, 5000 ) );
+            ASSERT_TRUE( PumpUntilAtLeast( recorder.disconnected, 1, 5000 ) );
+
+            // an untrusted certificate: nothing is registered, the error is reported
+            COM::CIrcClient refused;
+            CIrcRecorder refusedRecorder;
+            refusedRecorder.SubscribeTo( &refused );
+            COM::CIrcClientSettings untrusting = settings;
+            untrusting.tls = COMCORE::CTlsSettings();
+            untrusting.tls.SetCaBundlePath( certs.GetPath( "other_ca.crt" ) );
+            untrusting.tls.SetUseSystemTrust( false );
+            ASSERT_TRUE( refused.Connect( untrusting ) );
+            ASSERT_TRUE( PumpUntilAtLeast( refusedRecorder.errors, 1, 10000 ) );
+            ASSERT_TRUE( 0 == refusedRecorder.registered );
         }
         catch ( ... )
         {

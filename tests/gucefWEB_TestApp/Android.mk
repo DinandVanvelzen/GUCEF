@@ -25,6 +25,9 @@ LOCAL_SRC_FILES := \
   src/TestCode_CHTTPClient.cpp \
   src/TestCode_CHTTPServer.cpp \
   src/TestHttpClient.cpp \
+  src/TestHttpHeaderParsing.cpp \
+  src/TestHttpRedaction.cpp \
+  src/TestHttpServerBind.cpp \
   src/TestIrcWebSocket.cpp \
   src/TestJsonRpc.cpp \
   src/TestWebSocket.cpp \
@@ -34,6 +37,7 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../common/test/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \

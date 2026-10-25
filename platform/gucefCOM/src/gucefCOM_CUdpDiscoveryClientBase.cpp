@@ -122,7 +122,19 @@ CUdpDiscoveryClientBase::CUdpDiscoveryClientBase( const CORE::CString& defaultCl
 {GUCEF_TRACE;
 
     m_socket.SetNrOfReceiveBuffers( 4, 2048 );
-    SubscribeTo( &m_socket );
+    RegisterSocketEventHandlers();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CUdpDiscoveryClientBase::RegisterSocketEventHandlers( void )
+{GUCEF_TRACE;
+
+    TEventCallback callback( this, &CUdpDiscoveryClientBase::OnSocketPackets );
+    SubscribeTo( &m_socket                                ,
+                 COMCORE::CUDPSocket::UDPPacketsRecievedEvent ,
+                 callback                                 );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -264,7 +276,7 @@ CUdpDiscoveryClientBase::SendBeacon( const CORE::CDynamicBuffer& beacon )
             if ( result == (Int32) beacon.GetDataSize() )
                 ++sent;
             else
-                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UdpDiscoveryClient(" << GetDiscoveryClientName() << "): Failed to send a beacon to " << targets[ i ].AddressAndPortAsString() );
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UdpDiscoveryClient(" << GetDiscoveryClientName() << "): Failed to send a beacon to " << targets[ i ].AddressAndPortAsString() );
         }
     }
 
@@ -338,6 +350,18 @@ CUdpDiscoveryClientBase::OnWithdrawn( const COMCORE::CIDiscoveryEntryPtr& entry 
 /*-------------------------------------------------------------------------*/
 
 void
+CUdpDiscoveryClientBase::OnIdle( void )
+{GUCEF_TRACE;
+
+    m_socket.Close();
+    m_destinations.clear();
+    m_nextAnnounceTimes.clear();
+    m_sendErrorReported = false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CUdpDiscoveryClientBase::OnHousekeeping( UInt64 nowInMs )
 {GUCEF_TRACE;
 
@@ -364,7 +388,7 @@ CUdpDiscoveryClientBase::OnPacket( const COMCORE::CIPv4Address& source, const CO
     COMCORE::CDiscoveryEntry entry;
     if ( !CUdpDiscoveryCodec::Decode( packet.GetConstBufferPtr(), packet.GetDataSize(), kind, entry ) )
     {
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "UdpDiscoveryClient(" << GetDiscoveryClientName() << "): Ignoring a malformed beacon from " << source.AddressAndPortAsString() );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "UdpDiscoveryClient(" << GetDiscoveryClientName() << "): Ignoring a malformed beacon from " << source.AddressAndPortAsString() );
         return true;
     }
 
@@ -408,27 +432,21 @@ CUdpDiscoveryClientBase::OnPacket( const COMCORE::CIPv4Address& source, const CO
 /*-------------------------------------------------------------------------*/
 
 void
-CUdpDiscoveryClientBase::OnNotify( CORE::CNotifier* notifier    ,
-                                   const CORE::CEvent& eventId  ,
-                                   CORE::CICloneable* eventData )
+CUdpDiscoveryClientBase::OnSocketPackets( CORE::CNotifier* notifier    ,
+                                          const CORE::CEvent& eventId  ,
+                                          CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( notifier == &m_socket )
-    {
-        if ( COMCORE::CUDPSocket::UDPPacketsRecievedEvent == eventId && GUCEF_NULL != eventData )
-        {
-            const COMCORE::CUDPSocket::TUdpPacketsRecievedEventData& data = static_cast< COMCORE::CUDPSocket::UDPPacketsRecievedEventData* >( eventData )->GetData();
-            for ( UInt32 i=0; i<data.packetsReceived; ++i )
-            {
-                const COMCORE::CUDPSocket::TPacketEntry& packet = data.packets[ i ];
-                if ( !OnPacket( packet.sourceAddress, packet.dataBuffer.GetData() ) )
-                    return;
-            }
-        }
+    if ( GUCEF_NULL == eventData )
         return;
-    }
 
-    COMCORE::CDiscoveryClientBase::OnNotify( notifier, eventId, eventData );
+    const COMCORE::CUDPSocket::TUdpPacketsRecievedEventData& data = static_cast< COMCORE::CUDPSocket::UDPPacketsRecievedEventData* >( eventData )->GetData();
+    for ( UInt32 i=0; i<data.packetsReceived; ++i )
+    {
+        const COMCORE::CUDPSocket::TPacketEntry& packet = data.packets[ i ];
+        if ( !OnPacket( packet.sourceAddress, packet.dataBuffer.GetData() ) )
+            return;
+    }
 }
 
 /*-------------------------------------------------------------------------*/

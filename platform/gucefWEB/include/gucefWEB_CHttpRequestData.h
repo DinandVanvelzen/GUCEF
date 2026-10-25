@@ -119,6 +119,18 @@ class GUCEF_WEB_PUBLIC_CPP CHttpRequestData : public CORE::CICloneable
      */
     UInt16 GetPort( void ) const;
 
+    /**
+     *  Whether two request targets are of the same origin (RFC 6454): the same scheme, host and port.
+     *  The scheme and host are compared ignoring case, a port which is not given is the default port of the
+     *  scheme, the user info in front of a host is not part of the origin. A request target which does not
+     *  have a scheme, a host, or has a port which is not a number is never of the same origin as any other.
+     *
+     *  @param protocolA scheme of the first request target, for example "https"
+     *  @param hostA authority of the first request target as in requestHost: [user@]host[:port]
+     */
+    static bool IsSameOrigin( const CString& protocolA, const CString& hostA ,
+                              const CString& protocolB, const CString& hostB );
+
     CHttpRequestData( void );
     CHttpRequestData( const CHttpRequestData& src );
     virtual ~CHttpRequestData();

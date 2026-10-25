@@ -115,7 +115,20 @@ class CWinHttpSession
         if ( NULL == m_session )
             m_session = WinHttpOpen( L"GUCEF", WINHTTP_ACCESS_TYPE_DEFAULT_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_ASYNC );
         if ( NULL == m_session )
+        {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WinHttpClientBackend: WinHttpOpen() failed with error " + CORE::UInt32ToString( (UInt32) GetLastError() ) );
+            return;
+        }
+
+        // The same floor as everywhere else: TLS 1.2 and newer. Without this the protocols the system has enabled for WinHTTP are used, which on
+        // systems that still have TLS 1.0 and 1.1 switched on for WinHTTP includes those. Not verified on Windows: where the system does not know
+        // the flags (Windows 7 without the update for TLS 1.2) the option is refused and the defaults of the system stay
+        DWORD secureProtocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2;
+        #ifdef WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3
+        secureProtocols |= WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3;
+        #endif
+        if ( !WinHttpSetOption( m_session, WINHTTP_OPTION_SECURE_PROTOCOLS, &secureProtocols, sizeof( secureProtocols ) ) )
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "WinHttpClientBackend: The minimum protocol of TLS 1.2 could not be set, error " << (UInt32) GetLastError() << ": the defaults of the system apply" );
     }
 
     ~CWinHttpSession()
@@ -368,6 +381,30 @@ class CWinHttpRequest : public CHttpClientBackendRequestBase ,
     CWinHttpRequest& operator=( const CWinHttpRequest& src );   /**< not implemented */
 
     /** Text for an error code of WinHTTP or Windows */
+    /** the kind of failure a WinHTTP error stands for, a failed secure connection is told by the flags of the secure failure notification */
+    static THttpTransferErrorClass ClassifyError( DWORD error, DWORD secureFailureFlags )
+    {GUCEF_TRACE;
+
+        if ( 0 != secureFailureFlags )
+            return HTTPERRORCLASS_TLS;
+        switch ( error )
+        {
+            case ERROR_WINHTTP_NAME_NOT_RESOLVED :          return HTTPERRORCLASS_DNS;
+            case ERROR_WINHTTP_CANNOT_CONNECT :
+            case ERROR_WINHTTP_CONNECTION_ERROR :           return HTTPERRORCLASS_CONNECT;
+            case ERROR_WINHTTP_SECURE_FAILURE :
+            case ERROR_WINHTTP_SECURE_CHANNEL_ERROR :
+            case ERROR_WINHTTP_SECURE_INVALID_CA :
+            case ERROR_WINHTTP_SECURE_INVALID_CERT :
+            case ERROR_WINHTTP_SECURE_CERT_REVOKED :
+            case ERROR_WINHTTP_SECURE_CERT_WRONG_USAGE :
+            case ERROR_WINHTTP_SECURE_CERT_CN_INVALID :
+            case ERROR_WINHTTP_SECURE_CERT_DATE_INVALID :   return HTTPERRORCLASS_TLS;
+            case ERROR_WINHTTP_TIMEOUT :                    return HTTPERRORCLASS_TIMEOUT;
+            default :                                       return HTTPERRORCLASS_OTHER;
+        }
+    }
+
     static CString DescribeError( DWORD error )
     {GUCEF_TRACE;
 
@@ -728,6 +765,7 @@ class CWinHttpRequest : public CHttpClientBackendRequestBase ,
                 if ( 0 != m_secureFailureFlags )
                     description += ", secure connection failed:" + DescribeSecureFailure( m_secureFailureFlags );
                 m_transferInfo.timedOut = ERROR_WINHTTP_TIMEOUT == event.error;
+                m_transferInfo.errorClass = ClassifyError( event.error, m_secureFailureFlags );
                 Finish( false, description, (Int32) event.error );
                 break;
             }

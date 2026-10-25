@@ -36,6 +36,7 @@ set( HEADER_FILES
   include/gucefWEB_CHttpCookieJar.h
   include/gucefWEB_CHttpEncodingTypes.h
   include/gucefWEB_CHttpMimeTypes.h
+  include/gucefWEB_CHttpProxyEnvironment.h
   include/gucefWEB_CHttpRequestData.h
   include/gucefWEB_CHttpResponseData.h
   include/gucefWEB_CHttpUriResourceAccessor.h
@@ -100,6 +101,7 @@ set( SOURCE_FILES
   src/gucefWEB_CHttpCookieJar.cpp
   src/gucefWEB_CHttpEncodingTypes.cpp
   src/gucefWEB_CHttpMimeTypes.cpp
+  src/gucefWEB_CHttpProxyEnvironment.cpp
   src/gucefWEB_CHttpRequestData.cpp
   src/gucefWEB_CHttpResponseData.cpp
   src/gucefWEB_CHttpUriResourceAccessor.cpp

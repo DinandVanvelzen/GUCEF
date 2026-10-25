@@ -47,10 +47,20 @@ namespace WEB {
 //-------------------------------------------------------------------------*/
 
 /**
- *  HTTP client backend which only uses the sockets of the platform: plain http (no TLS), HTTP/1.1 with one
- *  connection per request. Always available, it is the fallback when no plugin provides a backend.
+ *  HTTP client backend which only uses the sockets of the platform: HTTP/1.1 with one connection per request.
+ *  Always available, it is the fallback when no plugin provides a backend.
  *  Request and response bodies of any size are streamed, responses can use Content-Length, chunked transfer
  *  encoding or end at the close of the connection.
+ *
+ *  https goes through the TLS layer of gucefCOMCORE (CTlsClientConnection): the certificate is verified against the
+ *  trust store of the system, or the CA of the options, and has to name the host. SupportsScheme( "https" ) is true
+ *  when a TLS provider is available at that moment: on Linux that is the OpenSSL of the system, loaded when first
+ *  asked for. Without one https requests fail with HTTPERRORCLASS_NO_BACKEND and "no HTTPS support: <reason>".
+ *
+ *  Proxies: the proxy of the options, else the one of the environment (HTTPS_PROXY, HTTP_PROXY, NO_PROXY: see
+ *  CHttpProxyEnvironment; switched off with options.useEnvironmentProxy). A https request goes through a proxy with a
+ *  CONNECT tunnel and TLS inside of it; a http request is sent to the proxy with the absolute URL.
+ *  Not supported: SOCKS and PAC proxies, proxies that need NTLM or Negotiate.
  */
 class GUCEF_WEB_PUBLIC_CPP CNativeHttpClientBackend : public CIHttpClientBackend
 {
@@ -64,6 +74,9 @@ class GUCEF_WEB_PUBLIC_CPP CNativeHttpClientBackend : public CIHttpClientBackend
     virtual CString GetBackendName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool SupportsScheme( const CString& scheme ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** Whether https can be carried out right now: a TLS provider is available. When not, whyNot says why */
+    static bool IsHttpsAvailable( CString& whyNot );
 
     virtual CIHttpClientBackendRequestPtr StartRequest( const CHttpRequestData& request          ,
                                                         const CHttpClientRequestOptions& options ,

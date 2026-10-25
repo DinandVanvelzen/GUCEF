@@ -46,6 +46,7 @@ LOCAL_SRC_FILES := \
   src/gucefWEB_CHttpCookieJar.cpp \
   src/gucefWEB_CHttpEncodingTypes.cpp \
   src/gucefWEB_CHttpMimeTypes.cpp \
+  src/gucefWEB_CHttpProxyEnvironment.cpp \
   src/gucefWEB_CHttpRequestData.cpp \
   src/gucefWEB_CHttpResponseData.cpp \
   src/gucefWEB_CHttpUriResourceAccessor.cpp \

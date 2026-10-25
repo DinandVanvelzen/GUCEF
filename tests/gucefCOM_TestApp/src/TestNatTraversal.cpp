@@ -812,6 +812,42 @@ PerformStunTests( void )
             ERRORHERE;
         }
     GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A STUN result is only taken from a future that carries one" )
+        try
+        {
+            COM::CStunClient::CStunResult made;
+            made.reflexiveAddress = COMCORE::CIPv4Address( "203.0.113.9", 4000 );
+
+            CORE::CFutureResultSource good;
+            CORE::CFutureResult goodFuture = good.GetFuture();
+            COM::CStunClient::CStunResult result;
+            ASSERT_FALSE( COM::CStunClient::TryGetResultFromFuture( goodFuture, result ) );    // not ready
+            ASSERT_TRUE( good.Complete( made.Clone(), true ) );
+            ASSERT_TRUE( COM::CStunClient::TryGetResultFromFuture( goodFuture, result ) );
+            ASSERT_TRUE( result.reflexiveAddress.AddressAndPortAsString() == "203.0.113.9:4000" );
+
+            // finished well, but with the data of another class
+            CORE::CFutureResultSource foreign;
+            CORE::CFutureResult foreignFuture = foreign.GetFuture();
+            COM::CStunClient::CStunResult untouched;
+            ASSERT_TRUE( foreign.Complete( GUCEF_NEW CORE::TCloneableString( "not a stun result" ), true ) );
+            ASSERT_FALSE( COM::CStunClient::TryGetResultFromFuture( foreignFuture, untouched ) );
+            ASSERT_TRUE( untouched.reflexiveAddress.AddressAndPortAsString() != "203.0.113.9:4000" );
+
+            // and the one of a port mapper is no STUN result either
+            COMCORE::CPortMappingResult mapping;
+            CORE::CFutureResultSource mapper;
+            CORE::CFutureResult mapperFuture = mapper.GetFuture();
+            ASSERT_TRUE( mapper.Complete( mapping.Clone(), true ) );
+            ASSERT_FALSE( COM::CStunClient::TryGetResultFromFuture( mapperFuture, untouched ) );
+            ASSERT_FALSE( COMCORE::CPortMappingResult::TryGetFromFuture( goodFuture, mapping ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/
@@ -858,7 +894,9 @@ PerformUpnpPluginTests( void )
             mapper.Unlink();
 
             // The plugin goes before the globals it registered with
+            // The group forgets the plugin too, a later load of the application config would load it again
             ASSERT_TRUE( CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( "test" ) );
+            CORE::CCoreGlobal::Instance()->GetPluginControl().ClearMetaDataFromGroup( "test" );
             ASSERT_FALSE( factory.IsConstructible( "upnp" ) );
         }
         catch ( ... )

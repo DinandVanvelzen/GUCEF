@@ -53,6 +53,11 @@
 #define GUCEF_COMCORE_SOCKETUTILS_H
 #endif /* GUCEF_COMCORE_SOCKETUTILS_H ? */
 
+#ifndef GUCEF_COMCORE_CIPV4ADDRESS_H
+#include "gucefCOMCORE_CIPv4Address.h"
+#define GUCEF_COMCORE_CIPV4ADDRESS_H
+#endif /* GUCEF_COMCORE_CIPV4ADDRESS_H ? */
+
 #include "CTCPServerSocket.h"           /* this file's header */
 
 /*-------------------------------------------------------------------------//
@@ -121,7 +126,11 @@ CTCPServerSocket::CTCPServerSocket( const CORE::PulseGeneratorPtr& pulseGenerato
     , m_inactiveConnections()
     , _active( false )                        
     , _blocking( blocking )                   
-    , m_port( 0 )                             
+    , m_port( 0 )
+    , m_boundPort( 0 )
+    , m_bindAddress()
+    , m_bindAddressInNetworkByteOrder( INADDR_ANY )
+    , m_bindAddressValid( true )
     , _datalock()
     , _timeout( 0 )
     , m_pulseGenerator( pulseGenerator )
@@ -155,7 +164,11 @@ CTCPServerSocket::CTCPServerSocket( bool blocking         ,
     , m_inactiveConnections()
     , _active( false )                        
     , _blocking( blocking )                   
-    , m_port( 0 )      
+    , m_port( 0 )
+    , m_boundPort( 0 )
+    , m_bindAddress()
+    , m_bindAddressInNetworkByteOrder( INADDR_ANY )
+    , m_bindAddressValid( true )
     , _datalock()                       
     , _timeout( 0 )
     , m_pulseGenerator( CORE::CCoreGlobal::Instance()->GetPulseGenerator() )
@@ -561,6 +574,14 @@ CTCPServerSocket::ListenOnPort( UInt16 servport )
         }
     }
 
+    // A bind address that could not be understood is not turned into "every NIC"
+    if ( !m_bindAddressValid )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CTCPServerSocket: The bind address is not a dotted IPv4 address, not listening" );
+        NotifyObservers( ServerSocketErrorEvent );
+        return false;
+    }
+
     int error = 0;
     _data->sockid = dvsocket_socket( AF_INET     ,    /* Go over TCP/IP */
                                      SOCK_STREAM ,    /* This is a stream-oriented socket */
@@ -606,10 +627,10 @@ CTCPServerSocket::ListenOnPort( UInt16 servport )
 	 */
 	_data->serverinfo.sin_family = AF_INET;
 
-	/*
-	 *      Since this socket is listening for connections, any local address will do
-	 */
-	_data->serverinfo.sin_addr.s_addr = INADDR_ANY;
+    /*
+     *      Any local address unless a bind address was set
+     */
+    _data->serverinfo.sin_addr.s_addr = m_bindAddressInNetworkByteOrder;
 
     /*
      *      Convert integer servport to network-byte order
@@ -636,6 +657,17 @@ CTCPServerSocket::ListenOnPort( UInt16 servport )
 	    NotifyObservers( ServerSocketErrorEvent, &eData );
 	    return false;
 	}
+
+    // A port of 0 asks the system for a free port: find out which one it is
+    m_boundPort = servport;
+    if ( 0 == servport )
+    {
+        SOCKADDR_IN boundInfo;
+        memset( &boundInfo, 0, sizeof( boundInfo ) );
+        socklen_t boundInfoSize = sizeof( boundInfo );
+        if ( 0 == getsockname( _data->sockid, (LPSOCKADDR) &boundInfo, &boundInfoSize ) )
+            m_boundPort = ntohs( boundInfo.sin_port );
+    }
 
     // Before we actually open the socket lets give observers the chance to pre-allocate things if needed
     // based on the max number of connections.
@@ -853,6 +885,61 @@ CTCPServerSocket::GetPort( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+UInt16
+CTCPServerSocket::GetBoundPort( void ) const
+{GUCEF_TRACE;
+
+    return IsActive() ? m_boundPort : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPServerSocket::SetBindAddress( const CORE::CString& bindAddress )
+{GUCEF_TRACE;
+
+    if ( bindAddress == m_bindAddress )
+        return m_bindAddressValid;
+
+    UInt32 addressInNetworkByteOrder = INADDR_ANY;
+    bool isValid = true;
+    if ( !bindAddress.IsNULLOrEmpty() )
+    {
+        CIPv4Address address;
+        isValid = address.SetAddress( bindAddress );
+        if ( isValid )
+            addressInNetworkByteOrder = address.GetAddress();
+    }
+
+    bool wasActive = false;
+    if ( IsActive() )
+    {
+        wasActive = true;
+        Close();
+    }
+
+    m_bindAddress = bindAddress;
+    m_bindAddressInNetworkByteOrder = addressInNetworkByteOrder;
+    m_bindAddressValid = isValid;
+
+    if ( wasActive )
+    {
+        return Listen();
+    }
+    return isValid;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CTCPServerSocket::GetBindAddress( void ) const
+{GUCEF_TRACE;
+
+    return m_bindAddress;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CTCPServerSocket::OnClientConnectionClosed( CTCPServerConnection* connection ,
                                             const UInt32 connectionid        ,
@@ -881,7 +968,10 @@ CTCPServerSocket::GetListenAddress( CHostAddress& listenAddress ) const
 {GUCEF_TRACE;
 
     _datalock.Lock();
-    listenAddress.SetHostnameAndPort( "localhost", m_port );
+    if ( m_bindAddressValid && !m_bindAddress.IsNULLOrEmpty() && INADDR_ANY != m_bindAddressInNetworkByteOrder )
+        listenAddress.SetHostnameAndPort( m_bindAddress, m_port );
+    else
+        listenAddress.SetHostnameAndPort( "localhost", m_port );
     _datalock.Unlock();
 }
 

@@ -60,7 +60,14 @@ class GUCEF_WEB_PUBLIC_CPP CHttpClientBackendSelection
 
     typedef CString::StringVector TStringVector;
 
-    /** the default order: a plugin backend when loaded, the OS backend on Windows, the native backend otherwise */
+    /**
+     *  the default order: "curl" (the plugin httpclientpluginCURL) when loaded, "winhttp" on Windows, the native backend otherwise.
+     *  What carries https: the native backend does when a TLS provider is available (on Linux the OpenSSL of the system, loaded when
+     *  first asked for), and a plugin backend such as curl does when it is loaded; on Windows "winhttp" is part of the build and uses the
+     *  certificate store of the system. All of them verify the certificate of the server against the trust store of the system, or
+     *  SSL_CERT_FILE, or CHttpClientRequestOptions::caBundlePath. Loading a plugin is a choice, so it comes first.
+     *  See IsSchemeSupported().
+     */
     static TStringVector GetDefaultPreferredBackends( void );
 
     CHttpClientBackendSelection( void );
@@ -76,7 +83,25 @@ class GUCEF_WEB_PUBLIC_CPP CHttpClientBackendSelection
      */
     CIHttpClientBackendPtr GetBackendForScheme( const CString& scheme );
 
+    /** whether any preferred backend that is registered right now supports the scheme; unlike GetBackendForScheme() nothing is logged when none does */
+    bool IsSchemeSupported( const CString& scheme );
+
+    /**
+     *  Why no backend carries the scheme, for a message: for https the reason the TLS provider gives ("no HTTPS support: libssl.so.3:
+     *  cannot open shared object file ..."), for anything else that the scheme is not known
+     */
+    static CString DescribeUnsupportedScheme( const CString& scheme );
+
+    /**
+     *  The preferred backends that are registered right now, the most basic first, each followed by "(https)" when it
+     *  carries https as well: "native, curl (https)"
+     */
+    CString DescribeAvailableBackends( void );
+
     private:
+
+    CIHttpClientBackendPtr FindBackendForScheme( const CString& scheme, bool logWhenNone );
+
 
     CHttpClientBackendSelection( const CHttpClientBackendSelection& src );            /**< not supported */
     CHttpClientBackendSelection& operator=( const CHttpClientBackendSelection& src ); /**< not supported */

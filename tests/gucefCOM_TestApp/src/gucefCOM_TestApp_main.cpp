@@ -36,6 +36,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#include "gucef_test_log_callback.h"
+#define GUCEF_TEST_LOG_CALLBACK_H
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
 #define GUCEF_CORE_H
@@ -60,6 +65,7 @@
 #include "TestRttProbes.h"
 #include "TestNatTraversal.h"
 #include "TestIrc.h"
+#include "TestStatsDClient.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -94,7 +100,7 @@ GUCEF_OSMAIN_BEGIN
         COM::CComGlobal::Instance();
 
         GUCEF_TESTFW_INIT( "gucefCOM_TestApp" );
-        GUCEF_TESTFW_SET_CALLBACK( CORE::TestFrameworkLogCallback, GUCEF_NULL );
+        GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
         PerformUdpDiscoveryTests();
         PerformMdnsDiscoveryTests();
@@ -105,6 +111,7 @@ GUCEF_OSMAIN_BEGIN
         PerformUpnpPluginTests();
         PerformIrcMessageTests();
         PerformIrcClientTests();
+        PerformStatsDClientTests();
 
         CORE::CLogStreamScope::FlushLogs();
 

@@ -113,6 +113,10 @@ class GUCEF_COM_PUBLIC_CPP CStunClient : public CORE::CObservingNotifier
         virtual ~CStunResult();
         CStunResult& operator=( const CStunResult& src );
         virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+        /** Type check of future/event data without RTTI, see CORE::CICloneable::CloneableAs() */
+        virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+        static const char* CloneableTypeName( void );
     };
 
     /**

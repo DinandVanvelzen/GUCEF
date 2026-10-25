@@ -73,6 +73,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_SOCKETS_H
+#include "gucef_test_sockets.h"
+#define GUCEF_TEST_SOCKETS_H
+#endif /* GUCEF_TEST_SOCKETS_H ? */
+
 #include "TestCode_Pump.h"
 
 #include "TestDiscovery.h"
@@ -214,6 +219,66 @@ CanBroadcast( UInt16 port )
     socket.Close();
     return sent;
 }
+
+
+/** What a discovery client holds of the process while it browses or advertises: sockets and requests for pulses */
+struct SProcessHold
+{
+    int sockets;
+    UInt32 pulseRequestors;
+
+    SProcessHold( void )
+        : sockets( GUCEF::TESTFW::CountOpenSockets() )
+        , pulseRequestors( CORE::CCoreGlobal::Instance()->GetPulseGenerator()->GetNrOfPeriodicPulseRequestors() )
+    {}
+
+    bool operator==( const SProcessHold& other ) const { return sockets == other.sockets && pulseRequestors == other.pulseRequestors; }
+};
+
+/**
+ *  A client that is not browsing and not advertising any more holds nothing: its sockets are closed (the group left) and
+ *  its timer is off, it hears nothing and says nothing. And it works again when it is used again, as often as it is used.
+ */
+bool
+ClientHoldsNothingWhenIdle( COMCORE::CIDiscoveryClient& client, const CORE::CString& serviceType, bool ( *isActive )( COMCORE::CIDiscoveryClient& ) )
+{GUCEF_TRACE;
+
+    const SProcessHold idle;
+    for ( UInt32 round=0; round<20; ++round )
+    {
+        // browsing: it holds a socket
+        if ( !client.Browse( serviceType ) || !isActive( client ) )
+            return false;
+        const SProcessHold browsing;
+        if ( browsing.sockets <= idle.sockets && idle.sockets >= 0 )
+            return false;
+        PumpFor( 5 );
+
+        // browsing and advertising, the browse ends: the advertisement still needs the socket
+        COMCORE::CIDiscoveryEntryPtr entry = MakeEntry( serviceType, "inst-idle", "Idle Game", 30 );
+        if ( !client.Advertise( entry ) )
+            return false;
+        client.StopBrowse( serviceType );
+        if ( !isActive( client ) )
+            return false;
+
+        // nothing left to do: nothing is held
+        client.Withdraw( entry );
+        if ( isActive( client ) )
+            return false;
+        if ( !( SProcessHold() == idle ) )
+            return false;
+        PumpFor( 5 );
+        if ( !( SProcessHold() == idle ) )
+            return false;
+    }
+    return SProcessHold() == idle;
+}
+
+bool IsBroadcastActive( COMCORE::CIDiscoveryClient& client ) { return static_cast< COM::CUdpBroadcastDiscoveryClient& >( client ).IsActive(); }
+bool IsMulticastActive( COMCORE::CIDiscoveryClient& client ) { return static_cast< COM::CUdpMulticastDiscoveryClient& >( client ).IsActive(); }
+bool IsMdnsActive( COMCORE::CIDiscoveryClient& client ) { return static_cast< COM::CMdnsDiscoveryClient& >( client ).IsActive(); }
+bool IsSsdpActive( COMCORE::CIDiscoveryClient& client ) { return static_cast< COM::CSsdpDiscoveryClient& >( client ).IsActive(); }
 
 }
 
@@ -457,6 +522,46 @@ PerformUdpDiscoveryTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test: A broadcast client that no longer browses or advertises holds no socket and no timer, and works again when it is used again" )
+        GUCEF_TESTFW_SKIP_IF( GUCEF::TESTFW::CountOpenSockets() < 0, "The open sockets of this process cannot be counted on this platform" );
+        try
+        {
+            COM::CUdpBroadcastDiscoveryClient client;
+            client.SetPort( BroadcastTestPort );
+            client.SetUseLimitedBroadcast( false );
+            client.SetUseDirectedBroadcasts( false );
+            client.AddExtraTarget( COMCORE::CIPv4Address( "127.0.0.1", UnicastTestPortB ) );
+            ASSERT_FALSE( client.IsActive() );
+            ASSERT_TRUE( ClientHoldsNothingWhenIdle( client, TestServiceType, &IsBroadcastActive ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A multicast client that no longer browses or advertises holds no socket, has left the group and holds no timer, and works again when it is used again" )
+        GUCEF_TESTFW_SKIP_IF( GUCEF::TESTFW::CountOpenSockets() < 0, "The open sockets of this process cannot be counted on this platform" );
+        bool multicastWorks = false;
+        {
+            COM::CUdpMulticastDiscoveryClient probe;
+            probe.SetPort( MulticastTestPort );
+            multicastWorks = probe.Browse( TestServiceType ) && probe.IsActive() && probe.GetJoinedInterfaceCount() > 0;
+        }
+        GUCEF_TESTFW_SKIP_IF( !multicastWorks, "The multicast group cannot be joined on this host" );
+        try
+        {
+            COM::CUdpMulticastDiscoveryClient client;
+            client.SetPort( MulticastTestPort );
+            ASSERT_TRUE( ClientHoldsNothingWhenIdle( client, TestServiceType, &IsMulticastActive ) );
+            ASSERT_TRUE( 0 == client.GetJoinedInterfaceCount() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Test: The built in discovery clients are created by name from the config of the manager" )
         try
         {
@@ -479,7 +584,10 @@ PerformUdpDiscoveryTests( void )
             ASSERT_FALSE( client.IsNULL() );
             if ( !client.IsNULL() )
             {
-                COM::CUdpMulticastDiscoveryClient* multicast = dynamic_cast< COM::CUdpMulticastDiscoveryClient* >( client.GetPointerAlways() );
+                // the client says what it is, so no RTTI is needed to get at the class
+                COM::CUdpMulticastDiscoveryClient* multicast = GUCEF_NULL;
+                if ( client->GetClassTypeName() == "GUCEF::COM::CUdpMulticastDiscoveryClient" )
+                    multicast = static_cast< COM::CUdpMulticastDiscoveryClient* >( client.GetPointerAlways() );
                 ASSERT_TRUE( GUCEF_NULL != multicast );
                 if ( GUCEF_NULL != multicast )
                 {
@@ -644,6 +752,28 @@ PerformMdnsDiscoveryTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test: An mDNS client that no longer browses or advertises holds no socket and no timer, and works again when it is used again" )
+        GUCEF_TESTFW_SKIP_IF( GUCEF::TESTFW::CountOpenSockets() < 0, "The open sockets of this process cannot be counted on this platform" );
+        bool multicastWorks = false;
+        {
+            COM::CMdnsDiscoveryClient probe;
+            probe.SetPort( MdnsTestPort );
+            multicastWorks = probe.Browse( TestServiceType ) && probe.IsActive();
+        }
+        GUCEF_TESTFW_SKIP_IF( !multicastWorks, "The mDNS group cannot be joined on this host" );
+        try
+        {
+            COM::CMdnsDiscoveryClient client;
+            client.SetPort( MdnsTestPort );
+            client.SetHostName( "gucef-test-idle" );
+            ASSERT_TRUE( ClientHoldsNothingWhenIdle( client, TestServiceType, &IsMdnsActive ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Test: The mDNS client shares port 5353 with the responder of the system and finds printers it announces" )
         bool opened = false;
         COM::CMdnsDiscoveryClient client;
@@ -678,6 +808,27 @@ PerformSsdpDiscoveryTests( void )
 {GUCEF_TRACE;
 
     GUCEF_TESTFW_SUITE_SCOPE( "SsdpDiscovery" );
+
+    GUCEF_TESTFW_TESTCASE( "Test: An SSDP client that no longer browses or advertises holds no sockets and no timer, and works again when it is used again" )
+        GUCEF_TESTFW_SKIP_IF( GUCEF::TESTFW::CountOpenSockets() < 0, "The open sockets of this process cannot be counted on this platform" );
+        bool multicastWorks = false;
+        {
+            COM::CSsdpDiscoveryClient probe;
+            probe.SetPort( SsdpTestPort );
+            multicastWorks = probe.Browse( TestSsdpServiceType ) && probe.IsActive();
+        }
+        GUCEF_TESTFW_SKIP_IF( !multicastWorks, "The SSDP group cannot be joined on this host" );
+        try
+        {
+            COM::CSsdpDiscoveryClient client;
+            client.SetPort( SsdpTestPort );
+            ASSERT_TRUE( ClientHoldsNothingWhenIdle( client, TestSsdpServiceType, &IsSsdpActive ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 
     GUCEF_TESTFW_TESTCASE( "Test: Two SSDP clients find each other with M-SEARCH and NOTIFY, and see the byebye" )
         bool multicastWorks = false;

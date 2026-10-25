@@ -560,7 +560,7 @@ CTCPClientSocket::CheckRecieveBuffer( void )
 
     if ( !_blocking && _active )
     {
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Checking the recieve buffer for incoming data" );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPClientSocket(" << CORE::PointerToString( this ) << "): Checking the recieve buffer for incoming data" );
 
         Lock();
 
@@ -603,7 +603,8 @@ CTCPClientSocket::CheckRecieveBuffer( void )
                 if ( !NotifyObservers( SocketErrorEvent, &eData ) ) return false;
 
                 // After a socket error you must always close the connection.
-                CloseImp();
+                if ( !CloseImp() )
+                    return false;
 
                 Unlock();
                 return true;
@@ -618,7 +619,8 @@ CTCPClientSocket::CheckRecieveBuffer( void )
                 GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): The server has closed the connection" );
 
                 // The connection has been closed on us
-                CloseImp();
+                if ( !CloseImp() )
+                    return false;
 
                 Unlock();
                 return true;
@@ -644,7 +646,7 @@ CTCPClientSocket::CheckRecieveBuffer( void )
 
         if ( m_readbuffer.GetDataSize() > 0 )
         {
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Received " + CORE::UInt32ToString( m_readbuffer.GetDataSize() ) + " bytes" );
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPClientSocket(" << CORE::PointerToString( this ) << "): Received " << m_readbuffer.GetDataSize() << " bytes" );
 
             CORE::CDynamicBuffer linkedBuffer;
             linkedBuffer.LinkTo( m_readbuffer.GetConstBufferPtr(), m_readbuffer.GetDataSize() );
@@ -803,7 +805,7 @@ CTCPClientSocket::OnPulse( CORE::CNotifier* notifier                 ,
                     {
                         // we where able to send at least some of the data
                         totalBytesSent += wbytes;
-                        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Succeeded in delayed sending " + CORE::Int32ToString( wbytes ) + "bytes of queued data" );
+                        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPClientSocket(" << CORE::PointerToString( this ) << "): Succeeded in delayed sending " << wbytes << "bytes of queued data" );
                     }
                     else
                     {
@@ -818,7 +820,7 @@ CTCPClientSocket::OnPulse( CORE::CNotifier* notifier                 ,
                                                               remnant             ,
                                                               1                   );
 
-                            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Unable to delayed send queued data at this time" );
+                            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPClientSocket(" << CORE::PointerToString( this ) << "): Unable to delayed send queued data at this time" );
 
                             Unlock();
                             return;
@@ -859,7 +861,7 @@ CTCPClientSocket::Close( void )
 
 /*-------------------------------------------------------------------------*/
 
-void
+bool
 CTCPClientSocket::CloseImp( void )
 {GUCEF_TRACE;
 
@@ -894,10 +896,12 @@ CTCPClientSocket::CloseImp( void )
 
         Unlock();
 
-        if ( !NotifyObservers( DisconnectedEvent ) ) return;
+        if ( !NotifyObservers( DisconnectedEvent ) ) return false;
     }
     else
         Unlock();
+
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -966,7 +970,7 @@ CTCPClientSocket::Send( const void* data ,
 
     if ( IsActive() )
     {
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Sending data of length " + CORE::UInt32ToString( length ) + " with timeout " + CORE::UInt32ToString( timeout ) );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPClientSocket(" << CORE::PointerToString( this ) << "): Sending data of length " << length << " with timeout " << timeout );
 
         Lock();
 
@@ -980,7 +984,7 @@ CTCPClientSocket::Send( const void* data ,
         // TCP has to be in-order so we will have to queue the new data behind the already queued data
         if ( m_sendBuffer.HasBufferedData() )
         {
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Delaying sending of data because there is still data queued to be send from the previous send" );
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPClientSocket(" << CORE::PointerToString( this ) << "): Delaying sending of data because there is still data queued to be send from the previous send" );
             m_sendBuffer.Write( data, 1, length );
             Unlock();
             return true;
@@ -1005,7 +1009,7 @@ CTCPClientSocket::Send( const void* data ,
                 totalBytesSent += wbytes;
                 m_bytesTransmitted += wbytes;
 
-                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Succeeded in sending " + CORE::UInt32ToString( wbytes ) + " bytes of data" );
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPClientSocket(" << CORE::PointerToString( this ) << "): Succeeded in sending " << wbytes << " bytes of data" );
             }
             else
             {
@@ -1013,7 +1017,7 @@ CTCPClientSocket::Send( const void* data ,
                 // Check if we have to delay sending the data
                 if ( DVSOCKET_EWOULDBLOCK == error && !_blocking )
                 {
-                    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPClientSocket(" + CORE::PointerToString( this ) + "): Delaying sending of data" );
+                    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPClientSocket(" << CORE::PointerToString( this ) << "): Delaying sending of data" );
                     m_sendBuffer.Write( ((Int8*)data)+totalBytesSent, 1, remnant );
 
                     // The remainder is queued, it will be sent when the socket can take more data.

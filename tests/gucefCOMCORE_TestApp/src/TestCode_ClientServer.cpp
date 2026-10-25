@@ -41,6 +41,8 @@
 
 #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
   #include <fcntl.h>
+  #include <ifaddrs.h>
+  #include <net/if.h>
   #include <signal.h>
   #include <sys/socket.h>
   #include <netinet/in.h>
@@ -369,6 +371,204 @@ class CUdpReceiveRecorder : public CORE::CObserver
     }
 };
 
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Counts the clients a TCP server socket accepts
+ */
+class CAcceptCounter : public CORE::CObserver
+{
+    public:
+
+    CAcceptCounter( CTCPServerSocket& server )
+        : CORE::CObserver()
+        , m_accepted( 0 )
+        , m_serverErrors( 0 )
+    {GUCEF_TRACE;
+
+        SubscribeTo( &server );
+    }
+
+    virtual ~CAcceptCounter()
+    {GUCEF_TRACE;
+
+        UnsubscribeAllFromObserver();
+    }
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CORE::CString classTypeName = "CAcceptCounter";
+        return classTypeName;
+    }
+
+    UInt32 m_accepted;
+    UInt32 m_serverErrors;
+
+    protected:
+
+    virtual void OnNotify( CORE::CNotifier* notifier           ,
+                           const CORE::CEvent& eventid         ,
+                           CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        if ( CTCPServerSocket::ClientConnectedEvent == eventid )
+            ++m_accepted;
+        else
+        if ( CTCPServerSocket::ServerSocketErrorEvent == eventid )
+            ++m_serverErrors;
+    }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  A TCP client that tries to connect to an address and port and records how that went
+ */
+class CConnectAttempt : public CORE::CObserver
+{
+    public:
+
+    CConnectAttempt( const CORE::CString& address, UInt16 port )
+        : CORE::CObserver()
+        , m_connected( false )
+        , m_failed( false )
+        , m_client( false )
+    {GUCEF_TRACE;
+
+        SubscribeTo( &m_client );
+        m_client.ConnectTo( address, port );
+    }
+
+    virtual ~CConnectAttempt()
+    {GUCEF_TRACE;
+
+        UnsubscribeAllFromObserver();
+    }
+
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
+    {
+        static const CORE::CString classTypeName = "CConnectAttempt";
+        return classTypeName;
+    }
+
+    /** Pulses until the attempt has come to an end one way or the other, true when it did */
+    bool WaitForOutcome( UInt32 timeoutInMs )
+    {GUCEF_TRACE;
+
+        for ( UInt32 waited=0; waited<timeoutInMs && !m_connected && !m_failed; ++waited )
+        {
+            CORE::CCoreGlobal::Instance()->GetPulseGenerator()->ForceDirectPulse();
+            MT::ThreadDelay( 1 );
+        }
+        return m_connected || m_failed;
+    }
+
+    void Close( void ) { m_client.Close(); }
+
+    bool m_connected;
+    bool m_failed;
+
+    protected:
+
+    virtual void OnNotify( CORE::CNotifier* notifier           ,
+                           const CORE::CEvent& eventid         ,
+                           CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        if ( CTCPClientSocket::ConnectedEvent == eventid )
+            m_connected = true;
+        else
+        if ( CTCPClientSocket::SocketErrorEvent == eventid || CTCPClientSocket::DisconnectedEvent == eventid )
+            m_failed = true;
+    }
+
+    private:
+
+    CTCPClientSocket m_client;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  An IPv4 address of this machine that is not on the loopback interface, as dotted text
+ *  @return false when the machine has none or when it cannot be found out on this platform
+ */
+static bool
+FindNonLoopbackIPv4Address( CORE::CString& address )
+{GUCEF_TRACE;
+
+    #ifdef GUCEF_COMCORE_TEST_POSIX_SOCKETS
+
+    struct ifaddrs* interfaces = GUCEF_NULL;
+    if ( 0 != getifaddrs( &interfaces ) )
+        return false;
+
+    bool found = false;
+    for ( struct ifaddrs* entry = interfaces; GUCEF_NULL != entry && !found; entry = entry->ifa_next )
+    {
+        if ( GUCEF_NULL == entry->ifa_addr || AF_INET != entry->ifa_addr->sa_family || 0 == ( entry->ifa_flags & IFF_UP ) )
+            continue;
+        const struct sockaddr_in* ipv4 = reinterpret_cast< const struct sockaddr_in* >( entry->ifa_addr );
+        if ( 127 == ( ntohl( ipv4->sin_addr.s_addr ) >> 24 ) || 0 == ipv4->sin_addr.s_addr )
+            continue;
+        char text[ INET_ADDRSTRLEN ];
+        if ( GUCEF_NULL != inet_ntop( AF_INET, &ipv4->sin_addr, text, sizeof( text ) ) )
+        {
+            address = text;
+            found = true;
+        }
+    }
+    freeifaddrs( interfaces );
+    return found;
+
+    #else
+
+    return false;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Whether a client can connect to the address and port and the server accepts it
+ */
+static bool
+CanConnect( CTCPServerSocket& server, CAcceptCounter& counter, const CORE::CString& address, UInt16 port )
+{GUCEF_TRACE;
+
+    const UInt32 acceptedBefore = counter.m_accepted;
+    CConnectAttempt attempt( address, port );
+    bool ended = attempt.WaitForOutcome( 5000 );
+    bool accepted = false;
+    if ( ended && attempt.m_connected )
+        accepted = PumpUntilAtLeast( counter.m_accepted, acceptedBefore + 1, 2000 );
+
+    // closing the client is an event of its own, so the outcome is read first
+    const bool connected = ended && attempt.m_connected && !attempt.m_failed;
+    attempt.Close();
+    return connected && accepted && counter.m_accepted == acceptedBefore + 1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Whether a client fails to connect to the address and port, and the server never sees it
+ */
+static bool
+IsRefused( CTCPServerSocket& server, CAcceptCounter& counter, const CORE::CString& address, UInt16 port )
+{GUCEF_TRACE;
+
+    const UInt32 acceptedBefore = counter.m_accepted;
+    CConnectAttempt attempt( address, port );
+    bool ended = attempt.WaitForOutcome( 5000 );
+
+    // a refusal can still show up on the server side, give it the time
+    PumpFor( 100 );
+    attempt.Close();
+    return ended && attempt.m_failed && !attempt.m_connected && counter.m_accepted == acceptedBefore;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
@@ -661,6 +861,177 @@ PerformClientServerTests( void )
         }
         sigaction( SIGPIPE, &previous, GUCEF_NULL );
         #endif
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A TCP server bound to 127.0.0.1 accepts loopback clients and no connection to another address of the machine, the default and 0.0.0.0 accept both" )
+        try
+        {
+            CORE::CString otherAddress;
+            bool haveOtherAddress = FindNonLoopbackIPv4Address( otherAddress );
+            if ( !haveOtherAddress )
+            {
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ClientServer TESTS: This machine has no address besides the loopback one, the refusal on another address is not tested" );
+            }
+            else
+            {
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ClientServer TESTS: Using the address " << otherAddress << " as the address besides the loopback one" );
+            }
+
+            const UInt16 port = (UInt16)( TestServerPort + 30 );
+
+            // default: every NIC
+            {
+                CTCPServerSocket server( false );
+                CAcceptCounter counter( server );
+                ASSERT_TRUE( server.GetBindAddress().IsNULLOrEmpty() );
+                ASSERT_TRUE( server.ListenOnPort( port ) );
+                ASSERT_TRUE( CanConnect( server, counter, "127.0.0.1", port ) );
+                if ( haveOtherAddress )
+                    ASSERT_TRUE( CanConnect( server, counter, otherAddress, port ) );
+                server.Close();
+            }
+
+            // loopback only
+            {
+                CTCPServerSocket server( false );
+                CAcceptCounter counter( server );
+                ASSERT_TRUE( server.SetBindAddress( "127.0.0.1" ) );
+                ASSERT_TRUE( "127.0.0.1" == server.GetBindAddress() );
+                ASSERT_TRUE( server.ListenOnPort( port ) );
+                ASSERT_TRUE( server.IsActive() );
+                ASSERT_TRUE( CanConnect( server, counter, "127.0.0.1", port ) );
+                if ( haveOtherAddress )
+                {
+                    ASSERT_TRUE( IsRefused( server, counter, otherAddress, port ) );
+                }
+                CHostAddress listenAddress;
+                server.GetListenAddress( listenAddress );
+                ASSERT_TRUE( "127.0.0.1" == listenAddress.GetHostname() );
+                server.Close();
+
+                // Listen() takes the same bind address, and clearing it goes back to every NIC
+                ASSERT_TRUE( server.Listen() );
+                ASSERT_TRUE( CanConnect( server, counter, "127.0.0.1", port ) );
+                if ( haveOtherAddress )
+                {
+                    ASSERT_TRUE( IsRefused( server, counter, otherAddress, port ) );
+                }
+
+                // an active server listens again on the new address
+                ASSERT_TRUE( server.SetBindAddress( CORE::CString::Empty ) );
+                ASSERT_TRUE( server.IsActive() );
+                ASSERT_TRUE( CanConnect( server, counter, "127.0.0.1", port ) );
+                if ( haveOtherAddress )
+                {
+                    ASSERT_TRUE( CanConnect( server, counter, otherAddress, port ) );
+                }
+                server.Close();
+            }
+
+            // 0.0.0.0 is every NIC as well
+            {
+                CTCPServerSocket server( false );
+                CAcceptCounter counter( server );
+                ASSERT_TRUE( server.SetBindAddress( "0.0.0.0" ) );
+                ASSERT_TRUE( server.ListenOnPort( port ) );
+                ASSERT_TRUE( CanConnect( server, counter, "127.0.0.1", port ) );
+                if ( haveOtherAddress )
+                {
+                    ASSERT_TRUE( CanConnect( server, counter, otherAddress, port ) );
+                }
+                server.Close();
+            }
+
+            // bound to the other address: that one only
+            if ( haveOtherAddress )
+            {
+                CTCPServerSocket server( false );
+                CAcceptCounter counter( server );
+                ASSERT_TRUE( server.SetBindAddress( otherAddress ) );
+                ASSERT_TRUE( server.ListenOnPort( port ) );
+                ASSERT_TRUE( CanConnect( server, counter, otherAddress, port ) );
+                ASSERT_TRUE( IsRefused( server, counter, "127.0.0.1", port ) );
+                server.Close();
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A TCP server told to listen on port 0 listens on a free port of the system and reports it, bound to the loopback address too" )
+        try
+        {
+            CTCPServerSocket server( false );
+            CAcceptCounter counter( server );
+            ASSERT_TRUE( 0 == server.GetBoundPort() );
+            ASSERT_TRUE( server.SetBindAddress( "127.0.0.1" ) );
+            ASSERT_TRUE( server.ListenOnPort( 0 ) );
+            ASSERT_TRUE( server.IsActive() );
+            UInt16 boundPort = server.GetBoundPort();
+            ASSERT_TRUE( 0 != boundPort );
+            ASSERT_TRUE( 0 == server.GetPort() );
+            if ( 0 != boundPort )
+            {
+                ASSERT_TRUE( CanConnect( server, counter, "127.0.0.1", boundPort ) );
+            }
+            server.Close();
+            ASSERT_TRUE( 0 == server.GetBoundPort() );
+
+            // a given port is the bound port
+            const UInt16 port = (UInt16)( TestServerPort + 32 );
+            ASSERT_TRUE( server.ListenOnPort( port ) );
+            ASSERT_TRUE( port == server.GetBoundPort() && port == server.GetPort() );
+            server.Close();
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A bind address that is not a dotted IPv4 address is refused and the server does not listen, not even on every NIC" )
+        try
+        {
+            const UInt16 port = (UInt16)( TestServerPort + 31 );
+            const char* invalid[] = { "localhost", "256.1.1.1", "1.2.3", "1.2.3.4.5", "::1", "abc", " 127.0.0.1", "127.0.0.1 ", "127.0.0.1:80", "-1.0.0.1", "127.0.0.", "http://127.0.0.1", "0x7f.0.0.1" };
+            for ( UInt32 i=0; i<sizeof( invalid ) / sizeof( invalid[ 0 ] ); ++i )
+            {
+                CTCPServerSocket server( false );
+                CAcceptCounter counter( server );
+                ASSERT_FALSE( server.SetBindAddress( invalid[ i ] ) );
+                ASSERT_FALSE( server.ListenOnPort( port ) );
+                ASSERT_FALSE( server.IsActive() );
+                ASSERT_FALSE( server.Listen() );
+                ASSERT_TRUE( counter.m_serverErrors >= 2 );
+
+                // nothing is listening
+                CConnectAttempt attempt( "127.0.0.1", port );
+                ASSERT_TRUE( attempt.WaitForOutcome( 5000 ) );
+                ASSERT_FALSE( attempt.m_connected );
+                attempt.Close();
+                ASSERT_TRUE( 0 == counter.m_accepted );
+
+                // a valid address after an invalid one works
+                ASSERT_TRUE( server.SetBindAddress( "127.0.0.1" ) );
+                ASSERT_TRUE( server.ListenOnPort( port ) && server.IsActive() );
+                ASSERT_TRUE( CanConnect( server, counter, "127.0.0.1", port ) );
+                server.Close();
+            }
+
+            // an address that is well formed but not one of this machine cannot be bound
+            {
+                CTCPServerSocket server( false );
+                ASSERT_TRUE( server.SetBindAddress( "203.0.113.77" ) );
+                ASSERT_FALSE( server.ListenOnPort( port ) );
+                ASSERT_FALSE( server.IsActive() );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
     GUCEF_TESTFW_TESTCASE_END
 }
 

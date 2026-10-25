@@ -50,7 +50,8 @@ files( {
   "include/TestDiscovery.h",
   "include/TestIrc.h",
   "include/TestNatTraversal.h",
-  "include/TestRttProbes.h"
+  "include/TestRttProbes.h",
+  "include/TestStatsDClient.h"
  } )
 
 
@@ -62,12 +63,13 @@ files( {
   "src/TestIrc.cpp",
   "src/TestNatTraversal.cpp",
   "src/TestRttProbes.cpp",
+  "src/TestStatsDClient.cpp",
   "src/gucefCOM_TestApp_main.cpp"
  } )
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )

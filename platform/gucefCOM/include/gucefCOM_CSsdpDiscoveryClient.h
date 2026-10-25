@@ -31,6 +31,11 @@
 #define GUCEF_CORE_CDYNAMICBUFFER_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_COMCORE_CUDPSOCKET_H
 #include "CUDPSocket.h"
 #define GUCEF_COMCORE_CUDPSOCKET_H
@@ -121,11 +126,18 @@ class GUCEF_COM_PUBLIC_CPP CSsdpDiscoveryClient : public COMCORE::CDiscoveryClie
 
     virtual void OnHousekeeping( UInt64 nowInMs ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
+    /** Nothing is browsed or advertised: both sockets are closed, which also leaves the SSDP group */
+    virtual void OnIdle( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CSsdpDiscoveryClient > TEventCallback;
+
+    void RegisterSocketEventHandlers( void );
+
+    void OnSocketPackets( CORE::CNotifier* notifier    ,
+                          const CORE::CEvent& eventId  ,
+                          CORE::CICloneable* eventData );
 
     struct SHeader
     {

@@ -31,10 +31,15 @@
 #define GUCEF_CORE_CDYNAMICBUFFER_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
 
-#ifndef GUCEF_COMCORE_CTCPCLIENTSOCKET_H
-#include "CTCPClientSocket.h"
-#define GUCEF_COMCORE_CTCPCLIENTSOCKET_H
-#endif /* GUCEF_COMCORE_CTCPCLIENTSOCKET_H ? */
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
+#ifndef GUCEF_COMCORE_CTLSCLIENTCONNECTION_H
+#include "gucefCOMCORE_CTlsClientConnection.h"
+#define GUCEF_COMCORE_CTLSCLIENTCONNECTION_H
+#endif /* GUCEF_COMCORE_CTLSCLIENTCONNECTION_H ? */
 
 #ifndef GUCEF_COM_CIIRCTRANSPORT_H
 #include "gucefCOM_CIIrcTransport.h"
@@ -57,7 +62,8 @@ namespace COM {
 //-------------------------------------------------------------------------*/
 
 /**
- *  IRC over plain TCP: the stream is split into lines on LF, a CR before it is dropped
+ *  IRC over TCP, with TLS when the settings say useTls (port 6697 usually): the stream is split into lines on LF,
+ *  a CR before it is dropped. With TLS the certificate of the server is verified, see CIrcClientSettings::tls.
  */
 class GUCEF_COM_PUBLIC_CPP CIrcTcpTransport : public CIIrcTransport
 {
@@ -84,22 +90,42 @@ class GUCEF_COM_PUBLIC_CPP CIrcTcpTransport : public CIIrcTransport
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    protected:
-
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CIrcTcpTransport > TEventCallback;
 
     CIrcTcpTransport( const CIrcTcpTransport& src );
     CIrcTcpTransport& operator=( const CIrcTcpTransport& src );
 
     bool OnData( const CORE::CDynamicBuffer& data );
 
+    void RegisterSocketEventHandlers( void );
+
+    void OnSocketConnected( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData );
+
+    void OnSocketDataReceived( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData );
+
+    void OnSocketDisconnected( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData );
+
+    void OnSocketTlsError( CORE::CNotifier* notifier    ,
+                           const CORE::CEvent& eventId  ,
+                           CORE::CICloneable* eventData );
+
+    void OnSocketError( CORE::CNotifier* notifier    ,
+                        const CORE::CEvent& eventId  ,
+                        CORE::CICloneable* eventData );
+
     private:
 
-    COMCORE::CTCPClientSocket m_socket;
+    COMCORE::CTlsClientConnection m_socket;
+    CORE::CString m_server;
+    CORE::CString m_tlsFailure;
     CORE::CDynamicBuffer m_receiveBuffer;
     CORE::CDynamicBuffer m_sendBuffer;
     bool m_isConnected;

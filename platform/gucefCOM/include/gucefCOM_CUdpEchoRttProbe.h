@@ -31,6 +31,11 @@
 #define GUCEF_CORE_CTIMER_H
 #endif /* GUCEF_CORE_CTIMER_H ? */
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_COMCORE_CUDPSOCKET_H
 #include "CUDPSocket.h"
 #define GUCEF_COMCORE_CUDPSOCKET_H
@@ -100,21 +105,26 @@ class GUCEF_COM_PUBLIC_CPP CUdpEchoRttProbe : public COMCORE::CIRttProbe
     /** Reads an echo probe datagram, false if it is not one */
     static bool ReadEchoPacket( const void* data, UInt32 dataSize, UInt32& sequence, UInt64& sendTimeInMicroSecs );
 
-    protected:
-
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
 
     typedef GUCEF::map< UInt32, UInt64 > TOutstandingProbeMap;
+    typedef CORE::CTEventHandlerFunctor< CUdpEchoRttProbe > TEventCallback;
 
     CUdpEchoRttProbe( const CUdpEchoRttProbe& src );
     CUdpEchoRttProbe& operator=( const CUdpEchoRttProbe& src );
 
     bool SendProbe( UInt64 nowInMicroSecs );
     bool CheckFinished( void );
+
+    void RegisterEventHandlers( void );
+
+    void OnSocketPackets( CORE::CNotifier* notifier    ,
+                          const CORE::CEvent& eventId  ,
+                          CORE::CICloneable* eventData );
+
+    void OnProbeTimer( CORE::CNotifier* notifier    ,
+                       const CORE::CEvent& eventId  ,
+                       CORE::CICloneable* eventData );
 
     private:
 

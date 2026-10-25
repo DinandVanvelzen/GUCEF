@@ -106,6 +106,24 @@ CPortMappingResult::Clone( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+const char*
+CPortMappingResult::GetCloneableTypeName( void ) const
+{GUCEF_TRACE;
+
+    return CloneableTypeName();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CPortMappingResult::CloneableTypeName( void )
+{GUCEF_TRACE;
+
+    return "GUCEF::COMCORE::CPortMappingResult";
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CPortMappingResult::TryGetFromFuture( const CORE::CFutureResult& future, CPortMappingResult& result )
 {GUCEF_TRACE;
@@ -117,7 +135,7 @@ CPortMappingResult::TryGetFromFuture( const CORE::CFutureResult& future, CPortMa
     if ( task.IsNULL() || CORE::TTaskStatus::TASKSTATUS_FINISHED != task->GetTaskStatus() )
         return false;
 
-    const CPortMappingResult* data = dynamic_cast< const CPortMappingResult* >( task->GetTaskData() );
+    const CPortMappingResult* data = CORE::CICloneable::CloneableAs< CPortMappingResult >( task->GetTaskData() );
     if ( GUCEF_NULL == data )
         return false;
 

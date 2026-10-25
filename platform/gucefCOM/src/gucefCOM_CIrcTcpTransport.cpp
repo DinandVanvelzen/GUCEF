@@ -61,12 +61,14 @@ const UInt32 CIrcTcpTransport::MaxLineSizeInBytes = 8191 + 512;
 CIrcTcpTransport::CIrcTcpTransport( void )
     : CIIrcTransport()
     , m_socket( CORE::CCoreGlobal::Instance()->GetPulseGenerator(), false )
+    , m_server()
+    , m_tlsFailure()
     , m_receiveBuffer( 1024, true )
     , m_sendBuffer( 512, true )
     , m_isConnected( false )
 {GUCEF_TRACE;
 
-    SubscribeTo( &m_socket );
+    RegisterSocketEventHandlers();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -74,12 +76,46 @@ CIrcTcpTransport::CIrcTcpTransport( void )
 CIrcTcpTransport::CIrcTcpTransport( const CORE::PulseGeneratorPtr& pulseGenerator )
     : CIIrcTransport()
     , m_socket( pulseGenerator.IsNULL() ? CORE::CCoreGlobal::Instance()->GetPulseGenerator() : pulseGenerator, false )
+    , m_server()
+    , m_tlsFailure()
     , m_receiveBuffer( 1024, true )
     , m_sendBuffer( 512, true )
     , m_isConnected( false )
 {GUCEF_TRACE;
 
-    SubscribeTo( &m_socket );
+    RegisterSocketEventHandlers();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIrcTcpTransport::RegisterSocketEventHandlers( void )
+{GUCEF_TRACE;
+
+    TEventCallback connectedCallback( this, &CIrcTcpTransport::OnSocketConnected );
+    SubscribeTo( &m_socket                                  ,
+                 COMCORE::CTCPClientSocket::ConnectedEvent  ,
+                 connectedCallback                          );
+
+    TEventCallback dataCallback( this, &CIrcTcpTransport::OnSocketDataReceived );
+    SubscribeTo( &m_socket                                  ,
+                 COMCORE::CTCPClientSocket::DataRecievedEvent ,
+                 dataCallback                               );
+
+    TEventCallback disconnectedCallback( this, &CIrcTcpTransport::OnSocketDisconnected );
+    SubscribeTo( &m_socket                                  ,
+                 COMCORE::CTCPClientSocket::DisconnectedEvent ,
+                 disconnectedCallback                       );
+
+    TEventCallback tlsErrorCallback( this, &CIrcTcpTransport::OnSocketTlsError );
+    SubscribeTo( &m_socket                                  ,
+                 COMCORE::CTlsClientConnection::TlsErrorEvent ,
+                 tlsErrorCallback                           );
+
+    TEventCallback errorCallback( this, &CIrcTcpTransport::OnSocketError );
+    SubscribeTo( &m_socket                                  ,
+                 COMCORE::CTCPClientSocket::SocketErrorEvent ,
+                 errorCallback                              );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -102,6 +138,13 @@ CIrcTcpTransport::Connect( const CIrcClientSettings& settings )
 
     m_isConnected = false;
     m_receiveBuffer.SetDataSize( 0 );
+
+    m_server = settings.server;
+    m_tlsFailure.Clear();
+
+    // Over TLS the server is connected to by name, the name the certificate has to carry
+    if ( settings.useTls )
+        return m_socket.ConnectTo( settings.server, settings.port, &settings.tls, false );
     return m_socket.ConnectTo( settings.server, settings.port, false );
 }
 
@@ -198,47 +241,77 @@ CIrcTcpTransport::OnData( const CORE::CDynamicBuffer& data )
 /*-------------------------------------------------------------------------*/
 
 void
-CIrcTcpTransport::OnNotify( CORE::CNotifier* notifier    ,
-                            const CORE::CEvent& eventId  ,
-                            CORE::CICloneable* eventData )
+CIrcTcpTransport::OnSocketConnected( CORE::CNotifier* notifier    ,
+                                     const CORE::CEvent& eventId  ,
+                                     CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( notifier != &m_socket )
+    if ( !m_isConnected )
+    {
+        m_isConnected = true;
+        NotifyObservers( ConnectedEvent );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIrcTcpTransport::OnSocketDataReceived( CORE::CNotifier* notifier    ,
+                                        const CORE::CEvent& eventId  ,
+                                        CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == eventData )
         return;
 
-    if ( COMCORE::CTCPClientSocket::ConnectedEvent == eventId )
+    // Data proves the connection is there, whichever the socket reports first
+    if ( !m_isConnected )
     {
-        if ( !m_isConnected )
-        {
-            m_isConnected = true;
-            NotifyObservers( ConnectedEvent );
-        }
+        m_isConnected = true;
+        if ( !NotifyObservers( ConnectedEvent ) ) return;
     }
-    else
-    if ( COMCORE::CTCPClientSocket::DataRecievedEvent == eventId && GUCEF_NULL != eventData )
-    {
-        // Data proves the connection is there, whichever the socket reports first
-        if ( !m_isConnected )
-        {
-            m_isConnected = true;
-            if ( !NotifyObservers( ConnectedEvent ) ) return;
-        }
-        OnData( static_cast< COMCORE::CTCPConnection::TDataRecievedEventData* >( eventData )->GetData() );
-    }
-    else
-    if ( COMCORE::CTCPClientSocket::DisconnectedEvent == eventId )
-    {
-        m_isConnected = false;
-        m_receiveBuffer.SetDataSize( 0 );
-        NotifyObservers( DisconnectedEvent );
-    }
-    else
-    if ( COMCORE::CTCPClientSocket::SocketErrorEvent == eventId )
-    {
-        Int32 errorCode = GUCEF_NULL != eventData ? static_cast< COMCORE::CTCPConnection::TSocketErrorEventData* >( eventData )->GetData() : 0;
-        TTransportErrorEventData eData( "Socket error " + CORE::Int32ToString( errorCode ) );
-        NotifyObservers( TransportErrorEvent, &eData );
-    }
+    OnData( static_cast< COMCORE::CTCPConnection::TDataRecievedEventData* >( eventData )->GetData() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIrcTcpTransport::OnSocketDisconnected( CORE::CNotifier* notifier    ,
+                                        const CORE::CEvent& eventId  ,
+                                        CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    m_isConnected = false;
+    m_receiveBuffer.SetDataSize( 0 );
+    NotifyObservers( DisconnectedEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIrcTcpTransport::OnSocketTlsError( CORE::CNotifier* notifier    ,
+                                    const CORE::CEvent& eventId  ,
+                                    CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    // the socket error that follows is the report of this one
+    COMCORE::TTlsErrorEventData* errorData = static_cast< COMCORE::TTlsErrorEventData* >( eventData );
+    if ( GUCEF_NULL != errorData && COMCORE::TLSERR_CONNECT != errorData->GetData().errorClass )
+        m_tlsFailure = errorData->GetData().GetDescription( m_server );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIrcTcpTransport::OnSocketError( CORE::CNotifier* notifier    ,
+                                 const CORE::CEvent& eventId  ,
+                                 CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    Int32 errorCode = GUCEF_NULL != eventData ? static_cast< COMCORE::CTCPConnection::TSocketErrorEventData* >( eventData )->GetData() : 0;
+    TTransportErrorEventData eData( m_tlsFailure.IsNULLOrEmpty() ? "Socket error " + CORE::Int32ToString( errorCode ) : "TLS: " + m_tlsFailure );
+    m_tlsFailure.Clear();
+    NotifyObservers( TransportErrorEvent, &eData );
 }
 
 /*-------------------------------------------------------------------------*/

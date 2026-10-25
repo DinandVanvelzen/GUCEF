@@ -91,6 +91,8 @@ class GUCEF_COM_PUBLIC_CPP CUdpMulticastDiscoveryClient : public CUdpDiscoveryCl
 
     virtual void GetDestinations( TIPv4AddressVector& destinations ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    virtual void OnIdle( void ) GUCEF_VIRTUAL_OVERRIDE;
+
     private:
 
     CUdpMulticastDiscoveryClient( const CUdpMulticastDiscoveryClient& src );

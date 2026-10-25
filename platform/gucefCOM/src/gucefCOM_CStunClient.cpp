@@ -144,6 +144,24 @@ CStunClient::CStunResult::Clone( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+const char*
+CStunClient::CStunResult::GetCloneableTypeName( void ) const
+{GUCEF_TRACE;
+
+    return CloneableTypeName();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CStunClient::CStunResult::CloneableTypeName( void )
+{GUCEF_TRACE;
+
+    return "GUCEF::COM::CStunClient::CStunResult";
+}
+
+/*-------------------------------------------------------------------------*/
+
 CStunClient::CStunClient( COMCORE::CUDPSocket& socket )
     : CORE::CObservingNotifier()
     , m_socket( &socket )
@@ -341,7 +359,7 @@ CStunClient::TryGetResultFromFuture( const CORE::CFutureResult& future, CStunRes
     if ( task.IsNULL() || CORE::TTaskStatus::TASKSTATUS_FINISHED != task->GetTaskStatus() )
         return false;
 
-    const CStunResult* data = dynamic_cast< const CStunResult* >( task->GetTaskData() );
+    const CStunResult* data = CORE::CICloneable::CloneableAs< CStunResult >( task->GetTaskData() );
     if ( GUCEF_NULL == data )
         return false;
     result = *data;

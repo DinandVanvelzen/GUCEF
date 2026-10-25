@@ -88,15 +88,35 @@ class GUCEF_WEB_PUBLIC_CPP CHttpClientRequestOptions : public CORE::CICloneable
     bool followRedirects;
     UInt32 maxRedirects;
 
-    /** whether the certificate of a https server is verified, only to be switched off for testing */
+    /**
+     *  whether the certificate of a https server is verified, only to be switched off for testing.
+     *  With false the native backend uses CTlsSettings::DisableVerificationInsecurely(), which logs a warning for every connection
+     */
     bool verifyPeer;
+
+    /**
+     *  File with the certificates of the authorities that are trusted to vouch for the certificate of a https server (PEM).
+     *  Empty: the backend uses the trust store it finds itself, which for the curl backend and the native backend is the environment
+     *  variable SSL_CERT_FILE when set and otherwise the bundle of the operating system (/etc/ssl/certs/ca-certificates.crt,
+     *  /etc/pki/tls/certs/ca-bundle.crt or /etc/ssl/cert.pem). WinHTTP uses the certificate store of Windows and ignores this.
+     *  When given, only these authorities are trusted: the trust store of the system is not used then.
+     *  A path that cannot be read makes https requests fail: the verification is never skipped because of it.
+     */
+    CString caBundlePath;
 
     /** cookies to send and to store cookies received in, optional */
     CHttpCookieJarPtr cookieJar;
 
-    /** proxy server to use, empty for none */
+    /** proxy server to use, empty for none. An https URL is reached through it with a CONNECT tunnel */
     CString proxyHost;
     UInt16 proxyPort;
+
+    /**
+     *  Whether the native backend takes the proxy from the environment (HTTPS_PROXY, HTTP_PROXY, NO_PROXY, see
+     *  CHttpProxyEnvironment) when proxyHost is empty. True by default; a host that is this computer is never proxied.
+     *  The other backends decide for themselves: libcurl reads the same variables and WinHTTP the settings of the system
+     */
+    bool useEnvironmentProxy;
 
     CString userAgent;
 
@@ -113,6 +133,28 @@ class GUCEF_WEB_PUBLIC_CPP CHttpClientRequestOptions : public CORE::CICloneable
 /*-------------------------------------------------------------------------*/
 
 /**
+ *  What kind of failure ended a request that got no response, the same for every backend
+ */
+enum EHttpTransferErrorClass
+{
+    HTTPERRORCLASS_NONE = 0,    /**< no failure, or the request was cancelled */
+    HTTPERRORCLASS_NO_BACKEND,  /**< no backend is available for the scheme of the URL, for https a plugin such as httpclientpluginCURL is not loaded */
+    HTTPERRORCLASS_DNS,         /**< the name of the host could not be resolved */
+    HTTPERRORCLASS_CONNECT,     /**< the connection to the host could not be made, or was lost */
+    HTTPERRORCLASS_TLS,         /**< the secure connection failed: the certificate is not trusted or does not match the host, or the handshake failed */
+    HTTPERRORCLASS_TIMEOUT,     /**< the host did not answer in time */
+    HTTPERRORCLASS_OTHER        /**< anything else */
+};
+
+typedef enum EHttpTransferErrorClass THttpTransferErrorClass;
+
+/** A stable lower case name of an error class, for logs */
+GUCEF_WEB_PUBLIC_CPP const char*
+HttpTransferErrorClassToString( THttpTransferErrorClass errorClass );
+
+/*-------------------------------------------------------------------------*/
+
+/**
  *  Information about how a HTTP request was carried out, as a complement to the response
  */
 class GUCEF_WEB_PUBLIC_CPP CHttpClientTransferInfo : public CORE::CICloneable
@@ -123,6 +165,9 @@ class GUCEF_WEB_PUBLIC_CPP CHttpClientTransferInfo : public CORE::CICloneable
     bool success;
     Int32 errorCode;
     CString errorDescription;
+
+    /** the kind of failure, filled by the backends and the client for every request that got no response */
+    THttpTransferErrorClass errorClass;
     bool wasCancelled;
     bool timedOut;
 

@@ -26,11 +26,14 @@ LOCAL_SRC_FILES := \
   src/TestCode_Discovery.cpp \
   src/TestCode_PingTest.cpp \
   src/TestCode_SimpleTCPClient.cpp \
+  src/TestCode_TlsLayer.cpp \
+  src/TestCode_TlsOpenSsl.cpp \
   src/gucefCOMCORE_TestApp.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../common/test/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include/c_api \

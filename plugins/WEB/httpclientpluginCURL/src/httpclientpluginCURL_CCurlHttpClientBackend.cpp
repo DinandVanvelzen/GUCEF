@@ -103,6 +103,7 @@ CCurlHttpClientBackend::StartRequest( const WEB::CHttpRequestData& request      
     {
         transferInfo.success = false;
         transferInfo.errorCode = -1;
+        transferInfo.errorClass = WEB::HTTPERRORCLASS_NO_BACKEND;
         transferInfo.errorDescription = "The curl HTTP client backend does not support \"" + request.requestProtocol + "\"";
         return WEB::CIHttpClientBackendRequestPtr();
     }

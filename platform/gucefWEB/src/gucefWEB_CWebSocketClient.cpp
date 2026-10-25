@@ -31,6 +31,11 @@
 #define GUCEF_WEB_CWEBSOCKETCLIENT_H
 #endif /* GUCEF_WEB_CWEBSOCKETCLIENT_H ? */
 
+#ifndef GUCEF_CORE_CREDACTOR_H
+#include "gucefCORE_CRedactor.h"
+#define GUCEF_CORE_CREDACTOR_H
+#endif /* GUCEF_CORE_CREDACTOR_H ? */
+
 #ifndef GUCEF_WEB_CWEBSOCKETHANDSHAKE_H
 #include "gucefWEB_CWebSocketHandshake.h"
 #define GUCEF_WEB_CWEBSOCKETHANDSHAKE_H
@@ -108,31 +113,64 @@ TrimSpaces( const std::string& str )
 }
 
 /**
- *  Splits a ws:// url in host, port and the resource to request (path and query)
+ *  Splits a ws:// or wss:// url in host, port and the resource to request (path and query)
  */
 static bool
-ParseWebSocketUrl( const std::string& url, std::string& host, UInt16& port, std::string& resource )
+ParseWebSocketUrl( const CORE::CString& url, bool& secure, CORE::CString& host, UInt16& port, CORE::CString& resource )
 {
-    const std::string scheme = "ws://";
-    if ( ToLowerCase( url.substr( 0, scheme.size() ) ) != scheme )
+    if ( url.IsNULLOrEmpty() )
         return false;
 
-    std::string rest = url.substr( scheme.size() );
-    size_t resourceStart = rest.find_first_of( "/?" );
-    std::string authority = rest.substr( 0, resourceStart );
-    resource = std::string::npos == resourceStart ? "/" : rest.substr( resourceStart );
-    if ( '/' != resource[ 0 ] )
-        resource = "/" + resource;      // ws://host?query
-
-    port = 80;
-    size_t colon = authority.rfind( ':' );
-    if ( std::string::npos != colon && authority.find( ']' ) == std::string::npos )
+    CORE::CString rest;
+    if ( url.SubstrToIndex( 5 ).Lowercase() == "ws://" )
     {
-        host = authority.substr( 0, colon );
-        std::string portStr = authority.substr( colon + 1 );
-        if ( portStr.empty() || portStr.find_first_not_of( "0123456789" ) != std::string::npos || portStr.size() > 5 )
+        secure = false;
+        rest = url.SubstrFromRange( 5, url.Length() );
+    }
+    else
+    if ( url.SubstrToIndex( 6 ).Lowercase() == "wss://" )
+    {
+        secure = true;
+        rest = url.SubstrFromRange( 6, url.Length() );
+    }
+    else
+        return false;
+
+    // the resource starts at the first '/' or '?'
+    Int32 resourceStart = rest.HasChar( '/' );
+    Int32 queryStart = rest.HasChar( '?' );
+    if ( queryStart >= 0 && ( resourceStart < 0 || queryStart < resourceStart ) )
+        resourceStart = queryStart;
+
+    CORE::CString authority = rest;
+    resource = "/";
+    if ( resourceStart >= 0 )
+    {
+        authority = rest.SubstrToIndex( (UInt32) resourceStart );
+        resource = rest.SubstrFromRange( (UInt32) resourceStart, rest.Length() );
+        if ( '/' != resource.C_String()[ 0 ] )
+            resource = "/" + resource;      // ws://host?query
+    }
+
+    // User info is not supported, it would end up as part of the host name that is connected to and reported
+    if ( authority.HasChar( '@' ) >= 0 )
+        return false;
+
+    port = secure ? 443 : 80;
+    Int32 colon = authority.HasChar( ':', false );
+    if ( colon >= 0 && authority.HasChar( ']' ) < 0 )
+    {
+        host = authority.SubstrToIndex( (UInt32) colon );
+        CORE::CString portStr = authority.SubstrFromRange( (UInt32) colon + 1, authority.Length() );
+        if ( portStr.IsNULLOrEmpty() || portStr.Length() > 5 )
             return false;
-        int portValue = atoi( portStr.c_str() );
+        const char* digits = portStr.C_String();
+        for ( UInt32 i=0; i<portStr.ByteSize()-1; ++i )
+        {
+            if ( digits[ i ] < '0' || digits[ i ] > '9' )
+                return false;
+        }
+        int portValue = atoi( digits );
         if ( portValue < 1 || portValue > 65535 )
             return false;
         port = (UInt16) portValue;
@@ -141,7 +179,7 @@ ParseWebSocketUrl( const std::string& url, std::string& host, UInt16& port, std:
     {
         host = authority;
     }
-    return !host.empty();
+    return !host.IsNULLOrEmpty();
 }
 
 /*-------------------------------------------------------------------------//
@@ -166,6 +204,8 @@ CWebSocketClient::RegisterEvents( void )
 CWebSocketClient::CWebSocketClient( void )
     : CORE::CObservingNotifier()
     , m_socket( false )
+    , m_tlsSettings()
+    , m_tlsFailure()
     , m_state( STATE_DISCONNECTED )
     , m_host()
     , m_port( 80 )
@@ -184,7 +224,7 @@ CWebSocketClient::CWebSocketClient( void )
 {GUCEF_TRACE;
 
     RegisterEvents();
-    SubscribeTo( &m_socket );
+    RegisterSocketEventHandlers();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -192,6 +232,8 @@ CWebSocketClient::CWebSocketClient( void )
 CWebSocketClient::CWebSocketClient( const CORE::PulseGeneratorPtr& pulseGenerator )
     : CORE::CObservingNotifier()
     , m_socket( pulseGenerator, false )
+    , m_tlsSettings()
+    , m_tlsFailure()
     , m_state( STATE_DISCONNECTED )
     , m_host()
     , m_port( 80 )
@@ -210,7 +252,39 @@ CWebSocketClient::CWebSocketClient( const CORE::PulseGeneratorPtr& pulseGenerato
 {GUCEF_TRACE;
 
     RegisterEvents();
-    SubscribeTo( &m_socket );
+    RegisterSocketEventHandlers();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWebSocketClient::RegisterSocketEventHandlers( void )
+{GUCEF_TRACE;
+
+    TEventCallback connectedCallback( this, &CWebSocketClient::OnTcpConnected );
+    SubscribeTo( &m_socket                                   ,
+                 COMCORE::CTCPClientSocket::ConnectedEvent   ,
+                 connectedCallback                           );
+
+    TEventCallback disconnectedCallback( this, &CWebSocketClient::OnTcpDisconnected );
+    SubscribeTo( &m_socket                                   ,
+                 COMCORE::CTCPClientSocket::DisconnectedEvent ,
+                 disconnectedCallback                        );
+
+    TEventCallback tlsErrorCallback( this, &CWebSocketClient::OnTlsError );
+    SubscribeTo( &m_socket                                   ,
+                 COMCORE::CTlsClientConnection::TlsErrorEvent ,
+                 tlsErrorCallback                            );
+
+    TEventCallback socketErrorCallback( this, &CWebSocketClient::OnTcpSocketError );
+    SubscribeTo( &m_socket                                   ,
+                 COMCORE::CTCPClientSocket::SocketErrorEvent ,
+                 socketErrorCallback                         );
+
+    TEventCallback dataCallback( this, &CWebSocketClient::OnTcpDataReceived );
+    SubscribeTo( &m_socket                                   ,
+                 COMCORE::CTCPClientSocket::DataRecievedEvent ,
+                 dataCallback                                );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -219,6 +293,7 @@ CWebSocketClient::~CWebSocketClient()
 {GUCEF_TRACE;
 
     // no events for an object that is going away
+    UnsubscribeAllFromObserver();
     m_closedReported = true;
     m_socket.Close();
 }
@@ -265,6 +340,24 @@ CWebSocketClient::SetMaxMessageSize( UInt32 maxMessageSizeInBytes )
 
 /*-------------------------------------------------------------------------*/
 
+void
+CWebSocketClient::SetTlsSettings( const COMCORE::CTlsSettings& settings )
+{GUCEF_TRACE;
+
+    m_tlsSettings = settings;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const COMCORE::CTlsSettings&
+CWebSocketClient::GetTlsSettings( void ) const
+{GUCEF_TRACE;
+
+    return m_tlsSettings;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CWebSocketClient::Connect( const CORE::CString& url         ,
                            const TStringVector& subProtocols ,
@@ -277,12 +370,13 @@ CWebSocketClient::Connect( const CORE::CString& url         ,
         return false;
     }
 
-    std::string host;
-    std::string resource;
+    CORE::CString host;
+    CORE::CString resource;
     UInt16 port = 80;
-    if ( !ParseWebSocketUrl( url.STL_String(), host, port, resource ) )
+    bool secure = false;
+    if ( !ParseWebSocketUrl( url, secure, host, port, resource ) )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WebSocketClient(" + CORE::PointerToString( this ) + "): Unsupported or invalid url \"" + url + "\", only ws:// is supported" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WebSocketClient(" << CORE::PointerToString( this ) << "): Unsupported or invalid url \"" << CORE::CRedactor::ForUrl().RedactUrl( url ) << "\", only ws:// and wss:// are supported" );
         return false;
     }
 
@@ -304,30 +398,52 @@ CWebSocketClient::Connect( const CORE::CString& url         ,
     m_closeInfo = SWebSocketCloseInfo();
     m_peerInfo = SWebSocketPeerInfo();
     m_closedReported = false;
+    m_tlsFailure.Clear();
 
-    std::string request = "GET " + resource + " HTTP/1.1\r\n";
-    request += "Host: " + host + ( 80 == port ? std::string() : ":" + CORE::UInt32ToString( port ).STL_String() ) + "\r\n";
+    CORE::CString request = "GET " + resource + " HTTP/1.1\r\n";
+    request += "Host: " + host;
+    if ( ( secure ? 443 : 80 ) != port )
+        request += ":" + CORE::UInt32ToString( port );
+    request += "\r\n";
     request += "Upgrade: websocket\r\nConnection: Upgrade\r\n";
-    request += "Sec-WebSocket-Key: " + m_clientKey.STL_String() + "\r\n";
-    request += "Sec-WebSocket-Version: " + WEB::CWebSocketHandshake::ProtocolVersion.STL_String() + "\r\n";
+    request += "Sec-WebSocket-Key: " + m_clientKey + "\r\n";
+    request += "Sec-WebSocket-Version: " + WEB::CWebSocketHandshake::ProtocolVersion + "\r\n";
     if ( !subProtocols.empty() )
     {
-        std::string list;
+        CORE::CString list;
         for ( size_t i=0; i<subProtocols.size(); ++i )
-            list += ( 0 == i ? "" : ", " ) + subProtocols[ i ].STL_String();
+            list += ( 0 == i ? "" : ", " ) + subProtocols[ i ];
         request += "Sec-WebSocket-Protocol: " + list + "\r\n";
     }
     for ( TStringMap::const_iterator i = extraHeaders.begin(); i != extraHeaders.end(); ++i )
-        request += (*i).first.STL_String() + ": " + (*i).second.STL_String() + "\r\n";
+        request += (*i).first + ": " + (*i).second + "\r\n";
     request += "\r\n";
     m_upgradeRequest = request;
 
     m_state = STATE_CONNECTING;
-    if ( !m_socket.ConnectTo( CORE::CString( host ), port ) )
+    bool started = false;
+    if ( secure )
+    {
+        // the upgrade is a HTTP/1.1 request: no other application protocol is wanted
+        COMCORE::CTlsSettings settings = m_tlsSettings;
+        if ( settings.GetAlpnProtocols().empty() )
+            settings.AddAlpnProtocol( "http/1.1" );
+        started = m_socket.ConnectTo( CORE::CString( host ), port, &settings );
+    }
+    else
+        started = m_socket.ConnectTo( CORE::CString( host ), port );
+    if ( !started )
     {
         m_state = STATE_DISCONNECTED;
         m_closedReported = true;
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WebSocketClient(" + CORE::PointerToString( this ) + "): Failed to start connecting to " + CORE::CString( host ) );
+        if ( secure && m_socket.GetLastError().IsError() )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WebSocketClient(" << CORE::PointerToString( this ) << "): Cannot connect to wss://" << host << ": " << m_socket.GetLastError().GetDescription( CORE::CString( host ) ) );
+        }
+        else
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WebSocketClient(" << CORE::PointerToString( this ) << "): Failed to start connecting to " << CORE::CString( host ) );
+        }
         return false;
     }
     return true;
@@ -336,34 +452,60 @@ CWebSocketClient::Connect( const CORE::CString& url         ,
 /*-------------------------------------------------------------------------*/
 
 void
-CWebSocketClient::OnNotify( CORE::CNotifier* notifier                 ,
-                            const CORE::CEvent& eventid               ,
-                            CORE::CICloneable* eventdata /* = NULL */ )
+CWebSocketClient::OnTcpConnected( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( notifier != &m_socket )
-        return;
+    OnSocketConnected();
+}
 
-    if ( eventid == COMCORE::CTCPClientSocket::ConnectedEvent )
-    {
-        OnSocketConnected();
-    }
-    else
-    if ( eventid == COMCORE::CTCPClientSocket::DisconnectedEvent )
-    {
-        OnSocketDisconnected();
-    }
-    else
-    if ( eventid == COMCORE::CTCPClientSocket::SocketErrorEvent )
-    {
-        FailAndClose( "TCP socket error while connected to " + m_host );
-    }
-    else
-    if ( eventid == COMCORE::CTCPClientSocket::DataRecievedEvent )
-    {
-        COMCORE::CTCPClientSocket::TDataRecievedEventData* eData = static_cast< COMCORE::CTCPClientSocket::TDataRecievedEventData* >( eventdata );
-        OnSocketData( eData->GetData() );
-    }
+/*-------------------------------------------------------------------------*/
+
+void
+CWebSocketClient::OnTcpDisconnected( CORE::CNotifier* notifier    ,
+                                     const CORE::CEvent& eventId  ,
+                                     CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    OnSocketDisconnected();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWebSocketClient::OnTlsError( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    // the socket error that follows is the report of this one
+    COMCORE::TTlsErrorEventData* eData = static_cast< COMCORE::TTlsErrorEventData* >( eventData );
+    if ( COMCORE::TLSERR_CONNECT != eData->GetData().errorClass )
+        m_tlsFailure = eData->GetData().GetDescription( m_host );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWebSocketClient::OnTcpSocketError( CORE::CNotifier* notifier    ,
+                                    const CORE::CEvent& eventId  ,
+                                    CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    FailAndClose( m_tlsFailure.IsNULLOrEmpty() ? "TCP socket error while connected to " + m_host : "TLS: " + m_tlsFailure );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CWebSocketClient::OnTcpDataReceived( CORE::CNotifier* notifier    ,
+                                     const CORE::CEvent& eventId  ,
+                                     CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    COMCORE::CTCPClientSocket::TDataRecievedEventData* eData = static_cast< COMCORE::CTCPClientSocket::TDataRecievedEventData* >( eventData );
+    OnSocketData( eData->GetData() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -376,7 +518,7 @@ CWebSocketClient::OnSocketConnected( void )
         return;
 
     m_state = STATE_HANDSHAKING;
-    if ( !m_socket.Send( m_upgradeRequest.data(), (UInt32) m_upgradeRequest.size() ) )
+    if ( !m_socket.Send( m_upgradeRequest.C_String(), m_upgradeRequest.ByteSize() > 0 ? m_upgradeRequest.ByteSize()-1 : 0 ) )
         FailAndClose( "Failed to send the web socket upgrade request" );
 }
 

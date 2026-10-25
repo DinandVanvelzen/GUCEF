@@ -130,6 +130,7 @@ class GUCEF_HIDDEN CHttpClientRequestRunner : public CIHttpClientBackendObserver
     UInt64 m_requestStartTicks;
     UInt64 m_hopStartTicks;
     UInt64 m_requestBodyStartPos;
+    bool m_credentialsStripped;     /**< a redirect left the origin of the request, the credentials of the caller are no longer sent */
     bool m_finished;
 };
 

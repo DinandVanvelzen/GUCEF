@@ -17,6 +17,7 @@ set( HEADER_FILES
   include/TestIrc.h
   include/TestNatTraversal.h
   include/TestRttProbes.h
+  include/TestStatsDClient.h
 )
 
 set( SOURCE_FILES 
@@ -24,6 +25,7 @@ set( SOURCE_FILES
   src/TestIrc.cpp
   src/TestNatTraversal.cpp
   src/TestRttProbes.cpp
+  src/TestStatsDClient.cpp
   src/gucefCOM_TestApp_main.cpp
 )
 
@@ -46,7 +48,7 @@ add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_COM_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefCOM_TestApp;MODULE_NAME=gucefCOM_TestApp" )
 
-include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )

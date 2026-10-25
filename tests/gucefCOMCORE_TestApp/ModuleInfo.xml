@@ -2,6 +2,7 @@
 <ModuleInfoEntry>
     <Module Name="gucefCOMCORE_TestApp" Platform="All" Type="Executable" Tags="test" >
 		<Dependencies>
+			<Dependency Name="gucefTestHeaders" />
 			<Dependency Name="gucefCOMCORE" />
 			<Dependency Name="gucefCORE" />
 			<Dependency Name="gucefMT" />

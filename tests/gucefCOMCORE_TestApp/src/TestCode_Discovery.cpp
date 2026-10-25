@@ -591,6 +591,21 @@ PerformNetworkServiceInterfaceTests( void )
             CORE::CFutureResult failed = failing.source.GetFuture();
             ASSERT_TRUE( failing.source.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "no gateway" ) );
             ASSERT_FALSE( CPortMappingResult::TryGetFromFuture( failed, result ) );
+
+            // a future that finished well but carries data of another class is no port mapping result
+            CPromise foreign;
+            CORE::CFutureResult foreignFuture = foreign.source.GetFuture();
+            ASSERT_TRUE( foreign.source.Complete( GUCEF_NEW CORE::TCloneableString( "not a mapping" ), true ) );
+            ASSERT_TRUE( foreignFuture.IsReady() );
+            ASSERT_FALSE( CPortMappingResult::TryGetFromFuture( foreignFuture, result ) );
+            ASSERT_TRUE( 17777 == result.externalPort ); // the result is left as it was
+
+            // the type name the check is based on is that of the class
+            ASSERT_TRUE( made.IsCloneableType( CPortMappingResult::CloneableTypeName() ) );
+            ASSERT_TRUE( GUCEF_NULL != CORE::CICloneable::CloneableAs< CPortMappingResult >( &made ) );
+            CORE::TCloneableString plain( "x" );
+            ASSERT_TRUE( GUCEF_NULL == CORE::CICloneable::CloneableAs< CPortMappingResult >( &plain ) );
+            ASSERT_TRUE( GUCEF_NULL == CORE::CICloneable::CloneableAs< CPortMappingResult >( static_cast< const CORE::CICloneable* >( GUCEF_NULL ) ) );
         }
         catch ( ... )
         {

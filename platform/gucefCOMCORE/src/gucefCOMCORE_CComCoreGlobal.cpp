@@ -102,6 +102,16 @@
 #define GUCEF_CORE_CPLUGINCONTROL_H
 #endif /* GUCEF_CORE_CPLUGINCONTROL_H ? */
 
+#ifndef GUCEF_COMCORE_CTLSCLIENTCONNECTION_H
+#include "gucefCOMCORE_CTlsClientConnection.h"
+#define GUCEF_COMCORE_CTLSCLIENTCONNECTION_H
+#endif /* GUCEF_COMCORE_CTLSCLIENTCONNECTION_H ? */
+
+#ifndef GUCEF_COMCORE_COPENSSLTLSPROVIDER_H
+#include "gucefCOMCORE_COpenSslTlsProvider.h"
+#define GUCEF_COMCORE_COPENSSLTLSPROVIDER_H
+#endif /* GUCEF_COMCORE_COPENSSLTLSPROVIDER_H ? */
+
 #include "gucefCOMCORE_CComCoreGlobal.h"  /* definition of the class implemented here */
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
@@ -152,6 +162,7 @@ CComCoreGlobal::CComCoreGlobal( void )
     , m_rttProbeFactory( GUCEF_NULL )
     , m_portMapperFactory( GUCEF_NULL )
     , m_geoLocationLookupService( GUCEF_NULL )
+    , m_tlsProviderRegistry( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -185,6 +196,7 @@ CComCoreGlobal::Initialize( void )
     CIDiscoveryClient::RegisterEvents();
     CIRttProbe::RegisterEvents();
     CIPortMapper::RegisterEvents();
+    CTlsClientConnection::RegisterEvents();
     
     CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
 
@@ -201,6 +213,11 @@ CComCoreGlobal::Initialize( void )
     m_portMapperFactory = GUCEF_NEW CPortMapperFactory();
     m_discoveryManager = GUCEF_NEW CDiscoveryManager();
     m_geoLocationLookupService = GUCEF_NEW CGeoLocationLookupService();
+
+    // Registering probes nothing: the libraries of the system are only looked for when TLS is first used
+    m_tlsProviderRegistry = GUCEF_NEW CTlsProviderRegistry();
+    m_tlsProviderRegistry->RegisterProvider( TITlsProviderPtr( GUCEF_NEW COpenSslTlsProvider() ), CTlsProviderRegistry::SystemLibraryTlsProviderPriority );
+
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefCOMCORE" );
 }
 
@@ -224,6 +241,8 @@ CComCoreGlobal::Shutdown( void )
     taskManager.UnregisterTaskConsumerFactory( CPingTaskConsumer::TaskType );
     taskManager.UnregisterTaskConsumerFactory( CDnsCacheRefreshTaskConsumer::TaskType );
     
+    GUCEF_DELETE m_tlsProviderRegistry;
+    m_tlsProviderRegistry = GUCEF_NULL;
     GUCEF_DELETE m_geoLocationLookupService;
     m_geoLocationLookupService = GUCEF_NULL;
     GUCEF_DELETE m_discoveryManager;
@@ -344,6 +363,15 @@ CComCoreGlobal::GetGeoLocationLookupService( void )
 {GUCEF_TRACE;
 
     return *m_geoLocationLookupService;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTlsProviderRegistry&
+CComCoreGlobal::GetTlsProviderRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_tlsProviderRegistry;
 }
 
 /*-------------------------------------------------------------------------//

@@ -31,6 +31,11 @@
 #define GUCEF_COM_CIIRCTRANSPORT_H
 #endif /* GUCEF_COM_CIIRCTRANSPORT_H ? */
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_WEB_CWEBSOCKETCLIENT_H
 #include "gucefWEB_CWebSocketClient.h"
 #define GUCEF_WEB_CWEBSOCKETCLIENT_H
@@ -85,16 +90,30 @@ class GUCEF_WEB_PUBLIC_CPP CIrcWebSocketTransport : public COM::CIIrcTransport
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    protected:
-
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CIrcWebSocketTransport > TEventCallback;
 
     CIrcWebSocketTransport( const CIrcWebSocketTransport& src );
     CIrcWebSocketTransport& operator=( const CIrcWebSocketTransport& src );
+
+    void RegisterWebSocketEventHandlers( void );
+
+    void OnWebSocketConnected( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData );
+
+    void OnWebSocketTextMessage( CORE::CNotifier* notifier    ,
+                                 const CORE::CEvent& eventId  ,
+                                 CORE::CICloneable* eventData );
+
+    void OnWebSocketClosed( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData );
+
+    void OnWebSocketError( CORE::CNotifier* notifier    ,
+                           const CORE::CEvent& eventId  ,
+                           CORE::CICloneable* eventData );
 
     private:
 

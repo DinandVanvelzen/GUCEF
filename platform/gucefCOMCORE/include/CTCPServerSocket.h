@@ -144,6 +144,23 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     bool SetPort( UInt16 port );
     
     UInt16 GetPort( void ) const;
+
+    /**
+     *  The port the server is listening on, 0 when it is not. Differs from GetPort() for a server that was
+     *  told to listen on port 0, where the system picks a free port
+     */
+    UInt16 GetBoundPort( void ) const;
+
+    /**
+     *  The IPv4 address to listen on as dotted text, for example "127.0.0.1" to accept loopback clients only.
+     *  Empty (the default) and "0.0.0.0" listen on every NIC.
+     *  Takes effect at the next Listen(), a socket that is active listens again on the new address.
+     *  An address that is not a dotted IPv4 address is refused (false) and makes Listen() fail, so that a mistyped
+     *  address never ends up listening wider than was asked for.
+     */
+    bool SetBindAddress( const CORE::CString& bindAddress );
+
+    CORE::CString GetBindAddress( void ) const;
     
     bool IsActive( void ) const;
     
@@ -248,6 +265,10 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     TConnectionQueue m_almostActiveConnections;
     TConnectionSet m_inactiveConnections;      /**< set of all currently inactive connection objects ready for reuse */
     UInt16 m_port;
+    UInt16 m_boundPort;                        /**< the port that was bound, differs from m_port for port 0 */
+    CORE::CString m_bindAddress;               /**< dotted IPv4 address to listen on, empty for every NIC */
+    UInt32 m_bindAddressInNetworkByteOrder;
+    bool m_bindAddressValid;
     MT::CMutex _datalock;
     UInt32 _timeout;         
     CORE::PulseGeneratorPtr m_pulseGenerator;

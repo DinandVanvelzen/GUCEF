@@ -104,7 +104,9 @@ GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GUCEFPlugin_Unload: Unload called on WEB plugin httpclientpluginCURL" );
 
-    WEB::CWebGlobal::Instance()->GetHttpClientBackendFactory().UnregisterConcreteFactory( CCurlHttpClientBackend::BackendName );
+    // Not through CCurlHttpClientBackend::BackendName: when the plugin is unloaded because the process ends the static objects of this library
+    // can be gone already, and the factory would stay registered while the code that is its destructor goes away
+    WEB::CWebGlobal::Instance()->GetHttpClientBackendFactory().UnregisterConcreteFactory( CORE::CString( "curl" ) );
     curl_global_cleanup();
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GUCEFPlugin_Unload: Unload finished for WEB plugin httpclientpluginCURL" );

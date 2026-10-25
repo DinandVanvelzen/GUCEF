@@ -28,6 +28,11 @@
 #define GUCEF_WEB_CCHROMEDEVTOOLSCLIENT_H
 #endif /* GUCEF_WEB_CCHROMEDEVTOOLSCLIENT_H ? */
 
+#ifndef GUCEF_CORE_CREDACTOR_H
+#include "gucefCORE_CRedactor.h"
+#define GUCEF_CORE_CREDACTOR_H
+#endif /* GUCEF_CORE_CREDACTOR_H ? */
+
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
 #define GUCEF_CORE_CCOREGLOBAL_H
@@ -119,25 +124,54 @@ CChromeDevToolsClient::RegisterEvents( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CChromeDevToolsClient::CEventSink::OnNotify( CORE::CNotifier* notifier                 ,
-                                             const CORE::CEvent& eventid               ,
-                                             CORE::CICloneable* eventdata /* = NULL */ )
+CChromeDevToolsClient::CEventSink::RegisterEventHandlers( void )
 {GUCEF_TRACE;
 
-    if ( notifier == &m_client.m_httpClient )
-    {
-        m_client.OnHttpEvent( eventid, eventdata );
-    }
-    else
-    if ( notifier == &m_client.m_webSocketClient )
-    {
-        m_client.OnWebSocketEvent( eventid, eventdata );
-    }
-    else
-    if ( notifier == &m_client.m_rpcClient && eventid == CJsonRpcEndpoint::NotificationEvent )
-    {
-        m_client.OnRpcNotification( static_cast< TJsonRpcNotificationEventData* >( eventdata )->GetData() );
-    }
+    TEventCallback httpCallback( this, &CEventSink::OnHttpNotification );
+    SubscribeTo( &m_client.m_httpClient, CHTTPClient::HTTPDataRecievedEvent    , httpCallback );
+    SubscribeTo( &m_client.m_httpClient, CHTTPClient::HTTPErrorEvent           , httpCallback );
+    SubscribeTo( &m_client.m_httpClient, CHTTPClient::ConnectionErrorEvent     , httpCallback );
+    SubscribeTo( &m_client.m_httpClient, CHTTPClient::HTTPTransferFinishedEvent, httpCallback );
+
+    TEventCallback webSocketCallback( this, &CEventSink::OnWebSocketNotification );
+    SubscribeTo( &m_client.m_webSocketClient, CWebSocketClient::ConnectedEvent, webSocketCallback );
+    SubscribeTo( &m_client.m_webSocketClient, CWebSocketClient::ClosedEvent   , webSocketCallback );
+
+    TEventCallback rpcCallback( this, &CEventSink::OnRpcNotificationEvent );
+    SubscribeTo( &m_client.m_rpcClient, CJsonRpcEndpoint::NotificationEvent, rpcCallback );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChromeDevToolsClient::CEventSink::OnHttpNotification( CORE::CNotifier* notifier    ,
+                                                       const CORE::CEvent& eventId  ,
+                                                       CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    m_client.OnHttpEvent( eventId, eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChromeDevToolsClient::CEventSink::OnWebSocketNotification( CORE::CNotifier* notifier    ,
+                                                            const CORE::CEvent& eventId  ,
+                                                            CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    m_client.OnWebSocketEvent( eventId, eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChromeDevToolsClient::CEventSink::OnRpcNotificationEvent( CORE::CNotifier* notifier    ,
+                                                           const CORE::CEvent& eventId  ,
+                                                           CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    m_client.OnRpcNotification( static_cast< TJsonRpcNotificationEventData* >( eventData )->GetData() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -164,9 +198,7 @@ CChromeDevToolsClient::CChromeDevToolsClient( void )
     m_rpcClient.SetDialect( JSONRPC_DIALECT_LENIENT );
     m_rpcClient.AttachWebSocketClient( m_webSocketClient );
 
-    m_eventSink.SubscribeTo( &m_httpClient );
-    m_eventSink.SubscribeTo( &m_webSocketClient );
-    m_eventSink.SubscribeTo( &m_rpcClient );
+    m_eventSink.RegisterEventHandlers();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -582,7 +614,7 @@ CChromeDevToolsClient::PageNavigate( const CORE::CString& url, CORE::CString* fr
     // a navigation can fail without the command failing, the result then says why
     if ( !GetText( result, "errorText" ).IsNULLOrEmpty() )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ChromeDevToolsClient: Navigation to " + url + " failed: " + GetText( result, "errorText" ) );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ChromeDevToolsClient: Navigation to " << CORE::CRedactor::ForUrl().RedactUrl( url ) << " failed: " << GetText( result, "errorText" ) );
         return false;
     }
     if ( GUCEF_NULL != frameId )

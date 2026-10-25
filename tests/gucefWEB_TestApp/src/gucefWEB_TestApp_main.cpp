@@ -38,8 +38,14 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#include "gucef_test_log_callback.h"
+#define GUCEF_TEST_LOG_CALLBACK_H
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
+#include "gucefCORE_CTaskManager.h"
 #define GUCEF_CORE_H
 #endif /* GUCEF_CORE_H ? */
 
@@ -92,6 +98,21 @@
 #include "TestHttpClient.h"
 #define GUCEF_WEB_TESTAPP_TESTHTTPCLIENT_H
 #endif /* GUCEF_WEB_TESTAPP_TESTHTTPCLIENT_H ? */
+
+#ifndef GUCEF_WEB_TESTAPP_TESTHTTPHEADERPARSING_H
+#include "TestHttpHeaderParsing.h"
+#define GUCEF_WEB_TESTAPP_TESTHTTPHEADERPARSING_H
+#endif /* GUCEF_WEB_TESTAPP_TESTHTTPHEADERPARSING_H ? */
+
+#ifndef GUCEF_WEB_TESTAPP_TESTHTTPREDACTION_H
+#include "TestHttpRedaction.h"
+#define GUCEF_WEB_TESTAPP_TESTHTTPREDACTION_H
+#endif /* GUCEF_WEB_TESTAPP_TESTHTTPREDACTION_H ? */
+
+#ifndef GUCEF_WEB_TESTAPP_TESTHTTPSERVERBIND_H
+#include "TestHttpServerBind.h"
+#define GUCEF_WEB_TESTAPP_TESTHTTPSERVERBIND_H
+#endif /* GUCEF_WEB_TESTAPP_TESTHTTPSERVERBIND_H ? */
 
 #ifndef GUCEF_WEB_TESTIRCWEBSOCKET_H
 #include "TestIrcWebSocket.h"
@@ -150,14 +171,20 @@ GUCEF_OSMAIN_BEGIN
         WEB::CWebGlobal::Instance();
 
         GUCEF_TESTFW_INIT( "gucefWEB_TestApp" );
-        GUCEF_TESTFW_SET_CALLBACK( CORE::TestFrameworkLogCallback, GUCEF_NULL );
+        GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
         PerformWebSocketCodecTests();
         PerformWebSocketTests();
         PerformJsonRpcTests();
         PerformChromeDevToolsTests();
+        PerformHttpRedactionTests();
         PerformHttpClientTests();
+        PerformHttpServerBindTests();
+        PerformHttpHeaderParsingTests();
         PerformIrcWebSocketTests();
+
+        // The threads of the pools end here, not at the end of the process: what a TLS library keeps per thread is released when they do
+        CORE::CCoreGlobal::Instance()->GetTaskManager().RequestAllThreadsToStop( true, false, 5000 );
 
         CORE::CLogStreamScope::FlushLogs();
 

@@ -83,7 +83,7 @@ CDiscoveryClientBase::CDiscoveryClientBase( const CORE::CString& defaultClientNa
     , m_dataLock()
 {GUCEF_TRACE;
 
-    SubscribeTo( &m_housekeepingTimer );
+    RegisterEventHandlers();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -100,7 +100,19 @@ CDiscoveryClientBase::CDiscoveryClientBase( const CORE::CString& defaultClientNa
     , m_dataLock()
 {GUCEF_TRACE;
 
-    SubscribeTo( &m_housekeepingTimer );
+    RegisterEventHandlers();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDiscoveryClientBase::RegisterEventHandlers( void )
+{GUCEF_TRACE;
+
+    TEventCallback callback( this, &CDiscoveryClientBase::OnHousekeepingTimer );
+    SubscribeTo( &m_housekeepingTimer                ,
+                 CORE::CTimer::TimerUpdateEvent      ,
+                 callback                            );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -108,8 +120,8 @@ CDiscoveryClientBase::CDiscoveryClientBase( const CORE::CString& defaultClientNa
 CDiscoveryClientBase::~CDiscoveryClientBase()
 {GUCEF_TRACE;
 
-    m_housekeepingTimer.SetEnabled( false );
     UnsubscribeAllFromObserver();
+    m_housekeepingTimer.SetEnabled( false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -172,6 +184,21 @@ CDiscoveryClientBase::UpdateHousekeepingTimer( void )
 
 /*-------------------------------------------------------------------------*/
 
+void
+CDiscoveryClientBase::ReleaseIfIdle( void )
+{GUCEF_TRACE;
+
+    bool idle = false;
+    {
+        MT::CScopeMutex lock( m_dataLock );
+        idle = m_browsedServiceTypes.empty() && m_advertised.empty();
+    }
+    if ( idle )
+        OnIdle();
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CDiscoveryClientBase::Browse( const CORE::CString& serviceType )
 {GUCEF_TRACE;
@@ -188,9 +215,13 @@ CDiscoveryClientBase::Browse( const CORE::CString& serviceType )
 
     if ( !OnBrowseStarted( serviceType ) )
     {
-        MT::CScopeMutex lock( m_dataLock );
-        if ( isNew )
-            m_browsedServiceTypes.erase( serviceType );
+        {
+            MT::CScopeMutex lock( m_dataLock );
+            if ( isNew )
+                m_browsedServiceTypes.erase( serviceType );
+        }
+        UpdateHousekeepingTimer();
+        ReleaseIfIdle();
         return false;
     }
 
@@ -230,6 +261,7 @@ CDiscoveryClientBase::StopBrowse( const CORE::CString& serviceType )
 
     OnBrowseStopped( serviceType );
     UpdateHousekeepingTimer();
+    ReleaseIfIdle();
 
     for ( size_t n=0; n<lostEntries.size(); ++n )
     {
@@ -320,8 +352,12 @@ CDiscoveryClientBase::Advertise( CIDiscoveryEntryPtr entry )
 
     if ( !OnAdvertised( entry ) )
     {
-        MT::CScopeMutex lock( m_dataLock );
-        m_advertised.erase( key );
+        {
+            MT::CScopeMutex lock( m_dataLock );
+            m_advertised.erase( key );
+        }
+        UpdateHousekeepingTimer();
+        ReleaseIfIdle();
         return false;
     }
     return true;
@@ -349,6 +385,7 @@ CDiscoveryClientBase::Withdraw( CIDiscoveryEntryPtr entry )
 
     bool success = OnWithdrawn( advertised );
     UpdateHousekeepingTimer();
+    ReleaseIfIdle();
     return success;
 }
 
@@ -537,7 +574,7 @@ CDiscoveryClientBase::ProcessHeardEntry( const CIDiscoveryEntry& heard )
 
     if ( GUCEF_NULL != eventToSend )
     {
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "DiscoveryClient(" << m_clientName << "): " <<
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "DiscoveryClient(" << m_clientName << "): " <<
             ( eventToSend == &EntryDiscoveredEvent ? "Discovered " : "Updated " ) << key );
 
         CDiscoveryEntryEventData eData( eventEntry );
@@ -564,7 +601,7 @@ CDiscoveryClientBase::ProcessGoodbye( const CORE::CString& serviceType, const CO
     }
     UpdateHousekeepingTimer();
 
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "DiscoveryClient(" << m_clientName << "): Lost " << key << " because it was withdrawn" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "DiscoveryClient(" << m_clientName << "): Lost " << key << " because it was withdrawn" );
 
     CDiscoveryEntryEventData eData( lostEntry );
     return NotifyObservers( EntryLostEvent, &eData );
@@ -606,7 +643,7 @@ CDiscoveryClientBase::ExpireEntries( UInt64 nowInMs )
 
     for ( size_t n=0; n<lostEntries.size(); ++n )
     {
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "DiscoveryClient(" << m_clientName << "): Lost " << lostEntries[ n ]->GetEntryKey() << " because its TTL ran out" );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "DiscoveryClient(" << m_clientName << "): Lost " << lostEntries[ n ]->GetEntryKey() << " because its TTL ran out" );
 
         CDiscoveryEntryEventData eData( lostEntries[ n ] );
         if ( !NotifyObservers( EntryLostEvent, &eData ) ) return false;
@@ -633,19 +670,24 @@ CDiscoveryClientBase::OnHousekeeping( UInt64 nowInMs )
 /*-------------------------------------------------------------------------*/
 
 void
-CDiscoveryClientBase::OnNotify( CORE::CNotifier* notifier    ,
-                                const CORE::CEvent& eventId  ,
-                                CORE::CICloneable* eventData )
+CDiscoveryClientBase::OnIdle( void )
 {GUCEF_TRACE;
 
-    if ( notifier == &m_housekeepingTimer && CORE::CTimer::TimerUpdateEvent == eventId )
-    {
-        UInt64 nowInMs = GetTimeInMs();
-        if ( !ExpireEntries( nowInMs ) )
-            return;
-        OnHousekeeping( nowInMs );
-        UpdateHousekeepingTimer();
-    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDiscoveryClientBase::OnHousekeepingTimer( CORE::CNotifier* notifier    ,
+                                           const CORE::CEvent& eventId  ,
+                                           CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    UInt64 nowInMs = GetTimeInMs();
+    if ( !ExpireEntries( nowInMs ) )
+        return;
+    OnHousekeeping( nowInMs );
+    UpdateHousekeepingTimer();
 }
 
 /*-------------------------------------------------------------------------*/

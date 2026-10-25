@@ -192,6 +192,23 @@ class GUCEF_WEB_PUBLIC_CPP CHTTPClient : public CORE::CTSGNotifier
     /** @return the name of the backend that would carry out a request for the given scheme, empty if none */
     CString GetBackendNameForScheme( const CString& scheme ) const;
 
+    /**
+     *  Whether a request for the scheme ("http", "https") can be carried out at this moment by the default backends:
+     *  the registered ones, which for https means the native backend has a TLS provider (on Linux the OpenSSL of the system), or a plugin
+     *  such as httpclientpluginCURL has been loaded (the WinHTTP backend is part of the build on Windows). Nothing is logged when it cannot.
+     *  Asked again later it can give another answer when plugins were loaded or unloaded in between.
+     */
+    static bool IsSchemeSupported( const CString& scheme );
+
+    /**
+     *  Why a request for the scheme cannot be carried out, for a message to the user. For https that is "no HTTPS support:" followed by
+     *  what the TLS provider says, for example the library that cannot be found. Meaningful when IsSchemeSupported() is false
+     */
+    static CString DescribeUnsupportedScheme( const CString& scheme );
+
+    /** The default backends that are registered at this moment, as a line for a log: "native, curl (https)" */
+    static CString DescribeAvailableBackends( void );
+
     /** cookies for requests whose options have no cookie jar of their own, none by default */
     void SetCookieJar( CHttpCookieJarPtr cookieJar );
 

@@ -61,9 +61,18 @@ LOCAL_SRC_FILES := \
   src/gucefCOMCORE_CIPv6Info.cpp \
   src/gucefCOMCORE_CIRttProbe.cpp \
   src/gucefCOMCORE_CMessageSerializer.cpp \
+  src/gucefCOMCORE_COpenSslTlsProvider.cpp \
+  src/gucefCOMCORE_COpenSslTlsProviderAbi.cpp \
+  src/gucefCOMCORE_COpenSslTlsProviderSession.cpp \
   src/gucefCOMCORE_CPingTaskConsumer.cpp \
   src/gucefCOMCORE_CPortMappingResult.cpp \
   src/gucefCOMCORE_CSerialPort.cpp \
+  src/gucefCOMCORE_CTlsClientConnection.cpp \
+  src/gucefCOMCORE_CTlsProviderRegistry.cpp \
+  src/gucefCOMCORE_CTlsSettings.cpp \
+  src/gucefCOMCORE_ITlsProvider.cpp \
+  src/gucefCOMCORE_ITlsSession.cpp \
+  src/gucefCOMCORE_TlsTypes.cpp \
   src/socketutils.cpp
 
 LOCAL_C_INCLUDES := \

@@ -166,6 +166,16 @@ CUdpMulticastDiscoveryClient::OpenSocket( COMCORE::CUDPSocket& socket, UInt16 po
 /*-------------------------------------------------------------------------*/
 
 void
+CUdpMulticastDiscoveryClient::OnIdle( void )
+{GUCEF_TRACE;
+
+    CUdpDiscoveryClientBase::OnIdle();
+    m_joinedInterfaceCount = 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CUdpMulticastDiscoveryClient::GetDestinations( TIPv4AddressVector& destinations ) const
 {GUCEF_TRACE;
 

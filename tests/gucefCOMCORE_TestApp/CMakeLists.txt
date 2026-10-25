@@ -18,6 +18,9 @@ set( HEADER_FILES
   include/TestCode_PingTest.h
   include/TestCode_Pump.h
   include/TestCode_SimpleTCPClient.h
+  include/TestCode_TlsClient.h
+  include/TestCode_TlsLayer.h
+  include/TestCode_TlsOpenSsl.h
 )
 
 set( SOURCE_FILES 
@@ -26,6 +29,8 @@ set( SOURCE_FILES
   src/TestCode_Discovery.cpp
   src/TestCode_PingTest.cpp
   src/TestCode_SimpleTCPClient.cpp
+  src/TestCode_TlsLayer.cpp
+  src/TestCode_TlsOpenSsl.cpp
   src/gucefCOMCORE_TestApp.cpp
 )
 
@@ -48,7 +53,7 @@ add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMCORE gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefCOMCORE_TestApp;MODULE_NAME=gucefCOMCORE_TestApp" )
 
-include_directories( ../../common/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )

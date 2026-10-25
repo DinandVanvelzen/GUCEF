@@ -216,7 +216,9 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPClientSocket : public CTCPConnection
     
     virtual MT::TLockStatus Unlock( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    private:    
+    private:
+    friend class CTlsClientConnection;      /* cycles the socket itself for a blocking connect that includes the TLS handshake */
+
     typedef CORE::CTEventHandlerFunctor< CTCPClientSocket > TEventCallback;
     
     void OnPulse( CORE::CNotifier* notifier           ,
@@ -233,7 +235,10 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPClientSocket : public CTCPConnection
 
     bool Connect( bool blocking );
 
-    void CloseImp( void );
+    /**
+     *  @return false if this object was deleted as a result of notifying observers of the disconnect, if so it must not be touched anymore
+     */
+    bool CloseImp( void );
     
     private:
             

@@ -144,8 +144,7 @@ CSsdpDiscoveryClient::CSsdpDiscoveryClient( void )
 
     m_groupSocket.SetNrOfReceiveBuffers( 4, 2048 );
     m_searchSocket.SetNrOfReceiveBuffers( 4, 2048 );
-    SubscribeTo( &m_groupSocket );
-    SubscribeTo( &m_searchSocket );
+    RegisterSocketEventHandlers();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -163,8 +162,23 @@ CSsdpDiscoveryClient::CSsdpDiscoveryClient( const CORE::PulseGeneratorPtr& pulse
 
     m_groupSocket.SetNrOfReceiveBuffers( 4, 2048 );
     m_searchSocket.SetNrOfReceiveBuffers( 4, 2048 );
-    SubscribeTo( &m_groupSocket );
-    SubscribeTo( &m_searchSocket );
+    RegisterSocketEventHandlers();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CSsdpDiscoveryClient::RegisterSocketEventHandlers( void )
+{GUCEF_TRACE;
+
+    // one handler for both sockets: it tells them apart by the notifier
+    TEventCallback callback( this, &CSsdpDiscoveryClient::OnSocketPackets );
+    SubscribeTo( &m_groupSocket                               ,
+                 COMCORE::CUDPSocket::UDPPacketsRecievedEvent ,
+                 callback                                     );
+    SubscribeTo( &m_searchSocket                              ,
+                 COMCORE::CUDPSocket::UDPPacketsRecievedEvent ,
+                 callback                                     );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -275,7 +289,7 @@ CSsdpDiscoveryClient::Send( COMCORE::CUDPSocket& socket, const CORE::CString& me
     Int32 sent = socket.SendPacketTo( destination, message.C_String(), (UInt16) size );
     if ( sent != (Int32) size )
     {
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "SsdpDiscoveryClient(" << GetDiscoveryClientName() << "): Failed to send to " << destination.AddressAndPortAsString() );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "SsdpDiscoveryClient(" << GetDiscoveryClientName() << "): Failed to send to " << destination.AddressAndPortAsString() );
         return false;
     }
     return true;
@@ -419,6 +433,18 @@ CSsdpDiscoveryClient::OnBrowseStopped( const CORE::CString& serviceType )
 {GUCEF_TRACE;
 
     m_searchSchedules.erase( serviceType );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CSsdpDiscoveryClient::OnIdle( void )
+{GUCEF_TRACE;
+
+    m_groupSocket.Close();
+    m_searchSocket.Close();
+    m_searchSchedules.clear();
+    m_nextAnnounceTimes.clear();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -693,28 +719,22 @@ CSsdpDiscoveryClient::OnPacket( const COMCORE::CIPv4Address& source, const CORE:
 /*-------------------------------------------------------------------------*/
 
 void
-CSsdpDiscoveryClient::OnNotify( CORE::CNotifier* notifier    ,
-                                const CORE::CEvent& eventId  ,
-                                CORE::CICloneable* eventData )
+CSsdpDiscoveryClient::OnSocketPackets( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( notifier == &m_groupSocket || notifier == &m_searchSocket )
-    {
-        if ( COMCORE::CUDPSocket::UDPPacketsRecievedEvent == eventId && GUCEF_NULL != eventData )
-        {
-            bool fromSearchSocket = notifier == &m_searchSocket;
-            const COMCORE::CUDPSocket::TUdpPacketsRecievedEventData& data = static_cast< COMCORE::CUDPSocket::UDPPacketsRecievedEventData* >( eventData )->GetData();
-            for ( UInt32 i=0; i<data.packetsReceived; ++i )
-            {
-                const COMCORE::CUDPSocket::TPacketEntry& packet = data.packets[ i ];
-                if ( !OnPacket( packet.sourceAddress, packet.dataBuffer.GetData(), fromSearchSocket ) )
-                    return;
-            }
-        }
+    if ( GUCEF_NULL == eventData )
         return;
-    }
 
-    COMCORE::CDiscoveryClientBase::OnNotify( notifier, eventId, eventData );
+    bool fromSearchSocket = notifier == &m_searchSocket;
+    const COMCORE::CUDPSocket::TUdpPacketsRecievedEventData& data = static_cast< COMCORE::CUDPSocket::UDPPacketsRecievedEventData* >( eventData )->GetData();
+    for ( UInt32 i=0; i<data.packetsReceived; ++i )
+    {
+        const COMCORE::CUDPSocket::TPacketEntry& packet = data.packets[ i ];
+        if ( !OnPacket( packet.sourceAddress, packet.dataBuffer.GetData(), fromSearchSocket ) )
+            return;
+    }
 }
 
 /*-------------------------------------------------------------------------*/

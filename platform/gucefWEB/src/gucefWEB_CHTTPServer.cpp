@@ -112,6 +112,7 @@ CHttpServerSettings::CHttpServerSettings( void )
     , keepAliveConnections( true )
     , processRequestsAsync( false )
     , allowWebSocketUpgrades( false )
+    , bindAddress()
 {GUCEF_TRACE;
 
 }
@@ -124,6 +125,7 @@ CHttpServerSettings::CHttpServerSettings( const CHttpServerSettings& src )
     , keepAliveConnections( src.keepAliveConnections )
     , processRequestsAsync( src.processRequestsAsync )
     , allowWebSocketUpgrades( src.allowWebSocketUpgrades )
+    , bindAddress( src.bindAddress )
 {GUCEF_TRACE;
 
 }
@@ -141,6 +143,7 @@ CHttpServerSettings::operator=( const CHttpServerSettings& src )
         keepAliveConnections = src.keepAliveConnections;
         processRequestsAsync = src.processRequestsAsync;
         allowWebSocketUpgrades = src.allowWebSocketUpgrades;
+        bindAddress = src.bindAddress;
     }
     return *this;
 }
@@ -163,6 +166,8 @@ CHttpServerSettings::SaveConfig( CORE::CDataNode& cfg ) const
     totalSuccess = cfg.SetAttribute( "keepAliveConnections", keepAliveConnections ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "processRequestsAsync", processRequestsAsync ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "allowWebSocketUpgrades", allowWebSocketUpgrades ) && totalSuccess;
+    if ( !bindAddress.IsNULLOrEmpty() )
+        totalSuccess = cfg.SetAttribute( "bindAddress", bindAddress ) && totalSuccess;
     return totalSuccess;
 }
 
@@ -176,6 +181,7 @@ CHttpServerSettings::LoadConfig( const CORE::CDataNode& cfg )
     keepAliveConnections = cfg.GetAttributeValueOrChildValueByName( "keepAliveConnections" ).AsBool( keepAliveConnections, true );
     processRequestsAsync = cfg.GetAttributeValueOrChildValueByName( "processRequestsAsync" ).AsBool( processRequestsAsync, true );
     allowWebSocketUpgrades = cfg.GetAttributeValueOrChildValueByName( "allowWebSocketUpgrades" ).AsBool( allowWebSocketUpgrades, true );
+    bindAddress = cfg.GetAttributeValueOrChildValueByName( "bindAddress" ).AsString( bindAddress, true );
 
     return true;
 }
@@ -211,6 +217,7 @@ CHTTPServer::CHTTPServer( THttpServerRequestHandlerFactory* requestHandlerFactor
     if ( GUCEF_NULL != settings )
     {
         m_settings = *settings;
+        ApplyBindAddress();
     }
 
     RegisterEventHandlers();
@@ -239,6 +246,7 @@ CHTTPServer::CHTTPServer( const CORE::PulseGeneratorPtr& pulsGenerator          
     if ( GUCEF_NULL != settings )
     {
         m_settings = *settings;
+        ApplyBindAddress();
     }
 
     RegisterEventHandlers();
@@ -285,8 +293,30 @@ void
 CHTTPServer::SetSettings( const CHttpServerSettings& settings )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_lock );
-    m_settings = settings;
+    {
+        MT::CScopeMutex lock( m_lock );
+        m_settings = settings;
+    }
+    ApplyBindAddress();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CHTTPServer::ApplyBindAddress( void )
+{GUCEF_TRACE;
+
+    CORE::CString bindAddress;
+    {
+        MT::CScopeMutex lock( m_lock );
+        bindAddress = m_settings.bindAddress;
+    }
+
+    // a socket that is active listens again on the new address, an address that is not understood stops the listening
+    if ( !m_tcpServerSocket.SetBindAddress( bindAddress ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CHTTPServer: Unable to use the bind address \"" << bindAddress << "\"" );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -333,6 +363,15 @@ CHTTPServer::Listen( void )
 {GUCEF_TRACE;
 
     return m_tcpServerSocket.Listen();
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt16
+CHTTPServer::GetBoundPort( void ) const
+{GUCEF_TRACE;
+
+    return m_tcpServerSocket.GetBoundPort();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -462,19 +501,147 @@ CHTTPServer::OnNotify( CORE::CNotifier* notifier                 ,
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Optional whitespace in a header field: spaces and horizontal tabs.
+ *  The only whitespace that is not part of the value of a field is the whitespace around it.
+ */
+static bool
+IsOptionalWhitespace( char c )
+{GUCEF_TRACE;
+
+    return ' ' == c || '\t' == c;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Drops the optional whitespace at the start and at the end of the text, whatever is inside is left as it is
+ */
+static CString
+TrimOptionalWhitespace( const CString& text )
+{GUCEF_TRACE;
+
+    if ( text.IsNULLOrEmpty() )
+        return CString();
+
+    const char* start = text.C_String();
+    const char* end = start + ( text.ByteSize() - 1 );
+    while ( start < end && IsOptionalWhitespace( *start ) )
+        ++start;
+    while ( end > start && IsOptionalWhitespace( *( end-1 ) ) )
+        --end;
+    return CString( start, (UInt32) ( end - start ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Splits the value of a header field that holds a list on its commas. Commas inside quoted strings belong to the
+ *  element they are in. The optional whitespace around each element is dropped and empty elements are left out.
+ */
+static void
+SplitListValue( const CString& value        ,
+                CString::StringVector& list )
+{GUCEF_TRACE;
+
+    if ( value.IsNULLOrEmpty() )
+        return;
+
+    const char* text = value.C_String();
+    const UInt32 byteSize = value.ByteSize() - 1;
+    bool inQuotes = false;
+    UInt32 elementStart = 0;
+    for ( UInt32 i=0; i<=byteSize; ++i )
+    {
+        // the end of the value ends the last element
+        bool isSeparator = ( i == byteSize );
+        if ( !isSeparator )
+        {
+            const char c = text[ i ];
+            if ( inQuotes )
+            {
+                if ( '\\' == c && i+1 < byteSize )
+                    ++i;    // an escaped character in a quoted string
+                else
+                if ( '"' == c )
+                    inQuotes = false;
+            }
+            else
+            if ( '"' == c )
+                inQuotes = true;
+            else
+            if ( ',' == c )
+                isSeparator = true;
+        }
+
+        if ( isSeparator )
+        {
+            CString element = TrimOptionalWhitespace( CString( text+elementStart, i-elementStart ) );
+            if ( !element.IsNULLOrEmpty() )
+                list.push_back( element );
+            elementStart = i+1;
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Whether the value of a header field that holds a list has the token as one of its elements.
+ *  Tokens are matched without regard to case.
+ */
+static bool
+ListHasToken( const CString& value ,
+              const CString& token )
+{GUCEF_TRACE;
+
+    CString::StringVector elements;
+    SplitListValue( value, elements );
+    for ( CString::StringVector::size_type i=0; i<elements.size(); ++i )
+    {
+        if ( elements[ i ].Equals( token, false ) )
+            return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Splits a header field in its name and its value. The value is what follows the first colon without the optional
+ *  whitespace around it. Spaces and tabs inside the value are part of it.
+ *  @return false if the line is not a header field because it has no colon
+ */
+static bool
+SplitHeaderField( const CString& field ,
+                  CString& name        ,
+                  CString& value       )
+{GUCEF_TRACE;
+
+    if ( field.IsNULLOrEmpty() )
+        return false;
+
+    const char* text = field.C_String();
+    const UInt32 byteSize = field.ByteSize() - 1;
+    const char* colon = (const char*) memchr( text, ':', byteSize );
+    if ( GUCEF_NULL == colon )
+        return false;
+
+    const UInt32 nameSize = (UInt32) ( colon - text );
+    name = TrimOptionalWhitespace( CString( text, nameSize ) );
+    value = TrimOptionalWhitespace( CString( colon+1, byteSize - nameSize - 1 ) );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CHTTPServer::ExtractCommaSeparatedValues( const CString& stringToExtractFrom ,
                                           TStringVector& list                ) const
 {GUCEF_TRACE;
 
     // Create a list and make sure we trim each element
-    TStringVector elements = stringToExtractFrom.ParseElements( ',' );
-    TStringVector::iterator i = elements.begin();
-    while ( i != elements.end() )
-    {
-        list.push_back( (*i).RemoveChar( ' ' ) );
-        ++i;
-    }
+    SplitListValue( stringToExtractFrom, list );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -487,7 +654,7 @@ CHTTPServer::StripItems( TStringVector& list ,
     TStringVector::iterator i = list.begin();
     while ( i != list.end() )
     {
-        (*i) = (*i).SubstrToChar( stripDelim, true );
+        (*i) = TrimOptionalWhitespace( (*i).SubstrToChar( stripDelim, true ) );
         ++i;
     }
 }
@@ -545,7 +712,8 @@ CHTTPServer::OnWebSocketUpgrade( COMCORE::CTCPServerConnection* connection ,
         return;
     }
 
-    if ( "Upgrade" != (*connectionHeader).second )
+    // The Connection field is a list, browsers send for example: keep-alive, Upgrade
+    if ( !ListHasToken( (*connectionHeader).second, "Upgrade" ) )
     {
         CHttpResponseData response;
         response.statusCode = 400; // Bad Request - malformed, mandatory partner header
@@ -883,21 +1051,32 @@ CHTTPServer::ParseRequest( const CORE::CDynamicBuffer& inputBuffer ,
         request.requestProtocol = temp.SubstrToChar( '/', true );
         request.requestProtocolVersion = temp.CutChars( request.requestProtocol.Length()+1, true );
 
+        // A line that starts with whitespace continues the header field before it (an obsolete line folding).
+        // We replace the fold with a single space and treat the field as one line
+        TStringVector unfoldedFields;
+        for ( TStringVector::const_iterator f = headerFields.begin(); f != headerFields.end(); ++f )
+        {
+            if ( !unfoldedFields.empty() && !(*f).IsNULLOrEmpty() && IsOptionalWhitespace( (*f).C_String()[ 0 ] ) )
+                unfoldedFields.back() = TrimOptionalWhitespace( unfoldedFields.back() ) + " " + TrimOptionalWhitespace( *f );
+            else
+                unfoldedFields.push_back( *f );
+        }
+
         // Parse all the subsequent HTTP header fields
-        TStringVector::iterator i = headerFields.begin();
-        while ( i != headerFields.end() )
+        TStringVector::iterator i = unfoldedFields.begin();
+        while ( i != unfoldedFields.end() )
         {
             // Parse the header name and header value out of the header field
-            CString& headerField = (*i);
-            CString headerName = headerField.SubstrToChar( ':', true );
-            CString headerValue( headerField.C_String() + headerName.Length(), headerField.Length() - headerName.Length() );
-
-            // Remove additional spaces and lowercase the headername for easy comparison
-            headerName = headerName.RemoveChar( ' ' ).Lowercase();
-            headerValue = headerValue.RemoveChar( ' ' );
-
-            //  Remove the ':' prefix
-            headerValue = headerValue.CutChars( 1, true );
+            // Only the whitespace around the name and the value is dropped, the name is lowercased for easy comparison
+            CString headerName;
+            CString headerValue;
+            if ( !SplitHeaderField( (*i), headerName, headerValue ) )
+            {
+                // not a header field
+                ++i;
+                continue;
+            }
+            headerName = headerName.Lowercase();
 
             // Now that we have formatted the header name + value we can use them
             if ( headerName == "accept" )
@@ -937,7 +1116,7 @@ CHTTPServer::ParseRequest( const CORE::CDynamicBuffer& inputBuffer ,
             else
             if ( headerName == "upgrade" )
             {
-                request.isWebSocketUpgrade = "websocket" == headerValue;
+                request.isWebSocketUpgrade = ListHasToken( headerValue, "websocket" );
             }
             else
             {

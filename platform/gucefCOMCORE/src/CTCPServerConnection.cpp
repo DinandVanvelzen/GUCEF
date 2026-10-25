@@ -259,7 +259,7 @@ CTCPServerConnection::Send( const void* dataSource ,
 
     if ( IsActive() )
     {
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): Sending data of length " + CORE::UInt32ToString( length ) );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Sending data of length " << length );
 
         Lock();
 
@@ -273,7 +273,7 @@ CTCPServerConnection::Send( const void* dataSource ,
         // TCP has to be in-order so we will have to queue the new data behind the already queued data
         if ( m_sendBuffer.HasBufferedData() )
         {
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): Delaying sending of data because there is still data queued to be send from the previous send" );
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Delaying sending of data because there is still data queued to be send from the previous send" );
             m_sendBuffer.Write( dataSource, 1, length );
             Unlock();
             return true;
@@ -298,7 +298,7 @@ CTCPServerConnection::Send( const void* dataSource ,
                 totalBytesSent += wbytes;
                 m_bytesTransmitted += wbytes;
 
-                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): Succeeded in sending " + CORE::UInt32ToString( wbytes ) + " bytes of data" );
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Succeeded in sending " << wbytes << " bytes of data" );
             }
             else
             {
@@ -306,7 +306,7 @@ CTCPServerConnection::Send( const void* dataSource ,
                 // Check if we have to delay sending the data
                 if ( DVSOCKET_EWOULDBLOCK == error && !_blocking )
                 {
-                    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): Delaying sending of data" );
+                    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Delaying sending of data" );
                     m_sendBuffer.Write( ((Int8*)dataSource)+totalBytesSent, 1, remnant );
 
                     // The remainder is queued, it will be sent when the socket can take more data.
@@ -393,7 +393,7 @@ bool
 CTCPServerConnection::CheckRecieveBuffer( void )
 {GUCEF_TRACE;
 
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): Checking the recieve buffer for incoming data" );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Checking the recieve buffer for incoming data" );
 
     /*
      *      Since this is a non-blocking socket we need to poll for received data
@@ -467,7 +467,7 @@ CTCPServerConnection::CheckRecieveBuffer( void )
         m_idleTimer.Reset();
         m_bytesReceived += totalrecieved;
 
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): Received " + CORE::UInt32ToString( totalrecieved ) + " bytes of data" );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Received " << totalrecieved << " bytes of data" );
         TDataRecievedEventData eData( &m_readbuffer );
 
         // false means this object was deleted by one of the observers, we must not touch it anymore
@@ -622,7 +622,7 @@ CTCPServerConnection::Update( UInt32 maxUpdatesPerCycle )
                     {
                         // we where able to send at least some of the data
                         totalBytesSent += wbytes;
-                        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): Succeeded in delayed sending " + CORE::Int32ToString( wbytes ) + "bytes of queued data" );
+                        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Succeeded in delayed sending " << wbytes << "bytes of queued data" );
                     }
                     else
                     {
@@ -637,7 +637,7 @@ CTCPServerConnection::Update( UInt32 maxUpdatesPerCycle )
                                                               remnant             ,
                                                               1                   );
 
-                            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): Unable to delayed send queued data at this time" );
+                            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Unable to delayed send queued data at this time" );
 
                             Unlock();
                             return true;

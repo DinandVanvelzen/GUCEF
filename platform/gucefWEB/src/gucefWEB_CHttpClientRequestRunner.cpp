@@ -35,6 +35,11 @@
 
 #include "gucefWEB_CHttpClientRequestRunner.h"
 
+#ifndef GUCEF_CORE_CREDACTOR_H
+#include "gucefCORE_CRedactor.h"
+#define GUCEF_CORE_CREDACTOR_H
+#endif /* GUCEF_CORE_CREDACTOR_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -66,6 +71,33 @@ EraseHeader( CHttpRequestData::TStringMap& headers, const CString& name )
     while ( i != headers.end() )
     {
         if ( (*i).first.Equals( name, false ) )
+            headers.erase( i++ );
+        else
+            ++i;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** whether the header holds a credential, or is otherwise not for other eyes than those of the server it was meant for */
+static bool
+IsCredentialHeaderName( const CString& name )
+{
+    return name.Equals( "Authorization", false )       ||
+           name.Equals( "Proxy-Authorization", false ) ||
+           name.Equals( "Cookie", false )              ||
+           CORE::CRedactor::ForHeaders().IsSensitiveName( name );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+EraseCredentialHeaders( CHttpRequestData::TStringMap& headers )
+{
+    CHttpRequestData::TStringMap::iterator i = headers.begin();
+    while ( i != headers.end() )
+    {
+        if ( IsCredentialHeaderName( (*i).first ) )
             headers.erase( i++ );
         else
             ++i;
@@ -131,6 +163,7 @@ CHttpClientRequestRunner::CHttpClientRequestRunner( CHttpClientBackendSelectionP
     , m_requestStartTicks( 0 )
     , m_hopStartTicks( 0 )
     , m_requestBodyStartPos( 0 )
+    , m_credentialsStripped( false )
     , m_finished( false )
 {GUCEF_TRACE;
 
@@ -194,13 +227,14 @@ CHttpClientRequestRunner::StartHop( void )
     CIHttpClientBackendPtr backend = m_backends.IsNULL() ? CIHttpClientBackendPtr() : m_backends->GetBackendForScheme( m_hopRequest.requestProtocol );
     if ( backend.IsNULL() )
     {
-        Fail( "No HTTP client backend is available for \"" + m_hopRequest.requestProtocol + "\" URLs" );
+        m_transferInfo.errorClass = HTTPERRORCLASS_NO_BACKEND;
+        Fail( "No HTTP client backend is available for \"" + m_hopRequest.requestProtocol + "\" URLs: " + CHttpClientBackendSelection::DescribeUnsupportedScheme( m_hopRequest.requestProtocol ) );
         return false;
     }
     m_transferInfo.backendName = backend->GetBackendName();
 
     // Cookies: any given by the caller plus those from the jar that apply to this hop
-    CString cookies = FindHeader( m_originalRequest.otherHeaders, "Cookie" );
+    CString cookies = m_credentialsStripped ? CString::Empty : FindHeader( m_originalRequest.otherHeaders, "Cookie" );
     if ( !m_options.cookieJar.IsNULL() )
     {
         CHttpCookieJarPtr cookieJar = m_options.cookieJar;
@@ -252,7 +286,8 @@ CHttpClientRequestRunner::FollowRedirect( void )
     }
 
     CString newUrl = ResolveRedirectUrl( m_hopRequest, m_response.location );
-    CString previousHost = m_hopRequest.requestHost.Lowercase();
+    CString previousProtocol = m_hopRequest.requestProtocol;
+    CString previousHost = m_hopRequest.requestHost;
     int status = m_response.statusCode;
 
     // 303, and for historic reasons 301 and 302 after a POST, continue as GET without a body
@@ -278,13 +313,17 @@ CHttpClientRequestRunner::FollowRedirect( void )
 
     if ( !m_hopRequest.SetUrl( newUrl ) )
     {
-        Fail( "The request is redirected to an invalid URL: " + newUrl );
+        Fail( "The request is redirected to an invalid URL: " + CORE::CRedactor::ForUrl().RedactUrl( newUrl ) );
         return false;
     }
 
-    // Credentials are not passed on to other hosts
-    if ( m_hopRequest.requestHost.Lowercase() != previousHost )
-        EraseHeader( m_hopRequest.otherHeaders, "Authorization" );
+    // Credentials are only for the origin they were meant for: not for another scheme (https to http), host or port.
+    // What is taken away is not given back when a later redirect leads to the first origin again.
+    if ( !CHttpRequestData::IsSameOrigin( previousProtocol, previousHost, m_hopRequest.requestProtocol, m_hopRequest.requestHost ) )
+    {
+        EraseCredentialHeaders( m_hopRequest.otherHeaders );
+        m_credentialsStripped = true;
+    }
 
     ++m_transferInfo.redirectCount;
     if ( GUCEF_NULL != m_progressObserver )
@@ -382,8 +421,10 @@ CHttpClientRequestRunner::Finish( void )
         return;
     m_finished = true;
     m_transferInfo.effectiveUrl = m_hopRequest.GetUrl();
+    if ( !m_transferInfo.success && HTTPERRORCLASS_NONE == m_transferInfo.errorClass && !m_transferInfo.wasCancelled )
+        m_transferInfo.errorClass = m_transferInfo.timedOut ? HTTPERRORCLASS_TIMEOUT : HTTPERRORCLASS_OTHER;
     if ( !m_transferInfo.success )
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "HttpClientRequestRunner: Request to " + m_transferInfo.effectiveUrl + " failed: " + m_transferInfo.errorDescription );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "HttpClientRequestRunner: Request to " << CORE::CRedactor::ForUrl().RedactUrl( m_transferInfo.effectiveUrl ) << " failed: " << m_transferInfo.errorDescription );
     m_transferInfo.durationInMs = GetElapsedMs( m_requestStartTicks );
 
     // Releases the connection

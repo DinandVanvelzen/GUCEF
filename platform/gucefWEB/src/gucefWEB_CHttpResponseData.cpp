@@ -30,6 +30,11 @@
 
 #include "gucefWEB_CHttpResponseData.h"
 
+#ifndef GUCEF_CORE_CREDACTOR_H
+#include "gucefCORE_CRedactor.h"
+#define GUCEF_CORE_CREDACTOR_H
+#endif /* GUCEF_CORE_CREDACTOR_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -77,6 +82,7 @@ CHttpResponseData::CHttpResponseData( const CHttpResponseData& src )
     , location( src.location )
     , acceptedTypes( src.acceptedTypes )
     , keepConnectionsAlive( src.keepConnectionsAlive )
+    , otherHeaders( src.otherHeaders )
 {GUCEF_TRACE;
 
 }
@@ -202,7 +208,7 @@ CHttpResponseData::Serialize( CORE::CDynamicBuffer& outputBuffer ) const
     // Add the end of HTTP header delimiter
     response += "\r\n";
 
-    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "HttpResponseData(" + CORE::PointerToString( this ) + "): Finished building response header: " + response );
+    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "HttpResponseData(" << CORE::PointerToString( this ) << "): Finished building response header: " << CORE::CRedactor::ForHeaders().RedactHeaders( response ) );
 
     // Copy the HTTP header into the buffer
     outputBuffer.CopyFrom( response.Length(), response.C_String() );

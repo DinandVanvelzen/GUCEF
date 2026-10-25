@@ -84,6 +84,11 @@ class GUCEF_COMCORE_EXPORT_CPP CPortMappingResult : public CORE::CICloneable
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Type check of future/event data without RTTI, see CORE::CICloneable::CloneableAs() */
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    static const char* CloneableTypeName( void );
+
     TProtocol protocol;
     UInt16 internalPort;                /**< host byte order */
     CIPv4Address externalAddress;       /**< the public address of the gateway, the port is that of the mapping */

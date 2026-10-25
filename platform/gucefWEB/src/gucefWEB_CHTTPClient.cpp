@@ -339,6 +339,35 @@ CHTTPClient::GetBackendNameForScheme( const CString& scheme ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CHTTPClient::IsSchemeSupported( const CString& scheme )
+{GUCEF_TRACE;
+
+    CHttpClientBackendSelection backends;
+    return backends.IsSchemeSupported( scheme );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CHTTPClient::DescribeUnsupportedScheme( const CString& scheme )
+{GUCEF_TRACE;
+
+    return CHttpClientBackendSelection::DescribeUnsupportedScheme( scheme.Lowercase() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CHTTPClient::DescribeAvailableBackends( void )
+{GUCEF_TRACE;
+
+    CHttpClientBackendSelection backends;
+    return backends.DescribeAvailableBackends();
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CHTTPClient::SetCookieJar( CHttpCookieJarPtr cookieJar )
 {GUCEF_TRACE;

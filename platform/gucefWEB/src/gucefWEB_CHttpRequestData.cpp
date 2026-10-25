@@ -84,6 +84,7 @@ CHttpRequestData::CHttpRequestData( const CHttpRequestData& src )
     , transactionID( src.transactionID )
     , keepConnectionsAlive( src.keepConnectionsAlive )
     , isWebSocketUpgrade( src.isWebSocketUpgrade )
+    , otherHeaders( src.otherHeaders )
     , m_requestUriWithAuthority( src.m_requestUriWithAuthority )
 {GUCEF_TRACE;
 
@@ -214,6 +215,76 @@ CHttpRequestData::GetPort( void ) const
     }
     return requestProtocol.Equals( "https", false ) ? 443 : 80;
 }
+
+/**
+ *  Splits the authority of a request target in the lowercase host and the port, the user info is dropped
+ *  @return false if there is no scheme or host, or if the port is not a number from 1 to 65535
+ */
+static bool
+ParseOrigin( const CString& protocol, const CString& authority, CString& host, UInt16& port )
+{GUCEF_TRACE;
+
+    if ( protocol.IsNULLOrEmpty() )
+        return false;
+
+    // what looks like host:port in front of the last @ is user info, the host is what follows it
+    CString hostAndPort = authority;
+    Int32 userInfoEnd = authority.HasChar( '@', false );
+    if ( userInfoEnd >= 0 )
+        hostAndPort = authority.CutChars( (UInt32) userInfoEnd + 1, true );
+
+    CString portText;
+    Int32 portSeparator = hostAndPort.HasChar( ':', false );
+    Int32 closingBracket = hostAndPort.HasChar( ']', false );
+    if ( portSeparator >= 0 && portSeparator > closingBracket )
+    {
+        host = hostAndPort.SubstrToIndex( (UInt32) portSeparator, true );
+        portText = hostAndPort.CutChars( (UInt32) portSeparator + 1, true );
+    }
+    else
+        host = hostAndPort;
+
+    host = host.Lowercase();
+    if ( host.IsNULLOrEmpty() )
+        return false;
+
+    if ( portText.IsNULLOrEmpty() )
+    {
+        port = protocol.Equals( "https", false ) ? 443 : 80;
+        return true;
+    }
+
+    if ( portText.Length() > 5 )
+        return false;
+    UInt32 portNumber = 0;
+    for ( UInt32 i=0; i<portText.Length(); ++i )
+    {
+        if ( portText[ i ] < '0' || portText[ i ] > '9' )
+            return false;
+        portNumber = portNumber * 10 + (UInt32) ( portText[ i ] - '0' );
+    }
+    if ( 0 == portNumber || portNumber > 65535 )
+        return false;
+    port = (UInt16) portNumber;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CHttpRequestData::IsSameOrigin( const CString& protocolA, const CString& hostA ,
+                                const CString& protocolB, const CString& hostB )
+{GUCEF_TRACE;
+
+    CString nameA, nameB;
+    UInt16 portA = 0, portB = 0;
+    if ( !ParseOrigin( protocolA, hostA, nameA, portA ) || !ParseOrigin( protocolB, hostB, nameB, portB ) )
+        return false;
+
+    return protocolA.Equals( protocolB, false ) && portA == portB && nameA == nameB;
+}
+
+/*-------------------------------------------------------------------------*/
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

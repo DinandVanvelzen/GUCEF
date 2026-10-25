@@ -48,6 +48,16 @@
 #define GUCEF_COM_CCOMGLOBAL_H
 #endif /* GUCEF_COM_CCOMGLOBAL_H ? */
 
+#ifndef GUCEF_TEST_TLS_SERVER_H
+#include "gucef_test_tls_server.h"
+#define GUCEF_TEST_TLS_SERVER_H
+#endif /* GUCEF_TEST_TLS_SERVER_H ? */
+
+#ifndef GUCEF_TEST_TLS_TERMINATOR_H
+#include "gucef_test_tls_terminator.h"
+#define GUCEF_TEST_TLS_TERMINATOR_H
+#endif /* GUCEF_TEST_TLS_TERMINATOR_H ? */
+
 #ifndef GUCEF_TEST_FRAMEWORK_H
 #include "gucef_test_framework.h"
 #define GUCEF_TEST_FRAMEWORK_H
@@ -598,6 +608,73 @@ PerformIrcClientTests( void )
             ASSERT_TRUE( PumpUntilTrue( server.quitReceived, 2000 ) );
             ASSERT_TRUE( server.quitMessage == "bye now" );
             ASSERT_FALSE( client.IsConnected() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: IRC over TLS (useTls, port 6697 in a configuration) registers and talks, and a certificate that is not trusted is an error" )
+        CORE::CString whyNoTls;
+        GUCEF_TESTFW_SKIP_IF( !TESTFW::CTlsTestCerts::IsToolAvailable(), "the openssl command line tool is not available" );
+        GUCEF_TESTFW_SKIP_IF( !COMCORE::CComCoreGlobal::Instance()->GetTlsProviderRegistry().IsAnyAvailable( whyNoTls ), "this system has no TLS provider" );
+        try
+        {
+            TESTFW::CTlsTestCerts certs;
+            ASSERT_TRUE( certs.IsReady() );
+            CFakeIrcServer server;
+            ASSERT_TRUE( server.Start() );
+            TESTFW::CTlsTestTerminator terminator;
+            ASSERT_TRUE( terminator.Start( certs.GetPath( "good.crt" ), certs.GetPath( "good.key" ), FakeIrcServerPort ) );
+
+            COM::CIrcClient client;
+            CIrcRecorder recorder;
+            recorder.SubscribeTo( &client );
+
+            COM::CIrcClientSettings settings = MakeSettings( "securetester" );
+            settings.server = "localhost";
+            settings.port = terminator.GetPort();
+            settings.useTls = true;
+            settings.tls.SetCaBundlePath( certs.GetPath( "ca.crt" ) );
+            settings.tls.SetUseSystemTrust( false );
+            ASSERT_TRUE( client.Connect( settings ) );
+            ASSERT_TRUE( PumpUntilAtLeast( recorder.registered, 1, 10000 ) );
+            ASSERT_TRUE( client.IsRegistered() && client.GetNick() == "securetester" );
+            ASSERT_TRUE( server.receivedLines.size() >= 3 && server.receivedLines[ 0 ] == "CAP LS 302" );
+            client.Disconnect( "secure bye" );
+            ASSERT_TRUE( PumpUntilAtLeast( recorder.disconnected, 1, 5000 ) );
+            ASSERT_TRUE( PumpUntilTrue( server.quitReceived, 2000 ) );
+            ASSERT_TRUE( server.quitMessage == "secure bye" );
+
+            // the authority of the certificate is not the one that is trusted: no registration, an error
+            COM::CIrcClient refused;
+            CIrcRecorder refusedRecorder;
+            refusedRecorder.SubscribeTo( &refused );
+            COM::CIrcClientSettings untrusting = settings;
+            untrusting.tls = COMCORE::CTlsSettings();
+            untrusting.tls.SetCaBundlePath( certs.GetPath( "other_ca.crt" ) );
+            untrusting.tls.SetUseSystemTrust( false );
+            ASSERT_TRUE( refused.Connect( untrusting ) );
+            ASSERT_TRUE( PumpUntilAtLeast( refusedRecorder.errors, 1, 10000 ) );
+            ASSERT_TRUE( 0 == refusedRecorder.registered );
+
+            // from a configuration: the port of IRC over TLS, and the child Tls
+            CORE::CDataNode config;
+            config.SetAttribute( "server", CORE::CString( "irc.example" ) );
+            config.SetAttribute( "nick", CORE::CString( "n" ) );
+            config.SetAttribute( "useTls", true );
+            CORE::CDataNode* tlsNode = config.FindOrAddChild( "Tls" );
+            tlsNode->SetAttribute( "caBundlePath", CORE::CString( "/etc/ca.pem" ) );
+            COM::CIrcClientSettings loaded;
+            ASSERT_TRUE( loaded.LoadConfig( config ) );
+            ASSERT_TRUE( loaded.useTls && 6697 == loaded.port && loaded.tls.GetCaBundlePath() == "/etc/ca.pem" );
+            CORE::CDataNode withPort;
+            withPort.SetAttribute( "server", CORE::CString( "irc.example" ) );
+            withPort.SetAttribute( "nick", CORE::CString( "n" ) );
+            withPort.SetAttribute( "useTls", true );
+            withPort.SetAttribute( "port", (UInt16) 7000 );
+            ASSERT_TRUE( loaded.LoadConfig( withPort ) && 7000 == loaded.port );
         }
         catch ( ... )
         {
