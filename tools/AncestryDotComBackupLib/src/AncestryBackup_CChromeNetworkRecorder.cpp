@@ -52,6 +52,11 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_CORE_CREDACTOR_H
+#include "gucefCORE_CRedactor.h"
+#define GUCEF_CORE_CREDACTOR_H
+#endif /* GUCEF_CORE_CREDACTOR_H ? */
+
 #include <algorithm>
 #include <cstdio>
 
@@ -550,7 +555,7 @@ CChromeNetworkRecorder::Complete( SPendingFinish& finished, bool fetchBody )
             }
         }
         else
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "AncestryBackup: The browser no longer has the body of " + CORE::CString( observation.url.c_str() ) );
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "AncestryBackup: The browser no longer has the body of " << CORE::CRedactor::ForUrl().RedactUrl( CORE::CString( observation.url.c_str() ) ) );
     }
 
     ++m_recordedCount;

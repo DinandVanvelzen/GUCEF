@@ -67,6 +67,11 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_CORE_CREDACTOR_H
+#include "gucefCORE_CRedactor.h"
+#define GUCEF_CORE_CREDACTOR_H
+#endif /* GUCEF_CORE_CREDACTOR_H ? */
+
 #include <vector>
 
 #include "AncestryBackup_CBrowserSession.h"
@@ -433,7 +438,7 @@ CBrowserSession::Admit( const std::string& method, const std::string& url, const
     if ( !verdict.allowed )
     {
         result.error = "refused: " + verdict.reason;
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AncestryBackup: Refused to request " + CORE::CString( url.c_str() ) + ": " + CORE::CString( verdict.reason.c_str() ) );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "AncestryBackup: Refused to request " << CORE::CRedactor::ForUrl().RedactUrl( CORE::CString( url.c_str() ) ) << ": " << CORE::CString( verdict.reason.c_str() ) );
         return false;
     }
 

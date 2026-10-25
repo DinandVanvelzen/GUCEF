@@ -73,6 +73,11 @@
 #define GUCEF_WEB_CHTTPENCODINGTYPES_H
 #endif /* GUCEF_WEB_CHTTPENCODINGTYPES_H ? */
 
+#ifndef GUCEF_CORE_CREDACTOR_H
+#include "gucefCORE_CRedactor.h"
+#define GUCEF_CORE_CREDACTOR_H
+#endif /* GUCEF_CORE_CREDACTOR_H ? */
+
 #include "FilePusher.h"
 
 /*-------------------------------------------------------------------------//
@@ -296,7 +301,7 @@ FilePushDestinationSettings::LoadConfig( const CORE::CValueList& appConfig, bool
     if ( 0 != protocolSanityCheckUri.HasSubstr( "http://", true ) && 0 != protocolSanityCheckUri.HasSubstr( "vfs://", true ) )
     {
         if ( logFailuresAsErrors )
-            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "FilePushDestinationSettings: The specified push Uri \"" + filePushDestinationUri + "\" does not specify a valid supported protocol" );
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "FilePushDestinationSettings: The specified push Uri \"" << CORE::CRedactor::ForUrl().RedactUrl( filePushDestinationUri ) << "\" does not specify a valid supported protocol" );
         return false;
     }
 
@@ -392,7 +397,7 @@ FilePushDestinationSettings::LoadConfig( const CORE::CDataNode& rootNode )
     CORE::CString protocolSanityCheckUri = filePushDestinationUri.Lowercase();
     if ( 0 != protocolSanityCheckUri.HasSubstr( "http://", true ) && 0 != protocolSanityCheckUri.HasSubstr( "vfs://", true ) )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "FilePushDestinationSettings: The specified push Uri \"" + filePushDestinationUri + "\" does not specify a valid supported protocol" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "FilePushDestinationSettings: The specified push Uri \"" << CORE::CRedactor::ForUrl().RedactUrl( filePushDestinationUri ) << "\" does not specify a valid supported protocol" );
         return false;
     }
 

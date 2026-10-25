@@ -1,6 +1,7 @@
 <ModuleInfoEntry>
     <Module Name="AncestryDotComBackup_TestApp" Type="Executable" Platform="All" Tags="test">
         <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
             <Dependency Name="gucefHeaders" />
             <Dependency Name="AncestryDotComBackupLib" />
             <Dependency Name="gucefVFS" />
