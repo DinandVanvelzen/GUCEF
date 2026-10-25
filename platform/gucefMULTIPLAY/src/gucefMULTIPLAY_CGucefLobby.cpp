@@ -995,6 +995,15 @@ const CORE::CString&
 CGucefLobby::GetClassTypeName( void ) const
 {GUCEF_TRACE;
 
+    return ClassTypeName();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CGucefLobby::ClassTypeName( void )
+{GUCEF_TRACE;
+
     static const CORE::CString classTypeName = "GUCEF::MULTIPLAY::CGucefLobby";
     return classTypeName;
 }

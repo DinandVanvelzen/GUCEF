@@ -220,7 +220,7 @@ GetLossyChannel( const DRN::CDRNPeerLinkPtr& link )
     DRN::CIDRNChannelPtr channel = link->GetChannel();
     if ( channel.IsNULL() )
         return GUCEF_NULL;
-    return dynamic_cast< CDRNLossyChannel* >( channel.GetPointerAlways() );
+    return channel->GetClassTypeName() == CDRNLossyChannel::ClassTypeName() ? static_cast< CDRNLossyChannel* >( channel.GetPointerAlways() ) : GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

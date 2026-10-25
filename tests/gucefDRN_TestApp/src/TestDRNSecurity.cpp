@@ -212,6 +212,39 @@ class CSecurityConnectorRecorder : public CORE::CObserver
 
 /*-------------------------------------------------------------------------*/
 
+/** An authenticator whose proof is the list of accounts at identity providers the connecting side claims, for the tests of the ban list */
+class CAccountsAuthenticator : public DRN::CIDRNAuthenticator
+{
+    public:
+    CAccountsAuthenticator( void ) : DRN::CIDRNAuthenticator(), m_accounts() {}
+    virtual ~CAccountsAuthenticator() {}
+    virtual CORE::CString GetMethodName( void ) const GUCEF_VIRTUAL_OVERRIDE { return "test-accounts"; }
+    virtual bool CreateProof( const DRN::CDRNAuthContext& /* context */, CORE::CDynamicBuffer& proof ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        proof.SetDataSize( 0 );
+        proof.Append( m_accounts.C_String(), m_accounts.Length(), true );
+        return true;
+    }
+    virtual bool VerifyProof( const DRN::CDRNAuthContext& /* context */, const UInt8* proof, UInt32 proofSize, DRN::CDRNAuthResult& result ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        CORE::CString text;
+        text.Set( reinterpret_cast< const char* >( proof ), proofSize );
+        result.userId = "account-user";
+        result.role = "player";
+        result.accounts = text.ParseElements( ',', false );
+        return true;
+    }
+    virtual bool SaveConfig( CORE::CDataNode& cfg ) const GUCEF_VIRTUAL_OVERRIDE { cfg.SetAttribute( "accounts", m_accounts ); return true; }
+    virtual bool LoadConfig( const CORE::CDataNode& cfg ) GUCEF_VIRTUAL_OVERRIDE { m_accounts = cfg.GetAttributeValueOrChildValueByName( "accounts" ).AsString( m_accounts, true ); return true; }
+    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE { static const CORE::CString name = "CAccountsAuthenticator"; return name; }
+    private:
+    CORE::CString m_accounts;
+};
+
+static CORE::CTFactory< DRN::CIDRNAuthenticator, CAccountsAuthenticator, MT::CMutex > g_accountsAuthenticatorFactory;
+
+/*-------------------------------------------------------------------------*/
+
 /** Watches the peer reports of a node */
 class CAnomalyRecorder : public CORE::CObserver
 {
@@ -1126,6 +1159,76 @@ PerformDRNSecurityTests( void )
         }
         tokenHost.SetBanList( GUCEF_NULL );
         tokenHost.Stop();
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Security: an account the authentication verified can be banned, in the list, its file and its config, and a link with it is refused at AUTH" )
+    try
+    {
+        // The kind, next to the others, in the file format of the others
+        CORE::CString path = TestFilePath( "gucefDRN_TestApp_account_bans.txt" );
+        CORE::WriteStringAsTextFile( path, "# DRN ban list\nuser\t0\talice\told\naddress\t0\t10.1.2.3\told\n" );
+        DRN::CDRNBanList bans;
+        ASSERT_TRUE( bans.LoadFromFile( path ) && 2 == bans.GetCount() );
+        bans.SetFilePath( path );
+        ASSERT_TRUE( bans.Ban( DRN::DRN_BAN_ACCOUNT, "steam:76561198000000000", 0, "ban evasion" ) );
+        ASSERT_TRUE( bans.IsAccountBanned( "steam:76561198000000000" ) && !bans.IsAccountBanned( "steam:1" ) && !bans.IsUserBanned( "steam:76561198000000000" ) );
+        DRN::CDRNBanList restarted;
+        DRN::CDRNBanEntry entry;
+        ASSERT_TRUE( restarted.LoadFromFile( path ) && 3 == restarted.GetCount() );
+        ASSERT_TRUE( restarted.IsAccountBanned( "steam:76561198000000000", &entry ) && "ban evasion" == entry.reason && DRN::DRN_BAN_ACCOUNT == entry.kind );
+        ASSERT_TRUE( restarted.IsUserBanned( "alice" ) && restarted.IsAddressBanned( "10.1.2.3" ) );
+        CORE::CDataNode cfg( "DRNBanList" );
+        ASSERT_TRUE( restarted.SaveConfig( cfg ) );
+        DRN::CDRNBanList fromConfig;
+        ASSERT_TRUE( fromConfig.LoadConfig( cfg ) && fromConfig.IsAccountBanned( "steam:76561198000000000" ) );
+        ASSERT_TRUE( "account" == DRN::CDRNBanEntry::BanKindToString( DRN::DRN_BAN_ACCOUNT ) && DRN::DRN_BAN_ACCOUNT == DRN::CDRNBanEntry::StringToBanKind( "account" ) );
+        CORE::DeleteFile( path );
+
+        // A link whose authentication verified a banned account is refused with the reason of the ban, any other is not
+        DRN::CDRNGlobal::Instance()->GetAuthenticatorFactory().RegisterConcreteFactory( "test-accounts", &g_accountsAuthenticatorFactory );
+        DRN::CDRNBanList accountBans;
+        accountBans.Ban( DRN::DRN_BAN_ACCOUNT, "google:bad", 0, "evading" );
+        DRN::CDRNNodeSettings hostSettings = SecurityNodeSettings();
+        hostSettings.auth.authenticatorType = "test-accounts";
+        DRN::CDRNNode host;
+        REQUIRE_TRUE( host.SetSettings( hostSettings ) );
+        host.SetBanList( &accountBans );
+        UInt16 port = NextTestPort();
+        REQUIRE_TRUE( host.Listen( LoopbackEndpoint( "tcp", port ) ) );
+
+        const char* claims[] = { "steam:1,google:bad", "steam:1,google:fine", "" };
+        for ( UInt32 c=0; c<3; ++c )
+        {
+            DRN::CDRNNodeSettings clientSettings = SecurityNodeSettings();
+            clientSettings.auth.authenticatorType = "test-accounts";
+            clientSettings.auth.SetSetting( "accounts", claims[ c ] );
+            DRN::CDRNNode client;
+            REQUIRE_TRUE( client.SetSettings( clientSettings ) );
+            CSecurityConnectorRecorder recorder;
+            DRN::CDRNConnectorPtr connector = client.Connect( DRN::CDRNEndpointList( LoopbackEndpoint( "tcp", port ) ) );
+            recorder.SubscribeTo( connector.GetPointerAlways() );
+            UInt64 start = DRN::CDRNClock::NowInMilliseconds();
+            while ( 0 == recorder.connected + recorder.failed && DRN::CDRNClock::NowInMilliseconds() - start < 5000 )
+                PumpFor( 5 );
+            if ( 0 == c )
+            {
+                ASSERT_TRUE( 1 == recorder.failed && DRN::DRN_LINKREASON_BANNED == recorder.failReason && "banned: evading" == recorder.failText );
+            }
+            else
+            {
+                ASSERT_TRUE( 1 == recorder.connected );
+            }
+            connector.Unlink();
+            client.Stop();
+        }
+        host.SetBanList( GUCEF_NULL );
+        host.Stop();
+        DRN::CDRNGlobal::Instance()->GetAuthenticatorFactory().UnregisterConcreteFactory( "test-accounts" );
     }
     catch ( ... )
     {

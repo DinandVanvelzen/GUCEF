@@ -52,7 +52,14 @@ namespace MULTIPLAY {
  *  The config file is read with the data store codec of its extension (json, xml, ...). The settings are the
  *  "GucefLobbyServer" node of the file (or its root), see CGucefLobbyServerSettings, for instance
  *  { "GucefLobbyServer": { "listen": "tcp://0.0.0.0:47300;udp://0.0.0.0:47300", "relayEnabled": true,
- *                          "key": "...", "password": "", "maxLobbies": 100 } }
+ *                          "key": "...", "password": "", "maxLobbies": 100, "requireLinkedProvider": "none" } }
+ *  A section "Auth" next to it (or in it) is the configuration of gucefAUTH for the process, CAuthSettings: the
+ *  providers whose link proofs the server can verify are those with a client id (audience) in it, the "clientId" and
+ *  the list "audiences". A game with a client per platform lists the client ids of all of them, which are public:
+ *  { "GucefLobbyServer": { ... },
+ *    "Auth": { "Providers": { "google": { "audiences": [ "REPLACE-WITH-DESKTOP-CLIENT-ID.apps.googleusercontent.com",
+ *                                                       "REPLACE-WITH-ANDROID-CLIENT-ID.apps.googleusercontent.com" ] } } } }
+ *  A token for any other client id is not accepted; a server without any client id accepts no proof.
  */
 class GUCEF_MULTIPLAY_EXPORT_CPP CGucefLobbyServerApp
 {

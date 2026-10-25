@@ -84,7 +84,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CMultiplayGlobal
     /** "irc" built in */
     CChatServiceFactory& GetChatServiceFactory( void );
 
-    /** "local" built in */
+    /** "local" and "sso" built in */
     CIdentityProviderFactory& GetIdentityProviderFactory( void );
 
     private:

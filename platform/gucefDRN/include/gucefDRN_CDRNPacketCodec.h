@@ -95,7 +95,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNMessageView
 /*-------------------------------------------------------------------------*/
 
 /**
- *  Encodes and decodes packet headers and messages (section 4 of the design)
+ *  Encodes and decodes packet headers and messages
  *
  *  packet  := header message*
  *  header  := u8 protocol, varint sequence, varint sendTime, varint ackSequence, u32 ackBits, varint echoTime, varint echoHold

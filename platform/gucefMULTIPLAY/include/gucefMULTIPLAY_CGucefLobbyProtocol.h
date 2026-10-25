@@ -97,6 +97,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGucefLobbyProtocol
     static const CORE::CString GameSessionPrefix;       /**< "gucef.game." */
 
     static const CORE::CString ListingsGrid;            /**< "listings" */
+    static const UInt32 MaxDataTreeDepth = 32;          /**< the nesting that ReadDataTree() accepts, the trees of the lobbies are a few levels deep */
     static const CORE::CString RequestsStream;          /**< "requests" */
     static const CORE::CString ChannelStreamPrefix;     /**< "chat/" */
     static const CORE::CString LobbyGrid;               /**< "lobby" */
@@ -121,7 +122,11 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGucefLobbyProtocol
     /** Writes a data tree: name, type, value, the attributes and the children */
     static void WriteDataTree( DRN::CDRNWireWriter& writer, const CORE::CDataNode& node );
 
-    static bool ReadDataTree( DRN::CDRNWireReader& reader, CORE::CDataNode& node );
+    /**
+     *  Reads a data tree written by WriteDataTree(). Trees come from clients and from lobby owners, so the reader
+     *  refuses a tree nested deeper than maxDepth levels instead of recursing without end
+     */
+    static bool ReadDataTree( DRN::CDRNWireReader& reader, CORE::CDataNode& node, UInt32 maxDepth = MaxDataTreeDepth );
 
     /** A data tree as a binary blob variant, for a grid value */
     static CORE::CVariant DataTreeToVariant( const CORE::CDataNode& node );

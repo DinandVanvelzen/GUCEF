@@ -23,6 +23,7 @@ LOCAL_MODULE_FILENAME := libgucefMULTIPLAY
 
 LOCAL_SRC_FILES := \
   src/gucefMULTIPLAY.cpp \
+  src/gucefMULTIPLAY_CAuthIdentityProvider.cpp \
   src/gucefMULTIPLAY_CChatMessage.cpp \
   src/gucefMULTIPLAY_CFileHashClientIntegrity.cpp \
   src/gucefMULTIPLAY_CGameAdvertiser.cpp \
@@ -46,6 +47,7 @@ LOCAL_SRC_FILES := \
   src/gucefMULTIPLAY_CIrcChatService.cpp \
   src/gucefMULTIPLAY_CLanListingProvider.cpp \
   src/gucefMULTIPLAY_CLaunchDescription.cpp \
+  src/gucefMULTIPLAY_CLinkProof.cpp \
   src/gucefMULTIPLAY_CLobbyChatService.cpp \
   src/gucefMULTIPLAY_CLobbyCreateParams.cpp \
   src/gucefMULTIPLAY_CLobbyRules.cpp \
@@ -58,6 +60,7 @@ LOCAL_SRC_FILES := \
   src/gucefMULTIPLAY_CPassiveURLServerListProvider.cpp \
   src/gucefMULTIPLAY_CPingService.cpp \
   src/gucefMULTIPLAY_CPlayerIdentity.cpp \
+  src/gucefMULTIPLAY_CPlayerIdentitySigner.cpp \
   src/gucefMULTIPLAY_CPlayerReport.cpp \
   src/gucefMULTIPLAY_CServerList.cpp \
   src/gucefMULTIPLAY_CServerListProvider.cpp \
@@ -66,6 +69,7 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../gucefAUTH/include \
   $(MY_MODULE_PATH)/../gucefCOM/include \
   $(MY_MODULE_PATH)/../gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../gucefCORE/include \
@@ -79,6 +83,7 @@ LOCAL_CFLAGS := -DGUCEFMULTIPLAY_BUILD_MODULE -DMODULE_CONSENSUS_NAME=gucefMULTI
 
 
 LOCAL_SHARED_LIBRARIES := \
+  gucefAUTH \
   gucefCOM \
   gucefCOMCORE \
   gucefCORE \

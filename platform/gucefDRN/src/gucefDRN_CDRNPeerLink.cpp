@@ -298,7 +298,14 @@ CDRNPeerLink::Start( const CIDRNChannelPtr& channel, const CDRNLinkSettings& set
     m_deferredHead = 0;
     m_deferredBytes = 0;
 
-    SubscribeTo( m_channel.GetPointerAlways() );
+    TEventCallback packetCallback( this, &CDRNPeerLink::OnChannelPacketReceived );
+    TEventCallback connectedCallback( this, &CDRNPeerLink::OnChannelConnectedEvent );
+    TEventCallback disconnectedCallback( this, &CDRNPeerLink::OnChannelDisconnectedEvent );
+    TEventCallback errorCallback( this, &CDRNPeerLink::OnChannelErrorEvent );
+    SubscribeTo( m_channel.GetPointerAlways(), CIDRNChannel::PacketReceivedEvent, packetCallback );
+    SubscribeTo( m_channel.GetPointerAlways(), CIDRNChannel::ChannelConnectedEvent, connectedCallback );
+    SubscribeTo( m_channel.GetPointerAlways(), CIDRNChannel::ChannelDisconnectedEvent, disconnectedCallback );
+    SubscribeTo( m_channel.GetPointerAlways(), CIDRNChannel::ChannelErrorEvent, errorCallback );
     return true;
 }
 
@@ -1350,6 +1357,8 @@ CDRNPeerLink::HandleLinkMessage( const CDRNMessageView& message )
                 banned = m_settings.banList->IsUserBanned( m_authResult.userId, &ban );
                 if ( !banned && m_authResult.publicKey.GetDataSize() > 0 )
                     banned = m_settings.banList->IsPublicKeyBanned( static_cast< const UInt8* >( m_authResult.publicKey.GetConstBufferPtr() ), m_authResult.publicKey.GetDataSize(), &ban );
+                for ( size_t a=0; !banned && a<m_authResult.accounts.size(); ++a )
+                    banned = m_settings.banList->IsAccountBanned( m_authResult.accounts[ a ], &ban );
             }
             if ( banned )
             {
@@ -1431,36 +1440,81 @@ CDRNPeerLink::OnNotify( CORE::CNotifier* notifier                 ,
     if ( m_channel.IsNULL() || notifier != m_channel.GetPointerAlways() )
         return;
 
-    if ( CIDRNChannel::PacketReceivedEvent == eventid )
-    {
-        if ( GUCEF_NULL != eventdata )
-            OnPacket( static_cast< const CDRNPacketEventData* >( eventdata )->GetData() );     // const: no private copy
-    }
+    if ( CORE::CNotifier::DestructionEvent == eventid )
+        OnChannelLost();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNPeerLink::OnChannelPacketReceived( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_channel.IsNULL() || notifier != m_channel.GetPointerAlways() )
+        return;
+    if ( GUCEF_NULL != eventData )
+        OnPacket( static_cast< const CDRNPacketEventData* >( eventData )->GetData() );     // const: no private copy
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNPeerLink::OnChannelConnectedEvent( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_channel.IsNULL() || notifier != m_channel.GetPointerAlways() )
+        return;
+    OnChannelConnected();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNPeerLink::OnChannelDisconnectedEvent( CORE::CNotifier* notifier    ,
+                                          const CORE::CEvent& eventId  ,
+                                          CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_channel.IsNULL() || notifier != m_channel.GetPointerAlways() )
+        return;
+    OnChannelLost();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNPeerLink::OnChannelErrorEvent( CORE::CNotifier* notifier    ,
+                                   const CORE::CEvent& eventId  ,
+                                   CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( m_channel.IsNULL() || notifier != m_channel.GetPointerAlways() )
+        return;
+
+    CORE::CString text = GUCEF_NULL != eventData ? static_cast< CDRNChannelErrorEventData* >( eventData )->GetData() : CORE::CString( "channel error" );
+    if ( LINKSTATE_CONNECTING == m_state )
+        CloseNow( DRN_LINKREASON_CONNECT_FAILED, text );
     else
-    if ( CIDRNChannel::ChannelConnectedEvent == eventid )
-    {
-        OnChannelConnected();
-    }
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DRNPeerLink(" << CORE::PointerToString( this ) << "): Channel error: " << text );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CDRNPeerLink::OnChannelLost( void )
+{GUCEF_TRACE;
+
+    if ( LINKSTATE_CLOSING == m_state )
+        CloseNow( m_closeReason, m_closeText );
     else
-    if ( CIDRNChannel::ChannelDisconnectedEvent == eventid || CORE::CNotifier::DestructionEvent == eventid )
-    {
-        if ( LINKSTATE_CLOSING == m_state )
-            CloseNow( m_closeReason, m_closeText );
-        else
-        if ( LINKSTATE_CONNECTING == m_state )
-            CloseNow( DRN_LINKREASON_CONNECT_FAILED, "the channel did not connect" );
-        else
-            CloseNow( DRN_LINKREASON_CHANNEL_LOST, "the channel was disconnected" );
-    }
+    if ( LINKSTATE_CONNECTING == m_state )
+        CloseNow( DRN_LINKREASON_CONNECT_FAILED, "the channel did not connect" );
     else
-    if ( CIDRNChannel::ChannelErrorEvent == eventid )
-    {
-        CORE::CString text = GUCEF_NULL != eventdata ? static_cast< CDRNChannelErrorEventData* >( eventdata )->GetData() : CORE::CString( "channel error" );
-        if ( LINKSTATE_CONNECTING == m_state )
-            CloseNow( DRN_LINKREASON_CONNECT_FAILED, text );
-        else
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "DRNPeerLink(" << CORE::PointerToString( this ) << "): Channel error: " << text );
-    }
+        CloseNow( DRN_LINKREASON_CHANNEL_LOST, "the channel was disconnected" );
 }
 
 /*-------------------------------------------------------------------------*/

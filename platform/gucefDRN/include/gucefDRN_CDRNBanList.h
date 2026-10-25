@@ -59,7 +59,7 @@ namespace DRN {
  *  A ban list kept in memory and in a file.
  *
  *  The file is UTF-8 text, one ban per line, fields separated by a tab:
- *      kind (user, key, address) TAB expiry (Unix seconds, 0 = never) TAB value TAB reason
+ *      kind (user, key, address, account) TAB expiry (Unix seconds, 0 = never) TAB value TAB reason
  *  A tab, line break or backslash in the value or the reason is written as \t, \n, \r or \\. Lines that start
  *  with # are comments. With a file path set (SetFilePath()) every change is saved right away.
  *  As a CORE::CIConfigurable it also reads and writes a CDataNode (children "Ban" with the same four fields).

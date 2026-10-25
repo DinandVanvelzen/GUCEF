@@ -20,6 +20,7 @@
             <Dependency Name="gucefCOM" />
             <Dependency Name="gucefWEB" />
             <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
         </Dependencies>
         <Linker>
             <Dependency Name="gucefMT" Scope="public" />
@@ -28,6 +29,7 @@
             <Dependency Name="gucefCOM" Scope="public" />
             <Dependency Name="gucefWEB" Scope="public" />
             <Dependency Name="gucefDRN" Scope="public" />
+            <Dependency Name="gucefAUTH" Scope="public" />
         </Linker>
         <Preprocessor>
             <Define String="GUCEFMULTIPLAY_BUILD_MODULE" />

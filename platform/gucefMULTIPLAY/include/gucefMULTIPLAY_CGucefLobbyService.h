@@ -30,6 +30,11 @@
 #define GUCEF_CORE_CFUTURERESULTSOURCE_H
 #endif /* GUCEF_CORE_CFUTURERESULTSOURCE_H ? */
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_DRN_CDRNNODE_H
 #include "gucefDRN_CDRNNode.h"
 #define GUCEF_DRN_CDRNNODE_H
@@ -72,6 +77,8 @@ class CIClientIntegrity;
  *  The identity given to Connect() proves itself with its key pair (see CPlayerIdentity): the server knows the
  *  player by the user id of that key. The server's endpoints may pin the key of its node with the parameter "key"
  *  (tcp://host:port?key=<hex>), as the endpoints of its listings do: a server with another key is refused.
+ *  The link proofs of the identity (CPlayerIdentity::linkProofs) are shown to the server with that proof, which verifies
+ *  them and knows the player by the accounts they verify as well (see CGucefLobbyAuthenticator).
  *  A CIClientIntegrity, when set, reports on the client in the requests to create and join lobbies.
  *
  *  Config: server (the endpoints of the server, ';' separated), password, localEndpoints (where the local player's
@@ -139,13 +146,12 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGucefLobbyService : public CILobbyService
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    protected:
-
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
+    /** The name GetClassTypeName() says: compared with it a holder of a base class pointer can tell this class without RTTI */
+    static const CORE::CString& ClassTypeName( void );
 
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CGucefLobbyService > TEventCallback;
 
     enum ERequestKind
     {
@@ -184,6 +190,48 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGucefLobbyService : public CILobbyService
     void CompleteBrowses( void );
     void FailPending( const CORE::CString& reason );
     CORE::CVariant MakeIntegrityBlob( void );
+
+    void SubscribeToDirectory( DRN::CDRNSession* directory );
+    void SubscribeToListings( DRN::CDRNDataGrid* listings );
+    void SubscribeToChannel( DRN::CDRNDataStream* stream );
+    void SubscribeToLobby( CGucefLobby* lobby );
+    void OnPendingLobbyEnded( CORE::CNotifier* notifier, bool ready, CORE::CICloneable* eventData );
+
+    void OnDirectoryJoined( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData );
+
+    void OnDirectoryJoinFailed( CORE::CNotifier* notifier    ,
+                                const CORE::CEvent& eventId  ,
+                                CORE::CICloneable* eventData );
+
+    void OnDirectoryItemAnnounced( CORE::CNotifier* notifier    ,
+                                   const CORE::CEvent& eventId  ,
+                                   CORE::CICloneable* eventData );
+
+    void OnDirectoryAppMessage( CORE::CNotifier* notifier    ,
+                                const CORE::CEvent& eventId  ,
+                                CORE::CICloneable* eventData );
+
+    void OnDirectoryClosed( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData );
+
+    void OnListingsChanged( CORE::CNotifier* notifier    ,
+                            const CORE::CEvent& eventId  ,
+                            CORE::CICloneable* eventData );
+
+    void OnChannelEntriesAvailable( CORE::CNotifier* notifier    ,
+                                    const CORE::CEvent& eventId  ,
+                                    CORE::CICloneable* eventData );
+
+    void OnLobbyReady( CORE::CNotifier* notifier    ,
+                       const CORE::CEvent& eventId  ,
+                       CORE::CICloneable* eventData );
+
+    void OnLobbyFailed( CORE::CNotifier* notifier    ,
+                        const CORE::CEvent& eventId  ,
+                        CORE::CICloneable* eventData );
 
     private:
 

@@ -34,6 +34,13 @@
 void
 PerformGucefLobbyTests( void );
 
+/**
+ *  Tests the accounts at external identity providers in the lobby protocol: the link proofs of the handshake, what a
+ *  server does with proofs that do not hold, requireLinkedProvider, bans and reports by account
+ */
+void
+PerformGucefLobbyAuthTests( void );
+
 /** The argument with which the test app only starts a CGucefLobbyServer, followed by the endpoint to listen on */
 #define GUCEF_MULTIPLAY_TESTAPP_LOBBYSERVER_ONLY_ARG    "--lobby-server-only"
 

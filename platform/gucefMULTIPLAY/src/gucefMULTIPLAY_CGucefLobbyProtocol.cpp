@@ -110,8 +110,11 @@ CGucefLobbyProtocol::WriteDataTree( DRN::CDRNWireWriter& writer, const CORE::CDa
 /*-------------------------------------------------------------------------*/
 
 bool
-CGucefLobbyProtocol::ReadDataTree( DRN::CDRNWireReader& reader, CORE::CDataNode& node )
+CGucefLobbyProtocol::ReadDataTree( DRN::CDRNWireReader& reader, CORE::CDataNode& node, UInt32 maxDepth )
 {GUCEF_TRACE;
+
+    if ( 0 == maxDepth )
+        return false;
 
     CORE::CString name;
     Int32 nodeType = 0;
@@ -140,7 +143,7 @@ CGucefLobbyProtocol::ReadDataTree( DRN::CDRNWireReader& reader, CORE::CDataNode&
     for ( UInt32 i=0; i<childCount; ++i )
     {
         CORE::CDataNode* child = node.AddChild( CORE::CString::Empty, GUCEF_DATATYPE_OBJECT );
-        if ( GUCEF_NULL == child || !ReadDataTree( reader, *child ) )
+        if ( GUCEF_NULL == child || !ReadDataTree( reader, *child, maxDepth - 1 ) )
             return false;
     }
     return !reader.HasFailed();

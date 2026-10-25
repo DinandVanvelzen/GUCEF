@@ -520,6 +520,23 @@ CDRNLossyChannel::GetRemoteEndpoint( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+const GUCEF::CORE::CString&
+CDRNLossyChannel::ClassTypeName( void )
+{
+    static const GUCEF::CORE::CString classTypeName = "CDRNLossyChannel";
+    return classTypeName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const GUCEF::CORE::CString&
+CDRNLossyChannel::GetClassTypeName( void ) const
+{
+    return ClassTypeName();
+}
+
+/*-------------------------------------------------------------------------*/
+
 CORE::CString
 CDRNLossyChannel::GetChannelType( void ) const
 {

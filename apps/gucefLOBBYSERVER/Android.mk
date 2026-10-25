@@ -25,6 +25,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../platform/gucefAUTH/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
@@ -39,6 +40,7 @@ LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=gucefLOBBYSERVER -DMODULE_NAME=gucefLOBB
 
 
 LOCAL_SHARED_LIBRARIES := \
+  gucefAUTH \
   gucefCOM \
   gucefCOMCORE \
   gucefCORE \

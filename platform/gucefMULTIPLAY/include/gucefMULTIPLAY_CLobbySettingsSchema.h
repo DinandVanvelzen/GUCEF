@@ -88,11 +88,24 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CLobbySettingDef
     TChangePolicy changePolicy;
     CORE::CString uiHint;
     CORE::CString group;
+    CORE::CString unit;                         /**< what the value counts, shown after it: "s", "%" ... empty for none */
+    CORE::CString enabledByKey;                 /**< the key of the setting that has to have enabledByValue for this one to be editable; empty for always editable */
+    CORE::CString enabledByValue;
 
     CLobbySettingDef( void );
 
     /** Checks a value against the type, range, step and options */
     bool IsValidValue( const CORE::CString& value, CORE::CString& reason ) const;
+
+    /** Whether two values of this setting are the same value: "true" and "1" are for a yes or no, "4" and "4.0" for a number */
+    bool IsSameValue( const CORE::CString& a, const CORE::CString& b ) const;
+
+    /** Whether the setting depends on the value of another setting */
+    bool HasEnabledBy( void ) const;
+
+    /** Whether the setting is editable given the current value of the setting it depends on, true when it depends on none.
+     *  Only editability depends on it: the value of the setting stays valid, kept and sent to the game when it is not editable. */
+    bool IsEnabledByValue( const CLobbySettingDef& controller, const CORE::CString& controllerValue ) const;
 
     void Save( CORE::CDataNode& node ) const;
 

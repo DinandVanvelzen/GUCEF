@@ -42,10 +42,10 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
-#ifndef GUCEF_MULTIPLAY_DATANODEUTILS_H
-#include "gucefMULTIPLAY_DataNodeUtils.h"
-#define GUCEF_MULTIPLAY_DATANODEUTILS_H
-#endif /* GUCEF_MULTIPLAY_DATANODEUTILS_H ? */
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
 
 #include "gucefMULTIPLAY_CLaunchDescription.h"
 
@@ -86,11 +86,11 @@ CLaunchMember::Serialize( CORE::CDataNode& node ) const
     node.SetAttribute( "name", name );
     node.SetAttribute( "role", CORE::CString( LobbyMemberRoleToString( role ) ) );
     node.SetAttribute( "slot", slot );
-    WriteStringsAsChild( node, "endpoints", endpoints );
+    node.SetValuesOfChildByName( "endpoints", endpoints );
     if ( !publicKey.IsNULLOrEmpty() )
         node.SetAttribute( "publicKey", publicKey );
     if ( integrity.GetKeyCount() > 0 )
-        WriteValueListAsChild( node, "integrity", integrity );
+        node.SetAttributesOfChildByName( "integrity", integrity );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -103,10 +103,10 @@ CLaunchMember::Deserialize( const CORE::CDataNode& node )
     name = node.GetAttributeValueOrChildValueByName( "name" ).AsString( CORE::CString::Empty, true );
     role = StringToLobbyMemberRole( node.GetAttributeValueOrChildValueByName( "role" ).AsString( CORE::CString::Empty, true ) );
     slot = node.GetAttributeValueOrChildValueByName( "slot" ).AsInt32( -1, true );
-    ReadStringsFromChild( node, "endpoints", endpoints );
+    node.GetValuesOfChildByName( "endpoints", endpoints );
     publicKey = node.GetAttributeValueOrChildValueByName( "publicKey" ).AsString( CORE::CString::Empty, true );
     integrity.Clear();
-    ReadValueListFromChild( node, "integrity", integrity );
+    node.GetAttributesOfChildByName( "integrity", integrity );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -402,7 +402,7 @@ CLaunchDescription::Serialize( CORE::CDataNode& domRootNode                     
     for ( size_t i=0; i<slots.size(); ++i )
         slots[ i ].Serialize( *slotsNode->AddChild( "slot", GUCEF_DATATYPE_OBJECT ) );
 
-    WriteValueListAsChild( domRootNode, "settings", settings );
+    domRootNode.SetAttributesOfChildByName( "settings", settings );
     return true;
 }
 
@@ -456,7 +456,7 @@ CLaunchDescription::Deserialize( const CORE::CDataNode& domRootNode             
         }
     }
 
-    ReadValueListFromChild( domRootNode, "settings", settings );
+    domRootNode.GetAttributesOfChildByName( "settings", settings );
     settings.SetAllowMultipleValues( false );
     return !lobbyId.IsNULLOrEmpty() || !members.empty();
 }

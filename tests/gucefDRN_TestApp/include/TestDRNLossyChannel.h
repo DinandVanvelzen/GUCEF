@@ -95,6 +95,7 @@ class CDRNLossyChannel : public GUCEF::DRN::CIDRNChannel
     virtual bool SendPacket( const void* data, GUCEF::UInt32 size ) GUCEF_VIRTUAL_OVERRIDE;
     virtual const GUCEF::DRN::CDRNChannelCapabilities& GetCapabilities( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual GUCEF::DRN::CDRNEndpoint GetRemoteEndpoint( void ) const GUCEF_VIRTUAL_OVERRIDE;
+    virtual const GUCEF::CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual GUCEF::CORE::CString GetChannelType( void ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual void SetPulseGenerator( GUCEF::CORE::PulseGeneratorPtr pulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
     virtual GUCEF::CORE::PulseGeneratorPtr GetPulseGenerator( void ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -107,6 +108,9 @@ class CDRNLossyChannel : public GUCEF::DRN::CIDRNChannel
     /** The packet recordAuth kept, empty when none */
     static const GUCEF::CORE::CDynamicBuffer& GetRecordedAuthPacket( void );
     static void ClearRecordedAuthPacket( void );
+
+    /** The name GetClassTypeName() says, to tell this channel from another one without RTTI */
+    static const GUCEF::CORE::CString& ClassTypeName( void );
 
     protected:
 

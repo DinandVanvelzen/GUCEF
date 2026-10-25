@@ -34,6 +34,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#include "gucef_test_log_callback.h"
+#define GUCEF_TEST_LOG_CALLBACK_H
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */
+
 #ifndef GUCEF_CORE_H
 #include "gucefCORE.h"
 #define GUCEF_CORE_H
@@ -76,7 +81,7 @@ DRNTestEventCallback( GUCEF::TESTFW::ETestEvent eventType ,
                       void* userData                      )
 {GUCEF_TRACE;
 
-    GUCEF::CORE::TestFrameworkLogCallback( eventType, suiteName, caseName, message, file, line, failureCount, userData );
+    GUCEF::TESTFW::TestFrameworkLogCallback( eventType, suiteName, caseName, message, file, line, failureCount, userData );
     GUCEF::CORE::CLogStreamScope::FlushLogs();
 }
 

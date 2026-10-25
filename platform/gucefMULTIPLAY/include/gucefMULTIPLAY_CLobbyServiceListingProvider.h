@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_CORE_CTIMER_H
 #include "CTimer.h"
 #define GUCEF_CORE_CTIMER_H
@@ -95,13 +100,9 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CLobbyServiceListingProvider : public CIGameLis
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    protected:
-
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CLobbyServiceListingProvider > TEventCallback;
 
     CLobbyServiceListingProvider( const CLobbyServiceListingProvider& src );
     CLobbyServiceListingProvider& operator=( const CLobbyServiceListingProvider& src );
@@ -109,6 +110,10 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CLobbyServiceListingProvider : public CIGameLis
     bool EnsureService( void );
     bool StartBrowse( void );
     void OnTimer( void );
+
+    void OnTimerUpdate( CORE::CNotifier* notifier    ,
+                        const CORE::CEvent& eventId  ,
+                        CORE::CICloneable* eventData );
     bool OnBrowseDone( void );
 
     private:

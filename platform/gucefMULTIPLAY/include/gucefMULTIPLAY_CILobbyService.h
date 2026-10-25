@@ -97,7 +97,29 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CLobbyServiceCapabilities
 /*-------------------------------------------------------------------------*/
 
 /** A lobby as the result of a CreateLobby() or JoinLobby() future and as the data of LobbyJoinedEvent */
-typedef CORE::CTCloneableObj< CILobbyPtr >  CLobbyResultData;
+class GUCEF_MULTIPLAY_EXPORT_CPP CLobbyResultData : public CORE::CTCloneableObj< CILobbyPtr >
+{
+    public:
+
+    typedef CORE::CTCloneableObj< CILobbyPtr >  TBase;
+
+    CLobbyResultData( void );
+
+    explicit CLobbyResultData( const CILobbyPtr& lobby );
+
+    CLobbyResultData( const CLobbyResultData& src );
+
+    virtual ~CLobbyResultData();
+
+    CLobbyResultData& operator=( const CLobbyResultData& src );
+
+    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see CORE::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
+};
 
 /*-------------------------------------------------------------------------*/
 

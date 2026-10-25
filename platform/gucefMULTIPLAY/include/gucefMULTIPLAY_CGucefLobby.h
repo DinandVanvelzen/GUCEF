@@ -117,6 +117,9 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGucefLobby : public CILobby
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /** The name GetClassTypeName() says: compared with it a holder of a base class pointer can tell this class without RTTI */
+    static const CORE::CString& ClassTypeName( void );
+
     protected:
 
     virtual void OnNotify( CORE::CNotifier* notifier                 ,

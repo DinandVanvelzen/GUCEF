@@ -85,6 +85,7 @@
 
 #ifndef GUCEF_MULTIPLAY_CGAMEBROWSER_H
 #include "gucefMULTIPLAY_CGameBrowser.h"
+#include "gucefCORE_CFutureResultSource.h"
 #define GUCEF_MULTIPLAY_CGAMEBROWSER_H
 #endif /* GUCEF_MULTIPLAY_CGAMEBROWSER_H ? */
 
@@ -92,6 +93,11 @@
 #include "gucef_test_framework.h"
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
+
+#ifndef GUCEF_TEST_SOCKETS_H
+#include "gucef_test_sockets.h"
+#define GUCEF_TEST_SOCKETS_H
+#endif /* GUCEF_TEST_SOCKETS_H ? */
 
 #include "TestPump.h"
 #include "TestLobbyService.h"
@@ -272,6 +278,23 @@ typedef CORE::CTFactory< MULTIPLAY::CIGameListingProvider, CStaticListingProvide
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/** What the process has open and has asked the pulse generator for: sockets, and the timers and sockets that want pulses */
+struct SProcessHold
+{
+    int sockets;
+    UInt32 pulseRequestors;
+
+    SProcessHold( void )
+        : sockets( GUCEF::TESTFW::CountOpenSockets() )
+        , pulseRequestors( CORE::CCoreGlobal::Instance()->GetPulseGenerator()->GetNrOfPeriodicPulseRequestors() )
+    {}
+
+    bool operator==( const SProcessHold& other ) const { return sockets == other.sockets && pulseRequestors == other.pulseRequestors; }
+    bool operator!=( const SProcessHold& other ) const { return !( *this == other ); }
+};
+
+/*-------------------------------------------------------------------------*/
+
 static MULTIPLAY::CGameListingEntry
 MakeListing( const char* id, const char* name, const char* endpoint )
 {
@@ -372,6 +395,54 @@ PerformListingTests( void )
             ASSERT_FALSE( MULTIPLAY::CGameListingEntry::ParseEndpoint( "nonsense", scheme, host, port, path ) );
             ASSERT_TRUE( "tcp://h:1" == MULTIPLAY::CGameListingEntry::MakeEndpoint( "tcp", "h", 1 ) );
             ASSERT_TRUE( listing.SharesEndpointWith( fromLan ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Result data of a future is checked by type, wrong data is refused" )
+        try
+        {
+            // the right data is taken
+            MULTIPLAY::CGameListingList sent;
+            sent.listings.push_back( MakeListing( "id-1", "Friday Night Game", "udp://127.0.0.1:7777" ) );
+            CORE::CFutureResultSource listSource;
+            listSource.Complete( sent.Clone(), true );
+            MULTIPLAY::CGameListingList received;
+            ASSERT_TRUE( MULTIPLAY::CGameListingList::TryGetFromFuture( listSource.GetFuture(), received ) && 1 == received.listings.size() );
+
+            MULTIPLAY::CILobbyPtr noLobby;
+            MULTIPLAY::CLobbyResultData lobbyData( noLobby );
+            ASSERT_TRUE( 0 == strcmp( "GUCEF::MULTIPLAY::CLobbyResultData", lobbyData.GetCloneableTypeName() ) );
+
+            // data of another type is refused, never reinterpreted
+            CORE::CFutureResultSource wrongForList;
+            wrongForList.Complete( lobbyData.Clone(), true );
+            MULTIPLAY::CGameListingList untouched;
+            ASSERT_FALSE( MULTIPLAY::CGameListingList::TryGetFromFuture( wrongForList.GetFuture(), untouched ) );
+            ASSERT_TRUE( untouched.listings.empty() );
+
+            CORE::CFutureResultSource wrongForLobby;
+            wrongForLobby.Complete( sent.Clone(), true );
+            MULTIPLAY::CILobbyPtr lobby;
+            ASSERT_FALSE( MULTIPLAY::CILobbyService::TryGetLobbyFromFuture( wrongForLobby.GetFuture(), lobby ) );
+            ASSERT_TRUE( lobby.IsNULL() );
+
+            // data that does not tell its type at all is refused too
+            CORE::CFutureResultSource silent;
+            silent.Complete( GUCEF_NEW CORE::TCloneableString( "text" ), true );
+            ASSERT_FALSE( MULTIPLAY::CGameListingList::TryGetFromFuture( silent.GetFuture(), untouched ) );
+            ASSERT_FALSE( MULTIPLAY::CILobbyService::TryGetLobbyFromFuture( silent.GetFuture(), lobby ) );
+
+            // no data and a future that did not finish well
+            CORE::CFutureResultSource empty;
+            empty.Complete( GUCEF_NULL, true );
+            ASSERT_FALSE( MULTIPLAY::CGameListingList::TryGetFromFuture( empty.GetFuture(), untouched ) );
+            CORE::CFutureResultSource failed;
+            failed.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "denied" );
+            ASSERT_FALSE( MULTIPLAY::CGameListingList::TryGetFromFuture( failed.GetFuture(), untouched ) );
         }
         catch ( ... )
         {
@@ -734,6 +805,124 @@ PerformListingTests( void )
 
             browser.Stop();
             ASSERT_TRUE( 0 == browser.GetListingCount() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A browser with the lan provider holds sockets and timers only while it is started, and nothing is listed or reported after it stopped" )
+        GUCEF_TESTFW_SKIP_IF( GUCEF::TESTFW::CountOpenSockets() < 0, "The open sockets of this process cannot be counted on this platform" );
+        try
+        {
+            // a game on the LAN that keeps announcing itself: this is the world the browser looks at
+            CORE::CDataNode advertiserConfig;
+            AddLoopbackClientConfig( advertiserConfig, LanPortA, LanPortB, "advertiser" );
+            advertiserConfig.SetAttribute( "ttlInSecs", CORE::CString( "3" ) );
+            MULTIPLAY::CGameAdvertiser advertiser;
+            ASSERT_TRUE( advertiser.LoadConfig( advertiserConfig ) );
+            ASSERT_TRUE( advertiser.Advertise( MakeListing( "", "LAN Game", "udp://127.0.0.1:7777" ) ) );
+            PumpFor( 20 );
+
+            MULTIPLAY::CGameBrowser browser;
+            CORE::CDataNode browserConfig;
+            CORE::CDataNode* pingConfig = browserConfig.AddChild( "PingService", GUCEF_DATATYPE_OBJECT );
+            pingConfig->SetAttribute( "methods", CORE::CString( "tcp-connect" ) );
+            pingConfig->SetAttribute( "intervalInMs", CORE::CString( "50" ) );
+            pingConfig->SetAttribute( "timeoutInMs", CORE::CString( "100" ) );
+            CORE::CDataNode* lan = browserConfig.AddChild( "ListingProvider", GUCEF_DATATYPE_OBJECT );
+            lan->SetAttribute( "type", CORE::CString( "lan" ) );
+            AddLoopbackClientConfig( *lan, LanPortB, LanPortA, "browser" );
+            ASSERT_TRUE( browser.LoadConfig( browserConfig ) );
+            ASSERT_TRUE( 1 == browser.GetProviders().size() );
+            CBrowserRecorder recorder;
+            recorder.SubscribeTo( &browser );
+
+            const SProcessHold stopped;
+            for ( UInt32 round=0; round<20; ++round )
+            {
+                // started: the game is found and pinged, which takes sockets and timers
+                const UInt32 addedBefore = recorder.added;
+                ASSERT_TRUE( browser.Start() );
+                ASSERT_TRUE( PumpUntilAtLeast( recorder.added, addedBefore + 1, 5000 ) );
+                ASSERT_TRUE( 1 == browser.GetListingCount() );
+                ASSERT_TRUE( SProcessHold() != stopped );
+                PumpFor( 60 );
+
+                // stopped: everything it took is given back at once, and what is on the LAN is no longer news
+                browser.Stop();
+                ASSERT_TRUE( SProcessHold().sockets == stopped.sockets );
+                PumpFor( 120 );
+                ASSERT_TRUE( SProcessHold() == stopped );
+                ASSERT_TRUE( 0 == browser.GetListingCount() );
+            }
+
+            // the game changes and announces itself again: a browser that is stopped does not hear it
+            const UInt32 addedBefore = recorder.added, updatedBefore = recorder.updated, removedBefore = recorder.removed;
+            ASSERT_TRUE( advertiser.UpdatePlayers( 3, 1 ) );
+            PumpFor( 1300 );
+            ASSERT_TRUE( addedBefore == recorder.added && updatedBefore == recorder.updated && removedBefore == recorder.removed );
+            ASSERT_TRUE( SProcessHold() == stopped );
+
+            // and it starts again as if it never did
+            ASSERT_TRUE( browser.Start() );
+            ASSERT_TRUE( PumpUntilAtLeast( recorder.added, addedBefore + 1, 5000 ) );
+            browser.Stop();
+
+            // the advertiser that withdraws holds nothing either
+            ASSERT_TRUE( advertiser.Withdraw() );
+            PumpFor( 60 );
+            ASSERT_TRUE( SProcessHold().sockets == stopped.sockets - 1 && SProcessHold().pulseRequestors < stopped.pulseRequestors );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The ping service gives back its probes, sockets and timer when its targets are removed" )
+        GUCEF_TESTFW_SKIP_IF( GUCEF::TESTFW::CountOpenSockets() < 0, "The open sockets of this process cannot be counted on this platform" );
+        try
+        {
+            COM::CUdpEchoResponder responder;
+            REQUIRE_TRUE( responder.Start( EchoPort ) );
+            COMCORE::CTCPServerSocket tcpServer( false );
+            REQUIRE_TRUE( tcpServer.ListenOnPort( TcpOnlyPort ) );
+
+            MULTIPLAY::CPingService pings;
+            pings.SetIntervalInMs( 30 );
+            pings.SetTimeoutInMs( 100 );
+            pings.SetMaxFailuresPerMethod( 1 );
+            CORE::CString::StringVector methods;
+            methods.push_back( "udp-echo" );
+            methods.push_back( "tcp-connect" );
+            pings.SetMethods( methods );
+            CPingRecorder recorder;
+            recorder.SubscribeTo( &pings );
+
+            const SProcessHold none;
+            for ( UInt32 round=0; round<20; ++round )
+            {
+                const UInt32 knownBefore = recorder.known;
+                ASSERT_TRUE( pings.AddTarget( "udp://127.0.0.1:" + CORE::ToString( EchoPort ) ) );
+                ASSERT_TRUE( pings.AddTarget( "127.0.0.1:" + CORE::ToString( TcpOnlyPort ) ) );
+                ASSERT_TRUE( pings.AddTarget( "127.0.0.1:" + CORE::ToString( SilentPort ) ) );
+                ASSERT_TRUE( PumpUntilAtLeast( recorder.known, knownBefore + 2, 5000 ) );
+                ASSERT_TRUE( SProcessHold() != none );
+
+                pings.RemoveAllTargets();
+                ASSERT_TRUE( SProcessHold().sockets == none.sockets );
+                PumpFor( 120 );
+                ASSERT_TRUE( SProcessHold() == none );
+            }
+
+            // nothing is reported once the targets are gone
+            const UInt32 knownBefore = recorder.known, unknownBefore = recorder.unknown;
+            PumpFor( 200 );
+            ASSERT_TRUE( knownBefore == recorder.known && unknownBefore == recorder.unknown );
+            tcpServer.Close();
+            responder.Stop();
         }
         catch ( ... )
         {

@@ -62,10 +62,20 @@
 #define GUCEF_DRN_CDRNTOKENAUTHENTICATOR_H
 #endif /* GUCEF_DRN_CDRNTOKENAUTHENTICATOR_H ? */
 
-#ifndef GUCEF_MULTIPLAY_DATANODEUTILS_H
-#include "gucefMULTIPLAY_DataNodeUtils.h"
-#define GUCEF_MULTIPLAY_DATANODEUTILS_H
-#endif /* GUCEF_MULTIPLAY_DATANODEUTILS_H ? */
+#ifndef GUCEF_CORE_CIMONOTONICCLOCK_H
+#include "gucefCORE_CIMonotonicClock.h"
+#define GUCEF_CORE_CIMONOTONICCLOCK_H
+#endif /* GUCEF_CORE_CIMONOTONICCLOCK_H ? */
+
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
+
+#ifndef GUCEF_CORE_CVALUELIST_H
+#include "CValueList.h"
+#define GUCEF_CORE_CVALUELIST_H
+#endif /* GUCEF_CORE_CVALUELIST_H ? */
 
 #ifndef GUCEF_MULTIPLAY_CGUCEFLOBBYPROTOCOL_H
 #include "gucefMULTIPLAY_CGucefLobbyProtocol.h"
@@ -227,7 +237,7 @@ ReadIntegrity( const CORE::CVariant& blob, CORE::CValueList& integrity )
     integrity.Clear();
     CORE::CDataNode tree;
     if ( blob.IsBinary() && CGucefLobbyProtocol::VariantToDataTree( blob, tree ) )
-        ReadValueListFromChild( tree, "integrity", integrity );
+        tree.GetAttributesOfChildByName( "integrity", integrity );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -485,8 +495,16 @@ class CGucefLobbyServer::CHostedLobby : public CORE::CObserver ,
         m_params.schema.SaveConfig( schema );
         m_schemaGrid->SetValue( CORE::CVariant( "schema" ), CGucefLobbyProtocol::DataTreeToVariant( schema ) );
 
-        SubscribeTo( m_session );
-        SubscribeTo( m_proposalsGrid );
+        TEventCallback joinedCallback( this, &CHostedLobby::OnSessionMemberJoined );
+        TEventCallback leftCallback( this, &CHostedLobby::OnSessionMemberLeft );
+        TEventCallback announcedCallback( this, &CHostedLobby::OnSessionItemAnnounced );
+        TEventCallback voteStartedCallback( this, &CHostedLobby::OnProposalVoteStarted );
+        TEventCallback voteEndedCallback( this, &CHostedLobby::OnProposalVoteEnded );
+        SubscribeTo( m_session, DRN::CDRNSession::MemberJoinedEvent, joinedCallback );
+        SubscribeTo( m_session, DRN::CDRNSession::MemberLeftEvent, leftCallback );
+        SubscribeTo( m_session, DRN::CDRNSession::ItemAnnouncedEvent, announcedCallback );
+        SubscribeTo( m_proposalsGrid, DRN::CDRNDataGrid::VoteStartedEvent, voteStartedCallback );
+        SubscribeTo( m_proposalsGrid, DRN::CDRNDataGrid::VoteEndedEvent, voteEndedCallback );
         m_session->Subscribe( CGucefLobbyProtocol::CommandsStream );
 
         if ( m_server.m_settings.advertiseOnLan )
@@ -839,7 +857,8 @@ class CGucefLobbyServer::CHostedLobby : public CORE::CObserver ,
         m_dirty = true;
         Publish();
 
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GucefLobbyServer: " << admission.name << " joined lobby " << m_lobbyId << ( admission.spectator ? " as a spectator" : "" ) );
+        const CORE::CString role = admission.spectator ? " as a spectator" : "";
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GucefLobbyServer: " << admission.name << " joined lobby " << m_lobbyId << role );
     }
 
     void OnMemberLeft( UInt32 peerId )
@@ -896,7 +915,7 @@ class CGucefLobbyServer::CHostedLobby : public CORE::CObserver ,
         {
             CORE::CString text;
             args >> text;
-            if ( !m_chatBuckets[ memberId ].Take( GetTimeInMs() ) )
+            if ( !m_chatBuckets[ memberId ].Take( CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() ) )
             {
                 Refuse( memberId, "say", "Too many messages, wait a moment" );
                 return;
@@ -939,7 +958,7 @@ class CGucefLobbyServer::CHostedLobby : public CORE::CObserver ,
         {
             CORE::CString target, why;
             args >> target >> why;
-            if ( !m_chatBuckets[ memberId ].Take( GetTimeInMs() ) )
+            if ( !m_chatBuckets[ memberId ].Take( CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() ) )
             {
                 Refuse( memberId, "report", "Too many requests, wait a moment" );
                 return;
@@ -959,6 +978,9 @@ class CGucefLobbyServer::CHostedLobby : public CORE::CObserver ,
             TStringMap::const_iterator k = m_memberKeys.find( target );
             if ( k != m_memberKeys.end() )
                 report.reportedPublicKey = (*k).second;
+            const TDirectoryClient* reportedClient = m_server.FindClientOfUser( target );
+            if ( GUCEF_NULL != reportedClient )
+                report.reportedAccounts = reportedClient->accounts;
             report.reason = why.Length() > GUCEF_MULTIPLAY_LOBBYSERVER_MAX_REASON ? why.SubstrFromRange( 0, GUCEF_MULTIPLAY_LOBBYSERVER_MAX_REASON ) : why;
             report.lobbyId = m_lobbyId;
             report.sessionName = LOBBYPHASE_IN_GAME == m_state.phase ? CGucefLobbyProtocol::MakeGameSessionName( m_lobbyId ) : CGucefLobbyProtocol::MakeLobbySessionName( m_lobbyId );
@@ -1033,7 +1055,7 @@ class CGucefLobbyServer::CHostedLobby : public CORE::CObserver ,
 
         m_state.phase = LOBBYPHASE_COUNTDOWN;
         m_countdownLeft = (Int32) m_rules.countdownInSecs;
-        m_nextCountdownAtMs = GetTimeInMs() + m_server.m_settings.secondInMs;
+        m_nextCountdownAtMs = CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() + m_server.m_settings.secondInMs;
         m_dirty = true;
         if ( m_countdownLeft < 0 )
             m_countdownLeft = 0;
@@ -1144,7 +1166,7 @@ class CGucefLobbyServer::CHostedLobby : public CORE::CObserver ,
         m_closing = true;
         m_closeReason = reason;
         m_state.phase = LOBBYPHASE_CLOSED;
-        m_closeAtMs = GetTimeInMs() + GUCEF_MULTIPLAY_LOBBYSERVER_CLOSE_MS;
+        m_closeAtMs = CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() + GUCEF_MULTIPLAY_LOBBYSERVER_CLOSE_MS;
         m_dirty = true;
         Publish();
 
@@ -1337,56 +1359,79 @@ class CGucefLobbyServer::CHostedLobby : public CORE::CObserver ,
 
     /*---------------------------------------------------------------------*/
 
-    protected:
+    private:
 
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE
+    typedef CORE::CTEventHandlerFunctor< CHostedLobby > TEventCallback;
+
+    void OnSessionMemberJoined( CORE::CNotifier* notifier    ,
+                                const CORE::CEvent& eventId  ,
+                                CORE::CICloneable* eventData )
     {GUCEF_TRACE;
 
-        if ( notifier == m_session )
-        {
-            if ( DRN::CDRNSession::MemberJoinedEvent == eventId )
-            {
-                const DRN::CDRNSessionMemberInfo& info = static_cast< DRN::CDRNSessionMemberEventData* >( eventData )->GetData();
-                if ( !info.isLocal )
-                    OnMemberJoined( info.peerId );
-            }
-            else
-            if ( DRN::CDRNSession::MemberLeftEvent == eventId )
-            {
-                const DRN::CDRNSessionMemberInfo& info = static_cast< DRN::CDRNSessionMemberEventData* >( eventData )->GetData();
-                OnMemberLeft( info.peerId );
-            }
-            else
-            if ( DRN::CDRNSession::ItemAnnouncedEvent == eventId )
-            {
-                const DRN::CDRNItemInfo& info = static_cast< DRN::CDRNItemInfoEventData* >( eventData )->GetData();
-                if ( info.name == CGucefLobbyProtocol::CommandsStream )
-                {
-                    DRN::CDRNDataStream* stream = m_session->FindStream( info.name, info.ownerPeerId );
-                    if ( GUCEF_NULL != stream )
-                        SubscribeTo( stream );
-                }
-            }
-            return;
-        }
+        const DRN::CDRNSessionMemberInfo& info = static_cast< DRN::CDRNSessionMemberEventData* >( eventData )->GetData();
+        if ( !info.isLocal )
+            OnMemberJoined( info.peerId );
+    }
 
-        if ( notifier == m_proposalsGrid )
-        {
-            if ( DRN::CDRNDataGrid::VoteStartedEvent == eventId )
-                OnVoteStarted( static_cast< DRN::CDRNVoteEventData* >( eventData )->GetData() );
-            else
-            if ( DRN::CDRNDataGrid::VoteEndedEvent == eventId )
-                OnVoteEnded( static_cast< DRN::CDRNVoteEventData* >( eventData )->GetData() );
-            return;
-        }
+    /*---------------------------------------------------------------------*/
 
-        if ( DRN::CDRNDataStream::EntriesAvailableEvent == eventId )
+    void OnSessionMemberLeft( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData )
+    {GUCEF_TRACE;
+
+        const DRN::CDRNSessionMemberInfo& info = static_cast< DRN::CDRNSessionMemberEventData* >( eventData )->GetData();
+        OnMemberLeft( info.peerId );
+    }
+
+    /*---------------------------------------------------------------------*/
+
+    void OnSessionItemAnnounced( CORE::CNotifier* notifier    ,
+                                 const CORE::CEvent& eventId  ,
+                                 CORE::CICloneable* eventData )
+    {GUCEF_TRACE;
+
+        const DRN::CDRNItemInfo& info = static_cast< DRN::CDRNItemInfoEventData* >( eventData )->GetData();
+        if ( info.name == CGucefLobbyProtocol::CommandsStream )
         {
-            DRN::CDRNDataStream* stream = static_cast< DRN::CDRNDataStream* >( notifier );
-            OnCommands( *stream );
+            DRN::CDRNDataStream* stream = m_session->FindStream( info.name, info.ownerPeerId );
+            if ( GUCEF_NULL != stream )
+            {
+                TEventCallback commandsCallback( this, &CHostedLobby::OnCommandsAvailable );
+                SubscribeTo( stream, DRN::CDRNDataStream::EntriesAvailableEvent, commandsCallback );
+            }
         }
+    }
+
+    /*---------------------------------------------------------------------*/
+
+    void OnProposalVoteStarted( CORE::CNotifier* notifier    ,
+                                const CORE::CEvent& eventId  ,
+                                CORE::CICloneable* eventData )
+    {GUCEF_TRACE;
+
+        OnVoteStarted( static_cast< DRN::CDRNVoteEventData* >( eventData )->GetData() );
+    }
+
+    /*---------------------------------------------------------------------*/
+
+    void OnProposalVoteEnded( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData )
+    {GUCEF_TRACE;
+
+        OnVoteEnded( static_cast< DRN::CDRNVoteEventData* >( eventData )->GetData() );
+    }
+
+    /*---------------------------------------------------------------------*/
+
+    void OnCommandsAvailable( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData )
+    {GUCEF_TRACE;
+
+        DRN::CDRNDataStream* stream = static_cast< DRN::CDRNDataStream* >( notifier );
+        OnCommands( *stream );
     }
 };
 
@@ -1417,6 +1462,7 @@ CGucefLobbyServerSettings::CGucefLobbyServerSettings( void )
     , keyFile()
     , password()
     , requireIdentityProof( true )
+    , requireLinkedProvider( "none" )
     , banFile()
     , reportFile()
     , minimumSecurityPolicy()
@@ -1461,6 +1507,7 @@ CGucefLobbyServerSettings::CGucefLobbyServerSettings( const CGucefLobbyServerSet
     , keyFile( src.keyFile )
     , password( src.password )
     , requireIdentityProof( src.requireIdentityProof )
+    , requireLinkedProvider( src.requireLinkedProvider )
     , banFile( src.banFile )
     , reportFile( src.reportFile )
     , minimumSecurityPolicy( src.minimumSecurityPolicy )
@@ -1502,6 +1549,7 @@ CGucefLobbyServerSettings::operator=( const CGucefLobbyServerSettings& src )
         keyFile = src.keyFile;
         password = src.password;
         requireIdentityProof = src.requireIdentityProof;
+        requireLinkedProvider = src.requireLinkedProvider;
         banFile = src.banFile;
         reportFile = src.reportFile;
         minimumSecurityPolicy = src.minimumSecurityPolicy;
@@ -1533,6 +1581,7 @@ CGucefLobbyServerSettings::SaveConfig( CORE::CDataNode& config ) const
     config.SetAttribute( "keyFile", keyFile );
     config.SetAttribute( "password", password );
     config.SetAttribute( "requireIdentityProof", requireIdentityProof );
+    config.SetAttribute( "requireLinkedProvider", requireLinkedProvider );
     config.SetAttribute( "banFile", banFile );
     config.SetAttribute( "reportFile", reportFile );
     config.SetAttribute( "chatMessagesPerSecond", chatMessagesPerSecond );
@@ -1540,7 +1589,7 @@ CGucefLobbyServerSettings::SaveConfig( CORE::CDataNode& config ) const
     config.SetAttribute( "requestsPerSecond", requestsPerSecond );
     config.SetAttribute( "requestsBurst", requestsBurst );
     minimumSecurityPolicy.SaveConfig( *config.AddChild( "MinimumSecurityPolicy", GUCEF_DATATYPE_OBJECT ) );
-    WriteValueListAsChild( config, "ExpectedIntegrity", expectedIntegrity );
+    config.SetAttributesOfChildByName( "ExpectedIntegrity", expectedIntegrity );
     config.SetAttribute( "maxLobbies", maxLobbies );
     config.SetAttribute( "maxMembersPerLobby", maxMembersPerLobby );
     config.SetAttribute( "tokenLifetimeInSecs", tokenLifetimeInSecs );
@@ -1568,6 +1617,7 @@ CGucefLobbyServerSettings::LoadConfig( const CORE::CDataNode& config )
     keyFile = config.GetAttributeValueOrChildValueByName( "keyFile" ).AsString( keyFile, true );
     password = config.GetAttributeValueOrChildValueByName( "password" ).AsString( password, true );
     requireIdentityProof = config.GetAttributeValueOrChildValueByName( "requireIdentityProof" ).AsBool( requireIdentityProof, true );
+    requireLinkedProvider = config.GetAttributeValueOrChildValueByName( "requireLinkedProvider" ).AsString( requireLinkedProvider, true );
     banFile = config.GetAttributeValueOrChildValueByName( "banFile" ).AsString( banFile, true );
     reportFile = config.GetAttributeValueOrChildValueByName( "reportFile" ).AsString( reportFile, true );
     chatMessagesPerSecond = config.GetAttributeValueOrChildValueByName( "chatMessagesPerSecond" ).AsUInt32( chatMessagesPerSecond, true );
@@ -1578,7 +1628,7 @@ CGucefLobbyServerSettings::LoadConfig( const CORE::CDataNode& config )
     if ( GUCEF_NULL != minimumPolicy && !minimumSecurityPolicy.LoadConfig( *minimumPolicy ) )
         return false;
     if ( GUCEF_NULL != config.FindChild( "ExpectedIntegrity" ) )
-        ReadValueListFromChild( config, "ExpectedIntegrity", expectedIntegrity );
+        config.GetAttributesOfChildByName( "ExpectedIntegrity", expectedIntegrity );
     maxLobbies = config.GetAttributeValueOrChildValueByName( "maxLobbies" ).AsUInt32( maxLobbies, true );
     maxMembersPerLobby = config.GetAttributeValueOrChildValueByName( "maxMembersPerLobby" ).AsUInt32( maxMembersPerLobby, true );
     tokenLifetimeInSecs = config.GetAttributeValueOrChildValueByName( "tokenLifetimeInSecs" ).AsUInt32( tokenLifetimeInSecs, true );
@@ -1652,6 +1702,7 @@ CGucefLobbyServer::CGucefLobbyServer( void )
     , m_haveKeys( false )
     , m_banList()
     , m_reports()
+    , m_linkStore( GUCEF_NULL )
 {GUCEF_TRACE;
 
     memset( m_privateKey, 0, sizeof( m_privateKey ) );
@@ -1664,7 +1715,8 @@ CGucefLobbyServer::CGucefLobbyServer( void )
 
     RegisterEvents();
     m_accessPolicy = GUCEF_NEW CAccessPolicy( this );
-    SubscribeTo( &m_timer );
+    TEventCallback timerCallback( this, &CGucefLobbyServer::OnTimerUpdate );
+    SubscribeTo( &m_timer, CORE::CTimer::TimerUpdateEvent, timerCallback );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1672,8 +1724,8 @@ CGucefLobbyServer::CGucefLobbyServer( void )
 CGucefLobbyServer::~CGucefLobbyServer()
 {GUCEF_TRACE;
 
-    Stop();
     UnsubscribeAllFromObserver();
+    Stop();
     GUCEF_DELETE m_accessPolicy;
     m_accessPolicy = GUCEF_NULL;
     memset( m_privateKey, 0, sizeof( m_privateKey ) );
@@ -1771,7 +1823,10 @@ CGucefLobbyServer::Start( void )
     }
     m_listings = CreateHostGrid( *m_directory, CGucefLobbyProtocol::ListingsGrid, DRN::DRN_AUTHORITY_HOST );
     m_directory->Subscribe( CGucefLobbyProtocol::RequestsStream );
-    SubscribeTo( m_directory );
+    TEventCallback announcedCallback( this, &CGucefLobbyServer::OnDirectoryItemAnnounced );
+    TEventCallback memberLeftCallback( this, &CGucefLobbyServer::OnDirectoryMemberLeftEvent );
+    SubscribeTo( m_directory, DRN::CDRNSession::ItemAnnouncedEvent, announcedCallback );
+    SubscribeTo( m_directory, DRN::CDRNSession::MemberLeftEvent, memberLeftCallback );
 
     m_running = true;
     m_timer.SetEnabled( true );
@@ -2130,7 +2185,10 @@ CGucefLobbyServer::KickAndBan( const CORE::CString& userId, const CORE::CString&
             m_banList.Ban( DRN::DRN_BAN_PUBLIC_KEY, client->publicKey.Lowercase(), expiryUnixSeconds, reason );
         if ( byAddress && !client->address.IsNULLOrEmpty() )
             m_banList.Ban( DRN::DRN_BAN_ADDRESS, client->address, expiryUnixSeconds, reason );
+        for ( size_t a=0; a<client->accounts.size(); ++a )
+            m_banList.Ban( DRN::DRN_BAN_ACCOUNT, client->accounts[ a ], expiryUnixSeconds, reason );
     }
+    BanAccountsOfProfile( userId, reason, expiryUnixSeconds );
 
     // Out of every lobby, and off the server
     TLobbyMap::iterator i = m_lobbies.begin();
@@ -2146,8 +2204,167 @@ CGucefLobbyServer::KickAndBan( const CORE::CString& userId, const CORE::CString&
         if ( !link.IsNULL() )
             link->Close( DRN::DRN_LINKREASON_CLOSED_BY_APP, "banned: " + reason );
     }
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GucefLobbyServer: Banned " << userId << ( byAddress ? " and its address" : "" ) << ": " << reason );
+    const CORE::CString scope = byAddress ? " and its address" : "";
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GucefLobbyServer: Banned " << userId << scope << ": " << reason );
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGucefLobbyServer::GetVerifiedAccounts( const CORE::CString& userId, CORE::CString::StringVector& accounts ) const
+{GUCEF_TRACE;
+
+    accounts.clear();
+    TClientMap::const_iterator i = m_clients.begin();
+    while ( i != m_clients.end() )
+    {
+        if ( (*i).second.userId == userId )
+        {
+            accounts = (*i).second.accounts;
+            return true;
+        }
+        ++i;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyServer::SetLinkStore( AUTH::IIdentityLinkStore* linkStore )
+{GUCEF_TRACE;
+
+    m_linkStore = linkStore;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyServer::BanAccountsOfProfile( const CORE::CString& userId, const CORE::CString& reason, UInt64 expiryUnixSeconds )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_linkStore || userId.IsNULLOrEmpty() )
+        return;
+    AUTH::TLinkRecordVector links;
+    if ( !m_linkStore->GetLinks( userId, links ) )
+        return;
+    for ( size_t i=0; i<links.size(); ++i )
+        m_banList.Ban( DRN::DRN_BAN_ACCOUNT, links[ i ].accountRef.ToString(), expiryUnixSeconds, reason );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGucefLobbyServer::IsBannedByAccount( const CORE::CString& userId, const CORE::CString::StringVector& accounts, DRN::CDRNBanEntry& ban )
+{GUCEF_TRACE;
+
+    for ( size_t i=0; i<accounts.size(); ++i )
+    {
+        if ( m_banList.IsAccountBanned( accounts[ i ], &ban ) )
+            return true;
+    }
+    if ( GUCEF_NULL == m_linkStore )
+        return false;
+
+    // The profile of the player, as the link store knows it, may have more accounts than the player showed
+    AUTH::TLinkRecordVector links;
+    if ( m_linkStore->GetLinks( userId, links ) )
+    {
+        for ( size_t i=0; i<links.size(); ++i )
+        {
+            if ( m_banList.IsAccountBanned( links[ i ].accountRef.ToString(), &ban ) )
+                return true;
+        }
+    }
+
+    // An account that belongs to a profile that is banned is the account of a banned player
+    for ( size_t i=0; i<accounts.size(); ++i )
+    {
+        AUTH::CAccountRef account;
+        CORE::CString owner;
+        if ( AUTH::CAccountRef::TryParse( accounts[ i ], account ) && m_linkStore->Resolve( account, owner ) &&
+             owner != userId && m_banList.IsUserBanned( owner, &ban ) )
+            return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGucefLobbyServer::KickAndBanAccount( const CORE::CString& account, const CORE::CString& reason, bool byAddress, UInt64 expiryUnixSeconds )
+{GUCEF_TRACE;
+
+    AUTH::CAccountRef accountRef;
+    if ( !AUTH::CAccountRef::TryParse( account, accountRef ) )
+        return false;
+    CORE::CString accountText = accountRef.ToString();
+
+    m_banList.Ban( DRN::DRN_BAN_ACCOUNT, accountText, expiryUnixSeconds, reason );
+
+    // Whoever is here with the account is banned as a user, with the rest of what they showed
+    CORE::CString::StringVector users;
+    TClientMap::iterator c = m_clients.begin();
+    while ( c != m_clients.end() )
+    {
+        const CORE::CString::StringVector& accounts = (*c).second.accounts;
+        for ( size_t a=0; a<accounts.size(); ++a )
+        {
+            if ( accounts[ a ] == accountText )
+            {
+                users.push_back( (*c).second.userId );
+                break;
+            }
+        }
+        ++c;
+    }
+
+    // And the profile the account belongs to, wherever it is
+    if ( GUCEF_NULL != m_linkStore )
+    {
+        CORE::CString owner;
+        if ( m_linkStore->Resolve( accountRef, owner ) && !owner.IsNULLOrEmpty() )
+            users.push_back( owner );
+    }
+
+    for ( size_t u=0; u<users.size(); ++u )
+        KickAndBan( users[ u ], reason, byAddress, expiryUnixSeconds );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "GucefLobbyServer: Banned the account " << accountText << ": " << reason );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGucefLobbyServer::CheckLinkedProviders( const CORE::CString& requirement, const CORE::CString::StringVector& accounts, CORE::CString& why )
+{GUCEF_TRACE;
+
+    CORE::CString wanted = requirement.RemoveChar( ' ' ).Lowercase();
+    if ( wanted.IsNULLOrEmpty() || wanted == "none" )
+        return true;
+    if ( wanted == "any" )
+    {
+        if ( !accounts.empty() )
+            return true;
+        why = "This server wants you logged in with an account of an identity provider";
+        return false;
+    }
+
+    CORE::CString::StringVector providers = wanted.ParseElements( ',', false );
+    for ( size_t a=0; a<accounts.size(); ++a )
+    {
+        AUTH::CAccountRef account;
+        if ( !AUTH::CAccountRef::TryParse( accounts[ a ], account ) )
+            continue;
+        for ( size_t p=0; p<providers.size(); ++p )
+        {
+            if ( providers[ p ] == account.GetProvider() )
+                return true;
+        }
+    }
+    why = "This server wants you logged in with an account of: " + wanted.ReplaceChar( ',', ' ' );
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -2399,15 +2616,22 @@ CGucefLobbyServer::OnRequest( UInt32 peerId, UInt32 requestId, const CORE::CStri
             return;
         }
         DRN::CDRNBanEntry ban;
-        if ( m_banList.IsUserBanned( userId, &ban ) )
+        if ( m_banList.IsUserBanned( userId, &ban ) || IsBannedByAccount( userId, auth.accounts, ban ) )
         {
             Reply( peerId, requestId, false, "You are banned: " + ban.reason );
+            return;
+        }
+        CORE::CString why;
+        if ( !CheckLinkedProviders( m_settings.requireLinkedProvider, auth.accounts, why ) )
+        {
+            Reply( peerId, requestId, false, why );
             return;
         }
         TDirectoryClient& client = m_clients[ peerId ];
         client.userId = userId;
         client.name = name.IsNULLOrEmpty() ? userId : name;
         client.publicKey = publicKey;
+        client.accounts = auth.accounts;
         client.address = GetAddressOfLink( *link );
         client.requests.SetRate( m_settings.requestsPerSecond, m_settings.requestsBurst );
         client.chat.SetRate( m_settings.chatMessagesPerSecond, m_settings.chatBurst );
@@ -2423,7 +2647,7 @@ CGucefLobbyServer::OnRequest( UInt32 peerId, UInt32 requestId, const CORE::CStri
         return;
     }
     TDirectoryClient& client = (*c).second;
-    if ( !client.requests.Take( GetTimeInMs() ) )
+    if ( !client.requests.Take( CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() ) )
     {
         Reply( peerId, requestId, false, "Too many requests, wait a moment" );
         return;
@@ -2581,7 +2805,7 @@ CGucefLobbyServer::OnRequest( UInt32 peerId, UInt32 requestId, const CORE::CStri
             Reply( peerId, requestId, false, "Not in the channel " + channel );
             return;
         }
-        if ( !client.chat.Take( GetTimeInMs() ) )
+        if ( !client.chat.Take( CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() ) )
         {
             Reply( peerId, requestId, false, "Too many messages, wait a moment" );
             return;
@@ -2595,7 +2819,7 @@ CGucefLobbyServer::OnRequest( UInt32 peerId, UInt32 requestId, const CORE::CStri
     {
         CORE::CString to, text;
         args >> to >> text;
-        if ( !client.chat.Take( GetTimeInMs() ) )
+        if ( !client.chat.Take( CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() ) )
         {
             Reply( peerId, requestId, false, "Too many messages, wait a moment" );
             return;
@@ -2660,7 +2884,7 @@ CGucefLobbyServer::OnTimer( void )
     }
     m_closedLobbies.clear();
 
-    UInt64 nowMs = GetTimeInMs();
+    UInt64 nowMs = CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs();
     TLobbyMap::iterator i = m_lobbies.begin();
     while ( i != m_lobbies.end() )
     {
@@ -2683,44 +2907,61 @@ CGucefLobbyServer::OnTimer( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CGucefLobbyServer::OnNotify( CORE::CNotifier* notifier                 ,
-                             const CORE::CEvent& eventId               ,
-                             CORE::CICloneable* eventData /* = GUCEF_NULL */ )
+CGucefLobbyServer::OnTimerUpdate( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( notifier == &m_timer )
-    {
-        if ( CORE::CTimer::TimerUpdateEvent == eventId )
-            OnTimer();
-        return;
-    }
+    OnTimer();
+}
 
-    if ( GUCEF_NULL != m_directory && notifier == m_directory )
-    {
-        if ( DRN::CDRNSession::ItemAnnouncedEvent == eventId )
-        {
-            const DRN::CDRNItemInfo& info = static_cast< DRN::CDRNItemInfoEventData* >( eventData )->GetData();
-            if ( info.name == CGucefLobbyProtocol::RequestsStream )
-            {
-                DRN::CDRNDataStream* stream = m_directory->FindStream( info.name, info.ownerPeerId );
-                if ( GUCEF_NULL != stream )
-                    SubscribeTo( stream );
-            }
-        }
-        else
-        if ( DRN::CDRNSession::MemberLeftEvent == eventId )
-        {
-            OnDirectoryMemberLeft( static_cast< DRN::CDRNSessionMemberEventData* >( eventData )->GetData().peerId );
-        }
-        return;
-    }
+/*-------------------------------------------------------------------------*/
 
-    if ( DRN::CDRNDataStream::EntriesAvailableEvent == eventId )
+void
+CGucefLobbyServer::OnDirectoryItemAnnounced( CORE::CNotifier* notifier    ,
+                                             const CORE::CEvent& eventId  ,
+                                             CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_directory || notifier != m_directory )
+        return;
+
+    const DRN::CDRNItemInfo& info = static_cast< DRN::CDRNItemInfoEventData* >( eventData )->GetData();
+    if ( info.name == CGucefLobbyProtocol::RequestsStream )
     {
-        DRN::CDRNDataStream* stream = static_cast< DRN::CDRNDataStream* >( notifier );
-        if ( GUCEF_NULL != m_directory && &stream->GetSession() == m_directory && stream->GetName() == CGucefLobbyProtocol::RequestsStream )
-            OnRequests( *stream );
+        DRN::CDRNDataStream* stream = m_directory->FindStream( info.name, info.ownerPeerId );
+        if ( GUCEF_NULL != stream )
+        {
+            TEventCallback requestsCallback( this, &CGucefLobbyServer::OnRequestsAvailable );
+            SubscribeTo( stream, DRN::CDRNDataStream::EntriesAvailableEvent, requestsCallback );
+        }
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyServer::OnDirectoryMemberLeftEvent( CORE::CNotifier* notifier    ,
+                                               const CORE::CEvent& eventId  ,
+                                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_directory || notifier != m_directory )
+        return;
+    OnDirectoryMemberLeft( static_cast< DRN::CDRNSessionMemberEventData* >( eventData )->GetData().peerId );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyServer::OnRequestsAvailable( CORE::CNotifier* notifier    ,
+                                        const CORE::CEvent& eventId  ,
+                                        CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    DRN::CDRNDataStream* stream = static_cast< DRN::CDRNDataStream* >( notifier );
+    if ( GUCEF_NULL != m_directory && &stream->GetSession() == m_directory && stream->GetName() == CGucefLobbyProtocol::RequestsStream )
+        OnRequests( *stream );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -89,6 +89,16 @@
 #define GUCEF_MULTIPLAY_CLOCALIDENTITYPROVIDER_H
 #endif /* GUCEF_MULTIPLAY_CLOCALIDENTITYPROVIDER_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CAUTHIDENTITYPROVIDER_H
+#include "gucefMULTIPLAY_CAuthIdentityProvider.h"
+#define GUCEF_MULTIPLAY_CAUTHIDENTITYPROVIDER_H
+#endif /* GUCEF_MULTIPLAY_CAUTHIDENTITYPROVIDER_H ? */
+
+#ifndef GUCEF_AUTH_CAUTHGLOBAL_H
+#include "gucefAUTH_CAuthGlobal.h"
+#define GUCEF_AUTH_CAUTHGLOBAL_H
+#endif /* GUCEF_AUTH_CAUTHGLOBAL_H ? */
+
 #ifndef GUCEF_MULTIPLAY_CPINGSERVICE_H
 #include "gucefMULTIPLAY_CPingService.h"
 #define GUCEF_MULTIPLAY_CPINGSERVICE_H
@@ -164,6 +174,7 @@ static THttpListListingProviderFactory g_httpListListingProviderFactory;
 static TLobbyServiceListingProviderFactory g_lobbyServiceListingProviderFactory;
 static TIrcChatServiceFactory g_ircChatServiceFactory;
 static TLocalIdentityProviderFactory g_localIdentityProviderFactory;
+static TAuthIdentityProviderFactory g_authIdentityProviderFactory;
 static TGucefLobbyServiceFactory g_gucefLobbyServiceFactory;
 static TLobbyChatServiceFactory g_lobbyChatServiceFactory;
 static TGucefLobbyAuthenticatorFactory g_gucefLobbyAuthenticatorFactory;
@@ -196,6 +207,7 @@ CMultiplayGlobal::Initialize( void )
     COM::CComGlobal::Instance();
     WEB::CWebGlobal::Instance();
     DRN::CDRNGlobal::Instance();
+    AUTH::CAuthGlobal::Instance();
 
     GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "gucefMULTIPLAY Global systems initializing" );
 
@@ -203,6 +215,7 @@ CMultiplayGlobal::Initialize( void )
     CServerList::RegisterEvents();
     CIGameListingProvider::RegisterEvents();
     CIIdentityProvider::RegisterEvents();
+    CAuthIdentityProvider::RegisterEvents();
     CILobby::RegisterEvents();
     CILobbyService::RegisterEvents();
     CIChatService::RegisterEvents();
@@ -226,6 +239,7 @@ CMultiplayGlobal::Initialize( void )
     DRN::CDRNGlobal::Instance()->GetAuthenticatorFactory().RegisterConcreteFactory( CGucefLobbyProtocol::AuthenticatorType, &g_gucefLobbyAuthenticatorFactory );
     DRN::CDRNGlobal::Instance()->GetAuthenticatorFactory().RegisterConcreteFactory( CGucefLobbyProtocol::RelayAuthenticatorType, &g_gucefLobbyRelayAuthenticatorFactory );
     m_identityProviderFactory->RegisterConcreteFactory( CLocalIdentityProvider::ProviderName, &g_localIdentityProviderFactory );
+    m_identityProviderFactory->RegisterConcreteFactory( CAuthIdentityProvider::ProviderName, &g_authIdentityProviderFactory );
 
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefMULTIPLAY" );
 }

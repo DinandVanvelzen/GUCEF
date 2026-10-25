@@ -22,10 +22,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MULTIPLAY_DATANODEUTILS_H
-#include "gucefMULTIPLAY_DataNodeUtils.h"
-#define GUCEF_MULTIPLAY_DATANODEUTILS_H
-#endif /* GUCEF_MULTIPLAY_DATANODEUTILS_H ? */
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
 
 #include "gucefMULTIPLAY_CLobbyState.h"
 
@@ -518,7 +518,7 @@ CLobbyState::Serialize( CORE::CDataNode& domRootNode                        ,
     for ( size_t i=0; i<slots.size(); ++i )
         slots[ i ].Serialize( *slotsNode->AddChild( "slot", GUCEF_DATATYPE_OBJECT ) );
 
-    WriteValueListAsChild( domRootNode, "settings", settings );
+    domRootNode.SetAttributesOfChildByName( "settings", settings );
     activeVote.Serialize( *domRootNode.AddChild( "activeVote", GUCEF_DATATYPE_OBJECT ) );
     return true;
 }
@@ -563,7 +563,7 @@ CLobbyState::Deserialize( const CORE::CDataNode& domRootNode                  ,
         }
     }
 
-    ReadValueListFromChild( domRootNode, "settings", settings );
+    domRootNode.GetAttributesOfChildByName( "settings", settings );
     settings.SetAllowMultipleValues( false );
 
     activeVote.Clear();

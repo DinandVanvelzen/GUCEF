@@ -166,7 +166,12 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGameListingList : public CORE::CICloneable
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    /** Gets the list out of a ready future that ended well */
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see CORE::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
+
+    /** Gets the list out of a ready future that ended well: false when the future has no list as its data */
     static bool TryGetFromFuture( const CORE::CFutureResult& future, CGameListingList& list );
 };
 

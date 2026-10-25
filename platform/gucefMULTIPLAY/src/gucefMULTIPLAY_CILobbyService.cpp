@@ -114,6 +114,74 @@ CILobbyService::WithdrawListing( const CORE::CString& listingId )
 
 /*-------------------------------------------------------------------------*/
 
+CLobbyResultData::CLobbyResultData( void )
+    : TBase()
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLobbyResultData::CLobbyResultData( const CILobbyPtr& lobby )
+    : TBase( lobby )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLobbyResultData::CLobbyResultData( const CLobbyResultData& src )
+    : TBase( src )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLobbyResultData::~CLobbyResultData()
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLobbyResultData&
+CLobbyResultData::operator=( const CLobbyResultData& src )
+{GUCEF_TRACE;
+
+    TBase::operator=( src );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CICloneable*
+CLobbyResultData::Clone( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NEW CLobbyResultData( *this );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CLobbyResultData::GetCloneableTypeName( void ) const
+{GUCEF_TRACE;
+
+    return CloneableTypeName();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CLobbyResultData::CloneableTypeName( void )
+{GUCEF_TRACE;
+
+    return "GUCEF::MULTIPLAY::CLobbyResultData";
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CILobbyService::TryGetLobbyFromFuture( const CORE::CFutureResult& future, CILobbyPtr& lobby )
 {GUCEF_TRACE;
@@ -123,7 +191,7 @@ CILobbyService::TryGetLobbyFromFuture( const CORE::CFutureResult& future, CILobb
     CORE::CTaskPtr task = future.GetResult();
     if ( task.IsNULL() || CORE::TTaskStatus::TASKSTATUS_FINISHED != task->GetTaskStatus() )
         return false;
-    const CLobbyResultData* data = dynamic_cast< const CLobbyResultData* >( task->GetTaskData() );
+    const CLobbyResultData* data = CORE::CICloneable::CloneableAs< CLobbyResultData >( task->GetTaskData() );
     if ( GUCEF_NULL == data || data->GetData().IsNULL() )
         return false;
     lobby = data->GetData();

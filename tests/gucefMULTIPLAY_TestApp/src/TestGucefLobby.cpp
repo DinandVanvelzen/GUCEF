@@ -53,6 +53,16 @@
 #define GUCEF_CORE_CTASK_H
 #endif /* GUCEF_CORE_CTASK_H ? */
 
+#ifndef GUCEF_DRN_CDRNWIREREADER_H
+#include "gucefDRN_CDRNWireReader.h"
+#define GUCEF_DRN_CDRNWIREREADER_H
+#endif /* GUCEF_DRN_CDRNWIREREADER_H ? */
+
+#ifndef GUCEF_DRN_CDRNWIREWRITER_H
+#include "gucefDRN_CDRNWireWriter.h"
+#define GUCEF_DRN_CDRNWIREWRITER_H
+#endif /* GUCEF_DRN_CDRNWIREWRITER_H ? */
+
 #ifndef GUCEF_DRN_CDRNSESSION_H
 #include "gucefDRN_CDRNSession.h"
 #define GUCEF_DRN_CDRNSESSION_H
@@ -123,12 +133,48 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
-#ifndef GUCEF_MULTIPLAY_DATANODEUTILS_H
-#include "gucefMULTIPLAY_DataNodeUtils.h"
-#define GUCEF_MULTIPLAY_DATANODEUTILS_H
-#endif /* GUCEF_MULTIPLAY_DATANODEUTILS_H ? */
+#ifndef GUCEF_TEST_SOCKETS_H
+#include "gucef_test_sockets.h"
+#define GUCEF_TEST_SOCKETS_H
+#endif /* GUCEF_TEST_SOCKETS_H ? */
+
+#ifndef GUCEF_CORE_CIMONOTONICCLOCK_H
+#include "gucefCORE_CIMonotonicClock.h"
+#define GUCEF_CORE_CIMONOTONICCLOCK_H
+#endif /* GUCEF_CORE_CIMONOTONICCLOCK_H ? */
+
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
+
+#ifndef GUCEF_CORE_CVALUELIST_H
+#include "CValueList.h"
+#define GUCEF_CORE_CVALUELIST_H
+#endif /* GUCEF_CORE_CVALUELIST_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CPLAYERIDENTITYSIGNER_H
+#include "gucefMULTIPLAY_CPlayerIdentitySigner.h"
+#define GUCEF_MULTIPLAY_CPLAYERIDENTITYSIGNER_H
+#endif /* GUCEF_MULTIPLAY_CPLAYERIDENTITYSIGNER_H ? */
+
+#ifndef GUCEF_AUTH_CAUTHGLOBAL_H
+#include "gucefAUTH_CAuthGlobal.h"
+#define GUCEF_AUTH_CAUTHGLOBAL_H
+#endif /* GUCEF_AUTH_CAUTHGLOBAL_H ? */
+
+#ifndef GUCEF_AUTH_CAUTHSETTINGS_H
+#include "gucefAUTH_CAuthSettings.h"
+#define GUCEF_AUTH_CAUTHSETTINGS_H
+#endif /* GUCEF_AUTH_CAUTHSETTINGS_H ? */
+
+#ifndef GUCEF_AUTH_CLOCALIDENTITYLINKSTORE_H
+#include "gucefAUTH_CLocalIdentityLinkStore.h"
+#define GUCEF_AUTH_CLOCALIDENTITYLINKSTORE_H
+#endif /* GUCEF_AUTH_CLOCALIDENTITYLINKSTORE_H ? */
 
 #include "TestPump.h"
+#include "TestFakeSsoProvider.h"
 #include "TestLobbyRecorder.h"
 #include "TestMemoryChannel.h"
 #include "TestGucefLobby.h"
@@ -196,8 +242,8 @@ class CCondition
 static bool
 PumpUntil( CCondition& condition, UInt32 timeoutInMs )
 {
-    UInt64 deadline = MULTIPLAY::GetTimeInMs() + timeoutInMs;
-    while ( MULTIPLAY::GetTimeInMs() < deadline )
+    UInt64 deadline = CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() + timeoutInMs;
+    while ( CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() < deadline )
     {
         if ( condition.IsMet() )
             return true;
@@ -765,6 +811,76 @@ PerformGucefLobbyTests( void )
             ASSERT_TRUE( blobCopy.IsBinary() && blobCopy.ByteSize( false ) == blob.ByteSize( false ) );
             CORE::CDataNode streamCopy;
             ASSERT_TRUE( MULTIPLAY::CGucefLobbyProtocol::VariantToDataTree( blobCopy, streamCopy ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The protocol: a data tree nested deeper than the limit is refused instead of overflowing the stack, a tree within it is read" )
+        try
+        {
+            // Data trees come from clients and from lobby owners, so the depth is bounded by the reader
+            for ( UInt32 depth=1; depth<=200; depth += 199 )
+            {
+                CORE::CDataNode root( "level" );
+                CORE::CDataNode* node = &root;
+                for ( UInt32 i=1; i<depth; ++i )
+                    node = node->AddChild( "level", GUCEF_DATATYPE_OBJECT );
+                CORE::CDynamicBuffer buffer;
+                DRN::CDRNWireWriter writer( buffer );
+                MULTIPLAY::CGucefLobbyProtocol::WriteDataTree( writer, root );
+                DRN::CDRNWireReader reader( buffer.GetConstBufferPtr(), writer.GetOffset() );
+                CORE::CDataNode read;
+                bool readOk = MULTIPLAY::CGucefLobbyProtocol::ReadDataTree( reader, read );
+                if ( 1 == depth )
+                    ASSERT_TRUE( readOk );
+                else
+                    ASSERT_FALSE( readOk );
+            }
+            // a tree that is as deep as the real ones go reads fine
+            CORE::CDataNode shallow( "level" );
+            CORE::CDataNode* node = &shallow;
+            for ( UInt32 i=1; i<MULTIPLAY::CGucefLobbyProtocol::MaxDataTreeDepth; ++i )
+                node = node->AddChild( "level", GUCEF_DATATYPE_OBJECT );
+            CORE::CDynamicBuffer buffer;
+            DRN::CDRNWireWriter writer( buffer );
+            MULTIPLAY::CGucefLobbyProtocol::WriteDataTree( writer, shallow );
+            DRN::CDRNWireReader reader( buffer.GetConstBufferPtr(), writer.GetOffset() );
+            CORE::CDataNode read;
+            ASSERT_TRUE( MULTIPLAY::CGucefLobbyProtocol::ReadDataTree( reader, read ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The protocol: the unit and the dependency of a setting reach the clients with the schema" )
+        try
+        {
+            CGucefFixture fixture;
+            MULTIPLAY::CLobbySettingDef seconds;
+            seconds.key = "seconds";
+            seconds.type = MULTIPLAY::CLobbySettingDef::TYPE_INT;
+            seconds.defaultValue = "180";
+            seconds.unit = "s";
+            seconds.enabledByKey = "timer";
+            seconds.enabledByValue = "true";
+            fixture.params.schema.AddSetting( seconds );
+
+            CORE::CDataNode tree( "params" );
+            ASSERT_TRUE( fixture.params.SaveConfig( tree ) );
+            CORE::CVariant blob = MULTIPLAY::CGucefLobbyProtocol::DataTreeToVariant( tree );
+            CORE::CDataNode copy;
+            ASSERT_TRUE( MULTIPLAY::CGucefLobbyProtocol::VariantToDataTree( blob, copy ) );
+            MULTIPLAY::CLobbyCreateParams params;
+            ASSERT_TRUE( params.LoadConfig( copy ) );
+            const MULTIPLAY::CLobbySettingDef* found = params.schema.FindSetting( "seconds" );
+            ASSERT_TRUE( GUCEF_NULL != found );
+            if ( GUCEF_NULL != found )
+                ASSERT_TRUE( "s" == found->unit && "timer" == found->enabledByKey && "true" == found->enabledByValue );
         }
         catch ( ... )
         {
@@ -1370,6 +1486,65 @@ PerformGucefLobbyTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test: A lobby server that advertises on the LAN, its lobby and its client give back every socket and timer when they stop, as often as they are started" )
+        GUCEF_TESTFW_SKIP_IF( GUCEF::TESTFW::CountOpenSockets() < 0, "The open sockets of this process cannot be counted on this platform" );
+        try
+        {
+            const int socketsBefore = GUCEF::TESTFW::CountOpenSockets();
+            const UInt32 requestorsBefore = CORE::CCoreGlobal::Instance()->GetPulseGenerator()->GetNrOfPeriodicPulseRequestors();
+            const UInt16 advertisePort = NextPort();
+            const UInt16 browsePort = NextPort();
+
+            // the browsing side stays, as the browser of the player does: its discovery client is made once
+            CORE::CDataNode providerConfig;
+            CORE::CDataNode* browser = providerConfig.AddChild( "DiscoveryClient", GUCEF_DATATYPE_OBJECT );
+            browser->SetAttribute( "type", CORE::CString( "broadcast" ) );
+            browser->SetAttribute( "port", CORE::ToString( browsePort ) );
+            browser->SetAttribute( "extraTargets", "127.0.0.1:" + CORE::ToString( advertisePort ) );
+            browser->SetAttribute( "useLimitedBroadcast", CORE::CString( "false" ) );
+            browser->SetAttribute( "useDirectedBroadcasts", CORE::CString( "false" ) );
+            MULTIPLAY::CLanListingProvider lan;
+            ASSERT_TRUE( lan.LoadConfig( providerConfig ) );
+
+            for ( UInt32 round=0; round<10; ++round )
+            {
+                {
+                    CGucefFixture fixture;
+                    fixture.serverSettings.advertiseOnLan = true;
+                    CORE::CDataNode* client = fixture.serverSettings.advertiserConfig.AddChild( "DiscoveryClient", GUCEF_DATATYPE_OBJECT );
+                    client->SetAttribute( "type", CORE::CString( "broadcast" ) );
+                    client->SetAttribute( "port", CORE::ToString( advertisePort ) );
+                    client->SetAttribute( "extraTargets", "127.0.0.1:" + CORE::ToString( browsePort ) );
+                    client->SetAttribute( "useLimitedBroadcast", CORE::CString( "false" ) );
+                    client->SetAttribute( "useDirectedBroadcasts", CORE::CString( "false" ) );
+                    fixture.params.isPublic = false;
+                    REQUIRE_TRUE( fixture.StartServer() );
+                    REQUIRE_TRUE( fixture.Connect( 0 ) );
+                    REQUIRE_TRUE( fixture.Enter( 0, true, false ) );
+
+                    ASSERT_TRUE( lan.Start( MULTIPLAY::CGameListingFilter() ) );
+                    MULTIPLAY::CGameListingEntry found;
+                    for ( UInt32 waited=0; waited<5000 && !lan.GetListing( fixture.lobbyId, found ); ++waited )
+                        PumpFor( 1 );
+                    ASSERT_TRUE( lan.GetListing( fixture.lobbyId, found ) );
+                    ASSERT_TRUE( CORE::CCoreGlobal::Instance()->GetPulseGenerator()->GetNrOfPeriodicPulseRequestors() > requestorsBefore );
+                    lan.Stop();
+
+                    // the host leaves and the server stops with the fixture
+                    ASSERT_TRUE( fixture.lobbies[ 0 ]->Leave() );
+                    PumpFor( 50 );
+                }
+                PumpFor( 150 );
+                ASSERT_TRUE( GUCEF::TESTFW::CountOpenSockets() == socketsBefore );
+                ASSERT_TRUE( CORE::CCoreGlobal::Instance()->GetPulseGenerator()->GetNrOfPeriodicPulseRequestors() == requestorsBefore );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Test: Chat over the lobby server: the lobby channel, a global channel with its history and direct messages" )
         try
         {
@@ -1956,6 +2131,888 @@ PerformGucefLobbyTests( void )
     GUCEF_TESTFW_TESTCASE_END
 
     UnregisterMemoryChannelFactories();
+}
+
+/*-------------------------------------------------------------------------*/
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      LINK PROOFS, BANS BY ACCOUNT AND THE LINKED PROVIDER POLICY        //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/** One link proof of a handshake proof the way a test wants to make it, to make what an honest client does not */
+struct SLinkEntry
+{
+    CORE::CString provider;
+    CORE::CString kind;
+    CORE::CString data;
+    const MULTIPLAY::CPlayerIdentity* signer;           /**< the key that signs, NULL: the key of the identity proof */
+    const DRN::CDRNAuthContext* challenge;              /**< the connection the signature is made for, NULL: the one of the proof */
+    CORE::CString signedData;                           /**< the data the signature is over when it is not the data sent */
+    bool corruptSignature;
+
+    SLinkEntry( void ) : provider(), kind( AUTH::CAuthProof::KindOidcIdToken ), data(), signer( GUCEF_NULL ), challenge( GUCEF_NULL ), signedData(), corruptSignature( false ) {}
+};
+
+/*-------------------------------------------------------------------------*/
+
+static DRN::CDRNAuthContext
+MakeAuthContext( const CORE::CString& initiator )
+{
+    DRN::CDRNAuthContext context;
+    context.serviceName = "gucef-lobby";
+    context.initiatorNodeId = initiator;
+    context.acceptorNodeId = "server-node";
+    DRN::CDRNCrypto::RandomBytes( context.nonce, sizeof( context.nonce ) );
+    DRN::CDRNCrypto::RandomBytes( context.transcriptHash, sizeof( context.transcriptHash ) );
+    return context;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The proof of an identity as a client without link proofs makes it, byte for byte as clients always did */
+static void
+BuildPlainIdentityProof( const DRN::CDRNAuthContext& context, const MULTIPLAY::CPlayerIdentity& identity, CORE::CDynamicBuffer& proof )
+{
+    CORE::CDynamicBuffer message;
+    MULTIPLAY::CGucefLobbyAuthenticator::MakeIdentityChallenge( context, message );
+    UInt8 publicKey[ MULTIPLAY::CPlayerIdentity::KeySize ];
+    UInt8 signature[ MULTIPLAY::CPlayerIdentity::SignatureSize ];
+    identity.GetPublicKey( publicKey );
+    identity.Sign( message.GetConstBufferPtr(), message.GetDataSize(), signature );
+    UInt8 header[ 2 ] = { 3, 0 };
+    proof.SetDataSize( 0 );
+    proof.Append( header, sizeof( header ), true );
+    proof.Append( publicKey, sizeof( publicKey ), true );
+    proof.Append( signature, sizeof( signature ), true );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The proof of the identity with the entries as the wire format of the link proofs says */
+static void
+BuildLinkedProof( const DRN::CDRNAuthContext& context, const MULTIPLAY::CPlayerIdentity& identity, const GUCEF::vector< SLinkEntry >& entries, UInt32 declaredCount, CORE::CDynamicBuffer& proof )
+{
+    BuildPlainIdentityProof( context, identity, proof );
+    static_cast< UInt8* >( proof.GetBufferPtr() )[ 0 ] = 4;
+    UInt8 count = (UInt8) declaredCount;
+    proof.Append( &count, 1, true );
+    for ( size_t i=0; i<entries.size(); ++i )
+    {
+        const SLinkEntry& entry = entries[ i ];
+        const MULTIPLAY::CPlayerIdentity& signer = GUCEF_NULL != entry.signer ? *entry.signer : identity;
+        const DRN::CDRNAuthContext& challenge = GUCEF_NULL != entry.challenge ? *entry.challenge : context;
+        CORE::CDynamicBuffer message;
+        MULTIPLAY::CGucefLobbyAuthenticator::MakeLinkChallenge( challenge, entry.provider, entry.kind, entry.signedData.IsNULLOrEmpty() ? entry.data : entry.signedData, message );
+        UInt8 signature[ MULTIPLAY::CPlayerIdentity::SignatureSize ];
+        signer.Sign( message.GetConstBufferPtr(), message.GetDataSize(), signature );
+        if ( entry.corruptSignature )
+            signature[ 10 ] ^= 0x01;
+
+        UInt8 providerSize = (UInt8)( entry.provider.ByteSize() - 1 );
+        UInt8 kindSize = (UInt8)( entry.kind.ByteSize() - 1 );
+        UInt32 dataSize = entry.data.ByteSize() - 1;
+        UInt8 dataSizeBytes[ 2 ] = { (UInt8)( ( dataSize >> 8 ) & 0xFF ), (UInt8)( dataSize & 0xFF ) };
+        proof.Append( &providerSize, 1, true );
+        proof.Append( entry.provider.C_String(), providerSize, true );
+        proof.Append( &kindSize, 1, true );
+        proof.Append( entry.kind.C_String(), kindSize, true );
+        proof.Append( dataSizeBytes, sizeof( dataSizeBytes ), true );
+        proof.Append( entry.data.C_String(), dataSize, true );
+        proof.Append( signature, sizeof( signature ), true );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The providers of gucefAUTH of the process that verify the proofs of a server; taken away again with it */
+class CServerProviders
+{
+    public:
+
+    CFakeSsoProvider* fake;         /**< "fakesso", account namespace "fake" */
+    CFakeSsoProvider* other;        /**< "othersso", account namespace "other" */
+    CFakeSsoProvider* unverifiable; /**< "closedsso", cannot be verified by a server */
+    TFakeSsoProviderFactory factory;
+
+    CServerProviders( void ) : fake( GUCEF_NULL ), other( GUCEF_NULL ), unverifiable( GUCEF_NULL ), factory()
+    {
+        fake = Add( "fakesso", "fake", GUCEF::AUTH::AUTHCAP_BROWSER | GUCEF::AUTH::AUTHCAP_SERVER_VERIFIABLE );
+        other = Add( "othersso", "other", GUCEF::AUTH::AUTHCAP_BROWSER | GUCEF::AUTH::AUTHCAP_SERVER_VERIFIABLE );
+        unverifiable = Add( "closedsso", "closed", GUCEF::AUTH::AUTHCAP_BROWSER );
+    }
+
+    ~CServerProviders()
+    {
+        AUTH::CAuthManager& manager = AUTH::CAuthGlobal::Instance()->GetManager();
+        manager.RemoveProvider( "fakesso" );
+        manager.RemoveProvider( "othersso" );
+        manager.RemoveProvider( "closedsso" );
+    }
+
+    /** A proof of a login with the provider, good for an hour, in the form clients show them */
+    MULTIPLAY::CLinkProof Proof( CFakeSsoProvider& provider, const CORE::CString& subject, Int64 lifetimeMs = 3600000, UInt32 extraPadding = 0 ) const
+    {
+        return MULTIPLAY::CLinkProof( provider.name, AUTH::CAuthProof( AUTH::CAuthProof::KindOidcIdToken,
+                                      provider.MakeProof( subject, (UInt64)( (Int64) AUTH::GetEpochTimeInMs() + lifetimeMs ), extraPadding ) ) );
+    }
+
+    private:
+
+    CFakeSsoProvider* Add( const CORE::CString& name, const CORE::CString& ns, UInt32 capabilities )
+    {
+        AUTH::CIAuthProviderPtr product = factory.Create();
+        CFakeSsoProvider* provider = static_cast< CFakeSsoProvider* >( product.GetPointerAlways() );
+        provider->name = name;
+        provider->accountNamespace = ns;
+        provider->capabilities = capabilities;
+        if ( !AUTH::CAuthGlobal::Instance()->GetManager().AddProvider( product ) )
+            return GUCEF_NULL;
+        return provider;
+    }
+
+    CServerProviders( const CServerProviders& src );
+    CServerProviders& operator=( const CServerProviders& src );
+};
+
+/*-------------------------------------------------------------------------*/
+
+static CORE::CString
+ReadText( const CORE::CString& path )
+{
+    CORE::CString content;
+    CORE::LoadTextFileAsString( path, content );
+    return content;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+HasAccount( const CORE::CString::StringVector& accounts, const CORE::CString& account )
+{
+    for ( size_t i=0; i<accounts.size(); ++i )
+        if ( accounts[ i ] == account )
+            return true;
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** A client that shows the proofs: connects with them as the service does */
+static bool
+ConnectWithProofs( CGucefFixture& fixture, UInt32 index, const MULTIPLAY::TLinkProofVector& proofs, const MULTIPLAY::CPlayerIdentity* asIdentity = GUCEF_NULL )
+{
+    MULTIPLAY::CPlayerIdentity identity( GUCEF_NULL != asIdentity ? *asIdentity : Identities[ index ] );
+    identity.linkProofs = proofs;
+    return fixture.ConnectAs( index, identity, CORE::CString::Empty, fixture.server.GetEndpoints() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformGucefLobbyAuthTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING gucef lobby link proof TESTS" );
+    GUCEF_TESTFW_SUITE_SCOPE( "GucefLobbyAuth" );
+
+    GUCEF_TESTFW_TESTCASE( "Test: Link proofs: an honest client's accounts verify at the server, a client without proofs sends the proof it always sent" )
+        try
+        {
+            REQUIRE_TRUE( MakeIdentities() );
+            CServerProviders providers;
+            REQUIRE_TRUE( GUCEF_NULL != providers.fake && GUCEF_NULL != providers.other );
+
+            DRN::CDRNAuthContext context = MakeAuthContext( "client-node" );
+            DRN::CDRNAuthSettings serverSettings;
+            MULTIPLAY::CGucefLobbyAuthenticator::MakeServerSettings( CORE::CString::Empty, CORE::CString::Empty, true, serverSettings );
+            DRN::CIDRNAuthenticatorPtr server = serverSettings.CreateAuthenticator();
+            REQUIRE_TRUE( !server.IsNULL() );
+
+            // Two accounts, shown by an honest client
+            MULTIPLAY::TLinkProofVector proofs;
+            proofs.push_back( providers.Proof( *providers.fake, "player-1" ) );
+            proofs.push_back( providers.Proof( *providers.other, "player-2" ) );
+            DRN::CDRNAuthSettings clientSettings;
+            MULTIPLAY::CGucefLobbyAuthenticator::MakeDirectoryCredentials( Identities[ 0 ].privateKey, CORE::CString::Empty, proofs, clientSettings );
+            DRN::CIDRNAuthenticatorPtr client = clientSettings.CreateAuthenticator();
+            REQUIRE_TRUE( !client.IsNULL() );
+            CORE::CDynamicBuffer proof;
+            REQUIRE_TRUE( client->CreateProof( context, proof ) );
+            const UInt8* bytes = static_cast< const UInt8* >( proof.GetConstBufferPtr() );
+            ASSERT_TRUE( MULTIPLAY::CGucefLobbyAuthenticator::PROOFKIND_IDENTITY_LINKED == bytes[ 0 ] && proof.GetDataSize() > 98 );
+            DRN::CDRNAuthResult result;
+            ASSERT_TRUE( server->VerifyProof( context, bytes, proof.GetDataSize(), result ) );
+            ASSERT_TRUE( Ids[ 0 ] == result.userId && 2 == result.accounts.size() );
+            ASSERT_TRUE( HasAccount( result.accounts, "fake:player-1" ) && HasAccount( result.accounts, "other:player-2" ) );
+
+            // Built by hand in the format of the wire, the same
+            GUCEF::vector< SLinkEntry > entries( 2 );
+            entries[ 0 ].provider = "fakesso";  entries[ 0 ].data = proofs[ 0 ].proof.data.Reveal();
+            entries[ 1 ].provider = "othersso"; entries[ 1 ].data = proofs[ 1 ].proof.data.Reveal();
+            CORE::CDynamicBuffer byHand;
+            BuildLinkedProof( context, Identities[ 0 ], entries, 2, byHand );
+            DRN::CDRNAuthResult byHandResult;
+            ASSERT_TRUE( server->VerifyProof( context, static_cast< const UInt8* >( byHand.GetConstBufferPtr() ), byHand.GetDataSize(), byHandResult ) );
+            ASSERT_TRUE( 2 == byHandResult.accounts.size() );
+
+            // No proofs: the identity proof as it was, 98 bytes of kind 3, a guest to the server
+            DRN::CDRNAuthSettings plainSettings;
+            MULTIPLAY::CGucefLobbyAuthenticator::MakeDirectoryCredentials( Identities[ 0 ].privateKey, CORE::CString::Empty, MULTIPLAY::TLinkProofVector(), plainSettings );
+            DRN::CIDRNAuthenticatorPtr plain = plainSettings.CreateAuthenticator();
+            CORE::CDynamicBuffer plainProof;
+            REQUIRE_TRUE( !plain.IsNULL() && plain->CreateProof( context, plainProof ) );
+            ASSERT_TRUE( 98 == plainProof.GetDataSize() && 3 == static_cast< const UInt8* >( plainProof.GetConstBufferPtr() )[ 0 ] );
+            DRN::CDRNAuthResult plainResult;
+            ASSERT_TRUE( server->VerifyProof( context, static_cast< const UInt8* >( plainProof.GetConstBufferPtr() ), plainProof.GetDataSize(), plainResult ) );
+            ASSERT_TRUE( Ids[ 0 ] == plainResult.userId && plainResult.accounts.empty() );
+
+            // Made by hand the way an old client made it
+            CORE::CDynamicBuffer oldProof;
+            BuildPlainIdentityProof( context, Identities[ 0 ], oldProof );
+            ASSERT_TRUE( plainProof.GetDataSize() == oldProof.GetDataSize() && 0 == memcmp( plainProof.GetConstBufferPtr(), oldProof.GetConstBufferPtr(), oldProof.GetDataSize() ) );
+            DRN::CDRNAuthResult oldResult;
+            ASSERT_TRUE( server->VerifyProof( context, static_cast< const UInt8* >( oldProof.GetConstBufferPtr() ), oldProof.GetDataSize(), oldResult ) && oldResult.accounts.empty() );
+
+            // Proofs that cannot be sent are left out by the client, an identity key is needed to show any
+            MULTIPLAY::TLinkProofVector unsendable;
+            unsendable.push_back( MULTIPLAY::CLinkProof( "", AUTH::CAuthProof( AUTH::CAuthProof::KindOidcIdToken, "x" ) ) );
+            unsendable.push_back( providers.Proof( *providers.fake, "player-1", 3600000, MULTIPLAY::CLinkProof::MaxDataSize ) );
+            DRN::CDRNAuthSettings leftOutSettings;
+            MULTIPLAY::CGucefLobbyAuthenticator::MakeDirectoryCredentials( Identities[ 0 ].privateKey, CORE::CString::Empty, unsendable, leftOutSettings );
+            DRN::CIDRNAuthenticatorPtr leftOut = leftOutSettings.CreateAuthenticator();
+            CORE::CDynamicBuffer leftOutProof;
+            REQUIRE_TRUE( !leftOut.IsNULL() && leftOut->CreateProof( context, leftOutProof ) );
+            ASSERT_TRUE( 98 == leftOutProof.GetDataSize() );
+            DRN::CDRNAuthSettings keylessSettings;
+            MULTIPLAY::CGucefLobbyAuthenticator::MakeDirectoryCredentials( CORE::CString::Empty, CORE::CString::Empty, proofs, keylessSettings );
+            DRN::CIDRNAuthenticatorPtr keyless = keylessSettings.CreateAuthenticator();
+            CORE::CDynamicBuffer keylessProof;
+            REQUIRE_TRUE( !keyless.IsNULL() && keyless->CreateProof( context, keylessProof ) );
+            ASSERT_TRUE( 1 == keylessProof.GetDataSize() );
+
+            // Nothing about the accounts is written when the settings are saved
+            CORE::CDataNode saved;
+            ASSERT_TRUE( client->SaveConfig( saved ) );
+            ASSERT_TRUE( GUCEF_NULL == saved.FindChild( "LinkProof" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Link proofs that do not hold are not accounts: forged, replayed, of another key, for other data, refused, unknown, expired, not verifiable" )
+        try
+        {
+            REQUIRE_TRUE( MakeIdentities() );
+            CServerProviders providers;
+            REQUIRE_TRUE( GUCEF_NULL != providers.fake && GUCEF_NULL != providers.other && GUCEF_NULL != providers.unverifiable );
+
+            DRN::CDRNAuthContext context = MakeAuthContext( "client-node" );
+            DRN::CDRNAuthContext otherConnection = MakeAuthContext( "client-node" );
+            DRN::CDRNAuthSettings serverSettings;
+            MULTIPLAY::CGucefLobbyAuthenticator::MakeServerSettings( CORE::CString::Empty, CORE::CString::Empty, true, serverSettings );
+            DRN::CIDRNAuthenticatorPtr server = serverSettings.CreateAuthenticator();
+            REQUIRE_TRUE( !server.IsNULL() );
+
+            MULTIPLAY::CLinkProof good = providers.Proof( *providers.fake, "player-1" );
+            CORE::CString goodData = good.proof.data.Reveal();
+            SLinkEntry honest;
+            honest.provider = "fakesso";
+            honest.data = goodData;
+
+            // Whether a set of entries gives the accounts it should: the connection is never refused
+            struct SAttempt
+            {
+                static bool Run( DRN::CIDRNAuthenticatorPtr& server, const DRN::CDRNAuthContext& context, const MULTIPLAY::CPlayerIdentity& identity, const GUCEF::vector< SLinkEntry >& entries, UInt32 declared, DRN::CDRNAuthResult& result )
+                {
+                    CORE::CDynamicBuffer proof;
+                    BuildLinkedProof( context, identity, entries, declared, proof );
+                    return server->VerifyProof( context, static_cast< const UInt8* >( proof.GetConstBufferPtr() ), proof.GetDataSize(), result );
+                }
+            };
+
+            // The honest proof is an account
+            {
+                GUCEF::vector< SLinkEntry > entries( 1, honest );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 1, result ) && 1 == result.accounts.size() );
+            }
+            // A signature that was changed
+            {
+                SLinkEntry forged( honest );
+                forged.corruptSignature = true;
+                GUCEF::vector< SLinkEntry > entries( 1, forged );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 1, result ) && result.accounts.empty() && Ids[ 0 ] == result.userId );
+            }
+            // The signature of another connection: the proof was made for a challenge that is not this one
+            {
+                SLinkEntry replayed( honest );
+                replayed.challenge = &otherConnection;
+                GUCEF::vector< SLinkEntry > entries( 1, replayed );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 1, result ) && result.accounts.empty() && Ids[ 0 ] == result.userId );
+            }
+            // The signature of another key: someone who has the token of an account but not the key of the connection
+            {
+                SLinkEntry otherKey( honest );
+                otherKey.signer = &Identities[ 1 ];
+                GUCEF::vector< SLinkEntry > entries( 1, otherKey );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 1, result ) && result.accounts.empty() );
+            }
+            // A signature over other data than the data that is sent
+            {
+                SLinkEntry swapped( honest );
+                swapped.signedData = providers.Proof( *providers.fake, "player-9" ).proof.data.Reveal();
+                GUCEF::vector< SLinkEntry > entries( 1, swapped );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 1, result ) && result.accounts.empty() );
+            }
+            // A proof handed to another provider is not accepted by it
+            {
+                SLinkEntry moved( honest );
+                moved.provider = "othersso";
+                GUCEF::vector< SLinkEntry > entries( 1, moved );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 1, result ) && result.accounts.empty() );
+            }
+            // The provider refuses the proof, there is no such provider, the proof is old, the provider cannot be verified by a server
+            {
+                providers.fake->refuseProofs = true;
+                GUCEF::vector< SLinkEntry > entries( 1, honest );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 1, result ) && result.accounts.empty() );
+                providers.fake->refuseProofs = false;
+            }
+            {
+                SLinkEntry unknown( honest );
+                unknown.provider = "nosuchsso";
+                GUCEF::vector< SLinkEntry > entries( 1, unknown );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 1, result ) && result.accounts.empty() );
+            }
+            {
+                SLinkEntry expired( honest );
+                expired.data = providers.Proof( *providers.fake, "player-1", -60000 ).proof.data.Reveal();
+                GUCEF::vector< SLinkEntry > entries( 1, expired );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 1, result ) && result.accounts.empty() );
+            }
+            {
+                SLinkEntry closed( honest );
+                closed.provider = "closedsso";
+                closed.data = providers.Proof( *providers.unverifiable, "player-1" ).proof.data.Reveal();
+                UInt32 verifiesBefore = providers.unverifiable->verifyCount;
+                GUCEF::vector< SLinkEntry > entries( 1, closed );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 1, result ) && result.accounts.empty() );
+                ASSERT_TRUE( verifiesBefore == providers.unverifiable->verifyCount );
+            }
+            {
+                SLinkEntry wrongKind( honest );
+                wrongKind.kind = "platform-ticket";
+                GUCEF::vector< SLinkEntry > entries( 1, wrongKind );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 1, result ) && result.accounts.empty() );
+            }
+            // A bad proof between good ones costs only itself, the same account twice is one
+            {
+                SLinkEntry forged( honest );
+                forged.corruptSignature = true;
+                SLinkEntry second( honest );
+                second.provider = "othersso";
+                second.data = providers.Proof( *providers.other, "player-2" ).proof.data.Reveal();
+                GUCEF::vector< SLinkEntry > entries;
+                entries.push_back( honest );
+                entries.push_back( forged );
+                entries.push_back( second );
+                entries.push_back( honest );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 4, result ) && 2 == result.accounts.size() );
+                ASSERT_TRUE( HasAccount( result.accounts, "fake:player-1" ) && HasAccount( result.accounts, "other:player-2" ) );
+            }
+            // A proof over the size limit is stepped over, the next one is looked at
+            {
+                SLinkEntry large( honest );
+                large.data = providers.Proof( *providers.fake, "player-3", 3600000, MULTIPLAY::CLinkProof::MaxDataSize + 100 ).proof.data.Reveal();
+                ASSERT_TRUE( large.data.ByteSize() - 1 > MULTIPLAY::CLinkProof::MaxDataSize );
+                GUCEF::vector< SLinkEntry > entries;
+                entries.push_back( large );
+                entries.push_back( honest );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 2, result ) && 1 == result.accounts.size() && HasAccount( result.accounts, "fake:player-1" ) );
+            }
+            // One at the limit is still good
+            {
+                SLinkEntry atLimit( honest );
+                atLimit.data = providers.Proof( *providers.fake, "player-4" ).proof.data.Reveal();
+                UInt32 extra = MULTIPLAY::CLinkProof::MaxDataSize - ( atLimit.data.ByteSize() - 1 );
+                atLimit.data = providers.Proof( *providers.fake, "player-4", 3600000, extra ).proof.data.Reveal();
+                ASSERT_TRUE( atLimit.data.ByteSize() - 1 == MULTIPLAY::CLinkProof::MaxDataSize );
+                GUCEF::vector< SLinkEntry > entries( 1, atLimit );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 1, result ) && 1 == result.accounts.size() );
+            }
+            // Too many: the first ones are looked at, no more than the maximum
+            {
+                GUCEF::vector< SLinkEntry > entries;
+                for ( UInt32 i=0; i<7; ++i )
+                {
+                    SLinkEntry entry( honest );
+                    entry.data = providers.Proof( *providers.fake, "many-" + CORE::ToString( i ) ).proof.data.Reveal();
+                    entries.push_back( entry );
+                }
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( SAttempt::Run( server, context, Identities[ 0 ], entries, 7, result ) && MULTIPLAY::CLinkProof::MaxCount == result.accounts.size() );
+                ASSERT_TRUE( HasAccount( result.accounts, "fake:many-0" ) && !HasAccount( result.accounts, "fake:many-" + CORE::ToString( MULTIPLAY::CLinkProof::MaxCount ) ) );
+            }
+            // A count that is more than what is there, and a frame cut short at any place: nothing breaks, nothing is made up
+            {
+                GUCEF::vector< SLinkEntry > entries( 1, honest );
+                CORE::CDynamicBuffer proof;
+                BuildLinkedProof( context, Identities[ 0 ], entries, 3, proof );
+                const UInt8* bytes = static_cast< const UInt8* >( proof.GetConstBufferPtr() );
+                DRN::CDRNAuthResult result;
+                ASSERT_TRUE( server->VerifyProof( context, bytes, proof.GetDataSize(), result ) && 1 == result.accounts.size() );
+                BuildLinkedProof( context, Identities[ 0 ], entries, 1, proof );
+                bytes = static_cast< const UInt8* >( proof.GetConstBufferPtr() );
+                UInt32 accepted = 0;
+                for ( UInt32 length=99; length<proof.GetDataSize(); ++length )
+                {
+                    DRN::CDRNAuthResult cut;
+                    if ( server->VerifyProof( context, bytes, length, cut ) )
+                    {
+                        ++accepted;
+                        ASSERT_TRUE( cut.accounts.empty() && Ids[ 0 ] == cut.userId );
+                    }
+                }
+                ASSERT_TRUE( accepted == proof.GetDataSize() - 99 );
+                // Link proofs of kind 4 with nothing behind the identity proof, or a kind 3 with something behind it, are not valid proofs
+                DRN::CDRNAuthResult bare;
+                ASSERT_FALSE( server->VerifyProof( context, bytes, 98, bare ) );
+                CORE::CDynamicBuffer asKind3( proof );
+                static_cast< UInt8* >( asKind3.GetBufferPtr() )[ 0 ] = 3;
+                DRN::CDRNAuthResult extended;
+                ASSERT_FALSE( server->VerifyProof( context, static_cast< const UInt8* >( asKind3.GetConstBufferPtr() ), asKind3.GetDataSize(), extended ) );
+                // The identity part of a proof of another connection still refuses the whole proof
+                DRN::CDRNAuthResult wrongConnection;
+                ASSERT_FALSE( server->VerifyProof( otherConnection, bytes, proof.GetDataSize(), wrongConnection ) && !wrongConnection.userId.IsNULLOrEmpty() );
+            }
+            // Every one of the frames with a changed byte after the identity part: no crash, never an account that was not shown
+            {
+                GUCEF::vector< SLinkEntry > entries( 1, honest );
+                CORE::CDynamicBuffer proof;
+                BuildLinkedProof( context, Identities[ 0 ], entries, 1, proof );
+                for ( UInt32 position=98; position<proof.GetDataSize(); ++position )
+                {
+                    CORE::CDynamicBuffer changed( proof );
+                    static_cast< UInt8* >( changed.GetBufferPtr() )[ position ] ^= 0xFF;
+                    DRN::CDRNAuthResult result;
+                    server->VerifyProof( context, static_cast< const UInt8* >( changed.GetConstBufferPtr() ), changed.GetDataSize(), result );
+                    ASSERT_TRUE( result.accounts.empty() || ( 1 == result.accounts.size() && "fake:player-1" == result.accounts[ 0 ] && 98 == position ) );
+                }
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The policy requireLinkedProvider: none, any and a list of providers, as a setting of the server" )
+        try
+        {
+            CORE::CString::StringVector none;
+            CORE::CString::StringVector fake;
+            fake.push_back( "fake:player-1" );
+            CORE::CString::StringVector steamAndFake;
+            steamAndFake.push_back( "steam:76561198000000000" );
+            steamAndFake.push_back( "fake:player-1" );
+            CORE::CString why;
+
+            ASSERT_TRUE( MULTIPLAY::CGucefLobbyServer::CheckLinkedProviders( "none", none, why ) );
+            ASSERT_TRUE( MULTIPLAY::CGucefLobbyServer::CheckLinkedProviders( "", none, why ) );
+            ASSERT_TRUE( MULTIPLAY::CGucefLobbyServer::CheckLinkedProviders( "NONE", fake, why ) );
+            ASSERT_FALSE( MULTIPLAY::CGucefLobbyServer::CheckLinkedProviders( "any", none, why ) );
+            ASSERT_TRUE( why.HasSubstr( "identity provider" ) >= 0 );
+            ASSERT_TRUE( MULTIPLAY::CGucefLobbyServer::CheckLinkedProviders( "any", fake, why ) );
+            ASSERT_FALSE( MULTIPLAY::CGucefLobbyServer::CheckLinkedProviders( "steam,google", fake, why ) );
+            ASSERT_TRUE( why.HasSubstr( "steam" ) >= 0 && why.HasSubstr( "google" ) >= 0 );
+            ASSERT_FALSE( MULTIPLAY::CGucefLobbyServer::CheckLinkedProviders( "steam,google", none, why ) );
+            ASSERT_TRUE( MULTIPLAY::CGucefLobbyServer::CheckLinkedProviders( "steam, Fake", fake, why ) );
+            ASSERT_TRUE( MULTIPLAY::CGucefLobbyServer::CheckLinkedProviders( "steam", steamAndFake, why ) );
+            ASSERT_FALSE( MULTIPLAY::CGucefLobbyServer::CheckLinkedProviders( "fak", fake, why ) );
+
+            // A setting of the server in its configuration, none by default
+            MULTIPLAY::CGucefLobbyServerSettings settings;
+            ASSERT_TRUE( "none" == settings.requireLinkedProvider );
+            settings.requireLinkedProvider = "steam,google";
+            CORE::CDataNode config( "GucefLobbyServer" );
+            ASSERT_TRUE( settings.SaveConfig( config ) );
+            MULTIPLAY::CGucefLobbyServerSettings loaded;
+            ASSERT_TRUE( loaded.LoadConfig( config ) && "steam,google" == loaded.requireLinkedProvider );
+            MULTIPLAY::CGucefLobbyServerSettings copy( loaded );
+            ASSERT_TRUE( "steam,google" == copy.requireLinkedProvider );
+            CORE::CDataNode oldConfig( "GucefLobbyServer" );
+            oldConfig.SetAttribute( "maxLobbies", (UInt32) 7 );
+            MULTIPLAY::CGucefLobbyServerSettings fromOld;
+            ASSERT_TRUE( fromOld.LoadConfig( oldConfig ) && "none" == fromOld.requireLinkedProvider && 7 == fromOld.maxLobbies );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The hello of a client shows its accounts to the lobby server, a client without proofs connects as it did" )
+        try
+        {
+            REQUIRE_TRUE( MakeIdentities() );
+            CServerProviders providers;
+            REQUIRE_TRUE( GUCEF_NULL != providers.fake );
+            CGucefFixture fixture;
+            REQUIRE_TRUE( fixture.StartServer() );
+
+            // Alice with an account, Bob as a guest, Carol with a proof that is no good
+            MULTIPLAY::TLinkProofVector aliceProofs;
+            aliceProofs.push_back( providers.Proof( *providers.fake, "alice-1" ) );
+            aliceProofs.push_back( providers.Proof( *providers.other, "alice-2" ) );
+            ASSERT_TRUE( ConnectWithProofs( fixture, 0, aliceProofs ) );
+            ASSERT_TRUE( fixture.Connect( 1 ) );
+            MULTIPLAY::TLinkProofVector carolProofs;
+            carolProofs.push_back( providers.Proof( *providers.fake, "carol-1", -1000 ) );
+            ASSERT_TRUE( ConnectWithProofs( fixture, 2, carolProofs ) );
+
+            CORE::CString::StringVector accounts;
+            ASSERT_TRUE( fixture.server.GetVerifiedAccounts( Ids[ 0 ], accounts ) && 2 == accounts.size() );
+            ASSERT_TRUE( HasAccount( accounts, "fake:alice-1" ) && HasAccount( accounts, "other:alice-2" ) );
+            ASSERT_TRUE( fixture.server.GetVerifiedAccounts( Ids[ 1 ], accounts ) && accounts.empty() );
+            ASSERT_TRUE( fixture.server.GetVerifiedAccounts( Ids[ 2 ], accounts ) && accounts.empty() );
+            ASSERT_FALSE( fixture.server.GetVerifiedAccounts( Ids[ 4 ], accounts ) );
+
+            // The proofs are not kept by the service after the handshake
+            ASSERT_TRUE( fixture.Service( 0 ).GetIdentity().linkProofs.empty() );
+
+            // Everyone can do what they came for, accounts or not
+            ASSERT_TRUE( fixture.Enter( 0, true, false ) );
+            ASSERT_TRUE( fixture.Enter( 1, false, false ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: requireLinkedProvider: a guest is welcome unless the server wants an account, and then it wants the right provider" )
+        try
+        {
+            REQUIRE_TRUE( MakeIdentities() );
+            CServerProviders providers;
+            REQUIRE_TRUE( GUCEF_NULL != providers.fake );
+
+            MULTIPLAY::TLinkProofVector fakeProof;
+            fakeProof.push_back( providers.Proof( *providers.fake, "alice-1" ) );
+            MULTIPLAY::TLinkProofVector otherProof;
+            otherProof.push_back( providers.Proof( *providers.other, "alice-2" ) );
+            MULTIPLAY::TLinkProofVector badProof;
+            badProof.push_back( providers.Proof( *providers.fake, "alice-1", -1000 ) );
+
+            {   // none: everyone
+                CGucefFixture fixture;
+                fixture.serverSettings.requireLinkedProvider = "none";
+                REQUIRE_TRUE( fixture.StartServer() );
+                ASSERT_TRUE( fixture.Connect( 0 ) );
+                ASSERT_TRUE( ConnectWithProofs( fixture, 1, fakeProof ) );
+            }
+            {   // any: an account of any provider
+                CGucefFixture fixture;
+                fixture.serverSettings.requireLinkedProvider = "any";
+                REQUIRE_TRUE( fixture.StartServer() );
+                ASSERT_FALSE( fixture.Connect( 0 ) );
+                ASSERT_FALSE( ConnectWithProofs( fixture, 0, badProof ) );
+                ASSERT_TRUE( ConnectWithProofs( fixture, 1, fakeProof ) );
+                ASSERT_TRUE( ConnectWithProofs( fixture, 2, otherProof ) );
+            }
+            {   // a list: an account at one of them
+                CGucefFixture fixture;
+                fixture.serverSettings.requireLinkedProvider = "steam, fake";
+                REQUIRE_TRUE( fixture.StartServer() );
+                ASSERT_FALSE( fixture.Connect( 0 ) );
+                ASSERT_FALSE( ConnectWithProofs( fixture, 0, otherProof ) );
+                ASSERT_FALSE( ConnectWithProofs( fixture, 0, badProof ) );
+                ASSERT_TRUE( ConnectWithProofs( fixture, 1, fakeProof ) );
+                MULTIPLAY::TLinkProofVector both;
+                both.push_back( otherProof[ 0 ] );
+                both.push_back( fakeProof[ 0 ] );
+                ASSERT_TRUE( ConnectWithProofs( fixture, 2, both ) );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Bans by account: another key with the banned account is refused, so is the profile it is linked to, and a ban of a user reaches its accounts" )
+        try
+        {
+            REQUIRE_TRUE( MakeIdentities() );
+            CServerProviders providers;
+            REQUIRE_TRUE( GUCEF_NULL != providers.fake );
+            AUTH::CLocalIdentityLinkStore linkStore;
+            MULTIPLAY::CPlayerIdentitySigner bobSigner( Identities[ 1 ] );
+            MULTIPLAY::CPlayerIdentitySigner carolSigner( Identities[ 2 ] );
+            AUTH::CLinkRecord bobA, bobB, carolX;
+            REQUIRE_TRUE( AUTH::CLinkRecord::Create( bobSigner, AUTH::CAccountRef( "fake", "bob-a" ), CORE::CString::Empty, AUTH::GetEpochTimeInMs(), bobA ) );
+            REQUIRE_TRUE( AUTH::CLinkRecord::Create( bobSigner, AUTH::CAccountRef( "fake", "bob-b" ), CORE::CString::Empty, AUTH::GetEpochTimeInMs(), bobB ) );
+            REQUIRE_TRUE( AUTH::CLinkRecord::Create( carolSigner, AUTH::CAccountRef( "fake", "carol-x" ), CORE::CString::Empty, AUTH::GetEpochTimeInMs(), carolX ) );
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == linkStore.Link( bobA ) && AUTH::LINKRESULT_OK == linkStore.Link( bobB ) && AUTH::LINKRESULT_OK == linkStore.Link( carolX ) );
+
+            CORE::CString banFile = FreshTestFile( "accountBans.bans" );
+            CORE::CString keyFile = FreshTestFile( "accountBans.key" );
+            {
+                CGucefFixture fixture;
+                fixture.serverSettings.banFile = banFile;
+                fixture.serverSettings.keyFile = keyFile;
+                REQUIRE_TRUE( fixture.StartServer() );
+                fixture.server.SetLinkStore( &linkStore );
+
+                // Alice is here with an account, and so is Dave with another one
+                MULTIPLAY::TLinkProofVector aliceProofs;
+                aliceProofs.push_back( providers.Proof( *providers.fake, "alice-1" ) );
+                MULTIPLAY::TLinkProofVector daveProofs;
+                daveProofs.push_back( providers.Proof( *providers.fake, "dave-1" ) );
+                REQUIRE_TRUE( ConnectWithProofs( fixture, 0, aliceProofs ) );
+                REQUIRE_TRUE( ConnectWithProofs( fixture, 3, daveProofs ) );
+
+                // The ban of the account takes whoever is connected with it out, as a user, with the rest of what they showed
+                ASSERT_FALSE( fixture.server.KickAndBanAccount( "not an account", "x", false ) );
+                ASSERT_TRUE( fixture.server.KickAndBanAccount( "fake:alice-1", "cheating", false ) );
+                ASSERT_TRUE( fixture.server.GetBanList().IsAccountBanned( "fake:alice-1" ) && fixture.server.GetBanList().IsUserBanned( Ids[ 0 ] ) );
+                UInt8 aliceKey[ MULTIPLAY::CPlayerIdentity::KeySize ];
+                REQUIRE_TRUE( Identities[ 0 ].GetPublicKey( aliceKey ) );
+                ASSERT_TRUE( fixture.server.GetBanList().IsPublicKeyBanned( aliceKey, sizeof( aliceKey ) ) );
+                PumpFor( 200 );
+                ASSERT_FALSE( fixture.Service( 0 ).IsConnected() );
+                ASSERT_TRUE( fixture.Service( 3 ).IsConnected() );
+
+                // Another key with the account is refused, with another account it is welcome, and so is the key without accounts
+                MULTIPLAY::TLinkProofVector evader;
+                evader.push_back( providers.Proof( *providers.fake, "alice-1" ) );
+                ASSERT_FALSE( ConnectWithProofs( fixture, 4, evader ) );
+                MULTIPLAY::TLinkProofVector another;
+                another.push_back( providers.Proof( *providers.fake, "erin-1" ) );
+                ASSERT_TRUE( ConnectWithProofs( fixture, 4, another ) );
+                // Alice herself, with the account or without, with her key: refused
+                ASSERT_FALSE( ConnectWithProofs( fixture, 0, aliceProofs ) );
+                ASSERT_FALSE( fixture.Connect( 0 ) );
+
+                // The ban of a user reaches the accounts it showed
+                ASSERT_TRUE( fixture.server.KickAndBan( Ids[ 3 ], "spam", false ) );
+                ASSERT_TRUE( fixture.server.GetBanList().IsAccountBanned( "fake:dave-1" ) );
+                MULTIPLAY::TLinkProofVector daveAgain;
+                daveAgain.push_back( providers.Proof( *providers.fake, "dave-1" ) );
+                ASSERT_FALSE( ConnectWithProofs( fixture, 1, daveAgain ) );
+
+                // The profile of Bob is not here, one of its accounts is banned: the profile is, with the other account
+                ASSERT_TRUE( fixture.server.KickAndBanAccount( "fake:bob-a", "griefing", false, 0 ) );
+                ASSERT_TRUE( fixture.server.GetBanList().IsAccountBanned( "fake:bob-b" ) && fixture.server.GetBanList().IsUserBanned( Ids[ 1 ] ) );
+                ASSERT_FALSE( fixture.Connect( 1 ) );
+                MULTIPLAY::TLinkProofVector bobsOther;
+                bobsOther.push_back( providers.Proof( *providers.fake, "bob-b" ) );
+                ASSERT_FALSE( ConnectWithProofs( fixture, 2, bobsOther ) );
+
+                // The link store alone is enough: Carol's profile has an account that was banned by itself in the ban list
+                ASSERT_TRUE( fixture.server.GetBanList().Ban( DRN::DRN_BAN_ACCOUNT, "fake:carol-x", 0, "chargeback" ) );
+                ASSERT_FALSE( fixture.Connect( 2 ) );
+                // Without the link store the server only knows what the client showed
+                fixture.server.SetLinkStore( GUCEF_NULL );
+                ASSERT_TRUE( fixture.Connect( 2 ) );
+            }
+
+            // The bans survive a restart, the accounts too
+            CGucefFixture restarted;
+            restarted.serverSettings.banFile = banFile;
+            restarted.serverSettings.keyFile = keyFile;
+            REQUIRE_TRUE( restarted.StartServer() );
+            ASSERT_TRUE( restarted.server.GetBanList().IsAccountBanned( "fake:alice-1" ) && restarted.server.GetBanList().IsAccountBanned( "fake:bob-b" ) );
+            MULTIPLAY::TLinkProofVector evader;
+            evader.push_back( providers.Proof( *providers.fake, "alice-1" ) );
+            ASSERT_FALSE( ConnectWithProofs( restarted, 4, evader ) );
+            ASSERT_TRUE( restarted.server.GetBanList().Unban( DRN::DRN_BAN_ACCOUNT, "fake:alice-1" ) );
+            ASSERT_TRUE( ConnectWithProofs( restarted, 4, evader ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The ban file: old files load, accounts are written in the same format, bans of expired and unknown kinds are not an obstacle" )
+        try
+        {
+            CORE::CString banFile = FreshTestFile( "oldAndNew.bans" );
+            CORE::CString oldContent = "# DRN ban list: kind, expiry (Unix seconds, 0 = never), value, reason; tab separated\n"
+                                       "user\t0\t3f2504e0-4f89-41d3-9a0c-0305e82c3301\tcheating\n"
+                                       "key\t0\t00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff\tbots\n"
+                                       "address\t0\t10.0.0.1\tflooding\n"
+                                       "gadget\t0\twhatever\ta kind of the future\n";
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( banFile, oldContent ) );
+            {
+                DRN::CDRNBanList bans;
+                ASSERT_FALSE( bans.LoadFromFile( banFile ) );    // the line of a kind that is not known is skipped and said so
+                ASSERT_TRUE( 3 == bans.GetCount() );
+                ASSERT_TRUE( bans.IsUserBanned( "3f2504e0-4f89-41d3-9a0c-0305e82c3301" ) && bans.IsAddressBanned( "10.0.0.1" ) );
+                ASSERT_FALSE( bans.IsAccountBanned( "steam:76561198000000000" ) );
+
+                bans.SetFilePath( banFile );
+                ASSERT_TRUE( bans.Ban( DRN::DRN_BAN_ACCOUNT, "steam:76561198000000000", 0, "ban evasion" ) );
+                ASSERT_TRUE( bans.Ban( DRN::DRN_BAN_ACCOUNT, "aws:eu-west-1_Pool:2f6c\tx", 0, "a tab in the subject" ) );
+                ASSERT_TRUE( bans.Ban( DRN::DRN_BAN_ACCOUNT, "google:expired", CORE::CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs() / 1000 - 5, "over" ) );
+            }
+            CORE::CString written = ReadText( banFile );
+            ASSERT_TRUE( written.HasSubstr( "account\t0\tsteam:76561198000000000\tban evasion\n" ) >= 0 );
+            ASSERT_TRUE( written.HasSubstr( "user\t0\t3f2504e0-4f89-41d3-9a0c-0305e82c3301\tcheating\n" ) >= 0 );
+            ASSERT_TRUE( written.HasSubstr( "google:expired" ) < 0 );
+
+            DRN::CDRNBanList reloaded;
+            ASSERT_TRUE( reloaded.LoadFromFile( banFile ) );
+            ASSERT_TRUE( 5 == reloaded.GetCount() );
+            DRN::CDRNBanEntry entry;
+            ASSERT_TRUE( reloaded.IsAccountBanned( "steam:76561198000000000", &entry ) && "ban evasion" == entry.reason && DRN::DRN_BAN_ACCOUNT == entry.kind );
+            ASSERT_TRUE( reloaded.IsAccountBanned( "aws:eu-west-1_Pool:2f6c\tx" ) );
+            ASSERT_FALSE( reloaded.IsAccountBanned( "google:expired" ) );
+            ASSERT_FALSE( reloaded.IsUserBanned( "steam:76561198000000000" ) );    // an account is not a user id
+
+            // Also as configuration
+            CORE::CDataNode config;
+            ASSERT_TRUE( reloaded.SaveConfig( config ) );
+            DRN::CDRNBanList fromConfig;
+            ASSERT_TRUE( fromConfig.LoadConfig( config ) && 5 == fromConfig.GetCount() && fromConfig.IsAccountBanned( "steam:76561198000000000" ) );
+            ASSERT_TRUE( "account" == DRN::CDRNBanEntry::BanKindToString( DRN::DRN_BAN_ACCOUNT ) && DRN::DRN_BAN_ACCOUNT == DRN::CDRNBanEntry::StringToBanKind( "Account" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Reports carry the accounts the reported player showed, and the report log keeps them" )
+        GUCEF_TESTFW_SKIP_IF( !JsonCodecAvailable(), "The json codec plugin is not available" );
+        try
+        {
+            REQUIRE_TRUE( MakeIdentities() );
+            CServerProviders providers;
+            REQUIRE_TRUE( GUCEF_NULL != providers.fake );
+            CORE::CString reportFile = FreshTestFile( "accountReports.json" );
+            {
+                CGucefFixture fixture;
+                fixture.serverSettings.reportFile = reportFile;
+                REQUIRE_TRUE( fixture.StartServer() );
+                MULTIPLAY::TLinkProofVector carolProofs;
+                carolProofs.push_back( providers.Proof( *providers.fake, "carol-1" ) );
+                REQUIRE_TRUE( fixture.Connect( 0 ) );
+                REQUIRE_TRUE( fixture.Connect( 1 ) );
+                REQUIRE_TRUE( ConnectWithProofs( fixture, 2, carolProofs ) );
+                REQUIRE_TRUE( fixture.Enter( 0, true, false ) );
+                REQUIRE_TRUE( fixture.Enter( 1, false, false ) );
+                REQUIRE_TRUE( fixture.Enter( 2, false, false ) );
+                for ( UInt32 i=0; i<3; ++i )
+                {
+                    CStateCondition everyone( fixture.lobbies[ i ], CStateCondition::MEMBER_COUNT, CORE::CString::Empty, CORE::CString::Empty, 3 );
+                    REQUIRE_TRUE( PumpUntil( everyone, 10000 ) );
+                }
+
+                ASSERT_TRUE( fixture.lobbies[ 1 ]->ReportPlayer( Ids[ 2 ], "griefing" ) );
+                ASSERT_TRUE( fixture.lobbies[ 0 ]->ReportPlayer( Ids[ 1 ], "afk" ) );
+                for ( UInt32 waited=0; waited<5000; ++waited )
+                {
+                    MULTIPLAY::TPlayerReportVector reports;
+                    fixture.server.GetReports( reports );
+                    if ( reports.size() >= 2 )
+                        break;
+                    PumpFor( 1 );
+                }
+                MULTIPLAY::TPlayerReportVector reports;
+                fixture.server.GetReports( reports );
+                REQUIRE_TRUE( 2 == reports.size() );
+                for ( size_t i=0; i<reports.size(); ++i )
+                {
+                    if ( Ids[ 2 ] == reports[ i ].reportedId )
+                        ASSERT_TRUE( 1 == reports[ i ].reportedAccounts.size() && "fake:carol-1" == reports[ i ].reportedAccounts[ 0 ] );
+                    else
+                        ASSERT_TRUE( reports[ i ].reportedAccounts.empty() );
+                }
+            }
+
+            // In the log, which a restart reads, and a report of before this had no accounts
+            CGucefFixture restarted;
+            restarted.serverSettings.reportFile = reportFile;
+            REQUIRE_TRUE( restarted.StartServer() );
+            MULTIPLAY::TPlayerReportVector reports;
+            restarted.server.GetReports( reports );
+            REQUIRE_TRUE( 2 == reports.size() );
+            UInt32 withAccounts = 0;
+            for ( size_t i=0; i<reports.size(); ++i )
+                withAccounts += reports[ i ].reportedAccounts.size();
+            ASSERT_TRUE( 1 == withAccounts );
+
+            MULTIPLAY::CPlayerReport oldReport;
+            CORE::CDataNode oldTree( "report" );
+            oldTree.SetAttribute( "reportedId", CORE::CString( "someone" ) );
+            ASSERT_TRUE( oldReport.Deserialize( oldTree, CORE::CDataNodeSerializableSettings() ) && oldReport.reportedAccounts.empty() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The lobby server takes the client ids of all the clients of its game from the section Auth, without a client id of its own" )
+        GUCEF_TESTFW_SKIP_IF( !JsonCodecAvailable(), "The json codec plugin is not available" );
+        try
+        {
+            CORE::CString workDir = CORE::CombinePath( CORE::RelativePath( "$CURWORKDIR$" ), "multiplaytemp" );
+            CORE::CreateDirs( workDir );
+            CORE::CString configPath = CORE::CombinePath( workDir, "gucefLOBBYSERVER_clients.json" );
+            REQUIRE_TRUE( CORE::WriteStringAsTextFile( configPath,
+                "{ \"GucefLobbyServer\": { \"listen\": \"tcp://127.0.0.1:" + CORE::ToString( NextPort() ) + "\", \"requireLinkedProvider\": \"google\" },"
+                " \"Auth\": { \"Providers\": { \"google\": { \"audiences\": [ \"REPLACE-WITH-DESKTOP-CLIENT-ID.apps.googleusercontent.com\","
+                " \"REPLACE-WITH-ANDROID-CLIENT-ID.apps.googleusercontent.com\" ] } } } }" ) );
+
+            MULTIPLAY::CGucefLobbyServerApp app;
+            REQUIRE_TRUE( app.LoadConfigFile( configPath ) );
+
+            AUTH::CIAuthProvider* google = AUTH::CAuthGlobal::Instance()->GetManager().GetProvider( "google" );
+            REQUIRE_TRUE( GUCEF_NULL != google );
+            ASSERT_TRUE( 0 != ( google->GetCapabilities() & AUTH::AUTHCAP_SERVER_VERIFIABLE ) );
+            CORE::CDataNode settingsNode( "google", GUCEF_DATATYPE_OBJECT );
+            ASSERT_TRUE( google->SaveConfig( settingsNode ) );
+            AUTH::CAuthProviderSettings settings;
+            ASSERT_TRUE( settings.LoadConfig( settingsNode ) );
+            ASSERT_TRUE( !settings.HasClientId() && settings.HasAcceptedClientIds() );
+            CORE::CString::StringVector accepted;
+            settings.GetAcceptedClientIds( accepted );
+            ASSERT_TRUE( 2 == accepted.size() && "REPLACE-WITH-DESKTOP-CLIENT-ID.apps.googleusercontent.com" == accepted[ 0 ] &&
+                         "REPLACE-WITH-ANDROID-CLIENT-ID.apps.googleusercontent.com" == accepted[ 1 ] );
+
+            // the process wide settings of gucefAUTH go back to what other tests expect
+            REQUIRE_TRUE( CORE::WriteStringAsTextFile( configPath, "{ \"Providers\": { \"google\": { \"audiences\": [] } } }" ) );
+            CORE::CDataNode reset;
+            CORE::CDStoreCodecRegistry::TDStoreCodecPtr codec;
+            REQUIRE_TRUE( CORE::CCoreGlobal::Instance()->GetDStoreCodecRegistry().TryGetJsonCodec( codec ) );
+            REQUIRE_TRUE( codec->BuildDataTree( &reset, configPath ) );
+            ASSERT_TRUE( AUTH::CAuthGlobal::Instance()->GetManager().LoadConfig( reset ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/

@@ -42,10 +42,15 @@
 #define GUCEF_COMCORE_CCOMCOREGLOBAL_H
 #endif /* GUCEF_COMCORE_CCOMCOREGLOBAL_H ? */
 
-#ifndef GUCEF_MULTIPLAY_DATANODEUTILS_H
-#include "gucefMULTIPLAY_DataNodeUtils.h"
-#define GUCEF_MULTIPLAY_DATANODEUTILS_H
-#endif /* GUCEF_MULTIPLAY_DATANODEUTILS_H ? */
+#ifndef GUCEF_CORE_CIMONOTONICCLOCK_H
+#include "gucefCORE_CIMonotonicClock.h"
+#define GUCEF_CORE_CIMONOTONICCLOCK_H
+#endif /* GUCEF_CORE_CIMONOTONICCLOCK_H ? */
+
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
 
 #ifndef GUCEF_MULTIPLAY_CGAMELISTINGENTRY_H
 #include "gucefMULTIPLAY_CGameListingEntry.h"
@@ -174,7 +179,8 @@ CPingService::Initialize( void )
     m_methods.push_back( "udp-echo" );
     m_methods.push_back( "tcp-connect" );
     m_methods.push_back( "icmp" );
-    SubscribeTo( &m_timer );
+    TEventCallback timerCallback( this, &CPingService::OnTimerUpdate );
+    SubscribeTo( &m_timer, CORE::CTimer::TimerUpdateEvent, timerCallback );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -182,8 +188,8 @@ CPingService::Initialize( void )
 CPingService::~CPingService()
 {GUCEF_TRACE;
 
-    m_timer.SetEnabled( false );
     UnsubscribeAllFromObserver();
+    m_timer.SetEnabled( false );
     TTargetMap::iterator i = m_targets.begin();
     while ( i != m_targets.end() )
     {
@@ -428,7 +434,7 @@ CPingService::StartNextMethod( TTarget& target )
         if ( probe.IsNULL() || !probe->IsAvailable() )
             continue;
 
-        SubscribeTo( probe.GetPointerAlways() );
+        SubscribeToProbe( probe.GetPointerAlways() );
         if ( !probe->Start( target.address, 0, m_intervalInMs, m_timeoutInMs ) )
         {
             UnsubscribeFrom( probe.GetPointerAlways() );
@@ -442,7 +448,7 @@ CPingService::StartNextMethod( TTarget& target )
 
     // Nothing works now: unknown, and the methods are tried again later
     target.methodIndex = methodCount;
-    target.retryAtInMs = GetTimeInMs() + m_retryAfterInMs;
+    target.retryAtInMs = CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() + m_retryAfterInMs;
     SetUnknown( target );
     return false;
 }
@@ -515,7 +521,7 @@ CPingService::OnTimer( void )
 
     m_retiredProbes.clear();
 
-    UInt64 nowInMs = GetTimeInMs();
+    UInt64 nowInMs = CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs();
     TTargetMap::iterator i = m_targets.begin();
     while ( i != m_targets.end() )
     {
@@ -542,39 +548,71 @@ CPingService::OnTimer( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CPingService::OnNotify( CORE::CNotifier* notifier                 ,
-                        const CORE::CEvent& eventId               ,
-                        CORE::CICloneable* eventData /* = GUCEF_NULL */ )
+CPingService::SubscribeToProbe( COMCORE::CIRttProbe* probe )
 {GUCEF_TRACE;
 
-    if ( notifier == &m_timer )
-    {
-        if ( CORE::CTimer::TimerUpdateEvent == eventId )
-            OnTimer();
-        return;
-    }
+    TEventCallback resultCallback( this, &CPingService::OnProbeResultEvent );
+    TEventCallback failureCallback( this, &CPingService::OnProbeFailureEvent );
+    TEventCallback finishedCallback( this, &CPingService::OnProbeFinishedEvent );
+    SubscribeTo( probe, COMCORE::CIRttProbe::ProbeResultEvent, resultCallback );
+    SubscribeTo( probe, COMCORE::CIRttProbe::ProbeTimeoutEvent, failureCallback );
+    SubscribeTo( probe, COMCORE::CIRttProbe::ProbeFailedEvent, failureCallback );
+    SubscribeTo( probe, COMCORE::CIRttProbe::ProbeFinishedEvent, finishedCallback );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPingService::OnTimerUpdate( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    OnTimer();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPingService::OnProbeResultEvent( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData )
+{GUCEF_TRACE;
 
     TTarget* target = FindTargetOfProbe( notifier );
     if ( GUCEF_NULL == target )
         return;
 
-    if ( COMCORE::CIRttProbe::ProbeResultEvent == eventId )
-    {
-        const COMCORE::CRttProbeEventData* data = static_cast< const COMCORE::CRttProbeEventData* >( eventData );
-        if ( GUCEF_NULL != data )
-            OnProbeResult( *target, data->GetRttInMicroSecs() );
-    }
-    else
-    if ( COMCORE::CIRttProbe::ProbeTimeoutEvent == eventId || COMCORE::CIRttProbe::ProbeFailedEvent == eventId )
-    {
+    const COMCORE::CRttProbeEventData* data = static_cast< const COMCORE::CRttProbeEventData* >( eventData );
+    if ( GUCEF_NULL != data )
+        OnProbeResult( *target, data->GetRttInMicroSecs() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPingService::OnProbeFailureEvent( CORE::CNotifier* notifier    ,
+                                   const CORE::CEvent& eventId  ,
+                                   CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    TTarget* target = FindTargetOfProbe( notifier );
+    if ( GUCEF_NULL != target )
         OnProbeFailure( *target );
-    }
-    else
-    if ( COMCORE::CIRttProbe::ProbeFinishedEvent == eventId )
-    {
-        // A probe only finishes by itself when it cannot go on
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CPingService::OnProbeFinishedEvent( CORE::CNotifier* notifier    ,
+                                    const CORE::CEvent& eventId  ,
+                                    CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    // A probe only finishes by itself when it cannot go on
+    TTarget* target = FindTargetOfProbe( notifier );
+    if ( GUCEF_NULL != target )
         target->switchPending = true;
-    }
 }
 
 /*-------------------------------------------------------------------------*/

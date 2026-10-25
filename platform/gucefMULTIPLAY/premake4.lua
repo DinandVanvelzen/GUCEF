@@ -29,8 +29,8 @@ configuration( {} )
 kind( "SharedLib" )
 
 configuration( {} )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefWEB" } )
 
 
 configuration( {} )
@@ -41,6 +41,7 @@ configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/gucefMULTIPLAY.h",
+  "include/gucefMULTIPLAY_CAuthIdentityProvider.h",
   "include/gucefMULTIPLAY_CChatMessage.h",
   "include/gucefMULTIPLAY_CFileHashClientIntegrity.h",
   "include/gucefMULTIPLAY_CGameAdvertiser.h",
@@ -64,6 +65,7 @@ files( {
   "include/gucefMULTIPLAY_CIrcChatService.h",
   "include/gucefMULTIPLAY_CLanListingProvider.h",
   "include/gucefMULTIPLAY_CLaunchDescription.h",
+  "include/gucefMULTIPLAY_CLinkProof.h",
   "include/gucefMULTIPLAY_CLobbyChatService.h",
   "include/gucefMULTIPLAY_CLobbyCreateParams.h",
   "include/gucefMULTIPLAY_CLobbyRules.h",
@@ -76,12 +78,12 @@ files( {
   "include/gucefMULTIPLAY_CPassiveURLServerListProvider.h",
   "include/gucefMULTIPLAY_CPingService.h",
   "include/gucefMULTIPLAY_CPlayerIdentity.h",
+  "include/gucefMULTIPLAY_CPlayerIdentitySigner.h",
   "include/gucefMULTIPLAY_CPlayerReport.h",
   "include/gucefMULTIPLAY_CServerList.h",
   "include/gucefMULTIPLAY_CServerListProvider.h",
   "include/gucefMULTIPLAY_CTokenBucket.h",
   "include/gucefMULTIPLAY_DLLInit.h",
-  "include/gucefMULTIPLAY_DataNodeUtils.h",
   "include/gucefMULTIPLAY_Types.h",
   "include/gucefMULTIPLAY_config.h",
   "include/gucefMULTIPLAY_macros.h"
@@ -93,6 +95,7 @@ configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/gucefMULTIPLAY.cpp",
+  "src/gucefMULTIPLAY_CAuthIdentityProvider.cpp",
   "src/gucefMULTIPLAY_CChatMessage.cpp",
   "src/gucefMULTIPLAY_CFileHashClientIntegrity.cpp",
   "src/gucefMULTIPLAY_CGameAdvertiser.cpp",
@@ -116,6 +119,7 @@ files( {
   "src/gucefMULTIPLAY_CIrcChatService.cpp",
   "src/gucefMULTIPLAY_CLanListingProvider.cpp",
   "src/gucefMULTIPLAY_CLaunchDescription.cpp",
+  "src/gucefMULTIPLAY_CLinkProof.cpp",
   "src/gucefMULTIPLAY_CLobbyChatService.cpp",
   "src/gucefMULTIPLAY_CLobbyCreateParams.cpp",
   "src/gucefMULTIPLAY_CLobbyRules.cpp",
@@ -128,6 +132,7 @@ files( {
   "src/gucefMULTIPLAY_CPassiveURLServerListProvider.cpp",
   "src/gucefMULTIPLAY_CPingService.cpp",
   "src/gucefMULTIPLAY_CPlayerIdentity.cpp",
+  "src/gucefMULTIPLAY_CPlayerIdentitySigner.cpp",
   "src/gucefMULTIPLAY_CPlayerReport.cpp",
   "src/gucefMULTIPLAY_CServerList.cpp",
   "src/gucefMULTIPLAY_CServerListProvider.cpp",
@@ -136,7 +141,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../gucefCOM/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefDRN/include", "../gucefMT/include", "../gucefVFS/include", "../gucefWEB/include", "include" } )
+includedirs( { "../../common/include", "../gucefAUTH/include", "../gucefCOM/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefDRN/include", "../gucefMT/include", "../gucefVFS/include", "../gucefWEB/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../gucefCOMCORE/include/android", "../gucefCORE/include/android" } )

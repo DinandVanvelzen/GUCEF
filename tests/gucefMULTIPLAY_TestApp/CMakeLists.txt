@@ -12,6 +12,8 @@
 # Configuration for module: gucefMULTIPLAY_TestApp
 
 set( HEADER_FILES 
+  include/TestAuthIdentity.h
+  include/TestFakeSsoProvider.h
   include/TestGucefLobby.h
   include/TestIdentity.h
   include/TestIrcChat.h
@@ -26,6 +28,7 @@ set( HEADER_FILES
 )
 
 set( SOURCE_FILES 
+  src/TestAuthIdentity.cpp
   src/TestGucefLobby.cpp
   src/TestIdentity.cpp
   src/TestIrcChat.cpp
@@ -53,11 +56,11 @@ if ( WIN32 )
 else()
   add_executable( ${MODULE_NAME} ${ALL_FILES} )
 endif()
-add_dependencies( ${MODULE_NAME} gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefMULTIPLAY gucefWEB )
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefMULTIPLAY gucefWEB )
+add_dependencies( ${MODULE_NAME} gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefMULTIPLAY gucefWEB )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefAUTH gucefCOM gucefCOMCORE gucefCORE gucefDRN gucefMT gucefMULTIPLAY gucefWEB )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "MODULE_CONSENSUS_NAME=gucefMULTIPLAY_TestApp;MODULE_NAME=gucefMULTIPLAY_TestApp" )
 
-include_directories( ../../common/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include include )
+include_directories( ../../common/include ../../common/test/include ../../platform/gucefAUTH/include ../../platform/gucefCOM/include ../../platform/gucefCOMCORE/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefDRN/include ../../platform/gucefMT/include ../../platform/gucefMULTIPLAY/include ../../platform/gucefVFS/include ../../platform/gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../../platform/gucefCOMCORE/include/android ../../platform/gucefCORE/include/android )

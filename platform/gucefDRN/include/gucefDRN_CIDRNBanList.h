@@ -56,7 +56,8 @@ enum TDRNBanKind
     DRN_BAN_NONE        = 0,
     DRN_BAN_USER_ID     = 1,    /**< the user id an authenticator established */
     DRN_BAN_PUBLIC_KEY  = 2,    /**< a public key, as lowercase hex */
-    DRN_BAN_ADDRESS     = 3     /**< the remote address of a channel, the host without the port */
+    DRN_BAN_ADDRESS     = 3,    /**< the remote address of a channel, the host without the port */
+    DRN_BAN_ACCOUNT     = 4     /**< an account at an identity provider an authenticator verified, "provider:subject" */
 };
 
 /*-------------------------------------------------------------------------//
@@ -115,6 +116,7 @@ class GUCEF_DRN_EXPORT_CPP CIDRNBanList
     bool IsAddressBanned( const CORE::CString& address, CDRNBanEntry* entry = GUCEF_NULL ) const;
 
     bool IsPublicKeyBanned( const UInt8* key, UInt32 keySize, CDRNBanEntry* entry = GUCEF_NULL ) const;
+    bool IsAccountBanned( const CORE::CString& account, CDRNBanEntry* entry = GUCEF_NULL ) const;
 
     private:
 

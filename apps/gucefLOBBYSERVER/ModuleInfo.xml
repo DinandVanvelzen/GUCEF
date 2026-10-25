@@ -20,6 +20,7 @@
             <Dependency Name="gucefCOM" />
             <Dependency Name="gucefWEB" />
             <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
             <Dependency Name="gucefMULTIPLAY" />
         </Dependencies>
         <Linker>
@@ -29,6 +30,7 @@
             <Dependency Name="gucefCOM" />
             <Dependency Name="gucefWEB" />
             <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
             <Dependency Name="gucefMULTIPLAY" />
         </Linker>
         <RuntimeDependencies>

@@ -30,10 +30,10 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
-#ifndef GUCEF_MULTIPLAY_DATANODEUTILS_H
-#include "gucefMULTIPLAY_DataNodeUtils.h"
-#define GUCEF_MULTIPLAY_DATANODEUTILS_H
-#endif /* GUCEF_MULTIPLAY_DATANODEUTILS_H ? */
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
 
 #include "gucefMULTIPLAY_CLobbySettingsSchema.h"
 
@@ -94,6 +94,9 @@ CLobbySettingDef::CLobbySettingDef( void )
     , changePolicy( CHANGEPOLICY_BOSS )
     , uiHint()
     , group()
+    , unit()
+    , enabledByKey()
+    , enabledByValue()
 {GUCEF_TRACE;
 
 }
@@ -194,6 +197,44 @@ CLobbySettingDef::IsValidValue( const CORE::CString& value, CORE::CString& reaso
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CLobbySettingDef::IsSameValue( const CORE::CString& a, const CORE::CString& b ) const
+{GUCEF_TRACE;
+
+    switch ( type )
+    {
+        case TYPE_BOOL:
+            return CORE::StringToBool( a, false ) == CORE::StringToBool( b, false );
+        case TYPE_INT:
+        case TYPE_FLOAT:
+            return fabs( CORE::StringToDouble( a, 0.0 ) - CORE::StringToDouble( b, 0.0 ) ) < 1e-9;
+        default:
+            return a == b;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLobbySettingDef::HasEnabledBy( void ) const
+{GUCEF_TRACE;
+
+    return !enabledByKey.IsNULLOrEmpty();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLobbySettingDef::IsEnabledByValue( const CLobbySettingDef& controller, const CORE::CString& controllerValue ) const
+{GUCEF_TRACE;
+
+    if ( !HasEnabledBy() )
+        return true;
+    return controller.IsSameValue( controllerValue, enabledByValue );
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CLobbySettingDef::Save( CORE::CDataNode& node ) const
 {GUCEF_TRACE;
@@ -212,7 +253,10 @@ CLobbySettingDef::Save( CORE::CDataNode& node ) const
     node.SetAttribute( "changePolicy", CORE::CString( ChangePolicyToString( changePolicy ) ) );
     node.SetAttribute( "uiHint", uiHint );
     node.SetAttribute( "group", group );
-    WriteStringsAsChild( node, "options", options );
+    node.SetAttribute( "unit", unit );
+    node.SetAttribute( "enabledByKey", enabledByKey );
+    node.SetAttribute( "enabledByValue", enabledByValue );
+    node.SetValuesOfChildByName( "options", options );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -234,7 +278,10 @@ CLobbySettingDef::Load( const CORE::CDataNode& node )
     changePolicy = StringToChangePolicy( node.GetAttributeValueOrChildValueByName( "changePolicy" ).AsString( CORE::CString::Empty, true ) );
     uiHint = node.GetAttributeValueOrChildValueByName( "uiHint" ).AsString( CORE::CString::Empty, true );
     group = node.GetAttributeValueOrChildValueByName( "group" ).AsString( CORE::CString::Empty, true );
-    ReadStringsFromChild( node, "options", options );
+    unit = node.GetAttributeValueOrChildValueByName( "unit" ).AsString( CORE::CString::Empty, true );
+    enabledByKey = node.GetAttributeValueOrChildValueByName( "enabledByKey" ).AsString( CORE::CString::Empty, true );
+    enabledByValue = node.GetAttributeValueOrChildValueByName( "enabledByValue" ).AsString( CORE::CString::Empty, true );
+    node.GetValuesOfChildByName( "options", options );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -322,8 +369,8 @@ CLobbySettingsSchema::SaveConfig( CORE::CDataNode& config ) const
     CORE::CDataNode* settingsNode = config.AddChild( "settings", GUCEF_DATATYPE_ARRAY );
     for ( size_t i=0; i<settings.size(); ++i )
         settings[ i ].Save( *settingsNode->AddChild( "setting", GUCEF_DATATYPE_OBJECT ) );
-    WriteStringsAsChild( config, "factions", factions );
-    WriteStringsAsChild( config, "colours", colours );
+    config.SetValuesOfChildByName( "factions", factions );
+    config.SetValuesOfChildByName( "colours", colours );
     config.SetAttribute( "uniqueColours", uniqueColours );
     return true;
 }
@@ -348,8 +395,8 @@ CLobbySettingsSchema::LoadConfig( const CORE::CDataNode& config )
             ++i;
         }
     }
-    ReadStringsFromChild( config, "factions", factions );
-    ReadStringsFromChild( config, "colours", colours );
+    config.GetValuesOfChildByName( "factions", factions );
+    config.GetValuesOfChildByName( "colours", colours );
     uniqueColours = config.GetAttributeValueOrChildValueByName( "uniqueColours" ).AsBool( false, true );
     return true;
 }

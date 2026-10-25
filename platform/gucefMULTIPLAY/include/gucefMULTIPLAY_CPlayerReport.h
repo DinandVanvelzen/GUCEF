@@ -68,6 +68,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CPlayerReport : public CORE::CIDataNodeSerializ
     CORE::CString reportedId;
     CORE::CString reportedName;
     CORE::CString reportedPublicKey;    /**< the reported player's identity key in hex, empty when it proved none */
+    CORE::CString::StringVector reportedAccounts;   /**< the accounts at external identity providers the reported player verified, "provider:subject", so a ban reaches the player under another key */
     CORE::CString reason;
     CORE::CString lobbyId;
     CORE::CString sessionName;          /**< the lobby's session, or the game's once the lobby launched */

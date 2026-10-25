@@ -78,6 +78,7 @@ CDRNAuthResult::CDRNAuthResult( void )
     , role()
     , sessionName()
     , publicKey()
+    , accounts()
     , refusalText()
 {GUCEF_TRACE;
 

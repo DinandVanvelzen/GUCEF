@@ -35,8 +35,8 @@ configuration( {} )
 kind( "ConsoleApp" )
 
 configuration( {} )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB" } )
 
 
 configuration( {} )
@@ -51,7 +51,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefMT/include", "../../platform/gucefMULTIPLAY/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include" } )
+includedirs( { "../../common/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefMT/include", "../../platform/gucefMULTIPLAY/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )

@@ -1,0 +1,39 @@
+<ModuleInfoEntry>
+    <Module Name="gucefMULTIPLAY_EosTestApp" Type="Executable" Platform="All" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefMULTIPLAY" />
+            <Dependency Name="pluginglueEOS" />
+            <Dependency Name="authpluginEOS" />
+            <Dependency Name="lobbyservicepluginEOS" />
+            <Dependency Name="drnchannelpluginEOSP2P" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefMULTIPLAY" />
+            <Dependency Name="pluginglueEOS" />
+            <Dependency Name="authpluginEOS" />
+            <Dependency Name="lobbyservicepluginEOS" />
+            <Dependency Name="drnchannelpluginEOSP2P" />
+        </Linker>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginPARSIFALXML" />
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

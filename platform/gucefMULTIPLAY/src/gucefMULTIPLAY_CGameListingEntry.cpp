@@ -32,10 +32,10 @@
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
-#ifndef GUCEF_MULTIPLAY_DATANODEUTILS_H
-#include "gucefMULTIPLAY_DataNodeUtils.h"
-#define GUCEF_MULTIPLAY_DATANODEUTILS_H
-#endif /* GUCEF_MULTIPLAY_DATANODEUTILS_H ? */
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
 
 #include "gucefMULTIPLAY_CGameListingEntry.h"
 
@@ -273,8 +273,8 @@ CGameListingEntry::Serialize( CORE::CDataNode& domRootNode                      
     domRootNode.SetAttribute( "backendName", backendName );
     domRootNode.SetAttribute( "pingMs", pingMs );
     domRootNode.SetAttribute( "lastSeen", lastSeen.ToIso8601DateTimeString( true, true ) );
-    WriteStringsAsChild( domRootNode, "endpoints", endpoints );
-    WriteValueListAsChild( domRootNode, "extra", extra );
+    domRootNode.SetValuesOfChildByName( "endpoints", endpoints );
+    domRootNode.SetAttributesOfChildByName( "extra", extra );
     return true;
 }
 
@@ -302,8 +302,8 @@ CGameListingEntry::Deserialize( const CORE::CDataNode& domRootNode              
     CORE::CString seen = domRootNode.GetAttributeValueOrChildValueByName( "lastSeen" ).AsString( CORE::CString::Empty, true );
     if ( !seen.IsNULLOrEmpty() )
         lastSeen.FromIso8601DateTimeString( seen );
-    ReadStringsFromChild( domRootNode, "endpoints", endpoints );
-    ReadValueListFromChild( domRootNode, "extra", extra );
+    domRootNode.GetValuesOfChildByName( "endpoints", endpoints );
+    domRootNode.GetAttributesOfChildByName( "extra", extra );
     return true;
 }
 
@@ -373,6 +373,24 @@ CGameListingList::Clone( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+const char*
+CGameListingList::GetCloneableTypeName( void ) const
+{GUCEF_TRACE;
+
+    return CloneableTypeName();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CGameListingList::CloneableTypeName( void )
+{GUCEF_TRACE;
+
+    return "GUCEF::MULTIPLAY::CGameListingList";
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CGameListingList::TryGetFromFuture( const CORE::CFutureResult& future, CGameListingList& list )
 {GUCEF_TRACE;
@@ -382,7 +400,7 @@ CGameListingList::TryGetFromFuture( const CORE::CFutureResult& future, CGameList
     CORE::CTaskPtr task = future.GetResult();
     if ( task.IsNULL() || CORE::TTaskStatus::TASKSTATUS_FINISHED != task->GetTaskStatus() )
         return false;
-    const CGameListingList* data = dynamic_cast< const CGameListingList* >( task->GetTaskData() );
+    const CGameListingList* data = CORE::CICloneable::CloneableAs< CGameListingList >( task->GetTaskData() );
     if ( GUCEF_NULL == data )
         return false;
     list = *data;

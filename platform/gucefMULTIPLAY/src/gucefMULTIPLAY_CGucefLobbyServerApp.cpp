@@ -47,6 +47,16 @@
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
 
+#ifndef GUCEF_AUTH_CAUTHGLOBAL_H
+#include "gucefAUTH_CAuthGlobal.h"
+#define GUCEF_AUTH_CAUTHGLOBAL_H
+#endif /* GUCEF_AUTH_CAUTHGLOBAL_H ? */
+
+#ifndef GUCEF_AUTH_CAUTHMANAGER_H
+#include "gucefAUTH_CAuthManager.h"
+#define GUCEF_AUTH_CAUTHMANAGER_H
+#endif /* GUCEF_AUTH_CAUTHMANAGER_H ? */
+
 #include "gucefMULTIPLAY_CGucefLobbyServerApp.h"
 
 /*-------------------------------------------------------------------------//
@@ -130,6 +140,13 @@ CGucefLobbyServerApp::LoadConfig( const CORE::CDataNode& tree )
         return false;
     }
     m_server.SetSettings( settings );
+
+    // The section "Auth" is how the server knows the identity providers whose proofs it verifies (client ids, issuers)
+    const CORE::CDataNode* authNode = tree.FindChild( "Auth" );
+    if ( GUCEF_NULL == authNode )
+        authNode = settingsNode->FindChild( "Auth" );
+    if ( GUCEF_NULL != authNode && !AUTH::CAuthGlobal::Instance()->GetManager().LoadConfig( *authNode ) )
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "GucefLobbyServerApp: The section Auth is not valid, link proofs are not verified with it" );
     return true;
 }
 

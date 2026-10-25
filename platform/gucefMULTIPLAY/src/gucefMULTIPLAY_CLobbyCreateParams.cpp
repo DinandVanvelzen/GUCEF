@@ -22,10 +22,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_MULTIPLAY_DATANODEUTILS_H
-#include "gucefMULTIPLAY_DataNodeUtils.h"
-#define GUCEF_MULTIPLAY_DATANODEUTILS_H
-#endif /* GUCEF_MULTIPLAY_DATANODEUTILS_H ? */
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
+
+#ifndef GUCEF_CORE_CVALUELIST_H
+#include "CValueList.h"
+#define GUCEF_CORE_CVALUELIST_H
+#endif /* GUCEF_CORE_CVALUELIST_H ? */
 
 #include "gucefMULTIPLAY_CLobbyCreateParams.h"
 
@@ -144,7 +149,7 @@ CLobbyCreateParams::SaveConfig( CORE::CDataNode& config ) const
     config.SetAttribute( "topology", CORE::CString( GameTopologyToString( topology ) ) );
     schema.SaveConfig( *config.AddChild( "schema", GUCEF_DATATYPE_OBJECT ) );
     securityPolicy.SaveConfig( *config.AddChild( "securityPolicy", GUCEF_DATATYPE_OBJECT ) );
-    WriteValueListAsChild( config, "initialSettings", initialSettings );
+    config.SetAttributesOfChildByName( "initialSettings", initialSettings );
     CORE::CDataNode* slotsNode = config.AddChild( "slots", GUCEF_DATATYPE_ARRAY );
     for ( size_t i=0; i<slots.size(); ++i )
         slots[ i ].Serialize( *slotsNode->AddChild( "slot", GUCEF_DATATYPE_OBJECT ) );
@@ -171,7 +176,7 @@ CLobbyCreateParams::LoadConfig( const CORE::CDataNode& config )
     const CORE::CDataNode* policyNode = config.FindChild( "securityPolicy" );
     if ( GUCEF_NULL != policyNode && !securityPolicy.LoadConfig( *policyNode ) )
         return false;
-    ReadValueListFromChild( config, "initialSettings", initialSettings );
+    config.GetAttributesOfChildByName( "initialSettings", initialSettings );
     const CORE::CDataNode* slotsNode = config.FindChild( "slots" );
     if ( GUCEF_NULL != slotsNode )
     {

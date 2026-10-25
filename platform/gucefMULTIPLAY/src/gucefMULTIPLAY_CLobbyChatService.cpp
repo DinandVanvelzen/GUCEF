@@ -101,7 +101,9 @@ CLobbyChatService::GetGucefService( void ) const
 
     if ( m_service.IsNULL() )
         return GUCEF_NULL;
-    return dynamic_cast< CGucefLobbyService* >( const_cast< CILobbyService* >( m_service.GetPointerAlways() ) );
+    // the class is final in practice: an exact match of the class name is the check, no RTTI needed
+    CILobbyService* service = const_cast< CILobbyService* >( m_service.GetPointerAlways() );
+    return service->GetClassTypeName() == CGucefLobbyService::ClassTypeName() ? static_cast< CGucefLobbyService* >( service ) : GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -133,7 +135,7 @@ CLobbyChatService::AttachLobby( CILobbyPtr lobby )
     if ( !m_lobby.IsNULL() )
         UnsubscribeFrom( m_lobby.GetPointerAlways() );
     m_lobby = lobby;
-    if ( m_lobby.IsNULL() || GUCEF_NULL == dynamic_cast< CGucefLobby* >( m_lobby.GetPointerAlways() ) )
+    if ( m_lobby.IsNULL() || m_lobby->GetClassTypeName() != CGucefLobby::ClassTypeName() )
     {
         m_lobby = CILobbyPtr();
         return false;
@@ -150,7 +152,7 @@ CLobbyChatService::IsLobbyChannel( const CORE::CString& channel ) const
 
     if ( 0 != channel.HasSubstr( LobbyChannelPrefix, true ) )
         return false;
-    const CGucefLobby* lobby = m_lobby.IsNULL() ? GUCEF_NULL : dynamic_cast< const CGucefLobby* >( m_lobby.GetPointerAlways() );
+    const CGucefLobby* lobby = ( m_lobby.IsNULL() || m_lobby->GetClassTypeName() != CGucefLobby::ClassTypeName() ) ? GUCEF_NULL : static_cast< const CGucefLobby* >( m_lobby.GetPointerAlways() );
     return GUCEF_NULL != lobby && channel == LobbyChannelPrefix + lobby->GetLobbyId();
 }
 

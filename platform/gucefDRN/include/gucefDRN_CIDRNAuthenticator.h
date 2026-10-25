@@ -106,6 +106,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNAuthResult
     CORE::CString role;
     CORE::CString sessionName;
     CORE::CDynamicBuffer publicKey; /**< the user's public key when the proof carried one, checked against the ban list */
+    CORE::CString::StringVector accounts;   /**< the accounts at identity providers the proof showed to be the user's, as "provider:subject", checked against the ban list; empty for authenticators that know none */
     CORE::CString refusalText;      /**< why a proof was not accepted */
 
     CDRNAuthResult( void );

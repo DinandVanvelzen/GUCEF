@@ -33,6 +33,11 @@
 #define GUCEF_CORE_CDATANODE_H
 #endif /* GUCEF_CORE_CDATANODE_H ? */
 
+#ifndef GUCEF_CORE_CDYNAMICBUFFERACCESS_H
+#include "CDynamicBufferAccess.h"
+#define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
+#endif /* GUCEF_CORE_CDYNAMICBUFFERACCESS_H ? */
+
 #ifndef GUCEF_MULTIPLAY_CMULTIPLAYGLOBAL_H
 #include "gucefMULTIPLAY_CMultiplayGlobal.h"
 #define GUCEF_MULTIPLAY_CMULTIPLAYGLOBAL_H
@@ -277,6 +282,107 @@ PerformLobbyTests( void )
             ASSERT_TRUE( 2 == loaded.schema.factions.size() );
             ASSERT_TRUE( 4 == loaded.schema.colours.size() && loaded.schema.uniqueColours );
             ASSERT_TRUE( "testgame" == loaded.gameId && 4 == loaded.maxPlayers );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A setting has a unit and can be gated by another setting; both survive the config and the JSON text, and the rules keep checking the value" )
+        try
+        {
+            // nothing is set by default
+            MULTIPLAY::CLobbySettingDef plain;
+            ASSERT_TRUE( plain.unit.IsNULLOrEmpty() && plain.enabledByKey.IsNULLOrEmpty() && plain.enabledByValue.IsNULLOrEmpty() );
+            ASSERT_FALSE( plain.HasEnabledBy() );
+
+            CLobbyFixture fixture;
+            MULTIPLAY::CLobbySettingDef timer;
+            timer.key = "timer";
+            timer.type = MULTIPLAY::CLobbySettingDef::TYPE_BOOL;
+            timer.defaultValue = "true";
+            timer.changePolicy = MULTIPLAY::CLobbySettingDef::CHANGEPOLICY_VOTE;
+            fixture.params.schema.AddSetting( timer );
+
+            MULTIPLAY::CLobbySettingDef seconds;
+            seconds.key = "seconds";
+            seconds.type = MULTIPLAY::CLobbySettingDef::TYPE_INT;
+            seconds.hasRange = true;
+            seconds.minValue = 15;
+            seconds.maxValue = 3600;
+            seconds.step = 5;
+            seconds.defaultValue = "180";
+            seconds.changePolicy = MULTIPLAY::CLobbySettingDef::CHANGEPOLICY_VOTE;
+            seconds.unit = "s";
+            seconds.enabledByKey = "timer";
+            seconds.enabledByValue = "true";
+            ASSERT_TRUE( seconds.HasEnabledBy() );
+            fixture.params.schema.AddSetting( seconds );
+
+            // the dependency is about the value of the other setting, in the form of its type
+            ASSERT_TRUE( seconds.IsEnabledByValue( timer, "true" ) );
+            ASSERT_TRUE( seconds.IsEnabledByValue( timer, "1" ) );
+            ASSERT_FALSE( seconds.IsEnabledByValue( timer, "false" ) );
+            ASSERT_FALSE( seconds.IsEnabledByValue( timer, "0" ) );
+            ASSERT_TRUE( plain.IsEnabledByValue( timer, "false" ) );
+            ASSERT_TRUE( timer.IsSameValue( "TRUE", "true" ) );
+            MULTIPLAY::CLobbySettingDef number;
+            number.type = MULTIPLAY::CLobbySettingDef::TYPE_INT;
+            ASSERT_TRUE( number.IsSameValue( "4", "4.0" ) && !number.IsSameValue( "4", "5" ) );
+            MULTIPLAY::CLobbySettingDef text;
+            ASSERT_TRUE( text.IsSameValue( "ice", "ice" ) && !text.IsSameValue( "ice", "Ice" ) );
+
+            // the schema keeps both through its config
+            CORE::CDataNode config;
+            ASSERT_TRUE( fixture.params.SaveConfig( config ) );
+            MULTIPLAY::CLobbyCreateParams loaded;
+            ASSERT_TRUE( loaded.LoadConfig( config ) );
+            const MULTIPLAY::CLobbySettingDef* secondsCopy = loaded.schema.FindSetting( "seconds" );
+            ASSERT_TRUE( GUCEF_NULL != secondsCopy );
+            if ( GUCEF_NULL != secondsCopy )
+            {
+                ASSERT_TRUE( "s" == secondsCopy->unit && "timer" == secondsCopy->enabledByKey && "true" == secondsCopy->enabledByValue );
+                ASSERT_TRUE( secondsCopy->hasRange && 15 == secondsCopy->minValue && 3600 == secondsCopy->maxValue && 5 == secondsCopy->step );
+            }
+            const MULTIPLAY::CLobbySettingDef* timerCopy = loaded.schema.FindSetting( "timer" );
+            ASSERT_TRUE( GUCEF_NULL != timerCopy && timerCopy->unit.IsNULLOrEmpty() && !timerCopy->HasEnabledBy() );
+
+            // and through a JSON text of the config
+            if ( JsonCodecAvailable() )
+            {
+                CORE::CDStoreCodecRegistry::TDStoreCodecPtr codec;
+                ASSERT_TRUE( CORE::CCoreGlobal::Instance()->GetDStoreCodecRegistry().TryGetJsonCodec( codec ) );
+                CORE::CDataNode root( "params", GUCEF_DATATYPE_OBJECT );
+                ASSERT_TRUE( fixture.params.SaveConfig( root ) );
+                CORE::CDynamicBuffer buffer;
+                CORE::CDynamicBufferAccess access( buffer );
+                ASSERT_TRUE( codec->StoreDataTree( &root, &access ) );
+                access.Setpos( 0 );
+                CORE::CDataNode fromJson;
+                ASSERT_TRUE( codec->BuildDataTree( &fromJson, &access ) );
+                const CORE::CDataNode* document = &fromJson;
+                if ( GUCEF_NULL == fromJson.FindChild( "schema" ) && 1 == fromJson.GetNrOfChildNodes() )
+                    document = *fromJson.ConstBegin();
+                MULTIPLAY::CLobbyCreateParams viaJson;
+                ASSERT_TRUE( viaJson.LoadConfig( *document ) );
+                const MULTIPLAY::CLobbySettingDef* secondsJson = viaJson.schema.FindSetting( "seconds" );
+                ASSERT_TRUE( GUCEF_NULL != secondsJson && "s" == secondsJson->unit && "timer" == secondsJson->enabledByKey && "true" == secondsJson->enabledByValue );
+            }
+
+            // the server keeps checking the value of a gated setting, whatever the setting it depends on is
+            MULTIPLAY::CLobbyState state;
+            MULTIPLAY::CLobbySlot slot;
+            state.slots.push_back( slot );
+            fixture.rules.ApplyJoin( state, "a", "A", false );
+            bool needsVote = false;
+            CORE::CString reason;
+            const MULTIPLAY::CLobbySettingsSchema& schema = fixture.params.schema;
+            ASSERT_TRUE( fixture.rules.CheckSetting( state, schema, "a", "timer", "false", needsVote, reason ) );
+            ASSERT_TRUE( fixture.rules.CheckSetting( state, schema, "a", "seconds", "60", needsVote, reason ) );
+            ASSERT_FALSE( fixture.rules.CheckSetting( state, schema, "a", "seconds", "7", needsVote, reason ) );
+            ASSERT_FALSE( fixture.rules.CheckSetting( state, schema, "a", "seconds", "5000", needsVote, reason ) );
+            ASSERT_TRUE( reason.Length() > 0 );
         }
         catch ( ... )
         {

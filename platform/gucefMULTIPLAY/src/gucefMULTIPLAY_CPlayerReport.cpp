@@ -52,6 +52,7 @@ CPlayerReport::CPlayerReport( void )
     , reportedId()
     , reportedName()
     , reportedPublicKey()
+    , reportedAccounts()
     , reason()
     , lobbyId()
     , sessionName()
@@ -69,6 +70,7 @@ CPlayerReport::CPlayerReport( const CPlayerReport& src )
     , reportedId( src.reportedId )
     , reportedName( src.reportedName )
     , reportedPublicKey( src.reportedPublicKey )
+    , reportedAccounts( src.reportedAccounts )
     , reason( src.reason )
     , lobbyId( src.lobbyId )
     , sessionName( src.sessionName )
@@ -97,6 +99,7 @@ CPlayerReport::operator=( const CPlayerReport& src )
         reportedId = src.reportedId;
         reportedName = src.reportedName;
         reportedPublicKey = src.reportedPublicKey;
+        reportedAccounts = src.reportedAccounts;
         reason = src.reason;
         lobbyId = src.lobbyId;
         sessionName = src.sessionName;
@@ -117,6 +120,8 @@ CPlayerReport::Serialize( CORE::CDataNode& domRootNode                        ,
     domRootNode.SetAttribute( "reportedId", reportedId );
     domRootNode.SetAttribute( "reportedName", reportedName );
     domRootNode.SetAttribute( "reportedPublicKey", reportedPublicKey );
+    if ( !reportedAccounts.empty() )
+        domRootNode.SetValuesOfChildByName( "reportedAccounts", reportedAccounts );
     domRootNode.SetAttribute( "reason", reason );
     domRootNode.SetAttribute( "lobbyId", lobbyId );
     domRootNode.SetAttribute( "sessionName", sessionName );
@@ -136,6 +141,7 @@ CPlayerReport::Deserialize( const CORE::CDataNode& domRootNode                  
     reportedId = domRootNode.GetAttributeValueOrChildValueByName( "reportedId" ).AsString( CORE::CString::Empty, true );
     reportedName = domRootNode.GetAttributeValueOrChildValueByName( "reportedName" ).AsString( CORE::CString::Empty, true );
     reportedPublicKey = domRootNode.GetAttributeValueOrChildValueByName( "reportedPublicKey" ).AsString( CORE::CString::Empty, true );
+    domRootNode.GetValuesOfChildByName( "reportedAccounts", reportedAccounts );
     reason = domRootNode.GetAttributeValueOrChildValueByName( "reason" ).AsString( CORE::CString::Empty, true );
     lobbyId = domRootNode.GetAttributeValueOrChildValueByName( "lobbyId" ).AsString( CORE::CString::Empty, true );
     sessionName = domRootNode.GetAttributeValueOrChildValueByName( "sessionName" ).AsString( CORE::CString::Empty, true );

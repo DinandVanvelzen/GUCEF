@@ -35,6 +35,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_LOG_CALLBACK_H
+#include "gucef_test_log_callback.h"
+#define GUCEF_TEST_LOG_CALLBACK_H
+#endif /* GUCEF_TEST_LOG_CALLBACK_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
@@ -86,6 +91,7 @@
 #include "TestListings.h"
 #include "TestLobby.h"
 #include "TestIdentity.h"
+#include "TestAuthIdentity.h"
 #include "TestIrcChat.h"
 #include "TestGucefLobby.h"
 #define GUCEF_MULTIPLAY_TESTAPP_TESTPASSIVEURLSERVERLISTPROVIDER_H
@@ -137,15 +143,17 @@ GUCEF_OSMAIN_BEGIN
             CORE::CCoreGlobal::Instance()->GetLogManager().AddLogger( console.GetLogger() );
 
         GUCEF_TESTFW_INIT( "gucefMULTIPLAY_TestApp" );
-        GUCEF_TESTFW_SET_CALLBACK( CORE::TestFrameworkLogCallback, GUCEF_NULL );
+        GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
         PerformPassiveUrlServerListProviderTests();
         PerformServerListTests();
         PerformListingTests();
         PerformLobbyTests();
         PerformIdentityTests();
+        PerformAuthIdentityTests();
         PerformIrcChatTests();
         PerformGucefLobbyTests();
+        PerformGucefLobbyAuthTests();
 
         // The factories of the plugins the tests loaded go away with them, before the global systems do
         CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( "test" );

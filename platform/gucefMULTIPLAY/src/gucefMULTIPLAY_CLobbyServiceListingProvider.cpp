@@ -32,10 +32,15 @@
 #define GUCEF_CORE_CTASK_H
 #endif /* GUCEF_CORE_CTASK_H ? */
 
-#ifndef GUCEF_MULTIPLAY_DATANODEUTILS_H
-#include "gucefMULTIPLAY_DataNodeUtils.h"
-#define GUCEF_MULTIPLAY_DATANODEUTILS_H
-#endif /* GUCEF_MULTIPLAY_DATANODEUTILS_H ? */
+#ifndef GUCEF_CORE_CIMONOTONICCLOCK_H
+#include "gucefCORE_CIMonotonicClock.h"
+#define GUCEF_CORE_CIMONOTONICCLOCK_H
+#endif /* GUCEF_CORE_CIMONOTONICCLOCK_H ? */
+
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
 
 #ifndef GUCEF_MULTIPLAY_CMULTIPLAYGLOBAL_H
 #include "gucefMULTIPLAY_CMultiplayGlobal.h"
@@ -82,7 +87,8 @@ CLobbyServiceListingProvider::CLobbyServiceListingProvider( void )
     , m_active( false )
 {GUCEF_TRACE;
 
-    SubscribeTo( &m_timer );
+    TEventCallback timerCallback( this, &CLobbyServiceListingProvider::OnTimerUpdate );
+    SubscribeTo( &m_timer, CORE::CTimer::TimerUpdateEvent, timerCallback );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -90,8 +96,8 @@ CLobbyServiceListingProvider::CLobbyServiceListingProvider( void )
 CLobbyServiceListingProvider::~CLobbyServiceListingProvider()
 {GUCEF_TRACE;
 
-    m_timer.SetEnabled( false );
     UnsubscribeAllFromObserver();
+    m_timer.SetEnabled( false );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -128,7 +134,7 @@ CLobbyServiceListingProvider::StartBrowse( void )
     m_browseFuture = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
     if ( m_service.IsNULL() || !m_service->Browse( GetFilter(), m_browseFuture ) )
     {
-        m_nextBrowseInMs = GetTimeInMs() + m_refreshIntervalInSecs * 1000;
+        m_nextBrowseInMs = CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() + m_refreshIntervalInSecs * 1000;
         ReportProviderError( "The lobby service cannot browse now" );
         return false;
     }
@@ -234,7 +240,7 @@ CLobbyServiceListingProvider::OnBrowseDone( void )
 {GUCEF_TRACE;
 
     m_browsing = false;
-    m_nextBrowseInMs = GetTimeInMs() + m_refreshIntervalInSecs * 1000;
+    m_nextBrowseInMs = CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() + m_refreshIntervalInSecs * 1000;
 
     CGameListingList list;
     if ( !CGameListingList::TryGetFromFuture( m_browseFuture, list ) )
@@ -276,20 +282,19 @@ CLobbyServiceListingProvider::OnTimer( void )
             OnBrowseDone();
         return;
     }
-    if ( 0 != m_refreshIntervalInSecs && GetTimeInMs() >= m_nextBrowseInMs )
+    if ( 0 != m_refreshIntervalInSecs && CORE::CSystemMonotonicClock::Instance().GetMonotonicTimeInMs() >= m_nextBrowseInMs )
         StartBrowse();
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CLobbyServiceListingProvider::OnNotify( CORE::CNotifier* notifier                 ,
-                                        const CORE::CEvent& eventId               ,
-                                        CORE::CICloneable* eventData /* = GUCEF_NULL */ )
+CLobbyServiceListingProvider::OnTimerUpdate( CORE::CNotifier* notifier    ,
+                                             const CORE::CEvent& eventId  ,
+                                             CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    if ( notifier == &m_timer && CORE::CTimer::TimerUpdateEvent == eventId )
-        OnTimer();
+    OnTimer();
 }
 
 /*-------------------------------------------------------------------------*/

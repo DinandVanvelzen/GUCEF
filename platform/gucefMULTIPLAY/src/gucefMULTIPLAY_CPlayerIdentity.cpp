@@ -32,10 +32,10 @@
 #define GUCEF_DRN_CDRNCRYPTO_H
 #endif /* GUCEF_DRN_CDRNCRYPTO_H ? */
 
-#ifndef GUCEF_MULTIPLAY_DATANODEUTILS_H
-#include "gucefMULTIPLAY_DataNodeUtils.h"
-#define GUCEF_MULTIPLAY_DATANODEUTILS_H
-#endif /* GUCEF_MULTIPLAY_DATANODEUTILS_H ? */
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
 
 #include "gucefMULTIPLAY_CPlayerIdentity.h"
 
@@ -62,6 +62,7 @@ CPlayerIdentity::CPlayerIdentity( void )
     , publicKey()
     , privateKey()
     , previousUserId()
+    , linkProofs()
 {GUCEF_TRACE;
 
 }
@@ -76,6 +77,7 @@ CPlayerIdentity::CPlayerIdentity( const CPlayerIdentity& src )
     , publicKey( src.publicKey )
     , privateKey( src.privateKey )
     , previousUserId( src.previousUserId )
+    , linkProofs( src.linkProofs )
 {GUCEF_TRACE;
 
 }
@@ -101,6 +103,7 @@ CPlayerIdentity::operator=( const CPlayerIdentity& src )
         publicKey = src.publicKey;
         privateKey = src.privateKey;
         previousUserId = src.previousUserId;
+        linkProofs = src.linkProofs;
     }
     return *this;
 }
@@ -118,7 +121,7 @@ CPlayerIdentity::Serialize( CORE::CDataNode& domRootNode                        
         domRootNode.SetAttribute( "publicKey", publicKey );
     if ( !previousUserId.IsNULLOrEmpty() )
         domRootNode.SetAttribute( "previousUserId", previousUserId );
-    WriteValueListAsChild( domRootNode, "accounts", accounts );
+    domRootNode.SetAttributesOfChildByName( "accounts", accounts );
     return true;
 }
 
@@ -134,7 +137,8 @@ CPlayerIdentity::Deserialize( const CORE::CDataNode& domRootNode                
     publicKey = domRootNode.GetAttributeValueOrChildValueByName( "publicKey" ).AsString( CORE::CString::Empty, true );
     previousUserId = domRootNode.GetAttributeValueOrChildValueByName( "previousUserId" ).AsString( CORE::CString::Empty, true );
     privateKey.Clear();
-    ReadValueListFromChild( domRootNode, "accounts", accounts );
+    linkProofs.clear();
+    domRootNode.GetAttributesOfChildByName( "accounts", accounts );
     if ( userId.IsNULLOrEmpty() && !publicKey.IsNULLOrEmpty() )
         userId = MakeUserIdFromHex( publicKey );
     return !userId.IsNULLOrEmpty();
@@ -147,6 +151,24 @@ CPlayerIdentity::Clone( void ) const
 {GUCEF_TRACE;
 
     return GUCEF_NEW CPlayerIdentity( *this );
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CPlayerIdentity::GetCloneableTypeName( void ) const
+{GUCEF_TRACE;
+
+    return CloneableTypeName();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const char*
+CPlayerIdentity::CloneableTypeName( void )
+{GUCEF_TRACE;
+
+    return "GUCEF::MULTIPLAY::CPlayerIdentity";
 }
 
 /*-------------------------------------------------------------------------*/
@@ -298,6 +320,7 @@ CPlayerIdentity::GetPublicIdentity( void ) const
 
     CPlayerIdentity copy( *this );
     copy.privateKey.Clear();
+    copy.linkProofs.clear();
     return copy;
 }
 

@@ -35,8 +35,8 @@ configuration( {} )
 kind( "ConsoleApp" )
 
 configuration( {} )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB" } )
-links( { "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB" } )
+links( { "gucefAUTH", "gucefCOM", "gucefCOMCORE", "gucefCORE", "gucefDRN", "gucefMT", "gucefMULTIPLAY", "gucefWEB" } )
 
 
 configuration( {} )
@@ -46,6 +46,8 @@ defines( { "MODULE_CONSENSUS_NAME=gucefMULTIPLAY_TestApp", "MODULE_NAME=gucefMUL
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
+  "include/TestAuthIdentity.h",
+  "include/TestFakeSsoProvider.h",
   "include/TestGucefLobby.h",
   "include/TestIdentity.h",
   "include/TestIrcChat.h",
@@ -64,6 +66,7 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/TestAuthIdentity.cpp",
   "src/TestGucefLobby.cpp",
   "src/TestIdentity.cpp",
   "src/TestIrcChat.cpp",
@@ -78,7 +81,7 @@ files( {
 
 
 configuration( {} )
-includedirs( { "../../common/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefMT/include", "../../platform/gucefMULTIPLAY/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
+includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefAUTH/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefDRN/include", "../../platform/gucefMT/include", "../../platform/gucefMULTIPLAY/include", "../../platform/gucefVFS/include", "../../platform/gucefWEB/include", "include" } )
 
 configuration( { "ANDROID32" } )
 includedirs( { "../../platform/gucefCOMCORE/include/android", "../../platform/gucefCORE/include/android" } )

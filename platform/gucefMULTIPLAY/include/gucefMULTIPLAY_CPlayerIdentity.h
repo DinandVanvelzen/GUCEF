@@ -35,6 +35,11 @@
 #define GUCEF_CORE_CVALUELIST_H
 #endif /* GUCEF_CORE_CVALUELIST_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CLINKPROOF_H
+#include "gucefMULTIPLAY_CLinkProof.h"
+#define GUCEF_MULTIPLAY_CLINKPROOF_H
+#endif /* GUCEF_MULTIPLAY_CLINKPROOF_H ? */
+
 #ifndef GUCEF_MULTIPLAY_MACROS_H
 #include "gucefMULTIPLAY_macros.h"
 #define GUCEF_MULTIPLAY_MACROS_H
@@ -61,7 +66,16 @@ namespace MULTIPLAY {
  *  An identity with a key pair (Ed25519) is bound to its key: the user id follows from the public key
  *  (MakeUserId()), so a server that checked a signature of the key knows the user id is the player's own.
  *  The private key never leaves the process through Serialize(): CLocalIdentityProvider keeps it in the profile
- *  itself. The key pair needs a SignatureCodec "ed25519" (codecspluginMONOCYPHER or codecspluginOPENSSL).
+ *  itself, or in the credential store of gucefAUTH. The key pair needs a SignatureCodec "ed25519"
+ *  (codecspluginMONOCYPHER or codecspluginOPENSSL).
+ *
+ *  accounts: the backend name is the key and the account id its value. Accounts at identity providers that are linked
+ *  to the profile (CAuthIdentityProvider) are in it with the provider namespace as the backend name and the subject
+ *  as the account id, so "epic" and "0123456789abcdef0123456789abcdef" is the account epic:0123456789abcdef0123456789abcdef; two accounts at one
+ *  provider are two values of one key (the list then allows multiple values, Serialize() keeps the first of them).
+ *
+ *  linkProofs: the proofs of the logins behind those accounts, for the services that show them to a server together
+ *  with the proof of the key. Like the private key they are not serialized, and a public identity has none.
  */
 class GUCEF_MULTIPLAY_EXPORT_CPP CPlayerIdentity : public CORE::CIDataNodeSerializable
 {
@@ -76,6 +90,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CPlayerIdentity : public CORE::CIDataNodeSerial
     CORE::CString publicKey;            /**< the Ed25519 public key in hex, empty when the identity has no key pair */
     CORE::CString privateKey;           /**< the Ed25519 seed in hex, not serialized */
     CORE::CString previousUserId;       /**< the GUID of a profile from before it had a key pair */
+    TLinkProofVector linkProofs;        /**< proofs of the logins of the linked accounts, not serialized */
 
     CPlayerIdentity( void );
 
@@ -94,6 +109,11 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CPlayerIdentity : public CORE::CIDataNodeSerial
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The name GetCloneableTypeName() says, see CORE::CICloneable::CloneableAs() */
+    static const char* CloneableTypeName( void );
 
     /** A new random version 4 GUID as text, for example 3f2504e0-4f89-41d3-9a0c-0305e82c3301 */
     static CORE::CString MakeGuid( void );
@@ -128,7 +148,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CPlayerIdentity : public CORE::CIDataNodeSerial
     /** The public key as bytes, publicKeyBytes receives KeySize bytes */
     bool GetPublicKey( UInt8* publicKeyBytes ) const;
 
-    /** A copy without the private key, for passing the identity on */
+    /** A copy without the private key and the link proofs, for passing the identity on */
     CPlayerIdentity GetPublicIdentity( void ) const;
 
     private:

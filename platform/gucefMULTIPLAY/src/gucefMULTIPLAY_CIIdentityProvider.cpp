@@ -59,6 +59,7 @@ CIIdentityProvider::RegisterEvents( void )
 CIIdentityProvider::CIIdentityProvider( void )
     : CORE::CObservingNotifier()
     , CORE::CIConfigurable()
+    , AUTH::IAccountProfile()
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -69,6 +70,66 @@ CIIdentityProvider::CIIdentityProvider( void )
 CIIdentityProvider::~CIIdentityProvider()
 {GUCEF_TRACE;
 
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIIdentityProvider::Login( const CORE::CString& /* externalProviderName */, CORE::CFutureResult& /* future */ )
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIIdentityProvider::AutoLogin( CORE::CFutureResult& /* future */ )
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CIIdentityProvider::GetDisplayName( void )
+{GUCEF_TRACE;
+
+    CPlayerIdentity identity;
+    if ( !GetIdentity( identity ) )
+        return CORE::CString::Empty;
+    return identity.displayName;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CIIdentityProvider::GetProfileId( void )
+{GUCEF_TRACE;
+
+    CPlayerIdentity identity;
+    if ( !GetIdentity( identity ) )
+        return CORE::CString::Empty;
+    return identity.userId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CNotifier*
+CIIdentityProvider::GetProfileNotifier( void )
+{GUCEF_TRACE;
+
+    return this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CEvent&
+CIIdentityProvider::GetProfileChangedEvent( void ) const
+{GUCEF_TRACE;
+
+    return IdentityChangedEvent;
 }
 
 /*-------------------------------------------------------------------------//

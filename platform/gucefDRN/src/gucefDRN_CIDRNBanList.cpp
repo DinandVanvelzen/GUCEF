@@ -73,6 +73,7 @@ CDRNBanEntry::BanKindToString( TDRNBanKind kind )
         case DRN_BAN_USER_ID:       return "user";
         case DRN_BAN_PUBLIC_KEY:    return "key";
         case DRN_BAN_ADDRESS:       return "address";
+        case DRN_BAN_ACCOUNT:       return "account";
         default:                    return "none";
     }
 }
@@ -90,6 +91,8 @@ CDRNBanEntry::StringToBanKind( const CORE::CString& kind )
         return DRN_BAN_PUBLIC_KEY;
     if ( lower == "address" )
         return DRN_BAN_ADDRESS;
+    if ( lower == "account" )
+        return DRN_BAN_ACCOUNT;
     return DRN_BAN_NONE;
 }
 
@@ -152,6 +155,15 @@ CIDRNBanList::IsPublicKeyBanned( const UInt8* key, UInt32 keySize, CDRNBanEntry*
 {GUCEF_TRACE;
 
     return IsBanned( DRN_BAN_PUBLIC_KEY, CDRNBanEntry::PublicKeyToString( key, keySize ), entry );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIDRNBanList::IsAccountBanned( const CORE::CString& account, CDRNBanEntry* entry ) const
+{GUCEF_TRACE;
+
+    return IsBanned( DRN_BAN_ACCOUNT, account, entry );
 }
 
 /*-------------------------------------------------------------------------//

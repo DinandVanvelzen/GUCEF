@@ -77,10 +77,15 @@
 #define GUCEF_MULTIPLAY_CICLIENTINTEGRITY_H
 #endif /* GUCEF_MULTIPLAY_CICLIENTINTEGRITY_H ? */
 
-#ifndef GUCEF_MULTIPLAY_DATANODEUTILS_H
-#include "gucefMULTIPLAY_DataNodeUtils.h"
-#define GUCEF_MULTIPLAY_DATANODEUTILS_H
-#endif /* GUCEF_MULTIPLAY_DATANODEUTILS_H ? */
+#ifndef GUCEF_CORE_CDATANODE_H
+#include "CDataNode.h"
+#define GUCEF_CORE_CDATANODE_H
+#endif /* GUCEF_CORE_CDATANODE_H ? */
+
+#ifndef GUCEF_CORE_CVALUELIST_H
+#include "CValueList.h"
+#define GUCEF_CORE_CVALUELIST_H
+#endif /* GUCEF_CORE_CVALUELIST_H ? */
 
 #include "gucefMULTIPLAY_CGucefLobbyService.h"
 
@@ -255,7 +260,7 @@ CGucefLobbyService::MakeIntegrityBlob( void )
     if ( GUCEF_NULL == m_integrity || !m_integrity->GetIntegrityReport( report ) )
         return CORE::CVariant();
     CORE::CDataNode tree( "integrity" );
-    WriteValueListAsChild( tree, "integrity", report );
+    tree.SetAttributesOfChildByName( "integrity", report );
     return CGucefLobbyProtocol::DataTreeToVariant( tree );
 }
 
@@ -331,7 +336,7 @@ CGucefLobbyService::Connect( const CPlayerIdentity& identity, CORE::CFutureResul
     if ( GUCEF_NULL == m_directory )
     {
         m_directory = m_node.CreateSession();
-        SubscribeTo( m_directory );
+        SubscribeToDirectory( m_directory );
     }
     m_listings = GUCEF_NULL;
     m_requests = GUCEF_NULL;
@@ -339,7 +344,9 @@ CGucefLobbyService::Connect( const CPlayerIdentity& identity, CORE::CFutureResul
     DRN::CDRNSessionSettings sessionSettings;
     sessionSettings.sessionName = CGucefLobbyProtocol::DirectorySessionName;
     DRN::CDRNAuthSettings credentials;
-    CGucefLobbyAuthenticator::MakeDirectoryCredentials( m_identity.privateKey, m_password, credentials );
+    CGucefLobbyAuthenticator::MakeDirectoryCredentials( m_identity.privateKey, m_password, m_identity.linkProofs, credentials );
+    // The credentials hold the proofs for the handshake; the identity of the service does not need to
+    m_identity.linkProofs.clear();
     m_connectPending = true;
     if ( !m_directory->Join( m_serverEndpoints, sessionSettings, &credentials ) )
     {
@@ -429,7 +436,7 @@ CGucefLobbyService::OnJoined( void )
     m_directory->Subscribe( CGucefLobbyProtocol::ListingsGrid );
     m_listings = m_directory->FindGrid( CGucefLobbyProtocol::ListingsGrid );
     if ( GUCEF_NULL != m_listings )
-        SubscribeTo( m_listings );
+        SubscribeToListings( m_listings );
 
     CORE::CVariant userId( m_identity.userId );
     CORE::CVariant name( m_identity.displayName.IsNULLOrEmpty() ? m_identity.userId : m_identity.displayName );
@@ -600,7 +607,7 @@ CGucefLobbyService::SubscribeChannel( const CORE::CString& channel, bool subscri
         return false;
     DRN::CDRNDataStream* stream = m_directory->FindStream( itemName, m_directory->GetSequencerPeerId() );
     if ( GUCEF_NULL != stream )
-        SubscribeTo( stream );
+        SubscribeToChannel( stream );
     return true;
 }
 
@@ -622,7 +629,7 @@ CGucefLobbyService::OnLobbyGranted( TPendingRequest& request, const CORE::CVaria
     TPendingLobby pending;
     pending.lobby = CILobbyPtr( lobby );
     pending.result = request.result;
-    SubscribeTo( lobby );
+    SubscribeToLobby( lobby );
     if ( !lobby->Start( endpoints, token, request.asSpectator ) )
     {
         UnsubscribeFrom( lobby );
@@ -754,113 +761,224 @@ CGucefLobbyService::OnChannelEntries( DRN::CDRNDataStream& stream )
 /*-------------------------------------------------------------------------*/
 
 void
-CGucefLobbyService::OnNotify( CORE::CNotifier* notifier                 ,
-                              const CORE::CEvent& eventId               ,
-                              CORE::CICloneable* eventData /* = GUCEF_NULL */ )
+CGucefLobbyService::SubscribeToDirectory( DRN::CDRNSession* directory )
+{GUCEF_TRACE;
+
+    TEventCallback joinedCallback( this, &CGucefLobbyService::OnDirectoryJoined );
+    TEventCallback joinFailedCallback( this, &CGucefLobbyService::OnDirectoryJoinFailed );
+    TEventCallback announcedCallback( this, &CGucefLobbyService::OnDirectoryItemAnnounced );
+    TEventCallback appMessageCallback( this, &CGucefLobbyService::OnDirectoryAppMessage );
+    TEventCallback closedCallback( this, &CGucefLobbyService::OnDirectoryClosed );
+    SubscribeTo( directory, DRN::CDRNSession::JoinedEvent, joinedCallback );
+    SubscribeTo( directory, DRN::CDRNSession::JoinFailedEvent, joinFailedCallback );
+    SubscribeTo( directory, DRN::CDRNSession::ItemAnnouncedEvent, announcedCallback );
+    SubscribeTo( directory, DRN::CDRNSession::AppMessageEvent, appMessageCallback );
+    SubscribeTo( directory, DRN::CDRNSession::SessionClosedEvent, closedCallback );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyService::SubscribeToListings( DRN::CDRNDataGrid* listings )
+{GUCEF_TRACE;
+
+    TEventCallback changedCallback( this, &CGucefLobbyService::OnListingsChanged );
+    SubscribeTo( listings, DRN::CDRNDataItem::SnapshotCompleteEvent, changedCallback );
+    SubscribeTo( listings, DRN::CDRNDataGrid::GridUpdatedEvent, changedCallback );
+    SubscribeTo( listings, DRN::CDRNDataGrid::GridKeyChangedEvent, changedCallback );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyService::SubscribeToChannel( DRN::CDRNDataStream* stream )
+{GUCEF_TRACE;
+
+    TEventCallback entriesCallback( this, &CGucefLobbyService::OnChannelEntriesAvailable );
+    SubscribeTo( stream, DRN::CDRNDataStream::EntriesAvailableEvent, entriesCallback );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyService::SubscribeToLobby( CGucefLobby* lobby )
+{GUCEF_TRACE;
+
+    TEventCallback readyCallback( this, &CGucefLobbyService::OnLobbyReady );
+    TEventCallback failedCallback( this, &CGucefLobbyService::OnLobbyFailed );
+    SubscribeTo( lobby, CGucefLobby::LobbyReadyEvent, readyCallback );
+    SubscribeTo( lobby, CGucefLobby::LobbyFailedEvent, failedCallback );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyService::OnDirectoryJoined( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != m_directory && notifier == m_directory )
+        OnJoined();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyService::OnDirectoryJoinFailed( CORE::CNotifier* notifier    ,
+                                           const CORE::CEvent& eventId  ,
+                                           CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_directory || notifier != m_directory )
+        return;
+    if ( m_connectPending )
     {
-        if ( DRN::CDRNSession::JoinedEvent == eventId )
+        m_connectPending = false;
+        CORE::CString reason = GUCEF_NULL != eventData ? static_cast< CORE::TCloneableString* >( eventData )->GetData() : CORE::CString( "Could not join the directory" );
+        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyService::OnDirectoryItemAnnounced( CORE::CNotifier* notifier    ,
+                                              const CORE::CEvent& eventId  ,
+                                              CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_directory || notifier != m_directory )
+        return;
+
+    const DRN::CDRNItemInfo& info = static_cast< DRN::CDRNItemInfoEventData* >( eventData )->GetData();
+    if ( info.name == CGucefLobbyProtocol::ListingsGrid && GUCEF_NULL == m_listings )
+    {
+        m_listings = m_directory->FindGrid( info.name );
+        if ( GUCEF_NULL != m_listings )
+            SubscribeToListings( m_listings );
+    }
+    else
+    if ( 0 == info.name.HasSubstr( CGucefLobbyProtocol::ChannelStreamPrefix, true ) )
+    {
+        DRN::CDRNDataStream* stream = m_directory->FindStream( info.name, info.ownerPeerId );
+        if ( GUCEF_NULL != stream )
+            SubscribeToChannel( stream );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyService::OnDirectoryAppMessage( CORE::CNotifier* notifier    ,
+                                           const CORE::CEvent& eventId  ,
+                                           CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_directory && notifier == m_directory )
+        OnAppMessage( static_cast< DRN::CDRNAppMessageEventData* >( eventData )->GetData().payload );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyService::OnDirectoryClosed( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL == m_directory || notifier != m_directory )
+        return;
+
+    bool wasConnected = m_connected;
+    m_connected = false;
+    if ( m_connectPending )
+    {
+        m_connectPending = false;
+        m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The directory session ended" );
+    }
+    FailPending( "The directory session ended" );
+    m_listings = GUCEF_NULL;
+    m_requests = GUCEF_NULL;
+    if ( wasConnected )
+    {
+        CORE::TCloneableString error( "The connection to the lobby server ended" );
+        NotifyObservers( ServiceErrorEvent, &error );
+        NotifyObservers( ServiceDisconnectedEvent );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyService::OnListingsChanged( CORE::CNotifier* notifier    ,
+                                       const CORE::CEvent& eventId  ,
+                                       CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_listings && notifier == m_listings && m_listings->IsSnapshotComplete() )
+        CompleteBrowses();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyService::OnChannelEntriesAvailable( CORE::CNotifier* notifier    ,
+                                               const CORE::CEvent& eventId  ,
+                                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    DRN::CDRNDataStream* stream = static_cast< DRN::CDRNDataStream* >( notifier );
+    OnChannelEntries( *stream );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyService::OnLobbyReady( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    OnPendingLobbyEnded( notifier, true, eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyService::OnLobbyFailed( CORE::CNotifier* notifier    ,
+                                   const CORE::CEvent& eventId  ,
+                                   CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    OnPendingLobbyEnded( notifier, false, eventData );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CGucefLobbyService::OnPendingLobbyEnded( CORE::CNotifier* notifier, bool ready, CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    for ( size_t i=0; i<m_pendingLobbies.size(); ++i )
+    {
+        if ( static_cast< CORE::CNotifier* >( m_pendingLobbies[ i ].lobby.GetPointerAlways() ) != notifier )
+            continue;
+        TPendingLobby pending = m_pendingLobbies[ i ];
+        m_pendingLobbies.erase( m_pendingLobbies.begin() + i );
+        if ( ready )
         {
-            OnJoined();
+            CLobbyResultData result( pending.lobby );
+            pending.result.Complete( result.Clone(), true );
+            NotifyObservers( LobbyJoinedEvent, &result );
         }
         else
-        if ( DRN::CDRNSession::JoinFailedEvent == eventId )
         {
-            if ( m_connectPending )
-            {
-                m_connectPending = false;
-                CORE::CString reason = GUCEF_NULL != eventData ? static_cast< CORE::TCloneableString* >( eventData )->GetData() : CORE::CString( "Could not join the directory" );
-                m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
-            }
-        }
-        else
-        if ( DRN::CDRNSession::ItemAnnouncedEvent == eventId )
-        {
-            const DRN::CDRNItemInfo& info = static_cast< DRN::CDRNItemInfoEventData* >( eventData )->GetData();
-            if ( info.name == CGucefLobbyProtocol::ListingsGrid && GUCEF_NULL == m_listings )
-            {
-                m_listings = m_directory->FindGrid( info.name );
-                if ( GUCEF_NULL != m_listings )
-                    SubscribeTo( m_listings );
-            }
-            else
-            if ( 0 == info.name.HasSubstr( CGucefLobbyProtocol::ChannelStreamPrefix, true ) )
-            {
-                DRN::CDRNDataStream* stream = m_directory->FindStream( info.name, info.ownerPeerId );
-                if ( GUCEF_NULL != stream )
-                    SubscribeTo( stream );
-            }
-        }
-        else
-        if ( DRN::CDRNSession::AppMessageEvent == eventId )
-        {
-            OnAppMessage( static_cast< DRN::CDRNAppMessageEventData* >( eventData )->GetData().payload );
-        }
-        else
-        if ( DRN::CDRNSession::SessionClosedEvent == eventId )
-        {
-            bool wasConnected = m_connected;
-            m_connected = false;
-            if ( m_connectPending )
-            {
-                m_connectPending = false;
-                m_connectResult.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, "The directory session ended" );
-            }
-            FailPending( "The directory session ended" );
-            m_listings = GUCEF_NULL;
-            m_requests = GUCEF_NULL;
-            if ( wasConnected )
-            {
-                CORE::TCloneableString error( "The connection to the lobby server ended" );
-                NotifyObservers( ServiceErrorEvent, &error );
-                NotifyObservers( ServiceDisconnectedEvent );
-            }
+            CORE::CString reason = GUCEF_NULL != eventData ? static_cast< CORE::TCloneableString* >( eventData )->GetData() : CORE::CString( "Could not join the lobby" );
+            pending.result.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
+            m_retiredLobbies.push_back( pending.lobby );
         }
         return;
-    }
-
-    if ( GUCEF_NULL != m_listings && notifier == m_listings )
-    {
-        if ( DRN::CDRNDataItem::SnapshotCompleteEvent == eventId || DRN::CDRNDataGrid::GridUpdatedEvent == eventId ||
-             DRN::CDRNDataGrid::GridKeyChangedEvent == eventId )
-        {
-            if ( m_listings->IsSnapshotComplete() )
-                CompleteBrowses();
-        }
-        return;
-    }
-
-    if ( DRN::CDRNDataStream::EntriesAvailableEvent == eventId )
-    {
-        DRN::CDRNDataStream* stream = static_cast< DRN::CDRNDataStream* >( notifier );
-        OnChannelEntries( *stream );
-        return;
-    }
-
-    if ( CGucefLobby::LobbyReadyEvent == eventId || CGucefLobby::LobbyFailedEvent == eventId )
-    {
-        for ( size_t i=0; i<m_pendingLobbies.size(); ++i )
-        {
-            if ( static_cast< CORE::CNotifier* >( m_pendingLobbies[ i ].lobby.GetPointerAlways() ) != notifier )
-                continue;
-            TPendingLobby pending = m_pendingLobbies[ i ];
-            m_pendingLobbies.erase( m_pendingLobbies.begin() + i );
-            if ( CGucefLobby::LobbyReadyEvent == eventId )
-            {
-                CLobbyResultData result( pending.lobby );
-                pending.result.Complete( result.Clone(), true );
-                NotifyObservers( LobbyJoinedEvent, &result );
-            }
-            else
-            {
-                CORE::CString reason = GUCEF_NULL != eventData ? static_cast< CORE::TCloneableString* >( eventData )->GetData() : CORE::CString( "Could not join the lobby" );
-                pending.result.Fail( CORE::TTaskStatus::TASKSTATUS_STARTUP_FAILED, reason );
-                m_retiredLobbies.push_back( pending.lobby );
-            }
-            return;
-        }
     }
 }
 
@@ -902,6 +1020,15 @@ CGucefLobbyService::LoadConfig( const CORE::CDataNode& config )
 
 const CORE::CString&
 CGucefLobbyService::GetClassTypeName( void ) const
+{GUCEF_TRACE;
+
+    return ClassTypeName();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CORE::CString&
+CGucefLobbyService::ClassTypeName( void )
 {GUCEF_TRACE;
 
     static const CORE::CString classTypeName = "GUCEF::MULTIPLAY::CGucefLobbyService";

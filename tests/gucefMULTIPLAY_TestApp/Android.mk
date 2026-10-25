@@ -21,6 +21,7 @@ LOCAL_MODULE := gucefMULTIPLAY_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestAuthIdentity.cpp \
   src/TestGucefLobby.cpp \
   src/TestIdentity.cpp \
   src/TestIrcChat.cpp \
@@ -35,6 +36,8 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/../../common/include \
+  $(MY_MODULE_PATH)/../../common/test/include \
+  $(MY_MODULE_PATH)/../../platform/gucefAUTH/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOM/include \
   $(MY_MODULE_PATH)/../../platform/gucefCOMCORE/include \
   $(MY_MODULE_PATH)/../../platform/gucefCORE/include \
@@ -49,6 +52,7 @@ LOCAL_CFLAGS := -DMODULE_CONSENSUS_NAME=gucefMULTIPLAY_TestApp -DMODULE_NAME=guc
 
 
 LOCAL_SHARED_LIBRARIES := \
+  gucefAUTH \
   gucefCOM \
   gucefCOMCORE \
   gucefCORE \

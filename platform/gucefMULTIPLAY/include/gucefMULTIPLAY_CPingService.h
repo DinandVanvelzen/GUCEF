@@ -35,6 +35,11 @@
 #define GUCEF_CORE_CICONFIGURABLE_H
 #endif /* GUCEF_CORE_CICONFIGURABLE_H ? */
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_CORE_CTIMER_H
 #include "CTimer.h"
 #define GUCEF_CORE_CTIMER_H
@@ -162,13 +167,9 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CPingService : public CORE::CObservingNotifier 
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    protected:
-
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CPingService > TEventCallback;
 
     struct STarget
     {
@@ -195,6 +196,24 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CPingService : public CORE::CObservingNotifier 
     void OnProbeResult( TTarget& target, UInt64 rttInMicroSecs );
     void OnProbeFailure( TTarget& target );
     void OnTimer( void );
+
+    void OnTimerUpdate( CORE::CNotifier* notifier    ,
+                        const CORE::CEvent& eventId  ,
+                        CORE::CICloneable* eventData );
+
+    void OnProbeResultEvent( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData );
+
+    void OnProbeFailureEvent( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData );
+
+    void OnProbeFinishedEvent( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData );
+
+    void SubscribeToProbe( COMCORE::CIRttProbe* probe );
     void SetUnknown( TTarget& target );
 
     private:

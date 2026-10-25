@@ -30,6 +30,11 @@
 #define GUCEF_CORE_CTCLONEABLEOBJ_H
 #endif /* GUCEF_CORE_CTCLONEABLEOBJ_H ? */
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_DRN_CIDRNCHANNEL_H
 #include "gucefDRN_CIDRNChannel.h"
 #define GUCEF_DRN_CIDRNCHANNEL_H
@@ -311,11 +316,32 @@ class GUCEF_DRN_EXPORT_CPP CDRNPeerLink : public CORE::CObservingNotifier       
 
     protected:
 
+    /** The standard events of the channel: its destruction */
     virtual void OnNotify( CORE::CNotifier* notifier                 ,
                            const CORE::CEvent& eventid               ,
                            CORE::CICloneable* eventdata = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CDRNPeerLink > TEventCallback;
+
+    void OnChannelPacketReceived( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData );
+
+    void OnChannelConnectedEvent( CORE::CNotifier* notifier    ,
+                                  const CORE::CEvent& eventId  ,
+                                  CORE::CICloneable* eventData );
+
+    void OnChannelDisconnectedEvent( CORE::CNotifier* notifier    ,
+                                     const CORE::CEvent& eventId  ,
+                                     CORE::CICloneable* eventData );
+
+    void OnChannelErrorEvent( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData );
+
+    void OnChannelLost( void );
 
     CDRNPeerLink( const CDRNPeerLink& src );
     CDRNPeerLink& operator=( const CDRNPeerLink& src );

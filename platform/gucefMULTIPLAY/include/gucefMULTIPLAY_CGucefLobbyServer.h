@@ -25,6 +25,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
 #ifndef GUCEF_CORE_CTIMER_H
 #include "CTimer.h"
 #define GUCEF_CORE_CTIMER_H
@@ -44,6 +49,11 @@
 #include "gucefDRN_CDRNBanList.h"
 #define GUCEF_DRN_CDRNBANLIST_H
 #endif /* GUCEF_DRN_CDRNBANLIST_H ? */
+
+#ifndef GUCEF_AUTH_IIDENTITYLINKSTORE_H
+#include "gucefAUTH_IIdentityLinkStore.h"
+#define GUCEF_AUTH_IIDENTITYLINKSTORE_H
+#endif /* GUCEF_AUTH_IIDENTITYLINKSTORE_H ? */
 
 #ifndef GUCEF_MULTIPLAY_CPLAYERREPORT_H
 #include "gucefMULTIPLAY_CPlayerReport.h"
@@ -94,7 +104,7 @@ class CGameAdvertiser;
  *  The settings of a CGucefLobbyServer, section "GucefLobbyServer" of a config:
  *  a "Node" child with the DRN node settings (listeners, relay), and as attributes
  *  listen (the endpoints to listen on, ';' separated, instead of those of the node), relayEnabled, relayListen,
- *  gameServiceName, keyFile, password, requireIdentityProof, banFile, reportFile, maxLobbies, maxMembersPerLobby,
+ *  gameServiceName, keyFile, password, requireIdentityProof, requireLinkedProvider, banFile, reportFile, maxLobbies, maxMembersPerLobby,
  *  tokenLifetimeInSecs, secondInMs, latencyIntervalInMs, chatMessagesPerSecond, chatBurst, requestsPerSecond,
  *  requestsBurst, advertiseOnLan;
  *  a "Rules" child with the default CLobbyRules, an "Advertiser" child with the CGameAdvertiser config, a
@@ -110,6 +120,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGucefLobbyServerSettings : public CORE::CIConf
     CORE::CString keyFile;                  /**< the server's secret in hex, made when the file does not exist; empty: a new one per run. The server's Ed25519 key (tokens, pinning) and the node's x25519 key follow from it */
     CORE::CString password;                 /**< the directory wants it when set */
     bool requireIdentityProof;              /**< directory clients prove the key of their identity, default true */
+    CORE::CString requireLinkedProvider;    /**< which accounts at external identity providers a directory client has to show (verified link proofs): "none" (default, also empty), "any" (one account of any provider) or the provider namespaces of the accounts, ',' separated ("epic,google": one account at one of them). A setting of this server, not of a player */
     CORE::CString banFile;                  /**< where the bans are kept, empty: in memory only */
     CORE::CString reportFile;               /**< the report log, a data tree file of the codec its extension names; empty: in memory only */
     DRN::CDRNSecurityPolicy minimumSecurityPolicy;  /**< a lobby with a weaker policy is refused (DRN::CDRNSecurityPolicy::IsWeakerThan()); by default encryption and no limits */
@@ -214,13 +225,39 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGucefLobbyServer : public CORE::CObservingNoti
     DRN::CDRNBanList& GetBanList( void );
 
     /**
-     *  Bans a user: its user id, its identity key when it proved one, and its address when byAddress; whoever is
+     *  Bans a user: its user id, its identity key when it proved one, the accounts at external identity providers it
+     *  verified (and those the link store has linked to its user id), and its address when byAddress; whoever is
      *  linked as that user is kicked from its lobbies and its links are closed.
      *
      *  @param expiryUnixSeconds when the ban ends, 0 = never
      *  @return false when there is nothing to ban
      */
     bool KickAndBan( const CORE::CString& userId, const CORE::CString& reason, bool byAddress, UInt64 expiryUnixSeconds = 0 );
+
+    /**
+     *  Bans an account at an external identity provider ("provider:subject"): whoever shows it verified, with any key, is
+     *  refused. Whoever is connected with it is banned as a user (see KickAndBan()), and so is the profile the link store
+     *  has the account linked to, with all the accounts of that profile.
+     *
+     *  @return false when the text is not an account reference
+     */
+    bool KickAndBanAccount( const CORE::CString& account, const CORE::CString& reason, bool byAddress, UInt64 expiryUnixSeconds = 0 );
+
+    /** The accounts at external identity providers the directory client with this user id verified; false when the user is not connected */
+    bool GetVerifiedAccounts( const CORE::CString& userId, CORE::CString::StringVector& accounts ) const;
+
+    /**
+     *  Where the links of accounts to profiles are known, not owned and it has to outlive the server or be given back with
+     *  GUCEF_NULL: with it a profile one of whose accounts is banned is refused as well, and a ban of an account or a user
+     *  reaches all the accounts of the profile. Without it only the accounts a client verified at its hello count.
+     */
+    void SetLinkStore( AUTH::IIdentityLinkStore* linkStore );
+
+    /**
+     *  Whether the accounts meet the requirement of requireLinkedProvider ("none", "any" or provider namespaces
+     *  separated by ','). 'why' tells the player what is wanted when they do not
+     */
+    static bool CheckLinkedProviders( const CORE::CString& requirement, const CORE::CString::StringVector& accounts, CORE::CString& why );
 
     /** The reports of the report log */
     void GetReports( TPlayerReportVector& reports ) const;
@@ -230,13 +267,25 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGucefLobbyServer : public CORE::CObservingNoti
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
-    protected:
-
-    virtual void OnNotify( CORE::CNotifier* notifier                 ,
-                           const CORE::CEvent& eventId               ,
-                           CORE::CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE;
-
     private:
+
+    typedef CORE::CTEventHandlerFunctor< CGucefLobbyServer > TEventCallback;
+
+    void OnTimerUpdate( CORE::CNotifier* notifier    ,
+                        const CORE::CEvent& eventId  ,
+                        CORE::CICloneable* eventData );
+
+    void OnDirectoryItemAnnounced( CORE::CNotifier* notifier    ,
+                                   const CORE::CEvent& eventId  ,
+                                   CORE::CICloneable* eventData );
+
+    void OnDirectoryMemberLeftEvent( CORE::CNotifier* notifier    ,
+                                     const CORE::CEvent& eventId  ,
+                                     CORE::CICloneable* eventData );
+
+    void OnRequestsAvailable( CORE::CNotifier* notifier    ,
+                              const CORE::CEvent& eventId  ,
+                              CORE::CICloneable* eventData );
 
     class CHostedLobby;
     class CAccessPolicy;
@@ -249,6 +298,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGucefLobbyServer : public CORE::CObservingNoti
         CORE::CString userId;
         CORE::CString name;
         CORE::CString publicKey;            /**< the identity key it proved, hex */
+        CORE::CString::StringVector accounts;   /**< the accounts at external identity providers it verified, "provider:subject" */
         CORE::CString address;              /**< the host it links from */
         CORE::CString::StringSet channels;
         CTokenBucket requests;
@@ -276,6 +326,8 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGucefLobbyServer : public CORE::CObservingNoti
     void LoadReports( void );
     bool AddReport( const CPlayerReport& report );
     TDirectoryClient* FindClientOfUser( const CORE::CString& userId, UInt32* peerId = GUCEF_NULL );
+    bool IsBannedByAccount( const CORE::CString& userId, const CORE::CString::StringVector& accounts, DRN::CDRNBanEntry& ban );
+    void BanAccountsOfProfile( const CORE::CString& userId, const CORE::CString& reason, UInt64 expiryUnixSeconds );
     CHostedLobby* FindLobby( const CORE::CString& lobbyId ) const;
     CHostedLobby* FindLobbyBySession( const CORE::CString& sessionName ) const;
     void PublishListing( CHostedLobby& lobby );
@@ -306,6 +358,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGucefLobbyServer : public CORE::CObservingNoti
     UInt8 m_nodePublicKey[ 32 ];
     DRN::CDRNBanList m_banList;
     TPlayerReportVector m_reports;
+    AUTH::IIdentityLinkStore* m_linkStore;
 };
 
 /*-------------------------------------------------------------------------//
