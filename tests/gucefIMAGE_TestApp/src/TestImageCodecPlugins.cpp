@@ -124,11 +124,12 @@ TestImageCodecPluginsOnTheCodecInterface( void )
             // imgpluginDEVIL is left out: the DevIL library of the Linux build lacks ilSaveF, so the module does not load
             GUCEF_TESTFW_ASSERT_TRUE( LoadImageCodecPlugin( "imgpluginFreeImage" ) );
 
-            // its codecs are in the codec registry
+            // its codecs are in the codec registry, before the built-in PNG encoder of gucefIMAGE
             CORE::CCodecRegistry& codecRegistry = CORE::CCoreGlobal::Instance()->GetCodecRegistry();
             CORE::CCodecRegistry::TICodecPtrVector providers;
-            GUCEF_TESTFW_ASSERT_TRUE( codecRegistry.GetCodecs( "ImageCodec", "png", providers ) && 1 == providers.size() );
+            GUCEF_TESTFW_ASSERT_TRUE( codecRegistry.GetCodecs( "ImageCodec", "png", providers ) && 2 == providers.size() );
             GUCEF_TESTFW_ASSERT_TRUE( !providers.empty() && "png" == providers[ 0 ]->GetType() );
+            GUCEF_TESTFW_ASSERT_TRUE( !providers.empty() && "GUCEF::IMAGE::CPngImageCodec" != providers[ 0 ]->GetClassTypeName() );
             providers.clear(); // a codec that is held keeps its plugin from unloading
 
             // a round trip through FreeImage
@@ -154,8 +155,11 @@ TestImageCodecPluginsOnTheCodecInterface( void )
 
             CORE::CPluginControl& pluginControl = CORE::CCoreGlobal::Instance()->GetPluginControl();
             GUCEF_TESTFW_ASSERT_TRUE( pluginControl.UnloadPluginGroup( "imagecodecplugintests" ) );
+            // only the built-in PNG encoder is left
             providers.clear();
-            GUCEF_TESTFW_ASSERT_FALSE( codecRegistry.GetCodecs( "ImageCodec", "png", providers ) );
+            GUCEF_TESTFW_ASSERT_TRUE( codecRegistry.GetCodecs( "ImageCodec", "png", providers ) && 1 == providers.size() );
+            GUCEF_TESTFW_ASSERT_TRUE( !providers.empty() && "GUCEF::IMAGE::CPngImageCodec" == providers[ 0 ]->GetClassTypeName() );
+            providers.clear();
         }
         catch ( ... )
         {

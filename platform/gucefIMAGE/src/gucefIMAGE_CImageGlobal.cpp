@@ -1,7 +1,7 @@
 /*
  *  gucefIMAGE: GUCEF module providing image utilities
  *
- *  Copyright (C) 1998 - 2024.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -36,6 +36,11 @@
 #include "gucefIMAGE_CGUIImageCodec.h"
 #define GUCEF_IMAGE_CGUIIMAGECODEC_H
 #endif /* GUCEF_IMAGE_CGUIIMAGECODEC_H ? */
+
+#ifndef GUCEF_IMAGE_CPNGIMAGECODEC_H
+#include "gucefIMAGE_CPngImageCodec.h"
+#define GUCEF_IMAGE_CPNGIMAGECODEC_H
+#endif /* GUCEF_IMAGE_CPNGIMAGECODEC_H ? */
 
 #ifndef GUCEF_IMAGE_CIMAGECODECREGISTRY_H
 #include "gucefIMAGE_CImageCodecRegistry.h"
@@ -148,6 +153,11 @@ CImageGlobal::Initialize( void )
     // Register the dummy codec for our native format
     registry->Register( "gui", CORE::CCodecRegistry::TICodecTypedPtr( new CGUIImageCodec() ) );
 
+    // The built-in PNG encoder, with the priority of portable software so a "png" codec of an image plugin takes its place
+    // while that plugin is loaded. It is not put in the image codec registry, where it would keep plugins from registering "png"
+    m_pngCodec = CORE::CCodecRegistry::TICodecTypedPtr( GUCEF_NEW CPngImageCodec() );
+    codecRegistry.RegisterCodec( m_pngCodec, CORE::CCodecRegistry::SoftwareCodecPriority );
+
     m_imageCodecRegistry = new CImageCodecRegistry();
     m_imageUpscalerRegistry = new CImageUpscalerRegistry();
     m_mmpxUpscaler = new CMmpxImageUpscaler();
@@ -165,7 +175,8 @@ CImageGlobal::CImageGlobal( void )
     : m_imageCodecPluginManager( NULL ) ,
       m_imageCodecRegistry( NULL )      ,
       m_imageUpscalerRegistry( NULL )   ,
-      m_mmpxUpscaler( NULL )
+      m_mmpxUpscaler( NULL )            ,
+      m_pngCodec()
 {GUCEF_TRACE;
 
 }
@@ -187,6 +198,11 @@ CImageGlobal::~CImageGlobal()
         
         // unregister the dummy codec for our native format
         registry->Unregister( "gui" );
+    }
+    if ( !m_pngCodec.IsNULL() )
+    {
+        codecRegistry.UnregisterCodec( m_pngCodec );
+        m_pngCodec.Unlink();
     }
 
     CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CAsyncImageUpscale::TaskType );

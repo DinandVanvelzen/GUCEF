@@ -19,6 +19,7 @@ if (LINUX32)
     include/TestImageCodecPlugins.h
     include/TestImageUpscaler.h
     include/TestPixelMapConversion.h
+    include/TestPngImageCodec.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX32" )
@@ -29,6 +30,7 @@ if (LINUX32)
     src/TestImageCodecPlugins.cpp
     src/TestImageUpscaler.cpp
     src/TestPixelMapConversion.cpp
+    src/TestPngImageCodec.cpp
     src/gucefIMAGE_TestApp.cpp
   )
 
@@ -41,6 +43,7 @@ elseif (LINUX64)
     include/TestImageCodecPlugins.h
     include/TestImageUpscaler.h
     include/TestPixelMapConversion.h
+    include/TestPngImageCodec.h
   )
 
   set( PLATFORM_HEADER_INSTALL "LINUX64" )
@@ -51,6 +54,7 @@ elseif (LINUX64)
     src/TestImageCodecPlugins.cpp
     src/TestImageUpscaler.cpp
     src/TestPixelMapConversion.cpp
+    src/TestPngImageCodec.cpp
     src/gucefIMAGE_TestApp.cpp
   )
 
@@ -63,6 +67,7 @@ elseif (WIN32)
     include/TestImageCodecPlugins.h
     include/TestImageUpscaler.h
     include/TestPixelMapConversion.h
+    include/TestPngImageCodec.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN32" )
@@ -73,6 +78,7 @@ elseif (WIN32)
     src/TestImageCodecPlugins.cpp
     src/TestImageUpscaler.cpp
     src/TestPixelMapConversion.cpp
+    src/TestPngImageCodec.cpp
     src/gucefIMAGE_TestApp.cpp
   )
 
@@ -85,6 +91,7 @@ elseif (WIN64)
     include/TestImageCodecPlugins.h
     include/TestImageUpscaler.h
     include/TestPixelMapConversion.h
+    include/TestPngImageCodec.h
   )
 
   set( PLATFORM_HEADER_INSTALL "WIN64" )
@@ -95,6 +102,7 @@ elseif (WIN64)
     src/TestImageCodecPlugins.cpp
     src/TestImageUpscaler.cpp
     src/TestPixelMapConversion.cpp
+    src/TestPngImageCodec.cpp
     src/gucefIMAGE_TestApp.cpp
   )
 

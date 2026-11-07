@@ -57,6 +57,7 @@ files( {
   "include/gucefIMAGE_CMmpxImageUpscaler.h",
   "include/gucefIMAGE_CPixel.h",
   "include/gucefIMAGE_CPixelMap.h",
+  "include/gucefIMAGE_CPngImageCodec.h",
   "include/gucefIMAGE_CPluginImageCodecItem.h",
   "include/gucefIMAGE_ETypes.h",
   "include/gucefIMAGE_c_image_tags.h",
@@ -86,7 +87,8 @@ files( {
   "src/gucefIMAGE_CImageUpscalerRegistry.cpp",
   "src/gucefIMAGE_CMmpxImageUpscaler.cpp",
   "src/gucefIMAGE_CPixel.cpp",
-  "src/gucefIMAGE_CPixelMap.cpp"
+  "src/gucefIMAGE_CPixelMap.cpp",
+  "src/gucefIMAGE_CPngImageCodec.cpp"
  } )
 
 

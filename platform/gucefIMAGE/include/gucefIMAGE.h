@@ -1,7 +1,7 @@
 /*
  *  gucefIMAGE: GUCEF module providing image utilities
  *
- *  Copyright (C) 1998 - 2024.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -126,6 +126,14 @@ namespace GUCEF
 #include "gucefIMAGE_CMmpxImageUpscaler.h"
 #define GUCEF_IMAGE_CMMPXIMAGEUPSCALER_H
 #endif /* GUCEF_IMAGE_CMMPXIMAGEUPSCALER_H ? */
+
+/*
+ *  Built-in PNG encoder, image codec "png"
+ */
+#ifndef GUCEF_IMAGE_CPNGIMAGECODEC_H
+#include "gucefIMAGE_CPngImageCodec.h"
+#define GUCEF_IMAGE_CPNGIMAGECODEC_H
+#endif /* GUCEF_IMAGE_CPNGIMAGECODEC_H ? */
 
 #endif /* __cplusplus ? */
 /*--------------------------------------------------------------------------*/

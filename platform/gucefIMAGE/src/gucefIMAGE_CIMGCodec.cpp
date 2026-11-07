@@ -1,7 +1,7 @@
 /*
  *  gucefIMAGE: GUCEF module providing image utilities
  *
- *  Copyright (C) 1998 - 2024.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -201,7 +201,8 @@ CIMGCodec::Encode( const CImage& inputImage       ,
         }
         
         // We have now merged all the image object data into a single buffer using the decoded 'ImageCodec' format
-        // It is time to perform the actual Encode()   
+        // It is time to perform the actual Encode(), which reads the buffer from its start
+        bufferAccess.Setpos( 0 );
         return Encode( bufferAccess  ,
                        encodedOutput );
     }

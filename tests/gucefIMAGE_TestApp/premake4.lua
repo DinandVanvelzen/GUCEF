@@ -105,7 +105,8 @@ configuration( { "LINUX32" } )
       "include/TestImageAnimation.h",
       "include/TestImageCodecPlugins.h",
       "include/TestImageUpscaler.h",
-      "include/TestPixelMapConversion.h"
+      "include/TestPixelMapConversion.h",
+      "include/TestPngImageCodec.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -114,6 +115,7 @@ configuration( { "LINUX32" } )
       "src/TestImageCodecPlugins.cpp",
       "src/TestImageUpscaler.cpp",
       "src/TestPixelMapConversion.cpp",
+      "src/TestPngImageCodec.cpp",
       "src/gucefIMAGE_TestApp.cpp"
     } )
 
@@ -125,7 +127,8 @@ configuration( { "LINUX64" } )
       "include/TestImageAnimation.h",
       "include/TestImageCodecPlugins.h",
       "include/TestImageUpscaler.h",
-      "include/TestPixelMapConversion.h"
+      "include/TestPixelMapConversion.h",
+      "include/TestPngImageCodec.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -134,6 +137,7 @@ configuration( { "LINUX64" } )
       "src/TestImageCodecPlugins.cpp",
       "src/TestImageUpscaler.cpp",
       "src/TestPixelMapConversion.cpp",
+      "src/TestPngImageCodec.cpp",
       "src/gucefIMAGE_TestApp.cpp"
     } )
 
@@ -145,7 +149,8 @@ configuration( { "WIN32" } )
       "include/TestImageAnimation.h",
       "include/TestImageCodecPlugins.h",
       "include/TestImageUpscaler.h",
-      "include/TestPixelMapConversion.h"
+      "include/TestPixelMapConversion.h",
+      "include/TestPngImageCodec.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -154,6 +159,7 @@ configuration( { "WIN32" } )
       "src/TestImageCodecPlugins.cpp",
       "src/TestImageUpscaler.cpp",
       "src/TestPixelMapConversion.cpp",
+      "src/TestPngImageCodec.cpp",
       "src/gucefIMAGE_TestApp.cpp"
     } )
 
@@ -165,7 +171,8 @@ configuration( { "WIN64" } )
       "include/TestImageAnimation.h",
       "include/TestImageCodecPlugins.h",
       "include/TestImageUpscaler.h",
-      "include/TestPixelMapConversion.h"
+      "include/TestPixelMapConversion.h",
+      "include/TestPngImageCodec.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -174,6 +181,7 @@ configuration( { "WIN64" } )
       "src/TestImageCodecPlugins.cpp",
       "src/TestImageUpscaler.cpp",
       "src/TestPixelMapConversion.cpp",
+      "src/TestPngImageCodec.cpp",
       "src/gucefIMAGE_TestApp.cpp"
     } )
 

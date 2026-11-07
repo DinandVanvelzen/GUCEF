@@ -30,6 +30,7 @@ set( HEADER_FILES
   include/gucefIMAGE_CPixel.h
   include/gucefIMAGE_CPixelMap.h
   include/gucefIMAGE_CPluginImageCodecItem.h
+  include/gucefIMAGE_CPngImageCodec.h
   include/gucefIMAGE_ETypes.h
   include/gucefIMAGE_c_image_tags.h
   include/gucefIMAGE_c_imagedata.h
@@ -55,6 +56,7 @@ set( SOURCE_FILES
   src/gucefIMAGE_CMmpxImageUpscaler.cpp
   src/gucefIMAGE_CPixel.cpp
   src/gucefIMAGE_CPixelMap.cpp
+  src/gucefIMAGE_CPngImageCodec.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined

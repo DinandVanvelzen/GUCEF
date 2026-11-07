@@ -1,7 +1,7 @@
 /*
  *  gucefIMAGE: GUCEF module providing image utilities
  *
- *  Copyright (C) 1998 - 2024.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -24,6 +24,11 @@
 //      INCLUDES                                                           //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+#ifndef GUCEF_CORE_CCODECREGISTRY_H
+#include "CCodecRegistry.h"
+#define GUCEF_CORE_CCODECREGISTRY_H
+#endif /* GUCEF_CORE_CCODECREGISTRY_H ? */
 
 #ifndef GUCEF_IMAGE_MACROS_H
 #include "gucefIMAGE_macros.h"
@@ -87,6 +92,7 @@ class GUCEF_IMAGE_EXPORT_CPP CImageGlobal
     CImageCodecRegistry* m_imageCodecRegistry;
     CImageUpscalerRegistry* m_imageUpscalerRegistry;
     CMmpxImageUpscaler* m_mmpxUpscaler;
+    CORE::CCodecRegistry::TICodecPtr m_pngCodec;    /**< the built-in "png" codec, registered in the codec registry of gucefCORE */
     
     static CImageGlobal* g_instance;
 };

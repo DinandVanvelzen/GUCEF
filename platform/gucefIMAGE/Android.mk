@@ -38,7 +38,8 @@ LOCAL_SRC_FILES := \
   src/gucefIMAGE_CImageUpscalerRegistry.cpp \
   src/gucefIMAGE_CMmpxImageUpscaler.cpp \
   src/gucefIMAGE_CPixel.cpp \
-  src/gucefIMAGE_CPixelMap.cpp
+  src/gucefIMAGE_CPixelMap.cpp \
+  src/gucefIMAGE_CPngImageCodec.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
