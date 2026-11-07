@@ -1124,10 +1124,25 @@ CAuthManager::FinishPending( const CORE::CString& providerName, const CAuthResul
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CAuthManager::IsEventOfOtherOperation( const CORE::CString& providerName ) const
+{GUCEF_TRACE;
+
+    // A provider ends the future of an operation before it raises the event of it (CIAuthProvider::CompleteLogin(), FailLogin()). An event
+    // while the future of the login that waits has not ended is of something the manager did not start, a renewal of a token keeper or of
+    // a mail credential provider, and is not the outcome of that login
+    TPendingMap::const_iterator i = m_pending.find( providerName );
+    return i != m_pending.end() && (*i).second.hasProviderFuture && !(*i).second.providerFuture.IsReady();
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CAuthManager::OnProviderSucceeded( const CAuthResult& result )
 {GUCEF_TRACE;
 
+    if ( IsEventOfOtherOperation( result.providerName ) )
+        return;
     FinishPending( result.providerName, &result, GUCEF_NULL );
 }
 
@@ -1137,6 +1152,8 @@ void
 CAuthManager::OnProviderFailed( const CAuthFailure& failure )
 {GUCEF_TRACE;
 
+    if ( IsEventOfOtherOperation( failure.providerName ) )
+        return;
     FinishPending( failure.providerName, GUCEF_NULL, &failure );
 }
 

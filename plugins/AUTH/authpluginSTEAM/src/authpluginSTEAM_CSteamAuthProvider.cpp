@@ -974,12 +974,18 @@ CSteamAuthProvider::VerifyWithWebApi( const AUTH::CAuthProof& proof, AUTH::CAuth
     options.connectTimeoutInMs = settings.webApiTimeoutInMs;
     options.followRedirects = false;        // the key is in the url: it is not sent anywhere the settings did not name
     options.verifyPeer = true;
+    options.maxResponseBodySize = MaxWebApiResponseSize;      // the transfer stops at the limit, nothing past it is buffered
 
     WEB::CHTTPClient client;
     WEB::CHttpResponseData response;
     WEB::CHttpClientTransferInfo transfer;
     if ( !client.Execute( request, options, response, &transfer ) )
     {
+        if ( transfer.responseBodyTooLarge )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SteamAuthProvider: The answer of the Steam Web API is too large" );
+            return false;
+        }
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "SteamAuthProvider: The Steam Web API did not answer (" << WEB::HttpTransferErrorClassToString( transfer.errorClass ) << "): " << transfer.errorDescription );
         return false;
     }

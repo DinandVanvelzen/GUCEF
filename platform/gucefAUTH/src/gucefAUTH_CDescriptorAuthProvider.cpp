@@ -266,6 +266,17 @@ CDescriptorAuthProvider::SubmitRedirectUrl( const CORE::CString& redirectUrl )
 /*-------------------------------------------------------------------------*/
 
 bool
+CDescriptorAuthProvider::SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck& check )
+{GUCEF_TRACE;
+
+    check = REDIRECTCHECK_NO_LOGIN_WAITING;
+    IAuthFlowEngine* engine = GetEngine();
+    return GUCEF_NULL != engine && engine->SubmitRedirectUrl( redirectUrl, check );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CDescriptorAuthProvider::GetUnavailability( CAuthUnavailableProvider& unavailable ) const
 {GUCEF_TRACE;
 
@@ -312,6 +323,29 @@ CDescriptorAuthProvider::GetUnavailability( CAuthUnavailableProvider& unavailabl
         unavailable.message = "Not set up in this build: needs " + missing;
         unavailable.configKey = keyBase + "/Parameters/" + firstMissing;
         return true;
+    }
+
+    // The account of the source "parameters" is a label of the settings: it has to be one
+    if ( AUTHACCOUNTSOURCE_PARAMETERS == m_descriptor.accountSource )
+    {
+        CORE::CString::StringMap parameters = m_descriptor.defaultParameters;
+        CAuthProviderSettings::TParameterMap::const_iterator p = m_settings.parameters.begin();
+        while ( p != m_settings.parameters.end() )
+        {
+            parameters[ (*p).first ] = (*p).second;
+            ++p;
+        }
+        CORE::CString subject;
+        if ( !m_descriptor.ComposeSubject( CORE::CString::StringMap(), parameters, subject ) )
+        {
+            CORE::CString::StringVector names;
+            CAuthProviderDescriptor::GetTemplateNames( m_descriptor.subjectTemplate, names );
+            CORE::CString name = names.empty() ? CORE::CString( "accountAlias" ) : names[ 0 ];
+            unavailable.reason = AUTHUNAVAILABLE_MISSING_SETTING;
+            unavailable.message = "Not set up: " + name + " has to be 1 to 32 of a-z, 0-9 and -";
+            unavailable.configKey = keyBase + "/Parameters/" + name;
+            return true;
+        }
     }
 
     IAuthFlowEngine* engine = GetEngine();

@@ -63,6 +63,25 @@ typedef enum EAuthProtocol TAuthProtocol;
 
 /*-------------------------------------------------------------------------*/
 
+/** Where the account of a login of the protocol OAuth 2.0 comes from */
+enum EAuthAccountSource
+{
+    AUTHACCOUNTSOURCE_USERINFO = 0,     /**< "userinfo": the user info response with the access token names the account (the claims of subjectClaim / subjectTemplate) */
+    AUTHACCOUNTSOURCE_PARAMETERS = 1    /**< "parameters": the subject is subjectTemplate filled from the Parameters of the provider's settings only (an alias the person chose); no user info request is made */
+};
+
+typedef enum EAuthAccountSource TAuthAccountSource;
+
+/** "userinfo" or "parameters" */
+GUCEF_AUTH_EXPORT_CPP const char*
+AuthAccountSourceToString( TAuthAccountSource source );
+
+/** The source of the text, false for a text that is not one */
+GUCEF_AUTH_EXPORT_CPP bool
+AuthAccountSourceFromString( const CORE::CString& text, TAuthAccountSource& source );
+
+/*-------------------------------------------------------------------------*/
+
 /**
  *  What is known about an identity provider, as data: where its endpoints are, which claims hold the account, how the
  *  subject of the account reference is made, how far its ids reach and what a registered app has to supply. The
@@ -76,6 +95,13 @@ typedef enum EAuthProtocol TAuthProtocol;
  *
  *  subjectTemplate makes the subject of the account reference from claims and parameters, for example "{tid}:{oid}";
  *  empty means the value of subjectClaim. The values are encoded with CAccountRef::EncodeSubject() one by one.
+ *
+ *  accountSource "parameters" is for an OAuth 2.0 API whose tokens give access to data without an identity endpoint (a broker,
+ *  a data provider): the account is "<accountProviderId>:<alias>", a local label, made by subjectTemplate from parameters
+ *  only (for example "{accountAlias}" with a default "primary"). Each value is an alias: 1 to 32 of a-z, 0-9 and '-'
+ *  (IsValidAccountAlias()). Such a descriptor is of the protocol OAuth 2.0, is not server verifiable (a server cannot check a
+ *  local label), and every name in its template is a parameter it declares (required, or with a default that is an alias);
+ *  IsWellFormed() refuses it otherwise, so registration and loading from the configuration refuse it too.
  */
 class GUCEF_AUTH_EXPORT_CPP CAuthProviderDescriptor : public CORE::CIDataNodeSerializable
 {
@@ -119,6 +145,9 @@ class GUCEF_AUTH_EXPORT_CPP CAuthProviderDescriptor : public CORE::CIDataNodeSer
     CORE::CString loginHintParameter;           /**< the name of that parameter, "login_hint" in OpenID Connect */
     CORE::CString::StringVector loginHintClaims;    /**< the claims of a verified login, first one found wins, that name the account at the provider for the next login: email, preferred_username */
     CORE::CString::StringVector formerNames;    /**< earlier names of the provider: settings of an application that still use one are read as those of this provider (CAuthManager applies CAuthSettings::RenameProvider() for each) */
+    TAuthAccountSource accountSource;           /**< where the account of an OAuth 2.0 login comes from, see above; "userinfo" by default */
+    UInt32 refreshTokenLifetimeInSeconds;       /**< how long a refresh token lives from the interactive login, as the provider declares it; 0 when it does not (CAccessTokenKeeper warns before it ends) */
+    CORE::CString::StringVector refreshTokenRejectedErrors; /**< error codes of the token endpoint that, for a refresh, mean the refresh token is no longer accepted, besides invalid_grant (a provider that answers invalid_client for an expired one); the refresh then ends as AUTHFAIL_INVALID_GRANT */
     CORE::CString notes;                        /**< what to know when registering an app at the provider */
 
     CAuthProviderDescriptor( void );
@@ -129,7 +158,7 @@ class GUCEF_AUTH_EXPORT_CPP CAuthProviderDescriptor : public CORE::CIDataNodeSer
 
     CAuthProviderDescriptor& operator=( const CAuthProviderDescriptor& src );
 
-    /** A name, a display name and a valid account provider id, and for the protocols that have endpoints a discovery url or a token endpoint with an authorization or device authorization endpoint (the authorization endpoint alone for OpenID 2.0) */
+    /** A name, a display name and a valid account provider id, and for the protocols that have endpoints a discovery url or a token endpoint with an authorization or device authorization endpoint (the authorization endpoint alone for OpenID 2.0); with the account source "parameters" also the rules of that source (see above) */
     bool IsWellFormed( void ) const;
 
     /**
@@ -146,7 +175,16 @@ class GUCEF_AUTH_EXPORT_CPP CAuthProviderDescriptor : public CORE::CIDataNodeSer
     /** The names between braces in the text, in order */
     static void GetTemplateNames( const CORE::CString& text, CORE::CString::StringVector& names );
 
-    /** The subject of the account reference from the claims of a token (or profile) and the parameters of the settings */
+    /** Whether the text can be an alias of an account of the source "parameters": 1 to 32 of a-z, 0-9 and '-' */
+    static bool IsValidAccountAlias( const CORE::CString& alias );
+
+    /** Whether the error code of the token endpoint, answering a refresh, means the refresh token is no longer accepted: invalid_grant or one of refreshTokenRejectedErrors */
+    bool IsRefreshTokenRejectedError( const CORE::CString& errorCode ) const;
+
+    /**
+     *  The subject of the account reference from the claims of a token (or profile) and the parameters of the settings. With the
+     *  account source "parameters" the claims are not looked at, and every value has to be an alias (IsValidAccountAlias())
+     */
     bool ComposeSubject( const CORE::CString::StringMap& claims        ,
                          const CORE::CString::StringMap& parameters    ,
                          CORE::CString& subject                        ) const;

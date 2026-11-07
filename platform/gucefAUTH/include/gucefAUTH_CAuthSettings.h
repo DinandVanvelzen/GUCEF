@@ -61,8 +61,8 @@ namespace AUTH {
  *
  *  Config: clientId, clientSecret (only for the provider kinds whose "installed application" secret is not confidential),
  *  audiences (array, or one value that is a comma list: further client ids a server accepts, see below), scopes (array), discoveryUrl, issuer, authorizationEndpoint, tokenEndpoint, deviceAuthorizationEndpoint, userInfoEndpoint, revocationEndpoint, tokenVerifyEndpoint,
- *  jwksUri, redirectMode ("loopback" or "custom-scheme"), loopbackPort (0 is an ephemeral port), loopbackPath, redirectUri
- *  (for the custom scheme), idScope ("global", "organisation", "app" or empty for the descriptor's), and the child
+ *  jwksUri, redirectMode ("loopback", "custom-scheme" or "manual"), loopbackPort (0 is an ephemeral port), loopbackPath, redirectUri
+ *  (for custom-scheme and manual), idScope ("global", "organisation", "app" or empty for the descriptor's), and the child
  *  Parameters with the values of the placeholders the descriptor names, for example tenant, region, poolId, poolDomain.
  *
  *  OpenID 2.0: the parameter relayUrl, empty by default, is the address of a relay page on a domain of the developer
@@ -97,7 +97,7 @@ class GUCEF_AUTH_EXPORT_CPP CAuthProviderSettings : public CORE::CIConfigurable
     CORE::CString revocationEndpoint;
     CORE::CString tokenVerifyEndpoint;      /**< where a server checks an access token of a provider that has no id token (Facebook, Amazon) */
     CORE::CString jwksUri;
-    CORE::CString redirectMode;             /**< "loopback" (default) or "custom-scheme" */
+    CORE::CString redirectMode;             /**< "loopback" (default), "custom-scheme" or "manual" (the application hands the address back, CDescriptorAuthProvider::SubmitRedirectUrl()) */
     UInt16 loopbackPort;                    /**< 0: any free port, the provider's registration must then accept any port on the loopback address */
     CORE::CString loopbackPath;
     CORE::CString redirectUri;              /**< custom scheme redirect, as registered with the provider */

@@ -382,6 +382,7 @@ class GUCEF_AUTH_EXPORT_CPP CAuthManager : public CORE::CObservingNotifier ,
     bool StartLogin( const CORE::CString& providerName, const CAuthOptions& options, bool forceLink, CORE::CFutureResult& future );
     void ApplyRememberedLoginHint( const CORE::CString& providerName, CAuthOptions& options ) const;
     bool FailImmediately( const CORE::CString& providerName, TAuthFailureReason reason, const CORE::CString& message, CORE::CFutureResult& future );
+    bool IsEventOfOtherOperation( const CORE::CString& providerName ) const;
     void OnProviderSucceeded( const CAuthResult& result );
     void OnProviderFailed( const CAuthFailure& failure );
     void FinishPending( const CORE::CString& providerName, const CAuthResult* result, const CAuthFailure* failure );

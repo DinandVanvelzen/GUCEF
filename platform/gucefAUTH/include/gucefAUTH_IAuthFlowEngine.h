@@ -67,6 +67,30 @@ namespace AUTH {
 
 class IAuthFlowSink;
 
+/**
+ *  What became of an address handed to IAuthFlowEngine::SubmitRedirectUrl(), so that the application can say which check failed
+ *  without repeating the address (it holds the code)
+ */
+enum ERedirectCheck
+{
+    REDIRECTCHECK_ACCEPTED = 0,         /**< a login took it (the login may still fail at the token endpoint) */
+    REDIRECTCHECK_NO_LOGIN_WAITING,     /**< no login of the redirect mode custom-scheme or manual waits for an address */
+    REDIRECTCHECK_MALFORMED,            /**< empty, too long, a query that cannot be read or has a parameter twice */
+    REDIRECTCHECK_ADDRESS_MISMATCH,     /**< the address up to the query is not the redirect uri of a waiting login */
+    REDIRECTCHECK_STATE_MISSING,        /**< the address has no state; the provider did not give it back */
+    REDIRECTCHECK_STATE_MISMATCH,       /**< the state is not the one of the login */
+    REDIRECTCHECK_NO_CODE,              /**< neither a code nor an error */
+    REDIRECTCHECK_REFUSED               /**< the engine did not take it and does not say why */
+};
+
+typedef enum ERedirectCheck TRedirectCheck;
+
+/** A stable lower case name of the outcome, for logs and an application that shows which check failed */
+GUCEF_AUTH_EXPORT_CPP const char*
+RedirectCheckToString( TRedirectCheck check );
+
+/*-------------------------------------------------------------------------*/
+
 /** Told when a sink goes away, so that an engine does not report to a provider that is gone */
 class GUCEF_AUTH_EXPORT_CPP IAuthFlowSinkWatcher
 {
@@ -166,8 +190,16 @@ class GUCEF_AUTH_EXPORT_CPP IAuthFlowEngine
      *  mode of "custom-scheme" or "manual": the redirect uri with its query. The engine finds the login by its state.
      *  Default: false, the engine has no such mode. True when a login took the address (it may still fail); false when no login
      *  waits for it, the state does not belong to a login or the address is not the redirect uri of it.
+     *
+     *  The address up to the query is compared with the redirect uri of the login after the syntax based normalization of RFC 3986
+     *  section 6.2.2.1 and 6.2.3 for http and https: the scheme and the host in any case, a default port (80, 443) the same as none,
+     *  an empty path the same as "/" (a browser shows https://127.0.0.1 as https://127.0.0.1/). Everything else stays exact: the path
+     *  byte for byte, no user information, another port or host refused. Other schemes are compared byte for byte.
      */
     virtual bool SubmitRedirectUrl( const CORE::CString& redirectUrl );
+
+    /** The same, and why an address was not taken. Default: the form without the reason, REDIRECTCHECK_REFUSED when it is false */
+    virtual bool SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck& check );
 
     /**
      *  Whether the engine would run the provider but for one thing: what the engine asks of the provider goes over https and this build

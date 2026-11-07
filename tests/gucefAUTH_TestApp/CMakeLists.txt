@@ -12,6 +12,7 @@
 # Configuration for module: gucefAUTH_TestApp
 
 set( HEADER_FILES 
+  include/TestAccessTokenKeeper.h
   include/TestAccountProfile.h
   include/TestAccountRef.h
   include/TestAuthManager.h
@@ -27,6 +28,7 @@ set( HEADER_FILES
   include/TestJwt.h
   include/TestLinkStore.h
   include/TestLogCapture.h
+  include/TestMailOAuth.h
   include/TestOAuth2Fixture.h
   include/TestOAuth2Flows.h
   include/TestOAuth2Protocol.h
@@ -45,6 +47,7 @@ set( HEADER_FILES
 )
 
 set( SOURCE_FILES 
+  src/TestAccessTokenKeeper.cpp
   src/TestAccountProfile.cpp
   src/TestAccountRef.cpp
   src/TestAuthManager.cpp
@@ -56,6 +59,7 @@ set( SOURCE_FILES
   src/TestFakeProvider.cpp
   src/TestJwt.cpp
   src/TestLinkStore.cpp
+  src/TestMailOAuth.cpp
   src/TestOAuth2Flows.cpp
   src/TestOAuth2Protocol.cpp
   src/TestOAuth2Tls.cpp

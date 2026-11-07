@@ -21,6 +21,7 @@ LOCAL_MODULE := gucefAUTH_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestAccessTokenKeeper.cpp \
   src/TestAccountProfile.cpp \
   src/TestAccountRef.cpp \
   src/TestAuthManager.cpp \
@@ -32,6 +33,7 @@ LOCAL_SRC_FILES := \
   src/TestFakeProvider.cpp \
   src/TestJwt.cpp \
   src/TestLinkStore.cpp \
+  src/TestMailOAuth.cpp \
   src/TestOAuth2Flows.cpp \
   src/TestOAuth2Protocol.cpp \
   src/TestOAuth2Tls.cpp \

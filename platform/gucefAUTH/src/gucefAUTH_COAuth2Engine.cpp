@@ -527,9 +527,48 @@ bool
 COAuth2Engine::SubmitRedirectUrl( const CORE::CString& redirectUrl )
 {GUCEF_TRACE;
 
+    TRedirectCheck check = REDIRECTCHECK_REFUSED;
+    return SubmitRedirectUrl( redirectUrl, check );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** How far an address got with a login: the outcome of the login that got furthest is the one that explains the refusal */
+static int
+RedirectCheckRank( TRedirectCheck check )
+{
+    switch ( check )
+    {
+        case REDIRECTCHECK_ACCEPTED : return 6;
+        case REDIRECTCHECK_STATE_MISMATCH : return 5;
+        case REDIRECTCHECK_STATE_MISSING : return 4;
+        case REDIRECTCHECK_NO_CODE : return 3;
+        case REDIRECTCHECK_MALFORMED : return 2;
+        case REDIRECTCHECK_ADDRESS_MISMATCH : return 1;
+        default : return 0;
+    }
+}
+
+bool
+COAuth2Engine::SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck& check )
+{GUCEF_TRACE;
+
+    check = REDIRECTCHECK_NO_LOGIN_WAITING;
     for ( size_t i=0; i<m_flows.size(); ++i )
-        if ( !m_flows[ i ]->IsFinished() && m_flows[ i ]->SubmitRedirectUrl( redirectUrl ) )
+    {
+        if ( m_flows[ i ]->IsFinished() )
+            continue;
+        TRedirectCheck flowCheck = REDIRECTCHECK_NO_LOGIN_WAITING;
+        if ( m_flows[ i ]->SubmitRedirectUrl( redirectUrl, flowCheck ) )
+        {
+            check = REDIRECTCHECK_ACCEPTED;
             return true;
+        }
+        if ( RedirectCheckRank( flowCheck ) > RedirectCheckRank( check ) )
+            check = flowCheck;
+    }
+    if ( REDIRECTCHECK_NO_LOGIN_WAITING != check )
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "OAuth2Engine: an address handed back after a login was refused: " << RedirectCheckToString( check ) );
     return false;
 }
 

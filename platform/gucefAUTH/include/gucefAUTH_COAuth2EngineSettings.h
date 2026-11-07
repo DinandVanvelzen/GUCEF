@@ -76,7 +76,7 @@ class GUCEF_AUTH_EXPORT_CPP COAuth2EngineSettings : public CORE::CIConfigurable
     UInt32 clockSkewInSeconds;                  /**< on exp, nbf and iat of tokens, default 120, at most 600 */
     UInt32 httpConnectTimeoutInMs;              /**< default 10000 */
     UInt32 httpTimeoutInMs;                     /**< per request, default 20000 */
-    UInt32 maxResponseBytes;                    /**< of any answer of a provider, default 1 MiB */
+    UInt32 maxResponseBytes;                    /**< of the body of any answer of a provider, default 1 MiB; nothing past it is read */
     UInt32 jwksMinTtlInSeconds;                 /**< default 60 */
     UInt32 jwksMaxTtlInSeconds;                 /**< default 86400 */
     UInt32 jwksDefaultTtlInSeconds;             /**< when the provider gives no max-age, default 3600 */

@@ -84,6 +84,36 @@ GetEpochTimeInMs( void )
     return CORE::CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs();
 }
 
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  A source of the wall clock as milliseconds since 1970-01-01 UTC, the time base of token expiry times, so that logic that
+ *  works with expiry times (CAccessTokenKeeper) can be driven by a clock of a test. Implementations can be used from any thread.
+ */
+class GUCEF_AUTH_EXPORT_CPP IEpochClock
+{
+    public:
+
+    IEpochClock( void );
+
+    virtual ~IEpochClock();
+
+    virtual UInt64 GetEpochTimeInMs( void ) const = 0;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** The wall clock of the system, GetEpochTimeInMs() */
+class GUCEF_AUTH_EXPORT_CPP CSystemEpochClock : public IEpochClock
+{
+    public:
+
+    virtual UInt64 GetEpochTimeInMs( void ) const GUCEF_VIRTUAL_OVERRIDE;
+
+    /** The process wide instance, the default clock */
+    static const CSystemEpochClock& Instance( void );
+};
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

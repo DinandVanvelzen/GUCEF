@@ -671,11 +671,13 @@ COAuth2Flow::OnDiscoveryDone( bool ok, CAuthHttpResponse& response )
 /*-------------------------------------------------------------------------*/
 
 bool
-COAuth2Flow::SubmitRedirectUrl( const CORE::CString& redirectUrl )
+COAuth2Flow::SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck& check )
 {GUCEF_TRACE;
 
+    check = REDIRECTCHECK_NO_LOGIN_WAITING;
     if ( STAGE_AUTHORIZATION != m_stage || m_resolved.redirectMode == "loopback" )
         return false;
+    check = REDIRECTCHECK_MALFORMED;
     UInt32 size = GetByteLength( redirectUrl );
     if ( 0 == size || size > CAuthUrl::MaxUrlBytes + CAuthUrl::MaxQueryBytes )
         return false;
@@ -694,8 +696,11 @@ COAuth2Flow::SubmitRedirectUrl( const CORE::CString& redirectUrl )
         }
     }
     UInt32 baseEnd = queryAt < fragmentAt ? queryAt : fragmentAt;
-    if ( MakeString( p, baseEnd ) != m_redirectUri )
+    if ( !CAuthUrl::IsSameRedirectUri( MakeString( p, baseEnd ), m_redirectUri ) )
+    {
+        check = REDIRECTCHECK_ADDRESS_MISMATCH;
         return false;
+    }
 
     CORE::CString query;
     if ( queryAt < fragmentAt )
@@ -705,15 +710,28 @@ COAuth2Flow::SubmitRedirectUrl( const CORE::CString& redirectUrl )
     if ( !CAuthUrl::ParseQuery( query, parameters, duplicate ) || duplicate )
         return false;
 
-    // The state, in constant time
+    // The state, in constant time. A provider that does not give it back is not supported: the login keeps waiting and the
+    // application can tell the person why (REDIRECTCHECK_STATE_MISSING)
     CORE::CString::StringMap::const_iterator state = parameters.find( "state" );
+    if ( state == parameters.end() )
+    {
+        check = REDIRECTCHECK_STATE_MISSING;
+        return false;
+    }
     UInt32 expectedSize = GetByteLength( m_state );
-    if ( state == parameters.end() || GetByteLength( (*state).second ) != expectedSize ||
+    if ( GetByteLength( (*state).second ) != expectedSize ||
          !CAuthCrypto::ConstantTimeEquals( (*state).second.C_String(), m_state.C_String(), expectedSize ) )
+    {
+        check = REDIRECTCHECK_STATE_MISMATCH;
         return false;
+    }
     if ( parameters.find( "code" ) == parameters.end() && parameters.find( "error" ) == parameters.end() && parameters.find( "openid.mode" ) == parameters.end() )
+    {
+        check = REDIRECTCHECK_NO_CODE;
         return false;
+    }
 
+    check = REDIRECTCHECK_ACCEPTED;
     OnCallback( parameters );
     return true;
 }
@@ -1010,7 +1028,11 @@ COAuth2Flow::OnTokenDone( bool ok, CAuthHttpResponse& response )
     {
         CORE::CString code = SafeErrorCode( answer.error );
         GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "OAuth2Flow: " << m_descriptor.name << ": the token request was refused: " << code );
-        Fail( COAuth2Protocol::ReasonForError( code ), "The provider refused the token request" );
+        // A provider can say of an expired refresh token what it says of a bad client (refreshTokenRejectedErrors)
+        if ( OAUTH2FLOW_REFRESH == m_kind && m_descriptor.IsRefreshTokenRejectedError( code ) )
+            Fail( AUTHFAIL_INVALID_GRANT, "The provider no longer accepts the refresh token" );
+        else
+            Fail( COAuth2Protocol::ReasonForError( code ), "The provider refused the token request" );
         return;
     }
     if ( !response.IsSuccessStatus() )
@@ -1164,6 +1186,14 @@ void
 COAuth2Flow::AfterIdentity( void )
 {GUCEF_TRACE;
 
+    // The account of a login of the source "parameters" is a label of the settings: no user info is asked for, whatever addresses
+    // the settings or the descriptor hold, and nothing a provider says becomes part of the result
+    if ( AUTHACCOUNTSOURCE_PARAMETERS == m_descriptor.accountSource )
+    {
+        Complete();
+        return;
+    }
+
     bool needUserInfo = false;
     bool required = AUTHPROTOCOL_OAUTH2 == m_descriptor.protocol;
     if ( OAUTH2FLOW_REFRESH != m_kind )
@@ -1309,7 +1339,9 @@ COAuth2Flow::Complete( void )
     else
     {
         result.accessToken = m_tokens.accessToken;
-        result.idToken = m_tokens.idToken;
+        // An id token is a token of OpenID Connect and was validated as one; a plain OAuth 2.0 login ignores one it was given
+        if ( AUTHPROTOCOL_OAUTH2 != m_descriptor.protocol )
+            result.idToken = m_tokens.idToken;
         if ( !m_tokens.refreshToken.IsEmpty() )
             result.refreshToken = m_tokens.refreshToken;
         else

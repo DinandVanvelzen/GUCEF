@@ -1,20 +1,18 @@
 /*
  *  gucefAUTH_TestApp: Application for testing gucefAUTH
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -45,6 +43,7 @@
 
 #include "TestPump.h"
 #include "TestRecorder.h"
+#include "TestText.h"
 #include "TestFlowEngine.h"
 #include "TestOpenId2Backend.h"
 #include "TestDescriptors.h"
@@ -101,6 +100,31 @@ CollectTemplateNames( const AUTH::CAuthProviderDescriptor& d, CORE::CString::Str
 }
 
 /*-------------------------------------------------------------------------*/
+
+/** A descriptor of an API whose account is an alias of the settings, as a brokerage's is */
+static AUTH::CAuthProviderDescriptor
+MakeParametersDescriptor( void )
+{GUCEF_TRACE;
+
+    AUTH::CAuthProviderDescriptor d;
+    d.name = "brokertest";
+    d.displayName = "Broker Test";
+    d.accountProviderId = "brokertest";
+    d.protocol = AUTH::AUTHPROTOCOL_OAUTH2;
+    d.capabilities = AUTH::AUTHCAP_BROWSER | AUTH::AUTHCAP_REFRESHABLE | AUTH::AUTHCAP_REQUIRES_CLIENT_ID;
+    d.authorizationEndpoint = "https://broker.example/v1/oauth/authorize";
+    d.tokenEndpoint = "https://broker.example/v1/oauth/token";
+    d.publicClient = false;
+    d.usesPkce = false;
+    d.clientSecretNeeded = true;
+    d.clientAuthMethod = "basic";
+    d.accountSource = AUTH::AUTHACCOUNTSOURCE_PARAMETERS;
+    d.subjectTemplate = "{accountAlias}";
+    d.defaultParameters[ "accountAlias" ] = "primary";
+    d.refreshTokenLifetimeInSeconds = 604800;
+    d.refreshTokenRejectedErrors.push_back( "invalid_client" );
+    return d;
+}
 
 /** The profile of a second backend of the tests, which a test registers and takes away again */
 class COtherOpenId2Profile : public CTestOpenId2Profile
@@ -681,6 +705,149 @@ PerformDescriptorTests( void )
             ASSERT_FALSE( factory.IsConstructible( "otheropenid" ) || registry.HasDescriptor( "otheropenid" ) || GUCEF_NULL != profiles.Find( "otheropenid" ) );
             ASSERT_TRUE( GUCEF_NULL == manager.GetProvider( "otheropenid" ) && 0 == manager.RefreshProviders() );
             ASSERT_TRUE( "Otheropenid" == AUTH::GetProviderDisplayName( "otheropenid" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The account source parameters: an alias of the settings is the account, the template names declared parameters only, and the descriptor is OAuth 2.0 and not server verifiable" )
+        try
+        {
+            AUTH::CAuthProviderDescriptor d = MakeParametersDescriptor();
+            ASSERT_TRUE( d.IsWellFormed() );
+            ASSERT_TRUE( AUTH::AUTHACCOUNTSOURCE_USERINFO == AUTH::CAuthProviderDescriptor().accountSource );
+            ASSERT_TRUE( 0 == AUTH::CAuthProviderDescriptor().refreshTokenLifetimeInSeconds && AUTH::CAuthProviderDescriptor().refreshTokenRejectedErrors.empty() );
+
+            // aliases
+            ASSERT_TRUE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( "primary" ) );
+            ASSERT_TRUE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( "a" ) );
+            ASSERT_TRUE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( "ira-2" ) );
+            ASSERT_TRUE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( "-" ) );
+            ASSERT_TRUE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( RepeatedText( 'z', 32 ) ) );
+            ASSERT_FALSE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( RepeatedText( 'z', 33 ) ) );
+            ASSERT_FALSE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( CORE::CString::Empty ) );
+            ASSERT_FALSE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( "Primary" ) );
+            ASSERT_FALSE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( "my alias" ) );
+            ASSERT_FALSE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( "a_b" ) );
+            ASSERT_FALSE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( "a.b" ) );
+            ASSERT_FALSE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( "a:b" ) );
+            ASSERT_FALSE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( "a%41" ) );
+            ASSERT_FALSE( AUTH::CAuthProviderDescriptor::IsValidAccountAlias( "caf\xc3\xa9" ) );
+
+            // the subject comes from the parameters only: a claim of the same name is not looked at
+            CORE::CString::StringMap claims;
+            claims[ "accountAlias" ] = "from-a-claim";
+            claims[ "sub" ] = "123456789";
+            CORE::CString::StringMap parameters;
+            parameters[ "accountAlias" ] = "primary";
+            AUTH::CAccountRef account;
+            ASSERT_TRUE( d.MakeAccountRef( claims, parameters, account ) && "brokertest:primary" == account.ToString() );
+            ASSERT_FALSE( d.MakeAccountRef( claims, CORE::CString::StringMap(), account ) || account.IsValid() );
+            parameters[ "accountAlias" ] = "Spouse Account";
+            ASSERT_FALSE( d.MakeAccountRef( claims, parameters, account ) );
+            parameters[ "accountAlias" ] = "spouse";
+            ASSERT_TRUE( d.MakeAccountRef( CORE::CString::StringMap(), parameters, account ) && "brokertest:spouse" == account.ToString() );
+            AUTH::CAuthProviderDescriptor twoPart = d;
+            twoPart.subjectTemplate = "{accountAlias}-{region}";
+            twoPart.requiredParameters.push_back( "region" );
+            ASSERT_TRUE( twoPart.IsWellFormed() );
+            parameters[ "region" ] = "us";
+            ASSERT_TRUE( twoPart.MakeAccountRef( claims, parameters, account ) && "brokertest:spouse-us" == account.ToString() );
+
+            // refused at validation
+            AUTH::CAuthProviderDescriptor bad = d;
+            bad.subjectTemplate = "{sub}";                                  // a claim, not a parameter
+            ASSERT_FALSE( bad.IsWellFormed() );
+            bad = d;
+            bad.subjectTemplate = "{accountAlias}:{sub}";
+            ASSERT_FALSE( bad.IsWellFormed() );
+            bad = d;
+            bad.subjectTemplate = CORE::CString::Empty;                     // the claim of subjectClaim would be the account
+            ASSERT_FALSE( bad.IsWellFormed() );
+            bad = d;
+            bad.subjectTemplate = "primary";                                // no parameter at all
+            ASSERT_FALSE( bad.IsWellFormed() );
+            bad = d;
+            bad.subjectTemplate = "{accountAlias";
+            ASSERT_FALSE( bad.IsWellFormed() );
+            bad = d;
+            bad.defaultParameters[ "accountAlias" ] = "Primary";           // a default that is no alias
+            ASSERT_FALSE( bad.IsWellFormed() );
+            bad = d;
+            bad.defaultParameters.clear();                                  // neither a default nor required
+            ASSERT_FALSE( bad.IsWellFormed() );
+            bad.requiredParameters.push_back( "accountAlias" );            // required of the application: well formed
+            ASSERT_TRUE( bad.IsWellFormed() );
+            bad = d;
+            bad.protocol = AUTH::AUTHPROTOCOL_OIDC;                         // an OpenID Connect login has a verified identity
+            ASSERT_FALSE( bad.IsWellFormed() );
+            bad = d;
+            bad.capabilities |= AUTH::AUTHCAP_SERVER_VERIFIABLE;            // a server cannot check a local label
+            ASSERT_FALSE( bad.IsWellFormed() );
+            bad = d;
+            bad.tokenVerifyStyle = "amazon-tokeninfo";
+            ASSERT_FALSE( bad.IsWellFormed() );
+            // the registry refuses what is not well formed
+            AUTH::CAuthProviderRegistry registry;
+            bad = d;
+            bad.subjectTemplate = "{sub}";
+            ASSERT_FALSE( registry.RegisterDescriptor( bad ) );
+            ASSERT_TRUE( registry.RegisterDescriptor( d ) );
+
+            // the errors of a refresh that mean the refresh token is gone
+            ASSERT_TRUE( d.IsRefreshTokenRejectedError( "invalid_grant" ) && d.IsRefreshTokenRejectedError( "invalid_client" ) );
+            ASSERT_FALSE( d.IsRefreshTokenRejectedError( "invalid_request" ) || d.IsRefreshTokenRejectedError( CORE::CString::Empty ) );
+            ASSERT_TRUE( AUTH::CAuthProviderDescriptor().IsRefreshTokenRejectedError( "invalid_grant" ) );
+            ASSERT_FALSE( AUTH::CAuthProviderDescriptor().IsRefreshTokenRejectedError( "invalid_client" ) );
+
+            // the text forms
+            AUTH::TAuthAccountSource source = AUTH::AUTHACCOUNTSOURCE_USERINFO;
+            ASSERT_TRUE( AUTH::AuthAccountSourceFromString( "Parameters", source ) && AUTH::AUTHACCOUNTSOURCE_PARAMETERS == source );
+            ASSERT_TRUE( AUTH::AuthAccountSourceFromString( "userinfo", source ) && AUTH::AUTHACCOUNTSOURCE_USERINFO == source );
+            ASSERT_FALSE( AUTH::AuthAccountSourceFromString( "claims", source ) );
+            ASSERT_TRUE( CORE::CString( "parameters" ) == AUTH::AuthAccountSourceToString( AUTH::AUTHACCOUNTSOURCE_PARAMETERS ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The account source, the lifetime of a refresh token and the refresh errors round trip through a data tree; an unknown account source refuses the record" )
+        try
+        {
+            AUTH::CAuthProviderDescriptor d = MakeParametersDescriptor();
+            CORE::CDataNode node( "brokertest", GUCEF_DATATYPE_OBJECT );
+            ASSERT_TRUE( d.Serialize( node, CORE::CDataNodeSerializableSettings() ) );
+            ASSERT_TRUE( "parameters" == node.GetAttributeValueOrChildValueByName( "accountSource" ).AsString() );
+            AUTH::CAuthProviderDescriptor back;
+            ASSERT_TRUE( back.Deserialize( node, CORE::CDataNodeSerializableSettings() ) );
+            ASSERT_TRUE( AUTH::AUTHACCOUNTSOURCE_PARAMETERS == back.accountSource && 604800 == back.refreshTokenLifetimeInSeconds );
+            ASSERT_TRUE( 1 == back.refreshTokenRejectedErrors.size() && "invalid_client" == back.refreshTokenRejectedErrors[ 0 ] );
+            ASSERT_TRUE( "{accountAlias}" == back.subjectTemplate && "primary" == back.defaultParameters[ "accountAlias" ] );
+
+            // a record without the fields is the behaviour of before
+            AUTH::CAuthProviderDescriptor google;
+            ASSERT_TRUE( AUTH::CAuthGlobal::Instance()->GetDescriptorRegistry().GetDescriptor( "google", google ) );
+            CORE::CDataNode googleNode( "google", GUCEF_DATATYPE_OBJECT );
+            ASSERT_TRUE( google.Serialize( googleNode, CORE::CDataNodeSerializableSettings() ) );
+            googleNode.DelAttribute( "accountSource" );
+            googleNode.DelAttribute( "refreshTokenLifetimeInSeconds" );
+            ASSERT_TRUE( back.Deserialize( googleNode, CORE::CDataNodeSerializableSettings() ) );
+            ASSERT_TRUE( AUTH::AUTHACCOUNTSOURCE_USERINFO == back.accountSource && 0 == back.refreshTokenLifetimeInSeconds && back.refreshTokenRejectedErrors.empty() );
+
+            // an account source that is not known is not guessed, the descriptor is not taken
+            node.SetAttribute( "accountSource", "claims" );
+            AUTH::CAuthProviderDescriptor kept = MakeParametersDescriptor();
+            kept.displayName = "unchanged";
+            ASSERT_FALSE( kept.Deserialize( node, CORE::CDataNodeSerializableSettings() ) );
+            ASSERT_TRUE( "unchanged" == kept.displayName );
+            // nor is one whose template names a claim
+            node.SetAttribute( "accountSource", "parameters" );
+            node.SetAttribute( "subjectTemplate", "{sub}" );
+            ASSERT_FALSE( kept.Deserialize( node, CORE::CDataNodeSerializableSettings() ) );
         }
         catch ( ... )
         {

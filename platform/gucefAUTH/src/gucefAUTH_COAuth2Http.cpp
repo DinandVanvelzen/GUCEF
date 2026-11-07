@@ -78,6 +78,7 @@ PrepareOptions( WEB::CHttpClientRequestOptions& options, const COAuth2EngineSett
     options.caBundlePath = settings.caBundlePath;
     options.connectTimeoutInMs = settings.httpConnectTimeoutInMs;
     options.totalTimeoutInMs = settings.httpTimeoutInMs;
+    options.maxResponseBodySize = settings.maxResponseBytes;      // read no further than the limit: the transfer is stopped there
 }
 
 /*-------------------------------------------------------------------------*/
@@ -278,6 +279,8 @@ CAuthHttpResponse::DescribeForLog( void ) const
         text += " backend-error=" + CORE::ToString( backendErrorCode );
     if ( transportOk )
         text += " status=" + CORE::ToString( statusCode );
+    if ( tooLarge )
+        text += " too-large";
     return text;
 }
 
@@ -326,7 +329,8 @@ COAuth2Http::Fill( const WEB::CHttpRequestData& request, const WEB::CHttpRespons
     response = CAuthHttpResponse();
     response.wasCancelled = info.wasCancelled;
     response.timedOut = info.timedOut;
-    response.transportOk = sent && info.success;
+    // An answer whose body went over the limit was stopped by the client: its status and header came, what came of its body is dropped
+    response.transportOk = ( sent && info.success ) || info.responseBodyTooLarge;
     response.scheme = request.requestProtocol.Lowercase();
     response.host = request.GetHostName();
     response.redactedUrl = CORE::CRedactor::ForUrl().RedactUrl( request.GetUrl() );
@@ -340,7 +344,7 @@ COAuth2Http::Fill( const WEB::CHttpRequestData& request, const WEB::CHttpRespons
     response.statusCode = data.statusCode;
     response.contentType = data.contentType;
     response.cacheControl = data.cacheability;
-    if ( data.content.GetDataSize() > m_settings.maxResponseBytes )
+    if ( info.responseBodyTooLarge || data.content.GetDataSize() > m_settings.maxResponseBytes )
     {
         response.tooLarge = true;
         return;

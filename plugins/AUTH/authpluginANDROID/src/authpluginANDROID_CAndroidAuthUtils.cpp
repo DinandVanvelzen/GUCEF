@@ -142,13 +142,22 @@ CAndroidAuthUtils::Execute( const CORE::CString& method      ,
     options.connectTimeoutInMs = timeoutInMs;
     options.followRedirects = false;
     options.verifyPeer = true;
+    options.maxResponseBodySize = MaxResponseSize;      // the transfer stops at the limit, nothing past it is buffered
 
     WEB::CHTTPClient client;
     WEB::CHttpResponseData response;
     WEB::CHttpClientTransferInfo transfer;
     if ( !client.Execute( request, options, response, &transfer ) )
     {
-        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AndroidAuthUtils: The request did not get an answer: " << transfer.errorDescription );
+        if ( transfer.responseBodyTooLarge )
+        {
+            statusCode = response.statusCode;
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AndroidAuthUtils: The answer is larger than the limit and is dropped" );
+        }
+        else
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "AndroidAuthUtils: The request did not get an answer: " << transfer.errorDescription );
+        }
         return false;
     }
 

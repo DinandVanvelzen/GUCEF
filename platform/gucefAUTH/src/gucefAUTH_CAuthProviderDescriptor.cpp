@@ -130,6 +130,35 @@ TextToIdScope( const CORE::CString& text, TAuthIdScope defaultScope )
 
 /*-------------------------------------------------------------------------*/
 
+const char*
+AuthAccountSourceToString( TAuthAccountSource source )
+{GUCEF_TRACE;
+
+    return AUTHACCOUNTSOURCE_PARAMETERS == source ? "parameters" : "userinfo";
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+AuthAccountSourceFromString( const CORE::CString& text, TAuthAccountSource& source )
+{GUCEF_TRACE;
+
+    CORE::CString lower = text.Lowercase();
+    if ( "userinfo" == lower )
+    {
+        source = AUTHACCOUNTSOURCE_USERINFO;
+        return true;
+    }
+    if ( "parameters" == lower )
+    {
+        source = AUTHACCOUNTSOURCE_PARAMETERS;
+        return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CAuthProviderDescriptor::CAuthProviderDescriptor( void )
     : CORE::CIDataNodeSerializable()
     , name()
@@ -165,6 +194,9 @@ CAuthProviderDescriptor::CAuthProviderDescriptor( void )
     , loginHintParameter( "login_hint" )
     , loginHintClaims()
     , formerNames()
+    , accountSource( AUTHACCOUNTSOURCE_USERINFO )
+    , refreshTokenLifetimeInSeconds( 0 )
+    , refreshTokenRejectedErrors()
     , notes()
 {GUCEF_TRACE;
 
@@ -207,6 +239,9 @@ CAuthProviderDescriptor::CAuthProviderDescriptor( const CAuthProviderDescriptor&
     , loginHintParameter( src.loginHintParameter )
     , loginHintClaims( src.loginHintClaims )
     , formerNames( src.formerNames )
+    , accountSource( src.accountSource )
+    , refreshTokenLifetimeInSeconds( src.refreshTokenLifetimeInSeconds )
+    , refreshTokenRejectedErrors( src.refreshTokenRejectedErrors )
     , notes( src.notes )
 {GUCEF_TRACE;
 
@@ -260,6 +295,9 @@ CAuthProviderDescriptor::operator=( const CAuthProviderDescriptor& src )
         loginHintParameter = src.loginHintParameter;
         loginHintClaims = src.loginHintClaims;
         formerNames = src.formerNames;
+        accountSource = src.accountSource;
+        refreshTokenLifetimeInSeconds = src.refreshTokenLifetimeInSeconds;
+        refreshTokenRejectedErrors = src.refreshTokenRejectedErrors;
         notes = src.notes;
     }
     return *this;
@@ -273,6 +311,38 @@ CAuthProviderDescriptor::IsWellFormed( void ) const
 
     if ( name.IsNULLOrEmpty() || displayName.IsNULLOrEmpty() || !CAccountRef::IsValidProvider( accountProviderId ) )
         return false;
+    if ( AUTHACCOUNTSOURCE_PARAMETERS == accountSource )
+    {
+        // A local label: only OAuth 2.0 (an OpenID Connect login has a verified identity), and nothing a server could check
+        if ( AUTHPROTOCOL_OAUTH2 != protocol || 0 != ( capabilities & AUTHCAP_SERVER_VERIFIABLE ) || !tokenVerifyStyle.IsNULLOrEmpty() )
+            return false;
+        // Every name of the template is a parameter the descriptor declares, with a default that is an alias or as one the application supplies
+        CORE::CString::StringVector names;
+        GetTemplateNames( subjectTemplate, names );
+        if ( names.empty() )
+            return false;
+        CORE::CString unused;
+        CORE::CString::StringMap declared( defaultParameters );
+        for ( size_t i=0; i<names.size(); ++i )
+        {
+            CORE::CString::StringMap::const_iterator d = defaultParameters.find( names[ i ] );
+            if ( d != defaultParameters.end() )
+            {
+                if ( !IsValidAccountAlias( (*d).second ) )
+                    return false;
+                continue;
+            }
+            bool required = false;
+            for ( size_t r=0; r<requiredParameters.size() && !required; ++r )
+                required = requiredParameters[ r ] == names[ i ];
+            if ( !required )
+                return false;
+            declared[ names[ i ] ] = "a";
+        }
+        // The template itself has to be well formed: braces closed, nothing but the names in them
+        if ( !ExpandTemplate( subjectTemplate, declared, GUCEF_NULL, false, unused ) )
+            return false;
+    }
     if ( AUTHPROTOCOL_PLATFORM == protocol )
         return true;
     if ( AUTHPROTOCOL_OPENID2 == protocol )
@@ -361,12 +431,60 @@ CAuthProviderDescriptor::GetTemplateNames( const CORE::CString& text, CORE::CStr
 /*-------------------------------------------------------------------------*/
 
 bool
+CAuthProviderDescriptor::IsValidAccountAlias( const CORE::CString& alias )
+{GUCEF_TRACE;
+
+    UInt32 size = GetByteLength( alias );
+    if ( 0 == size || size > 32 )
+        return false;
+    const char* p = alias.C_String();
+    for ( UInt32 i=0; i<size; ++i )
+    {
+        char c = p[ i ];
+        if ( !( ( c >= 'a' && c <= 'z' ) || ( c >= '0' && c <= '9' ) || '-' == c ) )
+            return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAuthProviderDescriptor::IsRefreshTokenRejectedError( const CORE::CString& errorCode ) const
+{GUCEF_TRACE;
+
+    if ( "invalid_grant" == errorCode )
+        return true;
+    for ( size_t i=0; i<refreshTokenRejectedErrors.size(); ++i )
+        if ( refreshTokenRejectedErrors[ i ] == errorCode )
+            return true;
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CAuthProviderDescriptor::ComposeSubject( const CORE::CString::StringMap& claims     ,
                                          const CORE::CString::StringMap& parameters ,
                                          CORE::CString& subject                     ) const
 {GUCEF_TRACE;
 
     subject.Clear();
+    if ( AUTHACCOUNTSOURCE_PARAMETERS == accountSource )
+    {
+        // The parameters only: nothing a provider answered can name the account
+        CORE::CString::StringVector names;
+        GetTemplateNames( subjectTemplate, names );
+        if ( names.empty() )
+            return false;
+        for ( size_t i=0; i<names.size(); ++i )
+        {
+            CORE::CString::StringMap::const_iterator value = parameters.find( names[ i ] );
+            if ( value == parameters.end() || !IsValidAccountAlias( (*value).second ) )
+                return false;
+        }
+        return ExpandTemplate( subjectTemplate, parameters, GUCEF_NULL, true, subject );
+    }
     CORE::CString templateText = subjectTemplate;
     if ( templateText.IsNULLOrEmpty() )
     {
@@ -460,6 +578,9 @@ CAuthProviderDescriptor::Serialize( CORE::CDataNode& domRootNode                
     domRootNode.SetAttribute( "loginHintParameter", loginHintParameter );
     domRootNode.SetValuesOfChildByName( "loginHintClaims", loginHintClaims );
     domRootNode.SetValuesOfChildByName( "formerNames", formerNames );
+    domRootNode.SetAttribute( "accountSource", CORE::CString( AuthAccountSourceToString( accountSource ) ) );
+    domRootNode.SetAttribute( "refreshTokenLifetimeInSeconds", refreshTokenLifetimeInSeconds );
+    domRootNode.SetValuesOfChildByName( "refreshTokenRejectedErrors", refreshTokenRejectedErrors );
     domRootNode.SetAttribute( "notes", notes );
     return true;
 }
@@ -528,6 +649,14 @@ CAuthProviderDescriptor::Deserialize( const CORE::CDataNode& domRootNode        
     loaded.loginHintParameter = domRootNode.GetAttributeValueOrChildValueByName( "loginHintParameter" ).AsString( "login_hint", true );
     domRootNode.GetValuesOfChildByName( "loginHintClaims", loaded.loginHintClaims );
     domRootNode.GetValuesOfChildByName( "formerNames", loaded.formerNames );
+    // An account source that is not known is refused, not guessed: it decides where the identity of a login comes from
+    CORE::CString accountSourceText = domRootNode.GetAttributeValueOrChildValueByName( "accountSource" ).AsString( "userinfo", true );
+    if ( accountSourceText.IsNULLOrEmpty() )
+        accountSourceText = "userinfo";
+    if ( !AuthAccountSourceFromString( accountSourceText, loaded.accountSource ) )
+        return false;
+    loaded.refreshTokenLifetimeInSeconds = domRootNode.GetAttributeValueOrChildValueByName( "refreshTokenLifetimeInSeconds" ).AsUInt32( 0, true );
+    domRootNode.GetValuesOfChildByName( "refreshTokenRejectedErrors", loaded.refreshTokenRejectedErrors );
     loaded.notes = domRootNode.GetAttributeValueOrChildValueByName( "notes" ).AsString( CORE::CString::Empty, true );
     if ( !loaded.IsWellFormed() )
         return false;

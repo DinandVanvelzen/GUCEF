@@ -117,6 +117,9 @@ class GUCEF_AUTH_EXPORT_CPP CDescriptorAuthProvider : public CIAuthProvider ,
      */
     bool SubmitRedirectUrl( const CORE::CString& redirectUrl );
 
+    /** The same, and which check failed when it was not taken (REDIRECTCHECK_NO_LOGIN_WAITING without an engine) */
+    bool SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck& check );
+
     virtual bool SaveConfig( CORE::CDataNode& config ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual bool LoadConfig( const CORE::CDataNode& config ) GUCEF_VIRTUAL_OVERRIDE;

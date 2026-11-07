@@ -97,6 +97,16 @@ class GUCEF_AUTH_EXPORT_CPP CAuthUrl
     /** The origin of the url: scheme://host[:port] */
     static CORE::CString GetOrigin( const CORE::CString& url );
 
+    /**
+     *  Whether the address a login was redirected to, without its query and fragment, is the redirect uri of the login. For http
+     *  and https the syntax based normalization of RFC 3986 (6.2.2.1, 6.2.3) applies and nothing else: the scheme and the host are
+     *  compared without case, a default port (80 for http, 443 for https) is the same as none, an empty path is the same as "/".
+     *  The path is compared byte for byte; user information, a percent sign in the host, a backslash, a query, a fragment, a
+     *  character outside the visible ASCII range and an empty or out of range port are refused. An IPv6 host is compared as
+     *  written between its brackets. Any other scheme is compared byte for byte.
+     */
+    static bool IsSameRedirectUri( const CORE::CString& received, const CORE::CString& expected );
+
     /** Whether the text is made of characters that need no encoding in a url (A-Z a-z 0-9 - . _ ~) only */
     static bool IsUnreservedText( const CORE::CString& text );
 

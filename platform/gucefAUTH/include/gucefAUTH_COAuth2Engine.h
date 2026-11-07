@@ -156,6 +156,9 @@ class GUCEF_AUTH_EXPORT_CPP COAuth2Engine : public IAuthFlowEngine ,
 
     virtual bool SubmitRedirectUrl( const CORE::CString& redirectUrl ) GUCEF_VIRTUAL_OVERRIDE;
 
+    /** Asks every login that waits for an address; the outcome of the login whose redirect uri matched is the one that is given */
+    virtual bool SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck& check ) GUCEF_VIRTUAL_OVERRIDE;
+
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     // For the flows of the engine

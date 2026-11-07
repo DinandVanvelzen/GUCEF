@@ -39,6 +39,25 @@ namespace AUTH {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+const char*
+RedirectCheckToString( TRedirectCheck check )
+{GUCEF_TRACE;
+
+    switch ( check )
+    {
+        case REDIRECTCHECK_ACCEPTED : return "accepted";
+        case REDIRECTCHECK_NO_LOGIN_WAITING : return "no-login-waiting";
+        case REDIRECTCHECK_MALFORMED : return "malformed";
+        case REDIRECTCHECK_ADDRESS_MISMATCH : return "address-mismatch";
+        case REDIRECTCHECK_STATE_MISSING : return "state-missing";
+        case REDIRECTCHECK_STATE_MISMATCH : return "state-mismatch";
+        case REDIRECTCHECK_NO_CODE : return "no-code";
+        default : return "refused";
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
 IAuthFlowSinkWatcher::IAuthFlowSinkWatcher( void )
 {GUCEF_TRACE;
 
@@ -122,6 +141,17 @@ IAuthFlowEngine::SubmitRedirectUrl( const CORE::CString& redirectUrl )
 {GUCEF_TRACE;
 
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+IAuthFlowEngine::SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck& check )
+{GUCEF_TRACE;
+
+    bool taken = SubmitRedirectUrl( redirectUrl );
+    check = taken ? REDIRECTCHECK_ACCEPTED : REDIRECTCHECK_REFUSED;
+    return taken;
 }
 
 /*-------------------------------------------------------------------------*/

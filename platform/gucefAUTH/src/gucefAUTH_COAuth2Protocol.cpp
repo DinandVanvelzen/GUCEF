@@ -422,6 +422,17 @@ COAuth2Protocol::Resolve( const CAuthProviderDescriptor& descriptor  ,
         ++p;
     }
 
+    // The account of the source "parameters" is made of the parameters alone: they are there and are aliases before a login starts
+    if ( AUTHACCOUNTSOURCE_PARAMETERS == descriptor.accountSource )
+    {
+        CORE::CString subject;
+        if ( !descriptor.ComposeSubject( CORE::CString::StringMap(), resolved.parameters, subject ) )
+        {
+            error = "The account alias of the settings is not set or is not 1 to 32 of a-z, 0-9 and -";
+            return false;
+        }
+    }
+
     bool discoveryFirst = discovered != GUCEF_NULL && !settings.discoveryUrl.IsNULLOrEmpty();
     COidcMetadata none;
     const COidcMetadata& found = GUCEF_NULL != discovered ? *discovered : none;

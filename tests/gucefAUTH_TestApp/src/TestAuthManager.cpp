@@ -1,20 +1,18 @@
 /*
  *  gucefAUTH_TestApp: Application for testing gucefAUTH
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -695,6 +693,42 @@ PerformAuthManagerTests( void )
             ASSERT_TRUE( AUTH::AUTHFAIL_IN_PROGRESS == f.recorder.Last( CAuthRecorder::KIND_FAILED )->failure.reason );
             ASSERT_TRUE( f.manager.CancelLogin( "hanging" ) && Await( future, 3000 ) );
             ASSERT_FALSE( f.manager.CancelLogin( "hanging" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The outcome of a renewal the manager did not start (that of a token keeper) does not end a login of the same provider that waits" )
+        GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json or ed25519 codec is not available" );
+        try
+        {
+            CFixture f( "mgr_stray" );
+            CFakeAuthProvider* fake = f.AddFake( "strayprov" );
+            fake->loginBehaviour = FAKE_HANG;
+            fake->refreshBehaviour = FAKE_COMPLETE;
+            CORE::CFutureResult login( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            ASSERT_TRUE( f.manager.Login( "strayprov", AUTH::CAuthOptions(), login ) );
+            UInt32 failedBefore = f.recorder.Count( CAuthRecorder::KIND_FAILED );
+
+            CORE::CFutureResult renewal( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            ASSERT_TRUE( fake->Refresh( AUTH::CAccountRef( "fake", "player-1" ), AUTH::CSecretString( "refresh-of-a-keeper" ), renewal ) );
+            PumpFor( 50 );
+            ASSERT_TRUE( renewal.IsReady() && !login.IsReady() && f.manager.IsLoginPending( "strayprov" ) );
+            ASSERT_TRUE( 0 == f.recorder.Count( CAuthRecorder::KIND_SUCCEEDED ) );
+
+            fake->refreshBehaviour = FAKE_FAIL;
+            fake->failReason = AUTH::AUTHFAIL_INVALID_GRANT;
+            renewal = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            ASSERT_TRUE( fake->Refresh( AUTH::CAccountRef( "fake", "player-1" ), AUTH::CSecretString( "refresh-of-a-keeper" ), renewal ) );
+            PumpFor( 50 );
+            ASSERT_TRUE( renewal.IsReady() && !login.IsReady() && f.manager.IsLoginPending( "strayprov" ) );
+            ASSERT_TRUE( failedBefore == f.recorder.Count( CAuthRecorder::KIND_FAILED ) );
+
+            // the login itself still ends the way it does
+            ASSERT_TRUE( f.manager.CancelLogin( "strayprov" ) && Await( login, 3000 ) );
+            ASSERT_FALSE( f.manager.IsLoginPending( "strayprov" ) );
         }
         catch ( ... )
         {

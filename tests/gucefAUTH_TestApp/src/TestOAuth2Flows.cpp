@@ -1,20 +1,18 @@
 /*
  *  gucefAUTH_TestApp: Application for testing gucefAUTH
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -57,6 +55,16 @@
 #include "gucef_test_tls_terminator.h"
 #define GUCEF_TEST_TLS_TERMINATOR_H
 #endif /* GUCEF_TEST_TLS_TERMINATOR_H ? */
+
+#ifndef GUCEF_TEST_TCP_SERVER_H
+#include "gucef_test_tcp_server.h"
+#define GUCEF_TEST_TCP_SERVER_H
+#endif /* GUCEF_TEST_TCP_SERVER_H ? */
+
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
 
 #include "TestText.h"
 #include "TestLogCapture.h"
@@ -1584,6 +1592,341 @@ PerformOAuth2OnlyTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** A provider of an API that knows no identity endpoint (a brokerage): the account is the alias of the settings */
+static AUTH::CAuthProviderDescriptor
+MakeBrokerDescriptor( void )
+{GUCEF_TRACE;
+
+    AUTH::CAuthProviderDescriptor d;
+    d.name = "brokerx";
+    d.displayName = "Broker X";
+    d.accountProviderId = "brokerx";
+    d.protocol = AUTH::AUTHPROTOCOL_OAUTH2;
+    d.capabilities = AUTH::AUTHCAP_BROWSER | AUTH::AUTHCAP_REFRESHABLE | AUTH::AUTHCAP_REQUIRES_CLIENT_ID;
+    d.authorizationEndpoint = "https://broker.example/v1/oauth/authorize";
+    d.tokenEndpoint = "https://broker.example/v1/oauth/token";
+    d.publicClient = false;
+    d.usesPkce = false;
+    d.clientSecretNeeded = true;
+    d.clientAuthMethod = "basic";
+    d.accountSource = AUTH::AUTHACCOUNTSOURCE_PARAMETERS;
+    d.subjectTemplate = "{accountAlias}";
+    d.defaultParameters[ "accountAlias" ] = "primary";
+    d.refreshTokenLifetimeInSeconds = 604800;
+    d.refreshTokenRejectedErrors.push_back( "invalid_client" );
+    return d;
+}
+
+/** The settings of it against the fake: the redirect is an https address on the loopback interface where nothing listens, handed back by the application */
+static AUTH::CAuthProviderSettings
+BrokerSettings( COAuth2Fixture& f )
+{GUCEF_TRACE;
+
+    AUTH::CAuthProviderSettings settings = f.LocalSettings();     // with a user info address of the fake: it must never be asked
+    settings.redirectMode = "manual";
+    settings.redirectUri = "https://127.0.0.1";
+    settings.clientSecret.Set( "broker-app-secret" );
+    return settings;
+}
+
+/** Starts a login with the broker and waits for the address the browser was sent to; empty when there was none */
+static CORE::CString
+StartBrokerLogin( COAuth2Fixture& f, CORE::CFutureResult& future )
+{GUCEF_TRACE;
+
+    UInt32 before = (UInt32) f.browser.GetRedirects().size();
+    if ( !f.manager.Login( "brokerx", AUTH::CAuthOptions(), future ) )
+        return CORE::CString::Empty;
+    for ( UInt32 waited=0; waited<5000 && f.browser.GetRedirects().size() <= before; ++waited )
+        PumpFor( 1 );
+    GUCEF::CORE::CString::StringVector redirects = f.browser.GetRedirects();
+    return redirects.size() > before ? redirects[ redirects.size() - 1 ] : CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformParametersAccountTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "Test: An account of the source parameters: the login names the alias, asks no user info, ignores an id token it gets, and a refresh keeps the account" )
+        GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json, rsa or ed25519 codec is not available" );
+        try
+        {
+            TDescriptorProviderFactory factory;
+            COAuth2Fixture f;
+            ASSERT_TRUE( f.ready );
+            CFakeBehavior behavior;
+            behavior.requirePkce = false;
+            f.fake.SetBehavior( behavior );
+            // the token endpoint gives an id token with a broken signature: a plain OAuth 2.0 login does not look at it
+            CFakeTokenSpec spec;
+            spec.tamperSignature = true;
+            f.fake.SetTokenSpec( spec );
+            AUTH::CDescriptorAuthProvider* provider = AddProvider( f, factory, MakeBrokerDescriptor(), BrokerSettings( f ) );
+            ASSERT_TRUE( GUCEF_NULL != provider );
+            if ( GUCEF_NULL == provider )
+                return;
+            ASSERT_TRUE( f.manager.IsProviderOffered( "brokerx" ) );
+            f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
+
+            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CString redirect = StartBrokerLogin( f, future );
+            ASSERT_TRUE( redirect.StartsWith( "https://127.0.0.1?" ) );
+            CORE::CString::StringMap asked = f.fake.GetLastAuthorizeParameters();
+            ASSERT_TRUE( "https://127.0.0.1" == asked[ "redirect_uri" ] && asked.end() == asked.find( "code_challenge" ) && asked.end() == asked.find( "nonce" ) );
+            CORE::CString query = redirect.SubstrToChar( '?', false, true );
+
+            // the address the browser shows has a slash: it is taken, with the configured value sent to the token endpoint
+            AUTH::TRedirectCheck check = AUTH::REDIRECTCHECK_REFUSED;
+            ASSERT_TRUE( provider->SubmitRedirectUrl( "https://127.0.0.1/?" + query, check ) && AUTH::REDIRECTCHECK_ACCEPTED == check );
+            for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
+                PumpFor( 1 );
+            AUTH::CAuthResult result;
+            ASSERT_TRUE( future.IsReady() && AUTH::CAuthResult::TryGetFromFuture( future, result ) );
+            ASSERT_TRUE( "brokerx:primary" == result.accountRef.ToString() );
+            ASSERT_TRUE( result.displayName.IsNULLOrEmpty() && result.avatarUrl.IsNULLOrEmpty() && result.loginHint.IsNULLOrEmpty() );
+            ASSERT_TRUE( !result.accessToken.IsEmpty() && !result.refreshToken.IsEmpty() && result.idToken.IsEmpty() && result.proof.IsEmpty() );
+            ASSERT_TRUE( 0 == f.fake.GetStats().userinfo && 0 == f.fake.GetStats().jwks );
+            CORE::CString::StringMap sent = f.fake.GetLastTokenParameters();
+            ASSERT_TRUE( "authorization_code" == sent[ "grant_type" ] && "https://127.0.0.1" == sent[ "redirect_uri" ] && sent.end() == sent.find( "code_verifier" ) );
+            ASSERT_TRUE( sent.end() == sent.find( "client_secret" ) && "Basic " + CORE::Base64Encode( "fake-client-id:broker-app-secret", 32 ) == f.fake.GetLastTokenAuthorization() );
+            // used once
+            ASSERT_FALSE( provider->SubmitRedirectUrl( "https://127.0.0.1/?" + query, check ) );
+            ASSERT_TRUE( AUTH::REDIRECTCHECK_NO_LOGIN_WAITING == check );
+
+            // a refresh keeps the account and asks no user info either
+            AUTH::CSecretString stored;
+            ASSERT_TRUE( f.credentials.Load( "brokerx", "brokerx:primary", stored ) && stored == result.refreshToken );
+            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            ASSERT_TRUE( provider->Refresh( result.accountRef, stored, future ) );
+            for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
+                PumpFor( 1 );
+            AUTH::CAuthResult renewed;
+            ASSERT_TRUE( future.IsReady() && AUTH::CAuthResult::TryGetFromFuture( future, renewed ) && "brokerx:primary" == renewed.accountRef.ToString() );
+            ASSERT_TRUE( "refresh_token" == f.fake.GetLastTokenParameters()[ "grant_type" ] && 0 == f.fake.GetStats().userinfo );
+
+            // another alias of the settings is another account: a second login at the same broker
+            AUTH::CAuthProviderSettings spouse = BrokerSettings( f );
+            spouse.parameters[ "accountAlias" ] = "spouse-ira";
+            AUTH::CAuthSettings all = f.manager.GetSettings();
+            all.SetProviderSettings( "brokerx", spouse );
+            f.manager.SetSettings( all );
+            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            redirect = StartBrokerLogin( f, future );
+            query = redirect.SubstrToChar( '?', false, true );
+            // scheme and host in capitals, the default port and a fragment the browser added: the same address
+            ASSERT_TRUE( provider->SubmitRedirectUrl( "HTTPS://127.0.0.1:443/?" + query + "#_=_", check ) && AUTH::REDIRECTCHECK_ACCEPTED == check );
+            for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
+                PumpFor( 1 );
+            ASSERT_TRUE( future.IsReady() && AUTH::CAuthResult::TryGetFromFuture( future, result ) && "brokerx:spouse-ira" == result.accountRef.ToString() );
+            ASSERT_TRUE( 0 == f.fake.GetStats().userinfo );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A handed back address says which check failed: another path, host, port or scheme, user information, a missing or wrong state, no code; the login goes on waiting" )
+        GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json, rsa or ed25519 codec is not available" );
+        try
+        {
+            TDescriptorProviderFactory factory;
+            COAuth2Fixture f;
+            ASSERT_TRUE( f.ready );
+            CFakeBehavior behavior;
+            behavior.requirePkce = false;
+            f.fake.SetBehavior( behavior );
+            AUTH::CDescriptorAuthProvider* provider = AddProvider( f, factory, MakeBrokerDescriptor(), BrokerSettings( f ) );
+            ASSERT_TRUE( GUCEF_NULL != provider );
+            if ( GUCEF_NULL == provider )
+                return;
+            f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
+
+            // nothing waits
+            AUTH::TRedirectCheck check = AUTH::REDIRECTCHECK_REFUSED;
+            ASSERT_FALSE( provider->SubmitRedirectUrl( "https://127.0.0.1/?code=x&state=y", check ) );
+            ASSERT_TRUE( AUTH::REDIRECTCHECK_NO_LOGIN_WAITING == check );
+
+            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CString redirect = StartBrokerLogin( f, future );
+            ASSERT_FALSE( redirect.IsNULLOrEmpty() );
+            CORE::CString query = redirect.SubstrToChar( '?', false, true );
+            CORE::CString::StringMap parameters;
+            bool duplicate = false;
+            ASSERT_TRUE( AUTH::CAuthUrl::ParseQuery( query, parameters, duplicate ) && !duplicate );
+            const CORE::CString code = parameters[ "code" ];
+            const CORE::CString state = parameters[ "state" ];
+            ASSERT_FALSE( code.IsNULLOrEmpty() || state.IsNULLOrEmpty() );
+
+            struct SCase { const char* address; AUTH::TRedirectCheck expected; };
+            const SCase mismatches[] =
+            {
+                { "https://127.0.0.1/extra?", AUTH::REDIRECTCHECK_ADDRESS_MISMATCH },
+                { "https://127.0.0.1//?", AUTH::REDIRECTCHECK_ADDRESS_MISMATCH },
+                { "https://127.0.0.1.evil.example/?", AUTH::REDIRECTCHECK_ADDRESS_MISMATCH },
+                { "https://127.0.0.1@evil.example/?", AUTH::REDIRECTCHECK_ADDRESS_MISMATCH },
+                { "https://evil.example@127.0.0.1/?", AUTH::REDIRECTCHECK_ADDRESS_MISMATCH },
+                { "https://evil.example/?", AUTH::REDIRECTCHECK_ADDRESS_MISMATCH },
+                { "https://evil.example/https://127.0.0.1?", AUTH::REDIRECTCHECK_ADDRESS_MISMATCH },
+                { "http://127.0.0.1/?", AUTH::REDIRECTCHECK_ADDRESS_MISMATCH },
+                { "https://127.0.0.1:8443/?", AUTH::REDIRECTCHECK_ADDRESS_MISMATCH },
+                { "https://localhost/?", AUTH::REDIRECTCHECK_ADDRESS_MISMATCH },
+                { "https://[::1]/?", AUTH::REDIRECTCHECK_ADDRESS_MISMATCH }
+            };
+            for ( size_t i=0; i<sizeof( mismatches ) / sizeof( mismatches[ 0 ] ); ++i )
+            {
+                check = AUTH::REDIRECTCHECK_REFUSED;
+                ASSERT_FALSE( provider->SubmitRedirectUrl( CORE::CString( mismatches[ i ].address ) + query, check ) );
+                ASSERT_TRUE( mismatches[ i ].expected == check );
+            }
+
+            // the provider did not give the state back: refused with that reason, the code alone is not enough
+            ASSERT_FALSE( provider->SubmitRedirectUrl( "https://127.0.0.1/?code=" + code, check ) );
+            ASSERT_TRUE( AUTH::REDIRECTCHECK_STATE_MISSING == check );
+            ASSERT_FALSE( provider->SubmitRedirectUrl( "https://127.0.0.1/?code=" + code + "&state=forged", check ) );
+            ASSERT_TRUE( AUTH::REDIRECTCHECK_STATE_MISMATCH == check );
+            ASSERT_FALSE( provider->SubmitRedirectUrl( "https://127.0.0.1/?code=" + code + "&state=" + state.SubstrToIndex( 10, true ), check ) );
+            ASSERT_TRUE( AUTH::REDIRECTCHECK_STATE_MISMATCH == check );
+            ASSERT_FALSE( provider->SubmitRedirectUrl( "https://127.0.0.1/?state=" + state, check ) );
+            ASSERT_TRUE( AUTH::REDIRECTCHECK_NO_CODE == check );
+            ASSERT_FALSE( provider->SubmitRedirectUrl( "https://127.0.0.1/?" + query + "&state=twice", check ) );
+            ASSERT_TRUE( AUTH::REDIRECTCHECK_MALFORMED == check );
+            ASSERT_FALSE( provider->SubmitRedirectUrl( "https://127.0.0.1/?code=%zz&state=" + state, check ) );
+            ASSERT_TRUE( AUTH::REDIRECTCHECK_MALFORMED == check );
+            ASSERT_FALSE( provider->SubmitRedirectUrl( CORE::CString::Empty, check ) );
+            ASSERT_TRUE( AUTH::REDIRECTCHECK_MALFORMED == check );
+            ASSERT_TRUE( 0 == f.fake.GetStats().token );
+            ASSERT_FALSE( future.IsReady() );
+
+            // the address without a query and fragment, with the slash: still the login's
+            ASSERT_TRUE( provider->SubmitRedirectUrl( "https://127.0.0.1/?" + query + "#", check ) && AUTH::REDIRECTCHECK_ACCEPTED == check );
+            for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
+                PumpFor( 1 );
+            AUTH::CAuthResult result;
+            ASSERT_TRUE( future.IsReady() && AUTH::CAuthResult::TryGetFromFuture( future, result ) && "brokerx:primary" == result.accountRef.ToString() );
+            ASSERT_TRUE( 1 == f.fake.GetStats().token );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: An alias that is not one, in the settings, leaves the provider not offered with the key to fix, and no login starts" )
+        GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json, rsa or ed25519 codec is not available" );
+        try
+        {
+            TDescriptorProviderFactory factory;
+            COAuth2Fixture f;
+            ASSERT_TRUE( f.ready );
+            AUTH::CAuthProviderSettings settings = BrokerSettings( f );
+            settings.parameters[ "accountAlias" ] = "My Account";
+            ASSERT_TRUE( GUCEF_NULL != AddProvider( f, factory, MakeBrokerDescriptor(), settings ) );
+            ASSERT_FALSE( f.manager.IsProviderOffered( "brokerx" ) );
+            AUTH::CAuthUnavailableProvider unavailable;
+            ASSERT_TRUE( f.manager.GetUnavailableProvider( "brokerx", unavailable ) );
+            ASSERT_TRUE( AUTH::AUTHUNAVAILABLE_MISSING_SETTING == unavailable.reason && "Auth/Providers/brokerx/Parameters/accountAlias" == unavailable.configKey );
+            ASSERT_TRUE( unavailable.message.HasSubstr( "My Account" ) < 0 );
+            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            f.manager.Login( "brokerx", AUTH::CAuthOptions(), future );
+            for ( UInt32 waited=0; waited<3000 && !future.IsReady(); ++waited )
+                PumpFor( 1 );
+            AUTH::CAuthResult result;
+            ASSERT_TRUE( future.IsReady() && !AUTH::CAuthResult::TryGetFromFuture( future, result ) );
+            ASSERT_TRUE( 0 == f.fake.GetStats().authorize && 0 == f.browser.GetOpenCount() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The access token keeper over the engine and a token endpoint: a refused token is renewed with the rotated refresh token kept, and the error the provider gives for an expired refresh token asks for a new login" )
+        GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json, rsa or ed25519 codec is not available" );
+        try
+        {
+            TDescriptorProviderFactory factory;
+            COAuth2Fixture f;
+            ASSERT_TRUE( f.ready );
+            CFakeBehavior behavior;
+            behavior.requirePkce = false;
+            behavior.rotateRefreshTokens = true;
+            f.fake.SetBehavior( behavior );
+            AUTH::CDescriptorAuthProvider* provider = AddProvider( f, factory, MakeBrokerDescriptor(), BrokerSettings( f ) );
+            ASSERT_TRUE( GUCEF_NULL != provider );
+            if ( GUCEF_NULL == provider )
+                return;
+            f.browser.SetMode( CTestBrowser::MODE_CAPTURE );
+            CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            CORE::CString redirect = StartBrokerLogin( f, future );
+            AUTH::TRedirectCheck check = AUTH::REDIRECTCHECK_REFUSED;
+            ASSERT_TRUE( provider->SubmitRedirectUrl( "https://127.0.0.1/?" + redirect.SubstrToChar( '?', false, true ), check ) );
+            for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
+                PumpFor( 1 );
+            AUTH::CAuthResult login;
+            ASSERT_TRUE( AUTH::CAuthResult::TryGetFromFuture( future, login ) && "brokerx:primary" == login.accountRef.ToString() );
+            PumpFor( 20 );
+
+            CLogCapture log;
+            AUTH::CAccessTokenKeeper keeper;
+            AUTH::CAccessTokenKeeperSettings settings;
+            settings.checkIntervalMs = 5;
+            settings.pollIntervalMs = 2;
+            keeper.SetSettings( settings );
+            keeper.SetManager( &f.manager );
+            keeper.SetCredentialStore( &f.credentials );
+            keeper.SetAccount( "brokerx", login.accountRef );
+            ASSERT_TRUE( keeper.RecordInteractiveLogin() );
+            AUTH::CSecretString token;
+            UInt64 expiresAtMs = 0;
+            ASSERT_TRUE( AUTH::TOKEN_READY == keeper.GetAccessToken( token, expiresAtMs ) && token == login.accessToken && expiresAtMs > AUTH::GetEpochTimeInMs() );
+
+            // the API refused the token: one renewal at the token endpoint, the rotated refresh token is kept, the old one is dead at the provider
+            const CORE::CString firstRefresh = login.refreshToken.Reveal();
+            UInt32 tokenRequests = f.fake.GetStats().token;
+            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            ASSERT_TRUE( keeper.ReportTokenRejected( token, future ) );
+            for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
+                PumpFor( 1 );
+            ASSERT_TRUE( future.IsReady() && !future.HasNoFuture() );
+            ASSERT_TRUE( tokenRequests + 1 == f.fake.GetStats().token && "refresh_token" == f.fake.GetLastTokenParameters()[ "grant_type" ] );
+            ASSERT_TRUE( "Basic " + CORE::Base64Encode( "fake-client-id:broker-app-secret", 32 ) == f.fake.GetLastTokenAuthorization() );
+            AUTH::CSecretString renewed;
+            ASSERT_TRUE( AUTH::TOKEN_READY == keeper.GetAccessToken( renewed, expiresAtMs ) && renewed != login.accessToken );
+            AUTH::CSecretString stored;
+            ASSERT_TRUE( f.credentials.Load( "brokerx", "brokerx:primary", stored ) && stored.Reveal() != firstRefresh && f.fake.IsRefreshTokenValid( stored.Reveal() ) );
+            ASSERT_FALSE( f.fake.IsRefreshTokenValid( firstRefresh ) );
+            ASSERT_TRUE( 0 == f.fake.GetStats().userinfo );
+            const CORE::CString secondRefresh = stored.Reveal();
+
+            // the provider answers invalid_client for a refresh token that expired: the descriptor says that means the refresh token is gone
+            behavior.tokenError = "invalid_client";
+            behavior.tokenErrorStatus = 401;
+            f.fake.SetBehavior( behavior );
+            future = CORE::CFutureResult( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+            ASSERT_TRUE( keeper.ReportTokenRejected( renewed, future ) );
+            for ( UInt32 waited=0; waited<10000 && !future.IsReady(); ++waited )
+                PumpFor( 1 );
+            ASSERT_TRUE( future.IsReady() && future.HasNoFuture() );
+            ASSERT_TRUE( keeper.IsReauthRequired() && AUTH::REAUTH_REFRESH_TOKEN_REJECTED == keeper.GetReauthReason() );
+            ASSERT_FALSE( f.credentials.Load( "brokerx", "brokerx:primary", stored ) );
+            ASSERT_TRUE( AUTH::NO_LOGIN == keeper.GetAccessToken( token, expiresAtMs ) );
+            keeper.Shutdown();
+            keeper.SetManager( GUCEF_NULL );
+            ASSERT_TRUE( log.Text().HasSubstr( firstRefresh ) < 0 && log.Text().HasSubstr( secondRefresh ) < 0 && log.Text().HasSubstr( renewed.Reveal() ) < 0 );
+            ASSERT_TRUE( log.Text().HasSubstr( "invalid_client" ) >= 0 );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 static AUTH::CAuthProviderSettings
 RelayOpenId2Settings( COAuth2Fixture& f, const CORE::CString& relayUrl );
 
@@ -2550,6 +2893,296 @@ PerformLogTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** How the answer of the hostile endpoint says where its body ends */
+enum EHostileFraming
+{
+    HOSTILE_UNTIL_CLOSE = 0,    /**< no Content-Length and no chunks: the body ends when the connection does */
+    HOSTILE_CHUNKED,            /**< chunks, the last chunk never comes */
+    HOSTILE_ANNOUNCED,          /**< a Content-Length far over any limit, of which the body is the start */
+    HOSTILE_EXACT               /**< a Content-Length that is the size of the body that is sent */
+};
+
+static const char*
+HostileFramingName( EHostileFraming framing )
+{
+    switch ( framing )
+    {
+        case HOSTILE_UNTIL_CLOSE :  return "until-close";
+        case HOSTILE_CHUNKED :      return "chunked";
+        case HOSTILE_ANNOUNCED :    return "announced";
+        default :                   return "exact";
+    }
+}
+
+/** Whether the test TCP server can run on this platform */
+#if defined( __linux__ )
+static const bool TcpTestServerAvailable = true;
+#else
+static const bool TcpTestServerAvailable = false;
+#endif
+
+/** Milliseconds on a monotonic clock */
+static UInt64
+MonotonicMs( void )
+{GUCEF_TRACE;
+
+    const UInt64 resolution = MT::PrecisionTimerResolution();
+    return 0 == resolution ? 0 : MT::PrecisionTickCount() * 1000 / resolution;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  A token endpoint that answers every request with 200 and a body of 'bodySize' bytes, sent in blocks of 64 KiB as fast as the
+ *  client takes them. It counts what it could hand to the connection and notes whether the client closed the connection before
+ *  the body was sent. With chunks or an announced length the answer has not ended when the body is sent: the connection is
+ *  then held open until the client goes away. Chunks are whole blocks: a chunked body is a multiple of the block size.
+ */
+class CHostileTokenEndpoint : public TESTFW::CTestTcpServer
+{
+    public:
+
+    enum { BlockSize = 65536 };
+
+    CHostileTokenEndpoint( EHostileFraming framing, UInt64 bodySize )
+        : TESTFW::CTestTcpServer()
+        , m_framing( framing )
+        , m_bodySize( bodySize )
+        , m_block( BlockSize, ' ' )
+        , m_statsLock()
+        , m_bytesSent( 0 )
+        , m_cutOff( false )
+    {
+    }
+
+    virtual ~CHostileTokenEndpoint()
+    {
+        Stop();
+    }
+
+    CORE::CString GetBaseUrl( void ) const
+    {
+        return "http://127.0.0.1:" + CORE::ToString( GetPort() );
+    }
+
+    /** Bytes of the body that were handed to the connection */
+    UInt64 GetBytesSent( void )
+    {
+        MT::CScopeMutex lock( m_statsLock );
+        return m_bytesSent;
+    }
+
+    /** Whether the client closed the connection before all of the body was sent */
+    bool WasCutOff( void )
+    {
+        MT::CScopeMutex lock( m_statsLock );
+        return m_cutOff;
+    }
+
+    protected:
+
+    virtual void Serve( TESTFW::CTestServerConnection& connection ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        // the request: its header lines up to the empty one, and the body of the length it announces
+        CORE::CString line;
+        UInt32 requestBodySize = 0;
+        while ( connection.ReadLine( line, 5000 ) && !line.IsNULLOrEmpty() )
+        {
+            if ( 0 == line.Lowercase().HasSubstr( "content-length:", true ) )
+                requestBodySize = CORE::StringToUInt32( line.CutChars( 15, true ).Trim( true ).Trim( false ) );
+        }
+        CORE::CDynamicBuffer requestBody;
+        if ( requestBodySize > 0 && !connection.ReadBytes( requestBodySize, requestBody, 5000 ) )
+            return;
+
+        CORE::CString header = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n";
+        switch ( m_framing )
+        {
+            case HOSTILE_UNTIL_CLOSE :  header += "Connection: close\r\n"; break;
+            case HOSTILE_CHUNKED :      header += "Transfer-Encoding: chunked\r\n"; break;
+            case HOSTILE_ANNOUNCED :    header += "Content-Length: 1099511627776\r\n"; break;
+            default :                   header += "Content-Length: " + CORE::ToString( m_bodySize ) + "\r\n"; break;
+        }
+        header += "\r\n";
+        if ( !connection.WriteText( header ) )
+            return;
+
+        UInt64 sent = 0;
+        while ( sent < m_bodySize )
+        {
+            const UInt32 size = m_bodySize - sent < BlockSize ? (UInt32) ( m_bodySize - sent ) : BlockSize;
+            bool written = true;
+            if ( HOSTILE_CHUNKED == m_framing )
+                written = connection.WriteText( CORE::CString( "10000\r\n" ) );
+            written = written && connection.Write( &m_block[ 0 ], size );
+            if ( written && HOSTILE_CHUNKED == m_framing )
+                written = connection.WriteText( CORE::CString( "\r\n" ) );
+            if ( !written )
+            {
+                {
+                    MT::CScopeMutex lock( m_statsLock );
+                    m_cutOff = true;
+                }
+                SignalChanged();
+                return;
+            }
+            sent += size;
+            {
+                MT::CScopeMutex lock( m_statsLock );
+                m_bytesSent = sent;
+            }
+        }
+        SignalChanged();
+
+        // the answer did not end: the connection stays until the client goes away or the server stops
+        if ( HOSTILE_CHUNKED == m_framing || HOSTILE_ANNOUNCED == m_framing )
+        {
+            while ( !connection.IsClosed() && !connection.IsServerStopping() )
+                connection.ReadLine( line, 200 );
+        }
+    }
+
+    private:
+
+    EHostileFraming m_framing;
+    UInt64 m_bodySize;
+    GUCEF::vector< char > m_block;
+    MT::CMutex m_statsLock;
+    UInt64 m_bytesSent;
+    bool m_cutOff;
+};
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformResponseLimitTests( void )
+{GUCEF_TRACE;
+
+    // what a hostile or broken provider sends: far more than the limit of 1 MiB
+    const UInt64 hostileBodySize = 64 * 1024 * 1024;
+    const UInt32 limit = 1048576;
+    const EHostileFraming endless[ 3 ] = { HOSTILE_UNTIL_CLOSE, HOSTILE_CHUNKED, HOSTILE_ANNOUNCED };
+
+    GUCEF_TESTFW_TESTCASE( "Test: A token endpoint that sends far more than maxResponseBytes (until the connection closes, chunked, or with a Content-Length over the limit) is cut off at the limit: the connection is closed, the answer is too large, nothing of it is kept" )
+        GUCEF_TESTFW_SKIP_IF( !TcpTestServerAvailable, "The test TCP server is not available on this platform" );
+        try
+        {
+            AUTH::COAuth2EngineSettings settings;
+            settings.allowInsecureHttp = true;
+            settings.maxResponseBytes = limit;
+            settings.httpTimeoutInMs = 8000;
+            for ( UInt32 i=0; i<3; ++i )
+            {
+                CHostileTokenEndpoint server( endless[ i ], hostileBodySize );
+                ASSERT_TRUE( server.Start() );
+
+                AUTH::COAuth2Http http( settings );
+                AUTH::CAuthHttpRequest request;
+                ASSERT_TRUE( request.Post( server.GetBaseUrl() + "/token", "application/x-www-form-urlencoded", "grant_type=refresh_token&refresh_token=abc", settings ) );
+                AUTH::CAuthHttpResponse response;
+                const UInt64 startMs = MonotonicMs();
+                ASSERT_FALSE( http.Execute( request, response ) );
+                const UInt64 elapsedMs = MonotonicMs() - startMs;
+                ASSERT_TRUE( server.WaitForFinishedConnections( 1, 10000 ) );
+                const UInt64 sent = server.GetBytesSent();
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ResponseLimit: " << HostileFramingName( endless[ i ] ) << ": the endpoint sent " << sent << " bytes of " << hostileBodySize << " in " << elapsedMs << " ms, cut off: " << server.WasCutOff() );
+
+                // the request fails as an answer that is too large, not as a timeout, and the client keeps nothing of it
+                ASSERT_TRUE( response.transportOk && response.tooLarge && !response.timedOut && 200 == response.statusCode );
+                ASSERT_TRUE( 0 == response.body.GetDataSize() );
+                AUTH::TAuthFailureReason reason = AUTH::AUTHFAIL_UNKNOWN;
+                CORE::CString message;
+                ASSERT_TRUE( response.DescribeFailure( reason, message ) );
+                ASSERT_TRUE( AUTH::AUTHFAIL_INVALID_RESPONSE == reason && Contains( message, "too large" ) );
+
+                // the client stopped reading near the limit and closed the connection: the endpoint could hand over only a small part
+                // of the body (what the socket buffers hold besides the limit), and it ended long before the timeout
+                ASSERT_TRUE( server.WasCutOff() );
+                ASSERT_TRUE( sent < hostileBodySize / 4 );
+                ASSERT_TRUE( elapsedMs < settings.httpTimeoutInMs );
+            }
+
+            // the limit itself: a body of exactly the limit is taken, one byte more is refused as soon as its length is announced
+            {
+                CHostileTokenEndpoint server( HOSTILE_EXACT, limit );
+                ASSERT_TRUE( server.Start() );
+                AUTH::COAuth2Http http( settings );
+                AUTH::CAuthHttpRequest request;
+                ASSERT_TRUE( request.Post( server.GetBaseUrl() + "/token", "application/x-www-form-urlencoded", "grant_type=refresh_token", settings ) );
+                AUTH::CAuthHttpResponse response;
+                ASSERT_TRUE( http.Execute( request, response ) );
+                ASSERT_TRUE( response.transportOk && !response.tooLarge && limit == response.body.GetDataSize() );
+            }
+            {
+                CHostileTokenEndpoint server( HOSTILE_EXACT, limit + 1 );
+                ASSERT_TRUE( server.Start() );
+                AUTH::COAuth2Http http( settings );
+                AUTH::CAuthHttpRequest request;
+                ASSERT_TRUE( request.Post( server.GetBaseUrl() + "/token", "application/x-www-form-urlencoded", "grant_type=refresh_token", settings ) );
+                AUTH::CAuthHttpResponse response;
+                ASSERT_FALSE( http.Execute( request, response ) );
+                ASSERT_TRUE( response.transportOk && response.tooLarge && 0 == response.body.GetDataSize() );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A refresh at a token endpoint that never stops sending ends the refresh as an invalid answer that is too large, at the limit and long before the timeout" )
+        GUCEF_TESTFW_SKIP_IF( !Prerequisites(), "The json, rsa or ed25519 codec is not available" );
+        GUCEF_TESTFW_SKIP_IF( !TcpTestServerAvailable, "The test TCP server is not available on this platform" );
+        try
+        {
+            COAuth2Fixture f;
+            ASSERT_TRUE( f.ready );
+            AUTH::COAuth2EngineSettings settings = f.engine->GetSettings();
+            settings.maxResponseBytes = limit;
+            f.engine->SetSettings( settings );
+
+            for ( UInt32 i=0; i<3; ++i )
+            {
+                CHostileTokenEndpoint server( endless[ i ], hostileBodySize );
+                ASSERT_TRUE( server.Start() );
+                AUTH::CAuthProviderSettings hostile = f.LocalSettings();
+                hostile.tokenEndpoint = server.GetBaseUrl() + "/token";
+                ASSERT_TRUE( f.ConfigureOne( "google", hostile ) );
+                AUTH::CIAuthProvider* provider = f.manager.GetProvider( "google" );
+                ASSERT_TRUE( GUCEF_NULL != provider );
+                if ( GUCEF_NULL == provider )
+                    return;
+                CAuthRecorder providerEvents;
+                providerEvents.SubscribeTo( provider );
+
+                const UInt64 startMs = MonotonicMs();
+                CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
+                ASSERT_TRUE( provider->Refresh( AUTH::CAccountRef( "google", "sub-1000" ), AUTH::CSecretString( "refresh-token-value" ), future ) );
+                for ( UInt32 waited=0; waited<20000 && !future.IsReady(); ++waited )
+                    PumpFor( 1 );
+                const UInt64 elapsedMs = MonotonicMs() - startMs;
+                AUTH::CAuthResult result;
+                ASSERT_TRUE( future.IsReady() && !AUTH::CAuthResult::TryGetFromFuture( future, result ) );
+                PumpUntilRecorded( providerEvents, CAuthRecorder::KIND_FAILED, 1, 2000 );
+                ASSERT_TRUE( server.WaitForFinishedConnections( 1, 10000 ) );
+                const UInt64 sent = server.GetBytesSent();
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "ResponseLimit: refresh, " << HostileFramingName( endless[ i ] ) << ": the endpoint sent " << sent << " bytes of " << hostileBodySize << " in " << elapsedMs << " ms" );
+
+                const CAuthRecorder::SRecord* failed = providerEvents.Last( CAuthRecorder::KIND_FAILED );
+                ASSERT_TRUE( GUCEF_NULL != failed && AUTH::AUTHFAIL_INVALID_RESPONSE == failed->failure.reason && Contains( failed->failure.message, "too large" ) );
+                ASSERT_TRUE( server.WasCutOff() && sent < hostileBodySize / 4 );
+                ASSERT_TRUE( elapsedMs < settings.httpTimeoutInMs );
+            }
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformOAuth2FlowTests( void )
 {GUCEF_TRACE;
@@ -2565,11 +3198,13 @@ PerformOAuth2FlowTests( void )
     PerformRefreshTests();
     PerformBodyStyleTests();
     PerformOAuth2OnlyTests();
+    PerformParametersAccountTests();
     PerformOpenId2Tests();
     PerformOpenId2RelayTests();
     PerformPolicyTests();
     PerformLifecycleTests();
     PerformLogTests();
+    PerformResponseLimitTests();
 }
 
 /*-------------------------------------------------------------------------*/

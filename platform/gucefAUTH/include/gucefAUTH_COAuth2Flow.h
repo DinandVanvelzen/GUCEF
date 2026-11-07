@@ -127,8 +127,8 @@ class GUCEF_AUTH_EXPORT_CPP COAuth2Flow : public CORE::CObserver       ,
 
     bool IsFinished( void ) const;
 
-    /** Takes the address the login was redirected to; true when this login took it */
-    bool SubmitRedirectUrl( const CORE::CString& redirectUrl );
+    /** Takes the address the login was redirected to; true when this login took it, else check says which check failed */
+    bool SubmitRedirectUrl( const CORE::CString& redirectUrl, TRedirectCheck& check );
 
     /** Ends the login as cancelled */
     void Cancel( void );

@@ -63,6 +63,39 @@ GetMonotonicClockOffsetInMs( void )
     return g_monotonicClockOffsetInMs;
 }
 
+/*-------------------------------------------------------------------------*/
+
+IEpochClock::IEpochClock( void )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+IEpochClock::~IEpochClock()
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CSystemEpochClock::GetEpochTimeInMs( void ) const
+{GUCEF_TRACE;
+
+    return AUTH::GetEpochTimeInMs();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CSystemEpochClock&
+CSystemEpochClock::Instance( void )
+{GUCEF_TRACE;
+
+    static const CSystemEpochClock clock;
+    return clock;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

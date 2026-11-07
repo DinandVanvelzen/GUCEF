@@ -13,6 +13,7 @@
 
 set( HEADER_FILES 
   include/gucefAUTH.h
+  include/gucefAUTH_CAccessTokenKeeper.h
   include/gucefAUTH_CAccountRef.h
   include/gucefAUTH_CAuthCrypto.h
   include/gucefAUTH_CAuthEventData.h
@@ -36,6 +37,7 @@ set( HEADER_FILES
   include/gucefAUTH_CLinkRecord.h
   include/gucefAUTH_CLocalIdentityLinkStore.h
   include/gucefAUTH_CLoopbackRedirectListener.h
+  include/gucefAUTH_CMailOAuthCredentialProvider.h
   include/gucefAUTH_CMemoryCredentialStore.h
   include/gucefAUTH_CModule.h
   include/gucefAUTH_COAuth2Engine.h
@@ -63,6 +65,7 @@ set( HEADER_FILES
 
 set( SOURCE_FILES 
   src/gucefAUTH.cpp
+  src/gucefAUTH_CAccessTokenKeeper.cpp
   src/gucefAUTH_CAccountRef.cpp
   src/gucefAUTH_CAuthCrypto.cpp
   src/gucefAUTH_CAuthEventData.cpp
@@ -86,6 +89,7 @@ set( SOURCE_FILES
   src/gucefAUTH_CLinkRecord.cpp
   src/gucefAUTH_CLocalIdentityLinkStore.cpp
   src/gucefAUTH_CLoopbackRedirectListener.cpp
+  src/gucefAUTH_CMailOAuthCredentialProvider.cpp
   src/gucefAUTH_CMemoryCredentialStore.cpp
   src/gucefAUTH_CModule.cpp
   src/gucefAUTH_COAuth2Engine.cpp
@@ -123,7 +127,7 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include ../gucefVFS/include ../gucefWEB/include include )
+include_directories( ../../common/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT/include ../gucefVFS/include ../gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )

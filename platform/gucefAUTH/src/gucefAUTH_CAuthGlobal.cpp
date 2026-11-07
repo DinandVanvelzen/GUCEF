@@ -69,6 +69,11 @@
 #define GUCEF_AUTH_CAUTHMANAGER_H
 #endif /* GUCEF_AUTH_CAUTHMANAGER_H ? */
 
+#ifndef GUCEF_AUTH_CACCESSTOKENKEEPER_H
+#include "gucefAUTH_CAccessTokenKeeper.h"
+#define GUCEF_AUTH_CACCESSTOKENKEEPER_H
+#endif /* GUCEF_AUTH_CACCESSTOKENKEEPER_H ? */
+
 #ifndef GUCEF_AUTH_CAUTHSETTINGSPROFILE_H
 #include "gucefAUTH_CAuthSettingsProfile.h"
 #define GUCEF_AUTH_CAUTHSETTINGSPROFILE_H
@@ -140,6 +145,7 @@ CAuthGlobal::Initialize( void )
     CIAuthProvider::RegisterEvents();
     CAuthManager::RegisterEvents();
     CAuthSettingsProfile::RegisterEvents();
+    CAccessTokenKeeper::RegisterEvents();
 
     m_providerFactory = GUCEF_NEW CAuthProviderFactory();
     m_descriptorRegistry = GUCEF_NEW CAuthProviderRegistry();

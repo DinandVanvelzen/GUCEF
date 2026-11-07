@@ -341,6 +341,134 @@ CAuthUrl::GetOrigin( const CORE::CString& url )
 
 /*-------------------------------------------------------------------------*/
 
+/** The parts of an http or https address that a redirect uri is compared by, normalized; false when it is not such an address or is not acceptable */
+static bool
+SplitRedirectUri( const CORE::CString& url  ,
+                  CORE::CString& scheme     ,
+                  CORE::CString& host       ,
+                  UInt32& port              ,
+                  CORE::CString& path       )
+{GUCEF_TRACE;
+
+    UInt32 size = GetByteLength( url );
+    if ( 0 == size || size > CAuthUrl::MaxUrlBytes )
+        return false;
+    const char* p = url.C_String();
+    for ( UInt32 i=0; i<size; ++i )
+    {
+        unsigned char c = (unsigned char) p[ i ];
+        if ( c <= 0x20 || c >= 0x7F || '\\' == c || '?' == c || '#' == c )
+            return false;
+    }
+
+    // scheme "://"
+    UInt32 i = 0;
+    while ( i < size && ':' != p[ i ] )
+        ++i;
+    if ( 0 == i || i + 3 > size || '/' != p[ i+1 ] || '/' != p[ i+2 ] )
+        return false;
+    scheme = CORE::CString( p, i ).Lowercase();
+    UInt32 defaultPort = 0;
+    if ( scheme == "https" )
+        defaultPort = 443;
+    else
+    if ( scheme == "http" )
+        defaultPort = 80;
+    else
+        return false;
+
+    // authority up to the path
+    UInt32 authorityAt = i + 3;
+    UInt32 authorityEnd = authorityAt;
+    while ( authorityEnd < size && '/' != p[ authorityEnd ] )
+        ++authorityEnd;
+    if ( authorityEnd == authorityAt )
+        return false;
+    UInt32 hostEnd = authorityEnd;
+    UInt32 portAt = 0;
+    if ( '[' == p[ authorityAt ] )
+    {
+        UInt32 close = authorityAt + 1;
+        while ( close < authorityEnd && ']' != p[ close ] )
+        {
+            char c = p[ close ];
+            if ( !( ( c >= '0' && c <= '9' ) || ( c >= 'a' && c <= 'f' ) || ( c >= 'A' && c <= 'F' ) || ':' == c || '.' == c ) )
+                return false;
+            ++close;
+        }
+        if ( close >= authorityEnd || close == authorityAt + 1 )
+            return false;
+        hostEnd = close + 1;
+        if ( hostEnd < authorityEnd )
+        {
+            if ( ':' != p[ hostEnd ] )
+                return false;
+            portAt = hostEnd + 1;
+        }
+    }
+    else
+    {
+        for ( UInt32 h=authorityAt; h<authorityEnd; ++h )
+        {
+            char c = p[ h ];
+            if ( ':' == c )
+            {
+                hostEnd = h;
+                portAt = h + 1;
+                break;
+            }
+            // letters, digits, '-' and '.' only: no user information, no escapes, nothing that a parser could read in two ways
+            if ( !( ( c >= '0' && c <= '9' ) || ( c >= 'a' && c <= 'z' ) || ( c >= 'A' && c <= 'Z' ) || '-' == c || '.' == c ) )
+                return false;
+        }
+        if ( hostEnd == authorityAt )
+            return false;
+    }
+    host = CORE::CString( p + authorityAt, hostEnd - authorityAt ).Lowercase();
+
+    port = defaultPort;
+    if ( 0 != portAt )
+    {
+        if ( portAt >= authorityEnd || authorityEnd - portAt > 5 )
+            return false;
+        UInt32 value = 0;
+        for ( UInt32 d=portAt; d<authorityEnd; ++d )
+        {
+            if ( p[ d ] < '0' || p[ d ] > '9' )
+                return false;
+            value = value * 10 + (UInt32) ( p[ d ] - '0' );
+        }
+        if ( 0 == value || value > 65535 )
+            return false;
+        port = value;
+    }
+
+    path = authorityEnd < size ? CORE::CString( p + authorityEnd, size - authorityEnd ) : CORE::CString( "/" );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CAuthUrl::IsSameRedirectUri( const CORE::CString& received, const CORE::CString& expected )
+{GUCEF_TRACE;
+
+    CORE::CString expectedScheme, expectedHost, expectedPath;
+    UInt32 expectedPort = 0;
+    if ( !SplitRedirectUri( expected, expectedScheme, expectedHost, expectedPort, expectedPath ) )
+    {
+        // A scheme of the application (or anything that is not plain http or https) is compared as it is
+        return !expected.IsNULLOrEmpty() && received == expected;
+    }
+    CORE::CString scheme, host, path;
+    UInt32 port = 0;
+    if ( !SplitRedirectUri( received, scheme, host, port, path ) )
+        return false;
+    return scheme == expectedScheme && host == expectedHost && port == expectedPort && path == expectedPath;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CAuthUrl::IsUnreservedText( const CORE::CString& text )
 {GUCEF_TRACE;

@@ -46,6 +46,7 @@ defines( { "MODULE_CONSENSUS_NAME=gucefAUTH_TestApp", "MODULE_NAME=gucefAUTH_Tes
 configuration( {} )
 vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
+  "include/TestAccessTokenKeeper.h",
   "include/TestAccountProfile.h",
   "include/TestAccountRef.h",
   "include/TestAuthManager.h",
@@ -61,6 +62,7 @@ files( {
   "include/TestJwt.h",
   "include/TestLinkStore.h",
   "include/TestLogCapture.h",
+  "include/TestMailOAuth.h",
   "include/TestOAuth2Fixture.h",
   "include/TestOAuth2Flows.h",
   "include/TestOAuth2Protocol.h",
@@ -83,6 +85,7 @@ files( {
 configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
+  "src/TestAccessTokenKeeper.cpp",
   "src/TestAccountProfile.cpp",
   "src/TestAccountRef.cpp",
   "src/TestAuthManager.cpp",
@@ -94,6 +97,7 @@ files( {
   "src/TestFakeProvider.cpp",
   "src/TestJwt.cpp",
   "src/TestLinkStore.cpp",
+  "src/TestMailOAuth.cpp",
   "src/TestOAuth2Flows.cpp",
   "src/TestOAuth2Protocol.cpp",
   "src/TestOAuth2Tls.cpp",

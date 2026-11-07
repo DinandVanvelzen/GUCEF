@@ -23,6 +23,7 @@ LOCAL_MODULE_FILENAME := libgucefAUTH
 
 LOCAL_SRC_FILES := \
   src/gucefAUTH.cpp \
+  src/gucefAUTH_CAccessTokenKeeper.cpp \
   src/gucefAUTH_CAccountRef.cpp \
   src/gucefAUTH_CAuthCrypto.cpp \
   src/gucefAUTH_CAuthEventData.cpp \
@@ -46,6 +47,7 @@ LOCAL_SRC_FILES := \
   src/gucefAUTH_CLinkRecord.cpp \
   src/gucefAUTH_CLocalIdentityLinkStore.cpp \
   src/gucefAUTH_CLoopbackRedirectListener.cpp \
+  src/gucefAUTH_CMailOAuthCredentialProvider.cpp \
   src/gucefAUTH_CMemoryCredentialStore.cpp \
   src/gucefAUTH_CModule.cpp \
   src/gucefAUTH_COAuth2Engine.cpp \

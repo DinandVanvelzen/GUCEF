@@ -122,7 +122,7 @@ class GUCEF_AUTH_EXPORT_CPP CAuthHttpResponse
     bool transportOk;                       /**< a response was received, whatever its status */
     bool wasCancelled;
     bool timedOut;
-    bool tooLarge;                          /**< the body is longer than the limit; the body is empty then */
+    bool tooLarge;                          /**< the body is longer than the limit: it was not read past the limit and the body is empty */
     int statusCode;
     CORE::CString contentType;
     CORE::CString cacheControl;
@@ -154,8 +154,9 @@ class GUCEF_AUTH_EXPORT_CPP CAuthHttpResponse
 
 /**
  *  The HTTP client of the engine: one request at a time on the calling thread (Execute()) or as a task of the thread
- *  pool (Start() and Collect()). No redirects, timeouts from the engine settings, answers over the size limit are
- *  dropped. Nothing of a request or an answer is written to a log here.
+ *  pool (Start() and Collect()). No redirects, timeouts from the engine settings. An answer is read no further than the size
+ *  limit (maxResponseBytes): one that announces a larger body is refused on its header, one whose body grows past the limit is
+ *  stopped there, the connection is closed and the answer is too large. Nothing of a request or an answer is written to a log here.
  *
  *  Whether a request to a https address can be carried out at all depends on the HTTP client backends that are registered when it
  *  is made, see IsHttpsSupported().

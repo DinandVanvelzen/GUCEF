@@ -1,20 +1,18 @@
 /*
  *  gucefAUTH_TestApp: Application for testing gucefAUTH
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -22,6 +20,8 @@
 //      INCLUDES                                                           //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+#include <iterator>
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -47,8 +47,6 @@
 #include "gucefCORE_BrowserLauncher.h"
 #define GUCEF_CORE_BROWSERLAUNCHER_H
 #endif /* GUCEF_CORE_BROWSERLAUNCHER_H ? */
-
-#include <iterator>
 
 #include "TestPump.h"
 #include "TestText.h"
@@ -216,6 +214,84 @@ PerformUrlTests( void )
             ASSERT_TRUE( "https" == scheme && "accounts.example" == host && 8443 == port && "/a/b" == path && "x=1&y=2" == query );
             ASSERT_TRUE( AUTH::CAuthUrl::Split( "http://127.0.0.1", scheme, host, port, path, query ) && 80 == port && "/" == path );
             ASSERT_TRUE( "http://127.0.0.1:5000" == AUTH::CAuthUrl::GetOrigin( "http://127.0.0.1:5000/callback?x=1" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A redirect address is its redirect uri after the normalization of RFC 3986 only: an empty path is /, scheme and host in any case, a default port; everything else stays exact" )
+        try
+        {
+            // an empty path and "/" are the same address (RFC 3986 6.2.3): a browser shows https://127.0.0.1 as https://127.0.0.1/
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1", "https://127.0.0.1" ) );
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1/", "https://127.0.0.1" ) );
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1", "https://127.0.0.1/" ) );
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1/", "https://127.0.0.1/" ) );
+            // scheme and host without case, the default port the same as none (6.2.2.1, 6.2.3)
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "HTTPS://127.0.0.1/", "https://127.0.0.1" ) );
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "https://LocalHost/cb", "https://localhost/cb" ) );
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1:443/", "https://127.0.0.1" ) );
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1", "https://127.0.0.1:443" ) );
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "http://127.0.0.1:80/", "http://127.0.0.1" ) );
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "http://127.0.0.1:50123/callback", "http://127.0.0.1:50123/callback" ) );
+            // IPv6 loopback in brackets, with and without a port, hex digits in any case
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "http://[::1]:8080/cb", "http://[::1]:8080/cb" ) );
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "https://[::1]/", "https://[::1]" ) );
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "https://[::1]:443", "https://[::1]/" ) );
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "https://[0:0:0:0:0:0:0:1]/", "https://[0:0:0:0:0:0:0:1]" ) );
+
+            // the path is exact: another segment, a trailing slash after a segment, a doubled slash, another case, an escape
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1/x", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1//", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1/cb/", "https://127.0.0.1/cb" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1/cb", "https://127.0.0.1/cb/" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1/CB", "https://127.0.0.1/cb" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1/%63b", "https://127.0.0.1/cb" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1/cb/../cb", "https://127.0.0.1/cb" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1/./", "https://127.0.0.1" ) );
+            // another scheme, host, port
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "http://127.0.0.1/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1/", "http://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.2/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://localhost/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1.evil.example/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://evil.example/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1:8443/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1:80/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "http://127.0.0.1:443/", "http://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1:/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1:0/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1:65536/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1:443x/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "http://[::2]:8080/cb", "http://[::1]:8080/cb" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "http://[::1]:8081/cb", "http://[::1]:8080/cb" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "http://[::1/cb", "http://[::1]/cb" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "http://[::1]x/cb", "http://[::1]/cb" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "http://[]/cb", "http://[::1]/cb" ) );
+            // user information and other ways to make one address read as another
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1@evil.example/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://evil.example@127.0.0.1/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://user:pw@127.0.0.1/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1\\@evil.example/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1%2F@evil.example/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127%2E0.0.1/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1 /", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1/\t", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https:/127.0.0.1/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https:///", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "//127.0.0.1/", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( CORE::CString::Empty, "https://127.0.0.1" ) );
+            // the caller takes query and fragment off; what still has one is not the address
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1/?x", "https://127.0.0.1" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "https://127.0.0.1#x", "https://127.0.0.1" ) );
+
+            // a scheme of the application is compared byte for byte, without any normalization
+            ASSERT_TRUE( AUTH::CAuthUrl::IsSameRedirectUri( "com.example.game:/oauth2redirect", "com.example.game:/oauth2redirect" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "com.example.game:/oauth2redirect/", "com.example.game:/oauth2redirect" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( "COM.EXAMPLE.GAME:/oauth2redirect", "com.example.game:/oauth2redirect" ) );
+            ASSERT_FALSE( AUTH::CAuthUrl::IsSameRedirectUri( CORE::CString::Empty, CORE::CString::Empty ) );
         }
         catch ( ... )
         {
