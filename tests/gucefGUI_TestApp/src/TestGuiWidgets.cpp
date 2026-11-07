@@ -436,6 +436,15 @@ PerformGuiWidgetTests( void )
         ASSERT_FALSE( combo->GetBoolProperty( "Expanded" ) );
         ASSERT_TRUE( GUCEF_NULL == context->GetPopup() );
 
+        // other items with the same index selected: the text is that of the new item at the index, not the old one; nothing is chosen by that
+        GUI::CCombobox::TStringVector others;
+        others.push_back( "S" );
+        others.push_back( "M" );
+        others.push_back( "L" );
+        combo->SetListItems( others );
+        ASSERT_TRUE( 2 == combo->GetSelectedIndex() && "L" == combo->GetText() && 1 == changed.count );
+        combo->SetListItems( items );
+
         // open, then a click somewhere else: closed, nothing chosen, the click is used up
         Click( context, 60, 60 );
         ASSERT_TRUE( combo->GetBoolProperty( "Expanded" ) );

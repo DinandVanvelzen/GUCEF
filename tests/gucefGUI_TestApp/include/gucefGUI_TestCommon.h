@@ -76,8 +76,10 @@ void PerformGuiPropertyTests( void );
 
 void PerformGuiBrowserTests( void );
 void PerformGuiChartTests( void );
+void PerformGuiChartMarkerTests( void );
 void PerformGuiFontTests( void );
 void PerformGuiSettingsTests( void );
+void PerformGuiUserActionLogTests( void );
 
 void PerformGuiFileDialogTests( void );
 

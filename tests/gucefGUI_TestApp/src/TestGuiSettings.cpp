@@ -1028,6 +1028,35 @@ PerformGuiSettingsTests( void )
         ERRORHERE;
     }
     GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Settings: A page of the application keeps its widgets when the form goes before it, also with RmlUi, whose elements of the page are moved out of the window first" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateRmlUiContext();
+        GUI::CGUIContext* context = ( contextPtr.IsNULL() ? GUCEF_NULL : contextPtr->AsGUIContext() );
+        if ( GUCEF_NULL == context )
+            GUCEF_TESTFW_SKIP( "there is no RmlUi context (no offscreen window)" );
+        CScrollingTestPage* page = new CScrollingTestPage();
+        GUI::CSettingsForm* form = new GUI::CSettingsForm( context );
+        ASSERT_TRUE( form->AddPage( page ) && form->Build() && form->Open() );
+        context->RenderFrame( 16 );
+        GUI::CWidget* name = page->GetWidget( "Name" );
+        ASSERT_TRUE( GUCEF_NULL != name && GUCEF_NULL != name->GetImplementationPtr() );
+
+        // the form goes first, as the application keeps its page: the page is a root of its own now, its widgets are there and drawn
+        delete form;
+        ASSERT_TRUE( GUCEF_NULL != page->GetRootWidget() && GUCEF_NULL == page->GetRootWidget()->GetParentWidget() );
+        ASSERT_TRUE( name == page->GetWidget( "Name" ) && GUCEF_NULL != name->GetImplementationPtr() );
+        ASSERT_TRUE( name->SetProperty( "Text", "still here" ) );
+        context->RenderFrame( 16 );
+        delete page;
+        context->RenderFrame( 16 );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
 }
 
 /*-------------------------------------------------------------------------*/

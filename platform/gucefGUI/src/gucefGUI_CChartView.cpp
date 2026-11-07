@@ -135,6 +135,11 @@ ClipLine( Float64& x0, Float64& y0, Float64& x1, Float64& y1, Float64 left, Floa
 //-------------------------------------------------------------------------*/
 
 const CORE::CEvent CChartView::CrosshairChangedEvent = "GUCEF::GUI::CChartView::CrosshairChangedEvent";
+const CORE::CEvent CChartView::MarkerActivatedEvent = "GUCEF::GUI::CChartView::MarkerActivatedEvent";
+const CORE::CEvent CChartView::MarkerSelectionChangedEvent = "GUCEF::GUI::CChartView::MarkerSelectionChangedEvent";
+
+const Int32 CChartView::MarkerSize = 11;
+const Int32 CChartView::MarkerHitSlop = 4;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -147,6 +152,8 @@ CChartView::RegisterEvents( void )
 {GUCEF_TRACE;
 
     CrosshairChangedEvent.Initialize();
+    MarkerActivatedEvent.Initialize();
+    MarkerSelectionChangedEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -173,6 +180,14 @@ CChartView::CChartView( void )
     , m_columnTop()
     , m_columnBottom()
     , m_lineHeight( FallbackLineHeight )
+    , m_markers()
+    , m_markerRects()
+    , m_markerOrder()
+    , m_markerStyles()
+    , m_hiddenMarkerLayers()
+    , m_selectedMarker( -1 )
+    , m_hoveredMarker( -1 )
+    , m_focused( false )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -416,6 +431,8 @@ CChartView::LookChanged( void ) const
            GetColourProperty( EWidgetProperty_GridColour ) != m_look.gridColour ||
            GetColourProperty( EWidgetProperty_CrosshairColour ) != m_look.crosshairColour ||
            GetColourProperty( EWidgetProperty_TooltipColour ) != m_look.tooltipColour ||
+           GetColourProperty( EWidgetProperty_EmphasisColour ) != m_look.markerColour ||
+           GetColourProperty( EWidgetProperty_SelectionColour ) != m_look.selectionColour ||
            GetPropertyRef( EWidgetProperty_Font ) != m_look.font ||
            GetPropertyRef( EWidgetProperty_Title ) != m_look.title ||
            GetPropertyRef( EWidgetProperty_SeriesColours ) != m_look.seriesColours ||
@@ -442,6 +459,8 @@ CChartView::CaptureLook( void )
     m_look.gridColour = GetColourProperty( EWidgetProperty_GridColour );
     m_look.crosshairColour = GetColourProperty( EWidgetProperty_CrosshairColour );
     m_look.tooltipColour = GetColourProperty( EWidgetProperty_TooltipColour );
+    m_look.markerColour = GetColourProperty( EWidgetProperty_EmphasisColour );
+    m_look.selectionColour = GetColourProperty( EWidgetProperty_SelectionColour );
     // assigned only when different, so a steady rebuild copies no text
     if ( GetPropertyRef( EWidgetProperty_Font ) != m_look.font )
         m_look.font = GetPropertyRef( EWidgetProperty_Font );
@@ -1063,6 +1082,8 @@ CChartView::OnPropertyChanged( EWidgetProperty property, const CString& oldValue
         case EWidgetProperty_GridColour:
         case EWidgetProperty_CrosshairColour:
         case EWidgetProperty_TooltipColour:
+        case EWidgetProperty_EmphasisColour:
+        case EWidgetProperty_SelectionColour:
         case EWidgetProperty_SeriesColours:
         case EWidgetProperty_LegendVisible:
         case EWidgetProperty_LegendPosition:
@@ -1089,9 +1110,10 @@ CChartView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& even
 
     if ( MouseMoveEvent == eventId )
     {
-        if ( !GetBoolProperty( EWidgetProperty_CrosshairVisible ) )
-            return false;
         const CPointerEventData* pointer = static_cast< const CPointerEventData* >( &eventData );
+        SetHoveredMarker( HitTestMarker( pointer->localX, pointer->localY ) );
+        if ( !GetBoolProperty( EWidgetProperty_CrosshairVisible ) )
+            return m_hoveredMarker >= 0;
         if ( m_plotRect.Contains( pointer->localX, pointer->localY ) )
             SetCrosshairPixel( pointer->localX );
         else
@@ -1100,8 +1122,58 @@ CChartView::OnDefaultAction( const CORE::CEvent& eventId, CRoutedEventData& even
     }
     if ( MouseFocusLostEvent == eventId )
     {
+        SetHoveredMarker( -1 );
         ClearCrosshair();
         return true;
+    }
+    if ( MouseClickEvent == eventId )
+    {
+        const CPointerEventData* pointer = static_cast< const CPointerEventData* >( &eventData );
+        if ( MOUSEBUTTON_LEFT != pointer->button )
+            return false;
+        const Int32 hit = HitTestMarker( pointer->localX, pointer->localY );
+        return hit >= 0 && ActivateMarker( (UInt32) hit );
+    }
+    if ( KeyboardFocusReceivedEvent == eventId || KeyboardFocusLostEvent == eventId )
+    {
+        Invalidate();
+        return false;
+    }
+    if ( KeyDownEvent == eventId )
+    {
+        // the keys of the markers, before the context makes navigation or scrolling of them
+        const CKeyEventData* key = static_cast< const CKeyEventData* >( &eventData );
+        if ( 0 != ( key->modifiers & ( INPUT::KEYMOD_CTRL | INPUT::KEYMOD_ALT | INPUT::KEYMOD_META | INPUT::KEYMOD_SHIFT ) ) )
+            return false;
+        EnsureBuilt();
+        if ( m_markerOrder.empty() )
+            return false;
+        switch ( key->keyCode )
+        {
+            case INPUT::KEYCODE_RIGHT: SelectNextMarker( true ); return true;
+            case INPUT::KEYCODE_LEFT: SelectNextMarker( false ); return true;
+            case INPUT::KEYCODE_HOME: SelectFirstMarker( true ); return true;
+            case INPUT::KEYCODE_END: SelectFirstMarker( false ); return true;
+            case INPUT::KEYCODE_RETURN:
+            case INPUT::KEYCODE_NUMPADENTER: return m_selectedMarker >= 0 && ActivateMarker( (UInt32) m_selectedMarker );
+            default: return false;
+        }
+    }
+    if ( NavigationEvent == eventId )
+    {
+        // a gamepad, or navigation the application injects
+        const CNavigationEventData* navigation = static_cast< const CNavigationEventData* >( &eventData );
+        EnsureBuilt();
+        if ( m_markerOrder.empty() )
+            return false;
+        if ( NAVIGATION_RIGHT == navigation->direction || NAVIGATION_LEFT == navigation->direction )
+        {
+            SelectNextMarker( NAVIGATION_RIGHT == navigation->direction );
+            return true;
+        }
+        if ( NAVIGATION_ACCEPT == navigation->direction && m_selectedMarker >= 0 )
+            return ActivateMarker( (UInt32) m_selectedMarker );
+        return false;
     }
     return CDrawSurface::OnDefaultAction( eventId, eventData );
 }
@@ -1126,7 +1198,7 @@ CChartView::OnUpdate( UInt32 deltaInMs )
     const CRect& rect = GetRect();
     if ( rect.IsEmpty() )
         return;
-    if ( !IsDirty() && !LookChanged() && rect.width == m_builtWidth && rect.height == m_builtHeight )
+    if ( !IsDirty() && !LookChanged() && rect.width == m_builtWidth && rect.height == m_builtHeight && HasFocus() == m_focused )
         return;
     Rebuild( rect.width, rect.height );
 }
@@ -1423,6 +1495,10 @@ CChartView::DrawCrosshair( void )
         FillRect( CRect( XToPixel( point.x ) - 2, y - 2, 5, 5 ), GetSeriesColour( point.seriesIndex ) );
     }
 
+    // a hovered marker shows its own tooltip in place of this one
+    if ( m_hoveredMarker >= 0 )
+        return;
+
     // the tooltip: the x, then a line per series
     const CString& font = GetPropertyRef( EWidgetProperty_Font );
     const Int32 lineHeight = m_lineHeight;
@@ -1483,7 +1559,10 @@ CChartView::Rebuild( Int32 width, Int32 height )
     if ( width <= 0 || height <= 0 )
     {
         m_plotRect = CRect();
+        m_markerRects.assign( m_markers.size(), CRect() );
+        m_markerOrder.clear();
         Commit();
+        DropHiddenSelection();
         return;
     }
 
@@ -1617,6 +1696,7 @@ CChartView::Rebuild( Int32 width, Int32 height )
             DrawSeriesLine( i, GetSeriesColour( i ) );
         }
     }
+    DrawMarkers();
     PopClip();
 
     // the axes: the bottom line, the line at 0 when it is inside, tick marks and labels
@@ -1653,12 +1733,628 @@ CChartView::Rebuild( Int32 width, Int32 height )
     if ( !title.IsNULLOrEmpty() )
         DrawString( font, title, Padding, titleTop, textColour );
 
+    // the keyboard focus: a frame around the plot
+    m_focused = HasFocus();
+    if ( m_focused )
+        StrokeRect( CRect( m_plotRect.left - 1, m_plotRect.top - 1, m_plotRect.width + 2, m_plotRect.height + 2 ), GetColourProperty( EWidgetProperty_SelectionColour ), 1 );
+
     // the crosshair follows the data: its points are looked up again for the current data
     if ( m_hasCrosshair )
         GetNearestPoints( m_crosshairX, m_crosshairPoints );
     DrawCrosshair();
 
+    // the selected marker: a ring, and its tooltip while the keys are on the chart and the pointer is on no marker
+    if ( m_selectedMarker >= 0 && !m_markerRects[ (size_t) m_selectedMarker ].IsEmpty() )
+    {
+        const CRect& shape = m_markerRects[ (size_t) m_selectedMarker ];
+        StrokeRect( CRect( shape.left - 3, shape.top - 3, shape.width + 6, shape.height + 6 ), GetColourProperty( EWidgetProperty_SelectionColour ), 2 );
+        if ( m_focused && m_hoveredMarker < 0 )
+            DrawMarkerTooltip( (UInt32) m_selectedMarker );
+    }
+    if ( m_hoveredMarker >= 0 && !m_markerRects[ (size_t) m_hoveredMarker ].IsEmpty() )
+        DrawMarkerTooltip( (UInt32) m_hoveredMarker );
+
     Commit();
+    // after the drawing, so an observer that changes the chart starts a new one
+    DropHiddenSelection();
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CChartView::AddMarker( const CChartMarker& marker )
+{GUCEF_TRACE;
+
+    m_markers.push_back( marker );
+    m_markerRects.push_back( CRect() );
+    m_markerOrder.clear();
+    Invalidate();
+    return (UInt32) m_markers.size() - 1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::SetMarkers( const TMarkerVector& markers )
+{GUCEF_TRACE;
+
+    const CString selectedId = m_selectedMarker >= 0 ? m_markers[ (size_t) m_selectedMarker ].GetId() : CString::Empty;
+    const Int32 previous = m_selectedMarker;
+    m_markers = markers;
+    m_markerRects.assign( m_markers.size(), CRect() );
+    m_markerOrder.clear();
+    m_hoveredMarker = -1;
+    m_selectedMarker = selectedId.IsNULLOrEmpty() ? -1 : FindMarker( selectedId );
+    Invalidate();
+    if ( previous != m_selectedMarker || ( previous >= 0 && m_selectedMarker < 0 ) )
+        NotifyObservers( MarkerSelectionChangedEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CChartView::GetMarkerCount( void ) const
+{GUCEF_TRACE;
+
+    return (UInt32) m_markers.size();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CChartMarker*
+CChartView::GetMarker( UInt32 index ) const
+{GUCEF_TRACE;
+
+    return index < (UInt32) m_markers.size() ? &m_markers[ index ] : GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CChartView::FindMarker( const CString& id ) const
+{GUCEF_TRACE;
+
+    for ( UInt32 i=0; i<(UInt32)m_markers.size(); ++i )
+        if ( m_markers[ i ].GetId() == id )
+            return (Int32) i;
+    return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::RemoveMarker( UInt32 index )
+{GUCEF_TRACE;
+
+    if ( index >= (UInt32) m_markers.size() )
+        return false;
+    m_markers.erase( m_markers.begin() + index );
+    m_markerRects.erase( m_markerRects.begin() + index );
+    m_markerOrder.clear();
+    if ( m_hoveredMarker == (Int32) index )
+        m_hoveredMarker = -1;
+    else
+    if ( m_hoveredMarker > (Int32) index )
+        --m_hoveredMarker;
+    bool selectionChanged = false;
+    if ( m_selectedMarker == (Int32) index )
+    {
+        m_selectedMarker = -1;
+        selectionChanged = true;
+    }
+    else
+    if ( m_selectedMarker > (Int32) index )
+        --m_selectedMarker;
+    Invalidate();
+    if ( selectionChanged )
+        NotifyObservers( MarkerSelectionChangedEvent );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::RemoveAllMarkers( void )
+{GUCEF_TRACE;
+
+    const bool selectionChanged = m_selectedMarker >= 0;
+    m_markers.clear();
+    m_markerRects.clear();
+    m_markerOrder.clear();
+    m_selectedMarker = -1;
+    m_hoveredMarker = -1;
+    Invalidate();
+    if ( selectionChanged )
+        NotifyObservers( MarkerSelectionChangedEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::SetMarkerStyle( const CString& styleClass, CChartMarker::TShape shape, const CColour& colour )
+{GUCEF_TRACE;
+
+    SMarkerStyle style;
+    style.shape = shape;
+    style.colour = colour;
+    m_markerStyles[ styleClass ] = style;
+    Invalidate();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::GetMarkerStyle( const CString& styleClass, CChartMarker::TShape& shape, CColour& colour ) const
+{GUCEF_TRACE;
+
+    TMarkerStyleMap::const_iterator i = m_markerStyles.find( styleClass );
+    if ( i == m_markerStyles.end() )
+        return false;
+    shape = (*i).second.shape;
+    colour = (*i).second.colour;
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::RemoveMarkerStyle( const CString& styleClass )
+{GUCEF_TRACE;
+
+    if ( 0 < m_markerStyles.erase( styleClass ) )
+        Invalidate();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::SetMarkerLayerVisible( const CString& layer, bool visible )
+{GUCEF_TRACE;
+
+    if ( visible == IsMarkerLayerVisible( layer ) )
+        return;
+    if ( visible )
+        m_hiddenMarkerLayers.erase( layer );
+    else
+        m_hiddenMarkerLayers.insert( layer );
+    Invalidate();
+    // what is hidden cannot stay selected; the geometry follows at the next rebuild
+    if ( !visible )
+    {
+        if ( m_hoveredMarker >= 0 && m_markers[ (size_t) m_hoveredMarker ].GetLayer() == layer )
+            m_hoveredMarker = -1;
+        if ( m_selectedMarker >= 0 && m_markers[ (size_t) m_selectedMarker ].GetLayer() == layer )
+        {
+            m_selectedMarker = -1;
+            NotifyObservers( MarkerSelectionChangedEvent );
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::IsMarkerLayerVisible( const CString& layer ) const
+{GUCEF_TRACE;
+
+    return m_hiddenMarkerLayers.end() == m_hiddenMarkerLayers.find( layer );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CChartMarker::TShape
+CChartView::GetMarkerShape( UInt32 index ) const
+{GUCEF_TRACE;
+
+    if ( index >= (UInt32) m_markers.size() )
+        return CChartMarker::SHAPE_DIAMOND;
+    const CChartMarker& marker = m_markers[ index ];
+    if ( CChartMarker::SHAPE_DEFAULT != marker.GetShape() )
+        return marker.GetShape();
+    TMarkerStyleMap::const_iterator i = m_markerStyles.find( marker.GetStyleClass() );
+    if ( i != m_markerStyles.end() && CChartMarker::SHAPE_DEFAULT != (*i).second.shape )
+        return (*i).second.shape;
+    return CChartMarker::SHAPE_DIAMOND;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CColour
+CChartView::GetMarkerColour( UInt32 index ) const
+{GUCEF_TRACE;
+
+    if ( index < (UInt32) m_markers.size() )
+    {
+        const CChartMarker& marker = m_markers[ index ];
+        if ( marker.HasColour() )
+            return marker.GetColour();
+        TMarkerStyleMap::const_iterator i = m_markerStyles.find( marker.GetStyleClass() );
+        if ( i != m_markerStyles.end() )
+            return (*i).second.colour;
+    }
+    return GetColourProperty( EWidgetProperty_EmphasisColour );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::IsMarkerShown( UInt32 index ) const
+{GUCEF_TRACE;
+
+    return index < (UInt32) m_markerRects.size() && !m_markerRects[ index ].IsEmpty();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::GetMarkerRect( UInt32 index, CRect& rect ) const
+{GUCEF_TRACE;
+
+    if ( !IsMarkerShown( index ) )
+        return false;
+    rect = m_markerRects[ index ];
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CChartView::HitTestMarker( Int32 localX, Int32 localY ) const
+{GUCEF_TRACE;
+
+    Int32 best = -1;
+    Int64 bestDistance = 0;
+    for ( UInt32 i=0; i<(UInt32)m_markerRects.size(); ++i )
+    {
+        const CRect& rect = m_markerRects[ i ];
+        if ( rect.IsEmpty() )
+            continue;
+        if ( localX < rect.left - MarkerHitSlop || localX >= rect.Right() + MarkerHitSlop ||
+             localY < rect.top - MarkerHitSlop || localY >= rect.Bottom() + MarkerHitSlop )
+            continue;
+        // the nearest centre wins, the later marker (drawn on top) on a tie
+        const Int64 dx = (Int64) localX - (Int64) ( rect.left + rect.width / 2 );
+        const Int64 dy = (Int64) localY - (Int64) ( rect.top + rect.height / 2 );
+        const Int64 distance = dx * dx + dy * dy;
+        if ( best < 0 || distance <= bestDistance )
+        {
+            best = (Int32) i;
+            bestDistance = distance;
+        }
+    }
+    return best;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::SelectMarker( Int32 index )
+{GUCEF_TRACE;
+
+    if ( index >= 0 )
+    {
+        EnsureBuilt();
+        if ( !IsMarkerShown( (UInt32) index ) )
+            return false;
+    }
+    else
+    {
+        index = -1;
+    }
+    if ( index == m_selectedMarker )
+        return true;
+    m_selectedMarker = index;
+    Invalidate();
+    NotifyObservers( MarkerSelectionChangedEvent );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::SelectMarkerById( const CString& id )
+{GUCEF_TRACE;
+
+    const Int32 index = FindMarker( id );
+    return index >= 0 && SelectMarker( index );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CChartView::GetSelectedMarker( void ) const
+{GUCEF_TRACE;
+
+    return m_selectedMarker;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::OrderShownMarkers( void )
+{GUCEF_TRACE;
+
+    m_markerOrder.clear();
+    for ( UInt32 i=0; i<(UInt32)m_markerRects.size(); ++i )
+        if ( !m_markerRects[ i ].IsEmpty() )
+            m_markerOrder.push_back( i );
+    // by x, then by index: a stable insertion sort, the list is short and mostly in order already
+    for ( size_t i=1; i<m_markerOrder.size(); ++i )
+    {
+        const UInt32 index = m_markerOrder[ i ];
+        const Int64 x = m_markers[ index ].GetX();
+        size_t j = i;
+        while ( j > 0 && m_markers[ m_markerOrder[ j-1 ] ].GetX() > x )
+        {
+            m_markerOrder[ j ] = m_markerOrder[ j-1 ];
+            --j;
+        }
+        m_markerOrder[ j ] = index;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::SelectNextMarker( bool forward )
+{GUCEF_TRACE;
+
+    EnsureBuilt();
+    if ( m_markerOrder.empty() )
+        return false;
+    Int32 place = -1;
+    for ( size_t i=0; i<m_markerOrder.size(); ++i )
+        if ( (Int32) m_markerOrder[ i ] == m_selectedMarker )
+            place = (Int32) i;
+    if ( place < 0 )
+        return SelectFirstMarker( forward );
+    const Int32 next = place + ( forward ? 1 : -1 );
+    if ( next < 0 || next >= (Int32) m_markerOrder.size() )
+        return false;
+    return SelectMarker( (Int32) m_markerOrder[ (size_t) next ] );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::SelectFirstMarker( bool first )
+{GUCEF_TRACE;
+
+    EnsureBuilt();
+    if ( m_markerOrder.empty() )
+        return false;
+    return SelectMarker( (Int32) ( first ? m_markerOrder.front() : m_markerOrder.back() ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChartView::ActivateMarker( UInt32 index )
+{GUCEF_TRACE;
+
+    if ( !SelectMarker( (Int32) index ) )
+        return false;
+    CItemEventData eventData;
+    eventData.index = (Int32) index;
+    eventData.item = m_markers[ index ].GetId();
+    if ( !DispatchEvent( MarkerActivatedEvent, eventData ) )
+        OnDefaultAction( MarkerActivatedEvent, eventData );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CChartView::GetHoveredMarker( void ) const
+{GUCEF_TRACE;
+
+    return m_hoveredMarker;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::SetHoveredMarker( Int32 index )
+{GUCEF_TRACE;
+
+    if ( index == m_hoveredMarker )
+        return;
+    m_hoveredMarker = index;
+    Invalidate();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::EnsureBuilt( void )
+{GUCEF_TRACE;
+
+    const CRect& rect = GetRect();
+    if ( !rect.IsEmpty() && ( IsDirty() || rect.width != m_builtWidth || rect.height != m_builtHeight ) )
+        Rebuild( rect.width, rect.height );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::DropHiddenSelection( void )
+{GUCEF_TRACE;
+
+    if ( m_hoveredMarker >= 0 && !IsMarkerShown( (UInt32) m_hoveredMarker ) )
+        m_hoveredMarker = -1;
+    if ( m_selectedMarker >= 0 && !IsMarkerShown( (UInt32) m_selectedMarker ) )
+    {
+        m_selectedMarker = -1;
+        NotifyObservers( MarkerSelectionChangedEvent );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::DrawMarkerShape( CChartMarker::TShape shape, Int32 left, Int32 top, Int32 size, const CColour& colour )
+{GUCEF_TRACE;
+
+    // one fill rectangle per row, so every driver draws the same pixels
+    const Int32 half = size / 2;
+    switch ( shape )
+    {
+        case CChartMarker::SHAPE_SQUARE:
+        {
+            FillRect( CRect( left, top, size, size ), colour );
+            break;
+        }
+        case CChartMarker::SHAPE_TRIANGLE_UP:
+        case CChartMarker::SHAPE_TRIANGLE_DOWN:
+        {
+            for ( Int32 r=0; r<size; ++r )
+            {
+                const Int32 step = CChartMarker::SHAPE_TRIANGLE_UP == shape ? r : size - 1 - r;
+                const Int32 halfWidth = size > 1 ? ( step * half + ( size - 1 ) / 2 ) / ( size - 1 ) : 0;
+                FillRect( CRect( left + half - halfWidth, top + r, 2 * halfWidth + 1, 1 ), colour );
+            }
+            break;
+        }
+        case CChartMarker::SHAPE_CIRCLE:
+        {
+            const Float64 radius = (Float64) half + 0.5;
+            for ( Int32 r=0; r<size; ++r )
+            {
+                const Float64 dy = (Float64) ( r - half );
+                const Int32 halfWidth = (Int32) floor( sqrt( radius * radius - dy * dy ) );
+                FillRect( CRect( left + half - halfWidth, top + r, 2 * halfWidth + 1, 1 ), colour );
+            }
+            break;
+        }
+        case CChartMarker::SHAPE_FLAG:
+        {
+            FillRect( CRect( left + 1, top, 2, size ), colour );
+            for ( Int32 r=0; r<=half; ++r )
+            {
+                // a pennant that narrows towards its tip
+                const Int32 width = ( size - 3 ) - ( r > half / 2 ? ( r - half / 2 ) * 2 : ( half / 2 - r ) * 2 );
+                if ( width > 0 )
+                    FillRect( CRect( left + 3, top + r, width, 1 ), colour );
+            }
+            break;
+        }
+        case CChartMarker::SHAPE_DIAMOND:
+        case CChartMarker::SHAPE_DEFAULT:
+        default:
+        {
+            for ( Int32 r=0; r<size; ++r )
+            {
+                const Int32 distance = r > half ? r - half : half - r;
+                const Int32 halfWidth = half - distance;
+                FillRect( CRect( left + half - halfWidth, top + r, 2 * halfWidth + 1, 1 ), colour );
+            }
+            break;
+        }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::DrawMarkers( void )
+{GUCEF_TRACE;
+
+    m_markerRects.assign( m_markers.size(), CRect() );
+    const CString& font = GetPropertyRef( EWidgetProperty_Font );
+    const CColour textColour = GetColourProperty( EWidgetProperty_TextColour );
+    const bool logScale = CChartAxis::SCALE_LOG == m_valueAxis.GetScale();
+    const Float64 xMin = m_xAxis.GetMin();
+    const Float64 xMax = m_xAxis.GetMax();
+    const Int32 plotBottom = m_plotRect.Bottom() - 1;
+    for ( UInt32 i=0; i<(UInt32)m_markers.size(); ++i )
+    {
+        const CChartMarker& marker = m_markers[ i ];
+        if ( !IsMarkerLayerVisible( marker.GetLayer() ) )
+            continue;
+        const Int64 x = marker.GetX();
+        if ( (Float64) x < xMin || (Float64) x > xMax )
+            continue;
+        const Int32 centreX = XToPixel( x );
+        Int32 centreY = plotBottom - MarkerSize;
+        const Int32 seriesIndex = marker.GetSeriesIndex();
+        if ( seriesIndex >= 0 )
+        {
+            // on the series: above the point nearest the time of the marker, below it when there is no room above
+            if ( seriesIndex >= (Int32) m_series.size() || !m_series[ (size_t) seriesIndex ].IsVisible() )
+                continue;
+            const CChartSeries& series = m_series[ (size_t) seriesIndex ];
+            const UInt32 point = series.FindNearestValidIndex( x );
+            if ( point >= series.GetCount() )
+                continue;
+            const Float64 value = GetPlotValue( (UInt32) seriesIndex, point );
+            if ( !IsFinite( value ) || ( logScale && value <= 0.0 ) )
+                continue;
+            const Int32 pointY = ValueToPixel( value );
+            centreY = pointY - MarkerSize;
+            if ( centreY - MarkerSize / 2 < m_plotRect.top )
+                centreY = pointY + MarkerSize;
+        }
+        const CRect rect( centreX - MarkerSize / 2, centreY - MarkerSize / 2, MarkerSize, MarkerSize );
+        m_markerRects[ i ] = rect;
+        DrawMarkerShape( GetMarkerShape( i ), rect.left, rect.top, MarkerSize, GetMarkerColour( i ) );
+        const CString& label = marker.GetLabel();
+        if ( !label.IsNULLOrEmpty() )
+        {
+            const Int32 width = TextWidth( label );
+            Int32 labelTop = rect.top - m_lineHeight - 1;
+            if ( labelTop < m_plotRect.top )
+                labelTop = rect.Bottom() + 1;
+            DrawString( font, label, centreX - width / 2, labelTop, textColour );
+        }
+    }
+    OrderShownMarkers();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChartView::DrawMarkerTooltip( UInt32 index )
+{GUCEF_TRACE;
+
+    const CChartMarker& marker = m_markers[ index ];
+    const CRect& rect = m_markerRects[ index ];
+    const CString& font = GetPropertyRef( EWidgetProperty_Font );
+    const Int32 lineHeight = m_lineHeight;
+    const CString header = CChartAxis::AXISKIND_TIME == m_xAxis.GetKind() ? CChartAxis::FormatTime( marker.GetX() ) : m_xAxis.FormatValue( (Float64) marker.GetX(), 0 );
+    const CString::StringVector lines = marker.GetTooltip().ParseElements( '\n', true );
+    Int32 textWidth = TextWidth( header );
+    for ( size_t i=0; i<lines.size(); ++i )
+    {
+        const Int32 width = TextWidth( lines[ i ] );
+        if ( width > textWidth )
+            textWidth = width;
+    }
+    const Int32 boxWidth = textWidth + 12;
+    const Int32 boxHeight = (Int32) ( lines.size() + 1 ) * ( lineHeight + 2 ) + 8;
+    Int32 boxLeft = rect.Right() + 8;
+    if ( boxLeft + boxWidth > m_plotRect.Right() )
+        boxLeft = rect.left - 8 - boxWidth;
+    if ( boxLeft < 0 )
+        boxLeft = 0;
+    // inside the plot vertically when it fits there, else inside the widget: a tooltip of many lines on a low chart stays whole
+    Int32 boxTop = rect.top - 4;
+    const Int32 lowest = boxHeight <= m_plotRect.height ? m_plotRect.Bottom() : m_builtHeight;
+    const Int32 highest = boxHeight <= m_plotRect.height ? m_plotRect.top : 0;
+    if ( boxTop + boxHeight > lowest )
+        boxTop = lowest - boxHeight;
+    if ( boxTop < highest )
+        boxTop = highest;
+    const CRect box( boxLeft, boxTop, boxWidth, boxHeight );
+    FillRect( box, GetColourProperty( EWidgetProperty_TooltipColour ) );
+    StrokeRect( box, GetColourProperty( EWidgetProperty_AxisColour ), 1 );
+    const CColour textColour = GetColourProperty( EWidgetProperty_TextColour );
+    Int32 y = boxTop + 4;
+    DrawString( font, header, boxLeft + 6, y, textColour );
+    for ( size_t i=0; i<lines.size(); ++i )
+    {
+        y += lineHeight + 2;
+        DrawString( font, lines[ i ], boxLeft + 6, y, textColour );
+    }
 }
 
 /*-------------------------------------------------------------------------//

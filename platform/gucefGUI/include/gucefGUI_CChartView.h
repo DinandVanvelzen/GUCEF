@@ -45,6 +45,11 @@
 #define GUCEF_GUI_CCHARTDECIMATOR_H
 #endif /* GUCEF_GUI_CCHARTDECIMATOR_H ? */
 
+#ifndef GUCEF_GUI_CCHARTMARKER_H
+#include "gucefGUI_CChartMarker.h"
+#define GUCEF_GUI_CCHARTMARKER_H
+#endif /* GUCEF_GUI_CCHARTMARKER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -70,9 +75,14 @@ namespace GUI {
  *  crosshair); large series are reduced to at most four points per pixel column (CChartDecimator), and the
  *  buffers of a rebuild are reused. Lookups (GetNearestPoints()) work on the data alone, without a window.
  *
+ *  Markers (CChartMarker) annotate points in time, on a series or in a lane at the bottom of the plot: they are
+ *  drawn with the chart, hit tested, have a tooltip, are activated by a click or by Enter (MarkerActivatedEvent)
+ *  and are selected with the arrow keys, Home and End while a chart with Focusable set has the keyboard focus.
+ *
  *  Properties (beyond those of DrawSurface): Title, Font, TextColour, AxisTextColour, BackgroundColour,
  *  AxisColour, GridColour, CrosshairColour, TooltipColour, SeriesColours, CrosshairVisible, LegendVisible,
- *  LegendPosition, XAxisType, LogScale, IncludeZero, ValuePrefix, ValueSuffix, Decimals.
+ *  LegendPosition, XAxisType, LogScale, IncludeZero, ValuePrefix, ValueSuffix, Decimals, EmphasisColour
+ *  (markers without a colour), SelectionColour (the selected marker, the frame of the focus).
  */
 class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
 {
@@ -80,6 +90,16 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
 
     /** The crosshair moved to another x, or went away; not routed, no data: read GetCrosshairPoints() */
     static const CORE::CEvent CrosshairChangedEvent;
+
+    /** A marker was clicked, or Enter was pressed while a marker is selected; routed, CItemEventData: the index and the id of the marker */
+    static const CORE::CEvent MarkerActivatedEvent;
+
+    /** The selected marker changed; not routed, no data: read GetSelectedMarker() */
+    static const CORE::CEvent MarkerSelectionChangedEvent;
+
+    /** The width and height of a marker shape, and the pixels around it that still hit it */
+    static const Int32 MarkerSize;
+    static const Int32 MarkerHitSlop;
 
     static void RegisterEvents( void );
 
@@ -95,6 +115,7 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
     typedef struct SSeriesPoint TSeriesPoint;
     typedef GUCEF::vector< TSeriesPoint > TSeriesPointVector;
     typedef GUCEF::vector< CChartSeries > TSeriesVector;
+    typedef GUCEF::vector< CChartMarker > TMarkerVector;
 
     CChartView( void );
 
@@ -181,6 +202,71 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
     /** The nearest points at the crosshair */
     const TSeriesPointVector& GetCrosshairPoints( void ) const;
 
+    /** Adds a marker at the end; returns its index, good until the next AddMarker(), SetMarkers() or RemoveMarker() */
+    UInt32 AddMarker( const CChartMarker& marker );
+
+    /** Replaces every marker; the selection stays on a marker with the id of the selected one, if there is one */
+    void SetMarkers( const TMarkerVector& markers );
+
+    UInt32 GetMarkerCount( void ) const;
+
+    /** NULL for a bad index */
+    const CChartMarker* GetMarker( UInt32 index ) const;
+
+    /** The index of the first marker with the id, -1 when there is none */
+    Int32 FindMarker( const CString& id ) const;
+
+    bool RemoveMarker( UInt32 index );
+
+    void RemoveAllMarkers( void );
+
+    /** The shape and colour of the markers of a style class that have none of their own */
+    void SetMarkerStyle( const CString& styleClass, CChartMarker::TShape shape, const CColour& colour );
+
+    bool GetMarkerStyle( const CString& styleClass, CChartMarker::TShape& shape, CColour& colour ) const;
+
+    void RemoveMarkerStyle( const CString& styleClass );
+
+    /** The markers of a hidden layer are not drawn, not hit and not reachable by keys; every layer is visible until it is hidden */
+    void SetMarkerLayerVisible( const CString& layer, bool visible );
+
+    bool IsMarkerLayerVisible( const CString& layer ) const;
+
+    /** The shape a marker is drawn with: its own, else that of its style class, else a diamond */
+    CChartMarker::TShape GetMarkerShape( UInt32 index ) const;
+
+    /** The colour a marker is drawn in: its own, else that of its style class, else EmphasisColour */
+    CColour GetMarkerColour( UInt32 index ) const;
+
+    /** Whether the last rebuild drew the marker (its layer visible, inside the x range, its series visible and with points) */
+    bool IsMarkerShown( UInt32 index ) const;
+
+    /** The rectangle of the shape of a shown marker in the last rebuild, relative to the widget */
+    bool GetMarkerRect( UInt32 index, CRect& rect ) const;
+
+    /** The shown marker under a point of the widget (its rectangle widened by MarkerHitSlop), the one whose centre is nearest when several are; -1 when none */
+    Int32 HitTestMarker( Int32 localX, Int32 localY ) const;
+
+    /** Selects a shown marker, or none with -1; false for a marker that is not shown */
+    bool SelectMarker( Int32 index );
+
+    bool SelectMarkerById( const CString& id );
+
+    /** The selected marker, -1 when none */
+    Int32 GetSelectedMarker( void ) const;
+
+    /** Selects the shown marker after (or before) the selected one in the order of x; the first (or last) when none is selected. False when there is none */
+    bool SelectNextMarker( bool forward );
+
+    /** Selects the first (or the last) shown marker in the order of x; false when none is shown */
+    bool SelectFirstMarker( bool first );
+
+    /** Selects a shown marker and routes MarkerActivatedEvent for it; false for a marker that is not shown */
+    bool ActivateMarker( UInt32 index );
+
+    /** The marker under the pointer, -1 when none */
+    Int32 GetHoveredMarker( void ) const;
+
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /** The name this widget type is registered under: what GetType() of the widgets of this class says */
@@ -211,6 +297,8 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
         CColour gridColour;
         CColour crosshairColour;
         CColour tooltipColour;
+        CColour markerColour;
+        CColour selectionColour;
         CString font;
         CString title;
         CString seriesColours;
@@ -266,6 +354,20 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
     void DrawBars( Float64 barSlot );
     void DrawLegend( Int32 top, Int32 width );
     void DrawCrosshair( void );
+    void DrawMarkers( void );
+    void DrawMarkerShape( CChartMarker::TShape shape, Int32 left, Int32 top, Int32 size, const CColour& colour );
+    void DrawMarkerTooltip( UInt32 index );
+
+    /** Rebuilds now when the drawing is out of date and the widget has a size, so the geometry of the markers is current */
+    void EnsureBuilt( void );
+
+    /** The shown markers in the order of x (then of their index) into m_markerOrder */
+    void OrderShownMarkers( void );
+
+    /** Takes the selection and the hover away from markers that are not shown any more */
+    void DropHiddenSelection( void );
+
+    void SetHoveredMarker( Int32 index );
 
     /** Fills m_keep with the indexes of a series to draw: the visible ones, reduced when there are many */
     void CollectDrawnPoints( const CChartSeries& series );
@@ -279,6 +381,17 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
     CChartView& operator=( const CChartView& src );
 
     private:
+
+    /** The style of a style class of markers */
+    struct SMarkerStyle
+    {
+        CChartMarker::TShape shape;
+        CColour colour;
+    };
+    typedef GUCEF::map< CString, SMarkerStyle > TMarkerStyleMap;
+    typedef GUCEF::set< CString > TStringSet;
+    typedef GUCEF::vector< CRect > TRectVector;
+    typedef GUCEF::vector< UInt32 > TUInt32Vector;
 
     TSeriesVector m_series;
     CChartAxis m_xAxis;
@@ -300,6 +413,14 @@ class GUCEF_GUI_PUBLIC_CPP CChartView : public CDrawSurface
     TInt32Vector m_columnTop;
     TInt32Vector m_columnBottom;
     Int32 m_lineHeight;
+    TMarkerVector m_markers;
+    TRectVector m_markerRects;              /**< per marker the rectangle of the last rebuild, empty when it was not shown */
+    TUInt32Vector m_markerOrder;            /**< the shown markers in the order of x */
+    TMarkerStyleMap m_markerStyles;
+    TStringSet m_hiddenMarkerLayers;
+    Int32 m_selectedMarker;
+    Int32 m_hoveredMarker;
+    bool m_focused;
 };
 
 /*-------------------------------------------------------------------------//

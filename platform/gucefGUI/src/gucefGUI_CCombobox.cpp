@@ -247,6 +247,15 @@ CCombobox::OnPropertyChanged( EWidgetProperty property, const CString& oldValue,
         SetProperty( EWidgetProperty_Text, index >= 0 && index < (Int32) items.size() ? items[ index ] : CString::Empty );
     }
     else
+    if ( property == EWidgetProperty_Items )
+    {
+        // other items with the same index selected: the text is that of the item at the index now
+        TStringVector items = GetStringListProperty( EWidgetProperty_Items );
+        Int32 index = GetIntProperty( EWidgetProperty_SelectedIndex );
+        if ( index >= 0 && index < (Int32) items.size() )
+            SetProperty( EWidgetProperty_Text, items[ index ] );
+    }
+    else
     if ( property == EWidgetProperty_Text )
         NotifyObservers( TextChangedEvent );
 }

@@ -332,6 +332,11 @@
 #define GUCEF_GUI_CGUIINPUTADAPTER_H
 #endif /* GUCEF_GUI_CGUIINPUTADAPTER_H ? */
 
+#ifndef GUCEF_GUI_CGUIUSERACTIONLOG_H
+#include "gucefGUI_CGUIUserActionLog.h"
+#define GUCEF_GUI_CGUIUSERACTIONLOG_H
+#endif /* GUCEF_GUI_CGUIUSERACTIONLOG_H ? */
+
 #ifndef GUCEF_GUI_CGUIDRIVER_H
 #include "gucefGUI_CGUIDriver.h"
 #define GUCEF_GUI_CGUIDRIVER_H
@@ -401,6 +406,11 @@
 #include "gucefGUI_CChartDecimator.h"
 #define GUCEF_GUI_CCHARTDECIMATOR_H
 #endif /* GUCEF_GUI_CCHARTDECIMATOR_H ? */
+
+#ifndef GUCEF_GUI_CCHARTMARKER_H
+#include "gucefGUI_CChartMarker.h"
+#define GUCEF_GUI_CCHARTMARKER_H
+#endif /* GUCEF_GUI_CCHARTMARKER_H ? */
 
 #ifndef GUCEF_GUI_CCHARTPALETTE_H
 #include "gucefGUI_CChartPalette.h"

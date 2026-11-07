@@ -18,6 +18,7 @@ set( HEADER_FILES
   include/gucefGUI_CButton.h
   include/gucefGUI_CChartAxis.h
   include/gucefGUI_CChartDecimator.h
+  include/gucefGUI_CChartMarker.h
   include/gucefGUI_CChartPalette.h
   include/gucefGUI_CChartSeries.h
   include/gucefGUI_CChartView.h
@@ -42,6 +43,7 @@ set( HEADER_FILES
   include/gucefGUI_CGUIDriver.h
   include/gucefGUI_CGUIInputAdapter.h
   include/gucefGUI_CGUIManager.h
+  include/gucefGUI_CGUIUserActionLog.h
   include/gucefGUI_CGeneralSettings.h
   include/gucefGUI_CGeneralSettingsForm.h
   include/gucefGUI_CGridView.h
@@ -106,6 +108,7 @@ set( SOURCE_FILES
   src/gucefGUI_CButton.cpp
   src/gucefGUI_CChartAxis.cpp
   src/gucefGUI_CChartDecimator.cpp
+  src/gucefGUI_CChartMarker.cpp
   src/gucefGUI_CChartPalette.cpp
   src/gucefGUI_CChartSeries.cpp
   src/gucefGUI_CChartView.cpp
@@ -130,6 +133,7 @@ set( SOURCE_FILES
   src/gucefGUI_CGUIDriver.cpp
   src/gucefGUI_CGUIInputAdapter.cpp
   src/gucefGUI_CGUIManager.cpp
+  src/gucefGUI_CGUIUserActionLog.cpp
   src/gucefGUI_CGeneralSettings.cpp
   src/gucefGUI_CGeneralSettingsForm.cpp
   src/gucefGUI_CGridView.cpp

@@ -857,6 +857,65 @@ PerformGridViewPresentationTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "FileDialogs: The titles of tabs narrower than their text get an ellipsis with the whole title as the tooltip of the tab" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateDialogContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL == context )
+            return;
+        GUI::CWidget* screen = context->CreateWidget( "Panel", "Screen", GUCEF_NULL );
+        screen->SetProperty( "Size", "1,0 1,0" );
+        context->ShowRoot( screen, false );
+        GUI::CTabControl* tabs = static_cast< GUI::CTabControl* >( context->CreateWidget( "TabControl", "Tabs", screen ) );
+        tabs->SetProperty( "Position", "0,0 0,0" );
+        tabs->SetProperty( "Size", "0,300 0,100" );
+        tabs->SetProperty( "TabHeight", "20" );
+        tabs->SetProperty( "Font", "Test" );
+        const CORE::CString longTitle = "A title much wider than its tab";
+        tabs->SetProperty( "Tabs", "One\n" + longTitle + "\nThree" );
+        context->FlushChanges();
+        ASSERT_TRUE( 3 == tabs->GetTabCount() && 100 == tabs->GetTabRect( 1 ).width );
+        ASSERT_TRUE( 100 - 2 * GUI::CTabControl::TAB_TEXT_PADDING == tabs->GetTabTextRoom( 1 ) );
+        ASSERT_TRUE( 1 == tabs->GetTabAt( 150, 10 ) && -1 == tabs->GetTabAt( 150, 50 ) );
+        ASSERT_TRUE( tabs->IsTabTitleCut( 1 ) && !tabs->IsTabTitleCut( 0 ) && !tabs->IsTabTitleCut( 2 ) );
+
+        // Clip, the default: the title is drawn whole (and cut by the edge), no tooltip
+        GUI::CDrawSurface::TCommandVector commands = PaintedCommands( context, tabs );
+        ASSERT_TRUE( GUCEF_NULL != FindTextCommand( commands, longTitle ) );
+        ASSERT_TRUE( tabs->GetTooltipAt( 150, 10 ).IsNULLOrEmpty() );
+
+        // Ellipsis: cut with "..." within the room of its tab, the short titles whole; the tooltip over the cut tab is the whole title
+        tabs->SetProperty( "TextOverflow", "Ellipsis" );
+        commands = PaintedCommands( context, tabs );
+        ASSERT_TRUE( GUCEF_NULL == FindTextCommand( commands, longTitle ) );
+        ASSERT_TRUE( GUCEF_NULL != FindTextCommand( commands, "One" ) && GUCEF_NULL != FindTextCommand( commands, "Three" ) );
+        bool found = false;
+        for ( size_t i=0; i<commands.size(); ++i )
+            if ( GUI::CDrawSurface::COMMAND_TEXT == commands[ i ].type && commands[ i ].x0 >= 100 && commands[ i ].x0 < 200 )
+            {
+                found = true;
+                ASSERT_TRUE( "..." == commands[ i ].text.SubstrFromRange( commands[ i ].text.Length() - 3, commands[ i ].text.Length() ) );
+                ASSERT_TRUE( 0 == longTitle.HasSubstr( commands[ i ].text.SubstrFromRange( 0, commands[ i ].text.Length() - 3 ) ) );
+                ASSERT_TRUE( TextWidth( context, commands[ i ].text ) <= tabs->GetTabTextRoom( 1 ) );
+            }
+        ASSERT_TRUE( found );
+        ASSERT_TRUE( longTitle == tabs->GetTooltipAt( 150, 10 ) );
+        ASSERT_TRUE( tabs->GetTooltipAt( 50, 10 ).IsNULLOrEmpty() && tabs->GetTooltipAt( 150, 50 ).IsNULLOrEmpty() );
+
+        GUI::CWidgetTypeRegistry& registry = GUI::CGuiGlobal::Instance()->GetWidgetTypeRegistry();
+        CORE::CString normalized;
+        ASSERT_TRUE( GUCEF_NULL != registry.FindProperty( "TabControl", "TextOverflow" ) && registry.FindProperty( "TabControl", "TextOverflow" )->Validate( "Ellipsis", normalized ) );
+
+        context->DestroyWidget( screen );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "FileDialogs: The new standard properties of grids and lists have their names and descriptors" )
     try
     {

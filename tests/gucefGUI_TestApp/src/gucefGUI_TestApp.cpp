@@ -87,8 +87,10 @@ GUCEF_OSMAIN_BEGIN
         PerformGuiPropertyTests();
         PerformGuiBrowserTests();
         PerformGuiChartTests();
+        PerformGuiChartMarkerTests();
         PerformGuiFontTests();
         PerformGuiSettingsTests();
+        PerformGuiUserActionLogTests();
         PerformGuiFileDialogTests();
 
         GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );

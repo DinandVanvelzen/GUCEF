@@ -25,6 +25,11 @@
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
+
+#ifndef GUCEF_GUI_CGUICONTEXT_H
+#include "gucefGUI_CGUIContext.h"
+#define GUCEF_GUI_CGUICONTEXT_H
+#endif /* GUCEF_GUI_CGUICONTEXT_H ? */
 #define GUCEF_CORE_DVCPPSTRINGUTILS_H
 #endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
 
@@ -149,6 +154,59 @@ CTabControl::GetTabRect( UInt32 tabIndex ) const
         return CRect();
     Int32 width = GetRect().width / (Int32) count;
     return CRect( (Int32) tabIndex * width, 0, width, GetIntProperty( EWidgetProperty_TabHeight ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CTabControl::GetTabAt( Int32 localX, Int32 localY ) const
+{GUCEF_TRACE;
+
+    UInt32 count = GetTabCount();
+    for ( UInt32 i=0; i<count; ++i )
+        if ( GetTabRect( i ).Contains( localX, localY ) )
+            return (Int32) i;
+    return -1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CTabControl::GetTabTextRoom( UInt32 tabIndex ) const
+{GUCEF_TRACE;
+
+    Int32 room = GetTabRect( tabIndex ).width - 2 * TAB_TEXT_PADDING;
+    return room > 0 ? room : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTabControl::IsTabTitleCut( UInt32 tabIndex ) const
+{GUCEF_TRACE;
+
+    CGUIContext* context = GetContext();
+    const TStringVector titles = GetStringListProperty( EWidgetProperty_Tabs );
+    if ( GUCEF_NULL == context || tabIndex >= (UInt32) titles.size() || titles[ tabIndex ].IsNULLOrEmpty() )
+        return false;
+    Int32 width = 0, height = 0;
+    context->MeasureText( GetPropertyRef( EWidgetProperty_Font ), titles[ tabIndex ], 0, width, height );
+    return width > GetTabTextRoom( tabIndex );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CTabControl::GetTooltipAt( Int32 localX, Int32 localY ) const
+{GUCEF_TRACE;
+
+    if ( "Ellipsis" == GetPropertyRef( EWidgetProperty_TextOverflow ) )
+    {
+        const Int32 tab = GetTabAt( localX, localY );
+        if ( tab >= 0 && IsTabTitleCut( (UInt32) tab ) )
+            return GetStringListProperty( EWidgetProperty_Tabs )[ (UInt32) tab ];
+    }
+    return CWidget::GetTooltipAt( localX, localY );
 }
 
 /*-------------------------------------------------------------------------*/

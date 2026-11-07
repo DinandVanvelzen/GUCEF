@@ -185,6 +185,7 @@ configuration( { "ANDROID32" } )
     files( {
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
+      "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -196,6 +197,7 @@ configuration( { "ANDROID32" } )
       "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
+      "src/TestGuiUserActionLog.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -213,6 +215,7 @@ configuration( { "ANDROID64" } )
     files( {
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
+      "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -224,6 +227,7 @@ configuration( { "ANDROID64" } )
       "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
+      "src/TestGuiUserActionLog.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -241,6 +245,7 @@ configuration( { "EMSCRIPTEN32" } )
     files( {
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
+      "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -252,6 +257,7 @@ configuration( { "EMSCRIPTEN32" } )
       "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
+      "src/TestGuiUserActionLog.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -269,6 +275,7 @@ configuration( { "EMSCRIPTEN64" } )
     files( {
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
+      "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -280,6 +287,7 @@ configuration( { "EMSCRIPTEN64" } )
       "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
+      "src/TestGuiUserActionLog.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -297,6 +305,7 @@ configuration( { "LINUX32" } )
     files( {
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
+      "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -308,6 +317,7 @@ configuration( { "LINUX32" } )
       "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
+      "src/TestGuiUserActionLog.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -325,6 +335,7 @@ configuration( { "LINUX64" } )
     files( {
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
+      "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -336,6 +347,7 @@ configuration( { "LINUX64" } )
       "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
+      "src/TestGuiUserActionLog.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -353,6 +365,7 @@ configuration( { "WIN32" } )
     files( {
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
+      "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -364,6 +377,7 @@ configuration( { "WIN32" } )
       "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
+      "src/TestGuiUserActionLog.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"
@@ -381,6 +395,7 @@ configuration( { "WIN64" } )
     files( {
       "src/TestGuiBrowser.cpp",
       "src/TestGuiChart.cpp",
+      "src/TestGuiChartMarkers.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -392,6 +407,7 @@ configuration( { "WIN64" } )
       "src/TestGuiScrollPanel.cpp",
       "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
+      "src/TestGuiUserActionLog.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
       "src/gucefGUI_TestApp.cpp"

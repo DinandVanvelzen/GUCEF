@@ -882,13 +882,17 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
     {
         Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, CColour( 0, 0, 0, 0 ) ) );
         CTabControl::TStringVector titles = widget.GetStringListProperty( EWidgetProperty_Tabs );
+        const bool ellipsis = "Ellipsis" == widget.GetPropertyRef( EWidgetProperty_TextOverflow );
         for ( UInt32 i=0; i<(UInt32)titles.size(); ++i )
         {
             CRect header = tabs->GetTabRect( i );
             bool active = (Int32) i == tabs->GetActiveTab();
             Fill( commands, header, ColourOr( widget, active ? EWidgetProperty_ActiveTabColour : EWidgetProperty_TabColour, BoxColour ) );
             Stroke( commands, header, BoxBorderColour, 1 );
-            PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), titles[ i ], header, "Center", "Center", false, TextColourOf( widget ), commands );
+            // a title wider than its tab: cut with "..." within the padding of the tab (the tooltip has the whole title)
+            bool cut = false;
+            const CString title = ellipsis ? FitText( context, widget.GetPropertyRef( EWidgetProperty_Font ), titles[ i ], tabs->GetTabTextRoom( i ), cut ) : titles[ i ];
+            PaintText( context, widget.GetPropertyRef( EWidgetProperty_Font ), title, header, "Center", "Center", false, TextColourOf( widget ), commands );
         }
         return;
     }

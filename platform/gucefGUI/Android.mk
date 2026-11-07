@@ -28,6 +28,7 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CButton.cpp \
   src/gucefGUI_CChartAxis.cpp \
   src/gucefGUI_CChartDecimator.cpp \
+  src/gucefGUI_CChartMarker.cpp \
   src/gucefGUI_CChartPalette.cpp \
   src/gucefGUI_CChartSeries.cpp \
   src/gucefGUI_CChartView.cpp \
@@ -52,6 +53,7 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CGUIDriver.cpp \
   src/gucefGUI_CGUIInputAdapter.cpp \
   src/gucefGUI_CGUIManager.cpp \
+  src/gucefGUI_CGUIUserActionLog.cpp \
   src/gucefGUI_CGeneralSettings.cpp \
   src/gucefGUI_CGeneralSettingsForm.cpp \
   src/gucefGUI_CGridView.cpp \

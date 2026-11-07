@@ -56,8 +56,9 @@ class CTabContentPane;
 /**
  *  Tabs along the top (the Tabs property, one entry per tab) above pages: the children of type
  *  TabContentPane, in order. The page of ActiveTab is shown. Properties: Tabs, ActiveTab, TabHeight,
- *  Font, TextColour, TabColour, ActiveTabColour, BackgroundColour. A click on a tab or Left / Right
- *  while focused switches the tab (ValueChangedEvent and ActiveTabChangedEvent).
+ *  Font, TextColour, TabColour, ActiveTabColour, BackgroundColour, TextOverflow (a title wider than its
+ *  tab: Clip, or Ellipsis with the whole title as the tooltip of the tab). A click on a tab or Left /
+ *  Right while focused switches the tab (ValueChangedEvent and ActiveTabChangedEvent).
  */
 class GUCEF_GUI_PUBLIC_CPP CTabControl : public CWidget
 {
@@ -84,6 +85,24 @@ class GUCEF_GUI_PUBLIC_CPP CTabControl : public CWidget
 
     /** Where the header of a tab is, relative to the control; tabs share the width equally */
     CRect GetTabRect( UInt32 tabIndex ) const;
+
+    /** The tab at a position relative to the control, -1 when none */
+    Int32 GetTabAt( Int32 localX, Int32 localY ) const;
+
+    /** The room around the title of a tab */
+    enum ETabLayout
+    {
+        TAB_TEXT_PADDING = 4
+    };
+
+    /** The pixels the title of a tab has: the width of its header without the padding on both sides */
+    Int32 GetTabTextRoom( UInt32 tabIndex ) const;
+
+    /** Whether the title of a tab is wider than its room: with TextOverflow Ellipsis it is drawn cut with "..." and its tooltip is the whole title */
+    bool IsTabTitleCut( UInt32 tabIndex ) const;
+
+    /** Over a tab whose title is cut (TextOverflow Ellipsis): the whole title; else the Tooltip property */
+    virtual CString GetTooltipAt( Int32 localX, Int32 localY ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

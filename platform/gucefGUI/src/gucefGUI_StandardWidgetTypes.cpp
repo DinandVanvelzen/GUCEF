@@ -383,6 +383,7 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     tabs.AddProperty( Prop( EWidgetProperty_TabColour, PD::VALUETYPE_COLOUR, "50,50,50,255", DEFAULTFLAGS, "Look", "Colour of a tab" ) );
     tabs.AddProperty( Prop( EWidgetProperty_ActiveTabColour, PD::VALUETYPE_COLOUR, "90,90,90,255", DEFAULTFLAGS, "Look", "Colour of the active tab" ) );
     AddTextProperties( tabs, "255,255,255,255" );
+    tabs.AddProperty( EnumProp( EWidgetProperty_TextOverflow, "Clip", "Clip,Ellipsis", DEFAULTFLAGS, "Text", "A title wider than its tab: cut at the tab, or cut with \"...\" (the tooltip then shows the whole title)" ) );
     tabs.AddProperty( Prop( EWidgetProperty_Focusable, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Input", "Whether the widget can get the keyboard focus" ) );
     registry.RegisterType( tabs );
 
@@ -468,6 +469,8 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     chart.AddProperty( Prop( EWidgetProperty_ValuePrefix, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Chart", "Text before value labels, for example $" ) );
     chart.AddProperty( Prop( EWidgetProperty_ValueSuffix, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Chart", "Text after value labels, for example %" ) );
     chart.AddProperty( Prop( EWidgetProperty_Decimals, PD::VALUETYPE_INT, "-1", DEFAULTFLAGS, "Chart", "Digits after the point of the value labels; -1 picks them from the tick step (the tooltip then shows 2)" ) );
+    chart.AddProperty( Prop( EWidgetProperty_EmphasisColour, PD::VALUETYPE_COLOUR, "232,170,50,255", DEFAULTFLAGS, "Look", "The markers without a colour of their own or of their style class" ) );
+    chart.AddProperty( Prop( EWidgetProperty_SelectionColour, PD::VALUETYPE_COLOUR, "240,239,236,255", DEFAULTFLAGS, "Look", "The ring around the selected marker and the frame of the plot while the chart has the keyboard focus" ) );
     registry.RegisterType( chart );
 }
 

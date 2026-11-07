@@ -349,6 +349,20 @@ CRmlUIContext::DestroyWidgetElement( GUI::CWidget& widget )
     UnregisterNativeDocument( &widget );
     if ( GUCEF_NULL == element )
         return;
+
+    // a widget that left this one is moved in RmlUi at the next flush: until then its element is still below this element, and
+    // would go with it. Such elements are moved to where their widgets are now first (a form that lets go of an application
+    // page before its window goes, CSettingsForm)
+    for ( int c=element->GetNumChildren()-1; c>=0; --c )
+    {
+        Rml::Element* child = element->GetChild( c );
+        if ( GUCEF_NULL == child || child->GetTagName() != CRmlUIWidgetElement::TagName )
+            continue;
+        GUI::CWidget* childWidget = static_cast< CRmlUIWidgetElement* >( child )->GetWidget();
+        if ( GUCEF_NULL != childWidget && childWidget->GetParentWidget() != &widget && GetWidgetElement( *childWidget ) == child )
+            AttachWidgetElement( *childWidget );
+    }
+
     element->SetWidget( GUCEF_NULL, GUCEF_NULL, false );
 
     TDocumentMap::iterator i = m_rootDocuments.find( &widget );
@@ -400,6 +414,8 @@ CRmlUIContext::AttachWidgetElement( GUI::CWidget& widget )
         m_orderDirty = true;
     }
     wanted->AppendChild( std::move( moved ) );
+    // RmlUi keeps the element it was placed in until the next layout: the old parent may go before that
+    element->SetOffset( Rml::Vector2f( 0.0f, 0.0f ), wanted );
     element->Invalidate();
 }
 
