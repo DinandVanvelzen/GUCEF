@@ -75,6 +75,16 @@
 #define GUCEF_AUTH_ICREDENTIALSTORE_H
 #endif /* GUCEF_AUTH_ICREDENTIALSTORE_H ? */
 
+#ifndef GUCEF_AUTH_CACCESSTOKENKEEPERSETTINGS_H
+#include "gucefAUTH_CAccessTokenKeeperSettings.h"
+#define GUCEF_AUTH_CACCESSTOKENKEEPERSETTINGS_H
+#endif /* GUCEF_AUTH_CACCESSTOKENKEEPERSETTINGS_H ? */
+
+#ifndef GUCEF_AUTH_CACCESSTOKENKEEPEREVENTDATA_H
+#include "gucefAUTH_CAccessTokenKeeperEventData.h"
+#define GUCEF_AUTH_CACCESSTOKENKEEPEREVENTDATA_H
+#endif /* GUCEF_AUTH_CACCESSTOKENKEEPEREVENTDATA_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -90,103 +100,15 @@ namespace AUTH {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/** What CAccessTokenKeeper::GetAccessToken() has to say */
-enum EAccessTokenStatus
-{
-    TOKEN_READY = 0,        /**< the token is there and lives longer than the skew */
-    TOKEN_PENDING,          /**< a renewal is running or was asked for: wait on the future of RequestRefresh() */
-    TOKEN_FAILED,           /**< the last renewal failed and the retry delay has not passed */
-    NO_LOGIN                /**< no account is set, there is no token and no refresh token, or the keeper was shut down */
-};
-
-typedef enum EAccessTokenStatus TAccessTokenStatus;
-
 /** A stable lower case name of a status, for logs */
 GUCEF_AUTH_EXPORT_CPP const char*
 AccessTokenStatusToString( TAccessTokenStatus status );
 
 /*-------------------------------------------------------------------------*/
 
-/** Why CAccessTokenKeeper::ReauthRequiredEvent was raised */
-enum EReauthReason
-{
-    REAUTH_NONE = 0,
-    REAUTH_REFRESH_TOKEN_EXPIRED,       /**< the refresh token is past the lifetime the provider declares, counted from the last interactive login */
-    REAUTH_REFRESH_TOKEN_REJECTED,      /**< the provider refused the refresh token (AUTHFAIL_INVALID_GRANT): it is removed from the store */
-    REAUTH_NO_REFRESH_TOKEN             /**< a renewal is needed and the store has no refresh token for the account */
-};
-
-typedef enum EReauthReason TReauthReason;
-
 /** A stable lower case name of a reason, for logs and for an application that shows it */
 GUCEF_AUTH_EXPORT_CPP const char*
 ReauthReasonToString( TReauthReason reason );
-
-/*-------------------------------------------------------------------------*/
-
-/**
- *  The settings of a CAccessTokenKeeper (all times in milliseconds unless the name says otherwise). They belong to the
- *  application, not to a person: LoadConfig() takes the node of the application's configuration that holds them.
- */
-class GUCEF_AUTH_EXPORT_CPP CAccessTokenKeeperSettings : public CORE::CIConfigurable
-{
-    public:
-
-    static const UInt32 DefaultRefreshAheadMs = 120000;
-    static const UInt32 DefaultExpirySkewMs = 30000;
-    static const UInt32 DefaultRetryDelayMs = 30000;
-    static const UInt32 DefaultMaxRetryDelayMs = 600000;
-    static const UInt32 DefaultReauthWarnHours = 24;
-    static const UInt32 DefaultCheckIntervalMs = 250;
-    static const UInt32 DefaultPollIntervalMs = 25;
-    static const UInt32 DefaultRefreshTimeoutMs = 60000;
-
-    UInt32 refreshAheadMs;              /**< a renewal starts when the token expires within this time (capped at half the life of the token) */
-    UInt32 expirySkewMs;                /**< a token that expires within this time is not handed out (capped at half the life of the token) */
-    UInt32 retryDelayMs;                /**< after a renewal that failed for another reason than a refused refresh token; doubles with every further failure */
-    UInt32 maxRetryDelayMs;             /**< the cap of that doubling */
-    UInt32 refreshTokenLifetimeHours;   /**< the life of a refresh token from the interactive login; 0 takes CAuthProviderDescriptor::refreshTokenLifetimeInSeconds, and when that is 0 too the life is unknown and nothing is warned */
-    UInt32 reauthWarnHours;             /**< ReauthDueSoonEvent is raised when less than this remains of the life of the refresh token */
-    UInt32 checkIntervalMs;             /**< how often the keeper looks at the clock and at requests for a renewal when nothing runs: a renewal asked for from any thread starts within this time */
-    UInt32 pollIntervalMs;              /**< how often a renewal in flight is looked at */
-    UInt32 refreshTimeoutMs;            /**< a renewal that takes longer is cancelled and counts as a failure of the network */
-
-    CAccessTokenKeeperSettings( void );
-
-    virtual bool SaveConfig( CORE::CDataNode& config ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    /** Values that are not there keep what they were; refreshAheadMs and expirySkewMs are capped at a day, the intervals have a floor of 1 */
-    virtual bool LoadConfig( const CORE::CDataNode& config ) GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** Event data of the events of CAccessTokenKeeper; no token is ever part of it */
-class GUCEF_AUTH_EXPORT_CPP CAccessTokenKeeperEventData : public CORE::CICloneable
-{
-    public:
-
-    CORE::CString providerName;
-    CAccountRef accountRef;
-    UInt64 accessTokenExpiresAtMs;      /**< TokenRefreshedEvent: the expiry of the new access token, ms since 1970 UTC, 0 when it is not known */
-    TAuthFailureReason failureReason;   /**< TokenRefreshFailedEvent: why the renewal failed */
-    UInt64 retryAtMs;                   /**< TokenRefreshFailedEvent: when the next renewal may be tried, 0 when not before a new login */
-    TReauthReason reauthReason;         /**< ReauthRequiredEvent */
-    UInt64 refreshTokenExpiresAtMs;     /**< ReauthDueSoonEvent, ReauthRequiredEvent: when the refresh token expires by the declared lifetime, 0 when it is not known */
-    UInt64 remainingMs;                 /**< ReauthDueSoonEvent: how long the refresh token still lives */
-
-    CAccessTokenKeeperEventData( void );
-
-    CAccessTokenKeeperEventData( const CAccessTokenKeeperEventData& src );
-
-    virtual ~CAccessTokenKeeperEventData();
-
-    CAccessTokenKeeperEventData& operator=( const CAccessTokenKeeperEventData& src );
-
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-};
 
 /*-------------------------------------------------------------------------*/
 

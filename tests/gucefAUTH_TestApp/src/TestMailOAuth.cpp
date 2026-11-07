@@ -37,10 +37,10 @@
 #define GUCEF_CORE_CTFACTORY_H
 #endif /* GUCEF_CORE_CTFACTORY_H ? */
 
-#ifndef GUCEF_AUTH_CMAILOAUTHCREDENTIALPROVIDER_H
-#include "gucefAUTH_CMailOAuthCredentialProvider.h"
-#define GUCEF_AUTH_CMAILOAUTHCREDENTIALPROVIDER_H
-#endif /* GUCEF_AUTH_CMAILOAUTHCREDENTIALPROVIDER_H ? */
+#ifndef GUCEF_AUTH_CEMAILOAUTHCREDENTIALPROVIDER_H
+#include "gucefAUTH_CEMailOAuthCredentialProvider.h"
+#define GUCEF_AUTH_CEMAILOAUTHCREDENTIALPROVIDER_H
+#endif /* GUCEF_AUTH_CEMAILOAUTHCREDENTIALPROVIDER_H ? */
 
 #ifndef GUCEF_AUTH_CMEMORYCREDENTIALSTORE_H
 #include "gucefAUTH_CMemoryCredentialStore.h"
@@ -62,10 +62,10 @@
 #define GUCEF_COM_CSMTPCLIENT_H
 #endif /* GUCEF_COM_CSMTPCLIENT_H ? */
 
-#ifndef GUCEF_COM_CMAILPROVIDERPRESETS_H
-#include "gucefCOM_CMailProviderPresets.h"
-#define GUCEF_COM_CMAILPROVIDERPRESETS_H
-#endif /* GUCEF_COM_CMAILPROVIDERPRESETS_H ? */
+#ifndef GUCEF_COM_CEMAILPROVIDERPRESETS_H
+#include "gucefCOM_CEMailProviderPresets.h"
+#define GUCEF_COM_CEMAILPROVIDERPRESETS_H
+#endif /* GUCEF_COM_CEMAILPROVIDERPRESETS_H ? */
 
 #ifndef GUCEF_TEST_IMAP_SERVER_H
 #include "gucef_test_imap_server.h"
@@ -121,11 +121,11 @@ class CReadyCounter : public CORE::CObserver
     CReadyCounter( void ) : CORE::CObserver(), count( 0 ), requestIds() {}
     virtual ~CReadyCounter() { UnsubscribeAllFromObserver(); }
 
-    void Attach( COM::CIMailCredentialProvider& provider )
+    void Attach( COM::CIEMailCredentialProvider& provider )
     {
         typedef CORE::CTEventHandlerFunctor< CReadyCounter > TCallback;
         TCallback callback( this, &CReadyCounter::OnReady );
-        SubscribeTo( &provider, COM::CIMailCredentialProvider::CredentialReadyEvent, callback );
+        SubscribeTo( &provider, COM::CIEMailCredentialProvider::CredentialReadyEvent, callback );
     }
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
@@ -139,7 +139,7 @@ class CReadyCounter : public CORE::CObserver
     void OnReady( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
         ++count;
-        const COM::CIMailCredentialProvider::TCredentialReadyEventData* data = static_cast< const COM::CIMailCredentialProvider::TCredentialReadyEventData* >( eventData );
+        const COM::CIEMailCredentialProvider::TCredentialReadyEventData* data = static_cast< const COM::CIEMailCredentialProvider::TCredentialReadyEventData* >( eventData );
         if ( GUCEF_NULL != data )
             requestIds.push_back( data->GetData() );
     }
@@ -157,13 +157,13 @@ class CConnectWatch : public CORE::CObserver
     CConnectWatch( void ) : CORE::CObserver(), ready( false ), failed( false ), settled( false ) {}
     virtual ~CConnectWatch() { UnsubscribeAllFromObserver(); }
 
-    void Attach( COM::CMailClientBase& client )
+    void Attach( COM::CEMailClientBase& client )
     {
         typedef CORE::CTEventHandlerFunctor< CConnectWatch > TCallback;
         TCallback readyCallback( this, &CConnectWatch::OnReady );
-        SubscribeTo( &client, COM::CMailClientBase::ReadyEvent, readyCallback );
+        SubscribeTo( &client, COM::CEMailClientBase::ReadyEvent, readyCallback );
         TCallback errorCallback( this, &CConnectWatch::OnError );
-        SubscribeTo( &client, COM::CMailClientBase::ErrorEvent, errorCallback );
+        SubscribeTo( &client, COM::CEMailClientBase::ErrorEvent, errorCallback );
     }
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
@@ -179,7 +179,7 @@ class CConnectWatch : public CORE::CObserver
 };
 
 /** A manager with a fake provider "google", a store in memory and a mail credential provider on them */
-class CMailOAuthFixture
+class CEMailOAuthFixture
 {
     public:
 
@@ -188,11 +188,11 @@ class CMailOAuthFixture
     AUTH::CMemoryCredentialStore store;
     AUTH::CLocalIdentityLinkStore linkStore;
     AUTH::CAuthManager manager;
-    AUTH::CMailOAuthCredentialProvider provider;
+    AUTH::CEMailOAuthCredentialProvider provider;
     CFakeAuthProvider* fake;
     AUTH::CAccountRef account;
 
-    CMailOAuthFixture( void ) : store(), linkStore(), manager(), provider(), fake( GUCEF_NULL ), account()
+    CEMailOAuthFixture( void ) : store(), linkStore(), manager(), provider(), fake( GUCEF_NULL ), account()
     {
         manager.SetCredentialStore( &store );
         manager.SetLinkStore( &linkStore );
@@ -207,7 +207,7 @@ class CMailOAuthFixture
         provider.SetCredentialStore( &store );
     }
 
-    ~CMailOAuthFixture()
+    ~CEMailOAuthFixture()
     {
         provider.SetManager( GUCEF_NULL );
     }
@@ -230,9 +230,9 @@ class CMailOAuthFixture
         return true;
     }
 
-    COM::CIMailCredentialProvider::EResult Ask( COM::CMailCredential& credential, bool previousFailed = false, UInt32 requestId = 1 )
+    COM::CIEMailCredentialProvider::EResult Ask( COM::CEMailCredential& credential, bool previousFailed = false, UInt32 requestId = 1 )
     {
-        COM::CMailCredentialRequest request;
+        COM::CEMailCredentialRequest request;
         request.protocol = COM::MAILPROTOCOL_IMAP;
         request.host = "127.0.0.1";
         request.userName = MailUser;
@@ -243,11 +243,11 @@ class CMailOAuthFixture
 
     private:
 
-    CMailOAuthFixture( const CMailOAuthFixture& src );
-    CMailOAuthFixture& operator=( const CMailOAuthFixture& src );
+    CEMailOAuthFixture( const CEMailOAuthFixture& src );
+    CEMailOAuthFixture& operator=( const CEMailOAuthFixture& src );
 };
 
-const char* const CMailOAuthFixture::MailUser = "mail-user-oauth";
+const char* const CEMailOAuthFixture::MailUser = "mail-user-oauth";
 
 /** Reads json text into a data tree with the json codec */
 bool
@@ -283,18 +283,18 @@ PerformMailOAuthTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: The mail credential provider gives the token of the session as a bearer token, without a renewal" )
         try
         {
-            CMailOAuthFixture f;
-            COM::CMailCredential credential;
+            CEMailOAuthFixture f;
+            COM::CEMailCredential credential;
             // nothing set: no credential
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_FAILED == f.Ask( credential ) );
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_FAILED == f.Ask( credential ) );
             ASSERT_FALSE( f.provider.HasLogin() );
 
             ASSERT_TRUE( f.SignIn() );
             ASSERT_TRUE( f.provider.HasLogin() );
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_READY == f.Ask( credential ) );
-            ASSERT_TRUE( COM::MAILCRED_BEARER_TOKEN == credential.type && credential.secret == CFakeAuthProvider::SecretAccessToken && credential.userName == CMailOAuthFixture::MailUser );
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_READY == f.Ask( credential ) );
+            ASSERT_TRUE( COM::MAILCRED_BEARER_TOKEN == credential.type && credential.secret == CFakeAuthProvider::SecretAccessToken && credential.userName == CEMailOAuthFixture::MailUser );
             ASSERT_TRUE( 0 == f.fake->refreshCount && 0 == f.provider.GetRefreshCount() );
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_READY == f.Ask( credential ) && 0 == f.fake->refreshCount );
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_READY == f.Ask( credential ) && 0 == f.fake->refreshCount );
         }
         catch ( ... )
         {
@@ -305,7 +305,7 @@ PerformMailOAuthTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: A token that expires soon is renewed with the stored refresh token, the client waits for the event, and the rotated refresh token is kept" )
         try
         {
-            CMailOAuthFixture f;
+            CEMailOAuthFixture f;
             CReadyCounter ready;
             ready.Attach( f.provider );
             ASSERT_TRUE( f.SignIn() );
@@ -313,9 +313,9 @@ PerformMailOAuthTests( void )
             ASSERT_TRUE( f.store.Load( "google", f.account.ToString(), before ) && !before.IsEmpty() );
 
             f.provider.SetSkewMs( 2 * 3600 * 1000 );        // the token of the fake lives an hour: it counts as expired
-            COM::CMailCredential credential;
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_PENDING == f.Ask( credential, false, 41 ) );
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_PENDING == f.Ask( credential, false, 42 ) );      // one renewal serves both
+            COM::CEMailCredential credential;
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_PENDING == f.Ask( credential, false, 41 ) );
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_PENDING == f.Ask( credential, false, 42 ) );      // one renewal serves both
             ASSERT_TRUE( PumpUntilAtLeast( ready.count, 1, 5000 ) );
             ASSERT_TRUE( 1 == f.fake->refreshCount && 1 == f.provider.GetRefreshCount() );
             ASSERT_TRUE( f.fake->lastRefreshTokenSeen == before.Reveal() );
@@ -327,7 +327,7 @@ PerformMailOAuthTests( void )
             }
             ASSERT_TRUE( got41 && got42 );
             f.provider.SetSkewMs( 1000 );
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_READY == f.Ask( credential ) && credential.secret == CFakeAuthProvider::SecretAccessToken );
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_READY == f.Ask( credential ) && credential.secret == CFakeAuthProvider::SecretAccessToken );
             AUTH::CSecretString after;
             ASSERT_TRUE( f.store.Load( "google", f.account.ToString(), after ) && !after.IsEmpty() && after.Reveal() != before.Reveal() );
             ASSERT_FALSE( f.provider.HasRefreshFailed() );
@@ -341,19 +341,19 @@ PerformMailOAuthTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: A token the server refused is renewed, and refusals are counted" )
         try
         {
-            CMailOAuthFixture f;
+            CEMailOAuthFixture f;
             CReadyCounter ready;
             ready.Attach( f.provider );
             ASSERT_TRUE( f.SignIn() );
-            COM::CMailCredential credential;
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_READY == f.Ask( credential ) );
-            COM::CMailCredentialRequest request;
+            COM::CEMailCredential credential;
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_READY == f.Ask( credential ) );
+            COM::CEMailCredentialRequest request;
             f.provider.ReportRejected( request );
             ASSERT_TRUE( 1 == f.provider.GetRejectionCount() );
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_PENDING == f.Ask( credential, true, 7 ) );
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_PENDING == f.Ask( credential, true, 7 ) );
             ASSERT_TRUE( PumpUntilAtLeast( ready.count, 1, 5000 ) );
             ASSERT_TRUE( 1 == f.fake->refreshCount );
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_READY == f.Ask( credential, false ) && 1 == f.fake->refreshCount );
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_READY == f.Ask( credential, false ) && 1 == f.fake->refreshCount );
         }
         catch ( ... )
         {
@@ -364,34 +364,34 @@ PerformMailOAuthTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: A renewal that fails ends the wait with no credential, is not repeated within the retry delay, and works again later" )
         try
         {
-            CMailOAuthFixture f;
+            CEMailOAuthFixture f;
             CReadyCounter ready;
             ready.Attach( f.provider );
             ASSERT_TRUE( f.SignIn() );
             f.provider.SetSkewMs( 2 * 3600 * 1000 );
             f.fake->refreshBehaviour = FAKE_FAIL;
             f.fake->failReason = AUTH::AUTHFAIL_INVALID_GRANT;
-            COM::CMailCredential credential;
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_PENDING == f.Ask( credential ) );
+            COM::CEMailCredential credential;
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_PENDING == f.Ask( credential ) );
             ASSERT_TRUE( PumpUntilAtLeast( ready.count, 1, 5000 ) );
             ASSERT_TRUE( f.provider.HasRefreshFailed() && 1 == f.fake->refreshCount );
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_FAILED == f.Ask( credential ) );
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_FAILED == f.Ask( credential, true ) );
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_FAILED == f.Ask( credential ) );
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_FAILED == f.Ask( credential, true ) );
             ASSERT_TRUE( 1 == f.fake->refreshCount );
 
             f.provider.SetRetryDelayMs( 0 );
             f.fake->refreshBehaviour = FAKE_COMPLETE;
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_PENDING == f.Ask( credential ) );
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_PENDING == f.Ask( credential ) );
             ASSERT_TRUE( PumpUntilAtLeast( ready.count, 2, 5000 ) );
             f.provider.SetSkewMs( 1000 );
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_READY == f.Ask( credential ) && !f.provider.HasRefreshFailed() && 2 == f.fake->refreshCount );
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_READY == f.Ask( credential ) && !f.provider.HasRefreshFailed() && 2 == f.fake->refreshCount );
 
             // an account whose refresh token is gone cannot be renewed
             f.provider.SetSkewMs( 2 * 3600 * 1000 );
             ASSERT_TRUE( f.store.Remove( "google", f.account.ToString() ) );
             f.provider.Reset();
-            f.provider.SetAccount( "google", f.account, CMailOAuthFixture::MailUser );
-            ASSERT_TRUE( COM::CIMailCredentialProvider::CRED_FAILED == f.Ask( credential ) && 2 == f.fake->refreshCount );
+            f.provider.SetAccount( "google", f.account, CEMailOAuthFixture::MailUser );
+            ASSERT_TRUE( COM::CIEMailCredentialProvider::CRED_FAILED == f.Ask( credential ) && 2 == f.fake->refreshCount );
         }
         catch ( ... )
         {
@@ -403,18 +403,18 @@ PerformMailOAuthTests( void )
         try
         {
             CLogCapture logs;
-            CMailOAuthFixture f;
+            CEMailOAuthFixture f;
             ASSERT_TRUE( f.SignIn() );
 
             TESTFW::CTestImapServer imap;
             imap.allowLogin = false;
             imap.authMechanisms = "XOAUTH2";
-            imap.user = CMailOAuthFixture::MailUser;
+            imap.user = CEMailOAuthFixture::MailUser;
             imap.token = CFakeAuthProvider::SecretAccessToken;
             ASSERT_TRUE( imap.Start() );
             TESTFW::CTestSmtpServer smtp;
             smtp.authMechanisms = "XOAUTH2";
-            smtp.user = CMailOAuthFixture::MailUser;
+            smtp.user = CEMailOAuthFixture::MailUser;
             smtp.token = CFakeAuthProvider::SecretAccessToken;
             ASSERT_TRUE( smtp.Start() );
 
@@ -428,7 +428,7 @@ PerformMailOAuthTests( void )
                 imapSettings.port = imap.GetPort();
                 imapSettings.tlsMode = COM::MAILTLS_NONE;
                 imapSettings.allowInsecureAuth = true;
-                imapSettings.userName = CMailOAuthFixture::MailUser;
+                imapSettings.userName = CEMailOAuthFixture::MailUser;
                 COM::CImapClient imapClient;
                 imapClient.SetCredentialProvider( &f.provider );
                 CConnectWatch imapWatch;
@@ -442,7 +442,7 @@ PerformMailOAuthTests( void )
                 smtpSettings.port = smtp.GetPort();
                 smtpSettings.tlsMode = COM::MAILTLS_NONE;
                 smtpSettings.allowInsecureAuth = true;
-                smtpSettings.userName = CMailOAuthFixture::MailUser;
+                smtpSettings.userName = CEMailOAuthFixture::MailUser;
                 smtpSettings.heloName = "redux.test";
                 COM::CSmtpClient smtpClient;
                 smtpClient.SetCredentialProvider( &f.provider );
@@ -462,7 +462,7 @@ PerformMailOAuthTests( void )
             imapSettings.port = imap.GetPort();
             imapSettings.tlsMode = COM::MAILTLS_NONE;
             imapSettings.allowInsecureAuth = true;
-            imapSettings.userName = CMailOAuthFixture::MailUser;
+            imapSettings.userName = CEMailOAuthFixture::MailUser;
             COM::CImapClient refused;
             refused.SetCredentialProvider( &f.provider );
             CConnectWatch refusedWatch;
@@ -473,7 +473,7 @@ PerformMailOAuthTests( void )
             ASSERT_TRUE( f.provider.GetRejectionCount() >= 1 );
 
             ASSERT_FALSE( logs.Contains( CFakeAuthProvider::SecretAccessToken ) || logs.Contains( CFakeAuthProvider::SecretRefreshTokenPrefix ) || logs.Contains( CFakeAuthProvider::SecretIdToken ) );
-            ASSERT_FALSE( logs.Contains( CMailOAuthFixture::MailUser ) );
+            ASSERT_FALSE( logs.Contains( CEMailOAuthFixture::MailUser ) );
         }
         catch ( ... )
         {
@@ -491,16 +491,16 @@ PerformMailOAuthTests( void )
                 "  \"corpmail\": { \"displayName\": \"Corp mail\", \"domains\": \"corp.example\", \"imapHost\": \"imap.corp.example\", \"imapSecurity\": \"starttls\", \"smtpHost\": \"smtp.corp.example\", \"smtpPort\": 2525, \"smtpSecurity\": \"none\" },"
                 "  \"yahoo\": { \"remove\": true },"
                 "  \"broken\": { \"imapHost\": \"imap.bad.example\\r\\nX\", \"smtpHost\": \"smtp.bad.example\" } }", tree ) );
-            COM::CMailProviderPresets presets;
+            COM::CEMailProviderPresets presets;
             const UInt32 before = presets.GetCount();
             ASSERT_TRUE( presets.LoadConfig( tree ) );
             ASSERT_TRUE( 1 == presets.GetSkippedCount() );
             ASSERT_TRUE( presets.GetCount() == before );          // + corpmail - yahoo
-            const COM::CMailProviderPreset* preset = GUCEF_NULL;
-            ASSERT_TRUE( COM::CMailProviderPresets::RECOGNIZE_KNOWN == presets.Recognize( "me@json-mail.example", preset ) && preset->id == "gmail" && preset->imap.host == "imap.json-override.example" && 1993 == preset->imap.port );
+            const COM::CEMailProviderPreset* preset = GUCEF_NULL;
+            ASSERT_TRUE( COM::CEMailProviderPresets::RECOGNIZE_KNOWN == presets.Recognize( "me@json-mail.example", preset ) && preset->id == "gmail" && preset->imap.host == "imap.json-override.example" && 1993 == preset->imap.port );
             ASSERT_TRUE( preset->smtp.host == "smtp.gmail.com" );
-            ASSERT_TRUE( COM::CMailProviderPresets::RECOGNIZE_KNOWN == presets.Recognize( "me@corp.example", preset ) && preset->id == "corpmail" && COM::MAILTLS_STARTTLS == preset->imap.security && 2525 == preset->smtp.port && COM::MAILTLS_NONE == preset->smtp.security );
-            ASSERT_TRUE( COM::CMailProviderPresets::RECOGNIZE_UNKNOWN == presets.Recognize( "me@yahoo.com", preset ) );
+            ASSERT_TRUE( COM::CEMailProviderPresets::RECOGNIZE_KNOWN == presets.Recognize( "me@corp.example", preset ) && preset->id == "corpmail" && COM::MAILTLS_STARTTLS == preset->imap.security && 2525 == preset->smtp.port && COM::MAILTLS_NONE == preset->smtp.security );
+            ASSERT_TRUE( COM::CEMailProviderPresets::RECOGNIZE_UNKNOWN == presets.Recognize( "me@yahoo.com", preset ) );
 
             // saved as json text and read back it is the same table
             CORE::CDataNode saved( "MailProviders" );
@@ -513,10 +513,10 @@ PerformMailOAuthTests( void )
             CORE::CDataNode again;
             access.Setpos( 0 );
             ASSERT_TRUE( codec->BuildDataTree( &again, &access ) );
-            COM::CMailProviderPresets reread;
+            COM::CEMailProviderPresets reread;
             reread.Clear();
             ASSERT_TRUE( reread.LoadConfig( again ) && reread.GetCount() == presets.GetCount() && 0 == reread.GetSkippedCount() );
-            ASSERT_TRUE( COM::CMailProviderPresets::RECOGNIZE_KNOWN == reread.Recognize( "me@corp.example", preset ) && preset->id == "corpmail" && 2525 == preset->smtp.port );
+            ASSERT_TRUE( COM::CEMailProviderPresets::RECOGNIZE_KNOWN == reread.Recognize( "me@corp.example", preset ) && preset->id == "corpmail" && 2525 == preset->smtp.port );
         }
         catch ( ... )
         {

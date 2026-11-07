@@ -14,6 +14,8 @@
 set( HEADER_FILES 
   include/gucefAUTH.h
   include/gucefAUTH_CAccessTokenKeeper.h
+  include/gucefAUTH_CAccessTokenKeeperEventData.h
+  include/gucefAUTH_CAccessTokenKeeperSettings.h
   include/gucefAUTH_CAccountRef.h
   include/gucefAUTH_CAuthCrypto.h
   include/gucefAUTH_CAuthEventData.h
@@ -29,6 +31,7 @@ set( HEADER_FILES
   include/gucefAUTH_CAuthUnavailableProvider.h
   include/gucefAUTH_CAuthUrl.h
   include/gucefAUTH_CDescriptorAuthProvider.h
+  include/gucefAUTH_CEMailOAuthCredentialProvider.h
   include/gucefAUTH_CFileCredentialStore.h
   include/gucefAUTH_CFileLock.h
   include/gucefAUTH_CIAuthProvider.h
@@ -38,7 +41,6 @@ set( HEADER_FILES
   include/gucefAUTH_CLinkRecord.h
   include/gucefAUTH_CLocalIdentityLinkStore.h
   include/gucefAUTH_CLoopbackRedirectListener.h
-  include/gucefAUTH_CMailOAuthCredentialProvider.h
   include/gucefAUTH_CMemoryCredentialStore.h
   include/gucefAUTH_CModule.h
   include/gucefAUTH_COAuth2Engine.h
@@ -67,6 +69,8 @@ set( HEADER_FILES
 set( SOURCE_FILES 
   src/gucefAUTH.cpp
   src/gucefAUTH_CAccessTokenKeeper.cpp
+  src/gucefAUTH_CAccessTokenKeeperEventData.cpp
+  src/gucefAUTH_CAccessTokenKeeperSettings.cpp
   src/gucefAUTH_CAccountRef.cpp
   src/gucefAUTH_CAuthCrypto.cpp
   src/gucefAUTH_CAuthEventData.cpp
@@ -82,6 +86,7 @@ set( SOURCE_FILES
   src/gucefAUTH_CAuthUnavailableProvider.cpp
   src/gucefAUTH_CAuthUrl.cpp
   src/gucefAUTH_CDescriptorAuthProvider.cpp
+  src/gucefAUTH_CEMailOAuthCredentialProvider.cpp
   src/gucefAUTH_CFileCredentialStore.cpp
   src/gucefAUTH_CFileLock.cpp
   src/gucefAUTH_CIAuthProvider.cpp
@@ -91,7 +96,6 @@ set( SOURCE_FILES
   src/gucefAUTH_CLinkRecord.cpp
   src/gucefAUTH_CLocalIdentityLinkStore.cpp
   src/gucefAUTH_CLoopbackRedirectListener.cpp
-  src/gucefAUTH_CMailOAuthCredentialProvider.cpp
   src/gucefAUTH_CMemoryCredentialStore.cpp
   src/gucefAUTH_CModule.cpp
   src/gucefAUTH_COAuth2Engine.cpp

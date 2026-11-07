@@ -16,7 +16,7 @@
  *  limitations under the License.
  */
 
-#include "gucefAUTH_CMailOAuthCredentialProvider.h"
+#include "gucefAUTH_CEMailOAuthCredentialProvider.h"
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -44,11 +44,11 @@ namespace AUTH {
 //-------------------------------------------------------------------------*/
 
 /** Looks at the timer that follows a renewal in flight: the provider is a notifier and cannot subscribe to the timer itself */
-class CMailOAuthCredentialProvider::CPollObserver : public CORE::CObserver
+class CEMailOAuthCredentialProvider::CPollObserver : public CORE::CObserver
 {
     public:
 
-    explicit CPollObserver( CMailOAuthCredentialProvider& owner, CORE::CTimer& timer )
+    explicit CPollObserver( CEMailOAuthCredentialProvider& owner, CORE::CTimer& timer )
         : CORE::CObserver()
         , m_owner( owner )
     {
@@ -64,7 +64,7 @@ class CMailOAuthCredentialProvider::CPollObserver : public CORE::CObserver
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE
     {
-        static const CORE::CString classTypeName = "GUCEF::AUTH::CMailOAuthCredentialProvider::CPollObserver";
+        static const CORE::CString classTypeName = "GUCEF::AUTH::CEMailOAuthCredentialProvider::CPollObserver";
         return classTypeName;
     }
 
@@ -76,15 +76,15 @@ class CMailOAuthCredentialProvider::CPollObserver : public CORE::CObserver
             m_owner.FinishRefresh();
     }
 
-    CMailOAuthCredentialProvider& m_owner;
+    CEMailOAuthCredentialProvider& m_owner;
 };
 
-const UInt32 CMailOAuthCredentialProvider::DefaultSkewMs;
-const UInt32 CMailOAuthCredentialProvider::DefaultRetryDelayMs;
-const UInt32 CMailOAuthCredentialProvider::PollIntervalMs;
+const UInt32 CEMailOAuthCredentialProvider::DefaultSkewMs;
+const UInt32 CEMailOAuthCredentialProvider::DefaultRetryDelayMs;
+const UInt32 CEMailOAuthCredentialProvider::PollIntervalMs;
 
-CMailOAuthCredentialProvider::CMailOAuthCredentialProvider( void )
-    : COM::CIMailCredentialProvider()
+CEMailOAuthCredentialProvider::CEMailOAuthCredentialProvider( void )
+    : COM::CIEMailCredentialProvider()
     , m_manager( GUCEF_NULL )
     , m_store( GUCEF_NULL )
     , m_providerName()
@@ -111,7 +111,7 @@ CMailOAuthCredentialProvider::CMailOAuthCredentialProvider( void )
     m_poller = GUCEF_NEW CPollObserver( *this, m_pollTimer );
 }
 
-CMailOAuthCredentialProvider::~CMailOAuthCredentialProvider()
+CEMailOAuthCredentialProvider::~CEMailOAuthCredentialProvider()
 {GUCEF_TRACE;
 
     m_pollTimer.SetEnabled( false );
@@ -124,35 +124,35 @@ CMailOAuthCredentialProvider::~CMailOAuthCredentialProvider()
 /*-------------------------------------------------------------------------*/
 
 void
-CMailOAuthCredentialProvider::SetManager( CAuthManager* manager )
+CEMailOAuthCredentialProvider::SetManager( CAuthManager* manager )
 {GUCEF_TRACE;
 
     m_manager = manager;
 }
 
 void
-CMailOAuthCredentialProvider::SetCredentialStore( ICredentialStore* store )
+CEMailOAuthCredentialProvider::SetCredentialStore( ICredentialStore* store )
 {GUCEF_TRACE;
 
     m_store = store;
 }
 
 void
-CMailOAuthCredentialProvider::SetSkewMs( UInt32 skewMs )
+CEMailOAuthCredentialProvider::SetSkewMs( UInt32 skewMs )
 {GUCEF_TRACE;
 
     m_skewMs = skewMs;
 }
 
 void
-CMailOAuthCredentialProvider::SetRetryDelayMs( UInt32 delayMs )
+CEMailOAuthCredentialProvider::SetRetryDelayMs( UInt32 delayMs )
 {GUCEF_TRACE;
 
     m_retryDelayMs = delayMs;
 }
 
 void
-CMailOAuthCredentialProvider::Reset( void )
+CEMailOAuthCredentialProvider::Reset( void )
 {GUCEF_TRACE;
 
     m_accessToken.Clear();
@@ -164,7 +164,7 @@ CMailOAuthCredentialProvider::Reset( void )
 }
 
 void
-CMailOAuthCredentialProvider::SetAccount( const CORE::CString& providerName, const CAccountRef& account, const CORE::CString& mailUserName )
+CEMailOAuthCredentialProvider::SetAccount( const CORE::CString& providerName, const CAccountRef& account, const CORE::CString& mailUserName )
 {GUCEF_TRACE;
 
     if ( providerName == m_providerName && account == m_account && mailUserName == m_mailUserName )
@@ -176,7 +176,7 @@ CMailOAuthCredentialProvider::SetAccount( const CORE::CString& providerName, con
 }
 
 bool
-CMailOAuthCredentialProvider::HasLogin( void ) const
+CEMailOAuthCredentialProvider::HasLogin( void ) const
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == m_manager || m_providerName.IsNULLOrEmpty() || !m_account.IsValid() )
@@ -190,21 +190,21 @@ CMailOAuthCredentialProvider::HasLogin( void ) const
     return GUCEF_NULL != m_store && m_store->Load( m_providerName, m_account.ToString(), refreshToken ) && !refreshToken.IsEmpty();
 }
 
-UInt32 CMailOAuthCredentialProvider::GetRefreshCount( void ) const { return m_refreshCount; }
-UInt32 CMailOAuthCredentialProvider::GetRejectionCount( void ) const { return m_rejectionCount; }
-bool CMailOAuthCredentialProvider::HasRefreshFailed( void ) const { return m_refreshFailed; }
+UInt32 CEMailOAuthCredentialProvider::GetRefreshCount( void ) const { return m_refreshCount; }
+UInt32 CEMailOAuthCredentialProvider::GetRejectionCount( void ) const { return m_rejectionCount; }
+bool CEMailOAuthCredentialProvider::HasRefreshFailed( void ) const { return m_refreshFailed; }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CMailOAuthCredentialProvider::HasUsableCachedToken( UInt64 nowMs ) const
+CEMailOAuthCredentialProvider::HasUsableCachedToken( UInt64 nowMs ) const
 {GUCEF_TRACE;
 
     return !m_accessToken.IsEmpty() && ( 0 == m_expiresAtMs || m_expiresAtMs > nowMs + m_skewMs );
 }
 
 bool
-CMailOAuthCredentialProvider::TakeSessionToken( UInt64 nowMs )
+CEMailOAuthCredentialProvider::TakeSessionToken( UInt64 nowMs )
 {GUCEF_TRACE;
 
     CAuthResult session;
@@ -218,7 +218,7 @@ CMailOAuthCredentialProvider::TakeSessionToken( UInt64 nowMs )
 }
 
 void
-CMailOAuthCredentialProvider::FillCredential( COM::CMailCredential& credential ) const
+CEMailOAuthCredentialProvider::FillCredential( COM::CEMailCredential& credential ) const
 {GUCEF_TRACE;
 
     credential.type = COM::MAILCRED_BEARER_TOKEN;
@@ -228,8 +228,8 @@ CMailOAuthCredentialProvider::FillCredential( COM::CMailCredential& credential )
 
 /*-------------------------------------------------------------------------*/
 
-COM::CIMailCredentialProvider::EResult
-CMailOAuthCredentialProvider::GetCredential( const COM::CMailCredentialRequest& request, COM::CMailCredential& credential )
+COM::CIEMailCredentialProvider::EResult
+CEMailOAuthCredentialProvider::GetCredential( const COM::CEMailCredentialRequest& request, COM::CEMailCredential& credential )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == m_manager || m_providerName.IsNULLOrEmpty() || !m_account.IsValid() )
@@ -271,7 +271,7 @@ CMailOAuthCredentialProvider::GetCredential( const COM::CMailCredentialRequest& 
 }
 
 void
-CMailOAuthCredentialProvider::ReportRejected( const COM::CMailCredentialRequest& request )
+CEMailOAuthCredentialProvider::ReportRejected( const COM::CEMailCredentialRequest& request )
 {GUCEF_TRACE;
 
     ++m_rejectionCount;
@@ -283,7 +283,7 @@ CMailOAuthCredentialProvider::ReportRejected( const COM::CMailCredentialRequest&
 /*-------------------------------------------------------------------------*/
 
 bool
-CMailOAuthCredentialProvider::StartRefresh( void )
+CEMailOAuthCredentialProvider::StartRefresh( void )
 {GUCEF_TRACE;
 
     CIAuthProvider* provider = GUCEF_NULL != m_manager ? m_manager->GetProvider( m_providerName ) : GUCEF_NULL;
@@ -311,7 +311,7 @@ CMailOAuthCredentialProvider::StartRefresh( void )
 }
 
 void
-CMailOAuthCredentialProvider::FinishRefresh( void )
+CEMailOAuthCredentialProvider::FinishRefresh( void )
 {GUCEF_TRACE;
 
     m_refreshing = false;
@@ -350,10 +350,10 @@ CMailOAuthCredentialProvider::FinishRefresh( void )
 }
 
 const CORE::CString&
-CMailOAuthCredentialProvider::GetClassTypeName( void ) const
+CEMailOAuthCredentialProvider::GetClassTypeName( void ) const
 {GUCEF_TRACE;
 
-    static const CORE::CString classTypeName = "GUCEF::AUTH::CMailOAuthCredentialProvider";
+    static const CORE::CString classTypeName = "GUCEF::AUTH::CEMailOAuthCredentialProvider";
     return classTypeName;
 }
 

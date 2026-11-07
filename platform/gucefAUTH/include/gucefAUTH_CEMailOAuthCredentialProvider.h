@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_AUTH_CMAILOAUTHCREDENTIALPROVIDER_H
-#define GUCEF_AUTH_CMAILOAUTHCREDENTIALPROVIDER_H
+#ifndef GUCEF_AUTH_CEMAILOAUTHCREDENTIALPROVIDER_H
+#define GUCEF_AUTH_CEMAILOAUTHCREDENTIALPROVIDER_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -25,10 +25,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_COM_CIMAILCREDENTIALPROVIDER_H
-#include "gucefCOM_CIMailCredentialProvider.h"
-#define GUCEF_COM_CIMAILCREDENTIALPROVIDER_H
-#endif /* GUCEF_COM_CIMAILCREDENTIALPROVIDER_H ? */
+#ifndef GUCEF_COM_CIEMAILCREDENTIALPROVIDER_H
+#include "gucefCOM_CIEMailCredentialProvider.h"
+#define GUCEF_COM_CIEMAILCREDENTIALPROVIDER_H
+#endif /* GUCEF_COM_CIEMAILCREDENTIALPROVIDER_H ? */
 
 #ifndef GUCEF_CORE_CTIMER_H
 #include "CTimer.h"
@@ -88,7 +88,7 @@ namespace AUTH {
  *
  *  The manager, the store and the provider are not owned. Everything runs on the thread that pumps the pulse generator.
  */
-class GUCEF_AUTH_EXPORT_CPP CMailOAuthCredentialProvider : public COM::CIMailCredentialProvider
+class GUCEF_AUTH_EXPORT_CPP CEMailOAuthCredentialProvider : public COM::CIEMailCredentialProvider
 {
     public:
 
@@ -96,9 +96,9 @@ class GUCEF_AUTH_EXPORT_CPP CMailOAuthCredentialProvider : public COM::CIMailCre
     static const UInt32 DefaultRetryDelayMs = 30000;
     static const UInt32 PollIntervalMs = 25;                /**< how often a renewal in flight is looked at */
 
-    CMailOAuthCredentialProvider( void );
+    CEMailOAuthCredentialProvider( void );
 
-    virtual ~CMailOAuthCredentialProvider() GUCEF_VIRTUAL_OVERRIDE;
+    virtual ~CEMailOAuthCredentialProvider() GUCEF_VIRTUAL_OVERRIDE;
 
     /** The manager that has the provider and the session of the account */
     void SetManager( CAuthManager* manager );
@@ -118,9 +118,9 @@ class GUCEF_AUTH_EXPORT_CPP CMailOAuthCredentialProvider : public COM::CIMailCre
     void SetSkewMs( UInt32 skewMs );
     void SetRetryDelayMs( UInt32 delayMs );
 
-    virtual EResult GetCredential( const COM::CMailCredentialRequest& request, COM::CMailCredential& credential ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual EResult GetCredential( const COM::CEMailCredentialRequest& request, COM::CEMailCredential& credential ) GUCEF_VIRTUAL_OVERRIDE;
 
-    virtual void ReportRejected( const COM::CMailCredentialRequest& request ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void ReportRejected( const COM::CEMailCredentialRequest& request ) GUCEF_VIRTUAL_OVERRIDE;
 
     /** How many renewals were started, how many a server refused the token for, and whether the last renewal failed */
     UInt32 GetRefreshCount( void ) const;
@@ -134,14 +134,14 @@ class GUCEF_AUTH_EXPORT_CPP CMailOAuthCredentialProvider : public COM::CIMailCre
     class CPollObserver;
     friend class CPollObserver;
 
-    CMailOAuthCredentialProvider( const CMailOAuthCredentialProvider& src );
-    CMailOAuthCredentialProvider& operator=( const CMailOAuthCredentialProvider& src );
+    CEMailOAuthCredentialProvider( const CEMailOAuthCredentialProvider& src );
+    CEMailOAuthCredentialProvider& operator=( const CEMailOAuthCredentialProvider& src );
 
     bool HasUsableCachedToken( UInt64 nowMs ) const;
     bool TakeSessionToken( UInt64 nowMs );
     bool StartRefresh( void );
     void FinishRefresh( void );
-    void FillCredential( COM::CMailCredential& credential ) const;
+    void FillCredential( COM::CEMailCredential& credential ) const;
 
     CAuthManager* m_manager;
     ICredentialStore* m_store;
@@ -176,4 +176,4 @@ class GUCEF_AUTH_EXPORT_CPP CMailOAuthCredentialProvider : public COM::CIMailCre
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_AUTH_CMAILOAUTHCREDENTIALPROVIDER_H ? */
+#endif /* GUCEF_AUTH_CEMAILOAUTHCREDENTIALPROVIDER_H ? */
