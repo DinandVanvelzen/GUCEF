@@ -26,10 +26,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_COM_CMAILCLIENTSETTINGS_H
-#include "gucefCOM_CMailClientSettings.h"
-#define GUCEF_COM_CMAILCLIENTSETTINGS_H
-#endif /* GUCEF_COM_CMAILCLIENTSETTINGS_H ? */
+#ifndef GUCEF_COM_CEMAILCLIENTSETTINGS_H
+#include "gucefCOM_CEMailClientSettings.h"
+#define GUCEF_COM_CEMAILCLIENTSETTINGS_H
+#endif /* GUCEF_COM_CEMAILCLIENTSETTINGS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -47,7 +47,7 @@ namespace COM {
 //-------------------------------------------------------------------------*/
 
 /** Settings of the SMTP client: SMTP submission (RFC 6409) and relay (RFC 5321). Ports: 587 with STARTTLS, 465 with implicit TLS, 25 plain. */
-class GUCEF_COM_PUBLIC_CPP CSmtpClientSettings : public CMailClientSettings
+class GUCEF_COM_PUBLIC_CPP CSmtpClientSettings : public CEMailClientSettings
 {
     public:
 

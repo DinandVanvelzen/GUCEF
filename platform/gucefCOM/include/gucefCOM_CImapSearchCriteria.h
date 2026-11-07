@@ -36,10 +36,20 @@
 #define GUCEF_CORE_CSTRING_H
 #endif /* GUCEF_CORE_CSTRING_H ? */
 
-#ifndef GUCEF_COM_MAILTYPES_H
-#include "gucefCOM_MailTypes.h"
-#define GUCEF_COM_MAILTYPES_H
-#endif /* GUCEF_COM_MAILTYPES_H ? */
+#ifndef GUCEF_COM_EMAILTYPES_H
+#include "gucefCOM_EMailTypes.h"
+#define GUCEF_COM_EMAILTYPES_H
+#endif /* GUCEF_COM_EMAILTYPES_H ? */
+
+#ifndef GUCEF_COM_CIMAPCOMMANDPARTS_H
+#include "gucefCOM_CImapCommandParts.h"
+#define GUCEF_COM_CIMAPCOMMANDPARTS_H
+#endif /* GUCEF_COM_CIMAPCOMMANDPARTS_H ? */
+
+#ifndef GUCEF_COM_CIMAPFETCHSPEC_H
+#include "gucefCOM_CImapFetchSpec.h"
+#define GUCEF_COM_CIMAPFETCHSPEC_H
+#endif /* GUCEF_COM_CIMAPFETCHSPEC_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -55,53 +65,6 @@ namespace COM {
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-/**
- *  What a command of the client says apart from its words: the arguments that come from the application are never
- *  pasted into a command as they are. A command is the text up to a literal, the literal bytes, the text up to the next
- *  literal, and so on; text that cannot be quoted (non ASCII, control characters) travels as a literal, and what has a
- *  CR, LF or NUL is refused.
- */
-class GUCEF_COM_PUBLIC_CPP CImapCommandParts
-{
-    public:
-
-    GUCEF::vector< CORE::CString > texts;               /**< texts.size() == literals.size() + 1; the literal i follows text i with its {size} */
-    GUCEF::vector< CORE::CDynamicBuffer > literals;
-
-    CImapCommandParts( void );
-
-    void Clear( void );
-
-    /** Adds words that are fixed text of the client */
-    void AddWord( const char* text );
-
-    /** Adds a string argument: quoted when it can be, a literal when it has to be. @return false for a CR, LF or NUL in it */
-    bool AddString( const CORE::CString& utf8Text );
-
-    /** Adds raw bytes as a literal (APPEND) */
-    void AddLiteral( const void* data, UInt32 size );
-
-    /** Adds a mailbox name, converted to the form of the wire. @return false for a name with a control character */
-    bool AddMailbox( const CORE::CString& utf8Name );
-
-    /** The text of all parts as it would be written in a log: literals as {n} */
-    CORE::CString ToLogText( void ) const;
-
-    /** Adds the parts of another command to the end of this one */
-    void Append( const CImapCommandParts& other );
-
-    /** Whether any literal is in the command */
-    bool HasLiterals( void ) const;
-
-    /** The text of the quoted string, or false when it has to be a literal */
-    static bool Quote( const CORE::CString& text, CORE::CString& quoted );
-
-    /** Whether the text is a valid sequence set of numbers, ranges, commas and *: "1:5,9,12:*" */
-    static bool IsValidSequenceSet( const CORE::CString& set );
-};
-
-/*-------------------------------------------------------------------------*/
 
 /** What a SEARCH is for. Without criteria it is "ALL". All criteria have to match */
 class GUCEF_COM_PUBLIC_CPP CImapSearchCriteria
@@ -149,30 +112,6 @@ class GUCEF_COM_PUBLIC_CPP CImapSearchCriteria
     };
 
     GUCEF::vector< SCriterion > m_criteria;
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** What a FETCH brings */
-class GUCEF_COM_PUBLIC_CPP CImapFetchSpec
-{
-    public:
-
-    bool uid;                                   /**< always true for a UID FETCH, the server adds it */
-    bool flags;
-    bool internalDate;
-    bool size;
-    bool envelope;
-    bool bodyStructure;
-    GUCEF::vector< CORE::CString > sections;    /**< "" the whole message, "HEADER", "TEXT", "1", "1.MIME", "HEADER.FIELDS (FROM TO)": fetched with BODY.PEEK, the \Seen flag stays as it is */
-    bool markSeen;                              /**< BODY instead of BODY.PEEK: the message becomes seen */
-    UInt32 partialOffset;                       /**< with partialLength > 0 only that part of the first section is fetched */
-    UInt32 partialLength;
-
-    CImapFetchSpec( void );
-
-    /** The items for the command, or false for an item that is not valid (a section with a character that could end the command) */
-    bool Build( CORE::CString& items ) const;
 };
 
 /*-------------------------------------------------------------------------//

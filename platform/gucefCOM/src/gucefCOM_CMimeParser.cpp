@@ -117,7 +117,7 @@ NormalizeTextBody( const CORE::CString& text )
 
 /** Adds the header field that was collected, unfolded. @return false when the number of fields exceeds the limit */
 bool
-FlushHeaderField( GUCEF::vector< char >& current, CMailHeaders& headers, CORE::CString::StringVector* warnings, UInt32& fieldCount, UInt32 maxCount )
+FlushHeaderField( GUCEF::vector< char >& current, CEMailHeaders& headers, CORE::CString::StringVector* warnings, UInt32& fieldCount, UInt32 maxCount )
 {
     const char* c = current.empty() ? "" : &current[ 0 ];
     const UInt32 size = (UInt32) current.size();
@@ -168,19 +168,6 @@ HasHeaderOf( const CORE::CString& name, const char* const* names, size_t count )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CMimeLimits::CMimeLimits( void )
-    : maxMessageSize( 64 * 1024 * 1024 )
-    , maxHeaderBytes( 256 * 1024 )
-    , maxHeaderCount( 1000 )
-    , maxParts( 512 )
-    , maxDepth( 16 )
-    , maxDecodedPartSize( 64 * 1024 * 1024 )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
 CMimeParser::CMimeParser( void )
     : m_limits()
 {GUCEF_TRACE;
@@ -226,7 +213,7 @@ CMimeParser::AddWarning( SState& state, const char* text )
 /*-------------------------------------------------------------------------*/
 
 bool
-CMimeParser::ParseHeaders( const void* rawData, UInt32 size, CMailHeaders& headers, UInt32& bodyOffset, CORE::CString::StringVector* warnings, CORE::CString* error ) const
+CMimeParser::ParseHeaders( const void* rawData, UInt32 size, CEMailHeaders& headers, UInt32& bodyOffset, CORE::CString::StringVector* warnings, CORE::CString* error ) const
 {GUCEF_TRACE;
 
     const char* data = static_cast< const char* >( rawData );
@@ -545,7 +532,7 @@ CMimeParser::ExtractMessageIds( const CORE::CString& headerValue, CORE::CString:
 /*-------------------------------------------------------------------------*/
 
 void
-CMimeParser::ApplyHeaders( const CMailHeaders& headers, CMailMessage& message )
+CMimeParser::ApplyHeaders( const CEMailHeaders& headers, CEMailMessage& message )
 {GUCEF_TRACE;
 
     message.headers = headers;
@@ -553,24 +540,24 @@ CMimeParser::ApplyHeaders( const CMailHeaders& headers, CMailMessage& message )
     CORE::CString::StringVector values;
     headers.GetAll( "From", values );
     for ( size_t i=0; i<values.size(); ++i )
-        CMailAddress::ParseList( values[ i ], message.from );
+        CEMailAddress::ParseList( values[ i ], message.from );
     values.clear();
     headers.GetAll( "To", values );
     for ( size_t i=0; i<values.size(); ++i )
-        CMailAddress::ParseList( values[ i ], message.to );
+        CEMailAddress::ParseList( values[ i ], message.to );
     values.clear();
     headers.GetAll( "Cc", values );
     for ( size_t i=0; i<values.size(); ++i )
-        CMailAddress::ParseList( values[ i ], message.cc );
+        CEMailAddress::ParseList( values[ i ], message.cc );
     values.clear();
     headers.GetAll( "Bcc", values );
     for ( size_t i=0; i<values.size(); ++i )
-        CMailAddress::ParseList( values[ i ], message.bcc );
+        CEMailAddress::ParseList( values[ i ], message.bcc );
     values.clear();
     headers.GetAll( "Reply-To", values );
     for ( size_t i=0; i<values.size(); ++i )
-        CMailAddress::ParseList( values[ i ], message.replyTo );
-    CMailAddress::Parse( headers.Get( "Sender" ), message.sender );
+        CEMailAddress::ParseList( values[ i ], message.replyTo );
+    CEMailAddress::Parse( headers.Get( "Sender" ), message.sender );
 
     message.subject = headers.GetDecoded( "Subject" );
 
@@ -593,7 +580,7 @@ CMimeParser::ApplyHeaders( const CMailHeaders& headers, CMailMessage& message )
     };
     for ( UInt32 i=0; i<headers.GetCount(); ++i )
     {
-        const CMailHeaders::TField& field = headers.GetField( i );
+        const CEMailHeaders::TField& field = headers.GetField( i );
         if ( !HasHeaderOf( field.name, typed, sizeof( typed ) / sizeof( typed[ 0 ] ) ) )
             message.extraHeaders.Add( field.name, field.value );
     }
@@ -602,7 +589,7 @@ CMimeParser::ApplyHeaders( const CMailHeaders& headers, CMailMessage& message )
 /*-------------------------------------------------------------------------*/
 
 void
-CMimeParser::MapPart( const CMimePart& part, CMailMessage& message, bool& haveText, bool& haveHtml, UInt32& extraTextCount, bool topLevel ) const
+CMimeParser::MapPart( const CMimePart& part, CEMailMessage& message, bool& haveText, bool& haveHtml, UInt32& extraTextCount, bool topLevel ) const
 {GUCEF_TRACE;
 
     if ( part.IsMultipart() )
@@ -645,7 +632,7 @@ CMimeParser::MapPart( const CMimePart& part, CMailMessage& message, bool& haveTe
         }
     }
 
-    CMailAttachment attachment;
+    CEMailAttachment attachment;
     attachment.fileName = fileName;
     if ( attachment.fileName.IsNULLOrEmpty() )
     {
@@ -669,10 +656,10 @@ CMimeParser::MapPart( const CMimePart& part, CMailMessage& message, bool& haveTe
 /*-------------------------------------------------------------------------*/
 
 bool
-CMimeParser::ParseMessage( const void* data, UInt32 size, CMailMessage& message, CORE::CString* error ) const
+CMimeParser::ParseMessage( const void* data, UInt32 size, CEMailMessage& message, CORE::CString* error ) const
 {GUCEF_TRACE;
 
-    message = CMailMessage();
+    message = CEMailMessage();
     CMimePart root;
     CORE::CString::StringVector warnings;
     if ( !ParseParts( data, size, root, &warnings, error ) )

@@ -31,15 +31,35 @@
 #define GUCEF_COM_CIMAPVALUE_H
 #endif /* GUCEF_COM_CIMAPVALUE_H ? */
 
-#ifndef GUCEF_COM_CMAILADDRESS_H
-#include "gucefCOM_CMailAddress.h"
-#define GUCEF_COM_CMAILADDRESS_H
-#endif /* GUCEF_COM_CMAILADDRESS_H ? */
+#ifndef GUCEF_COM_CEMAILADDRESS_H
+#include "gucefCOM_CEMailAddress.h"
+#define GUCEF_COM_CEMAILADDRESS_H
+#endif /* GUCEF_COM_CEMAILADDRESS_H ? */
 
 #ifndef GUCEF_COM_CMIMECODEC_H
 #include "gucefCOM_CMimeCodec.h"
 #define GUCEF_COM_CMIMECODEC_H
 #endif /* GUCEF_COM_CMIMECODEC_H ? */
+
+#ifndef GUCEF_COM_CIMAPENVELOPE_H
+#include "gucefCOM_CImapEnvelope.h"
+#define GUCEF_COM_CIMAPENVELOPE_H
+#endif /* GUCEF_COM_CIMAPENVELOPE_H ? */
+
+#ifndef GUCEF_COM_CIMAPBODYSTRUCTURE_H
+#include "gucefCOM_CImapBodyStructure.h"
+#define GUCEF_COM_CIMAPBODYSTRUCTURE_H
+#endif /* GUCEF_COM_CIMAPBODYSTRUCTURE_H ? */
+
+#ifndef GUCEF_COM_CIMAPFETCHSECTION_H
+#include "gucefCOM_CImapFetchSection.h"
+#define GUCEF_COM_CIMAPFETCHSECTION_H
+#endif /* GUCEF_COM_CIMAPFETCHSECTION_H ? */
+
+#ifndef GUCEF_COM_CIMAPMAILBOXNAME_H
+#include "gucefCOM_CImapMailboxName.h"
+#define GUCEF_COM_CIMAPMAILBOXNAME_H
+#endif /* GUCEF_COM_CIMAPMAILBOXNAME_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -101,130 +121,6 @@ class GUCEF_COM_PUBLIC_CPP CImapResponse
 
 /*-------------------------------------------------------------------------*/
 
-/** The ENVELOPE of a message (RFC 3501 section 7.4.2) */
-class GUCEF_COM_PUBLIC_CPP CImapEnvelope
-{
-    public:
-
-    CORE::CString date;                         /**< as in the header */
-    CORE::CString subject;                      /**< decoded */
-    CMailAddress::TMailAddressVector from;
-    CMailAddress::TMailAddressVector sender;
-    CMailAddress::TMailAddressVector replyTo;
-    CMailAddress::TMailAddressVector to;
-    CMailAddress::TMailAddressVector cc;
-    CMailAddress::TMailAddressVector bcc;
-    CORE::CString inReplyTo;
-    CORE::CString messageId;
-
-    CImapEnvelope( void );
-
-    static bool FromValue( const CImapValue& value, CImapEnvelope& envelope );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** The BODYSTRUCTURE of a message (RFC 3501 section 7.4.2): the parts a message has without having to fetch it */
-class GUCEF_COM_PUBLIC_CPP CImapBodyStructure
-{
-    public:
-
-    bool isMultipart;
-    CORE::CString type;                         /**< lower case: text, image, application, multipart */
-    CORE::CString subtype;                      /**< lower case */
-    CMimeCodec::TParamVector params;
-    CORE::CString contentId;
-    CORE::CString description;
-    CORE::CString encoding;                     /**< lower case */
-    UInt32 size;                                /**< octets, not for multiparts */
-    UInt32 lines;                               /**< text parts */
-    CORE::CString disposition;                  /**< lower case: attachment or inline */
-    CMimeCodec::TParamVector dispositionParams;
-    GUCEF::vector< CImapBodyStructure* > children;  /**< owned: the parts of a multipart */
-
-    CImapBodyStructure( void );
-    CImapBodyStructure( const CImapBodyStructure& src );
-    ~CImapBodyStructure();
-    CImapBodyStructure& operator=( const CImapBodyStructure& src );
-
-    /** type/subtype */
-    CORE::CString GetContentType( void ) const;
-
-    /** The file name of the part, from the disposition or the type parameters, empty when it has none */
-    CORE::CString GetFileName( void ) const;
-
-    void Clear( void );
-
-    static bool FromValue( const CImapValue& value, CImapBodyStructure& structure );
-
-    private:
-
-    void CopyFrom( const CImapBodyStructure& src );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** A part or section of a message that was fetched with BODY[...] */
-class GUCEF_COM_PUBLIC_CPP CImapFetchSection
-{
-    public:
-
-    CORE::CString name;                 /**< what was in the brackets: "", "HEADER", "TEXT", "1", "1.2", "HEADER.FIELDS (FROM TO)" */
-    bool hasOrigin;                     /**< a partial fetch <origin> */
-    UInt32 origin;
-    bool isNil;                         /**< the server said NIL: there is nothing */
-    CORE::CDynamicBuffer data;
-
-    CImapFetchSection( void );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** What a FETCH response said about one message */
-class GUCEF_COM_PUBLIC_CPP CImapFetchedItem
-{
-    public:
-
-    UInt32 sequence;
-    bool hasUid;
-    UInt32 uid;
-    bool hasFlags;
-    CORE::CString::StringVector flags;
-    bool hasInternalDate;
-    CORE::CString internalDate;         /**< as the server wrote it, 02-Nov-2020 10:11:12 +0000 */
-    bool hasSize;
-    UInt32 size;                        /**< RFC822.SIZE */
-    bool hasEnvelope;
-    CImapEnvelope envelope;
-    bool hasBodyStructure;
-    CImapBodyStructure bodyStructure;
-    GUCEF::vector< CImapFetchSection > sections;
-
-    CImapFetchedItem( void );
-
-    /** The section of the name ("" for the whole message), GUCEF_NULL when it was not fetched */
-    const CImapFetchSection* FindSection( const CORE::CString& name ) const;
-
-    /** Whether the flag is set, \Seen for example, without regard for case */
-    bool HasFlag( const CORE::CString& flag ) const;
-
-    /** Reads the items of an untagged FETCH response. @return false when the response is not a valid FETCH */
-    static bool FromResponse( const CImapResponse& response, CImapFetchedItem& item );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** The names of mailboxes on the wire: modified UTF-7 (RFC 3501 section 5.1.3) */
-class GUCEF_COM_PUBLIC_CPP CImapMailboxName
-{
-    public:
-
-    /** UTF-8 to the form for the wire. @return false for a name with a control character */
-    static bool Encode( const CORE::CString& utf8Name, CORE::CString& wireName );
-
-    /** The form of the wire to UTF-8. @return false for a name that is not valid modified UTF-7 */
-    static bool Decode( const CORE::CString& wireName, CORE::CString& utf8Name );
-};
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

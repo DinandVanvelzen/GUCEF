@@ -26,10 +26,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_COM_CMAILCLIENTSETTINGS_H
-#include "gucefCOM_CMailClientSettings.h"
-#define GUCEF_COM_CMAILCLIENTSETTINGS_H
-#endif /* GUCEF_COM_CMAILCLIENTSETTINGS_H ? */
+#ifndef GUCEF_COM_CEMAILCLIENTSETTINGS_H
+#include "gucefCOM_CEMailClientSettings.h"
+#define GUCEF_COM_CEMAILCLIENTSETTINGS_H
+#endif /* GUCEF_COM_CEMAILCLIENTSETTINGS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -47,7 +47,7 @@ namespace COM {
 //-------------------------------------------------------------------------*/
 
 /** Settings of the POP3 client: POP3 (RFC 1939, 2449, 2595, 5034). Ports: 110 with STLS, 995 with implicit TLS. */
-class GUCEF_COM_PUBLIC_CPP CPop3ClientSettings : public CMailClientSettings
+class GUCEF_COM_PUBLIC_CPP CPop3ClientSettings : public CEMailClientSettings
 {
     public:
 

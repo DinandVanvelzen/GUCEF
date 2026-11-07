@@ -255,7 +255,7 @@ class CPop3FetchRunner : public CORE::CObserver
 
     void OnError( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
-        const CMailErrorEventData* error = CORE::CICloneable::CloneableAs< CMailErrorEventData >( eventData );
+        const CEMailErrorEventData* error = CORE::CICloneable::CloneableAs< CEMailErrorEventData >( eventData );
         if ( GUCEF_NULL != error )
         {
             m_result.errorClass = error->errorClass;
@@ -294,223 +294,18 @@ class CPop3FetchRunner : public CORE::CObserver
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CPop3ListEntry::CPop3ListEntry( void )
-    : number( 0 )
-    , size( 0 )
-    , uid()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CPop3CommandResult::CPop3CommandResult( void )
-    : CORE::CICloneable()
-    , requestId( 0 )
-    , command( POP3CMD_NOOP )
-    , ok( false )
-    , errorClass( MAILERR_NONE )
-    , text()
-    , number( 0 )
-    , messageCount( 0 )
-    , totalSize( 0 )
-    , entries()
-    , data()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CPop3CommandResult::CPop3CommandResult( const CPop3CommandResult& src )
-    : CORE::CICloneable( src )
-    , requestId( src.requestId )
-    , command( src.command )
-    , ok( src.ok )
-    , errorClass( src.errorClass )
-    , text( src.text )
-    , number( src.number )
-    , messageCount( src.messageCount )
-    , totalSize( src.totalSize )
-    , entries( src.entries )
-    , data( src.data )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CPop3CommandResult::~CPop3CommandResult()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CPop3CommandResult&
-CPop3CommandResult::operator=( const CPop3CommandResult& src )
-{GUCEF_TRACE;
-
-    if ( &src != this )
-    {
-        requestId = src.requestId;
-        command = src.command;
-        ok = src.ok;
-        errorClass = src.errorClass;
-        text = src.text;
-        number = src.number;
-        messageCount = src.messageCount;
-        totalSize = src.totalSize;
-        entries = src.entries;
-        data = src.data;
-    }
-    return *this;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CICloneable*
-CPop3CommandResult::Clone( void ) const
-{GUCEF_TRACE;
-
-    return GUCEF_NEW CPop3CommandResult( *this );
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CPop3CommandResult::GetCloneableTypeName( void ) const
-{GUCEF_TRACE;
-
-    return CloneableTypeName();
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CPop3CommandResult::CloneableTypeName( void )
-{GUCEF_TRACE;
-
-    return "GUCEF::COM::CPop3CommandResult";
-}
-
-/*-------------------------------------------------------------------------*/
-
-CPop3FetchOptions::CPop3FetchOptions( void )
-    : knownUids()
-    , maxMessages( 0 )
-    , deleteAfterFetch( false )
-    , mimeLimits()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CPop3FetchedMessage::CPop3FetchedMessage( void )
-    : uid()
-    , number( 0 )
-    , message()
-    , parsed( false )
-    , deleted( false )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CPop3FetchResult::CPop3FetchResult( void )
-    : CORE::CICloneable()
-    , success( false )
-    , errorClass( MAILERR_NONE )
-    , errorDescription()
-    , messageCountOnServer( 0 )
-    , allUids()
-    , messages()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CPop3FetchResult::CPop3FetchResult( const CPop3FetchResult& src )
-    : CORE::CICloneable( src )
-    , success( src.success )
-    , errorClass( src.errorClass )
-    , errorDescription( src.errorDescription )
-    , messageCountOnServer( src.messageCountOnServer )
-    , allUids( src.allUids )
-    , messages( src.messages )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CPop3FetchResult::~CPop3FetchResult()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CPop3FetchResult&
-CPop3FetchResult::operator=( const CPop3FetchResult& src )
-{GUCEF_TRACE;
-
-    if ( &src != this )
-    {
-        success = src.success;
-        errorClass = src.errorClass;
-        errorDescription = src.errorDescription;
-        messageCountOnServer = src.messageCountOnServer;
-        allUids = src.allUids;
-        messages = src.messages;
-    }
-    return *this;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CICloneable*
-CPop3FetchResult::Clone( void ) const
-{GUCEF_TRACE;
-
-    return GUCEF_NEW CPop3FetchResult( *this );
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CPop3FetchResult::GetCloneableTypeName( void ) const
-{GUCEF_TRACE;
-
-    return CloneableTypeName();
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CPop3FetchResult::CloneableTypeName( void )
-{GUCEF_TRACE;
-
-    return "GUCEF::COM::CPop3FetchResult";
-}
-
-/*-------------------------------------------------------------------------*/
-
 void
 CPop3Client::RegisterEvents( void )
 {GUCEF_TRACE;
 
     CommandCompletedEvent.Initialize();
-    CMailClientBase::RegisterEvents();
+    CEMailClientBase::RegisterEvents();
 }
 
 /*-------------------------------------------------------------------------*/
 
 CPop3Client::CPop3Client( void )
-    : CMailClientBase( CORE::PulseGeneratorPtr() )
+    : CEMailClientBase( CORE::PulseGeneratorPtr() )
     , m_settings()
     , m_phase( PHASE_GREETING )
     , m_timestamp()
@@ -532,7 +327,7 @@ CPop3Client::CPop3Client( void )
 /*-------------------------------------------------------------------------*/
 
 CPop3Client::CPop3Client( const CORE::PulseGeneratorPtr& pulseGenerator )
-    : CMailClientBase( pulseGenerator )
+    : CEMailClientBase( pulseGenerator )
     , m_settings()
     , m_phase( PHASE_GREETING )
     , m_timestamp()
@@ -855,7 +650,7 @@ CPop3Client::ProceedToLogin( void )
     if ( sasl != m_capabilities.end() )
         serverMechanisms = (*sasl).second.ParseElements( ' ', false );
     CORE::CString::StringVector supported;
-    CMailSaslFactory::GetSupportedMechanisms( supported );
+    CEMailSaslFactory::GetSupportedMechanisms( supported );
     bool usable = false;
     for ( size_t i=0; i<serverMechanisms.size() && !usable; ++i )
         for ( size_t s=0; s<supported.size(); ++s )
@@ -867,7 +662,7 @@ CPop3Client::ProceedToLogin( void )
     }
 
     // USER and PASS (or APOP): the password goes over the line as it is
-    CMailCredential credential;
+    CEMailCredential credential;
     if ( !GetCredentialNow( credential, false ) || credential.secret.IsNULLOrEmpty() )
     {
         Fail( MAILERR_AUTH, "There is no credential to log in with" );
@@ -994,7 +789,7 @@ CPop3Client::OnStatus( bool ok, const CORE::CString& text )
             if ( ok )
                 OnLoggedIn();
             else
-                Fail( MAILERR_AUTH, "Authentication was refused: " + CMailProtocolLog::RedactServerLine( text, false ) );
+                Fail( MAILERR_AUTH, "Authentication was refused: " + CEMailProtocolLog::RedactServerLine( text, false ) );
             return;
         }
         case PHASE_READY:
@@ -1162,7 +957,7 @@ CPop3Client::FailAllCommands( EMailErrorClass errorClass, const CORE::CString& d
 /*-------------------------------------------------------------------------*/
 
 void
-CPop3Client::OnClientFailed( const CMailErrorEventData& error )
+CPop3Client::OnClientFailed( const CEMailErrorEventData& error )
 {GUCEF_TRACE;
 
     FailAllCommands( error.errorClass, error.description );
@@ -1219,7 +1014,7 @@ CPop3Client::SendQuitCommand( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CPop3Client::FetchNewSync( const CPop3ClientSettings& settings, const CPop3FetchOptions& options, CPop3FetchResult& result, CIMailCredentialProvider* credentialProvider )
+CPop3Client::FetchNewSync( const CPop3ClientSettings& settings, const CPop3FetchOptions& options, CPop3FetchResult& result, CIEMailCredentialProvider* credentialProvider )
 {GUCEF_TRACE;
 
     // everything below happens on the calling thread, on a pulse generator that this thread owns

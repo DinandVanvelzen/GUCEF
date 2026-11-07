@@ -82,7 +82,7 @@ class CClientWatch : public CORE::CObserver
     bool failed;                        /**< ErrorEvent was raised */
     bool disconnected;
     bool settled;                       /**< ready, or failed, or disconnected: the end of waiting for a connect */
-    COM::CMailErrorEventData error;
+    COM::CEMailErrorEventData error;
 
     CClientWatch( void )
         : CORE::CObserver(), ready( false ), readyCount( 0 ), failed( false ), disconnected( false ), settled( false ), error()
@@ -94,15 +94,15 @@ class CClientWatch : public CORE::CObserver
         UnsubscribeAllFromObserver();
     }
 
-    void Attach( COM::CMailClientBase& client )
+    void Attach( COM::CEMailClientBase& client )
     {
         typedef CORE::CTEventHandlerFunctor< CClientWatch > TCallback;
         TCallback readyCallback( this, &CClientWatch::OnReady );
-        SubscribeTo( &client, COM::CMailClientBase::ReadyEvent, readyCallback );
+        SubscribeTo( &client, COM::CEMailClientBase::ReadyEvent, readyCallback );
         TCallback errorCallback( this, &CClientWatch::OnError );
-        SubscribeTo( &client, COM::CMailClientBase::ErrorEvent, errorCallback );
+        SubscribeTo( &client, COM::CEMailClientBase::ErrorEvent, errorCallback );
         TCallback disconnectedCallback( this, &CClientWatch::OnDisconnected );
-        SubscribeTo( &client, COM::CMailClientBase::DisconnectedEvent, disconnectedCallback );
+        SubscribeTo( &client, COM::CEMailClientBase::DisconnectedEvent, disconnectedCallback );
     }
 
     void Reset( void )
@@ -122,7 +122,7 @@ class CClientWatch : public CORE::CObserver
 
     void OnError( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
-        const COM::CMailErrorEventData* data = CORE::CICloneable::CloneableAs< COM::CMailErrorEventData >( eventData );
+        const COM::CEMailErrorEventData* data = CORE::CICloneable::CloneableAs< COM::CEMailErrorEventData >( eventData );
         if ( GUCEF_NULL != data )
             error = *data;
         failed = true;
@@ -306,12 +306,12 @@ struct Settled
 /*-------------------------------------------------------------------------*/
 
 /** A message with unique texts in it, so that a test can look for them in a log */
-inline COM::CMailMessage
+inline COM::CEMailMessage
 MakeMessage( const char* subject, const char* body )
 {
-    COM::CMailMessage message;
-    message.from.push_back( COM::CMailAddress( "Alice Sender", "alice@example.org" ) );
-    message.to.push_back( COM::CMailAddress( "Bob Receiver", "bob@example.com" ) );
+    COM::CEMailMessage message;
+    message.from.push_back( COM::CEMailAddress( "Alice Sender", "alice@example.org" ) );
+    message.to.push_back( COM::CEMailAddress( "Bob Receiver", "bob@example.com" ) );
     message.subject = subject;
     message.textBody = body;
     return message;

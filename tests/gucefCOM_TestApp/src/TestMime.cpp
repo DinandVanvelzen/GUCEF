@@ -92,7 +92,7 @@ AsString( const CORE::CDynamicBuffer& buffer )
 /*-------------------------------------------------------------------------*/
 
 bool
-ParseText( const CORE::CString& text, CMailMessage& message )
+ParseText( const CORE::CString& text, CEMailMessage& message )
 {
     CMimeParser parser;
     return parser.ParseMessage( text.C_String(), text.ByteSize() > 0 ? text.ByteSize() - 1 : 0, message );
@@ -462,7 +462,7 @@ PerformMimeParserTests( void )
     GUCEF_TESTFW_TESTCASE( "Mime parser: a plain message with LF line ends and the usual headers" )
     try
     {
-        CMailMessage message;
+        CEMailMessage message;
         ASSERT_TRUE( ParseText(
             "Return-Path: <bounce@example.org>\n"
             "From: Jane Doe <jane@example.org>\n"
@@ -493,7 +493,7 @@ PerformMimeParserTests( void )
     GUCEF_TESTFW_TESTCASE( "Mime parser: multipart/alternative with a quoted-printable text and an HTML part in another character set" )
     try
     {
-        CMailMessage message;
+        CEMailMessage message;
         ASSERT_TRUE( ParseText(
             "From: =?UTF-8?Q?Zo=C3=AB_Example?= <zoe@example.org>\r\n"
             "To: bob@example.com\r\n"
@@ -531,7 +531,7 @@ PerformMimeParserTests( void )
     GUCEF_TESTFW_TESTCASE( "Mime parser: mixed with attachments, file names in three notations, inline image and an attached message" )
     try
     {
-        CMailMessage message;
+        CEMailMessage message;
         ASSERT_TRUE( ParseText(
             "From: a@example.org\r\nTo: b@example.org\r\nSubject: files\r\n"
             "Content-Type: multipart/mixed; boundary=outer\r\n\r\n"
@@ -571,7 +571,7 @@ PerformMimeParserTests( void )
     GUCEF_TESTFW_TESTCASE( "Mime parser: folded headers, groups, comments, duplicate headers, an mbox line and a header section without body" )
     try
     {
-        CMailMessage message;
+        CEMailMessage message;
         ASSERT_TRUE( ParseText(
             "From MAILER-DAEMON Fri Jul  8 12:08:34 2011\n"
             "From: jane@example.org (Jane the Sender)\n"
@@ -594,15 +594,15 @@ PerformMimeParserTests( void )
         ASSERT_TRUE( 2 == received.size() );
         ASSERT_FALSE( message.warnings.empty() );
 
-        CMailMessage headersOnly;
+        CEMailMessage headersOnly;
         ASSERT_TRUE( ParseText( "Subject: only headers\nFrom: a@example.org", headersOnly ) );
         ASSERT_TRUE( headersOnly.subject == "only headers" && headersOnly.textBody.IsNULLOrEmpty() );
 
-        CMailMessage empty;
+        CEMailMessage empty;
         ASSERT_TRUE( ParseText( "", empty ) );
         ASSERT_TRUE( empty.from.empty() && empty.textBody.IsNULLOrEmpty() );
 
-        CMailMessage bodyFirst;
+        CEMailMessage bodyFirst;
         ASSERT_TRUE( ParseText( "\njust a body\n", bodyFirst ) );
         ASSERT_TRUE( bodyFirst.textBody == "just a body" );
     }
@@ -615,23 +615,23 @@ PerformMimeParserTests( void )
     GUCEF_TESTFW_TESTCASE( "Mime parser: a multipart without closing boundary, without boundary, with unknown encoding and with a second text part" )
     try
     {
-        CMailMessage message;
+        CEMailMessage message;
         ASSERT_TRUE( ParseText(
             "Content-Type: multipart/mixed; boundary=b\n\n--b\nContent-Type: text/plain\n\nbody text\n--b\nContent-Type: application/x-foo; name=f.bin\nContent-Transfer-Encoding: x-uuencode\n\nraw\n", message ) );
         ASSERT_TRUE( message.textBody == "body text" && 1 == message.attachments.size() && message.attachments[ 0 ].fileName == "f.bin" );
         ASSERT_TRUE( AsString( message.attachments[ 0 ].data ) == "raw\n" );
         ASSERT_TRUE( message.warnings.size() >= 2 );
 
-        CMailMessage noBoundary;
+        CEMailMessage noBoundary;
         ASSERT_TRUE( ParseText( "Content-Type: multipart/mixed\n\nplain body\n", noBoundary ) );
         ASSERT_TRUE( noBoundary.textBody == "plain body" && !noBoundary.warnings.empty() );
 
-        CMailMessage twoTexts;
+        CEMailMessage twoTexts;
         ASSERT_TRUE( ParseText(
             "Content-Type: multipart/mixed; boundary=b\n\n--b\nContent-Type: text/plain\n\nfirst\n--b\nContent-Type: text/plain\n\nsignature\n--b--\n", twoTexts ) );
         ASSERT_TRUE( twoTexts.textBody == "first" && 1 == twoTexts.attachments.size() && twoTexts.attachments[ 0 ].data.GetDataSize() == 9 );
 
-        CMailMessage mac;
+        CEMailMessage mac;
         ASSERT_TRUE( ParseText( "Subject: s\rContent-Type: text/plain\r\rold mac body\r", mac ) );
         ASSERT_TRUE( mac.subject == "s" && mac.textBody == "old mac body" );
     }
@@ -645,7 +645,7 @@ PerformMimeParserTests( void )
     try
     {
         CMimeParser parser;
-        CMailMessage message;
+        CEMailMessage message;
         CORE::CString error;
 
         // nested multiparts deeper than the limit
@@ -688,7 +688,7 @@ PerformMimeParserTests( void )
         CORE::CString garbage;
         for ( int i=0; i<2000; ++i ) garbage += (char)( ( i * 131 + 7 ) % 255 + 1 );
         parser.ParseMessage( garbage.C_String(), garbage.ByteSize() - 1, message, &error );
-        CMailMessage nulls;
+        CEMailMessage nulls;
         ASSERT_TRUE( parser.ParseMessage( "Subject: a\0b\n\nbody\0body\n", 24, nulls, &error ) );
     }
     catch ( ... )
@@ -700,23 +700,23 @@ PerformMimeParserTests( void )
     GUCEF_TESTFW_TESTCASE( "Mime parser: attachment names that try to leave their directory are cleaned for use" )
     try
     {
-        ASSERT_TRUE( CMailAttachment::MakeSafeFileName( "../../etc/passwd" ) == "passwd" );
-        ASSERT_TRUE( CMailAttachment::MakeSafeFileName( "..\\..\\windows\\system32\\evil.dll" ) == "evil.dll" );
-        ASSERT_TRUE( CMailAttachment::MakeSafeFileName( "C:\\x\\y.txt" ) == "y.txt" );
-        ASSERT_TRUE( CMailAttachment::MakeSafeFileName( "..." ) == "attachment" );
-        ASSERT_TRUE( CMailAttachment::MakeSafeFileName( "" ) == "attachment" );
-        ASSERT_TRUE( CMailAttachment::MakeSafeFileName( "a\r\nb:c*d?.txt" ) == "a__b_c_d_.txt" );
-        ASSERT_TRUE( CMailAttachment::MakeSafeFileName( ".hidden" ) == "hidden" );
-        ASSERT_TRUE( CMailAttachment::MakeSafeFileName( "CON.txt" ) == "_CON.txt" );
-        ASSERT_TRUE( CMailAttachment::MakeSafeFileName( "x/", "fallback" ) == "fallback" );
+        ASSERT_TRUE( CEMailAttachment::MakeSafeFileName( "../../etc/passwd" ) == "passwd" );
+        ASSERT_TRUE( CEMailAttachment::MakeSafeFileName( "..\\..\\windows\\system32\\evil.dll" ) == "evil.dll" );
+        ASSERT_TRUE( CEMailAttachment::MakeSafeFileName( "C:\\x\\y.txt" ) == "y.txt" );
+        ASSERT_TRUE( CEMailAttachment::MakeSafeFileName( "..." ) == "attachment" );
+        ASSERT_TRUE( CEMailAttachment::MakeSafeFileName( "" ) == "attachment" );
+        ASSERT_TRUE( CEMailAttachment::MakeSafeFileName( "a\r\nb:c*d?.txt" ) == "a__b_c_d_.txt" );
+        ASSERT_TRUE( CEMailAttachment::MakeSafeFileName( ".hidden" ) == "hidden" );
+        ASSERT_TRUE( CEMailAttachment::MakeSafeFileName( "CON.txt" ) == "_CON.txt" );
+        ASSERT_TRUE( CEMailAttachment::MakeSafeFileName( "x/", "fallback" ) == "fallback" );
         CORE::CString longName = Repeat( 500, '\xC3' );
-        CORE::CString cleaned = CMailAttachment::MakeSafeFileName( longName );
+        CORE::CString cleaned = CEMailAttachment::MakeSafeFileName( longName );
         ASSERT_TRUE( cleaned.ByteSize() - 1 <= 200 );
-        CMailAttachment attachment;
+        CEMailAttachment attachment;
         attachment.fileName = "../x.zip";
         ASSERT_TRUE( attachment.GetSafeFileName() == "x.zip" && attachment.fileName == "../x.zip" );
 
-        CMailMessage message;
+        CEMailMessage message;
         ASSERT_TRUE( ParseText( "Content-Type: application/zip; name=\"../../../.ssh/authorized_keys\"\nContent-Transfer-Encoding: base64\n\nAAEC\n", message ) );
         ASSERT_TRUE( 1 == message.attachments.size() && message.attachments[ 0 ].GetSafeFileName() == "authorized_keys" );
     }
@@ -735,16 +735,16 @@ PerformMimeParserTests( void )
 
 namespace {
 
-CMailMessage
+CEMailMessage
 MakeFullMessage( void )
 {
-    CMailMessage message;
-    message.from.push_back( CMailAddress( "Zo\xC3\xAB \"The Sender\" Example", "zoe@example.org" ) );
-    message.to.push_back( CMailAddress( "Bob, Jr.", "bob@example.com" ) );
-    message.to.push_back( CMailAddress( "alice@example.com" ) );
-    message.cc.push_back( CMailAddress( "carol@example.com" ) );
-    message.bcc.push_back( CMailAddress( "secret@example.com" ) );
-    message.replyTo.push_back( CMailAddress( "replies@example.org" ) );
+    CEMailMessage message;
+    message.from.push_back( CEMailAddress( "Zo\xC3\xAB \"The Sender\" Example", "zoe@example.org" ) );
+    message.to.push_back( CEMailAddress( "Bob, Jr.", "bob@example.com" ) );
+    message.to.push_back( CEMailAddress( "alice@example.com" ) );
+    message.cc.push_back( CEMailAddress( "carol@example.com" ) );
+    message.bcc.push_back( CEMailAddress( "secret@example.com" ) );
+    message.replyTo.push_back( CEMailAddress( "replies@example.org" ) );
     message.subject = "Turn 7 \xE2\x80\x93 Gr\xC3\xBC\xC3\x9F" "e";
     message.date = CORE::CDateTime( 2020, 11, 2, 10, 11, 12, 0, 60 );
     message.hasDate = true;
@@ -759,11 +759,11 @@ MakeFullMessage( void )
 
     UInt8 all[ 256 ];
     for ( int i=0; i<256; ++i ) all[ i ] = (UInt8) i;
-    CMailAttachment turn( "turn-7.rdx", "application/octet-stream", all, sizeof( all ) );
+    CEMailAttachment turn( "turn-7.rdx", "application/octet-stream", all, sizeof( all ) );
     message.attachments.push_back( turn );
-    CMailAttachment unicodeName( "k\xC3\xB6ln \xE2\x82\xAC rates.txt", "text/plain", "rates\r\n", 7 );
+    CEMailAttachment unicodeName( "k\xC3\xB6ln \xE2\x82\xAC rates.txt", "text/plain", "rates\r\n", 7 );
     message.attachments.push_back( unicodeName );
-    CMailAttachment logo( "logo.png", "image/png", "\x89PNG\r\n\x1a\n", 8 );
+    CEMailAttachment logo( "logo.png", "image/png", "\x89PNG\r\n\x1a\n", 8 );
     logo.isInline = true;
     logo.contentId = "logo@example.org";
     message.attachments.push_back( logo );
@@ -783,7 +783,7 @@ PerformMimeComposerTests( void )
     GUCEF_TESTFW_TESTCASE( "Mime composer: a full message is 7 bit clean with CR LF line ends and short lines, and reads back as written" )
     try
     {
-        CMailMessage message = MakeFullMessage();
+        CEMailMessage message = MakeFullMessage();
         CMimeComposer composer;
         CORE::CDynamicBuffer wire;
         CORE::CString error;
@@ -796,7 +796,7 @@ PerformMimeComposerTests( void )
         ASSERT_TRUE( text.HasSubstr( "Bcc" ) < 0 );
 
         CMimeParser parser;
-        CMailMessage parsed;
+        CEMailMessage parsed;
         ASSERT_TRUE( parser.ParseMessage( wire.GetConstBufferPtr(), wire.GetDataSize(), parsed, &error ) );
         ASSERT_TRUE( parsed.warnings.empty() );
         ASSERT_TRUE( parsed.from.size() == 1 && parsed.from[ 0 ].displayName == message.from[ 0 ].displayName && parsed.from[ 0 ].IsSameAddress( message.from[ 0 ] ) );
@@ -812,9 +812,9 @@ PerformMimeComposerTests( void )
         ASSERT_TRUE( 3 == parsed.attachments.size() );
 
         // the inline image comes first (related), then the regular attachments
-        const CMailAttachment* turn = GUCEF_NULL;
-        const CMailAttachment* rates = GUCEF_NULL;
-        const CMailAttachment* logo = GUCEF_NULL;
+        const CEMailAttachment* turn = GUCEF_NULL;
+        const CEMailAttachment* rates = GUCEF_NULL;
+        const CEMailAttachment* logo = GUCEF_NULL;
         for ( size_t i=0; i<parsed.attachments.size(); ++i )
         {
             if ( parsed.attachments[ i ].fileName == "turn-7.rdx" ) turn = &parsed.attachments[ i ];
@@ -838,9 +838,9 @@ PerformMimeComposerTests( void )
         CMimeParser parser;
         CORE::CString error;
 
-        CMailMessage textOnly;
-        textOnly.from.push_back( CMailAddress( "a@example.org" ) );
-        textOnly.to.push_back( CMailAddress( "b@example.org" ) );
+        CEMailMessage textOnly;
+        textOnly.from.push_back( CEMailAddress( "a@example.org" ) );
+        textOnly.to.push_back( CEMailAddress( "b@example.org" ) );
         textOnly.subject = "plain";
         textOnly.textBody = "just text";
         CORE::CDynamicBuffer wire;
@@ -849,14 +849,14 @@ PerformMimeComposerTests( void )
         ASSERT_TRUE( parser.ParseParts( wire.GetConstBufferPtr(), wire.GetDataSize(), root ) );
         ASSERT_TRUE( root.contentType == "text/plain" && root.transferEncoding == "7bit" && root.GetCharset() == "utf-8" );
 
-        CMailMessage alternative = textOnly;
+        CEMailMessage alternative = textOnly;
         alternative.htmlBody = "<p>just text</p>";
         wire.Clear();
         ASSERT_TRUE( composer.Compose( alternative, wire, error ) );
         ASSERT_TRUE( parser.ParseParts( wire.GetConstBufferPtr(), wire.GetDataSize(), root ) );
         ASSERT_TRUE( root.contentType == "multipart/alternative" && 2 == root.children.size() && root.children[ 0 ]->contentType == "text/plain" && root.children[ 1 ]->contentType == "text/html" );
 
-        CMailMessage htmlOnly = textOnly;
+        CEMailMessage htmlOnly = textOnly;
         htmlOnly.textBody.Clear();
         htmlOnly.htmlBody = "<p>only html</p>";
         wire.Clear();
@@ -864,15 +864,15 @@ PerformMimeComposerTests( void )
         ASSERT_TRUE( parser.ParseParts( wire.GetConstBufferPtr(), wire.GetDataSize(), root ) );
         ASSERT_TRUE( root.contentType == "text/html" );
 
-        CMailMessage mixed = alternative;
-        mixed.attachments.push_back( CMailAttachment( "a.bin", "application/octet-stream", "abc", 3 ) );
+        CEMailMessage mixed = alternative;
+        mixed.attachments.push_back( CEMailAttachment( "a.bin", "application/octet-stream", "abc", 3 ) );
         wire.Clear();
         ASSERT_TRUE( composer.Compose( mixed, wire, error ) );
         ASSERT_TRUE( parser.ParseParts( wire.GetConstBufferPtr(), wire.GetDataSize(), root ) );
         ASSERT_TRUE( root.contentType == "multipart/mixed" && 2 == root.children.size() && root.children[ 0 ]->contentType == "multipart/alternative" && root.children[ 1 ]->contentType == "application/octet-stream" );
 
         // text with non ASCII becomes quoted-printable, mostly non ASCII text base64
-        CMailMessage accents = textOnly;
+        CEMailMessage accents = textOnly;
         accents.textBody = "caf\xC3\xA9 au lait with mostly ascii text around it";
         wire.Clear();
         ASSERT_TRUE( composer.Compose( accents, wire, error ) );
@@ -883,13 +883,13 @@ PerformMimeComposerTests( void )
         ASSERT_TRUE( parser.ParseParts( wire.GetConstBufferPtr(), wire.GetDataSize(), root ) && root.transferEncoding == "base64" );
 
         // bare line ends in the text are written as CR LF, a very long line is broken
-        CMailMessage ends = textOnly;
+        CEMailMessage ends = textOnly;
         ends.textBody = "one\ntwo\rthree\r\nfour " + Repeat( 3000, 'x' );
         wire.Clear();
         ASSERT_TRUE( composer.Compose( ends, wire, error ) );
         ASSERT_FALSE( HasBareLineEnds( wire ) );
         ASSERT_TRUE( LongestLine( AsString( wire ) ) <= 998 );
-        CMailMessage endsParsed;
+        CEMailMessage endsParsed;
         ASSERT_TRUE( parser.ParseMessage( wire.GetConstBufferPtr(), wire.GetDataSize(), endsParsed ) );
         ASSERT_TRUE( endsParsed.textBody == "one\ntwo\nthree\nfour " + Repeat( 3000, 'x' ) );
     }
@@ -902,10 +902,10 @@ PerformMimeComposerTests( void )
     GUCEF_TESTFW_TESTCASE( "Mime composer: long recipient lists and subjects are folded, and the boundary is not found in the text" )
     try
     {
-        CMailMessage message;
-        message.from.push_back( CMailAddress( "a@example.org" ) );
+        CEMailMessage message;
+        message.from.push_back( CEMailAddress( "a@example.org" ) );
         for ( int i=0; i<60; ++i )
-            message.to.push_back( CMailAddress( "Recipient Number " + CORE::Int32ToString( i ), "recipient" + CORE::Int32ToString( i ) + "@example.com" ) );
+            message.to.push_back( CEMailAddress( "Recipient Number " + CORE::Int32ToString( i ), "recipient" + CORE::Int32ToString( i ) + "@example.com" ) );
         for ( int i=0; i<40; ++i )
             message.subject += "word\xC3\xA9 ";
         message.textBody = "--gucefmime-0000\n--not a boundary\nfine";
@@ -914,7 +914,7 @@ PerformMimeComposerTests( void )
         CORE::CString error;
         ASSERT_TRUE( composer.Compose( message, wire, error ) );
         CMimeParser parser;
-        CMailMessage parsed;
+        CEMailMessage parsed;
         ASSERT_TRUE( parser.ParseMessage( wire.GetConstBufferPtr(), wire.GetDataSize(), parsed ) );
         ASSERT_TRUE( 60 == parsed.to.size() && parsed.to[ 59 ].displayName == "Recipient Number 59" );
         ASSERT_TRUE( parsed.subject == message.subject );
@@ -940,17 +940,17 @@ PerformMimeComposerTests( void )
         CORE::CString error;
         CORE::CDynamicBuffer wire;
 
-        CMailMessage base;
-        base.from.push_back( CMailAddress( "a@example.org" ) );
-        base.to.push_back( CMailAddress( "b@example.org" ) );
+        CEMailMessage base;
+        base.from.push_back( CEMailAddress( "a@example.org" ) );
+        base.to.push_back( CEMailAddress( "b@example.org" ) );
         base.textBody = "x";
 
         // subject and display name: encoded, nothing leaks into the header section
-        CMailMessage subject = base;
+        CEMailMessage subject = base;
         subject.subject = "Hi\r\nBcc: evil@example.com\r\n\r\nInjected body";
         subject.from[ 0 ].displayName = "Eve\r\nBcc: evil2@example.com";
         ASSERT_TRUE( composer.Compose( subject, wire, error ) );
-        CMailMessage parsed;
+        CEMailMessage parsed;
         ASSERT_TRUE( parser.ParseMessage( wire.GetConstBufferPtr(), wire.GetDataSize(), parsed ) );
         ASSERT_FALSE( parsed.headers.Has( "Bcc" ) );
         ASSERT_TRUE( parsed.bcc.empty() && parsed.textBody == "x" );
@@ -958,13 +958,13 @@ PerformMimeComposerTests( void )
         ASSERT_TRUE( parsed.subject == subject.subject );
 
         const UInt32 size = wire.GetDataSize();
-        CMailMessage bad = base;
-        bad.to.push_back( CMailAddress( CORE::CString( "x@example.org\r\nBcc: evil@example.com" ) ) );
+        CEMailMessage bad = base;
+        bad.to.push_back( CEMailAddress( CORE::CString( "x@example.org\r\nBcc: evil@example.com" ) ) );
         ASSERT_TRUE( bad.to.size() == 1 || bad.to[ 1 ].IsEmpty() || !bad.to[ 1 ].IsValid() );
         ASSERT_FALSE( composer.Compose( bad, wire, error ) );
 
         bad = base;
-        CMailAddress sneaky;
+        CEMailAddress sneaky;
         sneaky.localPart = "x";
         sneaky.domain = "example.org>\r\nBcc: evil@example.com";
         bad.to.push_back( sneaky );
@@ -996,13 +996,13 @@ PerformMimeComposerTests( void )
         ASSERT_FALSE( composer.Compose( bad, wire, error ) );
 
         bad = base;
-        bad.attachments.push_back( CMailAttachment( "a.txt\r\nContent-Type: x", "text/plain", "x", 1 ) );
+        bad.attachments.push_back( CEMailAttachment( "a.txt\r\nContent-Type: x", "text/plain", "x", 1 ) );
         ASSERT_FALSE( composer.Compose( bad, wire, error ) );
         bad = base;
-        bad.attachments.push_back( CMailAttachment( "a.txt", "text/plain\r\nX: y", "x", 1 ) );
+        bad.attachments.push_back( CEMailAttachment( "a.txt", "text/plain\r\nX: y", "x", 1 ) );
         ASSERT_FALSE( composer.Compose( bad, wire, error ) );
         bad = base;
-        bad.attachments.push_back( CMailAttachment( "a.txt", "text/plain", "x", 1 ) );
+        bad.attachments.push_back( CEMailAttachment( "a.txt", "text/plain", "x", 1 ) );
         bad.attachments[ 0 ].contentId = "id>\r\nX: y";
         ASSERT_FALSE( composer.Compose( bad, wire, error ) );
 
@@ -1020,7 +1020,7 @@ PerformMimeComposerTests( void )
         CMimeComposeOptions options;
         options.maxSize = 500;
         CMimeComposer small( options );
-        CMailMessage large = base;
+        CEMailMessage large = base;
         large.textBody = Repeat( 5000, 'q' );
         ASSERT_FALSE( small.Compose( large, untouched, error ) );
     }
@@ -1033,9 +1033,9 @@ PerformMimeComposerTests( void )
     GUCEF_TESTFW_TESTCASE( "Mime composer: international addresses need SMTPUTF8, a non ASCII subject does not" )
     try
     {
-        CMailMessage message;
-        message.from.push_back( CMailAddress( "a@example.org" ) );
-        message.to.push_back( CMailAddress( "j\xC3\xBC" "rgen@example.org" ) );
+        CEMailMessage message;
+        message.from.push_back( CEMailAddress( "a@example.org" ) );
+        message.to.push_back( CEMailAddress( "j\xC3\xBC" "rgen@example.org" ) );
         message.textBody = "x";
         CMimeComposer composer;
         CORE::CDynamicBuffer wire;
@@ -1047,7 +1047,7 @@ PerformMimeComposerTests( void )
         CMimeComposer utf8( options );
         ASSERT_TRUE( utf8.Compose( message, wire, error ) );
         CMimeParser parser;
-        CMailMessage parsed;
+        CEMailMessage parsed;
         ASSERT_TRUE( parser.ParseMessage( wire.GetConstBufferPtr(), wire.GetDataSize(), parsed ) );
         ASSERT_TRUE( 1 == parsed.to.size() && parsed.to[ 0 ].localPart == "j\xC3\xBC" "rgen" );
     }
@@ -1073,53 +1073,53 @@ PerformMailModelTests( void )
     GUCEF_TESTFW_TESTCASE( "Mail model: addresses are parsed in the forms mail has, validated and written" )
     try
     {
-        CMailAddress address;
-        ASSERT_TRUE( CMailAddress::Parse( "Jane Doe <jane@example.org>", address ) && address.displayName == "Jane Doe" && address.localPart == "jane" && address.domain == "example.org" );
-        ASSERT_TRUE( CMailAddress::Parse( "jane@example.org", address ) && address.displayName.IsNULLOrEmpty() );
-        ASSERT_TRUE( CMailAddress::Parse( "<jane@example.org>", address ) && address.GetAddress() == "jane@example.org" );
-        ASSERT_TRUE( CMailAddress::Parse( "\"Doe, Jane\" <jane@example.org>", address ) && address.displayName == "Doe, Jane" );
-        ASSERT_TRUE( CMailAddress::Parse( "=?UTF-8?B?SsO8cmdlbg==?= <j@example.org>", address ) && address.displayName == "J\xC3\xBC" "rgen" );
-        ASSERT_TRUE( CMailAddress::Parse( "\"odd local\"@example.org", address ) && address.localPart == "odd local" && address.GetAddress() == "\"odd local\"@example.org" );
-        ASSERT_TRUE( CMailAddress::Parse( "a.b+tag@sub.example.org (A B)", address ) && address.displayName == "A B" );
-        ASSERT_TRUE( CMailAddress::Parse( "x@[192.0.2.1]", address ) && address.IsValid() );
-        ASSERT_TRUE( CMailAddress::Parse( "<@relay.example,@other.example:user@example.org>", address ) && address.GetAddress() == "user@example.org" );
-        ASSERT_FALSE( CMailAddress::Parse( "no address here", address ) );
-        ASSERT_FALSE( CMailAddress::Parse( "@example.org", address ) );
-        ASSERT_FALSE( CMailAddress::Parse( "user@", address ) );
-        ASSERT_FALSE( CMailAddress::Parse( "a b@example.org", address ) );
-        ASSERT_FALSE( CMailAddress::Parse( "", address ) );
+        CEMailAddress address;
+        ASSERT_TRUE( CEMailAddress::Parse( "Jane Doe <jane@example.org>", address ) && address.displayName == "Jane Doe" && address.localPart == "jane" && address.domain == "example.org" );
+        ASSERT_TRUE( CEMailAddress::Parse( "jane@example.org", address ) && address.displayName.IsNULLOrEmpty() );
+        ASSERT_TRUE( CEMailAddress::Parse( "<jane@example.org>", address ) && address.GetAddress() == "jane@example.org" );
+        ASSERT_TRUE( CEMailAddress::Parse( "\"Doe, Jane\" <jane@example.org>", address ) && address.displayName == "Doe, Jane" );
+        ASSERT_TRUE( CEMailAddress::Parse( "=?UTF-8?B?SsO8cmdlbg==?= <j@example.org>", address ) && address.displayName == "J\xC3\xBC" "rgen" );
+        ASSERT_TRUE( CEMailAddress::Parse( "\"odd local\"@example.org", address ) && address.localPart == "odd local" && address.GetAddress() == "\"odd local\"@example.org" );
+        ASSERT_TRUE( CEMailAddress::Parse( "a.b+tag@sub.example.org (A B)", address ) && address.displayName == "A B" );
+        ASSERT_TRUE( CEMailAddress::Parse( "x@[192.0.2.1]", address ) && address.IsValid() );
+        ASSERT_TRUE( CEMailAddress::Parse( "<@relay.example,@other.example:user@example.org>", address ) && address.GetAddress() == "user@example.org" );
+        ASSERT_FALSE( CEMailAddress::Parse( "no address here", address ) );
+        ASSERT_FALSE( CEMailAddress::Parse( "@example.org", address ) );
+        ASSERT_FALSE( CEMailAddress::Parse( "user@", address ) );
+        ASSERT_FALSE( CEMailAddress::Parse( "a b@example.org", address ) );
+        ASSERT_FALSE( CEMailAddress::Parse( "", address ) );
 
-        CMailAddress::TMailAddressVector list;
-        ASSERT_TRUE( 4 == CMailAddress::ParseList( "a@x.org, garbage, Team: b@x.org, c@x.org;, d@x.org", list ) );
+        CEMailAddress::TEMailAddressVector list;
+        ASSERT_TRUE( 4 == CEMailAddress::ParseList( "a@x.org, garbage, Team: b@x.org, c@x.org;, d@x.org", list ) );
         list.clear();
-        ASSERT_TRUE( 2 == CMailAddress::ParseList( "a@x.org, b@x.org, c@x.org", list, 2 ) );
+        ASSERT_TRUE( 2 == CEMailAddress::ParseList( "a@x.org, b@x.org, c@x.org", list, 2 ) );
 
         // validity
-        ASSERT_TRUE( CMailAddress( "a@example.org" ).IsValid() );
-        ASSERT_FALSE( CMailAddress( "a@exa mple.org" ).IsValid() );
-        ASSERT_FALSE( CMailAddress( "a@-example.org" ).IsValid() );
-        ASSERT_FALSE( CMailAddress( "a@example..org" ).IsValid() );
-        ASSERT_FALSE( CMailAddress( "a@example.org." ).IsValid() );
-        CMailAddress tooLong;
+        ASSERT_TRUE( CEMailAddress( "a@example.org" ).IsValid() );
+        ASSERT_FALSE( CEMailAddress( "a@exa mple.org" ).IsValid() );
+        ASSERT_FALSE( CEMailAddress( "a@-example.org" ).IsValid() );
+        ASSERT_FALSE( CEMailAddress( "a@example..org" ).IsValid() );
+        ASSERT_FALSE( CEMailAddress( "a@example.org." ).IsValid() );
+        CEMailAddress tooLong;
         tooLong.localPart = Repeat( 65, 'a' );
         tooLong.domain = "example.org";
         ASSERT_FALSE( tooLong.IsValid() );
-        CMailAddress control;
+        CEMailAddress control;
         control.localPart = "a\x01";
         control.domain = "example.org";
         ASSERT_FALSE( control.IsValid() );
-        ASSERT_TRUE( CMailAddress( "j\xC3\xBC@example.org" ).IsInternational() && !CMailAddress( "j\xC3\xBC@example.org" ).IsValid() && CMailAddress( "j\xC3\xBC@example.org" ).IsValid( true ) );
+        ASSERT_TRUE( CEMailAddress( "j\xC3\xBC@example.org" ).IsInternational() && !CEMailAddress( "j\xC3\xBC@example.org" ).IsValid() && CEMailAddress( "j\xC3\xBC@example.org" ).IsValid( true ) );
 
         // written
         CORE::CString text;
-        ASSERT_TRUE( CMailAddress( "Jane Doe", "jane@example.org" ).Format( text ) && text == "Jane Doe <jane@example.org>" );
-        ASSERT_TRUE( CMailAddress( "Doe, Jane", "jane@example.org" ).Format( text ) && text == "\"Doe, Jane\" <jane@example.org>" );
-        ASSERT_TRUE( CMailAddress( "J\xC3\xBC" "rgen", "j@example.org" ).Format( text ) && text == "=?UTF-8?B?SsO8cmdlbg==?= <j@example.org>" );
-        ASSERT_TRUE( CMailAddress( "jane@example.org" ).Format( text ) && text == "jane@example.org" );
+        ASSERT_TRUE( CEMailAddress( "Jane Doe", "jane@example.org" ).Format( text ) && text == "Jane Doe <jane@example.org>" );
+        ASSERT_TRUE( CEMailAddress( "Doe, Jane", "jane@example.org" ).Format( text ) && text == "\"Doe, Jane\" <jane@example.org>" );
+        ASSERT_TRUE( CEMailAddress( "J\xC3\xBC" "rgen", "j@example.org" ).Format( text ) && text == "=?UTF-8?B?SsO8cmdlbg==?= <j@example.org>" );
+        ASSERT_TRUE( CEMailAddress( "jane@example.org" ).Format( text ) && text == "jane@example.org" );
         ASSERT_FALSE( tooLong.Format( text ) );
         ASSERT_TRUE( text.IsNULLOrEmpty() );
-        ASSERT_TRUE( CMailAddress( "A", "a@x.org" ).IsSameAddress( CMailAddress( "B", "a@X.ORG" ) ) );
-        ASSERT_FALSE( CMailAddress( "a@x.org" ).IsSameAddress( CMailAddress( "A@x.org" ) ) );
+        ASSERT_TRUE( CEMailAddress( "A", "a@x.org" ).IsSameAddress( CEMailAddress( "B", "a@X.ORG" ) ) );
+        ASSERT_FALSE( CEMailAddress( "a@x.org" ).IsSameAddress( CEMailAddress( "A@x.org" ) ) );
     }
     catch ( ... )
     {
@@ -1130,7 +1130,7 @@ PerformMailModelTests( void )
     GUCEF_TESTFW_TESTCASE( "Mail model: headers keep their order, look up without regard for case and refuse what could break out" )
     try
     {
-        CMailHeaders headers;
+        CEMailHeaders headers;
         ASSERT_TRUE( headers.Add( "Received", "from a" ) );
         ASSERT_TRUE( headers.Add( "X-One", "1" ) );
         ASSERT_TRUE( headers.Add( "received", "from b" ) );
@@ -1161,30 +1161,30 @@ PerformMailModelTests( void )
     GUCEF_TESTFW_TESTCASE( "Mail model: a message is validated and cloned, the envelope recipients have no doubles" )
     try
     {
-        CMailMessage message = MakeFullMessage();
+        CEMailMessage message = MakeFullMessage();
         CORE::CString reason;
         ASSERT_TRUE( message.Validate( reason ) );
 
-        CMailAddress::TMailAddressVector recipients;
-        message.to.push_back( CMailAddress( "SECRET@example.com" ) );
+        CEMailAddress::TEMailAddressVector recipients;
+        message.to.push_back( CEMailAddress( "SECRET@example.com" ) );
         message.GetEnvelopeRecipients( recipients );
         ASSERT_TRUE( 5 == recipients.size() && recipients[ 4 ].GetAddress() == "secret@example.com" );
 
-        CMailMessage noFrom = message;
+        CEMailMessage noFrom = message;
         noFrom.from.clear();
         ASSERT_FALSE( noFrom.Validate( reason ) );
-        CMailMessage noTo = message;
+        CEMailMessage noTo = message;
         noTo.to.clear(); noTo.cc.clear(); noTo.bcc.clear();
         ASSERT_FALSE( noTo.Validate( reason ) );
-        CMailMessage badId = message;
+        CEMailMessage badId = message;
         badId.messageId = "no brackets";
         ASSERT_FALSE( badId.Validate( reason ) );
-        CMailMessage badType = message;
+        CEMailMessage badType = message;
         badType.attachments[ 0 ].contentType = "nonsense";
         ASSERT_FALSE( badType.Validate( reason ) );
 
         CORE::CICloneable* clone = message.Clone();
-        CMailMessage* copy = CORE::CICloneable::CloneableAs< CMailMessage >( clone );
+        CEMailMessage* copy = CORE::CICloneable::CloneableAs< CEMailMessage >( clone );
         ASSERT_TRUE( GUCEF_NULL != copy && copy->subject == message.subject && 3 == copy->attachments.size() && copy->attachments[ 0 ].data == message.attachments[ 0 ].data );
         delete clone;
     }

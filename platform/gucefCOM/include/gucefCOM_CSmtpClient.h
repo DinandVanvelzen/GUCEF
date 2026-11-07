@@ -26,20 +26,30 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_COM_CMAILCLIENTBASE_H
-#include "gucefCOM_CMailClientBase.h"
-#define GUCEF_COM_CMAILCLIENTBASE_H
-#endif /* GUCEF_COM_CMAILCLIENTBASE_H ? */
+#ifndef GUCEF_COM_CEMAILCLIENTBASE_H
+#include "gucefCOM_CEMailClientBase.h"
+#define GUCEF_COM_CEMAILCLIENTBASE_H
+#endif /* GUCEF_COM_CEMAILCLIENTBASE_H ? */
 
 #ifndef GUCEF_COM_CSMTPCLIENTSETTINGS_H
 #include "gucefCOM_CSmtpClientSettings.h"
 #define GUCEF_COM_CSMTPCLIENTSETTINGS_H
 #endif /* GUCEF_COM_CSMTPCLIENTSETTINGS_H ? */
 
-#ifndef GUCEF_COM_CMAILMESSAGE_H
-#include "gucefCOM_CMailMessage.h"
-#define GUCEF_COM_CMAILMESSAGE_H
-#endif /* GUCEF_COM_CMAILMESSAGE_H ? */
+#ifndef GUCEF_COM_CEMAILMESSAGE_H
+#include "gucefCOM_CEMailMessage.h"
+#define GUCEF_COM_CEMAILMESSAGE_H
+#endif /* GUCEF_COM_CEMAILMESSAGE_H ? */
+
+#ifndef GUCEF_COM_CSMTPREPLY_H
+#include "gucefCOM_CSmtpReply.h"
+#define GUCEF_COM_CSMTPREPLY_H
+#endif /* GUCEF_COM_CSMTPREPLY_H ? */
+
+#ifndef GUCEF_COM_CSMTPSENDRESULT_H
+#include "gucefCOM_CSmtpSendResult.h"
+#define GUCEF_COM_CSMTPSENDRESULT_H
+#endif /* GUCEF_COM_CSMTPSENDRESULT_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -56,87 +66,9 @@ namespace COM {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/** One reply of an SMTP server, which may span several lines */
-class GUCEF_COM_PUBLIC_CPP CSmtpReply
-{
-    public:
-
-    UInt32 code;                                /**< the three digits */
-    CORE::CString enhancedCode;                 /**< "2.0.0", empty when the server gave none */
-    CORE::CString::StringVector lines;          /**< the text of every line, without code and enhanced code */
-
-    CSmtpReply( void );
-
-    /** The text of all lines joined by a space */
-    CORE::CString GetText( void ) const;
-
-    /** What kind of failure a reply with this code is: 4xx temporary, 5xx permanent, 2xx and 3xx none */
-    static EMailErrorClass GetErrorClass( UInt32 code );
-
-    /**
-     *  Takes a line of a reply apart: "250-text" continues the reply, "250 text" ends it. A code without text ("250") ends it.
-     *  @return false when the line does not start with three digits followed by a space, a hyphen or the end
-     */
-    static bool ParseLine( const CORE::CString& line, UInt32& code, bool& isLastLine, CORE::CString& text );
-
-    /** Reads an enhanced status code (RFC 3463) from the start of the text, "5.1.1 No such user" gives "5.1.1" and the rest of the text */
-    static bool SplitEnhancedCode( const CORE::CString& text, UInt32 replyCode, CORE::CString& enhancedCode, CORE::CString& rest );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** What the server said about one recipient */
-class GUCEF_COM_PUBLIC_CPP CSmtpRecipientResult
-{
-    public:
-
-    CORE::CString address;
-    bool accepted;
-    UInt32 replyCode;
-    CORE::CString enhancedCode;
-    CORE::CString replyText;
-    EMailErrorClass errorClass;
-
-    CSmtpRecipientResult( void );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/**
- *  The outcome of sending one message. 'success' means the server accepted the message for the recipients that it
- *  accepted (see 'recipients'); the other fields say what failed otherwise, 'errorClass' tells a failure
- *  that is worth another try later (MAILERR_TEMPORARY, MAILERR_CONNECTION, MAILERR_TIMEOUT) from one that is not.
- */
-class GUCEF_COM_PUBLIC_CPP CSmtpSendResult : public CORE::CICloneable
-{
-    public:
-
-    UInt32 requestId;
-    bool success;
-    EMailErrorClass errorClass;
-    UInt32 replyCode;                           /**< the reply that decided: to the end of the data when it was accepted */
-    CORE::CString enhancedCode;
-    CORE::CString replyText;                    /**< what the server said, for example 'OK queued as 4F2A1'. Not for logs without redaction */
-    CORE::CString errorDescription;             /**< a phrase of ours, never has addresses or content */
-    GUCEF::vector< CSmtpRecipientResult > recipients;
-
-    CSmtpSendResult( void );
-    CSmtpSendResult( const CSmtpSendResult& src );
-    virtual ~CSmtpSendResult() GUCEF_VIRTUAL_OVERRIDE;
-    CSmtpSendResult& operator=( const CSmtpSendResult& src );
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    static const char* CloneableTypeName( void );
-
-    UInt32 GetAcceptedCount( void ) const;
-    UInt32 GetRejectedCount( void ) const;
-};
-
-/*-------------------------------------------------------------------------*/
-
 /**
  *  An SMTP client (RFC 5321) for submission and relay: EHLO with HELO as the fallback, STARTTLS or TLS from the
- *  start, AUTH with the mechanisms of CMailSasl, SIZE, PIPELINING (MAIL and RCPT in one write), 8BITMIME and
+ *  start, AUTH with the mechanisms of CEMailSaslFactory, SIZE, PIPELINING (MAIL and RCPT in one write), 8BITMIME and
  *  SMTPUTF8, transparency (dot stuffing) and the results of every recipient.
  *
  *      CSmtpClient client;
@@ -149,9 +81,9 @@ class GUCEF_COM_PUBLIC_CPP CSmtpSendResult : public CORE::CICloneable
  *  completes the messages that were waiting with the error.
  *
  *  For one message from code that does not run a pulse generator there are SendMessageSync() (blocks the calling
- *  thread) and CMailOperations::SendMessageAsync() (a task of a thread pool, a CFutureResult).
+ *  thread) and CEMailOperations::SendMessageAsync() (a task of a thread pool, a CFutureResult).
  */
-class GUCEF_COM_PUBLIC_CPP CSmtpClient : public CMailClientBase
+class GUCEF_COM_PUBLIC_CPP CSmtpClient : public CEMailClientBase
 {
     public:
 
@@ -174,10 +106,10 @@ class GUCEF_COM_PUBLIC_CPP CSmtpClient : public CMailClientBase
      *  Queues a message. The recipients are to, cc and bcc, the sender of the envelope is Sender, else the first From.
      *  @return the id that SendCompletedEvent carries, 0 when the message is refused right away (invalid, too large, not connected); 'error' has the reason
      */
-    UInt32 SendMessage( const CMailMessage& message, CORE::CString* error = GUCEF_NULL );
+    UInt32 SendMessage( const CEMailMessage& message, CORE::CString* error = GUCEF_NULL );
 
     /** Queues message data that was composed elsewhere: bytes of a message in the format of RFC 5322 */
-    UInt32 SendRaw( const CMailAddress& envelopeFrom, const CMailAddress::TMailAddressVector& recipients, const void* data, UInt32 size, CORE::CString* error = GUCEF_NULL );
+    UInt32 SendRaw( const CEMailAddress& envelopeFrom, const CEMailAddress::TEMailAddressVector& recipients, const void* data, UInt32 size, CORE::CString* error = GUCEF_NULL );
 
     /** Messages queued or being sent */
     UInt32 GetPendingCount( void ) const;
@@ -205,7 +137,7 @@ class GUCEF_COM_PUBLIC_CPP CSmtpClient : public CMailClientBase
      *  Sends one message from the calling thread: makes a pulse generator of its own, connects, sends, says QUIT
      *  and returns. @return whether the message was accepted by the server
      */
-    static bool SendMessageSync( const CSmtpClientSettings& settings, const CMailMessage& message, CSmtpSendResult& result, CIMailCredentialProvider* credentialProvider = GUCEF_NULL );
+    static bool SendMessageSync( const CSmtpClientSettings& settings, const CEMailMessage& message, CSmtpSendResult& result, CIEMailCredentialProvider* credentialProvider = GUCEF_NULL );
 
     protected:
 
@@ -216,7 +148,7 @@ class GUCEF_COM_PUBLIC_CPP CSmtpClient : public CMailClientBase
     virtual void OnServerLine( const CORE::CString& line ) GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnConnectionEstablished( void ) GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnTlsEstablished( void ) GUCEF_VIRTUAL_OVERRIDE;
-    virtual void OnClientFailed( const CMailErrorEventData& error ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnClientFailed( const CEMailErrorEventData& error ) GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnClientClosed( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:
@@ -255,7 +187,7 @@ class GUCEF_COM_PUBLIC_CPP CSmtpClient : public CMailClientBase
     CSmtpClient& operator=( const CSmtpClient& src );
 
     void Initialize( void );
-    UInt32 QueueJob( const CORE::CString& envelopeFrom, const CMailAddress::TMailAddressVector& recipients, const void* data, UInt32 size, bool needsUtf8, CORE::CString* error );
+    UInt32 QueueJob( const CORE::CString& envelopeFrom, const CEMailAddress::TEMailAddressVector& recipients, const void* data, UInt32 size, bool needsUtf8, CORE::CString* error );
     void Expect( EStep step );
     void SendEhlo( void );
     void OnReply( const CSmtpReply& reply );

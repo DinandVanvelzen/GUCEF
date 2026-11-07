@@ -46,7 +46,7 @@ namespace COM {
 //-------------------------------------------------------------------------*/
 
 CPop3ClientSettings::CPop3ClientSettings( void )
-    : CMailClientSettings()
+    : CEMailClientSettings()
     , useApop( false )
     , useTop( true )
     , maxMessagesPerSession( 0 )
@@ -57,7 +57,7 @@ CPop3ClientSettings::CPop3ClientSettings( void )
 /*-------------------------------------------------------------------------*/
 
 CPop3ClientSettings::CPop3ClientSettings( const CPop3ClientSettings& src )
-    : CMailClientSettings( src )
+    : CEMailClientSettings( src )
     , useApop( src.useApop )
     , useTop( src.useTop )
     , maxMessagesPerSession( src.maxMessagesPerSession )
@@ -80,7 +80,7 @@ CPop3ClientSettings::operator=( const CPop3ClientSettings& src )
 
     if ( &src != this )
     {
-        CMailClientSettings::operator=( src );
+        CEMailClientSettings::operator=( src );
         useApop = src.useApop;
         useTop = src.useTop;
         maxMessagesPerSession = src.maxMessagesPerSession;
@@ -108,7 +108,7 @@ bool
 CPop3ClientSettings::SaveConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
 
-    if ( !CMailClientSettings::SaveConfig( config ) )
+    if ( !CEMailClientSettings::SaveConfig( config ) )
         return false;
     config.SetAttribute( "useApop", useApop );
     config.SetAttribute( "useTop", useTop );
@@ -122,7 +122,7 @@ bool
 CPop3ClientSettings::LoadConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
 
-    if ( !CMailClientSettings::LoadConfig( config ) )
+    if ( !CEMailClientSettings::LoadConfig( config ) )
         return false;
     useApop = config.GetAttributeValueOrChildValueByName( "useApop" ).AsBool( useApop, true );
     useTop = config.GetAttributeValueOrChildValueByName( "useTop" ).AsBool( useTop, true );

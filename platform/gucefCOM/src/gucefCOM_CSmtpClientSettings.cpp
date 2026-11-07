@@ -46,7 +46,7 @@ namespace COM {
 //-------------------------------------------------------------------------*/
 
 CSmtpClientSettings::CSmtpClientSettings( void )
-    : CMailClientSettings()
+    : CEMailClientSettings()
     , heloName()
     , usePipelining( true )
     , failIfAnyRecipientRejected( false )
@@ -60,7 +60,7 @@ CSmtpClientSettings::CSmtpClientSettings( void )
 /*-------------------------------------------------------------------------*/
 
 CSmtpClientSettings::CSmtpClientSettings( const CSmtpClientSettings& src )
-    : CMailClientSettings( src )
+    : CEMailClientSettings( src )
     , heloName( src.heloName )
     , usePipelining( src.usePipelining )
     , failIfAnyRecipientRejected( src.failIfAnyRecipientRejected )
@@ -86,7 +86,7 @@ CSmtpClientSettings::operator=( const CSmtpClientSettings& src )
 
     if ( &src != this )
     {
-        CMailClientSettings::operator=( src );
+        CEMailClientSettings::operator=( src );
         heloName = src.heloName;
         usePipelining = src.usePipelining;
         failIfAnyRecipientRejected = src.failIfAnyRecipientRejected;
@@ -117,7 +117,7 @@ bool
 CSmtpClientSettings::SaveConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
 
-    if ( !CMailClientSettings::SaveConfig( config ) )
+    if ( !CEMailClientSettings::SaveConfig( config ) )
         return false;
     config.SetAttribute( "heloName", heloName );
     config.SetAttribute( "usePipelining", usePipelining );
@@ -134,7 +134,7 @@ bool
 CSmtpClientSettings::LoadConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
 
-    if ( !CMailClientSettings::LoadConfig( config ) )
+    if ( !CEMailClientSettings::LoadConfig( config ) )
         return false;
     heloName = config.GetAttributeValueOrChildValueByName( "heloName" ).AsString( heloName, true );
     usePipelining = config.GetAttributeValueOrChildValueByName( "usePipelining" ).AsBool( usePipelining, true );

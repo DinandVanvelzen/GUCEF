@@ -2,7 +2,7 @@
  *  gucefCOM: GUCEF module providing communication implementations 
  *  for standardized protocols
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -128,10 +128,18 @@
 #define GUCEF_COM_CJSONRPCENDPOINT_H
 #endif /* GUCEF_COM_CJSONRPCENDPOINT_H ? */
 
-#ifndef GUCEF_COM_CMAILOPERATIONTASK_H
-#include "gucefCOM_CMailOperationTask.h"
-#define GUCEF_COM_CMAILOPERATIONTASK_H
-#endif /* GUCEF_COM_CMAILOPERATIONTASK_H ? */
+#ifndef GUCEF_COM_CEMAILOPERATIONTASKDATA_H
+#include "gucefCOM_CEMailOperationTaskData.h"
+#define GUCEF_COM_CEMAILOPERATIONTASKDATA_H
+#endif /* GUCEF_COM_CEMAILOPERATIONTASKDATA_H ? */
+#ifndef GUCEF_COM_CEMAILOPERATIONTASKCONSUMER_H
+#include "gucefCOM_CEMailOperationTaskConsumer.h"
+#define GUCEF_COM_CEMAILOPERATIONTASKCONSUMER_H
+#endif /* GUCEF_COM_CEMAILOPERATIONTASKCONSUMER_H ? */
+#ifndef GUCEF_COM_CEMAILOPERATIONS_H
+#include "gucefCOM_CEMailOperations.h"
+#define GUCEF_COM_CEMAILOPERATIONS_H
+#endif /* GUCEF_COM_CEMAILOPERATIONS_H ? */
 
 #ifndef GUCEF_COM_CMCPSERVER_H
 #include "gucefCOM_CMcpServer.h"
@@ -182,7 +190,7 @@ static TTcpConnectRttProbeFactory g_tcpConnectRttProbeFactory;
 static TUdpEchoRttProbeFactory g_udpEchoRttProbeFactory;
 static TNatPmpPortMapperFactory g_natPmpPortMapperFactory;
 static TIrcTcpTransportFactory g_ircTcpTransportFactory;
-static TMailOperationTaskConsumerFactory g_mailOperationTaskConsumerFactory;
+static TEMailOperationTaskConsumerFactory g_mailOperationTaskConsumerFactory;
 static TMcpOperationTaskConsumerFactory g_mcpOperationTaskConsumerFactory;
 static CORE::CTFactory< CIMcpTransport, CMcpStdioTransport, MT::CMutex > g_mcpStdioTransportFactory;
 static CORE::CTFactory< CIMcpTransport, CMcpTcpTransport, MT::CMutex > g_mcpTcpTransportFactory;
@@ -221,7 +229,7 @@ CComGlobal::Initialize( void )
     CSmtpClient::RegisterEvents();
     CPop3Client::RegisterEvents();
     CImapClient::RegisterEvents();
-    CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CMailOperationTaskConsumer::TaskType, &g_mailOperationTaskConsumerFactory );
+    CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CEMailOperationTaskConsumer::TaskType, &g_mailOperationTaskConsumerFactory );
 
     CMcpRegistryBase::RegisterEvents();
     CMcpToolRegistry::RegisterEvents();
@@ -267,7 +275,7 @@ CComGlobal::~CComGlobal()
     CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefCOM" );
 
     CORE::CCoreGlobal::Instance()->GetMetricsClientManager().RemoveMetricsClient( CStatsDClient::Type );
-    CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CMailOperationTaskConsumer::TaskType );
+    CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CEMailOperationTaskConsumer::TaskType );
     CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CMcpOperationTaskConsumer::TaskType );
 
     // Our concrete factories go away with this module, so do the clients the discovery manager made with them

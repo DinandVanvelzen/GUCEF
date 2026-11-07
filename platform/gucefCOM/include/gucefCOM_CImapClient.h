@@ -26,10 +26,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_COM_CMAILCLIENTBASE_H
-#include "gucefCOM_CMailClientBase.h"
-#define GUCEF_COM_CMAILCLIENTBASE_H
-#endif /* GUCEF_COM_CMAILCLIENTBASE_H ? */
+#ifndef GUCEF_COM_CEMAILCLIENTBASE_H
+#include "gucefCOM_CEMailClientBase.h"
+#define GUCEF_COM_CEMAILCLIENTBASE_H
+#endif /* GUCEF_COM_CEMAILCLIENTBASE_H ? */
 
 #ifndef GUCEF_COM_CIMAPCLIENTSETTINGS_H
 #include "gucefCOM_CImapClientSettings.h"
@@ -46,15 +46,35 @@
 #define GUCEF_COM_CIMAPSEARCHCRITERIA_H
 #endif /* GUCEF_COM_CIMAPSEARCHCRITERIA_H ? */
 
-#ifndef GUCEF_COM_CMAILMESSAGE_H
-#include "gucefCOM_CMailMessage.h"
-#define GUCEF_COM_CMAILMESSAGE_H
-#endif /* GUCEF_COM_CMAILMESSAGE_H ? */
+#ifndef GUCEF_COM_CEMAILMESSAGE_H
+#include "gucefCOM_CEMailMessage.h"
+#define GUCEF_COM_CEMAILMESSAGE_H
+#endif /* GUCEF_COM_CEMAILMESSAGE_H ? */
 
 #ifndef GUCEF_COM_CMIMEPARSER_H
 #include "gucefCOM_CMimeParser.h"
 #define GUCEF_COM_CMIMEPARSER_H
 #endif /* GUCEF_COM_CMIMEPARSER_H ? */
+
+#ifndef GUCEF_COM_CIMAPCOMMANDRESULT_H
+#include "gucefCOM_CImapCommandResult.h"
+#define GUCEF_COM_CIMAPCOMMANDRESULT_H
+#endif /* GUCEF_COM_CIMAPCOMMANDRESULT_H ? */
+
+#ifndef GUCEF_COM_CIMAPIDLEUPDATE_H
+#include "gucefCOM_CImapIdleUpdate.h"
+#define GUCEF_COM_CIMAPIDLEUPDATE_H
+#endif /* GUCEF_COM_CIMAPIDLEUPDATE_H ? */
+
+#ifndef GUCEF_COM_CIMAPFETCHRESULT_H
+#include "gucefCOM_CImapFetchResult.h"
+#define GUCEF_COM_CIMAPFETCHRESULT_H
+#endif /* GUCEF_COM_CIMAPFETCHRESULT_H ? */
+
+#ifndef GUCEF_COM_CIMAPFETCHOPTIONS_H
+#include "gucefCOM_CImapFetchOptions.h"
+#define GUCEF_COM_CIMAPFETCHOPTIONS_H
+#endif /* GUCEF_COM_CIMAPFETCHOPTIONS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -71,27 +91,6 @@ namespace COM {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-enum EImapCommand
-{
-    IMAPCMD_CAPABILITY = 0,
-    IMAPCMD_NOOP,
-    IMAPCMD_LIST,
-    IMAPCMD_SELECT,
-    IMAPCMD_EXAMINE,
-    IMAPCMD_STATUS,
-    IMAPCMD_SEARCH,
-    IMAPCMD_FETCH,
-    IMAPCMD_STORE,
-    IMAPCMD_EXPUNGE,
-    IMAPCMD_CLOSE,
-    IMAPCMD_CREATE,
-    IMAPCMD_DELETE,
-    IMAPCMD_APPEND,
-    IMAPCMD_IDLE,
-    IMAPCMD_COPY,
-    IMAPCMD_MOVE
-};
-
 /** How STORE changes the flags */
 enum EImapStoreMode
 {
@@ -102,156 +101,9 @@ enum EImapStoreMode
 
 /*-------------------------------------------------------------------------*/
 
-/** One line of the answer to LIST */
-class GUCEF_COM_PUBLIC_CPP CImapMailboxEntry
-{
-    public:
-
-    CORE::CString name;                         /**< UTF-8 */
-    CORE::CString hierarchyDelimiter;
-    CORE::CString::StringVector attributes;     /**< \HasNoChildren, \Sent, \Trash ... */
-
-    CImapMailboxEntry( void );
-};
-
-/** What the server said about a mailbox that was selected or asked about with STATUS */
-class GUCEF_COM_PUBLIC_CPP CImapMailboxStatus
-{
-    public:
-
-    CORE::CString name;
-    UInt32 exists;
-    UInt32 recent;
-    UInt32 unseen;
-    UInt32 uidNext;
-    UInt32 uidValidity;                         /**< the number that says whether the UIDs of the mailbox are still the ones that were known */
-    bool readOnly;
-    CORE::CString::StringVector flags;
-    CORE::CString::StringVector permanentFlags;
-
-    CImapMailboxStatus( void );
-};
-
-/** The outcome of one command */
-class GUCEF_COM_PUBLIC_CPP CImapCommandResult : public CORE::CICloneable
-{
-    public:
-
-    UInt32 requestId;
-    EImapCommand command;
-    bool ok;                                    /**< the server said OK */
-    CORE::CString status;                       /**< OK, NO or BAD, empty when the command was not carried out */
-    EMailErrorClass errorClass;
-    CORE::CString text;                         /**< the text of the server, or of ours: for a log only after redaction */
-    CORE::CString code;                         /**< response code of the completion: TRYCREATE, READ-ONLY, ... */
-    GUCEF::vector< CImapMailboxEntry > mailboxes;       /**< LIST */
-    CImapMailboxStatus mailbox;                         /**< SELECT, EXAMINE, STATUS */
-    bool uidValidityChanged;                            /**< SELECT with an expected UIDVALIDITY that is not the one of the mailbox: the UIDs of before mean nothing */
-    GUCEF::vector< UInt32 > numbers;                    /**< SEARCH: sequence numbers or UIDs */
-    GUCEF::vector< CImapFetchedItem > fetched;          /**< FETCH, and the flags that STORE reports */
-    UInt32 appendUid;                                   /**< APPEND with UIDPLUS */
-    UInt32 copyUid;                                     /**< COPY and MOVE with UIDPLUS: the UID of the first message in the target mailbox, 0 when the server did not say */
-    CORE::CString::StringVector capabilities;           /**< CAPABILITY */
-
-    CImapCommandResult( void );
-    CImapCommandResult( const CImapCommandResult& src );
-    virtual ~CImapCommandResult() GUCEF_VIRTUAL_OVERRIDE;
-    CImapCommandResult& operator=( const CImapCommandResult& src );
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    static const char* CloneableTypeName( void );
-};
-
-/** What happened in the mailbox while the client was idle */
-class GUCEF_COM_PUBLIC_CPP CImapIdleUpdate : public CORE::CICloneable
-{
-    public:
-
-    enum EKind
-    {
-        KIND_EXISTS = 0,        /**< 'number' messages are in the mailbox now */
-        KIND_EXPUNGE,           /**< the message with sequence number 'number' is gone */
-        KIND_RECENT,
-        KIND_FLAGS              /**< the flags of the message with this sequence number changed: 'flags', and the uid when the server says */
-    };
-
-    EKind kind;
-    UInt32 number;
-    bool hasUid;
-    UInt32 uid;
-    CORE::CString::StringVector flags;
-
-    CImapIdleUpdate( void );
-    CImapIdleUpdate( const CImapIdleUpdate& src );
-    virtual ~CImapIdleUpdate() GUCEF_VIRTUAL_OVERRIDE;
-    CImapIdleUpdate& operator=( const CImapIdleUpdate& src );
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    static const char* CloneableTypeName( void );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** What a fetch of new mail does */
-class GUCEF_COM_PUBLIC_CPP CImapFetchOptions
-{
-    public:
-
-    CORE::CString mailbox;                      /**< "INBOX" */
-    UInt32 lastUidValidity;                     /**< the UIDVALIDITY of the last fetch, 0 for none */
-    UInt32 lastUid;                             /**< the highest UID that was handled by the last fetch, 0 for none */
-    UInt32 maxMessages;                         /**< at most this many messages per fetch, 0: all */
-    bool markSeen;                              /**< the messages that are fetched become \Seen */
-    bool deleteAfterFetch;                      /**< the messages that were fetched are deleted and expunged */
-    GUCEF::vector< CORE::CString > headerNames; /**< only messages that have these headers are fetched (the search is done by the server)... */
-    GUCEF::vector< CORE::CString > headerTexts; /**< ...with this text in them, one text per name, empty: the header only has to be there */
-    CMimeLimits mimeLimits;
-
-    CImapFetchOptions( void );
-};
-
-/** A message that a fetch brought */
-class GUCEF_COM_PUBLIC_CPP CImapFetchedMessage
-{
-    public:
-
-    UInt32 uid;
-    UInt32 size;
-    CORE::CString::StringVector flags;
-    CMailMessage message;
-    bool parsed;
-
-    CImapFetchedMessage( void );
-};
-
-/** What a fetch of new mail found */
-class GUCEF_COM_PUBLIC_CPP CImapFetchResult : public CORE::CICloneable
-{
-    public:
-
-    bool success;
-    EMailErrorClass errorClass;
-    CORE::CString errorDescription;
-    UInt32 uidValidity;
-    bool uidValidityChanged;                    /**< the mailbox has other UIDs than the ones lastUid was about: all messages were looked at, none are skipped on the UID */
-    UInt32 uidNext;
-    UInt32 highestUid;                          /**< the highest UID handled, the lastUid for the next fetch */
-    GUCEF::vector< CImapFetchedMessage > messages;
-
-    CImapFetchResult( void );
-    CImapFetchResult( const CImapFetchResult& src );
-    virtual ~CImapFetchResult() GUCEF_VIRTUAL_OVERRIDE;
-    CImapFetchResult& operator=( const CImapFetchResult& src );
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    static const char* CloneableTypeName( void );
-};
-
-/*-------------------------------------------------------------------------*/
-
 /**
  *  An IMAP client (RFC 3501, IMAP4rev1, with the parts of IMAP4rev2 that servers of rev1 have too): STARTTLS or TLS from
- *  the start, LOGIN or AUTHENTICATE (PLAIN, LOGIN, SCRAM-SHA-256 and XOAUTH2 through CMailSasl), LIST, SELECT and
+ *  the start, LOGIN or AUTHENTICATE (PLAIN, LOGIN, SCRAM-SHA-256 and XOAUTH2 through CEMailSaslFactory), LIST, SELECT and
  *  EXAMINE with the UIDVALIDITY check, SEARCH, FETCH (envelope, flags, body structure, sections, partial), STORE,
  *  EXPUNGE, UID EXPUNGE (UIDPLUS), COPY, MOVE (RFC 6851), CLOSE, CREATE, DELETE, APPEND and IDLE (RFC 2177).
  *
@@ -266,9 +118,9 @@ class GUCEF_COM_PUBLIC_CPP CImapFetchResult : public CORE::CICloneable
  *      client.Connect( settings );
  *      // when ready:  client.Select( "INBOX", false, lastUidValidity );  client.Idle();
  *
- *  For one shot use FetchNewSync() (blocks the calling thread) and CMailOperations::FetchNewImapAsync().
+ *  For one shot use FetchNewSync() (blocks the calling thread) and CEMailOperations::FetchNewImapAsync().
  */
-class GUCEF_COM_PUBLIC_CPP CImapClient : public CMailClientBase
+class GUCEF_COM_PUBLIC_CPP CImapClient : public CEMailClientBase
 {
     public:
 
@@ -312,7 +164,7 @@ class GUCEF_COM_PUBLIC_CPP CImapClient : public CMailClientBase
 
     /** Adds a message (bytes of an Internet message with CR LF line ends) to a mailbox. 'internalDate' like 02-Nov-2020 10:11:12 +0000, may be empty */
     UInt32 AppendRaw( const CORE::CString& mailbox, const void* data, UInt32 size, const CORE::CString::StringVector& flags = CORE::CString::StringVector(), const CORE::CString& internalDate = CORE::CString::Empty );
-    UInt32 AppendMessage( const CORE::CString& mailbox, const CMailMessage& message, const CORE::CString::StringVector& flags = CORE::CString::StringVector() );
+    UInt32 AppendMessage( const CORE::CString& mailbox, const CEMailMessage& message, const CORE::CString::StringVector& flags = CORE::CString::StringVector() );
 
     /** Waits for changes in the selected mailbox; needs the IDLE capability. The command completes when IdleDone() is called, a command is given, or the server ends it. IdleDone() before the server has confirmed the IDLE ends it as soon as the server has */
     UInt32 Idle( void );
@@ -343,7 +195,7 @@ class GUCEF_COM_PUBLIC_CPP CImapClient : public CMailClientBase
      *  selects the mailbox, remembers its UIDVALIDITY, searches the UIDs above lastUid, fetches and parses the messages,
      *  marks or deletes them when asked, and says LOGOUT.
      */
-    static bool FetchNewSync( const CImapClientSettings& settings, const CImapFetchOptions& options, CImapFetchResult& result, CIMailCredentialProvider* credentialProvider = GUCEF_NULL );
+    static bool FetchNewSync( const CImapClientSettings& settings, const CImapFetchOptions& options, CImapFetchResult& result, CIEMailCredentialProvider* credentialProvider = GUCEF_NULL );
 
     protected:
 
@@ -356,7 +208,7 @@ class GUCEF_COM_PUBLIC_CPP CImapClient : public CMailClientBase
     virtual bool IsServerLineLoggable( const CORE::CString& line ) const GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnConnectionEstablished( void ) GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnTlsEstablished( void ) GUCEF_VIRTUAL_OVERRIDE;
-    virtual void OnClientFailed( const CMailErrorEventData& error ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnClientFailed( const CEMailErrorEventData& error ) GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnClientClosed( void ) GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnTimerTick( UInt64 nowInMs ) GUCEF_VIRTUAL_OVERRIDE;
 

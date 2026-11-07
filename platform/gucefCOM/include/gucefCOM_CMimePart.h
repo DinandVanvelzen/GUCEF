@@ -26,10 +26,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_COM_CMAILHEADERS_H
-#include "gucefCOM_CMailHeaders.h"
-#define GUCEF_COM_CMAILHEADERS_H
-#endif /* GUCEF_COM_CMAILHEADERS_H ? */
+#ifndef GUCEF_COM_CEMAILHEADERS_H
+#include "gucefCOM_CEMailHeaders.h"
+#define GUCEF_COM_CEMAILHEADERS_H
+#endif /* GUCEF_COM_CEMAILHEADERS_H ? */
 
 #ifndef GUCEF_COM_CMIMECODEC_H
 #include "gucefCOM_CMimeCodec.h"
@@ -53,14 +53,14 @@ namespace COM {
 
 /**
  *  One entity of a MIME message (RFC 2045): the whole message, or a part of a multipart. The tree that
- *  CMimeParser makes of the bytes of a message; CMailMessage is made from it. A part that is a multipart has
+ *  CMimeParser makes of the bytes of a message; CEMailMessage is made from it. A part that is a multipart has
  *  children, any other part has a body, already decoded from its transfer encoding.
  */
 class GUCEF_COM_PUBLIC_CPP CMimePart
 {
     public:
 
-    CMailHeaders headers;
+    CEMailHeaders headers;
     CORE::CString contentType;                  /**< lower case without parameters, "text/plain" when the part names none */
     CMimeCodec::TParamVector contentTypeParams;
     CORE::CString transferEncoding;             /**< lower case, empty for none */

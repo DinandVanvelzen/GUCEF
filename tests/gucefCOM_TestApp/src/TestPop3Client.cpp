@@ -32,10 +32,18 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
-#ifndef GUCEF_COM_CMAILOPERATIONTASK_H
-#include "gucefCOM_CMailOperationTask.h"
-#define GUCEF_COM_CMAILOPERATIONTASK_H
-#endif /* GUCEF_COM_CMAILOPERATIONTASK_H ? */
+#ifndef GUCEF_COM_CEMAILOPERATIONTASKDATA_H
+#include "gucefCOM_CEMailOperationTaskData.h"
+#define GUCEF_COM_CEMAILOPERATIONTASKDATA_H
+#endif /* GUCEF_COM_CEMAILOPERATIONTASKDATA_H ? */
+#ifndef GUCEF_COM_CEMAILOPERATIONTASKCONSUMER_H
+#include "gucefCOM_CEMailOperationTaskConsumer.h"
+#define GUCEF_COM_CEMAILOPERATIONTASKCONSUMER_H
+#endif /* GUCEF_COM_CEMAILOPERATIONTASKCONSUMER_H ? */
+#ifndef GUCEF_COM_CEMAILOPERATIONS_H
+#include "gucefCOM_CEMailOperations.h"
+#define GUCEF_COM_CEMAILOPERATIONS_H
+#endif /* GUCEF_COM_CEMAILOPERATIONS_H ? */
 
 #include "TestMailShared.h"
 
@@ -480,11 +488,11 @@ PerformPop3ClientTests( void )
         // the asynchronous form does the same on a pool thread
         FillMailbox( server );
         options.deleteAfterFetch = false;
-        CORE::CFutureResult future = COM::CMailOperations::FetchNewPop3Async( settings, options );
+        CORE::CFutureResult future = COM::CEMailOperations::FetchNewPop3Async( settings, options );
         ASSERT_TRUE( future.HasAFuture() );
         future.Await( 30000 );
         COM::CPop3FetchResult asyncResult;
-        ASSERT_TRUE( COM::CMailOperations::TryGetPop3FetchResult( future, asyncResult ) && asyncResult.success && 3 == asyncResult.messages.size() );
+        ASSERT_TRUE( COM::CEMailOperations::TryGetPop3FetchResult( future, asyncResult ) && asyncResult.success && 3 == asyncResult.messages.size() );
 
         // a server without UIDL cannot tell us what is new: that is an error, not a guess
         TESTFW::CTestPop3Server noUidl;

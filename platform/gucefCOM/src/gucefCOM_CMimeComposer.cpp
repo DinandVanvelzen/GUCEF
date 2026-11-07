@@ -62,7 +62,7 @@ struct SNode
     EKind kind;
     CORE::CString subtype;                  /**< plain or html for text, alternative, related or mixed for a multipart */
     CORE::CString text;                     /**< KIND_TEXT: the text with CR LF line ends, ending in a line break */
-    const CMailAttachment* attachment;
+    const CEMailAttachment* attachment;
     GUCEF::vector< SNode* > children;
 
     SNode( EKind nodeKind ) : kind( nodeKind ), subtype(), text(), attachment( GUCEF_NULL ), children() {}
@@ -262,7 +262,7 @@ WriteTextNode( CWriter& writer, const SNode& node )
 bool
 WriteAttachmentNode( CWriter& writer, const SNode& node )
 {
-    const CMailAttachment& attachment = *node.attachment;
+    const CEMailAttachment& attachment = *node.attachment;
     CORE::CString type = attachment.contentType;
     if ( !attachment.fileName.IsNULLOrEmpty() )
         type += "; " + CMimeCodec::FormatParameter( "name", attachment.fileName );
@@ -338,15 +338,6 @@ WriteNode( CWriter& writer, const SNode& node, bool isTop )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CMimeComposeOptions::CMimeComposeOptions( void )
-    : allowUtf8Addresses( false )
-    , maxSize( 64 * 1024 * 1024 )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
 CMimeComposer::CMimeComposer( void )
     : m_options()
 {GUCEF_TRACE;
@@ -382,7 +373,7 @@ CMimeComposer::GetOptions( void ) const
 /*-------------------------------------------------------------------------*/
 
 bool
-CMimeComposer::Compose( const CMailMessage& message, CORE::CDynamicBuffer& out, CORE::CString& error ) const
+CMimeComposer::Compose( const CEMailMessage& message, CORE::CDynamicBuffer& out, CORE::CString& error ) const
 {GUCEF_TRACE;
 
     error.Clear();
@@ -402,7 +393,7 @@ CMimeComposer::Compose( const CMailMessage& message, CORE::CDynamicBuffer& out, 
         return false;
     }
 
-    if ( !CMailAddress::FormatList( message.from, value, m_options.allowUtf8Addresses ) || !writer.Header( "From", value ) )
+    if ( !CEMailAddress::FormatList( message.from, value, m_options.allowUtf8Addresses ) || !writer.Header( "From", value ) )
     {
         error = "The From header could not be written";
         return false;
@@ -415,17 +406,17 @@ CMimeComposer::Compose( const CMailMessage& message, CORE::CDynamicBuffer& out, 
             return false;
         }
     }
-    if ( !message.to.empty() && ( !CMailAddress::FormatList( message.to, value, m_options.allowUtf8Addresses ) || !writer.Header( "To", value ) ) )
+    if ( !message.to.empty() && ( !CEMailAddress::FormatList( message.to, value, m_options.allowUtf8Addresses ) || !writer.Header( "To", value ) ) )
     {
         error = "The To header could not be written";
         return false;
     }
-    if ( !message.cc.empty() && ( !CMailAddress::FormatList( message.cc, value, m_options.allowUtf8Addresses ) || !writer.Header( "Cc", value ) ) )
+    if ( !message.cc.empty() && ( !CEMailAddress::FormatList( message.cc, value, m_options.allowUtf8Addresses ) || !writer.Header( "Cc", value ) ) )
     {
         error = "The Cc header could not be written";
         return false;
     }
-    if ( !message.replyTo.empty() && ( !CMailAddress::FormatList( message.replyTo, value, m_options.allowUtf8Addresses ) || !writer.Header( "Reply-To", value ) ) )
+    if ( !message.replyTo.empty() && ( !CEMailAddress::FormatList( message.replyTo, value, m_options.allowUtf8Addresses ) || !writer.Header( "Reply-To", value ) ) )
     {
         error = "The Reply-To header could not be written";
         return false;
@@ -473,7 +464,7 @@ CMimeComposer::Compose( const CMailMessage& message, CORE::CDynamicBuffer& out, 
     }
     for ( UInt32 i=0; i<message.extraHeaders.GetCount(); ++i )
     {
-        const CMailHeaders::TField& field = message.extraHeaders.GetField( i );
+        const CEMailHeaders::TField& field = message.extraHeaders.GetField( i );
         if ( !writer.Header( field.name, field.value ) )
         {
             error = writer.GetError();
@@ -499,8 +490,8 @@ CMimeComposer::Compose( const CMailMessage& message, CORE::CDynamicBuffer& out, 
     }
 
     // inline content that is referenced by content id belongs with the HTML
-    GUCEF::vector< const CMailAttachment* > related;
-    GUCEF::vector< const CMailAttachment* > regular;
+    GUCEF::vector< const CEMailAttachment* > related;
+    GUCEF::vector< const CEMailAttachment* > regular;
     for ( size_t i=0; i<message.attachments.size(); ++i )
     {
         if ( GUCEF_NULL != htmlNode && message.attachments[ i ].isInline && !message.attachments[ i ].contentId.IsNULLOrEmpty() )

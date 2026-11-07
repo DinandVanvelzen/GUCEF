@@ -29,20 +29,50 @@
 #define GUCEF_CORE_H
 #endif /* GUCEF_CORE_H ? */
 
-#ifndef GUCEF_COM_CMAILSTREAMREADER_H
-#include "gucefCOM_CMailStreamReader.h"
-#define GUCEF_COM_CMAILSTREAMREADER_H
-#endif /* GUCEF_COM_CMAILSTREAMREADER_H ? */
+#ifndef GUCEF_COM_CEMAILSTREAMREADER_H
+#include "gucefCOM_CEMailStreamReader.h"
+#define GUCEF_COM_CEMAILSTREAMREADER_H
+#endif /* GUCEF_COM_CEMAILSTREAMREADER_H ? */
 
-#ifndef GUCEF_COM_CMAILSASL_H
-#include "gucefCOM_CMailSasl.h"
-#define GUCEF_COM_CMAILSASL_H
-#endif /* GUCEF_COM_CMAILSASL_H ? */
+#ifndef GUCEF_COM_CIEMAILSASLMECHANISM_H
+#include "gucefCOM_CIEMailSaslMechanism.h"
+#define GUCEF_COM_CIEMAILSASLMECHANISM_H
+#endif /* GUCEF_COM_CIEMAILSASLMECHANISM_H ? */
+#ifndef GUCEF_COM_CEMAILSASLPLAIN_H
+#include "gucefCOM_CEMailSaslPlain.h"
+#define GUCEF_COM_CEMAILSASLPLAIN_H
+#endif /* GUCEF_COM_CEMAILSASLPLAIN_H ? */
+#ifndef GUCEF_COM_CEMAILSASLLOGIN_H
+#include "gucefCOM_CEMailSaslLogin.h"
+#define GUCEF_COM_CEMAILSASLLOGIN_H
+#endif /* GUCEF_COM_CEMAILSASLLOGIN_H ? */
+#ifndef GUCEF_COM_CEMAILSASLXOAUTH2_H
+#include "gucefCOM_CEMailSaslXOAuth2.h"
+#define GUCEF_COM_CEMAILSASLXOAUTH2_H
+#endif /* GUCEF_COM_CEMAILSASLXOAUTH2_H ? */
+#ifndef GUCEF_COM_CEMAILSASLSCRAMSHA256_H
+#include "gucefCOM_CEMailSaslScramSha256.h"
+#define GUCEF_COM_CEMAILSASLSCRAMSHA256_H
+#endif /* GUCEF_COM_CEMAILSASLSCRAMSHA256_H ? */
+#ifndef GUCEF_COM_CEMAILSASLFACTORY_H
+#include "gucefCOM_CEMailSaslFactory.h"
+#define GUCEF_COM_CEMAILSASLFACTORY_H
+#endif /* GUCEF_COM_CEMAILSASLFACTORY_H ? */
 
 #ifndef GUCEF_COM_CIMAPRESPONSE_H
 #include "gucefCOM_CImapResponse.h"
 #define GUCEF_COM_CIMAPRESPONSE_H
 #endif /* GUCEF_COM_CIMAPRESPONSE_H ? */
+
+#ifndef GUCEF_COM_CIMAPVALUEPARSER_H
+#include "gucefCOM_CImapValueParser.h"
+#define GUCEF_COM_CIMAPVALUEPARSER_H
+#endif /* GUCEF_COM_CIMAPVALUEPARSER_H ? */
+
+#ifndef GUCEF_COM_CIMAPFETCHEDITEM_H
+#include "gucefCOM_CImapFetchedItem.h"
+#define GUCEF_COM_CIMAPFETCHEDITEM_H
+#endif /* GUCEF_COM_CIMAPFETCHEDITEM_H ? */
 
 #ifndef GUCEF_COM_CIMAPSEARCHCRITERIA_H
 #include "gucefCOM_CImapSearchCriteria.h"
@@ -69,10 +99,10 @@
 #define GUCEF_COM_CIMAPCLIENTSETTINGS_H
 #endif /* GUCEF_COM_CIMAPCLIENTSETTINGS_H ? */
 
-#ifndef GUCEF_COM_CMAILPROTOCOLLOG_H
-#include "gucefCOM_CMailProtocolLog.h"
-#define GUCEF_COM_CMAILPROTOCOLLOG_H
-#endif /* GUCEF_COM_CMAILPROTOCOLLOG_H ? */
+#ifndef GUCEF_COM_CEMAILPROTOCOLLOG_H
+#include "gucefCOM_CEMailProtocolLog.h"
+#define GUCEF_COM_CEMAILPROTOCOLLOG_H
+#endif /* GUCEF_COM_CEMAILPROTOCOLLOG_H ? */
 
 #ifndef GUCEF_TEST_FRAMEWORK_H
 #include "gucef_test_framework.h"
@@ -111,7 +141,7 @@ AsText( const CORE::CDynamicBuffer& buffer )
 /*-------------------------------------------------------------------------*/
 
 void
-FeedText( CMailStreamReader& reader, const char* text )
+FeedText( CEMailStreamReader& reader, const char* text )
 {
     reader.Feed( text, (UInt32) strlen( text ) );
 }
@@ -130,9 +160,9 @@ SetBytes( CORE::CDynamicBuffer& buffer, const CORE::CString& text )
 
 /** Runs a SCRAM exchange against the example of RFC 7677, with the nonce of the example */
 bool
-RunScramExample( const char* serverFirst, const char* serverFinal, EMailSaslState& state1, EMailSaslState& state2, CORE::CString& clientFirst, CORE::CString& clientFinal, CMailSaslScramSha256** keepMechanism = GUCEF_NULL )
+RunScramExample( const char* serverFirst, const char* serverFinal, EMailSaslState& state1, EMailSaslState& state2, CORE::CString& clientFirst, CORE::CString& clientFinal, CEMailSaslScramSha256** keepMechanism = GUCEF_NULL )
 {
-    CMailSaslScramSha256* mechanism = GUCEF_NEW CMailSaslScramSha256( "user", "pencil" );
+    CEMailSaslScramSha256* mechanism = GUCEF_NEW CEMailSaslScramSha256( "user", "pencil" );
     mechanism->SetClientNonceForTesting( "rOprNGfwEbeRWgbNEkqO" );
     CORE::CDynamicBuffer initial, challenge, response;
     if ( !mechanism->Start( initial ) )
@@ -174,26 +204,26 @@ PerformMailParserTests( void )
     GUCEF_TESTFW_TESTCASE( "Mail stream reader: lines across feeds, CR LF and LF, text that is not UTF-8" )
     try
     {
-        CMailStreamReader reader( 100, 1000 );
+        CEMailStreamReader reader( 100, 1000 );
         CORE::CString line;
         CORE::CDynamicBuffer bytes;
         FeedText( reader, "220 hel" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_NONE == reader.Next( line, bytes ) );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_NONE == reader.Next( line, bytes ) );
         FeedText( reader, "lo\r\n250 second\nthird\r" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line == "220 hello" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line == "250 second" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_NONE == reader.Next( line, bytes ) && reader.HasBufferedData() );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line == "220 hello" );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line == "250 second" );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_NONE == reader.Next( line, bytes ) && reader.HasBufferedData() );
         FeedText( reader, "\n" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line == "third" );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line == "third" );
         ASSERT_FALSE( reader.HasBufferedData() );
 
         reader.Feed( "caf\xE9 \0 x\r\n", 10 );
-        ASSERT_TRUE( CMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) );
         ASSERT_TRUE( line == "caf\xEF\xBF\xBD \xEF\xBF\xBD x" );
 
         FeedText( reader, "\r\n\r\n" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line.IsNULLOrEmpty() );
-        ASSERT_TRUE( CMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line.IsNULLOrEmpty() );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line.IsNULLOrEmpty() );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line.IsNULLOrEmpty() );
     }
     catch ( ... )
     {
@@ -204,59 +234,59 @@ PerformMailParserTests( void )
     GUCEF_TESTFW_TESTCASE( "Mail stream reader: counted blocks, dot terminated blocks and the limits" )
     try
     {
-        CMailStreamReader reader( 50, 20 );
+        CEMailStreamReader reader( 50, 20 );
         CORE::CString line;
         CORE::CDynamicBuffer bytes;
 
         // a literal: the line before, the block, the rest of the line
         FeedText( reader, "* 1 FETCH (BODY[] {5}\r\nab" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) );
         ASSERT_TRUE( reader.ExpectBytes( 5 ) );
-        ASSERT_TRUE( CMailStreamReader::ITEM_NONE == reader.Next( line, bytes ) );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_NONE == reader.Next( line, bytes ) );
         FeedText( reader, "c\r\nx)\r\n" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_BYTES == reader.Next( line, bytes ) && AsText( bytes ) == "abc\r\n" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line == "x)" );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_BYTES == reader.Next( line, bytes ) && AsText( bytes ) == "abc\r\n" );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line == "x)" );
 
         // a block of zero bytes
         ASSERT_TRUE( reader.ExpectBytes( 0 ) );
         FeedText( reader, "next\r\n" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_BYTES == reader.Next( line, bytes ) && 0 == bytes.GetDataSize() );
-        ASSERT_TRUE( CMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line == "next" );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_BYTES == reader.Next( line, bytes ) && 0 == bytes.GetDataSize() );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line == "next" );
 
         // dot terminated: stuffing is not undone, the terminator may be split over feeds
         reader.ExpectDotTerminatedBytes( 1000 );
         FeedText( reader, "Subject: x\r\n\r\n..dot\r\nline\r\n" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_NONE == reader.Next( line, bytes ) );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_NONE == reader.Next( line, bytes ) );
         FeedText( reader, "." );
-        ASSERT_TRUE( CMailStreamReader::ITEM_NONE == reader.Next( line, bytes ) );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_NONE == reader.Next( line, bytes ) );
         FeedText( reader, "\r" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_NONE == reader.Next( line, bytes ) );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_NONE == reader.Next( line, bytes ) );
         FeedText( reader, "\nafter\r\n" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_BYTES == reader.Next( line, bytes ) && AsText( bytes ) == "Subject: x\r\n\r\n..dot\r\nline\r\n" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line == "after" );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_BYTES == reader.Next( line, bytes ) && AsText( bytes ) == "Subject: x\r\n\r\n..dot\r\nline\r\n" );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_LINE == reader.Next( line, bytes ) && line == "after" );
 
         // an empty message: the terminator right away; a line that only starts with a dot is no terminator
         reader.ExpectDotTerminatedBytes( 1000 );
         FeedText( reader, ".\r\n" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_BYTES == reader.Next( line, bytes ) && 0 == bytes.GetDataSize() );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_BYTES == reader.Next( line, bytes ) && 0 == bytes.GetDataSize() );
         reader.ExpectDotTerminatedBytes( 1000 );
         FeedText( reader, ".x\r\n.\n" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_BYTES == reader.Next( line, bytes ) && AsText( bytes ) == ".x\r\n" );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_BYTES == reader.Next( line, bytes ) && AsText( bytes ) == ".x\r\n" );
 
         // a message that never ends
         reader.ExpectDotTerminatedBytes( 30 );
         FeedText( reader, "0123456789012345678901234567890123456789\r\n" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_OVERFLOW == reader.Next( line, bytes ) && reader.HasFailed() );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_OVERFLOW == reader.Next( line, bytes ) && reader.HasFailed() );
         reader.Reset();
         ASSERT_FALSE( reader.HasFailed() );
 
         // a line without end, a line that is too long, a block that is too large
         FeedText( reader, "0123456789012345678901234567890123456789012345678901234567890" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_OVERFLOW == reader.Next( line, bytes ) );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_OVERFLOW == reader.Next( line, bytes ) );
         ASSERT_FALSE( reader.Feed( "x", 1 ) );
         reader.Reset();
         FeedText( reader, "01234567890123456789012345678901234567890123456789012\r\n" );
-        ASSERT_TRUE( CMailStreamReader::ITEM_OVERFLOW == reader.Next( line, bytes ) );
+        ASSERT_TRUE( CEMailStreamReader::ITEM_OVERFLOW == reader.Next( line, bytes ) );
         reader.Reset();
         ASSERT_FALSE( reader.ExpectBytes( 21 ) );
         ASSERT_TRUE( reader.HasFailed() && !reader.GetOverflowReason().IsNULLOrEmpty() );
@@ -272,13 +302,13 @@ PerformMailParserTests( void )
     {
         CORE::CDynamicBuffer initial, challenge, response;
 
-        CMailSaslPlain plain( "alice", "pw" );
+        CEMailSaslPlain plain( "alice", "pw" );
         ASSERT_TRUE( plain.HasInitialResponse() && plain.RevealsSecret() && plain.Start( initial ) );
         ASSERT_TRUE( 9 == initial.GetDataSize() && 0 == memcmp( initial.GetConstBufferPtr(), "\0alice\0pw", 9 ) );
-        CMailSaslPlain noUser( "", "pw" );
+        CEMailSaslPlain noUser( "", "pw" );
         ASSERT_FALSE( noUser.Start( initial ) );
 
-        CMailSaslLogin login( "alice", "pw" );
+        CEMailSaslLogin login( "alice", "pw" );
         ASSERT_FALSE( login.HasInitialResponse() );
         ASSERT_TRUE( login.Start( initial ) );
         SetBytes( challenge, "Username:" );
@@ -287,23 +317,23 @@ PerformMailParserTests( void )
         ASSERT_TRUE( MAILSASL_DONE == login.Step( challenge, response ) && AsText( response ) == "pw" );
         ASSERT_TRUE( MAILSASL_FAILED == login.Step( challenge, response ) );
 
-        CMailSaslXOAuth2 xoauth( "alice@example.org", "ya29.token" );
+        CEMailSaslXOAuth2 xoauth( "alice@example.org", "ya29.token" );
         ASSERT_TRUE( xoauth.Start( initial ) );
         ASSERT_TRUE( AsText( initial ) == "user=alice@example.org\x01" "auth=Bearer ya29.token\x01\x01" );
         SetBytes( challenge, "{\"status\":\"401\"}" );
         ASSERT_TRUE( MAILSASL_FAILED == xoauth.Step( challenge, response ) && 0 == response.GetDataSize() );
-        CMailSaslXOAuth2 injected( "alice", "tok\x01" "auth=Bearer other" );
+        CEMailSaslXOAuth2 injected( "alice", "tok\x01" "auth=Bearer other" );
         ASSERT_FALSE( injected.Start( initial ) );
-        CMailSaslXOAuth2 noToken( "alice", "" );
+        CEMailSaslXOAuth2 noToken( "alice", "" );
         ASSERT_FALSE( noToken.Start( initial ) );
 
         CORE::CString::StringVector supported;
-        CMailSaslFactory::GetSupportedMechanisms( supported );
+        CEMailSaslFactory::GetSupportedMechanisms( supported );
         ASSERT_TRUE( 4 == supported.size() );
-        CIMailSaslMechanism* made = CMailSaslFactory::Create( "scram-sha-256", "u", "p" );
+        CIEMailSaslMechanism* made = CEMailSaslFactory::Create( "scram-sha-256", "u", "p" );
         ASSERT_TRUE( GUCEF_NULL != made && made->GetName() == "SCRAM-SHA-256" && !made->RevealsSecret() );
         GUCEF_DELETE made;
-        ASSERT_TRUE( GUCEF_NULL == CMailSaslFactory::Create( "CRAM-MD5", "u", "p" ) );
+        ASSERT_TRUE( GUCEF_NULL == CEMailSaslFactory::Create( "CRAM-MD5", "u", "p" ) );
     }
     catch ( ... )
     {
@@ -316,11 +346,11 @@ PerformMailParserTests( void )
     {
         // PBKDF2-HMAC-SHA256
         UInt8 key[ 32 ];
-        CMailSaslScramSha256::Pbkdf2HmacSha256( "password", 8, "salt", 4, 1, key );
+        CEMailSaslScramSha256::Pbkdf2HmacSha256( "password", 8, "salt", 4, 1, key );
         ASSERT_TRUE( CORE::Base16Encode( key, 32 ).Lowercase() == "120fb6cffcf8b32c43e7225256c4f837a86548c92ccc35480805987cb70be17b" );
-        CMailSaslScramSha256::Pbkdf2HmacSha256( "password", 8, "salt", 4, 2, key );
+        CEMailSaslScramSha256::Pbkdf2HmacSha256( "password", 8, "salt", 4, 2, key );
         ASSERT_TRUE( CORE::Base16Encode( key, 32 ).Lowercase() == "ae4d0c95af6b46d32d0adff928f06dd02a303f8ef3c251dfd6e2d85a95474c43" );
-        CMailSaslScramSha256::Pbkdf2HmacSha256( "password", 8, "salt", 4, 4096, key );
+        CEMailSaslScramSha256::Pbkdf2HmacSha256( "password", 8, "salt", 4, 4096, key );
         ASSERT_TRUE( CORE::Base16Encode( key, 32 ).Lowercase() == "c5e478d59288c841aa530db6845c4c8d962893a001ce4e11a4963873aa98134a" );
 
         const char* serverFirst = "r=rOprNGfwEbeRWgbNEkqO%hvYDpWUa2RaTCAfuxFIlj)hNlF$k0,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096";
@@ -347,7 +377,7 @@ PerformMailParserTests( void )
         ASSERT_TRUE( RunScramExample( "m=ext,r=rOprNGfwEbeRWgbNEkqOxyz,s=W22ZaJ0SNY7soEsUEjb6gQ==,i=4096", "", s1, s2, clientFirst, clientFinal ) && MAILSASL_FAILED == s1 );
 
         // a user name with = and , is escaped
-        CMailSaslScramSha256 odd( "a=b,c", "pw" );
+        CEMailSaslScramSha256 odd( "a=b,c", "pw" );
         CORE::CDynamicBuffer initial;
         ASSERT_TRUE( odd.Start( initial ) && AsText( initial ).HasSubstr( "n=a=3Db=2Cc," ) >= 0 );
     }
@@ -728,20 +758,20 @@ PerformMailParserTests( void )
     GUCEF_TESTFW_TESTCASE( "Mail protocol log: credentials, tokens and the lines of an authentication exchange are never shown" )
     try
     {
-        ASSERT_TRUE( CMailProtocolLog::RedactClientLine( "AUTH PLAIN AGFsaWNlAHBhc3N3b3Jk", false ) == "AUTH PLAIN ***" );
-        ASSERT_TRUE( CMailProtocolLog::RedactClientLine( "AUTH LOGIN", false ) == "AUTH LOGIN ***" );
-        ASSERT_TRUE( CMailProtocolLog::RedactClientLine( "A0002 AUTHENTICATE XOAUTH2 dXNlcj1hbGljZQ==", false ) == "A0002 AUTHENTICATE XOAUTH2 ***" );
-        ASSERT_TRUE( CMailProtocolLog::RedactClientLine( "A0001 LOGIN alice hunter2", false ) == "A0001 LOGIN ***" );
-        ASSERT_TRUE( CMailProtocolLog::RedactClientLine( "PASS hunter2", false ) == "PASS ***" );
-        ASSERT_TRUE( CMailProtocolLog::RedactClientLine( "USER alice", false ) == "USER ***" );
-        ASSERT_TRUE( CMailProtocolLog::RedactClientLine( "APOP alice c4c9334bac560ecc979e58001b3e22fb", false ) == "APOP ***" );
-        ASSERT_TRUE( CMailProtocolLog::RedactClientLine( "dXNlcj1hbGljZQ==", true ) == "***" );
-        ASSERT_TRUE( CMailProtocolLog::RedactServerLine( "dGhlIGNoYWxsZW5nZQ==", true ) == "***" );
-        ASSERT_TRUE( CMailProtocolLog::RedactClientLine( "EHLO client.example.org", false ) == "EHLO client.example.org" );
-        ASSERT_TRUE( CMailProtocolLog::RedactClientLine( "MAIL FROM:<bob@example.org>", false ).HasSubstr( "bob@example.org" ) < 0 );
-        ASSERT_TRUE( CMailProtocolLog::RedactServerLine( "250 2.1.5 Ok <carol@example.org>", false ).HasSubstr( "carol@example.org" ) < 0 );
-        ASSERT_TRUE( CMailProtocolLog::RedactClientLine( "Authorization: Bearer abcdefghijklmnopqrstuvwxyz0123456789", false ).HasSubstr( "abcdefghij" ) < 0 );
-        ASSERT_TRUE( CMailProtocolLog::RedactClientLine( CORE::CString( "x" ) + "\r\n" + "y", false ).HasSubstr( "\r" ) < 0 );
+        ASSERT_TRUE( CEMailProtocolLog::RedactClientLine( "AUTH PLAIN AGFsaWNlAHBhc3N3b3Jk", false ) == "AUTH PLAIN ***" );
+        ASSERT_TRUE( CEMailProtocolLog::RedactClientLine( "AUTH LOGIN", false ) == "AUTH LOGIN ***" );
+        ASSERT_TRUE( CEMailProtocolLog::RedactClientLine( "A0002 AUTHENTICATE XOAUTH2 dXNlcj1hbGljZQ==", false ) == "A0002 AUTHENTICATE XOAUTH2 ***" );
+        ASSERT_TRUE( CEMailProtocolLog::RedactClientLine( "A0001 LOGIN alice hunter2", false ) == "A0001 LOGIN ***" );
+        ASSERT_TRUE( CEMailProtocolLog::RedactClientLine( "PASS hunter2", false ) == "PASS ***" );
+        ASSERT_TRUE( CEMailProtocolLog::RedactClientLine( "USER alice", false ) == "USER ***" );
+        ASSERT_TRUE( CEMailProtocolLog::RedactClientLine( "APOP alice c4c9334bac560ecc979e58001b3e22fb", false ) == "APOP ***" );
+        ASSERT_TRUE( CEMailProtocolLog::RedactClientLine( "dXNlcj1hbGljZQ==", true ) == "***" );
+        ASSERT_TRUE( CEMailProtocolLog::RedactServerLine( "dGhlIGNoYWxsZW5nZQ==", true ) == "***" );
+        ASSERT_TRUE( CEMailProtocolLog::RedactClientLine( "EHLO client.example.org", false ) == "EHLO client.example.org" );
+        ASSERT_TRUE( CEMailProtocolLog::RedactClientLine( "MAIL FROM:<bob@example.org>", false ).HasSubstr( "bob@example.org" ) < 0 );
+        ASSERT_TRUE( CEMailProtocolLog::RedactServerLine( "250 2.1.5 Ok <carol@example.org>", false ).HasSubstr( "carol@example.org" ) < 0 );
+        ASSERT_TRUE( CEMailProtocolLog::RedactClientLine( "Authorization: Bearer abcdefghijklmnopqrstuvwxyz0123456789", false ).HasSubstr( "abcdefghij" ) < 0 );
+        ASSERT_TRUE( CEMailProtocolLog::RedactClientLine( CORE::CString( "x" ) + "\r\n" + "y", false ).HasSubstr( "\r" ) < 0 );
     }
     catch ( ... )
     {

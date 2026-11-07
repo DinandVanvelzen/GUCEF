@@ -46,7 +46,7 @@ namespace COM {
 //-------------------------------------------------------------------------*/
 
 CImapClientSettings::CImapClientSettings( void )
-    : CMailClientSettings()
+    : CEMailClientSettings()
     , idleRenewInMs( 25 * 60 * 1000 )
     , maxFetchResults( 10000 )
     , useLiteralPlus( false )
@@ -59,7 +59,7 @@ CImapClientSettings::CImapClientSettings( void )
 /*-------------------------------------------------------------------------*/
 
 CImapClientSettings::CImapClientSettings( const CImapClientSettings& src )
-    : CMailClientSettings( src )
+    : CEMailClientSettings( src )
     , idleRenewInMs( src.idleRenewInMs )
     , maxFetchResults( src.maxFetchResults )
     , useLiteralPlus( src.useLiteralPlus )
@@ -82,7 +82,7 @@ CImapClientSettings::operator=( const CImapClientSettings& src )
 
     if ( &src != this )
     {
-        CMailClientSettings::operator=( src );
+        CEMailClientSettings::operator=( src );
         idleRenewInMs = src.idleRenewInMs;
         maxFetchResults = src.maxFetchResults;
         useLiteralPlus = src.useLiteralPlus;
@@ -110,7 +110,7 @@ bool
 CImapClientSettings::SaveConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
 
-    if ( !CMailClientSettings::SaveConfig( config ) )
+    if ( !CEMailClientSettings::SaveConfig( config ) )
         return false;
     config.SetAttribute( "idleRenewInMs", idleRenewInMs );
     config.SetAttribute( "maxFetchResults", maxFetchResults );
@@ -124,7 +124,7 @@ bool
 CImapClientSettings::LoadConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
 
-    if ( !CMailClientSettings::LoadConfig( config ) )
+    if ( !CEMailClientSettings::LoadConfig( config ) )
         return false;
     idleRenewInMs = config.GetAttributeValueOrChildValueByName( "idleRenewInMs" ).AsUInt32( idleRenewInMs, true );
     maxFetchResults = config.GetAttributeValueOrChildValueByName( "maxFetchResults" ).AsUInt32( maxFetchResults, true );

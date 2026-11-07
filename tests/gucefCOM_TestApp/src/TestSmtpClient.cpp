@@ -32,10 +32,18 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
-#ifndef GUCEF_COM_CMAILOPERATIONTASK_H
-#include "gucefCOM_CMailOperationTask.h"
-#define GUCEF_COM_CMAILOPERATIONTASK_H
-#endif /* GUCEF_COM_CMAILOPERATIONTASK_H ? */
+#ifndef GUCEF_COM_CEMAILOPERATIONTASKDATA_H
+#include "gucefCOM_CEMailOperationTaskData.h"
+#define GUCEF_COM_CEMAILOPERATIONTASKDATA_H
+#endif /* GUCEF_COM_CEMAILOPERATIONTASKDATA_H ? */
+#ifndef GUCEF_COM_CEMAILOPERATIONTASKCONSUMER_H
+#include "gucefCOM_CEMailOperationTaskConsumer.h"
+#define GUCEF_COM_CEMAILOPERATIONTASKCONSUMER_H
+#endif /* GUCEF_COM_CEMAILOPERATIONTASKCONSUMER_H ? */
+#ifndef GUCEF_COM_CEMAILOPERATIONS_H
+#include "gucefCOM_CEMailOperations.h"
+#define GUCEF_COM_CEMAILOPERATIONS_H
+#endif /* GUCEF_COM_CEMAILOPERATIONS_H ? */
 
 #ifndef GUCEF_COM_CMIMEPARSER_H
 #include "gucefCOM_CMimeParser.h"
@@ -68,7 +76,7 @@ using namespace MailTest;
 namespace {
 
 /** A provider of an OAuth 2.0 token that expired, and is renewed when the server refuses it */
-class CRenewingProvider : public COM::CIMailCredentialProvider
+class CRenewingProvider : public COM::CIEMailCredentialProvider
 {
     public:
 
@@ -81,11 +89,11 @@ class CRenewingProvider : public COM::CIMailCredentialProvider
     bool wasPending;
 
     CRenewingProvider( const CORE::CString& userName, const CORE::CString& expired, const CORE::CString& renewed )
-        : COM::CIMailCredentialProvider(), user( userName ), currentToken( expired ), renewedToken( renewed ), requests( 0 ), rejections( 0 ), makePending( false ), wasPending( false )
+        : COM::CIEMailCredentialProvider(), user( userName ), currentToken( expired ), renewedToken( renewed ), requests( 0 ), rejections( 0 ), makePending( false ), wasPending( false )
     {
     }
 
-    virtual EResult GetCredential( const COM::CMailCredentialRequest& request, COM::CMailCredential& credential ) GUCEF_VIRTUAL_OVERRIDE
+    virtual EResult GetCredential( const COM::CEMailCredentialRequest& request, COM::CEMailCredential& credential ) GUCEF_VIRTUAL_OVERRIDE
     {
         ++requests;
         if ( makePending )
@@ -100,7 +108,7 @@ class CRenewingProvider : public COM::CIMailCredentialProvider
         return CRED_READY;
     }
 
-    virtual void ReportRejected( const COM::CMailCredentialRequest& request ) GUCEF_VIRTUAL_OVERRIDE
+    virtual void ReportRejected( const COM::CEMailCredentialRequest& request ) GUCEF_VIRTUAL_OVERRIDE
     {
         ++rejections;
         currentToken = renewedToken;
@@ -127,7 +135,7 @@ PlainSettings( const TESTFW::CTestSmtpServer& server )
 /*-------------------------------------------------------------------------*/
 
 bool
-SendAndWait( COM::CSmtpClient& client, CSmtpWatch& watch, const COM::CMailMessage& message, UInt32& requestId, UInt32 timeoutInMs = 8000 )
+SendAndWait( COM::CSmtpClient& client, CSmtpWatch& watch, const COM::CEMailMessage& message, UInt32& requestId, UInt32 timeoutInMs = 8000 )
 {
     const UInt32 before = watch.resultCount;
     CORE::CString error;
@@ -190,9 +198,9 @@ PerformSmtpClientTests( void )
         watch.Attach( client );
         ASSERT_TRUE( client.Connect( settings ) );
 
-        COM::CMailMessage message = MakeMessage( "Plain subject", "first line\n.dot at the start\n..two dots\nlast line" );
-        message.cc.push_back( COM::CMailAddress( "carol@example.net" ) );
-        message.bcc.push_back( COM::CMailAddress( "secret@example.net" ) );
+        COM::CEMailMessage message = MakeMessage( "Plain subject", "first line\n.dot at the start\n..two dots\nlast line" );
+        message.cc.push_back( COM::CEMailAddress( "carol@example.net" ) );
+        message.bcc.push_back( COM::CEMailAddress( "secret@example.net" ) );
         UInt32 id = 0;
         ASSERT_TRUE( SendAndWait( client, watch, message, id ) );
         ASSERT_TRUE( watch.ready && !watch.failed );
@@ -207,7 +215,7 @@ PerformSmtpClientTests( void )
             ASSERT_TRUE( received[ 0 ].mailFrom == "alice@example.org" && 3 == received[ 0 ].recipients.size() );
             ASSERT_TRUE( received[ 0 ].recipients[ 2 ] == "secret@example.net" && received[ 0 ].mailParameters.HasSubstr( "SIZE=" ) < 0 );
             COM::CMimeParser parser;
-            COM::CMailMessage parsed;
+            COM::CEMailMessage parsed;
             ASSERT_TRUE( parser.ParseMessage( received[ 0 ].data.C_String(), received[ 0 ].data.ByteSize() - 1, parsed ) );
             ASSERT_TRUE( parsed.subject == "Plain subject" && parsed.textBody == "first line\n.dot at the start\n..two dots\nlast line" );
             ASSERT_TRUE( parsed.bcc.empty() && received[ 0 ].data.HasSubstr( "secret@example.net" ) < 0 );
@@ -354,7 +362,7 @@ PerformSmtpClientTests( void )
         ASSERT_TRUE( watch.failed && COM::MAILERR_AUTH == watch.error.errorClass && 535 == watch.error.serverCode );
         ASSERT_TRUE( PumpUntilCondition( CounterAtLeast( watch.resultCount, 1 ), 2000 ) );
         ASSERT_TRUE( !watch.results[ 0 ].success && COM::MAILERR_AUTH == watch.results[ 0 ].errorClass && 0 == server.GetMessages().size() );
-        ASSERT_TRUE( 1 == server.GetAuthAttempts() && COM::CMailClientBase::CLIENTSTATE_DISCONNECTED == client.GetState() );
+        ASSERT_TRUE( 1 == server.GetAuthAttempts() && COM::CEMailClientBase::CLIENTSTATE_DISCONNECTED == client.GetState() );
         (void) id;
     }
     catch ( ... )
@@ -461,9 +469,9 @@ PerformSmtpClientTests( void )
         watch.Attach( client );
         ASSERT_TRUE( client.Connect( settings ) );
 
-        COM::CMailMessage message = MakeMessage( "partial", "text" );
-        message.cc.push_back( COM::CMailAddress( "gone@example.net" ) );
-        message.cc.push_back( COM::CMailAddress( "busy@example.net" ) );
+        COM::CEMailMessage message = MakeMessage( "partial", "text" );
+        message.cc.push_back( COM::CEMailAddress( "gone@example.net" ) );
+        message.cc.push_back( COM::CEMailAddress( "busy@example.net" ) );
         UInt32 id = 0;
         ASSERT_TRUE( SendAndWait( client, watch, message, id ) );
         const COM::CSmtpSendResult* result = watch.Find( id );
@@ -477,9 +485,9 @@ PerformSmtpClientTests( void )
         ASSERT_TRUE( 1 == server.GetMessages().size() && 1 == server.GetMessages()[ 0 ].recipients.size() );
 
         // all of them refused: reset, not sent
-        COM::CMailMessage nobody = MakeMessage( "nobody", "text" );
+        COM::CEMailMessage nobody = MakeMessage( "nobody", "text" );
         nobody.to.clear();
-        nobody.to.push_back( COM::CMailAddress( "gone@example.net" ) );
+        nobody.to.push_back( COM::CEMailAddress( "gone@example.net" ) );
         ASSERT_TRUE( SendAndWait( client, watch, nobody, id ) );
         result = watch.Find( id );
         ASSERT_TRUE( GUCEF_NULL != result && !result->success && COM::MAILERR_PERMANENT == result->errorClass && 0 == result->GetAcceptedCount() );
@@ -549,9 +557,9 @@ PerformSmtpClientTests( void )
             watch.Attach( client );
             ASSERT_TRUE( client.Connect( settings ) );
             UInt32 id = 0;
-            COM::CMailMessage large = MakeMessage( "large", "text" );
+            COM::CEMailMessage large = MakeMessage( "large", "text" );
             GUCEF::vector< char > filler( 10000, 'x' );
-            large.attachments.push_back( COM::CMailAttachment( "big.bin", "application/octet-stream", &filler[ 0 ], 10000 ) );
+            large.attachments.push_back( COM::CEMailAttachment( "big.bin", "application/octet-stream", &filler[ 0 ], 10000 ) );
             ASSERT_TRUE( SendAndWait( client, watch, large, id ) );
             ASSERT_TRUE( !watch.Find( id )->success && COM::MAILERR_LOCAL == watch.Find( id )->errorClass && 2000 == client.GetServerMaxSize() );
             ASSERT_TRUE( 0 == CountCommands( server.GetCommands(), "MAIL FROM:" ) );
@@ -579,23 +587,23 @@ PerformSmtpClientTests( void )
         watch.Attach( client );
         ASSERT_TRUE( client.Connect( settings ) );
 
-        COM::CMailMessage international = MakeMessage( "intl", "text" );
-        international.to[ 0 ] = COM::CMailAddress( "j\xC3\xBC" "rgen@example.com" );
+        COM::CEMailMessage international = MakeMessage( "intl", "text" );
+        international.to[ 0 ] = COM::CEMailAddress( "j\xC3\xBC" "rgen@example.com" );
         UInt32 id = 0;
         ASSERT_TRUE( SendAndWait( client, watch, international, id ) );
         ASSERT_TRUE( !watch.Find( id )->success && COM::MAILERR_LOCAL == watch.Find( id )->errorClass );
 
-        COM::CMailAddress::TMailAddressVector recipients;
-        recipients.push_back( COM::CMailAddress( "bob@example.com" ) );
+        COM::CEMailAddress::TEMailAddressVector recipients;
+        recipients.push_back( COM::CEMailAddress( "bob@example.com" ) );
         const char* eightBit = "Subject: x\r\n\r\ncaf\xC3\xA9\r\n";
-        id = client.SendRaw( COM::CMailAddress( "alice@example.org" ), recipients, eightBit, (UInt32) strlen( eightBit ) );
+        id = client.SendRaw( COM::CEMailAddress( "alice@example.org" ), recipients, eightBit, (UInt32) strlen( eightBit ) );
         ASSERT_TRUE( 0 != id && PumpUntilCondition( CounterAtLeast( watch.resultCount, 2 ), 5000 ) );
         ASSERT_TRUE( !watch.Find( id )->success && COM::MAILERR_LOCAL == watch.Find( id )->errorClass );
 
         // a message with a NUL is refused at once, and so is a sender that is no address
         const char withNul[] = "Subject: x\r\n\r\na\0b\r\n";
         CORE::CString reason;
-        ASSERT_TRUE( 0 == client.SendRaw( COM::CMailAddress( "alice@example.org" ), recipients, withNul, sizeof( withNul ), &reason ) && !reason.IsNULLOrEmpty() );
+        ASSERT_TRUE( 0 == client.SendRaw( COM::CEMailAddress( "alice@example.org" ), recipients, withNul, sizeof( withNul ), &reason ) && !reason.IsNULLOrEmpty() );
         client.Disconnect();
 
         // the other way: both offered
@@ -614,7 +622,7 @@ PerformSmtpClientTests( void )
         for ( size_t i=0; i<capableCommands.size(); ++i )
             utf8Requested = utf8Requested || ( capableCommands[ i ].StartsWith( "MAIL FROM:" ) && capableCommands[ i ].HasSubstr( " SMTPUTF8" ) >= 0 );
         ASSERT_TRUE( utf8Requested );
-        id = capableClient.SendRaw( COM::CMailAddress( "alice@example.org" ), recipients, "Subject: x\n\nbare\nline\rends\r\n.\r\ncaf\xC3\xA9\n", 36 );
+        id = capableClient.SendRaw( COM::CEMailAddress( "alice@example.org" ), recipients, "Subject: x\n\nbare\nline\rends\r\n.\r\ncaf\xC3\xA9\n", 36 );
         ASSERT_TRUE( 0 != id && PumpUntilCondition( CounterAtLeast( capableWatch.resultCount, 2 ), 5000 ) );
         ASSERT_TRUE( capableWatch.Find( id )->success );
         GUCEF::vector< TESTFW::CTestSmtpServer::TReceived > received = capable.GetMessages();
@@ -641,25 +649,25 @@ PerformSmtpClientTests( void )
         ASSERT_TRUE( client.Connect( settings ) );
 
         // an address with a line break is refused before it is queued
-        COM::CMailMessage evil = MakeMessage( "evil", "text" );
-        COM::CMailAddress sneaky;
+        COM::CEMailMessage evil = MakeMessage( "evil", "text" );
+        COM::CEMailAddress sneaky;
         sneaky.localPart = "x";
         sneaky.domain = "example.com>\r\nRCPT TO:<victim@example.org";
         evil.to.push_back( sneaky );
         CORE::CString reason;
         ASSERT_TRUE( 0 == client.SendMessage( evil, &reason ) && !reason.IsNULLOrEmpty() );
-        COM::CMailAddress::TMailAddressVector recipients;
+        COM::CEMailAddress::TEMailAddressVector recipients;
         recipients.push_back( sneaky );
-        ASSERT_TRUE( 0 == client.SendRaw( COM::CMailAddress( "alice@example.org" ), recipients, "x", 1 ) );
-        COM::CMailAddress badSender;
+        ASSERT_TRUE( 0 == client.SendRaw( COM::CEMailAddress( "alice@example.org" ), recipients, "x", 1 ) );
+        COM::CEMailAddress badSender;
         badSender.localPart = "a\r\nMAIL FROM:<b";
         badSender.domain = "example.org";
         recipients.clear();
-        recipients.push_back( COM::CMailAddress( "bob@example.com" ) );
+        recipients.push_back( COM::CEMailAddress( "bob@example.com" ) );
         ASSERT_TRUE( 0 == client.SendRaw( badSender, recipients, "x", 1 ) );
 
         // a subject and a name with line breaks are encoded
-        COM::CMailMessage subject = MakeMessage( "Hi\r\nBcc: evil@example.net\r\n\r\ninjected body", "real body" );
+        COM::CEMailMessage subject = MakeMessage( "Hi\r\nBcc: evil@example.net\r\n\r\ninjected body", "real body" );
         subject.from[ 0 ].displayName = "Eve\r\nBcc: evil2@example.net";
         UInt32 id = 0;
         ASSERT_TRUE( SendAndWait( client, watch, subject, id ) && watch.Find( id )->success );
@@ -668,7 +676,7 @@ PerformSmtpClientTests( void )
         if ( 1 == received.size() )
         {
             COM::CMimeParser parser;
-            COM::CMailMessage parsed;
+            COM::CEMailMessage parsed;
             ASSERT_TRUE( parser.ParseMessage( received[ 0 ].data.C_String(), received[ 0 ].data.ByteSize() - 1, parsed ) );
             ASSERT_FALSE( parsed.headers.Has( "Bcc" ) );
             ASSERT_TRUE( parsed.textBody == "real body" && received[ 0 ].data.HasSubstr( "evil" ) < 0 );
@@ -707,7 +715,7 @@ PerformSmtpClientTests( void )
         GUCEF::vector< CORE::CString > commands = server.GetCommands();
         ASSERT_TRUE( 2 == CountCommands( commands, "EHLO" ) && HasCommand( commands, "STARTTLS" ) );
         ASSERT_TRUE( commands.size() > 3 && commands[ 1 ] == "STARTTLS" && commands[ 2 ].StartsWith( "EHLO" ) );
-        ASSERT_TRUE( client.GetState() == COM::CMailClientBase::CLIENTSTATE_READY );
+        ASSERT_TRUE( client.GetState() == COM::CEMailClientBase::CLIENTSTATE_READY );
         client.Disconnect();
 
         // a server that does not offer what is required: no downgrade
@@ -1033,11 +1041,11 @@ PerformSmtpClientTests( void )
         ASSERT_TRUE( server.WaitForCommand( "QUIT", 5000 ) );                       // the client closes right after it, the server reads it on a thread of its own
         ASSERT_TRUE( HasCommand( server.GetCommands(), "QUIT" ) );
 
-        CORE::CFutureResult future = COM::CMailOperations::SendMessageAsync( settings, MakeMessage( "async", "text" ) );
+        CORE::CFutureResult future = COM::CEMailOperations::SendMessageAsync( settings, MakeMessage( "async", "text" ) );
         ASSERT_TRUE( future.HasAFuture() );
         future.Await( 20000 );
         COM::CSmtpSendResult asyncResult;
-        ASSERT_TRUE( COM::CMailOperations::TryGetSendResult( future, asyncResult ) && asyncResult.success );
+        ASSERT_TRUE( COM::CEMailOperations::TryGetSendResult( future, asyncResult ) && asyncResult.success );
         ASSERT_TRUE( 2 == server.GetMessages().size() && server.GetMessages()[ 1 ].data.HasSubstr( "Subject: async" ) >= 0 );
 
         // failures are results too
@@ -1046,7 +1054,7 @@ PerformSmtpClientTests( void )
         COM::CSmtpSendResult failed;
         ASSERT_FALSE( COM::CSmtpClient::SendMessageSync( refused, MakeMessage( "x", "y" ), failed ) );
         ASSERT_TRUE( !failed.success && COM::MAILERR_NONE != failed.errorClass );
-        COM::CMailMessage invalid;
+        COM::CEMailMessage invalid;
         ASSERT_FALSE( COM::CSmtpClient::SendMessageSync( settings, invalid, failed ) );
         ASSERT_TRUE( COM::MAILERR_LOCAL == failed.errorClass );
     }

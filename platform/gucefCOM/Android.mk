@@ -29,36 +29,60 @@ LOCAL_SRC_FILES := \
   src/gucefCOM.cpp \
   src/gucefCOM_CComGlobal.cpp \
   src/gucefCOM_CDnsMessage.cpp \
+  src/gucefCOM_CEMailAddress.cpp \
+  src/gucefCOM_CEMailAttachment.cpp \
+  src/gucefCOM_CEMailClientBase.cpp \
+  src/gucefCOM_CEMailClientSettings.cpp \
+  src/gucefCOM_CEMailCredential.cpp \
+  src/gucefCOM_CEMailCredentialRequest.cpp \
+  src/gucefCOM_CEMailErrorEventData.cpp \
+  src/gucefCOM_CEMailHeaders.cpp \
+  src/gucefCOM_CEMailMessage.cpp \
+  src/gucefCOM_CEMailOperationTaskConsumer.cpp \
+  src/gucefCOM_CEMailOperationTaskData.cpp \
+  src/gucefCOM_CEMailOperations.cpp \
+  src/gucefCOM_CEMailProtocolLog.cpp \
+  src/gucefCOM_CEMailProviderPreset.cpp \
+  src/gucefCOM_CEMailProviderPresets.cpp \
+  src/gucefCOM_CEMailSaslFactory.cpp \
+  src/gucefCOM_CEMailSaslLogin.cpp \
+  src/gucefCOM_CEMailSaslPlain.cpp \
+  src/gucefCOM_CEMailSaslScramSha256.cpp \
+  src/gucefCOM_CEMailSaslXOAuth2.cpp \
+  src/gucefCOM_CEMailServerPreset.cpp \
+  src/gucefCOM_CEMailSetupDiagnosis.cpp \
+  src/gucefCOM_CEMailSetupValidation.cpp \
+  src/gucefCOM_CEMailStreamReader.cpp \
+  src/gucefCOM_CEMailTcpTransport.cpp \
+  src/gucefCOM_CEMailTransportErrorData.cpp \
+  src/gucefCOM_CIEMailCredentialProvider.cpp \
+  src/gucefCOM_CIEMailSaslMechanism.cpp \
+  src/gucefCOM_CIEMailTransport.cpp \
   src/gucefCOM_CIIrcTransport.cpp \
-  src/gucefCOM_CIMailCredentialProvider.cpp \
-  src/gucefCOM_CIMailTransport.cpp \
   src/gucefCOM_CIMcpTransport.cpp \
   src/gucefCOM_CIcmpRttProbe.cpp \
+  src/gucefCOM_CImapBodyStructure.cpp \
   src/gucefCOM_CImapClient.cpp \
   src/gucefCOM_CImapClientSettings.cpp \
+  src/gucefCOM_CImapCommandParts.cpp \
+  src/gucefCOM_CImapCommandResult.cpp \
+  src/gucefCOM_CImapEnvelope.cpp \
+  src/gucefCOM_CImapFetchOptions.cpp \
+  src/gucefCOM_CImapFetchResult.cpp \
+  src/gucefCOM_CImapFetchSection.cpp \
+  src/gucefCOM_CImapFetchSpec.cpp \
+  src/gucefCOM_CImapFetchedItem.cpp \
+  src/gucefCOM_CImapIdleUpdate.cpp \
+  src/gucefCOM_CImapMailboxName.cpp \
   src/gucefCOM_CImapResponse.cpp \
   src/gucefCOM_CImapSearchCriteria.cpp \
   src/gucefCOM_CImapValue.cpp \
+  src/gucefCOM_CImapValueParser.cpp \
   src/gucefCOM_CIrcClient.cpp \
   src/gucefCOM_CIrcClientSettings.cpp \
   src/gucefCOM_CIrcMessage.cpp \
   src/gucefCOM_CIrcTcpTransport.cpp \
   src/gucefCOM_CJsonRpcEndpoint.cpp \
-  src/gucefCOM_CMailAddress.cpp \
-  src/gucefCOM_CMailAttachment.cpp \
-  src/gucefCOM_CMailClientBase.cpp \
-  src/gucefCOM_CMailClientSettings.cpp \
-  src/gucefCOM_CMailHeaders.cpp \
-  src/gucefCOM_CMailMessage.cpp \
-  src/gucefCOM_CMailOperationTask.cpp \
-  src/gucefCOM_CMailProtocolLog.cpp \
-  src/gucefCOM_CMailProviderPreset.cpp \
-  src/gucefCOM_CMailProviderPresets.cpp \
-  src/gucefCOM_CMailSasl.cpp \
-  src/gucefCOM_CMailSetupDiagnosis.cpp \
-  src/gucefCOM_CMailSetupValidation.cpp \
-  src/gucefCOM_CMailStreamReader.cpp \
-  src/gucefCOM_CMailTcpTransport.cpp \
   src/gucefCOM_CMcpAuditRecord.cpp \
   src/gucefCOM_CMcpChannel.cpp \
   src/gucefCOM_CMcpConfigurableAccessPolicy.cpp \
@@ -90,15 +114,23 @@ LOCAL_SRC_FILES := \
   src/gucefCOM_CMcpToolResult.cpp \
   src/gucefCOM_CMdnsDiscoveryClient.cpp \
   src/gucefCOM_CMimeCodec.cpp \
+  src/gucefCOM_CMimeComposeOptions.cpp \
   src/gucefCOM_CMimeComposer.cpp \
+  src/gucefCOM_CMimeLimits.cpp \
   src/gucefCOM_CMimeParser.cpp \
   src/gucefCOM_CMimePart.cpp \
   src/gucefCOM_CNatPmpPortMapper.cpp \
   src/gucefCOM_CPop3Client.cpp \
   src/gucefCOM_CPop3ClientSettings.cpp \
+  src/gucefCOM_CPop3CommandResult.cpp \
+  src/gucefCOM_CPop3FetchOptions.cpp \
+  src/gucefCOM_CPop3FetchResult.cpp \
   src/gucefCOM_CSmtpClient.cpp \
   src/gucefCOM_CSmtpClientSettings.cpp \
+  src/gucefCOM_CSmtpReply.cpp \
+  src/gucefCOM_CSmtpSendResult.cpp \
   src/gucefCOM_CSsdpDiscoveryClient.cpp \
+  src/gucefCOM_CStaticEMailCredentialProvider.cpp \
   src/gucefCOM_CStatsDClient.cpp \
   src/gucefCOM_CStunClient.cpp \
   src/gucefCOM_CTcpConnectRttProbe.cpp \

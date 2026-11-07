@@ -46,6 +46,11 @@
 #define GUCEF_COM_CMIMECOMPOSER_H
 #endif /* GUCEF_COM_CMIMECOMPOSER_H ? */
 
+#ifndef GUCEF_COM_CIMAPVALUEPARSER_H
+#include "gucefCOM_CImapValueParser.h"
+#define GUCEF_COM_CIMAPVALUEPARSER_H
+#endif /* GUCEF_COM_CIMAPVALUEPARSER_H ? */
+
 #include "gucefCOM_CImapClient.h"
 
 /*-------------------------------------------------------------------------//
@@ -259,7 +264,7 @@ class CImapFetchRunner : public CORE::CObserver
             return;
         if ( !command->ok )
         {
-            FailWith( command->errorClass, "The server did not carry out a command: " + CMailProtocolLog::RedactServerLine( command->text, false ) );
+            FailWith( command->errorClass, "The server did not carry out a command: " + CEMailProtocolLog::RedactServerLine( command->text, false ) );
             return;
         }
 
@@ -347,7 +352,7 @@ class CImapFetchRunner : public CORE::CObserver
 
     void OnError( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
-        const CMailErrorEventData* error = CORE::CICloneable::CloneableAs< CMailErrorEventData >( eventData );
+        const CEMailErrorEventData* error = CORE::CICloneable::CloneableAs< CEMailErrorEventData >( eventData );
         if ( GUCEF_NULL != error )
         {
             m_result.errorClass = error->errorClass;
@@ -382,267 +387,6 @@ class CImapFetchRunner : public CORE::CObserver
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CImapMailboxEntry::CImapMailboxEntry( void )
-    : name()
-    , hierarchyDelimiter()
-    , attributes()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CImapMailboxStatus::CImapMailboxStatus( void )
-    : name()
-    , exists( 0 )
-    , recent( 0 )
-    , unseen( 0 )
-    , uidNext( 0 )
-    , uidValidity( 0 )
-    , readOnly( false )
-    , flags()
-    , permanentFlags()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CImapCommandResult::CImapCommandResult( void )
-    : CORE::CICloneable()
-    , requestId( 0 )
-    , command( IMAPCMD_NOOP )
-    , ok( false )
-    , status()
-    , errorClass( MAILERR_NONE )
-    , text()
-    , code()
-    , mailboxes()
-    , mailbox()
-    , uidValidityChanged( false )
-    , numbers()
-    , fetched()
-    , appendUid( 0 )
-    , copyUid( 0 )
-    , capabilities()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CImapCommandResult::CImapCommandResult( const CImapCommandResult& src )
-    : CORE::CICloneable( src )
-    , requestId( src.requestId )
-    , command( src.command )
-    , ok( src.ok )
-    , status( src.status )
-    , errorClass( src.errorClass )
-    , text( src.text )
-    , code( src.code )
-    , mailboxes( src.mailboxes )
-    , mailbox( src.mailbox )
-    , uidValidityChanged( src.uidValidityChanged )
-    , numbers( src.numbers )
-    , fetched( src.fetched )
-    , appendUid( src.appendUid )
-    , copyUid( src.copyUid )
-    , capabilities( src.capabilities )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CImapCommandResult::~CImapCommandResult()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CImapCommandResult&
-CImapCommandResult::operator=( const CImapCommandResult& src )
-{GUCEF_TRACE;
-
-    if ( &src != this )
-    {
-        requestId = src.requestId;
-        command = src.command;
-        ok = src.ok;
-        status = src.status;
-        errorClass = src.errorClass;
-        text = src.text;
-        code = src.code;
-        mailboxes = src.mailboxes;
-        mailbox = src.mailbox;
-        uidValidityChanged = src.uidValidityChanged;
-        numbers = src.numbers;
-        fetched = src.fetched;
-        appendUid = src.appendUid;
-        copyUid = src.copyUid;
-        capabilities = src.capabilities;
-    }
-    return *this;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CICloneable* CImapCommandResult::Clone( void ) const { return GUCEF_NEW CImapCommandResult( *this ); }
-const char* CImapCommandResult::GetCloneableTypeName( void ) const { return CloneableTypeName(); }
-const char* CImapCommandResult::CloneableTypeName( void ) { return "GUCEF::COM::CImapCommandResult"; }
-
-/*-------------------------------------------------------------------------*/
-
-CImapIdleUpdate::CImapIdleUpdate( void )
-    : CORE::CICloneable()
-    , kind( KIND_EXISTS )
-    , number( 0 )
-    , hasUid( false )
-    , uid( 0 )
-    , flags()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CImapIdleUpdate::CImapIdleUpdate( const CImapIdleUpdate& src )
-    : CORE::CICloneable( src )
-    , kind( src.kind )
-    , number( src.number )
-    , hasUid( src.hasUid )
-    , uid( src.uid )
-    , flags( src.flags )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CImapIdleUpdate::~CImapIdleUpdate()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CImapIdleUpdate&
-CImapIdleUpdate::operator=( const CImapIdleUpdate& src )
-{GUCEF_TRACE;
-
-    if ( &src != this )
-    {
-        kind = src.kind;
-        number = src.number;
-        hasUid = src.hasUid;
-        uid = src.uid;
-        flags = src.flags;
-    }
-    return *this;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CICloneable* CImapIdleUpdate::Clone( void ) const { return GUCEF_NEW CImapIdleUpdate( *this ); }
-const char* CImapIdleUpdate::GetCloneableTypeName( void ) const { return CloneableTypeName(); }
-const char* CImapIdleUpdate::CloneableTypeName( void ) { return "GUCEF::COM::CImapIdleUpdate"; }
-
-/*-------------------------------------------------------------------------*/
-
-CImapFetchOptions::CImapFetchOptions( void )
-    : mailbox( "INBOX" )
-    , lastUidValidity( 0 )
-    , lastUid( 0 )
-    , maxMessages( 0 )
-    , markSeen( false )
-    , deleteAfterFetch( false )
-    , headerNames()
-    , headerTexts()
-    , mimeLimits()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CImapFetchedMessage::CImapFetchedMessage( void )
-    : uid( 0 )
-    , size( 0 )
-    , flags()
-    , message()
-    , parsed( false )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CImapFetchResult::CImapFetchResult( void )
-    : CORE::CICloneable()
-    , success( false )
-    , errorClass( MAILERR_NONE )
-    , errorDescription()
-    , uidValidity( 0 )
-    , uidValidityChanged( false )
-    , uidNext( 0 )
-    , highestUid( 0 )
-    , messages()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CImapFetchResult::CImapFetchResult( const CImapFetchResult& src )
-    : CORE::CICloneable( src )
-    , success( src.success )
-    , errorClass( src.errorClass )
-    , errorDescription( src.errorDescription )
-    , uidValidity( src.uidValidity )
-    , uidValidityChanged( src.uidValidityChanged )
-    , uidNext( src.uidNext )
-    , highestUid( src.highestUid )
-    , messages( src.messages )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CImapFetchResult::~CImapFetchResult()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CImapFetchResult&
-CImapFetchResult::operator=( const CImapFetchResult& src )
-{GUCEF_TRACE;
-
-    if ( &src != this )
-    {
-        success = src.success;
-        errorClass = src.errorClass;
-        errorDescription = src.errorDescription;
-        uidValidity = src.uidValidity;
-        uidValidityChanged = src.uidValidityChanged;
-        uidNext = src.uidNext;
-        highestUid = src.highestUid;
-        messages = src.messages;
-    }
-    return *this;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CICloneable* CImapFetchResult::Clone( void ) const { return GUCEF_NEW CImapFetchResult( *this ); }
-const char* CImapFetchResult::GetCloneableTypeName( void ) const { return CloneableTypeName(); }
-const char* CImapFetchResult::CloneableTypeName( void ) { return "GUCEF::COM::CImapFetchResult"; }
-
-/*-------------------------------------------------------------------------*/
-
 void
 CImapClient::RegisterEvents( void )
 {GUCEF_TRACE;
@@ -650,13 +394,13 @@ CImapClient::RegisterEvents( void )
     CommandCompletedEvent.Initialize();
     IdleStartedEvent.Initialize();
     IdleUpdateEvent.Initialize();
-    CMailClientBase::RegisterEvents();
+    CEMailClientBase::RegisterEvents();
 }
 
 /*-------------------------------------------------------------------------*/
 
 CImapClient::CImapClient( void )
-    : CMailClientBase( CORE::PulseGeneratorPtr() )
+    : CEMailClientBase( CORE::PulseGeneratorPtr() )
     , m_settings()
     , m_phase( PHASE_GREETING )
     , m_queue()
@@ -687,7 +431,7 @@ CImapClient::CImapClient( void )
 /*-------------------------------------------------------------------------*/
 
 CImapClient::CImapClient( const CORE::PulseGeneratorPtr& pulseGenerator )
-    : CMailClientBase( pulseGenerator )
+    : CEMailClientBase( pulseGenerator )
     , m_settings()
     , m_phase( PHASE_GREETING )
     , m_queue()
@@ -1155,7 +899,7 @@ CImapClient::AppendRaw( const CORE::CString& mailbox, const void* data, UInt32 s
 }
 
 UInt32
-CImapClient::AppendMessage( const CORE::CString& mailbox, const CMailMessage& message, const CORE::CString::StringVector& flags )
+CImapClient::AppendMessage( const CORE::CString& mailbox, const CEMailMessage& message, const CORE::CString::StringVector& flags )
 {GUCEF_TRACE;
 
     CMimeComposeOptions options;
@@ -1479,7 +1223,7 @@ CImapClient::OnUntaggedStatus( const CImapResponse& response )
     if ( response.status == "BYE" )
     {
         if ( !m_logoutSent )
-            Fail( MAILERR_CONNECTION, "The server is closing the connection: " + CMailProtocolLog::RedactServerLine( response.text, false ) );
+            Fail( MAILERR_CONNECTION, "The server is closing the connection: " + CEMailProtocolLog::RedactServerLine( response.text, false ) );
         return;
     }
 
@@ -1812,7 +1556,7 @@ CImapClient::OnInternalCompleted( const CImapResponse& response )
         {
             if ( !ok )
             {
-                Fail( MAILERR_AUTH, "The login was refused: " + CMailProtocolLog::RedactServerLine( response.text, false ) );
+                Fail( MAILERR_AUTH, "The login was refused: " + CEMailProtocolLog::RedactServerLine( response.text, false ) );
                 return;
             }
             m_loggedIn = true;
@@ -1880,7 +1624,7 @@ CImapClient::ProceedToLogin( void )
             mechanisms.push_back( (*i).first.SubstrFromRange( 5, (*i).first.Length() ) );
 
     CORE::CString::StringVector supported;
-    CMailSaslFactory::GetSupportedMechanisms( supported );
+    CEMailSaslFactory::GetSupportedMechanisms( supported );
     bool usable = false;
     for ( size_t i=0; i<mechanisms.size() && !usable; ++i )
         for ( size_t s=0; s<supported.size(); ++s )
@@ -1901,7 +1645,7 @@ CImapClient::ProceedToLogin( void )
         Fail( MAILERR_TLS, "The credentials are not sent without TLS" );
         return;
     }
-    CMailCredential credential;
+    CEMailCredential credential;
     if ( !GetCredentialNow( credential, false ) || credential.secret.IsNULLOrEmpty() )
     {
         Fail( MAILERR_AUTH, "There is no credential to log in with" );
@@ -2121,7 +1865,7 @@ CImapClient::FailAllCommands( EMailErrorClass errorClass, const CORE::CString& d
 /*-------------------------------------------------------------------------*/
 
 void
-CImapClient::OnClientFailed( const CMailErrorEventData& error )
+CImapClient::OnClientFailed( const CEMailErrorEventData& error )
 {GUCEF_TRACE;
 
     m_mailboxSelected = false;
@@ -2141,7 +1885,7 @@ CImapClient::OnClientClosed( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CImapClient::FetchNewSync( const CImapClientSettings& settings, const CImapFetchOptions& options, CImapFetchResult& result, CIMailCredentialProvider* credentialProvider )
+CImapClient::FetchNewSync( const CImapClientSettings& settings, const CImapFetchOptions& options, CImapFetchResult& result, CIEMailCredentialProvider* credentialProvider )
 {GUCEF_TRACE;
 
     // everything below happens on the calling thread, on a pulse generator that this thread owns

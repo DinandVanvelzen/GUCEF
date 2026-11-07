@@ -148,239 +148,18 @@ class CSmtpSyncSink : public CORE::CObserver
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CSmtpReply::CSmtpReply( void )
-    : code( 0 )
-    , enhancedCode()
-    , lines()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CString
-CSmtpReply::GetText( void ) const
-{GUCEF_TRACE;
-
-    CORE::CString text;
-    for ( size_t i=0; i<lines.size(); ++i )
-    {
-        if ( i > 0 )
-            text += ' ';
-        text += lines[ i ];
-    }
-    return text;
-}
-
-/*-------------------------------------------------------------------------*/
-
-EMailErrorClass
-CSmtpReply::GetErrorClass( UInt32 code )
-{GUCEF_TRACE;
-
-    if ( code >= 400 && code < 500 )
-        return MAILERR_TEMPORARY;
-    if ( code >= 500 && code < 600 )
-        return MAILERR_PERMANENT;
-    if ( code >= 200 && code < 400 )
-        return MAILERR_NONE;
-    return MAILERR_PROTOCOL;
-}
-
-/*-------------------------------------------------------------------------*/
-
-bool
-CSmtpReply::ParseLine( const CORE::CString& line, UInt32& code, bool& isLastLine, CORE::CString& text )
-{GUCEF_TRACE;
-
-    const char* p = line.C_String();
-    const UInt32 size = ByteLength( line );
-    if ( size < 3 )
-        return false;
-    for ( int i=0; i<3; ++i )
-        if ( p[ i ] < '0' || p[ i ] > '9' )
-            return false;
-    code = (UInt32)( ( p[ 0 ] - '0' ) * 100 + ( p[ 1 ] - '0' ) * 10 + ( p[ 2 ] - '0' ) );
-    if ( code < 200 || code > 599 )
-        return false;
-    if ( 3 == size )
-    {
-        isLastLine = true;
-        text.Clear();
-        return true;
-    }
-    if ( ' ' != p[ 3 ] && '-' != p[ 3 ] )
-        return false;
-    isLastLine = ' ' == p[ 3 ];
-    text = size > 4 ? CORE::CString( p + 4, size - 4 ) : CORE::CString();
-    return true;
-}
-
-/*-------------------------------------------------------------------------*/
-
-bool
-CSmtpReply::SplitEnhancedCode( const CORE::CString& text, UInt32 replyCode, CORE::CString& enhancedCode, CORE::CString& rest )
-{GUCEF_TRACE;
-
-    // class.subject.detail: 2.0.0, 5.1.1, 4.7.12 and the class matches the first digit of the reply code
-    const char* p = text.C_String();
-    const UInt32 size = ByteLength( text );
-    if ( size < 5 || p[ 0 ] != (char)( '0' + replyCode / 100 ) || '.' != p[ 1 ] )
-        return false;
-    UInt32 i = 2;
-    UInt32 digits = 0;
-    while ( i < size && p[ i ] >= '0' && p[ i ] <= '9' && digits < 3 ) { ++i; ++digits; }
-    if ( 0 == digits || i >= size || '.' != p[ i ] )
-        return false;
-    ++i;
-    digits = 0;
-    while ( i < size && p[ i ] >= '0' && p[ i ] <= '9' && digits < 3 ) { ++i; ++digits; }
-    if ( 0 == digits || ( i < size && ' ' != p[ i ] ) )
-        return false;
-    enhancedCode = CORE::CString( p, i );
-    rest = i < size ? CORE::CString( p + i + 1, size - i - 1 ) : CORE::CString();
-    return true;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CSmtpRecipientResult::CSmtpRecipientResult( void )
-    : address()
-    , accepted( false )
-    , replyCode( 0 )
-    , enhancedCode()
-    , replyText()
-    , errorClass( MAILERR_NONE )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CSmtpSendResult::CSmtpSendResult( void )
-    : CORE::CICloneable()
-    , requestId( 0 )
-    , success( false )
-    , errorClass( MAILERR_NONE )
-    , replyCode( 0 )
-    , enhancedCode()
-    , replyText()
-    , errorDescription()
-    , recipients()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CSmtpSendResult::CSmtpSendResult( const CSmtpSendResult& src )
-    : CORE::CICloneable( src )
-    , requestId( src.requestId )
-    , success( src.success )
-    , errorClass( src.errorClass )
-    , replyCode( src.replyCode )
-    , enhancedCode( src.enhancedCode )
-    , replyText( src.replyText )
-    , errorDescription( src.errorDescription )
-    , recipients( src.recipients )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CSmtpSendResult::~CSmtpSendResult()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CSmtpSendResult&
-CSmtpSendResult::operator=( const CSmtpSendResult& src )
-{GUCEF_TRACE;
-
-    if ( &src != this )
-    {
-        requestId = src.requestId;
-        success = src.success;
-        errorClass = src.errorClass;
-        replyCode = src.replyCode;
-        enhancedCode = src.enhancedCode;
-        replyText = src.replyText;
-        errorDescription = src.errorDescription;
-        recipients = src.recipients;
-    }
-    return *this;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CICloneable*
-CSmtpSendResult::Clone( void ) const
-{GUCEF_TRACE;
-
-    return GUCEF_NEW CSmtpSendResult( *this );
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CSmtpSendResult::GetCloneableTypeName( void ) const
-{GUCEF_TRACE;
-
-    return CloneableTypeName();
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CSmtpSendResult::CloneableTypeName( void )
-{GUCEF_TRACE;
-
-    return "GUCEF::COM::CSmtpSendResult";
-}
-
-/*-------------------------------------------------------------------------*/
-
-UInt32
-CSmtpSendResult::GetAcceptedCount( void ) const
-{GUCEF_TRACE;
-
-    UInt32 count = 0;
-    for ( size_t i=0; i<recipients.size(); ++i )
-        if ( recipients[ i ].accepted )
-            ++count;
-    return count;
-}
-
-/*-------------------------------------------------------------------------*/
-
-UInt32
-CSmtpSendResult::GetRejectedCount( void ) const
-{GUCEF_TRACE;
-
-    UInt32 count = 0;
-    for ( size_t i=0; i<recipients.size(); ++i )
-        if ( !recipients[ i ].accepted )
-            ++count;
-    return count;
-}
-
-/*-------------------------------------------------------------------------*/
-
 void
 CSmtpClient::RegisterEvents( void )
 {GUCEF_TRACE;
 
     SendCompletedEvent.Initialize();
-    CMailClientBase::RegisterEvents();
+    CEMailClientBase::RegisterEvents();
 }
 
 /*-------------------------------------------------------------------------*/
 
 CSmtpClient::CSmtpClient( void )
-    : CMailClientBase( CORE::PulseGeneratorPtr() )
+    : CEMailClientBase( CORE::PulseGeneratorPtr() )
     , m_settings()
     , m_receivedText()
     , m_reply()
@@ -400,7 +179,7 @@ CSmtpClient::CSmtpClient( void )
 /*-------------------------------------------------------------------------*/
 
 CSmtpClient::CSmtpClient( const CORE::PulseGeneratorPtr& pulseGenerator )
-    : CMailClientBase( pulseGenerator )
+    : CEMailClientBase( pulseGenerator )
     , m_settings()
     , m_receivedText()
     , m_reply()
@@ -735,7 +514,7 @@ CSmtpClient::OnReply( const CSmtpReply& reply )
     if ( m_expected.empty() )
     {
         if ( 421 == reply.code )
-            Fail( MAILERR_TEMPORARY, "The server is closing the connection: " + CMailProtocolLog::RedactServerLine( reply.GetText(), false ), reply.code, reply.enhancedCode );
+            Fail( MAILERR_TEMPORARY, "The server is closing the connection: " + CEMailProtocolLog::RedactServerLine( reply.GetText(), false ), reply.code, reply.enhancedCode );
         else
             Fail( MAILERR_PROTOCOL, "The server sent a reply that was not asked for" );
         return;
@@ -746,7 +525,7 @@ CSmtpClient::OnReply( const CSmtpReply& reply )
 
     if ( 421 == reply.code )
     {
-        Fail( MAILERR_TEMPORARY, "The server is closing the connection: " + CMailProtocolLog::RedactServerLine( reply.GetText(), false ), reply.code, reply.enhancedCode );
+        Fail( MAILERR_TEMPORARY, "The server is closing the connection: " + CEMailProtocolLog::RedactServerLine( reply.GetText(), false ), reply.code, reply.enhancedCode );
         return;
     }
 
@@ -1007,7 +786,7 @@ CSmtpClient::SendQuitCommand( void )
 /*-------------------------------------------------------------------------*/
 
 UInt32
-CSmtpClient::SendMessage( const CMailMessage& message, CORE::CString* error )
+CSmtpClient::SendMessage( const CEMailMessage& message, CORE::CString* error )
 {GUCEF_TRACE;
 
     CORE::CString reason;
@@ -1023,9 +802,9 @@ CSmtpClient::SendMessage( const CMailMessage& message, CORE::CString* error )
         return 0;
     }
 
-    CMailAddress::TMailAddressVector recipients;
+    CEMailAddress::TEMailAddressVector recipients;
     message.GetEnvelopeRecipients( recipients );
-    const CMailAddress& sender = message.sender.IsEmpty() ? message.from[ 0 ] : message.sender;
+    const CEMailAddress& sender = message.sender.IsEmpty() ? message.from[ 0 ] : message.sender;
 
     bool needsUtf8 = sender.IsInternational();
     for ( size_t i=0; i<recipients.size(); ++i )
@@ -1036,7 +815,7 @@ CSmtpClient::SendMessage( const CMailMessage& message, CORE::CString* error )
 /*-------------------------------------------------------------------------*/
 
 UInt32
-CSmtpClient::SendRaw( const CMailAddress& envelopeFrom, const CMailAddress::TMailAddressVector& recipients, const void* data, UInt32 size, CORE::CString* error )
+CSmtpClient::SendRaw( const CEMailAddress& envelopeFrom, const CEMailAddress::TEMailAddressVector& recipients, const void* data, UInt32 size, CORE::CString* error )
 {GUCEF_TRACE;
 
     bool needsUtf8 = envelopeFrom.IsInternational();
@@ -1048,7 +827,7 @@ CSmtpClient::SendRaw( const CMailAddress& envelopeFrom, const CMailAddress::TMai
 /*-------------------------------------------------------------------------*/
 
 UInt32
-CSmtpClient::QueueJob( const CORE::CString& envelopeFrom, const CMailAddress::TMailAddressVector& recipients, const void* data, UInt32 size, bool needsUtf8, CORE::CString* error )
+CSmtpClient::QueueJob( const CORE::CString& envelopeFrom, const CEMailAddress::TEMailAddressVector& recipients, const void* data, UInt32 size, bool needsUtf8, CORE::CString* error )
 {GUCEF_TRACE;
 
     #define GUCEF_COM_SMTP_REFUSE( text ) { if ( GUCEF_NULL != error ) *error = text; return 0; }
@@ -1063,7 +842,7 @@ CSmtpClient::QueueJob( const CORE::CString& envelopeFrom, const CMailAddress::TM
         GUCEF_COM_SMTP_REFUSE( "The message is larger than the settings allow" )
 
     // the addresses of the envelope end up in commands: only valid addresses are used
-    CMailAddress from;
+    CEMailAddress from;
     if ( !envelopeFrom.IsNULLOrEmpty() )
     {
         from.SetAddress( envelopeFrom );
@@ -1335,7 +1114,7 @@ CSmtpClient::FailAllJobs( EMailErrorClass errorClass, const CORE::CString& descr
 /*-------------------------------------------------------------------------*/
 
 void
-CSmtpClient::OnClientFailed( const CMailErrorEventData& error )
+CSmtpClient::OnClientFailed( const CEMailErrorEventData& error )
 {GUCEF_TRACE;
 
     m_expected.clear();
@@ -1355,7 +1134,7 @@ CSmtpClient::OnClientClosed( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CSmtpClient::SendMessageSync( const CSmtpClientSettings& settings, const CMailMessage& message, CSmtpSendResult& result, CIMailCredentialProvider* credentialProvider )
+CSmtpClient::SendMessageSync( const CSmtpClientSettings& settings, const CEMailMessage& message, CSmtpSendResult& result, CIEMailCredentialProvider* credentialProvider )
 {GUCEF_TRACE;
 
     // everything below happens on the calling thread, on a pulse generator that this thread owns

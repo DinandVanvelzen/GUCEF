@@ -26,25 +26,40 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_COM_CMAILCLIENTBASE_H
-#include "gucefCOM_CMailClientBase.h"
-#define GUCEF_COM_CMAILCLIENTBASE_H
-#endif /* GUCEF_COM_CMAILCLIENTBASE_H ? */
+#ifndef GUCEF_COM_CEMAILCLIENTBASE_H
+#include "gucefCOM_CEMailClientBase.h"
+#define GUCEF_COM_CEMAILCLIENTBASE_H
+#endif /* GUCEF_COM_CEMAILCLIENTBASE_H ? */
 
 #ifndef GUCEF_COM_CPOP3CLIENTSETTINGS_H
 #include "gucefCOM_CPop3ClientSettings.h"
 #define GUCEF_COM_CPOP3CLIENTSETTINGS_H
 #endif /* GUCEF_COM_CPOP3CLIENTSETTINGS_H ? */
 
-#ifndef GUCEF_COM_CMAILMESSAGE_H
-#include "gucefCOM_CMailMessage.h"
-#define GUCEF_COM_CMAILMESSAGE_H
-#endif /* GUCEF_COM_CMAILMESSAGE_H ? */
+#ifndef GUCEF_COM_CEMAILMESSAGE_H
+#include "gucefCOM_CEMailMessage.h"
+#define GUCEF_COM_CEMAILMESSAGE_H
+#endif /* GUCEF_COM_CEMAILMESSAGE_H ? */
 
 #ifndef GUCEF_COM_CMIMEPARSER_H
 #include "gucefCOM_CMimeParser.h"
 #define GUCEF_COM_CMIMEPARSER_H
 #endif /* GUCEF_COM_CMIMEPARSER_H ? */
+
+#ifndef GUCEF_COM_CPOP3COMMANDRESULT_H
+#include "gucefCOM_CPop3CommandResult.h"
+#define GUCEF_COM_CPOP3COMMANDRESULT_H
+#endif /* GUCEF_COM_CPOP3COMMANDRESULT_H ? */
+
+#ifndef GUCEF_COM_CPOP3FETCHOPTIONS_H
+#include "gucefCOM_CPop3FetchOptions.h"
+#define GUCEF_COM_CPOP3FETCHOPTIONS_H
+#endif /* GUCEF_COM_CPOP3FETCHOPTIONS_H ? */
+
+#ifndef GUCEF_COM_CPOP3FETCHRESULT_H
+#include "gucefCOM_CPop3FetchResult.h"
+#define GUCEF_COM_CPOP3FETCHRESULT_H
+#endif /* GUCEF_COM_CPOP3FETCHRESULT_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -61,114 +76,9 @@ namespace COM {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-enum EPop3Command
-{
-    POP3CMD_STAT = 0,
-    POP3CMD_LIST,
-    POP3CMD_UIDL,
-    POP3CMD_RETR,
-    POP3CMD_TOP,
-    POP3CMD_DELE,
-    POP3CMD_RSET,
-    POP3CMD_NOOP
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** One line of an answer to LIST or UIDL */
-class GUCEF_COM_PUBLIC_CPP CPop3ListEntry
-{
-    public:
-
-    UInt32 number;              /**< the number of the message in this session */
-    UInt32 size;                /**< octets, LIST */
-    CORE::CString uid;          /**< UIDL: stays the same for the message from session to session */
-
-    CPop3ListEntry( void );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** The outcome of one command */
-class GUCEF_COM_PUBLIC_CPP CPop3CommandResult : public CORE::CICloneable
-{
-    public:
-
-    UInt32 requestId;
-    EPop3Command command;
-    bool ok;                                    /**< +OK */
-    EMailErrorClass errorClass;                 /**< why not, when not */
-    CORE::CString text;                         /**< the text of the status line, or of the error: for the log only after redaction */
-    UInt32 number;                              /**< the message number the command was about */
-    UInt32 messageCount;                        /**< STAT */
-    UInt32 totalSize;                           /**< STAT */
-    GUCEF::vector< CPop3ListEntry > entries;    /**< LIST and UIDL without a number */
-    CORE::CDynamicBuffer data;                  /**< RETR and TOP: the message as it came, dot stuffing undone, lines end in CR LF */
-
-    CPop3CommandResult( void );
-    CPop3CommandResult( const CPop3CommandResult& src );
-    virtual ~CPop3CommandResult() GUCEF_VIRTUAL_OVERRIDE;
-    CPop3CommandResult& operator=( const CPop3CommandResult& src );
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    static const char* CloneableTypeName( void );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** What a fetch of new mail does */
-class GUCEF_COM_PUBLIC_CPP CPop3FetchOptions
-{
-    public:
-
-    CORE::CString::StringSet knownUids;         /**< the messages that were fetched before: they are left alone */
-    UInt32 maxMessages;                         /**< at most this many new messages, 0: the maxMessagesPerSession of the settings, or all */
-    bool deleteAfterFetch;                      /**< delete the messages that were fetched (and parsed) from the server */
-    CMimeLimits mimeLimits;
-
-    CPop3FetchOptions( void );
-};
-
-/** A message that a fetch brought */
-class GUCEF_COM_PUBLIC_CPP CPop3FetchedMessage
-{
-    public:
-
-    CORE::CString uid;
-    UInt32 number;
-    CMailMessage message;
-    bool parsed;                                /**< false: the message was larger than the limits or could not be read, 'message' is empty */
-    bool deleted;
-
-    CPop3FetchedMessage( void );
-};
-
-/** What a fetch of new mail found. 'allUids' is everything the server had, for the caller to prune its set of known ids */
-class GUCEF_COM_PUBLIC_CPP CPop3FetchResult : public CORE::CICloneable
-{
-    public:
-
-    bool success;
-    EMailErrorClass errorClass;
-    CORE::CString errorDescription;
-    UInt32 messageCountOnServer;
-    CORE::CString::StringVector allUids;
-    GUCEF::vector< CPop3FetchedMessage > messages;
-
-    CPop3FetchResult( void );
-    CPop3FetchResult( const CPop3FetchResult& src );
-    virtual ~CPop3FetchResult() GUCEF_VIRTUAL_OVERRIDE;
-    CPop3FetchResult& operator=( const CPop3FetchResult& src );
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    static const char* CloneableTypeName( void );
-};
-
-/*-------------------------------------------------------------------------*/
-
 /**
  *  A POP3 client (RFC 1939) with CAPA (RFC 2449), STLS (RFC 2595) and AUTH (RFC 5034, with PLAIN, LOGIN, SCRAM-SHA-256
- *  and XOAUTH2 through CMailSasl), USER and PASS, and APOP when the settings ask for it and allow it.
+ *  and XOAUTH2 through CEMailSaslFactory), USER and PASS, and APOP when the settings ask for it and allow it.
  *
  *  Commands are given when the client is ready and are carried out one after another; every command raises
  *  CommandCompletedEvent with its result. The unique id of a message for de-duplication is the UIDL, the numbers
@@ -180,9 +90,9 @@ class GUCEF_COM_PUBLIC_CPP CPop3FetchResult : public CORE::CICloneable
  *      client.Connect( settings );
  *      // when ready:  client.Uidl();  client.Retr( 3 );
  *
- *  For one shot use FetchNewSync() (blocks the calling thread) and CMailOperations::FetchNewPop3Async().
+ *  For one shot use FetchNewSync() (blocks the calling thread) and CEMailOperations::FetchNewPop3Async().
  */
-class GUCEF_COM_PUBLIC_CPP CPop3Client : public CMailClientBase
+class GUCEF_COM_PUBLIC_CPP CPop3Client : public CEMailClientBase
 {
     public:
 
@@ -235,7 +145,7 @@ class GUCEF_COM_PUBLIC_CPP CPop3Client : public CMailClientBase
      *  Fetches what is new in the mailbox from the calling thread: connects (on a pulse generator that this thread owns),
      *  reads the UIDL of all messages, retrieves the ones not in options.knownUids, parses them, deletes them when asked, and says QUIT.
      */
-    static bool FetchNewSync( const CPop3ClientSettings& settings, const CPop3FetchOptions& options, CPop3FetchResult& result, CIMailCredentialProvider* credentialProvider = GUCEF_NULL );
+    static bool FetchNewSync( const CPop3ClientSettings& settings, const CPop3FetchOptions& options, CPop3FetchResult& result, CIEMailCredentialProvider* credentialProvider = GUCEF_NULL );
 
     protected:
 
@@ -247,7 +157,7 @@ class GUCEF_COM_PUBLIC_CPP CPop3Client : public CMailClientBase
     virtual void OnServerBytes( const CORE::CDynamicBuffer& bytes ) GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnConnectionEstablished( void ) GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnTlsEstablished( void ) GUCEF_VIRTUAL_OVERRIDE;
-    virtual void OnClientFailed( const CMailErrorEventData& error ) GUCEF_VIRTUAL_OVERRIDE;
+    virtual void OnClientFailed( const CEMailErrorEventData& error ) GUCEF_VIRTUAL_OVERRIDE;
     virtual void OnClientClosed( void ) GUCEF_VIRTUAL_OVERRIDE;
 
     private:

@@ -26,10 +26,10 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_COM_CMAILCLIENTSETTINGS_H
-#include "gucefCOM_CMailClientSettings.h"
-#define GUCEF_COM_CMAILCLIENTSETTINGS_H
-#endif /* GUCEF_COM_CMAILCLIENTSETTINGS_H ? */
+#ifndef GUCEF_COM_CEMAILCLIENTSETTINGS_H
+#include "gucefCOM_CEMailClientSettings.h"
+#define GUCEF_COM_CEMAILCLIENTSETTINGS_H
+#endif /* GUCEF_COM_CEMAILCLIENTSETTINGS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -47,7 +47,7 @@ namespace COM {
 //-------------------------------------------------------------------------*/
 
 /** Settings of the IMAP client: IMAP4rev1 (RFC 3501) and IMAP4rev2 (RFC 9051) subset. Ports: 143 with STARTTLS, 993 with implicit TLS. */
-class GUCEF_COM_PUBLIC_CPP CImapClientSettings : public CMailClientSettings
+class GUCEF_COM_PUBLIC_CPP CImapClientSettings : public CEMailClientSettings
 {
     public:
 

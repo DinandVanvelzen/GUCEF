@@ -32,10 +32,18 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
-#ifndef GUCEF_COM_CMAILOPERATIONTASK_H
-#include "gucefCOM_CMailOperationTask.h"
-#define GUCEF_COM_CMAILOPERATIONTASK_H
-#endif /* GUCEF_COM_CMAILOPERATIONTASK_H ? */
+#ifndef GUCEF_COM_CEMAILOPERATIONTASKDATA_H
+#include "gucefCOM_CEMailOperationTaskData.h"
+#define GUCEF_COM_CEMAILOPERATIONTASKDATA_H
+#endif /* GUCEF_COM_CEMAILOPERATIONTASKDATA_H ? */
+#ifndef GUCEF_COM_CEMAILOPERATIONTASKCONSUMER_H
+#include "gucefCOM_CEMailOperationTaskConsumer.h"
+#define GUCEF_COM_CEMAILOPERATIONTASKCONSUMER_H
+#endif /* GUCEF_COM_CEMAILOPERATIONTASKCONSUMER_H ? */
+#ifndef GUCEF_COM_CEMAILOPERATIONS_H
+#include "gucefCOM_CEMailOperations.h"
+#define GUCEF_COM_CEMAILOPERATIONS_H
+#endif /* GUCEF_COM_CEMAILOPERATIONS_H ? */
 
 #include "TestMailShared.h"
 
@@ -467,7 +475,7 @@ PerformImapClientTests( void )
         result = Wait( watch, client.AppendRaw( "INBOX", data.C_String(), data.ByteSize() - 1, seen, "02-Nov-2020 10:11:12 +0000" ) );
         ASSERT_TRUE( GUCEF_NULL != result && result->ok && 4 == result->appendUid );
         ASSERT_TRUE( 2 == server.GetMessages().size() && server.GetMessages()[ 1 ].data == data && server.GetMessages()[ 1 ].flags.size() == 1 );
-        COM::CMailMessage message = MakeMessage( "composed and appended", "body text" );
+        COM::CEMailMessage message = MakeMessage( "composed and appended", "body text" );
         result = Wait( watch, client.AppendMessage( "Sent", message ) );
         ASSERT_TRUE( GUCEF_NULL != result && result->ok && 2 == server.GetAppended().size() );
         ASSERT_TRUE( server.GetAppended().back().data.HasSubstr( "Subject: composed and appended" ) >= 0 );
@@ -997,11 +1005,11 @@ PerformImapClientTests( void )
         ASSERT_TRUE( result.uidValidityChanged && 5000 == result.uidValidity && 1 == result.messages.size() && 1 == result.messages[ 0 ].uid );
 
         // the pool thread
-        CORE::CFutureResult future = COM::CMailOperations::FetchNewImapAsync( settings, COM::CImapFetchOptions() );
+        CORE::CFutureResult future = COM::CEMailOperations::FetchNewImapAsync( settings, COM::CImapFetchOptions() );
         ASSERT_TRUE( future.HasAFuture() );
         future.Await( 30000 );
         COM::CImapFetchResult asyncResult;
-        ASSERT_TRUE( COM::CMailOperations::TryGetImapFetchResult( future, asyncResult ) && asyncResult.success && 1 == asyncResult.messages.size() );
+        ASSERT_TRUE( COM::CEMailOperations::TryGetImapFetchResult( future, asyncResult ) && asyncResult.success && 1 == asyncResult.messages.size() );
 
         // not there at all, and a wrong password
         COM::CImapClientSettings refused;

@@ -26,10 +26,15 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#ifndef GUCEF_COM_CMAILMESSAGE_H
-#include "gucefCOM_CMailMessage.h"
-#define GUCEF_COM_CMAILMESSAGE_H
-#endif /* GUCEF_COM_CMAILMESSAGE_H ? */
+#ifndef GUCEF_COM_CEMAILMESSAGE_H
+#include "gucefCOM_CEMailMessage.h"
+#define GUCEF_COM_CEMAILMESSAGE_H
+#endif /* GUCEF_COM_CEMAILMESSAGE_H ? */
+
+#ifndef GUCEF_COM_CMIMECOMPOSEOPTIONS_H
+#include "gucefCOM_CMimeComposeOptions.h"
+#define GUCEF_COM_CMIMECOMPOSEOPTIONS_H
+#endif /* GUCEF_COM_CMIMECOMPOSEOPTIONS_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -46,21 +51,8 @@ namespace COM {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/** How a message is written */
-class GUCEF_COM_PUBLIC_CPP CMimeComposeOptions
-{
-    public:
-
-    bool allowUtf8Addresses;        /**< addresses with non ASCII characters are written as they are (SMTPUTF8, RFC 6531), else they make the composition fail */
-    UInt32 maxSize;                 /**< the composition fails when the result would be larger, 64 MiB */
-
-    CMimeComposeOptions( void );
-};
-
-/*-------------------------------------------------------------------------*/
-
 /**
- *  Writes a CMailMessage as an Internet message (RFC 5322, MIME RFC 2045 to 2049).
+ *  Writes a CEMailMessage as an Internet message (RFC 5322, MIME RFC 2045 to 2049).
  *
  *  The result is 7 bit clean with CR LF line ends, lines of at most 78 characters where folding is possible and
  *  never more than 998. Non ASCII text of the subject and of display names is written as RFC 2047 encoded words,
@@ -68,7 +60,7 @@ class GUCEF_COM_PUBLIC_CPP CMimeComposeOptions
  *  attachments base64. The structure follows from the content: a single text part, multipart/alternative for text
  *  and HTML, multipart/related when inline content is referenced, multipart/mixed with attachments.
  *
- *  A message that fails CMailMessage::Validate() is not written: nothing that has a CR, LF or NUL where it
+ *  A message that fails CEMailMessage::Validate() is not written: nothing that has a CR, LF or NUL where it
  *  does not belong reaches the output.
  */
 class GUCEF_COM_PUBLIC_CPP CMimeComposer
@@ -84,7 +76,7 @@ class GUCEF_COM_PUBLIC_CPP CMimeComposer
     const CMimeComposeOptions& GetOptions( void ) const;
 
     /** Appends the message to 'out'. @return false with the 'error' (a short phrase) when it cannot be written; 'out' is left as it was */
-    bool Compose( const CMailMessage& message, CORE::CDynamicBuffer& out, CORE::CString& error ) const;
+    bool Compose( const CEMailMessage& message, CORE::CDynamicBuffer& out, CORE::CString& error ) const;
 
     private:
 
