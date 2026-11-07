@@ -29,6 +29,16 @@
 #define GUCEF_CORE_CTSGNOTIFIER_H
 #endif /* GUCEF_CORE_CTSGNOTIFIER_H ? */
 
+#ifndef GUCEF_CORE_CTCLONEABLEOBJ_H
+#include "CTCloneableObj.h"
+#define GUCEF_CORE_CTCLONEABLEOBJ_H
+#endif /* GUCEF_CORE_CTCLONEABLEOBJ_H ? */
+
+#ifndef GUCEF_CORE_CVARIANT_H
+#include "gucefCORE_CVariant.h"
+#define GUCEF_CORE_CVARIANT_H
+#endif /* GUCEF_CORE_CVARIANT_H ? */
+
 #ifndef GUCEF_CORE_CFUTURERESULT_H
 #include "gucefCORE_CFutureResult.h"
 #define GUCEF_CORE_CFUTURERESULT_H
@@ -80,6 +90,15 @@ namespace CORE {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
+//      TYPES                                                              //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/** The primary keys of the rows that changed, in the order the table lists them: the event data of CIDataTable::RowsChangedEvent */
+typedef CTCloneableObj< GUCEF::vector< CVariant > >  TDataTableRowsChangedEventData;
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
@@ -104,6 +123,7 @@ class GUCEF_CORE_PUBLIC_CPP CIDataTable : public CTSGNotifier
 
     static const CEvent PartitionWrittenEvent;     /**< CDataTablePartitionInfo */
     static const CEvent PartitionDeletedEvent;     /**< CDataTablePartitionInfo */
+    static const CEvent RowsChangedEvent;          /**< TDataTableRowsChangedEventData: the keys of rows that changed behind the table's back (a replicated source); raised by tables that follow a changing source, and only while an observer is subscribed to it */
 
     static void RegisterEvents( void );
 

@@ -45,6 +45,7 @@ namespace CORE {
 
 const CEvent CIDataTable::PartitionWrittenEvent = "GUCEF::CORE::CIDataTable::PartitionWrittenEvent";
 const CEvent CIDataTable::PartitionDeletedEvent = "GUCEF::CORE::CIDataTable::PartitionDeletedEvent";
+const CEvent CIDataTable::RowsChangedEvent = "GUCEF::CORE::CIDataTable::RowsChangedEvent";
 
 /*-------------------------------------------------------------------------*/
 
@@ -54,6 +55,7 @@ CIDataTable::RegisterEvents( void )
 
     PartitionWrittenEvent.Initialize();
     PartitionDeletedEvent.Initialize();
+    RowsChangedEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
