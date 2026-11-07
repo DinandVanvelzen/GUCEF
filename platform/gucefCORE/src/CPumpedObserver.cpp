@@ -475,6 +475,15 @@ CPumpedObserver::OnNotify( CNotifier* notifier                       ,
     {
         ClearNotifierReferencesFromMailbox( notifier );
     }
+    else
+    if ( ( CNotifier::SubscribeEvent == eventId || CNotifier::UnsubscribeEvent == eventId ) &&
+         GUCEF_NULL != notifier && notifier == m_pulseGeneratorBeingLinked                      )
+    {
+        // The (un)subscription to the pulse generator is how this observer gets its pulses, it is not mail for the
+        // observer. Mailed, it would wait for a pulse: never, when the pulse generator is being left behind. An
+        // observer which moves between pulse generators, as a task consumer does per task, would pile it up
+        return;
+    }
 
     try
     {
@@ -510,8 +519,14 @@ CPumpedObserver::AddEventToMailbox( CNotifier* notifier    ,
     if ( GUCEF_NULL != eventData )
         eventData = eventData->Clone();
 
+    // The mail element does not own the event data: the mail holds the pointer and whoever takes the mail out deletes
+    // the data. Mail that is refused (the observer is shutting down) never gets there, so the copy is ours to delete.
     CMailElement maildata( notifier, eventData );
-    return m_mailbox.AddMail( eventId, &maildata );
+    if ( m_mailbox.AddMail( eventId, &maildata ) )
+        return true;
+
+    GUCEF_DELETE eventData;
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -557,8 +572,13 @@ CPumpedObserver::OnFunctorNotify( CNotifier* notifier                 ,
                            eventdata ,
                            callback  );
 
-    m_mailbox.AddMail( eventid   ,
-                       &maildata );
+    // Refused mail (the observer is shutting down) is not owned by anyone: the copies made above are ours to delete
+    if ( !m_mailbox.AddMail( eventid   ,
+                             &maildata ) )
+    {
+        GUCEF_DELETE eventdata;
+        GUCEF_DELETE callback;
+    }
 }
 
 /*-------------------------------------------------------------------------*/

@@ -1127,6 +1127,152 @@ PerformNotifierFunctorTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      OWNERSHIP OF EVENT DATA IN THE MAILBOX OF A PUMPED OBSERVER         //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/** Event data that counts the copies of it that are alive */
+class CCountedEventData : public CICloneable
+{
+    public:
+
+    static MT::CTAtomic< Int32 >& Live( void ) { static MT::CTAtomic< Int32 > live( 0 ); return live; }
+
+    CCountedEventData( void ) { Live().FetchAdd( 1 ); }
+    CCountedEventData( const CCountedEventData& ) : CICloneable() { Live().FetchAdd( 1 ); }
+    virtual ~CCountedEventData() GUCEF_VIRTUAL_OVERRIDE { Live().FetchSub( 1 ); }
+    virtual CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NEW CCountedEventData( *this ); }
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Pumped observer that opens the delivery paths and counts what it is given to handle */
+class CMailboxProbe : public CPumpedObserver
+{
+    public:
+
+    CMailboxProbe( PulseGeneratorPtr pulseGenerator ) : CPumpedObserver( pulseGenerator, false ), m_delivered( 0 ), m_functorDelivered( 0 ) {}
+    virtual ~CMailboxProbe() GUCEF_VIRTUAL_OVERRIDE { Shutdown(); }
+
+    void NotifyThroughOnNotify( CNotifier* notifier, const CEvent& eventId, CICloneable* eventData ) { OnNotify( notifier, eventId, eventData ); }
+
+    void NotifyThroughFunctor( CNotifier* notifier, const CEvent& eventId, CICloneable* eventData, CIEventHandlerFunctorBase* callback )
+    {
+        OnFunctorNotify( notifier, eventId, eventData, callback );
+    }
+
+    void OnFunctorHandler( CNotifier* notifier, const CEvent& eventId, CICloneable* eventData ) { ++m_functorDelivered; }
+
+    UInt32 m_delivered;
+    UInt32 m_functorDelivered;
+
+    protected:
+
+    virtual void OnPumpedNotify( CNotifier* notifier, const CEvent& eventId, CICloneable* eventData = GUCEF_NULL ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        // the subscription to the pulse generator is announced by an event too
+        if ( eventId == CEvent( "GUCEF::CORE::TestNotifierObserver::MailboxEventA" ) )
+            ++m_delivered;
+    }
+};
+
+/** A functor that counts the copies of it that are alive */
+class CCountedFunctor : public CTEventHandlerFunctor< CMailboxProbe >
+{
+    public:
+
+    static MT::CTAtomic< Int32 >& Live( void ) { static MT::CTAtomic< Int32 > live( 0 ); return live; }
+
+    CCountedFunctor( CMailboxProbe* observer, TMemberFunctionType functor ) : CIEventHandlerFunctorBase(), CTEventHandlerFunctor< CMailboxProbe >( observer, functor ) { Live().FetchAdd( 1 ); }
+    CCountedFunctor( const CCountedFunctor& src ) : CIEventHandlerFunctorBase( src ), CTEventHandlerFunctor< CMailboxProbe >( src ) { Live().FetchAdd( 1 ); }
+    virtual ~CCountedFunctor() GUCEF_VIRTUAL_OVERRIDE { Live().FetchSub( 1 ); }
+    virtual CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NEW CCountedFunctor( *this ); }
+};
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformPumpedMailboxOwnershipTests( void )
+{
+    const CEvent eventA( "GUCEF::CORE::TestNotifierObserver::MailboxEventA" );
+
+    GUCEF_TESTFW_TESTCASE( "Test: event data given to a pumped observer that refuses mail is released, through OnNotify() and through a functor" )
+    try
+    {
+        PulseGeneratorPtr pulseGenerator = CPulseGenerator::CreateSharedObj();
+        CMyNotifier notifier;
+        const Int32 baseData = CCountedEventData::Live().Load();
+        const Int32 baseFunctors = CCountedFunctor::Live().Load();
+        {
+            CMailboxProbe probe( pulseGenerator );
+
+            // an observer that is shutting down takes no mail, as between ClearMailbox( false ) and the unsubscribe of its destruction
+            probe.ClearMailbox( false );
+            CCountedEventData data;
+            ASSERT_TRUE( baseData + 1 == CCountedEventData::Live().Load() );
+            ASSERT_FALSE( probe.AddEventToMailbox( &notifier, eventA, &data ) );
+            ASSERT_TRUE( baseData + 1 == CCountedEventData::Live().Load() );
+
+            probe.NotifyThroughOnNotify( &notifier, eventA, &data );
+            ASSERT_TRUE( baseData + 1 == CCountedEventData::Live().Load() );
+
+            CCountedFunctor functor( &probe, &CMailboxProbe::OnFunctorHandler );
+            ASSERT_TRUE( baseFunctors + 1 == CCountedFunctor::Live().Load() );
+            probe.NotifyThroughFunctor( &notifier, eventA, &data, &functor );
+            ASSERT_TRUE( baseData + 1 == CCountedEventData::Live().Load() );
+            ASSERT_TRUE( baseFunctors + 1 == CCountedFunctor::Live().Load() );
+        }
+        ASSERT_TRUE( baseData == CCountedEventData::Live().Load() );
+        ASSERT_TRUE( baseFunctors == CCountedFunctor::Live().Load() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: event data in the mailbox of a pumped observer is released when it is delivered, cleared or the observer goes, and never delivered twice" )
+    try
+    {
+        PulseGeneratorPtr pulseGenerator = CPulseGenerator::CreateSharedObj();
+        CMyNotifier notifier;
+        const Int32 baseData = CCountedEventData::Live().Load();
+        const Int32 baseFunctors = CCountedFunctor::Live().Load();
+        CCountedEventData data;
+        {
+            CMailboxProbe probe( pulseGenerator );
+
+            // accepted mail holds copies until the pulse delivers them
+            ASSERT_TRUE( probe.AddEventToMailbox( &notifier, eventA, &data ) );
+            ASSERT_TRUE( probe.AddEventToMailbox( &notifier, eventA, &data ) );
+            CCountedFunctor functor( &probe, &CMailboxProbe::OnFunctorHandler );
+            probe.NotifyThroughFunctor( &notifier, eventA, &data, &functor );
+            ASSERT_TRUE( baseData + 4 == CCountedEventData::Live().Load() );
+            ASSERT_TRUE( baseFunctors + 2 == CCountedFunctor::Live().Load() );
+            pulseGenerator->ForceDirectPulse();
+            ASSERT_TRUE( 2 == probe.m_delivered && 1 == probe.m_functorDelivered );
+            ASSERT_TRUE( baseData + 1 == CCountedEventData::Live().Load() );
+            ASSERT_TRUE( baseFunctors + 1 == CCountedFunctor::Live().Load() );
+
+            // mail that nobody pumps is cleared on request and with the observer
+            ASSERT_TRUE( probe.AddEventToMailbox( &notifier, eventA, &data ) );
+            probe.NotifyThroughFunctor( &notifier, eventA, &data, &functor );
+            ASSERT_TRUE( baseData + 3 == CCountedEventData::Live().Load() );
+            probe.ClearMailbox( true );
+            ASSERT_TRUE( baseData + 1 == CCountedEventData::Live().Load() );
+            ASSERT_TRUE( baseFunctors + 1 == CCountedFunctor::Live().Load() );
+            ASSERT_TRUE( probe.AddEventToMailbox( &notifier, eventA, &data ) );
+            probe.NotifyThroughFunctor( &notifier, eventA, &data, &functor );
+            ASSERT_TRUE( baseData + 3 == CCountedEventData::Live().Load() );
+        }
+        ASSERT_TRUE( baseData + 1 == CCountedEventData::Live().Load() );
+        ASSERT_TRUE( baseFunctors == CCountedFunctor::Live().Load() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformNotifierObserverTests( void )
 {
@@ -2195,6 +2341,7 @@ PerformNotifierObserverTests( void )
     GUCEF_TESTFW_TESTCASE_END
 
     PerformNotifierThreadingTests();
+    PerformPumpedMailboxOwnershipTests();
     PerformNotifierFunctorTests();
 
     CORE::CLogStreamScope::FlushLogs();
