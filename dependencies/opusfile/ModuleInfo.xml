@@ -1,0 +1,33 @@
+<ModuleInfoEntry>
+    <Module Name="opusfile" Type="StaticLibrary" Platform="linux;mswin;android">
+        <ModuleMetaData>
+            <License>BSD-3-Clause</License>
+            <SemVer>0.12.0.0</SemVer>
+            <DescriptionHeadline>opusfile (Xiph.Org): the Ogg Opus file decoder on libogg and libopus</DescriptionHeadline>
+            <DescriptionDetails>The decoder of opusfile 0.12 (opusfile.c, info.c, internal.c and the file and memory stream callbacks of stream.c), floating point build against the libopus of the opus module. The HTTP URL streaming (http.c, wincerts.c, the opusurl library) is not part of the module, so there is no dependency on OpenSSL.</DescriptionDetails>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="libogg" />
+            <Dependency Name="opus" />
+        </Dependencies>
+        <Includes Source="Self">
+            <Include Path="include" />
+        </Includes>
+        <Linker>
+            <Dependency Name="libogg" />
+            <Dependency Name="opus" />
+        </Linker>
+        <!-- the codecs run optimised in debug builds too: unoptimised they are many times slower -->
+        <Compiler>
+            <CompilerFlags CompilerName="GCC" Flags="-O2" />
+        </Compiler>
+    </Module>
+    <Module Platform="linux;android">
+        <Preprocessor>
+            <Define String="OP_HAVE_LRINTF" />
+        </Preprocessor>
+        <Linker>
+            <Dependency Name="m" />
+        </Linker>
+    </Module>
+</ModuleInfoEntry>

@@ -1,0 +1,17 @@
+<ModuleInfoEntry>
+    <Module Name="libogg" Type="StaticLibrary" Platform="linux;mswin;android">
+        <ModuleMetaData>
+            <License>BSD-3-Clause</License>
+            <SemVer>1.3.6.0</SemVer>
+            <DescriptionHeadline>libogg (Xiph.Org): the Ogg container bitstream library</DescriptionHeadline>
+            <DescriptionDetails>The bitwise packing and the framing sources of libogg 1.3.6, with its public headers. The generated ogg/config_types.h is a hand written file, see include/ogg/config_types.h.</DescriptionDetails>
+        </ModuleMetaData>
+        <Includes Source="Self">
+            <Include Path="include" />
+        </Includes>
+        <!-- the codecs run optimised in debug builds too: unoptimised they are many times slower -->
+        <Compiler>
+            <CompilerFlags CompilerName="GCC" Flags="-O2" />
+        </Compiler>
+    </Module>
+</ModuleInfoEntry>

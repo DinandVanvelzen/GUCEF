@@ -1,0 +1,10 @@
+<ModuleInfoEntry>
+    <Module Name="dr_libs" Type="HeaderIncludeLocation" ConsiderSubDirs="False" Platform="All">
+        <ModuleMetaData>
+            <License>Unlicense OR MIT-0</License>
+            <SemVer>0.7.4.0</SemVer>
+            <DescriptionHeadline>dr_libs (David Reid): the single file MP3 and FLAC decoders dr_mp3 and dr_flac</DescriptionHeadline>
+            <DescriptionDetails>dr_mp3.h 0.7.4 and dr_flac.h 0.13.4 from one commit of dr_libs, see dependencies/README.txt. Header only: exactly one source file of a product defines DR_MP3_IMPLEMENTATION and DR_FLAC_IMPLEMENTATION before including the header to compile the implementation.</DescriptionDetails>
+        </ModuleMetaData>
+    </Module>
+</ModuleInfoEntry>
