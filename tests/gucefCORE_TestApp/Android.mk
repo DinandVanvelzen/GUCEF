@@ -105,6 +105,8 @@ LOCAL_SRC_FILES := \
   src/TestVars.cpp \
   src/TestVersion.cpp \
   src/TestWeakPtr.cpp \
+  src/TestX11Clipboard.cpp \
+  src/TestX11ClipboardPeer.cpp \
   src/TestX11EventDispatcher.cpp \
   src/TestXmlDStoreCodec.cpp \
   src/gucefCORE_TestApp_main.cpp

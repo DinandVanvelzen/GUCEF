@@ -39,6 +39,13 @@ links( { "gucefCORE", "gucefMT" } )
 links( { "gucefCORE", "gucefMT" } )
 
 
+configuration( { "LINUX32" } )
+  links( { "X11" } )
+
+configuration( { "LINUX64" } )
+  links( { "X11" } )
+
+
 configuration( {} )
 defines( { "GUCEF_CORE_TESTAPP_BUILD_MODULE", "MODULE_CONSENSUS_NAME=gucefCORE_TestApp", "MODULE_NAME=gucefCORE_TestApp" } )
 
@@ -134,6 +141,8 @@ files( {
   "include/TestVars.h",
   "include/TestVersion.h",
   "include/TestWeakPtr.h",
+  "include/TestX11Clipboard.h",
+  "include/TestX11ClipboardPeer.h",
   "include/TestX11EventDispatcher.h",
   "include/TestXmlDStoreCodec.h",
   "src/TestFreeList.h"
@@ -228,6 +237,8 @@ files( {
   "src/TestVars.cpp",
   "src/TestVersion.cpp",
   "src/TestWeakPtr.cpp",
+  "src/TestX11Clipboard.cpp",
+  "src/TestX11ClipboardPeer.cpp",
   "src/TestX11EventDispatcher.cpp",
   "src/TestXmlDStoreCodec.cpp",
   "src/gucefCORE_TestApp_main.cpp"

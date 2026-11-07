@@ -845,6 +845,7 @@ configuration( { "LINUX32" } )
       "include/linux/gucefCORE_CDesktopTerminalConsoleLogger.h",
       "include/linux/gucefCORE_CTerminalConsoleLogger.h",
       "include/linux/gucefCORE_CTextLineConsoleLogger.h",
+      "include/linux/gucefCORE_CX11Clipboard.h",
       "include/linux/gucefCORE_CX11EventDispatcher.h",
       "include/linux/gucefCORE_CX11Window.h",
       "include/linux/gucefCORE_pty.h"
@@ -857,6 +858,7 @@ configuration( { "LINUX32" } )
       "src/linux/gucefCORE_CDesktopTerminalConsoleLogger.cpp",
       "src/linux/gucefCORE_CTerminalConsoleLogger.cpp",
       "src/linux/gucefCORE_CTextLineConsoleLogger.cpp",
+      "src/linux/gucefCORE_CX11Clipboard.cpp",
       "src/linux/gucefCORE_CX11EventDispatcher.cpp",
       "src/linux/gucefCORE_CX11Window.cpp",
       "src/linux/gucefCORE_pty.c"
@@ -871,6 +873,7 @@ configuration( { "LINUX64" } )
       "include/linux/gucefCORE_CDesktopTerminalConsoleLogger.h",
       "include/linux/gucefCORE_CTerminalConsoleLogger.h",
       "include/linux/gucefCORE_CTextLineConsoleLogger.h",
+      "include/linux/gucefCORE_CX11Clipboard.h",
       "include/linux/gucefCORE_CX11EventDispatcher.h",
       "include/linux/gucefCORE_CX11Window.h",
       "include/linux/gucefCORE_pty.h"
@@ -883,6 +886,7 @@ configuration( { "LINUX64" } )
       "src/linux/gucefCORE_CDesktopTerminalConsoleLogger.cpp",
       "src/linux/gucefCORE_CTerminalConsoleLogger.cpp",
       "src/linux/gucefCORE_CTextLineConsoleLogger.cpp",
+      "src/linux/gucefCORE_CX11Clipboard.cpp",
       "src/linux/gucefCORE_CX11EventDispatcher.cpp",
       "src/linux/gucefCORE_CX11Window.cpp",
       "src/linux/gucefCORE_pty.c"

@@ -570,6 +570,10 @@ size_t utf8len_s_withaddr(const void *str, size_t bufferSize, const char** nullT
   size_t length = 0;
   size_t bytes = 0;
 
+  // an empty string: the terminator is the first byte, which the loop below never reaches
+  if ( 0 < bufferSize && '\0' == *s && NULL != nullTermAddress )
+      *nullTermAddress = (const char*) s;
+
   while ( bytes < bufferSize && '\0' != *s ) 
   {
     // 1 to 4 bytes depending on the lead byte, but cut off content ends at the null or the end of the buffer

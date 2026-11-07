@@ -25,6 +25,9 @@
         </RuntimeDependencies>
     </Module>
     <Module Platform="linux" >
+        <Linker>
+            <Dependency Name="X11" Scope="private" />
+        </Linker>
         <RuntimeDependencies>
             <RuntimeDependency Name="codecspluginOPENSSL" />
         </RuntimeDependencies>

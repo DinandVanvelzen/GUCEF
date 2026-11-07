@@ -201,6 +201,11 @@
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
 
+  #ifndef GUCEF_CORE_CX11CLIPBOARD_H
+  #include "gucefCORE_CX11Clipboard.h"
+  #define GUCEF_CORE_CX11CLIPBOARD_H
+  #endif /* GUCEF_CORE_CX11CLIPBOARD_H ? */
+
   #ifndef GUCEF_CORE_CX11EVENTDISPATCHER_H
   #include "gucefCORE_CX11EventDispatcher.h"
   #define GUCEF_CORE_CX11EVENTDISPATCHER_H
@@ -493,6 +498,13 @@ CCoreGlobal::~CCoreGlobal()
     m_dataDrivenDStoreCodecFactory->UnregisterAllConcreteFactories();
     m_pluginControl->UnlistModuleForLinkBack( "gucefCORE" );
     m_pluginControl->UnloadAll();
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+
+    // After the plugins, which may use the clipboard, and before the task manager, with which its thread is registered
+    CX11Clipboard::Deinstance();
+
+    #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ? */
    
 
     m_logManager->FlushLogs();

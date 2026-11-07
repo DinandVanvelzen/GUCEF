@@ -23,6 +23,7 @@
 
 #include <stdio.h>   /* snprintf */
 
+#include <string.h>  /* strlen */
 #include <typeinfo>
 
 #ifndef GUCEF_CORE_CSTRING_H
@@ -462,6 +463,50 @@ PerformUtf8SpecificStringTests( void )
         ASSERT_TRUE( 10 == testStr.Length() );
         ASSERT_TRUE( testStr == testStrContent1 );
         ASSERT_TRUE( emptyBuffer == testStr.C_String() );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    /* ------------------------------------------------------------------ */
+    /* An empty C string brings only its terminator: appending it changes nothing, the byte size stays the content plus one
+       terminator. A second terminator after the content would count in the byte size, and whatever uses the byte size
+       (a copy into a draw buffer, a byte-wise compare) would see a character that is not there */
+    GUCEF_TESTFW_TESTCASE( "[CUtf8String] Append of an empty C string adds no byte" )
+    try
+    {
+        CORE::CUtf8String appended( "tiingo" );
+        appended += "";
+        ASSERT_TRUE( 6 == appended.Length() );
+        ASSERT_TRUE( 7 == appended.ByteSize() );
+        ASSERT_TRUE( 6 == strlen( appended.C_String() ) );
+        ASSERT_TRUE( "tiingo" == appended );
+
+        CORE::CUtf8String viaAppend( "tiingo" );
+        viaAppend.Append( "" );
+        ASSERT_TRUE( 6 == viaAppend.Length() );
+        ASSERT_TRUE( 7 == viaAppend.ByteSize() );
+
+        const CORE::CUtf8String viaPlus = CORE::CUtf8String( "tiingo" ) + "";
+        ASSERT_TRUE( 6 == viaPlus.Length() );
+        ASSERT_TRUE( 7 == viaPlus.ByteSize() );
+
+        // a list joined part by part with an optional suffix that is empty for the last part: the byte size of the whole is
+        // its content and one terminator, so a copy of ByteSize()-1 bytes is the text without a trailing 0 byte
+        const char* const names[] = { "massive", "tiingo" };
+        CORE::CUtf8String joined;
+        for ( int i=0; i<2; ++i )
+            joined += ( 0 == i ? "" : ", " ) + CORE::CUtf8String( names[ i ] ) + ( 0 == i ? " (chosen)" : "" );
+        ASSERT_TRUE( "massive (chosen), tiingo" == joined );
+        ASSERT_TRUE( 24 == joined.Length() );
+        ASSERT_TRUE( 25 == joined.ByteSize() );
+        ASSERT_TRUE( 24 == strlen( joined.C_String() ) );
+
+        // a terminator in the middle of the given bytes still ends the appended content
+        CORE::CUtf8String partial( "ab" );
+        partial.Append( "c\0d", 4 );
+        ASSERT_TRUE( "abc" == partial );
+        ASSERT_TRUE( 3 == partial.Length() );
+        ASSERT_TRUE( 3 == strlen( partial.C_String() ) );
     }
     catch( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END

@@ -128,6 +128,7 @@
 #include "TestDataNode.h"
 #include "TestWeakPtr.h"
 #include "TestX11EventDispatcher.h"
+#include "TestX11Clipboard.h"
 #include "TestSysConsole.h"
 #include "TestConfigStore.h"
 #include "TestScopedValue.h"
@@ -464,6 +465,7 @@ GUCEF_OSMAIN_BEGIN
         PerformDataNodeTests();
         PerformWeakPtrTests();
         PerformX11EventDispatcherTests();
+        PerformX11ClipboardTests();
         PerformSysConsoleTests();
         PerformConfigStoreTests();
         PerformScopedValueTests();

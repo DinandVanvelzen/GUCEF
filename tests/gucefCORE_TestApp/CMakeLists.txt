@@ -102,6 +102,8 @@ set( HEADER_FILES
   include/TestVars.h
   include/TestVersion.h
   include/TestWeakPtr.h
+  include/TestX11Clipboard.h
+  include/TestX11ClipboardPeer.h
   include/TestX11EventDispatcher.h
   include/TestXmlDStoreCodec.h
   src/TestFreeList.h
@@ -194,6 +196,8 @@ set( SOURCE_FILES
   src/TestVars.cpp
   src/TestVersion.cpp
   src/TestWeakPtr.cpp
+  src/TestX11Clipboard.cpp
+  src/TestX11ClipboardPeer.cpp
   src/TestX11EventDispatcher.cpp
   src/TestXmlDStoreCodec.cpp
   src/gucefCORE_TestApp_main.cpp
@@ -217,6 +221,14 @@ endif()
 add_dependencies( ${MODULE_NAME} gucefCORE gucefMT )
 target_link_libraries( ${MODULE_NAME} PUBLIC gucefCORE gucefMT )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_CORE_TESTAPP_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefCORE_TestApp;MODULE_NAME=gucefCORE_TestApp" )
+
+if ( LINUX32 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE X11 )
+endif( LINUX32 )
+
+if ( LINUX64 )
+  target_link_libraries( ${MODULE_NAME} PRIVATE X11 )
+endif( LINUX64 )
 
 include_directories( ../../common/include ../../common/test/include ../../platform/gucefCORE/include ../../platform/gucefCORE/include/c_api ../../platform/gucefMT/include include src )
 

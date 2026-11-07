@@ -247,6 +247,12 @@ GetFunctionAddress( void *sohandle           ,
  *              be made to use the previous clipboard owner HWND. You should set the
  *              "HWND" environment setting after creating your primary window using
  *              the GUCEFSetEnv() function.
+ *
+ *      For Linux (X11):
+ *              The text is taken as UTF-8 and put on the CLIPBOARD selection of the
+ *              X server of $DISPLAY, see CX11Clipboard. The process serves pastes in
+ *              other programs until it ends or another program takes the clipboard.
+ *              Without a display OSWRAP_FALSE is returned.
  */
 GUCEF_CORE_PUBLIC_C OSWRAP_BOOLINT
 StringToClipboard( const char *str );
@@ -273,6 +279,13 @@ StringToClipboard( const char *str );
  *              be made to use the previous clipboard owner HWND. You should set the
  *              "HWND" environment setting after creating your primary window using
  *              the GUCEFSetEnv() function.
+ *
+ *      For Linux (X11):
+ *              The text of the CLIPBOARD selection as UTF-8, see CX11Clipboard. At
+ *              most size-1 bytes are written per call, followed by a terminating
+ *              null; continue with the updated wbytes while OSWRAP_TRUE is returned.
+ *              Without a display, or when the owner does not answer within a
+ *              second, OSWRAP_FALSE is returned.
  */
 GUCEF_CORE_PUBLIC_C OSWRAP_BOOLINT
 StringFromClipboard( char *dest     ,
