@@ -27,7 +27,9 @@ tests/gucefINPUT_TestApp/*
 tests/gucefKAITAI_TestApp/*
 tests/gucefLOADER_TestApp/*
 tests/gucefMT_TestApp/*
+tests/gucefMULTIPLAY_DesktopNotifyTestApp/*
 tests/gucefMULTIPLAY_EosTestApp/*
+tests/gucefMULTIPLAY_MailProvider_TestApp/*
 tests/gucefMULTIPLAY_TestApp/*
 tests/gucefPATCHERAPP_TestApp/*
 tests/gucefPRODMAN_TestApp/*

@@ -13,6 +13,7 @@ platform/gucefMULTIPLAY/*
 platform/gucefVFS/*
 platform/gucefWEB/*
 plugins/CORE/codecspluginMONOCYPHER/*
+plugins/CORE/codecspluginZLIB/*
 plugins/CORE/dstorepluginJSONPARSER/*
 plugins/CORE/dstorepluginPARSIFALXML/*
 tests/gucefMULTIPLAY_TestApp/*

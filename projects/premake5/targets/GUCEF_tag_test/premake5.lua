@@ -82,6 +82,7 @@ filter "ALL"
   include( "plugins/CORE/dstorepluginYAML" )
   include( "plugins/DRN/drnchannelpluginEOSP2P" )
   include( "plugins/MULTIPLAY/lobbyservicepluginEOS" )
+  include( "plugins/MULTIPLAY/matchprovidermail" )
   include( "plugins/PUBSUB/pubsubpluginFIX" )
   include( "plugins/PUBSUB/pubsubpluginKAFKA" )
   include( "plugins/PUBSUB/pubsubpluginREDISCLUSTER" )
@@ -114,6 +115,7 @@ filter "ALL"
   include( "tests/gucefLOADER_TestApp" )
   include( "tests/gucefMT_TestApp" )
   include( "tests/gucefMULTIPLAY_EosTestApp" )
+  include( "tests/gucefMULTIPLAY_MailProvider_TestApp" )
   include( "tests/gucefMULTIPLAY_TestApp" )
   include( "tests/gucefPATCHERAPP_TestApp" )
   include( "tests/gucefPRODMAN_TestApp" )
@@ -303,6 +305,7 @@ filter "LINUX32"
   include( "plugins/INPUT/inputdriverOIS" )
   include( "plugins/INPUT/inputdriverWAYLAND" )
   include( "plugins/INPUT/inputdriverXWINMSG" )
+  include( "plugins/MULTIPLAY/notifysinkpluginDESKTOP" )
   include( "plugins/PUBSUB/pubsubpluginAWSSNS" )
   include( "plugins/PUBSUB/pubsubpluginAWSSQS" )
   include( "plugins/SHARED/pluginglueWAYLAND" )
@@ -314,6 +317,7 @@ filter "LINUX32"
   include( "tests/gucefGUI_WaylandTestApp" )
   include( "tests/gucefIMAGE_TestApp" )
   include( "tests/gucefINPUT_TestApp" )
+  include( "tests/gucefMULTIPLAY_DesktopNotifyTestApp" )
 
 filter "LINUX64"
   include( "dependencies/DevIL/DevIL" )
@@ -374,6 +378,7 @@ filter "LINUX64"
   include( "plugins/INPUT/inputdriverOIS" )
   include( "plugins/INPUT/inputdriverWAYLAND" )
   include( "plugins/INPUT/inputdriverXWINMSG" )
+  include( "plugins/MULTIPLAY/notifysinkpluginDESKTOP" )
   include( "plugins/PUBSUB/pubsubpluginAWSSNS" )
   include( "plugins/PUBSUB/pubsubpluginAWSSQS" )
   include( "plugins/SHARED/pluginglueWAYLAND" )
@@ -385,6 +390,7 @@ filter "LINUX64"
   include( "tests/gucefGUI_WaylandTestApp" )
   include( "tests/gucefIMAGE_TestApp" )
   include( "tests/gucefINPUT_TestApp" )
+  include( "tests/gucefMULTIPLAY_DesktopNotifyTestApp" )
 
 filter "MAC"
 

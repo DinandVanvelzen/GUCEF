@@ -105,6 +105,7 @@ filter "ALL"
   include( "plugins/IMAGE/imgpluginFLIC" )
   include( "plugins/IMAGE/imgpluginITV" )
   include( "plugins/MULTIPLAY/lobbyservicepluginEOS" )
+  include( "plugins/MULTIPLAY/matchprovidermail" )
   include( "plugins/PROJECTGEN/ProjectGenDependsFilter" )
   include( "plugins/PROJECTGEN/ProjectGenVSImporter" )
   include( "plugins/PUBSUB/pubsubpluginAWSSNS" )
@@ -210,6 +211,7 @@ filter "LINUX32"
   include( "plugins/INPUT/inputdriverOIS" )
   include( "plugins/INPUT/inputdriverWAYLAND" )
   include( "plugins/INPUT/inputdriverXWINMSG" )
+  include( "plugins/MULTIPLAY/notifysinkpluginDESKTOP" )
   include( "plugins/SHARED/pluginglueWAYLAND" )
   include( "plugins/VIDEO/videocodecpluginWEBM" )
 
@@ -245,6 +247,7 @@ filter "LINUX64"
   include( "plugins/INPUT/inputdriverOIS" )
   include( "plugins/INPUT/inputdriverWAYLAND" )
   include( "plugins/INPUT/inputdriverXWINMSG" )
+  include( "plugins/MULTIPLAY/notifysinkpluginDESKTOP" )
   include( "plugins/SHARED/pluginglueWAYLAND" )
   include( "plugins/VIDEO/videocodecpluginWEBM" )
 
