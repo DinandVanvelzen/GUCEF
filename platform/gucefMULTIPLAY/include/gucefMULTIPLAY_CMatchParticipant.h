@@ -35,10 +35,14 @@
 #define GUCEF_MULTIPLAY_MATCHTYPES_H
 #endif /* GUCEF_MULTIPLAY_MATCHTYPES_H ? */
 
-#ifndef GUCEF_MULTIPLAY_CMATCHBINARY_H
-#include "gucefMULTIPLAY_CMatchBinary.h"
-#define GUCEF_MULTIPLAY_CMATCHBINARY_H
-#endif /* GUCEF_MULTIPLAY_CMATCHBINARY_H ? */
+#ifndef GUCEF_MULTIPLAY_CMATCHBINARYWRITER_H
+#include "gucefMULTIPLAY_CMatchBinaryWriter.h"
+#define GUCEF_MULTIPLAY_CMATCHBINARYWRITER_H
+#endif /* GUCEF_MULTIPLAY_CMATCHBINARYWRITER_H ? */
+#ifndef GUCEF_MULTIPLAY_CMATCHBINARYREADER_H
+#include "gucefMULTIPLAY_CMatchBinaryReader.h"
+#define GUCEF_MULTIPLAY_CMATCHBINARYREADER_H
+#endif /* GUCEF_MULTIPLAY_CMATCHBINARYREADER_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

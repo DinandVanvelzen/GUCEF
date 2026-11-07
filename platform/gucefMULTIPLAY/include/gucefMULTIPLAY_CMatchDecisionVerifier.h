@@ -30,6 +30,11 @@
 #define GUCEF_MULTIPLAY_CMATCHDECISIONEVIDENCE_H
 #endif /* GUCEF_MULTIPLAY_CMATCHDECISIONEVIDENCE_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CMATCHDECISIONRESULT_H
+#include "gucefMULTIPLAY_CMatchDecisionResult.h"
+#define GUCEF_MULTIPLAY_CMATCHDECISIONRESULT_H
+#endif /* GUCEF_MULTIPLAY_CMATCHDECISIONRESULT_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -45,37 +50,11 @@ namespace MULTIPLAY {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-enum EMatchVoteOutcome
-{
-    MATCHVOTEOUTCOME_UNDECIDED = 0 ,
-    MATCHVOTEOUTCOME_PASSED    = 1 ,
-    MATCHVOTEOUTCOME_FAILED    = 2
-};
-typedef enum EMatchVoteOutcome TMatchVoteOutcome;
-
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-/** What CMatchDecisionVerifier::Evaluate() found out */
-class GUCEF_MULTIPLAY_EXPORT_CPP CMatchDecisionResult
-{
-    public:
-
-    bool valid;                     /**< whether the evidence is well formed, correctly signed and by the right people */
-    TMatchVoteOutcome outcome;      /**< only meaningful when valid */
-    UInt32 yes;                     /**< the yes votes, the proposer included */
-    UInt32 no;
-    UInt32 needed;                  /**< the yes votes that pass */
-    UInt32 eligible;                /**< the participants that vote */
-    CORE::CString reason;           /**< why the evidence is not valid, or why it did not pass */
-
-    CMatchDecisionResult( void );
-};
-
-/*-------------------------------------------------------------------------*/
 
 /**
  *  Decides whether the evidence of a decision is good, from the participants of the match and their pinned keys

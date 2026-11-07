@@ -69,25 +69,6 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CIMatchClock
     CIMatchClock& operator=( const CIMatchClock& src );
 };
 
-/*-------------------------------------------------------------------------*/
-
-/** The clock of the system */
-class GUCEF_MULTIPLAY_EXPORT_CPP CMatchSystemClock : public CIMatchClock
-{
-    public:
-
-    CMatchSystemClock( void );
-
-    virtual ~CMatchSystemClock();
-
-    virtual Int64 GetNowMs( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual Int32 GetLocalMinuteOfDay( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    /** One clock of the system for everything that has no clock of its own */
-    static CMatchSystemClock& Instance( void );
-};
-
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

@@ -48,20 +48,6 @@ const CORE::CEvent CIAsyncLobbyBackend::LobbyChangedEvent = "GUCEF::MULTIPLAY::C
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CAsyncLobbyView::CAsyncLobbyView( void )
-    : state()
-    , schema()
-    , localMemberId()
-    , presentation()
-    , closed( false )
-    , closedReason()
-    , lastVotePassed( false )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
 void
 CIAsyncLobbyBackend::RegisterEvents( void )
 {GUCEF_TRACE;

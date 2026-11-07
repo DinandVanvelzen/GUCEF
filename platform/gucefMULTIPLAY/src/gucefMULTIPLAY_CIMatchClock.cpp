@@ -58,47 +58,6 @@ CIMatchClock::~CIMatchClock()
 
 /*-------------------------------------------------------------------------*/
 
-CMatchSystemClock::CMatchSystemClock( void )
-    : CIMatchClock()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchSystemClock::~CMatchSystemClock()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-Int64
-CMatchSystemClock::GetNowMs( void ) const
-{GUCEF_TRACE;
-
-    return (Int64) CORE::CDateTime::NowUTCDateTime().ToUnixEpochBasedTicksInMillisecs();
-}
-
-/*-------------------------------------------------------------------------*/
-
-Int32
-CMatchSystemClock::GetLocalMinuteOfDay( void ) const
-{GUCEF_TRACE;
-
-    CORE::CDateTime now = CORE::CDateTime::NowLocalDateTime();
-    return (Int32) now.GetTime().GetHours() * 60 + (Int32) now.GetTime().GetMinutes();
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchSystemClock&
-CMatchSystemClock::Instance( void )
-{GUCEF_TRACE;
-
-    static CMatchSystemClock clock;
-    return clock;
-}
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

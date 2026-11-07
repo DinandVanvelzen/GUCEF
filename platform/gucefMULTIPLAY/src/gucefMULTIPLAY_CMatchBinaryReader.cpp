@@ -22,7 +22,7 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include "gucefMULTIPLAY_CMatchBinary.h"
+#include "gucefMULTIPLAY_CMatchBinaryReader.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -35,107 +35,9 @@ namespace MULTIPLAY {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      IMPLEMENTATION                                                     //
+//      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-CMatchBinaryWriter::CMatchBinaryWriter( CORE::CDynamicBuffer& target )
-    : m_target( target )
-{GUCEF_TRACE;
-
-    // many small appends: the buffer grows by a percentage, not by exactly what each append needs
-    m_target.SetGrowthStrategy( CORE::CDynamicBuffer::GROWTHSTRATEGY_GEOMETRIC );
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CMatchBinaryWriter::WriteUInt8( UInt8 value )
-{GUCEF_TRACE;
-
-    m_target.Append( &value, 1 );
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CMatchBinaryWriter::WriteUInt16( UInt16 value )
-{GUCEF_TRACE;
-
-    UInt8 bytes[ 2 ] = { (UInt8)( value >> 8 ), (UInt8) value };
-    m_target.Append( bytes, 2 );
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CMatchBinaryWriter::WriteUInt32( UInt32 value )
-{GUCEF_TRACE;
-
-    UInt8 bytes[ 4 ] = { (UInt8)( value >> 24 ), (UInt8)( value >> 16 ), (UInt8)( value >> 8 ), (UInt8) value };
-    m_target.Append( bytes, 4 );
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CMatchBinaryWriter::WriteUInt64( UInt64 value )
-{GUCEF_TRACE;
-
-    WriteUInt32( (UInt32)( value >> 32 ) );
-    WriteUInt32( (UInt32)( value & 0xFFFFFFFFu ) );
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CMatchBinaryWriter::WriteInt64( Int64 value )
-{GUCEF_TRACE;
-
-    WriteUInt64( (UInt64) value );
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CMatchBinaryWriter::WriteBool( bool value )
-{GUCEF_TRACE;
-
-    WriteUInt8( value ? 1 : 0 );
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CMatchBinaryWriter::WriteRaw( const void* data, UInt32 size )
-{GUCEF_TRACE;
-
-    if ( size > 0 && GUCEF_NULL != data )
-        m_target.Append( data, size );
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CMatchBinaryWriter::WriteBytes( const void* data, UInt32 size )
-{GUCEF_TRACE;
-
-    WriteUInt32( size );
-    WriteRaw( data, size );
-}
-
-/*-------------------------------------------------------------------------*/
-
-void
-CMatchBinaryWriter::WriteString( const CORE::CString& text )
-{GUCEF_TRACE;
-
-    // the strings are UTF-8: the length that counts is the one in bytes
-    WriteBytes( text.C_String(), (UInt32) strlen( text.C_String() ) );
-}
-
-/*-------------------------------------------------------------------------*/
 
 static bool
 IsValidUtf8( const UInt8* p, UInt32 size )
@@ -177,7 +79,11 @@ IsValidUtf8( const UInt8* p, UInt32 size )
     return true;
 }
 
-/*-------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      IMPLEMENTATION                                                     //
+//                                                                         //
+//-------------------------------------------------------------------------*/
 
 CMatchBinaryReader::CMatchBinaryReader( const void* data, UInt32 size )
     : m_data( static_cast< const UInt8* >( data ) )

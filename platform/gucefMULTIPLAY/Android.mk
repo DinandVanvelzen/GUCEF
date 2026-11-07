@@ -26,6 +26,7 @@ LOCAL_SRC_FILES := \
   src/gucefMULTIPLAY_CAsyncLobby.cpp \
   src/gucefMULTIPLAY_CAsyncLobbyListingProvider.cpp \
   src/gucefMULTIPLAY_CAsyncLobbyService.cpp \
+  src/gucefMULTIPLAY_CAsyncLobbyView.cpp \
   src/gucefMULTIPLAY_CAuthIdentityProvider.cpp \
   src/gucefMULTIPLAY_CChatMessage.cpp \
   src/gucefMULTIPLAY_CFileHashClientIntegrity.cpp \
@@ -65,28 +66,40 @@ LOCAL_SRC_FILES := \
   src/gucefMULTIPLAY_CLobbySettingsSchema.cpp \
   src/gucefMULTIPLAY_CLobbyState.cpp \
   src/gucefMULTIPLAY_CLocalIdentityProvider.cpp \
+  src/gucefMULTIPLAY_CMatchAcceptance.cpp \
   src/gucefMULTIPLAY_CMatchAlert.cpp \
   src/gucefMULTIPLAY_CMatchAlertRouter.cpp \
-  src/gucefMULTIPLAY_CMatchBinary.cpp \
+  src/gucefMULTIPLAY_CMatchBinaryReader.cpp \
+  src/gucefMULTIPLAY_CMatchBinaryWriter.cpp \
   src/gucefMULTIPLAY_CMatchBook.cpp \
+  src/gucefMULTIPLAY_CMatchBookChange.cpp \
   src/gucefMULTIPLAY_CMatchChainVerifier.cpp \
   src/gucefMULTIPLAY_CMatchContainer.cpp \
   src/gucefMULTIPLAY_CMatchDecisionEvidence.cpp \
+  src/gucefMULTIPLAY_CMatchDecisionResult.cpp \
   src/gucefMULTIPLAY_CMatchDecisionVerifier.cpp \
   src/gucefMULTIPLAY_CMatchDraftBoard.cpp \
+  src/gucefMULTIPLAY_CMatchDraftTally.cpp \
   src/gucefMULTIPLAY_CMatchEntry.cpp \
   src/gucefMULTIPLAY_CMatchId.cpp \
   src/gucefMULTIPLAY_CMatchInfo.cpp \
   src/gucefMULTIPLAY_CMatchLink.cpp \
+  src/gucefMULTIPLAY_CMatchOperationResult.cpp \
   src/gucefMULTIPLAY_CMatchPackage.cpp \
   src/gucefMULTIPLAY_CMatchParticipant.cpp \
   src/gucefMULTIPLAY_CMatchPreview.cpp \
   src/gucefMULTIPLAY_CMatchProposal.cpp \
+  src/gucefMULTIPLAY_CMatchProviderState.cpp \
   src/gucefMULTIPLAY_CMatchRecord.cpp \
   src/gucefMULTIPLAY_CMatchRoster.cpp \
+  src/gucefMULTIPLAY_CMatchRosterEntry.cpp \
   src/gucefMULTIPLAY_CMatchSigning.cpp \
   src/gucefMULTIPLAY_CMatchStore.cpp \
+  src/gucefMULTIPLAY_CMatchSystemClock.cpp \
   src/gucefMULTIPLAY_CMatchTextArmor.cpp \
+  src/gucefMULTIPLAY_CMatchTurnEventData.cpp \
+  src/gucefMULTIPLAY_CMatchUpdate.cpp \
+  src/gucefMULTIPLAY_CMatchVote.cpp \
   src/gucefMULTIPLAY_CModule.cpp \
   src/gucefMULTIPLAY_CMultiplayGlobal.cpp \
   src/gucefMULTIPLAY_CPassiveURLServerListProvider.cpp \

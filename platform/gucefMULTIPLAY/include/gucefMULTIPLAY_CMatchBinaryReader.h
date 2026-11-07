@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_MULTIPLAY_CMATCHBINARY_H
-#define GUCEF_MULTIPLAY_CMATCHBINARY_H
+#ifndef GUCEF_MULTIPLAY_CMATCHBINARYREADER_H
+#define GUCEF_MULTIPLAY_CMATCHBINARYREADER_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -29,11 +29,6 @@
 #include "CDynamicBuffer.h"
 #define GUCEF_CORE_CDYNAMICBUFFER_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
-
-#ifndef GUCEF_CORE_CSTRING_H
-#include "gucefCORE_CString.h"
-#define GUCEF_CORE_CSTRING_H
-#endif /* GUCEF_CORE_CSTRING_H ? */
 
 #ifndef GUCEF_MULTIPLAY_MACROS_H
 #include "gucefMULTIPLAY_macros.h"
@@ -54,45 +49,6 @@ namespace MULTIPLAY {
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-/**
- *  Appends values to a buffer in one fixed layout: whole numbers big endian, text and byte strings behind a
- *  32 bit length. Used for the bytes that are signed and for the container, where every machine must produce
- *  the same bytes for the same values.
- */
-class GUCEF_MULTIPLAY_EXPORT_CPP CMatchBinaryWriter
-{
-    public:
-
-    explicit CMatchBinaryWriter( CORE::CDynamicBuffer& target );
-
-    void WriteUInt8( UInt8 value );
-    void WriteUInt16( UInt16 value );
-    void WriteUInt32( UInt32 value );
-    void WriteUInt64( UInt64 value );
-    void WriteInt64( Int64 value );
-    void WriteBool( bool value );
-
-    /** The bytes as they are, without a length */
-    void WriteRaw( const void* data, UInt32 size );
-
-    /** A 32 bit length and the bytes */
-    void WriteBytes( const void* data, UInt32 size );
-
-    /** A 32 bit length and the UTF-8 bytes of the text */
-    void WriteString( const CORE::CString& text );
-
-    private:
-
-    CMatchBinaryWriter( const CMatchBinaryWriter& src );
-    CMatchBinaryWriter& operator=( const CMatchBinaryWriter& src );
-
-    private:
-
-    CORE::CDynamicBuffer& m_target;
-};
-
-/*-------------------------------------------------------------------------*/
 
 /**
  *  Reads what CMatchBinaryWriter wrote from bytes that are not trusted. Every read checks what is left first,
@@ -158,4 +114,4 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CMatchBinaryReader
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_MULTIPLAY_CMATCHBINARY_H ? */
+#endif /* GUCEF_MULTIPLAY_CMATCHBINARYREADER_H ? */

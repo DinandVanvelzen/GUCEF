@@ -75,6 +75,21 @@
 #define GUCEF_MULTIPLAY_CMATCHDECISIONEVIDENCE_H
 #endif /* GUCEF_MULTIPLAY_CMATCHDECISIONEVIDENCE_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CMATCHOPERATIONRESULT_H
+#include "gucefMULTIPLAY_CMatchOperationResult.h"
+#define GUCEF_MULTIPLAY_CMATCHOPERATIONRESULT_H
+#endif /* GUCEF_MULTIPLAY_CMATCHOPERATIONRESULT_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHUPDATE_H
+#include "gucefMULTIPLAY_CMatchUpdate.h"
+#define GUCEF_MULTIPLAY_CMATCHUPDATE_H
+#endif /* GUCEF_MULTIPLAY_CMATCHUPDATE_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHPROVIDERSTATE_H
+#include "gucefMULTIPLAY_CMatchProviderState.h"
+#define GUCEF_MULTIPLAY_CMATCHPROVIDERSTATE_H
+#endif /* GUCEF_MULTIPLAY_CMATCHPROVIDERSTATE_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -90,15 +105,6 @@ namespace MULTIPLAY {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-enum EMatchOperationStatus
-{
-    MATCHOPERATION_OK          = 0 ,    /**< done; for a repeated submission of the same package too */
-    MATCHOPERATION_STALE       = 1 ,    /**< the provider has a newer revision than the one expected; preview is the current one */
-    MATCHOPERATION_REJECTED    = 2 ,    /**< the provider does not accept it; reason says why */
-    MATCHOPERATION_NOT_FOUND   = 3
-};
-typedef enum EMatchOperationStatus TMatchOperationStatus;
-
 GUCEF_MULTIPLAY_EXPORT_CPP const char* MatchOperationStatusToString( TMatchOperationStatus status );
 
 /*-------------------------------------------------------------------------//
@@ -106,105 +112,6 @@ GUCEF_MULTIPLAY_EXPORT_CPP const char* MatchOperationStatusToString( TMatchOpera
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-/**
- *  The outcome of a call of a provider that was answered: the data of the future of the call and of
- *  SubmitResultEvent. A call that could not be made or finished at all (no connection) ends its future
- *  as failed instead.
- */
-class GUCEF_MULTIPLAY_EXPORT_CPP CMatchOperationResult : public CORE::CICloneable
-{
-    public:
-
-    TMatchOperationStatus status;
-    CORE::CString matchId;
-    CORE::CString reason;
-    CMatchPreview preview;          /**< the current preview of the match, when hasPreview */
-    bool hasPreview;
-    CMatchPackage package;          /**< the package a Fetch() asked for, when hasPackage */
-    bool hasPackage;
-
-    CMatchOperationResult( void );
-
-    CMatchOperationResult( const CMatchOperationResult& src );
-
-    virtual ~CMatchOperationResult();
-
-    CMatchOperationResult& operator=( const CMatchOperationResult& src );
-
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    static const char* CloneableTypeName( void );
-
-    /** Gets the result from a finished future of a call, false when the future is not finished successfully or has none */
-    static bool TryGetFromFuture( const CORE::CFutureResult& future, CMatchOperationResult& result );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** What a provider tells about a match: the data of MatchAddedEvent and MatchUpdatedEvent */
-class GUCEF_MULTIPLAY_EXPORT_CPP CMatchUpdate : public CORE::CIDataNodeSerializable
-{
-    public:
-
-    CMatchPreview preview;
-    CMatchInfo info;
-    bool hasInfo;                   /**< whether info is known to the provider */
-    CORE::CString cursor;           /**< the position of the provider in its source (IMAP UID state, ETag), kept by the match book */
-    CORE::CString providerName;
-
-    CMatchUpdate( void );
-
-    CMatchUpdate( const CMatchUpdate& src );
-
-    virtual ~CMatchUpdate();
-
-    CMatchUpdate& operator=( const CMatchUpdate& src );
-
-    virtual bool Serialize( CORE::CDataNode& domRootNode                        ,
-                            const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
-                              const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    static const char* CloneableTypeName( void );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** The data of ProviderStateEvent */
-class GUCEF_MULTIPLAY_EXPORT_CPP CMatchProviderState : public CORE::CICloneable
-{
-    public:
-
-    bool online;
-    CORE::CString providerName;
-    CORE::CString description;
-
-    CMatchProviderState( void );
-
-    CMatchProviderState( const CMatchProviderState& src );
-
-    virtual ~CMatchProviderState();
-
-    CMatchProviderState& operator=( const CMatchProviderState& src );
-
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    static const char* CloneableTypeName( void );
-};
-
-/*-------------------------------------------------------------------------*/
 
 /**
  *  A way matches are carried, one per backend (a live session, a shared folder, mail, a relay service). The match

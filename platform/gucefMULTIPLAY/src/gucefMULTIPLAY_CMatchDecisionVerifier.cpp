@@ -39,20 +39,6 @@ namespace MULTIPLAY {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CMatchDecisionResult::CMatchDecisionResult( void )
-    : valid( false )
-    , outcome( MATCHVOTEOUTCOME_UNDECIDED )
-    , yes( 0 )
-    , no( 0 )
-    , needed( 0 )
-    , eligible( 0 )
-    , reason()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
 UInt32
 CMatchDecisionVerifier::GetVotesNeeded( UInt32 eligibleCount )
 {GUCEF_TRACE;

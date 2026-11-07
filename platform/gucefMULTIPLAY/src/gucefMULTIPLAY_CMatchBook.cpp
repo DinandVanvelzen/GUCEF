@@ -44,6 +44,11 @@
 #define GUCEF_MULTIPLAY_CMATCHID_H
 #endif /* GUCEF_MULTIPLAY_CMATCHID_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CMATCHSYSTEMCLOCK_H
+#include "gucefMULTIPLAY_CMatchSystemClock.h"
+#define GUCEF_MULTIPLAY_CMATCHSYSTEMCLOCK_H
+#endif /* GUCEF_MULTIPLAY_CMATCHSYSTEMCLOCK_H ? */
+
 #include "gucefMULTIPLAY_CMatchBook.h"
 
 /*-------------------------------------------------------------------------//
@@ -148,162 +153,6 @@ class CEntryPointerComesBefore
 //      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-CMatchBookChange::CMatchBookChange( void )
-    : CORE::CICloneable()
-    , matchId()
-    , kind( MATCHBOOKCHANGE_UPDATED )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchBookChange::CMatchBookChange( const CORE::CString& id, TMatchBookChangeKind changeKind )
-    : CORE::CICloneable()
-    , matchId( id )
-    , kind( changeKind )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchBookChange::CMatchBookChange( const CMatchBookChange& src )
-    : CORE::CICloneable( src )
-    , matchId( src.matchId )
-    , kind( src.kind )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchBookChange::~CMatchBookChange()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchBookChange&
-CMatchBookChange::operator=( const CMatchBookChange& src )
-{GUCEF_TRACE;
-
-    if ( &src != this )
-    {
-        matchId = src.matchId;
-        kind = src.kind;
-    }
-    return *this;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CICloneable*
-CMatchBookChange::Clone( void ) const
-{GUCEF_TRACE;
-
-    return GUCEF_NEW CMatchBookChange( *this );
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CMatchBookChange::GetCloneableTypeName( void ) const
-{GUCEF_TRACE;
-
-    return CloneableTypeName();
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CMatchBookChange::CloneableTypeName( void )
-{GUCEF_TRACE;
-
-    return "GUCEF::MULTIPLAY::CMatchBookChange";
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchTurnEventData::CMatchTurnEventData( void )
-    : CORE::CICloneable()
-    , matchId()
-    , revision( 0 )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchTurnEventData::CMatchTurnEventData( const CORE::CString& id, UInt32 turnRevision )
-    : CORE::CICloneable()
-    , matchId( id )
-    , revision( turnRevision )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchTurnEventData::CMatchTurnEventData( const CMatchTurnEventData& src )
-    : CORE::CICloneable( src )
-    , matchId( src.matchId )
-    , revision( src.revision )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchTurnEventData::~CMatchTurnEventData()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchTurnEventData&
-CMatchTurnEventData::operator=( const CMatchTurnEventData& src )
-{GUCEF_TRACE;
-
-    if ( &src != this )
-    {
-        matchId = src.matchId;
-        revision = src.revision;
-    }
-    return *this;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CICloneable*
-CMatchTurnEventData::Clone( void ) const
-{GUCEF_TRACE;
-
-    return GUCEF_NEW CMatchTurnEventData( *this );
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CMatchTurnEventData::GetCloneableTypeName( void ) const
-{GUCEF_TRACE;
-
-    return CloneableTypeName();
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CMatchTurnEventData::CloneableTypeName( void )
-{GUCEF_TRACE;
-
-    return "GUCEF::MULTIPLAY::CMatchTurnEventData";
-}
-
-/*-------------------------------------------------------------------------*/
 
 void
 CMatchBook::RegisterEvents( void )

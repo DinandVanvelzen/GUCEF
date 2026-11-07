@@ -65,6 +65,11 @@
 #define GUCEF_MULTIPLAY_MACROS_H
 #endif /* GUCEF_MULTIPLAY_MACROS_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CASYNCLOBBYVIEW_H
+#include "gucefMULTIPLAY_CAsyncLobbyView.h"
+#define GUCEF_MULTIPLAY_CASYNCLOBBYVIEW_H
+#endif /* GUCEF_MULTIPLAY_CASYNCLOBBYVIEW_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -79,24 +84,6 @@ namespace MULTIPLAY {
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-/** One lobby as the local player sees it now, as a backend gives it */
-class GUCEF_MULTIPLAY_EXPORT_CPP CAsyncLobbyView
-{
-    public:
-
-    CLobbyState state;                  /**< the members, the slots, the phase and the settings; the same for every member */
-    CLobbySettingsSchema schema;
-    CORE::CString localMemberId;        /**< the member of the local player; empty when the local player is not in the lobby (yet) */
-    CLobbyPresentation presentation;    /**< what the screen shows and offers the local player */
-    bool closed;                        /**< the lobby is over: cancelled, begun or dismissed */
-    CORE::CString closedReason;         /**< why, in words, for the player; empty when it is not closed */
-    bool lastVotePassed;                /**< how the vote that ended last came out, for the event that tells it ended */
-
-    CAsyncLobbyView( void );
-};
-
-/*-------------------------------------------------------------------------*/
 
 /**
  *  What a lobby service whose members answer slowly needs from the transport under it, for example a mailbox: the rows

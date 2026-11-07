@@ -35,6 +35,11 @@
 #define GUCEF_MULTIPLAY_CMATCHDECISIONVERIFIER_H
 #endif /* GUCEF_MULTIPLAY_CMATCHDECISIONVERIFIER_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CMATCHDRAFTTALLY_H
+#include "gucefMULTIPLAY_CMatchDraftTally.h"
+#define GUCEF_MULTIPLAY_CMATCHDRAFTTALLY_H
+#endif /* GUCEF_MULTIPLAY_CMATCHDRAFTTALLY_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -77,51 +82,7 @@ typedef enum EMatchDraftResult TMatchDraftResult;
 
 GUCEF_MULTIPLAY_EXPORT_CPP const char* MatchDraftResultToString( TMatchDraftResult result );
 
-/** Where a decision of the draft stage stands, for the display of every participant */
-enum EMatchDraftState
-{
-    MATCHDRAFTSTATE_OPEN = 0 ,          /**< still counting */
-    MATCHDRAFTSTATE_PASSED ,            /**< the tally passed here; the host has not carried it out yet (within the time the host is given) */
-    MATCHDRAFTSTATE_FAILED ,            /**< it cannot pass any more, or its time is over */
-    MATCHDRAFTSTATE_APPLIED ,           /**< the host carried it out and the tally agrees */
-    MATCHDRAFTSTATE_HOST_IGNORED ,      /**< it passed here and the host has not carried it out within the time given: a warning, nobody can force the host */
-    MATCHDRAFTSTATE_HOST_MISCOUNT ,     /**< the host says it carried it out, and the votes known here do not pass it: a warning */
-    MATCHDRAFTSTATE_OBSOLETE            /**< it passed or is open, and what it is about has changed in the meantime (the participant is gone already) */
-};
-typedef enum EMatchDraftState TMatchDraftState;
-
 GUCEF_MULTIPLAY_EXPORT_CPP const char* MatchDraftStateToString( TMatchDraftState state );
-
-/*-------------------------------------------------------------------------*/
-
-/** How one proposal of the draft stage stands: the same figures on every machine that holds the same signed mails */
-class GUCEF_MULTIPLAY_EXPORT_CPP CMatchDraftTally
-{
-    public:
-
-    CORE::CString proposalId;
-    CORE::CString digest;
-    TMatchDecisionKind kind;
-    CORE::CString proposerUserId;
-    CORE::CString targetUserId;
-    GUCEF::vector< CORE::CString > targetUserIds;
-    UInt32 rosterRevision;
-    UInt32 yes;                                         /**< the proposer included */
-    UInt32 no;
-    UInt32 needed;
-    UInt32 eligible;
-    GUCEF::vector< CORE::CString > yesVoters;           /**< user ids, the proposer first */
-    GUCEF::vector< CORE::CString > noVoters;
-    GUCEF::vector< CORE::CString > notVoted;
-    TMatchVoteOutcome outcome;
-    TMatchDraftState state;
-    bool appliedByHost;                                 /**< a roster of the host names it as carried out */
-    Int64 createdAt;
-    Int64 deadline;
-    Int64 passedSeenAt;                                 /**< when it was first seen to pass here, 0 while it has not */
-
-    CMatchDraftTally( void );
-};
 
 /*-------------------------------------------------------------------------*/
 

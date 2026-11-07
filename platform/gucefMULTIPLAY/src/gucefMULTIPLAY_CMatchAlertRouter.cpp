@@ -27,6 +27,11 @@
 #define GUCEF_CORE_CDATANODE_H
 #endif /* GUCEF_CORE_CDATANODE_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CMATCHSYSTEMCLOCK_H
+#include "gucefMULTIPLAY_CMatchSystemClock.h"
+#define GUCEF_MULTIPLAY_CMATCHSYSTEMCLOCK_H
+#endif /* GUCEF_MULTIPLAY_CMATCHSYSTEMCLOCK_H ? */
+
 #include "gucefMULTIPLAY_CMatchAlertRouter.h"
 
 /*-------------------------------------------------------------------------//

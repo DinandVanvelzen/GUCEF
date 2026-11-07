@@ -101,33 +101,6 @@ MatchDraftStateToString( TMatchDraftState state )
 
 /*-------------------------------------------------------------------------*/
 
-CMatchDraftTally::CMatchDraftTally( void )
-    : proposalId()
-    , digest()
-    , kind( MATCHDECISION_KICK )
-    , proposerUserId()
-    , targetUserId()
-    , targetUserIds()
-    , rosterRevision( 0 )
-    , yes( 0 )
-    , no( 0 )
-    , needed( 0 )
-    , eligible( 0 )
-    , yesVoters()
-    , noVoters()
-    , notVoted()
-    , outcome( MATCHVOTEOUTCOME_UNDECIDED )
-    , state( MATCHDRAFTSTATE_OPEN )
-    , appliedByHost( false )
-    , createdAt( 0 )
-    , deadline( 0 )
-    , passedSeenAt( 0 )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
 CMatchDraftBoard::CMatchDraftBoard( void )
     : CORE::CIDataNodeSerializable()
     , m_matchId()

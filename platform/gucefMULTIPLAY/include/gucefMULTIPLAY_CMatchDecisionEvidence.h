@@ -30,6 +30,11 @@
 #define GUCEF_MULTIPLAY_CMATCHPROPOSAL_H
 #endif /* GUCEF_MULTIPLAY_CMATCHPROPOSAL_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CMATCHVOTE_H
+#include "gucefMULTIPLAY_CMatchVote.h"
+#define GUCEF_MULTIPLAY_CMATCHVOTE_H
+#endif /* GUCEF_MULTIPLAY_CMATCHVOTE_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

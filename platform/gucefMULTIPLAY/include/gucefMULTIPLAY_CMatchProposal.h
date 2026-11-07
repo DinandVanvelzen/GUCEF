@@ -129,54 +129,6 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CMatchProposal : public CORE::CIDataNodeSeriali
     static const char* CloneableTypeName( void );
 };
 
-/*-------------------------------------------------------------------------*/
-
-/**
- *  The answer of a participant to a proposal, signed. It names the digest of the proposal it answers, so a vote
- *  for one proposal is no vote for another, and the match id is the context of the signature.
- */
-class GUCEF_MULTIPLAY_EXPORT_CPP CMatchVote : public CORE::CIDataNodeSerializable
-{
-    public:
-
-    CORE::CString matchId;
-    CORE::CString proposalId;
-    CORE::CString proposalDigest;
-    CORE::CString voterUserId;
-    bool yes;
-    Int64 createdAt;
-    CORE::CString signature;            /**< hex */
-
-    CMatchVote( void );
-
-    CMatchVote( const CMatchVote& src );
-
-    virtual ~CMatchVote();
-
-    CMatchVote& operator=( const CMatchVote& src );
-
-    void WriteSigningBytes( CMatchBinaryWriter& writer ) const;
-
-    /** Makes the vote of the identity on the proposal and signs it */
-    bool Sign( const CPlayerIdentity& voter, const CMatchProposal& proposal, bool voteYes, Int64 now );
-
-    bool VerifySignature( const CMatchInfo& info ) const;
-
-    virtual bool Serialize( CORE::CDataNode& domRootNode                        ,
-                            const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
-                              const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    static const char* CloneableTypeName( void );
-};
-
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

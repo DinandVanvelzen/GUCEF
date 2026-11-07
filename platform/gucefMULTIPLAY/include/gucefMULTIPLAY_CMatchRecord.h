@@ -35,6 +35,11 @@
 #define GUCEF_MULTIPLAY_CPLAYERIDENTITY_H
 #endif /* GUCEF_MULTIPLAY_CPLAYERIDENTITY_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CMATCHACCEPTANCE_H
+#include "gucefMULTIPLAY_CMatchAcceptance.h"
+#define GUCEF_MULTIPLAY_CMATCHACCEPTANCE_H
+#endif /* GUCEF_MULTIPLAY_CMATCHACCEPTANCE_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -91,56 +96,6 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CMatchRecord : public CORE::CIDataNodeSerializa
     virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     static const char* CloneableTypeName( void );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/**
- *  The answer of an invitee to a match record, signed with the key the record pins for it. Joining by a signed
- *  acceptance proves that the invitee holds the key and binds the contact of the record to it. The acceptance
- *  names the digest of the record it answers, so it is no answer to a changed record.
- */
-class GUCEF_MULTIPLAY_EXPORT_CPP CMatchAcceptance : public CORE::CIDataNodeSerializable
-{
-    public:
-
-    CORE::CString matchId;
-    CORE::CString userId;
-    bool accepted;                      /**< false for a decline */
-    CORE::CString recordDigest;         /**< CMatchInfo::GetDigest() of the record that is answered */
-    CORE::CString signature;            /**< hex */
-
-    CMatchAcceptance( void );
-
-    CMatchAcceptance( const CMatchAcceptance& src );
-
-    virtual ~CMatchAcceptance();
-
-    CMatchAcceptance& operator=( const CMatchAcceptance& src );
-
-    /** Makes the acceptance of the record by the identity and signs it */
-    bool Sign( const CPlayerIdentity& identity, const CMatchInfo& record, bool accept );
-
-    /** Whether it answers exactly this record and is signed by the pinned key of the participant it names */
-    bool Verify( const CMatchInfo& record, CORE::CString& reason ) const;
-
-    virtual bool Serialize( CORE::CDataNode& domRootNode                        ,
-                            const CORE::CDataNodeSerializableSettings& settings ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual bool Deserialize( const CORE::CDataNode& domRootNode                  ,
-                              const CORE::CDataNodeSerializableSettings& settings ) GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    static const char* CloneableTypeName( void );
-
-    private:
-
-    void GetSigningBytes( CORE::CDynamicBuffer& bytes ) const;
 };
 
 /*-------------------------------------------------------------------------//

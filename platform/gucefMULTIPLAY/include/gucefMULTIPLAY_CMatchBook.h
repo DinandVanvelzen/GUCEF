@@ -60,6 +60,16 @@
 #define GUCEF_MULTIPLAY_CIMATCHCLOCK_H
 #endif /* GUCEF_MULTIPLAY_CIMATCHCLOCK_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CMATCHBOOKCHANGE_H
+#include "gucefMULTIPLAY_CMatchBookChange.h"
+#define GUCEF_MULTIPLAY_CMATCHBOOKCHANGE_H
+#endif /* GUCEF_MULTIPLAY_CMATCHBOOKCHANGE_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHTURNEVENTDATA_H
+#include "gucefMULTIPLAY_CMatchTurnEventData.h"
+#define GUCEF_MULTIPLAY_CMATCHTURNEVENTDATA_H
+#endif /* GUCEF_MULTIPLAY_CMATCHTURNEVENTDATA_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -75,75 +85,11 @@ namespace MULTIPLAY {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-enum EMatchBookChangeKind
-{
-    MATCHBOOKCHANGE_ADDED   = 0 ,
-    MATCHBOOKCHANGE_UPDATED = 1 ,   /**< a newer state arrived */
-    MATCHBOOKCHANGE_REMOVED = 2 ,
-    MATCHBOOKCHANGE_OPENED  = 3 ,   /**< the player opened the match: match alerts for it are cleared */
-    MATCHBOOKCHANGE_FLAGS   = 4     /**< seen, muted, pinned or archived changed */
-};
-typedef enum EMatchBookChangeKind TMatchBookChangeKind;
-
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-/** The data of MatchBookChangedEvent */
-class GUCEF_MULTIPLAY_EXPORT_CPP CMatchBookChange : public CORE::CICloneable
-{
-    public:
-
-    CORE::CString matchId;
-    TMatchBookChangeKind kind;
-
-    CMatchBookChange( void );
-
-    CMatchBookChange( const CORE::CString& id, TMatchBookChangeKind changeKind );
-
-    CMatchBookChange( const CMatchBookChange& src );
-
-    virtual ~CMatchBookChange();
-
-    CMatchBookChange& operator=( const CMatchBookChange& src );
-
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    static const char* CloneableTypeName( void );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/** The data of YourTurnEvent: the match and the revision that made it the player's turn */
-class GUCEF_MULTIPLAY_EXPORT_CPP CMatchTurnEventData : public CORE::CICloneable
-{
-    public:
-
-    CORE::CString matchId;
-    UInt32 revision;
-
-    CMatchTurnEventData( void );
-
-    CMatchTurnEventData( const CORE::CString& id, UInt32 turnRevision );
-
-    CMatchTurnEventData( const CMatchTurnEventData& src );
-
-    virtual ~CMatchTurnEventData();
-
-    CMatchTurnEventData& operator=( const CMatchTurnEventData& src );
-
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-
-    static const char* CloneableTypeName( void );
-};
-
-/*-------------------------------------------------------------------------*/
 
 /**
  *  The local library of matches of a player: owns the providers, merges what they tell (the previews) into one entry
