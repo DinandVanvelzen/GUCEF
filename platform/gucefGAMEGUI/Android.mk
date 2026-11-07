@@ -30,6 +30,10 @@ LOCAL_SRC_FILES := \
   src/gucefGAMEGUI_CGameGuiGlobal.cpp \
   src/gucefGAMEGUI_CLobbyForm.cpp \
   src/gucefGAMEGUI_CLobbySettingsPanelForm.cpp \
+  src/gucefGAMEGUI_CMailAccountForm.cpp \
+  src/gucefGAMEGUI_CMatchIndicatorForm.cpp \
+  src/gucefGAMEGUI_CMatchListForm.cpp \
+  src/gucefGAMEGUI_CMatchTableForm.cpp \
   src/gucefGAMEGUI_CModule.cpp \
   src/gucefGAMEGUI_CPlayerProfileForm.cpp \
   src/gucefGAMEGUI_CServerBrowserForm.cpp \

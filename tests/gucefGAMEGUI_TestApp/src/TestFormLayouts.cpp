@@ -1,20 +1,18 @@
 /*
  *  gucefGAMEGUI_TestApp: Application for testing gucefGAMEGUI
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -83,6 +81,9 @@ void
 Collect( GUI::CWidget* widget, TWidgetVector& all )
 {
     all.push_back( widget );
+    // what is in a hidden widget is hidden with it
+    if ( !widget->IsVisible() )
+        return;
     const GUI::CWidget::TWidgetVector& children = widget->GetChildren();
     for ( UInt32 i=0; i<(UInt32)children.size(); ++i )
         Collect( children[ i ], all );
@@ -540,9 +541,9 @@ PerformFormLayoutTests( void )
             const GUI::CRect rect = window->GetRect();
             const CORE::CString where = " at " + SizeName( screenWidth, screenHeight );
 
-            // nine tenths of the screen, within the limits, in the middle
+            // nine tenths of the screen (the height less 64 pixels), within the limits, in the middle
             Int32 wantedWidth = (Int32) ( ( screenWidth * 9 + 5 ) / 10 );
-            Int32 wantedHeight = (Int32) ( ( screenHeight * 9 + 5 ) / 10 );
+            Int32 wantedHeight = (Int32) ( ( screenHeight * 9 + 5 ) / 10 ) - 64;       // 64 pixels lower than the screen allows: the title bar clears the badge of the games that wait
             wantedWidth = wantedWidth < 560 ? 560 : ( wantedWidth > 2000 ? 2000 : wantedWidth );
             wantedHeight = wantedHeight < 460 ? 460 : ( wantedHeight > 1000 ? 1000 : wantedHeight );
             ASSERT_TRUE( rect.width == wantedWidth && rect.height == wantedHeight );
@@ -652,7 +653,7 @@ PerformFormLayoutTests( void )
 
         // the handlers of the buttons, the text fields, the navigation and the frames of the context
         const UInt32 subscriptions = GetEventSubscriptionCount( form );
-        ASSERT_TRUE( 6 == subscriptions );
+        ASSERT_TRUE( 7 == subscriptions );
 
         // one column: the body scrolls as a whole, the settings are in it below the general fields
         GUI::CScrollPanel* body = AsScrollPanelOf( form.GetWidget( "Body" ) );

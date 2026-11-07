@@ -1,7 +1,7 @@
 /*
  *  gucefGAMEGUI: GUCEF module providing prebaked GUI forms for rapid game development
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -263,6 +263,12 @@ CVotePromptForm::DescribeVote( const MULTIPLAY::CLobbyVote& vote             ,
     }
     if ( "start" == vote.what )
         return proposerName + " proposes to start the game";
+    if ( "forcestart" == vote.what )
+        return proposerName + " proposes to begin the game now, with the computer in the places of the players who have not answered";
+    if ( "cancel" == vote.what )
+        return proposerName + " proposes to cancel the game";
+    if ( "kick" == vote.what )
+        return proposerName + " proposes to remove " + ( vote.value.IsNULLOrEmpty() ? vote.key : vote.value );
     return proposerName + " proposes: " + vote.what;
 }
 

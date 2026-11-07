@@ -1,7 +1,7 @@
 /*
  *  gucefGAMEGUI: GUCEF module providing prebaked GUI forms for rapid game development
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -87,6 +87,35 @@ class GUCEF_GAMEGUI_EXPORT_CPP CCreateLobbyRequest : public CORE::CICloneable
 /*-------------------------------------------------------------------------*/
 
 /**
+ *  What the form to start a lobby asks for and shows, for a lobby that has no password, no spectators to allow, no LAN or internet and no lobby
+ *  service to choose (a game by mail), and that asks the maker to invite the other players by name and contact. The defaults are the form of a
+ *  lobby on a network.
+ */
+class GUCEF_GAMEGUI_EXPORT_CPP CCreateLobbyCapabilities
+{
+    public:
+
+    bool showPassword;
+    bool showSpectators;
+    bool showWhere;                         /**< LAN or internet */
+    bool showService;                       /**< the lobby service to make the lobby with */
+    bool showInvitees;                      /**< a row per player besides the maker: name, contact and optionally the code of the player */
+
+    CORE::CString title;                    /**< the title of the window */
+    CORE::CString nameLabel;
+    CORE::CString playersLabel;
+    CORE::CString createText;
+    CORE::CString inviteesLabel;            /**< the header above the rows of the invited players */
+    CORE::CString inviteesHint;             /**< what to fill in, in plain words, below the header */
+    UInt32 minPlayers;
+    UInt32 maxPlayers;                      /**< the most the field of the players takes, at most MaxPlayersLimit */
+
+    CCreateLobbyCapabilities( void );
+};
+
+/*-------------------------------------------------------------------------*/
+
+/**
  *  The form to start a lobby: its name, a password, the most players, whether spectators may watch, whether it is on the
  *  LAN or on the internet, the lobby service to make it with, and the game settings of the schema (the same panel the
  *  lobby shows, CLobbySettingsPanelForm). Create checks the name and notifies CreateRequestedEvent with the
@@ -116,6 +145,9 @@ class GUCEF_GAMEGUI_EXPORT_CPP CCreateLobbyForm : public GUI::CFormEx
 
     /** The most players a lobby can be made for */
     static const UInt32 MaxPlayersLimit = 64;
+
+    /** The most rows of invited players (the players besides the maker) */
+    static const UInt32 MaxInviteeRows = 7;
 
     CCreateLobbyForm( void );
 
@@ -150,6 +182,18 @@ class GUCEF_GAMEGUI_EXPORT_CPP CCreateLobbyForm : public GUI::CFormEx
 
     /** The panel with the settings of the schema, NULL before the form is built */
     CLobbySettingsPanelForm* GetSettingsPanel( void ) const;
+
+    /** What the form asks for and shows; the window is made again when it is there already, what the player filled in stays */
+    void SetCapabilities( const CCreateLobbyCapabilities& capabilities );
+    const CCreateLobbyCapabilities& GetCapabilities( void ) const;
+
+    /** The rows of invited players that are shown: one for every player besides the maker */
+    UInt32 GetVisibleInviteeRows( void );
+    bool SetInvitee( UInt32 index, const CORE::CString& name, const CORE::CString& contact, const CORE::CString& code );
+    bool GetInvitee( UInt32 index, MULTIPLAY::CLobbyInvitation& invitation );
+
+    /** The text of the error line, shown until the next Open() or a good Create(); for what the application finds wrong with the wishes */
+    void SetErrorText( const CORE::CString& text );
 
     /**
      *  The params as the form has them now.
@@ -192,6 +236,9 @@ class GUCEF_GAMEGUI_EXPORT_CPP CCreateLobbyForm : public GUI::CFormEx
     void OnCreateActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnCancelActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnFieldTextEntered( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnPlayersChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void ShowInviteeRows( void );
+    void ReloadLayoutKeepingFields( void );
     void OnNavigation( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
 
     CCreateLobbyForm( const CCreateLobbyForm& src );
@@ -202,6 +249,7 @@ class GUCEF_GAMEGUI_EXPORT_CPP CCreateLobbyForm : public GUI::CFormEx
     MULTIPLAY::CLobbyCreateParams m_template;
     CORE::CString::StringVector m_serviceNames;
     CLobbySettingsPanelForm* m_settingsPanel;
+    CCreateLobbyCapabilities m_capabilities;
     TTier m_tier;                   /**< the layout: one column that scrolls as a whole (narrow), two columns, or two with columns of groups (wide) */
     bool m_open;
     bool m_subscribedToFrames;

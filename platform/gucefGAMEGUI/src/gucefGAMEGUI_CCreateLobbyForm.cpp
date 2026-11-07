@@ -1,7 +1,7 @@
 /*
  *  gucefGAMEGUI: GUCEF module providing prebaked GUI forms for rapid game development
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -111,6 +111,7 @@ const Int32 WideGeneralWidth = 480;
 
 /** Below the title bar (of the dark theme), and the strip with the error and the buttons along the bottom edge */
 const Int32 ContentTop = WindowContentTop;
+const char* const OpaqueColour = "24,27,34,255";     /**< the fill of the form and its columns: the list behind the form must not show through */
 const Int32 FooterHeight = WindowFooterHeight;
 
 const Int32 LabelHeight = 24;
@@ -124,6 +125,26 @@ const Int32 FieldHeight = LabelHeight + 2 + ControlHeight;
 //      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+CCreateLobbyCapabilities::CCreateLobbyCapabilities( void )
+    : showPassword( true )
+    , showSpectators( true )
+    , showWhere( true )
+    , showService( true )
+    , showInvitees( false )
+    , title( "Create a lobby" )
+    , nameLabel( "Name" )
+    , playersLabel( "Most players" )
+    , createText( "Create" )
+    , inviteesLabel( "Invited players" )
+    , inviteesHint()
+    , minPlayers( 1 )
+    , maxPlayers( CCreateLobbyForm::MaxPlayersLimit )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
 
 CCreateLobbyRequest::CCreateLobbyRequest( void )
     : CORE::CICloneable()
@@ -190,6 +211,7 @@ CCreateLobbyForm::CCreateLobbyForm( void )
     , m_template()
     , m_serviceNames()
     , m_settingsPanel( GUCEF_NULL )
+    , m_capabilities()
     , m_tier( TIER_NORMAL )
     , m_open( false )
     , m_subscribedToFrames( false )
@@ -207,6 +229,7 @@ CCreateLobbyForm::CCreateLobbyForm( GUI::CIGUIContext* context )
     , m_template()
     , m_serviceNames()
     , m_settingsPanel( GUCEF_NULL )
+    , m_capabilities()
     , m_tier( TIER_NORMAL )
     , m_open( false )
     , m_subscribedToFrames( false )
@@ -236,35 +259,82 @@ CCreateLobbyForm::AddGeneralFields( CORE::CDataNode& parent )
     // every field is a label above its control, in a panel of its own so the pairs stand apart
     CORE::CDataNode* nameField = GUI::CFormLayout::AddWidgetNode( parent, "Panel", "NameField", "0,0 0,0", "1,0 0," + CORE::Int32ToString( FieldHeight ) );
     CORE::CDataNode* nameLabel = GUI::CFormLayout::AddWidgetNode( *nameField, "Label", "NameLabel", "0,0 0,0", "1,0 0," + CORE::Int32ToString( LabelHeight ) );
-    GUI::CFormLayout::SetWidgetNodeProperty( *nameLabel, GUI::EWidgetProperty_Text, "Name" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *nameLabel, GUI::EWidgetProperty_Text, m_capabilities.nameLabel );
     GUI::CFormLayout::AddWidgetNode( *nameField, "Editbox", "Name", "0,0 0," + CORE::Int32ToString( LabelHeight + 2 ), "1,0 0," + CORE::Int32ToString( ControlHeight ) );
 
-    CORE::CDataNode* passwordField = GUI::CFormLayout::AddWidgetNode( parent, "Panel", "PasswordField", "0,0 0,0", "1,0 0," + CORE::Int32ToString( FieldHeight ) );
-    CORE::CDataNode* passwordLabel = GUI::CFormLayout::AddWidgetNode( *passwordField, "Label", "PasswordLabel", "0,0 0,0", "1,0 0," + CORE::Int32ToString( LabelHeight ) );
-    GUI::CFormLayout::SetWidgetNodeProperty( *passwordLabel, GUI::EWidgetProperty_Text, "Password (optional)" );
-    GUI::CFormLayout::AddWidgetNode( *passwordField, "Editbox", "Password", "0,0 0," + CORE::Int32ToString( LabelHeight + 2 ), "1,0 0," + CORE::Int32ToString( ControlHeight ) );
+    if ( m_capabilities.showPassword )
+    {
+        CORE::CDataNode* passwordField = GUI::CFormLayout::AddWidgetNode( parent, "Panel", "PasswordField", "0,0 0,0", "1,0 0," + CORE::Int32ToString( FieldHeight ) );
+        CORE::CDataNode* passwordLabel = GUI::CFormLayout::AddWidgetNode( *passwordField, "Label", "PasswordLabel", "0,0 0,0", "1,0 0," + CORE::Int32ToString( LabelHeight ) );
+        GUI::CFormLayout::SetWidgetNodeProperty( *passwordLabel, GUI::EWidgetProperty_Text, "Password (optional)" );
+        GUI::CFormLayout::AddWidgetNode( *passwordField, "Editbox", "Password", "0,0 0," + CORE::Int32ToString( LabelHeight + 2 ), "1,0 0," + CORE::Int32ToString( ControlHeight ) );
+    }
 
+    const UInt32 playersMax = m_capabilities.maxPlayers < MaxPlayersLimit ? m_capabilities.maxPlayers : MaxPlayersLimit;
     CORE::CDataNode* playersField = GUI::CFormLayout::AddWidgetNode( parent, "Panel", "PlayersField", "0,0 0,0", "1,0 0," + CORE::Int32ToString( FieldHeight ) );
     CORE::CDataNode* maxLabel = GUI::CFormLayout::AddWidgetNode( *playersField, "Label", "MaxPlayersLabel", "0,0 0,0", "1,0 0," + CORE::Int32ToString( LabelHeight ) );
-    GUI::CFormLayout::SetWidgetNodeProperty( *maxLabel, GUI::EWidgetProperty_Text, "Most players" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *maxLabel, GUI::EWidgetProperty_Text, m_capabilities.playersLabel );
     CORE::CDataNode* max = GUI::CFormLayout::AddWidgetNode( *playersField, "Spinner", "MaxPlayers", "0,0 0," + CORE::Int32ToString( LabelHeight + 2 ), "0,150 0," + CORE::Int32ToString( ControlHeight ) );
-    GUI::CFormLayout::SetWidgetNodeProperty( *max, GUI::EWidgetProperty_Min, "1" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *max, GUI::EWidgetProperty_Max, CORE::UInt32ToString( MaxPlayersLimit ) );
+    GUI::CFormLayout::SetWidgetNodeProperty( *max, GUI::EWidgetProperty_Min, CORE::UInt32ToString( m_capabilities.minPlayers ) );
+    GUI::CFormLayout::SetWidgetNodeProperty( *max, GUI::EWidgetProperty_Max, CORE::UInt32ToString( playersMax ) );
     GUI::CFormLayout::SetWidgetNodeProperty( *max, GUI::EWidgetProperty_Step, "1" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *max, GUI::EWidgetProperty_Value, "8" );
-    CORE::CDataNode* spectators = GUI::CFormLayout::AddWidgetNode( parent, "Checkbox", "Spectators", "0,0 0,0", "1,0 0," + CORE::Int32ToString( ControlHeight ) );
-    GUI::CFormLayout::SetWidgetNodeProperty( *spectators, GUI::EWidgetProperty_Text, "Spectators may watch" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *max, GUI::EWidgetProperty_Value, CORE::UInt32ToString( m_capabilities.minPlayers > 8 ? m_capabilities.minPlayers : ( playersMax < 8 ? playersMax : 8 ) ) );
+    if ( m_capabilities.showSpectators )
+    {
+        CORE::CDataNode* spectators = GUI::CFormLayout::AddWidgetNode( parent, "Checkbox", "Spectators", "0,0 0,0", "1,0 0," + CORE::Int32ToString( ControlHeight ) );
+        GUI::CFormLayout::SetWidgetNodeProperty( *spectators, GUI::EWidgetProperty_Text, "Spectators may watch" );
+    }
 
-    // where the lobby is, and the service that makes it: side by side
-    CORE::CDataNode* whereField = GUI::CFormLayout::AddWidgetNode( parent, "Panel", "WhereField", "0,0 0,0", "1,0 0," + CORE::Int32ToString( FieldHeight ) );
-    CORE::CDataNode* whereLabel = GUI::CFormLayout::AddWidgetNode( *whereField, "Label", "WhereLabel", "0,0 0,0", "0.5,-6 0," + CORE::Int32ToString( LabelHeight ) );
-    GUI::CFormLayout::SetWidgetNodeProperty( *whereLabel, GUI::EWidgetProperty_Text, "Where" );
-    CORE::CDataNode* where = GUI::CFormLayout::AddWidgetNode( *whereField, "Combobox", "Where", "0,0 0," + CORE::Int32ToString( LabelHeight + 2 ), "0.5,-6 0," + CORE::Int32ToString( ControlHeight ) );
-    GUI::CFormLayout::SetWidgetNodeProperty( *where, GUI::EWidgetProperty_Items, "LAN\nInternet" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *where, GUI::EWidgetProperty_SelectedIndex, "0" );
-    CORE::CDataNode* serviceLabel = GUI::CFormLayout::AddWidgetNode( *whereField, "Label", "ServiceLabel", "0.5,6 0,0", "0.5,-7 0," + CORE::Int32ToString( LabelHeight ) );
-    GUI::CFormLayout::SetWidgetNodeProperty( *serviceLabel, GUI::EWidgetProperty_Text, "Lobby service" );
-    GUI::CFormLayout::AddWidgetNode( *whereField, "Combobox", "Service", "0.5,6 0," + CORE::Int32ToString( LabelHeight + 2 ), "0.5,-7 0," + CORE::Int32ToString( ControlHeight ) );
+    // where the lobby is, and the service that makes it: side by side, or the one that is there
+    if ( m_capabilities.showWhere || m_capabilities.showService )
+    {
+        const bool both = m_capabilities.showWhere && m_capabilities.showService;
+        CORE::CDataNode* whereField = GUI::CFormLayout::AddWidgetNode( parent, "Panel", "WhereField", "0,0 0,0", "1,0 0," + CORE::Int32ToString( FieldHeight ) );
+        if ( m_capabilities.showWhere )
+        {
+            CORE::CDataNode* whereLabel = GUI::CFormLayout::AddWidgetNode( *whereField, "Label", "WhereLabel", "0,0 0,0", both ? CORE::CString( "0.5,-6 0," ) + CORE::Int32ToString( LabelHeight ) : CORE::CString( "1,0 0," ) + CORE::Int32ToString( LabelHeight ) );
+            GUI::CFormLayout::SetWidgetNodeProperty( *whereLabel, GUI::EWidgetProperty_Text, "Where" );
+            CORE::CDataNode* where = GUI::CFormLayout::AddWidgetNode( *whereField, "Combobox", "Where", "0,0 0," + CORE::Int32ToString( LabelHeight + 2 ), both ? CORE::CString( "0.5,-6 0," ) + CORE::Int32ToString( ControlHeight ) : CORE::CString( "1,0 0," ) + CORE::Int32ToString( ControlHeight ) );
+            GUI::CFormLayout::SetWidgetNodeProperty( *where, GUI::EWidgetProperty_Items, "LAN\nInternet" );
+            GUI::CFormLayout::SetWidgetNodeProperty( *where, GUI::EWidgetProperty_SelectedIndex, "0" );
+        }
+        if ( m_capabilities.showService )
+        {
+            CORE::CDataNode* serviceLabel = GUI::CFormLayout::AddWidgetNode( *whereField, "Label", "ServiceLabel", both ? CORE::CString( "0.5,6 0,0" ) : CORE::CString( "0,0 0,0" ), both ? CORE::CString( "0.5,-7 0," ) + CORE::Int32ToString( LabelHeight ) : CORE::CString( "1,0 0," ) + CORE::Int32ToString( LabelHeight ) );
+            GUI::CFormLayout::SetWidgetNodeProperty( *serviceLabel, GUI::EWidgetProperty_Text, "Lobby service" );
+            GUI::CFormLayout::AddWidgetNode( *whereField, "Combobox", "Service", both ? CORE::CString( "0.5,6 0," ) + CORE::Int32ToString( LabelHeight + 2 ) : CORE::CString( "0,0 0," ) + CORE::Int32ToString( LabelHeight + 2 ), both ? CORE::CString( "0.5,-7 0," ) + CORE::Int32ToString( ControlHeight ) : CORE::CString( "1,0 0," ) + CORE::Int32ToString( ControlHeight ) );
+        }
+    }
+
+    // the players to invite: a row each, for the players besides the maker; only as many as the number of players asks for are shown
+    if ( m_capabilities.showInvitees )
+    {
+        CORE::CDataNode* header = GUI::CFormLayout::AddWidgetNode( parent, "Label", "InviteesLabel", "0,0 0,0", "1,0 0," + CORE::Int32ToString( LabelHeight ) );
+        GUI::CFormLayout::SetWidgetNodeProperty( *header, GUI::EWidgetProperty_Text, m_capabilities.inviteesLabel );
+        GUI::CFormLayout::SetWidgetNodeProperty( *header, GUI::EWidgetProperty_TextColour, "150,172,214,255" );
+        if ( !m_capabilities.inviteesHint.IsNULLOrEmpty() )
+        {
+            CORE::CDataNode* hint = GUI::CFormLayout::AddWidgetNode( parent, "Label", "InviteesHint", "0,0 0,0", "1,0 0,170" );
+            GUI::CFormLayout::SetWidgetNodeProperty( *hint, GUI::EWidgetProperty_Text, m_capabilities.inviteesHint );
+            GUI::CFormLayout::SetWidgetNodeProperty( *hint, GUI::EWidgetProperty_WordWrap, "true" );
+            GUI::CFormLayout::SetWidgetNodeProperty( *hint, GUI::EWidgetProperty_TextColour, "170,175,190,255" );
+        }
+        for ( UInt32 i=0; i<MaxInviteeRows; ++i )
+        {
+            const CORE::CString number = CORE::UInt32ToString( i );
+            CORE::CDataNode* row = GUI::CFormLayout::AddWidgetNode( parent, "Panel", "InviteeRow" + number, "0,0 0,0", "1,0 0,72" );
+            CORE::CDataNode* name = GUI::CFormLayout::AddWidgetNode( *row, "Editbox", "InviteeName" + number, "0,0 0,0", "0.36,-4 0,32" );
+            GUI::CFormLayout::SetWidgetNodeProperty( *name, GUI::EWidgetProperty_Tooltip, "The name of the player" );
+            CORE::CDataNode* contact = GUI::CFormLayout::AddWidgetNode( *row, "Editbox", "InviteeContact" + number, "0.36,4 0,0", "0.64,-4 0,32" );
+            GUI::CFormLayout::SetWidgetNodeProperty( *contact, GUI::EWidgetProperty_Tooltip, "How to reach the player, for example a mail address" );
+            CORE::CDataNode* codeLabel = GUI::CFormLayout::AddWidgetNode( *row, "Label", "InviteeCodeLabel" + number, "0,0 0,38", "0.36,-4 0,32" );
+            GUI::CFormLayout::SetWidgetNodeProperty( *codeLabel, GUI::EWidgetProperty_Text, "Code (optional)" );
+            GUI::CFormLayout::SetWidgetNodeProperty( *codeLabel, GUI::EWidgetProperty_VTextAlign, "Center" );
+            GUI::CFormLayout::SetWidgetNodeProperty( *codeLabel, GUI::EWidgetProperty_TextColour, "170,175,190,255" );
+            CORE::CDataNode* code = GUI::CFormLayout::AddWidgetNode( *row, "Editbox", "InviteeCode" + number, "0.36,4 0,38", "0.64,-4 0,32" );
+            GUI::CFormLayout::SetWidgetNodeProperty( *code, GUI::EWidgetProperty_Tooltip, "The player code the player shows on their account page, when you have it" );
+        }
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -280,8 +350,12 @@ CCreateLobbyForm::AddFooter( CORE::CDataNode& window )
     CORE::CDataNode* error = GUI::CFormLayout::AddWidgetNode( *footer, "Label", "Error", "0,20 0,8", "1,-40 0,24" );
     GUI::CFormLayout::SetWidgetNodeProperty( *error, GUI::EWidgetProperty_TextColour, "255,110,110,255" );
 
-    CORE::CDataNode* create = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "Create", "1,-252 1,-52", "0,112 0,38" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *create, GUI::EWidgetProperty_Text, "Create" );
+    // the button is as wide as its words need
+    Int32 createWidth = 28 + 8 * (Int32) m_capabilities.createText.Length();
+    if ( createWidth < 112 )
+        createWidth = 112;
+    CORE::CDataNode* create = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "Create", "1," + CORE::Int32ToString( -( 140 + createWidth ) ) + " 1,-52", "0," + CORE::Int32ToString( createWidth ) + " 0,38" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *create, GUI::EWidgetProperty_Text, m_capabilities.createText );
     GUI::CFormLayout::SetWidgetNodeProperty( *create, GUI::EWidgetProperty_StyleClass, "Primary" );
     CORE::CDataNode* cancel = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "Cancel", "1,-128 1,-52", "0,112 0,38" );
     GUI::CFormLayout::SetWidgetNodeProperty( *cancel, GUI::EWidgetProperty_Text, "Cancel" );
@@ -294,13 +368,16 @@ CCreateLobbyForm::BuildLayout( CORE::CDataNode& layout )
 {GUCEF_TRACE;
 
     // a window of nine tenths of the screen up to a size that is plenty, in the middle of it
-    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "CreateLobbyForm", "0.5,0 0.5,0", "0.9,0 0.9,0" );
-    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Title, "Create a lobby" );
+    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "CreateLobbyForm", "0.5,0 0.5,0", "0.9,0 0.9,-64" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Title, m_capabilities.title );
     GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_HAlign, "Center" );
     GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_VAlign, "Center" );
     GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_MinSize, "0," + CORE::Int32ToString( MinWindowWidth ) + " 0," + CORE::Int32ToString( MinWindowHeight ) );
     GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_MaxSize, "0," + CORE::Int32ToString( MaxWindowWidth ) + " 0," + CORE::Int32ToString( MaxWindowHeight ) );
     GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Clip, "true" );
+
+    // opaque: the list of games that is behind the form does not show through it
+    GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_BackgroundColour, OpaqueColour );
 
     const CORE::CString bodyTop = CORE::Int32ToString( ContentTop );
     const CORE::CString headerColour = "150,172,214,255";
@@ -309,6 +386,7 @@ CCreateLobbyForm::BuildLayout( CORE::CDataNode& layout )
     {
         // one column that scrolls as a whole: the general fields, then the game settings
         CORE::CDataNode* body = GUI::CFormLayout::AddWidgetNode( *window, "ScrollPanel", "Body", "0,0 0," + bodyTop, "1,0 1," + CORE::Int32ToString( -( FooterHeight + ContentTop + 8 ) ) );
+        GUI::CFormLayout::SetWidgetNodeProperty( *body, GUI::EWidgetProperty_BackgroundColour, OpaqueColour );
         GUI::CFormLayout::SetWidgetNodeProperty( *body, GUI::EWidgetProperty_BottomPadding, "12" );
         CORE::CDataNode* list = GUI::CFormLayout::AddWidgetNode( *body, "VBox", "BodyList", "0,0 0,0", "1,0 0,0" );
         GUI::CFormLayout::SetWidgetNodeProperty( *list, GUI::EWidgetProperty_AutoHeight, "true" );
@@ -340,6 +418,7 @@ CCreateLobbyForm::BuildLayout( CORE::CDataNode& layout )
         GUI::CFormLayout::SetWidgetNodeProperty( *generalLabel, GUI::EWidgetProperty_Text, "General" );
         GUI::CFormLayout::SetWidgetNodeProperty( *generalLabel, GUI::EWidgetProperty_TextColour, headerColour );
         CORE::CDataNode* general = GUI::CFormLayout::AddWidgetNode( *window, "ScrollPanel", "GeneralColumn", "0,20 0," + columnTop, generalSize + " 1," + columnHeight );
+        GUI::CFormLayout::SetWidgetNodeProperty( *general, GUI::EWidgetProperty_BackgroundColour, OpaqueColour );
         CORE::CDataNode* generalList = GUI::CFormLayout::AddWidgetNode( *general, "VBox", "GeneralList", "0,0 0,0", "1,0 0,0" );
         GUI::CFormLayout::SetWidgetNodeProperty( *generalList, GUI::EWidgetProperty_AutoHeight, "true" );
         GUI::CFormLayout::SetWidgetNodeProperty( *generalList, GUI::EWidgetProperty_Spacing, "14" );
@@ -417,6 +496,14 @@ CCreateLobbyForm::UpdateLayoutMode( void )
 
     if ( GUCEF_NULL == GetRootWidget() || GetTierForScreen() == m_tier )
         return;
+    ReloadLayoutKeepingFields();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCreateLobbyForm::ReloadLayoutKeepingFields( void )
+{GUCEF_TRACE;
 
     // what the player filled in goes along into the other layout
     CORE::CString name, password, serviceName, error;
@@ -439,6 +526,20 @@ CCreateLobbyForm::UpdateLayoutMode( void )
         whereIndex = where->GetSelectedIndex();
     serviceName = GetServiceName();
     error = GetErrorText();
+    MULTIPLAY::CLobbyInvitation invitees[ MaxInviteeRows ];
+    for ( UInt32 i=0; i<MaxInviteeRows; ++i )
+    {
+        const CORE::CString number = CORE::UInt32ToString( i );
+        field = GetWidget( "InviteeName" + number );
+        if ( GUCEF_NULL != field )
+            invitees[ i ].name = field->GetProperty( GUI::EWidgetProperty_Text );
+        field = GetWidget( "InviteeContact" + number );
+        if ( GUCEF_NULL != field )
+            invitees[ i ].contact = field->GetProperty( GUI::EWidgetProperty_Text );
+        field = GetWidget( "InviteeCode" + number );
+        if ( GUCEF_NULL != field )
+            invitees[ i ].code = field->GetProperty( GUI::EWidgetProperty_Text );
+    }
 
     GUI::CGUIContext* context = GetGUIContext();
     GUI::CWidget* focus = GUCEF_NULL != context ? context->GetFocus() : GUCEF_NULL;
@@ -463,6 +564,9 @@ CCreateLobbyForm::UpdateLayoutMode( void )
     if ( GUCEF_NULL != where )
         where->SetSelectedIndex( whereIndex );
     SelectService( serviceName );
+    for ( UInt32 i=0; i<MaxInviteeRows; ++i )
+        SetInvitee( i, invitees[ i ].name, invitees[ i ].contact, invitees[ i ].code );
+    ShowInviteeRows();
     field = GetWidget( "Error" );
     if ( GUCEF_NULL != field )
         field->SetProperty( GUI::EWidgetProperty_Text, error );
@@ -520,6 +624,12 @@ CCreateLobbyForm::OnPostLayoutLoad( void )
     field = GetWidget( "Password" );
     if ( GUCEF_NULL != field )
         SubscribeTo( field, GUI::CEditbox::TextEnteredEvent, fieldCallback );
+    field = GetWidget( "MaxPlayers" );
+    if ( GUCEF_NULL != field )
+    {
+        TEventCallback callback( this, &CCreateLobbyForm::OnPlayersChanged );
+        SubscribeTo( field, GUI::CWidget::ValueChangedEvent, callback );
+    }
     GUI::CWidget* root = GetRootWidget();
     if ( GUCEF_NULL != root )
     {
@@ -535,6 +645,7 @@ CCreateLobbyForm::OnPostLayoutLoad( void )
 
     ShowServiceNames();
     ShowTemplate();
+    ShowInviteeRows();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -590,6 +701,9 @@ CCreateLobbyForm::ShowTemplate( void )
         m_template.GetStartSettings( start );
         m_settingsPanel->SetValues( start );
     }
+
+    // the number of players decides how many players there are to invite
+    ShowInviteeRows();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -679,6 +793,124 @@ CCreateLobbyForm::GetSettingsPanel( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+void
+CCreateLobbyForm::SetCapabilities( const CCreateLobbyCapabilities& capabilities )
+{GUCEF_TRACE;
+
+    m_capabilities = capabilities;
+    if ( m_capabilities.maxPlayers > MaxPlayersLimit )
+        m_capabilities.maxPlayers = MaxPlayersLimit;
+    if ( m_capabilities.minPlayers < 1 )
+        m_capabilities.minPlayers = 1;
+    if ( GUCEF_NULL != GetRootWidget() )
+    {
+        ReloadLayoutKeepingFields();
+        ShowServiceNames();
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CCreateLobbyCapabilities&
+CCreateLobbyForm::GetCapabilities( void ) const
+{GUCEF_TRACE;
+
+    return m_capabilities;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CCreateLobbyForm::GetVisibleInviteeRows( void )
+{GUCEF_TRACE;
+
+    if ( !m_capabilities.showInvitees )
+        return 0;
+    GUI::CWidget* max = GetWidget( "MaxPlayers" );
+    const Int32 players = GUCEF_NULL != max ? max->GetIntProperty( GUI::EWidgetProperty_Value ) : (Int32) m_template.maxPlayers;
+    const UInt32 rows = players > 1 ? (UInt32) players - 1 : 0;
+    return rows < MaxInviteeRows ? rows : MaxInviteeRows;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCreateLobbyForm::ShowInviteeRows( void )
+{GUCEF_TRACE;
+
+    const UInt32 rows = GetVisibleInviteeRows();
+    for ( UInt32 i=0; i<MaxInviteeRows; ++i )
+    {
+        GUI::CWidget* row = GetWidget( "InviteeRow" + CORE::UInt32ToString( i ) );
+        if ( GUCEF_NULL != row && row->IsVisible() != ( i < rows ) )
+            row->SetVisibility( i < rows );
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CCreateLobbyForm::SetInvitee( UInt32 index, const CORE::CString& name, const CORE::CString& contact, const CORE::CString& code )
+{GUCEF_TRACE;
+
+    if ( index >= MaxInviteeRows )
+        return false;
+    const CORE::CString number = CORE::UInt32ToString( index );
+    GUI::CWidget* nameField = GetWidget( "InviteeName" + number );
+    GUI::CWidget* contactField = GetWidget( "InviteeContact" + number );
+    GUI::CWidget* codeField = GetWidget( "InviteeCode" + number );
+    if ( GUCEF_NULL == nameField || GUCEF_NULL == contactField || GUCEF_NULL == codeField || index >= GetVisibleInviteeRows() )
+        return false;
+    nameField->SetProperty( GUI::EWidgetProperty_Text, name );
+    contactField->SetProperty( GUI::EWidgetProperty_Text, contact );
+    codeField->SetProperty( GUI::EWidgetProperty_Text, code );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CCreateLobbyForm::GetInvitee( UInt32 index, MULTIPLAY::CLobbyInvitation& invitation )
+{GUCEF_TRACE;
+
+    if ( index >= MaxInviteeRows )
+        return false;
+    const CORE::CString number = CORE::UInt32ToString( index );
+    GUI::CWidget* nameField = GetWidget( "InviteeName" + number );
+    GUI::CWidget* contactField = GetWidget( "InviteeContact" + number );
+    GUI::CWidget* codeField = GetWidget( "InviteeCode" + number );
+    if ( GUCEF_NULL == nameField || GUCEF_NULL == contactField || GUCEF_NULL == codeField )
+        return false;
+    invitation.name = TrimText( nameField->GetProperty( GUI::EWidgetProperty_Text ) );
+    invitation.contact = TrimText( contactField->GetProperty( GUI::EWidgetProperty_Text ) );
+    invitation.code = TrimText( codeField->GetProperty( GUI::EWidgetProperty_Text ) );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCreateLobbyForm::SetErrorText( const CORE::CString& text )
+{GUCEF_TRACE;
+
+    GUI::CWidget* error = GetWidget( "Error" );
+    if ( GUCEF_NULL != error )
+        error->SetProperty( GUI::EWidgetProperty_Text, text );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CCreateLobbyForm::OnPlayersChanged( CORE::CNotifier* notifier    ,
+                                    const CORE::CEvent& eventId  ,
+                                    CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    ShowInviteeRows();
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CCreateLobbyForm::GetCreateParams( MULTIPLAY::CLobbyCreateParams& params )
 {GUCEF_TRACE;
@@ -689,7 +921,7 @@ CCreateLobbyForm::GetCreateParams( MULTIPLAY::CLobbyCreateParams& params )
     if ( lobbyName.IsNULLOrEmpty() )
     {
         if ( GUCEF_NULL != error )
-            error->SetProperty( GUI::EWidgetProperty_Text, "Give the lobby a name" );
+            error->SetProperty( GUI::EWidgetProperty_Text, "Give the " + ( m_capabilities.showInvitees ? CORE::CString( "game" ) : CORE::CString( "lobby" ) ) + " a name" );
         return false;
     }
     if ( GUCEF_NULL != error )
@@ -713,6 +945,16 @@ CCreateLobbyForm::GetCreateParams( MULTIPLAY::CLobbyCreateParams& params )
     GUI::CCombobox* where = GetWidgetAs< GUI::CCombobox >( "Where" );
     if ( GUCEF_NULL != where )
         params.isPublic = 1 == where->GetSelectedIndex();
+
+    // the players to invite: the rows that have something in them
+    params.invitations.clear();
+    const UInt32 rows = GetVisibleInviteeRows();
+    for ( UInt32 i=0; i<rows; ++i )
+    {
+        MULTIPLAY::CLobbyInvitation invitation;
+        if ( GetInvitee( i, invitation ) && ( !invitation.name.IsNULLOrEmpty() || !invitation.contact.IsNULLOrEmpty() || !invitation.code.IsNULLOrEmpty() ) )
+            params.invitations.push_back( invitation );
+    }
 
     if ( GUCEF_NULL != m_settingsPanel )
     {

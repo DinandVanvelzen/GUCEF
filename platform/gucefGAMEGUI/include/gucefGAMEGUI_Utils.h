@@ -1,7 +1,7 @@
 /*
  *  gucefGAMEGUI: GUCEF module providing prebaked GUI forms for rapid game development
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -99,6 +99,19 @@ GUCEF_GAMEGUI_EXPORT_CPP void GetAccountProviderNames( const MULTIPLAY::CPlayerI
 
 /** The providers of the accounts of an identity once each: "Guest" without accounts, else "Epic Games, Google" with at most 'maxNames' names and " +n" for the others */
 GUCEF_GAMEGUI_EXPORT_CPP CORE::CString MakeAccountsSummary( const MULTIPLAY::CPlayerIdentity& identity, UInt32 maxNames );
+
+/**
+ *  The time left to a deadline as a list shows it: "Overdue" when it is up (0 or less), "m:ss" under an hour ("0:05", "59:59",
+ *  rounded up to whole seconds), "1h 05m" under a day (hours, then minutes with two digits) and "2d 3h" from a day on
+ */
+GUCEF_GAMEGUI_EXPORT_CPP CORE::CString FormatTimeLeft( Int64 remainingInMs );
+
+/**
+ *  The text cut so that it is not wider than 'maxWidth' pixels in the font: the text itself when it fits, else its longest
+ *  start that fits with "..." behind it (empty when not even the dots fit). A font the context does not know is
+ *  measured at 8 pixels for every character. Control characters are shown as blanks.
+ */
+GUCEF_GAMEGUI_EXPORT_CPP CORE::CString EllipsizeText( GUI::CGUIContext& context, const CORE::CString& fontName, const CORE::CString& text, Int32 maxWidth );
 
 /** Text with an entry per line, as the string list properties of widgets have it */
 GUCEF_GAMEGUI_EXPORT_CPP CORE::CString JoinLines( const CORE::CString::StringVector& lines );

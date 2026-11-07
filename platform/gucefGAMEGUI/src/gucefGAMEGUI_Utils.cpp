@@ -1,7 +1,7 @@
 /*
  *  gucefGAMEGUI: GUCEF module providing prebaked GUI forms for rapid game development
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -31,6 +31,11 @@
 #include "gucefAUTH_Names.h"
 #define GUCEF_AUTH_NAMES_H
 #endif /* GUCEF_AUTH_NAMES_H ? */
+
+#ifndef GUCEF_GUI_CGUICONTEXT_H
+#include "gucefGUI_CGUIContext.h"
+#define GUCEF_GUI_CGUICONTEXT_H
+#endif /* GUCEF_GUI_CGUICONTEXT_H ? */
 
 #include "gucefGAMEGUI_Utils.h"
 
@@ -132,6 +137,100 @@ FormatCountdown( Int64 timeInMs )
     if ( secondsText.Length() < 2 )
         secondsText = "0" + secondsText;
     return CORE::Int64ToString( seconds / 60 ) + ":" + secondsText;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+FormatTimeLeft( Int64 remainingInMs )
+{GUCEF_TRACE;
+
+    if ( remainingInMs <= 0 )
+        return "Overdue";
+
+    const Int64 seconds = ( remainingInMs + 999 ) / 1000;
+    if ( seconds < 3600 )
+    {
+        CORE::CString secondsText = CORE::Int64ToString( seconds % 60 );
+        if ( secondsText.Length() < 2 )
+            secondsText = "0" + secondsText;
+        return CORE::Int64ToString( seconds / 60 ) + ":" + secondsText;
+    }
+    if ( seconds < 86400 )
+    {
+        CORE::CString minutesText = CORE::Int64ToString( ( seconds % 3600 ) / 60 );
+        if ( minutesText.Length() < 2 )
+            minutesText = "0" + minutesText;
+        return CORE::Int64ToString( seconds / 3600 ) + "h " + minutesText + "m";
+    }
+    return CORE::Int64ToString( seconds / 86400 ) + "d " + CORE::Int64ToString( ( seconds % 86400 ) / 3600 ) + "h";
+}
+
+/*-------------------------------------------------------------------------*/
+
+namespace {
+
+/** The width of text in a font; false when the context cannot measure it */
+bool
+MeasureWidth( GUI::CGUIContext& context, const CORE::CString& fontName, const CORE::CString& text, Int32& width )
+{
+    Int32 height = 0;
+    width = 0;
+    return context.MeasureText( fontName, text, 0, width, height );
+}
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+EllipsizeText( GUI::CGUIContext& context, const CORE::CString& fontName, const CORE::CString& text, Int32 maxWidth )
+{GUCEF_TRACE;
+
+    // control characters (a line break in a name from somewhere else) would break the line of the label; they are single bytes in UTF-8
+    CORE::CString clean = text;
+    const char* source = text.C_String();
+    bool hasControl = false;
+    for ( const char* p=source; 0 != *p && !hasControl; ++p )
+        hasControl = (unsigned char) *p < 0x20 || 0x7F == (unsigned char) *p;
+    if ( hasControl )
+    {
+        GUCEF::vector< char > bytes( source, source + strlen( source ) + 1 );
+        for ( size_t i=0; i+1<bytes.size(); ++i )
+            if ( (unsigned char) bytes[ i ] < 0x20 || 0x7F == (unsigned char) bytes[ i ] )
+                bytes[ i ] = ' ';
+        clean = CORE::CString( &bytes[ 0 ] );
+    }
+    const UInt32 length = clean.Length();
+
+    Int32 width = 0;
+    const bool measured = MeasureWidth( context, fontName, clean, width );
+    if ( !measured )
+        width = (Int32) length * 8;
+    if ( width <= maxWidth )
+        return clean;
+
+    // the longest start that fits with the dots behind it: the width only grows with the length, so halve the range
+    UInt32 low = 0;
+    UInt32 high = length;
+    while ( low < high )
+    {
+        const UInt32 middle = ( low + high + 1 ) / 2;
+        const CORE::CString candidate = clean.SubstrToIndex( middle ) + "...";
+        Int32 candidateWidth = 0;
+        if ( !MeasureWidth( context, fontName, candidate, candidateWidth ) )
+            candidateWidth = (Int32) ( middle + 3 ) * 8;
+        if ( candidateWidth <= maxWidth )
+            low = middle;
+        else
+            high = middle - 1;
+    }
+    CORE::CString start = clean.SubstrToIndex( low ).Trim( false );
+    const CORE::CString result = start + "...";
+    Int32 resultWidth = 0;
+    if ( !MeasureWidth( context, fontName, result, resultWidth ) )
+        resultWidth = (Int32) result.Length() * 8;
+    return resultWidth <= maxWidth ? result : CORE::CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/

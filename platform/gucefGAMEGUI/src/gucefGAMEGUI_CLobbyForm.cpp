@@ -1,7 +1,7 @@
 /*
  *  gucefGAMEGUI: GUCEF module providing prebaked GUI forms for rapid game development
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -86,13 +86,13 @@ namespace GAMEGUI {
 
 const CORE::CEvent CLobbyForm::LaunchEvent = "GUCEF::GAMEGUI::CLobbyForm::LaunchEvent";
 const CORE::CEvent CLobbyForm::LeftEvent = "GUCEF::GAMEGUI::CLobbyForm::LeftEvent";
+const CORE::CEvent CLobbyForm::BackRequestedEvent = "GUCEF::GAMEGUI::CLobbyForm::BackRequestedEvent";
 
 namespace {
 
 const char* const MenuOpenSlot = "Open slot";
 const char* const MenuCloseSlot = "Close slot";
 const char* const MenuAddAi = "Add AI";
-const char* const MenuKick = "Kick";
 const char* const MenuMakeBoss = "Make boss";
 const char* const MenuBan = "Kick and ban";
 const char* const MenuReport = "Report player";
@@ -132,6 +132,7 @@ CLobbyForm::RegisterEvents( void )
 
     LaunchEvent.Initialize();
     LeftEvent.Initialize();
+    BackRequestedEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -149,6 +150,9 @@ CLobbyForm::CLobbyForm( void )
     , m_aiType( "ai" )
     , m_reportReason( "Reported from the lobby" )
     , m_countdown( -1 )
+    , m_compact( false )
+    , m_slotTitles()
+    , m_menuKickText( "Kick" )
     , m_tier( TIER_NORMAL )
     , m_subscribedToFrames( false )
     , m_updating( false )
@@ -172,6 +176,9 @@ CLobbyForm::CLobbyForm( GUI::CIGUIContext* context )
     , m_aiType( "ai" )
     , m_reportReason( "Reported from the lobby" )
     , m_countdown( -1 )
+    , m_compact( false )
+    , m_slotTitles()
+    , m_menuKickText( "Kick" )
     , m_tier( TIER_NORMAL )
     , m_subscribedToFrames( false )
     , m_updating( false )
@@ -210,13 +217,19 @@ CLobbyForm::AddFooter( CORE::CDataNode& window )
     GUI::CFormLayout::SetWidgetNodeProperty( *footer, GUI::EWidgetProperty_BackgroundColour, "18,20,26,255" );
     CORE::CDataNode* status = GUI::CFormLayout::AddWidgetNode( *footer, "Label", "Status", "0,20 0,8", "1,-40 0,24" );
     GUI::CFormLayout::SetWidgetNodeProperty( *status, GUI::EWidgetProperty_TextColour, "255,110,110,255" );
-    CORE::CDataNode* leave = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "Leave", "1,-120 1,-52", "0,100 0,38" );
+    CORE::CDataNode* back = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "Back", "0,20 1,-52", "0,150 0,38" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *back, GUI::EWidgetProperty_Text, "Back" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *back, GUI::EWidgetProperty_Visible, "false" );
+    CORE::CDataNode* leave = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "Leave", "1,-160 1,-52", "0,140 0,38" );
     GUI::CFormLayout::SetWidgetNodeProperty( *leave, GUI::EWidgetProperty_Text, "Leave" );
-    CORE::CDataNode* voteStart = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "VoteStart", "1,-250 1,-52", "0,120 0,38" );
+    CORE::CDataNode* voteStart = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "VoteStart", "1,-300 1,-52", "0,130 0,38" );
     GUI::CFormLayout::SetWidgetNodeProperty( *voteStart, GUI::EWidgetProperty_Text, "Vote start" );
-    CORE::CDataNode* forceStart = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "ForceStart", "1,-380 1,-52", "0,120 0,38" );
+    CORE::CDataNode* cancel = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "Cancel", "1,-310 1,-52", "0,140 0,38" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *cancel, GUI::EWidgetProperty_Text, "Cancel game" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *cancel, GUI::EWidgetProperty_Visible, "false" );
+    CORE::CDataNode* forceStart = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "ForceStart", "1,-470 1,-52", "0,150 0,38" );
     GUI::CFormLayout::SetWidgetNodeProperty( *forceStart, GUI::EWidgetProperty_Text, "Force start" );
-    CORE::CDataNode* start = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "Start", "1,-500 1,-52", "0,110 0,38" );
+    CORE::CDataNode* start = GUI::CFormLayout::AddWidgetNode( *footer, "Button", "Start", "1,-590 1,-52", "0,110 0,38" );
     GUI::CFormLayout::SetWidgetNodeProperty( *start, GUI::EWidgetProperty_Text, "Start" );
     GUI::CFormLayout::SetWidgetNodeProperty( *start, GUI::EWidgetProperty_StyleClass, "Primary" );
 }
@@ -228,7 +241,15 @@ CLobbyForm::AddPlayerControls( CORE::CDataNode& parent, const CORE::CString& x, 
 {GUCEF_TRACE;
 
     // 'x' and 'y' are the corner of the controls, 'half' the width of the left half in the scale and pixels of a UDim ("0.29,-10")
-    // Faction and colour on a line, ready and spectate on the next
+    // Faction and colour on a line, ready and spectate on the next; a lobby without faction and colour has the second line only
+    if ( m_compact )
+    {
+        CORE::CDataNode* readyOnly = GUI::CFormLayout::AddWidgetNode( parent, "Checkbox", "Ready", x + " " + y, "0,170 0,32" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *readyOnly, GUI::EWidgetProperty_Text, "Ready" );
+        CORE::CDataNode* spectateOnly = GUI::CFormLayout::AddWidgetNode( parent, "Checkbox", "Spectate", AddUDim( x, "0,180" ) + " " + y, "0,170 0,32" );
+        GUI::CFormLayout::SetWidgetNodeProperty( *spectateOnly, GUI::EWidgetProperty_Text, "Spectate" );
+        return;
+    }
     CORE::CDataNode* factionLabel = GUI::CFormLayout::AddWidgetNode( parent, "Label", "FactionLabel", x + " " + y, "0,64 0,32" );
     GUI::CFormLayout::SetWidgetNodeProperty( *factionLabel, GUI::EWidgetProperty_Text, "Faction" );
     GUI::CFormLayout::SetWidgetNodeProperty( *factionLabel, GUI::EWidgetProperty_VTextAlign, "Center" );
@@ -246,14 +267,44 @@ CLobbyForm::AddPlayerControls( CORE::CDataNode& parent, const CORE::CString& x, 
 /*-------------------------------------------------------------------------*/
 
 void
+CLobbyForm::AddNoteAndInvite( CORE::CDataNode& parent, const CORE::CString& x, const CORE::CString& y, const CORE::CString& width, bool inList, Int32 belowControls )
+{GUCEF_TRACE;
+
+    // the note in plain words about how the lobby works, and the row to invite another player: both are empty or hidden for a lobby that has neither.
+    // In a list they follow each other. In two columns the note takes the room below the controls that the row for the invitations leaves, and the row sits at the
+    // bottom of the column, as the entry of a chat does: a long note (the statement about who sees the addresses is one) is not cut
+    const Int32 inviteHeight = 70;
+    const CORE::CString noteHeight = inList ? CORE::CString( "0,168" ) : "0.7," + CORE::Int32ToString( -( belowControls + FooterHeight + 8 + inviteHeight + 8 ) );
+    CORE::CDataNode* note = GUI::CFormLayout::AddWidgetNode( parent, "Label", "Note", inList ? CORE::CString( "0,0 0,0" ) : x + " " + y, inList ? CORE::CString( "1,0 " ) + noteHeight : width + " " + noteHeight );
+    GUI::CFormLayout::SetWidgetNodeProperty( *note, GUI::EWidgetProperty_WordWrap, "true" );
+    if ( !inList )
+        GUI::CFormLayout::SetWidgetNodeProperty( *note, GUI::EWidgetProperty_MinSize, "0,0 0,56" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *note, GUI::EWidgetProperty_TextColour, "200,210,230,255" );
+    CORE::CDataNode* row = GUI::CFormLayout::AddWidgetNode( parent, "Panel", "InviteRow", inList ? CORE::CString( "0,0 0,0" ) : AddUDim( x, "0,0" ) + " 1," + CORE::Int32ToString( -( FooterHeight + 8 + inviteHeight ) ), inList ? CORE::CString( "1,0 0," ) + CORE::Int32ToString( inviteHeight ) : width + " 0," + CORE::Int32ToString( inviteHeight ) );
+    CORE::CDataNode* caption = GUI::CFormLayout::AddWidgetNode( *row, "Label", "InviteCaption", "0,0 0,0", "1,0 0,24" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *caption, GUI::EWidgetProperty_Text, "Invite a player: name, how to reach them, and their code if you have it" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *caption, GUI::EWidgetProperty_TextColour, "150,172,214,255" );
+    CORE::CDataNode* name = GUI::CFormLayout::AddWidgetNode( *row, "Editbox", "InviteName", "0,0 0,28", "0.24,-4 0,32" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *name, GUI::EWidgetProperty_Tooltip, "The name of the player" );
+    CORE::CDataNode* contact = GUI::CFormLayout::AddWidgetNode( *row, "Editbox", "InviteContact", "0.24,4 0,28", "0.38,-4 0,32" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *contact, GUI::EWidgetProperty_Tooltip, "How to reach the player, for example a mail address" );
+    CORE::CDataNode* code = GUI::CFormLayout::AddWidgetNode( *row, "Editbox", "InviteCode", "0.62,8 0,28", "0.2,-4 0,32" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *code, GUI::EWidgetProperty_Tooltip, "The player code of the player, when you have it (optional)" );
+    CORE::CDataNode* add = GUI::CFormLayout::AddWidgetNode( *row, "Button", "InviteAdd", "0.82,12 0,28", "0.18,-12 0,32" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *add, GUI::EWidgetProperty_Text, "Invite" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CLobbyForm::BuildLayout( CORE::CDataNode& layout )
 {GUCEF_TRACE;
 
     const CORE::CString top = CORE::Int32ToString( ContentTop );
     const CORE::CString columnsTop = CORE::Int32ToString( ContentTop + 36 );
 
-    // most of the screen, in the middle of it, within limits: the player can move it and fold it up
-    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "LobbyForm", "0.5,0 0.5,0", "0.92,0 0.92,0" );
+    // most of the screen, in the middle of it, within limits: the player can move it and fold it up. It is 64 pixels lower than the screen allows so that its title bar clears the badge of the games that wait in the top corner
+    CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "LobbyForm", "0.5,0 0.5,0", "0.92,0 0.92,-64" );
     GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_Title, "Lobby" );
     GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_HAlign, "Center" );
     GUI::CFormLayout::SetWidgetNodeProperty( *window, GUI::EWidgetProperty_VAlign, "Center" );
@@ -277,8 +328,9 @@ CLobbyForm::BuildLayout( CORE::CDataNode& layout )
         GUI::CFormLayout::SetWidgetNodeProperty( *vote, GUI::EWidgetProperty_TextColour, "255,220,120,255" );
         CORE::CDataNode* slots = GUI::CFormLayout::AddWidgetNode( *list, "GridView", "Slots", "0,0 0,0", "1,0 0,200" );
         GUI::CFormLayout::SetWidgetNodeProperty( *slots, GUI::EWidgetProperty_Columns, "#\nTeam\nPlayer\nFaction\nColour\nReady\nPing" );
-        CORE::CDataNode* player = GUI::CFormLayout::AddWidgetNode( *list, "Panel", "PlayerRow", "0,0 0,0", "1,0 0,72" );
+        CORE::CDataNode* player = GUI::CFormLayout::AddWidgetNode( *list, "Panel", "PlayerRow", "0,0 0,0", m_compact ? CORE::CString( "1,0 0,36" ) : CORE::CString( "1,0 0,72" ) );
         AddPlayerControls( *player, "0,0", "0,0", "0.5,-73" );
+        AddNoteAndInvite( *list, "0,0", "0,0", "1,0", true, 0 );
         CORE::CDataNode* settingsLabel = GUI::CFormLayout::AddWidgetNode( *list, "Label", "SettingsLabel", "0,0 0,0", "1,0 0,24" );
         GUI::CFormLayout::SetWidgetNodeProperty( *settingsLabel, GUI::EWidgetProperty_Text, "Game settings" );
         GUI::CFormLayout::SetWidgetNodeProperty( *settingsLabel, GUI::EWidgetProperty_TextColour, "150,172,214,255" );
@@ -307,7 +359,9 @@ CLobbyForm::BuildLayout( CORE::CDataNode& layout )
     CORE::CDataNode* slots = GUI::CFormLayout::AddWidgetNode( *window, "GridView", "Slots", "0,20 0," + columnsTop, leftWidth + " 0.3,0" );
     GUI::CFormLayout::SetWidgetNodeProperty( *slots, GUI::EWidgetProperty_Columns, "#\nTeam\nPlayer\nFaction\nColour\nReady\nPing" );
     AddPlayerControls( *window, "0,20", "0.3," + CORE::Int32ToString( ContentTop + 44 ), half );
-    GUI::CFormLayout::AddWidgetNode( *window, "Panel", "ChatHolder", "0,20 0.3," + CORE::Int32ToString( ContentTop + 124 ), leftWidth + " 0.7," + CORE::Int32ToString( -( ContentTop + 124 + FooterHeight + 8 ) ) );
+    const Int32 belowControls = ContentTop + ( m_compact ? 88 : 124 );
+    GUI::CFormLayout::AddWidgetNode( *window, "Panel", "ChatHolder", "0,20 0.3," + CORE::Int32ToString( belowControls ), leftWidth + " 0.7," + CORE::Int32ToString( -( belowControls + FooterHeight + 8 ) ) );
+    AddNoteAndInvite( *window, "0,20", "0.3," + CORE::Int32ToString( belowControls ), leftWidth, false, belowControls );
 
     // the right column: the game settings in a scroll panel, the spectators below them
     CORE::CDataNode* holder = GUI::CFormLayout::AddWidgetNode( *window, "ScrollPanel", "SettingsHolder", rightPosition + " 0," + columnsTop,
@@ -345,6 +399,7 @@ CLobbyForm::LoadForCurrentSize( void )
 {GUCEF_TRACE;
 
     m_tier = GetTierForScreen();
+    m_compact = !GetCurrentPresentation().showFactionAndColour;
     CORE::CDataNode layout;
     GUI::CFormLayout::InitLayout( layout );
     BuildLayout( layout );
@@ -357,7 +412,7 @@ void
 CLobbyForm::UpdateLayoutMode( void )
 {GUCEF_TRACE;
 
-    if ( GUCEF_NULL == GetRootWidget() || GetTierForScreen() == m_tier )
+    if ( GUCEF_NULL == GetRootWidget() || ( GetTierForScreen() == m_tier && m_compact == !GetCurrentPresentation().showFactionAndColour ) )
         return;
 
     // the layout of another size of window: the lobby shown comes back as it was
@@ -430,6 +485,7 @@ CLobbyForm::OnPostLayoutLoad( void )
     TEventCallback startCallback( this, &CLobbyForm::OnStartActivated );
     TEventCallback forceStartCallback( this, &CLobbyForm::OnForceStartActivated );
     TEventCallback leaveCallback( this, &CLobbyForm::OnLeaveActivated );
+    TEventCallback cancelCallback( this, &CLobbyForm::OnCancelActivated );
     GUI::CWidget* button = GetWidget( "Start" );
     if ( GUCEF_NULL != button )
         SubscribeTo( button, GUI::CWidget::ActivatedEvent, startCallback );
@@ -442,6 +498,21 @@ CLobbyForm::OnPostLayoutLoad( void )
     button = GetWidget( "Leave" );
     if ( GUCEF_NULL != button )
         SubscribeTo( button, GUI::CWidget::ActivatedEvent, leaveCallback );
+    button = GetWidget( "Cancel" );
+    if ( GUCEF_NULL != button )
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, cancelCallback );
+    button = GetWidget( "Back" );
+    if ( GUCEF_NULL != button )
+    {
+        TEventCallback backCallback( this, &CLobbyForm::OnBackActivated );
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, backCallback );
+    }
+    button = GetWidget( "InviteAdd" );
+    if ( GUCEF_NULL != button )
+    {
+        TEventCallback inviteCallback( this, &CLobbyForm::OnInviteActivated );
+        SubscribeTo( button, GUI::CWidget::ActivatedEvent, inviteCallback );
+    }
 
     GUI::CWidget* control = GetWidget( "Faction" );
     if ( GUCEF_NULL != control )
@@ -556,6 +627,8 @@ CLobbyForm::SetLobby( MULTIPLAY::CILobbyPtr lobby )
         SubscribeTo( lobbyNotifier, MULTIPLAY::CILobby::RequestRefusedEvent, refusedCallback );
     }
 
+    // a lobby of another kind may need the layout of another kind
+    UpdateLayoutMode();
     ApplyLobbyToChildren();
     SetLabelText( "Status", CORE::CString::Empty );
     Refresh();
@@ -674,12 +747,39 @@ CLobbyForm::GetVotePrompt( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+MULTIPLAY::CLobbyPresentation
+CLobbyForm::GetCurrentPresentation( void ) const
+{GUCEF_TRACE;
+
+    if ( m_lobby.IsNULL() )
+    {
+        // no lobby: nothing can be done, the layout is the one of the lobby that was shown last
+        MULTIPLAY::CLobbyPresentation none;
+        none.showFactionAndColour = !m_compact;
+        return none;
+    }
+    return m_lobby->GetPresentation();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::SetShown( const char* widgetName, bool shown )
+{GUCEF_TRACE;
+
+    GUI::CWidget* widget = GetWidget( widgetName );
+    if ( GUCEF_NULL != widget && widget->IsVisible() != shown )
+        widget->SetVisibility( shown );
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CLobbyForm::SetLabelText( const char* widgetName, const CORE::CString& text )
 {GUCEF_TRACE;
 
     GUI::CWidget* label = GetWidget( widgetName );
-    if ( GUCEF_NULL != label )
+    if ( GUCEF_NULL != label && label->GetProperty( GUI::EWidgetProperty_Text ) != text )
         label->SetProperty( GUI::EWidgetProperty_Text, text );
 }
 
@@ -704,6 +804,47 @@ CLobbyForm::ShowSlots( void )
     if ( GUCEF_NULL == grid )
         return;
 
+    // the columns follow the lobby: a lobby with no latency and no faction and colour has fewer
+    const MULTIPLAY::CLobbyPresentation presentation = GetCurrentPresentation();
+    GUCEF::vector< Int32 > shown;
+    shown.push_back( COLUMN_SLOT );
+    if ( presentation.showFactionAndColour )
+        shown.push_back( COLUMN_TEAM );
+    shown.push_back( COLUMN_PLAYER );
+    if ( presentation.showFactionAndColour )
+    {
+        shown.push_back( COLUMN_FACTION );
+        shown.push_back( COLUMN_COLOUR );
+    }
+    shown.push_back( COLUMN_READY );
+    if ( presentation.showLatency )
+        shown.push_back( COLUMN_LATENCY );
+
+    static const char* const defaultTitles[ COLUMN_COUNT ] = { "#", "Team", "Player", "Faction", "Colour", "Ready", "Ping" };
+    static const Int32 defaultWidths[ COLUMN_COUNT ] = { 30, 64, 140, 100, 84, 72, 62 };
+    CORE::CString::StringVector titles;
+    GUCEF::vector< Int32 > widths;
+    for ( size_t i=0; i<shown.size(); ++i )
+    {
+        titles.push_back( COLUMN_READY == shown[ i ] ? presentation.readyColumnTitle : CORE::CString( defaultTitles[ shown[ i ] ] ) );
+        // an answer in words needs more room than a yes
+        widths.push_back( COLUMN_READY == shown[ i ] && !presentation.showLatency ? 160 : ( COLUMN_PLAYER == shown[ i ] && !presentation.showLatency ? 180 : defaultWidths[ shown[ i ] ] ) );
+    }
+    if ( titles != m_slotTitles )
+    {
+        m_slotTitles = titles;
+        CORE::CString joined;
+        for ( size_t i=0; i<titles.size(); ++i )
+        {
+            if ( i > 0 )
+                joined += "\n";
+            joined += titles[ i ];
+        }
+        grid->SetProperty( GUI::EWidgetProperty_Columns, joined );
+        grid->SetIntListProperty( GUI::EWidgetProperty_ColumnWidths, widths );
+        grid->SetBoolProperty( GUI::EWidgetProperty_FitColumns, true );
+    }
+
     GUI::CGridView::TRowVector rows;
     if ( !m_lobby.IsNULL() )
     {
@@ -713,31 +854,34 @@ CLobbyForm::ShowSlots( void )
             const MULTIPLAY::CLobbySlot& slot = state.slots[ i ];
             const MULTIPLAY::CLobbyMember* member = slot.memberId.IsNULLOrEmpty() ? GUCEF_NULL : state.FindMember( slot.memberId );
 
-            GUI::CGridView::TStringVector cells;
-            cells.resize( COLUMN_COUNT );
-            cells[ COLUMN_SLOT ] = CORE::UInt32ToString( slot.index + 1 );
-            cells[ COLUMN_TEAM ] = CORE::UInt32ToString( slot.team + 1 );
+            GUI::CGridView::TStringVector all;
+            all.resize( COLUMN_COUNT );
+            all[ COLUMN_SLOT ] = CORE::UInt32ToString( slot.index + 1 );
+            all[ COLUMN_TEAM ] = CORE::UInt32ToString( slot.team + 1 );
             if ( !slot.memberId.IsNULLOrEmpty() )
             {
-                cells[ COLUMN_PLAYER ] = GetMemberName( state, slot.memberId );
+                all[ COLUMN_PLAYER ] = GetMemberName( state, slot.memberId );
                 if ( slot.memberId == state.bossId )
-                    cells[ COLUMN_PLAYER ] += " (boss)";
+                    all[ COLUMN_PLAYER ] += " (boss)";
             }
             else
             if ( MULTIPLAY::LOBBYSLOTKIND_AI == slot.kind )
-                cells[ COLUMN_PLAYER ] = "AI: " + slot.aiType;
+                all[ COLUMN_PLAYER ] = "AI: " + slot.aiType;
             else
             if ( MULTIPLAY::LOBBYSLOTKIND_CLOSED == slot.kind )
-                cells[ COLUMN_PLAYER ] = "(closed)";
+                all[ COLUMN_PLAYER ] = "(closed)";
             else
-                cells[ COLUMN_PLAYER ] = "(open)";
-            cells[ COLUMN_FACTION ] = slot.faction;
-            cells[ COLUMN_COLOUR ] = slot.colour;
+                all[ COLUMN_PLAYER ] = "(open)";
+            all[ COLUMN_FACTION ] = slot.faction;
+            all[ COLUMN_COLOUR ] = slot.colour;
             if ( GUCEF_NULL != member )
             {
-                cells[ COLUMN_READY ] = member->ready ? "Yes" : "";
-                cells[ COLUMN_LATENCY ] = FormatPing( member->latencyMs );
+                all[ COLUMN_READY ] = !member->statusText.IsNULLOrEmpty() ? member->statusText : ( member->ready ? CORE::CString( "Yes" ) : CORE::CString::Empty );
+                all[ COLUMN_LATENCY ] = FormatPing( member->latencyMs );
             }
+            GUI::CGridView::TStringVector cells;
+            for ( size_t c=0; c<shown.size(); ++c )
+                cells.push_back( all[ shown[ c ] ] );
             rows.push_back( cells );
         }
     }
@@ -771,9 +915,11 @@ CLobbyForm::ShowSpectators( void )
             if ( !member.IsSpectator() )
                 continue;
             CORE::CString line = member.name;
-            CORE::CString ping = FormatPing( member.latencyMs );
+            CORE::CString ping = m_lobby->GetPresentation().showLatency ? FormatPing( member.latencyMs ) : CORE::CString::Empty;
             if ( !ping.IsNULLOrEmpty() )
                 line += "  " + ping;
+            if ( !member.statusText.IsNULLOrEmpty() )
+                line += "  " + member.statusText;
             names.push_back( line );
         }
     }
@@ -793,14 +939,9 @@ CLobbyForm::ShowControls( void )
     GUI::CCombobox* colour = GetWidgetAs< GUI::CCombobox >( "Colour" );
     GUI::CWidget* ready = GetWidget( "Ready" );
     GUI::CWidget* spectate = GetWidget( "Spectate" );
+    const MULTIPLAY::CLobbyPresentation presentation = GetCurrentPresentation();
 
     bool isMember = false;
-    bool isPlayer = false;
-    bool isBoss = false;
-    bool open = false;
-    bool countingDown = false;
-    bool voteRuns = false;
-
     if ( !m_lobby.IsNULL() )
     {
         const MULTIPLAY::CLobbyState& state = m_lobby->GetState();
@@ -809,11 +950,6 @@ CLobbyForm::ShowControls( void )
         const MULTIPLAY::CLobbySlot* mySlot = state.FindSlotOfMember( m_lobby->GetLocalMemberId() );
 
         isMember = GUCEF_NULL != me;
-        isPlayer = isMember && !me->IsSpectator();
-        isBoss = isMember && m_lobby->IsBoss();
-        open = MULTIPLAY::LOBBYPHASE_OPEN == state.phase;
-        countingDown = MULTIPLAY::LOBBYPHASE_COUNTDOWN == state.phase;
-        voteRuns = state.activeVote.IsActive();
 
         GUI::CWidget* root = GetRootWidget();
         if ( GUCEF_NULL != root )
@@ -864,18 +1000,65 @@ CLobbyForm::ShowControls( void )
             spectate->SetBoolProperty( GUI::EWidgetProperty_Checked, false );
     }
 
-    bool hasFactions = !m_lobby.IsNULL() && !m_lobby->GetSchema().factions.empty();
-    bool hasColours = !m_lobby.IsNULL() && !m_lobby->GetSchema().colours.empty();
-    SetEnabled( "Faction", isPlayer && open && hasFactions );
-    SetEnabled( "Colour", isPlayer && open && hasColours );
-    SetEnabled( "Ready", isPlayer && ( open || countingDown ) );
-    SetEnabled( "Spectate", isMember && open );
-    SetEnabled( "Start", isBoss && open );
-    SetEnabled( "ForceStart", isBoss && open );
-    SetEnabled( "VoteStart", isPlayer && !isBoss && open && !voteRuns );
-    SetEnabled( "Leave", !m_lobby.IsNULL() );
+    // the words and the controls that are there are the lobby's
+    SetLabelText( "Ready", presentation.readyText );
+    SetLabelText( "Spectate", presentation.spectateText );
+    SetLabelText( "Start", presentation.startText );
+    SetLabelText( "ForceStart", presentation.forceStartText );
+    SetLabelText( "VoteStart", presentation.voteStartText );
+    SetLabelText( "Leave", presentation.leaveText );
+    SetLabelText( "Cancel", presentation.cancelText );
+    SetLabelText( "Back", presentation.backText );
+    SetShown( "Back", presentation.showBack );
+    SetShown( "Cancel", presentation.showCancel );
+    SetShown( "Ready", presentation.showReady );
+    SetShown( "Start", presentation.showStart );
+    SetShown( "ForceStart", presentation.showForceStart );
+    SetShown( "VoteStart", presentation.showVoteStart );
+    SetShown( "Spectate", presentation.showSpectate );
+    SetShown( "InviteRow", presentation.showInvite );
+    const CORE::CString noteText = ComposeNote( presentation );
+    SetLabelText( "Note", noteText );
+    SetShown( "Note", !noteText.IsNULLOrEmpty() );
+    m_menuKickText = presentation.kickText;
+
+    SetEnabled( "Faction", presentation.canChooseFaction );
+    SetEnabled( "Colour", presentation.canChooseColour );
+    SetEnabled( "Ready", presentation.canReady );
+    SetEnabled( "Spectate", presentation.canSpectate );
+    SetEnabled( "Start", presentation.canStart );
+    SetEnabled( "ForceStart", presentation.canForceStart );
+    SetEnabled( "VoteStart", presentation.canVoteStart );
+    SetEnabled( "Leave", !m_lobby.IsNULL() && presentation.canLeave );
+    SetEnabled( "Cancel", !m_lobby.IsNULL() && presentation.canCancel );
+    SetTooltip( "Start", presentation.startHint );
+    SetTooltip( "ForceStart", presentation.forceStartHint );
+    SetTooltip( "Leave", presentation.leaveHint );
+    SetTooltip( "Cancel", presentation.cancelHint );
+    SetEnabled( "InviteName", presentation.canInvite );
+    SetEnabled( "InviteContact", presentation.canInvite );
+    SetEnabled( "InviteCode", presentation.canInvite );
+    SetEnabled( "InviteAdd", presentation.canInvite );
 
     m_updating = wasUpdating;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CLobbyForm::ComposeNote( const MULTIPLAY::CLobbyPresentation& presentation )
+{GUCEF_TRACE;
+
+    // the decisions of the lobby come first, as lines of their own, newest last: they are what changes while the player looks, the note is what stays. A long note
+    // is cut at the end of the label, so it is the note that gives way
+    CORE::CString text;
+    for ( size_t i=0; i<presentation.voteLines.size(); ++i )
+        text += presentation.voteLines[ i ] + "\n";
+    if ( !presentation.voteWarning.IsNULLOrEmpty() )
+        text += "Warning: " + presentation.voteWarning + "\n";
+    if ( !presentation.note.IsNULLOrEmpty() )
+        text += ( text.IsNULLOrEmpty() ? CORE::CString::Empty : CORE::CString( "\n" ) ) + presentation.note;
+    return text;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -909,8 +1092,10 @@ CLobbyForm::ShowTexts( void )
         }
         if ( state.activeVote.IsActive() )
         {
-            vote = "Vote: " + CVotePromptForm::DescribeVote( state.activeVote, GetMemberName( state, state.activeVote.proposer ), &m_lobby->GetSchema() ) +
-                   "  (" + CVotePromptForm::DescribeTally( state.activeVote ) + ")";
+            // a lobby that lists its decisions under the note says what they are there: the line here only says that a vote is open and how it stands
+            vote = m_lobby->GetPresentation().voteLines.empty() ?
+                   "Vote: " + CVotePromptForm::DescribeVote( state.activeVote, GetMemberName( state, state.activeVote.proposer ), &m_lobby->GetSchema() ) + "  (" + CVotePromptForm::DescribeTally( state.activeVote ) + ")" :
+                   "A vote is open: " + CVotePromptForm::DescribeTally( state.activeVote );
         }
     }
     SetLabelText( "Countdown", countdown );
@@ -958,6 +1143,18 @@ CLobbyForm::ForceStart( void )
 /*-------------------------------------------------------------------------*/
 
 bool
+CLobbyForm::Cancel( void )
+{GUCEF_TRACE;
+
+    if ( m_lobby.IsNULL() )
+        return false;
+    SetLabelText( "Status", CORE::CString::Empty );
+    return m_lobby->Cancel();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CLobbyForm::Leave( void )
 {GUCEF_TRACE;
 
@@ -968,6 +1165,112 @@ CLobbyForm::Leave( void )
     TLeftEventData reason( CORE::CString::Empty );
     NotifyObservers( LeftEvent, &reason );
     return left;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLobbyForm::Invite( const CORE::CString& name, const CORE::CString& contact, const CORE::CString& code )
+{GUCEF_TRACE;
+
+    if ( m_lobby.IsNULL() )
+        return false;
+    const CORE::CString who = TrimText( name );
+    const CORE::CString reach = TrimText( contact );
+    if ( who.IsNULLOrEmpty() || reach.IsNULLOrEmpty() )
+    {
+        SetLabelText( "Status", "Give the player a name and a way to reach them." );
+        return false;
+    }
+    SetLabelText( "Status", CORE::CString::Empty );
+    if ( !m_lobby->Invite( who, reach, TrimText( code ) ) )
+        return false;
+    GUI::CWidget* field = GetWidget( "InviteName" );
+    if ( GUCEF_NULL != field )
+        field->SetProperty( GUI::EWidgetProperty_Text, CORE::CString::Empty );
+    field = GetWidget( "InviteContact" );
+    if ( GUCEF_NULL != field )
+        field->SetProperty( GUI::EWidgetProperty_Text, CORE::CString::Empty );
+    field = GetWidget( "InviteCode" );
+    if ( GUCEF_NULL != field )
+        field->SetProperty( GUI::EWidgetProperty_Text, CORE::CString::Empty );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CLobbyForm::GetNoteText( void )
+{GUCEF_TRACE;
+
+    GUI::CWidget* label = GetWidget( "Note" );
+    return GUCEF_NULL != label ? label->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::SetTooltip( const char* widgetName, const CORE::CString& text )
+{GUCEF_TRACE;
+
+    GUI::CWidget* widget = GetWidget( widgetName );
+    if ( GUCEF_NULL != widget && widget->GetProperty( GUI::EWidgetProperty_Tooltip ) != text )
+        widget->SetProperty( GUI::EWidgetProperty_Tooltip, text );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CLobbyForm::GetButtonTooltip( const char* widgetName )
+{GUCEF_TRACE;
+
+    GUI::CWidget* widget = GetWidget( widgetName );
+    return GUCEF_NULL != widget ? widget->GetProperty( GUI::EWidgetProperty_Tooltip ) : CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CLobbyForm::GetButtonText( const char* widgetName )
+{GUCEF_TRACE;
+
+    GUI::CWidget* widget = GetWidget( widgetName );
+    return GUCEF_NULL != widget ? widget->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLobbyForm::IsControlShown( const char* widgetName )
+{GUCEF_TRACE;
+
+    GUI::CWidget* widget = GetWidget( widgetName );
+    return GUCEF_NULL != widget && widget->IsVisible();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::GetSlotColumns( CORE::CString::StringVector& titles ) const
+{GUCEF_TRACE;
+
+    titles = m_slotTitles;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnInviteActivated( CORE::CNotifier* notifier    ,
+                               const CORE::CEvent& eventId  ,
+                               CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    GUI::CWidget* name = GetWidget( "InviteName" );
+    GUI::CWidget* contact = GetWidget( "InviteContact" );
+    GUI::CWidget* code = GetWidget( "InviteCode" );
+    Invite( GUCEF_NULL != name ? name->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty    ,
+            GUCEF_NULL != contact ? contact->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty ,
+            GUCEF_NULL != code ? code->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty    );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1036,7 +1339,7 @@ CLobbyForm::OnSlotActivated( Int32 row )
     if ( row < 0 || row >= (Int32) state.slots.size() )
         return;
     const MULTIPLAY::CLobbySlot& slot = state.slots[ row ];
-    if ( slot.IsFree() )
+    if ( slot.IsFree() && m_lobby->GetPresentation().canChooseSlot )
     {
         SetLabelText( "Status", CORE::CString::Empty );
         m_lobby->RequestSlot( slot.index );
@@ -1056,24 +1359,24 @@ CLobbyForm::OpenSlotMenu( Int32 x, Int32 y, Int32 row )
     if ( row < 0 || row >= (Int32) state.slots.size() )
         return;
     const MULTIPLAY::CLobbySlot& slot = state.slots[ row ];
-    bool boss = m_lobby->IsBoss() && MULTIPLAY::LOBBYPHASE_OPEN == state.phase;
+    const MULTIPLAY::CLobbyPresentation presentation = m_lobby->GetPresentation();
 
-    // Everyone reports another player, in any phase; the boss manages the open lobby
+    // Everyone reports another player, in any phase; the one who may manages the open lobby
     GUI::CPopupMenu::TStringVector items;
     if ( !slot.memberId.IsNULLOrEmpty() )
     {
         if ( slot.memberId == m_lobby->GetLocalMemberId() )
             return;
-        if ( boss )
-        {
-            items.push_back( MenuKick );
+        if ( presentation.canKick )
+            items.push_back( presentation.kickText );
+        if ( presentation.canBan )
             items.push_back( MenuBan );
+        if ( presentation.canTransferBoss )
             items.push_back( MenuMakeBoss );
-        }
         items.push_back( MenuReport );
     }
     else
-    if ( boss )
+    if ( presentation.canManageSlots )
     {
         if ( MULTIPLAY::LOBBYSLOTKIND_OPEN != slot.kind )
             items.push_back( MenuOpenSlot );
@@ -1117,7 +1420,7 @@ CLobbyForm::OnSlotMenuItem( const CORE::CString& item )
     if ( MenuAddAi == item )
         m_lobby->SetSlotKind( m_menuSlot, MULTIPLAY::LOBBYSLOTKIND_AI, m_aiType );
     else
-    if ( MenuKick == item )
+    if ( m_menuKickText == item )
         m_lobby->Kick( m_menuMember );
     else
     if ( MenuMakeBoss == item )
@@ -1128,6 +1431,21 @@ CLobbyForm::OnSlotMenuItem( const CORE::CString& item )
     else
     if ( MenuReport == item )
         ReportPlayer( m_menuMember, m_reportReason );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CLobbyForm::DescribeRequest( const CORE::CString& what )
+{GUCEF_TRACE;
+
+    if ( "forceStart" == what )
+        return "force start";
+    if ( "transferBoss" == what )
+        return "make boss";
+    if ( "slotKind" == what )
+        return "slot";
+    return what;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1220,7 +1538,7 @@ CLobbyForm::OnLobbyRequestRefused( CORE::CNotifier* notifier    ,
     if ( GUCEF_NULL == eventData )
         return;
     const MULTIPLAY::CLobbyRefusalEventData* refusal = static_cast< const MULTIPLAY::CLobbyRefusalEventData* >( eventData );
-    SetLabelText( "Status", "Not allowed (" + refusal->what + "): " + refusal->reason );
+    SetLabelText( "Status", "Not allowed (" + DescribeRequest( refusal->what ) + "): " + refusal->reason );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1260,6 +1578,28 @@ CLobbyForm::OnForceStartActivated( CORE::CNotifier* notifier    ,
 {GUCEF_TRACE;
 
     ForceStart();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnBackActivated( CORE::CNotifier* notifier    ,
+                             const CORE::CEvent& eventId  ,
+                             CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    NotifyObservers( BackRequestedEvent );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbyForm::OnCancelActivated( CORE::CNotifier* notifier    ,
+                                const CORE::CEvent& eventId  ,
+                                CORE::CICloneable* eventData )
+{GUCEF_TRACE;
+
+    Cancel();
 }
 
 /*-------------------------------------------------------------------------*/

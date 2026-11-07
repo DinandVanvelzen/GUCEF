@@ -1,7 +1,7 @@
 /*
  *  gucefGAMEGUI: GUCEF module providing prebaked GUI forms for rapid game development
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -150,11 +150,17 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbySettingsPanelForm : public GUI::CFormEx
     /** The control of the setting by its schema key, NULL when there is none */
     GUI::CWidget* GetControl( const CORE::CString& key );
 
+    /** The minutes control of a duration setting (its control is the hours one), NULL for any other setting */
+    GUI::CWidget* GetSecondaryControl( const CORE::CString& key );
+
     /** The text of the label of a setting (the text of the check box for a BOOL) */
     CORE::CString GetLabelText( const CORE::CString& key );
 
     /** The text of the unit label after the control of a setting, empty when it has no unit */
     CORE::CString GetUnitText( const CORE::CString& key );
+
+    /** The text of the unit after the minutes control of a duration setting, empty for any other setting */
+    CORE::CString GetSecondaryUnitText( const CORE::CString& key );
 
     /** Whether the setting it depends on has the value it needs, true when it depends on none; whether the player may change it is IsSettingEditable() */
     bool IsGateOpen( const CORE::CString& key );
@@ -187,6 +193,8 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbySettingsPanelForm : public GUI::CFormEx
         CORE::CString widgetName;
         CORE::CString labelName;                    /**< empty for a check box, which carries its own text */
         CORE::CString unitName;                     /**< empty without a unit */
+        CORE::CString secondaryName;                /**< a duration: the minutes control, the control is the hours one; empty otherwise */
+        CORE::CString secondaryUnitName;            /**< a duration: the unit after the minutes control */
     };
     typedef struct SControl TControl;
     typedef GUCEF::vector< TControl > TControlVector;
@@ -201,6 +209,7 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbySettingsPanelForm : public GUI::CFormEx
     bool Rebuild( void );
     Int32 FindControlIndex( const CORE::CString& key ) const;
     Int32 FindControlIndexOfWidget( CORE::CNotifier* widget );
+    void AddDurationNodes( CORE::CDataNode& row, const TControl& control );
     CORE::CString GetValueKey( const TControl& control ) const;
     CORE::CString GetKnownValue( const TControl& control ) const;
     CORE::CString ReadControl( const TControl& control );

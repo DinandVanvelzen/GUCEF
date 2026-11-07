@@ -1,7 +1,7 @@
 /*
  *  gucefGAMEGUI: GUCEF module providing prebaked GUI forms for rapid game development
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -106,6 +106,26 @@
 #include "gucefGAMEGUI_CPlayerProfileForm.h"
 #define GUCEF_GAMEGUI_CPLAYERPROFILEFORM_H
 #endif /* GUCEF_GAMEGUI_CPLAYERPROFILEFORM_H ? */
+
+#ifndef GUCEF_GAMEGUI_CMATCHLISTFORM_H
+#include "gucefGAMEGUI_CMatchListForm.h"
+#define GUCEF_GAMEGUI_CMATCHLISTFORM_H
+#endif /* GUCEF_GAMEGUI_CMATCHLISTFORM_H ? */
+
+#ifndef GUCEF_GAMEGUI_CMATCHINDICATORFORM_H
+#include "gucefGAMEGUI_CMatchIndicatorForm.h"
+#define GUCEF_GAMEGUI_CMATCHINDICATORFORM_H
+#endif /* GUCEF_GAMEGUI_CMATCHINDICATORFORM_H ? */
+
+#ifndef GUCEF_GAMEGUI_CMAILACCOUNTFORM_H
+#include "gucefGAMEGUI_CMailAccountForm.h"
+#define GUCEF_GAMEGUI_CMAILACCOUNTFORM_H
+#endif /* GUCEF_GAMEGUI_CMAILACCOUNTFORM_H ? */
+
+#ifndef GUCEF_GAMEGUI_CMATCHTABLEFORM_H
+#include "gucefGAMEGUI_CMatchTableForm.h"
+#define GUCEF_GAMEGUI_CMATCHTABLEFORM_H
+#endif /* GUCEF_GAMEGUI_CMATCHTABLEFORM_H ? */
 
 #endif /* __cplusplus ? */
 

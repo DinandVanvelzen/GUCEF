@@ -1,20 +1,18 @@
 /*
  *  gucefGAMEGUI_TestApp: Application for testing gucefGAMEGUI
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -565,6 +563,85 @@ PerformLobbySettingsPanelFormTests( void )
         // without the lobby the panel is a plain form again, with the gate evaluated on its own values
         playerPanel.SetLobby( MULTIPLAY::CILobbyPtr() );
         ASSERT_TRUE( playerPanel.IsGateOpen( "seconds" ) && playerPanel.IsSettingEditable( "seconds" ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "SettingsPanel: A duration is stored as minutes and edited as hours and minutes, with a unit after each" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateFormContext();
+        GUI::CGUIContext* context = ContextOf( contextPtr );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL == context )
+            return;
+
+        MULTIPLAY::CLobbySettingsSchema schema;
+        MULTIPLAY::CLobbySettingDef limit;
+        limit.key = "turnMinutes";
+        limit.label = "Time for a turn (0: no limit)";
+        limit.type = MULTIPLAY::CLobbySettingDef::TYPE_DURATION;
+        limit.hasRange = true;
+        limit.minValue = 0;
+        limit.maxValue = 86400;
+        limit.step = 1;
+        limit.defaultValue = "720";
+        limit.changePolicy = MULTIPLAY::CLobbySettingDef::CHANGEPOLICY_ANY;
+        schema.AddSetting( limit );
+        MULTIPLAY::CLobbySettingDef name;
+        name.key = "motd";
+        name.type = MULTIPLAY::CLobbySettingDef::TYPE_STRING;
+        schema.AddSetting( name );
+
+        GAMEGUI::CLobbySettingsPanelForm panel;
+        panel.SetSchema( schema );
+        ASSERT_TRUE( panel.Build( MakeHolder( context, "Holder" ) ) );
+        CSettingRecorder recorder( &panel );
+
+        // two spinners, hours and minutes, each with its unit; the value is the minutes
+        GUI::CWidget* hours = panel.GetControl( "turnMinutes" );
+        GUI::CWidget* minutes = panel.GetSecondaryControl( "turnMinutes" );
+        ASSERT_TRUE( GUCEF_NULL != GAMEGUI::WidgetAs< GUI::CSpinner >( hours, "Spinner" ) && GUCEF_NULL != GAMEGUI::WidgetAs< GUI::CSpinner >( minutes, "Spinner" ) );
+        ASSERT_TRUE( GUCEF_NULL == panel.GetSecondaryControl( "motd" ) && GUCEF_NULL == panel.GetSecondaryControl( "nothing" ) );
+        ASSERT_TRUE( panel.GetUnitText( "turnMinutes" ) == "h" && panel.GetSecondaryUnitText( "turnMinutes" ) == "min" );
+        ASSERT_TRUE( panel.GetValue( "turnMinutes" ) == "720" );
+        ASSERT_TRUE( 12 == hours->GetIntProperty( "Value" ) && 0 == minutes->GetIntProperty( "Value" ) );
+        ASSERT_TRUE( 0 == hours->GetIntProperty( "Min" ) && 1440 == hours->GetIntProperty( "Max" ) && 0 == minutes->GetIntProperty( "Min" ) && 59 == minutes->GetIntProperty( "Max" ) );
+        ASSERT_TRUE( 0 == hours->GetIntProperty( "Decimals" ) && 0 == minutes->GetIntProperty( "Decimals" ) );
+
+        // either spinner changes the setting, which is told in minutes
+        minutes->ChangeValueByUser( "Value", "30" );
+        ASSERT_TRUE( 1 == recorder.count && "turnMinutes" == recorder.key && "750" == recorder.value && !recorder.proposed );
+        ASSERT_TRUE( panel.GetValue( "turnMinutes" ) == "750" );
+        hours->ChangeValueByUser( "Value", "128" );
+        ASSERT_TRUE( 2 == recorder.count && "7710" == recorder.value && panel.GetValue( "turnMinutes" ) == "7710" );
+        hours->ChangeValueByUser( "Value", "0" );
+        minutes->ChangeValueByUser( "Value", "1" );
+        ASSERT_TRUE( "1" == recorder.value && panel.GetValue( "turnMinutes" ) == "1" );
+
+        // the largest hours with minutes on top stays within the range of the setting
+        hours->ChangeValueByUser( "Value", "1440" );
+        minutes->ChangeValueByUser( "Value", "45" );
+        ASSERT_TRUE( panel.GetValue( "turnMinutes" ) == "86400" );
+
+        // a value that is set shows as hours and minutes
+        CORE::CValueList values;
+        values.Set( "turnMinutes", "5430" );
+        panel.SetValues( values );
+        ASSERT_TRUE( 90 == hours->GetIntProperty( "Value" ) && 30 == minutes->GetIntProperty( "Value" ) && panel.GetValue( "turnMinutes" ) == "5430" );
+        CORE::CValueList none;
+        none.Set( "turnMinutes", "0" );
+        panel.SetValues( none );
+        ASSERT_TRUE( 0 == hours->GetIntProperty( "Value" ) && 0 == minutes->GetIntProperty( "Value" ) && panel.GetValue( "turnMinutes" ) == "0" );
+        CORE::CValueList read;
+        panel.GetValues( read );
+        ASSERT_TRUE( read.GetValueAlways( "turnMinutes" ).AsString() == "0" );
+
+        // both parts follow the right of the player to change the setting
+        ASSERT_TRUE( panel.IsSettingEditable( "turnMinutes" ) && minutes->GetBoolProperty( "Enabled" ) );
     }
     catch ( ... )
     {

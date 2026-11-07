@@ -1,6 +1,6 @@
 /*
  *  gucefGAMEGUI_TestApp: Application for testing gucefGAMEGUI
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -64,6 +64,15 @@ class CTestListingProvider : public GUCEF::MULTIPLAY::CIGameListingProvider
 
     void Put( const GUCEF::MULTIPLAY::CGameListingEntry& listing ) { UpsertListing( listing ); }
     void Drop( const GUCEF::CORE::CString& listingId ) { RemoveListing( listingId ); }
+
+    /** Listings that come together, as the listings of a source that was looked at again do: one batch */
+    void PutBatch( const GUCEF::vector< GUCEF::MULTIPLAY::CGameListingEntry >& listings )
+    {
+        BeginBatch();
+        for ( size_t i=0; i<listings.size(); ++i )
+            UpsertListing( listings[ i ] );
+        EndBatch();
+    }
 
     GUCEF::UInt32 GetRefreshCount( void ) const { return m_refreshCount; }
 

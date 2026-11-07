@@ -1,7 +1,7 @@
 /*
  *  gucefGAMEGUI: GUCEF module providing prebaked GUI forms for rapid game development
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -108,6 +108,11 @@ namespace GAMEGUI {
  *  a slot open, close or give it an AI, for a player kick, kick and ban, or make the boss. A vote that asks the player
  *  is shown by a CVotePromptForm.
  *
+ *  What the form shows and offers follows the presentation the lobby gives (MULTIPLAY::CLobbyPresentation, CILobby::GetPresentation()): the
+ *  columns of the table, the row of faction and colour, the words of the controls, which of them are there and which can be used, a note in
+ *  plain words about how the lobby works, and the row to invite another player by name and contact (widgets InviteName, InviteContact,
+ *  InviteCode and the button InviteAdd). A lobby of a game on a live connection gives what is described above.
+ *
  *  A refusal of a request shows as the status line, with the reason the lobby gave; the countdown shows above the
  *  table. The launch description
  *  that starts the game is passed on with LaunchEvent; the end of the lobby (the player left, the lobby closed) with
@@ -120,6 +125,7 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbyForm : public GUI::CFormEx
 
     static const CORE::CEvent LaunchEvent;      /**< MULTIPLAY::CLaunchDescription: the game starts, for the local member */
     static const CORE::CEvent LeftEvent;        /**< TLeftEventData: why the lobby is over for the player, empty when the player left */
+    static const CORE::CEvent BackRequestedEvent;   /**< no data: the player wants the list again, the lobby is neither answered nor left (when the lobby has the button, CLobbyPresentation::showBack) */
 
     typedef CORE::TCloneableString TLeftEventData;
 
@@ -187,14 +193,38 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbyForm : public GUI::CFormEx
 
     bool ForceStart( void );
 
+    /** Closes the lobby for everybody or proposes to, as the lobby does it (CILobby::Cancel()); the form stays where it is */
+    bool Cancel( void );
+
     /** Leaves the lobby and notifies LeftEvent */
     bool Leave( void );
+
+    /** Asks another player to take part, as the row to invite does; the fields of the row are emptied when the lobby took the invitation */
+    bool Invite( const CORE::CString& name, const CORE::CString& contact, const CORE::CString& code );
+
+    /** The text of the note in plain words, empty when the lobby has none */
+    CORE::CString GetNoteText( void );
+
+    /** The text of the controls as the presentation of the lobby has them */
+    CORE::CString GetButtonText( const char* widgetName );
+
+    /** The tooltip of a control: what it does or why it is off, as the presentation of the lobby has it */
+    CORE::CString GetButtonTooltip( const char* widgetName );
+
+    /** Whether a control is on the screen: shown, and not hidden by the presentation */
+    bool IsControlShown( const char* widgetName );
+
+    /** The columns of the table of slots, by title */
+    void GetSlotColumns( CORE::CString::StringVector& titles ) const;
 
     /** The text of the line that tells how the start goes */
     CORE::CString GetCountdownText( void );
 
     /** The text of the line that tells what was refused, or the lobby that closed */
     CORE::CString GetStatusText( void );
+
+    /** The note of a presentation with the decisions of the lobby under it (CLobbyPresentation::voteLines and voteWarning) as the form shows it */
+    static CORE::CString ComposeNote( const MULTIPLAY::CLobbyPresentation& presentation );
 
     /** The text of the line that tells about the vote that runs, empty when there is none */
     CORE::CString GetVoteText( void );
@@ -222,6 +252,7 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbyForm : public GUI::CFormEx
     void BuildLayout( CORE::CDataNode& layout );
     void AddFooter( CORE::CDataNode& window );
     void AddPlayerControls( CORE::CDataNode& parent, const CORE::CString& x, const CORE::CString& y, const CORE::CString& half );
+    void AddNoteAndInvite( CORE::CDataNode& parent, const CORE::CString& x, const CORE::CString& y, const CORE::CString& width, bool inList, Int32 belowControls );
     TTier GetTierForScreen( void );
     bool LoadForCurrentSize( void );
     void UpdateLayoutMode( void );
@@ -232,6 +263,9 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbyForm : public GUI::CFormEx
     void ShowTexts( void );
     void SetLabelText( const char* widgetName, const CORE::CString& text );
     void SetEnabled( const char* widgetName, bool enabled );
+    void SetShown( const char* widgetName, bool shown );
+    MULTIPLAY::CLobbyPresentation GetCurrentPresentation( void ) const;
+    static CORE::CString DescribeRequest( const CORE::CString& what );
     void OpenSlotMenu( Int32 x, Int32 y, Int32 row );
     void OnSlotMenuItem( const CORE::CString& item );
     void OnSlotActivated( Int32 row );
@@ -247,7 +281,11 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbyForm : public GUI::CFormEx
     void OnSlotMenuActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnStartActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnForceStartActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnCancelActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void SetTooltip( const char* widgetName, const CORE::CString& text );
+    void OnBackActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnLeaveActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
+    void OnInviteActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnReadyChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnSpectateChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnFactionChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
@@ -271,6 +309,9 @@ class GUCEF_GAMEGUI_EXPORT_CPP CLobbyForm : public GUI::CFormEx
     CORE::CString m_aiType;
     CORE::CString m_reportReason;
     Int32 m_countdown;
+    bool m_compact;                 /**< the layout has no row of faction and colour: the presentation of the lobby has none */
+    CORE::CString::StringVector m_slotTitles;   /**< the titles of the columns of the table of slots as they are now */
+    CORE::CString m_menuKickText;
     TTier m_tier;                   /**< the layout: one column that scrolls as a whole (narrow), two columns, or two with more room for the settings (wide) */
     bool m_subscribedToFrames;
     bool m_updating;

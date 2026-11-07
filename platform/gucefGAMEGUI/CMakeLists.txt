@@ -20,6 +20,10 @@ set( HEADER_FILES
   include/gucefGAMEGUI_CGameGuiGlobal.h
   include/gucefGAMEGUI_CLobbyForm.h
   include/gucefGAMEGUI_CLobbySettingsPanelForm.h
+  include/gucefGAMEGUI_CMailAccountForm.h
+  include/gucefGAMEGUI_CMatchIndicatorForm.h
+  include/gucefGAMEGUI_CMatchListForm.h
+  include/gucefGAMEGUI_CMatchTableForm.h
   include/gucefGAMEGUI_CModule.h
   include/gucefGAMEGUI_CPlayerProfileForm.h
   include/gucefGAMEGUI_CServerBrowserForm.h
@@ -39,6 +43,10 @@ set( SOURCE_FILES
   src/gucefGAMEGUI_CGameGuiGlobal.cpp
   src/gucefGAMEGUI_CLobbyForm.cpp
   src/gucefGAMEGUI_CLobbySettingsPanelForm.cpp
+  src/gucefGAMEGUI_CMailAccountForm.cpp
+  src/gucefGAMEGUI_CMatchIndicatorForm.cpp
+  src/gucefGAMEGUI_CMatchListForm.cpp
+  src/gucefGAMEGUI_CMatchTableForm.cpp
   src/gucefGAMEGUI_CModule.cpp
   src/gucefGAMEGUI_CPlayerProfileForm.cpp
   src/gucefGAMEGUI_CServerBrowserForm.cpp
@@ -64,7 +72,7 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefAUDIO/include ../gucefAUDIO/include/c_api ../gucefAUTH/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefDRN/include ../gucefGUI/include ../gucefIMAGE/include ../gucefINPUT/include ../gucefMT/include ../gucefMULTIPLAY/include ../gucefVFS/include ../gucefVIDEO/include ../gucefVIDEO/include/c_api ../gucefWEB/include include )
+include_directories( ../../common/include ../gucefAUDIO/include ../gucefAUDIO/include/c_api ../gucefAUTH/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefDRN/include ../gucefGUI/include ../gucefIMAGE/include ../gucefINPUT/include ../gucefMT/include ../gucefMULTIPLAY/include ../gucefVFS/include ../gucefVIDEO/include ../gucefVIDEO/include/c_api ../gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )

@@ -140,15 +140,20 @@ defines( { "GUCEF_GAMEGUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGAMEGUI_TestA
 configuration( { "ANDROID32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestAsyncLobbyForms.h",
       "include/TestChatService.h",
+      "include/TestFakeAsyncLobbyBackend.h",
       "include/TestListingProvider.h",
       "include/TestLobbyFixture.h",
       "include/TestLobbyService.h",
+      "include/TestMatchFixture.h",
+      "include/TestMatchLayoutChecks.h",
       "include/gucefGAMEGUI_TestCommon.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAsyncLobbyForms.cpp",
       "src/TestChatForm.cpp",
       "src/TestChatService.cpp",
       "src/TestConnectingForm.cpp",
@@ -160,6 +165,11 @@ configuration( { "ANDROID32" } )
       "src/TestLobbyForm.cpp",
       "src/TestLobbyService.cpp",
       "src/TestLobbySettingsPanelForm.cpp",
+      "src/TestMailAccountGuide.cpp",
+      "src/TestMailAccountSecret.cpp",
+      "src/TestMailForms.cpp",
+      "src/TestMatchIndicatorForm.cpp",
+      "src/TestMatchListForm.cpp",
       "src/TestPlayerProfileForm.cpp",
       "src/TestServerBrowserForm.cpp",
       "src/TestTurnWaitOverlayForm.cpp",
@@ -172,15 +182,20 @@ configuration( { "ANDROID32" } )
 configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestAsyncLobbyForms.h",
       "include/TestChatService.h",
+      "include/TestFakeAsyncLobbyBackend.h",
       "include/TestListingProvider.h",
       "include/TestLobbyFixture.h",
       "include/TestLobbyService.h",
+      "include/TestMatchFixture.h",
+      "include/TestMatchLayoutChecks.h",
       "include/gucefGAMEGUI_TestCommon.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAsyncLobbyForms.cpp",
       "src/TestChatForm.cpp",
       "src/TestChatService.cpp",
       "src/TestConnectingForm.cpp",
@@ -192,6 +207,11 @@ configuration( { "ANDROID64" } )
       "src/TestLobbyForm.cpp",
       "src/TestLobbyService.cpp",
       "src/TestLobbySettingsPanelForm.cpp",
+      "src/TestMailAccountGuide.cpp",
+      "src/TestMailAccountSecret.cpp",
+      "src/TestMailForms.cpp",
+      "src/TestMatchIndicatorForm.cpp",
+      "src/TestMatchListForm.cpp",
       "src/TestPlayerProfileForm.cpp",
       "src/TestServerBrowserForm.cpp",
       "src/TestTurnWaitOverlayForm.cpp",
@@ -204,15 +224,20 @@ configuration( { "ANDROID64" } )
 configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestAsyncLobbyForms.h",
       "include/TestChatService.h",
+      "include/TestFakeAsyncLobbyBackend.h",
       "include/TestListingProvider.h",
       "include/TestLobbyFixture.h",
       "include/TestLobbyService.h",
+      "include/TestMatchFixture.h",
+      "include/TestMatchLayoutChecks.h",
       "include/gucefGAMEGUI_TestCommon.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAsyncLobbyForms.cpp",
       "src/TestChatForm.cpp",
       "src/TestChatService.cpp",
       "src/TestConnectingForm.cpp",
@@ -224,6 +249,11 @@ configuration( { "LINUX32" } )
       "src/TestLobbyForm.cpp",
       "src/TestLobbyService.cpp",
       "src/TestLobbySettingsPanelForm.cpp",
+      "src/TestMailAccountGuide.cpp",
+      "src/TestMailAccountSecret.cpp",
+      "src/TestMailForms.cpp",
+      "src/TestMatchIndicatorForm.cpp",
+      "src/TestMatchListForm.cpp",
       "src/TestPlayerProfileForm.cpp",
       "src/TestServerBrowserForm.cpp",
       "src/TestTurnWaitOverlayForm.cpp",
@@ -236,15 +266,20 @@ configuration( { "LINUX32" } )
 configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestAsyncLobbyForms.h",
       "include/TestChatService.h",
+      "include/TestFakeAsyncLobbyBackend.h",
       "include/TestListingProvider.h",
       "include/TestLobbyFixture.h",
       "include/TestLobbyService.h",
+      "include/TestMatchFixture.h",
+      "include/TestMatchLayoutChecks.h",
       "include/gucefGAMEGUI_TestCommon.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAsyncLobbyForms.cpp",
       "src/TestChatForm.cpp",
       "src/TestChatService.cpp",
       "src/TestConnectingForm.cpp",
@@ -256,6 +291,11 @@ configuration( { "LINUX64" } )
       "src/TestLobbyForm.cpp",
       "src/TestLobbyService.cpp",
       "src/TestLobbySettingsPanelForm.cpp",
+      "src/TestMailAccountGuide.cpp",
+      "src/TestMailAccountSecret.cpp",
+      "src/TestMailForms.cpp",
+      "src/TestMatchIndicatorForm.cpp",
+      "src/TestMatchListForm.cpp",
       "src/TestPlayerProfileForm.cpp",
       "src/TestServerBrowserForm.cpp",
       "src/TestTurnWaitOverlayForm.cpp",
@@ -268,15 +308,20 @@ configuration( { "LINUX64" } )
 configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestAsyncLobbyForms.h",
       "include/TestChatService.h",
+      "include/TestFakeAsyncLobbyBackend.h",
       "include/TestListingProvider.h",
       "include/TestLobbyFixture.h",
       "include/TestLobbyService.h",
+      "include/TestMatchFixture.h",
+      "include/TestMatchLayoutChecks.h",
       "include/gucefGAMEGUI_TestCommon.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAsyncLobbyForms.cpp",
       "src/TestChatForm.cpp",
       "src/TestChatService.cpp",
       "src/TestConnectingForm.cpp",
@@ -288,6 +333,11 @@ configuration( { "WIN32" } )
       "src/TestLobbyForm.cpp",
       "src/TestLobbyService.cpp",
       "src/TestLobbySettingsPanelForm.cpp",
+      "src/TestMailAccountGuide.cpp",
+      "src/TestMailAccountSecret.cpp",
+      "src/TestMailForms.cpp",
+      "src/TestMatchIndicatorForm.cpp",
+      "src/TestMatchListForm.cpp",
       "src/TestPlayerProfileForm.cpp",
       "src/TestServerBrowserForm.cpp",
       "src/TestTurnWaitOverlayForm.cpp",
@@ -300,15 +350,20 @@ configuration( { "WIN32" } )
 configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
+      "include/TestAsyncLobbyForms.h",
       "include/TestChatService.h",
+      "include/TestFakeAsyncLobbyBackend.h",
       "include/TestListingProvider.h",
       "include/TestLobbyFixture.h",
       "include/TestLobbyService.h",
+      "include/TestMatchFixture.h",
+      "include/TestMatchLayoutChecks.h",
       "include/gucefGAMEGUI_TestCommon.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
+      "src/TestAsyncLobbyForms.cpp",
       "src/TestChatForm.cpp",
       "src/TestChatService.cpp",
       "src/TestConnectingForm.cpp",
@@ -320,6 +375,11 @@ configuration( { "WIN64" } )
       "src/TestLobbyForm.cpp",
       "src/TestLobbyService.cpp",
       "src/TestLobbySettingsPanelForm.cpp",
+      "src/TestMailAccountGuide.cpp",
+      "src/TestMailAccountSecret.cpp",
+      "src/TestMailForms.cpp",
+      "src/TestMatchIndicatorForm.cpp",
+      "src/TestMatchListForm.cpp",
       "src/TestPlayerProfileForm.cpp",
       "src/TestServerBrowserForm.cpp",
       "src/TestTurnWaitOverlayForm.cpp",

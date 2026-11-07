@@ -1,7 +1,7 @@
 /*
  *  gucefGAMEGUI: GUCEF module providing prebaked GUI forms for rapid game development
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -104,7 +104,9 @@ namespace {
 
 const Int32 RowHeight = 32;
 const Int32 ControlHeight = 32;
-const Int32 UnitWidth = 40;
+const Int32 UnitWidth = 56;
+const Int32 HoursUnitWidth = 24;
+const UInt32 MinutesPerHour = 60;
 const Int32 GroupPadding = 10;
 const Int32 CaptionHeight = 22;
 const Int32 ScrollBarWidth = 16;
@@ -247,6 +249,12 @@ CLobbySettingsPanelForm::AddControlNodes( CORE::CDataNode& parent, UInt32 index 
     GUI::CFormLayout::SetWidgetNodeProperty( *label, GUI::EWidgetProperty_Text, LabelOf( def ) );
     GUI::CFormLayout::SetWidgetNodeProperty( *label, GUI::EWidgetProperty_VTextAlign, "Center" );
 
+    if ( MULTIPLAY::CLobbySettingDef::TYPE_DURATION == def.type )
+    {
+        AddDurationNodes( *row, control );
+        return;
+    }
+
     // a unit is shown after the value, in the room the control leaves for it; the control keeps its height in a taller row
     const bool hasUnit = !control.unitName.IsNULLOrEmpty();
     const CORE::CString controlSize = ( hasUnit ? "0.55," + CORE::Int32ToString( -UnitWidth ) : CORE::CString( "0.55,0" ) ) + " 0," + CORE::Int32ToString( ControlHeight );
@@ -294,6 +302,47 @@ CLobbySettingsPanelForm::AddControlNodes( CORE::CDataNode& parent, UInt32 index 
         GUI::CFormLayout::SetWidgetNodeProperty( *unit, GUI::EWidgetProperty_Text, def.unit );
         GUI::CFormLayout::SetWidgetNodeProperty( *unit, GUI::EWidgetProperty_VTextAlign, "Center" );
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLobbySettingsPanelForm::AddDurationNodes( CORE::CDataNode& row, const TControl& control )
+{GUCEF_TRACE;
+
+    // hours and minutes side by side against the right edge of the row, each followed by its unit: the setting itself is the minutes
+    const MULTIPLAY::CLobbySettingDef& def = control.def;
+    const Int32 leftOfMinutes = -UnitWidth;                                         // the minutes control ends where its unit begins
+    const Int32 leftOfHours = -( UnitWidth + HoursUnitWidth );                      // the hours control ends where its unit begins
+    const CORE::CString minutesSize = "0.14,0 0," + CORE::Int32ToString( ControlHeight );
+    const CORE::CString hoursSize = "0.2,0 0," + CORE::Int32ToString( ControlHeight );
+
+    const UInt32 maxMinutes = def.hasRange ? (UInt32) def.maxValue : 1000000;
+    const UInt32 minMinutes = def.hasRange && def.minValue > 0 ? (UInt32) def.minValue : 0;
+
+    CORE::CDataNode* hours = GUI::CFormLayout::AddWidgetNode( row, "Spinner", control.widgetName, "0.86," + CORE::Int32ToString( leftOfHours ) + " 0.5,0", hoursSize );
+    GUI::CFormLayout::SetWidgetNodeProperty( *hours, GUI::EWidgetProperty_Min, CORE::UInt32ToString( minMinutes / MinutesPerHour ) );
+    GUI::CFormLayout::SetWidgetNodeProperty( *hours, GUI::EWidgetProperty_Max, CORE::UInt32ToString( maxMinutes / MinutesPerHour ) );
+    GUI::CFormLayout::SetWidgetNodeProperty( *hours, GUI::EWidgetProperty_Step, "1" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *hours, GUI::EWidgetProperty_Decimals, "0" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *hours, GUI::EWidgetProperty_HAlign, "Right" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *hours, GUI::EWidgetProperty_VAlign, "Center" );
+
+    CORE::CDataNode* hoursUnit = GUI::CFormLayout::AddWidgetNode( row, "Label", control.unitName, "0.86," + CORE::Int32ToString( leftOfHours + 4 ) + " 0,0", "0," + CORE::Int32ToString( HoursUnitWidth - 4 ) + " 1,0" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *hoursUnit, GUI::EWidgetProperty_Text, "h" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *hoursUnit, GUI::EWidgetProperty_VTextAlign, "Center" );
+
+    CORE::CDataNode* minutes = GUI::CFormLayout::AddWidgetNode( row, "Spinner", control.secondaryName, "1," + CORE::Int32ToString( leftOfMinutes ) + " 0.5,0", minutesSize );
+    GUI::CFormLayout::SetWidgetNodeProperty( *minutes, GUI::EWidgetProperty_Min, "0" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *minutes, GUI::EWidgetProperty_Max, CORE::UInt32ToString( MinutesPerHour - 1 ) );
+    GUI::CFormLayout::SetWidgetNodeProperty( *minutes, GUI::EWidgetProperty_Step, "1" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *minutes, GUI::EWidgetProperty_Decimals, "0" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *minutes, GUI::EWidgetProperty_HAlign, "Right" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *minutes, GUI::EWidgetProperty_VAlign, "Center" );
+
+    CORE::CDataNode* minutesUnit = GUI::CFormLayout::AddWidgetNode( row, "Label", control.secondaryUnitName, "1," + CORE::Int32ToString( -UnitWidth + 4 ) + " 0,0", "0," + CORE::Int32ToString( UnitWidth - 4 ) + " 1,0" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *minutesUnit, GUI::EWidgetProperty_Text, "min" );
+    GUI::CFormLayout::SetWidgetNodeProperty( *minutesUnit, GUI::EWidgetProperty_VTextAlign, "Center" );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -484,6 +533,13 @@ CLobbySettingsPanelForm::Rebuild( void )
         if ( MULTIPLAY::CLobbySettingDef::TYPE_BOOL != control.def.type )
         {
             control.labelName = "Label" + CORE::UInt32ToString( i );
+            if ( MULTIPLAY::CLobbySettingDef::TYPE_DURATION == control.def.type )
+            {
+                control.unitName = "Unit" + CORE::UInt32ToString( i );
+                control.secondaryName = "SettingMinutes" + CORE::UInt32ToString( i );
+                control.secondaryUnitName = "UnitMinutes" + CORE::UInt32ToString( i );
+            }
+            else
             if ( !control.def.unit.IsNULLOrEmpty() )
                 control.unitName = "Unit" + CORE::UInt32ToString( i );
         }
@@ -538,6 +594,12 @@ CLobbySettingsPanelForm::OnPostLayoutLoad( void )
         }
         else
             SubscribeTo( widget, GUI::CWidget::ValueChangedEvent, controlCallback );
+        if ( !m_controls[ i ].secondaryName.IsNULLOrEmpty() )
+        {
+            GUI::CWidget* secondary = GetWidget( m_controls[ i ].secondaryName );
+            if ( GUCEF_NULL != secondary )
+                SubscribeTo( secondary, GUI::CWidget::ValueChangedEvent, controlCallback );
+        }
     }
     FitRows();
     Refresh();
@@ -655,7 +717,7 @@ CLobbySettingsPanelForm::FindControlIndexOfWidget( CORE::CNotifier* widget )
 {GUCEF_TRACE;
 
     for ( UInt32 i=0; i<(UInt32)m_controls.size(); ++i )
-        if ( widget == GetWidget( m_controls[ i ].widgetName ) )
+        if ( widget == GetWidget( m_controls[ i ].widgetName ) || ( !m_controls[ i ].secondaryName.IsNULLOrEmpty() && widget == GetWidget( m_controls[ i ].secondaryName ) ) )
             return (Int32) i;
     return -1;
 }
@@ -668,6 +730,29 @@ CLobbySettingsPanelForm::GetControl( const CORE::CString& key )
 
     Int32 index = FindControlIndex( key );
     return index < 0 ? GUCEF_NULL : GetWidget( m_controls[ index ].widgetName );
+}
+
+/*-------------------------------------------------------------------------*/
+
+GUI::CWidget*
+CLobbySettingsPanelForm::GetSecondaryControl( const CORE::CString& key )
+{GUCEF_TRACE;
+
+    Int32 index = FindControlIndex( key );
+    return index < 0 || m_controls[ index ].secondaryName.IsNULLOrEmpty() ? GUCEF_NULL : GetWidget( m_controls[ index ].secondaryName );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CLobbySettingsPanelForm::GetSecondaryUnitText( const CORE::CString& key )
+{GUCEF_TRACE;
+
+    Int32 index = FindControlIndex( key );
+    if ( index < 0 || m_controls[ index ].secondaryUnitName.IsNULLOrEmpty() )
+        return CORE::CString::Empty;
+    GUI::CWidget* unit = GetWidget( m_controls[ index ].secondaryUnitName );
+    return GUCEF_NULL != unit ? unit->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString::Empty;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -751,6 +836,20 @@ CLobbySettingsPanelForm::ReadControl( const TControl& control )
             GUI::CSpinner* spinner = WidgetAs< GUI::CSpinner >( widget, "Spinner" );
             return GUCEF_NULL != spinner ? spinner->GetValueText() : widget->GetProperty( GUI::EWidgetProperty_Value );
         }
+        case MULTIPLAY::CLobbySettingDef::TYPE_DURATION:
+        {
+            GUI::CWidget* minutes = GetWidget( control.secondaryName );
+            const Int64 hoursValue = widget->GetIntProperty( GUI::EWidgetProperty_Value );
+            Int64 total = hoursValue * (Int64) MinutesPerHour + ( GUCEF_NULL != minutes ? (Int64) minutes->GetIntProperty( GUI::EWidgetProperty_Value ) : 0 );
+            if ( control.def.hasRange )
+            {
+                if ( total > (Int64) control.def.maxValue )
+                    total = (Int64) control.def.maxValue;
+                if ( total < (Int64) control.def.minValue )
+                    total = (Int64) control.def.minValue;
+            }
+            return CORE::Int64ToString( total );
+        }
         case MULTIPLAY::CLobbySettingDef::TYPE_ENUM:
         {
             GUI::CCombobox* combo = WidgetAs< GUI::CCombobox >( widget, "Combobox" );
@@ -789,6 +888,15 @@ CLobbySettingsPanelForm::ShowControl( const TControl& control, const CORE::CStri
         case MULTIPLAY::CLobbySettingDef::TYPE_FLOAT:
         {
             widget->SetProperty( GUI::EWidgetProperty_Value, value );
+            break;
+        }
+        case MULTIPLAY::CLobbySettingDef::TYPE_DURATION:
+        {
+            const UInt32 total = CORE::StringToUInt32( value, 0 );
+            widget->SetProperty( GUI::EWidgetProperty_Value, CORE::UInt32ToString( total / MinutesPerHour ) );
+            GUI::CWidget* minutes = GetWidget( control.secondaryName );
+            if ( GUCEF_NULL != minutes )
+                minutes->SetProperty( GUI::EWidgetProperty_Value, CORE::UInt32ToString( total % MinutesPerHour ) );
             break;
         }
         case MULTIPLAY::CLobbySettingDef::TYPE_ENUM:
@@ -849,6 +957,9 @@ CLobbySettingsPanelForm::CanChange( const TControl& control ) const
     if ( m_lobby.IsNULL() )
         return true;
 
+    // a lobby with settings that are fixed shows them and takes no change
+    if ( !m_lobby->GetPresentation().settingsEditable )
+        return false;
     const MULTIPLAY::CLobbyState& state = m_lobby->GetState();
     if ( MULTIPLAY::LOBBYPHASE_OPEN != state.phase )
         return false;
@@ -938,6 +1049,12 @@ CLobbySettingsPanelForm::Refresh( void )
         bool gateOpen = IsGateOpen( control );
         bool proposal = canChange && IsProposal( control );
         widget->SetEnabled( canChange && gateOpen );
+        if ( !control.secondaryName.IsNULLOrEmpty() )
+        {
+            GUI::CWidget* secondary = GetWidget( control.secondaryName );
+            if ( GUCEF_NULL != secondary )
+                secondary->SetEnabled( canChange && gateOpen );
+        }
 
         CORE::CString label = LabelOf( control.def );
         if ( proposal )
@@ -952,6 +1069,9 @@ CLobbySettingsPanelForm::Refresh( void )
         CORE::CString tip;
         if ( proposal )
             tip = "A change is a proposal that the players vote on";
+        else
+        if ( !canChange && !m_lobby.IsNULL() && !m_lobby->GetPresentation().settingsEditable )
+            tip = "The settings of this game are fixed";
         else
         if ( !canChange && !m_lobby.IsNULL() && MULTIPLAY::CLobbySettingDef::CHANGEPOLICY_BOSS == control.def.changePolicy )
             tip = "Only the boss changes this";

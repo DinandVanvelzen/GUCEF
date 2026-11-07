@@ -15,10 +15,14 @@
 
 if (ANDROID32)
   set( PLATFORM_HEADER_FILES 
+    include/TestAsyncLobbyForms.h
     include/TestChatService.h
+    include/TestFakeAsyncLobbyBackend.h
     include/TestListingProvider.h
     include/TestLobbyFixture.h
     include/TestLobbyService.h
+    include/TestMatchFixture.h
+    include/TestMatchLayoutChecks.h
     include/gucefGAMEGUI_TestCommon.h
   )
 
@@ -26,6 +30,7 @@ if (ANDROID32)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAsyncLobbyForms.cpp
     src/TestChatForm.cpp
     src/TestChatService.cpp
     src/TestConnectingForm.cpp
@@ -37,6 +42,11 @@ if (ANDROID32)
     src/TestLobbyForm.cpp
     src/TestLobbyService.cpp
     src/TestLobbySettingsPanelForm.cpp
+    src/TestMailAccountGuide.cpp
+    src/TestMailAccountSecret.cpp
+    src/TestMailForms.cpp
+    src/TestMatchIndicatorForm.cpp
+    src/TestMatchListForm.cpp
     src/TestPlayerProfileForm.cpp
     src/TestServerBrowserForm.cpp
     src/TestTurnWaitOverlayForm.cpp
@@ -49,10 +59,14 @@ if (ANDROID32)
 
 elseif (ANDROID64)
   set( PLATFORM_HEADER_FILES 
+    include/TestAsyncLobbyForms.h
     include/TestChatService.h
+    include/TestFakeAsyncLobbyBackend.h
     include/TestListingProvider.h
     include/TestLobbyFixture.h
     include/TestLobbyService.h
+    include/TestMatchFixture.h
+    include/TestMatchLayoutChecks.h
     include/gucefGAMEGUI_TestCommon.h
   )
 
@@ -60,6 +74,7 @@ elseif (ANDROID64)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAsyncLobbyForms.cpp
     src/TestChatForm.cpp
     src/TestChatService.cpp
     src/TestConnectingForm.cpp
@@ -71,6 +86,11 @@ elseif (ANDROID64)
     src/TestLobbyForm.cpp
     src/TestLobbyService.cpp
     src/TestLobbySettingsPanelForm.cpp
+    src/TestMailAccountGuide.cpp
+    src/TestMailAccountSecret.cpp
+    src/TestMailForms.cpp
+    src/TestMatchIndicatorForm.cpp
+    src/TestMatchListForm.cpp
     src/TestPlayerProfileForm.cpp
     src/TestServerBrowserForm.cpp
     src/TestTurnWaitOverlayForm.cpp
@@ -83,10 +103,14 @@ elseif (ANDROID64)
 
 elseif (LINUX32)
   set( PLATFORM_HEADER_FILES 
+    include/TestAsyncLobbyForms.h
     include/TestChatService.h
+    include/TestFakeAsyncLobbyBackend.h
     include/TestListingProvider.h
     include/TestLobbyFixture.h
     include/TestLobbyService.h
+    include/TestMatchFixture.h
+    include/TestMatchLayoutChecks.h
     include/gucefGAMEGUI_TestCommon.h
   )
 
@@ -94,6 +118,7 @@ elseif (LINUX32)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAsyncLobbyForms.cpp
     src/TestChatForm.cpp
     src/TestChatService.cpp
     src/TestConnectingForm.cpp
@@ -105,6 +130,11 @@ elseif (LINUX32)
     src/TestLobbyForm.cpp
     src/TestLobbyService.cpp
     src/TestLobbySettingsPanelForm.cpp
+    src/TestMailAccountGuide.cpp
+    src/TestMailAccountSecret.cpp
+    src/TestMailForms.cpp
+    src/TestMatchIndicatorForm.cpp
+    src/TestMatchListForm.cpp
     src/TestPlayerProfileForm.cpp
     src/TestServerBrowserForm.cpp
     src/TestTurnWaitOverlayForm.cpp
@@ -117,10 +147,14 @@ elseif (LINUX32)
 
 elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
+    include/TestAsyncLobbyForms.h
     include/TestChatService.h
+    include/TestFakeAsyncLobbyBackend.h
     include/TestListingProvider.h
     include/TestLobbyFixture.h
     include/TestLobbyService.h
+    include/TestMatchFixture.h
+    include/TestMatchLayoutChecks.h
     include/gucefGAMEGUI_TestCommon.h
   )
 
@@ -128,6 +162,7 @@ elseif (LINUX64)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAsyncLobbyForms.cpp
     src/TestChatForm.cpp
     src/TestChatService.cpp
     src/TestConnectingForm.cpp
@@ -139,6 +174,11 @@ elseif (LINUX64)
     src/TestLobbyForm.cpp
     src/TestLobbyService.cpp
     src/TestLobbySettingsPanelForm.cpp
+    src/TestMailAccountGuide.cpp
+    src/TestMailAccountSecret.cpp
+    src/TestMailForms.cpp
+    src/TestMatchIndicatorForm.cpp
+    src/TestMatchListForm.cpp
     src/TestPlayerProfileForm.cpp
     src/TestServerBrowserForm.cpp
     src/TestTurnWaitOverlayForm.cpp
@@ -151,10 +191,14 @@ elseif (LINUX64)
 
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
+    include/TestAsyncLobbyForms.h
     include/TestChatService.h
+    include/TestFakeAsyncLobbyBackend.h
     include/TestListingProvider.h
     include/TestLobbyFixture.h
     include/TestLobbyService.h
+    include/TestMatchFixture.h
+    include/TestMatchLayoutChecks.h
     include/gucefGAMEGUI_TestCommon.h
   )
 
@@ -162,6 +206,7 @@ elseif (WIN32)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAsyncLobbyForms.cpp
     src/TestChatForm.cpp
     src/TestChatService.cpp
     src/TestConnectingForm.cpp
@@ -173,6 +218,11 @@ elseif (WIN32)
     src/TestLobbyForm.cpp
     src/TestLobbyService.cpp
     src/TestLobbySettingsPanelForm.cpp
+    src/TestMailAccountGuide.cpp
+    src/TestMailAccountSecret.cpp
+    src/TestMailForms.cpp
+    src/TestMatchIndicatorForm.cpp
+    src/TestMatchListForm.cpp
     src/TestPlayerProfileForm.cpp
     src/TestServerBrowserForm.cpp
     src/TestTurnWaitOverlayForm.cpp
@@ -185,10 +235,14 @@ elseif (WIN32)
 
 elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
+    include/TestAsyncLobbyForms.h
     include/TestChatService.h
+    include/TestFakeAsyncLobbyBackend.h
     include/TestListingProvider.h
     include/TestLobbyFixture.h
     include/TestLobbyService.h
+    include/TestMatchFixture.h
+    include/TestMatchLayoutChecks.h
     include/gucefGAMEGUI_TestCommon.h
   )
 
@@ -196,6 +250,7 @@ elseif (WIN64)
   source_group( "Platform Header Files" FILES ${PLATFORM_HEADER_FILES} )
 
   set( PLATFORM_SOURCE_FILES 
+    src/TestAsyncLobbyForms.cpp
     src/TestChatForm.cpp
     src/TestChatService.cpp
     src/TestConnectingForm.cpp
@@ -207,6 +262,11 @@ elseif (WIN64)
     src/TestLobbyForm.cpp
     src/TestLobbyService.cpp
     src/TestLobbySettingsPanelForm.cpp
+    src/TestMailAccountGuide.cpp
+    src/TestMailAccountSecret.cpp
+    src/TestMailForms.cpp
+    src/TestMatchIndicatorForm.cpp
+    src/TestMatchListForm.cpp
     src/TestPlayerProfileForm.cpp
     src/TestServerBrowserForm.cpp
     src/TestTurnWaitOverlayForm.cpp
