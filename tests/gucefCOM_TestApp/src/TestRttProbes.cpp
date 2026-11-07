@@ -58,6 +58,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #include "TestCode_Pump.h"
 
 #include "TestRttProbes.h"
@@ -82,10 +87,24 @@ using namespace GUCEF;
 
 namespace {
 
-const UInt16 EchoResponderPort = 47831;
-const UInt16 SilentPort = 47832;
-const UInt16 TcpListenPort = 47833;
-const UInt16 TcpClosedPort = 47834;
+// Free ports of this run: fixed ports would collide with another instance of this application on the same host
+UInt16 EchoResponderPort = 0;
+UInt16 SilentPort = 0;
+UInt16 TcpListenPort = 0;
+UInt16 TcpClosedPort = 0;    // nothing listens on it
+
+void
+AssignRttTestPorts( void )
+{GUCEF_TRACE;
+
+    if ( 0 == EchoResponderPort )
+    {
+        EchoResponderPort = TESTFW::FindFreeUdpPort( 47831 );
+        SilentPort = TESTFW::FindFreeUdpPort( 47832 );
+        TcpListenPort = TESTFW::FindFreeTcpPort( 47833 );
+        TcpClosedPort = TESTFW::FindFreeTcpPort( 47834 );
+    }
+}
 
 /**
  *  Counts the probe events and keeps the round trip times
@@ -163,6 +182,8 @@ class CProbeRecorder : public CORE::CObserver
 void
 PerformRttProbeTests( void )
 {GUCEF_TRACE;
+
+    AssignRttTestPorts();
 
     GUCEF_TESTFW_SUITE_SCOPE( "RttProbes" );
 

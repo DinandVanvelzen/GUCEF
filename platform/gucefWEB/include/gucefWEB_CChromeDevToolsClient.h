@@ -2,19 +2,17 @@
  *  gucefWEB: GUCEF module providing WEB application functionality
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_WEB_CCHROMEDEVTOOLSCLIENT_H
@@ -145,6 +143,9 @@ typedef CORE::CTCloneableObj< SChromeProtocolEvent >        TChromeProtocolEvent
  *    DisconnectedEvent        the connection ended
  *    ProtocolEvent            TChromeProtocolEventData
  *
+ *  The HTTP client, the web socket and the JSON-RPC client all run on the pulse generator of this client. The blocking
+ *  (...AndWait) members pump it while they wait and are refused on any thread other than the one that drives it.
+ *
  *  Not thread-safe. Requires the dstorepluginJSONPARSER and codecspluginSTBRUMMEHASH plugins.
  */
 class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
@@ -161,9 +162,15 @@ class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
 
     public:
 
+    /** Uses the application's (global) pulse generator */
     CChromeDevToolsClient( void );
 
+    /** Uses the given pulse generator for its connections and for waiting */
+    explicit CChromeDevToolsClient( const CORE::PulseGeneratorPtr& pulseGenerator );
+
     virtual ~CChromeDevToolsClient();
+
+    CORE::PulseGeneratorPtr GetPulseGenerator( void ) const;
 
     /**
      *  Asks the browser listening on the given port for its version information and targets.
@@ -171,7 +178,7 @@ class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
      */
     bool DiscoverTargets( const CORE::CString& host = "127.0.0.1", UInt16 port = 9222 );
 
-    /** The blocking version of DiscoverTargets(), pumps the application's pulse generator while it waits */
+    /** The blocking version of DiscoverTargets(), pumps the pulse generator of this client while it waits */
     bool DiscoverTargetsAndWait( const CORE::CString& host, UInt16 port, SChromeDiscoveryResult& result, UInt32 timeoutInMs = 10000 );
 
     /**
@@ -180,6 +187,7 @@ class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
      */
     bool Connect( const CORE::CString& webSocketDebuggerUrl );
 
+    /** The blocking version of Connect(), pumps the pulse generator of this client while it waits */
     bool ConnectAndWait( const CORE::CString& webSocketDebuggerUrl, UInt32 timeoutInMs = 10000 );
 
     void Disconnect( void );
@@ -205,7 +213,7 @@ class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
     bool SendCommandAndWait( const CORE::CString& method   ,
                              const CORE::CDataNode* params ,
                              CORE::CDataNode& result       ,
-                             SJsonRpcError* error = GUCEF_NULL ,
+                             COM::SJsonRpcError* error = GUCEF_NULL ,
                              UInt32 timeoutInMs = 30000    );
 
     // Commonly needed commands
@@ -270,9 +278,11 @@ class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
 
     void OnHttpEvent( const CORE::CEvent& eventid, CORE::CICloneable* eventdata );
     void OnWebSocketEvent( const CORE::CEvent& eventid, CORE::CICloneable* eventdata );
-    void OnRpcNotification( const SJsonRpcNotification& notification );
+    void OnRpcNotification( const COM::SJsonRpcNotification& notification );
     bool RequestNextDiscoveryDocument( void );
     void FinishDiscovery( bool success, const CORE::CString& failureReason );
+    bool IsCallingThreadDriving( const char* operation ) const;
+    void PumpPulses( UInt32 milliseconds );
 
     enum EDiscoveryPhase
     {
@@ -283,6 +293,7 @@ class GUCEF_WEB_PUBLIC_CPP CChromeDevToolsClient : public CORE::CNotifier
 
     private:
 
+    CORE::PulseGeneratorPtr m_pulseGenerator;
     CHTTPClient m_httpClient;
     CWebSocketClient m_webSocketClient;
     CJsonRpcClient m_rpcClient;

@@ -1,24 +1,22 @@
 /*
- *  gucefWEB: GUCEF module providing WEB application functionality
+ *  gucefCOM: GUCEF module providing communication functionality
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
-#ifndef GUCEF_WEB_CJSONRPCENDPOINT_H
-#define GUCEF_WEB_CJSONRPCENDPOINT_H
+#ifndef GUCEF_COM_CJSONRPCENDPOINT_H
+#define GUCEF_COM_CJSONRPCENDPOINT_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -26,18 +24,20 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-#include <map>
-#include <vector>
-
 #ifndef GUCEF_CORE_CNOTIFIER_H
 #include "CNotifier.h"
 #define GUCEF_CORE_CNOTIFIER_H
 #endif /* GUCEF_CORE_CNOTIFIER_H ? */
 
-#ifndef GUCEF_WEB_JSONRPCTYPES_H
-#include "gucefWEB_JsonRpcTypes.h"
-#define GUCEF_WEB_JSONRPCTYPES_H
-#endif /* GUCEF_WEB_JSONRPCTYPES_H ? */
+#ifndef GUCEF_CORE_CPULSEGENERATOR_H
+#include "gucefCORE_CPulseGenerator.h"
+#define GUCEF_CORE_CPULSEGENERATOR_H
+#endif /* GUCEF_CORE_CPULSEGENERATOR_H ? */
+
+#ifndef GUCEF_COM_JSONRPCTYPES_H
+#include "gucefCOM_JsonRpcTypes.h"
+#define GUCEF_COM_JSONRPCTYPES_H
+#endif /* GUCEF_COM_JSONRPCTYPES_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -46,7 +46,7 @@
 //-------------------------------------------------------------------------*/
 
 namespace GUCEF {
-namespace WEB {
+namespace COM {
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -69,7 +69,7 @@ namespace WEB {
  *  Calls the peer makes are given to the request handler, see CIJsonRpcRequestHandler.
  *  Not thread-safe: use from the thread which receives the messages.
  */
-class GUCEF_WEB_PUBLIC_CPP CJsonRpcEndpoint : public CORE::CNotifier
+class GUCEF_COM_PUBLIC_CPP CJsonRpcEndpoint : public CORE::CNotifier
 {
     public:
 
@@ -96,7 +96,7 @@ class GUCEF_WEB_PUBLIC_CPP CJsonRpcEndpoint : public CORE::CNotifier
 
         SBatchItem( void ) : method(), params(), hasParams( false ), isNotification( false ), callId( 0 ) {}
     };
-    typedef std::vector< SBatchItem > TBatchItemVector;
+    typedef GUCEF::vector< SBatchItem > TBatchItemVector;
 
     static const UInt32 DefaultCallTimeoutInMs = 30000;
 
@@ -113,6 +113,22 @@ class GUCEF_WEB_PUBLIC_CPP CJsonRpcEndpoint : public CORE::CNotifier
 
     EJsonRpcDialect GetDialect( void ) const;
 
+    /**
+     *  Batches (an array of messages) are part of JSON-RPC 2.0 and accepted by default.
+     *  When refused an incoming batch is answered with a single invalid request error.
+     */
+    void SetAllowBatches( bool allowBatches );
+
+    bool GetAllowBatches( void ) const;
+
+    /**
+     *  A request with "id": null is accepted by default, as the specification discourages it but allows it.
+     *  When refused such a request is answered with an invalid request error and not given to the handler.
+     */
+    void SetAllowNullRequestId( bool allowNullRequestId );
+
+    bool GetAllowNullRequestId( void ) const;
+
     void SetRequestHandler( CIJsonRpcRequestHandler* handler );
 
     /**
@@ -123,6 +139,14 @@ class GUCEF_WEB_PUBLIC_CPP CJsonRpcEndpoint : public CORE::CNotifier
     void SetOutgoingCallField( const CORE::CString& name, const CORE::CVariant& value );
 
     void SetDefaultCallTimeoutInMs( UInt32 timeoutInMs );
+
+    /**
+     *  Names the pulse generator which drives the transport of this endpoint, by default the application's
+     *  (global) pulse generator. CallAndWait() pumps it while it waits.
+     */
+    virtual void SetPulseGenerator( const CORE::PulseGeneratorPtr& pulseGenerator );
+
+    CORE::PulseGeneratorPtr GetPulseGenerator( void ) const;
 
     /**
      *  Makes a call. The answer is delivered through ResponseEvent, which also reports a timeout or
@@ -137,9 +161,12 @@ class GUCEF_WEB_PUBLIC_CPP CJsonRpcEndpoint : public CORE::CNotifier
                UInt32 timeoutInMs = 0            );
 
     /**
-     *  Makes a call and waits for the answer by pumping the application's pulse generator.
+     *  Makes a call and waits for the answer by pumping the pulse generator of the endpoint, see SetPulseGenerator().
      *  The answer is returned and not delivered as an event.
-     *  @return true if an answer, which can be an error, came back. false if the call could not even be made
+     *  The wait runs on the calling thread, which must be the thread that drives that pulse generator: a pulse generator
+     *  is never pumped from a thread other than its own. Called from any other thread, or while it is not known which
+     *  thread drives the pulse generator, the call is refused without being made. Use Call() and ResponseEvent there.
+     *  @return true if an answer, which can be an error, came back. false if the call was refused or could not be made
      */
     bool CallAndWait( const CORE::CString& method   ,
                       const CORE::CDataNode* params ,
@@ -173,6 +200,22 @@ class GUCEF_WEB_PUBLIC_CPP CJsonRpcEndpoint : public CORE::CNotifier
 
     static bool ToJsonText( const CORE::CDataNode& root, CORE::CString& jsonText );
 
+    /**
+     *  The members of a JSON object in those conventions. A member is a direct attribute or child of the object:
+     *  these never search deeper, so a member that is missing is not found further down in the tree.
+     *  Member names are matched as a whole, also names with '/' and '.' such as the _meta keys of MCP.
+     */
+    static bool HasJsonMember( const CORE::CDataNode& object, const CORE::CString& name );
+
+    /** The child node of an object, array or null member; GUCEF_NULL for a scalar member or a missing one */
+    static const CORE::CDataNode* FindJsonMemberNode( const CORE::CDataNode& object, const CORE::CString& name );
+
+    /** Copies a member as a node: for a scalar the value is in the node, which then has the type of the value */
+    static bool GetJsonMember( const CORE::CDataNode& object, const CORE::CString& name, CORE::CDataNode& value );
+
+    /** Adds a member: an object or array node as a child, a nil node as a null child, any other node as a scalar attribute */
+    static void AddJsonMember( CORE::CDataNode& object, const CORE::CString& name, const CORE::CDataNode& value );
+
     /** To be called by the owner of the transport for every complete message that was received */
     EProcessResult ProcessIncoming( const CORE::CString& messageText );
 
@@ -196,12 +239,15 @@ class GUCEF_WEB_PUBLIC_CPP CJsonRpcEndpoint : public CORE::CNotifier
     CJsonRpcEndpoint( const CJsonRpcEndpoint& src );
     CJsonRpcEndpoint& operator=( const CJsonRpcEndpoint& src );
 
+    class CWaitScope;
+    friend class CWaitScope;
+
     struct SPendingCall
     {
         CORE::CVariant callId;
         UInt64 deadlineInMs;
     };
-    typedef std::map< CORE::CString, SPendingCall > TPendingCallMap;
+    typedef GUCEF::map< CORE::CString, SPendingCall > TPendingCallMap;
 
     void InitMessage( CORE::CDataNode& message ) const;
 
@@ -222,13 +268,17 @@ class GUCEF_WEB_PUBLIC_CPP CJsonRpcEndpoint : public CORE::CNotifier
     CIJsonRpcTransport* m_transport;
     CIJsonRpcRequestHandler* m_requestHandler;
     EJsonRpcDialect m_dialect;
+    bool m_allowBatches;
+    bool m_allowNullRequestId;
     UInt32 m_defaultCallTimeoutInMs;
     UInt64 m_nextCallId;
     TPendingCallMap m_pendingCalls;
-    std::map< CORE::CString, CORE::CVariant > m_outgoingCallFields;
+    GUCEF::map< CORE::CString, CORE::CVariant > m_outgoingCallFields;
+    CORE::PulseGeneratorPtr m_pulseGenerator;
 
     // state of CallAndWait()
     bool m_isWaiting;
+    bool* m_waitDestroyedFlag;          /**< set by the destructor, lives in the CallAndWait() that is in progress */
     bool m_waitDone;
     CORE::CString m_waitKey;
     SJsonRpcResponse m_waitResponse;
@@ -240,9 +290,9 @@ class GUCEF_WEB_PUBLIC_CPP CJsonRpcEndpoint : public CORE::CNotifier
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-}; /* namespace WEB */
+}; /* namespace COM */
 }; /* namespace GUCEF */
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_WEB_CJSONRPCENDPOINT_H ? */
+#endif /* GUCEF_COM_CJSONRPCENDPOINT_H ? */

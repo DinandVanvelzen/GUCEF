@@ -40,10 +40,10 @@
 
 #include "gucefWEB_CHttpUriResourceAccessor.h"
 
-#ifndef GUCEF_CORE_CREDACTOR_H
-#include "gucefCORE_CRedactor.h"
-#define GUCEF_CORE_CREDACTOR_H
-#endif /* GUCEF_CORE_CREDACTOR_H ? */
+#ifndef GUCEF_WEB_CHTTPLOGREDACTION_H
+#include "gucefWEB_CHttpLogRedaction.h"
+#define GUCEF_WEB_CHTTPLOGREDACTION_H
+#endif /* GUCEF_WEB_CHTTPLOGREDACTION_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -171,7 +171,7 @@ CHttpUriResourceAccessor::Perform( const CORE::CUri& uri             ,
     CHttpRequestData request;
     if ( !request.SetUrl( uri.ToUriInStringForm() ) )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "HttpUriResourceAccessor: Not a valid URL: " << CORE::CRedactor::ForUrl().RedactUrl( uri.ToUriInStringForm() ) );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "HttpUriResourceAccessor: Not a valid URL: " << CHttpLogRedaction::RedactUrl( uri.ToUriInStringForm() ) );
         return false;
     }
     request.requestType = method;
@@ -188,7 +188,7 @@ CHttpUriResourceAccessor::Perform( const CORE::CUri& uri             ,
     CHttpClientTransferInfo info;
     if ( !m_client.Execute( request, options, response, &info ) )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "HttpUriResourceAccessor: " << method << " " << CORE::CRedactor::ForUrl().RedactUrl( uri.ToUriInStringForm() ) << " failed: " << info.errorDescription );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "HttpUriResourceAccessor: " << method << " " << CHttpLogRedaction::RedactUrl( uri.ToUriInStringForm() ) << " failed: " << info.errorDescription );
         return false;
     }
     return true;
@@ -236,7 +236,7 @@ CHttpUriResourceAccessor::GetPartialResource( const CORE::CUri& uri        ,
         return true;
 
     GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "HttpUriResourceAccessor:GetPartialResource: Server answered with status " << response.statusCode <<
-        " instead of 206 for " << CORE::CRedactor::ForUrl().RedactUrl( uri.ToUriInStringForm() ) );
+        " instead of 206 for " << CHttpLogRedaction::RedactUrl( uri.ToUriInStringForm() ) );
     return false;
 }
 

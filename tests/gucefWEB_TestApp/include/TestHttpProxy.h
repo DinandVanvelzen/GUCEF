@@ -1,5 +1,5 @@
 /*
- *  gucef common header: header-only scripted HTTP proxy for tests
+ *  gucefWEB_TestApp: GUCEF test header: header-only scripted HTTP proxy for tests
  *
  *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
@@ -26,8 +26,8 @@
  *  Linux only (BSD sockets, pthreads, poll); elsewhere Start() is false.
  */
 
-#ifndef GUCEF_TEST_HTTP_PROXY_H
-#define GUCEF_TEST_HTTP_PROXY_H
+#ifndef GUCEF_WEB_TESTAPP_TESTHTTPPROXY_H
+#define GUCEF_WEB_TESTAPP_TESTHTTPPROXY_H
 
 #ifdef __cplusplus
 
@@ -353,4 +353,4 @@ class CTestHttpProxy
 
 #endif /* __cplusplus ? */
 
-#endif /* GUCEF_TEST_HTTP_PROXY_H ? */
+#endif /* GUCEF_WEB_TESTAPP_TESTHTTPPROXY_H ? */

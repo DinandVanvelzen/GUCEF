@@ -35,23 +35,31 @@ set( HEADER_FILES
   include/gucefWEB_CHttpCodecLinks.h
   include/gucefWEB_CHttpCookieJar.h
   include/gucefWEB_CHttpEncodingTypes.h
+  include/gucefWEB_CHttpLogRedaction.h
   include/gucefWEB_CHttpMimeTypes.h
   include/gucefWEB_CHttpProxyEnvironment.h
   include/gucefWEB_CHttpRequestData.h
   include/gucefWEB_CHttpResponseData.h
+  include/gucefWEB_CHttpServerExchange.h
   include/gucefWEB_CHttpUriResourceAccessor.h
   include/gucefWEB_CIHTTPServerResource.h
   include/gucefWEB_CIHTTPServerRouter.h
   include/gucefWEB_CIHTTPServerRouterController.h
   include/gucefWEB_CIHttpClientBackend.h
+  include/gucefWEB_CIHttpRequestTakeoverHandler.h
   include/gucefWEB_CIHttpServerRequestHandler.h
+  include/gucefWEB_CIMcpHttpAuthenticator.h
   include/gucefWEB_CIWebSocketUpgradeHandler.h
   include/gucefWEB_CIrcWebSocketTransport.h
   include/gucefWEB_CJsonRpcClient.h
-  include/gucefWEB_CJsonRpcEndpoint.h
   include/gucefWEB_CJsonRpcServer.h
+  include/gucefWEB_CMcpHttpExchangeChannel.h
+  include/gucefWEB_CMcpHttpTransportSettings.h
+  include/gucefWEB_CMcpStaticBearerAuthenticator.h
+  include/gucefWEB_CMcpStreamableHttpTransport.h
   include/gucefWEB_CModule.h
   include/gucefWEB_CNativeHttpClientBackend.h
+  include/gucefWEB_CSseEventWriter.h
   include/gucefWEB_CStdParamParser.h
   include/gucefWEB_CTConfigurableMapHttpServerResource.h
   include/gucefWEB_CTDataNodeSerializableHttpServerResourceExpansion.h
@@ -69,7 +77,6 @@ set( HEADER_FILES
   include/gucefWEB_CWebSocketServer.h
   include/gucefWEB_ETypes.h
   include/gucefWEB_HTTPCode.h
-  include/gucefWEB_JsonRpcTypes.h
   include/gucefWEB_ViewTypes.h
   include/gucefWEB_WebSocketTypes.h
   include/gucefWEB_config.h
@@ -100,22 +107,29 @@ set( SOURCE_FILES
   src/gucefWEB_CHttpCodecLinks.cpp
   src/gucefWEB_CHttpCookieJar.cpp
   src/gucefWEB_CHttpEncodingTypes.cpp
+  src/gucefWEB_CHttpLogRedaction.cpp
   src/gucefWEB_CHttpMimeTypes.cpp
   src/gucefWEB_CHttpProxyEnvironment.cpp
   src/gucefWEB_CHttpRequestData.cpp
   src/gucefWEB_CHttpResponseData.cpp
+  src/gucefWEB_CHttpServerExchange.cpp
   src/gucefWEB_CHttpUriResourceAccessor.cpp
   src/gucefWEB_CIHTTPServerResource.cpp
   src/gucefWEB_CIHTTPServerRouter.cpp
   src/gucefWEB_CIHTTPServerRouterController.cpp
   src/gucefWEB_CIHttpClientBackend.cpp
   src/gucefWEB_CIHttpServerRequestHandler.cpp
+  src/gucefWEB_CIMcpHttpAuthenticator.cpp
   src/gucefWEB_CIrcWebSocketTransport.cpp
   src/gucefWEB_CJsonRpcClient.cpp
-  src/gucefWEB_CJsonRpcEndpoint.cpp
   src/gucefWEB_CJsonRpcServer.cpp
+  src/gucefWEB_CMcpHttpExchangeChannel.cpp
+  src/gucefWEB_CMcpHttpTransportSettings.cpp
+  src/gucefWEB_CMcpStaticBearerAuthenticator.cpp
+  src/gucefWEB_CMcpStreamableHttpTransport.cpp
   src/gucefWEB_CModule.cpp
   src/gucefWEB_CNativeHttpClientBackend.cpp
+  src/gucefWEB_CSseEventWriter.cpp
   src/gucefWEB_CStdParamParser.cpp
   src/gucefWEB_CTDataNodeSerializableHttpServerResourceExpansion.cpp
   src/gucefWEB_CTDataNodeSerializableMapHttpServerResource.cpp
@@ -185,7 +199,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PRIVATE winhttp.lib )
 endif( WIN64 )
 
-include_directories( ../../common/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include ../gucefVFS/include include )
+include_directories( ../../common/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT/include ../gucefVFS/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )

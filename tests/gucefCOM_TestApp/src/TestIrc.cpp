@@ -87,8 +87,6 @@ using namespace GUCEF;
 
 namespace {
 
-const UInt16 FakeIrcServerPort = 47851;
-
 /**
  *  An IRC server on loopback that plays its part in the registration, SASL, channels and messages, and keeps
  *  what the client sent
@@ -145,7 +143,15 @@ class CFakeIrcServer : public CORE::CObserver
     bool Start( void )
     {GUCEF_TRACE;
 
-        return m_server.ListenOnPort( FakeIrcServerPort );
+        // port 0: the system picks a free port, so that two instances of the test application do not collide
+        return m_server.ListenOnPort( 0 );
+    }
+
+    /** The port the server listens on, valid after a successful Start() */
+    UInt16 GetPort( void ) const
+    {GUCEF_TRACE;
+
+        return m_server.GetBoundPort();
     }
 
     void SendLine( const CORE::CString& line )
@@ -442,12 +448,12 @@ class CIrcRecorder : public CORE::CObserver
 /*-------------------------------------------------------------------------*/
 
 COM::CIrcClientSettings
-MakeSettings( const CORE::CString& nick )
+MakeSettings( const CORE::CString& nick, const CFakeIrcServer& server )
 {GUCEF_TRACE;
 
     COM::CIrcClientSettings settings;
     settings.server = "127.0.0.1";
-    settings.port = FakeIrcServerPort;
+    settings.port = server.GetPort();
     settings.nick = nick;
     settings.realName = "GUCEF test";
     return settings;
@@ -575,7 +581,7 @@ PerformIrcClientTests( void )
             CIrcRecorder recorder;
             recorder.SubscribeTo( &client );
 
-            COM::CIrcClientSettings settings = MakeSettings( "tester" );
+            COM::CIrcClientSettings settings = MakeSettings( "tester", server );
             settings.saslAccount = "acct";
             settings.saslPassword = "secret";
             ASSERT_TRUE( client.Connect( settings ) );
@@ -626,13 +632,13 @@ PerformIrcClientTests( void )
             CFakeIrcServer server;
             ASSERT_TRUE( server.Start() );
             TESTFW::CTlsTestTerminator terminator;
-            ASSERT_TRUE( terminator.Start( certs.GetPath( "good.crt" ), certs.GetPath( "good.key" ), FakeIrcServerPort ) );
+            ASSERT_TRUE( terminator.Start( certs.GetPath( "good.crt" ), certs.GetPath( "good.key" ), server.GetPort() ) );
 
             COM::CIrcClient client;
             CIrcRecorder recorder;
             recorder.SubscribeTo( &client );
 
-            COM::CIrcClientSettings settings = MakeSettings( "securetester" );
+            COM::CIrcClientSettings settings = MakeSettings( "securetester", server );
             settings.server = "localhost";
             settings.port = terminator.GetPort();
             settings.useTls = true;
@@ -694,7 +700,7 @@ PerformIrcClientTests( void )
             CIrcRecorder recorder;
             recorder.SubscribeTo( &client );
 
-            COM::CIrcClientSettings settings = MakeSettings( "taken" );
+            COM::CIrcClientSettings settings = MakeSettings( "taken", server );
             settings.alternativeNicks.push_back( "taken" );
             settings.alternativeNicks.push_back( "second" );
             ASSERT_TRUE( client.Connect( settings ) );
@@ -727,7 +733,7 @@ PerformIrcClientTests( void )
             CIrcRecorder recorder;
             recorder.SubscribeTo( &client );
 
-            COM::CIrcClientSettings settings = MakeSettings( "tester" );
+            COM::CIrcClientSettings settings = MakeSettings( "tester", server );
             settings.autoJoinChannels.push_back( "#lobby" );
             ASSERT_TRUE( client.Connect( settings ) );
             ASSERT_TRUE( PumpUntilAtLeast( recorder.names, 1, 5000 ) );
@@ -790,7 +796,7 @@ PerformIrcClientTests( void )
             CIrcRecorder recorder;
             recorder.SubscribeTo( &client );
 
-            COM::CIrcClientSettings settings = MakeSettings( "tester" );
+            COM::CIrcClientSettings settings = MakeSettings( "tester", server );
             settings.pingTimeoutInSecs = 1;
             ASSERT_TRUE( client.Connect( settings ) );
             ASSERT_TRUE( PumpUntilAtLeast( recorder.registered, 1, 5000 ) );
@@ -823,7 +829,7 @@ PerformIrcClientTests( void )
             COM::CIrcClient client;
             CIrcRecorder recorder;
             recorder.SubscribeTo( &client );
-            ASSERT_TRUE( client.Connect( MakeSettings( "tester" ) ) );
+            ASSERT_TRUE( client.Connect( MakeSettings( "tester", server ) ) );
             ASSERT_TRUE( PumpUntilAtLeast( recorder.registered, 1, 5000 ) );
 
             server.SendLine( "ERROR :Closing link" );

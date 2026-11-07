@@ -85,7 +85,34 @@ class GUCEF_WEB_PUBLIC_CPP CHttpResponseData : public CORE::CICloneable
 
     virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
+    /**
+     *  Writes the response: status line, header fields and the content, with a Content-Length.
+     *  A response whose header fields would break the framing of the message is refused and nothing is written:
+     *  a field name that is not a token, or a value or a content type, location, ETag, cache control or last
+     *  modified text with a CR, LF or NUL in it. That keeps text taken from a request from adding header fields
+     *  or responses of its own (response splitting).
+     *  @return false when the response was refused
+     */
     bool Serialize( CORE::CDynamicBuffer& outputBuffer ) const;
+
+    /**
+     *  As above with the Connection field decided by the caller, the server that knows whether the connection stays:
+     *  a Connection field among the other header fields is not written then
+     */
+    bool Serialize( CORE::CDynamicBuffer& outputBuffer, bool keepConnectionAlive ) const;
+
+    /**
+     *  Writes the status line and the header fields of a response whose body follows as a stream that ends with the
+     *  connection: Connection: close, no Content-Length, no Transfer-Encoding. The content is not written.
+     *  The header fields are checked as in Serialize().
+     */
+    bool SerializeStreamHead( CORE::CDynamicBuffer& outputBuffer ) const;
+
+    /** Whether the header fields can be written as they are, see Serialize() */
+    bool HasSafeHeaderFields( void ) const;
+
+    /** The reason phrase of a status code, "OK" for 200; empty for a code it does not know */
+    static const char* GetReasonPhrase( int statusCode );
 
     /**
      *  Resets all fields to their defaults so the object can be reused for another response.
@@ -96,6 +123,13 @@ class GUCEF_WEB_PUBLIC_CPP CHttpResponseData : public CORE::CICloneable
     CHttpResponseData( void );
     CHttpResponseData( const CHttpResponseData& src );
     virtual ~CHttpResponseData();
+
+    private:
+
+    /** connectionMode: -1 as the fields say, 0 close, 1 keep-alive, 2 a stream that ends with the connection */
+    bool SerializeHead( CString& head, int connectionMode ) const;
+
+    bool SerializeWithConnectionMode( CORE::CDynamicBuffer& outputBuffer, int connectionMode ) const;
 };
 
 /*-------------------------------------------------------------------------//

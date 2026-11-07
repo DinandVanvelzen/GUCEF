@@ -148,13 +148,15 @@ class GUCEF_WEB_PUBLIC_CPP CHttpClientBackendRequestBase : public CIHttpClientBa
     /**
      *  All header fields of the final response are received. Interim (1xx) responses have to be skipped by the
      *  backend, the next status line replaces them.
+     *  A Content-Length over options.maxResponseBodySize finishes the request here: the backend checks IsFinished() after it.
      */
     void OnResponseHeadersComplete( void );
 
     /**
      *  A block of the response body: written to the sink or appended to the response content, unless the body
-     *  belongs to a redirect that will be followed.
-     *  @return false if writing failed, the request is finished then
+     *  belongs to a redirect that will be followed. A block that would make the body larger than
+     *  options.maxResponseBodySize is not taken: the request is finished as too large then.
+     *  @return false if writing failed or the body is too large, the request is finished then
      */
     bool OnResponseBody( const void* data, UInt32 dataSize );
 
@@ -193,6 +195,9 @@ class GUCEF_WEB_PUBLIC_CPP CHttpClientBackendRequestBase : public CIHttpClientBa
     CHttpClientBackendRequestBase( const CHttpClientBackendRequestBase& src );               /**< not implemented */
     CHttpClientBackendRequestBase& operator=( const CHttpClientBackendRequestBase& src );    /**< not implemented */
 
+    /** finishes the request because its body is larger than options.maxResponseBodySize */
+    void FinishResponseBodyTooLarge( UInt64 bodySize );
+
     CString m_method;
     bool m_isHeadRequest;
     bool m_connected;
@@ -202,6 +207,7 @@ class GUCEF_WEB_PUBLIC_CPP CHttpClientBackendRequestBase : public CIHttpClientBa
     bool m_hasContentLength;
     bool m_chunked;
     UInt64 m_contentLength;
+    UInt64 m_responseBodySize;
     CString m_lastHeaderName;
     CORE::IOAccessPtr m_bodySource;
     bool m_bodySizeKnown;

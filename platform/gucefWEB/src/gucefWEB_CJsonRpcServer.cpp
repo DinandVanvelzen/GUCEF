@@ -2,19 +2,17 @@
  *  gucefWEB: GUCEF module providing WEB application functionality
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -58,8 +56,8 @@ const CORE::CEvent CJsonRpcServer::NotificationEvent = "GUCEF::WEB::CJsonRpcServ
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CJsonRpcServer::CSession::CSession( const TWebSocketConnectionPtr& connection, EJsonRpcDialect dialect, CIJsonRpcRequestHandler* handler )
-    : CIJsonRpcTransport()
+CJsonRpcServer::CSession::CSession( const TWebSocketConnectionPtr& connection, COM::EJsonRpcDialect dialect, COM::CIJsonRpcRequestHandler* handler )
+    : COM::CIJsonRpcTransport()
     , m_connection( connection )
     , m_endpoint( this )
 {GUCEF_TRACE;
@@ -101,9 +99,9 @@ CJsonRpcServer::CEventSink::OnNotify( CORE::CNotifier* notifier                 
         m_server.OnTextMessage( message.connection, message.text );
     }
     else
-    if ( eventid == CJsonRpcEndpoint::NotificationEvent )
+    if ( eventid == COM::CJsonRpcEndpoint::NotificationEvent )
     {
-        m_server.OnSessionNotification( static_cast< CJsonRpcEndpoint* >( notifier ), static_cast< TJsonRpcNotificationEventData* >( eventdata )->GetData() );
+        m_server.OnSessionNotification( static_cast< COM::CJsonRpcEndpoint* >( notifier ), static_cast< COM::TJsonRpcNotificationEventData* >( eventdata )->GetData() );
     }
     else
     if ( eventid == CORE::CTimer::TimerUpdateEvent )
@@ -130,13 +128,13 @@ CJsonRpcServer::RegisterEvents( void )
 
 CJsonRpcServer::CJsonRpcServer( CWebSocketServer& webSocketServer )
     : CORE::CNotifier()
-    , CIJsonRpcRequestHandler()
+    , COM::CIJsonRpcRequestHandler()
     , m_webSocketServer( webSocketServer )
-    , m_dialect( JSONRPC_DIALECT_STRICT_2_0 )
+    , m_dialect( COM::JSONRPC_DIALECT_STRICT_2_0 )
     , m_methods()
     , m_sessions()
     , m_sessionsByEndpoint()
-    , m_timeoutTimer( 250 )
+    , m_timeoutTimer( webSocketServer.GetPulseGenerator(), 250 )
     , m_eventSink( *this )
 {GUCEF_TRACE;
 
@@ -173,7 +171,7 @@ CJsonRpcServer::~CJsonRpcServer()
 /*-------------------------------------------------------------------------*/
 
 void
-CJsonRpcServer::RegisterMethod( const CORE::CString& method, CIJsonRpcRequestHandler* handler )
+CJsonRpcServer::RegisterMethod( const CORE::CString& method, COM::CIJsonRpcRequestHandler* handler )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == handler )
@@ -194,7 +192,7 @@ CJsonRpcServer::UnregisterMethod( const CORE::CString& method )
 /*-------------------------------------------------------------------------*/
 
 void
-CJsonRpcServer::SetDialect( EJsonRpcDialect dialect )
+CJsonRpcServer::SetDialect( COM::EJsonRpcDialect dialect )
 {GUCEF_TRACE;
 
     m_dialect = dialect;
@@ -204,19 +202,19 @@ CJsonRpcServer::SetDialect( EJsonRpcDialect dialect )
 
 /*-------------------------------------------------------------------------*/
 
-EJsonRpcRequestResult
-CJsonRpcServer::OnJsonRpcRequest( CJsonRpcEndpoint& endpoint     ,
-                                  const SJsonRpcRequest& request ,
-                                  SJsonRpcResponse& response     )
+COM::EJsonRpcRequestResult
+CJsonRpcServer::OnJsonRpcRequest( COM::CJsonRpcEndpoint& endpoint     ,
+                                  const COM::SJsonRpcRequest& request ,
+                                  COM::SJsonRpcResponse& response     )
 {GUCEF_TRACE;
 
-    std::map< CORE::CString, CIJsonRpcRequestHandler* >::iterator i = m_methods.find( request.method );
+    std::map< CORE::CString, COM::CIJsonRpcRequestHandler* >::iterator i = m_methods.find( request.method );
     if ( i == m_methods.end() )
     {
         response.isError = true;
-        response.error.code = JSONRPC_ERROR_METHOD_NOT_FOUND;
+        response.error.code = COM::JSONRPC_ERROR_METHOD_NOT_FOUND;
         response.error.message = "Method not found";
-        return JSONRPC_REQUEST_HANDLED;
+        return COM::JSONRPC_REQUEST_HANDLED;
     }
     return (*i).second->OnJsonRpcRequest( endpoint, request, response );
 }
@@ -228,6 +226,8 @@ CJsonRpcServer::OnClientConnected( TWebSocketConnectionPtr connection )
 {GUCEF_TRACE;
 
     CSession* session = GUCEF_NEW CSession( connection, m_dialect, this );
+    // CallAndWait() on a session pumps the pulse generator the connection runs on, and only from its thread
+    session->m_endpoint.SetPulseGenerator( m_webSocketServer.GetPulseGenerator() );
     connection->SetUserData( session );
     m_sessions.insert( session );
     m_sessionsByEndpoint[ &session->m_endpoint ] = session;
@@ -253,7 +253,7 @@ CJsonRpcServer::OnClientDisconnected( TWebSocketConnectionPtr connection )
     m_eventSink.UnsubscribeFrom( session->m_endpoint );
 
     // calls we made to this client will never be answered
-    session->m_endpoint.FailAllPendingCalls( JSONRPC_ERROR_TRANSPORT_CLOSED, "The connection was closed" );
+    session->m_endpoint.FailAllPendingCalls( COM::JSONRPC_ERROR_TRANSPORT_CLOSED, "The connection was closed" );
     GUCEF_DELETE session;
 
     TJsonRpcServerSessionEventData eData( connection );
@@ -275,10 +275,10 @@ CJsonRpcServer::OnTextMessage( const TWebSocketConnectionPtr& connection, const 
 /*-------------------------------------------------------------------------*/
 
 void
-CJsonRpcServer::OnSessionNotification( CJsonRpcEndpoint* endpoint, const SJsonRpcNotification& notification )
+CJsonRpcServer::OnSessionNotification( COM::CJsonRpcEndpoint* endpoint, const COM::SJsonRpcNotification& notification )
 {GUCEF_TRACE;
 
-    std::map< CJsonRpcEndpoint*, CSession* >::iterator i = m_sessionsByEndpoint.find( endpoint );
+    std::map< COM::CJsonRpcEndpoint*, CSession* >::iterator i = m_sessionsByEndpoint.find( endpoint );
     if ( i == m_sessionsByEndpoint.end() )
         return;
 
@@ -290,7 +290,7 @@ CJsonRpcServer::OnSessionNotification( CJsonRpcEndpoint* endpoint, const SJsonRp
 
 /*-------------------------------------------------------------------------*/
 
-CJsonRpcEndpoint*
+COM::CJsonRpcEndpoint*
 CJsonRpcServer::GetEndpoint( const TWebSocketConnectionPtr& connection )
 {GUCEF_TRACE;
 
@@ -306,7 +306,7 @@ bool
 CJsonRpcServer::Notify( const TWebSocketConnectionPtr& connection, const CORE::CString& method, const CORE::CDataNode* params )
 {GUCEF_TRACE;
 
-    CJsonRpcEndpoint* endpoint = GetEndpoint( connection );
+    COM::CJsonRpcEndpoint* endpoint = GetEndpoint( connection );
     return GUCEF_NULL != endpoint && endpoint->Notify( method, params );
 }
 

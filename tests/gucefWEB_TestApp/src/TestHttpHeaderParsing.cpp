@@ -2,19 +2,17 @@
  *  gucefWEB_TestApp: GUCEF test application for the WEB module
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 
@@ -552,19 +550,21 @@ PerformHttpHeaderParsingTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    GUCEF_TESTFW_TESTCASE( "Test: Header names are matched without regard to case and whitespace around the name" )
+    GUCEF_TESTFW_TESTCASE( "Test: Header names are matched without regard to case; whitespace before the colon and a line without a colon are refused (RFC 9112 5.1)" )
         try
         {
             WEB::CHttpRequestData seen;
             ASSERT_TRUE( SendRaw( server, MakeRequest(
                 "X-MiXeD-CaSe: value one\r\n"
-                "X-Space-Before-Colon : value two\r\n"
-                "no colon on this line\r\n"
                 "X-After: value three\r\n" ), seen ) );
             ASSERT_TRUE( SameText( HeaderOf( seen, "x-mixed-case" ), "value one" ) );
-            ASSERT_TRUE( SameText( HeaderOf( seen, "x-space-before-colon" ), "value two" ) );
             ASSERT_TRUE( SameText( HeaderOf( seen, "x-after" ), "value three" ) );
-            ASSERT_TRUE( seen.otherHeaders.end() == seen.otherHeaders.find( "nocolononthisline" ) );
+
+            CORE::CString response;
+            ASSERT_FALSE( SendRaw( server, MakeRequest( "X-Space-Before-Colon : value two\r\n" ), seen, &response ) );
+            ASSERT_TRUE( 0 == response.HasSubstr( "HTTP/1.1 400" ) );
+            ASSERT_FALSE( SendRaw( server, MakeRequest( "no colon on this line\r\n" ), seen, &response ) );
+            ASSERT_TRUE( 0 == response.HasSubstr( "HTTP/1.1 400" ) );
         }
         catch( ... )
         {
@@ -626,17 +626,17 @@ PerformHttpHeaderParsingTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
-    GUCEF_TESTFW_TESTCASE( "Test: A folded header field is one value with the fold replaced by a space" )
+    GUCEF_TESTFW_TESTCASE( "Test: A folded header field (obs-fold) is refused with 400 (RFC 9112 5.2)" )
         try
         {
             WEB::CHttpRequestData seen;
-            ASSERT_TRUE( SendRaw( server, MakeRequest(
+            CORE::CString response;
+            ASSERT_FALSE( SendRaw( server, MakeRequest(
                 "X-Folded: part one\r\n"
                 "   part two\r\n"
                 "\tpart three  \r\n"
-                "X-After-Fold: after\r\n" ), seen ) );
-            ASSERT_TRUE( SameText( HeaderOf( seen, "x-folded" ), "part one part two part three" ) );
-            ASSERT_TRUE( SameText( HeaderOf( seen, "x-after-fold" ), "after" ) );
+                "X-After-Fold: after\r\n" ), seen, &response ) );
+            ASSERT_TRUE( 0 == response.HasSubstr( "HTTP/1.1 400" ) );
         }
         catch( ... )
         {

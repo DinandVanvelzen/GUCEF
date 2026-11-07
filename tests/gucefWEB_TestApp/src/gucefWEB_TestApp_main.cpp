@@ -1,21 +1,19 @@
 /*
  *  gucefCOM: GUCEF module providing communication 
  *  implementations for standardized protocols.
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -85,7 +83,7 @@
 #endif /* GUCEF_WEB_TESTAPP_TESTWEBSOCKET_H ? */
 
 #ifndef GUCEF_WEB_TESTAPP_TESTJSONRPC_H
-#include "TestJsonRpc.h"
+#include "TestJsonRpcWebSocket.h"
 #define GUCEF_WEB_TESTAPP_TESTJSONRPC_H
 #endif /* GUCEF_WEB_TESTAPP_TESTJSONRPC_H ? */
 
@@ -104,6 +102,11 @@
 #define GUCEF_WEB_TESTAPP_TESTHTTPHEADERPARSING_H
 #endif /* GUCEF_WEB_TESTAPP_TESTHTTPHEADERPARSING_H ? */
 
+#ifndef GUCEF_WEB_TESTAPP_TESTHTTPLOGREDACTION_H
+#include "TestHttpLogRedaction.h"
+#define GUCEF_WEB_TESTAPP_TESTHTTPLOGREDACTION_H
+#endif /* GUCEF_WEB_TESTAPP_TESTHTTPLOGREDACTION_H ? */
+
 #ifndef GUCEF_WEB_TESTAPP_TESTHTTPREDACTION_H
 #include "TestHttpRedaction.h"
 #define GUCEF_WEB_TESTAPP_TESTHTTPREDACTION_H
@@ -113,6 +116,16 @@
 #include "TestHttpServerBind.h"
 #define GUCEF_WEB_TESTAPP_TESTHTTPSERVERBIND_H
 #endif /* GUCEF_WEB_TESTAPP_TESTHTTPSERVERBIND_H ? */
+
+#ifndef GUCEF_WEB_TESTAPP_TESTHTTPSERVERBODY_H
+#include "TestHttpServerBody.h"
+#define GUCEF_WEB_TESTAPP_TESTHTTPSERVERBODY_H
+#endif /* GUCEF_WEB_TESTAPP_TESTHTTPSERVERBODY_H ? */
+
+#ifndef GUCEF_WEB_TESTAPP_TESTMCPSTREAMABLEHTTP_H
+#include "TestMcpStreamableHttp.h"
+#define GUCEF_WEB_TESTAPP_TESTMCPSTREAMABLEHTTP_H
+#endif /* GUCEF_WEB_TESTAPP_TESTMCPSTREAMABLEHTTP_H ? */
 
 #ifndef GUCEF_WEB_TESTIRCWEBSOCKET_H
 #include "TestIrcWebSocket.h"
@@ -175,11 +188,14 @@ GUCEF_OSMAIN_BEGIN
 
         PerformWebSocketCodecTests();
         PerformWebSocketTests();
-        PerformJsonRpcTests();
+        PerformJsonRpcWebSocketTests();
         PerformChromeDevToolsTests();
         PerformHttpRedactionTests();
+        PerformHttpLogRedactionTests();
         PerformHttpClientTests();
         PerformHttpServerBindTests();
+        PerformHttpServerBodyTests();
+        PerformMcpStreamableHttpTests();
         PerformHttpHeaderParsingTests();
         PerformIrcWebSocketTests();
 

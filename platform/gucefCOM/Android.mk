@@ -30,6 +30,7 @@ LOCAL_SRC_FILES := \
   src/gucefCOM_CComGlobal.cpp \
   src/gucefCOM_CDnsMessage.cpp \
   src/gucefCOM_CIIrcTransport.cpp \
+  src/gucefCOM_CIMcpTransport.cpp \
   src/gucefCOM_CIcmpRttProbe.cpp \
   src/gucefCOM_CIrcClient.cpp \
   src/gucefCOM_CIrcClientSettings.cpp \
@@ -42,11 +43,42 @@ LOCAL_SRC_FILES := \
   src/gucefCOM_CStunClient.cpp \
   src/gucefCOM_CTcpConnectRttProbe.cpp \
   src/gucefCOM_CUdpBroadcastDiscoveryClient.cpp \
+  src/gucefCOM_CJsonRpcEndpoint.cpp \
+  src/gucefCOM_CMcpAuditRecord.cpp \
+  src/gucefCOM_CMcpChannel.cpp \
+  src/gucefCOM_CMcpConfigurableAccessPolicy.cpp \
+  src/gucefCOM_CMcpContent.cpp \
+  src/gucefCOM_CMcpImplementationInfo.cpp \
+  src/gucefCOM_CMcpInputRequired.cpp \
+  src/gucefCOM_CMcpJsonLinesAuditLog.cpp \
+  src/gucefCOM_CMcpLegacySession.cpp \
+  src/gucefCOM_CMcpOperationTask.cpp \
+  src/gucefCOM_CMcpPrincipal.cpp \
+  src/gucefCOM_CMcpPromptDescriptor.cpp \
+  src/gucefCOM_CMcpPromptRegistry.cpp \
+  src/gucefCOM_CMcpPromptResult.cpp \
+  src/gucefCOM_CMcpRegistryBase.cpp \
+  src/gucefCOM_CMcpRequestContext.cpp \
+  src/gucefCOM_CMcpRequestMeta.cpp \
+  src/gucefCOM_CMcpRequestStateSealer.cpp \
+  src/gucefCOM_CMcpResourceContents.cpp \
+  src/gucefCOM_CMcpResourceDescriptor.cpp \
+  src/gucefCOM_CMcpResourceRegistry.cpp \
+  src/gucefCOM_CMcpServer.cpp \
+  src/gucefCOM_CMcpServerSettings.cpp \
+  src/gucefCOM_CMcpStdioTransport.cpp \
+  src/gucefCOM_CMcpStreamChannel.cpp \
+  src/gucefCOM_CMcpSubscription.cpp \
+  src/gucefCOM_CMcpTcpTransport.cpp \
+  src/gucefCOM_CMcpToolDescriptor.cpp \
+  src/gucefCOM_CMcpToolRegistry.cpp \
+  src/gucefCOM_CMcpToolResult.cpp \
   src/gucefCOM_CUdpDiscoveryClientBase.cpp \
   src/gucefCOM_CUdpDiscoveryCodec.cpp \
   src/gucefCOM_CUdpEchoResponder.cpp \
   src/gucefCOM_CUdpEchoRttProbe.cpp \
-  src/gucefCOM_CUdpMulticastDiscoveryClient.cpp
+  src/gucefCOM_CUdpMulticastDiscoveryClient.cpp \
+  src/gucefCOM_McpTypes.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \

@@ -3,6 +3,7 @@
         <Dependencies>
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOM" />
             <Dependency Name="gucefCOMCORE" />
             <Dependency Name="gucefVFS" />
             <Dependency Name="gucefWEB" />
@@ -10,6 +11,7 @@
         <Linker>
             <Dependency Name="gucefMT" />
             <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOM" />
             <Dependency Name="gucefCOMCORE" />
             <Dependency Name="gucefVFS" />
             <Dependency Name="gucefWEB" />

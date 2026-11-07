@@ -53,10 +53,10 @@
 #define GUCEF_CORE_CDSTORECODECREGISTRY_H
 #endif /* GUCEF_CORE_CDSTORECODECREGISTRY_H ? */
 
-#ifndef GUCEF_WEB_CJSONRPCENDPOINT_H
-#include "gucefWEB_CJsonRpcEndpoint.h"
-#define GUCEF_WEB_CJSONRPCENDPOINT_H
-#endif /* GUCEF_WEB_CJSONRPCENDPOINT_H ? */
+#ifndef GUCEF_COM_CJSONRPCENDPOINT_H
+#include "gucefCOM_CJsonRpcEndpoint.h"
+#define GUCEF_COM_CJSONRPCENDPOINT_H
+#endif /* GUCEF_COM_CJSONRPCENDPOINT_H ? */
 
 #ifndef GUCEF_TEST_FRAMEWORK_H
 #include "gucef_test_framework.h"
@@ -610,7 +610,7 @@ PerformJsonTests( void )
         try
         {
             CORE::CDataNode root;
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( document, root ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( document, root ) );
             SJsonShape shape;
             CJsonShape::Describe( root, shape );
             ASSERT_FALSE( shape.lines.empty() );
@@ -646,14 +646,14 @@ PerformJsonTests( void )
         try
         {
             CORE::CDataNode root;
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( "[{\"a\":1},{\"b\":\"x\"}]", root ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( "[{\"a\":1},{\"b\":\"x\"}]", root ) );
             SJsonShape shape;
             CJsonShape::Describe( root, shape );
             ASSERT_TRUE( shape.lines.size() == 3 );
             ASSERT_TRUE( shape.lines[ 0 ] == "(root): array[2]" );
 
             CORE::CDataNode wide;
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( document, wide ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( document, wide ) );
             CJsonShape::Describe( wide, shape, 5, 4 );
             ASSERT_TRUE( shape.lines.size() == 4 );
             ASSERT_TRUE( shape.truncated );
@@ -1539,7 +1539,7 @@ PerformPacingAndFeedTests( void )
                 "{\"action\":\"add_fact\",\"time\":\"not a time\",\"person\":{\"personId\":1}},"
                 "{\"action\":\"edit_fact\",\"time\":\"2026-10-16T20:00:00Z\",\"person\":{\"personId\":40537000001}}]}";
             CORE::CDataNode document;
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( page, document ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( page, document ) );
             SChangePage parsed;
             ASSERT_TRUE( CChangeFeed::ParsePage( document, parsed ) );
             ASSERT_TRUE( parsed.nextCursor == "bmV4dA" );
@@ -1556,12 +1556,12 @@ PerformPacingAndFeedTests( void )
 
             const std::string line = CChangeFeed::ToJournalLine( parsed.events[ 0 ] );
             CORE::CDataNode lineDocument;
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( line.c_str(), lineDocument ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( line.c_str(), lineDocument ) );
             ASSERT_TRUE( lineDocument.GetAttributeValue( "action" ).AsString() == "edit_fact" );
 
             // not a feed at all
             CORE::CDataNode other;
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( "{\"hello\":1}", other ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( "{\"hello\":1}", other ) );
             ASSERT_FALSE( CChangeFeed::ParsePage( other, parsed ) );
 
             ASSERT_TRUE( CChangeFeed::BuildUrl( "86165115", 20, "" ) == "https://www.ancestry.com/tree-change-event/api/change-events?useMockData=false&limit=20&treeId=86165115" );
@@ -1587,7 +1587,7 @@ PerformPacingAndFeedTests( void )
 static bool
 TestSerialize( const CORE::CDataNode& node, CORE::CString& json )
 {
-    return WEB::CJsonRpcEndpoint::ToJsonText( node, json );
+    return COM::CJsonRpcEndpoint::ToJsonText( node, json );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1610,7 +1610,7 @@ PerformMediaTests( void )
                 "{\"title\":\"no id\"},"
                 "{\"title\":\"A scan\",\"ext\":\"PDF\",\"category\":\"document\",\"id\":\"doc/../1\",\"collectionId\":\"1093\",\"ms_lookup_id\":\"d1\"}]}";
             CORE::CDataNode document;
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( page, document ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( page, document ) );
             SMediaPage parsed;
             ASSERT_TRUE( CMediaInventory::ParsePage( document, parsed, &TestSerialize ) );
             ASSERT_TRUE( parsed.totalCount == 1593 );
@@ -1636,11 +1636,11 @@ PerformMediaTests( void )
 
             const std::string line = CMediaInventory::ToInventoryLine( firstItem );
             CORE::CDataNode lineDocument;
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( line.c_str(), lineDocument ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( line.c_str(), lineDocument ) );
             ASSERT_TRUE( lineDocument.GetAttributeValue( "lookupId" ).AsString() == "99ef7ec8-95d1-4f45-bf07-9358077f0fdf" && lineDocument.Find( "item" ) != GUCEF_NULL );
 
             CORE::CDataNode other;
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( "{\"hello\":1}", other ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( "{\"hello\":1}", other ) );
             ASSERT_FALSE( CMediaInventory::ParsePage( other, parsed, &TestSerialize ) );
 
             // and the gate lets the list and the file through
@@ -1704,7 +1704,7 @@ PerformDnaTests( void )
                 "{\"sampleId\":\"" + b + "\",\"ignored\":true,\"tags\":{},\"relationship\":{\"meiosis\":9,\"sharedCentimorgans\":51,\"numSharedSegments\":4},\"matchClusterCode\":\"c1\",\"createdDate\":1700000000000},"
                 "{\"ignored\":false}]}";
             CORE::CDataNode document;
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( list.c_str(), document ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( list.c_str(), document ) );
             SDnaMatchPage page;
             ASSERT_TRUE( CDnaMatches::ParseListPage( document, test, page ) );
             ASSERT_TRUE( page.currentPage == 1 && page.totalPages == 216 && page.matchCount == 4311 && !page.isLastPage );
@@ -1728,8 +1728,8 @@ PerformDnaTests( void )
             const std::string profiles = "{\"" + a + "\":{\"matchUcdmid\":\"u1\",\"matchName\":\"Jan Test\",\"matchNameInitials\":\"JT\",\"displayGender\":\"M\"},"
                 "\"" + b + "\":{\"matchName\":\"Say \\\"Hi\\\"\",\"matchNameInitials\":\"SH\",\"displayGender\":\"F\"}}";
             CORE::CDataNode relationshipDocument, profileDocument;
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( relationships.c_str(), relationshipDocument ) );
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( profiles.c_str(), profileDocument ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( relationships.c_str(), relationshipDocument ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( profiles.c_str(), profileDocument ) );
             CDnaMatches::MergeRelationships( relationshipDocument, page.matches );
             CDnaMatches::MergeProfiles( profileDocument, page.matches );
 
@@ -1748,14 +1748,14 @@ PerformDnaTests( void )
 
             // and the record survives being written down and read back
             CORE::CDataNode lineDocument;
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( CDnaMatches::ToJsonLine( page.matches[ 1 ] ).c_str(), lineDocument ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( CDnaMatches::ToJsonLine( page.matches[ 1 ] ).c_str(), lineDocument ) );
             SDnaMatch back;
             ASSERT_TRUE( CDnaMatches::FromJsonLine( lineDocument, back ) );
             ASSERT_TRUE( back.matchId == b && back.name == "Say \"Hi\"" && back.sharedCm == 51.0 && back.ignored && back.predictedRelationship == page.matches[ 1 ].predictedRelationship );
 
             // a page that is not a match list
             CORE::CDataNode other;
-            ASSERT_TRUE( WEB::CJsonRpcEndpoint::ParseJsonText( "{\"hello\":1}", other ) );
+            ASSERT_TRUE( COM::CJsonRpcEndpoint::ParseJsonText( "{\"hello\":1}", other ) );
             ASSERT_FALSE( CDnaMatches::ParseListPage( other, test, page ) );
         }
         catch ( ... )

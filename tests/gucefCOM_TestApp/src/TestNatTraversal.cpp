@@ -53,6 +53,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #include "TestCode_Pump.h"
 
 #include "TestNatTraversal.h"
@@ -77,9 +82,23 @@ using namespace GUCEF;
 
 namespace {
 
-const UInt16 FakeGatewayPort = 47841;
-const UInt16 FakeStunPort = 47842;
-const UInt16 StunClientPort = 47843;
+// Free ports of this run: fixed ports would collide with another instance of this application on the same host
+UInt16 FakeGatewayPort = 0;
+UInt16 FakeStunPort = 0;
+UInt16 StunClientPort = 0;
+
+void
+AssignNatTestPorts( void )
+{GUCEF_TRACE;
+
+    if ( 0 == FakeGatewayPort )
+    {
+        FakeGatewayPort = TESTFW::FindFreeUdpPort( 47841 );
+        FakeStunPort = TESTFW::FindFreeUdpPort( 47842 );
+        StunClientPort = TESTFW::FindFreeUdpPort( 47843 );
+    }
+}
+
 const char* FakeExternalAddress = "203.0.113.7";
 
 /*-------------------------------------------------------------------------*/
@@ -479,6 +498,8 @@ void
 PerformNatPmpTests( void )
 {GUCEF_TRACE;
 
+    AssignNatTestPorts();
+
     GUCEF_TESTFW_SUITE_SCOPE( "NatPmp" );
 
     GUCEF_TESTFW_TESTCASE( "Test: A mapping is made with PCP when the gateway speaks it" )
@@ -680,13 +701,13 @@ PerformNatPmpTests( void )
             }
 
             CORE::CDataNode config;
-            config.SetAttribute( "gateway", "127.0.0.1:47841" );
+            config.SetAttribute( "gateway", "127.0.0.1:" + CORE::UInt16ToString( FakeGatewayPort ) );
             config.SetAttribute( "usePcp", false );
             COM::CNatPmpPortMapper configured;
             ASSERT_TRUE( configured.LoadConfig( config ) );
             COMCORE::CIPv4Address configuredGateway;
             ASSERT_TRUE( configured.GetGateway( configuredGateway ) );
-            ASSERT_TRUE( configuredGateway.AddressAndPortAsString() == "127.0.0.1:47841" );
+            ASSERT_TRUE( configuredGateway.AddressAndPortAsString() == "127.0.0.1:" + CORE::UInt16ToString( FakeGatewayPort ) );
         }
         catch ( ... )
         {
@@ -700,6 +721,8 @@ PerformNatPmpTests( void )
 void
 PerformStunTests( void )
 {GUCEF_TRACE;
+
+    AssignNatTestPorts();
 
     GUCEF_TESTFW_SUITE_SCOPE( "Stun" );
 
@@ -719,7 +742,7 @@ PerformStunTests( void )
 
             COM::CStunClient::CStunResult result;
             ASSERT_TRUE( COM::CStunClient::TryGetResultFromFuture( future, result ) );
-            ASSERT_TRUE( result.reflexiveAddress.AddressAndPortAsString() == "127.0.0.1:47843" );
+            ASSERT_TRUE( result.reflexiveAddress.AddressAndPortAsString() == "127.0.0.1:" + CORE::UInt16ToString( StunClientPort ) );
             ASSERT_TRUE( result.server.GetPortInHostByteOrder() == FakeStunPort );
             ASSERT_TRUE( 1 == server.requests );
             ASSERT_TRUE( 0 == stun.GetPendingQueryCount() );
@@ -730,7 +753,7 @@ PerformStunTests( void )
             ASSERT_TRUE( stun.QueryReflexiveAddress( COMCORE::CHostAddress( "127.0.0.1", FakeStunPort ), classic ) );
             ASSERT_TRUE( PumpUntilReady( classic, 5000 ) );
             ASSERT_TRUE( COM::CStunClient::TryGetResultFromFuture( classic, result ) );
-            ASSERT_TRUE( result.reflexiveAddress.AddressAndPortAsString() == "127.0.0.1:47843" );
+            ASSERT_TRUE( result.reflexiveAddress.AddressAndPortAsString() == "127.0.0.1:" + CORE::UInt16ToString( StunClientPort ) );
             socket.Close();
         }
         catch ( ... )

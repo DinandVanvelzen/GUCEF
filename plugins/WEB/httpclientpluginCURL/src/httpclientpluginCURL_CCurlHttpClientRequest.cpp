@@ -487,7 +487,9 @@ CCurlHttpClientRequest::CurlHeaderCallback( char* data, size_t size, size_t coun
         // and trailers after the body end with an empty line as well
         if ( !request->HaveResponseHeadersCompleted() && request->m_response.statusCode >= 200 )
             request->OnResponseHeadersComplete();
-        return byteCount;
+
+        // A response that is refused on its header (a body over the size limit) stops the transfer here
+        return request->IsFinished() ? 0 : byteCount;
     }
 
     request->OnResponseHeaderLine( data, (UInt32) byteCount );

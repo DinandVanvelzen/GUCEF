@@ -31,10 +31,10 @@
 #define GUCEF_WEB_CWEBSOCKETCLIENT_H
 #endif /* GUCEF_WEB_CWEBSOCKETCLIENT_H ? */
 
-#ifndef GUCEF_CORE_CREDACTOR_H
-#include "gucefCORE_CRedactor.h"
-#define GUCEF_CORE_CREDACTOR_H
-#endif /* GUCEF_CORE_CREDACTOR_H ? */
+#ifndef GUCEF_WEB_CHTTPLOGREDACTION_H
+#include "gucefWEB_CHttpLogRedaction.h"
+#define GUCEF_WEB_CHTTPLOGREDACTION_H
+#endif /* GUCEF_WEB_CHTTPLOGREDACTION_H ? */
 
 #ifndef GUCEF_WEB_CWEBSOCKETHANDSHAKE_H
 #include "gucefWEB_CWebSocketHandshake.h"
@@ -376,7 +376,7 @@ CWebSocketClient::Connect( const CORE::CString& url         ,
     bool secure = false;
     if ( !ParseWebSocketUrl( url, secure, host, port, resource ) )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WebSocketClient(" << CORE::PointerToString( this ) << "): Unsupported or invalid url \"" << CORE::CRedactor::ForUrl().RedactUrl( url ) << "\", only ws:// and wss:// are supported" );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "WebSocketClient(" << CORE::PointerToString( this ) << "): Unsupported or invalid url \"" << CHttpLogRedaction::RedactUrl( url ) << "\", only ws:// and wss:// are supported" );
         return false;
     }
 

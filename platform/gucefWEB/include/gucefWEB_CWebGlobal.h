@@ -41,6 +41,11 @@
 #define GUCEF_WEB_CIHTTPCLIENTBACKEND_H
 #endif /* GUCEF_WEB_CIHTTPCLIENTBACKEND_H ? */
 
+#ifndef GUCEF_WEB_CIMCPHTTPAUTHENTICATOR_H
+#include "gucefWEB_CIMcpHttpAuthenticator.h"
+#define GUCEF_WEB_CIMCPHTTPAUTHENTICATOR_H
+#endif /* GUCEF_WEB_CIMCPHTTPAUTHENTICATOR_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -74,6 +79,12 @@ class GUCEF_WEB_PUBLIC_CPP CWebGlobal
      */
     THttpClientBackendFactory& GetHttpClientBackendFactory( void ) const;
 
+    /**
+     *  The factory for the authenticators of the Streamable HTTP transport of MCP, keyed by name. Built in are
+     *  "static-bearer" and "none"; other modules register theirs here.
+     */
+    TMcpHttpAuthenticatorFactory& GetMcpHttpAuthenticatorFactory( void ) const;
+
     private:
     friend class CModule;
 
@@ -93,6 +104,7 @@ class GUCEF_WEB_PUBLIC_CPP CWebGlobal
     static CWebGlobal* g_instance;
     CGlobalHttpCodecLinks* m_globalHttpCodecLinks;
     THttpClientBackendFactory* m_httpClientBackendFactory;
+    TMcpHttpAuthenticatorFactory* m_mcpHttpAuthenticatorFactory;
 };
 
 /*-------------------------------------------------------------------------//

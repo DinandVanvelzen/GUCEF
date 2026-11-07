@@ -45,22 +45,29 @@ LOCAL_SRC_FILES := \
   src/gucefWEB_CHttpCodecLinks.cpp \
   src/gucefWEB_CHttpCookieJar.cpp \
   src/gucefWEB_CHttpEncodingTypes.cpp \
+  src/gucefWEB_CHttpLogRedaction.cpp \
   src/gucefWEB_CHttpMimeTypes.cpp \
   src/gucefWEB_CHttpProxyEnvironment.cpp \
   src/gucefWEB_CHttpRequestData.cpp \
   src/gucefWEB_CHttpResponseData.cpp \
+  src/gucefWEB_CHttpServerExchange.cpp \
   src/gucefWEB_CHttpUriResourceAccessor.cpp \
   src/gucefWEB_CIHTTPServerResource.cpp \
   src/gucefWEB_CIHTTPServerRouter.cpp \
   src/gucefWEB_CIHTTPServerRouterController.cpp \
   src/gucefWEB_CIHttpClientBackend.cpp \
   src/gucefWEB_CIHttpServerRequestHandler.cpp \
+  src/gucefWEB_CIMcpHttpAuthenticator.cpp \
   src/gucefWEB_CIrcWebSocketTransport.cpp \
   src/gucefWEB_CJsonRpcClient.cpp \
-  src/gucefWEB_CJsonRpcEndpoint.cpp \
   src/gucefWEB_CJsonRpcServer.cpp \
+  src/gucefWEB_CMcpHttpExchangeChannel.cpp \
+  src/gucefWEB_CMcpHttpTransportSettings.cpp \
+  src/gucefWEB_CMcpStaticBearerAuthenticator.cpp \
+  src/gucefWEB_CMcpStreamableHttpTransport.cpp \
   src/gucefWEB_CModule.cpp \
   src/gucefWEB_CNativeHttpClientBackend.cpp \
+  src/gucefWEB_CSseEventWriter.cpp \
   src/gucefWEB_CStdParamParser.cpp \
   src/gucefWEB_CTDataNodeSerializableHttpServerResourceExpansion.cpp \
   src/gucefWEB_CTDataNodeSerializableMapHttpServerResource.cpp \

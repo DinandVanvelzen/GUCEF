@@ -19,6 +19,8 @@
         </Preprocessor>
         <RuntimeDependencies>
             <RuntimeDependency Name="comcorepluginUPNP" />
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="gucefMcpEcho" />
         </RuntimeDependencies>
     </Module>
     <Module Platform="mswin" >

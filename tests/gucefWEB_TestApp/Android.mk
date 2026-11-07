@@ -26,10 +26,13 @@ LOCAL_SRC_FILES := \
   src/TestCode_CHTTPServer.cpp \
   src/TestHttpClient.cpp \
   src/TestHttpHeaderParsing.cpp \
+  src/TestHttpLogRedaction.cpp \
   src/TestHttpRedaction.cpp \
   src/TestHttpServerBind.cpp \
+  src/TestHttpServerBody.cpp \
   src/TestIrcWebSocket.cpp \
-  src/TestJsonRpc.cpp \
+  src/TestJsonRpcWebSocket.cpp \
+  src/TestMcpStreamableHttp.cpp \
   src/TestWebSocket.cpp \
   src/TestWebSocketCodec.cpp \
   src/gucefWEB_TestApp_main.cpp

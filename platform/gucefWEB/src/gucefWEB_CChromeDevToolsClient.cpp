@@ -2,19 +2,17 @@
  *  gucefWEB: GUCEF module providing WEB application functionality
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -28,10 +26,10 @@
 #define GUCEF_WEB_CCHROMEDEVTOOLSCLIENT_H
 #endif /* GUCEF_WEB_CCHROMEDEVTOOLSCLIENT_H ? */
 
-#ifndef GUCEF_CORE_CREDACTOR_H
-#include "gucefCORE_CRedactor.h"
-#define GUCEF_CORE_CREDACTOR_H
-#endif /* GUCEF_CORE_CREDACTOR_H ? */
+#ifndef GUCEF_WEB_CHTTPLOGREDACTION_H
+#include "gucefWEB_CHttpLogRedaction.h"
+#define GUCEF_WEB_CHTTPLOGREDACTION_H
+#endif /* GUCEF_WEB_CHTTPLOGREDACTION_H ? */
 
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
@@ -91,13 +89,6 @@ GetText( const CORE::CDataNode& node, const CORE::CString& name )
     return node.GetAttributeValue( name ).AsString();
 }
 
-static void
-PumpPulses( UInt32 milliseconds )
-{
-    CORE::CCoreGlobal::Instance()->GetPulseGenerator()->ForceDirectPulse();
-    MT::ThreadDelay( milliseconds );
-}
-
 static UInt64
 NowInMs( void )
 {
@@ -138,7 +129,7 @@ CChromeDevToolsClient::CEventSink::RegisterEventHandlers( void )
     SubscribeTo( &m_client.m_webSocketClient, CWebSocketClient::ClosedEvent   , webSocketCallback );
 
     TEventCallback rpcCallback( this, &CEventSink::OnRpcNotificationEvent );
-    SubscribeTo( &m_client.m_rpcClient, CJsonRpcEndpoint::NotificationEvent, rpcCallback );
+    SubscribeTo( &m_client.m_rpcClient, COM::CJsonRpcEndpoint::NotificationEvent, rpcCallback );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -171,16 +162,17 @@ CChromeDevToolsClient::CEventSink::OnRpcNotificationEvent( CORE::CNotifier* noti
                                                            CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
-    m_client.OnRpcNotification( static_cast< TJsonRpcNotificationEventData* >( eventData )->GetData() );
+    m_client.OnRpcNotification( static_cast< COM::TJsonRpcNotificationEventData* >( eventData )->GetData() );
 }
 
 /*-------------------------------------------------------------------------*/
 
 CChromeDevToolsClient::CChromeDevToolsClient( void )
     : CORE::CNotifier()
-    , m_httpClient()
-    , m_webSocketClient()
-    , m_rpcClient()
+    , m_pulseGenerator( CORE::CCoreGlobal::Instance()->GetPulseGenerator() )
+    , m_httpClient( m_pulseGenerator )
+    , m_webSocketClient( m_pulseGenerator )
+    , m_rpcClient( m_pulseGenerator )
     , m_eventSink( *this )
     , m_discoveryPhase( DISCOVERY_IDLE )
     , m_discoveryHost()
@@ -195,7 +187,35 @@ CChromeDevToolsClient::CChromeDevToolsClient( void )
     RegisterEvents();
 
     // CDP leaves the version field out of its messages
-    m_rpcClient.SetDialect( JSONRPC_DIALECT_LENIENT );
+    m_rpcClient.SetDialect( COM::JSONRPC_DIALECT_LENIENT );
+    m_rpcClient.AttachWebSocketClient( m_webSocketClient );
+
+    m_eventSink.RegisterEventHandlers();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CChromeDevToolsClient::CChromeDevToolsClient( const CORE::PulseGeneratorPtr& pulseGenerator )
+    : CORE::CNotifier()
+    , m_pulseGenerator( pulseGenerator )
+    , m_httpClient( m_pulseGenerator )
+    , m_webSocketClient( m_pulseGenerator )
+    , m_rpcClient( m_pulseGenerator )
+    , m_eventSink( *this )
+    , m_discoveryPhase( DISCOVERY_IDLE )
+    , m_discoveryHost()
+    , m_discoveryPort( 9222 )
+    , m_discoveryBody()
+    , m_discoveryResult()
+    , m_discoveryDone( false )
+    , m_discoverySucceeded( false )
+    , m_waitingForDiscovery( false )
+{GUCEF_TRACE;
+
+    RegisterEvents();
+
+    // CDP leaves the version field out of its messages
+    m_rpcClient.SetDialect( COM::JSONRPC_DIALECT_LENIENT );
     m_rpcClient.AttachWebSocketClient( m_webSocketClient );
 
     m_eventSink.RegisterEventHandlers();
@@ -207,6 +227,42 @@ CChromeDevToolsClient::~CChromeDevToolsClient()
 {GUCEF_TRACE;
 
     m_rpcClient.DetachWebSocketClient();
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::PulseGeneratorPtr
+CChromeDevToolsClient::GetPulseGenerator( void ) const
+{GUCEF_TRACE;
+
+    return m_pulseGenerator;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CChromeDevToolsClient::IsCallingThreadDriving( const char* operation ) const
+{GUCEF_TRACE;
+
+    // A blocking member waits on the calling thread by pumping the pulse generator, which only its own thread may do
+    UInt32 callingThreadId = MT::GetCurrentTaskID();
+    UInt32 drivingThreadId = m_pulseGenerator.IsNULL() ? 0 : m_pulseGenerator->GetPulseDriverThreadId();
+    if ( callingThreadId == drivingThreadId )
+        return true;
+
+    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ChromeDevToolsClient: " << operation << "() refused on thread " << callingThreadId <<
+        ": the pulse generator of the client is driven by thread " << drivingThreadId << " (0 if not known). Wait on that thread or use the events" );
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CChromeDevToolsClient::PumpPulses( UInt32 milliseconds )
+{GUCEF_TRACE;
+
+    m_pulseGenerator->ForceDirectPulse();
+    MT::ThreadDelay( milliseconds );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -258,6 +314,9 @@ CChromeDevToolsClient::DiscoverTargets( const CORE::CString& host, UInt16 port )
 bool
 CChromeDevToolsClient::DiscoverTargetsAndWait( const CORE::CString& host, UInt16 port, SChromeDiscoveryResult& result, UInt32 timeoutInMs )
 {GUCEF_TRACE;
+
+    if ( !IsCallingThreadDriving( "DiscoverTargetsAndWait" ) )
+        return false;
 
     m_waitingForDiscovery = true;
     if ( !DiscoverTargets( host, port ) )
@@ -332,7 +391,7 @@ CChromeDevToolsClient::OnHttpEvent( const CORE::CEvent& eventid, CORE::CICloneab
     if ( eventid == CHTTPClient::HTTPTransferFinishedEvent )
     {
         CORE::CDataNode document;
-        if ( !CJsonRpcEndpoint::ParseJsonText( CORE::CString( m_discoveryBody ), document ) )
+        if ( !COM::CJsonRpcEndpoint::ParseJsonText( CORE::CString( m_discoveryBody ), document ) )
         {
             FinishDiscovery( false, "The browser sent a document which is not valid JSON" );
             return;
@@ -383,7 +442,7 @@ CChromeDevToolsClient::OnWebSocketEvent( const CORE::CEvent& eventid, CORE::CICl
 /*-------------------------------------------------------------------------*/
 
 void
-CChromeDevToolsClient::OnRpcNotification( const SJsonRpcNotification& notification )
+CChromeDevToolsClient::OnRpcNotification( const COM::SJsonRpcNotification& notification )
 {GUCEF_TRACE;
 
     TChromeProtocolEventData eData;
@@ -409,6 +468,8 @@ bool
 CChromeDevToolsClient::ConnectAndWait( const CORE::CString& webSocketDebuggerUrl, UInt32 timeoutInMs )
 {GUCEF_TRACE;
 
+    if ( !IsCallingThreadDriving( "ConnectAndWait" ) )
+        return false;
     if ( !Connect( webSocketDebuggerUrl ) )
         return false;
 
@@ -463,17 +524,17 @@ bool
 CChromeDevToolsClient::SendCommandAndWait( const CORE::CString& method   ,
                                            const CORE::CDataNode* params ,
                                            CORE::CDataNode& result       ,
-                                           SJsonRpcError* error          ,
+                                           COM::SJsonRpcError* error          ,
                                            UInt32 timeoutInMs            )
 {GUCEF_TRACE;
 
-    SJsonRpcResponse response;
+    COM::SJsonRpcResponse response;
     if ( !m_rpcClient.CallAndWait( method, params, response, timeoutInMs ) )
     {
         if ( GUCEF_NULL != error )
         {
-            error->code = JSONRPC_ERROR_TRANSPORT_CLOSED;
-            error->message = "The command could not be sent, is there a connection?";
+            error->code = COM::JSONRPC_ERROR_TRANSPORT_CLOSED;
+            error->message = "The command could not be sent: there is no connection, or the wait was refused on this thread";
         }
         return false;
     }
@@ -614,7 +675,7 @@ CChromeDevToolsClient::PageNavigate( const CORE::CString& url, CORE::CString* fr
     // a navigation can fail without the command failing, the result then says why
     if ( !GetText( result, "errorText" ).IsNULLOrEmpty() )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ChromeDevToolsClient: Navigation to " << CORE::CRedactor::ForUrl().RedactUrl( url ) << " failed: " << GetText( result, "errorText" ) );
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "ChromeDevToolsClient: Navigation to " << CHttpLogRedaction::RedactUrl( url ) << " failed: " << GetText( result, "errorText" ) );
         return false;
     }
     if ( GUCEF_NULL != frameId )

@@ -123,6 +123,32 @@
 #define GUCEF_COM_CIRCCLIENT_H
 #endif /* GUCEF_COM_CIRCCLIENT_H ? */
 
+#ifndef GUCEF_COM_CJSONRPCENDPOINT_H
+#include "gucefCOM_CJsonRpcEndpoint.h"
+#define GUCEF_COM_CJSONRPCENDPOINT_H
+#endif /* GUCEF_COM_CJSONRPCENDPOINT_H ? */
+
+
+#ifndef GUCEF_COM_CMCPSERVER_H
+#include "gucefCOM_CMcpServer.h"
+#define GUCEF_COM_CMCPSERVER_H
+#endif /* GUCEF_COM_CMCPSERVER_H ? */
+
+#ifndef GUCEF_CORE_CTFACTORY_H
+#include "CTFactory.h"
+#define GUCEF_CORE_CTFACTORY_H
+#endif /* GUCEF_CORE_CTFACTORY_H ? */
+
+#ifndef GUCEF_COM_CMCPSTDIOTRANSPORT_H
+#include "gucefCOM_CMcpStdioTransport.h"
+#define GUCEF_COM_CMCPSTDIOTRANSPORT_H
+#endif /* GUCEF_COM_CMCPSTDIOTRANSPORT_H ? */
+
+#ifndef GUCEF_COM_CMCPTCPTRANSPORT_H
+#include "gucefCOM_CMcpTcpTransport.h"
+#define GUCEF_COM_CMCPTCPTRANSPORT_H
+#endif /* GUCEF_COM_CMCPTCPTRANSPORT_H ? */
+
 #include "gucefCOM_CComGlobal.h"  /* definition of the class implemented here */
 
 /*-------------------------------------------------------------------------//
@@ -156,6 +182,9 @@ static TIrcTcpTransportFactory g_ircTcpTransportFactory;
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      UTILITIES                                                          //
+static TMcpOperationTaskConsumerFactory g_mcpOperationTaskConsumerFactory;
+static CORE::CTFactory< CIMcpTransport, CMcpStdioTransport, MT::CMutex > g_mcpStdioTransportFactory;
+static CORE::CTFactory< CIMcpTransport, CMcpTcpTransport, MT::CMutex > g_mcpTcpTransportFactory;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
@@ -166,6 +195,7 @@ CComGlobal::CComGlobal( void )
 }
 
 /*-------------------------------------------------------------------------*/
+    , m_mcpTransportFactory( GUCEF_NULL )
 
 void
 CComGlobal::Initialize( void )
@@ -186,6 +216,16 @@ CComGlobal::Initialize( void )
     m_ircTransportFactory->RegisterConcreteFactory( CIIrcTransport::TcpTransportName, &g_ircTcpTransportFactory );
 
     // The implementations of the COMCORE interfaces that need nothing but COMCORE
+    CJsonRpcEndpoint::RegisterEvents();
+
+
+    CMcpRegistryBase::RegisterEvents();
+    CMcpToolRegistry::RegisterEvents();
+    CMcpResourceRegistry::RegisterEvents();
+    CMcpPromptRegistry::RegisterEvents();
+    CIMcpTransport::RegisterEvents();
+    CMcpServer::RegisterEvents();
+    CORE::CCoreGlobal::Instance()->GetTaskManager().RegisterTaskConsumerFactory( CMcpOperationTaskConsumer::TaskType, &g_mcpOperationTaskConsumerFactory );
     COMCORE::CComCoreGlobal* comCore = COMCORE::CComCoreGlobal::Instance();
     COMCORE::CDiscoveryClientFactory& discoveryClientFactory = comCore->GetDiscoveryClientFactory();
     discoveryClientFactory.RegisterConcreteFactory( CUdpBroadcastDiscoveryClient::TypeName, &g_udpBroadcastDiscoveryClientFactory );
@@ -194,6 +234,10 @@ CComGlobal::Initialize( void )
     discoveryClientFactory.RegisterConcreteFactory( CSsdpDiscoveryClient::TypeName, &g_ssdpDiscoveryClientFactory );
 
     COMCORE::CRttProbeFactory& rttProbeFactory = comCore->GetRttProbeFactory();
+    m_mcpTransportFactory = GUCEF_NEW CMcpTransportFactory();
+    m_mcpTransportFactory->RegisterConcreteFactory( CIMcpTransport::StdioTransportName, &g_mcpStdioTransportFactory );
+    m_mcpTransportFactory->RegisterConcreteFactory( CIMcpTransport::TcpTransportName, &g_mcpTcpTransportFactory );
+
     rttProbeFactory.RegisterConcreteFactory( CIcmpRttProbe::MethodName, &g_icmpRttProbeFactory );
     rttProbeFactory.RegisterConcreteFactory( CTcpConnectRttProbe::MethodName, &g_tcpConnectRttProbeFactory );
     rttProbeFactory.RegisterConcreteFactory( CUdpEchoRttProbe::MethodName, &g_udpEchoRttProbeFactory );
@@ -223,6 +267,7 @@ CComGlobal::~CComGlobal()
     discoveryManager.UnregisterDiscoveryClientsOfType( CMdnsDiscoveryClient::TypeName );
     discoveryManager.UnregisterDiscoveryClientsOfType( CSsdpDiscoveryClient::TypeName );
 
+    CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CMcpOperationTaskConsumer::TaskType );
     COMCORE::CDiscoveryClientFactory& discoveryClientFactory = comCore->GetDiscoveryClientFactory();
     discoveryClientFactory.UnregisterConcreteFactory( CUdpBroadcastDiscoveryClient::TypeName );
     discoveryClientFactory.UnregisterConcreteFactory( CUdpMulticastDiscoveryClient::TypeName );
@@ -249,6 +294,10 @@ CComGlobal::Instance()
 
     if ( GUCEF_NULL == g_instance )
     {
+
+    m_mcpTransportFactory->UnregisterAllConcreteFactories();
+    GUCEF_DELETE m_mcpTransportFactory;
+    m_mcpTransportFactory = GUCEF_NULL;
         MT::CScopeMutex lock( g_dataLock );
         if ( GUCEF_NULL == g_instance )
         {
@@ -284,6 +333,15 @@ CComGlobal::Deinstance( void )
 }
 
 /*-------------------------------------------------------------------------//
+CMcpTransportFactory&
+CComGlobal::GetMcpTransportFactory( void )
+{GUCEF_TRACE;
+
+    return *m_mcpTransportFactory;
+}
+
+/*-------------------------------------------------------------------------*/
+
 //                                                                         //
 //      NAMESPACE                                                          //
 //                                                                         //

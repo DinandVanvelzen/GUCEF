@@ -73,6 +73,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #ifndef GUCEF_TEST_SOCKETS_H
 #include "gucef_test_sockets.h"
 #define GUCEF_TEST_SOCKETS_H
@@ -102,12 +107,28 @@ using namespace GUCEF;
 
 namespace {
 
-const UInt16 UnicastTestPortA = 47821;
-const UInt16 UnicastTestPortB = 47822;
-const UInt16 BroadcastTestPort = 47823;
-const UInt16 MulticastTestPort = 47824;
-const UInt16 MdnsTestPort = 47825;
-const UInt16 SsdpTestPort = 47826;
+// Free ports of this run: fixed ports would make two instances of this application on one host hear each other (broadcast, multicast)
+UInt16 UnicastTestPortA = 0;
+UInt16 UnicastTestPortB = 0;
+UInt16 BroadcastTestPort = 0;
+UInt16 MulticastTestPort = 0;
+UInt16 MdnsTestPort = 0;
+UInt16 SsdpTestPort = 0;
+
+void
+AssignDiscoveryTestPorts( void )
+{GUCEF_TRACE;
+
+    if ( 0 == UnicastTestPortA )
+    {
+        UnicastTestPortA = TESTFW::FindFreeUdpPort( 47821 );
+        UnicastTestPortB = TESTFW::FindFreeUdpPort( 47822 );
+        BroadcastTestPort = TESTFW::FindFreeUdpPort( 47823 );
+        MulticastTestPort = TESTFW::FindFreeUdpPort( 47824 );
+        MdnsTestPort = TESTFW::FindFreeUdpPort( 47825 );
+        SsdpTestPort = TESTFW::FindFreeUdpPort( 47826 );
+    }
+}
 const char* TestServiceType = "_gucef-test._udp";
 const char* TestSsdpServiceType = "urn:gucef-org:service:test:1";
 
@@ -291,6 +312,8 @@ bool IsSsdpActive( COMCORE::CIDiscoveryClient& client ) { return static_cast< CO
 void
 PerformUdpDiscoveryTests( void )
 {GUCEF_TRACE;
+
+    AssignDiscoveryTestPorts();
 
     GUCEF_TESTFW_SUITE_SCOPE( "UdpDiscovery" );
 
@@ -610,6 +633,8 @@ void
 PerformMdnsDiscoveryTests( void )
 {GUCEF_TRACE;
 
+    AssignDiscoveryTestPorts();
+
     GUCEF_TESTFW_SUITE_SCOPE( "MdnsDiscovery" );
 
     GUCEF_TESTFW_TESTCASE( "Test: A DNS message with compressed names reads back the same" )
@@ -806,6 +831,8 @@ PerformMdnsDiscoveryTests( void )
 void
 PerformSsdpDiscoveryTests( void )
 {GUCEF_TRACE;
+
+    AssignDiscoveryTestPorts();
 
     GUCEF_TESTFW_SUITE_SCOPE( "SsdpDiscovery" );
 

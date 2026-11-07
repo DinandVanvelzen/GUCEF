@@ -98,6 +98,7 @@ CHttpClientBackendRequestBase::CHttpClientBackendRequestBase( const CHttpRequest
     , m_hasContentLength( false )
     , m_chunked( false )
     , m_contentLength( 0 )
+    , m_responseBodySize( 0 )
     , m_lastHeaderName()
     , m_bodySource( options.requestBody )
     , m_bodySizeKnown( true )
@@ -398,6 +399,7 @@ CHttpClientBackendRequestBase::OnResponseStatusLine( const char* line, UInt32 le
     m_hasContentLength = false;
     m_chunked = false;
     m_contentLength = 0;
+    m_responseBodySize = 0;
     m_lastHeaderName.Clear();
     return true;
 }
@@ -505,6 +507,14 @@ CHttpClientBackendRequestBase::OnResponseHeadersComplete( void )
     m_headersComplete = true;
     m_discardBody = m_options.followRedirects && IsRedirectStatusCode( m_response.statusCode ) && !m_response.location.IsNULLOrEmpty();
     m_observer.OnHttpClientResponseHeadersComplete( m_response );
+
+    // A body that is announced to be larger than the limit is not read at all. A HEAD request, 204 and 304 have no body
+    // whatever their Content-Length says
+    if ( m_options.maxResponseBodySize > 0 && m_hasContentLength && m_contentLength > m_options.maxResponseBodySize &&
+         !m_discardBody && !m_isHeadRequest && 204 != m_response.statusCode && 304 != m_response.statusCode )
+    {
+        FinishResponseBodyTooLarge( m_contentLength );
+    }
 }
 
 /*-------------------------------------------------------------------------*/
@@ -515,6 +525,13 @@ CHttpClientBackendRequestBase::OnResponseBody( const void* data, UInt32 dataSize
 
     if ( m_discardBody || 0 == dataSize || m_finished )
         return !m_finished;
+
+    // The block that would take the body over the limit is not taken: nothing more is read
+    if ( m_options.maxResponseBodySize > 0 && m_responseBodySize + dataSize > m_options.maxResponseBodySize )
+    {
+        FinishResponseBodyTooLarge( m_responseBodySize + dataSize );
+        return false;
+    }
 
     if ( !m_options.responseBodySink.IsNULL() )
     {
@@ -530,8 +547,21 @@ CHttpClientBackendRequestBase::OnResponseBody( const void* data, UInt32 dataSize
     {
         m_response.content.Append( data, dataSize, true );
     }
+    m_responseBodySize += dataSize;
     m_observer.OnHttpClientBodyData( data, dataSize );
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CHttpClientBackendRequestBase::FinishResponseBodyTooLarge( UInt64 bodySize )
+{GUCEF_TRACE;
+
+    m_transferInfo.responseBodyTooLarge = true;
+    m_transferInfo.errorClass = HTTPERRORCLASS_OTHER;
+    Finish( false, "The response body of at least " + CORE::ToString( bodySize ) + " bytes is larger than the limit of " +
+                   CORE::ToString( m_options.maxResponseBodySize ) + " bytes" );
 }
 
 /*-------------------------------------------------------------------------*/

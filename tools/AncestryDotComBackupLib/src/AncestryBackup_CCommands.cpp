@@ -77,10 +77,10 @@
 #define ANCESTRYBACKUP_CREQUESTBUDGET_H
 #endif /* ANCESTRYBACKUP_CREQUESTBUDGET_H ? */
 
-#ifndef GUCEF_WEB_CJSONRPCENDPOINT_H
-#include "gucefWEB_CJsonRpcEndpoint.h"
-#define GUCEF_WEB_CJSONRPCENDPOINT_H
-#endif /* GUCEF_WEB_CJSONRPCENDPOINT_H ? */
+#ifndef GUCEF_COM_CJSONRPCENDPOINT_H
+#include "gucefCOM_CJsonRpcEndpoint.h"
+#define GUCEF_COM_CJSONRPCENDPOINT_H
+#endif /* GUCEF_COM_CJSONRPCENDPOINT_H ? */
 
 #ifndef ANCESTRYBACKUP_CZIPEXTRACTOR_H
 #include "AncestryBackup_CZipExtractor.h"
@@ -763,7 +763,7 @@ CCommands::Changes( const CSettings& settings )
 
         CORE::CDataNode document;
         SChangePage page;
-        if ( !WEB::CJsonRpcEndpoint::ParseJsonText( CORE::CString( response.body.c_str() ), document ) || !CChangeFeed::ParsePage( document, page ) )
+        if ( !COM::CJsonRpcEndpoint::ParseJsonText( CORE::CString( response.body.c_str() ), document ) || !CChangeFeed::ParsePage( document, page ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "AncestryBackup: The change feed did not answer in the form that is known" );
             return EXIT_CODE_FAILED;
@@ -861,7 +861,7 @@ CCommands::Changes( const CSettings& settings )
 static bool
 SerializeNode( const CORE::CDataNode& node, CORE::CString& json )
 {
-    return WEB::CJsonRpcEndpoint::ToJsonText( node, json );
+    return COM::CJsonRpcEndpoint::ToJsonText( node, json );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -883,7 +883,7 @@ LoadInventory( const CORE::CString& file, std::vector< SMediaItem >& items, std:
         if ( line.empty() )
             continue;
         CORE::CDataNode document;
-        if ( !WEB::CJsonRpcEndpoint::ParseJsonText( CORE::CString( line.c_str() ), document ) )
+        if ( !COM::CJsonRpcEndpoint::ParseJsonText( CORE::CString( line.c_str() ), document ) )
             continue;
         SMediaItem item;
         item.id = document.GetAttributeValue( "id" ).AsString().STL_String();
@@ -903,7 +903,7 @@ LoadInventory( const CORE::CString& file, std::vector< SMediaItem >& items, std:
             item.width = object->GetAttributeValue( "width" ).AsString().STL_String();
             item.height = object->GetAttributeValue( "height" ).AsString().STL_String();
             CORE::CString json;
-            if ( WEB::CJsonRpcEndpoint::ToJsonText( *object, json ) )
+            if ( COM::CJsonRpcEndpoint::ToJsonText( *object, json ) )
                 item.json = json.STL_String();
         }
         items.push_back( item );
@@ -980,7 +980,7 @@ CCommands::Media( const CSettings& settings )
             }
             CORE::CDataNode document;
             SMediaPage listed;
-            if ( !WEB::CJsonRpcEndpoint::ParseJsonText( CORE::CString( response.body.c_str() ), document ) || !CMediaInventory::ParsePage( document, listed, &SerializeNode ) )
+            if ( !COM::CJsonRpcEndpoint::ParseJsonText( CORE::CString( response.body.c_str() ), document ) || !CMediaInventory::ParsePage( document, listed, &SerializeNode ) )
             {
                 GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "AncestryBackup: The list of media did not answer in the form that is known" );
                 return EXIT_CODE_FAILED;
@@ -1143,7 +1143,7 @@ LoadDnaMatches( const CORE::CString& file, std::vector< SDnaMatch >& matches )
             continue;
         CORE::CDataNode document;
         SDnaMatch match;
-        if ( !WEB::CJsonRpcEndpoint::ParseJsonText( CORE::CString( line.c_str() ), document ) || !CDnaMatches::FromJsonLine( document, match ) )
+        if ( !COM::CJsonRpcEndpoint::ParseJsonText( CORE::CString( line.c_str() ), document ) || !CDnaMatches::FromJsonLine( document, match ) )
             continue;
         std::map< std::string, size_t >::iterator found = index.find( match.matchId );
         if ( found == index.end() )
@@ -1199,7 +1199,7 @@ EnrichMatches( CBrowserSession& session, const std::string& testId, const CORE::
             return response.halted ? ENRICH_HALTED : ENRICH_FAILED;
         }
         CORE::CDataNode document;
-        if ( !WEB::CJsonRpcEndpoint::ParseJsonText( CORE::CString( response.body.c_str() ), document ) )
+        if ( !COM::CJsonRpcEndpoint::ParseJsonText( CORE::CString( response.body.c_str() ), document ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "AncestryBackup: The details of DNA matches did not answer in the form that is known" );
             return ENRICH_FAILED;
@@ -1314,7 +1314,7 @@ CCommands::Dna( const CSettings& settings )
         }
         CORE::CDataNode document;
         SDnaMatchPage listed;
-        if ( !WEB::CJsonRpcEndpoint::ParseJsonText( CORE::CString( response.body.c_str() ), document ) || !CDnaMatches::ParseListPage( document, testId, listed ) )
+        if ( !COM::CJsonRpcEndpoint::ParseJsonText( CORE::CString( response.body.c_str() ), document ) || !CDnaMatches::ParseListPage( document, testId, listed ) )
         {
             GUCEF_ERROR_LOG( CORE::LOGLEVEL_CRITICAL, "AncestryBackup: The list of DNA matches did not answer in the form that is known" );
             return EXIT_CODE_FAILED;

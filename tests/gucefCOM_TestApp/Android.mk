@@ -24,6 +24,13 @@ LOCAL_SRC_FILES := \
   src/TestDiscovery.cpp \
   src/TestIrc.cpp \
   src/TestNatTraversal.cpp \
+  src/TestJsonRpc.cpp \
+  src/TestMcpCore.cpp \
+  src/TestMcpLegacy.cpp \
+  src/TestMcpPolicy.cpp \
+  src/TestMcpRegistry.cpp \
+  src/TestMcpStdio.cpp \
+  src/TestMcpTcp.cpp \
   src/TestRttProbes.cpp \
   src/TestStatsDClient.cpp \
   src/gucefCOM_TestApp_main.cpp

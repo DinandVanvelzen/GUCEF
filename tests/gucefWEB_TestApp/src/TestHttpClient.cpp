@@ -2,19 +2,17 @@
  *  gucefWEB_TestApp: GUCEF test application for the WEB module
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -107,20 +105,20 @@
 #define GUCEF_TEST_TLS_TERMINATOR_H
 #endif /* GUCEF_TEST_TLS_TERMINATOR_H ? */
 
-#ifndef GUCEF_TEST_HTTP_PROXY_H
-#include "gucef_test_http_proxy.h"
-#define GUCEF_TEST_HTTP_PROXY_H
-#endif /* GUCEF_TEST_HTTP_PROXY_H ? */
+#ifndef GUCEF_WEB_TESTAPP_TESTHTTPPROXY_H
+#include "TestHttpProxy.h"
+#define GUCEF_WEB_TESTAPP_TESTHTTPPROXY_H
+#endif /* GUCEF_WEB_TESTAPP_TESTHTTPPROXY_H ? */
 
 #ifndef GUCEF_TEST_LOG_CAPTURE_H
 #include "gucef_test_log_capture.h"
 #define GUCEF_TEST_LOG_CAPTURE_H
 #endif /* GUCEF_TEST_LOG_CAPTURE_H ? */
 
-#ifndef GUCEF_TEST_NO_TLS_PROVIDER_H
-#include "gucef_test_no_tls_provider.h"
-#define GUCEF_TEST_NO_TLS_PROVIDER_H
-#endif /* GUCEF_TEST_NO_TLS_PROVIDER_H ? */
+#ifndef GUCEF_COMCORE_TESTAPP_TESTNOTLSPROVIDER_H
+#include "../../gucefCOMCORE_TestApp/include/TestNoTlsProvider.h"
+#define GUCEF_COMCORE_TESTAPP_TESTNOTLSPROVIDER_H
+#endif /* GUCEF_COMCORE_TESTAPP_TESTNOTLSPROVIDER_H ? */
 
 #ifndef GUCEF_WEB_CHTTPPROXYENVIRONMENT_H
 #include "gucefWEB_CHttpProxyEnvironment.h"
@@ -128,6 +126,11 @@
 #endif /* GUCEF_WEB_CHTTPPROXYENVIRONMENT_H ? */
 
 #include "TestHttpClient.h"
+
+#ifndef GUCEF_WEB_TESTAPP_TESTHTTPLOGREDACTION_H
+#include "TestHttpLogRedaction.h"
+#define GUCEF_WEB_TESTAPP_TESTHTTPLOGREDACTION_H
+#endif /* GUCEF_WEB_TESTAPP_TESTHTTPLOGREDACTION_H ? */
 
 #ifndef GUCEF_WEB_TESTAPP_TESTHTTPREDACTION_H
 #include "TestHttpRedaction.h"
@@ -490,6 +493,9 @@ class CScriptedHttpServer : public CORE::CObserver
         else
         if ( path == "/redirect/invalid" )
             p.push_back( Response( 302, "Location: http:///redirect-target?key=SECRETREDIRECT\r\n", "" ) );
+        else
+        if ( path == "/redirect/to-closed" )
+            p.push_back( Response( 302, "Location: http://127.0.0.1:" + CORE::ToString( NOTHING_LISTENS_PORT ) + "/trader/v1/accounts/ABCDEF0123456789ABCDEF0123456789/transactions?token=SECRETLOCATIONTOKEN\r\n", "" ) );
         else
         if ( path == "/see-other" )
             p.push_back( Response( 303, "Location: echo\r\n", "" ) );
@@ -1299,6 +1305,68 @@ PerformBackendTests( WEB::CHTTPClient& client, const CORE::CString& backendName,
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( ( "Test (" + backendName + "): A response body over maxResponseBodySize is refused on its Content-Length or stopped at the limit, a body up to the limit is taken" ).C_String() )
+        try
+        {
+            // no limit is the default
+            ASSERT_TRUE( 0 == WEB::CHttpClientRequestOptions().maxResponseBodySize );
+
+            // a Content-Length over the limit: refused when the header is there, nothing of the body is kept
+            WEB::CHttpClientRequestOptions limited = client.GetDefaultOptions();
+            limited.maxResponseBodySize = 1024 * 1024;
+            WEB::CHttpResponseData response;
+            WEB::CHttpClientTransferInfo info;
+            ASSERT_FALSE( client.Execute( MakeRequest( "/large" ), limited, response, &info ) );
+            ASSERT_TRUE( !info.success && info.responseBodyTooLarge && !info.timedOut && !info.wasCancelled && WEB::HTTPERRORCLASS_OTHER == info.errorClass );
+            ASSERT_TRUE( 200 == response.statusCode && 0 == response.content.GetDataSize() );
+            ASSERT_TRUE( info.bytesReceived < limited.maxResponseBodySize );
+            ASSERT_TRUE( info.errorDescription.HasSubstr( "limit", true ) >= 0 );
+
+            // the same into a sink
+            CORE::CDynamicBuffer downloaded;
+            WEB::CHttpClientRequestOptions toSink = limited;
+            toSink.responseBodySink = CORE::IOAccessPtr( GUCEF_NEW CORE::CDynamicBufferAccess( &downloaded, false ) );
+            ASSERT_FALSE( client.Execute( MakeRequest( "/large" ), toSink, response, &info ) );
+            ASSERT_TRUE( info.responseBodyTooLarge && 0 == downloaded.GetDataSize() );
+
+            // a body of exactly the limit is taken, a limit of one byte less refuses it
+            limited.maxResponseBodySize = 2 * 1024 * 1024;
+            ASSERT_TRUE( client.Execute( MakeRequest( "/large" ), limited, response, &info ) );
+            ASSERT_TRUE( info.success && !info.responseBodyTooLarge && 2 * 1024 * 1024 == response.content.GetDataSize() );
+            limited.maxResponseBodySize = 2 * 1024 * 1024 - 1;
+            ASSERT_FALSE( client.Execute( MakeRequest( "/large" ), limited, response, &info ) );
+            ASSERT_TRUE( info.responseBodyTooLarge );
+
+            // chunked and close delimited bodies are stopped at the limit: what was taken is not more than the limit
+            limited.maxResponseBodySize = 10;
+            ASSERT_FALSE( client.Execute( MakeRequest( "/chunked" ), limited, response, &info ) );
+            ASSERT_TRUE( info.responseBodyTooLarge && 200 == response.statusCode && response.content.GetDataSize() <= 10 );
+            limited.maxResponseBodySize = 47;
+            ASSERT_TRUE( client.Execute( MakeRequest( "/chunked" ), limited, response, &info ) );
+            ASSERT_TRUE( SameText( ToCString( response.content ), "The quick brown fox jumps over the lazy dog!!!!" ) );
+
+            limited.maxResponseBodySize = 5;
+            ASSERT_FALSE( client.Execute( MakeRequest( "/close" ), limited, response, &info ) );
+            ASSERT_TRUE( info.responseBodyTooLarge && response.content.GetDataSize() <= 5 );
+            limited.maxResponseBodySize = 13;
+            ASSERT_TRUE( client.Execute( MakeRequest( "/close" ), limited, response, &info ) );
+            ASSERT_TRUE( SameText( ToCString( response.content ), "until the end" ) );
+
+            // the Content-Length of the answer to a HEAD request is not a body
+            limited.maxResponseBodySize = 10;
+            ASSERT_TRUE( client.Execute( MakeRequest( "/head", "HEAD" ), limited, response, &info ) );
+            ASSERT_TRUE( info.success && !info.responseBodyTooLarge && 200 == response.statusCode );
+
+            // a request after a refused one works: nothing of the stopped transfer is left behind
+            ASSERT_TRUE( client.Execute( MakeRequest( "/hello" ), client.GetDefaultOptions(), response, &info ) );
+            ASSERT_TRUE( info.success && SameText( ToCString( response.content ), "hello world" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( ( "Test (" + backendName + "): Timeouts and connection failures are reported" ).C_String() )
         try
         {
@@ -1397,6 +1465,7 @@ PerformBackendTests( WEB::CHTTPClient& client, const CORE::CString& backendName,
     GUCEF_TESTFW_TESTCASE_END
 
     PerformHttpRedactionBackendTests( client, backendName, NOTHING_LISTENS_PORT, SCRIPTED_SERVER_PORT );
+    PerformHttpLogRedactionBackendTests( client, backendName, NOTHING_LISTENS_PORT );
     PerformRedirectCredentialTests( client, backendName, server, otherOrigin );
 }
 

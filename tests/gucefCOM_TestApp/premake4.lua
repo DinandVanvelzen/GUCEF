@@ -50,6 +50,15 @@ files( {
   "include/TestDiscovery.h",
   "include/TestIrc.h",
   "include/TestNatTraversal.h",
+  "include/TestJsonRpc.h",
+  "include/TestMcpClientSupport.h",
+  "include/TestMcpCore.h",
+  "include/TestMcpLegacy.h",
+  "include/TestMcpPolicy.h",
+  "include/TestMcpRegistry.h",
+  "include/TestMcpStdio.h",
+  "include/TestMcpSupport.h",
+  "include/TestMcpTcp.h",
   "include/TestRttProbes.h",
   "include/TestStatsDClient.h"
  } )
@@ -69,6 +78,13 @@ files( {
 
 
 configuration( {} )
+  "src/TestJsonRpc.cpp",
+  "src/TestMcpCore.cpp",
+  "src/TestMcpLegacy.cpp",
+  "src/TestMcpPolicy.cpp",
+  "src/TestMcpRegistry.cpp",
+  "src/TestMcpStdio.cpp",
+  "src/TestMcpTcp.cpp",
 includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
 
 configuration( { "ANDROID32" } )

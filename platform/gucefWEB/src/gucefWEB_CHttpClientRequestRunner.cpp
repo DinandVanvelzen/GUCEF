@@ -40,6 +40,11 @@
 #define GUCEF_CORE_CREDACTOR_H
 #endif /* GUCEF_CORE_CREDACTOR_H ? */
 
+#ifndef GUCEF_WEB_CHTTPLOGREDACTION_H
+#include "gucefWEB_CHttpLogRedaction.h"
+#define GUCEF_WEB_CHTTPLOGREDACTION_H
+#endif /* GUCEF_WEB_CHTTPLOGREDACTION_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -313,7 +318,7 @@ CHttpClientRequestRunner::FollowRedirect( void )
 
     if ( !m_hopRequest.SetUrl( newUrl ) )
     {
-        Fail( "The request is redirected to an invalid URL: " + CORE::CRedactor::ForUrl().RedactUrl( newUrl ) );
+        Fail( "The request is redirected to an invalid URL: " + CHttpLogRedaction::RedactUrl( newUrl ) );
         return false;
     }
 
@@ -424,7 +429,7 @@ CHttpClientRequestRunner::Finish( void )
     if ( !m_transferInfo.success && HTTPERRORCLASS_NONE == m_transferInfo.errorClass && !m_transferInfo.wasCancelled )
         m_transferInfo.errorClass = m_transferInfo.timedOut ? HTTPERRORCLASS_TIMEOUT : HTTPERRORCLASS_OTHER;
     if ( !m_transferInfo.success )
-        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "HttpClientRequestRunner: Request to " << CORE::CRedactor::ForUrl().RedactUrl( m_transferInfo.effectiveUrl ) << " failed: " << m_transferInfo.errorDescription );
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "HttpClientRequestRunner: Request to " << CHttpLogRedaction::RedactUrl( m_transferInfo.effectiveUrl ) << " failed: " << CHttpLogRedaction::RedactText( m_transferInfo.errorDescription ) );
     m_transferInfo.durationInMs = GetElapsedMs( m_requestStartTicks );
 
     // Releases the connection

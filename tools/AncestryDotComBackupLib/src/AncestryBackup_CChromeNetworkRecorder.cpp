@@ -32,10 +32,10 @@
 #define ANCESTRYBACKUP_CJSONSHAPE_H
 #endif /* ANCESTRYBACKUP_CJSONSHAPE_H ? */
 
-#ifndef GUCEF_WEB_CJSONRPCENDPOINT_H
-#include "gucefWEB_CJsonRpcEndpoint.h"
-#define GUCEF_WEB_CJSONRPCENDPOINT_H
-#endif /* GUCEF_WEB_CJSONRPCENDPOINT_H ? */
+#ifndef GUCEF_COM_CJSONRPCENDPOINT_H
+#include "gucefCOM_CJsonRpcEndpoint.h"
+#define GUCEF_COM_CJSONRPCENDPOINT_H
+#endif /* GUCEF_COM_CJSONRPCENDPOINT_H ? */
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
@@ -547,7 +547,7 @@ CChromeNetworkRecorder::Complete( SPendingFinish& finished, bool fetchBody )
                 ++m_savedBodyCount;
 
                 CORE::CDataNode document;
-                if ( m_catalog.NeedsShape( observation ) && WEB::CJsonRpcEndpoint::ParseJsonText( body, document ) )
+                if ( m_catalog.NeedsShape( observation ) && COM::CJsonRpcEndpoint::ParseJsonText( body, document ) )
                 {
                     CJsonShape::Describe( document, shape );
                     haveShape = true;

@@ -41,6 +41,11 @@
 #define GUCEF_COM_CIIRCTRANSPORT_H
 #endif /* GUCEF_COM_CIIRCTRANSPORT_H ? */
 
+#ifndef GUCEF_COM_CIMCPTRANSPORT_H
+#include "gucefCOM_CIMcpTransport.h"
+#define GUCEF_COM_CIMCPTRANSPORT_H
+#endif /* GUCEF_COM_CIMCPTRANSPORT_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -69,6 +74,9 @@ class GUCEF_COM_PUBLIC_CPP CComGlobal
     /** Creates IRC transports by name: "tcp" here, "websocket" when gucefWEB registered it */
     CIrcTransportFactory& GetIrcTransportFactory( void );
 
+    /** Creates MCP transports by name: "stdio" and "tcp" here, "streamable-http" when gucefWEB registered it */
+    CMcpTransportFactory& GetMcpTransportFactory( void );
+
     private:
     friend class CModule;
 
@@ -85,6 +93,7 @@ class GUCEF_COM_PUBLIC_CPP CComGlobal
     private:
 
     CIrcTransportFactory* m_ircTransportFactory;
+    CMcpTransportFactory* m_mcpTransportFactory;
 
     static MT::CMutex g_dataLock;
     static CComGlobal* g_instance;

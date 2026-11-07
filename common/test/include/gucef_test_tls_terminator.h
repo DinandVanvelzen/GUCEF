@@ -101,6 +101,60 @@ struct STlsTerminatorApi
 
 /*-------------------------------------------------------------------------*/
 
+/** Loads the OpenSSL of the system (libssl, libcrypto) and finds the entry points that a TLS server needs. @return false when the libraries are not there */
+inline bool
+LoadTlsServerApi( STlsTerminatorApi& result )
+{
+    #if defined( __linux__ )
+    void* ssl = CORE::LoadModuleDynamicly( "libssl.so.3" );
+    if ( NULL == ssl )
+        ssl = CORE::LoadModuleDynamicly( "libssl.so.1.1" );
+    if ( NULL == ssl )
+        return false;
+    void* crypto = CORE::LoadModuleDynamicly( "libcrypto.so.3" );
+    if ( NULL == crypto )
+        crypto = CORE::LoadModuleDynamicly( "libcrypto.so.1.1" );
+    if ( NULL == crypto )
+        return false;
+
+    #define GUCEF_TEST_LOOK( library, name ) CORE::GetFunctionAddress( library, name, 0 ).objPtr
+
+    STlsTerminatorApi api;
+    api.OPENSSL_init_ssl = (int ( * )( unsigned long long, const void* )) GUCEF_TEST_LOOK( ssl, "OPENSSL_init_ssl" );
+    api.TLS_server_method = (const void* ( * )( void )) GUCEF_TEST_LOOK( ssl, "TLS_server_method" );
+    api.SSL_CTX_new = (void* ( * )( const void* )) GUCEF_TEST_LOOK( ssl, "SSL_CTX_new" );
+    api.SSL_CTX_free = (void ( * )( void* )) GUCEF_TEST_LOOK( ssl, "SSL_CTX_free" );
+    api.SSL_CTX_use_certificate_chain_file = (int ( * )( void*, const char* )) GUCEF_TEST_LOOK( ssl, "SSL_CTX_use_certificate_chain_file" );
+    api.SSL_CTX_use_PrivateKey_file = (int ( * )( void*, const char*, int )) GUCEF_TEST_LOOK( ssl, "SSL_CTX_use_PrivateKey_file" );
+    api.SSL_new = (void* ( * )( void* )) GUCEF_TEST_LOOK( ssl, "SSL_new" );
+    api.SSL_free = (void ( * )( void* )) GUCEF_TEST_LOOK( ssl, "SSL_free" );
+    api.SSL_set_fd = (int ( * )( void*, int )) GUCEF_TEST_LOOK( ssl, "SSL_set_fd" );
+    api.SSL_accept = (int ( * )( void* )) GUCEF_TEST_LOOK( ssl, "SSL_accept" );
+    api.SSL_read = (int ( * )( void*, void*, int )) GUCEF_TEST_LOOK( ssl, "SSL_read" );
+    api.SSL_write = (int ( * )( void*, const void*, int )) GUCEF_TEST_LOOK( ssl, "SSL_write" );
+    api.SSL_pending = (int ( * )( const void* )) GUCEF_TEST_LOOK( ssl, "SSL_pending" );
+    api.SSL_get_error = (int ( * )( const void*, int )) GUCEF_TEST_LOOK( ssl, "SSL_get_error" );
+    api.SSL_shutdown = (int ( * )( void* )) GUCEF_TEST_LOOK( ssl, "SSL_shutdown" );
+    api.ERR_clear_error = (void ( * )( void )) GUCEF_TEST_LOOK( crypto, "ERR_clear_error" );
+
+    #undef GUCEF_TEST_LOOK
+
+    if ( NULL == api.OPENSSL_init_ssl || NULL == api.TLS_server_method || NULL == api.SSL_CTX_new || NULL == api.SSL_CTX_free ||
+         NULL == api.SSL_CTX_use_certificate_chain_file || NULL == api.SSL_CTX_use_PrivateKey_file || NULL == api.SSL_new || NULL == api.SSL_free ||
+         NULL == api.SSL_set_fd || NULL == api.SSL_accept || NULL == api.SSL_read || NULL == api.SSL_write || NULL == api.SSL_pending ||
+         NULL == api.SSL_get_error || NULL == api.SSL_shutdown || NULL == api.ERR_clear_error )
+        return false;
+
+    api.OPENSSL_init_ssl( 0, NULL );
+    result = api;
+    return true;
+    #else
+    return false;
+    #endif /* Linux ? */
+}
+
+/*-------------------------------------------------------------------------*/
+
 class CTlsTestTerminator
 {
     public:
@@ -234,50 +288,7 @@ class CTlsTestTerminator
     {
         if ( NULL != m_api.SSL_CTX_new )
             return true;
-
-        void* ssl = CORE::LoadModuleDynamicly( "libssl.so.3" );
-        if ( NULL == ssl )
-            ssl = CORE::LoadModuleDynamicly( "libssl.so.1.1" );
-        if ( NULL == ssl )
-            return false;
-        void* crypto = CORE::LoadModuleDynamicly( "libcrypto.so.3" );
-        if ( NULL == crypto )
-            crypto = CORE::LoadModuleDynamicly( "libcrypto.so.1.1" );
-        if ( NULL == crypto )
-            return false;
-
-        STlsTerminatorApi api;
-        api.OPENSSL_init_ssl = (int ( * )( unsigned long long, const void* )) Look( ssl, "OPENSSL_init_ssl" );
-        api.TLS_server_method = (const void* ( * )( void )) Look( ssl, "TLS_server_method" );
-        api.SSL_CTX_new = (void* ( * )( const void* )) Look( ssl, "SSL_CTX_new" );
-        api.SSL_CTX_free = (void ( * )( void* )) Look( ssl, "SSL_CTX_free" );
-        api.SSL_CTX_use_certificate_chain_file = (int ( * )( void*, const char* )) Look( ssl, "SSL_CTX_use_certificate_chain_file" );
-        api.SSL_CTX_use_PrivateKey_file = (int ( * )( void*, const char*, int )) Look( ssl, "SSL_CTX_use_PrivateKey_file" );
-        api.SSL_new = (void* ( * )( void* )) Look( ssl, "SSL_new" );
-        api.SSL_free = (void ( * )( void* )) Look( ssl, "SSL_free" );
-        api.SSL_set_fd = (int ( * )( void*, int )) Look( ssl, "SSL_set_fd" );
-        api.SSL_accept = (int ( * )( void* )) Look( ssl, "SSL_accept" );
-        api.SSL_read = (int ( * )( void*, void*, int )) Look( ssl, "SSL_read" );
-        api.SSL_write = (int ( * )( void*, const void*, int )) Look( ssl, "SSL_write" );
-        api.SSL_pending = (int ( * )( const void* )) Look( ssl, "SSL_pending" );
-        api.SSL_get_error = (int ( * )( const void*, int )) Look( ssl, "SSL_get_error" );
-        api.SSL_shutdown = (int ( * )( void* )) Look( ssl, "SSL_shutdown" );
-        api.ERR_clear_error = (void ( * )( void )) Look( crypto, "ERR_clear_error" );
-
-        if ( NULL == api.OPENSSL_init_ssl || NULL == api.TLS_server_method || NULL == api.SSL_CTX_new || NULL == api.SSL_CTX_free ||
-             NULL == api.SSL_CTX_use_certificate_chain_file || NULL == api.SSL_CTX_use_PrivateKey_file || NULL == api.SSL_new || NULL == api.SSL_free ||
-             NULL == api.SSL_set_fd || NULL == api.SSL_accept || NULL == api.SSL_read || NULL == api.SSL_write || NULL == api.SSL_pending ||
-             NULL == api.SSL_get_error || NULL == api.SSL_shutdown || NULL == api.ERR_clear_error )
-            return false;
-
-        api.OPENSSL_init_ssl( 0, NULL );
-        m_api = api;
-        return true;
-    }
-
-    static void* Look( void* library, const char* name )
-    {
-        return CORE::GetFunctionAddress( library, name, 0 ).objPtr;
+        return LoadTlsServerApi( m_api );
     }
 
     static void* AcceptThreadMain( void* arg )

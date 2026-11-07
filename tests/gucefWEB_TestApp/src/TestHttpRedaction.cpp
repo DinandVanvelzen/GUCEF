@@ -276,6 +276,89 @@ PerformHttpRedactionBackendTests( WEB::CHTTPClient& client         ,
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    // The path of a URL can carry an identifier or a secret too: an account hash, a token
+    const CORE::CString pathHash = "ABCDEF0123456789ABCDEF0123456789";
+    const CORE::CString pathUrl = "http://127.0.0.1:" + CORE::ToString( closedPort ) + "/trader/v1/accounts/" + pathHash + "/transactions?x=1";
+
+    GUCEF_TESTFW_TESTCASE( ( "Test (" + backendName + "): The log of a request which cannot reach the server holds no identifier or token of the path" ).C_String() )
+        try
+        {
+            CLogTextCapture capture;
+
+            WEB::CHttpRequestData request;
+            ASSERT_TRUE( request.SetUrl( pathUrl ) );
+            request.otherHeaders[ "Authorization" ] = "Bearer SECRETBEARER";
+            request.otherHeaders[ "Cookie" ] = "sid=SECRETCOOKIE";
+
+            WEB::CHttpResponseData response;
+            WEB::CHttpClientTransferInfo info;
+            ASSERT_FALSE( client.Execute( request, client.GetDefaultOptions(), response, &info ) );
+            ASSERT_TRUE( Contains( info.effectiveUrl, pathHash ) );
+
+            CORE::CString logged = capture.GetText();
+            ASSERT_TRUE( !Contains( logged, pathHash ) );
+            ASSERT_TRUE( !Contains( logged, "SECRET" ) );
+            #ifdef GUCEF_DEBUG_MODE
+            // the failure is logged in this build: the ordinary segments of the path are readable
+            ASSERT_TRUE( Contains( logged, "/trader/v1/accounts/<redacted-id>/transactions?x=***" ) );
+            #endif
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( ( "Test (" + backendName + "): The log of a URI resource accessor request which fails holds no identifier or token of the path" ).C_String() )
+        try
+        {
+            CORE::CUriResourceAccessorFactory& factory = CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory();
+            CORE::CUriResourceAccessorPtr accessor = factory.Create( "http" );
+            ASSERT_FALSE( accessor.IsNULL() );
+            if ( accessor.IsNULL() )
+                return;
+
+            CLogTextCapture capture;
+            CORE::CDynamicBuffer content;
+            ASSERT_FALSE( accessor->GetResource( CORE::CUri( pathUrl ), content ) );
+
+            CORE::CString logged = capture.GetText();
+            ASSERT_TRUE( !Contains( logged, pathHash ) );
+            // an error log, present in every build
+            ASSERT_TRUE( Contains( logged, "/trader/v1/accounts/<redacted-id>/transactions?x=***" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( ( "Test (" + backendName + "): A redirect whose target cannot be reached is logged without the identifier and the token of the target" ).C_String() )
+        try
+        {
+            CLogTextCapture capture;
+
+            WEB::CHttpRequestData request;
+            ASSERT_TRUE( request.SetUrl( "http://127.0.0.1:" + CORE::ToString( scriptedServerPort ) + "/redirect/to-closed" ) );
+            request.otherHeaders[ "Authorization" ] = "Bearer SECRETBEARER";
+            WEB::CHttpResponseData response;
+            WEB::CHttpClientTransferInfo info;
+            ASSERT_FALSE( client.Execute( request, client.GetDefaultOptions(), response, &info ) );
+            ASSERT_TRUE( Contains( info.effectiveUrl, "SECRETLOCATIONTOKEN" ) );
+
+            CORE::CString logged = capture.GetText();
+            ASSERT_TRUE( !Contains( logged, pathHash ) );
+            ASSERT_TRUE( !Contains( logged, "SECRET" ) );
+            #ifdef GUCEF_DEBUG_MODE
+            ASSERT_TRUE( Contains( logged, "/trader/v1/accounts/<redacted-id>/transactions?token=***" ) );
+            #endif
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( ( "Test (" + backendName + "): A redirect to a URL which is not valid reports and logs it without its secrets" ).C_String() )
         try
         {

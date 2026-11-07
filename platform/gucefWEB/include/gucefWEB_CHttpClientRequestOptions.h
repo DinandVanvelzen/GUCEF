@@ -73,6 +73,15 @@ class GUCEF_WEB_PUBLIC_CPP CHttpClientRequestOptions : public CORE::CICloneable
 
     /** the response body is written here instead of into the response content when set */
     CORE::IOAccessPtr responseBodySink;
+    /**
+     *  The largest response body that is accepted, in bytes; 0 for no limit, which is the default.
+     *  A response whose Content-Length announces a larger body is refused as soon as its header has arrived, and a body
+     *  that grows past the limit while it is received (chunked, or delimited by the end of the connection) is stopped at the
+     *  block that would cross it. In both cases the connection is closed, nothing more is read, and the request fails with
+     *  CHttpClientTransferInfo::responseBodyTooLarge set; the response keeps its status and header fields and at most the
+     *  limit of its body. The body of a redirect that is followed does not count.
+     */
+    UInt64 maxResponseBodySize;
 
     /** request only part of the resource: rangeStart and rangeLength bytes, -1 for everything after rangeStart */
     bool hasRange;
@@ -170,6 +179,8 @@ class GUCEF_WEB_PUBLIC_CPP CHttpClientTransferInfo : public CORE::CICloneable
     THttpTransferErrorClass errorClass;
     bool wasCancelled;
     bool timedOut;
+    /** the response body was larger than CHttpClientRequestOptions::maxResponseBodySize: the transfer was stopped at the limit */
+    bool responseBodyTooLarge;
 
     /** the URL of the final response, after redirects */
     CString effectiveUrl;

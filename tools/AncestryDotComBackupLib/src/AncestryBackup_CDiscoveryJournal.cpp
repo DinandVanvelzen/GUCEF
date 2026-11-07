@@ -27,10 +27,10 @@
 #define ANCESTRYBACKUP_CJSONSHAPE_H
 #endif /* ANCESTRYBACKUP_CJSONSHAPE_H ? */
 
-#ifndef GUCEF_WEB_CJSONRPCENDPOINT_H
-#include "gucefWEB_CJsonRpcEndpoint.h"
-#define GUCEF_WEB_CJSONRPCENDPOINT_H
-#endif /* GUCEF_WEB_CJSONRPCENDPOINT_H ? */
+#ifndef GUCEF_COM_CJSONRPCENDPOINT_H
+#include "gucefCOM_CJsonRpcEndpoint.h"
+#define GUCEF_COM_CJSONRPCENDPOINT_H
+#endif /* GUCEF_COM_CJSONRPCENDPOINT_H ? */
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
@@ -228,7 +228,7 @@ CDiscoveryJournal::Load( const CDataLayout& layout, CEndpointCatalog& catalog, U
 
             CORE::CDataNode document;
             SObservedRequest observation;
-            if ( !WEB::CJsonRpcEndpoint::ParseJsonText( CORE::CString( line.c_str() ), document ) ||
+            if ( !COM::CJsonRpcEndpoint::ParseJsonText( CORE::CString( line.c_str() ), document ) ||
                  !CEndpointCatalog::FromJournalDocument( document, observation ) )
             {
                 GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "AncestryBackup: Skipping a journal line that cannot be read" );
@@ -242,7 +242,7 @@ CDiscoveryJournal::Load( const CDataLayout& layout, CEndpointCatalog& catalog, U
                 std::string body;
                 const CORE::CString bodyPath = CORE::CombinePath( layout.GetDiscoveryDir(), observation.bodyFile.c_str() );
                 CORE::CDataNode bodyDocument;
-                if ( ReadWholeFile( bodyPath, body ) && WEB::CJsonRpcEndpoint::ParseJsonText( CORE::CString( body.c_str() ), bodyDocument ) )
+                if ( ReadWholeFile( bodyPath, body ) && COM::CJsonRpcEndpoint::ParseJsonText( CORE::CString( body.c_str() ), bodyDocument ) )
                 {
                     CJsonShape::Describe( bodyDocument, shape );
                     haveShape = true;

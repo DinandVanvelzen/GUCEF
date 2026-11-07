@@ -52,6 +52,7 @@ CHttpClientRequestOptions::CHttpClientRequestOptions( void )
     : CORE::CICloneable()
     , requestBody()
     , responseBodySink()
+    , maxResponseBodySize( 0 )
     , hasRange( false )
     , rangeStart( 0 )
     , rangeLength( -1 )
@@ -76,6 +77,7 @@ CHttpClientRequestOptions::CHttpClientRequestOptions( const CHttpClientRequestOp
     : CORE::CICloneable( src )
     , requestBody( src.requestBody )
     , responseBodySink( src.responseBodySink )
+    , maxResponseBodySize( src.maxResponseBodySize )
     , hasRange( src.hasRange )
     , rangeStart( src.rangeStart )
     , rangeLength( src.rangeLength )
@@ -111,6 +113,7 @@ CHttpClientRequestOptions::operator=( const CHttpClientRequestOptions& src )
     {
         requestBody = src.requestBody;
         responseBodySink = src.responseBodySink;
+        maxResponseBodySize = src.maxResponseBodySize;
         hasRange = src.hasRange;
         rangeStart = src.rangeStart;
         rangeLength = src.rangeLength;
@@ -165,6 +168,7 @@ CHttpClientTransferInfo::CHttpClientTransferInfo( void )
     , errorClass( HTTPERRORCLASS_NONE )
     , wasCancelled( false )
     , timedOut( false )
+    , responseBodyTooLarge( false )
     , effectiveUrl()
     , redirectCount( 0 )
     , bytesSent( 0 )

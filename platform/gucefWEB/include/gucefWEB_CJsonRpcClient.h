@@ -2,19 +2,17 @@
  *  gucefWEB: GUCEF module providing WEB application functionality
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_WEB_CJSONRPCCLIENT_H
@@ -31,10 +29,10 @@
 #define GUCEF_CORE_CTIMER_H
 #endif /* GUCEF_CORE_CTIMER_H ? */
 
-#ifndef GUCEF_WEB_CJSONRPCENDPOINT_H
-#include "gucefWEB_CJsonRpcEndpoint.h"
-#define GUCEF_WEB_CJSONRPCENDPOINT_H
-#endif /* GUCEF_WEB_CJSONRPCENDPOINT_H ? */
+#ifndef GUCEF_COM_CJSONRPCENDPOINT_H
+#include "gucefCOM_CJsonRpcEndpoint.h"
+#define GUCEF_COM_CJSONRPCENDPOINT_H
+#endif /* GUCEF_COM_CJSONRPCENDPOINT_H ? */
 
 #ifndef GUCEF_WEB_CWEBSOCKETCLIENT_H
 #include "gucefWEB_CWebSocketClient.h"
@@ -61,13 +59,20 @@ namespace WEB {
  *  be attached to a web socket client as its transport. Any other transport can be used through SetTransport()
  *  in which case the owner of that transport gives incoming messages to ProcessIncoming().
  */
-class GUCEF_WEB_PUBLIC_CPP CJsonRpcClient : public CJsonRpcEndpoint
+class GUCEF_WEB_PUBLIC_CPP CJsonRpcClient : public COM::CJsonRpcEndpoint
 {
     public:
 
+    /** Uses the application's (global) pulse generator */
     CJsonRpcClient( void );
 
+    /** Uses the given pulse generator, which should be the one that drives the transport, for timing out calls and for CallAndWait() */
+    explicit CJsonRpcClient( const CORE::PulseGeneratorPtr& pulseGenerator );
+
     virtual ~CJsonRpcClient();
+
+    /** Also moves the timer which times out calls to the given pulse generator */
+    virtual void SetPulseGenerator( const CORE::PulseGeneratorPtr& pulseGenerator ) GUCEF_VIRTUAL_OVERRIDE;
 
     /**
      *  Uses the given web socket client, which must outlive this object or be detached, as the transport:
@@ -83,7 +88,7 @@ class GUCEF_WEB_PUBLIC_CPP CJsonRpcClient : public CJsonRpcEndpoint
     CJsonRpcClient( const CJsonRpcClient& src );
     CJsonRpcClient& operator=( const CJsonRpcClient& src );
 
-    class CWebSocketTransport : public CIJsonRpcTransport
+    class CWebSocketTransport : public COM::CIJsonRpcTransport
     {
         public:
         CWebSocketTransport( void ) : m_webSocketClient( GUCEF_NULL ) {}

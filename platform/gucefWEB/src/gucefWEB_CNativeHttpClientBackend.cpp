@@ -70,10 +70,10 @@
 
 #include "gucefWEB_CNativeHttpClientBackend.h"
 
-#ifndef GUCEF_CORE_CREDACTOR_H
-#include "gucefCORE_CRedactor.h"
-#define GUCEF_CORE_CREDACTOR_H
-#endif /* GUCEF_CORE_CREDACTOR_H ? */
+#ifndef GUCEF_WEB_CHTTPLOGREDACTION_H
+#include "gucefWEB_CHttpLogRedaction.h"
+#define GUCEF_WEB_CHTTPLOGREDACTION_H
+#endif /* GUCEF_WEB_CHTTPLOGREDACTION_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -381,7 +381,7 @@ CNativeHttpClientRequest::Start( void )
         // The authority of a URL can carry credentials as user info, which the description of the failure must not repeat
         CString target = host + ":" + CORE::ToString( port );
         if ( host.HasChar( '@', true ) >= 0 )
-            target = CORE::CRedactor::ForUrl().RedactUrl( target );
+            target = CHttpLogRedaction::RedactUrl( target );
 
         // The socket only does not start for a host that has no address: an unknown name
         bool isName = false;
@@ -449,7 +449,7 @@ CNativeHttpClientRequest::OnTlsError( const COMCORE::CTlsError& error )
     }
 
     // The host is named here, not by the error: the user info of a URL never gets in
-    CString host = CORE::CRedactor::ForUrl().RedactUrl( m_request.GetHostName() );
+    CString host = CHttpLogRedaction::RedactUrl( m_request.GetHostName() );
     Finish( false, error.GetDescription( host ), GUCEF_COMCORE_TLS_ERRORCODE_BASE + (Int32) error.errorClass );
 }
 
@@ -509,7 +509,7 @@ CNativeHttpClientRequest::ProcessProxyResponse( const char* data, UInt32 dataSiz
     if ( status < 200 || status > 299 )
     {
         m_transferInfo.errorClass = HTTPERRORCLASS_CONNECT;
-        Finish( false, "The proxy refused to open a tunnel to " + CORE::CRedactor::ForUrl().RedactUrl( m_request.GetHostName() ) + ": HTTP status " + CORE::ToString( status ), status );
+        Finish( false, "The proxy refused to open a tunnel to " + CHttpLogRedaction::RedactUrl( m_request.GetHostName() ) + ": HTTP status " + CORE::ToString( status ), status );
         return;
     }
 

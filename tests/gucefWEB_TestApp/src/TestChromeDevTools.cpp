@@ -2,19 +2,17 @@
  *  gucefWEB_TestApp: GUCEF test application for the WEB module
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -56,6 +54,21 @@
 #include "gucefWEB_CWebSocketHandshake.h"
 #define GUCEF_WEB_CWEBSOCKETHANDSHAKE_H
 #endif /* GUCEF_WEB_CWEBSOCKETHANDSHAKE_H ? */
+
+#ifndef GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#include "gucefCORE_CTEventHandlerFunctor.h"
+#define GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H
+#endif /* GUCEF_CORE_CTEVENTHANDLERFUNCTOR_H ? */
+
+#ifndef GUCEF_MT_CACTIVEOBJECT_H
+#include "gucefMT_CActiveObject.h"
+#define GUCEF_MT_CACTIVEOBJECT_H
+#endif /* GUCEF_MT_CACTIVEOBJECT_H ? */
+
+#ifndef GUCEF_MT_CTATOMIC_H
+#include "gucefMT_CTAtomic.h"
+#define GUCEF_MT_CTATOMIC_H
+#endif /* GUCEF_MT_CTATOMIC_H ? */
 
 #ifndef GUCEF_TEST_FRAMEWORK_H
 #include "gucef_test_framework.h"
@@ -167,13 +180,13 @@ class CFakeChromeHttpHandler : public WEB::CIHttpServerRequestHandler
 typedef CORE::CTFactory< WEB::CIHttpServerRequestHandler, CFakeChromeHttpHandler, MT::CMutex > TFakeChromeHttpHandlerFactory;
 
 /** The commands the fake browser understands */
-class CFakeChromeCommands : public WEB::CIJsonRpcRequestHandler
+class CFakeChromeCommands : public COM::CIJsonRpcRequestHandler
 {
     public:
 
-    virtual WEB::EJsonRpcRequestResult OnJsonRpcRequest( WEB::CJsonRpcEndpoint& endpoint     ,
-                                                         const WEB::SJsonRpcRequest& request ,
-                                                         WEB::SJsonRpcResponse& response     ) GUCEF_VIRTUAL_OVERRIDE
+    virtual COM::EJsonRpcRequestResult OnJsonRpcRequest( COM::CJsonRpcEndpoint& endpoint     ,
+                                                         const COM::SJsonRpcRequest& request ,
+                                                         COM::SJsonRpcResponse& response     ) GUCEF_VIRTUAL_OVERRIDE
     {
         response.result = CORE::CDataNode( GUCEF_DATATYPE_OBJECT );
         CORE::CDataNode& result = response.result;
@@ -181,7 +194,7 @@ class CFakeChromeCommands : public WEB::CIJsonRpcRequestHandler
 
         if ( method == "Network.enable" )
         {
-            return WEB::JSONRPC_REQUEST_HANDLED;
+            return COM::JSONRPC_REQUEST_HANDLED;
         }
         if ( method == "Network.getAllCookies" )
         {
@@ -205,7 +218,7 @@ class CFakeChromeCommands : public WEB::CIJsonRpcRequestHandler
             second->SetAttribute( "httpOnly", false );
             second->SetAttribute( "secure", false );
             second->SetAttribute( "session", true );
-            return WEB::JSONRPC_REQUEST_HANDLED;
+            return COM::JSONRPC_REQUEST_HANDLED;
         }
         if ( method == "Page.navigate" )
         {
@@ -223,7 +236,7 @@ class CFakeChromeCommands : public WEB::CIJsonRpcRequestHandler
                 eventParams.SetAttribute( "timestamp", (Float32) 12.5f );
                 endpoint.Notify( "Page.loadEventFired", &eventParams );
             }
-            return WEB::JSONRPC_REQUEST_HANDLED;
+            return COM::JSONRPC_REQUEST_HANDLED;
         }
         if ( method == "Runtime.evaluate" )
         {
@@ -263,17 +276,17 @@ class CFakeChromeCommands : public WEB::CIJsonRpcRequestHandler
                 exception->SetAttribute( "description", "Error: boom" );
                 exception->SetAttribute( "type", "object" );
             }
-            return WEB::JSONRPC_REQUEST_HANDLED;
+            return COM::JSONRPC_REQUEST_HANDLED;
         }
         if ( method == "Target.createTarget" )
         {
             result.SetAttribute( "targetId", "T2" );
-            return WEB::JSONRPC_REQUEST_HANDLED;
+            return COM::JSONRPC_REQUEST_HANDLED;
         }
         if ( method == "Target.attachToTarget" && request.params.GetAttributeValue( "flatten" ).AsBool( false ) )
         {
             result.SetAttribute( "sessionId", "S9" );
-            return WEB::JSONRPC_REQUEST_HANDLED;
+            return COM::JSONRPC_REQUEST_HANDLED;
         }
         if ( method == "Network.getResponseBody" )
         {
@@ -281,24 +294,24 @@ class CFakeChromeCommands : public WEB::CIJsonRpcRequestHandler
             {
                 result.SetAttribute( "body", "aGk=" );
                 result.SetAttribute( "base64Encoded", true );
-                return WEB::JSONRPC_REQUEST_HANDLED;
+                return COM::JSONRPC_REQUEST_HANDLED;
             }
             response.isError = true;
             response.error.code = -32000;
             response.error.message = "No resource with given identifier found";
-            return WEB::JSONRPC_REQUEST_HANDLED;
+            return COM::JSONRPC_REQUEST_HANDLED;
         }
         if ( method == "Debug.sessionOf" )
         {
             // tells which session the command was directed to
             result.SetAttribute( "sessionId", request.envelope.GetAttributeValue( "sessionId" ).AsString() );
-            return WEB::JSONRPC_REQUEST_HANDLED;
+            return COM::JSONRPC_REQUEST_HANDLED;
         }
 
         response.isError = true;
-        response.error.code = WEB::JSONRPC_ERROR_METHOD_NOT_FOUND;
+        response.error.code = COM::JSONRPC_ERROR_METHOD_NOT_FOUND;
         response.error.message = "'" + method + "' wasn't found";
-        return WEB::JSONRPC_REQUEST_HANDLED;
+        return COM::JSONRPC_REQUEST_HANDLED;
     }
 };
 
@@ -333,6 +346,117 @@ class CChromeRecorder : public CORE::CObserver
     GUCEF::vector< WEB::SChromeProtocolEvent > events;
 };
 
+/** Counts the pulses a pulse generator gets from threads other than its owner */
+class CForeignPulseCounter : public CORE::CObserver
+{
+    public:
+
+    CForeignPulseCounter( CORE::PulseGeneratorPtr pulseGenerator, UInt32 ownerThreadId )
+        : CORE::CObserver()
+        , m_ownerThreadId( ownerThreadId )
+        , m_foreignPulses( 0 )
+        , m_lock()
+    {
+        TEventCallback callback( this, &CForeignPulseCounter::OnPulse );
+        SubscribeTo( pulseGenerator.GetPointerAlways(), CORE::CPulseGenerator::PulseEvent, callback );
+    }
+
+    UInt32 GetForeignPulses( void ) const { MT::CScopeMutex lock( m_lock ); return m_foreignPulses; }
+
+    private:
+
+    typedef CORE::CTEventHandlerFunctor< CForeignPulseCounter > TEventCallback;
+
+    void OnPulse( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+    {
+        MT::CScopeMutex lock( m_lock );
+        if ( MT::GetCurrentTaskID() != m_ownerThreadId )
+            ++m_foreignPulses;
+    }
+
+    UInt32 m_ownerThreadId;
+    UInt32 m_foreignPulses;
+    MT::CMutex m_lock;
+};
+
+/** Uses one of the blocking members of a client on a thread of its own */
+class CChromeWaitThread : public MT::CActiveObject
+{
+    public:
+
+    enum EOperation
+    {
+        OPERATION_COMMAND   ,
+        OPERATION_DISCOVERY ,
+        OPERATION_CONNECT
+    };
+
+    CChromeWaitThread( WEB::CChromeDevToolsClient& client, EOperation operation, const CORE::CString& webSocketDebuggerUrl )
+        : MT::CActiveObject()
+        , result( false )
+        , m_client( client )
+        , m_operation( operation )
+        , m_webSocketDebuggerUrl( webSocketDebuggerUrl )
+        , m_done( false )
+    {}
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+        return true;
+    }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+        if ( OPERATION_COMMAND == m_operation )
+        {
+            CORE::CDataNode commandResult;
+            result = m_client.SendCommandAndWait( "Network.enable", GUCEF_NULL, commandResult, GUCEF_NULL, 1000 );
+        }
+        else
+        if ( OPERATION_DISCOVERY == m_operation )
+        {
+            WEB::SChromeDiscoveryResult discovery;
+            result = m_client.DiscoverTargetsAndWait( "127.0.0.1", FAKE_CHROME_PORT, discovery, 1000 );
+        }
+        else
+        {
+            result = m_client.ConnectAndWait( m_webSocketDebuggerUrl, 1000 );
+        }
+        m_done.Store( true, MT::MEMORDER_RELEASE );
+        return true; // stop cycling
+    }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    /** Runs the calls and waits until the thread is gone. The results may only be read after this returned true */
+    bool Run( void )
+    {
+        if ( !Activate( GUCEF_NULL, 0, 0 ) )
+            return false;
+        UInt32 waitedInMs = 0;
+        while ( !m_done.Load( MT::MEMORDER_ACQUIRE ) && waitedInMs < 15000 )
+        {
+            MT::PrecisionDelay( 1 );
+            ++waitedInMs;
+        }
+        while ( m_done.Load( MT::MEMORDER_ACQUIRE ) && IsActive() && waitedInMs < 20000 )
+        {
+            MT::PrecisionDelay( 1 );
+            ++waitedInMs;
+        }
+        return m_done.Load( MT::MEMORDER_ACQUIRE ) && !IsActive();
+    }
+
+    bool result;
+
+    private:
+
+    WEB::CChromeDevToolsClient& m_client;
+    EOperation m_operation;
+    CORE::CString m_webSocketDebuggerUrl;
+    MT::CTAtomic< bool > m_done;
+};
+
 /*-------------------------------------------------------------------------*/
 
 void
@@ -359,7 +483,7 @@ PerformChromeDevToolsTests( void )
     bool listening = httpServer.ListenOnPort( FAKE_CHROME_PORT );
     WEB::CWebSocketServer wsServer( httpServer );
     WEB::CJsonRpcServer rpcServer( wsServer );
-    rpcServer.SetDialect( WEB::JSONRPC_DIALECT_LENIENT );
+    rpcServer.SetDialect( COM::JSONRPC_DIALECT_LENIENT );
     CFakeChromeCommands commands;
     const char* commandNames[] = { "Network.enable", "Network.getAllCookies", "Page.navigate", "Runtime.evaluate", "Target.createTarget",
                                    "Target.attachToTarget", "Network.getResponseBody", "Debug.sessionOf" };
@@ -494,9 +618,9 @@ PerformChromeDevToolsTests( void )
 
             // a command the browser does not know comes back as an error with its code
             CORE::CDataNode unusedResult;
-            WEB::SJsonRpcError error;
+            COM::SJsonRpcError error;
             ASSERT_FALSE( client.SendCommandAndWait( "Nonsense.command", GUCEF_NULL, unusedResult, &error ) );
-            ASSERT_TRUE( WEB::JSONRPC_ERROR_METHOD_NOT_FOUND == error.code );
+            ASSERT_TRUE( COM::JSONRPC_ERROR_METHOD_NOT_FOUND == error.code );
 
             // targets and sessions: new tab, attach, then commands are directed at the session
             CORE::CString targetId;
@@ -521,6 +645,76 @@ PerformChromeDevToolsTests( void )
             ASSERT_FALSE( client.IsConnected() );
             ASSERT_TRUE( 1 == recorder.disconnected );
             ASSERT_FALSE( client.SendCommandAndWait( "Network.enable", GUCEF_NULL, unusedResult, &error ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The client runs on its pulse generator and only waits on the thread that drives it" )
+        try
+        {
+            const UInt32 thisThreadId = MT::GetCurrentTaskID();
+            CORE::PulseGeneratorPtr globalPulseGenerator = CORE::CCoreGlobal::Instance()->GetPulseGenerator();
+
+            // the pulse generator is given to the JSON-RPC client the commands go through
+            {
+                CORE::PulseGeneratorPtr localPulseGenerator = CORE::CPulseGenerator::CreateSharedObj();
+                WEB::CChromeDevToolsClient localClient( localPulseGenerator );
+                ASSERT_TRUE( localClient.GetPulseGenerator() == localPulseGenerator );
+                ASSERT_TRUE( localClient.GetRpcClient().GetPulseGenerator() == localPulseGenerator );
+            }
+
+            WEB::CChromeDevToolsClient client;
+            CChromeRecorder recorder;
+            recorder.SubscribeTo( &client );
+            ASSERT_TRUE( client.GetPulseGenerator() == globalPulseGenerator );
+            ASSERT_TRUE( client.GetRpcClient().GetPulseGenerator() == globalPulseGenerator );
+            ASSERT_TRUE( globalPulseGenerator->GetPulseDriverThreadId() == thisThreadId );
+
+            WEB::SChromeDiscoveryResult discovery;
+            ASSERT_TRUE( client.DiscoverTargetsAndWait( "127.0.0.1", FAKE_CHROME_PORT, discovery ) );
+            if ( discovery.targets.empty() )
+                throw std::runtime_error( "no targets discovered, the rest of the test cannot run" );
+            ASSERT_TRUE( client.ConnectAndWait( discovery.targets[ 0 ].webSocketDebuggerUrl ) );
+
+            // another thread may not wait: that would pump this thread's pulse generator
+            CForeignPulseCounter foreignPulses( globalPulseGenerator, thisThreadId );
+            {
+                CChromeWaitThread waiter( client, CChromeWaitThread::OPERATION_COMMAND, CORE::CString::Empty );
+                ASSERT_TRUE( waiter.Run() );
+                ASSERT_FALSE( waiter.result );
+            }
+            {
+                CChromeWaitThread waiter( client, CChromeWaitThread::OPERATION_DISCOVERY, CORE::CString::Empty );
+                ASSERT_TRUE( waiter.Run() );
+                ASSERT_FALSE( waiter.result );
+                ASSERT_TRUE( 1 == recorder.discoveryCompleted );
+            }
+            ASSERT_TRUE( client.IsConnected() );
+            ASSERT_TRUE( client.NetworkEnable() );      // this thread still can
+
+            client.Disconnect();
+            ASSERT_FALSE( client.IsConnected() );
+            UInt32 pumped = 0;
+            while ( pumped++ < 100 )
+            {
+                globalPulseGenerator->ForceDirectPulse();
+                MT::ThreadDelay( 1 );
+            }
+            {
+                CChromeWaitThread waiter( client, CChromeWaitThread::OPERATION_CONNECT, discovery.targets[ 0 ].webSocketDebuggerUrl );
+                ASSERT_TRUE( waiter.Run() );
+                ASSERT_FALSE( waiter.result );
+                ASSERT_FALSE( client.IsConnected() );
+            }
+            ASSERT_TRUE( 0 == foreignPulses.GetForeignPulses() );
+
+            // while on this thread the connection is made again
+            ASSERT_TRUE( client.ConnectAndWait( discovery.targets[ 0 ].webSocketDebuggerUrl ) );
+            ASSERT_TRUE( client.NetworkEnable() );
+            client.Disconnect();
         }
         catch( ... )
         {

@@ -17,10 +17,15 @@ set( HEADER_FILES
   include/TestCode_CHTTPServer.h
   include/TestHttpClient.h
   include/TestHttpHeaderParsing.h
+  include/TestHttpLogRedaction.h
+  include/TestHttpProxy.h
+  include/TestHttpRawClient.h
   include/TestHttpRedaction.h
   include/TestHttpServerBind.h
+  include/TestHttpServerBody.h
   include/TestIrcWebSocket.h
-  include/TestJsonRpc.h
+  include/TestJsonRpcWebSocket.h
+  include/TestMcpStreamableHttp.h
   include/TestWebSocket.h
   include/TestWebSocketCodec.h
 )
@@ -31,10 +36,13 @@ set( SOURCE_FILES
   src/TestCode_CHTTPServer.cpp
   src/TestHttpClient.cpp
   src/TestHttpHeaderParsing.cpp
+  src/TestHttpLogRedaction.cpp
   src/TestHttpRedaction.cpp
   src/TestHttpServerBind.cpp
+  src/TestHttpServerBody.cpp
   src/TestIrcWebSocket.cpp
-  src/TestJsonRpc.cpp
+  src/TestJsonRpcWebSocket.cpp
+  src/TestMcpStreamableHttp.cpp
   src/TestWebSocket.cpp
   src/TestWebSocketCodec.cpp
   src/gucefWEB_TestApp_main.cpp

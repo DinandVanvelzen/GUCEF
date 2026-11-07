@@ -48,6 +48,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #include "TestStatsDClient.h"
 
 /*-------------------------------------------------------------------------//
@@ -130,7 +135,7 @@ PerformStatsDClientTests( void )
         const CORE::CString previousBootstrap = configStore.GetBootstrapConfigFile();
         const CORE::CString::StringVector previousConfigFiles = configStore.GetConfigFiles();
 
-        const CORE::CString path = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), "gucefCOM_TestApp_StatsD.ini" );
+        const CORE::CString path = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), TESTFW::UniqueTestName( "gucefCOM_TestApp_StatsD" ) + ".ini" );
         ASSERT_TRUE( CORE::WriteStringAsTextFile( path, "[Other]\n\"value\"=\"1\"\n" ) );
         configStore.SetBootstrapConfigFile( CORE::CString::Empty );
         configStore.SetConfigFile( path, false );

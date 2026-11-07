@@ -73,11 +73,6 @@
 #define GUCEF_WEB_CWEBSOCKETCLIENT_H
 #endif /* GUCEF_WEB_CWEBSOCKETCLIENT_H ? */
 
-#ifndef GUCEF_WEB_CJSONRPCENDPOINT_H
-#include "gucefWEB_CJsonRpcEndpoint.h"
-#define GUCEF_WEB_CJSONRPCENDPOINT_H
-#endif /* GUCEF_WEB_CJSONRPCENDPOINT_H ? */
-
 #ifndef GUCEF_WEB_CJSONRPCSERVER_H
 #include "gucefWEB_CJsonRpcServer.h"
 #define GUCEF_WEB_CJSONRPCSERVER_H
@@ -141,6 +136,16 @@
 #define GUCEF_WEB_CIRCWEBSOCKETTRANSPORT_H
 #endif /* GUCEF_WEB_CIRCWEBSOCKETTRANSPORT_H ? */
 
+#ifndef GUCEF_WEB_CMCPSTREAMABLEHTTPTRANSPORT_H
+#include "gucefWEB_CMcpStreamableHttpTransport.h"
+#define GUCEF_WEB_CMCPSTREAMABLEHTTPTRANSPORT_H
+#endif /* GUCEF_WEB_CMCPSTREAMABLEHTTPTRANSPORT_H ? */
+
+#ifndef GUCEF_WEB_CMCPSTATICBEARERAUTHENTICATOR_H
+#include "gucefWEB_CMcpStaticBearerAuthenticator.h"
+#define GUCEF_WEB_CMCPSTATICBEARERAUTHENTICATOR_H
+#endif /* GUCEF_WEB_CMCPSTATICBEARERAUTHENTICATOR_H ? */
+
 #include "gucefWEB_CWebGlobal.h"  /* definition of the class implemented here */
 
 /*-------------------------------------------------------------------------//
@@ -176,6 +181,9 @@ typedef CORE::CTFactory< CORE::CUriResourceAccessor, CHttpUriResourceAccessor, M
 THttpUriResourceAccessorFactory g_httpUriResourceAccessorFactory;
 
 TIrcWebSocketTransportFactory g_ircWebSocketTransportFactory;
+TMcpStreamableHttpTransportFactory g_mcpStreamableHttpTransportFactory;
+TMcpStaticBearerAuthenticatorFactory g_mcpStaticBearerAuthenticatorFactory;
+TMcpNoHttpAuthenticatorFactory g_mcpNoHttpAuthenticatorFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -186,6 +194,7 @@ TIrcWebSocketTransportFactory g_ircWebSocketTransportFactory;
 CWebGlobal::CWebGlobal( void )
     : m_globalHttpCodecLinks( GUCEF_NULL )
     , m_httpClientBackendFactory( GUCEF_NULL )
+    , m_mcpHttpAuthenticatorFactory( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -207,7 +216,6 @@ CWebGlobal::Initialize( void )
     CHTTPServer::RegisterEvents();
     CWebSocketServer::RegisterEvents();
     CWebSocketClient::RegisterEvents();
-    CJsonRpcEndpoint::RegisterEvents();
     CJsonRpcServer::RegisterEvents();
     CChromeDevToolsClient::RegisterEvents();
     CHttpClientRequestTaskConsumer::RegisterEvents();
@@ -229,6 +237,12 @@ CWebGlobal::Initialize( void )
     // IRC can go over a web socket: the COM IRC client finds this transport by name
     COM::CComGlobal::Instance()->GetIrcTransportFactory().RegisterConcreteFactory( COM::CIIrcTransport::WebSocketTransportName, &g_ircWebSocketTransportFactory );
 
+    // MCP over Streamable HTTP: the COM MCP server finds this transport by name, and the transport its authenticator
+    m_mcpHttpAuthenticatorFactory = GUCEF_NEW TMcpHttpAuthenticatorFactory();
+    m_mcpHttpAuthenticatorFactory->RegisterConcreteFactory( CIMcpHttpAuthenticator::StaticBearerAuthenticatorName, &g_mcpStaticBearerAuthenticatorFactory );
+    m_mcpHttpAuthenticatorFactory->RegisterConcreteFactory( CIMcpHttpAuthenticator::NoAuthenticatorName, &g_mcpNoHttpAuthenticatorFactory );
+    COM::CComGlobal::Instance()->GetMcpTransportFactory().RegisterConcreteFactory( COM::CIMcpTransport::StreamableHttpTransportName, &g_mcpStreamableHttpTransportFactory );
+
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefWEB" );
 }
 
@@ -241,6 +255,10 @@ CWebGlobal::~CWebGlobal()
     CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefWEB" );
 
     COM::CComGlobal::Instance()->GetIrcTransportFactory().UnregisterConcreteFactory( COM::CIIrcTransport::WebSocketTransportName );
+    COM::CComGlobal::Instance()->GetMcpTransportFactory().UnregisterConcreteFactory( COM::CIMcpTransport::StreamableHttpTransportName );
+    m_mcpHttpAuthenticatorFactory->UnregisterAllConcreteFactories();
+    GUCEF_DELETE m_mcpHttpAuthenticatorFactory;
+    m_mcpHttpAuthenticatorFactory = GUCEF_NULL;
 
     CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory().UnregisterConcreteFactory( CHttpUriResourceAccessor::SchemeNameHttp );
     CORE::CCoreGlobal::Instance()->GetUriResourceAccessorFactory().UnregisterConcreteFactory( CHttpUriResourceAccessor::SchemeNameHttps );
@@ -302,6 +320,15 @@ CWebGlobal::GetHttpClientBackendFactory( void ) const
 {GUCEF_TRACE;
 
     return *m_httpClientBackendFactory;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TMcpHttpAuthenticatorFactory&
+CWebGlobal::GetMcpHttpAuthenticatorFactory( void ) const
+{GUCEF_TRACE;
+
+    return *m_mcpHttpAuthenticatorFactory;
 }
 
 /*-------------------------------------------------------------------------*/
