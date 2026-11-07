@@ -60,6 +60,11 @@
 #define GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H
 #endif /* GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H ? */
 
+#ifndef GUCEF_COMCORE_CDATABASECLIENTFACTORY_H
+#include "gucefCOMCORE_CDatabaseClientFactory.h"
+#define GUCEF_COMCORE_CDATABASECLIENTFACTORY_H
+#endif /* GUCEF_COMCORE_CDATABASECLIENTFACTORY_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -103,6 +108,9 @@ class GUCEF_COMCORE_EXPORT_CPP CComCoreGlobal
     /** Creates port mappers by method name, for example "natpmp" */
     CPortMapperFactory& GetPortMapperFactory( void );
 
+    /** Creates database clients by backend name, for example "vfstables". Backends register from their plugins */
+    CDatabaseClientFactory& GetDatabaseClientFactory( void );
+
     CGeoLocationLookupService& GetGeoLocationLookupService( void );
 
     /**
@@ -133,6 +141,7 @@ class GUCEF_COMCORE_EXPORT_CPP CComCoreGlobal
     CDiscoveryClientFactory* m_discoveryClientFactory;
     CRttProbeFactory* m_rttProbeFactory;
     CPortMapperFactory* m_portMapperFactory;
+    CDatabaseClientFactory* m_databaseClientFactory;
     CGeoLocationLookupService* m_geoLocationLookupService;
     CTlsProviderRegistry* m_tlsProviderRegistry;
 

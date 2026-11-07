@@ -79,7 +79,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
 endif( WIN64 )
 
-include_directories( ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
+include_directories( ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
 
 if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )

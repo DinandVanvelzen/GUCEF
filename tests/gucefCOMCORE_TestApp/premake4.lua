@@ -54,7 +54,10 @@ files( {
   "include/TestCode_SimpleTCPClient.h",
   "include/TestCode_TlsClient.h",
   "include/TestCode_TlsLayer.h",
-  "include/TestCode_TlsOpenSsl.h"
+  "include/TestCode_TlsOpenSsl.h",
+  "include/TestDatabaseClient.h",
+  "include/TestDatabaseClientFake.h",
+  "include/TestNoTlsProvider.h"
  } )
 
 
@@ -69,7 +72,9 @@ files( {
   "src/TestCode_SimpleTCPClient.cpp",
   "src/TestCode_TlsLayer.cpp",
   "src/TestCode_TlsOpenSsl.cpp",
-  "src/gucefCOMCORE_TestApp.cpp"
+  "src/gucefCOMCORE_TestApp.cpp",
+  "src/TestDatabaseClient.cpp",
+  "src/TestDatabaseClientFake.cpp"
  } )
 
 

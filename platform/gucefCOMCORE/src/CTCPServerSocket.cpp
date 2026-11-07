@@ -405,6 +405,21 @@ void
 CTCPServerSocket::AcceptClients( void )
 {GUCEF_TRACE;
 
+    // every connection that waits is taken, not one per pulse: a burst of clients is not paced by the pulse interval.
+    // Bounded, so that a flood cannot hold the thread
+    for ( UInt32 i=0; i<MaxAcceptsPerCycle && _active; ++i )
+    {
+        if ( !AcceptClient() )
+            break;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPServerSocket::AcceptClient( void )
+{GUCEF_TRACE;
+
     int s = 0;           /* s is where the data is stored from the select function */
     int nfds = 0;        /* This is used for Compatibility */
     
@@ -442,7 +457,7 @@ CTCPServerSocket::AcceptClients( void )
             if ( (UInt32)m_activeConnections.size() >= _data->maxcon )
             {
                 GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "TCPServerSocket: More connections incoming than the allowed max, ignoring them. Max: " + CORE::UInt32ToString( _data->maxcon ) );
-                return;
+                return false;
             }
                 
             TConnectionSet::iterator i = m_inactiveConnections.begin();
@@ -460,7 +475,7 @@ CTCPServerSocket::AcceptClients( void )
                     if ( INVALID_SOCKET == clientcon->_data->sockid )
                     {
                         clientcon->_data->sockid = 0;
-                        return;
+                        return false;
                     }
 
                     /*
@@ -482,7 +497,7 @@ CTCPServerSocket::AcceptClients( void )
                         int closeError = 0;
                         dvsocket_closesocket( clientcon->_data->sockid, &closeError );
                         clientcon->_data->sockid = 0;
-                        return;
+                        return false;
                     }
                     clientcon->_blocking = _blocking;
                     clientcon->SetUserData( GUCEF_NULL );     // whoever handled the previous client is done with this object
@@ -511,12 +526,13 @@ CTCPServerSocket::AcceptClients( void )
                     TClientConnectedEventData cloneableEventData( eData );
                     NotifyObservers( ClientConnectedEvent, &cloneableEventData );
 
-                    return;
+                    return true;
                 }
                 ++i;
             }
         }
     }
+    return false;
 }
 
 /*-------------------------------------------------------------------------*/

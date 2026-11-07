@@ -346,14 +346,14 @@ PrintNumericVariant( const TVariantData* src  ,
             case GUCEF_DATATYPE_INT32:   { snprintf( destBuffer, destBufferLength, "%d", src->union_data.int32_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }             
             case GUCEF_DATATYPE_UINT32:  { snprintf( destBuffer, destBufferLength, "%u", src->union_data.uint32_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             #ifdef GUCEF_MSWIN_BUILD
-            case GUCEF_DATATYPE_INT64:   { snprintf( destBuffer, destBufferLength, "%I64d", src->union_data.int64_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
+            case GUCEF_DATATYPE_INT64:   { snprintf( destBuffer, destBufferLength, "%I64d", src->union_data.int64_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             case GUCEF_DATATYPE_UINT64:  { snprintf( destBuffer, destBufferLength, "%I64u", src->union_data.uint64_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             #else
-            case GUCEF_DATATYPE_INT64:   { snprintf( destBuffer, destBufferLength, "%lld", src->union_data.int64_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
+            case GUCEF_DATATYPE_INT64:   { snprintf( destBuffer, destBufferLength, "%lld", src->union_data.int64_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             case GUCEF_DATATYPE_UINT64:  { snprintf( destBuffer, destBufferLength, "%llu", src->union_data.uint64_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }
             #endif
             case GUCEF_DATATYPE_FLOAT32: { snprintf( destBuffer, destBufferLength, "%f", src->union_data.float32_data ); *strLen = (UInt32) strlen( destBuffer ); *wasNumeric = 1; break; }

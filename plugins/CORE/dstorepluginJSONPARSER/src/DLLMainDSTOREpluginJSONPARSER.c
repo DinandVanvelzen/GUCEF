@@ -666,11 +666,9 @@ DSTOREPLUG_Src_File_Open( void** plugdata  ,
                           void** filedata  ,
                           TIOAccess* file  ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {
-    TSrcFileData* sd = GUCEF_NULL;
-    *plugdata = GUCEF_NULL;
-    *codecdata = GUCEF_NULL;
-
-    sd = (TSrcFileData*) malloc( sizeof(TSrcFileData) );
+    /* plugdata and codecdata belong to the module and the codec, not to this read: documents are read on several
+       threads at once, so they are left as they are */
+    TSrcFileData* sd = (TSrcFileData*) malloc( sizeof(TSrcFileData) );
     if ( GUCEF_NULL != sd )
     {
         memset( sd, 0, sizeof( TSrcFileData ) );

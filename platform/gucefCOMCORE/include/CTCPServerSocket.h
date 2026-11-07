@@ -98,6 +98,9 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     static const CORE::CEvent ServerSocketErrorEvent;
     static const CORE::CEvent ServerSocketClientErrorEvent;
     static const CORE::CEvent ServerSocketMaxConnectionsChangedEvent;
+
+    /** The most connections taken in one pulse: all that wait, up to this bound */
+    static const UInt32 MaxAcceptsPerCycle = 64;
         
     typedef CORE::TCloneableInt32   TServerSocketErrorEventData;
     typedef CORE::TCloneableInt32   TServerSocketClientErrorEventData;    
@@ -248,7 +251,10 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
      */
     CTCPServerSocket( void );     
     
-    void AcceptClients( void );     
+    void AcceptClients( void );
+
+    /** Accepts one waiting connection. @return true when one was accepted */
+    bool AcceptClient( void );     
     
     private :
     

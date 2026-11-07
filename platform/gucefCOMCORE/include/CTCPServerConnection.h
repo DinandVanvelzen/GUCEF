@@ -133,6 +133,12 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerConnection : public CTCPConnection
      *      bytes that will be read from the data buffer.
      */
     UInt32 GetMaxRead( void ) const;
+
+    /**
+     *  The bytes that were handed to Send() and that the socket did not take yet: Send() queues what the socket
+     *  cannot take at once and the pulses of the server socket send it later
+     */
+    UInt32 GetBufferedSendDataSize( void ) const;
     
     virtual const CORE::CString& GetRemoteHostName( void ) const GUCEF_VIRTUAL_OVERRIDE;
     

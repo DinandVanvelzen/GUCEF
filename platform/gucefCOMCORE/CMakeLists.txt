@@ -27,6 +27,11 @@ set( HEADER_FILES
   include/dvwinsock.h
   include/gucefCOMCORE.h
   include/gucefCOMCORE_CComCoreGlobal.h
+  include/gucefCOMCORE_CDatabaseClientBase.h
+  include/gucefCOMCORE_CDatabaseClientFactory.h
+  include/gucefCOMCORE_CDatabaseClientOperation.h
+  include/gucefCOMCORE_CDatabaseClientSettings.h
+  include/gucefCOMCORE_CDatabaseTableResult.h
   include/gucefCOMCORE_CDiscoveryClientBase.h
   include/gucefCOMCORE_CDiscoveryClientFactory.h
   include/gucefCOMCORE_CDiscoveryEntry.h
@@ -37,6 +42,7 @@ set( HEADER_FILES
   include/gucefCOMCORE_CDnsResolver.h
   include/gucefCOMCORE_CGeoLocationLookupService.h
   include/gucefCOMCORE_CICommunicationInterface.h
+  include/gucefCOMCORE_CIDatabaseClient.h
   include/gucefCOMCORE_CIDiscovery.h
   include/gucefCOMCORE_CIDiscoveryCapability.h
   include/gucefCOMCORE_CIDiscoveryClient.h
@@ -87,6 +93,10 @@ set( SOURCE_FILES
   src/dvwinsock.c
   src/gucefCOMCORE.cpp
   src/gucefCOMCORE_CComCoreGlobal.cpp
+  src/gucefCOMCORE_CDatabaseClientBase.cpp
+  src/gucefCOMCORE_CDatabaseClientOperation.cpp
+  src/gucefCOMCORE_CDatabaseClientSettings.cpp
+  src/gucefCOMCORE_CDatabaseTableResult.cpp
   src/gucefCOMCORE_CDiscoveryClientBase.cpp
   src/gucefCOMCORE_CDiscoveryEntry.cpp
   src/gucefCOMCORE_CDiscoveryManager.cpp
@@ -96,6 +106,7 @@ set( SOURCE_FILES
   src/gucefCOMCORE_CDnsResolver.cpp
   src/gucefCOMCORE_CGeoLocationLookupService.cpp
   src/gucefCOMCORE_CICommunicationInterface.cpp
+  src/gucefCOMCORE_CIDatabaseClient.cpp
   src/gucefCOMCORE_CIDiscovery.cpp
   src/gucefCOMCORE_CIDiscoveryCapability.cpp
   src/gucefCOMCORE_CIDiscoveryClient.cpp
@@ -253,7 +264,7 @@ if ( WIN64 )
   set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "_WINSOCK_DEPRECATED_NO_WARNINGS" )
 endif( WIN64 )
 
-include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT/include include )
+include_directories( ../../common/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCORE/include/android include/android )

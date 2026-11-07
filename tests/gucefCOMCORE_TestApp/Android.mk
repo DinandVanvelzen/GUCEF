@@ -29,6 +29,8 @@ LOCAL_SRC_FILES := \
   src/TestCode_TlsLayer.cpp \
   src/TestCode_TlsOpenSsl.cpp \
   src/gucefCOMCORE_TestApp.cpp
+  src/TestDatabaseClient.cpp \
+  src/TestDatabaseClientFake.cpp \
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \

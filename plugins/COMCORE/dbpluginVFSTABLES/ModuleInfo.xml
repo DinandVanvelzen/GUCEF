@@ -1,0 +1,33 @@
+<ModuleInfoEntry>
+    <Module Name="dbpluginVFSTABLES" Type="SharedLibrary" Platform="All" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>1.0.0.0</SemVer>
+            <DescriptionHeadline>gucefCOMCORE database backend over table files in the VFS</DescriptionHeadline>
+            <DescriptionDetails>The vfstables database backend: partitioned tables as immutable files in the VFS, read and written through the table codecs, with partition pruning from query predicates, copy-on-write partition replacement and listing and footer caches.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefVFS" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefVFS" />
+        </Linker>
+        <Preprocessor>
+            <Define String="DBPLUGIN_VFSTABLES_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+    <Module Type="StaticLibrary" Platform="Emscripten" >
+    </Module>
+</ModuleInfoEntry>

@@ -556,7 +556,12 @@ ZlibKeepPendingInput( TZlibInstance* instance, TCodecErrorInfo* error )
     UInt32 size = (UInt32) instance->strm.avail_in;
 
     if ( 0 == size )
+    {
+        /* all of the kept input is used (zlib may still hold output): none of it may be given to zlib again */
+        instance->pendingInputSize = 0;
+        instance->pendingInputOffset = 0;
         return GUCEF_CODEC_STATUS_OK;
+    }
     if ( instance->strm.next_in >= instance->pendingInput && instance->strm.next_in < instance->pendingInput + instance->pendingInputSize )
     {
         /* already ours */

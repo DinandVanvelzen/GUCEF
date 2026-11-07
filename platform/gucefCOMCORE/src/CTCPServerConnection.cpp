@@ -361,6 +361,18 @@ CTCPServerConnection::GetMaxRead( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+UInt32
+CTCPServerConnection::GetBufferedSendDataSize( void ) const
+{GUCEF_TRACE;
+
+    Lock();
+    UInt32 bufferedBytes = m_sendBuffer.GetBufferedDataSizeInBytes();
+    Unlock();
+    return bufferedBytes;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CTCPServerConnection::Read( char *dest     ,
                             UInt32 size    ,

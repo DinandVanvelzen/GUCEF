@@ -112,6 +112,11 @@
 #define GUCEF_COMCORE_COPENSSLTLSPROVIDER_H
 #endif /* GUCEF_COMCORE_COPENSSLTLSPROVIDER_H ? */
 
+#ifndef GUCEF_COMCORE_CDATABASECLIENTOPERATION_H
+#include "gucefCOMCORE_CDatabaseClientOperation.h"
+#define GUCEF_COMCORE_CDATABASECLIENTOPERATION_H
+#endif /* GUCEF_COMCORE_CDATABASECLIENTOPERATION_H ? */
+
 #include "gucefCOMCORE_CComCoreGlobal.h"  /* definition of the class implemented here */
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
@@ -147,6 +152,7 @@ MT::CMutex CComCoreGlobal::g_dataLock;
 CComCoreGlobal* CComCoreGlobal::g_instance = GUCEF_NULL;
 TPingTaskConsumerFactory g_pingTaskConsumerFactory;
 TDnsCacheRefreshTaskConsumerFactory g_dnsCacheRefreshTaskConsumerFactory;
+TDatabaseClientOperationTaskFactory g_databaseClientOperationTaskFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -161,6 +167,7 @@ CComCoreGlobal::CComCoreGlobal( void )
     , m_discoveryClientFactory( GUCEF_NULL )
     , m_rttProbeFactory( GUCEF_NULL )
     , m_portMapperFactory( GUCEF_NULL )
+    , m_databaseClientFactory( GUCEF_NULL )
     , m_geoLocationLookupService( GUCEF_NULL )
     , m_tlsProviderRegistry( GUCEF_NULL )
 {GUCEF_TRACE;
@@ -196,6 +203,7 @@ CComCoreGlobal::Initialize( void )
     CIDiscoveryClient::RegisterEvents();
     CIRttProbe::RegisterEvents();
     CIPortMapper::RegisterEvents();
+    CIDatabaseClient::RegisterEvents();
     CTlsClientConnection::RegisterEvents();
     
     CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
@@ -206,11 +214,15 @@ CComCoreGlobal::Initialize( void )
     // Make the task manager capable of handling dns cache refresh tasks
     taskManager.RegisterTaskConsumerFactory( CDnsCacheRefreshTaskConsumer::TaskType, &g_dnsCacheRefreshTaskConsumerFactory  );
 
+    // Make the task manager capable of carrying out the async calls of database clients
+    taskManager.RegisterTaskConsumerFactory( CDatabaseClientOperation::TaskType, &g_databaseClientOperationTaskFactory );
+
     m_com = GUCEF_NEW CCom();
     m_dnsCache = ( GUCEF_NEW CGlobalDnsCache() )->CreateSharedPtr();
     m_discoveryClientFactory = GUCEF_NEW CDiscoveryClientFactory();
     m_rttProbeFactory = GUCEF_NEW CRttProbeFactory();
     m_portMapperFactory = GUCEF_NEW CPortMapperFactory();
+    m_databaseClientFactory = GUCEF_NEW CDatabaseClientFactory();
     m_discoveryManager = GUCEF_NEW CDiscoveryManager();
     m_geoLocationLookupService = GUCEF_NEW CGeoLocationLookupService();
 
@@ -240,6 +252,7 @@ CComCoreGlobal::Shutdown( void )
     CORE::CTaskManager& taskManager = CORE::CCoreGlobal::Instance()->GetTaskManager();
     taskManager.UnregisterTaskConsumerFactory( CPingTaskConsumer::TaskType );
     taskManager.UnregisterTaskConsumerFactory( CDnsCacheRefreshTaskConsumer::TaskType );
+    taskManager.UnregisterTaskConsumerFactory( CDatabaseClientOperation::TaskType );
     
     GUCEF_DELETE m_tlsProviderRegistry;
     m_tlsProviderRegistry = GUCEF_NULL;
@@ -247,6 +260,8 @@ CComCoreGlobal::Shutdown( void )
     m_geoLocationLookupService = GUCEF_NULL;
     GUCEF_DELETE m_discoveryManager;
     m_discoveryManager = GUCEF_NULL;
+    GUCEF_DELETE m_databaseClientFactory;
+    m_databaseClientFactory = GUCEF_NULL;
     GUCEF_DELETE m_portMapperFactory;
     m_portMapperFactory = GUCEF_NULL;
     GUCEF_DELETE m_rttProbeFactory;
@@ -354,6 +369,15 @@ CComCoreGlobal::GetPortMapperFactory( void )
 {GUCEF_TRACE;
 
     return *m_portMapperFactory;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDatabaseClientFactory&
+CComCoreGlobal::GetDatabaseClientFactory( void )
+{GUCEF_TRACE;
+
+    return *m_databaseClientFactory;
 }
 
 /*-------------------------------------------------------------------------*/

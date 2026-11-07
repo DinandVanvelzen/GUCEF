@@ -37,6 +37,10 @@ LOCAL_SRC_FILES := \
   src/dvwinsock.c \
   src/gucefCOMCORE.cpp \
   src/gucefCOMCORE_CComCoreGlobal.cpp \
+  src/gucefCOMCORE_CDatabaseClientBase.cpp \
+  src/gucefCOMCORE_CDatabaseClientOperation.cpp \
+  src/gucefCOMCORE_CDatabaseClientSettings.cpp \
+  src/gucefCOMCORE_CDatabaseTableResult.cpp \
   src/gucefCOMCORE_CDiscoveryClientBase.cpp \
   src/gucefCOMCORE_CDiscoveryEntry.cpp \
   src/gucefCOMCORE_CDiscoveryManager.cpp \
@@ -46,6 +50,7 @@ LOCAL_SRC_FILES := \
   src/gucefCOMCORE_CDnsResolver.cpp \
   src/gucefCOMCORE_CGeoLocationLookupService.cpp \
   src/gucefCOMCORE_CICommunicationInterface.cpp \
+  src/gucefCOMCORE_CIDatabaseClient.cpp \
   src/gucefCOMCORE_CIDiscovery.cpp \
   src/gucefCOMCORE_CIDiscoveryCapability.cpp \
   src/gucefCOMCORE_CIDiscoveryClient.cpp \
