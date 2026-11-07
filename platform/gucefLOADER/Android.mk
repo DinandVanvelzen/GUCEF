@@ -40,11 +40,16 @@ LOCAL_SRC_FILES := \
   ../gucefCORE/src/dvmd5utils.c \
   ../gucefCORE/src/dvstrutils.cpp \
   ../gucefCORE/src/gucefCORE_CAsciiString.cpp \
+  ../gucefCORE/src/gucefCORE_CDataTableValues.cpp \
+  ../gucefCORE/src/gucefCORE_CDecimal.cpp \
+  ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp \
   ../gucefCORE/src/gucefCORE_CDate.cpp \
   ../gucefCORE/src/gucefCORE_CDateTime.cpp \
   ../gucefCORE/src/gucefCORE_CIDate.cpp \
   ../gucefCORE/src/gucefCORE_CITime.cpp \
   ../gucefCORE/src/gucefCORE_CProcess.cpp \
+  ../gucefCORE/src/gucefCORE_StdoutClaim.cpp \
+  ../gucefCORE/src/gucefCORE_CProcessPipe.cpp \
   ../gucefCORE/src/gucefCORE_CRandom.cpp \
   ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp \
   ../gucefCORE/src/gucefCORE_CTime.cpp \

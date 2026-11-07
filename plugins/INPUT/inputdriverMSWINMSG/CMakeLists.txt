@@ -72,11 +72,11 @@ if ( WIN64 )
 endif( WIN64 )
 
 if ( WIN32 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
 endif( WIN32 )
 
 if ( WIN64 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/mswin ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include ../../../platform/gucefMT/include/mswin include )
 endif( WIN64 )
 
 

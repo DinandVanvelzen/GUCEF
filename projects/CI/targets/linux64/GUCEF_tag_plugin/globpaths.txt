@@ -29,8 +29,11 @@ dependencies/opus/*
 dependencies/tiff/libtiff/*
 dependencies/zlib/*
 platform/gucefAUDIO/include/*
+platform/gucefCOM/include/*
+platform/gucefCOMCORE/include/*
 platform/gucefCORE/include/*
 platform/gucefGUI/include/*
+platform/gucefDRN/include/*
 platform/gucefIMAGE/include/*
 platform/gucefINPUT/include/*
 platform/gucefMT/include/*
@@ -38,6 +41,7 @@ platform/gucefVFS/include/*
 platform/gucefVIDEO/include/*
 plugins/AUDIO/audiodriverALSA/*
 plugins/CORE/codecspluginOPENSSL/*
+platform/gucefWEB/include/*
 plugins/GUI/guidriverEGL/*
 plugins/GUI/guidriverWAYLAND/*
 plugins/GUI/guidriverXWinGL/*

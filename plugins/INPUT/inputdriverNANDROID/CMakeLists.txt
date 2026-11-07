@@ -76,11 +76,11 @@ target_link_libraries( ${MODULE_NAME} PRIVATE android android_native_app_glue )
 endif( ANDROID64 )
 
 if ( ANDROID32 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
 endif( ANDROID64 )
 
 

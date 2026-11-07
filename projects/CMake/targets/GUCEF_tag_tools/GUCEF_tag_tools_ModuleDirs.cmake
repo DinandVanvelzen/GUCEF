@@ -73,6 +73,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/HDFiller ${CMAKE
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ProjectGen ${CMAKE_BINARY_DIR}/ProjectGen )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ProjectGenerator ${CMAKE_BINARY_DIR}/ProjectGenerator )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/PubSubStorageTool ${CMAKE_BINARY_DIR}/PubSubStorageTool )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/gucefMcpEcho ${CMAKE_BINARY_DIR}/gucefMcpEcho )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/itvExporter ${CMAKE_BINARY_DIR}/itvExporter )
 
 

@@ -85,11 +85,11 @@ if ( ANDROID64 )
 endif( ANDROID64 )
 
 if ( ANDROID32 )
-  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
 endif( ANDROID32 )
 
 if ( ANDROID64 )
-  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/android ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
 endif( ANDROID64 )
 
 

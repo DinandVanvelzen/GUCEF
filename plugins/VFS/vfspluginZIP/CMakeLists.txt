@@ -86,7 +86,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PUBLIC zlib )
 endif( WIN64 )
 
-include_directories( ../../../common/include ../../../dependencies/minizip ../../../dependencies/zziplib ../../../dependencies/zziplib/zzip ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefMT/include ../../../platform/gucefVFS/include include )
+include_directories( ../../../common/include ../../../dependencies/minizip ../../../dependencies/zziplib ../../../dependencies/zziplib/zzip ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefMT/include ../../../platform/gucefVFS/include include )
 
 if ( ANDROID32 )
   include_directories( ../../../platform/gucefCORE/include/android )

@@ -35,6 +35,17 @@
         <ITEM NAME="../gucefCORE/include/gucefCORE_CRandom.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/gucefCORE_CProcess.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/gucefCORE_CProcess.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CProcessPipe.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CProcessPipe.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_StdoutClaim.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_StdoutClaim.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CDecimal.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CDecimal.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CDecimalAccumulator.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_RoundingMode.h" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/src/gucefCORE_CDataTableValues.cpp" TYPE="FILE" />
+        <ITEM NAME="../gucefCORE/include/gucefCORE_CDataTableValues.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/gucefCORE_CTimestamp.cpp" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/include/gucefCORE_CTimestamp.h" TYPE="FILE" />
         <ITEM NAME="../gucefCORE/src/gucefCORE_CUtf16String.cpp" TYPE="FILE" />

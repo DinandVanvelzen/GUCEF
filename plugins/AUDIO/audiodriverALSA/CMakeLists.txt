@@ -85,11 +85,11 @@ if ( LINUX64 )
 endif( LINUX64 )
 
 if ( LINUX32 )
-  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
 endif( LINUX32 )
 
 if ( LINUX64 )
-  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefAUDIO/include ../../../platform/gucefAUDIO/include/c_api ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/include/linux ../../../platform/gucefCORE/src ../../../platform/gucefMT/include include )
 endif( LINUX64 )
 
 

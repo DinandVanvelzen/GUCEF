@@ -60,6 +60,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUTH/authplugi
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUTH/authpluginEOS ${CMAKE_BINARY_DIR}/authpluginEOS )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/AUTH/authpluginSTEAM ${CMAKE_BINARY_DIR}/authpluginSTEAM )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMCORE/comcorepluginUPNP ${CMAKE_BINARY_DIR}/comcorepluginUPNP )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/COMCORE/dbpluginVFSTABLES ${CMAKE_BINARY_DIR}/dbpluginVFSTABLES )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginMONOCYPHER ${CMAKE_BINARY_DIR}/codecspluginMONOCYPHER )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginSTBRUMMEHASH ${CMAKE_BINARY_DIR}/codecspluginSTBRUMMEHASH )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/codecspluginZLIB ${CMAKE_BINARY_DIR}/codecspluginZLIB )
@@ -67,6 +68,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstoreplu
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstorepluginPARSIFALXML ${CMAKE_BINARY_DIR}/dstorepluginPARSIFALXML )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstorepluginPROTOBUF ${CMAKE_BINARY_DIR}/dstorepluginPROTOBUF )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/dstorepluginYAML ${CMAKE_BINARY_DIR}/dstorepluginYAML )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/CORE/tablecodecpluginPARQUET ${CMAKE_BINARY_DIR}/tablecodecpluginPARQUET )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/DRN/drnchannelpluginEOSP2P ${CMAKE_BINARY_DIR}/drnchannelpluginEOSP2P )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/MULTIPLAY/lobbyservicepluginEOS ${CMAKE_BINARY_DIR}/lobbyservicepluginEOS )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/PUBSUB/pubsubpluginFIX ${CMAKE_BINARY_DIR}/pubsubpluginFIX )
@@ -91,6 +93,7 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../plugins/WEB/httpclient
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/AncestryDotComBackup_TestApp ${CMAKE_BINARY_DIR}/AncestryDotComBackup_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/ProjectGen_TestApp ${CMAKE_BINARY_DIR}/ProjectGen_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefAUDIO_TestApp ${CMAKE_BINARY_DIR}/gucefAUDIO_TestApp )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/dbpluginVFSTABLES_TestApp ${CMAKE_BINARY_DIR}/dbpluginVFSTABLES_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefAUTH_PluginsTestApp ${CMAKE_BINARY_DIR}/gucefAUTH_PluginsTestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefAUTH_TestApp ${CMAKE_BINARY_DIR}/gucefAUTH_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefCOMCORE_TestApp ${CMAKE_BINARY_DIR}/gucefCOMCORE_TestApp )
@@ -110,6 +113,8 @@ add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefVIDEO_TestA
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/gucefWEB_TestApp ${CMAKE_BINARY_DIR}/gucefWEB_TestApp )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/AncestryDotComBackupLib ${CMAKE_BINARY_DIR}/AncestryDotComBackupLib )
 add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/ProjectGen ${CMAKE_BINARY_DIR}/ProjectGen )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tests/tablecodecpluginPARQUET_TestApp ${CMAKE_BINARY_DIR}/tablecodecpluginPARQUET_TestApp )
+add_subdirectory( ${CMAKE_CURRENT_SOURCE_DIR}/../../../../tools/gucefMcpEcho ${CMAKE_BINARY_DIR}/gucefMcpEcho )
 
 
 if (ANDROID32)

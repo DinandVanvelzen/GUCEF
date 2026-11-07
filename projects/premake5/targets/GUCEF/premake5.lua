@@ -275,6 +275,7 @@ filter "ALL"
   include( "tools/msmqMetrics" )
   include( "tools/pubsub2pubsub" )
   include( "tools/pubsub2storage" )
+  include( "tools/gucefMcpEcho" )
   include( "tools/redisinfo" )
   include( "tools/udp2kafka" )
   include( "tools/udp2redis" )

@@ -29,11 +29,15 @@ set( HEADER_FILES
   ../gucefCORE/include/dvmd5utils.h
   ../gucefCORE/include/dvstrutils.h
   ../gucefCORE/include/gucefCORE_CAsciiString.h
+  ../gucefCORE/include/gucefCORE_CDataTableValues.h
   ../gucefCORE/include/gucefCORE_CDate.h
   ../gucefCORE/include/gucefCORE_CDateTime.h
+  ../gucefCORE/include/gucefCORE_CDecimal.h
+  ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
   ../gucefCORE/include/gucefCORE_CIDate.h
   ../gucefCORE/include/gucefCORE_CITime.h
   ../gucefCORE/include/gucefCORE_CProcess.h
+  ../gucefCORE/include/gucefCORE_CProcessPipe.h
   ../gucefCORE/include/gucefCORE_CRandom.h
   ../gucefCORE/include/gucefCORE_CResourceMetaData.h
   ../gucefCORE/include/gucefCORE_CString.h
@@ -44,6 +48,8 @@ set( HEADER_FILES
   ../gucefCORE/include/gucefCORE_CUtf8String.h
   ../gucefCORE/include/gucefCORE_CVariant.h
   ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+  ../gucefCORE/include/gucefCORE_RoundingMode.h
+  ../gucefCORE/include/gucefCORE_StdoutClaim.h
   ../gucefCORE/include/md5.h
   ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
   ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -83,11 +89,15 @@ set( SOURCE_FILES
   ../gucefCORE/src/dvmd5utils.c
   ../gucefCORE/src/dvstrutils.cpp
   ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+  ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
   ../gucefCORE/src/gucefCORE_CDate.cpp
   ../gucefCORE/src/gucefCORE_CDateTime.cpp
+  ../gucefCORE/src/gucefCORE_CDecimal.cpp
+  ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
   ../gucefCORE/src/gucefCORE_CIDate.cpp
   ../gucefCORE/src/gucefCORE_CITime.cpp
   ../gucefCORE/src/gucefCORE_CProcess.cpp
+  ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
   ../gucefCORE/src/gucefCORE_CRandom.cpp
   ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
   ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -97,6 +107,7 @@ set( SOURCE_FILES
   ../gucefCORE/src/gucefCORE_CUtf8String.cpp
   ../gucefCORE/src/gucefCORE_CVariant.cpp
   ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+  ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
   ../gucefCORE/src/md5.c
   ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
   ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -134,11 +145,15 @@ if (ANDROID)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -149,6 +164,8 @@ if (ANDROID)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -187,11 +204,15 @@ if (ANDROID)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -201,6 +222,7 @@ if (ANDROID)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -238,11 +260,15 @@ elseif (ANDROID32)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -253,6 +279,8 @@ elseif (ANDROID32)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/android/gucefCORE_CAndroidSystemLogger.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -292,11 +320,15 @@ elseif (ANDROID32)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -306,6 +338,7 @@ elseif (ANDROID32)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/android/gucefCORE_CAndroidSystemLogger.cpp
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -344,11 +377,15 @@ elseif (ANDROID64)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -359,6 +396,8 @@ elseif (ANDROID64)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/android/gucefCORE_CAndroidSystemLogger.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
@@ -398,11 +437,15 @@ elseif (ANDROID64)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -412,6 +455,7 @@ elseif (ANDROID64)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/android/gucefCORE_CAndroidSystemLogger.cpp
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
@@ -450,11 +494,15 @@ elseif (ARDUINO)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -465,6 +513,8 @@ elseif (ARDUINO)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -503,11 +553,15 @@ elseif (ARDUINO)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -517,6 +571,7 @@ elseif (ARDUINO)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -554,11 +609,15 @@ elseif (EMSCRIPTEN)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -569,6 +628,8 @@ elseif (EMSCRIPTEN)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -607,11 +668,15 @@ elseif (EMSCRIPTEN)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -621,6 +686,7 @@ elseif (EMSCRIPTEN)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -658,11 +724,15 @@ elseif (EMSCRIPTEN32)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -673,6 +743,8 @@ elseif (EMSCRIPTEN32)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -711,11 +783,15 @@ elseif (EMSCRIPTEN32)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -725,6 +801,7 @@ elseif (EMSCRIPTEN32)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -762,11 +839,15 @@ elseif (EMSCRIPTEN64)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -777,6 +858,8 @@ elseif (EMSCRIPTEN64)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -815,11 +898,15 @@ elseif (EMSCRIPTEN64)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -829,6 +916,7 @@ elseif (EMSCRIPTEN64)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -866,11 +954,15 @@ elseif (GLX)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -881,6 +973,8 @@ elseif (GLX)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -919,11 +1013,15 @@ elseif (GLX)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -933,6 +1031,7 @@ elseif (GLX)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -970,11 +1069,15 @@ elseif (GTK)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -985,6 +1088,8 @@ elseif (GTK)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -1023,11 +1128,15 @@ elseif (GTK)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -1037,6 +1146,7 @@ elseif (GTK)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -1074,11 +1184,15 @@ elseif (IOS)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -1089,6 +1203,8 @@ elseif (IOS)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -1127,11 +1243,15 @@ elseif (IOS)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -1141,6 +1261,7 @@ elseif (IOS)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -1178,11 +1299,15 @@ elseif (IPHONE)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -1193,6 +1318,8 @@ elseif (IPHONE)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -1231,11 +1358,15 @@ elseif (IPHONE)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -1245,6 +1376,7 @@ elseif (IPHONE)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -1282,11 +1414,15 @@ elseif (IPHONEOS)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -1297,6 +1433,8 @@ elseif (IPHONEOS)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -1335,11 +1473,15 @@ elseif (IPHONEOS)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -1349,6 +1491,7 @@ elseif (IPHONEOS)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -1386,11 +1529,15 @@ elseif (LINUX)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -1401,6 +1548,8 @@ elseif (LINUX)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -1439,11 +1588,15 @@ elseif (LINUX)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -1453,6 +1606,7 @@ elseif (LINUX)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -1490,11 +1644,15 @@ elseif (LINUX32)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -1505,6 +1663,8 @@ elseif (LINUX32)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -1543,11 +1703,15 @@ elseif (LINUX32)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -1557,6 +1721,7 @@ elseif (LINUX32)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -1594,11 +1759,15 @@ elseif (LINUX64)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -1609,6 +1778,8 @@ elseif (LINUX64)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -1647,11 +1818,15 @@ elseif (LINUX64)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -1661,6 +1836,7 @@ elseif (LINUX64)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -1698,11 +1874,15 @@ elseif (MAC)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -1713,6 +1893,8 @@ elseif (MAC)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -1751,11 +1933,15 @@ elseif (MAC)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -1765,6 +1951,7 @@ elseif (MAC)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -1802,11 +1989,15 @@ elseif (MACOS)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -1817,6 +2008,8 @@ elseif (MACOS)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -1855,11 +2048,15 @@ elseif (MACOS)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -1869,6 +2066,7 @@ elseif (MACOS)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -1906,11 +2104,15 @@ elseif (MACOSX)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -1921,6 +2123,8 @@ elseif (MACOSX)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -1959,11 +2163,15 @@ elseif (MACOSX)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -1973,6 +2181,7 @@ elseif (MACOSX)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -2010,11 +2219,15 @@ elseif (MSWIN)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -2025,6 +2238,8 @@ elseif (MSWIN)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -2063,11 +2278,15 @@ elseif (MSWIN)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -2077,6 +2296,7 @@ elseif (MSWIN)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -2114,11 +2334,15 @@ elseif (NACL)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -2129,6 +2353,8 @@ elseif (NACL)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -2167,11 +2393,15 @@ elseif (NACL)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -2181,6 +2411,7 @@ elseif (NACL)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -2218,11 +2449,15 @@ elseif (OSX)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -2233,6 +2468,8 @@ elseif (OSX)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -2271,11 +2508,15 @@ elseif (OSX)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -2285,6 +2526,7 @@ elseif (OSX)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -2322,11 +2564,15 @@ elseif (POSIX)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -2337,6 +2583,8 @@ elseif (POSIX)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -2375,11 +2623,15 @@ elseif (POSIX)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -2389,6 +2641,7 @@ elseif (POSIX)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -2426,11 +2679,15 @@ elseif (SDL)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -2441,6 +2698,8 @@ elseif (SDL)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -2479,11 +2738,15 @@ elseif (SDL)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -2493,6 +2756,7 @@ elseif (SDL)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -2530,11 +2794,15 @@ elseif (SYMBIAN)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -2545,6 +2813,8 @@ elseif (SYMBIAN)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -2583,11 +2853,15 @@ elseif (SYMBIAN)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -2597,6 +2871,7 @@ elseif (SYMBIAN)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -2634,11 +2909,15 @@ elseif (UNIX)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -2649,6 +2928,8 @@ elseif (UNIX)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -2687,11 +2968,15 @@ elseif (UNIX)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -2701,6 +2986,7 @@ elseif (UNIX)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -2738,11 +3024,15 @@ elseif (WIN32)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -2753,6 +3043,8 @@ elseif (WIN32)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -2794,11 +3086,15 @@ elseif (WIN32)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -2808,6 +3104,7 @@ elseif (WIN32)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefCORE/src/mswin/gucefCORE_cppmswinutils.cpp
@@ -2848,11 +3145,15 @@ elseif (WIN64)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -2863,6 +3164,8 @@ elseif (WIN64)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -2904,11 +3207,15 @@ elseif (WIN64)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -2918,6 +3225,7 @@ elseif (WIN64)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefCORE/src/mswin/gucefCORE_cppmswinutils.cpp
@@ -2958,11 +3266,15 @@ elseif (WINDOWS)
     ../gucefCORE/include/dvmd5utils.h
     ../gucefCORE/include/dvstrutils.h
     ../gucefCORE/include/gucefCORE_CAsciiString.h
+    ../gucefCORE/include/gucefCORE_CDataTableValues.h
     ../gucefCORE/include/gucefCORE_CDate.h
     ../gucefCORE/include/gucefCORE_CDateTime.h
+    ../gucefCORE/include/gucefCORE_CDecimal.h
+    ../gucefCORE/include/gucefCORE_CDecimalAccumulator.h
     ../gucefCORE/include/gucefCORE_CIDate.h
     ../gucefCORE/include/gucefCORE_CITime.h
     ../gucefCORE/include/gucefCORE_CProcess.h
+    ../gucefCORE/include/gucefCORE_CProcessPipe.h
     ../gucefCORE/include/gucefCORE_CRandom.h
     ../gucefCORE/include/gucefCORE_CResourceMetaData.h
     ../gucefCORE/include/gucefCORE_CString.h
@@ -2973,6 +3285,8 @@ elseif (WINDOWS)
     ../gucefCORE/include/gucefCORE_CUtf8String.h
     ../gucefCORE/include/gucefCORE_CVariant.h
     ../gucefCORE/include/gucefCORE_IFileSystemIterator.h
+    ../gucefCORE/include/gucefCORE_RoundingMode.h
+    ../gucefCORE/include/gucefCORE_StdoutClaim.h
     ../gucefCORE/include/md5.h
     ../gucefCORE/include/c_api/gucefCORE_c_ioaccess.h
     ../gucefCORE/include/c_api/gucefCORE_c_variantdata.h
@@ -3011,11 +3325,15 @@ elseif (WINDOWS)
     ../gucefCORE/src/dvmd5utils.c
     ../gucefCORE/src/dvstrutils.cpp
     ../gucefCORE/src/gucefCORE_CAsciiString.cpp
+    ../gucefCORE/src/gucefCORE_CDataTableValues.cpp
     ../gucefCORE/src/gucefCORE_CDate.cpp
     ../gucefCORE/src/gucefCORE_CDateTime.cpp
+    ../gucefCORE/src/gucefCORE_CDecimal.cpp
+    ../gucefCORE/src/gucefCORE_CDecimalAccumulator.cpp
     ../gucefCORE/src/gucefCORE_CIDate.cpp
     ../gucefCORE/src/gucefCORE_CITime.cpp
     ../gucefCORE/src/gucefCORE_CProcess.cpp
+    ../gucefCORE/src/gucefCORE_CProcessPipe.cpp
     ../gucefCORE/src/gucefCORE_CRandom.cpp
     ../gucefCORE/src/gucefCORE_CResourceMetaData.cpp
     ../gucefCORE/src/gucefCORE_CTime.cpp
@@ -3025,6 +3343,7 @@ elseif (WINDOWS)
     ../gucefCORE/src/gucefCORE_CUtf8String.cpp
     ../gucefCORE/src/gucefCORE_CVariant.cpp
     ../gucefCORE/src/gucefCORE_IFileSystemIterator.cpp
+    ../gucefCORE/src/gucefCORE_StdoutClaim.cpp
     ../gucefCORE/src/md5.c
     ../gucefCORE/src/c_api/gucefCORE_c_variantdata.c
     ../gucefMT/src/gucefMT_CICloneable.cpp
@@ -3079,7 +3398,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PRIVATE PowrProf.lib Shlwapi.lib Ws2_32.lib winmm.lib )
 endif( WIN64 )
 
-include_directories( .. ../../common/include ../gucefCORE ../gucefCORE/include ../gucefCORE/include/c_api ../gucefMT ../gucefMT/include include )
+include_directories( .. ../../common/include ../gucefCORE ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT ../gucefMT/include include )
 
 if ( ANDROID )
   include_directories( ../gucefCORE/include/ ../gucefCORE/include/c_api/ ../gucefMT/include/ )

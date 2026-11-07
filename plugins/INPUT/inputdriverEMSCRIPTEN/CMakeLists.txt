@@ -81,11 +81,11 @@ if ( EMSCRIPTEN64 )
 endif( EMSCRIPTEN64 )
 
 if ( EMSCRIPTEN32 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
 endif( EMSCRIPTEN32 )
 
 if ( EMSCRIPTEN64 )
-  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
+  include_directories( ../../../common/include ../../../platform/gucefCORE/include ../../../platform/gucefCORE/include/c_api ../../../platform/gucefCORE/src ../../../platform/gucefINPUT/include ../../../platform/gucefMT/include include )
 endif( EMSCRIPTEN64 )
 
 
