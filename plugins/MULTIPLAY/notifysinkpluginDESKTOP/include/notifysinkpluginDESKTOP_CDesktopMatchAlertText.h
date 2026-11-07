@@ -35,6 +35,11 @@
 #define GUCEF_MULTIPLAYPLUGIN_DESKTOP_MACROS_H
 #endif /* GUCEF_MULTIPLAYPLUGIN_DESKTOP_MACROS_H ? */
 
+#ifndef GUCEF_MULTIPLAYPLUGIN_DESKTOP_CDESKTOPMATCHALERTTEXTS_H
+#include "notifysinkpluginDESKTOP_CDesktopMatchAlertTexts.h"
+#define GUCEF_MULTIPLAYPLUGIN_DESKTOP_CDESKTOPMATCHALERTTEXTS_H
+#endif /* GUCEF_MULTIPLAYPLUGIN_DESKTOP_CDESKTOPMATCHALERTTEXTS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -50,34 +55,6 @@ namespace DESKTOP {
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-/**
- *  The wording of the notifications. A game replaces these to translate them or to use its own words.
- *  In a format string "{title}" is the title of the match, "{mover}" the name of the previous mover and
- *  "{count}" the number of matches. Anything else is taken literally. The text of a notification of an invitation
- *  never gets a title or a name, whatever its format says.
- */
-class GUCEF_MULTIPLAYPLUGIN_DESKTOP_EXPORT_CPP CDesktopMatchAlertTexts
-{
-    public:
-
-    CORE::CString yourTurnSummaryFallback;      /**< summary of a turn in a match without a title */
-    CORE::CString yourTurnBody;                 /**< body of a turn when the previous mover is not known */
-    CORE::CString yourTurnBodyAfterMover;       /**< body of a turn when the previous mover is known */
-    CORE::CString coalescedSummary;             /**< several games are waiting */
-    CORE::CString coalescedSummaryOne;          /**< ... when the count is 1 */
-    CORE::CString digestSummary;                /**< the daily digest */
-    CORE::CString digestBody;
-    CORE::CString digestBodyOne;
-    CORE::CString inviteSummary;                /**< an invitation */
-    CORE::CString finishedSummary;              /**< a match has ended */
-    CORE::CString finishedBody;
-
-    /** The English wording */
-    CDesktopMatchAlertTexts( void );
-};
-
-/*-------------------------------------------------------------------------*/
 
 /**
  *  What is allowed to reach the notification program: text is cleaned and cut to length before it is used as an argument

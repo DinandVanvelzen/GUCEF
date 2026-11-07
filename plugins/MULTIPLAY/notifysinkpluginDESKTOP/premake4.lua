@@ -67,6 +67,7 @@ configuration( { "LINUX32" } )
       "include/notifysinkpluginDESKTOP.h",
       "include/notifysinkpluginDESKTOP_CDesktopMatchAlertSink.h",
       "include/notifysinkpluginDESKTOP_CDesktopMatchAlertText.h",
+      "include/notifysinkpluginDESKTOP_CDesktopMatchAlertTexts.h",
       "include/notifysinkpluginDESKTOP_CNotifySendLauncher.h",
       "include/notifysinkpluginDESKTOP_INotifyLauncher.h",
       "include/notifysinkpluginDESKTOP_config.h",
@@ -78,6 +79,7 @@ configuration( { "LINUX32" } )
       "src/notifysinkpluginDESKTOP.cpp",
       "src/notifysinkpluginDESKTOP_CDesktopMatchAlertSink.cpp",
       "src/notifysinkpluginDESKTOP_CDesktopMatchAlertText.cpp",
+      "src/notifysinkpluginDESKTOP_CDesktopMatchAlertTexts.cpp",
       "src/notifysinkpluginDESKTOP_CNotifySendLauncher.cpp",
       "src/notifysinkpluginDESKTOP_INotifyLauncher.cpp"
     } )
@@ -90,6 +92,7 @@ configuration( { "LINUX64" } )
       "include/notifysinkpluginDESKTOP.h",
       "include/notifysinkpluginDESKTOP_CDesktopMatchAlertSink.h",
       "include/notifysinkpluginDESKTOP_CDesktopMatchAlertText.h",
+      "include/notifysinkpluginDESKTOP_CDesktopMatchAlertTexts.h",
       "include/notifysinkpluginDESKTOP_CNotifySendLauncher.h",
       "include/notifysinkpluginDESKTOP_INotifyLauncher.h",
       "include/notifysinkpluginDESKTOP_config.h",
@@ -101,6 +104,7 @@ configuration( { "LINUX64" } )
       "src/notifysinkpluginDESKTOP.cpp",
       "src/notifysinkpluginDESKTOP_CDesktopMatchAlertSink.cpp",
       "src/notifysinkpluginDESKTOP_CDesktopMatchAlertText.cpp",
+      "src/notifysinkpluginDESKTOP_CDesktopMatchAlertTexts.cpp",
       "src/notifysinkpluginDESKTOP_CNotifySendLauncher.cpp",
       "src/notifysinkpluginDESKTOP_INotifyLauncher.cpp"
     } )

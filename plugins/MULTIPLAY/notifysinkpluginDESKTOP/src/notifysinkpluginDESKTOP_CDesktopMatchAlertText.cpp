@@ -222,24 +222,6 @@ AppendEncoded( GUCEF::vector< char >& out, UInt32 codePoint, bool escapeMarkup )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CDesktopMatchAlertTexts::CDesktopMatchAlertTexts( void )
-    : yourTurnSummaryFallback( "Your turn" )
-    , yourTurnBody( "It is your turn" )
-    , yourTurnBodyAfterMover( "It is your turn (after {mover})" )
-    , coalescedSummary( "{count} games are waiting for you" )
-    , coalescedSummaryOne( "{count} game is waiting for you" )
-    , digestSummary( "Daily digest" )
-    , digestBody( "{count} games are waiting for you" )
-    , digestBodyOne( "{count} game is waiting for you" )
-    , inviteSummary( "You have a game invitation" )
-    , finishedSummary( "A game has ended" )
-    , finishedBody( "{title}" )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
 CORE::CString
 CDesktopMatchAlertText::Sanitize( const CORE::CString& text, UInt32 maxBytes, bool escapeMarkup )
 {GUCEF_TRACE;
