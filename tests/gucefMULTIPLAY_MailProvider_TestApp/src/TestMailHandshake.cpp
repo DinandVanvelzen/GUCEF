@@ -60,7 +60,7 @@ const UInt32 g_day = 24 * 60 * 60 * 1000;
 
 /** The player of the table who has the address, -1 when none */
 int
-PlayerOfAddress( CMailTable& table, const CORE::CString& address )
+PlayerOfAddress( CEMailTable& table, const CORE::CString& address )
 {
     for ( size_t i=0; i<table.players.size(); ++i )
         if ( table.players[ i ]->address == address.Lowercase() )
@@ -72,12 +72,12 @@ PlayerOfAddress( CMailTable& table, const CORE::CString& address )
 
 /** The creator starts a draft for the players, by name and address only */
 CORE::CString
-BeginDraft( CMailTable& table, UInt32 creator, const char* title, const UInt32* invitees, UInt32 count, CORE::CString* reasonOut = GUCEF_NULL, const GUCEF::map< CORE::CString, CORE::CString >* more = GUCEF_NULL )
+BeginDraft( CEMailTable& table, UInt32 creator, const char* title, const UInt32* invitees, UInt32 count, CORE::CString* reasonOut = GUCEF_NULL, const GUCEF::map< CORE::CString, CORE::CString >* more = GUCEF_NULL )
 {
     const CORE::CString id = MULTIPLAY::CMatchId::Generate();
-    GUCEF::vector< MAIL::CMailIntroContactInput > contacts;
+    GUCEF::vector< MAIL::CEMailIntroContactInput > contacts;
     for ( UInt32 i=0; i<count; ++i )
-        contacts.push_back( MAIL::CMailIntroContactInput( table.P( invitees[ i ] ).name, table.P( invitees[ i ] ).address ) );
+        contacts.push_back( MAIL::CEMailIntroContactInput( table.P( invitees[ i ] ).name, table.P( invitees[ i ] ).address ) );
     GUCEF::map< CORE::CString, CORE::CString > settings;
     settings[ GUCEF_MULTIPLAYPLUGIN_MAIL_SETTING_TRANSFER ] = "ATTACHMENT";
     settings[ GUCEF_MULTIPLAYPLUGIN_MAIL_SETTING_DISTRIBUTION ] = "ALL";
@@ -94,9 +94,9 @@ BeginDraft( CMailTable& table, UInt32 creator, const char* title, const UInt32* 
 /*-------------------------------------------------------------------------*/
 
 bool
-HasPending( CMailTable& table, UInt32 player, const CORE::CString& matchId, MAIL::CMailInboundIntro* found = GUCEF_NULL )
+HasPending( CEMailTable& table, UInt32 player, const CORE::CString& matchId, MAIL::CEMailInboundIntro* found = GUCEF_NULL )
 {
-    GUCEF::vector< MAIL::CMailInboundIntro > pending;
+    GUCEF::vector< MAIL::CEMailInboundIntro > pending;
     table.P( player ).provider->GetPendingIntroductions( pending );
     for ( size_t i=0; i<pending.size(); ++i )
         if ( pending[ i ].request.matchId == matchId )
@@ -109,7 +109,7 @@ HasPending( CMailTable& table, UInt32 player, const CORE::CString& matchId, MAIL
 }
 
 bool
-WaitPending( CMailTable& table, UInt32 player, const CORE::CString& matchId, UInt32 timeoutMs = 8000 )
+WaitPending( CEMailTable& table, UInt32 player, const CORE::CString& matchId, UInt32 timeoutMs = 8000 )
 {
     bool ok = false;
     PUMP_WAIT( ok, HasPending( table, player, matchId ), timeoutMs );
@@ -119,9 +119,9 @@ WaitPending( CMailTable& table, UInt32 player, const CORE::CString& matchId, UIn
 /*-------------------------------------------------------------------------*/
 
 UInt32
-CountIn( CMailTable& table, UInt32 creator, const CORE::CString& matchId, MAIL::TMailIntroState state )
+CountIn( CEMailTable& table, UInt32 creator, const CORE::CString& matchId, MAIL::TMailIntroState state )
 {
-    GUCEF::vector< MAIL::CMailIntroContact > contacts;
+    GUCEF::vector< MAIL::CEMailIntroContact > contacts;
     UInt32 count = 0;
     if ( table.P( creator ).provider->GetIntroductions( matchId, contacts ) )
         for ( size_t i=0; i<contacts.size(); ++i )
@@ -131,7 +131,7 @@ CountIn( CMailTable& table, UInt32 creator, const CORE::CString& matchId, MAIL::
 }
 
 bool
-WaitCount( CMailTable& table, UInt32 creator, const CORE::CString& matchId, MAIL::TMailIntroState state, UInt32 count, UInt32 timeoutMs = 8000 )
+WaitCount( CEMailTable& table, UInt32 creator, const CORE::CString& matchId, MAIL::TMailIntroState state, UInt32 count, UInt32 timeoutMs = 8000 )
 {
     bool ok = false;
     PUMP_WAIT( ok, CountIn( table, creator, matchId, state ) >= count, timeoutMs );
@@ -142,10 +142,10 @@ WaitCount( CMailTable& table, UInt32 creator, const CORE::CString& matchId, MAIL
 
 /** What the application does when the draft is complete: the signed record with the keys of the introduced, the first turn, CreateMatch */
 bool
-StartFromDraft( CMailTable& table, UInt32 creator, const CORE::CString& matchId, MULTIPLAY::CMatchOperationResult& result, MULTIPLAY::CMatchRecord* recordOut = GUCEF_NULL, const char* changedKey = GUCEF_NULL, const char* changedValue = "" )
+StartFromDraft( CEMailTable& table, UInt32 creator, const CORE::CString& matchId, MULTIPLAY::CMatchOperationResult& result, MULTIPLAY::CMatchRecord* recordOut = GUCEF_NULL, const char* changedKey = GUCEF_NULL, const char* changedValue = "" )
 {
-    MAIL::CMailIntroDraft draft;
-    GUCEF::vector< MAIL::CMailIntroContact > introduced;
+    MAIL::CEMailIntroDraft draft;
+    GUCEF::vector< MAIL::CEMailIntroContact > introduced;
     if ( !table.P( creator ).provider->GetIntroductionDraft( matchId, draft ) )
         return false;
     for ( size_t i=0; i<draft.contacts.size(); ++i )
@@ -206,7 +206,7 @@ StartFromDraft( CMailTable& table, UInt32 creator, const CORE::CString& matchId,
 
 /** Takes a match or a draft away from the provider of a player */
 bool
-RemoveMatch( CMailTable& table, UInt32 player, const CORE::CString& matchId )
+RemoveMatch( CEMailTable& table, UInt32 player, const CORE::CString& matchId )
 {
     CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
     MULTIPLAY::CMatchOperationResult result;
@@ -217,20 +217,20 @@ RemoveMatch( CMailTable& table, UInt32 player, const CORE::CString& matchId )
 
 /** A mail with an introduction statement made by hand, from any address to any player */
 CORE::CString
-IntroMail( CMailTable& table, const char* fromAddress, const CORE::CString& toAddress, const CORE::CString& matchId, MAIL::TMailMatchKind kind, const CORE::CIDataNodeSerializable& statement )
+IntroMail( CEMailTable& table, const char* fromAddress, const CORE::CString& toAddress, const CORE::CString& matchId, MAIL::TMailMatchKind kind, const CORE::CIDataNodeSerializable& statement )
 {
     CORE::CDynamicBuffer bytes;
-    if ( !MAIL::CMailMatchCodec::SerializeToBytes( statement, bytes, 16 * 1024 ) )
+    if ( !MAIL::CEMailMatchCodec::SerializeToBytes( statement, bytes, 16 * 1024 ) )
         return CORE::CString::Empty;
     GUCEF::vector< CORE::CString > to;
     to.push_back( toAddress );
-    return table.MailTextForData( fromAddress, to, matchId, 0, kind, bytes, MAIL::CMailMatchCodec::ArmorLabelData, "intro", MAIL::MAILTRANSFER_ATTACHMENT );
+    return table.MailTextForData( fromAddress, to, matchId, 0, kind, bytes, MAIL::CEMailMatchCodec::ArmorLabelData, "intro", MAIL::MAILTRANSFER_ATTACHMENT );
 }
 
 /*-------------------------------------------------------------------------*/
 
 UInt32
-CountCodes( const GUCEF::vector< MAIL::CMailMatchNotice >& notices, const char* code )
+CountCodes( const GUCEF::vector< MAIL::CEMailMatchNotice >& notices, const char* code )
 {
     UInt32 count = 0;
     for ( size_t i=0; i<notices.size(); ++i )
@@ -243,7 +243,7 @@ CountCodes( const GUCEF::vector< MAIL::CMailMatchNotice >& notices, const char* 
 
 /** The text of the first mail of a kind in the mailbox of a player */
 CORE::CString
-FirstMail( CMailTable& table, UInt32 player, const char* kind )
+FirstMail( CEMailTable& table, UInt32 player, const char* kind )
 {
     GUCEF::vector< TESTFW::CTestImapServer::TMessage > messages = table.P( player ).box->imap.GetMessages();
     for ( size_t i=0; i<messages.size(); ++i )
@@ -272,7 +272,7 @@ PerformMailHandshakeTests( void )
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         TESTFW::CLogTextCapture logs;
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "handshake-three" ) && table.StartAll() );
         const UInt32 invitees[] = { 1, 2 };
         const CORE::CString id = BeginDraft( table, 0, "Friday game", invitees, 2 );
@@ -282,7 +282,7 @@ PerformMailHandshakeTests( void )
         MULTIPLAY::CMatchInfo info;
         ASSERT_TRUE( table.P( 0 ).provider->GetMatchInfo( id, info ) && MULTIPLAY::MATCHSTATUS_INITIALIZING == info.status && info.matchId == id );
         ASSERT_TRUE( table.P( 0 ).recorder.CountAdded( id ) >= 1 );
-        MAIL::CMailIntroSummary summary;
+        MAIL::CEMailIntroSummary summary;
         ASSERT_TRUE( table.P( 0 ).provider->GetIntroductionSummary( id, summary ) && 2 == summary.total );
         ASSERT_TRUE( WaitPending( table, 1, id ) && WaitPending( table, 2, id ) );
         ASSERT_TRUE( 1 == table.CountMatchMails( 1, "INTRO_REQUEST" ) && 1 == table.CountMatchMails( 2, "INTRO_REQUEST" ) && 0 == table.CountMatchMails( 1, "INVITE" ) );
@@ -293,10 +293,10 @@ PerformMailHandshakeTests( void )
         ASSERT_TRUE( text.HasSubstr( "X-Redux-Match: " + id ) >= 0 && text.HasSubstr( "X-Redux-Protocol: 1" ) >= 0 && text.HasSubstr( "invites you" ) >= 0 && text.HasSubstr( "Friday game" ) >= 0 );
         ASSERT_TRUE( text.HasSubstr( "Alice" ) >= 0 && text.HasSubstr( "Carol" ) >= 0 && text.HasSubstr( table.P( 2 ).address ) >= 0 );
         ASSERT_TRUE( text.HasSubstr( "see each other's mail address" ) >= 0 && text.HasSubstr( "Redux" ) >= 0 && text.HasSubstr( "games.example.invalid" ) >= 0 );
-        ASSERT_TRUE( text.HasSubstr( MAIL::CMailIntroFingerprint::Of( table.P( 0 ).identity.publicKey ) ) >= 0 );
-        MAIL::CMailInboundIntro seenByBob;
+        ASSERT_TRUE( text.HasSubstr( MAIL::CEMailIntroFingerprint::Of( table.P( 0 ).identity.publicKey ) ) >= 0 );
+        MAIL::CEMailInboundIntro seenByBob;
         ASSERT_TRUE( HasPending( table, 1, id, &seenByBob ) && seenByBob.request.title == "Friday game" && seenByBob.request.creatorName == "Alice" && seenByBob.request.parties.size() == 3 );
-        ASSERT_TRUE( MAIL::CMailIntroFingerprint::Of( seenByBob.request.creatorPublicKey ) == MAIL::CMailIntroFingerprint::Of( table.P( 0 ).identity.publicKey ) );
+        ASSERT_TRUE( MAIL::CEMailIntroFingerprint::Of( seenByBob.request.creatorPublicKey ) == MAIL::CEMailIntroFingerprint::Of( table.P( 0 ).identity.publicKey ) );
 
         // Carol answers first, Bob after her; the creator sees both with the short fingerprints
         ASSERT_TRUE( MAIL::MAILINTRORESULT_OK == table.P( 2 ).provider->AcceptIntroduction( id, false ) );
@@ -305,10 +305,10 @@ PerformMailHandshakeTests( void )
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( MAIL::MAILINTRORESULT_OK == table.P( 1 ).provider->AcceptIntroduction( id, false ) );
         ASSERT_TRUE( WaitCount( table, 0, id, MAIL::MAILINTRO_INTRODUCED, 2 ) );
-        GUCEF::vector< MAIL::CMailIntroContact > contacts;
+        GUCEF::vector< MAIL::CEMailIntroContact > contacts;
         ASSERT_TRUE( table.P( 0 ).provider->GetIntroductions( id, contacts ) && 2 == contacts.size() );
         ASSERT_TRUE( contacts[ 0 ].publicKey == table.P( 1 ).identity.publicKey && contacts[ 1 ].publicKey == table.P( 2 ).identity.publicKey );
-        ASSERT_TRUE( MAIL::CMailIntroFingerprint::Of( contacts[ 0 ].publicKey ) == MAIL::CMailIntroFingerprint::Of( table.P( 1 ).identity.publicKey ) && MAIL::MAILINTROSOURCE_REPLY == contacts[ 0 ].source );
+        ASSERT_TRUE( MAIL::CEMailIntroFingerprint::Of( contacts[ 0 ].publicKey ) == MAIL::CEMailIntroFingerprint::Of( table.P( 1 ).identity.publicKey ) && MAIL::MAILINTROSOURCE_REPLY == contacts[ 0 ].source );
         ASSERT_TRUE( table.P( 0 ).provider->GetIntroductionSummary( id, summary ) && summary.allIntroduced && summary.startable );
 
         // the game: the record with the pinned keys, the normal invitation with the first turn
@@ -316,7 +316,7 @@ PerformMailHandshakeTests( void )
         ASSERT_TRUE( StartFromDraft( table, 0, id, result, &record ) && MULTIPLAY::MATCHOPERATION_OK == result.status );
         ASSERT_TRUE( record.info.participants[ 1 ].publicKey == table.P( 1 ).identity.publicKey && record.info.participants[ 2 ].publicKey == table.P( 2 ).identity.publicKey );
         // the draft is gone, the match took its place
-        GUCEF::vector< MAIL::CMailIntroContact > gone;
+        GUCEF::vector< MAIL::CEMailIntroContact > gone;
         ASSERT_FALSE( table.P( 0 ).provider->GetIntroductions( id, gone ) );
         ASSERT_TRUE( table.P( 0 ).provider->GetMatchInfo( id, info ) && info.participants.size() == 3 );
         ASSERT_TRUE( table.WaitKnown( 1, id ) && table.WaitKnown( 2, id ) );
@@ -351,7 +351,7 @@ PerformMailHandshakeTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "handshake-settings" ) && table.StartAll() );
         GUCEF::map< CORE::CString, CORE::CString > more;
         more[ "scenario" ] = "custom";
@@ -363,7 +363,7 @@ PerformMailHandshakeTests( void )
         ASSERT_TRUE( WaitPending( table, 1, same ) && WaitPending( table, 1, changed ) );
 
         // what Bob sees before he answers
-        MAIL::CMailInboundIntro seen;
+        MAIL::CEMailInboundIntro seen;
         ASSERT_TRUE( HasPending( table, 1, same, &seen ) );
         ASSERT_TRUE( seen.request.settings.find( "scenario" ) != seen.request.settings.end() && (*seen.request.settings.find( "seed" )).second == "4242" );
         ASSERT_TRUE( seen.request.settings.find( GUCEF_MULTIPLAYPLUGIN_MAIL_SETTING_TRANSFER ) != seen.request.settings.end() );
@@ -404,7 +404,7 @@ PerformMailHandshakeTests( void )
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         SOptions options;
         options.seatsSettingKey = "seats";
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "handshake-seats", options ) && table.StartAll() );
         // Bob and Carol take part in the game and are told it has four seats; the fourth player left the draft later, so the record has three
         GUCEF::map< CORE::CString, CORE::CString > more;
@@ -444,7 +444,7 @@ PerformMailHandshakeTests( void )
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         // without the setting that names the seats a lower number is another table, and a player who turned the automatic acceptance off answers by hand
         SOptions plain;
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "handshake-noseats", plain ) && table.StartAll() );
         GUCEF::map< CORE::CString, CORE::CString > more;
         more[ "seats" ] = "4";
@@ -471,7 +471,7 @@ PerformMailHandshakeTests( void )
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         SOptions manual;
         manual.autoJoinIntroduced = false;
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 2, "handshake-manual", manual ) && table.StartAll() );
         const UInt32 invitees[] = { 1 };
         const CORE::CString id = BeginDraft( table, 0, "Manual", invitees, 1 );
@@ -503,7 +503,7 @@ PerformMailHandshakeTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "handshake-late" ) && table.StartAll() );
         const UInt32 invitees[] = { 1, 2 };
         const CORE::CString id = BeginDraft( table, 0, "Late game", invitees, 2 );
@@ -523,7 +523,7 @@ PerformMailHandshakeTests( void )
         ASSERT_TRUE( MAIL::MAILINTRORESULT_OK == table.P( 2 ).provider->AcceptIntroduction( id, false ) );
         table.Settle( 600 );
         ASSERT_TRUE( CountIn( table, 0, id, MAIL::MAILINTRO_WAITING ) == 1 );
-        MAIL::CMailIntroSummary summary;
+        MAIL::CEMailIntroSummary summary;
         ASSERT_TRUE( table.P( 0 ).provider->GetIntroductionSummary( id, summary ) && !summary.startable );
         // the creator waits no longer: the game is started with Bob
         MULTIPLAY::CMatchOperationResult result;
@@ -537,7 +537,7 @@ PerformMailHandshakeTests( void )
         ASSERT_TRUE( table.WaitKnown( 1, id ) && table.WaitKnown( 2, id ) );
 
         // a reply for a draft that was started already: refused with a notice, nothing joins
-        MAIL::CMailIntroReply stray;
+        MAIL::CEMailIntroReply stray;
         stray.matchId = id;
         stray.nonce = "00112233445566778899aabbccddeeff";
         stray.accepted = false;
@@ -562,7 +562,7 @@ PerformMailHandshakeTests( void )
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         SOptions options;
         options.autoClockMs = 0;
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 4, "handshake-expiry", options ) && table.StartAll() );
         const UInt32 invitees[] = { 1, 2, 3 };
         const CORE::CString id = BeginDraft( table, 0, "Quiet game", invitees, 3 );
@@ -576,7 +576,7 @@ PerformMailHandshakeTests( void )
         // the decline is one mail and nothing more is sent by the player who declined
         table.Settle( 400 );
         ASSERT_TRUE( 2 == table.CountMatchMails( 0, "INTRO_REPLY" ) );
-        MAIL::CMailIntroSummary summary;
+        MAIL::CEMailIntroSummary summary;
         ASSERT_TRUE( table.P( 0 ).provider->GetIntroductionSummary( id, summary ) && !summary.startable && 1 == summary.waiting );
 
         // two weeks without an answer
@@ -623,7 +623,7 @@ PerformMailHandshakeTests( void )
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         TESTFW::CLogTextCapture logs;
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "handshake-forged" ) && table.StartAll() );
         MULTIPLAY::CPlayerIdentity mallory;
         ASSERT_TRUE( TESTFW::MakeTestIdentity( "Mallory", mallory ) );
@@ -631,12 +631,12 @@ PerformMailHandshakeTests( void )
         const CORE::CString id = BeginDraft( table, 0, "Forged game", invitees, 2 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
         ASSERT_TRUE( WaitPending( table, 1, id ) );
-        MAIL::CMailInboundIntro seen;
+        MAIL::CEMailInboundIntro seen;
         ASSERT_TRUE( HasPending( table, 1, id, &seen ) );
         const CORE::CString realNonce = seen.request.nonce;
 
         // Mallory cannot read the nonce: a guess with a good signature of her own key
-        MAIL::CMailIntroReply guessed;
+        MAIL::CEMailIntroReply guessed;
         guessed.matchId = id;
         guessed.nonce = "00112233445566778899aabbccddeeff";
         guessed.accepted = true;
@@ -647,12 +647,12 @@ PerformMailHandshakeTests( void )
         ASSERT_TRUE( guessed.Sign( mallory ) );
         ASSERT_TRUE( table.Inject( 0, IntroMail( table, table.P( 1 ).address.C_String(), table.P( 0 ).address, id, MAIL::MAILKIND_INTRO_REPLY, guessed ) ) );
         // the real nonce, but the mail does not come from Bob's address
-        MAIL::CMailIntroReply stolenNonce = guessed;
+        MAIL::CEMailIntroReply stolenNonce = guessed;
         stolenNonce.nonce = realNonce;
         ASSERT_TRUE( stolenNonce.Sign( mallory ) );
         ASSERT_TRUE( table.Inject( 0, IntroMail( table, "mallory@mail.test", table.P( 0 ).address, id, MAIL::MAILKIND_INTRO_REPLY, stolenNonce ) ) );
         // the real nonce from Bob's address, claiming Bob's key but signed with Mallory's key
-        MAIL::CMailIntroReply wrongKey = stolenNonce;
+        MAIL::CEMailIntroReply wrongKey = stolenNonce;
         wrongKey.publicKey = table.P( 1 ).identity.publicKey;
         wrongKey.userId = table.P( 1 ).identity.userId;
         ASSERT_TRUE( table.Inject( 0, IntroMail( table, table.P( 1 ).address.C_String(), table.P( 0 ).address, id, MAIL::MAILKIND_INTRO_REPLY, wrongKey ) ) );
@@ -662,16 +662,16 @@ PerformMailHandshakeTests( void )
         junk.Append( rubbish, sizeof( rubbish ) - 1 );
         GUCEF::vector< CORE::CString > to;
         to.push_back( table.P( 0 ).address );
-        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( table.P( 1 ).address.C_String(), to, id, 0, MAIL::MAILKIND_INTRO_REPLY, junk, MAIL::CMailMatchCodec::ArmorLabelData, "intro", MAIL::MAILTRANSFER_ATTACHMENT ) ) );
+        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( table.P( 1 ).address.C_String(), to, id, 0, MAIL::MAILKIND_INTRO_REPLY, junk, MAIL::CEMailMatchCodec::ArmorLabelData, "intro", MAIL::MAILTRANSFER_ATTACHMENT ) ) );
         bool refused = false;
         PUMP_WAIT( refused, CountCodes( table.P( 0 ).recorder.intros, "INTRO_REFUSED" ) >= 4, 10000 );
         ASSERT_TRUE( refused );
-        MAIL::CMailIntroSummary summary;
+        MAIL::CEMailIntroSummary summary;
         ASSERT_TRUE( table.P( 0 ).provider->GetIntroductionSummary( id, summary ) && 0 == summary.introduced && 2 == summary.waiting );
         // the notices say what kind of refusal, not whose
         for ( size_t i=0; i<table.P( 0 ).recorder.intros.size(); ++i )
         {
-            const MAIL::CMailMatchNotice& notice = table.P( 0 ).recorder.intros[ i ];
+            const MAIL::CEMailMatchNotice& notice = table.P( 0 ).recorder.intros[ i ];
             ASSERT_TRUE( notice.description.HasSubstr( "@" ) < 0 && notice.description.HasSubstr( mallory.publicKey ) < 0 && notice.description.HasSubstr( realNonce ) < 0 );
         }
         ASSERT_FALSE( logs.Contains( mallory.publicKey ) || logs.Contains( realNonce ) || logs.Contains( "mallory@mail.test" ) );
@@ -679,27 +679,27 @@ PerformMailHandshakeTests( void )
         // the real answer is still taken
         ASSERT_TRUE( MAIL::MAILINTRORESULT_OK == table.P( 1 ).provider->AcceptIntroduction( id, false ) );
         ASSERT_TRUE( WaitCount( table, 0, id, MAIL::MAILINTRO_INTRODUCED, 1 ) );
-        GUCEF::vector< MAIL::CMailIntroContact > contacts;
+        GUCEF::vector< MAIL::CEMailIntroContact > contacts;
         ASSERT_TRUE( table.P( 0 ).provider->GetIntroductions( id, contacts ) && contacts[ 0 ].publicKey == table.P( 1 ).identity.publicKey );
 
         // a flood of invitations from one stranger: the player sees three
         for ( int i=0; i<8; ++i )
         {
             MULTIPLAY::CMatchInfo none;
-            MAIL::CMailIntroductions stranger;
-            stranger.Configure( mallory, CORE::CString::Empty, MAIL::CMailIntroLimits() );
+            MAIL::CEMailIntroductions stranger;
+            stranger.Configure( mallory, CORE::CString::Empty, MAIL::CEMailIntroLimits() );
             GUCEF::map< CORE::CString, CORE::CString > settings;
-            GUCEF::vector< MAIL::CMailIntroContactInput > one;
-            one.push_back( MAIL::CMailIntroContactInput( "Bob", table.P( 1 ).address ) );
+            GUCEF::vector< MAIL::CEMailIntroContactInput > one;
+            one.push_back( MAIL::CEMailIntroContactInput( "Bob", table.P( 1 ).address ) );
             CORE::CString why;
             const CORE::CString strangerId = MULTIPLAY::CMatchId::Generate();
             ASSERT_TRUE( stranger.BeginDraft( strangerId, "Spam", "Mallory", "mallory@mail.test", settings, one, table.clock.nowMs, why ) );
-            MAIL::CMailIntroRequest request;
+            MAIL::CEMailIntroRequest request;
             ASSERT_TRUE( MAIL::MAILINTRORESULT_OK == stranger.PrepareRequest( strangerId, table.P( 1 ).address, false, table.clock.nowMs, request ) );
             ASSERT_TRUE( table.Inject( 1, IntroMail( table, "mallory@mail.test", table.P( 1 ).address, strangerId, MAIL::MAILKIND_INTRO_REQUEST, request ) ) );
         }
         table.Settle( 1500 );
-        GUCEF::vector< MAIL::CMailInboundIntro > pending;
+        GUCEF::vector< MAIL::CEMailInboundIntro > pending;
         table.P( 1 ).provider->GetPendingIntroductions( pending );
         UInt32 fromMallory = 0;
         for ( size_t i=0; i<pending.size(); ++i )
@@ -720,7 +720,7 @@ PerformMailHandshakeTests( void )
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         for ( int variant=0; variant<2; ++variant )
         {
-            CMailTable table;
+            CEMailTable table;
             ASSERT_TRUE( table.Setup( 2, variant ? "handshake-key-refused" : "handshake-key-accepted" ) && table.StartAll() );
             const UInt32 invitees[] = { 1 };
             // the first game: the key of Bob is met and remembered
@@ -729,8 +729,8 @@ PerformMailHandshakeTests( void )
             ASSERT_TRUE( WaitPending( table, 1, id ) && MAIL::MAILINTRORESULT_OK == table.P( 1 ).provider->AcceptIntroduction( id, false ) );
             ASSERT_TRUE( WaitCount( table, 0, id, MAIL::MAILINTRO_INTRODUCED, 1 ) );
             const CORE::CString oldKey = table.P( 1 ).identity.publicKey;
-            ASSERT_TRUE( MAIL::CMailAddressBook::CHECK_SAME == table.P( 0 ).provider->GetAddressBook().Check( table.P( 1 ).address, oldKey ) );
-            ASSERT_TRUE( MAIL::CMailAddressBook::CHECK_SAME == table.P( 1 ).provider->GetAddressBook().Check( table.P( 0 ).address, table.P( 0 ).identity.publicKey ) );
+            ASSERT_TRUE( MAIL::CEMailAddressBook::CHECK_SAME == table.P( 0 ).provider->GetAddressBook().Check( table.P( 1 ).address, oldKey ) );
+            ASSERT_TRUE( MAIL::CEMailAddressBook::CHECK_SAME == table.P( 1 ).provider->GetAddressBook().Check( table.P( 0 ).address, table.P( 0 ).identity.publicKey ) );
             ASSERT_TRUE( RemoveMatch( table, 0, id ) );
 
             // Bob came back with another key (a new profile)
@@ -745,11 +745,11 @@ PerformMailHandshakeTests( void )
             ASSERT_TRUE( MAIL::MAILINTRORESULT_OK == table.P( 1 ).provider->AcceptIntroduction( id, false ) );
             ASSERT_TRUE( WaitCount( table, 0, id, MAIL::MAILINTRO_KEY_CHANGED, 1 ) );
             ASSERT_TRUE( CountCodes( table.P( 0 ).recorder.intros, "INTRO_KEY_CHANGED" ) >= 1 );
-            MAIL::CMailIntroSummary summary;
+            MAIL::CEMailIntroSummary summary;
             ASSERT_TRUE( table.P( 0 ).provider->GetIntroductionSummary( id, summary ) && !summary.startable && 1 == summary.keyChanged );
             MULTIPLAY::CMatchOperationResult result;
             ASSERT_FALSE( StartFromDraft( table, 0, id, result ) );                     // nothing to start with: the key is not taken
-            ASSERT_TRUE( MAIL::CMailAddressBook::CHECK_SAME == table.P( 0 ).provider->GetAddressBook().Check( table.P( 1 ).address, oldKey ) );
+            ASSERT_TRUE( MAIL::CEMailAddressBook::CHECK_SAME == table.P( 0 ).provider->GetAddressBook().Check( table.P( 1 ).address, oldKey ) );
 
             if ( 0 == variant )
             {
@@ -767,7 +767,7 @@ PerformMailHandshakeTests( void )
                 ASSERT_TRUE( MAIL::MAILINTRORESULT_OK == table.P( 0 ).provider->ConfirmIntroductionKey( id, table.P( 1 ).address, false ) );
                 ASSERT_TRUE( table.P( 0 ).provider->GetIntroductionSummary( id, summary ) && 1 == summary.refused && !summary.startable );
                 ASSERT_FALSE( StartFromDraft( table, 0, id, result ) );
-                ASSERT_TRUE( MAIL::CMailAddressBook::CHECK_SAME == table.P( 0 ).provider->GetAddressBook().Check( table.P( 1 ).address, oldKey ) );
+                ASSERT_TRUE( MAIL::CEMailAddressBook::CHECK_SAME == table.P( 0 ).provider->GetAddressBook().Check( table.P( 1 ).address, oldKey ) );
             }
         }
     }
@@ -782,7 +782,7 @@ PerformMailHandshakeTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "handshake-add" ) && table.StartAll() );
         const UInt32 first[] = { 1 };
         const CORE::CString id = BeginDraft( table, 0, "Growing game", first, 1 );
@@ -791,25 +791,25 @@ PerformMailHandshakeTests( void )
 
         // what is not a player to add: the same address, the maker's own, a bad one, a bad code, a game that is not waiting
         CORE::CString reason;
-        MAIL::CMailMatchProvider& creator = *table.P( 0 ).provider;
-        ASSERT_FALSE( creator.AddIntroducedPlayer( id, MAIL::CMailIntroContactInput( "Again", table.P( 1 ).address ), reason ) );
+        MAIL::CEMailMatchProvider& creator = *table.P( 0 ).provider;
+        ASSERT_FALSE( creator.AddIntroducedPlayer( id, MAIL::CEMailIntroContactInput( "Again", table.P( 1 ).address ), reason ) );
         ASSERT_FALSE( reason.IsNULLOrEmpty() );
-        ASSERT_FALSE( creator.AddIntroducedPlayer( id, MAIL::CMailIntroContactInput( "Me", table.P( 0 ).address ), reason ) );
-        ASSERT_FALSE( creator.AddIntroducedPlayer( id, MAIL::CMailIntroContactInput( "Nobody", "not an address" ), reason ) );
-        ASSERT_FALSE( creator.AddIntroducedPlayer( id, MAIL::CMailIntroContactInput( "", table.P( 2 ).address ), reason ) );
-        ASSERT_FALSE( creator.AddIntroducedPlayer( id, MAIL::CMailIntroContactInput( "Carol", table.P( 2 ).address, "tooshort" ), reason ) );
-        ASSERT_FALSE( creator.AddIntroducedPlayer( MULTIPLAY::CMatchId::Generate(), MAIL::CMailIntroContactInput( "Carol", table.P( 2 ).address ), reason ) );
-        MAIL::CMailIntroSummary summary;
+        ASSERT_FALSE( creator.AddIntroducedPlayer( id, MAIL::CEMailIntroContactInput( "Me", table.P( 0 ).address ), reason ) );
+        ASSERT_FALSE( creator.AddIntroducedPlayer( id, MAIL::CEMailIntroContactInput( "Nobody", "not an address" ), reason ) );
+        ASSERT_FALSE( creator.AddIntroducedPlayer( id, MAIL::CEMailIntroContactInput( "", table.P( 2 ).address ), reason ) );
+        ASSERT_FALSE( creator.AddIntroducedPlayer( id, MAIL::CEMailIntroContactInput( "Carol", table.P( 2 ).address, "tooshort" ), reason ) );
+        ASSERT_FALSE( creator.AddIntroducedPlayer( MULTIPLAY::CMatchId::Generate(), MAIL::CEMailIntroContactInput( "Carol", table.P( 2 ).address ), reason ) );
+        MAIL::CEMailIntroSummary summary;
         ASSERT_TRUE( creator.GetIntroductionSummary( id, summary ) && 1 == summary.total );
         ASSERT_TRUE( 0 == table.CountMatchMails( 2, "INTRO_REQUEST" ) );
 
         // Carol is added: asked at once, with the table as it is now, and the draft is announced again with her
         const size_t updatesBefore = table.P( 0 ).recorder.updated.size();
-        ASSERT_TRUE( creator.AddIntroducedPlayer( id, MAIL::CMailIntroContactInput( table.P( 2 ).name, table.P( 2 ).address ), reason ) );
+        ASSERT_TRUE( creator.AddIntroducedPlayer( id, MAIL::CEMailIntroContactInput( table.P( 2 ).name, table.P( 2 ).address ), reason ) );
         ASSERT_TRUE( creator.GetIntroductionSummary( id, summary ) && 2 == summary.total );
         ASSERT_TRUE( table.P( 0 ).recorder.updated.size() > updatesBefore );
         ASSERT_TRUE( WaitPending( table, 2, id ) );
-        MAIL::CMailInboundIntro seenByCarol;
+        MAIL::CEMailInboundIntro seenByCarol;
         ASSERT_TRUE( HasPending( table, 2, id, &seenByCarol ) && 3 == seenByCarol.request.parties.size() );
 
         // the players answer; the game is made with both
@@ -828,8 +828,8 @@ PerformMailHandshakeTests( void )
         const CORE::CString second = BeginDraft( table, 0, "Full game", more, 1 );
         ASSERT_FALSE( second.IsNULLOrEmpty() );
         for ( int i=0; i<4; ++i )
-            ASSERT_TRUE( creator.AddIntroducedPlayer( second, MAIL::CMailIntroContactInput( "Extra", ( "extra" + CORE::UInt32ToString( (UInt32) i ) + "@mail.test" ).C_String() ), reason ) );
-        ASSERT_FALSE( creator.AddIntroducedPlayer( second, MAIL::CMailIntroContactInput( "One too many", "toomany@mail.test" ), reason ) );
+            ASSERT_TRUE( creator.AddIntroducedPlayer( second, MAIL::CEMailIntroContactInput( "Extra", ( "extra" + CORE::UInt32ToString( (UInt32) i ) + "@mail.test" ).C_String() ), reason ) );
+        ASSERT_FALSE( creator.AddIntroducedPlayer( second, MAIL::CEMailIntroContactInput( "One too many", "toomany@mail.test" ), reason ) );
         ASSERT_TRUE( creator.GetIntroductionSummary( second, summary ) && 5 == summary.total );
     }
     catch ( ... )
@@ -843,15 +843,15 @@ PerformMailHandshakeTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 2, "handshake-codes" ) && table.StartAll() );
         const CORE::CString id = MULTIPLAY::CMatchId::Generate();
-        GUCEF::vector< MAIL::CMailIntroContactInput > contacts;
-        contacts.push_back( MAIL::CMailIntroContactInput( "Bob", table.P( 1 ).address, table.P( 1 ).identity.publicKey ) );
+        GUCEF::vector< MAIL::CEMailIntroContactInput > contacts;
+        contacts.push_back( MAIL::CEMailIntroContactInput( "Bob", table.P( 1 ).address, table.P( 1 ).identity.publicKey ) );
         GUCEF::map< CORE::CString, CORE::CString > settings;
         CORE::CString reason;
         ASSERT_TRUE( table.P( 0 ).provider->BeginIntroductions( id, "Coded", settings, contacts, reason ) );
-        MAIL::CMailIntroSummary summary;
+        MAIL::CEMailIntroSummary summary;
         ASSERT_TRUE( table.P( 0 ).provider->GetIntroductionSummary( id, summary ) && summary.allIntroduced && summary.startable );
         table.Settle( 400 );
         ASSERT_TRUE( 0 == table.CountMatchMails( 1, "INTRO_REQUEST" ) );

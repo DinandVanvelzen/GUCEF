@@ -32,7 +32,7 @@
 #define GUCEF_CORE_CDYNAMICBUFFERACCESS_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFERACCESS_H ? */
 
-#include "matchprovidermail_CMailMatchProvider.h"
+#include "matchprovidermail_CEMailMatchProvider.h"
 #include "TestMailPump.h"
 #include "TestMailSettings.h"
 
@@ -75,11 +75,11 @@ NodeToText( const CORE::CDataNode& node, CORE::CString& text )
 
 /*-------------------------------------------------------------------------*/
 
-MAIL::CMailMatchProviderSettings
+MAIL::CEMailMatchProviderSettings
 MakeFullSettings( void )
 {GUCEF_TRACE;
 
-    MAIL::CMailMatchProviderSettings s;
+    MAIL::CEMailMatchProviderSettings s;
     s.mailAddress = "alice@mail.test";
     s.displayName = "Alice";
     s.smtp.host = "smtp.mail.test";
@@ -151,7 +151,7 @@ PerformMailSettingsTests( void )
     GUCEF_TESTFW_SKIP_IF( !MailTestWanted( "Settings: the defaults are the ones the design names and are not usable before an account is given" ), "not the case that was asked for" );
     try
     {
-        MAIL::CMailMatchProviderSettings s;
+        MAIL::CEMailMatchProviderSettings s;
         ASSERT_TRUE( s.useImap && s.useIdle && s.markProcessedSeen && s.sendAcknowledgements );
         ASSERT_TRUE( CORE::CString( "INBOX" ) == s.mailbox && s.processedFolder.IsNULLOrEmpty() );
         // introductions: two weeks, an hour between requests, join at once
@@ -177,10 +177,10 @@ PerformMailSettingsTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !JsonCodecAvailable(), "There is no json codec" );
-        const MAIL::CMailMatchProviderSettings s = MakeFullSettings();
+        const MAIL::CEMailMatchProviderSettings s = MakeFullSettings();
         CORE::CDataNode node( "Config" );
         ASSERT_TRUE( s.SaveConfig( node ) );
-        MAIL::CMailMatchProviderSettings loaded;
+        MAIL::CEMailMatchProviderSettings loaded;
         ASSERT_TRUE( loaded.LoadConfig( node ) );
         ASSERT_TRUE( loaded.mailAddress == s.mailAddress && loaded.displayName == s.displayName && loaded.useImap == s.useImap && loaded.mailbox == s.mailbox && loaded.processedFolder == s.processedFolder );
         ASSERT_TRUE( MAIL::MAILPROCESSED_MOVE_TO_FOLDER == loaded.processedAction && loaded.pop3DeleteAfterProcessing );
@@ -208,7 +208,7 @@ PerformMailSettingsTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !JsonCodecAvailable(), "There is no json codec" );
-        MAIL::CMailMatchProviderSettings s = MakeFullSettings();
+        MAIL::CEMailMatchProviderSettings s = MakeFullSettings();
         s.smtp.saveSecrets = s.imap.saveSecrets = s.pop3.saveSecrets = true;
         s.imap.passwordIsToken = true;
         CORE::CDataNode node( "Config" );
@@ -230,7 +230,7 @@ PerformMailSettingsTests( void )
     GUCEF_TESTFW_SKIP_IF( !MailTestWanted( "Settings: values that cannot work are refused and the settings stay as they were" ), "not the case that was asked for" );
     try
     {
-        const MAIL::CMailMatchProviderSettings original = MakeFullSettings();
+        const MAIL::CEMailMatchProviderSettings original = MakeFullSettings();
         const char* badNames[]  = { "tickMs", "pollIntervalMs", "maxContainerBytes", "maxBodyTextBytes", "maxMessageBytes", "seenSetSize", "mailAddress", "sendRetryInitialMs", "outboxResendIntervalMs", "introExpiryMs", "introResendIntervalMs" };
         const char* badValues[] = { "0",      "0",              "99999999",          "99999999",         "0",               "0",           "not an address\r\nBcc: x@y.z", "0", "0", "0", "0" };
         for ( int i=0; i<11; ++i )
@@ -238,7 +238,7 @@ PerformMailSettingsTests( void )
             CORE::CDataNode node( "Config" );
             ASSERT_TRUE( original.SaveConfig( node ) );
             node.SetAttribute( badNames[ i ], badValues[ i ] );
-            MAIL::CMailMatchProviderSettings target = original;
+            MAIL::CEMailMatchProviderSettings target = original;
             ASSERT_FALSE( target.LoadConfig( node ) );
             ASSERT_TRUE( target.tickMs == original.tickMs && target.mailAddress == original.mailAddress && target.maxContainerBytes == original.maxContainerBytes && target.seenSetSize == original.seenSetSize );
         }
@@ -247,7 +247,7 @@ PerformMailSettingsTests( void )
         ASSERT_TRUE( original.SaveConfig( node ) );
         node.SetAttribute( "sendRetryInitialMs", "5000" );
         node.SetAttribute( "sendRetryMaxMs", "1000" );
-        MAIL::CMailMatchProviderSettings target;
+        MAIL::CEMailMatchProviderSettings target;
         ASSERT_FALSE( target.LoadConfig( node ) );
     }
     catch ( ... )
@@ -267,22 +267,22 @@ PerformMailSettingsTests( void )
             ASSERT_TRUE( CORE::CString( names[ i ] ) == MAIL::MailProcessedActionToString( actions[ i ] ) );
             MAIL::TMailProcessedAction parsed = MAIL::MAILPROCESSED_LEAVE;
             ASSERT_TRUE( MAIL::TryStringToMailProcessedAction( names[ i ], parsed ) && actions[ i ] == parsed );
-            MAIL::CMailMatchProviderSettings s = MakeFullSettings();
+            MAIL::CEMailMatchProviderSettings s = MakeFullSettings();
             s.processedAction = actions[ i ];
             CORE::CDataNode node( "Config" );
             ASSERT_TRUE( s.SaveConfig( node ) );
-            MAIL::CMailMatchProviderSettings loaded;
+            MAIL::CEMailMatchProviderSettings loaded;
             ASSERT_TRUE( loaded.LoadConfig( node ) && actions[ i ] == loaded.processedAction );
         }
         MAIL::TMailProcessedAction ignored = MAIL::MAILPROCESSED_LEAVE;
         ASSERT_FALSE( MAIL::TryStringToMailProcessedAction( "DELETE", ignored ) || MAIL::TryStringToMailProcessedAction( "", ignored ) || MAIL::TryStringToMailProcessedAction( "move_to_folder", ignored ) );
 
         // an unknown value in the config: refused, the settings stay as they were
-        MAIL::CMailMatchProviderSettings original = MakeFullSettings();
+        MAIL::CEMailMatchProviderSettings original = MakeFullSettings();
         CORE::CDataNode node( "Config" );
         ASSERT_TRUE( original.SaveConfig( node ) );
         node.SetAttribute( "processedAction", "DELETE_EVERYTHING" );
-        MAIL::CMailMatchProviderSettings target = original;
+        MAIL::CEMailMatchProviderSettings target = original;
         target.processedAction = MAIL::MAILPROCESSED_LEAVE;
         ASSERT_FALSE( target.LoadConfig( node ) );
         ASSERT_TRUE( MAIL::MAILPROCESSED_LEAVE == target.processedAction );
@@ -292,12 +292,12 @@ PerformMailSettingsTests( void )
         ASSERT_TRUE( original.SaveConfig( oldNode ) );
         oldNode.DelAttribute( "processedAction" );
         oldNode.DelAttribute( "pop3DeleteAfterProcessing" );
-        MAIL::CMailMatchProviderSettings fresh;
+        MAIL::CEMailMatchProviderSettings fresh;
         ASSERT_TRUE( fresh.LoadConfig( oldNode ) && MAIL::MAILPROCESSED_COPY_TO_FOLDER == fresh.processedAction && !fresh.pop3DeleteAfterProcessing );
 
         // a move needs a folder; a copy without one is as it always was (no copy), leaving needs none
         CORE::CString reason;
-        MAIL::CMailMatchProviderSettings s = MakeFullSettings();
+        MAIL::CEMailMatchProviderSettings s = MakeFullSettings();
         s.useImap = true;
         s.processedAction = MAIL::MAILPROCESSED_MOVE_TO_FOLDER;
         s.processedFolder.Clear();
@@ -323,7 +323,7 @@ PerformMailSettingsTests( void )
     {
         CORE::CString reason;
         ASSERT_TRUE( MakeFullSettings().IsValid( reason ) );
-        MAIL::CMailMatchProviderSettings s = MakeFullSettings();
+        MAIL::CEMailMatchProviderSettings s = MakeFullSettings();
         s.mailAddress.Clear();
         ASSERT_FALSE( s.IsValid( reason ) || reason.IsNULLOrEmpty() );
         s = MakeFullSettings(); s.smtp.host.Clear();
@@ -354,14 +354,14 @@ PerformMailSettingsTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !JsonCodecAvailable(), "There is no json codec" );
-        MAIL::CMailMatchProvider provider;
+        MAIL::CEMailMatchProvider provider;
         CORE::CDataNode node( "Config" );
         ASSERT_TRUE( MakeFullSettings().SaveConfig( node ) );
         ASSERT_TRUE( provider.LoadConfig( node ) );
         ASSERT_TRUE( provider.GetSettings().mailAddress == "alice@mail.test" && 777 == provider.GetSettings().seenSetSize );
         CORE::CDataNode written( "Config" );
         ASSERT_TRUE( provider.SaveConfig( written ) );
-        MAIL::CMailMatchProviderSettings again;
+        MAIL::CEMailMatchProviderSettings again;
         ASSERT_TRUE( again.LoadConfig( written ) && again.mailAddress == "alice@mail.test" && again.httpsHost == "games.example.invalid" );
 
         // through the factory the plugin registered

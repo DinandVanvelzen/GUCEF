@@ -53,12 +53,12 @@ namespace {
 
 /** The creator starts a draft for the players, by name and address only; the table has four seats */
 CORE::CString
-BeginDraft( CMailTable& table, UInt32 creator, const UInt32* invitees, UInt32 count, const char* policy = GUCEF_NULL )
+BeginDraft( CEMailTable& table, UInt32 creator, const UInt32* invitees, UInt32 count, const char* policy = GUCEF_NULL )
 {
     const CORE::CString id = MULTIPLAY::CMatchId::Generate();
-    GUCEF::vector< MAIL::CMailIntroContactInput > contacts;
+    GUCEF::vector< MAIL::CEMailIntroContactInput > contacts;
     for ( UInt32 i=0; i<count; ++i )
-        contacts.push_back( MAIL::CMailIntroContactInput( table.P( invitees[ i ] ).name, table.P( invitees[ i ] ).address ) );
+        contacts.push_back( MAIL::CEMailIntroContactInput( table.P( invitees[ i ] ).name, table.P( invitees[ i ] ).address ) );
     GUCEF::map< CORE::CString, CORE::CString > settings;
     settings[ GUCEF_MULTIPLAYPLUGIN_MAIL_SETTING_TRANSFER ] = "ATTACHMENT";
     settings[ GUCEF_MULTIPLAYPLUGIN_MAIL_SETTING_DISTRIBUTION ] = "ALL";
@@ -70,9 +70,9 @@ BeginDraft( CMailTable& table, UInt32 creator, const UInt32* invitees, UInt32 co
 }
 
 bool
-HasPending( CMailTable& table, UInt32 player, const CORE::CString& matchId, MAIL::CMailInboundIntro::EStatus* status = GUCEF_NULL )
+HasPending( CEMailTable& table, UInt32 player, const CORE::CString& matchId, MAIL::CEMailInboundIntro::EStatus* status = GUCEF_NULL )
 {
-    GUCEF::vector< MAIL::CMailInboundIntro > pending;
+    GUCEF::vector< MAIL::CEMailInboundIntro > pending;
     table.P( player ).provider->GetPendingIntroductions( pending );
     for ( size_t i=0; i<pending.size(); ++i )
         if ( pending[ i ].request.matchId == matchId )
@@ -85,7 +85,7 @@ HasPending( CMailTable& table, UInt32 player, const CORE::CString& matchId, MAIL
 }
 
 bool
-WaitPending( CMailTable& table, UInt32 player, const CORE::CString& matchId )
+WaitPending( CEMailTable& table, UInt32 player, const CORE::CString& matchId )
 {
     bool ok = false;
     PUMP_WAIT( ok, HasPending( table, player, matchId ), 8000 );
@@ -94,7 +94,7 @@ WaitPending( CMailTable& table, UInt32 player, const CORE::CString& matchId )
 
 /** The invitees ask to be introduced, the listed ones accept */
 bool
-IntroduceAll( CMailTable& table, const CORE::CString& id, const UInt32* accepting, UInt32 count )
+IntroduceAll( CEMailTable& table, const CORE::CString& id, const UInt32* accepting, UInt32 count )
 {
     for ( UInt32 i=0; i<count; ++i )
         if ( !WaitPending( table, accepting[ i ], id ) || MAIL::MAILINTRORESULT_OK != table.P( accepting[ i ] ).provider->AcceptIntroduction( id, false ) )
@@ -104,14 +104,14 @@ IntroduceAll( CMailTable& table, const CORE::CString& id, const UInt32* acceptin
 
 /** The number of participants who are introduced and do not watch, in the roster that the player holds */
 UInt32
-VotersOf( CMailTable& table, UInt32 player, const CORE::CString& id )
+VotersOf( CEMailTable& table, UInt32 player, const CORE::CString& id )
 {
     MULTIPLAY::CMatchRoster roster;
     return table.P( player ).provider->GetDraftRoster( id, roster ) ? roster.CountVoters() : 0;
 }
 
 bool
-WaitVoters( CMailTable& table, UInt32 player, const CORE::CString& id, UInt32 voters )
+WaitVoters( CEMailTable& table, UInt32 player, const CORE::CString& id, UInt32 voters )
 {
     bool ok = false;
     PUMP_WAIT( ok, VotersOf( table, player, id ) == voters, 10000 );
@@ -119,7 +119,7 @@ WaitVoters( CMailTable& table, UInt32 player, const CORE::CString& id, UInt32 vo
 }
 
 bool
-GetTally( CMailTable& table, UInt32 player, const CORE::CString& id, const CORE::CString& proposalId, MULTIPLAY::CMatchDraftTally& tally )
+GetTally( CEMailTable& table, UInt32 player, const CORE::CString& id, const CORE::CString& proposalId, MULTIPLAY::CMatchDraftTally& tally )
 {
     GUCEF::vector< MULTIPLAY::CMatchDraftTally > all;
     table.P( player ).provider->GetDraftTallies( id, all );
@@ -133,7 +133,7 @@ GetTally( CMailTable& table, UInt32 player, const CORE::CString& id, const CORE:
 }
 
 bool
-WaitTally( CMailTable& table, UInt32 player, const CORE::CString& id, const CORE::CString& proposalId, UInt32 votes )
+WaitTally( CEMailTable& table, UInt32 player, const CORE::CString& id, const CORE::CString& proposalId, UInt32 votes )
 {
     bool ok = false;
     MULTIPLAY::CMatchDraftTally tally;
@@ -142,7 +142,7 @@ WaitTally( CMailTable& table, UInt32 player, const CORE::CString& id, const CORE
 }
 
 bool
-WaitState( CMailTable& table, UInt32 player, const CORE::CString& id, const CORE::CString& proposalId, MULTIPLAY::TMatchDraftState state )
+WaitState( CEMailTable& table, UInt32 player, const CORE::CString& id, const CORE::CString& proposalId, MULTIPLAY::TMatchDraftState state )
 {
     bool ok = false;
     MULTIPLAY::CMatchDraftTally tally;
@@ -151,14 +151,14 @@ WaitState( CMailTable& table, UInt32 player, const CORE::CString& id, const CORE
 }
 
 UInt32
-ContactsOf( CMailTable& table, UInt32 host, const CORE::CString& id )
+ContactsOf( CEMailTable& table, UInt32 host, const CORE::CString& id )
 {
-    GUCEF::vector< MAIL::CMailIntroContact > contacts;
+    GUCEF::vector< MAIL::CEMailIntroContact > contacts;
     return table.P( host ).provider->GetIntroductions( id, contacts ) ? (UInt32) contacts.size() : 0;
 }
 
 UInt32
-CountCodes( const GUCEF::vector< MAIL::CMailMatchNotice >& notices, const char* code )
+CountCodes( const GUCEF::vector< MAIL::CEMailMatchNotice >& notices, const char* code )
 {
     UInt32 count = 0;
     for ( size_t i=0; i<notices.size(); ++i )
@@ -169,12 +169,12 @@ CountCodes( const GUCEF::vector< MAIL::CMailMatchNotice >& notices, const char* 
 
 /** What the application does when the draft is as the players want it: the signed record with the keys of the introduced, the first turn, CreateMatch */
 bool
-StartFromDraft( CMailTable& table, UInt32 creator, const CORE::CString& matchId, MULTIPLAY::CMatchOperationResult& result )
+StartFromDraft( CEMailTable& table, UInt32 creator, const CORE::CString& matchId, MULTIPLAY::CMatchOperationResult& result )
 {
-    MAIL::CMailIntroDraft draft;
+    MAIL::CEMailIntroDraft draft;
     if ( !table.P( creator ).provider->GetIntroductionDraft( matchId, draft ) )
         return false;
-    GUCEF::vector< MAIL::CMailIntroContact > introduced;
+    GUCEF::vector< MAIL::CEMailIntroContact > introduced;
     for ( size_t i=0; i<draft.contacts.size(); ++i )
         if ( MAIL::MAILINTRO_INTRODUCED == draft.contacts[ i ].state )
             introduced.push_back( draft.contacts[ i ] );
@@ -236,25 +236,25 @@ Altered( const MULTIPLAY::CMatchRoster& roster, UInt32 revision, const MULTIPLAY
 }
 
 CORE::CString
-RosterMail( CMailTable& table, UInt32 from, UInt32 to, const CORE::CString& id, const MULTIPLAY::CMatchRoster& roster, const char* messageId )
+RosterMail( CEMailTable& table, UInt32 from, UInt32 to, const CORE::CString& id, const MULTIPLAY::CMatchRoster& roster, const char* messageId )
 {
     CORE::CDynamicBuffer bytes;
-    if ( !MAIL::CMailMatchCodec::SerializeToBytes( roster, bytes, 256 * 1024 ) )
+    if ( !MAIL::CEMailMatchCodec::SerializeToBytes( roster, bytes, 256 * 1024 ) )
         return CORE::CString::Empty;
     GUCEF::vector< CORE::CString > recipients;
     recipients.push_back( table.P( to ).address );
-    return table.MailTextForData( table.P( from ).address.C_String(), recipients, id, roster.revision, MAIL::MAILKIND_ROSTER, bytes, MAIL::CMailMatchCodec::ArmorLabelData, "roster", MAIL::MAILTRANSFER_ATTACHMENT, messageId );
+    return table.MailTextForData( table.P( from ).address.C_String(), recipients, id, roster.revision, MAIL::MAILKIND_ROSTER, bytes, MAIL::CEMailMatchCodec::ArmorLabelData, "roster", MAIL::MAILTRANSFER_ATTACHMENT, messageId );
 }
 
 CORE::CString
-VoteMail( CMailTable& table, UInt32 from, UInt32 to, const CORE::CString& id, const MULTIPLAY::CMatchVote& vote, const char* messageId )
+VoteMail( CEMailTable& table, UInt32 from, UInt32 to, const CORE::CString& id, const MULTIPLAY::CMatchVote& vote, const char* messageId )
 {
     CORE::CDynamicBuffer bytes;
-    if ( !MAIL::CMailMatchCodec::SerializeToBytes( vote, bytes, 256 * 1024 ) )
+    if ( !MAIL::CEMailMatchCodec::SerializeToBytes( vote, bytes, 256 * 1024 ) )
         return CORE::CString::Empty;
     GUCEF::vector< CORE::CString > recipients;
     recipients.push_back( table.P( to ).address );
-    return table.MailTextForData( table.P( from ).address.C_String(), recipients, id, 0, MAIL::MAILKIND_DRAFT_VOTE, bytes, MAIL::CMailMatchCodec::ArmorLabelData, "vote", MAIL::MAILTRANSFER_ATTACHMENT, messageId );
+    return table.MailTextForData( table.P( from ).address.C_String(), recipients, id, 0, MAIL::MAILKIND_DRAFT_VOTE, bytes, MAIL::CEMailMatchCodec::ArmorLabelData, "vote", MAIL::MAILTRANSFER_ATTACHMENT, messageId );
 }
 
 } /* anonymous namespace */
@@ -276,7 +276,7 @@ PerformMailDraftVoteTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         SOptions options;
         options.seatsSettingKey = "seats";
         options.autoClockMs = 1;
@@ -316,7 +316,7 @@ PerformMailDraftVoteTests( void )
             ASSERT_TRUE( CountCodes( table.P( p ).recorder.rosters, "ROSTER" ) >= 1 );
         }
         // Dave knows the key of Bob from the roster alone: the address book of a player holds the host and nobody else
-        MAIL::CMailAddressEntry known;
+        MAIL::CEMailAddressEntry known;
         ASSERT_FALSE( table.P( 3 ).provider->GetAddressBook().Find( table.P( 1 ).address, known ) );
     }
     catch ( ... )
@@ -330,7 +330,7 @@ PerformMailDraftVoteTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         SOptions options;
         options.seatsSettingKey = "seats";
         options.autoClockMs = 1;
@@ -358,10 +358,10 @@ PerformMailDraftVoteTests( void )
         PUMP_WAIT( applied, 2 == ContactsOf( table, 0, id ) && 1 == table.P( 0 ).recorder.draftApplied.size(), 10000 );
         ASSERT_TRUE( applied );
         ASSERT_TRUE( "FORCE_START" == table.P( 0 ).recorder.draftApplied[ 0 ].code );
-        MAIL::CMailIntroSummary summary;
+        MAIL::CEMailIntroSummary summary;
         ASSERT_TRUE( table.P( 0 ).provider->GetIntroductionSummary( id, summary ) && summary.startable && summary.allIntroduced );
         // the number of seats is not lowered by a force start: the computer plays the seat
-        MAIL::CMailIntroDraft draft;
+        MAIL::CEMailIntroDraft draft;
         ASSERT_TRUE( table.P( 0 ).provider->GetIntroductionDraft( id, draft ) && "4" == draft.settings[ "seats" ] );
 
         // the same tally everywhere, and the vote was seen by all as it came in
@@ -382,9 +382,9 @@ PerformMailDraftVoteTests( void )
         ASSERT_TRUE( rosterBack && 3 == roster.CountVoters() );
         ASSERT_TRUE( table.CountMatchMails( 3, "DRAFT_PROPOSAL" ) == 1 && table.CountMatchMails( 3, "DRAFT_VOTE" ) == 1 );
         // Dave is told, signed, that the invitation is withdrawn
-        MAIL::CMailInboundIntro::EStatus status = MAIL::CMailInboundIntro::STATUS_PENDING;
+        MAIL::CEMailInboundIntro::EStatus status = MAIL::CEMailInboundIntro::STATUS_PENDING;
         bool cancelled = false;
-        PUMP_WAIT( cancelled, HasPending( table, 3, id, &status ) && MAIL::CMailInboundIntro::STATUS_CANCELLED == status, 10000 );
+        PUMP_WAIT( cancelled, HasPending( table, 3, id, &status ) && MAIL::CEMailInboundIntro::STATUS_CANCELLED == status, 10000 );
         ASSERT_TRUE( cancelled );
     }
     catch ( ... )
@@ -399,7 +399,7 @@ PerformMailDraftVoteTests( void )
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         TESTFW::CLogTextCapture logs;
-        CMailTable table;
+        CEMailTable table;
         SOptions options;
         options.seatsSettingKey = "seats";
         options.autoClockMs = 1;
@@ -430,9 +430,9 @@ PerformMailDraftVoteTests( void )
         bool applied = false;
         PUMP_WAIT( applied, 2 == ContactsOf( table, 0, id ), 10000 );
         ASSERT_TRUE( applied );
-        MAIL::CMailIntroDraft draft;
+        MAIL::CEMailIntroDraft draft;
         ASSERT_TRUE( table.P( 0 ).provider->GetIntroductionDraft( id, draft ) && "3" == draft.settings[ "seats" ] );
-        MAIL::CMailIntroSummary summary;
+        MAIL::CEMailIntroSummary summary;
         ASSERT_TRUE( table.P( 0 ).provider->GetIntroductionSummary( id, summary ) && 2 == summary.introduced && summary.startable );
         for ( UInt32 p=0; p<3; ++p )
             ASSERT_TRUE( WaitState( table, p, id, proposalId, MULTIPLAY::MATCHDRAFTSTATE_APPLIED ) );
@@ -469,7 +469,7 @@ PerformMailDraftVoteTests( void )
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         {
-            CMailTable table;
+            CEMailTable table;
             SOptions options;
             options.seatsSettingKey = "seats";
             options.decisionPolicySettingKey = "decisionPolicy";
@@ -532,7 +532,7 @@ PerformMailDraftVoteTests( void )
             }
         }
         {
-            CMailTable table;
+            CEMailTable table;
             SOptions options;
             options.seatsSettingKey = "seats";
             options.decisionPolicySettingKey = "decisionPolicy";
@@ -570,7 +570,7 @@ PerformMailDraftVoteTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         SOptions options;
         options.seatsSettingKey = "seats";
         options.autoClockMs = 1;
@@ -636,7 +636,7 @@ PerformMailDraftVoteTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         SOptions plain;
         plain.autoClockMs = 1;
         plain.useIdle = false;
@@ -715,7 +715,7 @@ PerformMailDraftVoteTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         SOptions plain;
         plain.autoClockMs = 1;
         plain.useIdle = false;
@@ -771,7 +771,7 @@ PerformMailDraftVoteTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         SOptions plain;
         plain.autoClockMs = 1;
         plain.useIdle = false;
@@ -818,7 +818,7 @@ PerformMailDraftVoteTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         SOptions plain;
         plain.autoClockMs = 1;
         plain.useIdle = false;

@@ -23,16 +23,39 @@ LOCAL_MODULE_FILENAME := libmatchprovidermail
 
 LOCAL_SRC_FILES := \
   src/matchprovidermail.cpp \
-  src/matchprovidermail_CMailAddressBook.cpp \
-  src/matchprovidermail_CMailFiles.cpp \
-  src/matchprovidermail_CMailInbox.cpp \
-  src/matchprovidermail_CMailIntroduction.cpp \
-  src/matchprovidermail_CMailIntroductions.cpp \
-  src/matchprovidermail_CMailMatchCodec.cpp \
-  src/matchprovidermail_CMailMatchProvider.cpp \
-  src/matchprovidermail_CMailMatchProviderSettings.cpp \
-  src/matchprovidermail_CMailMatchState.cpp \
-  src/matchprovidermail_CMailOutbox.cpp
+  src/matchprovidermail_CEMailAddressBook.cpp \
+  src/matchprovidermail_CEMailAddressEntry.cpp \
+  src/matchprovidermail_CEMailDeliveryEvent.cpp \
+  src/matchprovidermail_CEMailEquivocation.cpp \
+  src/matchprovidermail_CEMailFiles.cpp \
+  src/matchprovidermail_CEMailInboundIntro.cpp \
+  src/matchprovidermail_CEMailInbox.cpp \
+  src/matchprovidermail_CEMailInboxMessage.cpp \
+  src/matchprovidermail_CEMailInboxNotice.cpp \
+  src/matchprovidermail_CEMailInboxRefusal.cpp \
+  src/matchprovidermail_CEMailIncoming.cpp \
+  src/matchprovidermail_CEMailIntroContact.cpp \
+  src/matchprovidermail_CEMailIntroContactInput.cpp \
+  src/matchprovidermail_CEMailIntroDraft.cpp \
+  src/matchprovidermail_CEMailIntroFingerprint.cpp \
+  src/matchprovidermail_CEMailIntroLimits.cpp \
+  src/matchprovidermail_CEMailIntroParty.cpp \
+  src/matchprovidermail_CEMailIntroReply.cpp \
+  src/matchprovidermail_CEMailIntroRequest.cpp \
+  src/matchprovidermail_CEMailIntroSummary.cpp \
+  src/matchprovidermail_CEMailIntroductions.cpp \
+  src/matchprovidermail_CEMailMatchCodec.cpp \
+  src/matchprovidermail_CEMailMatchNotice.cpp \
+  src/matchprovidermail_CEMailMatchProvider.cpp \
+  src/matchprovidermail_CEMailMatchProviderSettings.cpp \
+  src/matchprovidermail_CEMailMatchState.cpp \
+  src/matchprovidermail_CEMailOutbox.cpp \
+  src/matchprovidermail_CEMailOutboxItem.cpp \
+  src/matchprovidermail_CEMailOutgoing.cpp \
+  src/matchprovidermail_CEMailRefusal.cpp \
+  src/matchprovidermail_CEMailSignedStatement.cpp \
+  src/matchprovidermail_EMailIntroTypes.cpp \
+  src/matchprovidermail_EMailMatchTypes.cpp
 
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \

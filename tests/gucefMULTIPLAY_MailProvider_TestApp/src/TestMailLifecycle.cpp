@@ -53,16 +53,16 @@ using namespace GUCEF::MAILTEST;
 namespace {
 
 /** The mails of a mailbox that are of the kind, parsed */
-GUCEF::vector< COM::CMailMessage >
-MailsOfKind( CMailTable& table, UInt32 player, const char* kind )
+GUCEF::vector< COM::CEMailMessage >
+MailsOfKind( CEMailTable& table, UInt32 player, const char* kind )
 {GUCEF_TRACE;
 
-    GUCEF::vector< COM::CMailMessage > found;
+    GUCEF::vector< COM::CEMailMessage > found;
     GUCEF::vector< TESTFW::CTestImapServer::TMessage > messages = table.players[ player ]->box->imap.GetMessages();
     COM::CMimeParser parser;
     for ( size_t i=0; i<messages.size(); ++i )
     {
-        COM::CMailMessage message;
+        COM::CEMailMessage message;
         if ( parser.ParseMessage( messages[ i ].data.C_String(), messages[ i ].data.ByteSize() - 1, message ) && message.headers.Get( "X-Redux-Kind" ) == kind )
             found.push_back( message );
     }
@@ -72,7 +72,7 @@ MailsOfKind( CMailTable& table, UInt32 player, const char* kind )
 /*-------------------------------------------------------------------------*/
 
 bool
-HasAddress( const COM::CMailAddress::TMailAddressVector& list, const CORE::CString& address )
+HasAddress( const COM::CEMailAddress::TEMailAddressVector& list, const CORE::CString& address )
 {GUCEF_TRACE;
 
     for ( size_t i=0; i<list.size(); ++i )
@@ -84,7 +84,7 @@ HasAddress( const COM::CMailAddress::TMailAddressVector& list, const CORE::CStri
 /*-------------------------------------------------------------------------*/
 
 CORE::CString
-RevisionOf( const COM::CMailMessage& message )
+RevisionOf( const COM::CEMailMessage& message )
 {GUCEF_TRACE;
 
     return message.headers.Get( "X-Redux-Revision" );
@@ -94,7 +94,7 @@ RevisionOf( const COM::CMailMessage& message )
 
 /** Plays turns in the round robin Alice(0), Bob(1), Carol(2): the next one after the player plays; true when every provider has the revision */
 bool
-PlayRound( CMailTable& table, const CORE::CString& matchId, UInt32 player, UInt32 playerCount, const char* move, bool last )
+PlayRound( CEMailTable& table, const CORE::CString& matchId, UInt32 player, UInt32 playerCount, const char* move, bool last )
 {GUCEF_TRACE;
 
     MULTIPLAY::CMatchOperationResult result;
@@ -152,9 +152,9 @@ PerformMailLifecycleTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 2, "provider-start" ) );
-        MAIL::CMailMatchProvider* provider = table.P( 0 ).provider;
+        MAIL::CEMailMatchProvider* provider = table.P( 0 ).provider;
         ASSERT_FALSE( provider->IsStarted() );
         ASSERT_TRUE( provider->Start() && provider->IsStarted() );
         ASSERT_TRUE( provider->Start() );
@@ -163,10 +163,10 @@ PerformMailLifecycleTests( void )
         ASSERT_TRUE( provider->Start() );
 
         // no account
-        MAIL::CMailMatchProvider bare;
+        MAIL::CEMailMatchProvider bare;
         ASSERT_FALSE( bare.Start() || bare.IsStarted() );
         // no identity
-        MAIL::CMailMatchProvider anonymous;
+        MAIL::CEMailMatchProvider anonymous;
         ASSERT_TRUE( anonymous.SetSettings( table.P( 1 ).settings ) );
         ASSERT_FALSE( anonymous.Start() );
         anonymous.SetIdentity( table.P( 1 ).identity.GetPublicIdentity() );
@@ -187,7 +187,7 @@ PerformMailLifecycleTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "life-invite" ) && table.StartAll() );
 
         MULTIPLAY::CMatchRecord record = table.MakeRecord( "Friday game", MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL );
@@ -206,7 +206,7 @@ PerformMailLifecycleTests( void )
         ASSERT_TRUE( seen.preview.IsCurrent( table.P( 1 ).identity.userId ) );
 
         // the mail: subject format, readable text with the link, headers
-        GUCEF::vector< COM::CMailMessage > invites = MailsOfKind( table, 1, "INVITE" );
+        GUCEF::vector< COM::CEMailMessage > invites = MailsOfKind( table, 1, "INVITE" );
         ASSERT_TRUE( 1 == invites.size() );
         ASSERT_TRUE( invites[ 0 ].subject == "[Redux " + id.SubstrToIndex( 8, true ) + " r1 t1] Friday game" || invites[ 0 ].subject.StartsWith( "[Redux " + id.SubstrToIndex( 8, true ) + " r1 t" ) );
         ASSERT_TRUE( invites[ 0 ].subject.HasSubstr( "] Friday game" ) >= 0 && invites[ 0 ].headers.Get( "X-Redux-Match" ) == id && invites[ 0 ].headers.Get( "X-Redux-Protocol" ) == "1" );
@@ -235,7 +235,7 @@ PerformMailLifecycleTests( void )
                 ASSERT_TRUE( MULTIPLAY::MATCHPARTICIPANT_ACTIVE == table.StatusOf( i, id, j ) );
         }
         ASSERT_TRUE( table.P( 1 ).recorder.updated.size() >= 1 );
-        GUCEF::vector< COM::CMailMessage > accepts = MailsOfKind( table, 0, "ACCEPT" );
+        GUCEF::vector< COM::CEMailMessage > accepts = MailsOfKind( table, 0, "ACCEPT" );
         ASSERT_TRUE( 2 == accepts.size() );
         ASSERT_TRUE( 1 == MailsOfKind( table, 2, "ACCEPT" ).size() && 1 == MailsOfKind( table, 1, "ACCEPT" ).size() );
         // the acceptance is a signed block, not a promise in prose: it travels as data
@@ -254,7 +254,7 @@ PerformMailLifecycleTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "life-decline" ) && table.StartAll() );
         MULTIPLAY::CMatchRecord record = table.MakeRecord( "Declined", MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL );
         const CORE::CString id = record.info.matchId;
@@ -296,7 +296,7 @@ PerformMailLifecycleTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "life-all-attachment" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -328,7 +328,7 @@ PerformMailLifecycleTests( void )
         ASSERT_TRUE( CGameVerifier::Text( package ) == "game|setup|start|b1|c1|a1|b2|c2" && MULTIPLAY::MATCHSTATUS_FINISHED == preview.status );
 
         // one mail per turn: To the next holder, Cc the others; the last one is a FINISH
-        GUCEF::vector< COM::CMailMessage > turnsAtAlice = MailsOfKind( table, 0, "TURN" );
+        GUCEF::vector< COM::CEMailMessage > turnsAtAlice = MailsOfKind( table, 0, "TURN" );
         ASSERT_TRUE( 3 == turnsAtAlice.size() );
         for ( size_t i=0; i<turnsAtAlice.size(); ++i )
         {
@@ -341,13 +341,13 @@ PerformMailLifecycleTests( void )
                 ASSERT_TRUE( turnsAtAlice[ i ].textBody.HasSubstr( "Bob" ) >= 0 && turnsAtAlice[ i ].textBody.HasSubstr( "Carol" ) >= 0 );
             }
         }
-        GUCEF::vector< COM::CMailMessage > finishAtAlice = MailsOfKind( table, 0, "FINISH" );
+        GUCEF::vector< COM::CEMailMessage > finishAtAlice = MailsOfKind( table, 0, "FINISH" );
         ASSERT_TRUE( 1 == finishAtAlice.size() && HasAddress( finishAtAlice[ 0 ].to, "alice@mail.test" ) && RevisionOf( finishAtAlice[ 0 ] ) == "6" );
 
         // threading: the mail of Carol for r3 answers the mail of Bob for r2, which she had received
-        COM::CMailMessage r2, r3;
-        GUCEF::vector< COM::CMailMessage > turnsAtCarol = MailsOfKind( table, 2, "TURN" );
-        GUCEF::vector< COM::CMailMessage > turnsAtBob = MailsOfKind( table, 1, "TURN" );
+        COM::CEMailMessage r2, r3;
+        GUCEF::vector< COM::CEMailMessage > turnsAtCarol = MailsOfKind( table, 2, "TURN" );
+        GUCEF::vector< COM::CEMailMessage > turnsAtBob = MailsOfKind( table, 1, "TURN" );
         for ( size_t i=0; i<turnsAtCarol.size(); ++i )
             if ( RevisionOf( turnsAtCarol[ i ] ) == "2" ) r2 = turnsAtCarol[ i ];
         for ( size_t i=0; i<turnsAtBob.size(); ++i )
@@ -377,7 +377,7 @@ PerformMailLifecycleTests( void )
         ASSERT_TRUE( table.P( 1 ).recorder.HasDelivery( id, 2, MAIL::MAILDELIVERY_SENT ) && table.P( 1 ).recorder.HasDelivery( id, 2, MAIL::MAILDELIVERY_DELIVERED ) );
         ASSERT_TRUE( 0 == table.P( 1 ).provider->GetOutbox().GetUnconfirmedCount() || table.P( 1 ).provider->GetOutbox().GetUnconfirmedCount() <= 1 );
         // the tiny acknowledgements: they carry no attachment
-        GUCEF::vector< COM::CMailMessage > acks = MailsOfKind( table, 1, "ACK" );
+        GUCEF::vector< COM::CEMailMessage > acks = MailsOfKind( table, 1, "ACK" );
         ASSERT_TRUE( acks.size() >= 2 );
         for ( size_t i=0; i<acks.size(); ++i )
             ASSERT_TRUE( acks[ i ].attachments.empty() );
@@ -393,7 +393,7 @@ PerformMailLifecycleTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "life-next-text" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_BODY_TEXT, MAIL::MAILDISTRIBUTION_NEXT_ONLY, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -415,7 +415,7 @@ PerformMailLifecycleTests( void )
         ASSERT_TRUE( CGameVerifier::Text( package ) == "game|setup|start|b1" );
         ASSERT_TRUE( table.CountMatchMails( 1, "RESEND" ) >= 1 && table.CountMatchMails( 2, "RESEND" ) >= 1 );
         // the text mails have no attachment and the data between the marker lines
-        GUCEF::vector< COM::CMailMessage > turnsAtAlice = MailsOfKind( table, 0, "TURN" );
+        GUCEF::vector< COM::CEMailMessage > turnsAtAlice = MailsOfKind( table, 0, "TURN" );
         ASSERT_TRUE( turnsAtAlice.size() >= 2 );
         for ( size_t i=0; i<turnsAtAlice.size(); ++i )
             ASSERT_TRUE( turnsAtAlice[ i ].attachments.empty() && turnsAtAlice[ i ].textBody.HasSubstr( "-----BEGIN MATCH TURN-----" ) >= 0 );
@@ -436,7 +436,7 @@ PerformMailLifecycleTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "life-both-forms" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_NEXT_ONLY, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -448,7 +448,7 @@ PerformMailLifecycleTests( void )
         MULTIPLAY::CMatchPackage package;
         ASSERT_TRUE( table.P( 1 ).provider->GetStoredTurn( id, 2, preview, package ) );
         CORE::CString text, reason;
-        ASSERT_TRUE( MAIL::CMailMatchProvider::ExportToText( preview, package, text, reason ) );
+        ASSERT_TRUE( MAIL::CEMailMatchProvider::ExportToText( preview, package, text, reason ) );
         ASSERT_TRUE( text.HasSubstr( "-----BEGIN" ) >= 0 && 1 == table.P( 0 ).provider->GetTrustedRevision( id ) );
         ASSERT_TRUE( table.P( 0 ).provider->ImportText( "Hi Alice, here is my move.\r\n\r\n" + text + "\r\nBob\r\n", reason ) );
         ASSERT_TRUE( 2 == table.P( 0 ).provider->GetTrustedRevision( id ) );
@@ -467,7 +467,7 @@ PerformMailLifecycleTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "life-submit" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -528,7 +528,7 @@ PerformMailLifecycleTests( void )
         {
             SOptions options;
             options.installVerifier = false;
-            CMailTable table;
+            CEMailTable table;
             ASSERT_TRUE( table.Setup( 2, "life-no-verifier", options ) && table.StartAll() );
             MULTIPLAY::CMatchRecord record = table.MakeRecord( "No check", MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL );
             MULTIPLAY::CMatchOperationResult result;
@@ -537,14 +537,14 @@ PerformMailLifecycleTests( void )
             PUMP_WAIT( refused, table.P( 1 ).recorder.CountRefused( "NO_VERIFIER" ) >= 1, 8000 );
             ASSERT_TRUE( refused );
             ASSERT_TRUE( 0 == table.P( 1 ).provider->GetTrustedRevision( record.info.matchId ) );
-            MAIL::TMailRefusalVector refusals;
+            MAIL::TEMailRefusalVector refusals;
             ASSERT_TRUE( 1 == table.P( 1 ).provider->GetRefusals( record.info.matchId, refusals ) && refusals[ 0 ].code == "NO_VERIFIER" && !refusals[ 0 ].reason.IsNULLOrEmpty() );
         }
         {
             SOptions options;
             options.installVerifier = false;
             options.allowUnverified = true;
-            CMailTable table;
+            CEMailTable table;
             ASSERT_TRUE( table.Setup( 2, "life-allow-unverified", options ) && table.StartAll() );
             MULTIPLAY::CMatchRecord record = table.MakeRecord( "Allowed", MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL );
             MULTIPLAY::CMatchOperationResult result;
@@ -563,7 +563,7 @@ PerformMailLifecycleTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "life-nudge" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -594,29 +594,29 @@ PerformMailLifecycleTests( void )
         // a second valid nudge of Alice that comes in the same day is ignored by the receiver: the limit is theirs too
         MULTIPLAY::CMatchInfo info;
         ASSERT_TRUE( table.P( 0 ).provider->GetMatchInfo( id, info ) );
-        MAIL::CMailSignedStatement statement;
+        MAIL::CEMailSignedStatement statement;
         statement.matchId = id;
-        statement.statementKind = MAIL::CMailSignedStatement::KindNudge;
+        statement.statementKind = MAIL::CEMailSignedStatement::KindNudge;
         statement.targetUserId = table.P( 1 ).identity.userId;
         statement.revision = 1;
         statement.createdAt = table.clock.nowMs;
         ASSERT_TRUE( statement.Sign( table.P( 0 ).identity ) );
         CORE::CDynamicBuffer data;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SerializeToBytes( statement, data, 64 * 1024 ) );
-        MAIL::CMailOutgoing outgoing;
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SerializeToBytes( statement, data, 64 * 1024 ) );
+        MAIL::CEMailOutgoing outgoing;
         outgoing.kind = MAIL::MAILKIND_NUDGE;
         outgoing.matchId = id;
         outgoing.revision = 1;
         outgoing.title = "Friday game";
-        outgoing.from = COM::CMailAddress( "Alice", "alice@mail.test" );
-        outgoing.to.push_back( COM::CMailAddress( "Bob", "bob@mail.test" ) );
+        outgoing.from = COM::CEMailAddress( "Alice", "alice@mail.test" );
+        outgoing.to.push_back( COM::CEMailAddress( "Bob", "bob@mail.test" ) );
         outgoing.transfer = MAIL::MAILTRANSFER_ATTACHMENT;
         outgoing.data = &data;
-        outgoing.dataLabel = MAIL::CMailMatchCodec::ArmorLabelData;
+        outgoing.dataLabel = MAIL::CEMailMatchCodec::ArmorLabelData;
         outgoing.dataRevisionName = "nudge";
-        COM::CMailMessage message;
+        COM::CEMailMessage message;
         CORE::CString reason;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::Compose( outgoing, message, reason ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::Compose( outgoing, message, reason ) );
         message.messageId = "<manual-nudge@mail.test>";
         COM::CMimeComposer composer;
         CORE::CDynamicBuffer wire;
@@ -636,7 +636,7 @@ PerformMailLifecycleTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "life-resign" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -644,26 +644,26 @@ PerformMailLifecycleTests( void )
         // a leave that Mallory signed in the name of Bob
         MULTIPLAY::CPlayerIdentity mallory;
         ASSERT_TRUE( TESTFW::MakeTestIdentity( "Mallory", mallory ) );
-        MAIL::CMailSignedStatement forged;
+        MAIL::CEMailSignedStatement forged;
         forged.matchId = id;
-        forged.statementKind = MAIL::CMailSignedStatement::KindResign;
+        forged.statementKind = MAIL::CEMailSignedStatement::KindResign;
         ASSERT_TRUE( forged.Sign( mallory ) );
         forged.userId = table.P( 1 ).identity.userId;
         CORE::CDynamicBuffer data;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SerializeToBytes( forged, data, 64 * 1024 ) );
-        MAIL::CMailOutgoing outgoing;
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SerializeToBytes( forged, data, 64 * 1024 ) );
+        MAIL::CEMailOutgoing outgoing;
         outgoing.kind = MAIL::MAILKIND_RESIGN;
         outgoing.matchId = id;
         outgoing.title = "Friday game";
-        outgoing.from = COM::CMailAddress( "Mallory", "mallory@mail.test" );
-        outgoing.to.push_back( COM::CMailAddress( "Alice", "alice@mail.test" ) );
+        outgoing.from = COM::CEMailAddress( "Mallory", "mallory@mail.test" );
+        outgoing.to.push_back( COM::CEMailAddress( "Alice", "alice@mail.test" ) );
         outgoing.transfer = MAIL::MAILTRANSFER_ATTACHMENT;
         outgoing.data = &data;
-        outgoing.dataLabel = MAIL::CMailMatchCodec::ArmorLabelData;
+        outgoing.dataLabel = MAIL::CEMailMatchCodec::ArmorLabelData;
         outgoing.dataRevisionName = "resign";
-        COM::CMailMessage message;
+        COM::CEMailMessage message;
         CORE::CString reason;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::Compose( outgoing, message, reason ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::Compose( outgoing, message, reason ) );
         message.messageId = "<forged-resign@mail.test>";
         COM::CMimeComposer composer;
         CORE::CDynamicBuffer wire;
@@ -697,7 +697,7 @@ PerformMailLifecycleTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 2, "life-remove" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -736,7 +736,7 @@ PerformMailLifecycleTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "life-rematch" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_BODY_TEXT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -761,7 +761,7 @@ PerformMailLifecycleTests( void )
         for ( size_t i=0; i<oldInfo.participants.size(); ++i )
             ASSERT_TRUE( oldInfo.participants[ i ].userId == newInfo.participants[ i ].userId && oldInfo.participants[ i ].publicKey == newInfo.participants[ i ].publicKey && oldInfo.participants[ i ].contact == newInfo.participants[ i ].contact );
         ASSERT_TRUE( MULTIPLAY::MATCHSTATUS_FORMING == newInfo.status && MULTIPLAY::MATCHPARTICIPANT_INVITED == table.StatusOf( 1, again, 1 ) && 0 == table.P( 1 ).provider->GetTrustedRevision( again ) );
-        GUCEF::vector< COM::CMailMessage > invites = MailsOfKind( table, 1, "INVITE" );
+        GUCEF::vector< COM::CEMailMessage > invites = MailsOfKind( table, 1, "INVITE" );
         ASSERT_TRUE( 2 == invites.size() );
         bool rematchHeader = false;
         for ( size_t i=0; i<invites.size(); ++i )
@@ -787,7 +787,7 @@ PerformMailLifecycleTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "life-restart" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -819,7 +819,7 @@ PerformMailLifecycleTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "life-book" ) );
         MULTIPLAY::CMatchBook book;
         TESTFW::CMatchBookRecorder bookRecorder;

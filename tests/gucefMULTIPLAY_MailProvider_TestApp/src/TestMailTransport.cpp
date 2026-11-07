@@ -73,16 +73,16 @@ CORE::CString
 AckMail( const CORE::CString& matchId, UInt32 revision, const char* id )
 {GUCEF_TRACE;
 
-    MAIL::CMailOutgoing outgoing;
+    MAIL::CEMailOutgoing outgoing;
     outgoing.kind = MAIL::MAILKIND_ACK;
     outgoing.matchId = matchId;
     outgoing.revision = revision;
     outgoing.title = "x";
-    outgoing.from = COM::CMailAddress( "bob@mail.test" );
-    outgoing.to.push_back( COM::CMailAddress( "alice@mail.test" ) );
-    COM::CMailMessage message;
+    outgoing.from = COM::CEMailAddress( "bob@mail.test" );
+    outgoing.to.push_back( COM::CEMailAddress( "alice@mail.test" ) );
+    COM::CEMailMessage message;
     CORE::CString reason;
-    if ( !MAIL::CMailMatchCodec::Compose( outgoing, message, reason ) )
+    if ( !MAIL::CEMailMatchCodec::Compose( outgoing, message, reason ) )
         return CORE::CString::Empty;
     message.messageId = CORE::CString( "<" ) + id + "@acks.test>";
     COM::CMimeComposer composer;
@@ -123,7 +123,7 @@ struct SActionRun
     GUCEF::vector< TESTFW::CTestImapServer::TMessage > folder;
     GUCEF::vector< TESTFW::CTestImapServer::TMessage > appended;
     GUCEF::vector< CORE::CString > commands;
-    GUCEF::vector< MAIL::CMailMatchNotice > problems;
+    GUCEF::vector< MAIL::CEMailMatchNotice > problems;
     UInt32 matchMailsSent;
     SActionRun( void ) : ran( false ), inbox(), folder(), appended(), commands(), problems(), matchMailsSent( 0 ) {}
 };
@@ -159,7 +159,7 @@ void
 RunActionScenario( SActionRun& run, const char* name, MAIL::TMailProcessedAction action, bool allowMove, bool allowUidPlus, bool folderExists, const char* folder = "GameMail" )
 {GUCEF_TRACE;
 
-    CMailTable table;
+    CEMailTable table;
     if ( !table.Setup( 2, name ) )
         return;
     TESTFW::CTestImapServer& imap = table.P( 1 ).box->imap;
@@ -247,7 +247,7 @@ PerformMailTransportTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 2, "transport-idle" ) && table.StartAll() );
         bool idling = false;
         PUMP_WAIT( idling, table.P( 1 ).provider->GetInbox().IsIdling() && table.P( 0 ).provider->GetInbox().IsIdling(), 8000 );
@@ -275,7 +275,7 @@ PerformMailTransportTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 2, "transport-idle-late" ) && table.StartAll() );
         bool idling = false;
         PUMP_WAIT( idling, table.P( 1 ).provider->GetInbox().IsIdling() && table.P( 0 ).provider->GetInbox().IsIdling(), 8000 );
@@ -311,7 +311,7 @@ PerformMailTransportTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 2, "transport-poll" ) );
         table.P( 0 ).box->imap.allowIdle = false;
         table.P( 1 ).box->imap.allowIdle = false;
@@ -351,7 +351,7 @@ PerformMailTransportTests( void )
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         SOptions options;
         options.useImap = false;
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 2, "transport-pop3", options ) && table.StartAll() );
         // three letters that are not about a game
         ASSERT_TRUE( table.world.DeliverTo( "bob@mail.test", PlainMail( "friend@mail.test", "bob@mail.test", "Lunch?", "l1" ) ) );
@@ -411,7 +411,7 @@ PerformMailTransportTests( void )
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         SOptions options;
         options.autoClockMs = 25;
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 2, "transport-uidvalidity", options ) );
         table.P( 0 ).box->imap.allowIdle = false;
         table.P( 1 ).box->imap.allowIdle = false;
@@ -421,7 +421,7 @@ PerformMailTransportTests( void )
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.PlayTurn( 1, id, 0, "u1", result ) && table.WaitTrusted( 0, id, 2 ) );
         table.Settle( 300 );
-        MAIL::CMailInbox const& inbox = table.P( 0 ).provider->GetInbox();
+        MAIL::CEMailInbox const& inbox = table.P( 0 ).provider->GetInbox();
         ASSERT_TRUE( 1000 == inbox.GetUidValidity() && inbox.GetLastUid() >= 2 );
         const UInt32 updatesBefore = (UInt32) table.P( 0 ).recorder.updated.size();
 
@@ -451,7 +451,7 @@ PerformMailTransportTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 2, "transport-unrelated" ) );
         for ( int i=0; i<120; ++i )
             ASSERT_TRUE( table.world.DeliverTo( "bob@mail.test", PlainMail( "list@news.test", "bob@mail.test", i % 7 == 0 ? "[Redux 12345678 r1 t1] a subject that only looks like a game" : "Newsletter", ( "n" + CORE::UInt32ToString( i ) ).C_String() ) ) );
@@ -489,7 +489,7 @@ PerformMailTransportTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "transport-automatic" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_NEXT_ONLY, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -543,7 +543,7 @@ PerformMailTransportTests( void )
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         {
-            CMailTable table;
+            CEMailTable table;
             ASSERT_TRUE( table.Setup( 2, "transport-mark" ) );
             table.P( 1 ).box->imap.mailboxes.push_back( "GameMail" );
             table.P( 1 ).settings.processedFolder = "GameMail";
@@ -581,7 +581,7 @@ PerformMailTransportTests( void )
         }
         {
             SOptions options;
-            CMailTable table;
+            CEMailTable table;
             ASSERT_TRUE( table.Setup( 2, "transport-no-mark", options ) );
             table.P( 1 ).settings.markProcessedSeen = false;
             ASSERT_TRUE( table.P( 1 ).provider->SetSettings( table.P( 1 ).settings ) && table.StartAll() );
@@ -750,7 +750,7 @@ PerformMailTransportTests( void )
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         SOptions options;
         options.useImap = false;
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 2, "transport-pop3-delete", options ) );
         table.P( 1 ).settings.pop3DeleteAfterProcessing = true;
         ASSERT_TRUE( table.P( 1 ).provider->SetSettings( table.P( 1 ).settings ) && table.StartAll() );
@@ -792,7 +792,7 @@ PerformMailTransportTests( void )
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         SOptions options;
         options.seenSetSize = 10;
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 2, "transport-seen", options ) && table.StartAll() );
         const CORE::CString matchId = MULTIPLAY::CMatchId::Generate();
         for ( int i=0; i<25; ++i )
@@ -821,7 +821,7 @@ PerformMailTransportTests( void )
         {
             SOptions options;
             options.autoClockMs = 2;
-            CMailTable table;
+            CEMailTable table;
             ASSERT_TRUE( table.Setup( 2, "transport-drop", options ) );
             // the connection of Bob is ended by the server after 16 commands, which is a few mails
             table.P( 1 ).box->imap.dropAfterCommands = 16;
@@ -847,7 +847,7 @@ PerformMailTransportTests( void )
             TESTFW::CLogTextCapture capture;
             SOptions options;
             options.credentialsFromProvider = true;
-            CMailTable table;
+            CEMailTable table;
             ASSERT_TRUE( table.Setup( 3, "transport-secrets", options ) );
             // Carol's IMAP login is refused: her credential provider has a wrong password
             table.P( 2 ).credentials.SetCredential( COM::MAILCRED_PASSWORD, table.P( 2 ).box->user, "WRONG-PW-5521" );

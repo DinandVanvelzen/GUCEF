@@ -33,10 +33,10 @@
 #define GUCEF_MULTIPLAY_CMULTIPLAYGLOBAL_H
 #endif /* GUCEF_MULTIPLAY_CMULTIPLAYGLOBAL_H ? */
 
-#ifndef GUCEF_MULTIPLAYPLUGIN_MAIL_CMAILMATCHPROVIDER_H
-#include "matchprovidermail_CMailMatchProvider.h"
-#define GUCEF_MULTIPLAYPLUGIN_MAIL_CMAILMATCHPROVIDER_H
-#endif /* GUCEF_MULTIPLAYPLUGIN_MAIL_CMAILMATCHPROVIDER_H ? */
+#ifndef GUCEF_MULTIPLAYPLUGIN_MAIL_CEMAILMATCHPROVIDER_H
+#include "matchprovidermail_CEMailMatchProvider.h"
+#define GUCEF_MULTIPLAYPLUGIN_MAIL_CEMAILMATCHPROVIDER_H
+#endif /* GUCEF_MULTIPLAYPLUGIN_MAIL_CEMAILMATCHPROVIDER_H ? */
 
 #include "matchprovidermail.h"
 
@@ -56,7 +56,7 @@ namespace MAIL {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-static TMailMatchProviderFactory g_matchProviderFactory;
+static TEMailMatchProviderFactory g_matchProviderFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -70,10 +70,10 @@ GUCEFPlugin_Load( CORE::UInt32 argc, const char** argv ) GUCEF_PLUGIN_CALLSPEC_S
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Load called on MULTIPLAY plugin mail match provider" );
 
-    CMailMatchProvider::RegisterEvents();
-    MULTIPLAY::CMultiplayGlobal::Instance()->GetMatchProviderFactory().RegisterConcreteFactory( CMailMatchProvider::ProviderName, &g_matchProviderFactory );
+    CEMailMatchProvider::RegisterEvents();
+    MULTIPLAY::CMultiplayGlobal::Instance()->GetMatchProviderFactory().RegisterConcreteFactory( CEMailMatchProvider::ProviderName, &g_matchProviderFactory );
 
-    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Load finished for MULTIPLAY plugin mail match provider: the match provider \"" << CMailMatchProvider::ProviderName << "\" is registered" );
+    GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Load finished for MULTIPLAY plugin mail match provider: the match provider \"" << CEMailMatchProvider::ProviderName << "\" is registered" );
     return 1;
 }
 
@@ -84,7 +84,7 @@ GUCEFPlugin_Unload( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX
 {GUCEF_TRACE;
 
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Unload called on MULTIPLAY plugin mail match provider" );
-    MULTIPLAY::CMultiplayGlobal::Instance()->GetMatchProviderFactory().UnregisterConcreteFactory( CMailMatchProvider::ProviderName );
+    MULTIPLAY::CMultiplayGlobal::Instance()->GetMatchProviderFactory().UnregisterConcreteFactory( CEMailMatchProvider::ProviderName );
 }
 
 /*-------------------------------------------------------------------------*/

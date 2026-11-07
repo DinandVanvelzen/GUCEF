@@ -13,32 +13,78 @@
 
 set( HEADER_FILES 
   include/matchprovidermail.h
-  include/matchprovidermail_CMailAddressBook.h
-  include/matchprovidermail_CMailFiles.h
-  include/matchprovidermail_CMailInbox.h
-  include/matchprovidermail_CMailIntroduction.h
-  include/matchprovidermail_CMailIntroductions.h
-  include/matchprovidermail_CMailMatchCodec.h
-  include/matchprovidermail_CMailMatchProvider.h
-  include/matchprovidermail_CMailMatchProviderSettings.h
-  include/matchprovidermail_CMailMatchState.h
-  include/matchprovidermail_CMailOutbox.h
+  include/matchprovidermail_CEMailAddressBook.h
+  include/matchprovidermail_CEMailAddressEntry.h
+  include/matchprovidermail_CEMailDeliveryEvent.h
+  include/matchprovidermail_CEMailEquivocation.h
+  include/matchprovidermail_CEMailFiles.h
+  include/matchprovidermail_CEMailInboundIntro.h
+  include/matchprovidermail_CEMailInbox.h
+  include/matchprovidermail_CEMailInboxMessage.h
+  include/matchprovidermail_CEMailInboxNotice.h
+  include/matchprovidermail_CEMailInboxRefusal.h
+  include/matchprovidermail_CEMailIncoming.h
+  include/matchprovidermail_CEMailIntroContact.h
+  include/matchprovidermail_CEMailIntroContactInput.h
+  include/matchprovidermail_CEMailIntroDraft.h
+  include/matchprovidermail_CEMailIntroFingerprint.h
+  include/matchprovidermail_CEMailIntroLimits.h
+  include/matchprovidermail_CEMailIntroParty.h
+  include/matchprovidermail_CEMailIntroReply.h
+  include/matchprovidermail_CEMailIntroRequest.h
+  include/matchprovidermail_CEMailIntroSummary.h
+  include/matchprovidermail_CEMailIntroductions.h
+  include/matchprovidermail_CEMailMatchCodec.h
+  include/matchprovidermail_CEMailMatchNotice.h
+  include/matchprovidermail_CEMailMatchProvider.h
+  include/matchprovidermail_CEMailMatchProviderSettings.h
+  include/matchprovidermail_CEMailMatchState.h
+  include/matchprovidermail_CEMailOutbox.h
+  include/matchprovidermail_CEMailOutboxItem.h
+  include/matchprovidermail_CEMailOutgoing.h
+  include/matchprovidermail_CEMailRefusal.h
+  include/matchprovidermail_CEMailSignedStatement.h
+  include/matchprovidermail_EMailIntroTypes.h
+  include/matchprovidermail_EMailMatchTypes.h
   include/matchprovidermail_config.h
   include/matchprovidermail_macros.h
 )
 
 set( SOURCE_FILES 
   src/matchprovidermail.cpp
-  src/matchprovidermail_CMailAddressBook.cpp
-  src/matchprovidermail_CMailFiles.cpp
-  src/matchprovidermail_CMailInbox.cpp
-  src/matchprovidermail_CMailIntroduction.cpp
-  src/matchprovidermail_CMailIntroductions.cpp
-  src/matchprovidermail_CMailMatchCodec.cpp
-  src/matchprovidermail_CMailMatchProvider.cpp
-  src/matchprovidermail_CMailMatchProviderSettings.cpp
-  src/matchprovidermail_CMailMatchState.cpp
-  src/matchprovidermail_CMailOutbox.cpp
+  src/matchprovidermail_CEMailAddressBook.cpp
+  src/matchprovidermail_CEMailAddressEntry.cpp
+  src/matchprovidermail_CEMailDeliveryEvent.cpp
+  src/matchprovidermail_CEMailEquivocation.cpp
+  src/matchprovidermail_CEMailFiles.cpp
+  src/matchprovidermail_CEMailInboundIntro.cpp
+  src/matchprovidermail_CEMailInbox.cpp
+  src/matchprovidermail_CEMailInboxMessage.cpp
+  src/matchprovidermail_CEMailInboxNotice.cpp
+  src/matchprovidermail_CEMailInboxRefusal.cpp
+  src/matchprovidermail_CEMailIncoming.cpp
+  src/matchprovidermail_CEMailIntroContact.cpp
+  src/matchprovidermail_CEMailIntroContactInput.cpp
+  src/matchprovidermail_CEMailIntroDraft.cpp
+  src/matchprovidermail_CEMailIntroFingerprint.cpp
+  src/matchprovidermail_CEMailIntroLimits.cpp
+  src/matchprovidermail_CEMailIntroParty.cpp
+  src/matchprovidermail_CEMailIntroReply.cpp
+  src/matchprovidermail_CEMailIntroRequest.cpp
+  src/matchprovidermail_CEMailIntroSummary.cpp
+  src/matchprovidermail_CEMailIntroductions.cpp
+  src/matchprovidermail_CEMailMatchCodec.cpp
+  src/matchprovidermail_CEMailMatchNotice.cpp
+  src/matchprovidermail_CEMailMatchProvider.cpp
+  src/matchprovidermail_CEMailMatchProviderSettings.cpp
+  src/matchprovidermail_CEMailMatchState.cpp
+  src/matchprovidermail_CEMailOutbox.cpp
+  src/matchprovidermail_CEMailOutboxItem.cpp
+  src/matchprovidermail_CEMailOutgoing.cpp
+  src/matchprovidermail_CEMailRefusal.cpp
+  src/matchprovidermail_CEMailSignedStatement.cpp
+  src/matchprovidermail_EMailIntroTypes.cpp
+  src/matchprovidermail_EMailMatchTypes.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined

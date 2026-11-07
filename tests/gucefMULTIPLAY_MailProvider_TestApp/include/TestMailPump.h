@@ -38,10 +38,10 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
-#ifndef GUCEF_COM_CMAILCLIENTBASE_H
-#include "gucefCOM_CMailClientBase.h"
-#define GUCEF_COM_CMAILCLIENTBASE_H
-#endif /* GUCEF_COM_CMAILCLIENTBASE_H ? */
+#ifndef GUCEF_COM_CEMAILCLIENTBASE_H
+#include "gucefCOM_CEMailClientBase.h"
+#define GUCEF_COM_CEMAILCLIENTBASE_H
+#endif /* GUCEF_COM_CEMAILCLIENTBASE_H ? */
 
 #ifndef GUCEF_CORE_CCOREGLOBAL_H
 #include "gucefCORE_CCoreGlobal.h"
@@ -74,19 +74,19 @@
  *  not there) would be undefined. The failure is recorded as the framework records it; the catch of the test case does not
  *  count the ending as a second one.
  */
-struct SMailCaseAborted {};
+struct SEMailCaseAborted {};
 
 /** A line for the log of the tests, for what explains a failure */
 #define MAIL_TEST_NOTE( stream ) GUCEF_LOG( ::GUCEF::CORE::LOGLEVEL_NORMAL, "NOTE: " << stream )
 
 #define MAIL_ASSERT_TRUE( expr )                                                                    \
-    do { if ( !(expr) ) { ::GUCEF::TESTFW::CTestContext::Instance().RecordFailure( #expr, __FILE__, __LINE__ ); throw SMailCaseAborted(); } } while ( 0 )
+    do { if ( !(expr) ) { ::GUCEF::TESTFW::CTestContext::Instance().RecordFailure( #expr, __FILE__, __LINE__ ); throw SEMailCaseAborted(); } } while ( 0 )
 
 #define MAIL_ASSERT_FALSE( expr )                                                                   \
-    do { if ( (expr) ) { ::GUCEF::TESTFW::CTestContext::Instance().RecordFailure( "!(" #expr ")", __FILE__, __LINE__ ); throw SMailCaseAborted(); } } while ( 0 )
+    do { if ( (expr) ) { ::GUCEF::TESTFW::CTestContext::Instance().RecordFailure( "!(" #expr ")", __FILE__, __LINE__ ); throw SEMailCaseAborted(); } } while ( 0 )
 
 #define MAIL_ERRORHERE                                                                              \
-    do { try { throw; } catch ( const SMailCaseAborted& ) { } \
+    do { try { throw; } catch ( const SEMailCaseAborted& ) { } \
          catch ( const std::exception& error ) { ::GUCEF::TESTFW::CTestContext::Instance().RecordFailure( error.what(), __FILE__, __LINE__ ); } \
          catch ( ... ) { GUCEF_TESTFW_ERRORHERE; } } while ( 0 )
 
@@ -134,7 +134,7 @@ PumpOnce( void )
 inline GUCEF::UInt64
 PumpNowMs( void )
 {
-    return GUCEF::COM::CMailClientBase::GetTimeInMs();
+    return GUCEF::COM::CEMailClientBase::GetTimeInMs();
 }
 
 /*-------------------------------------------------------------------------*/

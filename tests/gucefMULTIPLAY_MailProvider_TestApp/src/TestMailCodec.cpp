@@ -42,7 +42,7 @@
 #define GUCEF_COM_CMIMEPARSER_H
 #endif /* GUCEF_COM_CMIMEPARSER_H ? */
 
-#include "matchprovidermail_CMailMatchCodec.h"
+#include "matchprovidermail_CEMailMatchCodec.h"
 #include "TestMailPump.h"
 #include "TestMailCodec.h"
 
@@ -93,25 +93,25 @@ SameBytes( const CORE::CDynamicBuffer& a, const CORE::CDynamicBuffer& b )
 
 /*-------------------------------------------------------------------------*/
 
-MAIL::CMailOutgoing
+MAIL::CEMailOutgoing
 MakeOutgoing( const CORE::CString& matchId, MAIL::TMailMatchKind kind, MAIL::TMailTransfer transfer, const CORE::CDynamicBuffer* data )
 {GUCEF_TRACE;
 
-    MAIL::CMailOutgoing outgoing;
+    MAIL::CEMailOutgoing outgoing;
     outgoing.kind = kind;
     outgoing.matchId = matchId;
     outgoing.revision = 3;
     outgoing.turn = 3;
     outgoing.title = "Friday game";
-    outgoing.from = COM::CMailAddress( "Alice", "alice@mail.test" );
-    outgoing.to.push_back( COM::CMailAddress( "Bob", "bob@mail.test" ) );
-    outgoing.cc.push_back( COM::CMailAddress( "Carol", "carol@mail.test" ) );
+    outgoing.from = COM::CEMailAddress( "Alice", "alice@mail.test" );
+    outgoing.to.push_back( COM::CEMailAddress( "Bob", "bob@mail.test" ) );
+    outgoing.cc.push_back( COM::CEMailAddress( "Carol", "carol@mail.test" ) );
     outgoing.actorName = "Alice";
     outgoing.nextName = "Bob";
     outgoing.linkText = "Open the game: https://games.example.invalid/match/" + matchId;
     outgoing.transfer = transfer;
     outgoing.data = data;
-    outgoing.dataLabel = MAIL::CMailMatchCodec::ArmorLabelTurn;
+    outgoing.dataLabel = MAIL::CEMailMatchCodec::ArmorLabelTurn;
     outgoing.dataRevisionName = "r3";
     return outgoing;
 }
@@ -120,7 +120,7 @@ MakeOutgoing( const CORE::CString& matchId, MAIL::TMailMatchKind kind, MAIL::TMa
 
 /** The message as it goes over the wire and comes back out of a parser */
 bool
-ThroughTheWire( const COM::CMailMessage& message, COM::CMailMessage& received, CORE::CString* wireText = GUCEF_NULL )
+ThroughTheWire( const COM::CEMailMessage& message, COM::CEMailMessage& received, CORE::CString* wireText = GUCEF_NULL )
 {GUCEF_TRACE;
 
     COM::CMimeComposer composer;
@@ -145,11 +145,11 @@ IsAutomaticWith( const char* name, const char* value, const char* from = "bob@ma
         text += CORE::CString( name ) + ": " + value + "\r\n";
     text += "\r\nbody\r\n";
     COM::CMimeParser parser;
-    COM::CMailHeaders headers;
+    COM::CEMailHeaders headers;
     UInt32 offset = 0;
     if ( !parser.ParseHeaders( text.C_String(), text.ByteSize() - 1, headers, offset ) )
         return false;
-    return MAIL::CMailMatchCodec::IsAutomatic( headers );
+    return MAIL::CEMailMatchCodec::IsAutomatic( headers );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -222,21 +222,21 @@ PerformMailCodecTests( void )
         CORE::CDynamicBuffer data = MakeBytes( 600, 7 );
         for ( int variant=0; variant<2; ++variant )
         {
-            MAIL::CMailOutgoing request = MakeOutgoing( id, MAIL::MAILKIND_INTRO_REQUEST, variant ? MAIL::MAILTRANSFER_BODY_TEXT : MAIL::MAILTRANSFER_ATTACHMENT, &data );
+            MAIL::CEMailOutgoing request = MakeOutgoing( id, MAIL::MAILKIND_INTRO_REQUEST, variant ? MAIL::MAILTRANSFER_BODY_TEXT : MAIL::MAILTRANSFER_ATTACHMENT, &data );
             request.revision = 0;
             request.turn = 0;
             request.cc.clear();
-            request.dataLabel = MAIL::CMailMatchCodec::ArmorLabelData;
+            request.dataLabel = MAIL::CEMailMatchCodec::ArmorLabelData;
             request.dataRevisionName = "intro";
             request.bodyText = "First line of the explanation.\r\nSecond line.\r\nX-Injected: yes\r\n\r\nBcc: mallory@mail.test";
-            COM::CMailMessage message;
+            COM::CEMailMessage message;
             CORE::CString reason;
-            ASSERT_TRUE( MAIL::CMailMatchCodec::Compose( request, message, reason ) );
-            COM::CMailMessage received;
+            ASSERT_TRUE( MAIL::CEMailMatchCodec::Compose( request, message, reason ) );
+            COM::CEMailMessage received;
             CORE::CString wire;
             ASSERT_TRUE( ThroughTheWire( message, received, &wire ) );
-            MAIL::CMailIncoming incoming;
-            MAIL::CMailMatchCodec::ReadHeaders( received.headers, incoming );
+            MAIL::CEMailIncoming incoming;
+            MAIL::CEMailMatchCodec::ReadHeaders( received.headers, incoming );
             ASSERT_TRUE( incoming.valid && MAIL::MAILKIND_INTRO_REQUEST == incoming.kind && incoming.matchId == id && 0 == incoming.revision );
             ASSERT_TRUE( wire.HasSubstr( "X-Redux-Kind: INTRO_REQUEST\r\n" ) >= 0 && wire.HasSubstr( "invites you" ) >= 0 );
             // several lines come through as lines of the body, and nothing in them is a header or a recipient
@@ -244,17 +244,17 @@ PerformMailCodecTests( void )
             ASSERT_TRUE( !received.headers.Has( "X-Injected" ) && !received.headers.Has( "Bcc" ) && 1 == received.to.size() && received.cc.empty() );
             CORE::CDynamicBuffer back;
             MAIL::TMailTransfer used;
-            ASSERT_TRUE( MAIL::MAILPAYLOAD_OK == MAIL::CMailMatchCodec::ExtractData( received, id, 0, MAIL::CMailMatchCodec::ArmorLabelData, 16 * 1024, 64 * 1024, back, used ) && SameBytes( data, back ) );
+            ASSERT_TRUE( MAIL::MAILPAYLOAD_OK == MAIL::CEMailMatchCodec::ExtractData( received, id, 0, MAIL::CEMailMatchCodec::ArmorLabelData, 16 * 1024, 64 * 1024, back, used ) && SameBytes( data, back ) );
         }
         // too long a text is cut, not refused, and does not grow without a bound
-        MAIL::CMailOutgoing big = MakeOutgoing( id, MAIL::MAILKIND_INTRO_REPLY, MAIL::MAILTRANSFER_ATTACHMENT, &data );
+        MAIL::CEMailOutgoing big = MakeOutgoing( id, MAIL::MAILKIND_INTRO_REPLY, MAIL::MAILTRANSFER_ATTACHMENT, &data );
         big.dataRevisionName = "intro";
-        big.dataLabel = MAIL::CMailMatchCodec::ArmorLabelData;
+        big.dataLabel = MAIL::CEMailMatchCodec::ArmorLabelData;
         for ( int i=0; i<500; ++i )
             big.bodyText += "A line of the text of a mail that goes on and on and on.\r\n";
-        COM::CMailMessage message;
+        COM::CEMailMessage message;
         CORE::CString reason;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::Compose( big, message, reason ) && message.textBody.ByteSize() < 12 * 1024 );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::Compose( big, message, reason ) && message.textBody.ByteSize() < 12 * 1024 );
     }
     catch ( ... )
     {
@@ -267,16 +267,16 @@ PerformMailCodecTests( void )
     try
     {
         MULTIPLAY::CMatchInfo info;
-        ASSERT_TRUE( MAIL::MAILTRANSFER_ATTACHMENT == MAIL::CMailMatchCodec::GetTransfer( info ) );
-        ASSERT_TRUE( MAIL::MAILDISTRIBUTION_ALL == MAIL::CMailMatchCodec::GetDistribution( info ) );
+        ASSERT_TRUE( MAIL::MAILTRANSFER_ATTACHMENT == MAIL::CEMailMatchCodec::GetTransfer( info ) );
+        ASSERT_TRUE( MAIL::MAILDISTRIBUTION_ALL == MAIL::CEMailMatchCodec::GetDistribution( info ) );
         info.SetSetting( GUCEF_MULTIPLAYPLUGIN_MAIL_SETTING_TRANSFER, "BODY_TEXT" );
         info.SetSetting( GUCEF_MULTIPLAYPLUGIN_MAIL_SETTING_DISTRIBUTION, "NEXT_ONLY" );
-        ASSERT_TRUE( MAIL::MAILTRANSFER_BODY_TEXT == MAIL::CMailMatchCodec::GetTransfer( info ) );
-        ASSERT_TRUE( MAIL::MAILDISTRIBUTION_NEXT_ONLY == MAIL::CMailMatchCodec::GetDistribution( info ) );
+        ASSERT_TRUE( MAIL::MAILTRANSFER_BODY_TEXT == MAIL::CEMailMatchCodec::GetTransfer( info ) );
+        ASSERT_TRUE( MAIL::MAILDISTRIBUTION_NEXT_ONLY == MAIL::CEMailMatchCodec::GetDistribution( info ) );
         info.SetSetting( GUCEF_MULTIPLAYPLUGIN_MAIL_SETTING_TRANSFER, "nonsense" );
         info.SetSetting( GUCEF_MULTIPLAYPLUGIN_MAIL_SETTING_DISTRIBUTION, "" );
-        ASSERT_TRUE( MAIL::MAILTRANSFER_ATTACHMENT == MAIL::CMailMatchCodec::GetTransfer( info ) );
-        ASSERT_TRUE( MAIL::MAILDISTRIBUTION_ALL == MAIL::CMailMatchCodec::GetDistribution( info ) );
+        ASSERT_TRUE( MAIL::MAILTRANSFER_ATTACHMENT == MAIL::CEMailMatchCodec::GetTransfer( info ) );
+        ASSERT_TRUE( MAIL::MAILDISTRIBUTION_ALL == MAIL::CEMailMatchCodec::GetDistribution( info ) );
     }
     catch ( ... )
     {
@@ -288,22 +288,22 @@ PerformMailCodecTests( void )
     GUCEF_TESTFW_SKIP_IF( !MailTestWanted( "Codec: a title cannot end the subject line or add a header, and is shortened on a character boundary" ), "not the case that was asked for" );
     try
     {
-        ASSERT_TRUE( CORE::CString( "Friday game" ) == MAIL::CMailMatchCodec::SanitizeTitle( "Friday game" ) );
-        const CORE::CString injected = MAIL::CMailMatchCodec::SanitizeTitle( "Game\r\nBcc: evil@mail.test\r\n\r\nbody" );
+        ASSERT_TRUE( CORE::CString( "Friday game" ) == MAIL::CEMailMatchCodec::SanitizeTitle( "Friday game" ) );
+        const CORE::CString injected = MAIL::CEMailMatchCodec::SanitizeTitle( "Game\r\nBcc: evil@mail.test\r\n\r\nbody" );
         ASSERT_TRUE( injected.HasChar( '\r' ) < 0 && injected.HasChar( '\n' ) < 0 );
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SanitizeTitle( CORE::CString( "a\0b", 3 ) ).HasChar( '\0' ) < 0 );
-        ASSERT_TRUE( CORE::CString( "tab separated" ) == MAIL::CMailMatchCodec::SanitizeTitle( "tab\tseparated" ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SanitizeTitle( CORE::CString( "a\0b", 3 ) ).HasChar( '\0' ) < 0 );
+        ASSERT_TRUE( CORE::CString( "tab separated" ) == MAIL::CEMailMatchCodec::SanitizeTitle( "tab\tseparated" ) );
         CORE::CString longAscii;
         for ( int i=0; i<300; ++i )
             longAscii += "x";
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SanitizeTitle( longAscii ).ByteSize() - 1 == MAIL::CMailMatchCodec::MaxSubjectTitleBytes );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SanitizeTitle( longAscii ).ByteSize() - 1 == MAIL::CEMailMatchCodec::MaxSubjectTitleBytes );
         // 3 byte characters: the cut never leaves half of one
         CORE::CString long3;
         for ( int i=0; i<60; ++i )
             long3 += "\xE2\x82\xAC";
-        const CORE::CString cut = MAIL::CMailMatchCodec::SanitizeTitle( long3 );
-        ASSERT_TRUE( cut.ByteSize() - 1 <= MAIL::CMailMatchCodec::MaxSubjectTitleBytes && 0 == ( cut.ByteSize() - 1 ) % 3 && cut.Length() > 0 );
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SanitizeTitle( "   " ).IsNULLOrEmpty() );
+        const CORE::CString cut = MAIL::CEMailMatchCodec::SanitizeTitle( long3 );
+        ASSERT_TRUE( cut.ByteSize() - 1 <= MAIL::CEMailMatchCodec::MaxSubjectTitleBytes && 0 == ( cut.ByteSize() - 1 ) % 3 && cut.Length() > 0 );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SanitizeTitle( "   " ).IsNULLOrEmpty() );
     }
     catch ( ... )
     {
@@ -316,13 +316,13 @@ PerformMailCodecTests( void )
     try
     {
         const CORE::CString id = "3f2504e0-4f89-41d3-9a0c-0305e82c3301";
-        ASSERT_TRUE( CORE::CString( "[Redux 3f2504e0 r3 t4] Friday game" ) == MAIL::CMailMatchCodec::MakeSubject( id, 3, 4, "Friday game" ) );
-        ASSERT_TRUE( CORE::CString( "[Redux 3f2504e0 r1 t0]" ) == MAIL::CMailMatchCodec::MakeSubject( id, 1, 0, "" ).Trim( false ) );
-        ASSERT_TRUE( MAIL::CMailMatchCodec::MakeSubject( id, 3, 4, "x\r\nBcc: a@b" ).HasChar( '\n' ) < 0 );
-        ASSERT_TRUE( CORE::CString( "redux-3f2504e0-r3.rdxturn" ) == MAIL::CMailMatchCodec::MakeAttachmentName( id, "r3" ) );
-        ASSERT_TRUE( CORE::CString( "redux-3f2504e0-record.rdxdata" ) == MAIL::CMailMatchCodec::MakeAttachmentName( id, "record" ) );
-        ASSERT_TRUE( MAIL::CMailMatchCodec::MakeAttachmentName( "../../etc/passwd", "r3" ).IsNULLOrEmpty() );
-        ASSERT_TRUE( MAIL::CMailMatchCodec::MakeAttachmentName( id, "../x" ).IsNULLOrEmpty() );
+        ASSERT_TRUE( CORE::CString( "[Redux 3f2504e0 r3 t4] Friday game" ) == MAIL::CEMailMatchCodec::MakeSubject( id, 3, 4, "Friday game" ) );
+        ASSERT_TRUE( CORE::CString( "[Redux 3f2504e0 r1 t0]" ) == MAIL::CEMailMatchCodec::MakeSubject( id, 1, 0, "" ).Trim( false ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::MakeSubject( id, 3, 4, "x\r\nBcc: a@b" ).HasChar( '\n' ) < 0 );
+        ASSERT_TRUE( CORE::CString( "redux-3f2504e0-r3.rdxturn" ) == MAIL::CEMailMatchCodec::MakeAttachmentName( id, "r3" ) );
+        ASSERT_TRUE( CORE::CString( "redux-3f2504e0-record.rdxdata" ) == MAIL::CEMailMatchCodec::MakeAttachmentName( id, "record" ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::MakeAttachmentName( "../../etc/passwd", "r3" ).IsNULLOrEmpty() );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::MakeAttachmentName( id, "../x" ).IsNULLOrEmpty() );
     }
     catch ( ... )
     {
@@ -336,40 +336,40 @@ PerformMailCodecTests( void )
     {
         const CORE::CString id = MULTIPLAY::CMatchId::Generate();
         CORE::CDynamicBuffer data = MakeBytes( 3000, 11 );
-        MAIL::CMailOutgoing outgoing = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_ATTACHMENT, &data );
+        MAIL::CEMailOutgoing outgoing = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_ATTACHMENT, &data );
         outgoing.inReplyTo = "<previous@mail.test>";
         outgoing.references.push_back( "<first@mail.test>" );
         outgoing.references.push_back( "<previous@mail.test>" );
         outgoing.packageSha256 = "ab12";
-        COM::CMailMessage message;
+        COM::CEMailMessage message;
         CORE::CString reason;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::Compose( outgoing, message, reason ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::Compose( outgoing, message, reason ) );
 
-        COM::CMailMessage received;
+        COM::CEMailMessage received;
         CORE::CString wire;
         ASSERT_TRUE( ThroughTheWire( message, received, &wire ) );
-        ASSERT_TRUE( received.subject == MAIL::CMailMatchCodec::MakeSubject( id, 3, 3, "Friday game" ) );
-        ASSERT_TRUE( received.headers.Get( MAIL::CMailMatchCodec::HeaderMatch ) == id );
-        ASSERT_TRUE( received.headers.Get( MAIL::CMailMatchCodec::HeaderRevision ) == "3" );
-        ASSERT_TRUE( received.headers.Get( MAIL::CMailMatchCodec::HeaderKind ) == "TURN" );
-        ASSERT_TRUE( received.headers.Get( MAIL::CMailMatchCodec::HeaderProtocol ) == "1" );
+        ASSERT_TRUE( received.subject == MAIL::CEMailMatchCodec::MakeSubject( id, 3, 3, "Friday game" ) );
+        ASSERT_TRUE( received.headers.Get( MAIL::CEMailMatchCodec::HeaderMatch ) == id );
+        ASSERT_TRUE( received.headers.Get( MAIL::CEMailMatchCodec::HeaderRevision ) == "3" );
+        ASSERT_TRUE( received.headers.Get( MAIL::CEMailMatchCodec::HeaderKind ) == "TURN" );
+        ASSERT_TRUE( received.headers.Get( MAIL::CEMailMatchCodec::HeaderProtocol ) == "1" );
         ASSERT_TRUE( received.inReplyTo.size() == 1 && received.inReplyTo[ 0 ] == "<previous@mail.test>" && received.references.size() == 2 );
         ASSERT_TRUE( 1 == received.to.size() && 1 == received.cc.size() && "bob@mail.test" == received.to[ 0 ].GetAddress() && "carol@mail.test" == received.cc[ 0 ].GetAddress() );
         ASSERT_TRUE( 1 == received.attachments.size() && "application/octet-stream" == received.attachments[ 0 ].contentType.Lowercase() );
-        ASSERT_TRUE( received.attachments[ 0 ].fileName == MAIL::CMailMatchCodec::MakeAttachmentName( id, "r3" ) );
+        ASSERT_TRUE( received.attachments[ 0 ].fileName == MAIL::CEMailMatchCodec::MakeAttachmentName( id, "r3" ) );
         // a person can read it without the game, and no encoded data is in the text
         ASSERT_TRUE( received.textBody.HasSubstr( "Friday game" ) >= 0 && received.textBody.HasSubstr( "Alice" ) >= 0 && received.textBody.HasSubstr( "Bob" ) >= 0 );
         ASSERT_TRUE( received.textBody.HasSubstr( "https://games.example.invalid/match/" + id ) >= 0 );
         ASSERT_TRUE( received.textBody.HasSubstr( "BEGIN" ) < 0 );
 
-        MAIL::CMailIncoming incoming;
-        MAIL::CMailMatchCodec::ReadHeaders( received.headers, incoming );
+        MAIL::CEMailIncoming incoming;
+        MAIL::CEMailMatchCodec::ReadHeaders( received.headers, incoming );
         ASSERT_TRUE( incoming.valid && MAIL::MAILKIND_TURN == incoming.kind && incoming.matchId == id && 3 == incoming.revision && 1 == incoming.protocolVersion && !incoming.automatic );
         ASSERT_TRUE( incoming.fromAddress == "alice@mail.test" && incoming.packageSha256 == "ab12" );
 
         CORE::CDynamicBuffer extracted;
         MAIL::TMailTransfer used = MAIL::MAILTRANSFER_BODY_TEXT;
-        ASSERT_TRUE( MAIL::MAILPAYLOAD_OK == MAIL::CMailMatchCodec::ExtractData( received, id, 3, MAIL::CMailMatchCodec::ArmorLabelTurn, 2 * 1024 * 1024, 512 * 1024, extracted, used ) );
+        ASSERT_TRUE( MAIL::MAILPAYLOAD_OK == MAIL::CEMailMatchCodec::ExtractData( received, id, 3, MAIL::CEMailMatchCodec::ArmorLabelTurn, 2 * 1024 * 1024, 512 * 1024, extracted, used ) );
         ASSERT_TRUE( SameBytes( data, extracted ) && MAIL::MAILTRANSFER_ATTACHMENT == used );
     }
     catch ( ... )
@@ -384,11 +384,11 @@ PerformMailCodecTests( void )
     {
         const CORE::CString id = MULTIPLAY::CMatchId::Generate();
         CORE::CDynamicBuffer data = MakeBytes( 4000, 12 );
-        MAIL::CMailOutgoing outgoing = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_BODY_TEXT, &data );
-        COM::CMailMessage message;
+        MAIL::CEMailOutgoing outgoing = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_BODY_TEXT, &data );
+        COM::CEMailMessage message;
         CORE::CString reason;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::Compose( outgoing, message, reason ) );
-        COM::CMailMessage received;
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::Compose( outgoing, message, reason ) );
+        COM::CEMailMessage received;
         ASSERT_TRUE( ThroughTheWire( message, received ) );
         ASSERT_TRUE( received.attachments.empty() );
         ASSERT_TRUE( received.textBody.HasSubstr( "-----BEGIN MATCH TURN-----" ) >= 0 && received.textBody.HasSubstr( "-----END MATCH TURN-----" ) >= 0 );
@@ -396,18 +396,18 @@ PerformMailCodecTests( void )
 
         CORE::CDynamicBuffer extracted;
         MAIL::TMailTransfer used = MAIL::MAILTRANSFER_ATTACHMENT;
-        ASSERT_TRUE( MAIL::MAILPAYLOAD_OK == MAIL::CMailMatchCodec::ExtractData( received, id, 3, MAIL::CMailMatchCodec::ArmorLabelTurn, 2 * 1024 * 1024, 512 * 1024, extracted, used ) );
+        ASSERT_TRUE( MAIL::MAILPAYLOAD_OK == MAIL::CEMailMatchCodec::ExtractData( received, id, 3, MAIL::CEMailMatchCodec::ArmorLabelTurn, 2 * 1024 * 1024, 512 * 1024, extracted, used ) );
         ASSERT_TRUE( SameBytes( data, extracted ) && MAIL::MAILTRANSFER_BODY_TEXT == used );
 
         // a reply that quotes the text still carries it
-        COM::CMailMessage reply = received;
+        COM::CEMailMessage reply = received;
         reply.attachments.clear();
         reply.textBody = "Thanks, my move follows.\r\n\r\n" + Quote( received.textBody );
         CORE::CDynamicBuffer fromReply;
-        ASSERT_TRUE( MAIL::MAILPAYLOAD_OK == MAIL::CMailMatchCodec::ExtractData( reply, id, 0, MAIL::CMailMatchCodec::ArmorLabelTurn, 2 * 1024 * 1024, 512 * 1024, fromReply, used ) );
+        ASSERT_TRUE( MAIL::MAILPAYLOAD_OK == MAIL::CEMailMatchCodec::ExtractData( reply, id, 0, MAIL::CEMailMatchCodec::ArmorLabelTurn, 2 * 1024 * 1024, 512 * 1024, fromReply, used ) );
         ASSERT_TRUE( SameBytes( data, fromReply ) );
         // the text of another match is no answer
-        ASSERT_TRUE( MAIL::MAILPAYLOAD_NONE == MAIL::CMailMatchCodec::ExtractData( received, MULTIPLAY::CMatchId::Generate(), 0, MAIL::CMailMatchCodec::ArmorLabelTurn, 2 * 1024 * 1024, 512 * 1024, fromReply, used ) );
+        ASSERT_TRUE( MAIL::MAILPAYLOAD_NONE == MAIL::CEMailMatchCodec::ExtractData( received, MULTIPLAY::CMatchId::Generate(), 0, MAIL::CEMailMatchCodec::ArmorLabelTurn, 2 * 1024 * 1024, 512 * 1024, fromReply, used ) );
     }
     catch ( ... )
     {
@@ -425,16 +425,16 @@ PerformMailCodecTests( void )
         MAIL::TMailTransfer used = MAIL::MAILTRANSFER_ATTACHMENT;
 
         // nothing in the mail
-        COM::CMailMessage plain;
+        COM::CEMailMessage plain;
         plain.textBody = "Just a note";
-        ASSERT_TRUE( MAIL::MAILPAYLOAD_NONE == MAIL::CMailMatchCodec::ExtractData( plain, id, 0, MAIL::CMailMatchCodec::ArmorLabelTurn, 1024 * 1024, 512 * 1024, extracted, used ) );
+        ASSERT_TRUE( MAIL::MAILPAYLOAD_NONE == MAIL::CEMailMatchCodec::ExtractData( plain, id, 0, MAIL::CEMailMatchCodec::ArmorLabelTurn, 1024 * 1024, 512 * 1024, extracted, used ) );
 
         // damaged text
-        MAIL::CMailOutgoing outgoing = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_BODY_TEXT, &data );
-        COM::CMailMessage message;
+        MAIL::CEMailOutgoing outgoing = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_BODY_TEXT, &data );
+        COM::CEMailMessage message;
         CORE::CString reason;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::Compose( outgoing, message, reason ) );
-        COM::CMailMessage damaged = message;
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::Compose( outgoing, message, reason ) );
+        COM::CEMailMessage damaged = message;
         const Int32 begin = damaged.textBody.HasSubstr( "\n\n" );
         ASSERT_TRUE( begin > 0 );
         char* text = const_cast< char* >( damaged.textBody.C_String() );
@@ -442,21 +442,21 @@ PerformMailCodecTests( void )
         const Int32 mid = damaged.textBody.HasSubstr( "-----END" ) - 120;
         ASSERT_TRUE( mid > begin );
         text[ mid ] = ( 'A' == text[ mid ] ) ? 'B' : 'A';
-        ASSERT_TRUE( MAIL::MAILPAYLOAD_DAMAGED == MAIL::CMailMatchCodec::ExtractData( damaged, id, 0, MAIL::CMailMatchCodec::ArmorLabelTurn, 1024 * 1024, 512 * 1024, extracted, used ) );
+        ASSERT_TRUE( MAIL::MAILPAYLOAD_DAMAGED == MAIL::CEMailMatchCodec::ExtractData( damaged, id, 0, MAIL::CEMailMatchCodec::ArmorLabelTurn, 1024 * 1024, 512 * 1024, extracted, used ) );
 
         // the cap of the text
-        ASSERT_TRUE( MAIL::MAILPAYLOAD_TOO_LARGE == MAIL::CMailMatchCodec::ExtractData( message, id, 0, MAIL::CMailMatchCodec::ArmorLabelTurn, 1024 * 1024, 1000, extracted, used ) );
+        ASSERT_TRUE( MAIL::MAILPAYLOAD_TOO_LARGE == MAIL::CEMailMatchCodec::ExtractData( message, id, 0, MAIL::CEMailMatchCodec::ArmorLabelTurn, 1024 * 1024, 1000, extracted, used ) );
 
         // the cap of an attachment, whatever its name
-        COM::CMailMessage big;
+        COM::CEMailMessage big;
         CORE::CDynamicBuffer bigData = MakeBytes( 5000, 14 );
-        big.attachments.push_back( COM::CMailAttachment( "../../../etc/passwd", "application/octet-stream", bigData.GetConstBufferPtr(), bigData.GetDataSize() ) );
-        ASSERT_TRUE( MAIL::MAILPAYLOAD_TOO_LARGE == MAIL::CMailMatchCodec::ExtractData( big, id, 0, MAIL::CMailMatchCodec::ArmorLabelTurn, 4096, 512 * 1024, extracted, used ) );
-        ASSERT_TRUE( MAIL::MAILPAYLOAD_OK == MAIL::CMailMatchCodec::ExtractData( big, id, 0, MAIL::CMailMatchCodec::ArmorLabelTurn, 8192, 512 * 1024, extracted, used ) && SameBytes( bigData, extracted ) );
+        big.attachments.push_back( COM::CEMailAttachment( "../../../etc/passwd", "application/octet-stream", bigData.GetConstBufferPtr(), bigData.GetDataSize() ) );
+        ASSERT_TRUE( MAIL::MAILPAYLOAD_TOO_LARGE == MAIL::CEMailMatchCodec::ExtractData( big, id, 0, MAIL::CEMailMatchCodec::ArmorLabelTurn, 4096, 512 * 1024, extracted, used ) );
+        ASSERT_TRUE( MAIL::MAILPAYLOAD_OK == MAIL::CEMailMatchCodec::ExtractData( big, id, 0, MAIL::CEMailMatchCodec::ArmorLabelTurn, 8192, 512 * 1024, extracted, used ) && SameBytes( bigData, extracted ) );
         // an empty attachment is no data
-        COM::CMailMessage empty;
-        empty.attachments.push_back( COM::CMailAttachment( "x.rdxturn", "application/octet-stream", "", 0 ) );
-        ASSERT_TRUE( MAIL::MAILPAYLOAD_NONE == MAIL::CMailMatchCodec::ExtractData( empty, id, 0, MAIL::CMailMatchCodec::ArmorLabelTurn, 8192, 512 * 1024, extracted, used ) );
+        COM::CEMailMessage empty;
+        empty.attachments.push_back( COM::CEMailAttachment( "x.rdxturn", "application/octet-stream", "", 0 ) );
+        ASSERT_TRUE( MAIL::MAILPAYLOAD_NONE == MAIL::CEMailMatchCodec::ExtractData( empty, id, 0, MAIL::CEMailMatchCodec::ArmorLabelTurn, 8192, 512 * 1024, extracted, used ) );
     }
     catch ( ... )
     {
@@ -470,15 +470,15 @@ PerformMailCodecTests( void )
     {
         const CORE::CString id = MULTIPLAY::CMatchId::Generate();
         CORE::CDynamicBuffer data = MakeBytes( 100, 15 );
-        MAIL::CMailOutgoing outgoing = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_ATTACHMENT, &data );
+        MAIL::CEMailOutgoing outgoing = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_ATTACHMENT, &data );
         outgoing.title = "Game\r\nBcc: evil@mail.test";
         outgoing.actorName = "Alice\r\nX-Evil: yes";
         outgoing.nextName = "Bob\r\n\r\nInjected body";
         outgoing.note = "note\r\nBcc: evil@mail.test";
-        COM::CMailMessage message;
+        COM::CEMailMessage message;
         CORE::CString reason;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::Compose( outgoing, message, reason ) );
-        COM::CMailMessage received;
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::Compose( outgoing, message, reason ) );
+        COM::CEMailMessage received;
         CORE::CString wire;
         ASSERT_TRUE( ThroughTheWire( message, received, &wire ) );
         ASSERT_FALSE( received.headers.Has( "Bcc" ) || received.headers.Has( "X-Evil" ) );
@@ -486,20 +486,20 @@ PerformMailCodecTests( void )
         ASSERT_TRUE( wire.HasSubstr( "\r\nBcc: evil" ) < 0 && wire.HasSubstr( "\r\nX-Evil" ) < 0 );
 
         // an address that is not an address cannot be mailed
-        MAIL::CMailOutgoing bad = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_ATTACHMENT, &data );
+        MAIL::CEMailOutgoing bad = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_ATTACHMENT, &data );
         bad.to.clear();
-        bad.to.push_back( COM::CMailAddress( "Bob", "bob@mail.test\r\nBcc: evil@mail.test" ) );
-        COM::CMailMessage refused;
-        ASSERT_FALSE( MAIL::CMailMatchCodec::Compose( bad, refused, reason ) );
-        MAIL::CMailOutgoing noRecipient = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_ATTACHMENT, &data );
+        bad.to.push_back( COM::CEMailAddress( "Bob", "bob@mail.test\r\nBcc: evil@mail.test" ) );
+        COM::CEMailMessage refused;
+        ASSERT_FALSE( MAIL::CEMailMatchCodec::Compose( bad, refused, reason ) );
+        MAIL::CEMailOutgoing noRecipient = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_ATTACHMENT, &data );
         noRecipient.to.clear();
         noRecipient.cc.clear();
-        ASSERT_FALSE( MAIL::CMailMatchCodec::Compose( noRecipient, refused, reason ) );
-        MAIL::CMailOutgoing noMatch = MakeOutgoing( "not-a-match-id", MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_ATTACHMENT, &data );
-        ASSERT_FALSE( MAIL::CMailMatchCodec::Compose( noMatch, refused, reason ) );
+        ASSERT_FALSE( MAIL::CEMailMatchCodec::Compose( noRecipient, refused, reason ) );
+        MAIL::CEMailOutgoing noMatch = MakeOutgoing( "not-a-match-id", MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_ATTACHMENT, &data );
+        ASSERT_FALSE( MAIL::CEMailMatchCodec::Compose( noMatch, refused, reason ) );
         // a mail that carries data needs it
-        MAIL::CMailOutgoing noData = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_ATTACHMENT, GUCEF_NULL );
-        ASSERT_FALSE( MAIL::CMailMatchCodec::Compose( noData, refused, reason ) );
+        MAIL::CEMailOutgoing noData = MakeOutgoing( id, MAIL::MAILKIND_TURN, MAIL::MAILTRANSFER_ATTACHMENT, GUCEF_NULL );
+        ASSERT_FALSE( MAIL::CEMailMatchCodec::Compose( noData, refused, reason ) );
     }
     catch ( ... )
     {
@@ -512,25 +512,25 @@ PerformMailCodecTests( void )
     try
     {
         const CORE::CString id = MULTIPLAY::CMatchId::Generate();
-        MAIL::CMailOutgoing ack = MakeOutgoing( id, MAIL::MAILKIND_ACK, MAIL::MAILTRANSFER_ATTACHMENT, GUCEF_NULL );
+        MAIL::CEMailOutgoing ack = MakeOutgoing( id, MAIL::MAILKIND_ACK, MAIL::MAILTRANSFER_ATTACHMENT, GUCEF_NULL );
         ack.cc.clear();
         ack.packageSha256 = "cafe";
-        COM::CMailMessage message;
+        COM::CEMailMessage message;
         CORE::CString reason;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::Compose( ack, message, reason ) );
-        COM::CMailMessage received;
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::Compose( ack, message, reason ) );
+        COM::CEMailMessage received;
         CORE::CString wire;
         ASSERT_TRUE( ThroughTheWire( message, received, &wire ) );
         ASSERT_TRUE( received.attachments.empty() && wire.ByteSize() < 1500 );
-        MAIL::CMailIncoming incoming;
-        MAIL::CMailMatchCodec::ReadHeaders( received.headers, incoming );
+        MAIL::CEMailIncoming incoming;
+        MAIL::CEMailMatchCodec::ReadHeaders( received.headers, incoming );
         ASSERT_TRUE( incoming.valid && MAIL::MAILKIND_ACK == incoming.kind && incoming.packageSha256 == "cafe" );
 
-        MAIL::CMailOutgoing resend = MakeOutgoing( id, MAIL::MAILKIND_RESEND, MAIL::MAILTRANSFER_ATTACHMENT, GUCEF_NULL );
+        MAIL::CEMailOutgoing resend = MakeOutgoing( id, MAIL::MAILKIND_RESEND, MAIL::MAILTRANSFER_ATTACHMENT, GUCEF_NULL );
         resend.wantTransfer = "BODY_TEXT";
-        ASSERT_TRUE( MAIL::CMailMatchCodec::Compose( resend, message, reason ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::Compose( resend, message, reason ) );
         ASSERT_TRUE( ThroughTheWire( message, received ) );
-        MAIL::CMailMatchCodec::ReadHeaders( received.headers, incoming );
+        MAIL::CEMailMatchCodec::ReadHeaders( received.headers, incoming );
         ASSERT_TRUE( incoming.valid && MAIL::MAILKIND_RESEND == incoming.kind && incoming.wantTransfer == "BODY_TEXT" && 3 == incoming.revision );
     }
     catch ( ... )
@@ -544,9 +544,9 @@ PerformMailCodecTests( void )
     try
     {
         const CORE::CString id = MULTIPLAY::CMatchId::Generate();
-        MAIL::CMailIncoming incoming;
-        COM::CMailHeaders headers;
-        MAIL::CMailMatchCodec::ReadHeaders( headers, incoming );
+        MAIL::CEMailIncoming incoming;
+        COM::CEMailHeaders headers;
+        MAIL::CEMailMatchCodec::ReadHeaders( headers, incoming );
         ASSERT_FALSE( incoming.valid );
 
         headers.Add( "X-Redux-Match", id );
@@ -555,23 +555,23 @@ PerformMailCodecTests( void )
         headers.Add( "X-Redux-Protocol", "1" );
         headers.Add( "Message-ID", "<abc@mail.test>" );
         headers.Add( "From", "Alice <Alice@Mail.Test>" );
-        MAIL::CMailMatchCodec::ReadHeaders( headers, incoming );
+        MAIL::CEMailMatchCodec::ReadHeaders( headers, incoming );
         ASSERT_TRUE( incoming.valid && 7 == incoming.revision && incoming.messageId == "<abc@mail.test>" && incoming.fromAddress.Lowercase() == "alice@mail.test" );
 
         const char* badValues[][2] = { { "X-Redux-Protocol", "2" }, { "X-Redux-Protocol", "x" }, { "X-Redux-Protocol", "" }, { "X-Redux-Match", "3f2504e0" }, { "X-Redux-Match", "../../x" },
                                        { "X-Redux-Kind", "SHUTDOWN" }, { "X-Redux-Revision", "-1" }, { "X-Redux-Revision", "99999999999999" }, { "X-Redux-Revision", "1e3" } };
         for ( int i=0; i<9; ++i )
         {
-            COM::CMailHeaders changed = headers;
+            COM::CEMailHeaders changed = headers;
             changed.Set( badValues[ i ][ 0 ], badValues[ i ][ 1 ] );
-            MAIL::CMailIncoming result;
-            MAIL::CMailMatchCodec::ReadHeaders( changed, result );
+            MAIL::CEMailIncoming result;
+            MAIL::CEMailMatchCodec::ReadHeaders( changed, result );
             ASSERT_FALSE( result.valid );
         }
         // the match id is read in the one form it is used in
-        COM::CMailHeaders upper = headers;
+        COM::CEMailHeaders upper = headers;
         upper.Set( "X-Redux-Match", id.Uppercase() );
-        MAIL::CMailMatchCodec::ReadHeaders( upper, incoming );
+        MAIL::CEMailMatchCodec::ReadHeaders( upper, incoming );
         ASSERT_TRUE( !incoming.valid || incoming.matchId == id );
     }
     catch ( ... )
@@ -622,24 +622,24 @@ PerformMailCodecTests( void )
         ASSERT_TRUE( record.Sign( ids[ 0 ] ) );
 
         CORE::CDynamicBuffer bytes;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SerializeToBytes( record, bytes, 256 * 1024 ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SerializeToBytes( record, bytes, 256 * 1024 ) );
         ASSERT_TRUE( bytes.GetDataSize() > 100 && bytes.GetDataSize() < 32 * 1024 );
         MULTIPLAY::CMatchRecord read;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::DeserializeFromBytes( bytes.GetConstBufferPtr(), bytes.GetDataSize(), read, 256 * 1024 ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::DeserializeFromBytes( bytes.GetConstBufferPtr(), bytes.GetDataSize(), read, 256 * 1024 ) );
         CORE::CString why;
         ASSERT_TRUE( read.Verify( why ) && read.info.GetDigest() == record.info.GetDigest() && "BODY_TEXT" == read.info.GetSetting( GUCEF_MULTIPLAYPLUGIN_MAIL_SETTING_TRANSFER ) );
 
         // the cap holds on both sides
         CORE::CDynamicBuffer tooSmall;
-        ASSERT_FALSE( MAIL::CMailMatchCodec::SerializeToBytes( record, tooSmall, 100 ) );
+        ASSERT_FALSE( MAIL::CEMailMatchCodec::SerializeToBytes( record, tooSmall, 100 ) );
         MULTIPLAY::CMatchRecord refused;
-        ASSERT_FALSE( MAIL::CMailMatchCodec::DeserializeFromBytes( bytes.GetConstBufferPtr(), bytes.GetDataSize(), refused, bytes.GetDataSize() - 1 ) );
+        ASSERT_FALSE( MAIL::CEMailMatchCodec::DeserializeFromBytes( bytes.GetConstBufferPtr(), bytes.GetDataSize(), refused, bytes.GetDataSize() - 1 ) );
         // text that is no record
         const char* junk[] = { "", "not json", "{", "[1,2,3]", "{\"a\":", "\x01\x02\x03" };
         for ( int i=0; i<6; ++i )
         {
             MULTIPLAY::CMatchRecord target;
-            ASSERT_FALSE( MAIL::CMailMatchCodec::DeserializeFromBytes( junk[ i ], (UInt32) strlen( junk[ i ] ), target, 256 * 1024 ) && target.Verify( why ) );
+            ASSERT_FALSE( MAIL::CEMailMatchCodec::DeserializeFromBytes( junk[ i ], (UInt32) strlen( junk[ i ] ), target, 256 * 1024 ) && target.Verify( why ) );
         }
         // nesting a thousand deep is not a record and not a crash
         CORE::CString deep;
@@ -647,7 +647,7 @@ PerformMailCodecTests( void )
         deep += "1";
         for ( int i=0; i<1000; ++i ) deep += "}";
         MULTIPLAY::CMatchRecord deepTarget;
-        ASSERT_FALSE( MAIL::CMailMatchCodec::DeserializeFromBytes( deep.C_String(), deep.ByteSize() - 1, deepTarget, 256 * 1024 ) && deepTarget.Verify( why ) );
+        ASSERT_FALSE( MAIL::CEMailMatchCodec::DeserializeFromBytes( deep.C_String(), deep.ByteSize() - 1, deepTarget, 256 * 1024 ) && deepTarget.Verify( why ) );
         // a record that was changed no longer verifies
         CORE::CString text( static_cast< const char* >( bytes.GetConstBufferPtr() ), bytes.GetDataSize() );
         const Int32 at = text.HasSubstr( "record" );
@@ -655,7 +655,7 @@ PerformMailCodecTests( void )
         char* raw = const_cast< char* >( text.C_String() );
         raw[ at ] = 'R';
         MULTIPLAY::CMatchRecord changed;
-        if ( MAIL::CMailMatchCodec::DeserializeFromBytes( text.C_String(), text.ByteSize() - 1, changed, 256 * 1024 ) )
+        if ( MAIL::CEMailMatchCodec::DeserializeFromBytes( text.C_String(), text.ByteSize() - 1, changed, 256 * 1024 ) )
             ASSERT_FALSE( changed.Verify( why ) );
     }
     catch ( ... )
@@ -680,9 +680,9 @@ PerformMailCodecTests( void )
         MULTIPLAY::CMatchInfo info = TESTFW::MakeTestMatchInfo( three, "statement", true );
         MULTIPLAY::CMatchInfo other = TESTFW::MakeTestMatchInfo( three, "other", true );
 
-        MAIL::CMailSignedStatement nudge;
+        MAIL::CEMailSignedStatement nudge;
         nudge.matchId = info.matchId;
-        nudge.statementKind = MAIL::CMailSignedStatement::KindNudge;
+        nudge.statementKind = MAIL::CEMailSignedStatement::KindNudge;
         nudge.targetUserId = ids[ 1 ].userId;
         nudge.revision = 4;
         nudge.createdAt = 1700000000000LL;
@@ -692,41 +692,41 @@ PerformMailCodecTests( void )
 
         // another match, another kind, a changed field, another signer
         ASSERT_FALSE( nudge.Verify( other, why ) );
-        MAIL::CMailSignedStatement asResign = nudge;
-        asResign.statementKind = MAIL::CMailSignedStatement::KindResign;
+        MAIL::CEMailSignedStatement asResign = nudge;
+        asResign.statementKind = MAIL::CEMailSignedStatement::KindResign;
         ASSERT_FALSE( asResign.Verify( info, why ) );
-        MAIL::CMailSignedStatement changedTarget = nudge;
+        MAIL::CEMailSignedStatement changedTarget = nudge;
         changedTarget.targetUserId = ids[ 2 ].userId;
         ASSERT_FALSE( changedTarget.Verify( info, why ) );
-        MAIL::CMailSignedStatement changedRevision = nudge;
+        MAIL::CEMailSignedStatement changedRevision = nudge;
         changedRevision.revision = 5;
         ASSERT_FALSE( changedRevision.Verify( info, why ) );
-        MAIL::CMailSignedStatement claimsBob = nudge;
+        MAIL::CEMailSignedStatement claimsBob = nudge;
         claimsBob.userId = ids[ 1 ].userId;
         ASSERT_FALSE( claimsBob.Verify( info, why ) );
         // someone who is not a participant, with a good signature of their own
-        MAIL::CMailSignedStatement outsider;
+        MAIL::CEMailSignedStatement outsider;
         outsider.matchId = info.matchId;
-        outsider.statementKind = MAIL::CMailSignedStatement::KindNudge;
+        outsider.statementKind = MAIL::CEMailSignedStatement::KindNudge;
         outsider.targetUserId = ids[ 1 ].userId;
         ASSERT_TRUE( outsider.Sign( ids[ 3 ] ) );
         ASSERT_FALSE( outsider.Verify( info, why ) );
         // an unknown kind cannot be signed
-        MAIL::CMailSignedStatement unknownKind;
+        MAIL::CEMailSignedStatement unknownKind;
         unknownKind.matchId = info.matchId;
         unknownKind.statementKind = "wipe";
         ASSERT_FALSE( unknownKind.Sign( ids[ 0 ] ) );
 
-        MAIL::CMailSignedStatement resign;
+        MAIL::CEMailSignedStatement resign;
         resign.matchId = info.matchId;
-        resign.statementKind = MAIL::CMailSignedStatement::KindResign;
+        resign.statementKind = MAIL::CEMailSignedStatement::KindResign;
         ASSERT_TRUE( resign.Sign( ids[ 2 ] ) && resign.Verify( info, why ) );
 
         // as bytes, and back
         CORE::CDynamicBuffer bytes;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SerializeToBytes( nudge, bytes, 64 * 1024 ) && bytes.GetDataSize() < 2048 );
-        MAIL::CMailSignedStatement read;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::DeserializeFromBytes( bytes.GetConstBufferPtr(), bytes.GetDataSize(), read, 64 * 1024 ) && read.Verify( info, why ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SerializeToBytes( nudge, bytes, 64 * 1024 ) && bytes.GetDataSize() < 2048 );
+        MAIL::CEMailSignedStatement read;
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::DeserializeFromBytes( bytes.GetConstBufferPtr(), bytes.GetDataSize(), read, 64 * 1024 ) && read.Verify( info, why ) );
         ASSERT_TRUE( read.userId == nudge.userId && read.targetUserId == nudge.targetUserId && 4 == read.revision && read.createdAt == nudge.createdAt );
     }
     catch ( ... )

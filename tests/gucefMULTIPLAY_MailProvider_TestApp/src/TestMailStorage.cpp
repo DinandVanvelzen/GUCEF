@@ -42,9 +42,9 @@
 #define GUCEF_CORE_DVCPPFILEUTILS_H
 #endif /* GUCEF_CORE_DVCPPFILEUTILS_H ? */
 
-#include "matchprovidermail_CMailFiles.h"
-#include "matchprovidermail_CMailOutbox.h"
-#include "matchprovidermail_CMailMatchState.h"
+#include "matchprovidermail_CEMailFiles.h"
+#include "matchprovidermail_CEMailOutbox.h"
+#include "matchprovidermail_CEMailMatchState.h"
 #include "TestMailPump.h"
 #include "TestMailStorage.h"
 
@@ -87,7 +87,7 @@ CountFiles( const CORE::CString& dir )
 {GUCEF_TRACE;
 
     CORE::CString::StringVector names;
-    MAIL::CMailFiles::ListFiles( dir, names );
+    MAIL::CEMailFiles::ListFiles( dir, names );
     return (UInt32) names.size();
 }
 
@@ -107,7 +107,7 @@ class CDeliveryRecorder : public CORE::CObserver
 {
     public:
 
-    GUCEF::vector< MAIL::CMailDeliveryEvent > events;
+    GUCEF::vector< MAIL::CEMailDeliveryEvent > events;
 
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE { static const CORE::CString n = "CDeliveryRecorder"; return n; }
 
@@ -124,8 +124,8 @@ class CDeliveryRecorder : public CORE::CObserver
 
     virtual void OnNotify( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData ) GUCEF_VIRTUAL_OVERRIDE
     {
-        if ( MAIL::CMailOutbox::DeliveryChangedEvent == eventId )
-            events.push_back( *static_cast< const MAIL::CMailDeliveryEvent* >( eventData ) );
+        if ( MAIL::CEMailOutbox::DeliveryChangedEvent == eventId )
+            events.push_back( *static_cast< const MAIL::CEMailDeliveryEvent* >( eventData ) );
     }
 };
 
@@ -134,13 +134,13 @@ class CDeliveryRecorder : public CORE::CObserver
 /** An outbox of Alice, with a world of three mailboxes and a clock the test moves */
 struct SOutboxFixture
 {
-    TESTFW::CTestMailWorld world;
-    TESTFW::CTestMailBox* alice;
-    TESTFW::CTestMailBox* bob;
-    TESTFW::CTestMailBox* carol;
+    TESTFW::CTestEMailWorld world;
+    TESTFW::CTestEMailBox* alice;
+    TESTFW::CTestEMailBox* bob;
+    TESTFW::CTestEMailBox* carol;
     TESTFW::CManualMatchClock clock;
-    MAIL::CMailMatchProviderSettings settings;
-    MAIL::CMailOutbox outbox;
+    MAIL::CEMailMatchProviderSettings settings;
+    MAIL::CEMailOutbox outbox;
     CDeliveryRecorder recorder;
     CORE::CString dir;
     CORE::CString matchId;
@@ -177,28 +177,28 @@ struct SOutboxFixture
     /** A mail of Alice to the others, as an outbox item that waits for them to confirm */
     CORE::CString QueueTurn( UInt32 revision, bool toBob, bool toCarol, UInt32* itemId = GUCEF_NULL )
     {
-        MAIL::CMailOutgoing outgoing;
+        MAIL::CEMailOutgoing outgoing;
         outgoing.kind = MAIL::MAILKIND_TURN;
         outgoing.matchId = matchId;
         outgoing.revision = revision;
         outgoing.turn = revision;
         outgoing.title = "Storage";
-        outgoing.from = COM::CMailAddress( "Alice", "alice@mail.test" );
-        if ( toBob ) outgoing.to.push_back( COM::CMailAddress( "bob@mail.test" ) );
-        if ( toCarol ) ( outgoing.to.empty() ? outgoing.to : outgoing.cc ).push_back( COM::CMailAddress( "carol@mail.test" ) );
+        outgoing.from = COM::CEMailAddress( "Alice", "alice@mail.test" );
+        if ( toBob ) outgoing.to.push_back( COM::CEMailAddress( "bob@mail.test" ) );
+        if ( toCarol ) ( outgoing.to.empty() ? outgoing.to : outgoing.cc ).push_back( COM::CEMailAddress( "carol@mail.test" ) );
         CORE::CDynamicBuffer data;
         data.Append( "payload", 7 );
         outgoing.data = &data;
-        outgoing.dataLabel = MAIL::CMailMatchCodec::ArmorLabelTurn;
+        outgoing.dataLabel = MAIL::CEMailMatchCodec::ArmorLabelTurn;
         outgoing.dataRevisionName = "r" + CORE::UInt32ToString( revision );
-        COM::CMailMessage message;
+        COM::CEMailMessage message;
         CORE::CString reason;
-        if ( !MAIL::CMailMatchCodec::Compose( outgoing, message, reason ) )
+        if ( !MAIL::CEMailMatchCodec::Compose( outgoing, message, reason ) )
             return CORE::CString::Empty;
         const CORE::CString messageId = "<storage-" + CORE::UInt32ToString( ++counter ) + "@mail.test>";
         message.messageId = messageId;
         COM::CMimeComposer composer;
-        MAIL::CMailOutboxItem item;
+        MAIL::CEMailOutboxItem item;
         if ( !composer.Compose( message, item.message, reason ) )
             return CORE::CString::Empty;
         item.kind = MAIL::MAILKIND_TURN;
@@ -242,11 +242,11 @@ struct SOutboxFixture
 
 /*-------------------------------------------------------------------------*/
 
-MAIL::CMailOutboxItem
+MAIL::CEMailOutboxItem
 MakeFullItem( void )
 {GUCEF_TRACE;
 
-    MAIL::CMailOutboxItem item;
+    MAIL::CEMailOutboxItem item;
     item.id = 42;
     item.kind = MAIL::MAILKIND_FINISH;
     item.matchId = MULTIPLAY::CMatchId::Generate();
@@ -288,27 +288,27 @@ PerformMailStorageTests( void )
         const CORE::CString dir = StorageDir( "files" );
         const CORE::CString path = CORE::CombinePath( CORE::CombinePath( dir, "a" ), "file.bin" );
         CORE::CDynamicBuffer read;
-        ASSERT_FALSE( MAIL::CMailFiles::ReadBounded( path, 1000, read ) );
-        ASSERT_TRUE( MAIL::CMailFiles::WriteAtomic( path, "first", 5 ) );
+        ASSERT_FALSE( MAIL::CEMailFiles::ReadBounded( path, 1000, read ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::WriteAtomic( path, "first", 5 ) );
         ASSERT_TRUE( 1 == CountFiles( CORE::CombinePath( dir, "a" ) ) );
-        ASSERT_TRUE( MAIL::CMailFiles::ReadBounded( path, 1000, read ) && "first" == Text( read ) );
-        ASSERT_TRUE( MAIL::CMailFiles::WriteAtomic( path, "second file", 11 ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::ReadBounded( path, 1000, read ) && "first" == Text( read ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::WriteAtomic( path, "second file", 11 ) );
         ASSERT_TRUE( 1 == CountFiles( CORE::CombinePath( dir, "a" ) ) );
-        ASSERT_TRUE( MAIL::CMailFiles::ReadBounded( path, 1000, read ) && "second file" == Text( read ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::ReadBounded( path, 1000, read ) && "second file" == Text( read ) );
         // larger than the bound is not read at all
-        ASSERT_FALSE( MAIL::CMailFiles::ReadBounded( path, 10, read ) );
-        ASSERT_TRUE( MAIL::CMailFiles::ReadBounded( path, 11, read ) );
+        ASSERT_FALSE( MAIL::CEMailFiles::ReadBounded( path, 10, read ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::ReadBounded( path, 11, read ) );
         // an empty file
-        ASSERT_TRUE( MAIL::CMailFiles::WriteAtomic( CORE::CombinePath( dir, "empty" ), GUCEF_NULL, 0 ) );
-        ASSERT_TRUE( MAIL::CMailFiles::ReadBounded( CORE::CombinePath( dir, "empty" ), 10, read ) && 0 == read.GetDataSize() );
+        ASSERT_TRUE( MAIL::CEMailFiles::WriteAtomic( CORE::CombinePath( dir, "empty" ), GUCEF_NULL, 0 ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::ReadBounded( CORE::CombinePath( dir, "empty" ), 10, read ) && 0 == read.GetDataSize() );
 
         CORE::CString::StringVector dirs;
-        MAIL::CMailFiles::ListDirectories( dir, dirs );
+        MAIL::CEMailFiles::ListDirectories( dir, dirs );
         ASSERT_TRUE( 1 == dirs.size() && "a" == dirs[ 0 ] );
         CORE::CString::StringVector files;
-        MAIL::CMailFiles::ListFiles( dir, files );
+        MAIL::CEMailFiles::ListFiles( dir, files );
         ASSERT_TRUE( 1 == files.size() && "empty" == files[ 0 ] );
-        MAIL::CMailFiles::ListFiles( CORE::CombinePath( dir, "none" ), files );
+        MAIL::CEMailFiles::ListFiles( CORE::CombinePath( dir, "none" ), files );
         ASSERT_TRUE( files.empty() );
     }
     catch ( ... )
@@ -331,15 +331,15 @@ PerformMailStorageTests( void )
         MULTIPLAY::CMatchPreview preview = TESTFW::MakeTestPreview( info, alice, package, GUCEF_NULL, MULTIPLAY::MATCHSTATUS_ACTIVE, 5 );
 
         const CORE::CString path = CORE::CombinePath( dir, "preview.json" );
-        ASSERT_TRUE( MAIL::CMailFiles::WriteRecord( path, preview ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::WriteRecord( path, preview ) );
         ASSERT_TRUE( 1 == CountFiles( dir ) );
         MULTIPLAY::CMatchPreview read;
-        ASSERT_TRUE( MAIL::CMailFiles::ReadRecord( path, read, 64 * 1024 ) && read.VerifySignature() && read.packageSha256 == preview.packageSha256 );
+        ASSERT_TRUE( MAIL::CEMailFiles::ReadRecord( path, read, 64 * 1024 ) && read.VerifySignature() && read.packageSha256 == preview.packageSha256 );
         MULTIPLAY::CMatchPreview tooSmall;
-        ASSERT_FALSE( MAIL::CMailFiles::ReadRecord( path, tooSmall, 50 ) );
-        ASSERT_TRUE( MAIL::CMailFiles::WriteAtomic( CORE::CombinePath( dir, "junk.json" ), "{ not json", 10 ) );
-        ASSERT_FALSE( MAIL::CMailFiles::ReadRecord( CORE::CombinePath( dir, "junk.json" ), tooSmall, 64 * 1024 ) );
-        ASSERT_FALSE( MAIL::CMailFiles::ReadRecord( CORE::CombinePath( dir, "missing.json" ), tooSmall, 64 * 1024 ) );
+        ASSERT_FALSE( MAIL::CEMailFiles::ReadRecord( path, tooSmall, 50 ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::WriteAtomic( CORE::CombinePath( dir, "junk.json" ), "{ not json", 10 ) );
+        ASSERT_FALSE( MAIL::CEMailFiles::ReadRecord( CORE::CombinePath( dir, "junk.json" ), tooSmall, 64 * 1024 ) );
+        ASSERT_FALSE( MAIL::CEMailFiles::ReadRecord( CORE::CombinePath( dir, "missing.json" ), tooSmall, 64 * 1024 ) );
     }
     catch ( ... )
     {
@@ -351,10 +351,10 @@ PerformMailStorageTests( void )
     GUCEF_TESTFW_SKIP_IF( !MailTestWanted( "Outbox item: the file layout round trips, and truncation, extra bytes and any damage never crash the reader" ), "not the case that was asked for" );
     try
     {
-        const MAIL::CMailOutboxItem item = MakeFullItem();
+        const MAIL::CEMailOutboxItem item = MakeFullItem();
         CORE::CDynamicBuffer bytes;
         ASSERT_TRUE( item.ToBytes( bytes ) );
-        MAIL::CMailOutboxItem read;
+        MAIL::CEMailOutboxItem read;
         ASSERT_TRUE( read.FromBytes( bytes.GetConstBufferPtr(), bytes.GetDataSize() ) );
         ASSERT_TRUE( read.id == item.id && read.kind == item.kind && read.matchId == item.matchId && read.revision == item.revision && read.messageId == item.messageId );
         ASSERT_TRUE( read.envelopeFrom == item.envelopeFrom && 2 == read.recipients.size() && 1 == read.awaiting.size() && read.awaiting[ 0 ] == "carol@mail.test" );
@@ -364,13 +364,13 @@ PerformMailStorageTests( void )
         // every shorter file is refused
         for ( UInt32 size=0; size<bytes.GetDataSize(); ++size )
         {
-            MAIL::CMailOutboxItem partial;
+            MAIL::CEMailOutboxItem partial;
             ASSERT_FALSE( partial.FromBytes( bytes.GetConstBufferPtr(), size ) );
         }
         // bytes behind the end are refused
         CORE::CDynamicBuffer longer = bytes;
         longer.Append( "x", 1 );
-        MAIL::CMailOutboxItem extra;
+        MAIL::CEMailOutboxItem extra;
         ASSERT_FALSE( extra.FromBytes( longer.GetConstBufferPtr(), longer.GetDataSize() ) );
         // damage: the reader answers, whatever it answers
         UInt32 state = 7;
@@ -385,7 +385,7 @@ PerformMailStorageTests( void )
                 state = state * 1664525u + 1013904223u;
                 data[ ( state >> 8 ) % damaged.GetDataSize() ] ^= (UInt8)( 1 << ( ( state >> 3 ) % 8 ) );
             }
-            MAIL::CMailOutboxItem result;
+            MAIL::CEMailOutboxItem result;
             result.FromBytes( damaged.GetConstBufferPtr(), damaged.GetDataSize() );
         }
         // a recipient count of billions
@@ -393,7 +393,7 @@ PerformMailStorageTests( void )
         MULTIPLAY::CMatchBinaryWriter writer( huge );
         writer.WriteRaw( bytes.GetConstBufferPtr(), 12 );
         writer.WriteUInt32( 0xFFFFFFFFu );
-        MAIL::CMailOutboxItem hugeResult;
+        MAIL::CEMailOutboxItem hugeResult;
         ASSERT_FALSE( hugeResult.FromBytes( huge.GetConstBufferPtr(), huge.GetDataSize() ) );
     }
     catch ( ... )
@@ -414,7 +414,7 @@ PerformMailStorageTests( void )
             ASSERT_TRUE( TESTFW::MakeTestIdentity( i == 0 ? "Alice" : ( i == 1 ? "Bob" : "Carol" ), identity ) );
             ids.push_back( identity );
         }
-        MAIL::CMailMatchState state;
+        MAIL::CEMailMatchState state;
         state.info = TESTFW::MakeTestMatchInfo( ids, "state", false );
         state.record = MULTIPLAY::CMatchRecord( state.info );
         ASSERT_TRUE( state.record.Sign( ids[ 0 ] ) );
@@ -422,9 +422,9 @@ PerformMailStorageTests( void )
         MULTIPLAY::CMatchAcceptance acceptance;
         ASSERT_TRUE( acceptance.Sign( ids[ 1 ], state.info, true ) );
         state.acceptances.push_back( acceptance );
-        MAIL::CMailSignedStatement resign;
+        MAIL::CEMailSignedStatement resign;
         resign.matchId = state.info.matchId;
-        resign.statementKind = MAIL::CMailSignedStatement::KindResign;
+        resign.statementKind = MAIL::CEMailSignedStatement::KindResign;
         ASSERT_TRUE( resign.Sign( ids[ 2 ] ) );
         state.resigns.push_back( resign );
         MULTIPLAY::CMatchProposal proposal;
@@ -441,10 +441,10 @@ PerformMailStorageTests( void )
         state.trustedRevision = 4;
         state.shaByRevision[ 3 ] = "aa";
         state.shaByRevision[ 4 ] = "bb";
-        MAIL::CMailRefusal refusal;
+        MAIL::CEMailRefusal refusal;
         refusal.revision = 4; refusal.sha256 = "cc"; refusal.code = "NOT_ON_TURN"; refusal.reason = "The signer was not on turn"; refusal.at = 55; refusal.file = "refused-1.rdxturn";
         state.refusals.push_back( refusal );
-        MAIL::CMailEquivocation equivocation;
+        MAIL::CEMailEquivocation equivocation;
         equivocation.revision = 3; equivocation.issuerKey = ids[ 1 ].publicKey; equivocation.issuerUserId = ids[ 1 ].userId; equivocation.firstSha256 = "aa"; equivocation.secondSha256 = "dd"; equivocation.file = "refused-2.rdxturn";
         state.equivocations.push_back( equivocation );
         state.lastMessageId = "<last@mail.test>";
@@ -460,9 +460,9 @@ PerformMailStorageTests( void )
         state.cursor = "1000:7";
 
         const CORE::CString path = CORE::CombinePath( StorageDir( "state" ), "state.json" );
-        ASSERT_TRUE( MAIL::CMailFiles::WriteRecord( path, state ) );
-        MAIL::CMailMatchState read;
-        ASSERT_TRUE( MAIL::CMailFiles::ReadRecord( path, read, 4 * 1024 * 1024 ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::WriteRecord( path, state ) );
+        MAIL::CEMailMatchState read;
+        ASSERT_TRUE( MAIL::CEMailFiles::ReadRecord( path, read, 4 * 1024 * 1024 ) );
         CORE::CString why;
         ASSERT_TRUE( read.hasRecord && read.record.Verify( why ) && read.info.matchId == state.info.matchId && 3 == read.info.participants.size() );
         ASSERT_TRUE( 1 == read.acceptances.size() && read.acceptances[ 0 ].Verify( read.info, why ) );
@@ -478,7 +478,7 @@ PerformMailStorageTests( void )
         ASSERT_TRUE( 2 == read.deliveredRevisions.size() && read.deliveredRevisions.count( 3 ) == 1 );
 
         // not a state
-        MAIL::CMailMatchState junk;
+        MAIL::CEMailMatchState junk;
         CORE::CDataNode empty( "Nothing" );
         ASSERT_FALSE( junk.Deserialize( empty, CORE::CDataNodeSerializableSettings() ) && junk.hasRecord );
     }
@@ -695,9 +695,9 @@ PerformMailStorageTests( void )
         f.outbox.Shutdown();
         const CORE::CString outDir = CORE::CombinePath( f.dir, "outbox" );
         ASSERT_TRUE( 2 == CountFiles( outDir ) );
-        ASSERT_TRUE( MAIL::CMailFiles::WriteAtomic( CORE::CombinePath( outDir, "garbage.rdxout" ), "this is not an item", 19 ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::WriteAtomic( CORE::CombinePath( outDir, "garbage.rdxout" ), "this is not an item", 19 ) );
 
-        MAIL::CMailOutbox second;
+        MAIL::CEMailOutbox second;
         second.Configure( &f.settings, GUCEF_NULL, outDir );
         UInt32 skipped = 0;
         ASSERT_TRUE( second.Load( &skipped ) );

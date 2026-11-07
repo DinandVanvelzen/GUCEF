@@ -27,7 +27,7 @@
 #define GUCEF_COM_CMIMEPARSER_H
 #endif /* GUCEF_COM_CMIMEPARSER_H ? */
 
-#include "matchprovidermail_CMailFiles.h"
+#include "matchprovidermail_CEMailFiles.h"
 #include "TestMailFixture.h"
 #include "TestMailChain.h"
 
@@ -67,7 +67,7 @@ Addresses( const char* a, const char* b = GUCEF_NULL )
 /*-------------------------------------------------------------------------*/
 
 bool
-FileExists( const CMailTable& table, UInt32 player, const CORE::CString& matchId, const CORE::CString& file )
+FileExists( const CEMailTable& table, UInt32 player, const CORE::CString& matchId, const CORE::CString& file )
 {GUCEF_TRACE;
 
     return !file.IsNULLOrEmpty() && CORE::FileExists( CORE::CombinePath( CORE::CombinePath( CORE::CombinePath( table.players[ player ]->dir, "matches" ), matchId ), file ) );
@@ -77,7 +77,7 @@ FileExists( const CMailTable& table, UInt32 player, const CORE::CString& matchId
 
 /** The wire text of the n-th message of a mailbox that is a turn of the revision */
 CORE::CString
-FindTurnMail( CMailTable& table, UInt32 player, const char* revision )
+FindTurnMail( CEMailTable& table, UInt32 player, const char* revision )
 {GUCEF_TRACE;
 
     GUCEF::vector< TESTFW::CTestImapServer::TMessage > messages = table.players[ player ]->box->imap.GetMessages();
@@ -106,7 +106,7 @@ PerformMailChainTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "chain-lost" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -156,7 +156,7 @@ PerformMailChainTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "chain-order" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -193,7 +193,7 @@ PerformMailChainTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "chain-duplicate" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -216,7 +216,7 @@ PerformMailChainTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "chain-replay" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -251,7 +251,7 @@ PerformMailChainTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "chain-equivocation" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -276,7 +276,7 @@ PerformMailChainTests( void )
         ASSERT_TRUE( proof );
         // first valid wins: Alice keeps the form she saw first
         ASSERT_TRUE( table.P( 0 ).provider->GetStoredTurn( id, 2, heldPreview, heldPackage ) && CGameVerifier::Text( heldPackage ) == "game|setup|start|b1-other" );
-        MAIL::TMailEquivocationVector proofs;
+        MAIL::TEMailEquivocationVector proofs;
         ASSERT_TRUE( 1 == table.P( 0 ).provider->GetEquivocations( id, proofs ) && 2 == proofs[ 0 ].revision && proofs[ 0 ].issuerUserId == table.P( 1 ).identity.userId );
         ASSERT_TRUE( proofs[ 0 ].firstSha256 != proofs[ 0 ].secondSha256 && FileExists( table, 0, id, proofs[ 0 ].file ) );
         ASSERT_TRUE( table.P( 0 ).recorder.equivocations[ 0 ].matchId == id && table.P( 0 ).recorder.equivocations[ 0 ].userId == table.P( 1 ).identity.userId );
@@ -307,7 +307,7 @@ PerformMailChainTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "chain-forged" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -323,7 +323,7 @@ PerformMailChainTests( void )
         PUMP_WAIT( refused, table.P( 2 ).recorder.CountRefused( "UNKNOWN_SIGNER" ) >= 1, 8000 );
         ASSERT_TRUE( refused );
         ASSERT_TRUE( 1 == table.P( 2 ).provider->GetTrustedRevision( id ) );
-        MAIL::TMailRefusalVector refusals;
+        MAIL::TEMailRefusalVector refusals;
         ASSERT_TRUE( 1 == table.P( 2 ).provider->GetRefusals( id, refusals ) && refusals[ 0 ].code == "UNKNOWN_SIGNER" && 2 == refusals[ 0 ].revision && !refusals[ 0 ].reason.IsNULLOrEmpty() && FileExists( table, 2, id, refusals[ 0 ].file ) );
         ASSERT_TRUE( table.P( 2 ).recorder.refused[ 0 ].matchId == id && 2 == table.P( 2 ).recorder.refused[ 0 ].revision );
 
@@ -338,7 +338,7 @@ PerformMailChainTests( void )
         CORE::CDynamicBuffer container;
         ASSERT_TRUE( MULTIPLAY::MATCHCONTAINER_OK == MULTIPLAY::CMatchContainer::Encode( preview, package, false, container ) );
         static_cast< UInt8* >( container.GetBufferPtr() )[ container.GetDataSize() - 3 ] ^= 0x40;
-        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "bob@mail.test", Addresses( "alice@mail.test" ), id, 2, MAIL::MAILKIND_TURN, container, MAIL::CMailMatchCodec::ArmorLabelTurn, "r2", MAIL::MAILTRANSFER_ATTACHMENT ) ) );
+        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "bob@mail.test", Addresses( "alice@mail.test" ), id, 2, MAIL::MAILKIND_TURN, container, MAIL::CEMailMatchCodec::ArmorLabelTurn, "r2", MAIL::MAILTRANSFER_ATTACHMENT ) ) );
         PUMP_WAIT( refused, table.P( 0 ).recorder.CountRefused( "BAD_CONTAINER" ) >= 1, 8000 );
         ASSERT_TRUE( refused && 1 == table.P( 0 ).provider->GetTrustedRevision( id ) );
 
@@ -372,7 +372,7 @@ PerformMailChainTests( void )
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         {
-            CMailTable table;
+            CEMailTable table;
             ASSERT_TRUE( table.Setup( 3, "chain-game-rejects" ) && table.StartAll() );
             const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
             ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -384,7 +384,7 @@ PerformMailChainTests( void )
             ASSERT_TRUE( refused );
             ASSERT_TRUE( 1 == table.P( 2 ).provider->GetTrustedRevision( id ) && 1 == table.P( 0 ).provider->GetTrustedRevision( id ) );
             ASSERT_TRUE( 0 == table.P( 2 ).recorder.CountUpdates( id, 2 ) );
-            MAIL::TMailRefusalVector refusals;
+            MAIL::TEMailRefusalVector refusals;
             ASSERT_TRUE( 1 == table.P( 2 ).provider->GetRefusals( id, refusals ) );
             ASSERT_TRUE( refusals[ 0 ].reason.HasSubstr( "not legal" ) >= 0 && FileExists( table, 2, id, refusals[ 0 ].file ) && refusals[ 0 ].at > 0 );
             // the refusal is not announced again when the mail comes again
@@ -392,7 +392,7 @@ PerformMailChainTests( void )
             ASSERT_TRUE( 1 == table.P( 2 ).recorder.CountRefused( "GAME_REJECTED" ) );
         }
         {
-            CMailTable table;
+            CEMailTable table;
             ASSERT_TRUE( table.Setup( 3, "chain-no-base" ) && table.StartAll() );
             const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
             ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -416,7 +416,7 @@ PerformMailChainTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "chain-size" ) );
         // Alice reads at most 8 KB messages and containers of 4 KB; Bob sends at most 4 KB
         table.P( 0 ).settings.maxMessageBytes = 8192;
@@ -457,7 +457,7 @@ PerformMailChainTests( void )
         ASSERT_TRUE( MULTIPLAY::MATCHCONTAINER_OK == MULTIPLAY::CMatchContainer::Encode( bigPreview, bigPackage, true, container ) && container.GetDataSize() > 5000 );
         const UInt32 fetchesBefore = (UInt32) table.P( 0 ).box->imap.GetCommands().size();
         (void) fetchesBefore;
-        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "bob@mail.test", Addresses( "alice@mail.test" ), id, 2, MAIL::MAILKIND_TURN, container, MAIL::CMailMatchCodec::ArmorLabelTurn, "r2", MAIL::MAILTRANSFER_ATTACHMENT ) ) );
+        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "bob@mail.test", Addresses( "alice@mail.test" ), id, 2, MAIL::MAILKIND_TURN, container, MAIL::CEMailMatchCodec::ArmorLabelTurn, "r2", MAIL::MAILTRANSFER_ATTACHMENT ) ) );
         bool problem = false;
         PUMP_WAIT( problem, table.P( 0 ).recorder.CountRefused( "TOO_LARGE" ) >= 1 || table.P( 0 ).recorder.problems.size() >= 1, 8000 );
         ASSERT_TRUE( problem );
@@ -492,7 +492,7 @@ PerformMailChainTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "chain-stripped" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -527,7 +527,7 @@ PerformMailChainTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "chain-import" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_NEXT_ONLY, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -539,15 +539,15 @@ PerformMailChainTests( void )
         ASSERT_TRUE( table.P( 1 ).provider->GetStoredTurn( id, 2, preview, package ) );
         const CORE::CString dir = CORE::CombinePath( table.root, "export" );
         CORE::CreateDirs( dir );
-        const CORE::CString path = CORE::CombinePath( dir, MAIL::CMailMatchCodec::MakeAttachmentName( id, "r2" ) );
+        const CORE::CString path = CORE::CombinePath( dir, MAIL::CEMailMatchCodec::MakeAttachmentName( id, "r2" ) );
         CORE::CString reason;
-        ASSERT_TRUE( MAIL::CMailMatchProvider::ExportToFile( preview, package, path, reason ) && CORE::FileExists( path ) );
+        ASSERT_TRUE( MAIL::CEMailMatchProvider::ExportToFile( preview, package, path, reason ) && CORE::FileExists( path ) );
         // only the file is there, no temporary file
         CORE::CString::StringVector names;
-        MAIL::CMailFiles::ListFiles( dir, names );
+        MAIL::CEMailFiles::ListFiles( dir, names );
         ASSERT_TRUE( 1 == names.size() );
         CORE::CDynamicBuffer fileBytes;
-        ASSERT_TRUE( MAIL::CMailFiles::ReadBounded( path, 3 * 1024 * 1024, fileBytes ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::ReadBounded( path, 3 * 1024 * 1024, fileBytes ) );
         MULTIPLAY::CMatchContainer decoded;
         ASSERT_TRUE( MULTIPLAY::MATCHCONTAINER_OK == decoded.Decode( fileBytes.GetConstBufferPtr(), fileBytes.GetDataSize() ) && decoded.package.sha256 == package.sha256 );
 
@@ -555,15 +555,15 @@ PerformMailChainTests( void )
         CORE::CDynamicBuffer damaged = fileBytes;
         static_cast< UInt8* >( damaged.GetBufferPtr() )[ damaged.GetDataSize() - 2 ] ^= 1;
         const CORE::CString damagedPath = CORE::CombinePath( dir, "damaged.rdxturn" );
-        ASSERT_TRUE( MAIL::CMailFiles::WriteAtomic( damagedPath, damaged.GetConstBufferPtr(), damaged.GetDataSize() ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::WriteAtomic( damagedPath, damaged.GetConstBufferPtr(), damaged.GetDataSize() ) );
         ASSERT_FALSE( table.P( 0 ).provider->ImportFile( damagedPath, reason ) || reason.IsNULLOrEmpty() );
-        ASSERT_TRUE( MAIL::CMailFiles::WriteAtomic( CORE::CombinePath( dir, "text.rdxturn" ), "hello", 5 ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::WriteAtomic( CORE::CombinePath( dir, "text.rdxturn" ), "hello", 5 ) );
         ASSERT_FALSE( table.P( 0 ).provider->ImportFile( CORE::CombinePath( dir, "text.rdxturn" ), reason ) );
         ASSERT_FALSE( table.P( 0 ).provider->ImportFile( CORE::CombinePath( dir, "missing.rdxturn" ), reason ) );
         ASSERT_FALSE( table.P( 0 ).provider->ImportText( "no block in here", reason ) );
         CORE::CDynamicBuffer huge;
         huge.SetDataSize( 3 * 1024 * 1024 );
-        ASSERT_TRUE( MAIL::CMailFiles::WriteAtomic( CORE::CombinePath( dir, "huge.rdxturn" ), huge.GetConstBufferPtr(), huge.GetDataSize() ) );
+        ASSERT_TRUE( MAIL::CEMailFiles::WriteAtomic( CORE::CombinePath( dir, "huge.rdxturn" ), huge.GetConstBufferPtr(), huge.GetDataSize() ) );
         ASSERT_FALSE( table.P( 0 ).provider->ImportFile( CORE::CombinePath( dir, "huge.rdxturn" ), reason ) );
         ASSERT_TRUE( 1 == table.P( 0 ).provider->GetTrustedRevision( id ) );
 
@@ -577,11 +577,11 @@ PerformMailChainTests( void )
         MULTIPLAY::CMatchPreview strangerPreview;
         ASSERT_TRUE( table.CraftTurn( mallory, 2, id, 0, "m", strangerPackage, strangerPreview ) );
         const CORE::CString strangerPath = CORE::CombinePath( dir, "stranger.rdxturn" );
-        ASSERT_TRUE( MAIL::CMailMatchProvider::ExportToFile( strangerPreview, strangerPackage, strangerPath, reason ) );
+        ASSERT_TRUE( MAIL::CEMailMatchProvider::ExportToFile( strangerPreview, strangerPackage, strangerPath, reason ) );
         ASSERT_FALSE( table.P( 2 ).provider->ImportFile( strangerPath, reason ) || reason.IsNULLOrEmpty() );
         ASSERT_TRUE( 1 == table.P( 2 ).recorder.CountRefused( "UNKNOWN_SIGNER" ) );
         // a bad target of an export
-        ASSERT_FALSE( MAIL::CMailMatchProvider::ExportToFile( preview, package, CORE::CombinePath( CORE::CombinePath( dir, "no-such-dir" ), "x/y.rdxturn" ), reason ) && !CORE::FileExists( CORE::CombinePath( CORE::CombinePath( dir, "no-such-dir" ), "x/y.rdxturn" ) ) );
+        ASSERT_FALSE( MAIL::CEMailMatchProvider::ExportToFile( preview, package, CORE::CombinePath( CORE::CombinePath( dir, "no-such-dir" ), "x/y.rdxturn" ), reason ) && !CORE::FileExists( CORE::CombinePath( CORE::CombinePath( dir, "no-such-dir" ), "x/y.rdxturn" ) ) );
     }
     catch ( ... )
     {
@@ -594,7 +594,7 @@ PerformMailChainTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "chain-third" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_NEXT_ONLY, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );

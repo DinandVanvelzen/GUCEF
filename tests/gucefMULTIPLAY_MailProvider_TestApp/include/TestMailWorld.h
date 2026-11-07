@@ -22,8 +22,8 @@
  *  recipients, the way a mail system delivers. The world can lose, repeat, hold back, reorder and strip messages, and
  *  deliver text that nobody sent. Everything stays on the loopback interface.
  *
- *    GUCEF::TESTFW::CTestMailWorld world;
- *    GUCEF::TESTFW::CTestMailBox* alice = world.AddMailbox( "alice@example.invalid", "alice", "alice-pw" );
+ *    GUCEF::TESTFW::CTestEMailWorld world;
+ *    GUCEF::TESTFW::CTestEMailBox* alice = world.AddMailbox( "alice@example.invalid", "alice", "alice-pw" );
  *    world.Start();
  *    ... a client sends through alice->smtp, the mail turns up in the mailbox of the recipient ...
  */
@@ -64,7 +64,7 @@ namespace TESTFW {
 /*-------------------------------------------------------------------------*/
 
 /** One mailbox: the address and the three servers of the owner */
-class CTestMailBox
+class CTestEMailBox
 {
     public:
 
@@ -75,7 +75,7 @@ class CTestMailBox
     CTestImapServer imap;
     CTestPop3Server pop3;
 
-    CTestMailBox( const CORE::CString& mailAddress, const CORE::CString& userName, const CORE::CString& userPassword )
+    CTestEMailBox( const CORE::CString& mailAddress, const CORE::CString& userName, const CORE::CString& userPassword )
         : address( mailAddress ), user( userName ), password( userPassword ), smtp(), imap(), pop3()
     {
         smtp.authMechanisms = "PLAIN";
@@ -88,17 +88,17 @@ class CTestMailBox
 
 /*-------------------------------------------------------------------------*/
 
-class CTestMailWorld : public CTestSmtpDeliverySink
+class CTestEMailWorld : public CTestSmtpDeliverySink
 {
     public:
 
-    CTestMailWorld( void )
+    CTestEMailWorld( void )
         : m_boxes(), m_dropCount( 0 ), m_dropContaining(), m_duplicateCount( 0 ), m_hold( false ), m_holdAddress(), m_held(), m_stripAttachments( false )
         , m_accepted(), m_copiesDelivered( 0 ), m_pop3Counter( 0 ), m_lock()
     {
     }
 
-    virtual ~CTestMailWorld()
+    virtual ~CTestEMailWorld()
     {
         Stop();
         for ( size_t i=0; i<m_boxes.size(); ++i )
@@ -107,15 +107,15 @@ class CTestMailWorld : public CTestSmtpDeliverySink
     }
 
     /** Adds a mailbox; only before Start() */
-    CTestMailBox* AddMailbox( const CORE::CString& address, const CORE::CString& user, const CORE::CString& password )
+    CTestEMailBox* AddMailbox( const CORE::CString& address, const CORE::CString& user, const CORE::CString& password )
     {
-        CTestMailBox* box = new CTestMailBox( address, user, password );
+        CTestEMailBox* box = new CTestEMailBox( address, user, password );
         box->smtp.deliverySink = this;
         m_boxes.push_back( box );
         return box;
     }
 
-    CTestMailBox* Find( const CORE::CString& address )
+    CTestEMailBox* Find( const CORE::CString& address )
     {
         const CORE::CString wanted = address.Lowercase();
         for ( size_t i=0; i<m_boxes.size(); ++i )
@@ -249,7 +249,7 @@ class CTestMailWorld : public CTestSmtpDeliverySink
         bool any = false;
         for ( size_t i=0; i<recipients.size(); ++i )
         {
-            CTestMailBox* box = Find( recipients[ i ] );
+            CTestEMailBox* box = Find( recipients[ i ] );
             if ( NULL == box )
                 continue;
             if ( !ignoreHold )
@@ -282,7 +282,7 @@ class CTestMailWorld : public CTestSmtpDeliverySink
     static CORE::CString StripAttachments( const CORE::CString& data )
     {
         COM::CMimeParser parser;
-        COM::CMailMessage message;
+        COM::CEMailMessage message;
         if ( !parser.ParseMessage( data.C_String(), data.ByteSize() - 1, message ) || message.attachments.empty() )
             return data;
         message.attachments.clear();
@@ -296,7 +296,7 @@ class CTestMailWorld : public CTestSmtpDeliverySink
 
     private:
 
-    GUCEF::vector< CTestMailBox* > m_boxes;
+    GUCEF::vector< CTestEMailBox* > m_boxes;
     UInt32 m_dropCount;
     CORE::CString m_dropContaining;
     UInt32 m_duplicateCount;

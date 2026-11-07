@@ -60,7 +60,7 @@ OneAddress( const char* a )
 
 /** The player proposes to hand the target to the computer; returns the signed proposal */
 bool
-Propose( CMailTable& table, UInt32 proposer, UInt32 target, const CORE::CString& matchId, MULTIPLAY::CMatchProposal& proposal )
+Propose( CEMailTable& table, UInt32 proposer, UInt32 target, const CORE::CString& matchId, MULTIPLAY::CMatchProposal& proposal )
 {GUCEF_TRACE;
 
     proposal = MULTIPLAY::CMatchProposal();
@@ -79,7 +79,7 @@ Propose( CMailTable& table, UInt32 proposer, UInt32 target, const CORE::CString&
 /*-------------------------------------------------------------------------*/
 
 bool
-CastVote( CMailTable& table, UInt32 voter, const CORE::CString& matchId, const MULTIPLAY::CMatchProposal& proposal, bool yes )
+CastVote( CEMailTable& table, UInt32 voter, const CORE::CString& matchId, const MULTIPLAY::CMatchProposal& proposal, bool yes )
 {GUCEF_TRACE;
 
     MULTIPLAY::CMatchVote vote;
@@ -94,7 +94,7 @@ CastVote( CMailTable& table, UInt32 voter, const CORE::CString& matchId, const M
 
 /** Waits until the player has the proposal and the number of votes */
 bool
-WaitVotes( CMailTable& table, UInt32 viewer, const CORE::CString& matchId, const CORE::CString& proposalId, size_t votes )
+WaitVotes( CEMailTable& table, UInt32 viewer, const CORE::CString& matchId, const CORE::CString& proposalId, size_t votes )
 {GUCEF_TRACE;
 
     bool ok = false;
@@ -122,7 +122,7 @@ PerformMailDecisionTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "decision-pass" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -189,7 +189,7 @@ PerformMailDecisionTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 4, "decision-tie" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -241,7 +241,7 @@ PerformMailDecisionTests( void )
                 ASSERT_TRUE( 1 == table.P( viewer ).provider->GetTrustedRevision( id ) );
                 ASSERT_TRUE( MULTIPLAY::MATCHPARTICIPANT_ACTIVE == table.StatusOf( viewer, id, 3 ) );
             }
-        MAIL::TMailRefusalVector refusals;
+        MAIL::TEMailRefusalVector refusals;
         ASSERT_TRUE( 1 == table.P( 2 ).provider->GetRefusals( id, refusals ) && !refusals[ 0 ].reason.IsNULLOrEmpty() );
     }
     catch ( ... )
@@ -255,7 +255,7 @@ PerformMailDecisionTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "decision-holder" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 2 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -303,7 +303,7 @@ PerformMailDecisionTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 4, "decision-holder-hostile" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 3 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -367,7 +367,7 @@ PerformMailDecisionTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "decision-hostile" ) && table.StartAll() );
         const CORE::CString id = table.StartMatch( MAIL::MAILTRANSFER_ATTACHMENT, MAIL::MAILDISTRIBUTION_ALL, 1 );
         ASSERT_FALSE( id.IsNULLOrEmpty() );
@@ -399,16 +399,16 @@ PerformMailDecisionTests( void )
         ASSERT_TRUE( forged.Sign( mallory, proposal, true, table.clock.nowMs ) );
         forged.voterUserId = table.P( 1 ).identity.userId;
         CORE::CDynamicBuffer data;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SerializeToBytes( forged, data, 64 * 1024 ) );
-        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "bob@mail.test", OneAddress( "alice@mail.test" ), id, 1, MAIL::MAILKIND_VOTE, data, MAIL::CMailMatchCodec::ArmorLabelData, "vote", MAIL::MAILTRANSFER_ATTACHMENT, "<forged-vote@crafted.test>" ) ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SerializeToBytes( forged, data, 64 * 1024 ) );
+        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "bob@mail.test", OneAddress( "alice@mail.test" ), id, 1, MAIL::MAILKIND_VOTE, data, MAIL::CEMailMatchCodec::ArmorLabelData, "vote", MAIL::MAILTRANSFER_ATTACHMENT, "<forged-vote@crafted.test>" ) ) );
         // a vote for a proposal nobody made
         MULTIPLAY::CMatchProposal imaginary = proposal;
         imaginary.proposalId = MULTIPLAY::CMatchId::Generate();
         MULTIPLAY::CMatchVote orphan;
         ASSERT_TRUE( orphan.Sign( table.P( 1 ).identity, imaginary, true, table.clock.nowMs ) );
         CORE::CDynamicBuffer orphanData;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SerializeToBytes( orphan, orphanData, 64 * 1024 ) );
-        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "bob@mail.test", OneAddress( "alice@mail.test" ), id, 1, MAIL::MAILKIND_VOTE, orphanData, MAIL::CMailMatchCodec::ArmorLabelData, "vote", MAIL::MAILTRANSFER_ATTACHMENT, "<orphan-vote@crafted.test>" ) ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SerializeToBytes( orphan, orphanData, 64 * 1024 ) );
+        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "bob@mail.test", OneAddress( "alice@mail.test" ), id, 1, MAIL::MAILKIND_VOTE, orphanData, MAIL::CEMailMatchCodec::ArmorLabelData, "vote", MAIL::MAILTRANSFER_ATTACHMENT, "<orphan-vote@crafted.test>" ) ) );
         // a proposal of a stranger
         MULTIPLAY::CMatchProposal byMallory;
         byMallory.matchId = id;
@@ -416,8 +416,8 @@ PerformMailDecisionTests( void )
         byMallory.targetUserId = table.P( 2 ).identity.userId;
         ASSERT_TRUE( byMallory.Sign( mallory ) );
         CORE::CDynamicBuffer strangerData;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SerializeToBytes( byMallory, strangerData, 64 * 1024 ) );
-        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "mallory@mail.test", OneAddress( "alice@mail.test" ), id, 1, MAIL::MAILKIND_PROPOSAL, strangerData, MAIL::CMailMatchCodec::ArmorLabelData, "proposal", MAIL::MAILTRANSFER_ATTACHMENT, "<stranger-proposal@crafted.test>" ) ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SerializeToBytes( byMallory, strangerData, 64 * 1024 ) );
+        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "mallory@mail.test", OneAddress( "alice@mail.test" ), id, 1, MAIL::MAILKIND_PROPOSAL, strangerData, MAIL::CEMailMatchCodec::ArmorLabelData, "proposal", MAIL::MAILTRANSFER_ATTACHMENT, "<stranger-proposal@crafted.test>" ) ) );
         table.Settle( 1000 );
         MULTIPLAY::CMatchDecisionEvidence evidence;
         ASSERT_TRUE( table.P( 0 ).provider->GetDecisionEvidence( id, proposal.proposalId, evidence ) && 0 == evidence.votes.size() );
@@ -446,7 +446,7 @@ namespace {
 
 /** The creator opens a match for the whole table; the players in 'accepting' accept, the others do not answer. Returns the match id */
 CORE::CString
-OpenLobby( CMailTable& table, const GUCEF::vector< UInt32 >& accepting, MULTIPLAY::TMatchDecisionPolicy policy = MULTIPLAY::MATCHDECISIONPOLICY_VOTE, int boss = -1, MAIL::TMailDistribution distribution = MAIL::MAILDISTRIBUTION_ALL )
+OpenLobby( CEMailTable& table, const GUCEF::vector< UInt32 >& accepting, MULTIPLAY::TMatchDecisionPolicy policy = MULTIPLAY::MATCHDECISIONPOLICY_VOTE, int boss = -1, MAIL::TMailDistribution distribution = MAIL::MAILDISTRIBUTION_ALL )
 {GUCEF_TRACE;
 
     MULTIPLAY::CMatchRecord record = table.MakeRecord( "Lobby", MAIL::MAILTRANSFER_ATTACHMENT, distribution );
@@ -479,7 +479,7 @@ OpenLobby( CMailTable& table, const GUCEF::vector< UInt32 >& accepting, MULTIPLA
 
 /** A proposal of a decision before the start, with the electorate of the proposer's view of the table */
 bool
-ProposeBeforeStart( CMailTable& table, UInt32 proposer, const CORE::CString& id, MULTIPLAY::TMatchDecisionKind kind, int target, const GUCEF::vector< UInt32 >& targets, MULTIPLAY::CMatchProposal& proposal, bool expectAccepted = true )
+ProposeBeforeStart( CEMailTable& table, UInt32 proposer, const CORE::CString& id, MULTIPLAY::TMatchDecisionKind kind, int target, const GUCEF::vector< UInt32 >& targets, MULTIPLAY::CMatchProposal& proposal, bool expectAccepted = true )
 {GUCEF_TRACE;
 
     MULTIPLAY::CMatchInfo info;
@@ -507,7 +507,7 @@ ProposeBeforeStart( CMailTable& table, UInt32 proposer, const CORE::CString& id,
 
 /** The creator plays the first turn of the game with the evidence of the decisions in it; every machine's game check knows the evidence of the package */
 bool
-PlayFirstTurnWith( CMailTable& table, UInt32 player, const CORE::CString& id, int nextHolder, const GUCEF::vector< MULTIPLAY::CMatchDecisionEvidence >& evidence, MULTIPLAY::CMatchOperationResult& result )
+PlayFirstTurnWith( CEMailTable& table, UInt32 player, const CORE::CString& id, int nextHolder, const GUCEF::vector< MULTIPLAY::CMatchDecisionEvidence >& evidence, MULTIPLAY::CMatchOperationResult& result )
 {GUCEF_TRACE;
 
     MULTIPLAY::CMatchPackage package;
@@ -528,7 +528,7 @@ PlayFirstTurnWith( CMailTable& table, UInt32 player, const CORE::CString& id, in
 
 /** The statuses of every participant as the viewer sees them, with the reasons, as one text to compare machines */
 CORE::CString
-Table( CMailTable& table, UInt32 viewer, const CORE::CString& id )
+Table( CEMailTable& table, UInt32 viewer, const CORE::CString& id )
 {GUCEF_TRACE;
 
     MULTIPLAY::CMatchInfo info;
@@ -543,7 +543,7 @@ Table( CMailTable& table, UInt32 viewer, const CORE::CString& id )
 /*-------------------------------------------------------------------------*/
 
 bool
-WaitStatus( CMailTable& table, UInt32 viewer, const CORE::CString& id, UInt32 subject, MULTIPLAY::TMatchParticipantStatus status )
+WaitStatus( CEMailTable& table, UInt32 viewer, const CORE::CString& id, UInt32 subject, MULTIPLAY::TMatchParticipantStatus status )
 {GUCEF_TRACE;
 
     bool ok = false;
@@ -566,7 +566,7 @@ PerformMailLobbyTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 4, "lobby-force" ) && table.StartAll() );
         GUCEF::vector< UInt32 > accepting;
         accepting.push_back( 1 );
@@ -646,7 +646,7 @@ PerformMailLobbyTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "lobby-boss" ) && table.StartAll() );
         GUCEF::vector< UInt32 > accepting;
         accepting.push_back( 1 );
@@ -692,7 +692,7 @@ PerformMailLobbyTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 4, "lobby-kick" ) && table.StartAll() );
         GUCEF::vector< UInt32 > accepting;
         accepting.push_back( 1 );
@@ -720,8 +720,8 @@ PerformMailLobbyTests( void )
         byMallory.voterUserIds.push_back( mallory.userId );
         ASSERT_TRUE( byMallory.Sign( mallory ) );
         CORE::CDynamicBuffer strangerData;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SerializeToBytes( byMallory, strangerData, 64 * 1024 ) );
-        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "mallory@mail.test", OneAddress( "alice@mail.test" ), id, 1, MAIL::MAILKIND_PROPOSAL, strangerData, MAIL::CMailMatchCodec::ArmorLabelData, "proposal", MAIL::MAILTRANSFER_ATTACHMENT, "<stranger-kick@crafted.test>" ) ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SerializeToBytes( byMallory, strangerData, 64 * 1024 ) );
+        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "mallory@mail.test", OneAddress( "alice@mail.test" ), id, 1, MAIL::MAILKIND_PROPOSAL, strangerData, MAIL::CEMailMatchCodec::ArmorLabelData, "proposal", MAIL::MAILTRANSFER_ATTACHMENT, "<stranger-kick@crafted.test>" ) ) );
         table.Settle( 800 );
         GUCEF::vector< MULTIPLAY::CMatchProposal > known;
         ASSERT_TRUE( table.P( 0 ).provider->GetProposals( id, known ) && 0 == known.size() );
@@ -770,7 +770,7 @@ PerformMailLobbyTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 4, "lobby-cancel" ) && table.StartAll() );
         GUCEF::vector< UInt32 > accepting;
         accepting.push_back( 1 );
@@ -787,8 +787,8 @@ PerformMailLobbyTests( void )
         forged.createdAt = table.clock.nowMs;
         ASSERT_TRUE( forged.Sign( table.P( 1 ).identity ) );
         CORE::CDynamicBuffer forgedData;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SerializeToBytes( forged, forgedData, 64 * 1024 ) );
-        ASSERT_TRUE( table.Inject( 2, table.MailTextForData( "bob@mail.test", OneAddress( "carol@mail.test" ), id, 1, MAIL::MAILKIND_CANCEL, forgedData, MAIL::CMailMatchCodec::ArmorLabelData, "cancel", MAIL::MAILTRANSFER_ATTACHMENT, "<forged-cancel@crafted.test>" ) ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SerializeToBytes( forged, forgedData, 64 * 1024 ) );
+        ASSERT_TRUE( table.Inject( 2, table.MailTextForData( "bob@mail.test", OneAddress( "carol@mail.test" ), id, 1, MAIL::MAILKIND_CANCEL, forgedData, MAIL::CEMailMatchCodec::ArmorLabelData, "cancel", MAIL::MAILTRANSFER_ATTACHMENT, "<forged-cancel@crafted.test>" ) ) );
         table.Settle( 800 );
         ASSERT_TRUE( MULTIPLAY::MATCHSTATUS_CANCELLED != table.MatchStatusOf( 2, id ) );
 
@@ -828,7 +828,7 @@ PerformMailLobbyTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 4, "lobby-cancel-vote" ) && table.StartAll() );
         GUCEF::vector< UInt32 > accepting;
         accepting.push_back( 1 );
@@ -850,10 +850,10 @@ PerformMailLobbyTests( void )
         host.createdAt = table.clock.nowMs;
         ASSERT_TRUE( host.Sign( table.P( 0 ).identity ) );
         CORE::CDynamicBuffer hostData;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SerializeToBytes( host, hostData, 64 * 1024 ) );
-        ASSERT_TRUE( table.Inject( 1, table.MailTextForData( "alice@mail.test", OneAddress( "bob@mail.test" ), id, 1, MAIL::MAILKIND_CANCEL, hostData, MAIL::CMailMatchCodec::ArmorLabelData, "cancel", MAIL::MAILTRANSFER_ATTACHMENT, "<host-only-cancel-b@crafted.test>" ) ) );
-        ASSERT_TRUE( table.Inject( 2, table.MailTextForData( "alice@mail.test", OneAddress( "carol@mail.test" ), id, 1, MAIL::MAILKIND_CANCEL, hostData, MAIL::CMailMatchCodec::ArmorLabelData, "cancel", MAIL::MAILTRANSFER_ATTACHMENT, "<host-only-cancel-c@crafted.test>" ) ) );
-        ASSERT_TRUE( table.Inject( 3, table.MailTextForData( "alice@mail.test", OneAddress( "dave@mail.test" ), id, 1, MAIL::MAILKIND_CANCEL, hostData, MAIL::CMailMatchCodec::ArmorLabelData, "cancel", MAIL::MAILTRANSFER_ATTACHMENT, "<host-only-cancel-d@crafted.test>" ) ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SerializeToBytes( host, hostData, 64 * 1024 ) );
+        ASSERT_TRUE( table.Inject( 1, table.MailTextForData( "alice@mail.test", OneAddress( "bob@mail.test" ), id, 1, MAIL::MAILKIND_CANCEL, hostData, MAIL::CEMailMatchCodec::ArmorLabelData, "cancel", MAIL::MAILTRANSFER_ATTACHMENT, "<host-only-cancel-b@crafted.test>" ) ) );
+        ASSERT_TRUE( table.Inject( 2, table.MailTextForData( "alice@mail.test", OneAddress( "carol@mail.test" ), id, 1, MAIL::MAILKIND_CANCEL, hostData, MAIL::CEMailMatchCodec::ArmorLabelData, "cancel", MAIL::MAILTRANSFER_ATTACHMENT, "<host-only-cancel-c@crafted.test>" ) ) );
+        ASSERT_TRUE( table.Inject( 3, table.MailTextForData( "alice@mail.test", OneAddress( "dave@mail.test" ), id, 1, MAIL::MAILKIND_CANCEL, hostData, MAIL::CEMailMatchCodec::ArmorLabelData, "cancel", MAIL::MAILTRANSFER_ATTACHMENT, "<host-only-cancel-d@crafted.test>" ) ) );
         table.Settle( 800 );
         for ( UInt32 i=1; i<4; ++i )
             ASSERT_TRUE( MULTIPLAY::MATCHSTATUS_CANCELLED != table.MatchStatusOf( i, id ) );
@@ -901,7 +901,7 @@ PerformMailLobbyTests( void )
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
         {
-            CMailTable table;
+            CEMailTable table;
             ASSERT_TRUE( table.Setup( 3, "lobby-cancel-bob" ) && table.StartAll() );
             GUCEF::vector< UInt32 > accepting;
             accepting.push_back( 1 );
@@ -925,7 +925,7 @@ PerformMailLobbyTests( void )
             }
         }
         {
-            CMailTable table;
+            CEMailTable table;
             ASSERT_TRUE( table.Setup( 3, "lobby-cancel-sole" ) && table.StartAll() );
             GUCEF::vector< UInt32 > accepting;
             const CORE::CString id = OpenLobby( table, accepting );
@@ -954,13 +954,13 @@ PerformMailLobbyTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 3, "lobby-cancel-draft" ) && table.StartAll() );
         const CORE::CString id = MULTIPLAY::CMatchId::Generate();
-        GUCEF::vector< MAIL::CMailIntroContactInput > contacts;
+        GUCEF::vector< MAIL::CEMailIntroContactInput > contacts;
         for ( UInt32 i=1; i<3; ++i )
         {
-            MAIL::CMailIntroContactInput contact;
+            MAIL::CEMailIntroContactInput contact;
             contact.name = table.P( i ).name;
             contact.address = table.P( i ).address;
             contacts.push_back( contact );
@@ -972,7 +972,7 @@ PerformMailLobbyTests( void )
         for ( int round=0; round<400 && !both; ++round )
         {
             table.Settle( 20 );
-            GUCEF::vector< MAIL::CMailInboundIntro > b, c;
+            GUCEF::vector< MAIL::CEMailInboundIntro > b, c;
             table.P( 1 ).provider->GetPendingIntroductions( b );
             table.P( 2 ).provider->GetPendingIntroductions( c );
             both = 1 == b.size() && 1 == c.size();
@@ -986,18 +986,18 @@ PerformMailLobbyTests( void )
         forged.createdAt = table.clock.nowMs;
         ASSERT_TRUE( forged.Sign( table.P( 2 ).identity ) );
         CORE::CDynamicBuffer forgedData;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SerializeToBytes( forged, forgedData, 64 * 1024 ) );
-        ASSERT_TRUE( table.Inject( 1, table.MailTextForData( "alice@mail.test", OneAddress( "bob@mail.test" ), id, 0, MAIL::MAILKIND_CANCEL, forgedData, MAIL::CMailMatchCodec::ArmorLabelData, "cancel", MAIL::MAILTRANSFER_ATTACHMENT, "<forged-draft-cancel@crafted.test>" ) ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SerializeToBytes( forged, forgedData, 64 * 1024 ) );
+        ASSERT_TRUE( table.Inject( 1, table.MailTextForData( "alice@mail.test", OneAddress( "bob@mail.test" ), id, 0, MAIL::MAILKIND_CANCEL, forgedData, MAIL::CEMailMatchCodec::ArmorLabelData, "cancel", MAIL::MAILTRANSFER_ATTACHMENT, "<forged-draft-cancel@crafted.test>" ) ) );
         table.Settle( 600 );
-        GUCEF::vector< MAIL::CMailInboundIntro > bobPending;
+        GUCEF::vector< MAIL::CEMailInboundIntro > bobPending;
         table.P( 1 ).provider->GetPendingIntroductions( bobPending );
-        ASSERT_TRUE( 1 == bobPending.size() && MAIL::CMailInboundIntro::STATUS_PENDING == bobPending[ 0 ].status );
+        ASSERT_TRUE( 1 == bobPending.size() && MAIL::CEMailInboundIntro::STATUS_PENDING == bobPending[ 0 ].status );
 
         // Alice cancels the game: both invitations are cancelled and name her; the draft is gone
         CORE::CFutureResult future( CORE::TTaskStatus::TASKSTATUS_UNDEFINED );
         MULTIPLAY::CMatchOperationResult result;
         ASSERT_TRUE( table.P( 0 ).provider->Cancel( id, future ) && table.Await( future, result ) && MULTIPLAY::MATCHOPERATION_OK == result.status );
-        MAIL::CMailIntroDraft draft;
+        MAIL::CEMailIntroDraft draft;
         ASSERT_FALSE( table.P( 0 ).provider->GetIntroductionDraft( id, draft ) );
         for ( UInt32 viewer=1; viewer<3; ++viewer )
         {
@@ -1005,9 +1005,9 @@ PerformMailLobbyTests( void )
             for ( int round=0; round<400 && !cancelled; ++round )
             {
                 table.Settle( 20 );
-                GUCEF::vector< MAIL::CMailInboundIntro > list;
+                GUCEF::vector< MAIL::CEMailInboundIntro > list;
                 table.P( viewer ).provider->GetPendingIntroductions( list );
-                cancelled = 1 == list.size() && MAIL::CMailInboundIntro::STATUS_CANCELLED == list[ 0 ].status && list[ 0 ].request.creatorName == "Alice";
+                cancelled = 1 == list.size() && MAIL::CEMailInboundIntro::STATUS_CANCELLED == list[ 0 ].status && list[ 0 ].request.creatorName == "Alice";
             }
             ASSERT_TRUE( cancelled );
             bool told = false;
@@ -1029,7 +1029,7 @@ PerformMailLobbyTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 4, "lobby-incompatible" ) && table.StartAll() );
         // Bob's client cannot reproduce the first turn
         table.P( 1 ).verifier.rejectFirstOnly = true;
@@ -1074,8 +1074,8 @@ PerformMailLobbyTests( void )
         aboutCarol.value = "forged";
         ASSERT_TRUE( aboutCarol.Sign( table.P( 3 ).identity ) );
         CORE::CDynamicBuffer forgedData;
-        ASSERT_TRUE( MAIL::CMailMatchCodec::SerializeToBytes( aboutCarol, forgedData, 64 * 1024 ) );
-        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "dave@mail.test", OneAddress( "alice@mail.test" ), id, 1, MAIL::MAILKIND_INCOMPATIBLE, forgedData, MAIL::CMailMatchCodec::ArmorLabelData, "spectator", MAIL::MAILTRANSFER_ATTACHMENT, "<forged-notice@crafted.test>" ) ) );
+        ASSERT_TRUE( MAIL::CEMailMatchCodec::SerializeToBytes( aboutCarol, forgedData, 64 * 1024 ) );
+        ASSERT_TRUE( table.Inject( 0, table.MailTextForData( "dave@mail.test", OneAddress( "alice@mail.test" ), id, 1, MAIL::MAILKIND_INCOMPATIBLE, forgedData, MAIL::CEMailMatchCodec::ArmorLabelData, "spectator", MAIL::MAILTRANSFER_ATTACHMENT, "<forged-notice@crafted.test>" ) ) );
         table.Settle( 600 );
         ASSERT_TRUE( MULTIPLAY::MATCHPARTICIPANT_ACTIVE == table.StatusOf( 0, id, 2 ) );
 
@@ -1110,7 +1110,7 @@ PerformMailLobbyTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 4, "lobby-one-human" ) && table.StartAll() );
         GUCEF::vector< UInt32 > accepting;
         accepting.push_back( 2 );
@@ -1157,7 +1157,7 @@ PerformMailLobbyTests( void )
     try
     {
         GUCEF_TESTFW_SKIP_IF( !MULTIPLAY::CPlayerIdentity::IsKeyPairAvailable() || !JsonCodecAvailable(), "There is no ed25519 or json codec" );
-        CMailTable table;
+        CEMailTable table;
         ASSERT_TRUE( table.Setup( 4, "lobby-voluntary" ) && table.StartAll() );
         GUCEF::vector< UInt32 > accepting;
         accepting.push_back( 1 );

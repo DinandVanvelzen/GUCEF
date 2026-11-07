@@ -57,7 +57,7 @@
 #define GUCEF_COM_CMIMECOMPOSER_H
 #endif /* GUCEF_COM_CMIMECOMPOSER_H ? */
 
-#include "matchprovidermail_CMailMatchProvider.h"
+#include "matchprovidermail_CEMailMatchProvider.h"
 #include "TestMailPump.h"
 
 /*-------------------------------------------------------------------------//
@@ -187,17 +187,17 @@ class CProviderRecorder : public CORE::CObserver
     GUCEF::vector< MULTIPLAY::CMatchOperationResult > submitResults;
     GUCEF::vector< bool > states;
     CORE::CString::StringVector errors;
-    GUCEF::vector< MAIL::CMailMatchNotice > refused;
-    GUCEF::vector< MAIL::CMailMatchNotice > equivocations;
-    GUCEF::vector< MAIL::CMailMatchNotice > nudges;
-    GUCEF::vector< MAIL::CMailMatchNotice > decisions;
-    GUCEF::vector< MAIL::CMailMatchNotice > problems;
-    GUCEF::vector< MAIL::CMailMatchNotice > intros;
-    GUCEF::vector< MAIL::CMailMatchNotice > lobby;
-    GUCEF::vector< MAIL::CMailMatchNotice > rosters;
-    GUCEF::vector< MAIL::CMailMatchNotice > draftMessages;
-    GUCEF::vector< MAIL::CMailMatchNotice > draftApplied;
-    GUCEF::vector< MAIL::CMailDeliveryEvent > deliveries;
+    GUCEF::vector< MAIL::CEMailMatchNotice > refused;
+    GUCEF::vector< MAIL::CEMailMatchNotice > equivocations;
+    GUCEF::vector< MAIL::CEMailMatchNotice > nudges;
+    GUCEF::vector< MAIL::CEMailMatchNotice > decisions;
+    GUCEF::vector< MAIL::CEMailMatchNotice > problems;
+    GUCEF::vector< MAIL::CEMailMatchNotice > intros;
+    GUCEF::vector< MAIL::CEMailMatchNotice > lobby;
+    GUCEF::vector< MAIL::CEMailMatchNotice > rosters;
+    GUCEF::vector< MAIL::CEMailMatchNotice > draftMessages;
+    GUCEF::vector< MAIL::CEMailMatchNotice > draftApplied;
+    GUCEF::vector< MAIL::CEMailDeliveryEvent > deliveries;
 
     CProviderRecorder( void ) : CORE::CObserver() {}
 
@@ -296,38 +296,38 @@ class CProviderRecorder : public CORE::CObserver
         if ( MULTIPLAY::CIMatchProvider::ProviderErrorEvent == eventId )
             errors.push_back( static_cast< const CORE::TCloneableString* >( eventData )->GetData() );
         else
-        if ( MAIL::CMailMatchProvider::PackageRefusedEvent == eventId )
-            refused.push_back( *static_cast< const MAIL::CMailMatchNotice* >( eventData ) );
+        if ( MAIL::CEMailMatchProvider::PackageRefusedEvent == eventId )
+            refused.push_back( *static_cast< const MAIL::CEMailMatchNotice* >( eventData ) );
         else
-        if ( MAIL::CMailMatchProvider::EquivocationDetectedEvent == eventId )
-            equivocations.push_back( *static_cast< const MAIL::CMailMatchNotice* >( eventData ) );
+        if ( MAIL::CEMailMatchProvider::EquivocationDetectedEvent == eventId )
+            equivocations.push_back( *static_cast< const MAIL::CEMailMatchNotice* >( eventData ) );
         else
-        if ( MAIL::CMailMatchProvider::NudgeReceivedEvent == eventId )
-            nudges.push_back( *static_cast< const MAIL::CMailMatchNotice* >( eventData ) );
+        if ( MAIL::CEMailMatchProvider::NudgeReceivedEvent == eventId )
+            nudges.push_back( *static_cast< const MAIL::CEMailMatchNotice* >( eventData ) );
         else
-        if ( MAIL::CMailMatchProvider::DecisionMessageEvent == eventId )
-            decisions.push_back( *static_cast< const MAIL::CMailMatchNotice* >( eventData ) );
+        if ( MAIL::CEMailMatchProvider::DecisionMessageEvent == eventId )
+            decisions.push_back( *static_cast< const MAIL::CEMailMatchNotice* >( eventData ) );
         else
-        if ( MAIL::CMailMatchProvider::MailProblemEvent == eventId )
-            problems.push_back( *static_cast< const MAIL::CMailMatchNotice* >( eventData ) );
+        if ( MAIL::CEMailMatchProvider::MailProblemEvent == eventId )
+            problems.push_back( *static_cast< const MAIL::CEMailMatchNotice* >( eventData ) );
         else
-        if ( MAIL::CMailMatchProvider::IntroductionEvent == eventId )
-            intros.push_back( *static_cast< const MAIL::CMailMatchNotice* >( eventData ) );
+        if ( MAIL::CEMailMatchProvider::IntroductionEvent == eventId )
+            intros.push_back( *static_cast< const MAIL::CEMailMatchNotice* >( eventData ) );
         else
-        if ( MAIL::CMailMatchProvider::LobbyChangedEvent == eventId )
-            lobby.push_back( *static_cast< const MAIL::CMailMatchNotice* >( eventData ) );
+        if ( MAIL::CEMailMatchProvider::LobbyChangedEvent == eventId )
+            lobby.push_back( *static_cast< const MAIL::CEMailMatchNotice* >( eventData ) );
         else
-        if ( MAIL::CMailMatchProvider::RosterChangedEvent == eventId )
-            rosters.push_back( *static_cast< const MAIL::CMailMatchNotice* >( eventData ) );
+        if ( MAIL::CEMailMatchProvider::RosterChangedEvent == eventId )
+            rosters.push_back( *static_cast< const MAIL::CEMailMatchNotice* >( eventData ) );
         else
-        if ( MAIL::CMailMatchProvider::VoteReceivedEvent == eventId )
-            draftMessages.push_back( *static_cast< const MAIL::CMailMatchNotice* >( eventData ) );
+        if ( MAIL::CEMailMatchProvider::VoteReceivedEvent == eventId )
+            draftMessages.push_back( *static_cast< const MAIL::CEMailMatchNotice* >( eventData ) );
         else
-        if ( MAIL::CMailMatchProvider::DraftDecisionAppliedEvent == eventId )
-            draftApplied.push_back( *static_cast< const MAIL::CMailMatchNotice* >( eventData ) );
+        if ( MAIL::CEMailMatchProvider::DraftDecisionAppliedEvent == eventId )
+            draftApplied.push_back( *static_cast< const MAIL::CEMailMatchNotice* >( eventData ) );
         else
-        if ( MAIL::CMailMatchProvider::DeliveryStateChangedEvent == eventId )
-            deliveries.push_back( *static_cast< const MAIL::CMailDeliveryEvent* >( eventData ) );
+        if ( MAIL::CEMailMatchProvider::DeliveryStateChangedEvent == eventId )
+            deliveries.push_back( *static_cast< const MAIL::CEMailDeliveryEvent* >( eventData ) );
     }
 };
 
@@ -337,15 +337,15 @@ struct SPlayer
 {
     CORE::CString name;
     MULTIPLAY::CPlayerIdentity identity;
-    TESTFW::CTestMailBox* box;
+    TESTFW::CTestEMailBox* box;
     CORE::CString address;
     CORE::CString dir;
-    MAIL::CMailMatchProviderSettings settings;
+    MAIL::CEMailMatchProviderSettings settings;
     MULTIPLAY::CIMatchProviderPtr ptr;
-    MAIL::CMailMatchProvider* provider;
+    MAIL::CEMailMatchProvider* provider;
     CProviderRecorder recorder;
     CGameVerifier verifier;
-    COM::CStaticMailCredentialProvider credentials;
+    COM::CStaticEMailCredentialProvider credentials;
 
     SPlayer( void ) : name(), identity(), box( GUCEF_NULL ), address(), dir(), settings(), ptr(), provider( GUCEF_NULL ), recorder(), verifier(), credentials() {}
 };
@@ -378,29 +378,29 @@ struct SOptions
 /*-------------------------------------------------------------------------*/
 
 /** A table of players, each with an identity, a mailbox of their own and a provider; all on one pulse generator and one manual clock */
-class CMailTable
+class CEMailTable
 {
     public:
 
-    TESTFW::CTestMailWorld world;
+    TESTFW::CTestEMailWorld world;
     TESTFW::CManualMatchClock clock;
     GUCEF::vector< SPlayer* > players;
     CORE::CString root;
     SOptions options;
     UInt64 lastHookMs;
 
-    CMailTable( void ) : world(), clock(), players(), root(), options(), lastHookMs( 0 ) {}
+    CEMailTable( void ) : world(), clock(), players(), root(), options(), lastHookMs( 0 ) {}
 
     static void ClockHook( void* context )
     {
-        CMailTable* table = static_cast< CMailTable* >( context );
+        CEMailTable* table = static_cast< CEMailTable* >( context );
         const UInt64 now = PumpNowMs();
         if ( now > table->lastHookMs )
             table->clock.AdvanceMs( (Int64)( now - table->lastHookMs ) * table->options.autoClockMs );
         table->lastHookMs = now;
     }
 
-    ~CMailTable()
+    ~CEMailTable()
     {
         if ( this == GetPumpHook().context )
         {
@@ -428,7 +428,7 @@ class CMailTable
     /** The settings of a player for their mailbox */
     void FillSettings( SPlayer& p ) const
     {
-        MAIL::CMailMatchProviderSettings& s = p.settings;
+        MAIL::CEMailMatchProviderSettings& s = p.settings;
         s.mailAddress = p.address;
         s.displayName = p.name;
         s.smtp.host = s.imap.host = s.pop3.host = "127.0.0.1";
@@ -485,7 +485,7 @@ class CMailTable
         if ( options.autoClockMs > 0 )
         {
             lastHookMs = PumpNowMs();
-            GetPumpHook().function = &CMailTable::ClockHook;
+            GetPumpHook().function = &CEMailTable::ClockHook;
             GetPumpHook().context = this;
         }
         for ( UInt32 i=0; i<count; ++i )
@@ -505,7 +505,7 @@ class CMailTable
         p.ptr = MULTIPLAY::CMultiplayGlobal::Instance()->GetMatchProviderFactory().Create( "mail" );
         if ( p.ptr.IsNULL() )
             return false;
-        p.provider = static_cast< MAIL::CMailMatchProvider* >( p.ptr.GetPointerAlways() );
+        p.provider = static_cast< MAIL::CEMailMatchProvider* >( p.ptr.GetPointerAlways() );
         p.provider->SetIdentity( p.identity );
         p.provider->SetClock( &clock );
         if ( options.installVerifier )
@@ -727,28 +727,28 @@ class CMailTable
         CORE::CDynamicBuffer container;
         if ( MULTIPLAY::MATCHCONTAINER_OK != MULTIPLAY::CMatchContainer::Encode( preview, package, true, container ) )
             return CORE::CString::Empty;
-        return MailTextForData( fromAddress, to, matchId, preview.revision, MAIL::MAILKIND_TURN, container, MAIL::CMailMatchCodec::ArmorLabelTurn, "r" + CORE::UInt32ToString( preview.revision ), transfer, messageId );
+        return MailTextForData( fromAddress, to, matchId, preview.revision, MAIL::MAILKIND_TURN, container, MAIL::CEMailMatchCodec::ArmorLabelTurn, "r" + CORE::UInt32ToString( preview.revision ), transfer, messageId );
     }
 
     CORE::CString MailTextForData( const char* fromAddress, const GUCEF::vector< CORE::CString >& to, const CORE::CString& matchId, UInt32 revision, MAIL::TMailMatchKind kind, const CORE::CDynamicBuffer& data, const char* label, const CORE::CString& part, MAIL::TMailTransfer transfer, const char* messageId = GUCEF_NULL )
     {
         static UInt32 counter = 0;
-        MAIL::CMailOutgoing outgoing;
+        MAIL::CEMailOutgoing outgoing;
         outgoing.kind = kind;
         outgoing.matchId = matchId;
         outgoing.revision = revision;
         outgoing.turn = revision;
         outgoing.title = "Friday game";
-        outgoing.from = COM::CMailAddress( fromAddress );
+        outgoing.from = COM::CEMailAddress( fromAddress );
         for ( size_t i=0; i<to.size(); ++i )
-            outgoing.to.push_back( COM::CMailAddress( to[ i ] ) );
+            outgoing.to.push_back( COM::CEMailAddress( to[ i ] ) );
         outgoing.transfer = transfer;
         outgoing.data = &data;
         outgoing.dataLabel = label;
         outgoing.dataRevisionName = part;
-        COM::CMailMessage message;
+        COM::CEMailMessage message;
         CORE::CString reason;
-        if ( !MAIL::CMailMatchCodec::Compose( outgoing, message, reason ) )
+        if ( !MAIL::CEMailMatchCodec::Compose( outgoing, message, reason ) )
             return CORE::CString::Empty;
         message.messageId = GUCEF_NULL != messageId ? CORE::CString( messageId ) : "<crafted-" + CORE::UInt32ToString( ++counter ) + "@crafted.test>";
         COM::CMimeComposer composer;
@@ -768,7 +768,7 @@ class CMailTable
     {
         SPlayer& p = *players[ index ];
         std::ostringstream out;
-        const MAIL::CMailInbox& inbox = p.provider->GetInbox();
+        const MAIL::CEMailInbox& inbox = p.provider->GetInbox();
         out << p.name.C_String() << ": started " << p.provider->IsStarted() << " online " << inbox.IsOnline() << " idling " << inbox.IsIdling() << " handled " << inbox.GetHandledCount() << " lastUid " << inbox.GetLastUid()
             << " validity " << inbox.GetUidValidity() << " seen " << inbox.GetSeenCount() << " | imap mails " << p.box->imap.GetMessages().size() << " imap connections " << p.box->imap.GetAcceptedConnections()
             << " | outbox items " << p.provider->GetOutbox().GetItemCount() << " unconfirmed " << p.provider->GetOutbox().GetUnconfirmedCount() << " smtp accepted " << p.box->smtp.GetMessages().size()
