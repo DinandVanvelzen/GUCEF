@@ -31,7 +31,7 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
-#include "gucefGAMEGUI_CMailAccountForm.h"
+#include "gucefGAMEGUI_CEMailAccountForm.h"
 #include "gucefGAMEGUI_CMatchTableForm.h"
 #include "gucefGAMEGUI_TestCommon.h"
 #include "TestMatchLayoutChecks.h"
@@ -94,7 +94,7 @@ class CFormRecorder : public CORE::CObserver
 
     CORE::CString::StringVector names;
     CORE::CString::StringVector texts;
-    GAMEGUI::CMailAccountFormData account;
+    GAMEGUI::CEMailAccountFormData account;
 
     CFormRecorder( void ) : CORE::CObserver(), names(), texts(), account() {}
     virtual ~CFormRecorder() { UnsubscribeAllFromObserver(); }
@@ -131,7 +131,7 @@ class CFormRecorder : public CORE::CObserver
         {
             if ( GAMEGUI::CMatchTableAction* action = CORE::CICloneable::CloneableAs< GAMEGUI::CMatchTableAction >( eventData ) )
                 text = action->text;
-            if ( GAMEGUI::CMailAccountFormData* data = CORE::CICloneable::CloneableAs< GAMEGUI::CMailAccountFormData >( eventData ) )
+            if ( GAMEGUI::CEMailAccountFormData* data = CORE::CICloneable::CloneableAs< GAMEGUI::CEMailAccountFormData >( eventData ) )
                 account = *data;
         }
         texts.push_back( text );
@@ -164,14 +164,14 @@ PerformMailFormTests( void )
         ASSERT_TRUE( GUCEF_NULL != context );
         if ( GUCEF_NULL == context )
             return;
-        GAMEGUI::CMailAccountForm form( context );
+        GAMEGUI::CEMailAccountForm form( context );
         CFormRecorder recorder;
-        recorder.Watch( &form, GAMEGUI::CMailAccountForm::SaveRequestedEvent, "save" );
-        recorder.Watch( &form, GAMEGUI::CMailAccountForm::TestRequestedEvent, "test" );
-        recorder.Watch( &form, GAMEGUI::CMailAccountForm::CancelledEvent, "cancel" );
+        recorder.Watch( &form, GAMEGUI::CEMailAccountForm::SaveRequestedEvent, "save" );
+        recorder.Watch( &form, GAMEGUI::CEMailAccountForm::TestRequestedEvent, "test" );
+        recorder.Watch( &form, GAMEGUI::CEMailAccountForm::CancelledEvent, "cancel" );
         ASSERT_TRUE( form.Open() && form.IsOpen() && form.IsVisible() && !context->IsModalRoot( form.GetRootWidget() ) );
 
-        GAMEGUI::CMailAccountFormData data;
+        GAMEGUI::CEMailAccountFormData data;
         data.address = "alice@mail.example";
         data.displayName = "Alice";
         data.userName = "alice.login";
@@ -192,7 +192,7 @@ PerformMailFormTests( void )
         data.autoAccept = false;
         form.SetData( data );
         form.SetPlayerCode( "ab12" );
-        GAMEGUI::CMailAccountFormData read = form.GetData();
+        GAMEGUI::CEMailAccountFormData read = form.GetData();
         ASSERT_TRUE( read.address == data.address && read.displayName == data.displayName && read.userName == data.userName && read.password == data.password );
         ASSERT_TRUE( !read.useImap && read.incomingHost == data.incomingHost && 995 == read.incomingPort && 0 == read.incomingSecurity );
         ASSERT_TRUE( read.outgoingHost == data.outgoingHost && 587 == read.outgoingPort && 1 == read.outgoingSecurity && read.mailbox == "Games" && 90 == read.pollSeconds && !read.useIdle );
@@ -200,7 +200,7 @@ PerformMailFormTests( void )
         ASSERT_TRUE( "ab12" == form.GetPlayerCode() && form.GetWidget( "PlayerCode" )->GetBoolProperty( GUI::EWidgetProperty_ReadOnly ) );
 
         // the defaults of a mailbox: IMAP, the folder INBOX, every minute, the usual ports
-        GAMEGUI::CMailAccountFormData fresh;
+        GAMEGUI::CEMailAccountFormData fresh;
         form.SetData( fresh );
         read = form.GetData();
         ASSERT_TRUE( read.useImap && "INBOX" == read.mailbox && 60 == read.pollSeconds && 0 == read.incomingPort && 0 == read.outgoingPort && read.useIdle );
@@ -253,7 +253,7 @@ PerformMailFormTests( void )
         ASSERT_TRUE( GUCEF_NULL != context );
         if ( GUCEF_NULL == context )
             return;
-        GAMEGUI::CMailAccountForm form( context );
+        GAMEGUI::CEMailAccountForm form( context );
         ASSERT_TRUE( form.Open() );
         GUI::CCombobox* choice = form.GetWidgetAs< GUI::CCombobox >( "ProcessedAction" );
         ASSERT_TRUE( GUCEF_NULL != choice );
@@ -266,13 +266,13 @@ PerformMailFormTests( void )
         ASSERT_TRUE( note.HasSubstr( "Move" ) >= 0 && note.HasSubstr( "removes" ) >= 0 && note.HasSubstr( "inbox" ) >= 0 );
         for ( Int32 i=0; i<3; ++i )
         {
-            GAMEGUI::CMailAccountFormData data;
+            GAMEGUI::CEMailAccountFormData data;
             data.processedAction = i;
             form.SetData( data );
             ASSERT_TRUE( i == form.GetData().processedAction );
         }
         // a value outside the choices is the default
-        GAMEGUI::CMailAccountFormData wrong;
+        GAMEGUI::CEMailAccountFormData wrong;
         wrong.processedAction = 77;
         form.SetData( wrong );
         ASSERT_TRUE( 1 == form.GetData().processedAction );
@@ -295,7 +295,7 @@ PerformMailFormTests( void )
             ASSERT_TRUE( GUCEF_NULL != context );
             if ( GUCEF_NULL == context )
                 return;
-            GAMEGUI::CMailAccountForm form( context );
+            GAMEGUI::CEMailAccountForm form( context );
             ASSERT_TRUE( form.Open() );
             context->RenderFrame( 16 );
             context->FlushChanges();

@@ -38,10 +38,10 @@
 #define GUCEF_GUI_CCOMBOBOX_H
 #endif /* GUCEF_GUI_CCOMBOBOX_H ? */
 
-#ifndef GUCEF_COM_CMAILPROVIDERPRESETS_H
-#include "gucefCOM_CMailProviderPresets.h"
-#define GUCEF_COM_CMAILPROVIDERPRESETS_H
-#endif /* GUCEF_COM_CMAILPROVIDERPRESETS_H ? */
+#ifndef GUCEF_COM_CEMAILPROVIDERPRESETS_H
+#include "gucefCOM_CEMailProviderPresets.h"
+#define GUCEF_COM_CEMAILPROVIDERPRESETS_H
+#endif /* GUCEF_COM_CEMAILPROVIDERPRESETS_H ? */
 
 #ifndef GUCEF_TEST_FRAMEWORK_H
 #include "gucef_test_framework.h"
@@ -53,7 +53,7 @@
 #define GUCEF_TEST_LOG_CAPTURE_H
 #endif /* GUCEF_TEST_LOG_CAPTURE_H ? */
 
-#include "gucefGAMEGUI_CMailAccountForm.h"
+#include "gucefGAMEGUI_CEMailAccountForm.h"
 #include "gucefGAMEGUI_TestCommon.h"
 #include "TestMatchLayoutChecks.h"
 
@@ -91,19 +91,19 @@ class CGuideRecorder : public CORE::CObserver
     UInt32 signIns;
     UInt32 signOuts;
     CORE::CString signInProvider;
-    GAMEGUI::CMailAccountFormData last;
+    GAMEGUI::CEMailAccountFormData last;
 
     explicit CGuideRecorder( CORE::CNotifier* form )
         : CORE::CObserver(), saves( 0 ), tests( 0 ), signIns( 0 ), signOuts( 0 ), signInProvider(), last()
     {
         TEventCallback saved( this, &CGuideRecorder::OnSave );
-        SubscribeTo( form, GAMEGUI::CMailAccountForm::SaveRequestedEvent, saved );
+        SubscribeTo( form, GAMEGUI::CEMailAccountForm::SaveRequestedEvent, saved );
         TEventCallback tested( this, &CGuideRecorder::OnTest );
-        SubscribeTo( form, GAMEGUI::CMailAccountForm::TestRequestedEvent, tested );
+        SubscribeTo( form, GAMEGUI::CEMailAccountForm::TestRequestedEvent, tested );
         TEventCallback signedIn( this, &CGuideRecorder::OnSignIn );
-        SubscribeTo( form, GAMEGUI::CMailAccountForm::SignInRequestedEvent, signedIn );
+        SubscribeTo( form, GAMEGUI::CEMailAccountForm::SignInRequestedEvent, signedIn );
         TEventCallback signedOut( this, &CGuideRecorder::OnSignOut );
-        SubscribeTo( form, GAMEGUI::CMailAccountForm::SignOutRequestedEvent, signedOut );
+        SubscribeTo( form, GAMEGUI::CEMailAccountForm::SignOutRequestedEvent, signedOut );
     }
 
     virtual ~CGuideRecorder() { UnsubscribeAllFromObserver(); }
@@ -111,14 +111,14 @@ class CGuideRecorder : public CORE::CObserver
     void OnSave( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
         ++saves;
-        if ( GAMEGUI::CMailAccountFormData* data = CORE::CICloneable::CloneableAs< GAMEGUI::CMailAccountFormData >( eventData ) )
+        if ( GAMEGUI::CEMailAccountFormData* data = CORE::CICloneable::CloneableAs< GAMEGUI::CEMailAccountFormData >( eventData ) )
             last = *data;
     }
 
     void OnTest( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
         ++tests;
-        if ( GAMEGUI::CMailAccountFormData* data = CORE::CICloneable::CloneableAs< GAMEGUI::CMailAccountFormData >( eventData ) )
+        if ( GAMEGUI::CEMailAccountFormData* data = CORE::CICloneable::CloneableAs< GAMEGUI::CEMailAccountFormData >( eventData ) )
             last = *data;
     }
 
@@ -144,21 +144,21 @@ Providers( const char* a, const char* b = GUCEF_NULL )
 }
 
 CORE::CString
-TextOf( GAMEGUI::CMailAccountForm& form, const char* name )
+TextOf( GAMEGUI::CEMailAccountForm& form, const char* name )
 {
     GUI::CWidget* widget = form.GetWidget( name );
     return GUCEF_NULL != widget ? widget->GetProperty( GUI::EWidgetProperty_Text ) : CORE::CString( "<missing>" );
 }
 
 Int32
-SelectedOf( GAMEGUI::CMailAccountForm& form, const char* name )
+SelectedOf( GAMEGUI::CEMailAccountForm& form, const char* name )
 {
     GUI::CCombobox* choice = form.GetWidgetAs< GUI::CCombobox >( name );
     return GUCEF_NULL != choice ? choice->GetSelectedIndex() : -99;
 }
 
 bool
-Shows( GAMEGUI::CMailAccountForm& form, const char* name )
+Shows( GAMEGUI::CEMailAccountForm& form, const char* name )
 {
     GUI::CWidget* widget = form.GetWidget( name );
     return GUCEF_NULL != widget && widget->IsEffectivelyVisible();
@@ -166,7 +166,7 @@ Shows( GAMEGUI::CMailAccountForm& form, const char* name )
 
 /** The problem with the layout of the page that is shown: a control outside the window or two that overlap */
 CORE::CString
-PageProblem( GAMEGUI::CMailAccountForm& form )
+PageProblem( GAMEGUI::CEMailAccountForm& form )
 {
     TMfWidgetVector all;
     MfCollect( form.GetRootWidget(), all );
@@ -209,7 +209,7 @@ PerformMailAccountGuideTests( void )
         ASSERT_TRUE( GUCEF_NULL != context );
         if ( GUCEF_NULL == context )
             return;
-        GAMEGUI::CMailAccountForm form( context );
+        GAMEGUI::CEMailAccountForm form( context );
         ASSERT_TRUE( form.Open() );
 
         // nothing typed: the form says where to start
@@ -228,7 +228,7 @@ PerformMailAccountGuideTests( void )
         ASSERT_TRUE( TextOf( form, "ServersNote" ).HasSubstr( "Servers filled in for" ) >= 0 );
 
         // the data carries the provider and the servers that were filled in
-        GAMEGUI::CMailAccountFormData data = form.GetData();
+        GAMEGUI::CEMailAccountFormData data = form.GetData();
         ASSERT_TRUE( data.providerId == "gmail" && 0 == data.authMode && data.incomingHost == "imap.gmail.com" && 993 == data.incomingPort && 0 == data.incomingSecurity );
         ASSERT_TRUE( data.outgoingHost == "smtp.gmail.com" && 587 == data.outgoingPort && 1 == data.outgoingSecurity && data.useImap );
 
@@ -260,7 +260,7 @@ PerformMailAccountGuideTests( void )
         ASSERT_TRUE( GUCEF_NULL != context );
         if ( GUCEF_NULL == context )
             return;
-        GAMEGUI::CMailAccountForm form( context );
+        GAMEGUI::CEMailAccountForm form( context );
         ASSERT_TRUE( form.Open() );
         GUI::CWidget* address = form.GetWidget( "Address" );
 
@@ -308,7 +308,7 @@ PerformMailAccountGuideTests( void )
         ASSERT_TRUE( GUCEF_NULL != context );
         if ( GUCEF_NULL == context )
             return;
-        COM::CMailProviderPresets table;
+        COM::CEMailProviderPresets table;
         CORE::CDataNode config( "MailProviders" );
         CORE::CDataNode* corp = config.AddChild( "corpmail" );
         corp->SetAttribute( "displayName", "Corp mail" );
@@ -318,14 +318,14 @@ PerformMailAccountGuideTests( void )
         corp->SetAttribute( "smtpPort", (UInt16) 2525 );
         corp->SetAttribute( "passwordHelp", "Use the password of your corp account." );
         ASSERT_TRUE( table.LoadConfig( config ) );
-        GAMEGUI::CMailAccountForm form( context );
+        GAMEGUI::CEMailAccountForm form( context );
         form.SetProviderPresets( &table );
         ASSERT_TRUE( form.Open() );
         form.GetWidget( "Address" )->SetProperty( GUI::EWidgetProperty_Text, "me@corp.example" );
         ASSERT_TRUE( form.GetProviderId() == "corpmail" && TextOf( form, "IncomingHost" ) == "imap.corp.example" && TextOf( form, "OutgoingPort" ) == "2525" );
         ASSERT_TRUE( form.GetGuidance().HasSubstr( "password of your corp account" ) >= 0 );
         ASSERT_TRUE( SelectedOf( form, "Provider" ) == (Int32) ( table.GetCount() - 1 ) || form.GetWidget( "Provider" )->GetProperty( GUI::EWidgetProperty_Items ).HasSubstr( "Corp mail" ) >= 0 );
-        GAMEGUI::CMailAccountFormData data = form.GetData();
+        GAMEGUI::CEMailAccountFormData data = form.GetData();
         ASSERT_TRUE( data.providerId == "corpmail" );
     }
     catch ( ... )
@@ -342,7 +342,7 @@ PerformMailAccountGuideTests( void )
         ASSERT_TRUE( GUCEF_NULL != context );
         if ( GUCEF_NULL == context )
             return;
-        GAMEGUI::CMailAccountForm form( context );
+        GAMEGUI::CEMailAccountForm form( context );
         CGuideRecorder recorder( &form );
         ASSERT_TRUE( form.Open() );
         context->RenderFrame( 16 );
@@ -406,7 +406,7 @@ PerformMailAccountGuideTests( void )
         ASSERT_TRUE( GUCEF_NULL != context );
         if ( GUCEF_NULL == context )
             return;
-        GAMEGUI::CMailAccountForm form( context );
+        GAMEGUI::CEMailAccountForm form( context );
         CGuideRecorder recorder( &form );
         form.SetOAuthProviders( Providers( "google", "microsoft" ) );
         ASSERT_TRUE( form.Open() );
@@ -414,7 +414,7 @@ PerformMailAccountGuideTests( void )
         form.GetWidget( "Address" )->SetProperty( GUI::EWidgetProperty_Text, "me@gmail.com" );
         GUI::CSecretInput* password = form.GetWidgetAs< GUI::CSecretInput >( "Password" );
         ASSERT_TRUE( GUCEF_NULL != password && Shows( form, "Password" ) && !Shows( form, "SignInState" ) && !Shows( form, "SignOut" ) );
-        GAMEGUI::CMailAccountFormData typed;
+        GAMEGUI::CEMailAccountFormData typed;
         typed.address = "me@gmail.com";
         typed.password = GuidePassword;
         form.SetData( typed );
@@ -425,7 +425,7 @@ PerformMailAccountGuideTests( void )
         ASSERT_TRUE( TextOf( form, "SignInState" ).HasSubstr( "Signed in with Google" ) >= 0 );
         ASSERT_TRUE( form.GetSignInText() == "Sign in with Google again" );
         ASSERT_FALSE( password->HasValue() );
-        GAMEGUI::CMailAccountFormData data = form.GetData();
+        GAMEGUI::CEMailAccountFormData data = form.GetData();
         ASSERT_TRUE( 1 == data.authMode && data.oauthProvider == "google" && data.password.IsNULLOrEmpty() && data.providerId == "gmail" );
         // the same on the servers page: the strip is on both
         form.ShowServersPage( true );
@@ -433,9 +433,9 @@ PerformMailAccountGuideTests( void )
         form.ShowServersPage( false );
 
         // a form that is filled from saved data shows the state
-        GAMEGUI::CMailAccountForm second( context );
+        GAMEGUI::CEMailAccountForm second( context );
         ASSERT_TRUE( second.Open() );
-        GAMEGUI::CMailAccountFormData saved;
+        GAMEGUI::CEMailAccountFormData saved;
         saved.address = "me@outlook.com";
         saved.authMode = 1;
         saved.oauthProvider = "microsoft";
@@ -475,7 +475,7 @@ PerformMailAccountGuideTests( void )
         ASSERT_TRUE( GUCEF_NULL != context );
         if ( GUCEF_NULL == context )
             return;
-        GAMEGUI::CMailAccountForm form( context );
+        GAMEGUI::CEMailAccountForm form( context );
         CGuideRecorder recorder( &form );
         ASSERT_TRUE( form.Open() );
 
@@ -495,7 +495,7 @@ PerformMailAccountGuideTests( void )
         UInt32 saves = recorder.saves, tests = recorder.tests;
         for ( size_t i=0; i<sizeof( bad ) / sizeof( bad[ 0 ] ); ++i )
         {
-            GAMEGUI::CMailAccountFormData clean;
+            GAMEGUI::CEMailAccountFormData clean;
             clean.address = "me@example.org";
             form.SetData( clean );
             form.ShowServersPage( false );
@@ -511,7 +511,7 @@ PerformMailAccountGuideTests( void )
         }
         // a field the sign-in button reads is checked too
         form.SetOAuthProviders( Providers( "google" ) );
-        GAMEGUI::CMailAccountFormData gmail;
+        GAMEGUI::CEMailAccountFormData gmail;
         gmail.address = "me@gmail.com\r\nBcc: x@example.org";
         form.SetData( gmail );
         const UInt32 signIns = recorder.signIns;
@@ -519,7 +519,7 @@ PerformMailAccountGuideTests( void )
         ASSERT_TRUE( signIns == recorder.signIns );
 
         // good input goes through
-        GAMEGUI::CMailAccountFormData good;
+        GAMEGUI::CEMailAccountFormData good;
         good.address = "me+tag@example.org";
         good.displayName = "Dinand";
         good.incomingHost = "imap.example.org";
@@ -547,7 +547,7 @@ PerformMailAccountGuideTests( void )
             ASSERT_TRUE( GUCEF_NULL != context );
             if ( GUCEF_NULL == context )
                 return;
-            GAMEGUI::CMailAccountForm form( context );
+            GAMEGUI::CEMailAccountForm form( context );
             CGuideRecorder recorder( &form );
             ASSERT_TRUE( form.Open() );
             context->RenderFrame( 16 );
@@ -610,18 +610,18 @@ PerformMailAccountGuideTests( void )
                 ASSERT_TRUE( GUCEF_NULL != context );
                 if ( GUCEF_NULL == context )
                     return;
-                const COM::CMailProviderPreset* found = GUCEF_NULL;
-                GAMEGUI::CMailAccountForm form( context );
+                const COM::CEMailProviderPreset* found = GUCEF_NULL;
+                GAMEGUI::CEMailAccountForm form( context );
                 form.SetPlayerCode( "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" );
                 form.SetOAuthProviders( Providers( cases[ c ].oauth[ 0 ] ? cases[ c ].oauth : GUCEF_NULL ) );
                 ASSERT_TRUE( form.Open() );
-                GAMEGUI::CMailAccountFormData data;
+                GAMEGUI::CEMailAccountFormData data;
                 data.address = cases[ c ].address;
                 data.displayName = "Dinand";
                 if ( !cases[ c ].signedIn )
                     data.password = GuidePassword;
                 form.SetData( data );
-                if ( COM::CMailProviderPresets::RECOGNIZE_KNOWN == form.GetProviderPresets().Recognize( cases[ c ].address, found ) )
+                if ( COM::CEMailProviderPresets::RECOGNIZE_KNOWN == form.GetProviderPresets().Recognize( cases[ c ].address, found ) )
                     form.SelectProvider( found->id );
                 if ( cases[ c ].signedIn )
                     form.SetSignedIn( true, "Signed in with Microsoft. The password is not used for this mailbox." );

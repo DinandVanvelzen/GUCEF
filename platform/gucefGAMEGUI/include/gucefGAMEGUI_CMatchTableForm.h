@@ -40,6 +40,11 @@
 #define GUCEF_GAMEGUI_MACROS_H
 #endif /* GUCEF_GAMEGUI_MACROS_H ? */
 
+#ifndef GUCEF_GAMEGUI_CMATCHTABLEACTION_H
+#include "gucefGAMEGUI_CMatchTableAction.h"
+#define GUCEF_GAMEGUI_CMATCHTABLEACTION_H
+#endif /* GUCEF_GAMEGUI_CMATCHTABLEACTION_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -54,25 +59,6 @@ namespace GAMEGUI {
 //      CLASSES                                                            //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-/** The data of the events of CMatchTableForm: the text that goes with the request (a player, a proposal, a path, pasted text) */
-class GUCEF_GAMEGUI_EXPORT_CPP CMatchTableAction : public CORE::CICloneable
-{
-    public:
-
-    CORE::CString text;
-
-    CMatchTableAction( void );
-    explicit CMatchTableAction( const CORE::CString& actionText );
-    CMatchTableAction( const CMatchTableAction& src );
-    virtual ~CMatchTableAction();
-    CMatchTableAction& operator=( const CMatchTableAction& src );
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    static const char* CloneableTypeName( void );
-};
-
-/*-------------------------------------------------------------------------*/
 
 /**
  *  The table of a game by mail: who plays, with their mail addresses and where they stand, said plainly to be visible to all players; where the

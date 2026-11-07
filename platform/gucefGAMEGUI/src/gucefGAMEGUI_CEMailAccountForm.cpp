@@ -78,17 +78,17 @@
 #define GUCEF_GAMEGUI_UTILS_H
 #endif /* GUCEF_GAMEGUI_UTILS_H ? */
 
-#ifndef GUCEF_COM_CMAILSETUPVALIDATION_H
-#include "gucefCOM_CMailSetupValidation.h"
-#define GUCEF_COM_CMAILSETUPVALIDATION_H
-#endif /* GUCEF_COM_CMAILSETUPVALIDATION_H ? */
+#ifndef GUCEF_COM_CEMAILSETUPVALIDATION_H
+#include "gucefCOM_CEMailSetupValidation.h"
+#define GUCEF_COM_CEMAILSETUPVALIDATION_H
+#endif /* GUCEF_COM_CEMAILSETUPVALIDATION_H ? */
 
 #ifndef GUCEF_CORE_CLONEABLES_H
 #include "cloneables.h"
 #define GUCEF_CORE_CLONEABLES_H
 #endif /* GUCEF_CORE_CLONEABLES_H ? */
 
-#include "gucefGAMEGUI_CMailAccountForm.h"
+#include "gucefGAMEGUI_CEMailAccountForm.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -105,11 +105,11 @@ namespace GAMEGUI {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-const CORE::CEvent CMailAccountForm::SaveRequestedEvent = "GUCEF::GAMEGUI::CMailAccountForm::SaveRequestedEvent";
-const CORE::CEvent CMailAccountForm::TestRequestedEvent = "GUCEF::GAMEGUI::CMailAccountForm::TestRequestedEvent";
-const CORE::CEvent CMailAccountForm::CancelledEvent = "GUCEF::GAMEGUI::CMailAccountForm::CancelledEvent";
-const CORE::CEvent CMailAccountForm::SignInRequestedEvent = "GUCEF::GAMEGUI::CMailAccountForm::SignInRequestedEvent";
-const CORE::CEvent CMailAccountForm::SignOutRequestedEvent = "GUCEF::GAMEGUI::CMailAccountForm::SignOutRequestedEvent";
+const CORE::CEvent CEMailAccountForm::SaveRequestedEvent = "GUCEF::GAMEGUI::CEMailAccountForm::SaveRequestedEvent";
+const CORE::CEvent CEMailAccountForm::TestRequestedEvent = "GUCEF::GAMEGUI::CEMailAccountForm::TestRequestedEvent";
+const CORE::CEvent CEMailAccountForm::CancelledEvent = "GUCEF::GAMEGUI::CEMailAccountForm::CancelledEvent";
+const CORE::CEvent CEMailAccountForm::SignInRequestedEvent = "GUCEF::GAMEGUI::CEMailAccountForm::SignInRequestedEvent";
+const CORE::CEvent CEMailAccountForm::SignOutRequestedEvent = "GUCEF::GAMEGUI::CEMailAccountForm::SignOutRequestedEvent";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -185,123 +185,8 @@ PortOf( GUI::CWidget* widget )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CMailAccountFormData::CMailAccountFormData( void )
-    : CORE::CICloneable()
-    , address()
-    , displayName()
-    , userName()
-    , password()
-    , useImap( true )
-    , incomingHost()
-    , incomingPort( 0 )
-    , incomingSecurity( 0 )
-    , outgoingHost()
-    , outgoingPort( 0 )
-    , outgoingSecurity( 1 )
-    , mailbox( "INBOX" )
-    , pollSeconds( 60 )
-    , useIdle( true )
-    , processedAction( 1 )
-    , processedFolder()
-    , pop3Delete( false )
-    , autoAccept( true )
-    , providerId()
-    , authMode( 0 )
-    , oauthProvider()
-{GUCEF_TRACE;
-
-}
-
-CMailAccountFormData::CMailAccountFormData( const CMailAccountFormData& src )
-    : CORE::CICloneable( src )
-    , address( src.address )
-    , displayName( src.displayName )
-    , userName( src.userName )
-    , password( src.password )
-    , useImap( src.useImap )
-    , incomingHost( src.incomingHost )
-    , incomingPort( src.incomingPort )
-    , incomingSecurity( src.incomingSecurity )
-    , outgoingHost( src.outgoingHost )
-    , outgoingPort( src.outgoingPort )
-    , outgoingSecurity( src.outgoingSecurity )
-    , mailbox( src.mailbox )
-    , pollSeconds( src.pollSeconds )
-    , useIdle( src.useIdle )
-    , processedAction( src.processedAction )
-    , processedFolder( src.processedFolder )
-    , pop3Delete( src.pop3Delete )
-    , autoAccept( src.autoAccept )
-    , providerId( src.providerId )
-    , authMode( src.authMode )
-    , oauthProvider( src.oauthProvider )
-{GUCEF_TRACE;
-
-}
-
-CMailAccountFormData::~CMailAccountFormData()
-{GUCEF_TRACE;
-
-    CORE::SecureWipeString( password );
-}
-
-CMailAccountFormData&
-CMailAccountFormData::operator=( const CMailAccountFormData& src )
-{GUCEF_TRACE;
-
-    if ( &src != this )
-    {
-        address = src.address;
-        displayName = src.displayName;
-        userName = src.userName;
-        CORE::SecureWipeString( password );
-        password = src.password;
-        useImap = src.useImap;
-        incomingHost = src.incomingHost;
-        incomingPort = src.incomingPort;
-        incomingSecurity = src.incomingSecurity;
-        outgoingHost = src.outgoingHost;
-        outgoingPort = src.outgoingPort;
-        outgoingSecurity = src.outgoingSecurity;
-        mailbox = src.mailbox;
-        pollSeconds = src.pollSeconds;
-        useIdle = src.useIdle;
-        processedAction = src.processedAction;
-        processedFolder = src.processedFolder;
-        pop3Delete = src.pop3Delete;
-        autoAccept = src.autoAccept;
-        providerId = src.providerId;
-        authMode = src.authMode;
-        oauthProvider = src.oauthProvider;
-    }
-    return *this;
-}
-
-CORE::CICloneable*
-CMailAccountFormData::Clone( void ) const
-{GUCEF_TRACE;
-
-    return GUCEF_NEW CMailAccountFormData( *this );
-}
-
-const char*
-CMailAccountFormData::GetCloneableTypeName( void ) const
-{GUCEF_TRACE;
-
-    return CloneableTypeName();
-}
-
-const char*
-CMailAccountFormData::CloneableTypeName( void )
-{GUCEF_TRACE;
-
-    return "GUCEF::GAMEGUI::CMailAccountFormData";
-}
-
-/*-------------------------------------------------------------------------*/
-
 void
-CMailAccountForm::RegisterEvents( void )
+CEMailAccountForm::RegisterEvents( void )
 {GUCEF_TRACE;
 
     SaveRequestedEvent.Initialize();
@@ -313,7 +198,7 @@ CMailAccountForm::RegisterEvents( void )
 
 /*-------------------------------------------------------------------------*/
 
-CMailAccountForm::CMailAccountForm( void )
+CEMailAccountForm::CEMailAccountForm( void )
     : GUI::CFormEx()
     , m_passwordSettings()
     , m_open( false )
@@ -321,7 +206,7 @@ CMailAccountForm::CMailAccountForm( void )
     , m_presets( GUCEF_NULL )
     , m_defaultPresets()
     , m_oauthProviders()
-    , m_providerId( COM::CMailProviderPresets::CustomId )
+    , m_providerId( COM::CEMailProviderPresets::CustomId )
     , m_providerPicked( false )
     , m_signedIn( false )
     , m_serversPage( false )
@@ -331,7 +216,7 @@ CMailAccountForm::CMailAccountForm( void )
     RegisterEvents();
 }
 
-CMailAccountForm::CMailAccountForm( GUI::CIGUIContext* context )
+CEMailAccountForm::CEMailAccountForm( GUI::CIGUIContext* context )
     : GUI::CFormEx( context )
     , m_passwordSettings()
     , m_open( false )
@@ -339,7 +224,7 @@ CMailAccountForm::CMailAccountForm( GUI::CIGUIContext* context )
     , m_presets( GUCEF_NULL )
     , m_defaultPresets()
     , m_oauthProviders()
-    , m_providerId( COM::CMailProviderPresets::CustomId )
+    , m_providerId( COM::CEMailProviderPresets::CustomId )
     , m_providerPicked( false )
     , m_signedIn( false )
     , m_serversPage( false )
@@ -349,7 +234,7 @@ CMailAccountForm::CMailAccountForm( GUI::CIGUIContext* context )
     RegisterEvents();
 }
 
-CMailAccountForm::~CMailAccountForm()
+CEMailAccountForm::~CEMailAccountForm()
 {GUCEF_TRACE;
 
     UnsubscribeAllFromObserver();
@@ -358,7 +243,7 @@ CMailAccountForm::~CMailAccountForm()
 /*-------------------------------------------------------------------------*/
 
 void
-CMailAccountForm::BuildLayout( CORE::CDataNode& layout )
+CEMailAccountForm::BuildLayout( CORE::CDataNode& layout )
 {GUCEF_TRACE;
 
     CORE::CDataNode* window = GUI::CFormLayout::AddWidgetNode( layout, "Window", "MailAccountForm", "0.5,0 0.5,0", "0.92,0 0.92,0" );
@@ -476,7 +361,7 @@ CMailAccountForm::BuildLayout( CORE::CDataNode& layout )
 /*-------------------------------------------------------------------------*/
 
 bool
-CMailAccountForm::Build( void )
+CEMailAccountForm::Build( void )
 {GUCEF_TRACE;
 
     CORE::CDataNode layout;
@@ -485,7 +370,7 @@ CMailAccountForm::Build( void )
     if ( !LoadLayout( layout ) )
         return false;
     FillProviderList();
-    const COM::CMailProviderPreset& custom = GetProviderPresets().GetCustomPreset();
+    const COM::CEMailProviderPreset& custom = GetProviderPresets().GetCustomPreset();
     ApplyPreset( custom, false );
     RefreshGuidance();
     ApplyPage();
@@ -495,7 +380,7 @@ CMailAccountForm::Build( void )
 }
 
 void
-CMailAccountForm::OnPostLayoutLoad( void )
+CEMailAccountForm::OnPostLayoutLoad( void )
 {GUCEF_TRACE;
 
     GUI::CFormEx::OnPostLayoutLoad();
@@ -503,75 +388,75 @@ CMailAccountForm::OnPostLayoutLoad( void )
     GUI::CWidget* button = GetWidget( "Save" );
     if ( GUCEF_NULL != button )
     {
-        TEventCallback callback( this, &CMailAccountForm::OnSaveActivated );
+        TEventCallback callback( this, &CEMailAccountForm::OnSaveActivated );
         SubscribeTo( button, GUI::CWidget::ActivatedEvent, callback );
     }
     button = GetWidget( "Test" );
     if ( GUCEF_NULL != button )
     {
-        TEventCallback callback( this, &CMailAccountForm::OnTestActivated );
+        TEventCallback callback( this, &CEMailAccountForm::OnTestActivated );
         SubscribeTo( button, GUI::CWidget::ActivatedEvent, callback );
     }
     button = GetWidget( "Cancel" );
     if ( GUCEF_NULL != button )
     {
-        TEventCallback callback( this, &CMailAccountForm::OnCancelActivated );
+        TEventCallback callback( this, &CEMailAccountForm::OnCancelActivated );
         SubscribeTo( button, GUI::CWidget::ActivatedEvent, callback );
     }
     GUI::CWidget* root = GetRootWidget();
     if ( GUCEF_NULL != root )
     {
-        TEventCallback callback( this, &CMailAccountForm::OnNavigation );
+        TEventCallback callback( this, &CEMailAccountForm::OnNavigation );
         SubscribeTo( root, GUI::CWidget::NavigationEvent, callback );
     }
     button = GetWidget( "PasswordReveal" );
     if ( GUCEF_NULL != button )
     {
-        TEventCallback checked( this, &CMailAccountForm::OnRevealChecked );
+        TEventCallback checked( this, &CEMailAccountForm::OnRevealChecked );
         SubscribeTo( button, GUI::CCheckbox::BoxCheckedEvent, checked );
-        TEventCallback unchecked( this, &CMailAccountForm::OnRevealUnchecked );
+        TEventCallback unchecked( this, &CEMailAccountForm::OnRevealUnchecked );
         SubscribeTo( button, GUI::CCheckbox::BoxUncheckedEvent, unchecked );
     }
     button = GetWidget( "Password" );
     if ( GUCEF_NULL != button )
     {
-        TEventCallback revealChanged( this, &CMailAccountForm::OnPasswordRevealStateChanged );
+        TEventCallback revealChanged( this, &CEMailAccountForm::OnPasswordRevealStateChanged );
         SubscribeTo( button, GUI::CSecretInput::RevealStateChangedEvent, revealChanged );
     }
     button = GetWidget( "Address" );
     if ( GUCEF_NULL != button )
     {
-        TEventCallback changed( this, &CMailAccountForm::OnAddressChanged );
+        TEventCallback changed( this, &CEMailAccountForm::OnAddressChanged );
         SubscribeTo( button, GUI::CEditbox::TextChangedEvent, changed );
     }
     button = GetWidget( "Provider" );
     if ( GUCEF_NULL != button )
     {
-        TEventCallback picked( this, &CMailAccountForm::OnProviderPicked );
+        TEventCallback picked( this, &CEMailAccountForm::OnProviderPicked );
         SubscribeTo( button, GUI::CWidget::ValueChangedEvent, picked );
     }
     button = GetWidget( "SignIn" );
     if ( GUCEF_NULL != button )
     {
-        TEventCallback activated( this, &CMailAccountForm::OnSignInActivated );
+        TEventCallback activated( this, &CEMailAccountForm::OnSignInActivated );
         SubscribeTo( button, GUI::CWidget::ActivatedEvent, activated );
     }
     button = GetWidget( "SignOut" );
     if ( GUCEF_NULL != button )
     {
-        TEventCallback activated( this, &CMailAccountForm::OnSignOutActivated );
+        TEventCallback activated( this, &CEMailAccountForm::OnSignOutActivated );
         SubscribeTo( button, GUI::CWidget::ActivatedEvent, activated );
     }
     button = GetWidget( "PageAccount" );
     if ( GUCEF_NULL != button )
     {
-        TEventCallback activated( this, &CMailAccountForm::OnAccountPageActivated );
+        TEventCallback activated( this, &CEMailAccountForm::OnAccountPageActivated );
         SubscribeTo( button, GUI::CWidget::ActivatedEvent, activated );
     }
     button = GetWidget( "PageServers" );
     if ( GUCEF_NULL != button )
     {
-        TEventCallback activated( this, &CMailAccountForm::OnServersPageActivated );
+        TEventCallback activated( this, &CEMailAccountForm::OnServersPageActivated );
         SubscribeTo( button, GUI::CWidget::ActivatedEvent, activated );
     }
     ApplyPasswordSettings();
@@ -586,7 +471,7 @@ CMailAccountForm::OnPostLayoutLoad( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CMailAccountForm::Open( void )
+CEMailAccountForm::Open( void )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == GetRootWidget() && !Build() )
@@ -598,7 +483,7 @@ CMailAccountForm::Open( void )
 }
 
 void
-CMailAccountForm::Close( void )
+CEMailAccountForm::Close( void )
 {GUCEF_TRACE;
 
     m_open = false;
@@ -607,7 +492,7 @@ CMailAccountForm::Close( void )
 }
 
 bool
-CMailAccountForm::IsOpen( void ) const
+CEMailAccountForm::IsOpen( void ) const
 {GUCEF_TRACE;
 
     return m_open;
@@ -616,7 +501,7 @@ CMailAccountForm::IsOpen( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CMailAccountForm::SetData( const CMailAccountFormData& data )
+CEMailAccountForm::SetData( const CEMailAccountFormData& data )
 {GUCEF_TRACE;
 
     {
@@ -628,7 +513,7 @@ CMailAccountForm::SetData( const CMailAccountFormData& data )
 }
 
 void
-CMailAccountForm::FillFromData( const CMailAccountFormData& data )
+CEMailAccountForm::FillFromData( const CEMailAccountFormData& data )
 {GUCEF_TRACE;
 
     const struct { const char* name; const CORE::CString* text; } fields[] =
@@ -644,7 +529,7 @@ CMailAccountForm::FillFromData( const CMailAccountFormData& data )
     }
     GUI::CSecretInput* password = GetWidgetAs< GUI::CSecretInput >( "Password" );
     if ( GUCEF_NULL != password && !password->SetValue( data.password ) )
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CMailAccountForm: The password does not fit the password field (too many characters or not valid text) and was not put in it" );
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "CEMailAccountForm: The password does not fit the password field (too many characters or not valid text) and was not put in it" );
     GUI::CWidget* field = GetWidget( "IncomingPort" );
     if ( GUCEF_NULL != field )
         field->SetProperty( GUI::EWidgetProperty_Text, 0 == data.incomingPort ? CORE::CString::Empty : CORE::UInt32ToString( data.incomingPort ) );
@@ -677,7 +562,7 @@ CMailAccountForm::FillFromData( const CMailAccountFormData& data )
         field->SetBoolProperty( GUI::EWidgetProperty_Checked, data.autoAccept );
 
     // the provider of the data, else the one the address says; the servers of the data stay as they are
-    const COM::CMailProviderPreset* preset = GUCEF_NULL;
+    const COM::CEMailProviderPreset* preset = GUCEF_NULL;
     if ( !data.providerId.IsNULLOrEmpty() )
         preset = GetProviderPresets().FindById( data.providerId );
     if ( GUCEF_NULL == preset )
@@ -690,14 +575,14 @@ CMailAccountForm::FillFromData( const CMailAccountFormData& data )
     m_signedIn = 1 == data.authMode;
     GUI::CWidget* state = GetWidget( "SignInState" );
     if ( GUCEF_NULL != state )
-        state->SetProperty( GUI::EWidgetProperty_Text, m_signedIn ? CORE::CString( "Signed in with " ) + COM::CMailProviderPresets::GetOAuthDisplayName( data.oauthProvider ) + ". The password is not used for this mailbox." : CORE::CString::Empty );
+        state->SetProperty( GUI::EWidgetProperty_Text, m_signedIn ? CORE::CString( "Signed in with " ) + COM::CEMailProviderPresets::GetOAuthDisplayName( data.oauthProvider ) + ". The password is not used for this mailbox." : CORE::CString::Empty );
 }
 
-CMailAccountFormData
-CMailAccountForm::GetData( void )
+CEMailAccountFormData
+CEMailAccountForm::GetData( void )
 {GUCEF_TRACE;
 
-    CMailAccountFormData data;
+    CEMailAccountFormData data;
     data.address = TextOf( GetWidget( "Address" ) );
     data.displayName = TextOf( GetWidget( "DisplayName" ) );
     data.userName = TextOf( GetWidget( "UserName" ) );
@@ -731,7 +616,7 @@ CMailAccountForm::GetData( void )
     GUI::CWidget* autoAccept = GetWidget( "AutoAccept" );
     data.autoAccept = GUCEF_NULL == autoAccept || autoAccept->GetBoolProperty( GUI::EWidgetProperty_Checked );
     data.providerId = m_providerId;
-    const COM::CMailProviderPreset* preset = GetSelectedPreset();
+    const COM::CEMailProviderPreset* preset = GetSelectedPreset();
     data.authMode = m_signedIn ? 1 : 0;
     if ( m_signedIn && GUCEF_NULL != preset )
         data.oauthProvider = preset->oauthProvider;
@@ -741,7 +626,7 @@ CMailAccountForm::GetData( void )
 /*-------------------------------------------------------------------------*/
 
 void
-CMailAccountForm::SetPlayerCode( const CORE::CString& code )
+CEMailAccountForm::SetPlayerCode( const CORE::CString& code )
 {GUCEF_TRACE;
 
     GUI::CWidget* field = GetWidget( "PlayerCode" );
@@ -750,14 +635,14 @@ CMailAccountForm::SetPlayerCode( const CORE::CString& code )
 }
 
 CORE::CString
-CMailAccountForm::GetPlayerCode( void )
+CEMailAccountForm::GetPlayerCode( void )
 {GUCEF_TRACE;
 
     return TextOf( GetWidget( "PlayerCode" ) );
 }
 
 void
-CMailAccountForm::SetStatus( const CORE::CString& text, bool problem )
+CEMailAccountForm::SetStatus( const CORE::CString& text, bool problem )
 {GUCEF_TRACE;
 
     GUI::CWidget* status = GetWidget( "Status" );
@@ -768,7 +653,7 @@ CMailAccountForm::SetStatus( const CORE::CString& text, bool problem )
 }
 
 CORE::CString
-CMailAccountForm::GetStatus( void )
+CEMailAccountForm::GetStatus( void )
 {GUCEF_TRACE;
 
     GUI::CWidget* status = GetWidget( "Status" );
@@ -776,7 +661,7 @@ CMailAccountForm::GetStatus( void )
 }
 
 void
-CMailAccountForm::SetTesting( bool testing )
+CEMailAccountForm::SetTesting( bool testing )
 {GUCEF_TRACE;
 
     m_testing = testing;
@@ -789,7 +674,7 @@ CMailAccountForm::SetTesting( bool testing )
 }
 
 bool
-CMailAccountForm::IsTesting( void ) const
+CEMailAccountForm::IsTesting( void ) const
 {GUCEF_TRACE;
 
     return m_testing;
@@ -798,7 +683,7 @@ CMailAccountForm::IsTesting( void ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CMailAccountForm::SetPasswordSettings( const GUI::CSecretInputSettings& settings )
+CEMailAccountForm::SetPasswordSettings( const GUI::CSecretInputSettings& settings )
 {GUCEF_TRACE;
 
     m_passwordSettings = settings;
@@ -807,14 +692,14 @@ CMailAccountForm::SetPasswordSettings( const GUI::CSecretInputSettings& settings
 }
 
 const GUI::CSecretInputSettings&
-CMailAccountForm::GetPasswordSettings( void ) const
+CEMailAccountForm::GetPasswordSettings( void ) const
 {GUCEF_TRACE;
 
     return m_passwordSettings;
 }
 
 void
-CMailAccountForm::ApplyPasswordSettings( void )
+CEMailAccountForm::ApplyPasswordSettings( void )
 {GUCEF_TRACE;
 
     GUI::CSecretInput* password = GetWidgetAs< GUI::CSecretInput >( "Password" );
@@ -835,7 +720,7 @@ CMailAccountForm::ApplyPasswordSettings( void )
 }
 
 void
-CMailAccountForm::ClearSecrets( void )
+CEMailAccountForm::ClearSecrets( void )
 {GUCEF_TRACE;
 
     GUI::CSecretInput* password = GetWidgetAs< GUI::CSecretInput >( "Password" );
@@ -850,7 +735,7 @@ CMailAccountForm::ClearSecrets( void )
 }
 
 void
-CMailAccountForm::OnRevealChecked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+CEMailAccountForm::OnRevealChecked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     GUI::CSecretInput* password = GetWidgetAs< GUI::CSecretInput >( "Password" );
@@ -866,7 +751,7 @@ CMailAccountForm::OnRevealChecked( CORE::CNotifier* notifier, const CORE::CEvent
 }
 
 void
-CMailAccountForm::OnRevealUnchecked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+CEMailAccountForm::OnRevealUnchecked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     GUI::CSecretInput* password = GetWidgetAs< GUI::CSecretInput >( "Password" );
@@ -875,7 +760,7 @@ CMailAccountForm::OnRevealUnchecked( CORE::CNotifier* notifier, const CORE::CEve
 }
 
 void
-CMailAccountForm::OnPasswordRevealStateChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+CEMailAccountForm::OnPasswordRevealStateChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     // the field hides the password by itself (after a while, when it loses the focus): the toggle follows
@@ -888,14 +773,14 @@ CMailAccountForm::OnPasswordRevealStateChanged( CORE::CNotifier* notifier, const
 /*-------------------------------------------------------------------------*/
 
 void
-CMailAccountForm::SetProviderPresets( const COM::CMailProviderPresets* presets )
+CEMailAccountForm::SetProviderPresets( const COM::CEMailProviderPresets* presets )
 {GUCEF_TRACE;
 
     m_presets = presets;
     if ( GUCEF_NULL != GetRootWidget() )
     {
         FillProviderList();
-        const COM::CMailProviderPreset* preset = GetProviderPresets().FindById( m_providerId );
+        const COM::CEMailProviderPreset* preset = GetProviderPresets().FindById( m_providerId );
         if ( GUCEF_NULL == preset )
             preset = &GetProviderPresets().GetCustomPreset();
         m_providerId = preset->id;
@@ -910,30 +795,30 @@ CMailAccountForm::SetProviderPresets( const COM::CMailProviderPresets* presets )
     }
 }
 
-const COM::CMailProviderPresets&
-CMailAccountForm::GetProviderPresets( void ) const
+const COM::CEMailProviderPresets&
+CEMailAccountForm::GetProviderPresets( void ) const
 {GUCEF_TRACE;
 
     return GUCEF_NULL != m_presets ? *m_presets : m_defaultPresets;
 }
 
-const COM::CMailProviderPreset*
-CMailAccountForm::GetSelectedPreset( void ) const
+const COM::CEMailProviderPreset*
+CEMailAccountForm::GetSelectedPreset( void ) const
 {GUCEF_TRACE;
 
-    const COM::CMailProviderPreset* preset = GetProviderPresets().FindById( m_providerId );
+    const COM::CEMailProviderPreset* preset = GetProviderPresets().FindById( m_providerId );
     return GUCEF_NULL != preset ? preset : &GetProviderPresets().GetCustomPreset();
 }
 
 CORE::CString
-CMailAccountForm::GetProviderId( void ) const
+CEMailAccountForm::GetProviderId( void ) const
 {GUCEF_TRACE;
 
     return m_providerId;
 }
 
 void
-CMailAccountForm::SetOAuthProviders( const CORE::CString::StringVector& providers )
+CEMailAccountForm::SetOAuthProviders( const CORE::CString::StringVector& providers )
 {GUCEF_TRACE;
 
     m_oauthProviders = providers;
@@ -942,7 +827,7 @@ CMailAccountForm::SetOAuthProviders( const CORE::CString::StringVector& provider
 }
 
 bool
-CMailAccountForm::IsOAuthAvailable( const CORE::CString& providerName ) const
+CEMailAccountForm::IsOAuthAvailable( const CORE::CString& providerName ) const
 {GUCEF_TRACE;
 
     if ( providerName.IsNULLOrEmpty() )
@@ -954,13 +839,13 @@ CMailAccountForm::IsOAuthAvailable( const CORE::CString& providerName ) const
 }
 
 void
-CMailAccountForm::FillProviderList( void )
+CEMailAccountForm::FillProviderList( void )
 {GUCEF_TRACE;
 
     GUI::CWidget* list = GetWidget( "Provider" );
     if ( GUCEF_NULL == list )
         return;
-    const COM::CMailProviderPresets& presets = GetProviderPresets();
+    const COM::CEMailProviderPresets& presets = GetProviderPresets();
     CORE::CString items;
     for ( UInt32 i=0; i<presets.GetCount() && (Int32) i < PresetListLimit; ++i )
     {
@@ -968,7 +853,7 @@ CMailAccountForm::FillProviderList( void )
             items += "\n";
         items += presets.GetPreset( i )->displayName;
     }
-    if ( GUCEF_NULL == presets.FindById( COM::CMailProviderPresets::CustomId ) )
+    if ( GUCEF_NULL == presets.FindById( COM::CEMailProviderPresets::CustomId ) )
     {
         if ( !items.IsNULLOrEmpty() )
             items += "\n";
@@ -979,10 +864,10 @@ CMailAccountForm::FillProviderList( void )
 }
 
 Int32
-CMailAccountForm::GetProviderIndex( const CORE::CString& id ) const
+CEMailAccountForm::GetProviderIndex( const CORE::CString& id ) const
 {GUCEF_TRACE;
 
-    const COM::CMailProviderPresets& presets = GetProviderPresets();
+    const COM::CEMailProviderPresets& presets = GetProviderPresets();
     for ( UInt32 i=0; i<presets.GetCount(); ++i )
         if ( presets.GetPreset( i )->id == id )
             return (Int32) i;
@@ -990,10 +875,10 @@ CMailAccountForm::GetProviderIndex( const CORE::CString& id ) const
 }
 
 bool
-CMailAccountForm::SelectProvider( const CORE::CString& id )
+CEMailAccountForm::SelectProvider( const CORE::CString& id )
 {GUCEF_TRACE;
 
-    const COM::CMailProviderPreset* preset = GetProviderPresets().FindById( id );
+    const COM::CEMailProviderPreset* preset = GetProviderPresets().FindById( id );
     if ( GUCEF_NULL == preset )
         return false;
     m_providerId = preset->id;
@@ -1011,7 +896,7 @@ CMailAccountForm::SelectProvider( const CORE::CString& id )
 }
 
 void
-CMailAccountForm::ApplyPreset( const COM::CMailProviderPreset& preset, bool fillServers )
+CEMailAccountForm::ApplyPreset( const COM::CEMailProviderPreset& preset, bool fillServers )
 {GUCEF_TRACE;
 
     GUI::CWidget* note = GetWidget( "ServersNote" );
@@ -1023,7 +908,7 @@ CMailAccountForm::ApplyPreset( const COM::CMailProviderPreset& preset, bool fill
 
     CORE::CTScopedValue< bool > applying( m_applying, true );
     const bool imap = preset.imap.IsSet();
-    const COM::CMailServerPreset& incoming = imap ? preset.imap : preset.pop3;
+    const COM::CEMailServerPreset& incoming = imap ? preset.imap : preset.pop3;
     GUI::CWidget* field = GetWidget( "OutgoingHost" );
     if ( GUCEF_NULL != field )
         field->SetProperty( GUI::EWidgetProperty_Text, preset.smtp.host );
@@ -1048,7 +933,7 @@ CMailAccountForm::ApplyPreset( const COM::CMailProviderPreset& preset, bool fill
 }
 
 CORE::CString
-CMailAccountForm::GetGuidance( void )
+CEMailAccountForm::GetGuidance( void )
 {GUCEF_TRACE;
 
     GUI::CWidget* guidance = GetWidget( "Guidance" );
@@ -1056,16 +941,16 @@ CMailAccountForm::GetGuidance( void )
 }
 
 void
-CMailAccountForm::RefreshGuidance( void )
+CEMailAccountForm::RefreshGuidance( void )
 {GUCEF_TRACE;
 
-    const COM::CMailProviderPreset* preset = GetSelectedPreset();
+    const COM::CEMailProviderPreset* preset = GetSelectedPreset();
     const CORE::CString address = TextOf( GetWidget( "Address" ) );
     CORE::CString text;
-    if ( address.IsNULLOrEmpty() && !m_providerPicked && COM::CMailProviderPresets::CustomId == preset->id )
+    if ( address.IsNULLOrEmpty() && !m_providerPicked && COM::CEMailProviderPresets::CustomId == preset->id )
         text = "Start with your mail address, for example name@gmail.com. The game then finds your mail provider, fills in its servers and tells you how to sign in to it.";
     else
-        text = COM::CMailProviderPresets::DescribeSignIn( *preset, preset->HasOAuth() && IsOAuthAvailable( preset->oauthProvider ) );
+        text = COM::CEMailProviderPresets::DescribeSignIn( *preset, preset->HasOAuth() && IsOAuthAvailable( preset->oauthProvider ) );
     ApplyPreset( *preset, false );
     GUI::CWidget* guidance = GetWidget( "Guidance" );
     if ( GUCEF_NULL != guidance )
@@ -1079,25 +964,25 @@ CMailAccountForm::RefreshGuidance( void )
 }
 
 bool
-CMailAccountForm::IsSignInShown( void )
+CEMailAccountForm::IsSignInShown( void )
 {GUCEF_TRACE;
 
-    const COM::CMailProviderPreset* preset = GetSelectedPreset();
+    const COM::CEMailProviderPreset* preset = GetSelectedPreset();
     return preset->HasOAuth() && IsOAuthAvailable( preset->oauthProvider );
 }
 
 CORE::CString
-CMailAccountForm::GetSignInText( void )
+CEMailAccountForm::GetSignInText( void )
 {GUCEF_TRACE;
 
-    const COM::CMailProviderPreset* preset = GetSelectedPreset();
+    const COM::CEMailProviderPreset* preset = GetSelectedPreset();
     if ( !preset->HasOAuth() )
         return CORE::CString::Empty;
-    return CORE::CString( m_signedIn ? "Sign in with " : "Sign in with " ) + COM::CMailProviderPresets::GetOAuthDisplayName( preset->oauthProvider ) + ( m_signedIn ? " again" : "" );
+    return CORE::CString( m_signedIn ? "Sign in with " : "Sign in with " ) + COM::CEMailProviderPresets::GetOAuthDisplayName( preset->oauthProvider ) + ( m_signedIn ? " again" : "" );
 }
 
 void
-CMailAccountForm::SetSignedIn( bool signedIn, const CORE::CString& text )
+CEMailAccountForm::SetSignedIn( bool signedIn, const CORE::CString& text )
 {GUCEF_TRACE;
 
     m_signedIn = signedIn;
@@ -1111,14 +996,14 @@ CMailAccountForm::SetSignedIn( bool signedIn, const CORE::CString& text )
 }
 
 bool
-CMailAccountForm::IsSignedIn( void ) const
+CEMailAccountForm::IsSignedIn( void ) const
 {GUCEF_TRACE;
 
     return m_signedIn;
 }
 
 void
-CMailAccountForm::ShowServersPage( bool servers )
+CEMailAccountForm::ShowServersPage( bool servers )
 {GUCEF_TRACE;
 
     m_serversPage = servers;
@@ -1126,14 +1011,14 @@ CMailAccountForm::ShowServersPage( bool servers )
 }
 
 bool
-CMailAccountForm::IsServersPageShown( void ) const
+CEMailAccountForm::IsServersPageShown( void ) const
 {GUCEF_TRACE;
 
     return m_serversPage;
 }
 
 void
-CMailAccountForm::ApplyPage( void )
+CEMailAccountForm::ApplyPage( void )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == GetRootWidget() )
@@ -1180,7 +1065,7 @@ CMailAccountForm::ApplyPage( void )
 }
 
 bool
-CMailAccountForm::Validate( CORE::CString& problem )
+CEMailAccountForm::Validate( CORE::CString& problem )
 {GUCEF_TRACE;
 
     problem.Clear();
@@ -1200,12 +1085,12 @@ CMailAccountForm::Validate( CORE::CString& problem )
         UInt16 port = 0;
         switch ( checks[ i ].kind )
         {
-            case 0: ok = text.IsNULLOrEmpty() || COM::CMailSetupValidation::CheckAddress( text, found ); break;
-            case 1: ok = COM::CMailSetupValidation::CheckDisplayName( text, found ); break;
-            case 2: ok = COM::CMailSetupValidation::CheckUserName( text, found ); break;
-            case 3: ok = text.IsNULLOrEmpty() || COM::CMailSetupValidation::CheckHost( text, found ); break;
-            case 4: ok = COM::CMailSetupValidation::CheckPortText( text, port, found ); break;
-            default: ok = COM::CMailSetupValidation::CheckFolderName( text, found ); break;
+            case 0: ok = text.IsNULLOrEmpty() || COM::CEMailSetupValidation::CheckAddress( text, found ); break;
+            case 1: ok = COM::CEMailSetupValidation::CheckDisplayName( text, found ); break;
+            case 2: ok = COM::CEMailSetupValidation::CheckUserName( text, found ); break;
+            case 3: ok = text.IsNULLOrEmpty() || COM::CEMailSetupValidation::CheckHost( text, found ); break;
+            case 4: ok = COM::CEMailSetupValidation::CheckPortText( text, port, found ); break;
+            default: ok = COM::CEMailSetupValidation::CheckFolderName( text, found ); break;
         }
         if ( !ok )
         {
@@ -1221,10 +1106,10 @@ CMailAccountForm::Validate( CORE::CString& problem )
 /*-------------------------------------------------------------------------*/
 
 void
-CMailAccountForm::RequestSignIn( void )
+CEMailAccountForm::RequestSignIn( void )
 {GUCEF_TRACE;
 
-    const COM::CMailProviderPreset* preset = GetSelectedPreset();
+    const COM::CEMailProviderPreset* preset = GetSelectedPreset();
     if ( !IsSignInShown() )
         return;
     CORE::CString problem;
@@ -1238,14 +1123,14 @@ CMailAccountForm::RequestSignIn( void )
 }
 
 void
-CMailAccountForm::OnAddressChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+CEMailAccountForm::OnAddressChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     if ( m_applying )
         return;
-    const COM::CMailProviderPreset* found = GUCEF_NULL;
-    const COM::CMailProviderPresets::ERecognition recognition = GetProviderPresets().Recognize( TextOf( GetWidget( "Address" ) ), found );
-    if ( COM::CMailProviderPresets::RECOGNIZE_KNOWN == recognition )
+    const COM::CEMailProviderPreset* found = GUCEF_NULL;
+    const COM::CEMailProviderPresets::ERecognition recognition = GetProviderPresets().Recognize( TextOf( GetWidget( "Address" ) ), found );
+    if ( COM::CEMailProviderPresets::RECOGNIZE_KNOWN == recognition )
     {
         if ( found->id != m_providerId )
         {
@@ -1263,9 +1148,9 @@ CMailAccountForm::OnAddressChanged( CORE::CNotifier* notifier, const CORE::CEven
         }
     }
     else
-    if ( !m_providerPicked && COM::CMailProviderPresets::CustomId != m_providerId )
+    if ( !m_providerPicked && COM::CEMailProviderPresets::CustomId != m_providerId )
     {
-        m_providerId = COM::CMailProviderPresets::CustomId;
+        m_providerId = COM::CEMailProviderPresets::CustomId;
         GUI::CCombobox* choice = GetWidgetAs< GUI::CCombobox >( "Provider" );
         if ( GUCEF_NULL != choice )
         {
@@ -1281,7 +1166,7 @@ CMailAccountForm::OnAddressChanged( CORE::CNotifier* notifier, const CORE::CEven
 }
 
 void
-CMailAccountForm::OnProviderPicked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+CEMailAccountForm::OnProviderPicked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     if ( m_applying )
@@ -1290,8 +1175,8 @@ CMailAccountForm::OnProviderPicked( CORE::CNotifier* notifier, const CORE::CEven
     if ( GUCEF_NULL == choice )
         return;
     const Int32 index = choice->GetSelectedIndex();
-    const COM::CMailProviderPresets& presets = GetProviderPresets();
-    const COM::CMailProviderPreset* preset = index >= 0 ? presets.GetPreset( (UInt32) index ) : GUCEF_NULL;
+    const COM::CEMailProviderPresets& presets = GetProviderPresets();
+    const COM::CEMailProviderPreset* preset = index >= 0 ? presets.GetPreset( (UInt32) index ) : GUCEF_NULL;
     if ( GUCEF_NULL == preset )
         preset = &presets.GetCustomPreset();
     if ( preset->id != m_providerId && m_signedIn )
@@ -1300,28 +1185,28 @@ CMailAccountForm::OnProviderPicked( CORE::CNotifier* notifier, const CORE::CEven
 }
 
 void
-CMailAccountForm::OnSignInActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+CEMailAccountForm::OnSignInActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     RequestSignIn();
 }
 
 void
-CMailAccountForm::OnSignOutActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+CEMailAccountForm::OnSignOutActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     NotifyObservers( SignOutRequestedEvent );
 }
 
 void
-CMailAccountForm::OnAccountPageActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+CEMailAccountForm::OnAccountPageActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     ShowServersPage( false );
 }
 
 void
-CMailAccountForm::OnServersPageActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+CEMailAccountForm::OnServersPageActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     ShowServersPage( true );
@@ -1330,7 +1215,7 @@ CMailAccountForm::OnServersPageActivated( CORE::CNotifier* notifier, const CORE:
 /*-------------------------------------------------------------------------*/
 
 void
-CMailAccountForm::RequestSave( void )
+CEMailAccountForm::RequestSave( void )
 {GUCEF_TRACE;
 
     CORE::CString problem;
@@ -1339,12 +1224,12 @@ CMailAccountForm::RequestSave( void )
         SetStatus( problem, true );
         return;
     }
-    CMailAccountFormData data = GetData();
+    CEMailAccountFormData data = GetData();
     NotifyObservers( SaveRequestedEvent, &data );
 }
 
 void
-CMailAccountForm::RequestTest( void )
+CEMailAccountForm::RequestTest( void )
 {GUCEF_TRACE;
 
     if ( m_testing )
@@ -1355,12 +1240,12 @@ CMailAccountForm::RequestTest( void )
         SetStatus( problem, true );
         return;
     }
-    CMailAccountFormData data = GetData();
+    CEMailAccountFormData data = GetData();
     NotifyObservers( TestRequestedEvent, &data );
 }
 
 void
-CMailAccountForm::Cancel( void )
+CEMailAccountForm::Cancel( void )
 {GUCEF_TRACE;
 
     Close();
@@ -1368,28 +1253,28 @@ CMailAccountForm::Cancel( void )
 }
 
 void
-CMailAccountForm::OnSaveActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+CEMailAccountForm::OnSaveActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     RequestSave();
 }
 
 void
-CMailAccountForm::OnTestActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+CEMailAccountForm::OnTestActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     RequestTest();
 }
 
 void
-CMailAccountForm::OnCancelActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+CEMailAccountForm::OnCancelActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     Cancel();
 }
 
 void
-CMailAccountForm::OnNavigation( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
+CEMailAccountForm::OnNavigation( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL == eventData )
@@ -1403,10 +1288,10 @@ CMailAccountForm::OnNavigation( CORE::CNotifier* notifier, const CORE::CEvent& e
 }
 
 const CORE::CString&
-CMailAccountForm::GetClassTypeName( void ) const
+CEMailAccountForm::GetClassTypeName( void ) const
 {GUCEF_TRACE;
 
-    static const CORE::CString classTypeName = "GUCEF::GAMEGUI::CMailAccountForm";
+    static const CORE::CString classTypeName = "GUCEF::GAMEGUI::CEMailAccountForm";
     return classTypeName;
 }
 

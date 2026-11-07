@@ -58,7 +58,7 @@
 #define GUCEF_TEST_LOG_CAPTURE_H
 #endif /* GUCEF_TEST_LOG_CAPTURE_H ? */
 
-#include "gucefGAMEGUI_CMailAccountForm.h"
+#include "gucefGAMEGUI_CEMailAccountForm.h"
 #include "gucefGAMEGUI_TestCommon.h"
 
 /*-------------------------------------------------------------------------//
@@ -136,15 +136,15 @@ class CAccountRecorder : public CORE::CObserver
 
     UInt32 saves;
     UInt32 tests;
-    GAMEGUI::CMailAccountFormData account;
+    GAMEGUI::CEMailAccountFormData account;
 
     explicit CAccountRecorder( CORE::CNotifier* form )
         : CORE::CObserver(), saves( 0 ), tests( 0 ), account()
     {
         TEventCallback saved( this, &CAccountRecorder::OnSave );
-        SubscribeTo( form, GAMEGUI::CMailAccountForm::SaveRequestedEvent, saved );
+        SubscribeTo( form, GAMEGUI::CEMailAccountForm::SaveRequestedEvent, saved );
         TEventCallback tested( this, &CAccountRecorder::OnTest );
-        SubscribeTo( form, GAMEGUI::CMailAccountForm::TestRequestedEvent, tested );
+        SubscribeTo( form, GAMEGUI::CEMailAccountForm::TestRequestedEvent, tested );
     }
 
     virtual ~CAccountRecorder() { UnsubscribeAllFromObserver(); }
@@ -152,7 +152,7 @@ class CAccountRecorder : public CORE::CObserver
     void OnSave( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
         ++saves;
-        GAMEGUI::CMailAccountFormData* data = CORE::CICloneable::CloneableAs< GAMEGUI::CMailAccountFormData >( eventData );
+        GAMEGUI::CEMailAccountFormData* data = CORE::CICloneable::CloneableAs< GAMEGUI::CEMailAccountFormData >( eventData );
         if ( GUCEF_NULL != data )
             account = *data;
     }
@@ -160,7 +160,7 @@ class CAccountRecorder : public CORE::CObserver
     void OnTest( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData )
     {
         ++tests;
-        GAMEGUI::CMailAccountFormData* data = CORE::CICloneable::CloneableAs< GAMEGUI::CMailAccountFormData >( eventData );
+        GAMEGUI::CEMailAccountFormData* data = CORE::CICloneable::CloneableAs< GAMEGUI::CEMailAccountFormData >( eventData );
         if ( GUCEF_NULL != data )
             account = *data;
     }
@@ -243,7 +243,7 @@ PerformMailAccountSecretTests( void )
             ASSERT_TRUE( GUCEF_NULL != context );
             if ( GUCEF_NULL == context )
                 return;
-            GAMEGUI::CMailAccountForm form( context );
+            GAMEGUI::CEMailAccountForm form( context );
             CAccountRecorder recorder( &form );
             ASSERT_TRUE( form.Open() );
 
@@ -269,7 +269,7 @@ PerformMailAccountSecretTests( void )
             ASSERT_TRUE( 1 == recorder.tests && Password == recorder.account.password );
 
             // set by the program, read back
-            GAMEGUI::CMailAccountFormData data;
+            GAMEGUI::CEMailAccountFormData data;
             data.address = "alice@mail.example";
             data.password = "stored-" "form-secret";
             form.SetData( data );
@@ -306,7 +306,7 @@ PerformMailAccountSecretTests( void )
         CORE::CSecureBuffer::SetReleaseAuditor( &Audit );
         g_release.count = 0;
         {
-            GAMEGUI::CMailAccountForm form( context );
+            GAMEGUI::CEMailAccountForm form( context );
             ASSERT_TRUE( form.Open() );
             GUI::CSecretInput* field = form.GetWidgetAs< GUI::CSecretInput >( "Password" );
             ASSERT_TRUE( GUCEF_NULL != field );
@@ -319,7 +319,7 @@ PerformMailAccountSecretTests( void )
             storagePointer = storage.GetRawStorage();
             storageSize = storage.GetRawStorageSize();
 
-            GAMEGUI::CMailAccountFormData data;
+            GAMEGUI::CEMailAccountFormData data;
             data.password = Password;
             form.SetData( data );
             ASSERT_TRUE( field->HasValue() );
@@ -362,16 +362,16 @@ PerformMailAccountSecretTests( void )
     GUCEF_TESTFW_TESTCASE( "MailAccount: the data of the form event is still copied and assigned like plain data (the password follows the copy, the wiping of one object leaves the other alone)" )
     try
     {
-        GAMEGUI::CMailAccountFormData* data = GUCEF_NEW GAMEGUI::CMailAccountFormData();
+        GAMEGUI::CEMailAccountFormData* data = GUCEF_NEW GAMEGUI::CEMailAccountFormData();
         data->password = Password;
         const char* text = data->password.C_String();
         ASSERT_TRUE( 0 == strcmp( text, Password ) );
-        GAMEGUI::CMailAccountFormData copy( *data );
+        GAMEGUI::CEMailAccountFormData copy( *data );
         ASSERT_TRUE( Password == copy.password );
-        GAMEGUI::CMailAccountFormData assigned;
+        GAMEGUI::CEMailAccountFormData assigned;
         assigned = *data;
         ASSERT_TRUE( Password == assigned.password );
-        assigned = GAMEGUI::CMailAccountFormData();
+        assigned = GAMEGUI::CEMailAccountFormData();
         ASSERT_TRUE( assigned.password.IsNULLOrEmpty() );
         GUCEF_DELETE data;
         // the copies are the receiver's own
@@ -391,7 +391,7 @@ PerformMailAccountSecretTests( void )
         ASSERT_TRUE( GUCEF_NULL != context );
         if ( GUCEF_NULL == context )
             return;
-        GAMEGUI::CMailAccountForm form( context );
+        GAMEGUI::CEMailAccountForm form( context );
         ASSERT_TRUE( form.Open() );
         GUI::CSecretInput* field = form.GetWidgetAs< GUI::CSecretInput >( "Password" );
         ASSERT_TRUE( GUCEF_NULL != field );
@@ -402,7 +402,7 @@ PerformMailAccountSecretTests( void )
         ASSERT_TRUE( !form.GetPasswordSettings().allowReveal && !form.GetPasswordSettings().allowCopy && form.GetPasswordSettings().hideLength && form.GetPasswordSettings().clearOnHide );
         ASSERT_FALSE( field->SetRevealed( true ) );
 
-        GAMEGUI::CMailAccountFormData data;
+        GAMEGUI::CEMailAccountFormData data;
         data.password = Password;
         form.SetData( data );
 
@@ -451,7 +451,7 @@ PerformMailAccountSecretTests( void )
             ASSERT_TRUE( GUCEF_NULL != context );
             if ( GUCEF_NULL == context )
                 return;
-            GAMEGUI::CMailAccountForm form( context );
+            GAMEGUI::CEMailAccountForm form( context );
             ASSERT_TRUE( form.Open() );
             GUI::CSecretInput* field = form.GetWidgetAs< GUI::CSecretInput >( "Password" );
             ASSERT_TRUE( GUCEF_NULL != field );
@@ -462,7 +462,7 @@ PerformMailAccountSecretTests( void )
                 ASSERT_TRUE( GUCEF_NULL != context->GetBitmapFont( "UI" )->GetGlyph( GUI::CSecretInputSettings::DefaultMaskCodePoint ) );
             const CORE::CString sizeName = CORE::UInt32ToString( sizes[ s ].width ) + "x" + CORE::UInt32ToString( sizes[ s ].height );
 
-            GAMEGUI::CMailAccountFormData data;
+            GAMEGUI::CEMailAccountFormData data;
             data.address = "alice@mail.example";
             context->SetFocus( form.GetWidget( "Address" ) );
             form.SetData( data );

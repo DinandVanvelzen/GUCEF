@@ -59,6 +59,11 @@
 #define GUCEF_GAMEGUI_UTILS_H
 #endif /* GUCEF_GAMEGUI_UTILS_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CMATCHSYSTEMCLOCK_H
+#include "gucefMULTIPLAY_CMatchSystemClock.h"
+#define GUCEF_MULTIPLAY_CMATCHSYSTEMCLOCK_H
+#endif /* GUCEF_MULTIPLAY_CMATCHSYSTEMCLOCK_H ? */
+
 #include "gucefGAMEGUI_CMatchIndicatorForm.h"
 
 /*-------------------------------------------------------------------------//

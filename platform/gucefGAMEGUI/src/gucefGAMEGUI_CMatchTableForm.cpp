@@ -151,43 +151,6 @@ Join( const CORE::CString::StringVector& lines )
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-CMatchTableAction::CMatchTableAction( void ) : CORE::CICloneable(), text() {GUCEF_TRACE;}
-CMatchTableAction::CMatchTableAction( const CORE::CString& actionText ) : CORE::CICloneable(), text( actionText ) {GUCEF_TRACE;}
-CMatchTableAction::CMatchTableAction( const CMatchTableAction& src ) : CORE::CICloneable( src ), text( src.text ) {GUCEF_TRACE;}
-CMatchTableAction::~CMatchTableAction() {GUCEF_TRACE;}
-
-CMatchTableAction&
-CMatchTableAction::operator=( const CMatchTableAction& src )
-{GUCEF_TRACE;
-
-    if ( &src != this )
-        text = src.text;
-    return *this;
-}
-
-CORE::CICloneable*
-CMatchTableAction::Clone( void ) const
-{GUCEF_TRACE;
-
-    return GUCEF_NEW CMatchTableAction( *this );
-}
-
-const char*
-CMatchTableAction::GetCloneableTypeName( void ) const
-{GUCEF_TRACE;
-
-    return CloneableTypeName();
-}
-
-const char*
-CMatchTableAction::CloneableTypeName( void )
-{GUCEF_TRACE;
-
-    return "GUCEF::GAMEGUI::CMatchTableAction";
-}
-
-/*-------------------------------------------------------------------------*/
-
 void
 CMatchTableForm::RegisterEvents( void )
 {GUCEF_TRACE;

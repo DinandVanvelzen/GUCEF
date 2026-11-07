@@ -72,6 +72,11 @@
 #define GUCEF_GAMEGUI_UTILS_H
 #endif /* GUCEF_GAMEGUI_UTILS_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CMATCHSYSTEMCLOCK_H
+#include "gucefMULTIPLAY_CMatchSystemClock.h"
+#define GUCEF_MULTIPLAY_CMATCHSYSTEMCLOCK_H
+#endif /* GUCEF_MULTIPLAY_CMATCHSYSTEMCLOCK_H ? */
+
 #include "gucefGAMEGUI_CMatchListForm.h"
 
 /*-------------------------------------------------------------------------//
@@ -174,84 +179,6 @@ IsActiveGroup( MULTIPLAY::TMatchGroup group )
 //      IMPLEMENTATION                                                     //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-CMatchActionEventData::CMatchActionEventData( void )
-    : CORE::CICloneable()
-    , matchId()
-    , action( MATCHACTION_MUTE )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchActionEventData::CMatchActionEventData( const CORE::CString& id, TMatchAction matchAction )
-    : CORE::CICloneable()
-    , matchId( id )
-    , action( matchAction )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchActionEventData::CMatchActionEventData( const CMatchActionEventData& src )
-    : CORE::CICloneable( src )
-    , matchId( src.matchId )
-    , action( src.action )
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchActionEventData::~CMatchActionEventData()
-{GUCEF_TRACE;
-
-}
-
-/*-------------------------------------------------------------------------*/
-
-CMatchActionEventData&
-CMatchActionEventData::operator=( const CMatchActionEventData& src )
-{GUCEF_TRACE;
-
-    if ( &src != this )
-    {
-        matchId = src.matchId;
-        action = src.action;
-    }
-    return *this;
-}
-
-/*-------------------------------------------------------------------------*/
-
-CORE::CICloneable*
-CMatchActionEventData::Clone( void ) const
-{GUCEF_TRACE;
-
-    return GUCEF_NEW CMatchActionEventData( *this );
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CMatchActionEventData::GetCloneableTypeName( void ) const
-{GUCEF_TRACE;
-
-    return CloneableTypeName();
-}
-
-/*-------------------------------------------------------------------------*/
-
-const char*
-CMatchActionEventData::CloneableTypeName( void )
-{GUCEF_TRACE;
-
-    return "GUCEF::GAMEGUI::CMatchActionEventData";
-}
-
-/*-------------------------------------------------------------------------*/
 
 CMatchListForm::SRowInfo::SRowInfo( void )
     : matchId()

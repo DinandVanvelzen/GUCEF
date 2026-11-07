@@ -27,12 +27,15 @@ LOCAL_SRC_FILES := \
   src/gucefGAMEGUI_CConnectingForm.cpp \
   src/gucefGAMEGUI_CCreateLobbyForm.cpp \
   src/gucefGAMEGUI_CDirectConnectForm.cpp \
+  src/gucefGAMEGUI_CEMailAccountForm.cpp \
+  src/gucefGAMEGUI_CEMailAccountFormData.cpp \
   src/gucefGAMEGUI_CGameGuiGlobal.cpp \
   src/gucefGAMEGUI_CLobbyForm.cpp \
   src/gucefGAMEGUI_CLobbySettingsPanelForm.cpp \
-  src/gucefGAMEGUI_CMailAccountForm.cpp \
+  src/gucefGAMEGUI_CMatchActionEventData.cpp \
   src/gucefGAMEGUI_CMatchIndicatorForm.cpp \
   src/gucefGAMEGUI_CMatchListForm.cpp \
+  src/gucefGAMEGUI_CMatchTableAction.cpp \
   src/gucefGAMEGUI_CMatchTableForm.cpp \
   src/gucefGAMEGUI_CModule.cpp \
   src/gucefGAMEGUI_CPlayerProfileForm.cpp \

@@ -16,8 +16,8 @@
  *  limitations under the License.
  */
 
-#ifndef GUCEF_GAMEGUI_CMAILACCOUNTFORM_H
-#define GUCEF_GAMEGUI_CMAILACCOUNTFORM_H
+#ifndef GUCEF_GAMEGUI_CEMAILACCOUNTFORM_H
+#define GUCEF_GAMEGUI_CEMAILACCOUNTFORM_H
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -45,15 +45,20 @@
 #define GUCEF_GUI_CSECRETINPUTSETTINGS_H
 #endif /* GUCEF_GUI_CSECRETINPUTSETTINGS_H ? */
 
-#ifndef GUCEF_COM_CMAILPROVIDERPRESETS_H
-#include "gucefCOM_CMailProviderPresets.h"
-#define GUCEF_COM_CMAILPROVIDERPRESETS_H
-#endif /* GUCEF_COM_CMAILPROVIDERPRESETS_H ? */
+#ifndef GUCEF_COM_CEMAILPROVIDERPRESETS_H
+#include "gucefCOM_CEMailProviderPresets.h"
+#define GUCEF_COM_CEMAILPROVIDERPRESETS_H
+#endif /* GUCEF_COM_CEMAILPROVIDERPRESETS_H ? */
 
 #ifndef GUCEF_GAMEGUI_MACROS_H
 #include "gucefGAMEGUI_macros.h"
 #define GUCEF_GAMEGUI_MACROS_H
 #endif /* GUCEF_GAMEGUI_MACROS_H ? */
+
+#ifndef GUCEF_GAMEGUI_CEMAILACCOUNTFORMDATA_H
+#include "gucefGAMEGUI_CEMailAccountFormData.h"
+#define GUCEF_GAMEGUI_CEMAILACCOUNTFORMDATA_H
+#endif /* GUCEF_GAMEGUI_CEMAILACCOUNTFORMDATA_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -71,61 +76,19 @@ namespace GAMEGUI {
 //-------------------------------------------------------------------------*/
 
 /**
- *  The settings of a mailbox as the form shows them and hands them on (the data of CMailAccountForm::SaveRequestedEvent and TestRequestedEvent).
- *  The password is in it only as typed, for whoever keeps or uses it: never log this object. The password text of an object is overwritten
- *  when the object is destroyed or assigned to.
- */
-class GUCEF_GAMEGUI_EXPORT_CPP CMailAccountFormData : public CORE::CICloneable
-{
-    public:
-
-    CORE::CString address;
-    CORE::CString displayName;
-    CORE::CString userName;             /**< empty: the address */
-    CORE::CString password;
-    bool useImap;                       /**< IMAP (true) or POP3 */
-    CORE::CString incomingHost;
-    UInt16 incomingPort;                /**< 0: the usual one */
-    Int32 incomingSecurity;             /**< 0 SSL/TLS, 1 STARTTLS, 2 none */
-    CORE::CString outgoingHost;
-    UInt16 outgoingPort;
-    Int32 outgoingSecurity;
-    CORE::CString mailbox;
-    UInt32 pollSeconds;
-    bool useIdle;
-    Int32 processedAction;              /**< what is done with a game mail once it was handled: 0 leave it in the inbox, 1 copy it to the folder, 2 move it to the folder (it is removed from the inbox) */
-    CORE::CString processedFolder;      /**< the folder of processedAction, empty for none */
-    bool pop3Delete;                    /**< POP3: a handled game mail is deleted from the server */
-    bool autoAccept;                    /**< an invitation to a game the player agreed to be introduced to is accepted by itself */
-    CORE::CString providerId;           /**< the id of the provider preset the person works with (CMailProviderPresets), "custom" for none; empty: the provider the address says */
-    Int32 authMode;                     /**< 0: the password above, 1: the account is signed in with the provider named below (OAuth 2.0); the password is not used then */
-    CORE::CString oauthProvider;        /**< the gucefAUTH provider of authMode 1, empty otherwise */
-
-    CMailAccountFormData( void );
-    CMailAccountFormData( const CMailAccountFormData& src );
-    virtual ~CMailAccountFormData();
-    CMailAccountFormData& operator=( const CMailAccountFormData& src );
-    virtual CORE::CICloneable* Clone( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    virtual const char* GetCloneableTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
-    static const char* CloneableTypeName( void );
-};
-
-/*-------------------------------------------------------------------------*/
-
-/**
  *  The mail account of the player: the address and the name the other players see, the servers to send and to receive (IMAP or POP3) with their
  *  port and security, the user name and the password, the folder that is watched and how often, what is done with a game mail once it was
  *  handled (leave, copy or move to a folder; delete on a POP3 server), and "Test connection". The player code (the
  *  public key that others need to invite the player) is shown to be copied to those who invite. A non-modal window that moves.
  *
  *  The form is guided by the address: it is the first field, and from its domain the form recognizes the provider (a table of
- *  COM::CMailProviderPresets, compiled in defaults that the application can replace), fills in the servers, ports and security, and says in
+ *  COM::CEMailProviderPresets, compiled in defaults that the application can replace), fills in the servers, ports and security, and says in
  *  plain words how that provider signs in (the steps for an app password, or "Sign in with Google / Microsoft" through the OAuth 2.0 client of
  *  gucefAUTH). The sign-in button only exists for a provider the application says it can sign in to (SetOAuthProviders(): a client id is
  *  configured); for the others the text says in plain words that it is not available in this build and what to do instead. An address the
  *  form does not know is the custom provider: the servers are fields to fill in. The servers and the other options are on a second page.
  *
- *  Save notifies SaveRequestedEvent, Test notifies TestRequestedEvent (both with CMailAccountFormData); the application checks the data and says
+ *  Save notifies SaveRequestedEvent, Test notifies TestRequestedEvent (both with CEMailAccountFormData); the application checks the data and says
  *  what is wrong or the result of the test with SetStatus(). What is typed is checked first for what is hostile or malformed (control
  *  characters, a host name that is none, a port that is no number): the status says what to correct and nothing is notified. Empty fields
  *  are for the application to judge. The sign-in button notifies SignInRequestedEvent (the provider name as TCloneableString); the
@@ -135,23 +98,23 @@ class GUCEF_GAMEGUI_EXPORT_CPP CMailAccountFormData : public CORE::CICloneable
  *  closed. SetPasswordSettings() changes how strict the field is (the defaults are the strictest); when the settings allow the password to be
  *  shown, a "Show" toggle appears next to the field.
  */
-class GUCEF_GAMEGUI_EXPORT_CPP CMailAccountForm : public GUI::CFormEx
+class GUCEF_GAMEGUI_EXPORT_CPP CEMailAccountForm : public GUI::CFormEx
 {
     public:
 
-    static const CORE::CEvent SaveRequestedEvent;       /**< CMailAccountFormData */
-    static const CORE::CEvent TestRequestedEvent;       /**< CMailAccountFormData */
+    static const CORE::CEvent SaveRequestedEvent;       /**< CEMailAccountFormData */
+    static const CORE::CEvent TestRequestedEvent;       /**< CEMailAccountFormData */
     static const CORE::CEvent CancelledEvent;           /**< no data */
     static const CORE::CEvent SignInRequestedEvent;     /**< CORE::TCloneableString: the name of the gucefAUTH provider to sign in to */
     static const CORE::CEvent SignOutRequestedEvent;    /**< no data: the person wants a password instead of the sign-in */
 
     static void RegisterEvents( void );
 
-    CMailAccountForm( void );
+    CEMailAccountForm( void );
 
-    CMailAccountForm( GUI::CIGUIContext* context );
+    CEMailAccountForm( GUI::CIGUIContext* context );
 
-    virtual ~CMailAccountForm();
+    virtual ~CEMailAccountForm();
 
     /** Makes the window, hidden */
     bool Build( void );
@@ -164,10 +127,10 @@ class GUCEF_GAMEGUI_EXPORT_CPP CMailAccountForm : public GUI::CFormEx
     bool IsOpen( void ) const;
 
     /** Fills the fields */
-    void SetData( const CMailAccountFormData& data );
+    void SetData( const CEMailAccountFormData& data );
 
     /** The fields as they are now */
-    CMailAccountFormData GetData( void );
+    CEMailAccountFormData GetData( void );
 
     /** How the password field treats the password (see GUI::CSecretInputSettings); the defaults are the most secure ones, nothing can be shown or copied */
     void SetPasswordSettings( const GUI::CSecretInputSettings& settings );
@@ -183,9 +146,9 @@ class GUCEF_GAMEGUI_EXPORT_CPP CMailAccountForm : public GUI::CFormEx
     CORE::CString GetPlayerCode( void );
 
     /** The table that recognizes addresses; not owned and not changed by the form. NULL: the compiled in defaults */
-    void SetProviderPresets( const COM::CMailProviderPresets* presets );
+    void SetProviderPresets( const COM::CEMailProviderPresets* presets );
 
-    const COM::CMailProviderPresets& GetProviderPresets( void ) const;
+    const COM::CEMailProviderPresets& GetProviderPresets( void ) const;
 
     /** The gucefAUTH providers the application can sign in to (the ones with a client id): "google", "microsoft". Others are shown as not available in this build */
     void SetOAuthProviders( const CORE::CString::StringVector& providers );
@@ -245,10 +208,10 @@ class GUCEF_GAMEGUI_EXPORT_CPP CMailAccountForm : public GUI::CFormEx
 
     private:
 
-    typedef CORE::CTEventHandlerFunctor< CMailAccountForm > TEventCallback;
+    typedef CORE::CTEventHandlerFunctor< CEMailAccountForm > TEventCallback;
 
-    CMailAccountForm( const CMailAccountForm& src );
-    CMailAccountForm& operator=( const CMailAccountForm& src );
+    CEMailAccountForm( const CEMailAccountForm& src );
+    CEMailAccountForm& operator=( const CEMailAccountForm& src );
 
     void BuildLayout( CORE::CDataNode& layout );
     void OnSaveActivated( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
@@ -265,19 +228,19 @@ class GUCEF_GAMEGUI_EXPORT_CPP CMailAccountForm : public GUI::CFormEx
     void OnRevealUnchecked( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void OnPasswordRevealStateChanged( CORE::CNotifier* notifier, const CORE::CEvent& eventId, CORE::CICloneable* eventData );
     void ApplyPasswordSettings( void );
-    void FillFromData( const CMailAccountFormData& data );
+    void FillFromData( const CEMailAccountFormData& data );
     void FillProviderList( void );
     Int32 GetProviderIndex( const CORE::CString& id ) const;
-    void ApplyPreset( const COM::CMailProviderPreset& preset, bool fillServers );
+    void ApplyPreset( const COM::CEMailProviderPreset& preset, bool fillServers );
     void RefreshGuidance( void );
     void ApplyPage( void );
-    const COM::CMailProviderPreset* GetSelectedPreset( void ) const;
+    const COM::CEMailProviderPreset* GetSelectedPreset( void ) const;
 
     GUI::CSecretInputSettings m_passwordSettings;
     bool m_open;
     bool m_testing;
-    const COM::CMailProviderPresets* m_presets;
-    COM::CMailProviderPresets m_defaultPresets;
+    const COM::CEMailProviderPresets* m_presets;
+    COM::CEMailProviderPresets m_defaultPresets;
     CORE::CString::StringVector m_oauthProviders;
     CORE::CString m_providerId;
     bool m_providerPicked;                      /**< the person picked the provider: an address of an unknown domain does not take it back */
@@ -297,4 +260,4 @@ class GUCEF_GAMEGUI_EXPORT_CPP CMailAccountForm : public GUI::CFormEx
 
 /*-------------------------------------------------------------------------*/
 
-#endif /* GUCEF_GAMEGUI_CMAILACCOUNTFORM_H ? */
+#endif /* GUCEF_GAMEGUI_CEMAILACCOUNTFORM_H ? */
