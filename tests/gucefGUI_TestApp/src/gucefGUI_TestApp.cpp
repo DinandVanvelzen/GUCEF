@@ -91,6 +91,14 @@ GUCEF_OSMAIN_BEGIN
         PerformGuiFontTests();
         PerformGuiSettingsTests();
         PerformGuiUserActionLogTests();
+        PerformGuiGridModelTests();
+        PerformGuiGridSelectionTests();
+        PerformGuiGridLayoutTests();
+        PerformGuiGridRenderTests();
+        PerformGuiGridFixTests();
+        PerformGuiGridEditingTests();
+        PerformGuiGridClipboardTests();
+        PerformGuiGridEditRenderTests();
         PerformGuiFileDialogTests();
 
         GUCEF_TESTFW_WRITE_RESULTS( xmlPath.C_String() );

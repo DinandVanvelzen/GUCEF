@@ -195,6 +195,45 @@ CSecretInput::SetClipboardWriter( TClipboardWriter writer )
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CSecretInput::ReadClipboardText( CString& text )
+{GUCEF_TRACE;
+
+    text.Clear();
+    TClipboardReader reader = GUCEF_NULL != g_clipboardReader ? g_clipboardReader : &DefaultClipboardRead;
+
+    // 1 MiB first, the largest text the clipboard gives (16 MiB) when that is not enough
+    static const UInt32 sizes[ 2 ] = { 1024 * 1024, 16 * 1024 * 1024 + 1 };
+    for ( UInt32 attempt=0; attempt<2; ++attempt )
+    {
+        GUCEF::vector< char > buffer( sizes[ attempt ], '\0' );
+        UInt32 written = 0;
+        if ( !reader( &buffer[ 0 ], (UInt32) buffer.size(), &written ) )
+            return false;
+        if ( written >= buffer.size() )
+            written = (UInt32) buffer.size() - 1;
+        if ( written + 1 < buffer.size() || 1 == attempt )
+        {
+            buffer[ written ] = '\0';
+            text = CString( &buffer[ 0 ] );
+            return true;
+        }
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CSecretInput::WriteClipboardText( const CString& text )
+{GUCEF_TRACE;
+
+    TClipboardWriter writer = GUCEF_NULL != g_clipboardWriter ? g_clipboardWriter : &DefaultClipboardWrite;
+    return writer( text.C_String() );
+}
+
+/*-------------------------------------------------------------------------*/
+
 CSecretInput::CSecretInput( void )
     : CEditbox( "SecretInput" )
     , m_settings()

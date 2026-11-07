@@ -377,6 +377,86 @@
 #define GUCEF_GUI_CGRIDVIEW_H
 #endif /* GUCEF_GUI_CGRIDVIEW_H ? */
 
+#ifndef GUCEF_GUI_CTABLEVIEWRANGE_H
+#include "gucefGUI_CTableViewRange.h"
+#define GUCEF_GUI_CTABLEVIEWRANGE_H
+#endif /* GUCEF_GUI_CTABLEVIEWRANGE_H ? */
+
+#ifndef GUCEF_GUI_CTABLEVIEWCOLUMN_H
+#include "gucefGUI_CTableViewColumn.h"
+#define GUCEF_GUI_CTABLEVIEWCOLUMN_H
+#endif /* GUCEF_GUI_CTABLEVIEWCOLUMN_H ? */
+
+#ifndef GUCEF_GUI_CITABLEVIEWMODEL_H
+#include "gucefGUI_CITableViewModel.h"
+#define GUCEF_GUI_CITABLEVIEWMODEL_H
+#endif /* GUCEF_GUI_CITABLEVIEWMODEL_H ? */
+
+#ifndef GUCEF_GUI_CTABLECELLFORMATTER_H
+#include "gucefGUI_CTableCellFormatter.h"
+#define GUCEF_GUI_CTABLECELLFORMATTER_H
+#endif /* GUCEF_GUI_CTABLECELLFORMATTER_H ? */
+
+#ifndef GUCEF_GUI_CDATATABLEVIEWMODEL_H
+#include "gucefGUI_CDataTableViewModel.h"
+#define GUCEF_GUI_CDATATABLEVIEWMODEL_H
+#endif /* GUCEF_GUI_CDATATABLEVIEWMODEL_H ? */
+
+#ifndef GUCEF_GUI_CGRIDCOLUMNLAYOUT_H
+#include "gucefGUI_CGridColumnLayout.h"
+#define GUCEF_GUI_CGRIDCOLUMNLAYOUT_H
+#endif /* GUCEF_GUI_CGRIDCOLUMNLAYOUT_H ? */
+
+#ifndef GUCEF_GUI_CGRIDSELECTION_H
+#include "gucefGUI_CGridSelection.h"
+#define GUCEF_GUI_CGRIDSELECTION_H
+#endif /* GUCEF_GUI_CGRIDSELECTION_H ? */
+
+#ifndef GUCEF_GUI_CGRIDVIEWPAINTER_H
+#include "gucefGUI_CGridViewPainter.h"
+#define GUCEF_GUI_CGRIDVIEWPAINTER_H
+#endif /* GUCEF_GUI_CGRIDVIEWPAINTER_H ? */
+
+#ifndef GUCEF_GUI_CTABLEEDITRESULT_H
+#include "gucefGUI_CTableEditResult.h"
+#define GUCEF_GUI_CTABLEEDITRESULT_H
+#endif /* GUCEF_GUI_CTABLEEDITRESULT_H ? */
+
+#ifndef GUCEF_GUI_CTABLEEDITHISTORY_H
+#include "gucefGUI_CTableEditHistory.h"
+#define GUCEF_GUI_CTABLEEDITHISTORY_H
+#endif /* GUCEF_GUI_CTABLEEDITHISTORY_H ? */
+
+#ifndef GUCEF_GUI_CTABLECELLPARSER_H
+#include "gucefGUI_CTableCellParser.h"
+#define GUCEF_GUI_CTABLECELLPARSER_H
+#endif /* GUCEF_GUI_CTABLECELLPARSER_H ? */
+
+#ifndef GUCEF_GUI_CTABULARTEXT_H
+#include "gucefGUI_CTabularText.h"
+#define GUCEF_GUI_CTABULARTEXT_H
+#endif /* GUCEF_GUI_CTABULARTEXT_H ? */
+
+#ifndef GUCEF_GUI_CGRIDEDITREPORT_H
+#include "gucefGUI_CGridEditReport.h"
+#define GUCEF_GUI_CGRIDEDITREPORT_H
+#endif /* GUCEF_GUI_CGRIDEDITREPORT_H ? */
+
+#ifndef GUCEF_GUI_CGRIDCELLEDITOR_H
+#include "gucefGUI_CGridCellEditor.h"
+#define GUCEF_GUI_CGRIDCELLEDITOR_H
+#endif /* GUCEF_GUI_CGRIDCELLEDITOR_H ? */
+
+#ifndef GUCEF_GUI_CGRIDEDITCONTROLLER_H
+#include "gucefGUI_CGridEditController.h"
+#define GUCEF_GUI_CGRIDEDITCONTROLLER_H
+#endif /* GUCEF_GUI_CGRIDEDITCONTROLLER_H ? */
+
+#ifndef GUCEF_GUI_CGRIDCLIPBOARD_H
+#include "gucefGUI_CGridClipboard.h"
+#define GUCEF_GUI_CGRIDCLIPBOARD_H
+#endif /* GUCEF_GUI_CGRIDCLIPBOARD_H ? */
+
 #ifndef GUCEF_GUI_CSLIDER_H
 #include "gucefGUI_CSlider.h"
 #define GUCEF_GUI_CSLIDER_H

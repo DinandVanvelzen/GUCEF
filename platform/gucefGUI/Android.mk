@@ -34,6 +34,7 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CChartView.cpp \
   src/gucefGUI_CCheckbox.cpp \
   src/gucefGUI_CCombobox.cpp \
+  src/gucefGUI_CDataTableViewModel.cpp \
   src/gucefGUI_CDeveloperConsoleForm.cpp \
   src/gucefGUI_CDirectoryOpenDialogForm.cpp \
   src/gucefGUI_CDirectorySaveDialogForm.cpp \
@@ -56,10 +57,18 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CGUIUserActionLog.cpp \
   src/gucefGUI_CGeneralSettings.cpp \
   src/gucefGUI_CGeneralSettingsForm.cpp \
+  src/gucefGUI_CGridCellEditor.cpp \
+  src/gucefGUI_CGridClipboard.cpp \
+  src/gucefGUI_CGridColumnLayout.cpp \
+  src/gucefGUI_CGridEditController.cpp \
+  src/gucefGUI_CGridEditReport.cpp \
+  src/gucefGUI_CGridSelection.cpp \
   src/gucefGUI_CGridView.cpp \
+  src/gucefGUI_CGridViewPainter.cpp \
   src/gucefGUI_CGroupBox.cpp \
   src/gucefGUI_CGuiGlobal.cpp \
   src/gucefGUI_CIGUIContext.cpp \
+  src/gucefGUI_CITableViewModel.cpp \
   src/gucefGUI_CImageFrame.cpp \
   src/gucefGUI_CLabel.cpp \
   src/gucefGUI_CListbox.cpp \
@@ -83,6 +92,13 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CSpinner.cpp \
   src/gucefGUI_CTabContentPane.cpp \
   src/gucefGUI_CTabControl.cpp \
+  src/gucefGUI_CTableCellFormatter.cpp \
+  src/gucefGUI_CTableCellParser.cpp \
+  src/gucefGUI_CTableEditHistory.cpp \
+  src/gucefGUI_CTableEditResult.cpp \
+  src/gucefGUI_CTableViewColumn.cpp \
+  src/gucefGUI_CTableViewRange.cpp \
+  src/gucefGUI_CTabularText.cpp \
   src/gucefGUI_CTextbox.cpp \
   src/gucefGUI_CTreeview.cpp \
   src/gucefGUI_CUDim.cpp \

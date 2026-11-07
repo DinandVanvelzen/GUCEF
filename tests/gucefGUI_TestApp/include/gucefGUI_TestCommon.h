@@ -81,6 +81,15 @@ void PerformGuiFontTests( void );
 void PerformGuiSettingsTests( void );
 void PerformGuiUserActionLogTests( void );
 
+void PerformGuiGridModelTests( void );
+void PerformGuiGridSelectionTests( void );
+void PerformGuiGridLayoutTests( void );
+void PerformGuiGridRenderTests( void );
+void PerformGuiGridFixTests( void );
+void PerformGuiGridEditingTests( void );
+void PerformGuiGridClipboardTests( void );
+void PerformGuiGridEditRenderTests( void );
+
 void PerformGuiFileDialogTests( void );
 
 /*-------------------------------------------------------------------------*/

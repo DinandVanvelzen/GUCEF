@@ -178,7 +178,9 @@ defines( { "GUCEF_GUI_TESTAPP_BUILD_MODULE", "MODULE_NAME=gucefGUI_TestApp" } )
 configuration( { "ANDROID32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/gucefGUI_TestCommon.h"
+      "include/gucefGUI_TestCommon.h",
+      "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -189,6 +191,14 @@ configuration( { "ANDROID32" } )
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridEditRender.cpp",
+      "src/TestGuiGridEditing.cpp",
+      "src/TestGuiGridFix.cpp",
+      "src/TestGuiGridLayout.cpp",
+      "src/TestGuiGridModel.cpp",
+      "src/TestGuiGridRender.cpp",
+      "src/TestGuiGridSelection.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
@@ -208,7 +218,9 @@ configuration( { "ANDROID32" } )
 configuration( { "ANDROID64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/gucefGUI_TestCommon.h"
+      "include/gucefGUI_TestCommon.h",
+      "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -219,6 +231,14 @@ configuration( { "ANDROID64" } )
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridEditRender.cpp",
+      "src/TestGuiGridEditing.cpp",
+      "src/TestGuiGridFix.cpp",
+      "src/TestGuiGridLayout.cpp",
+      "src/TestGuiGridModel.cpp",
+      "src/TestGuiGridRender.cpp",
+      "src/TestGuiGridSelection.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
@@ -238,7 +258,9 @@ configuration( { "ANDROID64" } )
 configuration( { "EMSCRIPTEN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/gucefGUI_TestCommon.h"
+      "include/gucefGUI_TestCommon.h",
+      "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -249,6 +271,14 @@ configuration( { "EMSCRIPTEN32" } )
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridEditRender.cpp",
+      "src/TestGuiGridEditing.cpp",
+      "src/TestGuiGridFix.cpp",
+      "src/TestGuiGridLayout.cpp",
+      "src/TestGuiGridModel.cpp",
+      "src/TestGuiGridRender.cpp",
+      "src/TestGuiGridSelection.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
@@ -268,7 +298,9 @@ configuration( { "EMSCRIPTEN32" } )
 configuration( { "EMSCRIPTEN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/gucefGUI_TestCommon.h"
+      "include/gucefGUI_TestCommon.h",
+      "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -279,6 +311,14 @@ configuration( { "EMSCRIPTEN64" } )
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridEditRender.cpp",
+      "src/TestGuiGridEditing.cpp",
+      "src/TestGuiGridFix.cpp",
+      "src/TestGuiGridLayout.cpp",
+      "src/TestGuiGridModel.cpp",
+      "src/TestGuiGridRender.cpp",
+      "src/TestGuiGridSelection.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
@@ -298,7 +338,9 @@ configuration( { "EMSCRIPTEN64" } )
 configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/gucefGUI_TestCommon.h"
+      "include/gucefGUI_TestCommon.h",
+      "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -309,6 +351,14 @@ configuration( { "LINUX32" } )
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridEditRender.cpp",
+      "src/TestGuiGridEditing.cpp",
+      "src/TestGuiGridFix.cpp",
+      "src/TestGuiGridLayout.cpp",
+      "src/TestGuiGridModel.cpp",
+      "src/TestGuiGridRender.cpp",
+      "src/TestGuiGridSelection.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
@@ -328,7 +378,9 @@ configuration( { "LINUX32" } )
 configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/gucefGUI_TestCommon.h"
+      "include/gucefGUI_TestCommon.h",
+      "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -339,6 +391,14 @@ configuration( { "LINUX64" } )
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridEditRender.cpp",
+      "src/TestGuiGridEditing.cpp",
+      "src/TestGuiGridFix.cpp",
+      "src/TestGuiGridLayout.cpp",
+      "src/TestGuiGridModel.cpp",
+      "src/TestGuiGridRender.cpp",
+      "src/TestGuiGridSelection.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
@@ -358,7 +418,9 @@ configuration( { "LINUX64" } )
 configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/gucefGUI_TestCommon.h"
+      "include/gucefGUI_TestCommon.h",
+      "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -369,6 +431,14 @@ configuration( { "WIN32" } )
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridEditRender.cpp",
+      "src/TestGuiGridEditing.cpp",
+      "src/TestGuiGridFix.cpp",
+      "src/TestGuiGridLayout.cpp",
+      "src/TestGuiGridModel.cpp",
+      "src/TestGuiGridRender.cpp",
+      "src/TestGuiGridSelection.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",
@@ -388,7 +458,9 @@ configuration( { "WIN32" } )
 configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
-      "include/gucefGUI_TestCommon.h"
+      "include/gucefGUI_TestCommon.h",
+      "include/gucefGUI_TestGridEditSupport.h",
+      "include/gucefGUI_TestGridSupport.h"
     } )
 
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
@@ -399,6 +471,14 @@ configuration( { "WIN64" } )
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
+      "src/TestGuiGridClipboard.cpp",
+      "src/TestGuiGridEditRender.cpp",
+      "src/TestGuiGridEditing.cpp",
+      "src/TestGuiGridFix.cpp",
+      "src/TestGuiGridLayout.cpp",
+      "src/TestGuiGridModel.cpp",
+      "src/TestGuiGridRender.cpp",
+      "src/TestGuiGridSelection.cpp",
       "src/TestGuiInput.cpp",
       "src/TestGuiLayout.cpp",
       "src/TestGuiMedia.cpp",

@@ -41,6 +41,11 @@
 #define GUCEF_GUI_CWIDGETTYPEREGISTRY_H
 #endif /* GUCEF_GUI_CWIDGETTYPEREGISTRY_H ? */
 
+#ifndef GUCEF_GUI_CGRIDVIEW_H
+#include "gucefGUI_CGridView.h"
+#define GUCEF_GUI_CGRIDVIEW_H
+#endif /* GUCEF_GUI_CGRIDVIEW_H ? */
+
 #ifndef GUCEF_guidriverRmlUI_CRmlUISYSTEMINTERFACE_H
 #include "guidriverRmlUI_CRmlUISystemInterface.h"
 #define GUCEF_guidriverRmlUI_CRmlUISYSTEMINTERFACE_H
@@ -330,6 +335,8 @@ CRmlUIDriver::GetCapabilities( void )
     capabilities.insert( "DynamicImages" );
     capabilities.insert( "NativeLayouts" );
     capabilities.insert( "BackendHints" );
+    // the grid features the own painter of gucefGUI draws
+    GUI::CGridView::GetCapabilities( capabilities );
     return capabilities;
 }
 

@@ -103,6 +103,15 @@ class GUCEF_GUI_PUBLIC_CPP CSecretInput : public CEditbox
     static void SetClipboardReader( TClipboardReader reader );
     static void SetClipboardWriter( TClipboardWriter writer );
 
+    /**
+     *  The text on the clipboard that SetClipboardReader() and SetClipboardWriter() select (the O/S clipboard by default),
+     *  for the widgets that copy and paste text and have no clipboard of their own (the cells of a grid). ReadClipboardText()
+     *  gives false when there is no text; both give false when the clipboard is not available. A text of more than
+     *  16 MiB is cut at that size on reading.
+     */
+    static bool ReadClipboardText( CString& text );
+    static bool WriteClipboardText( const CString& text );
+
     public:
 
     CSecretInput( void );

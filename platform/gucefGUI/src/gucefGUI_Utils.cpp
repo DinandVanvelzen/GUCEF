@@ -23,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <stdlib.h>
+#include <string.h>
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
@@ -97,13 +98,27 @@ DecodeUtf8( const CString& text, TCodePointVector& codePoints )
 CString
 JoinStringList( const TStringVector& entries )
 {
+    // one allocation and one copy of every entry: appending to a string one entry at a time costs time in proportion to its length so far
     CString result;
-    for ( UInt32 i=0; i<(UInt32)entries.size(); ++i )
+    size_t total = 0;
+    for ( size_t i=0; i<entries.size(); ++i )
+        total += strlen( entries[ i ].C_String() ) + ( i > 0 ? 1 : 0 );
+    if ( 0 == total )
+        return result;
+    char* buffer = result.Reserve( (UInt32) total + 1 );
+    if ( GUCEF_NULL == buffer )
+        return result;
+    size_t offset = 0;
+    for ( size_t i=0; i<entries.size(); ++i )
     {
         if ( i > 0 )
-            result += '\n';
-        result += entries[ i ];
+            buffer[ offset++ ] = '\n';
+        const size_t size = strlen( entries[ i ].C_String() );
+        memcpy( buffer + offset, entries[ i ].C_String(), size );
+        offset += size;
     }
+    buffer[ offset ] = '\0';
+    result.DetermineLength();
     return result;
 }
 

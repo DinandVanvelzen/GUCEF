@@ -66,6 +66,7 @@
 #include "gucefGUI_CMenuBar.h"
 #include "gucefGUI_CPopupMenu.h"
 #include "gucefGUI_CGridView.h"
+#include "gucefGUI_CGridViewPainter.h"
 #include "gucefGUI_CAudioPlayer.h"
 #include "gucefGUI_CWindow.h"
 #include "gucefGUI_CScrollPanel.h"
@@ -274,16 +275,6 @@ FoldChevron( CWidgetPainter::TCommandVector& commands, const CRect& box, bool co
             Line( commands, cx, cy - 3 + thickness, cx + 5, cy + 2 + thickness, colour );
         }
     }
-}
-
-/** A small arrow pointing up, for an ascending sort in a header */
-void
-UpArrow( CWidgetPainter::TCommandVector& commands, const CRect& box, const CColour& colour )
-{
-    Int32 cx = box.left + box.width / 2;
-    Int32 cy = box.top + box.height / 2;
-    for ( Int32 i=0; i<4; ++i )
-        Line( commands, cx - 3 + i, cy + 2 - i, cx + 3 - i, cy + 2 - i, colour );
 }
 
 }
@@ -647,109 +638,7 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
     else
     if ( const CGridView* grid = AsType< CGridView >( widget ) )
     {
-        Int32 rowHeight = grid->GetRowHeight();
-        GUCEF::vector< Int32 > widths = grid->GetColumnWidths();
-        CGridView::TStringVector columns = widget.GetStringListProperty( EWidgetProperty_Columns );
-        const CGridView::TStringVector rows = widget.GetStringListProperty( EWidgetProperty_Rows );
-        const bool ellipsis = "Ellipsis" == widget.GetPropertyRef( EWidgetProperty_TextOverflow );
-        CGridView::TStringVector alignments;
-        for ( UInt32 c=0; c<(UInt32)widths.size(); ++c )
-            alignments.push_back( grid->GetColumnAlignment( c ) );
-        const Int32 padLeft = CGridView::CELL_PADDING_LEFT;
-        const Int32 padRight = CGridView::CELL_PADDING_RIGHT;
-
-        Fill( commands, CRect( area.left, area.top, area.width, rowHeight ), ColourOr( widget, EWidgetProperty_HeaderColour, CColour( 50, 50, 50, 255 ) ) );
-        Int32 x = area.left;
-        Int32 sortColumn = widget.GetIntProperty( EWidgetProperty_SortColumn );
-        for ( UInt32 c=0; c<(UInt32)widths.size(); ++c )
-        {
-            const CRect titleCell( x, area.top, widths[ c ], rowHeight );
-            const bool sorted = (Int32) c == sortColumn && widths[ c ] > (Int32) CGridView::SORT_ARROW_ROOM;
-
-            // the column the rows are sorted by is marked as a whole: a tint of the accent over its title, the arrow right beside the title
-            if ( sorted )
-                Fill( commands, titleCell, AccentTint );
-            CString title = c < (UInt32) columns.size() ? columns[ c ] : CString::Empty;
-            const Int32 room = widths[ c ] - padLeft - padRight - ( sorted ? (Int32) CGridView::SORT_ARROW_ROOM : 0 );
-            Int32 titleWidth = 0, titleHeight = 0;
-            if ( ellipsis )
-            {
-                bool cut = false;
-                title = FitText( context, font, title, room, cut );
-            }
-            if ( sorted || "Left" != alignments[ c ] )
-                context.MeasureText( font, title, 0, titleWidth, titleHeight );
-
-            // a title that is wider than its column is cut off at the column
-            CClipScope clipScope( commands, titleCell );
-            Int32 titleX = x + padLeft;
-            Int32 arrowX = 0;
-            if ( "Right" == alignments[ c ] )
-            {
-                titleX = AlignText( x, widths[ c ], titleWidth, "Right", padLeft, padRight );
-                arrowX = titleX - (Int32) CGridView::SORT_ARROW_ROOM + 2;
-            }
-            else
-            {
-                if ( "Center" == alignments[ c ] )
-                    titleX = AlignText( x, widths[ c ] - ( sorted ? (Int32) CGridView::SORT_ARROW_ROOM : 0 ), titleWidth, "Center", padLeft, padRight );
-                arrowX = titleX + titleWidth + 2;
-            }
-            Text( commands, font, title, titleX, area.top, textColour );
-            if ( sorted )
-            {
-                CRect arrowBox( arrowX, area.top, 12, rowHeight );
-                if ( widget.GetBoolProperty( EWidgetProperty_SortAscending ) )
-                    UpArrow( commands, arrowBox, textColour );
-                else
-                    DownArrow( commands, arrowBox, textColour );
-            }
-            x += widths[ c ];
-        }
-        Int32 y = area.top + rowHeight;
-        const CGridView::TInt32Vector emphasizedRows = grid->GetEmphasizedRows();
-        const CGridView::TInt32Vector selectedRows = grid->GetSelectedRows();
-        const CColour emphasisColour = ColourOr( widget, EWidgetProperty_EmphasisColour, CColour( 150, 198, 255, 255 ) );
-        for ( Int32 row = scroll; row < (Int32) rows.size() && y < area.Bottom(); ++row, y += rowHeight )
-        {
-            CRect rowRect( area.left, y, area.width, rowHeight );
-            // a row that needs the player stands out: a tint of the accent over the whole row, a bar of the accent at its left edge and the text in the colour of the emphasis
-            const bool emphasized = std::binary_search( emphasizedRows.begin(), emphasizedRows.end(), row );
-            if ( emphasized )
-            {
-                Fill( commands, rowRect, AccentTint );
-                Fill( commands, CRect( area.left, y, 4, rowHeight ), AccentColour );
-            }
-            if ( std::find( selectedRows.begin(), selectedRows.end(), row ) != selectedRows.end() )
-                Fill( commands, rowRect, selectionColour );
-            const CString::StringVector cells = rows[ row ].ParseElements( '\t', true );
-            x = area.left;
-            for ( UInt32 c=0; c<(UInt32)widths.size(); ++c )
-            {
-                if ( c < (UInt32) cells.size() && !cells[ c ].IsNULLOrEmpty() )
-                {
-                    const Int32 indent = emphasized && 0 == c ? (Int32) CGridView::EMPHASIS_INDENT : 0;
-                    CString text = cells[ c ];
-                    if ( ellipsis )
-                    {
-                        bool cut = false;
-                        text = FitText( context, font, text, widths[ c ] - padLeft - padRight - indent, cut );
-                    }
-                    Int32 textX = x + padLeft + indent;
-                    if ( "Left" != alignments[ c ] )
-                    {
-                        Int32 textWidth = 0, textHeight = 0;
-                        context.MeasureText( font, text, 0, textWidth, textHeight );
-                        textX = AlignText( x + indent, widths[ c ] - indent, textWidth, alignments[ c ], padLeft, padRight );
-                    }
-                    CClipScope clipScope( commands, CRect( x, y, widths[ c ], rowHeight ) );
-                    Text( commands, font, text, textX, y, emphasized ? emphasisColour : textColour );
-                }
-                x += widths[ c ];
-            }
-            if ( row == hoverIndex )
-                Stroke( commands, rowRect, hoverColour, 1 );
-        }
+        CGridViewPainter::Paint( *grid, context, area, commands );
     }
     else
     if ( const CPopupMenu* menu = AsType< CPopupMenu >( widget ) )

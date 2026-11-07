@@ -32,6 +32,11 @@
 #define GUCEF_GUI_CWIDGETTYPEREGISTRY_H
 #endif /* GUCEF_GUI_CWIDGETTYPEREGISTRY_H ? */
 
+#ifndef GUCEF_GUI_CGRIDVIEW_H
+#include "gucefGUI_CGridView.h"
+#define GUCEF_GUI_CGRIDVIEW_H
+#endif /* GUCEF_GUI_CGRIDVIEW_H ? */
+
 #ifndef GUCEF_GUI_CSOFTWARERENDERER_H
 #include "gucefGUI_CSoftwareRenderer.h"
 #define GUCEF_GUI_CSOFTWARERENDERER_H
@@ -269,6 +274,8 @@ CNullGUIDriver::GetCapabilities( void )
     capabilities.insert( "BitmapFonts" );
     capabilities.insert( "DrawSurface" );
     capabilities.insert( "DynamicImages" );
+    // the grid features the own painter of gucefGUI draws
+    GUI::CGridView::GetCapabilities( capabilities );
     return capabilities;
 }
 
