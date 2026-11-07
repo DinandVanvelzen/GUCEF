@@ -1,0 +1,31 @@
+<ModuleInfoEntry>
+    <Module Name="gucefMULTIPLAY_DesktopNotifyTestApp" Type="Executable" Platform="linux" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefMULTIPLAY" />
+            <Dependency Name="notifysinkpluginDESKTOP" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefMULTIPLAY" />
+            <Dependency Name="notifysinkpluginDESKTOP" />
+        </Linker>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

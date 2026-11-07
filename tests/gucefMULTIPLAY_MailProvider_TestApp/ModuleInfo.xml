@@ -1,0 +1,34 @@
+<ModuleInfoEntry>
+    <Module Name="gucefMULTIPLAY_MailProvider_TestApp" Type="Executable" Platform="All" Tags="test">
+        <Dependencies>
+            <Dependency Name="gucefTestHeaders" />
+            <Dependency Name="gucefHeaders" />
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefMULTIPLAY" />
+            <Dependency Name="matchprovidermail" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefMULTIPLAY" />
+            <Dependency Name="matchprovidermail" />
+        </Linker>
+        <RuntimeDependencies>
+            <RuntimeDependency Name="dstorepluginPARSIFALXML" />
+            <RuntimeDependency Name="dstorepluginJSONPARSER" />
+            <RuntimeDependency Name="codecspluginMONOCYPHER" />
+            <RuntimeDependency Name="codecspluginZLIB" />
+        </RuntimeDependencies>
+    </Module>
+</ModuleInfoEntry>

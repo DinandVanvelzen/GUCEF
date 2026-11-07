@@ -1,0 +1,39 @@
+<ModuleInfoEntry>
+    <Module Name="notifysinkpluginDESKTOP" Type="SharedLibrary" Platform="linux" Tags="plugin">
+        <ModuleMetaData>
+            <License>Apache 2.0</License>
+            <SemVer>0.1.0.0</SemVer>
+            <DescriptionHeadline>gucefMULTIPLAY match alert sink plugin for desktop notifications on Linux</DescriptionHeadline>
+            <DescriptionDetails>The match alert sink desktop: shows a notification of a match to the player with the notify-send program of libnotify. The program is started directly with its arguments, never through a shell, and every title and name is cleaned and cut to length first. Nothing from libnotify is linked: when notify-send is not installed the sink logs that and shows nothing.</DescriptionDetails>
+            <Authors>
+                <Author>Dinand Vanvelzen</Author>
+            </Authors>
+            <Maintainers>
+                <Maintainer>Dinand Vanvelzen</Maintainer>
+            </Maintainers>
+        </ModuleMetaData>
+        <Dependencies>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefMULTIPLAY" />
+        </Dependencies>
+        <Linker>
+            <Dependency Name="gucefMT" />
+            <Dependency Name="gucefCORE" />
+            <Dependency Name="gucefCOMCORE" />
+            <Dependency Name="gucefCOM" />
+            <Dependency Name="gucefWEB" />
+            <Dependency Name="gucefDRN" />
+            <Dependency Name="gucefAUTH" />
+            <Dependency Name="gucefMULTIPLAY" />
+        </Linker>
+        <Preprocessor>
+            <Define String="GUCEF_MULTIPLAYPLUGIN_DESKTOP_BUILD_MODULE" />
+        </Preprocessor>
+    </Module>
+</ModuleInfoEntry>
