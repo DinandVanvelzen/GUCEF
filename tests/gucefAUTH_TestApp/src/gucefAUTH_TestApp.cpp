@@ -150,6 +150,23 @@ GUCEF_OSMAIN_BEGIN
         LoadTestPlugin( "codecspluginMONOCYPHER" );
         JsonCodecAvailable();
 
+        // The credential store and link store tests start this application again as a second process that writes into a
+        // store: it runs no tests, writes no log and no results
+        if ( IsCredentialStoreHelperRun() )
+        {
+            int helperExitCode = RunCredentialStoreHelper();
+            CORE::CCoreGlobal::Instance()->GetTaskManager().RequestAllThreadsToStop( true, false, 5000 );
+            CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( "test" );
+            return helperExitCode;
+        }
+        if ( IsLinkStoreHelperRun() )
+        {
+            int helperExitCode = RunLinkStoreHelper();
+            CORE::CCoreGlobal::Instance()->GetTaskManager().RequestAllThreadsToStop( true, false, 5000 );
+            CORE::CCoreGlobal::Instance()->GetPluginControl().UnloadPluginGroup( "test" );
+            return helperExitCode;
+        }
+
         CORE::CString logFilename = CORE::RelativePath( "$CURWORKDIR$" );
         CORE::AppendToPath( logFilename, "gucefAUTH_TestApp_Log.txt" );
         CORE::CFileAccess logFileAccess( logFilename, "w" );

@@ -22,6 +22,8 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <string.h>
+
 #ifndef GUCEF_MT_CSCOPEMUTEX_H
 #include "gucefMT_CScopeMutex.h"
 #define GUCEF_MT_CSCOPEMUTEX_H
@@ -85,6 +87,28 @@ namespace AUTH {
 //-------------------------------------------------------------------------*/
 
 const UInt32 CLocalIdentityLinkStore::FileVersion;
+const CORE::CString CLocalIdentityLinkStore::LockFileSuffix = ".lock";
+const UInt32 CLocalIdentityLinkStore::DefaultLockTimeoutInMs = 10000;
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      UTILITIES                                                          //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+namespace {
+
+/** Whether two records are the same in every field */
+bool
+IsSameRecord( const CLinkRecord& a, const CLinkRecord& b )
+{GUCEF_TRACE;
+
+    return a.version == b.version && a.accountRef == b.accountRef && a.profileKeyId == b.profileKeyId &&
+           a.linkedAtMs == b.linkedAtMs && a.proofDigest == b.proofDigest && a.publicKey == b.publicKey &&
+           a.signature == b.signature && a.mergedFrom == b.mergedFrom;
+}
+
+}; /* anonymous namespace */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -92,12 +116,49 @@ const UInt32 CLocalIdentityLinkStore::FileVersion;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+/** What was read of the file of the store while the lock was held */
+struct CLocalIdentityLinkStore::SFileImage
+{
+    bool present;
+    CORE::CDynamicBuffer content;
+    UInt8 digest[ CORE::CSha256::DigestSize ];
+
+    SFileImage( void )
+        : present( false )
+        , content()
+    {GUCEF_TRACE;
+
+        memset( digest, 0, sizeof( digest ) );
+    }
+
+    /** The digest over the presence, the size and the bytes of the file */
+    void ComputeDigest( void )
+    {GUCEF_TRACE;
+
+        UInt32 size = content.GetDataSize();
+        UInt8 prefix[ 5 ] = { (UInt8) ( present ? 1 : 0 ), (UInt8) size, (UInt8) ( size >> 8 ), (UInt8) ( size >> 16 ), (UInt8) ( size >> 24 ) };
+        CORE::CSha256 sha;
+        sha.Update( prefix, sizeof( prefix ) );
+        if ( size > 0 )
+            sha.Update( content.GetConstBufferPtr(), size );
+        sha.Final( digest );
+    }
+
+    private:
+
+    SFileImage( const SFileImage& src );
+    SFileImage& operator=( const SFileImage& src );
+};
+
+/*-------------------------------------------------------------------------*/
+
 CLocalIdentityLinkStore::CLocalIdentityLinkStore( void )
     : IIdentityLinkStore()
     , CORE::CIConfigurable()
     , m_lock()
     , m_path()
     , m_signer( GUCEF_NULL )
+    , m_lockTimeoutInMs( DefaultLockTimeoutInMs )
     , m_links()
     , m_foreign()
     , m_refusedCount( 0 )
@@ -105,6 +166,7 @@ CLocalIdentityLinkStore::CLocalIdentityLinkStore( void )
     , m_readOnly( false )
 {GUCEF_TRACE;
 
+    memset( m_fileDigest, 0, sizeof( m_fileDigest ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -115,6 +177,7 @@ CLocalIdentityLinkStore::CLocalIdentityLinkStore( const CORE::CString& path )
     , m_lock()
     , m_path( path )
     , m_signer( GUCEF_NULL )
+    , m_lockTimeoutInMs( DefaultLockTimeoutInMs )
     , m_links()
     , m_foreign()
     , m_refusedCount( 0 )
@@ -122,6 +185,7 @@ CLocalIdentityLinkStore::CLocalIdentityLinkStore( const CORE::CString& path )
     , m_readOnly( false )
 {GUCEF_TRACE;
 
+    memset( m_fileDigest, 0, sizeof( m_fileDigest ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -134,16 +198,27 @@ CLocalIdentityLinkStore::~CLocalIdentityLinkStore()
 /*-------------------------------------------------------------------------*/
 
 void
-CLocalIdentityLinkStore::SetPath( const CORE::CString& path )
+CLocalIdentityLinkStore::ForgetView( void ) const
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_lock );
-    m_path = path;
+    // The lock is held by the caller
     m_links.clear();
     m_foreign.clear();
     m_refusedCount = 0;
     m_loaded = false;
     m_readOnly = false;
+    memset( m_fileDigest, 0, sizeof( m_fileDigest ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalIdentityLinkStore::SetPath( const CORE::CString& path )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    m_path = path;
+    ForgetView();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -155,6 +230,38 @@ CLocalIdentityLinkStore::GetPath( void ) const
     if ( m_path.IsNULLOrEmpty() )
         return CORE::CString::Empty;
     return CORE::RelativePath( m_path );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+CLocalIdentityLinkStore::GetLockPath( void ) const
+{GUCEF_TRACE;
+
+    CORE::CString path = GetPath();
+    if ( path.IsNULLOrEmpty() )
+        return CORE::CString::Empty;
+    return path + LockFileSuffix;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalIdentityLinkStore::SetLockTimeoutInMs( UInt32 lockTimeoutInMs )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    m_lockTimeoutInMs = lockTimeoutInMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CLocalIdentityLinkStore::GetLockTimeoutInMs( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_lockTimeoutInMs;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -174,6 +281,7 @@ CLocalIdentityLinkStore::GetRefusedCount( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
+    RefreshView();
     return m_refusedCount;
 }
 
@@ -184,16 +292,30 @@ CLocalIdentityLinkStore::GetForeignCount( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
+    RefreshView();
     return (UInt32) m_foreign.size();
 }
 
 /*-------------------------------------------------------------------------*/
 
 bool
-CLocalIdentityLinkStore::IsAcceptable( const CLinkRecord& record ) const
+CLocalIdentityLinkStore::IsAcceptable( const CLinkRecord& record, const TLinkRecordVector* verified ) const
 {GUCEF_TRACE;
 
-    if ( !record.IsKnownVersion() || !record.IsWellFormed() || !record.VerifySignature() )
+    // A record that is in the view as it is now was verified when it came in: the signature is not checked again
+    bool known = false;
+    if ( GUCEF_NULL != verified )
+    {
+        for ( size_t i=0; i<verified->size(); ++i )
+        {
+            if ( IsSameRecord( (*verified)[ i ], record ) )
+            {
+                known = true;
+                break;
+            }
+        }
+    }
+    if ( !known && ( !record.IsKnownVersion() || !record.IsWellFormed() || !record.VerifySignature() ) )
         return false;
     // The own profile has one key
     if ( GUCEF_NULL != m_signer && record.profileKeyId == m_signer->GetKeyId() && record.publicKey != m_signer->GetPublicKeyHex() )
@@ -204,27 +326,60 @@ CLocalIdentityLinkStore::IsAcceptable( const CLinkRecord& record ) const
 /*-------------------------------------------------------------------------*/
 
 void
-CLocalIdentityLinkStore::EnsureLoaded( void )
+CLocalIdentityLinkStore::ReadFile( const CORE::CString& path, SFileImage& image ) const
 {GUCEF_TRACE;
 
-    // The lock is held by the caller
-    if ( m_loaded )
+    // The lock of the file is held by the caller. A file that is there but cannot be read is there with no content,
+    // which no codec reads: the file is then left alone
+    image.present = CORE::FileExists( path );
+    if ( image.present && !image.content.LoadContentFromFile( path ) )
+        image.content.Clear();
+    image.ComputeDigest();
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalIdentityLinkStore::UpdateView( const SFileImage& image ) const
+{GUCEF_TRACE;
+
+    // The lock is held by the caller. The file is what it was at the last read or write: the view stands
+    if ( m_loaded && 0 == memcmp( m_fileDigest, image.digest, sizeof( m_fileDigest ) ) )
         return;
-    m_loaded = true;
-    m_links.clear();
+    ParseImage( image );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CLocalIdentityLinkStore::ParseImage( const SFileImage& image ) const
+{GUCEF_TRACE;
+
+    // The lock is held by the caller. The records of the view as it was are verified already
+    TLinkRecordVector verified;
+    verified.swap( m_links );
     m_foreign.clear();
     m_refusedCount = 0;
     m_readOnly = false;
-
-    CORE::CString path = GetPath();
-    if ( path.IsNULLOrEmpty() || !CORE::FileExists( path ) )
+    m_loaded = true;
+    memcpy( m_fileDigest, image.digest, sizeof( m_fileDigest ) );
+    if ( !image.present )
         return;
 
+    CORE::CString path = GetPath();
     CORE::CDStoreCodecRegistry::TDStoreCodecPtr codec;
     CORE::CString codecName = CORE::ExtractFileExtention( path ).Lowercase();
+    if ( !CORE::CCoreGlobal::Instance()->GetDStoreCodecRegistry().TryLookup( codecName, codec, false ) || codec.IsNULL() )
+    {
+        // Without the codec nothing can be read: that says nothing about the file, it is looked at again next time
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "LocalIdentityLinkStore: There is no \"" << codecName << "\" codec, the link file " << path << " cannot be read" );
+        m_readOnly = true;
+        m_loaded = false;
+        return;
+    }
     CORE::CDataNode root;
-    if ( !CORE::CCoreGlobal::Instance()->GetDStoreCodecRegistry().TryLookup( codecName, codec, false ) || codec.IsNULL() ||
-         !codec->BuildDataTree( &root, path ) )
+    CORE::CDynamicBufferAccess access( image.content );
+    if ( 0 == image.content.GetDataSize() || !codec->BuildDataTree( &root, &access ) )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "LocalIdentityLinkStore: The link file " << path << " cannot be read" );
         // Writing over what cannot be read would lose it
@@ -267,7 +422,7 @@ CLocalIdentityLinkStore::EnsureLoaded( void )
             m_foreign.push_back( *(*i) );
         }
         else
-        if ( !IsAcceptable( record ) )
+        if ( !IsAcceptable( record, &verified ) )
         {
             GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "LocalIdentityLinkStore: A link record in " << path << " was refused: it is not well formed or its signature does not verify" );
             ++m_refusedCount;
@@ -289,10 +444,99 @@ CLocalIdentityLinkStore::EnsureLoaded( void )
 /*-------------------------------------------------------------------------*/
 
 bool
+CLocalIdentityLinkStore::RefreshView( void ) const
+{GUCEF_TRACE;
+
+    // The lock is held by the caller. Nothing is made for a read: without the file there is nothing to lock
+    CORE::CString path = GetPath();
+    if ( path.IsNULLOrEmpty() )
+        return true;
+    if ( !CORE::FileExists( path ) )
+    {
+        SFileImage none;
+        none.ComputeDigest();
+        UpdateView( none );
+        return true;
+    }
+
+    CFileLock fileLock;
+    CFileLock::TLockOutcome outcome = fileLock.Acquire( GetLockPath(), false, m_lockTimeoutInMs );
+    if ( CFileLock::LOCKOUTCOME_TIMED_OUT == outcome )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "LocalIdentityLinkStore: The link file " << path << " stayed locked by another instance for " << m_lockTimeoutInMs << " ms, it is not read" );
+        return false;
+    }
+    // LOCKOUTCOME_UNAVAILABLE: a directory in which the lock file cannot be made is not written by anyone, it is read as it is
+
+    SFileImage image;
+    ReadFile( path, image );
+    UpdateView( image );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLocalIdentityLinkStore::PrepareChange( CFileLock& fileLock, bool makeDirectory )
+{GUCEF_TRACE;
+
+    // The lock is held by the caller. On success the view is what is in the file now and, for a store with a file,
+    // fileLock holds the exclusive lock of it until the change is written
+    CORE::CString path = GetPath();
+    if ( path.IsNULLOrEmpty() )
+        return true;
+
+    CORE::CString dir = CORE::StripFilename( path );
+    if ( !dir.IsNULLOrEmpty() && !CORE::DirExists( dir ) )
+    {
+        if ( !makeDirectory )
+        {
+            // nothing to change, and nothing is made for it
+            SFileImage none;
+            none.ComputeDigest();
+            UpdateView( none );
+            return true;
+        }
+        if ( !CORE::CreateDirs( dir ) )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "LocalIdentityLinkStore: Cannot create the directory " << dir );
+            return false;
+        }
+    }
+
+    CORE::CString lockPath = GetLockPath();
+    bool lockFileExisted = CORE::FileExists( lockPath );
+    CFileLock::TLockOutcome outcome = fileLock.Acquire( lockPath, true, m_lockTimeoutInMs );
+    if ( CFileLock::LOCKOUTCOME_TAKEN != outcome && CFileLock::IsSupported() )
+    {
+        if ( CFileLock::LOCKOUTCOME_TIMED_OUT == outcome )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "LocalIdentityLinkStore: The link file " << path << " stayed locked by another instance for " << m_lockTimeoutInMs << " ms, nothing is changed" );
+        }
+        else
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "LocalIdentityLinkStore: Cannot lock the link file " << path << " (" << lockPath << "), nothing is changed" );
+        }
+        return false;
+    }
+    // a lock file made now is restricted like the file itself
+    if ( CFileLock::LOCKOUTCOME_TAKEN == outcome && !lockFileExisted && !CORE::SetOwnerOnlyAccess( lockPath ) )
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "LocalIdentityLinkStore: Cannot restrict " << lockPath << " to the user" );
+
+    // the change applies to what is in the file now, not to what this instance read before
+    SFileImage image;
+    ReadFile( path, image );
+    UpdateView( image );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CLocalIdentityLinkStore::Save( void )
 {GUCEF_TRACE;
 
-    // The lock is held by the caller
+    // The lock is held by the caller, and the exclusive lock of the file: the view is what was read under it
     CORE::CString path = GetPath();
     if ( path.IsNULLOrEmpty() )
         return true;
@@ -315,8 +559,8 @@ CLocalIdentityLinkStore::Save( void )
     for ( size_t i=0; i<m_foreign.size(); ++i )
         list->AddChild( m_foreign[ i ] );
 
-    CORE::CDynamicBuffer buffer;
-    CORE::CDynamicBufferAccess access( buffer );
+    SFileImage image;
+    CORE::CDynamicBufferAccess access( image.content );
     if ( !codec->StoreDataTree( &root, &access ) )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "LocalIdentityLinkStore: Unable to serialize the links" );
@@ -326,10 +570,17 @@ CLocalIdentityLinkStore::Save( void )
     CORE::CString dir = CORE::StripFilename( path );
     if ( !dir.IsNULLOrEmpty() && !CORE::DirExists( dir ) && !CORE::CreateDirs( dir ) )
         return false;
-    if ( !CORE::WriteFileAtomically( path, buffer ) )
+    if ( !CORE::WriteFileAtomically( path, image.content ) )
         return false;
     if ( !CORE::SetOwnerOnlyAccess( path ) )
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "LocalIdentityLinkStore: Cannot restrict " << path << " to the user" );
+
+    // the file as it is now; records that were refused when it was read are no longer in it
+    image.present = true;
+    image.ComputeDigest();
+    memcpy( m_fileDigest, image.digest, sizeof( m_fileDigest ) );
+    m_refusedCount = 0;
+    m_loaded = true;
     return true;
 }
 
@@ -352,9 +603,11 @@ CLocalIdentityLinkStore::Link( const CLinkRecord& record )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    EnsureLoaded();
     if ( !IsAcceptable( record ) )
         return LINKRESULT_INVALID_RECORD;
+    CFileLock fileLock;
+    if ( !PrepareChange( fileLock, true ) )
+        return LINKRESULT_STORE_ERROR;
 
     TLinkRecordVector previous = m_links;
     size_t index = FindIndex( record.accountRef );
@@ -384,7 +637,9 @@ CLocalIdentityLinkStore::Unlink( const CAccountRef& account, const CORE::CString
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    EnsureLoaded();
+    CFileLock fileLock;
+    if ( !PrepareChange( fileLock, false ) )
+        return false;
     size_t index = FindIndex( account );
     if ( index >= m_links.size() || m_links[ index ].profileKeyId != profileKeyId )
         return true;
@@ -407,7 +662,8 @@ CLocalIdentityLinkStore::GetLinks( const CORE::CString& profileKeyId, TLinkRecor
 
     links.clear();
     MT::CScopeMutex lock( m_lock );
-    EnsureLoaded();
+    if ( !RefreshView() )
+        return false;
     for ( size_t i=0; i<m_links.size(); ++i )
         if ( m_links[ i ].profileKeyId == profileKeyId )
             links.push_back( m_links[ i ] );
@@ -421,7 +677,8 @@ CLocalIdentityLinkStore::Resolve( const CAccountRef& account, CORE::CString& pro
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    EnsureLoaded();
+    if ( !RefreshView() )
+        return false;
     size_t index = FindIndex( account );
     if ( index >= m_links.size() )
         return false;
@@ -441,9 +698,11 @@ CLocalIdentityLinkStore::Merge( const CORE::CString& fromProfileKeyId ,
         *mergedCount = 0;
 
     MT::CScopeMutex lock( m_lock );
-    EnsureLoaded();
     if ( fromProfileKeyId.IsNULLOrEmpty() || fromProfileKeyId == intoSigner.GetKeyId() )
         return LINKRESULT_INVALID_RECORD;
+    CFileLock fileLock;
+    if ( !PrepareChange( fileLock, false ) )
+        return LINKRESULT_STORE_ERROR;
 
     TLinkRecordVector previous = m_links;
     UInt32 moved = 0;
@@ -481,7 +740,9 @@ bool
 CLocalIdentityLinkStore::SaveConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
     config.SetAttribute( "path", m_path );
+    config.SetAttribute( "lockTimeoutInMs", m_lockTimeoutInMs );
     return true;
 }
 
@@ -491,9 +752,14 @@ bool
 CLocalIdentityLinkStore::LoadConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
     CORE::CString path = config.GetAttributeValueOrChildValueByName( "path" ).AsString( m_path, false );
+    m_lockTimeoutInMs = config.GetAttributeValueOrChildValueByName( "lockTimeoutInMs" ).AsUInt32( m_lockTimeoutInMs, true );
     if ( path != m_path )
-        SetPath( path );
+    {
+        m_path = path;
+        ForgetView();
+    }
     return true;
 }
 

@@ -69,6 +69,11 @@
 #define GUCEF_AUTH_STRINGUTILS_H
 #endif /* GUCEF_AUTH_STRINGUTILS_H ? */
 
+#ifndef GUCEF_AUTH_CFILELOCK_H
+#include "gucefAUTH_CFileLock.h"
+#define GUCEF_AUTH_CFILELOCK_H
+#endif /* GUCEF_AUTH_CFILELOCK_H ? */
+
 #include "gucefAUTH_CFileCredentialStore.h"
 
 /*-------------------------------------------------------------------------//
@@ -88,6 +93,8 @@ namespace AUTH {
 
 const CORE::CString CFileCredentialStore::DataFileName = "credentials.bin";
 const CORE::CString CFileCredentialStore::KeyFileName = "credentials.key";
+const CORE::CString CFileCredentialStore::LockFileName = "credentials.lock";
+const UInt32 CFileCredentialStore::DefaultLockTimeoutInMs = 10000;
 
 static const char FileMagic[ 4 ] = { 'G', 'A', 'U', 'C' };
 static const UInt8 FileVersion = 1;
@@ -99,7 +106,7 @@ static const char KeyInfo[] = "gucefAUTH credentials v1";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
-//      IMPLEMENTATION                                                     //
+//      UTILITIES                                                          //
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
@@ -189,6 +196,64 @@ class CBoundedReader
     UInt32 m_pos;
 };
 
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      IMPLEMENTATION                                                     //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+/** What was read of the files of the store while the lock was held */
+struct CFileCredentialStore::SFileImage
+{
+    bool hasData;
+    bool hasKey;
+    CORE::CDynamicBuffer data;
+    CORE::CDynamicBuffer key;               /**< the key material as it is in the key file, wiped when the image goes */
+    UInt8 digest[ CORE::CSha256::DigestSize ];
+
+    SFileImage( void )
+        : hasData( false )
+        , hasKey( false )
+        , data()
+        , key()
+    {GUCEF_TRACE;
+
+        memset( digest, 0, sizeof( digest ) );
+    }
+
+    ~SFileImage()
+    {GUCEF_TRACE;
+
+        if ( key.GetDataSize() > 0 )
+            CAuthCrypto::Wipe( key.GetBufferPtr(), key.GetDataSize() );
+    }
+
+    /** The digest over the presence, the size and the bytes of both files */
+    void ComputeDigest( void )
+    {GUCEF_TRACE;
+
+        CORE::CSha256 sha;
+        AddToDigest( sha, hasData, data );
+        AddToDigest( sha, hasKey, key );
+        sha.Final( digest );
+    }
+
+    private:
+
+    static void AddToDigest( CORE::CSha256& sha, bool present, const CORE::CDynamicBuffer& content )
+    {GUCEF_TRACE;
+
+        UInt32 size = content.GetDataSize();
+        UInt8 prefix[ 5 ] = { (UInt8) ( present ? 1 : 0 ), (UInt8) size, (UInt8) ( size >> 8 ), (UInt8) ( size >> 16 ), (UInt8) ( size >> 24 ) };
+        sha.Update( prefix, sizeof( prefix ) );
+        if ( size > 0 )
+            sha.Update( content.GetConstBufferPtr(), size );
+    }
+
+    SFileImage( const SFileImage& src );
+    SFileImage& operator=( const SFileImage& src );
+};
+
 /*-------------------------------------------------------------------------*/
 
 CFileCredentialStore::CFileCredentialStore( void )
@@ -197,12 +262,14 @@ CFileCredentialStore::CFileCredentialStore( void )
     , m_lock()
     , m_appName( "GUCEF" )
     , m_directory()
+    , m_lockTimeoutInMs( DefaultLockTimeoutInMs )
     , m_slots()
     , m_loaded( false )
     , m_tamperDetected( false )
     , m_newerVersion( false )
 {GUCEF_TRACE;
 
+    memset( m_fileDigest, 0, sizeof( m_fileDigest ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -213,12 +280,14 @@ CFileCredentialStore::CFileCredentialStore( const CORE::CString& directory )
     , m_lock()
     , m_appName( "GUCEF" )
     , m_directory( directory )
+    , m_lockTimeoutInMs( DefaultLockTimeoutInMs )
     , m_slots()
     , m_loaded( false )
     , m_tamperDetected( false )
     , m_newerVersion( false )
 {GUCEF_TRACE;
 
+    memset( m_fileDigest, 0, sizeof( m_fileDigest ) );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -231,15 +300,26 @@ CFileCredentialStore::~CFileCredentialStore()
 /*-------------------------------------------------------------------------*/
 
 void
+CFileCredentialStore::ForgetView( void ) const
+{GUCEF_TRACE;
+
+    // The lock is held by the caller
+    m_slots.clear();
+    m_loaded = false;
+    m_tamperDetected = false;
+    m_newerVersion = false;
+    memset( m_fileDigest, 0, sizeof( m_fileDigest ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CFileCredentialStore::SetDirectory( const CORE::CString& directory )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
     m_directory = directory;
-    m_slots.clear();
-    m_loaded = false;
-    m_tamperDetected = false;
-    m_newerVersion = false;
+    ForgetView();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -257,11 +337,32 @@ CFileCredentialStore::GetDirectory( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+void
+CFileCredentialStore::SetLockTimeoutInMs( UInt32 lockTimeoutInMs )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    m_lockTimeoutInMs = lockTimeoutInMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CFileCredentialStore::GetLockTimeoutInMs( void ) const
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    return m_lockTimeoutInMs;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CFileCredentialStore::IsTamperDetected( void ) const
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
+    RefreshView();
     return m_tamperDetected;
 }
 
@@ -293,72 +394,54 @@ CFileCredentialStore::PrepareDirectory( void )
 
 /*-------------------------------------------------------------------------*/
 
-bool
-CFileCredentialStore::ReadKey( UInt8* derivedKey )
+void
+CFileCredentialStore::ReadFiles( const CORE::CString& directory, SFileImage& image ) const
 {GUCEF_TRACE;
 
-    CORE::CString keyPath = CORE::CombinePath( GetDirectory(), KeyFileName );
-    if ( !CORE::FileExists( keyPath ) )
-        return false;
-    CORE::CDynamicBuffer keyFile;
-    if ( !keyFile.LoadContentFromFile( keyPath ) || CAuthCrypto::KeySize != keyFile.GetDataSize() )
-    {
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The key file " << keyPath << " cannot be used" );
-        return false;
-    }
-    bool derived = CORE::CHkdfSha256::Derive( GUCEF_NULL, 0, keyFile.GetConstBufferPtr(), CAuthCrypto::KeySize, KeyInfo, (UInt32) sizeof( KeyInfo ) - 1, derivedKey, CAuthCrypto::KeySize );
-    CAuthCrypto::Wipe( keyFile.GetBufferPtr(), keyFile.GetDataSize() );
-    return derived;
-}
-
-/*-------------------------------------------------------------------------*/
-
-bool
-CFileCredentialStore::EnsureKey( UInt8* derivedKey )
-{GUCEF_TRACE;
-
-    if ( ReadKey( derivedKey ) )
-        return true;
-
-    // A new key: what was sealed with a key that is gone cannot be read anymore
-    UInt8 keyMaterial[ CAuthCrypto::KeySize ];
-    if ( !CAuthCrypto::RandomBytes( keyMaterial, sizeof( keyMaterial ) ) )
-        return false;
-    CORE::CString keyPath = CORE::CombinePath( GetDirectory(), KeyFileName );
-    bool written = CORE::WriteFileAtomically( keyPath, keyMaterial, sizeof( keyMaterial ) );
-    bool restricted = written && CORE::SetOwnerOnlyAccess( keyPath );
-    bool derived = written && CORE::CHkdfSha256::Derive( GUCEF_NULL, 0, keyMaterial, sizeof( keyMaterial ), KeyInfo, (UInt32) sizeof( KeyInfo ) - 1, derivedKey, CAuthCrypto::KeySize );
-    CAuthCrypto::Wipe( keyMaterial, sizeof( keyMaterial ) );
-    if ( !written )
-    {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Cannot write the key file " << keyPath );
-        return false;
-    }
-    if ( !restricted )
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Cannot restrict the key file " << keyPath << " to the user" );
-    return derived;
+    // The lock of the store file is held by the caller. A file that is there but cannot be read is there with no
+    // content: the data file is then not a credential file, the key file is not a key
+    CORE::CString dataPath = CORE::CombinePath( directory, DataFileName );
+    CORE::CString keyPath = CORE::CombinePath( directory, KeyFileName );
+    image.hasData = CORE::FileExists( dataPath );
+    if ( image.hasData && !image.data.LoadContentFromFile( dataPath ) )
+        image.data.Clear();
+    image.hasKey = CORE::FileExists( keyPath );
+    if ( image.hasKey && !image.key.LoadContentFromFile( keyPath ) )
+        image.key.Clear();
+    image.ComputeDigest();
 }
 
 /*-------------------------------------------------------------------------*/
 
 void
-CFileCredentialStore::EnsureLoaded( void )
+CFileCredentialStore::UpdateView( const SFileImage& image ) const
+{GUCEF_TRACE;
+
+    // The lock is held by the caller. The files are what they were at the last read or write: the view stands
+    if ( m_loaded && 0 == memcmp( m_fileDigest, image.digest, sizeof( m_fileDigest ) ) )
+        return;
+    ParseImage( image );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileCredentialStore::ParseImage( const SFileImage& image ) const
 {GUCEF_TRACE;
 
     // The lock is held by the caller
-    if ( m_loaded )
-        return;
-    m_loaded = true;
     m_slots.clear();
     m_tamperDetected = false;
     m_newerVersion = false;
+    m_loaded = true;
+    memcpy( m_fileDigest, image.digest, sizeof( m_fileDigest ) );
 
     CORE::CString dataPath = CORE::CombinePath( GetDirectory(), DataFileName );
-    if ( !CORE::FileExists( dataPath ) )
+    if ( !image.hasData )
         return;
 
-    CORE::CDynamicBuffer file;
-    if ( !file.LoadContentFromFile( dataPath ) || file.GetDataSize() < HeaderSize + CAuthCrypto::NonceSize + CAuthCrypto::TagSize ||
+    const CORE::CDynamicBuffer& file = image.data;
+    if ( file.GetDataSize() < HeaderSize + CAuthCrypto::NonceSize + CAuthCrypto::TagSize ||
          0 != memcmp( file.GetConstBufferPtr(), FileMagic, sizeof( FileMagic ) ) )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: " << dataPath << " is not a credential file" );
@@ -372,11 +455,20 @@ CFileCredentialStore::EnsureLoaded( void )
         m_newerVersion = true;
         return;
     }
+    if ( !IsAvailable() )
+    {
+        // Nothing can be read without the codec: that is not a sign of tampering, the files are looked at again next time
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: There is no \"" << CAuthCrypto::AeadCipher << "\" codec, " << dataPath << " cannot be read" );
+        m_loaded = false;
+        return;
+    }
 
     UInt8 key[ CAuthCrypto::KeySize ];
-    if ( !ReadKey( key ) )
+    if ( !image.hasKey || CAuthCrypto::KeySize != image.key.GetDataSize() ||
+         !CORE::CHkdfSha256::Derive( GUCEF_NULL, 0, image.key.GetConstBufferPtr(), CAuthCrypto::KeySize, KeyInfo, (UInt32) sizeof( KeyInfo ) - 1, key, CAuthCrypto::KeySize ) )
     {
-        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The key of " << dataPath << " is gone, its content cannot be read" );
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The key of " << dataPath << " is gone or cannot be used, its content cannot be read" );
+        CAuthCrypto::Wipe( key, sizeof( key ) );
         m_tamperDetected = true;
         return;
     }
@@ -387,6 +479,8 @@ CFileCredentialStore::EnsureLoaded( void )
     if ( !opened )
     {
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: " << dataPath << " failed authentication, it was changed or is not made with this key" );
+        if ( plain.GetDataSize() > 0 )
+            CAuthCrypto::Wipe( plain.GetBufferPtr(), plain.GetDataSize() );
         m_tamperDetected = true;
         return;
     }
@@ -409,10 +503,10 @@ CFileCredentialStore::EnsureLoaded( void )
         if ( valid )
         {
             slot.secret.Set( secretText );
-            if ( GetByteLength( secretText ) > 0 )
-                CAuthCrypto::Wipe( secretText.C_String(), GetByteLength( secretText ) );
             slots.push_back( slot );
         }
+        if ( GetByteLength( secretText ) > 0 )
+            CAuthCrypto::Wipe( secretText.C_String(), GetByteLength( secretText ) );
     }
     CAuthCrypto::Wipe( plain.GetBufferPtr(), plain.GetDataSize() );
     if ( !valid || !reader.AtEnd() )
@@ -427,29 +521,79 @@ CFileCredentialStore::EnsureLoaded( void )
 /*-------------------------------------------------------------------------*/
 
 bool
-CFileCredentialStore::Save( void )
+CFileCredentialStore::RefreshView( void ) const
 {GUCEF_TRACE;
 
-    // The lock is held by the caller
-    if ( m_newerVersion )
-        return false;
-    if ( !IsAvailable() )
+    // The lock is held by the caller. Nothing is made for a read: without the files there is nothing to lock
+    CORE::CString dir = GetDirectory();
+    if ( !CORE::FileExists( CORE::CombinePath( dir, DataFileName ) ) && !CORE::FileExists( CORE::CombinePath( dir, KeyFileName ) ) )
     {
-        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: There is no \"" << CAuthCrypto::AeadCipher << "\" codec, nothing is stored" );
+        SFileImage none;
+        none.ComputeDigest();
+        UpdateView( none );
+        return true;
+    }
+
+    CFileLock fileLock;
+    CFileLock::TLockOutcome outcome = fileLock.Acquire( CORE::CombinePath( dir, LockFileName ), false, m_lockTimeoutInMs );
+    if ( CFileLock::LOCKOUTCOME_TIMED_OUT == outcome )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The store in " << dir << " stayed locked by another instance for " << m_lockTimeoutInMs << " ms, it is not read" );
         return false;
     }
-    if ( !PrepareDirectory() )
-        return false;
+    // LOCKOUTCOME_UNAVAILABLE: a directory in which the lock file cannot be made is not written by anyone, it is read as it is
+
+    SFileImage image;
+    ReadFiles( dir, image );
+    UpdateView( image );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileCredentialStore::WriteSlots( const CORE::CString& directory, const TSlotVector& slots, SFileImage& image )
+{GUCEF_TRACE;
+
+    // The exclusive lock of the store file is held by the caller, 'image' is what was read under it
+    CORE::CString keyPath = CORE::CombinePath( directory, KeyFileName );
+    if ( !image.hasKey || CAuthCrypto::KeySize != image.key.GetDataSize() )
+    {
+        // Only without a data file: a data file without a usable key is tamper detected and never written
+        UInt8 keyMaterial[ CAuthCrypto::KeySize ];
+        if ( !CAuthCrypto::RandomBytes( keyMaterial, sizeof( keyMaterial ) ) )
+            return false;
+        bool written = CORE::WriteFileAtomically( keyPath, keyMaterial, sizeof( keyMaterial ) );
+        if ( written )
+        {
+            if ( image.key.GetDataSize() > 0 )
+                CAuthCrypto::Wipe( image.key.GetBufferPtr(), image.key.GetDataSize() );
+            image.key.Clear();
+            image.key.Append( keyMaterial, sizeof( keyMaterial ) );
+            image.hasKey = true;
+        }
+        CAuthCrypto::Wipe( keyMaterial, sizeof( keyMaterial ) );
+        if ( !written )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Cannot write the key file " << keyPath );
+            return false;
+        }
+        if ( !CORE::SetOwnerOnlyAccess( keyPath ) )
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Cannot restrict the key file " << keyPath << " to the user" );
+    }
 
     UInt8 key[ CAuthCrypto::KeySize ];
-    if ( !EnsureKey( key ) )
+    if ( !CORE::CHkdfSha256::Derive( GUCEF_NULL, 0, image.key.GetConstBufferPtr(), CAuthCrypto::KeySize, KeyInfo, (UInt32) sizeof( KeyInfo ) - 1, key, CAuthCrypto::KeySize ) )
+    {
+        CAuthCrypto::Wipe( key, sizeof( key ) );
         return false;
+    }
 
     CORE::CDynamicBuffer plain;
-    AppendUInt32( plain, (UInt32) m_slots.size() );
-    for ( size_t i=0; i<m_slots.size(); ++i )
+    AppendUInt32( plain, (UInt32) slots.size() );
+    for ( size_t i=0; i<slots.size(); ++i )
     {
-        const SSlot& slot = m_slots[ i ];
+        const SSlot& slot = slots[ i ];
         AppendUInt16( plain, (UInt16) GetByteLength( slot.providerName ) );
         plain.Append( slot.providerName.C_String(), GetByteLength( slot.providerName ) );
         AppendUInt16( plain, (UInt16) GetByteLength( slot.accountKey ) );
@@ -476,19 +620,139 @@ CFileCredentialStore::Save( void )
     if ( !sealed )
         return false;
 
-    CORE::CString dataPath = CORE::CombinePath( GetDirectory(), DataFileName );
+    CORE::CString dataPath = CORE::CombinePath( directory, DataFileName );
     if ( !CORE::WriteFileAtomically( dataPath, file ) )
         return false;
     if ( !CORE::SetOwnerOnlyAccess( dataPath ) )
         GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Cannot restrict " << dataPath << " to the user" );
-    m_tamperDetected = false;
+
+    // the files as they are now
+    image.hasData = true;
+    image.data = file;
+    image.ComputeDigest();
     return true;
 }
 
 /*-------------------------------------------------------------------------*/
 
-CFileCredentialStore::SSlot*
-CFileCredentialStore::FindSlot( const CORE::CString& providerName, const CORE::CString& accountKey )
+bool
+CFileCredentialStore::Change( TChangeKind kind                     ,
+                              const CORE::CString& providerName    ,
+                              const CORE::CString& accountKey      ,
+                              const CSecretString* secret          )
+{GUCEF_TRACE;
+
+    MT::CScopeMutex lock( m_lock );
+    CORE::CString dir = GetDirectory();
+    if ( CHANGE_STORE != kind && !CORE::DirExists( dir ) )
+    {
+        // nothing to remove, and nothing is made for it
+        SFileImage none;
+        none.ComputeDigest();
+        UpdateView( none );
+        return true;
+    }
+    if ( !IsAvailable() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: There is no \"" << CAuthCrypto::AeadCipher << "\" codec, nothing is changed in the store in " << dir );
+        return false;
+    }
+    if ( !PrepareDirectory() )
+        return false;
+
+    CFileLock fileLock;
+    CFileLock::TLockOutcome outcome = fileLock.Acquire( CORE::CombinePath( dir, LockFileName ), true, m_lockTimeoutInMs );
+    if ( CFileLock::LOCKOUTCOME_TAKEN != outcome && CFileLock::IsSupported() )
+    {
+        if ( CFileLock::LOCKOUTCOME_TIMED_OUT == outcome )
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The store in " << dir << " stayed locked by another instance for " << m_lockTimeoutInMs << " ms, nothing is changed" );
+        }
+        else
+        {
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: Cannot lock the store in " << dir << " (" << LockFileName << "), nothing is changed" );
+        }
+        return false;
+    }
+
+    // the change applies to what is in the file now, not to what this instance read before
+    SFileImage image;
+    ReadFiles( dir, image );
+    UpdateView( image );
+    if ( m_tamperDetected )
+    {
+        GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The store in " << dir << " failed its integrity check, nothing is written to it until it is wiped" );
+        return false;
+    }
+    if ( m_newerVersion || !m_loaded )
+        return false;
+
+    TSlotVector slots( m_slots );
+    bool changed = false;
+    switch ( kind )
+    {
+        case CHANGE_STORE:
+        {
+            // The vector is in order of storing: a slot that is stored again moves to the back
+            for ( size_t i=0; i<slots.size(); ++i )
+            {
+                if ( slots[ i ].providerName == providerName && slots[ i ].accountKey == accountKey )
+                {
+                    slots.erase( slots.begin() + i );
+                    break;
+                }
+            }
+            if ( slots.size() >= MaxSlotCount || GUCEF_NULL == secret )
+                return false;
+            SSlot added;
+            added.providerName = providerName;
+            added.accountKey = accountKey;
+            added.secret = *secret;
+            added.storedAtMs = GetEpochTimeInMs();
+            slots.push_back( added );
+            changed = true;
+            break;
+        }
+        case CHANGE_REMOVE:
+        {
+            for ( size_t i=0; i<slots.size(); ++i )
+            {
+                if ( slots[ i ].providerName == providerName && slots[ i ].accountKey == accountKey )
+                {
+                    slots.erase( slots.begin() + i );
+                    changed = true;
+                    break;
+                }
+            }
+            break;
+        }
+        case CHANGE_REMOVE_PROVIDER:
+        {
+            TSlotVector kept;
+            for ( size_t i=0; i<slots.size(); ++i )
+                if ( slots[ i ].providerName != providerName )
+                    kept.push_back( slots[ i ] );
+            changed = kept.size() != slots.size();
+            slots = kept;
+            break;
+        }
+    }
+    if ( !changed )
+        return true;
+
+    if ( !WriteSlots( dir, slots, image ) )
+        return false;
+    m_slots = slots;
+    m_loaded = true;
+    m_tamperDetected = false;
+    memcpy( m_fileDigest, image.digest, sizeof( m_fileDigest ) );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CFileCredentialStore::SSlot*
+CFileCredentialStore::FindSlot( const CORE::CString& providerName, const CORE::CString& accountKey ) const
 {GUCEF_TRACE;
 
     for ( size_t i=0; i<m_slots.size(); ++i )
@@ -508,40 +772,7 @@ CFileCredentialStore::Store( const CORE::CString& providerName ,
     if ( providerName.IsNULLOrEmpty() || accountKey.IsNULLOrEmpty() || GetByteLength( providerName ) > MaxNameSize ||
          GetByteLength( accountKey ) > MaxNameSize || secret.Length() > MaxSecretSize )
         return false;
-
-    MT::CScopeMutex lock( m_lock );
-    EnsureLoaded();
-    if ( m_newerVersion )
-        return false;
-
-    // The vector is in order of storing: a slot that is stored again moves to the back
-    TSlotVector previous = m_slots;
-    for ( size_t i=0; i<m_slots.size(); ++i )
-    {
-        if ( m_slots[ i ].providerName == providerName && m_slots[ i ].accountKey == accountKey )
-        {
-            m_slots.erase( m_slots.begin() + i );
-            break;
-        }
-    }
-    if ( m_slots.size() >= MaxSlotCount )
-    {
-        m_slots = previous;
-        return false;
-    }
-
-    SSlot added;
-    added.providerName = providerName;
-    added.accountKey = accountKey;
-    added.secret = secret;
-    added.storedAtMs = GetEpochTimeInMs();
-    m_slots.push_back( added );
-    if ( !Save() )
-    {
-        m_slots = previous;
-        return false;
-    }
-    return true;
+    return Change( CHANGE_STORE, providerName, accountKey, &secret );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -553,8 +784,9 @@ CFileCredentialStore::Load( const CORE::CString& providerName ,
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    EnsureLoaded();
-    SSlot* slot = FindSlot( providerName, accountKey );
+    if ( !RefreshView() )
+        return false;
+    const SSlot* slot = FindSlot( providerName, accountKey );
     if ( GUCEF_NULL == slot )
         return false;
     secret = slot->secret;
@@ -568,23 +800,7 @@ CFileCredentialStore::Remove( const CORE::CString& providerName ,
                               const CORE::CString& accountKey   )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_lock );
-    EnsureLoaded();
-    for ( size_t i=0; i<m_slots.size(); ++i )
-    {
-        if ( m_slots[ i ].providerName == providerName && m_slots[ i ].accountKey == accountKey )
-        {
-            SSlot removed = m_slots[ i ];
-            m_slots.erase( m_slots.begin() + i );
-            if ( !Save() )
-            {
-                m_slots.insert( m_slots.begin() + i, removed );
-                return false;
-            }
-            return true;
-        }
-    }
-    return true;
+    return Change( CHANGE_REMOVE, providerName, accountKey, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -596,7 +812,8 @@ CFileCredentialStore::ListAccounts( const CORE::CString& providerName        ,
 
     accountKeys.clear();
     MT::CScopeMutex lock( m_lock );
-    EnsureLoaded();
+    if ( !RefreshView() )
+        return false;
     // the slot stored last first
     for ( size_t i=m_slots.size(); i>0; --i )
         if ( m_slots[ i-1 ].providerName == providerName )
@@ -610,22 +827,7 @@ bool
 CFileCredentialStore::RemoveProvider( const CORE::CString& providerName )
 {GUCEF_TRACE;
 
-    MT::CScopeMutex lock( m_lock );
-    EnsureLoaded();
-    TSlotVector previous = m_slots;
-    TSlotVector kept;
-    for ( size_t i=0; i<m_slots.size(); ++i )
-        if ( m_slots[ i ].providerName != providerName )
-            kept.push_back( m_slots[ i ] );
-    if ( kept.size() == m_slots.size() )
-        return true;
-    m_slots = kept;
-    if ( !Save() )
-    {
-        m_slots = previous;
-        return false;
-    }
-    return true;
+    return Change( CHANGE_REMOVE_PROVIDER, providerName, CORE::CString::Empty, GUCEF_NULL );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -635,14 +837,22 @@ CFileCredentialStore::Wipe( void )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    m_slots.clear();
-    m_loaded = true;
-    m_tamperDetected = false;
-    m_newerVersion = false;
+    ForgetView();
+    CORE::CString dir = GetDirectory();
+    if ( !CORE::DirExists( dir ) )
+        return true;
+
+    // Under the exclusive lock, which another instance may hold open: the lock file itself stays
+    CFileLock fileLock;
+    if ( CFileLock::LOCKOUTCOME_TIMED_OUT == fileLock.Acquire( CORE::CombinePath( dir, LockFileName ), true, m_lockTimeoutInMs ) )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "FileCredentialStore: The store in " << dir << " stayed locked by another instance for " << m_lockTimeoutInMs << " ms, it is not wiped" );
+        return false;
+    }
 
     bool wiped = true;
-    CORE::CString dataPath = CORE::CombinePath( GetDirectory(), DataFileName );
-    CORE::CString keyPath = CORE::CombinePath( GetDirectory(), KeyFileName );
+    CORE::CString dataPath = CORE::CombinePath( dir, DataFileName );
+    CORE::CString keyPath = CORE::CombinePath( dir, KeyFileName );
     if ( CORE::FileExists( dataPath ) )
         wiped = CORE::DeleteFile( dataPath ) && wiped;
     if ( CORE::FileExists( keyPath ) )
@@ -656,8 +866,10 @@ bool
 CFileCredentialStore::SaveConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
 
+    MT::CScopeMutex lock( m_lock );
     config.SetAttribute( "directory", m_directory );
     config.SetAttribute( "appName", m_appName );
+    config.SetAttribute( "lockTimeoutInMs", m_lockTimeoutInMs );
     return true;
 }
 
@@ -669,13 +881,12 @@ CFileCredentialStore::LoadConfig( const CORE::CDataNode& config )
 
     CORE::CString appName = config.GetAttributeValueOrChildValueByName( "appName" ).AsString( m_appName, true );
     CORE::CString directory = config.GetAttributeValueOrChildValueByName( "directory" ).AsString( m_directory, false );
+    UInt32 lockTimeoutInMs = config.GetAttributeValueOrChildValueByName( "lockTimeoutInMs" ).AsUInt32( m_lockTimeoutInMs, true );
     MT::CScopeMutex lock( m_lock );
     m_appName = appName;
     m_directory = directory;
-    m_slots.clear();
-    m_loaded = false;
-    m_tamperDetected = false;
-    m_newerVersion = false;
+    m_lockTimeoutInMs = lockTimeoutInMs;
+    ForgetView();
     return true;
 }
 

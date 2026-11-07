@@ -1,20 +1,19 @@
 /*
  *  gucefAUTH_TestApp: Application for testing gucefAUTH
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -23,10 +22,47 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <stdlib.h>
+#include <string.h>
+#include <map>
+
+#ifndef GUCEF_PLATFORM_H
+#include "gucef_platform.h"
+#define GUCEF_PLATFORM_H
+#endif /* GUCEF_PLATFORM_H ? */
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+  #include <unistd.h>
+  #include <signal.h>
+  #include <fcntl.h>
+  #include <sys/file.h>
+  #include <sys/resource.h>
+#endif
+
+#ifndef GUCEF_MT_CACTIVEOBJECT_H
+#include "gucefMT_CActiveObject.h"
+#define GUCEF_MT_CACTIVEOBJECT_H
+#endif /* GUCEF_MT_CACTIVEOBJECT_H ? */
+
+#ifndef GUCEF_MT_CSCOPEMUTEX_H
+#include "gucefMT_CScopeMutex.h"
+#define GUCEF_MT_CSCOPEMUTEX_H
+#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_CORE_CPROCESS_H
+#include "gucefCORE_CProcess.h"
+#define GUCEF_CORE_CPROCESS_H
+#endif /* GUCEF_CORE_CPROCESS_H ? */
 
 #ifndef GUCEF_AUTH_H
 #include "gucefAUTH.h"
@@ -53,6 +89,7 @@ using namespace GUCEF;
 #define ERRORHERE       GUCEF_TESTFW_ERRORHERE
 #define ASSERT_TRUE(t)  GUCEF_TESTFW_ASSERT_TRUE(t)
 #define ASSERT_FALSE(t) GUCEF_TESTFW_ASSERT_FALSE(t)
+#define REQUIRE_TRUE(t) do { if ( !(t) ) { GUCEF_TESTFW_ASSERT_TRUE( t ); throw CORE::CString( "required: " #t ); } } while ( 0 )
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -105,6 +142,169 @@ ExerciseStore( AUTH::ICredentialStore& store )
     // and it works again after a wipe
     ASSERT_TRUE( store.Store( "google", "google:3", AUTH::CSecretString( "after-wipe" ) ) );
     ASSERT_TRUE( store.Load( "google", "google:3", secret ) && "after-wipe" == secret.Reveal() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static CORE::CDynamicBuffer
+ReadBytes( const CORE::CString& path )
+{GUCEF_TRACE;
+
+    CORE::CDynamicBuffer content;
+    content.LoadContentFromFile( path );
+    return content;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+SameBytes( const CORE::CDynamicBuffer& a, const CORE::CDynamicBuffer& b )
+{GUCEF_TRACE;
+
+    return a.GetDataSize() == b.GetDataSize() && ( 0 == a.GetDataSize() || 0 == memcmp( a.GetConstBufferPtr(), b.GetConstBufferPtr(), a.GetDataSize() ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static CORE::CString
+WriterAccount( const CORE::CString& prefix, UInt32 index )
+{GUCEF_TRACE;
+
+    return prefix + ":" + CORE::ToString( index );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static CORE::CString
+WriterSecret( const CORE::CString& prefix, UInt32 index )
+{GUCEF_TRACE;
+
+    return "secret-" + prefix + "-" + CORE::ToString( index );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  What one writer of the contention tests does with one instance of the store, kept for all its changes: stores the
+ *  slots "writer" / <prefix>:<i>, every third one with a slot "scratch" stored and removed again, and reads its own
+ *  slots back at the end. Returns the number of changes and reads that did not work
+ */
+static UInt32
+WriteSlots( const CORE::CString& directory, const CORE::CString& prefix, UInt32 count )
+{GUCEF_TRACE;
+
+    UInt32 failures = 0;
+    AUTH::CFileCredentialStore store( directory );
+    for ( UInt32 i=0; i<count; ++i )
+    {
+        if ( !store.Store( "writer", WriterAccount( prefix, i ), AUTH::CSecretString( WriterSecret( prefix, i ) ) ) )
+            ++failures;
+        if ( 0 == i % 3 )
+        {
+            if ( !store.Store( "scratch", WriterAccount( prefix, i ), AUTH::CSecretString( "scratch" ) ) )
+                ++failures;
+            if ( !store.Remove( "scratch", WriterAccount( prefix, i ) ) )
+                ++failures;
+        }
+    }
+    for ( UInt32 i=0; i<count; ++i )
+    {
+        AUTH::CSecretString secret;
+        if ( !store.Load( "writer", WriterAccount( prefix, i ), secret ) || WriterSecret( prefix, i ) != secret.Reveal() )
+            ++failures;
+    }
+    return failures;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Counts the slots of the writers that a new instance finds: all of them with the right secret, none of "scratch" */
+static UInt32
+CountWrittenSlots( const CORE::CString& directory, const CORE::CString& prefix, UInt32 count )
+{GUCEF_TRACE;
+
+    AUTH::CFileCredentialStore store( directory );
+    UInt32 found = 0;
+    for ( UInt32 i=0; i<count; ++i )
+    {
+        AUTH::CSecretString secret;
+        if ( store.Load( "writer", WriterAccount( prefix, i ), secret ) && WriterSecret( prefix, i ) == secret.Reveal() )
+            ++found;
+    }
+    return found;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** A thread with an instance of the store of its own that runs WriteSlots() */
+class CStoreWriterThread : public MT::CActiveObject
+{
+    public:
+
+    CStoreWriterThread( const CORE::CString& directory, const CORE::CString& prefix, UInt32 count )
+        : MT::CActiveObject(), m_directory( directory ), m_prefix( prefix ), m_count( count ), m_lock(), m_done( false ), m_failures( 0 )
+    {
+    }
+
+    bool IsDone( void ) const { MT::CScopeMutex lock( m_lock ); return m_done; }
+    UInt32 GetFailures( void ) const { MT::CScopeMutex lock( m_lock ); return m_failures; }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    protected:
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {
+        UInt32 failures = WriteSlots( m_directory, m_prefix, m_count );
+        MT::CScopeMutex lock( m_lock );
+        m_failures = failures;
+        m_done = true;
+        return true;
+    }
+
+    private:
+
+    CORE::CString m_directory;
+    CORE::CString m_prefix;
+    UInt32 m_count;
+    mutable MT::CMutex m_lock;
+    bool m_done;
+    UInt32 m_failures;
+};
+
+/*-------------------------------------------------------------------------*/
+
+bool
+IsCredentialStoreHelperRun( void )
+{GUCEF_TRACE;
+
+    return "credstore-writer" == GetEnvText( "GUCEF_AUTH_TEST_HELPER" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+int
+RunCredentialStoreHelper( void )
+{GUCEF_TRACE;
+
+    CORE::CString directory = GetEnvText( "GUCEF_AUTH_TEST_STORE_DIR" );
+    CORE::CString syncDirectory = GetEnvText( "GUCEF_AUTH_TEST_SYNC_DIR" );
+    CORE::CString prefix = GetEnvText( "GUCEF_AUTH_TEST_PREFIX" );
+    UInt32 count = CORE::StringToUInt32( GetEnvText( "GUCEF_AUTH_TEST_COUNT" ) );
+    if ( directory.IsNULLOrEmpty() || syncDirectory.IsNULLOrEmpty() || prefix.IsNULLOrEmpty() || 0 == count )
+        return 3;
+    if ( !AUTH::CFileCredentialStore::IsAvailable() )
+        return 4;
+
+    // both processes start writing at the same moment: this one says it is ready and waits for the word of the test
+    CORE::CString ready = "ready";
+    if ( !CORE::WriteFileAtomically( CORE::CombinePath( syncDirectory, "ready-" + prefix ), ready.C_String(), ready.Length() ) )
+        return 5;
+    if ( !WaitForFile( CORE::CombinePath( syncDirectory, "go" ), 60000 ) )
+        return 6;
+    return 0 == WriteSlots( directory, prefix, count ) ? 0 : 2;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -165,9 +365,10 @@ PerformCredentialStoreTests( void )
             ASSERT_FALSE( FileContains( dataPath, "microsoft" ) );
             ASSERT_TRUE( FileContains( dataPath, "GAUC" ) );
 
-            // the directory holds the two files and no leftovers of the atomic writes
+            // the directory holds the two files and the lock file, no leftovers of the atomic writes
             CORE::CString::StringVector names = ListDirectory( dir );
-            ASSERT_TRUE( 2 == names.size() && HasName( names, AUTH::CFileCredentialStore::DataFileName ) && HasName( names, AUTH::CFileCredentialStore::KeyFileName ) );
+            ASSERT_TRUE( 3 == names.size() && HasName( names, AUTH::CFileCredentialStore::DataFileName ) && HasName( names, AUTH::CFileCredentialStore::KeyFileName ) &&
+                         HasName( names, AUTH::CFileCredentialStore::LockFileName ) );
 
             // another run reads it
             AUTH::CFileCredentialStore again( dir );
@@ -293,20 +494,45 @@ PerformCredentialStoreTests( void )
                 ASSERT_TRUE( lost.IsTamperDetected() );
             }
 
-            // storing after a detection starts over with a good file
+            // a detected store is not written by any change, only Wipe() starts over with a good file
             {
                 CORE::CString againDir = MakeTestDirectory( "cred_tamper_recover" );
                 CORE::CreateDirs( againDir );
-                CORE::CopyFile( dataPath, CORE::CombinePath( againDir, AUTH::CFileCredentialStore::DataFileName ), true );
-                FlipFileByte( CORE::CombinePath( againDir, AUTH::CFileCredentialStore::DataFileName ), 40 );
+                CORE::CString againData = CORE::CombinePath( againDir, AUTH::CFileCredentialStore::DataFileName );
+                CORE::CString againKey = CORE::CombinePath( againDir, AUTH::CFileCredentialStore::KeyFileName );
+                CORE::CopyFile( dataPath, againData, true );
+                CORE::CopyFile( CORE::CombinePath( dir, AUTH::CFileCredentialStore::KeyFileName ), againKey, true );
+                FlipFileByte( againData, 40 );
+                CORE::CDynamicBuffer tamperedBytes = ReadBytes( againData );
+                CORE::CDynamicBuffer keyBytes = ReadBytes( againKey );
                 AUTH::CFileCredentialStore recover( againDir );
                 AUTH::CSecretString secret;
                 ASSERT_FALSE( recover.Load( "google", "google:1", secret ) );
                 ASSERT_TRUE( recover.IsTamperDetected() );
+                ASSERT_FALSE( recover.Store( "google", "google:2", AUTH::CSecretString( "fresh" ) ) );
+                ASSERT_FALSE( recover.Remove( "google", "google:1" ) );
+                ASSERT_FALSE( recover.RemoveProvider( "google" ) );
+                ASSERT_TRUE( recover.IsTamperDetected() );
+                ASSERT_TRUE( SameBytes( tamperedBytes, ReadBytes( againData ) ) && SameBytes( keyBytes, ReadBytes( againKey ) ) );
+
+                // the lost key: the data is not replaced either
+                CORE::CString lostDir = MakeTestDirectory( "cred_tamper_recover_nokey" );
+                CORE::CreateDirs( lostDir );
+                CORE::CString lostData = CORE::CombinePath( lostDir, AUTH::CFileCredentialStore::DataFileName );
+                CORE::CopyFile( dataPath, lostData, true );
+                CORE::CDynamicBuffer lostBytes = ReadBytes( lostData );
+                AUTH::CFileCredentialStore lost( lostDir );
+                ASSERT_FALSE( lost.Store( "google", "google:2", AUTH::CSecretString( "fresh" ) ) );
+                ASSERT_TRUE( SameBytes( lostBytes, ReadBytes( lostData ) ) );
+                ASSERT_FALSE( CORE::FileExists( CORE::CombinePath( lostDir, AUTH::CFileCredentialStore::KeyFileName ) ) );
+
+                ASSERT_TRUE( recover.Wipe() );
+                ASSERT_FALSE( recover.IsTamperDetected() );
                 ASSERT_TRUE( recover.Store( "google", "google:2", AUTH::CSecretString( "fresh" ) ) );
                 ASSERT_FALSE( recover.IsTamperDetected() );
                 AUTH::CFileCredentialStore reopened( againDir );
                 ASSERT_TRUE( reopened.Load( "google", "google:2", secret ) && "fresh" == secret.Reveal() && !reopened.IsTamperDetected() );
+                ASSERT_FALSE( reopened.Load( "google", "google:1", secret ) );
             }
         }
         catch ( ... )
@@ -385,6 +611,344 @@ PerformCredentialStoreTests( void )
             CORE::CDataNode appConfig( "CredentialStore", GUCEF_DATATYPE_OBJECT );
             appConfig.SetAttribute( "appName", CORE::CString( "SomeGame" ) );
             ASSERT_TRUE( defaults.LoadConfig( appConfig ) && defaults.GetDirectory().HasSubstr( "SomeGame" ) >= 0 );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Two instances on one store see each other's changes and never undo them" )
+        GUCEF_TESTFW_SKIP_IF( !AUTH::CFileCredentialStore::IsAvailable(), "The xchacha20-poly1305 codec is not available" );
+        try
+        {
+            CORE::CString dir = MakeTestDirectory( "cred_two_instances" );
+            AUTH::CFileCredentialStore first( dir );
+            AUTH::CFileCredentialStore second( dir );
+            AUTH::CSecretString secret;
+            CORE::CString::StringVector accounts;
+
+            ASSERT_TRUE( first.Store( "broker", "a1", AUTH::CSecretString( "secret-a1" ) ) );
+            ASSERT_TRUE( second.Store( "broker", "b1", AUTH::CSecretString( "secret-b1" ) ) );
+            // the first instance read the file before the second stored b1: its next store keeps b1
+            ASSERT_TRUE( first.Store( "broker", "a2", AUTH::CSecretString( "secret-a2" ) ) );
+            {
+                AUTH::CFileCredentialStore check( dir );
+                ASSERT_TRUE( check.Load( "broker", "a1", secret ) && "secret-a1" == secret.Reveal() );
+                ASSERT_TRUE( check.Load( "broker", "b1", secret ) && "secret-b1" == secret.Reveal() );
+                ASSERT_TRUE( check.Load( "broker", "a2", secret ) && "secret-a2" == secret.Reveal() );
+            }
+
+            // a removal by the second keeps what the first stored meanwhile
+            ASSERT_TRUE( second.Remove( "broker", "a1" ) );
+            ASSERT_FALSE( first.Load( "broker", "a1", secret ) );
+            ASSERT_TRUE( first.Load( "broker", "a2", secret ) && "secret-a2" == secret.Reveal() );
+            ASSERT_TRUE( first.Load( "broker", "b1", secret ) && "secret-b1" == secret.Reveal() );
+
+            // reads follow the file: the order of storing is the one in the file
+            ASSERT_TRUE( second.Store( "broker", "b2", AUTH::CSecretString( "secret-b2" ) ) );
+            ASSERT_TRUE( first.ListAccounts( "broker", accounts ) && 3 == accounts.size() && "b2" == accounts[ 0 ] && "a2" == accounts[ 1 ] && "b1" == accounts[ 2 ] );
+
+            // a replacement by one is what the other loads, and the other's next change keeps it
+            ASSERT_TRUE( first.Store( "broker", "b1", AUTH::CSecretString( "secret-b1-rotated" ) ) );
+            ASSERT_TRUE( second.Load( "broker", "b1", secret ) && "secret-b1-rotated" == secret.Reveal() );
+            ASSERT_TRUE( first.Store( "other", "x", AUTH::CSecretString( "secret-x" ) ) );
+            ASSERT_TRUE( second.RemoveProvider( "broker" ) );
+            ASSERT_TRUE( first.Load( "other", "x", secret ) && "secret-x" == secret.Reveal() );
+            ASSERT_FALSE( first.Load( "broker", "b1", secret ) );
+            ASSERT_TRUE( second.Store( "broker", "b3", AUTH::CSecretString( "secret-b3" ) ) );
+            ASSERT_TRUE( first.Remove( "other", "x" ) );
+            ASSERT_TRUE( second.Load( "broker", "b3", secret ) && "secret-b3" == secret.Reveal() );
+            ASSERT_FALSE( second.Load( "other", "x", secret ) );
+
+            // a wipe by one is seen by the other, which does not bring back what it had read
+            ASSERT_TRUE( first.Wipe() );
+            ASSERT_FALSE( second.Load( "broker", "b3", secret ) );
+            ASSERT_TRUE( second.Store( "broker", "b4", AUTH::CSecretString( "secret-b4" ) ) );
+            ASSERT_TRUE( first.ListAccounts( "broker", accounts ) && 1 == accounts.size() && "b4" == accounts[ 0 ] );
+            ASSERT_TRUE( first.Load( "broker", "b4", secret ) && "secret-b4" == secret.Reveal() );
+            ASSERT_FALSE( first.IsTamperDetected() || second.IsTamperDetected() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Two threads with an instance each store into one store at the same time without losing a slot" )
+        GUCEF_TESTFW_SKIP_IF( !AUTH::CFileCredentialStore::IsAvailable(), "The xchacha20-poly1305 codec is not available" );
+        try
+        {
+            CORE::CString dir = MakeTestDirectory( "cred_threads" );
+            const UInt32 SlotCount = 100;
+            {
+                AUTH::CFileCredentialStore seed( dir );
+                ASSERT_TRUE( seed.Store( "seed", "seed", AUTH::CSecretString( "seed" ) ) );
+            }
+            CStoreWriterThread left( dir, "left", SlotCount );
+            CStoreWriterThread right( dir, "right", SlotCount );
+            ASSERT_TRUE( left.Activate( GUCEF_NULL, 1, 1 ) );
+            ASSERT_TRUE( right.Activate( GUCEF_NULL, 1, 1 ) );
+            for ( UInt32 waited=0; waited<120000 && !( left.IsDone() && right.IsDone() ); waited+=5 )
+                MT::PrecisionDelay( 5 );
+            ASSERT_TRUE( left.IsDone() && right.IsDone() );
+            left.Deactivate( false, true );
+            right.Deactivate( false, true );
+            ASSERT_TRUE( 0 == left.GetFailures() && 0 == right.GetFailures() );
+
+            ASSERT_TRUE( SlotCount == CountWrittenSlots( dir, "left", SlotCount ) );
+            ASSERT_TRUE( SlotCount == CountWrittenSlots( dir, "right", SlotCount ) );
+            AUTH::CFileCredentialStore check( dir );
+            CORE::CString::StringVector accounts;
+            AUTH::CSecretString secret;
+            ASSERT_TRUE( check.ListAccounts( "writer", accounts ) && 2 * SlotCount == accounts.size() );
+            ASSERT_TRUE( check.ListAccounts( "scratch", accounts ) && accounts.empty() );
+            ASSERT_TRUE( check.Load( "seed", "seed", secret ) && "seed" == secret.Reveal() );
+            ASSERT_FALSE( check.IsTamperDetected() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A second process stores into one store at the same time as this one without losing a slot" )
+        GUCEF_TESTFW_SKIP_IF( !AUTH::CFileCredentialStore::IsAvailable(), "The xchacha20-poly1305 codec is not available" );
+        #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_LINUX )
+        GUCEF_TESTFW_SKIP( "The test application is started again as a second process on Linux" );
+        #endif
+        try
+        {
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+            CORE::CString dir = MakeTestDirectory( "cred_process" );
+            CORE::CString syncDir = MakeTestDirectory( "cred_process_sync" );
+            ASSERT_TRUE( CORE::CreateDirs( syncDir ) );
+            const UInt32 SlotCount = 100;
+            {
+                AUTH::CFileCredentialStore seed( dir );
+                ASSERT_TRUE( seed.Store( "seed", "seed", AUTH::CSecretString( "seed" ) ) );
+            }
+
+            CORE::CString exePath = GetOwnExecutablePath();
+            ASSERT_FALSE( exePath.IsNULLOrEmpty() );
+            CORE::CProcess child;
+            child.SetIsolateFromParent( true );
+            CORE::CProcess::TStringMap environment;
+            environment[ "GUCEF_AUTH_TEST_HELPER" ] = "credstore-writer";
+            environment[ "GUCEF_AUTH_TEST_STORE_DIR" ] = dir;
+            environment[ "GUCEF_AUTH_TEST_SYNC_DIR" ] = syncDir;
+            environment[ "GUCEF_AUTH_TEST_PREFIX" ] = "child";
+            environment[ "GUCEF_AUTH_TEST_COUNT" ] = CORE::ToString( SlotCount );
+            environment[ "GUCEF_CONSOLE_LOGGER" ] = "none";
+            REQUIRE_TRUE( child.Launch( exePath, CORE::CProcess::TStringVector(), CORE::CString::Empty, environment ) );
+            bool childReady = WaitForFile( CORE::CombinePath( syncDir, "ready-child" ), 60000 );
+            ASSERT_TRUE( childReady );
+            CORE::CString go = "go";
+            ASSERT_TRUE( CORE::WriteFileAtomically( CORE::CombinePath( syncDir, "go" ), go.C_String(), go.Length() ) );
+            UInt32 failures = WriteSlots( dir, "parent", SlotCount );
+            Int32 exitCode = -1;
+            ASSERT_TRUE( child.WaitForExit( 120000, exitCode ) );
+            ASSERT_TRUE( 0 == exitCode );
+            ASSERT_TRUE( 0 == failures );
+
+            ASSERT_TRUE( SlotCount == CountWrittenSlots( dir, "parent", SlotCount ) );
+            ASSERT_TRUE( SlotCount == CountWrittenSlots( dir, "child", SlotCount ) );
+            AUTH::CFileCredentialStore check( dir );
+            CORE::CString::StringVector accounts;
+            AUTH::CSecretString secret;
+            ASSERT_TRUE( check.ListAccounts( "writer", accounts ) && 2 * SlotCount == accounts.size() );
+            ASSERT_TRUE( check.ListAccounts( "scratch", accounts ) && accounts.empty() );
+            ASSERT_TRUE( check.Load( "seed", "seed", secret ) && "seed" == secret.Reveal() );
+            ASSERT_FALSE( check.IsTamperDetected() );
+            #endif
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The integrity of the store is known right after construction and follows the file" )
+        GUCEF_TESTFW_SKIP_IF( !AUTH::CFileCredentialStore::IsAvailable(), "The xchacha20-poly1305 codec is not available" );
+        try
+        {
+            CORE::CString dir = MakeTestDirectory( "cred_tamper_first" );
+            CORE::CString dataPath = CORE::CombinePath( dir, AUTH::CFileCredentialStore::DataFileName );
+            CORE::CString keyPath = CORE::CombinePath( dir, AUTH::CFileCredentialStore::KeyFileName );
+            {
+                AUTH::CFileCredentialStore store( dir );
+                ASSERT_FALSE( store.IsTamperDetected() );
+                ASSERT_TRUE( store.Store( "google", "google:1", AUTH::CSecretString( "refresh-one" ) ) );
+            }
+            CORE::CDynamicBuffer good = ReadBytes( dataPath );
+
+            // a good store: no detection, also before anything was read
+            {
+                AUTH::CFileCredentialStore fresh( dir );
+                ASSERT_FALSE( fresh.IsTamperDetected() );
+            }
+
+            // the instance that read the good file
+            AUTH::CFileCredentialStore holder( dir );
+            AUTH::CSecretString secret;
+            ASSERT_TRUE( holder.Load( "google", "google:1", secret ) && "refresh-one" == secret.Reveal() );
+
+            // a changed file: a new instance says so before anything else is asked of it
+            ASSERT_TRUE( FlipFileByte( dataPath, (UInt32) good.GetDataSize() - 5 ) );
+            CORE::CDynamicBuffer tampered = ReadBytes( dataPath );
+            {
+                AUTH::CFileCredentialStore fresh( dir );
+                ASSERT_TRUE( fresh.IsTamperDetected() );
+            }
+
+            // the instance that read the good file sees the change as well, reads nothing from it and writes nothing to it
+            ASSERT_TRUE( holder.IsTamperDetected() );
+            ASSERT_FALSE( holder.Load( "google", "google:1", secret ) );
+            ASSERT_FALSE( holder.Store( "google", "google:2", AUTH::CSecretString( "refresh-two" ) ) );
+            ASSERT_TRUE( SameBytes( tampered, ReadBytes( dataPath ) ) );
+
+            // the good file back: read again
+            ASSERT_TRUE( CORE::WriteFileAtomically( dataPath, good ) );
+            ASSERT_FALSE( holder.IsTamperDetected() );
+            ASSERT_TRUE( holder.Load( "google", "google:1", secret ) && "refresh-one" == secret.Reveal() );
+
+            // the key gone: detected before the first read
+            CORE::CDynamicBuffer key = ReadBytes( keyPath );
+            ASSERT_TRUE( CORE::DeleteFile( keyPath ) );
+            {
+                AUTH::CFileCredentialStore fresh( dir );
+                ASSERT_TRUE( fresh.IsTamperDetected() );
+            }
+            ASSERT_TRUE( holder.IsTamperDetected() );
+            ASSERT_TRUE( CORE::WriteFileAtomically( keyPath, key ) );
+            ASSERT_FALSE( holder.IsTamperDetected() );
+
+            // a store without files is not tampered with, and asking does not make the directory
+            CORE::CString emptyDir = MakeTestDirectory( "cred_tamper_first_empty" );
+            {
+                AUTH::CFileCredentialStore fresh( emptyDir );
+                ASSERT_FALSE( fresh.IsTamperDetected() );
+                ASSERT_FALSE( fresh.Load( "google", "google:1", secret ) );
+                ASSERT_TRUE( fresh.Remove( "google", "google:1" ) );
+            }
+            ASSERT_FALSE( CORE::DirExists( emptyDir ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: An instance waits for the lock of another one and gives up after the lock timeout without changing anything" )
+        GUCEF_TESTFW_SKIP_IF( !AUTH::CFileCredentialStore::IsAvailable(), "The xchacha20-poly1305 codec is not available" );
+        #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_LINUX )
+        GUCEF_TESTFW_SKIP( "The lock is held with flock() by the test on Linux" );
+        #endif
+        try
+        {
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+            CORE::CString dir = MakeTestDirectory( "cred_lock_timeout" );
+            CORE::CString dataPath = CORE::CombinePath( dir, AUTH::CFileCredentialStore::DataFileName );
+            CORE::CString lockPath = CORE::CombinePath( dir, AUTH::CFileCredentialStore::LockFileName );
+            AUTH::CFileCredentialStore store( dir );
+            ASSERT_TRUE( AUTH::CFileCredentialStore::DefaultLockTimeoutInMs == store.GetLockTimeoutInMs() );
+            ASSERT_TRUE( store.Store( "google", "google:1", AUTH::CSecretString( "refresh-one" ) ) );
+            ASSERT_TRUE( CORE::FileExists( lockPath ) );
+            CORE::CDynamicBuffer before = ReadBytes( dataPath );
+
+            // the lock timeout is configuration
+            CORE::CDataNode config( "CredentialStore", GUCEF_DATATYPE_OBJECT );
+            config.SetAttribute( "directory", dir );
+            config.SetAttribute( "lockTimeoutInMs", CORE::CString( "150" ) );
+            ASSERT_TRUE( store.LoadConfig( config ) && 150 == store.GetLockTimeoutInMs() );
+            CORE::CDataNode saved( "CredentialStore", GUCEF_DATATYPE_OBJECT );
+            ASSERT_TRUE( store.SaveConfig( saved ) && 150 == saved.GetAttributeValueOrChildValueByName( "lockTimeoutInMs" ).AsUInt32() );
+
+            // another holder of the exclusive lock: a change and a read wait for the timeout, then give up
+            int holder = open( lockPath.C_String(), O_RDWR | O_CLOEXEC );
+            ASSERT_TRUE( holder >= 0 && 0 == flock( holder, LOCK_EX ) );
+            UInt64 startedAt = AUTH::GetMonotonicTimeInMs();
+            ASSERT_FALSE( store.Store( "google", "google:2", AUTH::CSecretString( "refresh-two" ) ) );
+            UInt64 waited = AUTH::GetMonotonicTimeInMs() - startedAt;
+            ASSERT_TRUE( waited >= 140 && waited < 5000 );
+            ASSERT_FALSE( store.Remove( "google", "google:1" ) );
+            ASSERT_FALSE( store.RemoveProvider( "google" ) );
+            AUTH::CSecretString secret;
+            ASSERT_FALSE( store.Load( "google", "google:1", secret ) );
+            CORE::CString::StringVector accounts;
+            ASSERT_FALSE( store.ListAccounts( "google", accounts ) );
+            ASSERT_FALSE( store.IsTamperDetected() );
+            ASSERT_TRUE( SameBytes( before, ReadBytes( dataPath ) ) );
+
+            // a shared holder: reads go on, a change still waits
+            ASSERT_TRUE( 0 == flock( holder, LOCK_SH ) );
+            ASSERT_TRUE( store.Load( "google", "google:1", secret ) && "refresh-one" == secret.Reveal() );
+            ASSERT_TRUE( store.ListAccounts( "google", accounts ) && 1 == accounts.size() );
+            ASSERT_FALSE( store.Store( "google", "google:2", AUTH::CSecretString( "refresh-two" ) ) );
+            ASSERT_TRUE( SameBytes( before, ReadBytes( dataPath ) ) );
+
+            // let go: the change goes through, and the wipe keeps the lock file
+            ASSERT_TRUE( 0 == flock( holder, LOCK_UN ) );
+            ASSERT_TRUE( store.Store( "google", "google:2", AUTH::CSecretString( "refresh-two" ) ) );
+            ASSERT_TRUE( store.Load( "google", "google:2", secret ) && "refresh-two" == secret.Reveal() );
+            ASSERT_TRUE( store.Wipe() );
+            ASSERT_TRUE( CORE::FileExists( lockPath ) && !CORE::FileExists( dataPath ) );
+            if ( holder >= 0 )
+                close( holder );
+            #endif
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A write that fails leaves the old file and what the instance knows as they were" )
+        GUCEF_TESTFW_SKIP_IF( !AUTH::CFileCredentialStore::IsAvailable(), "The xchacha20-poly1305 codec is not available" );
+        #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_LINUX )
+        GUCEF_TESTFW_SKIP( "The limit on the file size that makes a write fail is set on Linux" );
+        #endif
+        try
+        {
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+            CORE::CString dir = MakeTestDirectory( "cred_write_fails" );
+            CORE::CString dataPath = CORE::CombinePath( dir, AUTH::CFileCredentialStore::DataFileName );
+            AUTH::CFileCredentialStore store( dir );
+            ASSERT_TRUE( store.Store( "google", "google:1", AUTH::CSecretString( "refresh-one" ) ) );
+            CORE::CDynamicBuffer before = ReadBytes( dataPath );
+            CORE::CString large;
+            for ( UInt32 i=0; i<512; ++i )
+                large += "0123456789abcdef";
+
+            // the process may not write files larger than the store of now: the new content does not fit
+            struct rlimit previous;
+            ASSERT_TRUE( 0 == getrlimit( RLIMIT_FSIZE, &previous ) );
+            struct rlimit limited = previous;
+            limited.rlim_cur = (rlim_t) before.GetDataSize() + 64;
+            void ( *previousHandler )( int ) = signal( SIGXFSZ, SIG_IGN );
+            bool stored = true;
+            if ( 0 == setrlimit( RLIMIT_FSIZE, &limited ) )
+            {
+                stored = store.Store( "google", "google:2", AUTH::CSecretString( large ) );
+                setrlimit( RLIMIT_FSIZE, &previous );
+            }
+            signal( SIGXFSZ, previousHandler );
+
+            ASSERT_FALSE( stored );
+            ASSERT_TRUE( SameBytes( before, ReadBytes( dataPath ) ) );
+            AUTH::CSecretString secret;
+            ASSERT_FALSE( store.Load( "google", "google:2", secret ) );
+            ASSERT_TRUE( store.Load( "google", "google:1", secret ) && "refresh-one" == secret.Reveal() );
+            CORE::CString::StringVector names = ListDirectory( dir );
+            for ( size_t i=0; i<names.size(); ++i )
+                ASSERT_TRUE( names[ i ].HasSubstr( ".tmp" ) < 0 );
+
+            // without the limit the same change works
+            ASSERT_TRUE( store.Store( "google", "google:2", AUTH::CSecretString( large ) ) );
+            AUTH::CFileCredentialStore check( dir );
+            ASSERT_TRUE( check.Load( "google", "google:2", secret ) && large == secret.Reveal() );
+            ASSERT_TRUE( check.Load( "google", "google:1", secret ) && "refresh-one" == secret.Reveal() );
+            #endif
         }
         catch ( ... )
         {

@@ -40,6 +40,7 @@ LOCAL_SRC_FILES := \
   src/gucefAUTH_CAuthUrl.cpp \
   src/gucefAUTH_CDescriptorAuthProvider.cpp \
   src/gucefAUTH_CFileCredentialStore.cpp \
+  src/gucefAUTH_CFileLock.cpp \
   src/gucefAUTH_CIAuthProvider.cpp \
   src/gucefAUTH_CJwk.cpp \
   src/gucefAUTH_CJwksCache.cpp \

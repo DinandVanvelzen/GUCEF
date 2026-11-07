@@ -30,6 +30,7 @@ set( HEADER_FILES
   include/gucefAUTH_CAuthUrl.h
   include/gucefAUTH_CDescriptorAuthProvider.h
   include/gucefAUTH_CFileCredentialStore.h
+  include/gucefAUTH_CFileLock.h
   include/gucefAUTH_CIAuthProvider.h
   include/gucefAUTH_CJwk.h
   include/gucefAUTH_CJwksCache.h
@@ -82,6 +83,7 @@ set( SOURCE_FILES
   src/gucefAUTH_CAuthUrl.cpp
   src/gucefAUTH_CDescriptorAuthProvider.cpp
   src/gucefAUTH_CFileCredentialStore.cpp
+  src/gucefAUTH_CFileLock.cpp
   src/gucefAUTH_CIAuthProvider.cpp
   src/gucefAUTH_CJwk.cpp
   src/gucefAUTH_CJwksCache.cpp

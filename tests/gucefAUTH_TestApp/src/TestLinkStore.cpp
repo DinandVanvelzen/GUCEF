@@ -1,20 +1,18 @@
 /*
  *  gucefAUTH_TestApp: Application for testing gucefAUTH
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -23,10 +21,36 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_PLATFORM_H
+#include "gucef_platform.h"
+#define GUCEF_PLATFORM_H
+#endif /* GUCEF_PLATFORM_H ? */
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+  #include <fcntl.h>
+  #include <unistd.h>
+  #include <sys/file.h>
+#endif
+
+#ifndef GUCEF_MT_CACTIVEOBJECT_H
+#include "gucefMT_CActiveObject.h"
+#define GUCEF_MT_CACTIVEOBJECT_H
+#endif /* GUCEF_MT_CACTIVEOBJECT_H ? */
+
+#ifndef GUCEF_MT_CSCOPEMUTEX_H
+#include "gucefMT_CScopeMutex.h"
+#define GUCEF_MT_CSCOPEMUTEX_H
+#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
+
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_CORE_CPROCESS_H
+#include "gucefCORE_CProcess.h"
+#define GUCEF_CORE_CPROCESS_H
+#endif /* GUCEF_CORE_CPROCESS_H ? */
 
 #ifndef GUCEF_CORE_CDATANODE_H
 #include "CDataNode.h"
@@ -153,6 +177,159 @@ ReadTextFile( const CORE::CString& path )
     if ( !content.LoadContentFromFile( path ) || 0 == content.GetDataSize() )
         return CORE::CString::Empty;
     return CORE::CString( content.AsConstTypePtr< char >(), content.GetDataSize() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static CORE::CString
+WriterAccount( const CORE::CString& prefix, UInt32 index )
+{GUCEF_TRACE;
+
+    return "google:" + prefix + "-" + CORE::ToString( index );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static CORE::CString
+ScratchAccount( const CORE::CString& prefix, UInt32 index )
+{GUCEF_TRACE;
+
+    return "epic:" + prefix + "-" + CORE::ToString( index );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  What one writer of the contention tests does with one instance of the store, kept for all its changes: links the
+ *  accounts google:<prefix>-<i> to a profile of its own, every third one with an account epic:<prefix>-<i> linked and
+ *  unlinked again, and resolves its own accounts at the end. Returns the number of changes and reads that did not work
+ */
+static UInt32
+LinkAccounts( const CORE::CString& path, const CORE::CString& prefix, UInt32 count )
+{GUCEF_TRACE;
+
+    CTestSigner signer( prefix );
+    if ( !signer.IsValid() )
+        return count + 1;
+    UInt32 failures = 0;
+    AUTH::CLocalIdentityLinkStore store( path );
+    for ( UInt32 i=0; i<count; ++i )
+    {
+        if ( AUTH::LINKRESULT_OK != store.Link( MakeRecord( signer, WriterAccount( prefix, i ), 1000 + i ) ) )
+            ++failures;
+        if ( 0 == i % 3 )
+        {
+            AUTH::CLinkRecord scratch = MakeRecord( signer, ScratchAccount( prefix, i ), 1000 + i );
+            if ( AUTH::LINKRESULT_OK != store.Link( scratch ) )
+                ++failures;
+            if ( !store.Unlink( scratch.accountRef, signer.GetKeyId() ) )
+                ++failures;
+        }
+    }
+    for ( UInt32 i=0; i<count; ++i )
+    {
+        AUTH::CAccountRef account;
+        CORE::CString profile;
+        if ( !AUTH::CAccountRef::TryParse( WriterAccount( prefix, i ), account ) || !store.Resolve( account, profile ) || signer.GetKeyId() != profile )
+            ++failures;
+    }
+    return failures;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Counts the accounts of a writer that a new instance finds linked; scratchCount receives those of its scratch accounts */
+static UInt32
+CountLinkedAccounts( const CORE::CString& path, const CORE::CString& prefix, UInt32 count, UInt32& scratchCount )
+{GUCEF_TRACE;
+
+    AUTH::CLocalIdentityLinkStore store( path );
+    UInt32 found = 0;
+    scratchCount = 0;
+    for ( UInt32 i=0; i<count; ++i )
+    {
+        AUTH::CAccountRef account;
+        CORE::CString profile;
+        if ( AUTH::CAccountRef::TryParse( WriterAccount( prefix, i ), account ) && store.Resolve( account, profile ) )
+            ++found;
+        if ( AUTH::CAccountRef::TryParse( ScratchAccount( prefix, i ), account ) && store.Resolve( account, profile ) )
+            ++scratchCount;
+    }
+    return found;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** A thread with an instance of the store of its own that runs LinkAccounts() */
+class CLinkWriterThread : public MT::CActiveObject
+{
+    public:
+
+    CLinkWriterThread( const CORE::CString& path, const CORE::CString& prefix, UInt32 count )
+        : MT::CActiveObject(), m_path( path ), m_prefix( prefix ), m_count( count ), m_lock(), m_done( false ), m_failures( 0 )
+    {GUCEF_TRACE;
+    }
+
+    bool IsDone( void ) const { MT::CScopeMutex lock( m_lock ); return m_done; }
+    UInt32 GetFailures( void ) const { MT::CScopeMutex lock( m_lock ); return m_failures; }
+
+    virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE { return GUCEF_NULL; }
+
+    protected:
+
+    virtual bool OnThreadStart( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE { return true; }
+
+    virtual bool OnThreadCycle( void* taskdata ) GUCEF_VIRTUAL_OVERRIDE
+    {GUCEF_TRACE;
+
+        UInt32 failures = LinkAccounts( m_path, m_prefix, m_count );
+        MT::CScopeMutex lock( m_lock );
+        m_failures = failures;
+        m_done = true;
+        return true;
+    }
+
+    private:
+
+    CORE::CString m_path;
+    CORE::CString m_prefix;
+    UInt32 m_count;
+    mutable MT::CMutex m_lock;
+    bool m_done;
+    UInt32 m_failures;
+};
+
+/*-------------------------------------------------------------------------*/
+
+bool
+IsLinkStoreHelperRun( void )
+{GUCEF_TRACE;
+
+    return "linkstore-writer" == GetEnvText( "GUCEF_AUTH_TEST_HELPER" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+int
+RunLinkStoreHelper( void )
+{GUCEF_TRACE;
+
+    CORE::CString path = GetEnvText( "GUCEF_AUTH_TEST_STORE_PATH" );
+    CORE::CString syncDirectory = GetEnvText( "GUCEF_AUTH_TEST_SYNC_DIR" );
+    CORE::CString prefix = GetEnvText( "GUCEF_AUTH_TEST_PREFIX" );
+    UInt32 count = CORE::StringToUInt32( GetEnvText( "GUCEF_AUTH_TEST_COUNT" ) );
+    if ( path.IsNULLOrEmpty() || syncDirectory.IsNULLOrEmpty() || prefix.IsNULLOrEmpty() || 0 == count )
+        return 3;
+    if ( !JsonCodecAvailable() || !AUTH::CAuthCrypto::IsSignatureAvailable() )
+        return 4;
+
+    // both processes start writing at the same moment: this one says it is ready and waits for the word of the test
+    CORE::CString ready = "ready";
+    if ( !CORE::WriteFileAtomically( CORE::CombinePath( syncDirectory, "ready-" + prefix ), ready.C_String(), ready.Length() ) )
+        return 5;
+    if ( !WaitForFile( CORE::CombinePath( syncDirectory, "go" ), 60000 ) )
+        return 6;
+    return 0 == LinkAccounts( path, prefix, count ) ? 0 : 2;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -359,8 +536,9 @@ PerformLinkStoreTests( void )
                 ASSERT_TRUE( AUTH::LINKRESULT_OK == store.Link( MakeRecord( alice, "epic:765", 2000 ) ) );
                 ASSERT_TRUE( CORE::FileExists( path ) );
             }
+            // the file and its lock file, no leftovers of the atomic writes
             CORE::CString::StringVector names = ListDirectory( dir );
-            ASSERT_TRUE( 1 == names.size() && HasName( names, "links.json" ) );
+            ASSERT_TRUE( 2 == names.size() && HasName( names, "links.json" ) && HasName( names, "links.json.lock" ) );
 
             AUTH::CLocalIdentityLinkStore again( path );
             AUTH::TLinkRecordVector links;
@@ -537,6 +715,15 @@ PerformLinkStoreTests( void )
             AUTH::CLocalIdentityLinkStore broken( brokenPath );
             ASSERT_TRUE( AUTH::LINKRESULT_STORE_ERROR == broken.Link( MakeRecord( alice, "epic:765" ) ) );
             ASSERT_TRUE( garbage == ReadTextFile( brokenPath ) );
+
+            // the state follows the file: a file of this version in its place is changed again
+            CORE::CDataNode current( "AuthLinks", GUCEF_DATATYPE_OBJECT );
+            current.SetAttribute( "version", (UInt32) 1 );
+            CORE::CDataNode* currentList = current.AddChild( "links", GUCEF_DATATYPE_ARRAY );
+            MakeRecord( alice, "google:g-1" ).Serialize( *currentList->AddChild( "link", GUCEF_DATATYPE_OBJECT ), CORE::CDataNodeSerializableSettings() );
+            ASSERT_TRUE( WriteJsonFile( path, current ) );
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == store.Link( MakeRecord( alice, "epic:765" ) ) );
+            ASSERT_TRUE( store.GetLinks( alice.GetKeyId(), links ) && 2 == links.size() );
         }
         catch ( ... )
         {
@@ -577,6 +764,274 @@ PerformLinkStoreTests( void )
             ASSERT_TRUE( AUTH::LINKRESULT_OK == store.Link( MakeRecord( alice, "google:g-1" ) ) );
             // and other profiles are not bound to this signer
             ASSERT_TRUE( AUTH::LINKRESULT_OK == store.Link( MakeRecord( impostor, "epic:765" ) ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A store whose file is not there reads as empty and makes nothing for a read or a removal" )
+        GUCEF_TESTFW_SKIP_IF( !JsonCodecAvailable(), "The json codec plugin is not available" );
+        GUCEF_TESTFW_SKIP_IF( !AUTH::CAuthCrypto::IsSignatureAvailable(), "The ed25519 codec is not available" );
+        try
+        {
+            CORE::CString dir = MakeTestDirectory( "links_absent" );
+            CORE::CString path = CORE::CombinePath( dir, "links.json" );
+            CTestSigner alice( "alice" );
+            AUTH::CLocalIdentityLinkStore store( path );
+            AUTH::TLinkRecordVector links;
+            CORE::CString profile;
+            ASSERT_TRUE( store.GetLinks( alice.GetKeyId(), links ) && links.empty() );
+            ASSERT_FALSE( store.Resolve( AUTH::CAccountRef( "google", "g-1" ), profile ) );
+            ASSERT_TRUE( store.Unlink( AUTH::CAccountRef( "google", "g-1" ), alice.GetKeyId() ) );
+            CTestSigner bob( "bob" );
+            UInt32 merged = 1;
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == store.Merge( alice.GetKeyId(), bob, &merged ) && 0 == merged );
+            ASSERT_TRUE( 0 == store.GetRefusedCount() && 0 == store.GetForeignCount() );
+            ASSERT_FALSE( CORE::DirExists( dir ) );
+
+            // a link makes the directory, the file and its lock file; a file deleted by someone else reads as empty
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == store.Link( MakeRecord( alice, "google:g-1" ) ) );
+            ASSERT_TRUE( CORE::FileExists( path ) && CORE::FileExists( store.GetLockPath() ) );
+            ASSERT_TRUE( CORE::DeleteFile( path ) );
+            ASSERT_FALSE( store.Resolve( AUTH::CAccountRef( "google", "g-1" ), profile ) );
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == store.Link( MakeRecord( alice, "epic:765" ) ) );
+            ASSERT_TRUE( store.GetLinks( alice.GetKeyId(), links ) && 1 == links.size() && "epic:765" == links[ 0 ].accountRef.ToString() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Two instances on one file see each other's links and unlinks and never undo them" )
+        GUCEF_TESTFW_SKIP_IF( !JsonCodecAvailable(), "The json codec plugin is not available" );
+        GUCEF_TESTFW_SKIP_IF( !AUTH::CAuthCrypto::IsSignatureAvailable(), "The ed25519 codec is not available" );
+        try
+        {
+            CORE::CString dir = MakeTestDirectory( "links_two_instances" );
+            CORE::CString path = CORE::CombinePath( dir, "links.json" );
+            CTestSigner alice( "alice" );
+            CTestSigner bob( "bob" );
+            AUTH::CLocalIdentityLinkStore first( path );
+            AUTH::CLocalIdentityLinkStore second( path );
+            AUTH::TLinkRecordVector links;
+            CORE::CString profile;
+
+            // both have read the file before the other changes it
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == first.Link( MakeRecord( alice, "google:g-1", 1000 ) ) );
+            ASSERT_TRUE( second.GetLinks( alice.GetKeyId(), links ) && 1 == links.size() );
+
+            // a link by one is seen by the other, and a link by the other keeps it
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == first.Link( MakeRecord( alice, "epic:765", 2000 ) ) );
+            ASSERT_TRUE( second.Resolve( AUTH::CAccountRef( "epic", "765" ), profile ) && alice.GetKeyId() == profile );
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == second.Link( MakeRecord( bob, "google:b-1", 3000 ) ) );
+            {
+                AUTH::CLocalIdentityLinkStore check( path );
+                ASSERT_TRUE( check.GetLinks( alice.GetKeyId(), links ) && 2 == links.size() );
+                ASSERT_TRUE( check.GetLinks( bob.GetKeyId(), links ) && 1 == links.size() );
+            }
+            ASSERT_TRUE( first.Resolve( AUTH::CAccountRef( "google", "b-1" ), profile ) && bob.GetKeyId() == profile );
+
+            // an unlink by one is not undone by a change of the other
+            ASSERT_TRUE( first.Unlink( AUTH::CAccountRef( "google", "g-1" ), alice.GetKeyId() ) );
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == second.Link( MakeRecord( bob, "google:b-2", 4000 ) ) );
+            {
+                AUTH::CLocalIdentityLinkStore check( path );
+                ASSERT_FALSE( check.Resolve( AUTH::CAccountRef( "google", "g-1" ), profile ) );
+                ASSERT_TRUE( check.Resolve( AUTH::CAccountRef( "epic", "765" ), profile ) && alice.GetKeyId() == profile );
+                ASSERT_TRUE( check.GetLinks( bob.GetKeyId(), links ) && 2 == links.size() );
+            }
+            ASSERT_FALSE( second.Resolve( AUTH::CAccountRef( "google", "g-1" ), profile ) );
+
+            // an account that one linked to a profile is a conflict for the other
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == first.Link( MakeRecord( alice, "epic:e-9", 5000 ) ) );
+            ASSERT_TRUE( AUTH::LINKRESULT_CONFLICT == second.Link( MakeRecord( bob, "epic:e-9", 6000 ) ) );
+            {
+                AUTH::CLocalIdentityLinkStore check( path );
+                ASSERT_TRUE( check.Resolve( AUTH::CAccountRef( "epic", "e-9" ), profile ) && alice.GetKeyId() == profile );
+            }
+
+            // a merge by one moves what the other linked, and the other changes the merged links
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == second.Link( MakeRecord( alice, "google:a-3", 7000 ) ) );
+            UInt32 merged = 0;
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == first.Merge( alice.GetKeyId(), bob, &merged ) && 3 == merged );
+            ASSERT_TRUE( second.GetLinks( alice.GetKeyId(), links ) && links.empty() );
+            ASSERT_TRUE( second.GetLinks( bob.GetKeyId(), links ) && 5 == links.size() );
+            ASSERT_TRUE( second.Unlink( AUTH::CAccountRef( "epic", "765" ), bob.GetKeyId() ) );
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == first.Link( MakeRecord( alice, "google:a-4", 8000 ) ) );
+            AUTH::CLocalIdentityLinkStore check( path );
+            ASSERT_TRUE( check.GetLinks( bob.GetKeyId(), links ) && 4 == links.size() );
+            ASSERT_TRUE( check.GetLinks( alice.GetKeyId(), links ) && 1 == links.size() && "google:a-4" == links[ 0 ].accountRef.ToString() );
+            ASSERT_FALSE( check.Resolve( AUTH::CAccountRef( "epic", "765" ), profile ) );
+            ASSERT_TRUE( 0 == check.GetRefusedCount() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Two threads with an instance each link into one file at the same time without losing a link" )
+        GUCEF_TESTFW_SKIP_IF( !JsonCodecAvailable(), "The json codec plugin is not available" );
+        GUCEF_TESTFW_SKIP_IF( !AUTH::CAuthCrypto::IsSignatureAvailable(), "The ed25519 codec is not available" );
+        try
+        {
+            CORE::CString dir = MakeTestDirectory( "links_threads" );
+            CORE::CString path = CORE::CombinePath( dir, "links.json" );
+            const UInt32 AccountCount = 40;
+            CTestSigner seed( "seed" );
+            {
+                AUTH::CLocalIdentityLinkStore store( path );
+                ASSERT_TRUE( AUTH::LINKRESULT_OK == store.Link( MakeRecord( seed, "google:seed" ) ) );
+            }
+            CLinkWriterThread left( path, "left", AccountCount );
+            CLinkWriterThread right( path, "right", AccountCount );
+            ASSERT_TRUE( left.Activate( GUCEF_NULL, 1, 1 ) );
+            ASSERT_TRUE( right.Activate( GUCEF_NULL, 1, 1 ) );
+            for ( UInt32 waited=0; waited<240000 && !( left.IsDone() && right.IsDone() ); waited+=5 )
+                MT::PrecisionDelay( 5 );
+            ASSERT_TRUE( left.IsDone() && right.IsDone() );
+            left.Deactivate( false, true );
+            right.Deactivate( false, true );
+            ASSERT_TRUE( 0 == left.GetFailures() && 0 == right.GetFailures() );
+
+            UInt32 scratch = 0;
+            ASSERT_TRUE( AccountCount == CountLinkedAccounts( path, "left", AccountCount, scratch ) && 0 == scratch );
+            ASSERT_TRUE( AccountCount == CountLinkedAccounts( path, "right", AccountCount, scratch ) && 0 == scratch );
+            AUTH::CLocalIdentityLinkStore check( path );
+            CORE::CString profile;
+            ASSERT_TRUE( check.Resolve( AUTH::CAccountRef( "google", "seed" ), profile ) && seed.GetKeyId() == profile );
+            ASSERT_TRUE( 0 == check.GetRefusedCount() );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A second process links into one file at the same time as this one without losing a link" )
+        GUCEF_TESTFW_SKIP_IF( !JsonCodecAvailable(), "The json codec plugin is not available" );
+        GUCEF_TESTFW_SKIP_IF( !AUTH::CAuthCrypto::IsSignatureAvailable(), "The ed25519 codec is not available" );
+        #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_LINUX )
+        GUCEF_TESTFW_SKIP( "The test application is started again as a second process on Linux" );
+        #endif
+        try
+        {
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+            CORE::CString dir = MakeTestDirectory( "links_process" );
+            CORE::CString syncDir = MakeTestDirectory( "links_process_sync" );
+            ASSERT_TRUE( CORE::CreateDirs( syncDir ) );
+            CORE::CString path = CORE::CombinePath( dir, "links.json" );
+            const UInt32 AccountCount = 40;
+            CTestSigner seed( "seed" );
+            {
+                AUTH::CLocalIdentityLinkStore store( path );
+                ASSERT_TRUE( AUTH::LINKRESULT_OK == store.Link( MakeRecord( seed, "google:seed" ) ) );
+            }
+
+            CORE::CString exePath = GetOwnExecutablePath();
+            REQUIRE_TRUE( !exePath.IsNULLOrEmpty() );
+            CORE::CProcess child;
+            child.SetIsolateFromParent( true );
+            CORE::CProcess::TStringMap environment;
+            environment[ "GUCEF_AUTH_TEST_HELPER" ] = "linkstore-writer";
+            environment[ "GUCEF_AUTH_TEST_STORE_PATH" ] = path;
+            environment[ "GUCEF_AUTH_TEST_SYNC_DIR" ] = syncDir;
+            environment[ "GUCEF_AUTH_TEST_PREFIX" ] = "child";
+            environment[ "GUCEF_AUTH_TEST_COUNT" ] = CORE::ToString( AccountCount );
+            environment[ "GUCEF_CONSOLE_LOGGER" ] = "none";
+            REQUIRE_TRUE( child.Launch( exePath, CORE::CProcess::TStringVector(), CORE::CString::Empty, environment ) );
+            ASSERT_TRUE( WaitForFile( CORE::CombinePath( syncDir, "ready-child" ), 60000 ) );
+            CORE::CString go = "go";
+            ASSERT_TRUE( CORE::WriteFileAtomically( CORE::CombinePath( syncDir, "go" ), go.C_String(), go.Length() ) );
+            UInt32 failures = LinkAccounts( path, "parent", AccountCount );
+            Int32 exitCode = -1;
+            ASSERT_TRUE( child.WaitForExit( 240000, exitCode ) );
+            ASSERT_TRUE( 0 == exitCode );
+            ASSERT_TRUE( 0 == failures );
+
+            UInt32 scratch = 0;
+            ASSERT_TRUE( AccountCount == CountLinkedAccounts( path, "parent", AccountCount, scratch ) && 0 == scratch );
+            ASSERT_TRUE( AccountCount == CountLinkedAccounts( path, "child", AccountCount, scratch ) && 0 == scratch );
+            AUTH::CLocalIdentityLinkStore check( path );
+            CORE::CString profile;
+            ASSERT_TRUE( check.Resolve( AUTH::CAccountRef( "google", "seed" ), profile ) && seed.GetKeyId() == profile );
+            ASSERT_TRUE( 0 == check.GetRefusedCount() );
+            #endif
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: An instance waits for the lock of another one and gives up after the lock timeout without changing anything" )
+        GUCEF_TESTFW_SKIP_IF( !JsonCodecAvailable(), "The json codec plugin is not available" );
+        GUCEF_TESTFW_SKIP_IF( !AUTH::CAuthCrypto::IsSignatureAvailable(), "The ed25519 codec is not available" );
+        #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_LINUX )
+        GUCEF_TESTFW_SKIP( "The lock is held with flock() by the test on Linux" );
+        #endif
+        try
+        {
+            #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+            CORE::CString dir = MakeTestDirectory( "links_lock_timeout" );
+            CORE::CString path = CORE::CombinePath( dir, "links.json" );
+            CORE::CString lockPath = path + ".lock";
+            CTestSigner alice( "alice" );
+            AUTH::CLocalIdentityLinkStore store( path );
+            ASSERT_TRUE( AUTH::CLocalIdentityLinkStore::DefaultLockTimeoutInMs == store.GetLockTimeoutInMs() );
+            ASSERT_TRUE( lockPath == store.GetLockPath() && AUTH::CLocalIdentityLinkStore().GetLockPath().IsNULLOrEmpty() );
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == store.Link( MakeRecord( alice, "google:g-1", 1000 ) ) );
+            ASSERT_TRUE( CORE::FileExists( lockPath ) );
+            struct stat info;
+            ASSERT_TRUE( 0 == stat( lockPath.C_String(), &info ) && 0600 == ( info.st_mode & 0777 ) );
+            CORE::CString before = ReadTextFile( path );
+
+            // the lock timeout is configuration
+            CORE::CDataNode config( "Links", GUCEF_DATATYPE_OBJECT );
+            config.SetAttribute( "path", path );
+            config.SetAttribute( "lockTimeoutInMs", CORE::CString( "150" ) );
+            ASSERT_TRUE( store.LoadConfig( config ) && 150 == store.GetLockTimeoutInMs() );
+            CORE::CDataNode saved( "Links", GUCEF_DATATYPE_OBJECT );
+            ASSERT_TRUE( store.SaveConfig( saved ) && 150 == saved.GetAttributeValueOrChildValueByName( "lockTimeoutInMs" ).AsUInt32() );
+
+            // another holder of the exclusive lock: a change and a read wait for the timeout, then give up
+            int holder = open( lockPath.C_String(), O_RDWR | O_CLOEXEC );
+            REQUIRE_TRUE( holder >= 0 && 0 == flock( holder, LOCK_EX ) );
+            UInt64 startedAt = AUTH::GetMonotonicTimeInMs();
+            ASSERT_TRUE( AUTH::LINKRESULT_STORE_ERROR == store.Link( MakeRecord( alice, "epic:765", 2000 ) ) );
+            UInt64 waited = AUTH::GetMonotonicTimeInMs() - startedAt;
+            ASSERT_TRUE( waited >= 140 && waited < 5000 );
+            ASSERT_FALSE( store.Unlink( AUTH::CAccountRef( "google", "g-1" ), alice.GetKeyId() ) );
+            CTestSigner bob( "bob" );
+            ASSERT_TRUE( AUTH::LINKRESULT_STORE_ERROR == store.Merge( alice.GetKeyId(), bob ) );
+            AUTH::TLinkRecordVector links;
+            CORE::CString profile;
+            ASSERT_FALSE( store.GetLinks( alice.GetKeyId(), links ) );
+            ASSERT_FALSE( store.Resolve( AUTH::CAccountRef( "google", "g-1" ), profile ) );
+            ASSERT_TRUE( before == ReadTextFile( path ) );
+
+            // a shared holder: reads go on, a change still waits
+            ASSERT_TRUE( 0 == flock( holder, LOCK_SH ) );
+            ASSERT_TRUE( store.GetLinks( alice.GetKeyId(), links ) && 1 == links.size() );
+            ASSERT_TRUE( store.Resolve( AUTH::CAccountRef( "google", "g-1" ), profile ) && alice.GetKeyId() == profile );
+            ASSERT_TRUE( AUTH::LINKRESULT_STORE_ERROR == store.Link( MakeRecord( alice, "epic:765", 2000 ) ) );
+            ASSERT_TRUE( before == ReadTextFile( path ) );
+
+            // let go: the change goes through, and the lock file stays
+            ASSERT_TRUE( 0 == flock( holder, LOCK_UN ) );
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == store.Link( MakeRecord( alice, "epic:765", 2000 ) ) );
+            ASSERT_TRUE( store.GetLinks( alice.GetKeyId(), links ) && 2 == links.size() );
+            ASSERT_TRUE( store.Unlink( AUTH::CAccountRef( "epic", "765" ), alice.GetKeyId() ) && CORE::FileExists( lockPath ) );
+            close( holder );
+
+            // the timeout set in code
+            store.SetLockTimeoutInMs( 0 );
+            ASSERT_TRUE( 0 == store.GetLockTimeoutInMs() );
+            ASSERT_TRUE( AUTH::LINKRESULT_OK == store.Link( MakeRecord( alice, "epic:766", 3000 ) ) );
+            #endif
         }
         catch ( ... )
         {

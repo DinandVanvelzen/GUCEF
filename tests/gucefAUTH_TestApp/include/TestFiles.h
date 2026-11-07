@@ -1,20 +1,18 @@
 /*
  *  gucefAUTH_TestApp: Application for testing gucefAUTH
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_AUTH_TESTAPP_TESTFILES_H
@@ -26,7 +24,13 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#include <stdlib.h>
 #include <string.h>
+
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
 
 #ifndef GUCEF_CORE_DVCPPFILEUTILS_H
 #include "dvcppfileutils.h"
@@ -45,6 +49,7 @@
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
   #include <sys/stat.h>
+  #include <unistd.h>
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -145,6 +150,52 @@ FlipFileByte( const GUCEF::CORE::CString& path, GUCEF::UInt32 offset )
     static_cast< GUCEF::UInt8* >( content.GetBufferPtr() )[ offset ] ^= 0x01;
     return GUCEF::CORE::WriteFileAtomically( path, content );
 }
+
+/*-------------------------------------------------------------------------*/
+
+/** Waits for a file to be there, up to the time given */
+inline bool
+WaitForFile( const GUCEF::CORE::CString& path, GUCEF::UInt32 timeoutInMs )
+{GUCEF_TRACE;
+
+    for ( GUCEF::UInt32 waited=0; waited<timeoutInMs; waited+=5 )
+    {
+        if ( GUCEF::CORE::FileExists( path ) )
+            return true;
+        GUCEF::MT::PrecisionDelay( 5 );
+    }
+    return GUCEF::CORE::FileExists( path );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The value of an environment variable, empty when it is not set */
+inline GUCEF::CORE::CString
+GetEnvText( const char* name )
+{GUCEF_TRACE;
+
+    const char* value = getenv( name );
+    return GUCEF_NULL != value ? GUCEF::CORE::CString( value ) : GUCEF::CORE::CString::Empty;
+}
+
+/*-------------------------------------------------------------------------*/
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX )
+
+/** The path of the executable of this process, to start the test application again as a second process */
+inline GUCEF::CORE::CString
+GetOwnExecutablePath( void )
+{GUCEF_TRACE;
+
+    char path[ 4096 ];
+    ssize_t length = readlink( "/proc/self/exe", path, sizeof( path ) - 1 );
+    if ( length <= 0 )
+        return GUCEF::CORE::CString::Empty;
+    path[ length ] = '\0';
+    return GUCEF::CORE::CString( path );
+}
+
+#endif
 
 /*-------------------------------------------------------------------------*/
 
