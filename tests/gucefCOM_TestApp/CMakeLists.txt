@@ -14,9 +14,12 @@
 set( HEADER_FILES 
   include/TestCode_Pump.h
   include/TestDiscovery.h
+  include/TestImapClient.h
   include/TestIrc.h
-  include/TestNatTraversal.h
   include/TestJsonRpc.h
+  include/TestMailParsers.h
+  include/TestMailSetup.h
+  include/TestMailShared.h
   include/TestMcpClientSupport.h
   include/TestMcpCore.h
   include/TestMcpLegacy.h
@@ -25,28 +28,38 @@ set( HEADER_FILES
   include/TestMcpStdio.h
   include/TestMcpSupport.h
   include/TestMcpTcp.h
+  include/TestMime.h
+  include/TestNatTraversal.h
+  include/TestPop3Client.h
   include/TestRttProbes.h
+  include/TestSmtpClient.h
   include/TestStatsDClient.h
 )
 
 set( SOURCE_FILES 
   src/TestDiscovery.cpp
+  src/TestImapClient.cpp
   src/TestIrc.cpp
-  src/TestNatTraversal.cpp
-  src/TestRttProbes.cpp
-  src/TestStatsDClient.cpp
-  src/gucefCOM_TestApp_main.cpp
-)
-
-# Make sure the PLATFORM_HEADER_FILES variable is always defined
- set( PLATFORM_HEADER_FILES "" )
   src/TestJsonRpc.cpp
+  src/TestMailParsers.cpp
+  src/TestMailSetup.cpp
   src/TestMcpCore.cpp
   src/TestMcpLegacy.cpp
   src/TestMcpPolicy.cpp
   src/TestMcpRegistry.cpp
   src/TestMcpStdio.cpp
   src/TestMcpTcp.cpp
+  src/TestMime.cpp
+  src/TestNatTraversal.cpp
+  src/TestPop3Client.cpp
+  src/TestRttProbes.cpp
+  src/TestSmtpClient.cpp
+  src/TestStatsDClient.cpp
+  src/gucefCOM_TestApp_main.cpp
+)
+
+# Make sure the PLATFORM_HEADER_FILES variable is always defined
+ set( PLATFORM_HEADER_FILES "" )
 
 # Make sure the PLATFORM_SOURCE_FILES variable is always defined
  set( PLATFORM_SOURCE_FILES "" )

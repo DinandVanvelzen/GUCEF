@@ -48,9 +48,12 @@ vpaths { ["Headers"] = { "**.h", "**.hpp", "**.hxx" } }
 files( {
   "include/TestCode_Pump.h",
   "include/TestDiscovery.h",
+  "include/TestImapClient.h",
   "include/TestIrc.h",
-  "include/TestNatTraversal.h",
   "include/TestJsonRpc.h",
+  "include/TestMailParsers.h",
+  "include/TestMailSetup.h",
+  "include/TestMailShared.h",
   "include/TestMcpClientSupport.h",
   "include/TestMcpCore.h",
   "include/TestMcpLegacy.h",
@@ -59,7 +62,11 @@ files( {
   "include/TestMcpStdio.h",
   "include/TestMcpSupport.h",
   "include/TestMcpTcp.h",
+  "include/TestMime.h",
+  "include/TestNatTraversal.h",
+  "include/TestPop3Client.h",
   "include/TestRttProbes.h",
+  "include/TestSmtpClient.h",
   "include/TestStatsDClient.h"
  } )
 
@@ -69,22 +76,28 @@ configuration( {} )
 vpaths { ["Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
 files( {
   "src/TestDiscovery.cpp",
+  "src/TestImapClient.cpp",
   "src/TestIrc.cpp",
-  "src/TestNatTraversal.cpp",
-  "src/TestRttProbes.cpp",
-  "src/TestStatsDClient.cpp",
-  "src/gucefCOM_TestApp_main.cpp"
- } )
-
-
-configuration( {} )
   "src/TestJsonRpc.cpp",
+  "src/TestMailParsers.cpp",
+  "src/TestMailSetup.cpp",
   "src/TestMcpCore.cpp",
   "src/TestMcpLegacy.cpp",
   "src/TestMcpPolicy.cpp",
   "src/TestMcpRegistry.cpp",
   "src/TestMcpStdio.cpp",
   "src/TestMcpTcp.cpp",
+  "src/TestMime.cpp",
+  "src/TestNatTraversal.cpp",
+  "src/TestPop3Client.cpp",
+  "src/TestRttProbes.cpp",
+  "src/TestSmtpClient.cpp",
+  "src/TestStatsDClient.cpp",
+  "src/gucefCOM_TestApp_main.cpp"
+ } )
+
+
+configuration( {} )
 includedirs( { "../../common/include", "../../common/test/include", "../../platform/gucefCOM/include", "../../platform/gucefCOMCORE/include", "../../platform/gucefCORE/include", "../../platform/gucefCORE/include/c_api", "../../platform/gucefMT/include", "include" } )
 
 configuration( { "ANDROID32" } )

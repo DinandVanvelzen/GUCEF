@@ -76,6 +76,12 @@
 #include "TestMcpTcp.h"
 #include "TestMcpLegacy.h"
 #include "TestStatsDClient.h"
+#include "TestMime.h"
+#include "TestMailParsers.h"
+#include "TestMailSetup.h"
+#include "TestSmtpClient.h"
+#include "TestPop3Client.h"
+#include "TestImapClient.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -83,16 +89,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/*
- *      Application entry point
- */
-GUCEF_OSMAIN_BEGIN
-{GUCEF_TRACE;
-
 /**
  *  Suite filter, to repeat a part of the application quickly (for example under load or a sanitizer): when the
  *  environment variable GUCEF_TEST_ONLY_SUITES holds a comma separated list, only the Perform...Tests() functions
  *  whose name contains one of the entries (case insensitive) are run. Without the variable, or empty, everything runs.
+ *      GUCEF_TEST_ONLY_SUITES=Pop3,Imap,Smtp ./gucefCOM_TestApp
  */
 static bool
 IsSuiteEnabled( const char* suiteFunctionName )
@@ -110,6 +111,12 @@ IsSuiteEnabled( const char* suiteFunctionName )
 }
 
 #define RUN_SUITE( suiteFunction )  if ( IsSuiteEnabled( #suiteFunction ) ) suiteFunction()
+
+/*
+ *      Application entry point
+ */
+GUCEF_OSMAIN_BEGIN
+{GUCEF_TRACE;
 
     using namespace GUCEF;
 
@@ -134,16 +141,32 @@ IsSuiteEnabled( const char* suiteFunctionName )
         GUCEF_TESTFW_INIT( "gucefCOM_TestApp" );
         GUCEF_TESTFW_SET_CALLBACK( TESTFW::TestFrameworkLogCallback, GUCEF_NULL );
 
-        PerformUdpDiscoveryTests();
-        PerformMdnsDiscoveryTests();
-        PerformSsdpDiscoveryTests();
-        PerformRttProbeTests();
-        PerformNatPmpTests();
-        PerformStunTests();
-        PerformUpnpPluginTests();
-        PerformIrcMessageTests();
-        PerformIrcClientTests();
-        PerformStatsDClientTests();
+        RUN_SUITE( PerformUdpDiscoveryTests );
+        RUN_SUITE( PerformMdnsDiscoveryTests );
+        RUN_SUITE( PerformSsdpDiscoveryTests );
+        RUN_SUITE( PerformRttProbeTests );
+        RUN_SUITE( PerformNatPmpTests );
+        RUN_SUITE( PerformStunTests );
+        RUN_SUITE( PerformUpnpPluginTests );
+        RUN_SUITE( PerformIrcMessageTests );
+        RUN_SUITE( PerformIrcClientTests );
+        RUN_SUITE( PerformJsonRpcTests );
+        RUN_SUITE( PerformMcpRegistryTests );
+        RUN_SUITE( PerformMcpCoreTests );
+        RUN_SUITE( PerformMcpLegacyTests );
+        RUN_SUITE( PerformMcpPolicyTests );
+        RUN_SUITE( PerformMcpStdioTests );
+        RUN_SUITE( PerformMcpTcpTests );
+        RUN_SUITE( PerformStatsDClientTests );
+        RUN_SUITE( PerformMimeCodecTests );
+        RUN_SUITE( PerformMimeParserTests );
+        RUN_SUITE( PerformMimeComposerTests );
+        RUN_SUITE( PerformMailModelTests );
+        RUN_SUITE( PerformMailParserTests );
+        RUN_SUITE( PerformMailSetupTests );
+        RUN_SUITE( PerformSmtpClientTests );
+        RUN_SUITE( PerformPop3ClientTests );
+        RUN_SUITE( PerformImapClientTests );
 
         CORE::CLogStreamScope::FlushLogs();
 

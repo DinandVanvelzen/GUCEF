@@ -52,6 +52,8 @@ files( {
   "include/gucefCOM_CComGlobal.h",
   "include/gucefCOM_CDnsMessage.h",
   "include/gucefCOM_CIIrcTransport.h",
+  "include/gucefCOM_CIMailCredentialProvider.h",
+  "include/gucefCOM_CIMailTransport.h",
   "include/gucefCOM_CIMcpAccessPolicy.h",
   "include/gucefCOM_CIMcpPrompt.h",
   "include/gucefCOM_CIMcpResource.h",
@@ -59,18 +61,31 @@ files( {
   "include/gucefCOM_CIMcpTool.h",
   "include/gucefCOM_CIMcpTransport.h",
   "include/gucefCOM_CIcmpRttProbe.h",
+  "include/gucefCOM_CImapClient.h",
+  "include/gucefCOM_CImapClientSettings.h",
+  "include/gucefCOM_CImapResponse.h",
+  "include/gucefCOM_CImapSearchCriteria.h",
+  "include/gucefCOM_CImapValue.h",
   "include/gucefCOM_CIrcClient.h",
   "include/gucefCOM_CIrcClientSettings.h",
   "include/gucefCOM_CIrcMessage.h",
   "include/gucefCOM_CIrcTcpTransport.h",
-  "include/gucefCOM_CMdnsDiscoveryClient.h",
-  "include/gucefCOM_CNatPmpPortMapper.h",
-  "include/gucefCOM_CSsdpDiscoveryClient.h",
-  "include/gucefCOM_CStatsDClient.h",
-  "include/gucefCOM_CStunClient.h",
-  "include/gucefCOM_CTcpConnectRttProbe.h",
-  "include/gucefCOM_CUdpBroadcastDiscoveryClient.h",
   "include/gucefCOM_CJsonRpcEndpoint.h",
+  "include/gucefCOM_CMailAddress.h",
+  "include/gucefCOM_CMailAttachment.h",
+  "include/gucefCOM_CMailClientBase.h",
+  "include/gucefCOM_CMailClientSettings.h",
+  "include/gucefCOM_CMailHeaders.h",
+  "include/gucefCOM_CMailMessage.h",
+  "include/gucefCOM_CMailOperationTask.h",
+  "include/gucefCOM_CMailProtocolLog.h",
+  "include/gucefCOM_CMailProviderPreset.h",
+  "include/gucefCOM_CMailProviderPresets.h",
+  "include/gucefCOM_CMailSasl.h",
+  "include/gucefCOM_CMailSetupDiagnosis.h",
+  "include/gucefCOM_CMailSetupValidation.h",
+  "include/gucefCOM_CMailStreamReader.h",
+  "include/gucefCOM_CMailTcpTransport.h",
   "include/gucefCOM_CMcpAuditRecord.h",
   "include/gucefCOM_CMcpChannel.h",
   "include/gucefCOM_CMcpConfigurableAccessPolicy.h",
@@ -100,12 +115,30 @@ files( {
   "include/gucefCOM_CMcpToolDescriptor.h",
   "include/gucefCOM_CMcpToolRegistry.h",
   "include/gucefCOM_CMcpToolResult.h",
+  "include/gucefCOM_CMdnsDiscoveryClient.h",
+  "include/gucefCOM_CMimeCodec.h",
+  "include/gucefCOM_CMimeComposer.h",
+  "include/gucefCOM_CMimeParser.h",
+  "include/gucefCOM_CMimePart.h",
+  "include/gucefCOM_CNatPmpPortMapper.h",
+  "include/gucefCOM_CPop3Client.h",
+  "include/gucefCOM_CPop3ClientSettings.h",
+  "include/gucefCOM_CSmtpClient.h",
+  "include/gucefCOM_CSmtpClientSettings.h",
+  "include/gucefCOM_CSsdpDiscoveryClient.h",
+  "include/gucefCOM_CStatsDClient.h",
+  "include/gucefCOM_CStunClient.h",
+  "include/gucefCOM_CTcpConnectRttProbe.h",
+  "include/gucefCOM_CUdpBroadcastDiscoveryClient.h",
   "include/gucefCOM_CUdpDiscoveryClientBase.h",
   "include/gucefCOM_CUdpDiscoveryCodec.h",
   "include/gucefCOM_CUdpEchoResponder.h",
   "include/gucefCOM_CUdpEchoRttProbe.h",
   "include/gucefCOM_CUdpMulticastDiscoveryClient.h",
   "include/gucefCOM_ETypes.h",
+  "include/gucefCOM_JsonRpcTypes.h",
+  "include/gucefCOM_MailTypes.h",
+  "include/gucefCOM_McpTypes.h",
   "include/gucefCOM_NetworkByteOrder.h",
   "include/gucefCOM_config.h",
   "include/gucefCOM_macros.h"
@@ -124,51 +157,35 @@ files( {
   "src/gucefCOM_CComGlobal.cpp",
   "src/gucefCOM_CDnsMessage.cpp",
   "src/gucefCOM_CIIrcTransport.cpp",
+  "src/gucefCOM_CIMailCredentialProvider.cpp",
+  "src/gucefCOM_CIMailTransport.cpp",
+  "src/gucefCOM_CIMcpTransport.cpp",
   "src/gucefCOM_CIcmpRttProbe.cpp",
+  "src/gucefCOM_CImapClient.cpp",
+  "src/gucefCOM_CImapClientSettings.cpp",
+  "src/gucefCOM_CImapResponse.cpp",
+  "src/gucefCOM_CImapSearchCriteria.cpp",
+  "src/gucefCOM_CImapValue.cpp",
   "src/gucefCOM_CIrcClient.cpp",
   "src/gucefCOM_CIrcClientSettings.cpp",
   "src/gucefCOM_CIrcMessage.cpp",
   "src/gucefCOM_CIrcTcpTransport.cpp",
-  "src/gucefCOM_CMdnsDiscoveryClient.cpp",
-  "src/gucefCOM_CNatPmpPortMapper.cpp",
-  "src/gucefCOM_CSsdpDiscoveryClient.cpp",
-  "src/gucefCOM_CStatsDClient.cpp",
-  "src/gucefCOM_CStunClient.cpp",
-  "src/gucefCOM_CTcpConnectRttProbe.cpp",
-  "src/gucefCOM_CUdpBroadcastDiscoveryClient.cpp",
-  "include/gucefCOM_JsonRpcTypes.h",
-  "include/gucefCOM_McpTypes.h",
-  "src/gucefCOM_CUdpDiscoveryClientBase.cpp",
-  "src/gucefCOM_CUdpDiscoveryCodec.cpp",
-  "src/gucefCOM_CUdpEchoResponder.cpp",
-  "src/gucefCOM_CUdpEchoRttProbe.cpp",
-  "src/gucefCOM_CUdpMulticastDiscoveryClient.cpp",
-  "src/gucefCOM_McpTypes.cpp"
- } )
-
-
-configuration( {} )
-includedirs( { "../../common/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMT/include", "include" } )
-
-configuration( { "ANDROID32" } )
-includedirs( { "../gucefCOMCORE/include/android", "../gucefCORE/include/android" } )
-
-configuration( { "ANDROID64" } )
-includedirs( { "../gucefCOMCORE/include/android", "../gucefCORE/include/android" } )
-
-configuration( { "LINUX32" } )
-includedirs( { "../gucefCOMCORE/include/linux", "../gucefCORE/include/linux" } )
-  "src/gucefCOM_CIMcpTransport.cpp",
-
-configuration( { "LINUX64" } )
-includedirs( { "../gucefCOMCORE/include/linux", "../gucefCORE/include/linux" } )
-
-configuration( { "WIN32" } )
-includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin" } )
-
-configuration( { "WIN64" } )
-includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin" } )
   "src/gucefCOM_CJsonRpcEndpoint.cpp",
+  "src/gucefCOM_CMailAddress.cpp",
+  "src/gucefCOM_CMailAttachment.cpp",
+  "src/gucefCOM_CMailClientBase.cpp",
+  "src/gucefCOM_CMailClientSettings.cpp",
+  "src/gucefCOM_CMailHeaders.cpp",
+  "src/gucefCOM_CMailMessage.cpp",
+  "src/gucefCOM_CMailOperationTask.cpp",
+  "src/gucefCOM_CMailProtocolLog.cpp",
+  "src/gucefCOM_CMailProviderPreset.cpp",
+  "src/gucefCOM_CMailProviderPresets.cpp",
+  "src/gucefCOM_CMailSasl.cpp",
+  "src/gucefCOM_CMailSetupDiagnosis.cpp",
+  "src/gucefCOM_CMailSetupValidation.cpp",
+  "src/gucefCOM_CMailStreamReader.cpp",
+  "src/gucefCOM_CMailTcpTransport.cpp",
   "src/gucefCOM_CMcpAuditRecord.cpp",
   "src/gucefCOM_CMcpChannel.cpp",
   "src/gucefCOM_CMcpConfigurableAccessPolicy.cpp",
@@ -198,3 +215,47 @@ includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", ".
   "src/gucefCOM_CMcpToolDescriptor.cpp",
   "src/gucefCOM_CMcpToolRegistry.cpp",
   "src/gucefCOM_CMcpToolResult.cpp",
+  "src/gucefCOM_CMdnsDiscoveryClient.cpp",
+  "src/gucefCOM_CMimeCodec.cpp",
+  "src/gucefCOM_CMimeComposer.cpp",
+  "src/gucefCOM_CMimeParser.cpp",
+  "src/gucefCOM_CMimePart.cpp",
+  "src/gucefCOM_CNatPmpPortMapper.cpp",
+  "src/gucefCOM_CPop3Client.cpp",
+  "src/gucefCOM_CPop3ClientSettings.cpp",
+  "src/gucefCOM_CSmtpClient.cpp",
+  "src/gucefCOM_CSmtpClientSettings.cpp",
+  "src/gucefCOM_CSsdpDiscoveryClient.cpp",
+  "src/gucefCOM_CStatsDClient.cpp",
+  "src/gucefCOM_CStunClient.cpp",
+  "src/gucefCOM_CTcpConnectRttProbe.cpp",
+  "src/gucefCOM_CUdpBroadcastDiscoveryClient.cpp",
+  "src/gucefCOM_CUdpDiscoveryClientBase.cpp",
+  "src/gucefCOM_CUdpDiscoveryCodec.cpp",
+  "src/gucefCOM_CUdpEchoResponder.cpp",
+  "src/gucefCOM_CUdpEchoRttProbe.cpp",
+  "src/gucefCOM_CUdpMulticastDiscoveryClient.cpp",
+  "src/gucefCOM_McpTypes.cpp"
+ } )
+
+
+configuration( {} )
+includedirs( { "../../common/include", "../gucefCOMCORE/include", "../gucefCORE/include", "../gucefCORE/include/c_api", "../gucefMT/include", "include" } )
+
+configuration( { "ANDROID32" } )
+includedirs( { "../gucefCOMCORE/include/android", "../gucefCORE/include/android" } )
+
+configuration( { "ANDROID64" } )
+includedirs( { "../gucefCOMCORE/include/android", "../gucefCORE/include/android" } )
+
+configuration( { "LINUX32" } )
+includedirs( { "../gucefCOMCORE/include/linux", "../gucefCORE/include/linux" } )
+
+configuration( { "LINUX64" } )
+includedirs( { "../gucefCOMCORE/include/linux", "../gucefCORE/include/linux" } )
+
+configuration( { "WIN32" } )
+includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin" } )
+
+configuration( { "WIN64" } )
+includedirs( { "../gucefCOMCORE/include/mswin", "../gucefCORE/include/mswin", "../gucefMT/include/mswin" } )

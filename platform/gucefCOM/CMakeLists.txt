@@ -24,6 +24,8 @@ set( HEADER_FILES
   include/gucefCOM_CComGlobal.h
   include/gucefCOM_CDnsMessage.h
   include/gucefCOM_CIIrcTransport.h
+  include/gucefCOM_CIMailCredentialProvider.h
+  include/gucefCOM_CIMailTransport.h
   include/gucefCOM_CIMcpAccessPolicy.h
   include/gucefCOM_CIMcpPrompt.h
   include/gucefCOM_CIMcpResource.h
@@ -31,18 +33,31 @@ set( HEADER_FILES
   include/gucefCOM_CIMcpTool.h
   include/gucefCOM_CIMcpTransport.h
   include/gucefCOM_CIcmpRttProbe.h
+  include/gucefCOM_CImapClient.h
+  include/gucefCOM_CImapClientSettings.h
+  include/gucefCOM_CImapResponse.h
+  include/gucefCOM_CImapSearchCriteria.h
+  include/gucefCOM_CImapValue.h
   include/gucefCOM_CIrcClient.h
   include/gucefCOM_CIrcClientSettings.h
   include/gucefCOM_CIrcMessage.h
   include/gucefCOM_CIrcTcpTransport.h
-  include/gucefCOM_CMdnsDiscoveryClient.h
-  include/gucefCOM_CNatPmpPortMapper.h
-  include/gucefCOM_CSsdpDiscoveryClient.h
-  include/gucefCOM_CStatsDClient.h
-  include/gucefCOM_CStunClient.h
-  include/gucefCOM_CTcpConnectRttProbe.h
-  include/gucefCOM_CUdpBroadcastDiscoveryClient.h
   include/gucefCOM_CJsonRpcEndpoint.h
+  include/gucefCOM_CMailAddress.h
+  include/gucefCOM_CMailAttachment.h
+  include/gucefCOM_CMailClientBase.h
+  include/gucefCOM_CMailClientSettings.h
+  include/gucefCOM_CMailHeaders.h
+  include/gucefCOM_CMailMessage.h
+  include/gucefCOM_CMailOperationTask.h
+  include/gucefCOM_CMailProtocolLog.h
+  include/gucefCOM_CMailProviderPreset.h
+  include/gucefCOM_CMailProviderPresets.h
+  include/gucefCOM_CMailSasl.h
+  include/gucefCOM_CMailSetupDiagnosis.h
+  include/gucefCOM_CMailSetupValidation.h
+  include/gucefCOM_CMailStreamReader.h
+  include/gucefCOM_CMailTcpTransport.h
   include/gucefCOM_CMcpAuditRecord.h
   include/gucefCOM_CMcpChannel.h
   include/gucefCOM_CMcpConfigurableAccessPolicy.h
@@ -72,12 +87,30 @@ set( HEADER_FILES
   include/gucefCOM_CMcpToolDescriptor.h
   include/gucefCOM_CMcpToolRegistry.h
   include/gucefCOM_CMcpToolResult.h
+  include/gucefCOM_CMdnsDiscoveryClient.h
+  include/gucefCOM_CMimeCodec.h
+  include/gucefCOM_CMimeComposer.h
+  include/gucefCOM_CMimeParser.h
+  include/gucefCOM_CMimePart.h
+  include/gucefCOM_CNatPmpPortMapper.h
+  include/gucefCOM_CPop3Client.h
+  include/gucefCOM_CPop3ClientSettings.h
+  include/gucefCOM_CSmtpClient.h
+  include/gucefCOM_CSmtpClientSettings.h
+  include/gucefCOM_CSsdpDiscoveryClient.h
+  include/gucefCOM_CStatsDClient.h
+  include/gucefCOM_CStunClient.h
+  include/gucefCOM_CTcpConnectRttProbe.h
+  include/gucefCOM_CUdpBroadcastDiscoveryClient.h
   include/gucefCOM_CUdpDiscoveryClientBase.h
   include/gucefCOM_CUdpDiscoveryCodec.h
   include/gucefCOM_CUdpEchoResponder.h
   include/gucefCOM_CUdpEchoRttProbe.h
   include/gucefCOM_CUdpMulticastDiscoveryClient.h
   include/gucefCOM_ETypes.h
+  include/gucefCOM_JsonRpcTypes.h
+  include/gucefCOM_MailTypes.h
+  include/gucefCOM_McpTypes.h
   include/gucefCOM_NetworkByteOrder.h
   include/gucefCOM_config.h
   include/gucefCOM_macros.h
@@ -92,53 +125,35 @@ set( SOURCE_FILES
   src/gucefCOM_CComGlobal.cpp
   src/gucefCOM_CDnsMessage.cpp
   src/gucefCOM_CIIrcTransport.cpp
+  src/gucefCOM_CIMailCredentialProvider.cpp
+  src/gucefCOM_CIMailTransport.cpp
+  src/gucefCOM_CIMcpTransport.cpp
   src/gucefCOM_CIcmpRttProbe.cpp
+  src/gucefCOM_CImapClient.cpp
+  src/gucefCOM_CImapClientSettings.cpp
+  src/gucefCOM_CImapResponse.cpp
+  src/gucefCOM_CImapSearchCriteria.cpp
+  src/gucefCOM_CImapValue.cpp
   src/gucefCOM_CIrcClient.cpp
   src/gucefCOM_CIrcClientSettings.cpp
   src/gucefCOM_CIrcMessage.cpp
   src/gucefCOM_CIrcTcpTransport.cpp
-  src/gucefCOM_CMdnsDiscoveryClient.cpp
-  src/gucefCOM_CNatPmpPortMapper.cpp
-  src/gucefCOM_CSsdpDiscoveryClient.cpp
-  src/gucefCOM_CStatsDClient.cpp
-  src/gucefCOM_CStunClient.cpp
-  src/gucefCOM_CTcpConnectRttProbe.cpp
-  src/gucefCOM_CUdpBroadcastDiscoveryClient.cpp
-  src/gucefCOM_CUdpDiscoveryClientBase.cpp
-  src/gucefCOM_CUdpDiscoveryCodec.cpp
-  src/gucefCOM_CUdpEchoResponder.cpp
-  src/gucefCOM_CUdpEchoRttProbe.cpp
-  include/gucefCOM_JsonRpcTypes.h
-  include/gucefCOM_McpTypes.h
-  src/gucefCOM_CUdpMulticastDiscoveryClient.cpp
-)
-
-# Make sure the PLATFORM_HEADER_FILES variable is always defined
- set( PLATFORM_HEADER_FILES "" )
-
-# Make sure the PLATFORM_SOURCE_FILES variable is always defined
- set( PLATFORM_SOURCE_FILES "" )
-
-# For ease of use make a variable that has all files for this module
-set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
-
-set( MODULE_NAME "gucefCOM" )
-add_library( ${MODULE_NAME} ${ALL_FILES} )
-add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT )
-  src/gucefCOM_CIMcpTransport.cpp
-target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMCORE gucefCORE gucefMT )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_COM_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefCOM;MODULE_NAME=gucefCOM;MODULE_SEMVER=0_1_0_0" )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
-set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
-
-include_directories( ../../common/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT/include include )
-
-if ( ANDROID32 )
-  include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )
-endif( ANDROID32 )
-
-if ( ANDROID64 )
   src/gucefCOM_CJsonRpcEndpoint.cpp
+  src/gucefCOM_CMailAddress.cpp
+  src/gucefCOM_CMailAttachment.cpp
+  src/gucefCOM_CMailClientBase.cpp
+  src/gucefCOM_CMailClientSettings.cpp
+  src/gucefCOM_CMailHeaders.cpp
+  src/gucefCOM_CMailMessage.cpp
+  src/gucefCOM_CMailOperationTask.cpp
+  src/gucefCOM_CMailProtocolLog.cpp
+  src/gucefCOM_CMailProviderPreset.cpp
+  src/gucefCOM_CMailProviderPresets.cpp
+  src/gucefCOM_CMailSasl.cpp
+  src/gucefCOM_CMailSetupDiagnosis.cpp
+  src/gucefCOM_CMailSetupValidation.cpp
+  src/gucefCOM_CMailStreamReader.cpp
+  src/gucefCOM_CMailTcpTransport.cpp
   src/gucefCOM_CMcpAuditRecord.cpp
   src/gucefCOM_CMcpChannel.cpp
   src/gucefCOM_CMcpConfigurableAccessPolicy.cpp
@@ -168,6 +183,53 @@ if ( ANDROID64 )
   src/gucefCOM_CMcpToolDescriptor.cpp
   src/gucefCOM_CMcpToolRegistry.cpp
   src/gucefCOM_CMcpToolResult.cpp
+  src/gucefCOM_CMdnsDiscoveryClient.cpp
+  src/gucefCOM_CMimeCodec.cpp
+  src/gucefCOM_CMimeComposer.cpp
+  src/gucefCOM_CMimeParser.cpp
+  src/gucefCOM_CMimePart.cpp
+  src/gucefCOM_CNatPmpPortMapper.cpp
+  src/gucefCOM_CPop3Client.cpp
+  src/gucefCOM_CPop3ClientSettings.cpp
+  src/gucefCOM_CSmtpClient.cpp
+  src/gucefCOM_CSmtpClientSettings.cpp
+  src/gucefCOM_CSsdpDiscoveryClient.cpp
+  src/gucefCOM_CStatsDClient.cpp
+  src/gucefCOM_CStunClient.cpp
+  src/gucefCOM_CTcpConnectRttProbe.cpp
+  src/gucefCOM_CUdpBroadcastDiscoveryClient.cpp
+  src/gucefCOM_CUdpDiscoveryClientBase.cpp
+  src/gucefCOM_CUdpDiscoveryCodec.cpp
+  src/gucefCOM_CUdpEchoResponder.cpp
+  src/gucefCOM_CUdpEchoRttProbe.cpp
+  src/gucefCOM_CUdpMulticastDiscoveryClient.cpp
+  src/gucefCOM_McpTypes.cpp
+)
+
+# Make sure the PLATFORM_HEADER_FILES variable is always defined
+ set( PLATFORM_HEADER_FILES "" )
+
+# Make sure the PLATFORM_SOURCE_FILES variable is always defined
+ set( PLATFORM_SOURCE_FILES "" )
+
+# For ease of use make a variable that has all files for this module
+set( ALL_FILES ${HEADER_FILES} ${SOURCE_FILES} ${PLATFORM_HEADER_FILES} ${PLATFORM_SOURCE_FILES} )
+
+set( MODULE_NAME "gucefCOM" )
+add_library( ${MODULE_NAME} ${ALL_FILES} )
+add_dependencies( ${MODULE_NAME} gucefCOMCORE gucefCORE gucefMT )
+target_link_libraries( ${MODULE_NAME} PUBLIC gucefCOMCORE gucefCORE gucefMT )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "GUCEF_COM_BUILD_MODULE;MODULE_CONSENSUS_NAME=gucefCOM;MODULE_NAME=gucefCOM;MODULE_SEMVER=0_1_0_0" )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
+set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
+
+include_directories( ../../common/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefMT/include include )
+
+if ( ANDROID32 )
+  include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )
+endif( ANDROID32 )
+
+if ( ANDROID64 )
   include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )
 endif( ANDROID64 )
 
@@ -198,4 +260,3 @@ GUCEF_config_lib( ${MODULE_NAME} )
 #******** END OF AUTOGENERATED TEMPLATED ADDITION CONTENT ********
 
 
-  src/gucefCOM_McpTypes.cpp
