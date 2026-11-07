@@ -343,12 +343,12 @@ typedef double          Float64;  /* 8 bytes, signed, decimal */
 #define GUCEF_DATATYPE_DATETIME_ISO8601_ASCII_STRING    50  /**< ASCII character set string value actually representing a date time value per the ISO 8601 convention */
 #define GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING     51  /**< UTF8 character set string value actually representing a date time value per the ISO 8601 convention */
 
-#define GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH       53  /**< Little Endian UInt64 based timestamp using nanoseconds since unix epoch */
-#define GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH       54  /**< Big Endian UInt64 based timestamp using nanoseconds since unix epoch */
-#define GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH        55  /**< Little Endian UInt64 based timestamp using seconds since unix epoch */
-#define GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH        56  /**< Big Endian UInt64 based timestamp using seconds since unix epoch */
-#define GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH          57  /**< Little Endian UInt64 based timestamp using milliseconds since unix epoch */
-#define GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH          58  /**< Big Endian UInt64 based timestamp using milliseconds since unix epoch */
+#define GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH       53  /**< Little Endian Int64 based timestamp: signed two's complement count of nanoseconds since the unix epoch, negative before 1970 */
+#define GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH       54  /**< Big Endian Int64 based timestamp: signed two's complement count of nanoseconds since the unix epoch, negative before 1970 */
+#define GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH        55  /**< Little Endian Int64 based timestamp: signed two's complement count of seconds since the unix epoch, negative before 1970 */
+#define GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH        56  /**< Big Endian Int64 based timestamp: signed two's complement count of seconds since the unix epoch, negative before 1970 */
+#define GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH          57  /**< Little Endian Int64 based timestamp: signed two's complement count of milliseconds since the unix epoch, negative before 1970 */
+#define GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH          58  /**< Big Endian Int64 based timestamp: signed two's complement count of milliseconds since the unix epoch, negative before 1970 */
 
 #define GUCEF_DATATYPE_INT32T2_LE_FRACTION          60       /**< 2 sequentially stored 32bit signed integers in little endian representing a fraction value */
 #define GUCEF_DATATYPE_INT32T2_BE_FRACTION          61       /**< 2 sequentially stored 32bit signed integers in big endian representing a fraction value */
@@ -362,6 +362,14 @@ typedef double          Float64;  /* 8 bytes, signed, decimal */
 #define GUCEF_DATATYPE_INT64_INT32_BE_FRACTION      69       /**< sequentially stored 64bit signed integers followed by a 32 bit signed integer in big endian representing a fraction value */
 #define GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION    70       /**< sequentially stored 64bit unsigned integers followed by a 32 bit unsigned integer in little endian representing a fraction value */
 #define GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION    71       /**< sequentially stored 64bit unsigned integers followed by a 32 bit unsigned integer in big endian representing a fraction value */
+
+#define GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL       72       /**< 64bit signed unscaled integer in little endian followed by an 8bit unsigned decimal scale (0..18), value = unscaled * 10^-scale */
+#define GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL       73       /**< 64bit signed unscaled integer in big endian followed by an 8bit unsigned decimal scale (0..18), value = unscaled * 10^-scale */
+
+#define GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH             80  /**< Little Endian Int32 based date: signed two's complement count of days since 1970-01-01, proleptic Gregorian calendar */
+#define GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH             81  /**< Big Endian Int32 based date: signed two's complement count of days since 1970-01-01, proleptic Gregorian calendar */
+#define GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH      82  /**< Little Endian Int64 based timestamp: signed two's complement count of microseconds since the unix epoch, negative before 1970 */
+#define GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH      83  /**< Big Endian Int64 based timestamp: signed two's complement count of microseconds since the unix epoch, negative before 1970 */
 
 #define GUCEF_DATATYPE_CONST_DATA_MEMORY_ADDRESS      237      /**< address in memory of 'some static data'. context of the data, its type, needs to be garantueed by the user. Only intended for transient use */
 #define GUCEF_DATATYPE_DATA_MEMORY_ADDRESS            238      /**< address in memory of 'some data'. context of the data, its type, needs to be garantueed by the user. Only intended for transient use */
@@ -427,6 +435,14 @@ typedef double          Float64;  /* 8 bytes, signed, decimal */
 #define GUCEF_DATATYPE_NAME_UINT64_UINT32_LE_FRACTION "UINT64_UINT32_LE_FRACTION"
 #define GUCEF_DATATYPE_NAME_UINT64_UINT32_BE_FRACTION "UINT64_UINT32_BE_FRACTION"
 
+#define GUCEF_DATATYPE_NAME_INT64_UINT8_LE_DECIMAL   "INT64_UINT8_LE_DECIMAL"
+#define GUCEF_DATATYPE_NAME_INT64_UINT8_BE_DECIMAL   "INT64_UINT8_BE_DECIMAL"
+
+#define GUCEF_DATATYPE_NAME_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH         "LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH"
+#define GUCEF_DATATYPE_NAME_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH         "BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH"
+#define GUCEF_DATATYPE_NAME_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH  "LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH"
+#define GUCEF_DATATYPE_NAME_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH  "BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH"
+
 #define GUCEF_DATATYPE_NAME_CONST_DATA_MEMORY_ADDRESS          "CONST_DATA_MEMORY_ADDRESS"
 #define GUCEF_DATATYPE_NAME_DATA_MEMORY_ADDRESS                "DATA_MEMORY_ADDRESS"
 #define GUCEF_DATATYPE_NAME_FUNCTION_MEMORY_ADDRESS            "FUNCTION_MEMORY_ADDRESS"
@@ -448,12 +464,15 @@ typedef double          Float64;  /* 8 bytes, signed, decimal */
     #define GUCEF_DATATYPE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH      GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH
     #define GUCEF_DATATYPE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH       GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH
     #define GUCEF_DATATYPE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH         GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH
+    #define GUCEF_DATATYPE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH     GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH
+    #define GUCEF_DATATYPE_DATE_IN_DAYS_SINCE_UNIX_EPOCH            GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH
     #define GUCEF_DATATYPE_INT32T2_FRACTION                         GUCEF_DATATYPE_INT32T2_LE_FRACTION
     #define GUCEF_DATATYPE_UINT32T2_FRACTION                        GUCEF_DATATYPE_UINT32T2_LE_FRACTION
     #define GUCEF_DATATYPE_INT64T2_FRACTION                         GUCEF_DATATYPE_INT64T2_LE_FRACTION
     #define GUCEF_DATATYPE_UINT64T2_FRACTION                        GUCEF_DATATYPE_UINT64T2_LE_FRACTION
     #define GUCEF_DATATYPE_INT64_INT32_FRACTION                     GUCEF_DATATYPE_INT64_INT32_LE_FRACTION
     #define GUCEF_DATATYPE_UINT64_UINT32_FRACTION                   GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION
+    #define GUCEF_DATATYPE_INT64_UINT8_DECIMAL                      GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL
 
     #define GUCEF_DATATYPE_NAME_UTF16_STRING                        GUCEF_DATATYPE_NAME_UTF16_LE_STRING
     #define GUCEF_DATATYPE_NAME_UTF32_STRING                        GUCEF_DATATYPE_NAME_UTF32_LE_STRING
@@ -462,12 +481,15 @@ typedef double          Float64;  /* 8 bytes, signed, decimal */
     #define GUCEF_DATATYPE_NAME_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH GUCEF_DATATYPE_NAME_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH
     #define GUCEF_DATATYPE_NAME_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH  GUCEF_DATATYPE_NAME_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH
     #define GUCEF_DATATYPE_NAME_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH    GUCEF_DATATYPE_NAME_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH
+    #define GUCEF_DATATYPE_NAME_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH GUCEF_DATATYPE_NAME_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH
+    #define GUCEF_DATATYPE_NAME_DATE_IN_DAYS_SINCE_UNIX_EPOCH       GUCEF_DATATYPE_NAME_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH
     #define GUCEF_DATATYPE_NAME_INT32T2_FRACTION                    GUCEF_DATATYPE_NAME_INT32T2_LE_FRACTION
     #define GUCEF_DATATYPE_NAME_UINT32T2_FRACTION                   GUCEF_DATATYPE_NAME_UINT32T2_LE_FRACTION
     #define GUCEF_DATATYPE_NAME_INT64T2_FRACTION                    GUCEF_DATATYPE_NAME_INT64T2_LE_FRACTION
     #define GUCEF_DATATYPE_NAME_UINT64T2_FRACTION                   GUCEF_DATATYPE_NAME_UINT64T2_LE_FRACTION
     #define GUCEF_DATATYPE_NAME_INT64_INT32_FRACTION                GUCEF_DATATYPE_NAME_INT64_INT32_LE_FRACTION
     #define GUCEF_DATATYPE_NAME_UINT64_UINT32_FRACTION              GUCEF_DATATYPE_NAME_UINT64_UINT32_LE_FRACTION
+    #define GUCEF_DATATYPE_NAME_INT64_UINT8_DECIMAL                 GUCEF_DATATYPE_NAME_INT64_UINT8_LE_DECIMAL
 
 #else
 
@@ -478,25 +500,32 @@ typedef double          Float64;  /* 8 bytes, signed, decimal */
     #define GUCEF_DATATYPE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH      GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH
     #define GUCEF_DATATYPE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH       GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH
     #define GUCEF_DATATYPE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH         GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH
+    #define GUCEF_DATATYPE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH     GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH
+    #define GUCEF_DATATYPE_DATE_IN_DAYS_SINCE_UNIX_EPOCH            GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH
     #define GUCEF_DATATYPE_INT32T2_FRACTION                         GUCEF_DATATYPE_INT32T2_BE_FRACTION
     #define GUCEF_DATATYPE_UINT32T2_FRACTION                        GUCEF_DATATYPE_UINT32T2_BE_FRACTION
     #define GUCEF_DATATYPE_INT64T2_FRACTION                         GUCEF_DATATYPE_INT64T2_BE_FRACTION
     #define GUCEF_DATATYPE_UINT64T2_FRACTION                        GUCEF_DATATYPE_UINT64T2_BE_FRACTION
     #define GUCEF_DATATYPE_INT64_INT32_FRACTION                     GUCEF_DATATYPE_INT64_INT32_BE_FRACTION
     #define GUCEF_DATATYPE_UINT64_UINT32_FRACTION                   GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION
+    #define GUCEF_DATATYPE_INT64_UINT8_DECIMAL                      GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL
 
     #define GUCEF_DATATYPE_NAME_UTF16_STRING                        GUCEF_DATATYPE_NAME_UTF16_BE_STRING
     #define GUCEF_DATATYPE_NAME_UTF32_STRING                        GUCEF_DATATYPE_NAME_UTF32_BE_STRING
     #define GUCEF_DATATYPE_NAME_BOOLEAN_UTF16_STRING                GUCEF_DATATYPE_NAME_BOOLEAN_UTF16_BE_STRING
     #define GUCEF_DATATYPE_NAME_BOOLEAN_UTF32_STRING                GUCEF_DATATYPE_NAME_BOOLEAN_UTF32_BE_STRING
+    #define GUCEF_DATATYPE_NAME_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH GUCEF_DATATYPE_NAME_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH
     #define GUCEF_DATATYPE_NAME_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH  GUCEF_DATATYPE_NAME_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH
     #define GUCEF_DATATYPE_NAME_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH    GUCEF_DATATYPE_NAME_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH
+    #define GUCEF_DATATYPE_NAME_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH GUCEF_DATATYPE_NAME_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH
+    #define GUCEF_DATATYPE_NAME_DATE_IN_DAYS_SINCE_UNIX_EPOCH       GUCEF_DATATYPE_NAME_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH
     #define GUCEF_DATATYPE_NAME_INT32T2_FRACTION                    GUCEF_DATATYPE_NAME_INT32T2_BE_FRACTION
     #define GUCEF_DATATYPE_NAME_UINT32T2_FRACTION                   GUCEF_DATATYPE_NAME_UINT32T2_BE_FRACTION
     #define GUCEF_DATATYPE_NAME_INT64T2_FRACTION                    GUCEF_DATATYPE_NAME_INT64T2_BE_FRACTION
     #define GUCEF_DATATYPE_NAME_UINT64T2_FRACTION                   GUCEF_DATATYPE_NAME_UINT64T2_BE_FRACTION
     #define GUCEF_DATATYPE_NAME_INT64_INT32_FRACTION                GUCEF_DATATYPE_NAME_INT64_INT32_BE_FRACTION
     #define GUCEF_DATATYPE_NAME_UINT64_UINT32_FRACTION              GUCEF_DATATYPE_NAME_UINT64_UINT32_BE_FRACTION
+    #define GUCEF_DATATYPE_NAME_INT64_UINT8_DECIMAL                 GUCEF_DATATYPE_NAME_INT64_UINT8_BE_DECIMAL
 
 #endif
 
@@ -562,6 +591,12 @@ enum EBasicDataType
     DATATYPE_INT64_INT32_BE_FRACTION    = GUCEF_DATATYPE_INT64_INT32_BE_FRACTION    ,
     DATATYPE_UINT64_UINT32_LE_FRACTION  = GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION  ,
     DATATYPE_UINT64_UINT32_BE_FRACTION  = GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION  ,
+    DATATYPE_INT64_UINT8_LE_DECIMAL     = GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL     ,
+    DATATYPE_INT64_UINT8_BE_DECIMAL     = GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL     ,
+    DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH           = GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH        ,
+    DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH           = GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH        ,
+    DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH    = GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH ,
+    DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH    = GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH ,
     DATATYPE_MAP                        = GUCEF_DATATYPE_MAP                        ,
     DATATYPE_ARRAY                      = GUCEF_DATATYPE_ARRAY                      ,
     DATATYPE_OBJECT                     = GUCEF_DATATYPE_OBJECT                     ,

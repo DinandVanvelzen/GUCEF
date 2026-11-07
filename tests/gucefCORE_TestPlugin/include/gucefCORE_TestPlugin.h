@@ -2,19 +2,17 @@
  *  gucefCORE_TestPlugin: generic plugin used by the gucefCORE tests of the plugin system
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_TESTPLUGIN_H
@@ -35,6 +33,16 @@
 #include "gucefCORE_macros.h"
 #define GUCEF_CORE_MACROS_H
 #endif /* GUCEF_CORE_MACROS_H ? */
+
+#ifndef GUCEF_CORE_CITABLECODEC_H
+#include "gucefCORE_CITableCodec.h"
+#define GUCEF_CORE_CITABLECODEC_H
+#endif /* GUCEF_CORE_CITABLECODEC_H ? */
+
+#ifndef GUCEF_CORE_TABLECODECPLUGINAPI_H
+#include "gucefCORE_TableCodecPluginAPI.h"
+#define GUCEF_CORE_TABLECODECPLUGINAPI_H
+#endif /* GUCEF_CORE_TABLECODECPLUGINAPI_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -81,6 +89,38 @@ GUCEFPlugin_GetCopyright( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 GUCEF_CORE_TESTPLUGIN_EXPORT_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
 GUCEFPlugin_GetDescription( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+/*
+ *  The module is also a table codec plugin (gucefCORE_TableCodecPluginAPI.h) with one codec, for the tests of the table codec
+ *  plugin manager. The codec has the type name in GUCEF_TESTPLUGIN_TC_TYPE ("testtable" when not set). The module counts
+ *  the calls of Init, Shutdown and the destruction of its codecs in GUCEF_TESTPLUGIN_TC_INITS, GUCEF_TESTPLUGIN_TC_SHUTDOWNS and
+ *  GUCEF_TESTPLUGIN_TC_CODECSDESTROYED. GUCEF_TESTPLUGIN_TC_API_VERSION replaces the API version it reports (a number) and
+ *  GUCEF_TESTPLUGIN_TC_INIT_FAILS=1 makes Init fail.
+ */
+
+GUCEF_CORE_TESTPLUGIN_EXPORT_C GUCEF::CORE::UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
+TABLECODECPLUGIN_GetApiVersion( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+GUCEF_CORE_TESTPLUGIN_EXPORT_C GUCEF::CORE::Int32 GUCEF_PLUGIN_CALLSPEC_PREFIX
+TABLECODECPLUGIN_Init( const GUCEF::CORE::CValueList* pluginParams ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+GUCEF_CORE_TESTPLUGIN_EXPORT_C GUCEF::CORE::UInt32 GUCEF_PLUGIN_CALLSPEC_PREFIX
+TABLECODECPLUGIN_GetCodecCount( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+GUCEF_CORE_TESTPLUGIN_EXPORT_C GUCEF::CORE::CITableCodec* GUCEF_PLUGIN_CALLSPEC_PREFIX
+TABLECODECPLUGIN_CreateCodec( GUCEF::CORE::UInt32 index ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+GUCEF_CORE_TESTPLUGIN_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX
+TABLECODECPLUGIN_Shutdown( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+GUCEF_CORE_TESTPLUGIN_EXPORT_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+TABLECODECPLUGIN_Description( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+GUCEF_CORE_TESTPLUGIN_EXPORT_C const char* GUCEF_PLUGIN_CALLSPEC_PREFIX
+TABLECODECPLUGIN_Copyright( void ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
+
+GUCEF_CORE_TESTPLUGIN_EXPORT_C void GUCEF_PLUGIN_CALLSPEC_PREFIX
+TABLECODECPLUGIN_Version( GUCEF::CORE::TVersion* version ) GUCEF_PLUGIN_CALLSPEC_SUFFIX;
 
 #ifdef __cplusplus
 }

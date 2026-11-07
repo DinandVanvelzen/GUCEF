@@ -70,6 +70,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #include "TestPluginUnload.h"
 
 using namespace GUCEF;
@@ -540,7 +545,7 @@ PerformPluginUnloadTests( void )
         CORE::CConfigStore& configStore = CORE::CCoreGlobal::Instance()->GetConfigStore();
         const CORE::CString previousBootstrap = configStore.GetBootstrapConfigFile();
         const CORE::CString::StringVector previousConfigFiles = configStore.GetConfigFiles();
-        const CORE::CString path = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), "gucefCORE_TestApp_FailAllowed.ini" );
+        const CORE::CString path = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), TESTFW::UniqueTestName( "gucefCORE_TestApp_FailAllowed" ) + ".ini" );
         configStore.SetConfigFiles( CORE::CString::StringVector() );
 
         // the plugin starts a global, as the plugins that start the module they are for do: its config fails

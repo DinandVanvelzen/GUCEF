@@ -25,6 +25,7 @@ LOCAL_SRC_FILES := \
   src/TestMutex.cpp \
   src/TestReaderWriterLock.cpp \
   src/TestSpscQueue.cpp \
+  src/TestThreadData.cpp \
   src/gucefMT_TestApp.cpp
 
 LOCAL_C_INCLUDES := \

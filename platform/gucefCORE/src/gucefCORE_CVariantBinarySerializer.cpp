@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -211,8 +209,11 @@ CVariantBinarySerializer::SerializeRaw( const CVariant& var, CIOAccess& access, 
 
     try
     {
+        // the IO access write mimics fwrite: it returns the number of elements written, here 1 element of payloadSize bytes
         UInt32 payloadSize = var.ByteSize();
-        UInt32 nrOfBytesWritten = access.Write( var, false );
+        if ( 0 == payloadSize )
+            return true;
+        UInt32 nrOfBytesWritten = 1 == access.Write( GetPayloadBytes( var ), payloadSize, 1 ) ? payloadSize : 0;
 
         bytesWritten += nrOfBytesWritten;
 
@@ -291,9 +292,18 @@ CVariantBinarySerializer::Deserialize( CVariant& var                ,
         }
         else
         {
-            bool result = var.Set( source.GetConstBufferPtr( currentSourceOffset ), GucefByteSizeOfFixedSizeType( typeId ), typeId, linkWherePossible );
+            UInt32 payloadSize = GucefByteSizeOfFixedSizeType( typeId );
+            UInt32 availableBytesLeft = bufferDataSize - currentSourceOffset;
+            if ( payloadSize > availableBytesLeft )
+            {
+                GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "VariantBinarySerializer:Deserialize: Truncated payload of " << CVariant::TypeNameForTypeId( typeId ) <<
+                    ", " << payloadSize << " bytes needed. Available data= " << availableBytesLeft );
+                return false;
+            }
+
+            bool result = var.Set( source.GetConstBufferPtr( currentSourceOffset ), payloadSize, typeId, linkWherePossible );
             bytesRead += var.ByteSize();
-            return result;            
+            return result;
         }
     }   
     catch ( const std::exception& e )    
@@ -326,7 +336,15 @@ CVariantBinarySerializer::DeserializeRaw( CVariant& var                ,
         UInt32 dataSize = dataSizeIfDynamic;
         if ( !CVariant::UsesDynamicMemory( varType ) )
             dataSize = GucefByteSizeOfFixedSizeType( varType );
-        
+
+        UInt32 bufferDataSize = source.GetDataSize();
+        if ( currentSourceOffset > bufferDataSize || dataSize > bufferDataSize - currentSourceOffset )
+        {
+            GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "VariantBinarySerializer:DeserializeRaw: " << dataSize << " bytes of " << CVariant::TypeNameForTypeId( varType ) <<
+                " needed at offset " << currentSourceOffset << " but the available data is " << bufferDataSize << " bytes" );
+            return false;
+        }
+
         if ( var.Set( source.GetConstBufferPtr( currentSourceOffset ), dataSize, varType, linkWherePossible ) )
         {
             bytesRead += dataSize;

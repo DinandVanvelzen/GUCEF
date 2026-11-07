@@ -88,6 +88,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #include "TestConfigStore.h"
 
 /*-------------------------------------------------------------------------//
@@ -265,7 +270,7 @@ PerformConfigStoreTests( void )
         const CORE::CString previousConfigFile = configStore.GetConsolidatedConfigFile();
 
         // a config file with a section of another part of the application
-        const CORE::CString path = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), "gucefCORE_TestApp_ConfigStore.json" );
+        const CORE::CString path = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), TESTFW::UniqueTestName( "gucefCORE_TestApp_ConfigStore" ) + ".json" );
         ASSERT_TRUE( CORE::WriteStringAsTextFile( path, "{ \"Other\": { \"keep\": \"yes\" }, \"TestConfigStore\": { \"Section\": { \"value\": \"old\" } } }" ) );
         configStore.SetConfigFile( path );
 
@@ -327,8 +332,8 @@ PerformConfigStoreTests( void )
         ASSERT_TRUE( "/nowhere/of/them" == CORE::UnresolveVars( "/nowhere/of/them" ) );
 
         // copying a file: the destination is only replaced when asked
-        const CORE::CString from = CORE::CombinePath( temp, "gucefCORE_TestApp_CopyFrom.txt" );
-        const CORE::CString to = CORE::CombinePath( temp, "gucefCORE_TestApp_CopyTo.txt" );
+        const CORE::CString from = CORE::CombinePath( temp, TESTFW::UniqueTestName( "gucefCORE_TestApp_CopyFrom" ) + ".txt" );
+        const CORE::CString to = CORE::CombinePath( temp, TESTFW::UniqueTestName( "gucefCORE_TestApp_CopyTo" ) + ".txt" );
         ASSERT_TRUE( CORE::WriteStringAsTextFile( from, "first" ) && CORE::CopyFile( from, to, true ) && "first" == ReadText( to ) );
         ASSERT_TRUE( CORE::WriteStringAsTextFile( from, "second" ) && !CORE::CopyFile( from, to, false ) && "first" == ReadText( to ) );
         ASSERT_TRUE( CORE::CopyFile( from, to, true ) && "second" == ReadText( to ) );
@@ -345,7 +350,7 @@ PerformConfigStoreTests( void )
     GUCEF_TESTFW_TESTCASE( "ConfigStore: One value of an ini file is set and the rest of the file stays: comments, order, quotes and line endings" )
     try
     {
-        const CORE::CString path = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), "gucefCORE_TestApp_Update.ini" );
+        const CORE::CString path = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), TESTFW::UniqueTestName( "gucefCORE_TestApp_Update" ) + ".ini" );
         const CORE::CString original = "; the plugins and where the config is\r\n"
                                        "[Bootstrap\\PluginGroup]\r\n"
                                        "\"GroupName\"=\"bootstrap\"\r\n"
@@ -389,7 +394,7 @@ PerformConfigStoreTests( void )
         const CORE::CString previousBootstrap = configStore.GetBootstrapConfigFile();
         const CORE::CString::StringVector previousConfigFiles = configStore.GetConfigFiles();
 
-        const CORE::CString dir = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), "gucefCORE_TestApp_ManagedConfig" );
+        const CORE::CString dir = CORE::CombinePath( CORE::RelativePath( "$TEMPDIR$" ), TESTFW::UniqueTestName( "gucefCORE_TestApp_ManagedConfig" ) );
         CORE::DeleteDir( dir, true );
         ASSERT_TRUE( CORE::CreateDirs( dir ) );
         const CORE::CString bootstrap = CORE::CombinePath( dir, "MyApp_bootstrap.ini" );

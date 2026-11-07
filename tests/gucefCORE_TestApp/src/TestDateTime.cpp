@@ -1,20 +1,18 @@
 /*
  *  gucefCORE_TestApp: GUCEF test application for the CORE module
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -254,6 +252,314 @@ PerformDateTimeStringParsingTests( void )
 /*-------------------------------------------------------------------------*/
 
 void
+PerformDateCalendarTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "Test: Date validity" )
+        try
+        {
+            ASSERT_TRUE( CORE::CDate( 2024, 2, 29 ).IsValid() );
+            ASSERT_FALSE( CORE::CDate( 2023, 2, 29 ).IsValid() );
+            ASSERT_FALSE( CORE::CDate( 1900, 2, 29 ).IsValid() );
+            ASSERT_TRUE( CORE::CDate( 2000, 2, 29 ).IsValid() );
+            ASSERT_FALSE( CORE::CDate( 2024, 0, 10 ).IsValid() );
+            ASSERT_FALSE( CORE::CDate( 2024, 13, 10 ).IsValid() );
+            ASSERT_FALSE( CORE::CDate( 2024, 4, 31 ).IsValid() );
+            ASSERT_FALSE( CORE::CDate( 2024, 4, 0 ).IsValid() );
+            ASSERT_FALSE( CORE::CDate().IsValid() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Date ordering" )
+        try
+        {
+            CORE::CDate a( 2024, 3, 15 );
+            CORE::CDate b( 2024, 3, 16 );
+            CORE::CDate c( 2024, 4, 1 );
+            CORE::CDate d( 2025, 1, 1 );
+            ASSERT_TRUE( a < b && b < c && c < d );
+            ASSERT_TRUE( a <= a && a <= b );
+            ASSERT_TRUE( d > c && c > b && b > a );
+            ASSERT_TRUE( a >= a && d >= a );
+            ASSERT_FALSE( b < a );
+            ASSERT_FALSE( a < a );
+            ASSERT_FALSE( a > a );
+            ASSERT_FALSE( a > b );
+            ASSERT_FALSE( a >= b );
+            ASSERT_FALSE( b <= a );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Days since unix epoch, known values" )
+        try
+        {
+            ASSERT_TRUE( 0 == CORE::CDate( 1970, 1, 1 ).ToDaysSinceUnixEpoch() );
+            ASSERT_TRUE( -1 == CORE::CDate( 1969, 12, 31 ).ToDaysSinceUnixEpoch() );
+            ASSERT_TRUE( 11017 == CORE::CDate( 2000, 3, 1 ).ToDaysSinceUnixEpoch() );
+            ASSERT_TRUE( 18793 == CORE::CDate( 2021, 6, 15 ).ToDaysSinceUnixEpoch() );
+            ASSERT_TRUE( -25567 == CORE::CDate( 1900, 1, 1 ).ToDaysSinceUnixEpoch() );
+
+            CORE::CDate date;
+            ASSERT_TRUE( date.FromDaysSinceUnixEpoch( 18793 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2021, 6, 15 ) );
+            ASSERT_TRUE( date.FromDaysSinceUnixEpoch( -25567 ) );
+            ASSERT_TRUE( date == CORE::CDate( 1900, 1, 1 ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // Every day from year 1600 to 2400 steps by exactly one, round trips, and agrees with the C library where it can
+    GUCEF_TESTFW_TESTCASE( "Test: Days since unix epoch, exhaustive consecutive days and round trip" )
+        try
+        {
+            CORE::CDate date( 1600, 1, 1 );
+            Int32 previous = date.ToDaysSinceUnixEpoch();
+            const CORE::CDate last( 2400, 12, 31 );
+            Int32 lastDays = last.ToDaysSinceUnixEpoch();
+            bool allOk = true;
+            for ( Int32 days = previous + 1; days <= lastDays; ++days )
+            {
+                CORE::CDate next;
+                if ( !next.FromDaysSinceUnixEpoch( days ) || !next.IsValid() || !( date < next ) ||
+                     next.ToDaysSinceUnixEpoch() != days || date.GetDaysTowards( next ) != 1 )
+                {
+                    allOk = false;
+                    break;
+                }
+
+                // within the range every platform time_t can handle
+                if ( days >= 0 && days <= 25000 )
+                {
+                    time_t t = (time_t) days * 86400;
+                    struct tm* utc = ::gmtime( &t );
+                    if ( utc == GUCEF_NULL || utc->tm_year + 1900 != next.GetYear() ||
+                         utc->tm_mon + 1 != next.GetMonth() || utc->tm_mday != next.GetDay() ||
+                         utc->tm_wday != next.GetDayOfWeek() )
+                    {
+                        allOk = false;
+                        break;
+                    }
+                }
+                date = next;
+            }
+            ASSERT_TRUE( allOk );
+            ASSERT_TRUE( date == last );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Days between dates" )
+        try
+        {
+            CORE::CDate a( 2024, 1, 1 );
+            CORE::CDate b( 2025, 1, 1 );
+            ASSERT_TRUE( 366 == a.GetDaysTowards( b ) );
+            ASSERT_TRUE( -366 == b.GetDaysTowards( a ) );
+            ASSERT_TRUE( 0 == a.GetDaysTowards( a ) );
+            ASSERT_TRUE( 365 == CORE::CDate( 2025, 1, 1 ).GetDaysTowards( CORE::CDate( 2026, 1, 1 ) ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Adding days and weeks" )
+        try
+        {
+            CORE::CDate date( 2024, 2, 28 );
+            ASSERT_TRUE( date.AddDays( 1 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2024, 2, 29 ) );
+            ASSERT_TRUE( date.AddDays( 1 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2024, 3, 1 ) );
+            ASSERT_TRUE( date.AddDays( -366 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2023, 3, 1 ) );
+            ASSERT_TRUE( date.AddWeeks( 2 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2023, 3, 15 ) );
+            ASSERT_TRUE( date.AddWeeks( -3 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2023, 2, 22 ) );
+
+            CORE::CDate invalid( 2023, 2, 30 );
+            ASSERT_FALSE( invalid.AddDays( 1 ) );
+            ASSERT_TRUE( invalid == CORE::CDate( 2023, 2, 30 ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Adding months clamps to the end of the month" )
+        try
+        {
+            CORE::CDate date( 2023, 1, 31 );
+            ASSERT_TRUE( date.AddMonths( 1 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2023, 2, 28 ) );
+
+            date = CORE::CDate( 2024, 1, 31 );
+            ASSERT_TRUE( date.AddMonths( 1 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2024, 2, 29 ) );
+
+            date = CORE::CDate( 2024, 1, 31 );
+            ASSERT_TRUE( date.AddMonths( 13 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2025, 2, 28 ) );
+
+            date = CORE::CDate( 2024, 3, 31 );
+            ASSERT_TRUE( date.AddMonths( -1 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2024, 2, 29 ) );
+
+            date = CORE::CDate( 2024, 12, 15 );
+            ASSERT_TRUE( date.AddMonths( 1 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2025, 1, 15 ) );
+
+            date = CORE::CDate( 2025, 1, 15 );
+            ASSERT_TRUE( date.AddMonths( -1 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2024, 12, 15 ) );
+
+            date = CORE::CDate( 2025, 1, 15 );
+            ASSERT_TRUE( date.AddMonths( -12 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2024, 1, 15 ) );
+
+            date = CORE::CDate( 2025, 1, 15 );
+            ASSERT_TRUE( date.AddMonths( 0 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2025, 1, 15 ) );
+
+            date = CORE::CDate( 2025, 1, 15 );
+            ASSERT_TRUE( date.AddMonths( -13 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2023, 12, 15 ) );
+
+            // month end to month end stays the clamped day, it does not remember the original day
+            date = CORE::CDate( 2024, 1, 31 );
+            ASSERT_TRUE( date.AddMonths( 1 ) );
+            ASSERT_TRUE( date.AddMonths( 1 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2024, 3, 29 ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Adding years" )
+        try
+        {
+            CORE::CDate date( 2024, 2, 29 );
+            ASSERT_TRUE( date.AddYears( 1 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2025, 2, 28 ) );
+
+            date = CORE::CDate( 2024, 2, 29 );
+            ASSERT_TRUE( date.AddYears( 4 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2028, 2, 29 ) );
+
+            date = CORE::CDate( 2024, 2, 29 );
+            ASSERT_TRUE( date.AddYears( -1 ) );
+            ASSERT_TRUE( date == CORE::CDate( 2023, 2, 28 ) );
+
+            date = CORE::CDate( 2024, 7, 4 );
+            ASSERT_TRUE( date.AddYears( -100 ) );
+            ASSERT_TRUE( date == CORE::CDate( 1924, 7, 4 ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Calendar arithmetic refuses out of range and invalid dates and leaves the date unchanged" )
+        try
+        {
+            CORE::CDate date( 32767, 6, 15 );
+            ASSERT_FALSE( date.AddYears( 1 ) );
+            ASSERT_TRUE( date == CORE::CDate( 32767, 6, 15 ) );
+            ASSERT_FALSE( date.AddMonths( 7 ) );
+            ASSERT_TRUE( date == CORE::CDate( 32767, 6, 15 ) );
+            ASSERT_TRUE( date.AddMonths( 6 ) );
+            ASSERT_TRUE( date == CORE::CDate( 32767, 12, 15 ) );
+
+            CORE::CDate invalid( 2024, 13, 1 );
+            ASSERT_FALSE( invalid.AddMonths( 1 ) );
+            ASSERT_FALSE( invalid.AddYears( 1 ) );
+            ASSERT_TRUE( invalid == CORE::CDate( 2024, 13, 1 ) );
+
+            CORE::CDate big( 2024, 1, 1 );
+            ASSERT_FALSE( big.AddDays( GUCEF_INT32MAX ) );
+            ASSERT_TRUE( big == CORE::CDate( 2024, 1, 1 ) );
+            ASSERT_FALSE( big.AddMonths( GUCEF_INT32MAX ) );
+            ASSERT_FALSE( big.AddYears( GUCEF_INT32MAX ) );
+            ASSERT_FALSE( big.AddWeeks( GUCEF_INT32MIN ) );
+            ASSERT_TRUE( big == CORE::CDate( 2024, 1, 1 ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Adding months to a date time keeps the time of day" )
+        try
+        {
+            CORE::CDateTime dt( 2024, 1, 31, 13, 45, 12, 250, 0 );
+            ASSERT_TRUE( dt.AddMonths( 1 ) );
+            ASSERT_TRUE( 2024 == dt.GetYear() && 2 == dt.GetMonth() && 29 == dt.GetDay() );
+            ASSERT_TRUE( 13 == dt.GetHours() && 45 == dt.GetMinutes() && 12 == dt.GetSeconds() && 250 == dt.GetMilliseconds() );
+            ASSERT_TRUE( dt.AddYears( 1 ) );
+            ASSERT_TRUE( 2025 == dt.GetYear() && 2 == dt.GetMonth() && 28 == dt.GetDay() );
+            ASSERT_TRUE( 13 == dt.GetHours() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    // The day count plus the era offset must not overflow a signed 32 bit integer: run under UBSan to see it
+    GUCEF_TESTFW_TESTCASE( "Test: Day counts at the Int32 limits are refused without overflow and leave the date unchanged" )
+        try
+        {
+            CORE::CDate date( 1970, 1, 1 );
+            ASSERT_FALSE( date.AddDays( GUCEF_INT32MAX ) );
+            ASSERT_TRUE( date == CORE::CDate( 1970, 1, 1 ) );
+            ASSERT_FALSE( date.AddDays( GUCEF_INT32MIN ) );
+            ASSERT_TRUE( date == CORE::CDate( 1970, 1, 1 ) );
+            ASSERT_FALSE( date.FromDaysSinceUnixEpoch( GUCEF_INT32MAX ) );
+            ASSERT_TRUE( date == CORE::CDate( 1970, 1, 1 ) );
+            ASSERT_FALSE( date.FromDaysSinceUnixEpoch( GUCEF_INT32MAX - 719468 + 1 ) );
+            ASSERT_FALSE( date.FromDaysSinceUnixEpoch( GUCEF_INT32MIN ) );
+            ASSERT_TRUE( date == CORE::CDate( 1970, 1, 1 ) );
+            ASSERT_FALSE( date.AddWeeks( GUCEF_INT32MAX / 7 ) );
+            ASSERT_FALSE( date.AddWeeks( GUCEF_INT32MIN / 7 ) );
+            ASSERT_TRUE( date == CORE::CDate( 1970, 1, 1 ) );
+
+            // the largest date still in range keeps working
+            CORE::CDate last( 32767, 12, 31 );
+            Int32 lastDays = last.ToDaysSinceUnixEpoch();
+            ASSERT_TRUE( date.FromDaysSinceUnixEpoch( lastDays ) && date == last );
+            ASSERT_FALSE( date.FromDaysSinceUnixEpoch( lastDays + 1 ) );
+            ASSERT_TRUE( date == last );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 PerformDateTimeTests( void )
 {
     GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "COMMENCING DateTime TESTS" );
@@ -261,6 +567,7 @@ PerformDateTimeTests( void )
     GUCEF_TESTFW_SUITE_SCOPE( "CDateTime" );
 
     PerformDateTimeStringParsingTests();
+    PerformDateCalendarTests();
 
     // Regression: on Linux the time difference 'from A towards B' had its sign inverted
     GUCEF_TESTFW_TESTCASE( "Test: Time difference towards a later time is positive" )

@@ -23,6 +23,11 @@
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_CORE_CSTRING_H
 #include "gucefCORE_CString.h"
 #define GUCEF_CORE_CSTRING_H
@@ -138,6 +143,35 @@ PerformVarsTests( void )
         ASSERT_TRUE( envVarStr.IsFormattingValid() );
         ASSERT_TRUE( "FOO:BAR" == envVarStr );
 
+    }
+    catch( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Variable resolution leaves text without variables as it is and resolves only the variables present" )
+    try
+    {
+        // text without a '$' comes back unchanged, also text that looks like a path or holds variable names without the '$'
+        ASSERT_TRUE( CORE::CString::Empty == CORE::ResolveVars( CORE::CString::Empty ) );
+        ASSERT_TRUE( "/data/XNYS/2024/2024-01-02/daily_bars.parquet" == CORE::ResolveVars( "/data/XNYS/2024/2024-01-02/daily_bars.parquet" ) );
+        ASSERT_TRUE( "TEMPDIR/MODULEDIR:CURWORKDIR" == CORE::ResolveVars( "TEMPDIR/MODULEDIR:CURWORKDIR" ) );
+        ASSERT_TRUE( "../relative/path.txt" == CORE::ResolveVars( "../relative/path.txt" ) );
+
+        // a '$' that starts no variable stays, as before
+        ASSERT_TRUE( "price$/a$b$" == CORE::ResolveVars( "price$/a$b$" ) );
+
+        // every variable present is resolved, the rest of the text stays
+        const CORE::CString cwd = CORE::CurrentWorkingDir();
+        const CORE::CString pid = CORE::UInt32ToString( MT::GetProcessID() );
+        ASSERT_TRUE( cwd + "/a/" + pid + "/b" == CORE::ResolveVars( "$CURWORKDIR$/a/$PID$/b" ) );
+        ASSERT_TRUE( CORE::ModuleDir() + "/x" == CORE::ResolveVars( "$MODULEDIR$/x" ) );
+        ASSERT_TRUE( CORE::TempDir() + "|" + CORE::TempDir() == CORE::ResolveVars( "$TEMPDIR$|$TEMPDIR$" ) );
+
+        // an environment variable whose value holds another variable: that one is resolved too
+        ASSERT_TRUE( 0 != CORE::SetEnv( "testEnvironmentVariable_NESTED", "$PID$" ) );
+        ASSERT_TRUE( "id=" + pid == CORE::ResolveVars( "id=$ENVVAR:testEnvironmentVariable_NESTED$" ) );
     }
     catch( ... )
     {

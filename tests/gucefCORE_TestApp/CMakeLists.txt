@@ -23,13 +23,32 @@ set( HEADER_FILES
   include/TestConfigStore.h
   include/TestCronSchedule.h
   include/TestCryptoCodecs.h
+  include/TestCsvTableCodec.h
+  include/TestCsvTableCodecInference.h
+  include/TestCsvTableCodecRoundTrip.h
+  include/TestCsvTableCodecSupport.h
+  include/TestCsvTableCodecWriter.h
   include/TestCyclicDynamicBuffer.h
   include/TestDStoreStreaming.h
   include/TestDataDrivenDStoreCodecs.h
   include/TestDataNode.h
   include/TestDataNodeBinarySerializer.h
+  include/TestDataTableBatchBuilder.h
+  include/TestDataTableBufferPool.h
+  include/TestDataTableColumnBatch.h
+  include/TestDataTablePredicate.h
+  include/TestDataTableScan.h
+  include/TestDataTableScanBenchmark.h
+  include/TestDataTableScanSupport.h
+  include/TestDataTableSchema.h
+  include/TestDataTableSupport.h
+  include/TestDataTableTestCodec.h
+  include/TestDataTableVariant.h
   include/TestDateTime.h
   include/TestDateTimeRange.h
+  include/TestDecimal.h
+  include/TestDecimalReference.h
+  include/TestDecimalVariant.h
   include/TestDedicatedTasks.h
   include/TestDesktopTerminalConsoleLogger.h
   include/TestDynamicBuffer.h
@@ -37,13 +56,19 @@ set( HEADER_FILES
   include/TestDynamicBufferSwap.h
   include/TestExternalThreads.h
   include/TestFileAccess.h
+  include/TestFileDataTable.h
   include/TestFileSystemAccess.h
   include/TestFileUtils.h
+  include/TestFloatText.h
   include/TestFraction.h
   include/TestFrameworkSkip.h
   include/TestFutureResultSource.h
   include/TestIniParser.h
+  include/TestJsonDataNodeFidelity.h
+  include/TestJsonSchema.h
+  include/TestJsonSyntaxValidator.h
   include/TestLogging.h
+  include/TestMemoryDataTable.h
   include/TestNotifierObserver.h
   include/TestPluginUnload.h
   include/TestProcess.h
@@ -52,15 +77,22 @@ set( HEADER_FILES
   include/TestRedactor.h
   include/TestRsaVectors.h
   include/TestSchedule.h
+  include/TestScheduleTrigger.h
   include/TestScopedValue.h
+  include/TestSecureBuffer.h
   include/TestSfinaeUtils.h
   include/TestSharedPtr.h
+  include/TestStandardStreams.h
   include/TestStopwatch.h
   include/TestString.h
   include/TestSysConsole.h
+  include/TestTableCodecRegistry.h
+  include/TestTaskMemoryRetention.h
   include/TestThreadPoolCancellation.h
+  include/TestTimeZoneRules.h
   include/TestTimestamp.h
   include/TestTokenizer.h
+  include/TestUInt128.h
   include/TestUri.h
   include/TestUserNames.h
   include/TestVariant.h
@@ -87,13 +119,27 @@ set( SOURCE_FILES
   src/TestConfigStore.cpp
   src/TestCronSchedule.cpp
   src/TestCryptoCodecs.cpp
+  src/TestCsvTableCodec.cpp
+  src/TestCsvTableCodecInference.cpp
+  src/TestCsvTableCodecRoundTrip.cpp
+  src/TestCsvTableCodecWriter.cpp
   src/TestCyclicDynamicBuffer.cpp
   src/TestDStoreStreaming.cpp
   src/TestDataDrivenDStoreCodecs.cpp
   src/TestDataNode.cpp
   src/TestDataNodeBinarySerializer.cpp
+  src/TestDataTableBatchBuilder.cpp
+  src/TestDataTableBufferPool.cpp
+  src/TestDataTableColumnBatch.cpp
+  src/TestDataTablePredicate.cpp
+  src/TestDataTableScan.cpp
+  src/TestDataTableScanBenchmark.cpp
+  src/TestDataTableSchema.cpp
+  src/TestDataTableVariant.cpp
   src/TestDateTime.cpp
   src/TestDateTimeRange.cpp
+  src/TestDecimal.cpp
+  src/TestDecimalVariant.cpp
   src/TestDedicatedTasks.cpp
   src/TestDesktopTerminalConsoleLogger.cpp
   src/TestDynamicBuffer.cpp
@@ -101,15 +147,21 @@ set( SOURCE_FILES
   src/TestDynamicBufferSwap.cpp
   src/TestExternalThreads.cpp
   src/TestFileAccess.cpp
+  src/TestFileDataTable.cpp
   src/TestFileSystemAccess.cpp
   src/TestFileSystemAccessResultC.c
   src/TestFileUtils.cpp
+  src/TestFloatText.cpp
   src/TestFraction.cpp
   src/TestFrameworkSkip.cpp
   src/TestFreeList.cpp
   src/TestFutureResultSource.cpp
   src/TestIniParser.cpp
+  src/TestJsonDataNodeFidelity.cpp
+  src/TestJsonSchema.cpp
+  src/TestJsonSyntaxValidator.cpp
   src/TestLogging.cpp
+  src/TestMemoryDataTable.cpp
   src/TestNotifierObserver.cpp
   src/TestPluginUnload.cpp
   src/TestProcess.cpp
@@ -117,15 +169,22 @@ set( SOURCE_FILES
   src/TestRateLimiting.cpp
   src/TestRedactor.cpp
   src/TestSchedule.cpp
+  src/TestScheduleTrigger.cpp
   src/TestScopedValue.cpp
+  src/TestSecureBuffer.cpp
   src/TestSfinaeUtils.cpp
   src/TestSharedPtr.cpp
+  src/TestStandardStreams.cpp
   src/TestStopwatch.cpp
   src/TestString.cpp
   src/TestSysConsole.cpp
+  src/TestTableCodecRegistry.cpp
+  src/TestTaskMemoryRetention.cpp
   src/TestThreadPoolCancellation.cpp
+  src/TestTimeZoneRules.cpp
   src/TestTimestamp.cpp
   src/TestTokenizer.cpp
+  src/TestUInt128.cpp
   src/TestUri.cpp
   src/TestUserNames.cpp
   src/TestVariant.cpp

@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -37,6 +35,11 @@
 #include <string.h>
 
 #include "gucefCORE_CPlatformNativeConsoleLogger.h"
+
+#ifndef GUCEF_CORE_CSTANDARDOUTPUTWRITER_H
+#include "gucefCORE_CStandardOutputWriter.h"
+#define GUCEF_CORE_CSTANDARDOUTPUTWRITER_H
+#endif /* GUCEF_CORE_CSTANDARDOUTPUTWRITER_H ? */
 
 #if GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
 
@@ -61,6 +64,8 @@
 #include "gucefCORE_CDesktopTerminalConsoleLogger.h"
 #define GUCEF_CORE_CDESKTOPTERMINALCONSOLELOGGER_H
 #endif /* GUCEF_CORE_CDESKTOPTERMINALCONSOLELOGGER_H ? */
+
+#include <unistd.h>
 
 #endif
 
@@ -89,7 +94,7 @@ CPlatformNativeConsoleLogger::CPlatformNativeConsoleLogger( bool ownWindow )
 /*-------------------------------------------------------------------------*/
 
 CPlatformNativeConsoleLogger::EConsoleKind
-CPlatformNativeConsoleLogger::ChooseConsoleKind( const char* forced, bool runningInTerminal, bool desktopSessionAvailable, bool ownWindow )
+CPlatformNativeConsoleLogger::ChooseConsoleKind( const char* forced, bool runningInTerminal, bool desktopSessionAvailable, bool ownWindow, bool stdoutClaimed )
 {GUCEF_TRACE;
 
     if ( GUCEF_NULL != forced && '\0' != forced[ 0 ] && 0 != strcmp( forced, "auto" ) )
@@ -100,7 +105,15 @@ CPlatformNativeConsoleLogger::ChooseConsoleKind( const char* forced, bool runnin
             return CONSOLEKIND_DESKTOP_TERMINAL;
         if ( 0 == strcmp( forced, "xterm" ) )
             return CONSOLEKIND_XTERM;
+        if ( 0 == strcmp( forced, "stderr" ) )
+            return CONSOLEKIND_STDERR;
         return CONSOLEKIND_NONE;        // "none" or anything we do not know
+    }
+    if ( stdoutClaimed )
+    {
+        // stdout carries a protocol: what a client that started the application with pipes shows is its stderr,
+        // and a window of its own would be a surprise under such a client
+        return CONSOLEKIND_STDERR;
     }
     if ( ownWindow )
     {
@@ -143,7 +156,7 @@ CreateLinuxConsoleLogger( bool ownWindow )
 
     const bool runningInTerminal = CTerminalConsoleLogger::IsRunningInTerminal();
     CPlatformNativeConsoleLogger::EConsoleKind kind =
-        CPlatformNativeConsoleLogger::ChooseConsoleKind( getenv( "GUCEF_CONSOLE_LOGGER" ), runningInTerminal, CDesktopTerminalConsoleLogger::IsDesktopSessionAvailable(), ownWindow );
+        CPlatformNativeConsoleLogger::ChooseConsoleKind( getenv( "GUCEF_CONSOLE_LOGGER" ), runningInTerminal, CDesktopTerminalConsoleLogger::IsDesktopSessionAvailable(), ownWindow, CStandardOutputWriter::IsClaimed() );
 
     if ( CPlatformNativeConsoleLogger::CONSOLEKIND_DESKTOP_TERMINAL == kind )
     {
@@ -159,6 +172,8 @@ CreateLinuxConsoleLogger( bool ownWindow )
         return GUCEF_NEW CTerminalConsoleLogger();
     if ( CPlatformNativeConsoleLogger::CONSOLEKIND_XTERM == kind )
         return GUCEF_NEW CXTermConsoleLogger();
+    if ( CPlatformNativeConsoleLogger::CONSOLEKIND_STDERR == kind )
+        return GUCEF_NEW CTerminalConsoleLogger( STDERR_FILENO );
     return GUCEF_NULL;
 }
 
@@ -173,7 +188,10 @@ CPlatformNativeConsoleLogger::GetLogger( void )
     if ( GUCEF_NULL == m_nativeConsoleLogger )
     {
         #if GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN
-        m_nativeConsoleLogger = GUCEF_NEW CMSWinConsoleLogger( m_ownWindow );
+        // The console logger writes to the console of stdout and makes a console window when the process has none:
+        // neither may happen while stdout carries a protocol
+        if ( !CStandardOutputWriter::IsClaimed() )
+            m_nativeConsoleLogger = GUCEF_NEW CMSWinConsoleLogger( m_ownWindow );
         #elif GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX
         m_nativeConsoleLogger = CreateLinuxConsoleLogger( m_ownWindow );
         #endif

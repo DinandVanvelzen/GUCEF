@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -51,10 +49,18 @@
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     #include <io.h>
     #include <fcntl.h>
-#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #include <sys/types.h>
+    #include <sys/stat.h>          /* needed for _fstat64() */
+    #define GUCEF_FILEACCESS_POSIX_LIKE_FSTAT
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || \
+       ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+       ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
     #include <stdlib.h>
     #include <stdio.h>
     #include <unistd.h>            /* needed for fsync() */
+    #include <fcntl.h>             /* needed for F_FULLFSYNC on the Apple platforms */
+    #include <sys/stat.h>          /* needed for fstat() */
+    #define GUCEF_FILEACCESS_POSIX_LIKE_FSTAT
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -88,7 +94,9 @@ namespace CORE {
 //-------------------------------------------------------------------------*/
 
 /**
- *  Determines the size of an open file by seeking to its end, the position is restored
+ *  Determines the size of an open file: of the file the stream has open, never of a path (which may name another file
+ *  by now, after a replace by rename). From the descriptor (fstat) for a regular file, else by seeking to the end of the
+ *  stream with the position restored. A stream that was written to must be flushed first.
  */
 static UInt64
 GetSizeOfOpenFile( FILE* file )
@@ -96,6 +104,16 @@ GetSizeOfOpenFile( FILE* file )
 
     if ( GUCEF_NULL == file )
         return 0;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+    struct _stat64 info;
+    if ( 0 == _fstat64( _fileno( file ), &info ) && 0 != ( info.st_mode & _S_IFREG ) )
+        return info.st_size > 0 ? (UInt64) info.st_size : 0;
+    #elif defined( GUCEF_FILEACCESS_POSIX_LIKE_FSTAT )
+    struct stat info;
+    if ( 0 == fstat( fileno( file ), &info ) && S_ISREG( info.st_mode ) )
+        return info.st_size > 0 ? (UInt64) info.st_size : 0;
+    #endif
 
     fflush( file );
     const Int64 originalPos = (Int64) GUCEF_FILEACCESS_FTELL( file );
@@ -645,16 +663,11 @@ CFileAccess::GetSize( void ) const
         
     if ( GUCEF_NULL != m_file )
     {        
-        if ( m_file && _writeable )
-        {
-            fflush( m_file );       
-        }
+        if ( _writeable )
+            fflush( m_file );
 
-        // A file opened from a descriptor has no path to ask
-        if ( m_filename.IsNULLOrEmpty() )
-            return GetSizeOfOpenFile( m_file );
-
-        return FileSize( m_filename );
+        // the open file, as fstat() gives it, also when the path names another file by now (as ftell() would answer)
+        return GetSizeOfOpenFile( m_file );
     }
     return 0;
 }
@@ -690,6 +703,14 @@ CFileAccess::Sync( void )
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
 
     return 0 == fsync( fileno( m_file ) );
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+           ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
+
+    // fsync() on the Apple platforms only hands the data to the drive, F_FULLFSYNC asks the drive to write its cache
+    // to the medium; file systems that do not support it fail the call, fsync() is the best they offer then
+    const int fd = fileno( m_file );
+    return 0 == fcntl( fd, F_FULLFSYNC ) || 0 == fsync( fd );
 
     #else
 

@@ -609,7 +609,8 @@ json_value * json_parse_ex (json_settings * settings,
 
                      case 't':
 
-                        if ((end - state.ptr) < 3 || *(++ state.ptr) != 'r' ||
+                        /* GUCEF local patch: "<= 3" (was "< 3"): the three bytes after the 't' must lie before end */
+                        if ((end - state.ptr) <= 3 || *(++ state.ptr) != 'r' ||
                             *(++ state.ptr) != 'u' || *(++ state.ptr) != 'e')
                         {
                            goto e_unknown_value;
@@ -625,7 +626,8 @@ json_value * json_parse_ex (json_settings * settings,
 
                      case 'f':
 
-                        if ((end - state.ptr) < 4 || *(++ state.ptr) != 'a' ||
+                        /* GUCEF local patch: "<= 4" (was "< 4"): the four bytes after the 'f' must lie before end */
+                        if ((end - state.ptr) <= 4 || *(++ state.ptr) != 'a' ||
                             *(++ state.ptr) != 'l' || *(++ state.ptr) != 's' ||
                             *(++ state.ptr) != 'e')
                         {
@@ -640,7 +642,8 @@ json_value * json_parse_ex (json_settings * settings,
 
                      case 'n':
 
-                        if ((end - state.ptr) < 3 || *(++ state.ptr) != 'u' ||
+                        /* GUCEF local patch: "<= 3" (was "< 3"): the three bytes after the 'n' must lie before end */
+                        if ((end - state.ptr) <= 3 || *(++ state.ptr) != 'u' ||
                             *(++ state.ptr) != 'l' || *(++ state.ptr) != 'l')
                         {
                            goto e_unknown_value;
@@ -677,9 +680,11 @@ json_value * json_parse_ex (json_settings * settings,
                               break;
                            }
 
+                           /* GUCEF local patch: flag_num_got_decimal is reset as well, else an integer that overflows
+                              Int64 after any number with a fraction takes its remaining digits as a fraction */
                            flags &= ~ (flag_num_negative | flag_num_e |
                                         flag_num_e_got_sign | flag_num_e_negative |
-                                           flag_num_zero);
+                                           flag_num_zero | flag_num_got_decimal);
 
                            num_digits = 0;
                            num_fraction = 0;

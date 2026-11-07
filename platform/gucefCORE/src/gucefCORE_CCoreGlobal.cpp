@@ -1,20 +1,18 @@
  /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -177,6 +175,8 @@
 
 #ifndef GUCEF_CORE_CASYNCFILESYSTEMACCESSOPERATION_H
 #include "gucefCORE_CAsyncFileSystemAccessOperation.h"
+#include "gucefCORE_CDataTableAsyncOperation.h"
+#include "gucefCORE_CDataTableScanTask.h"
 #define GUCEF_CORE_CASYNCFILESYSTEMACCESSOPERATION_H
 #endif /* GUCEF_CORE_CASYNCFILESYSTEMACCESSOPERATION_H ? */
 
@@ -207,6 +207,26 @@
   #endif /* GUCEF_CORE_CX11EVENTDISPATCHER_H ? */
 
 #endif /* GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ? */
+
+#ifndef GUCEF_CORE_CDATATABLEBUFFERPOOL_H
+#include "gucefCORE_CDataTableBufferPool.h"
+#define GUCEF_CORE_CDATATABLEBUFFERPOOL_H
+#endif /* GUCEF_CORE_CDATATABLEBUFFERPOOL_H ? */
+
+#ifndef GUCEF_CORE_CTABLECODECREGISTRY_H
+#include "gucefCORE_CTableCodecRegistry.h"
+#define GUCEF_CORE_CTABLECODECREGISTRY_H
+#endif /* GUCEF_CORE_CTABLECODECREGISTRY_H ? */
+
+#ifndef GUCEF_CORE_CTABLECODECPLUGINMANAGER_H
+#include "gucefCORE_CTableCodecPluginManager.h"
+#define GUCEF_CORE_CTABLECODECPLUGINMANAGER_H
+#endif /* GUCEF_CORE_CTABLECODECPLUGINMANAGER_H ? */
+
+#ifndef GUCEF_CORE_CCSVTABLECODEC_H
+#include "gucefCORE_CCsvTableCodec.h"
+#define GUCEF_CORE_CCSVTABLECODEC_H
+#endif /* GUCEF_CORE_CCSVTABLECODEC_H ? */
 
 #include "gucefCORE_CCoreGlobal.h"
 
@@ -240,6 +260,8 @@ CCoreGlobal* CCoreGlobal::g_instance = NULL;
 TFileSystemUriResourceAccessorFactory g_fileSystemUriResourceAccessorFactory;
 TDataUriResourceAccessorFactory g_dataUriResourceAccessorFactory;
 TAsyncFileSystemAccessOperationTaskFactory g_asyncFileSystemAccessOperationTaskFactory;
+TDataTableScanTaskFactory g_dataTableScanTaskFactory;
+TDataTableAsyncOperationTaskFactory g_dataTableAsyncOperationTaskFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -385,6 +407,9 @@ CCoreGlobal::Initialize( void )
     m_stdCodecPluginManager = GUCEF_NEW CStdCodecPluginManager();        
     m_uriResourceAccessorFactory = GUCEF_NEW CUriResourceAccessorFactory();
     m_functionRegistry = GUCEF_NEW CFunctionRegistry();
+    m_dataTableBufferPool = GUCEF_NEW CDataTableBufferPool();
+    m_tableCodecRegistry = GUCEF_NEW CTableCodecRegistry();
+    m_tableCodecPluginManager = GUCEF_NEW CTableCodecPluginManager();
 
     /*
      *      Register some default URI handlers
@@ -396,12 +421,15 @@ CCoreGlobal::Initialize( void )
      *      The task of the async operations of IFileSystemAccess
      */
     m_taskManager->RegisterTaskConsumerFactory( CAsyncFileSystemAccessOperation::TaskType, &g_asyncFileSystemAccessOperationTaskFactory );
+    m_taskManager->RegisterTaskConsumerFactory( CDataTableScanTask::TaskType, &g_dataTableScanTaskFactory );
+    m_taskManager->RegisterTaskConsumerFactory( CDataTableAsyncOperation::TaskType, &g_dataTableAsyncOperationTaskFactory );
 
     /*
      *      Register some default codecs
      */    
     m_dstoreCodecRegistry->Register( "ini", CDStoreCodecRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CIniDataStoreCodec() ) );
     m_dstoreCodecRegistry->Register( "dnc", CDStoreCodecRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CDataStoreBinaryCodec() ) );
+    m_tableCodecRegistry->Register( "csv", CTableCodecRegistry::TRegisteredObjTypedPtr( GUCEF_NEW CCsvTableCodec() ) );
 
     /*
      *      The codecs of gucefCORE itself: portable software and, unless configured off, the crypto of the OS
@@ -434,6 +462,9 @@ CCoreGlobal::CCoreGlobal( void )
     , m_codecRegistry( GUCEF_NULL )
     , m_builtInCodecs( GUCEF_NULL )
     , m_functionRegistry( GUCEF_NULL )
+    , m_dataTableBufferPool( GUCEF_NULL )
+    , m_tableCodecRegistry( GUCEF_NULL )
+    , m_tableCodecPluginManager( GUCEF_NULL )
     , m_uriResourceAccessorFactory( GUCEF_NULL )
 {GUCEF_TRACE;
 
@@ -451,11 +482,14 @@ CCoreGlobal::~CCoreGlobal()
     m_application->Stop( true );
     m_taskManager->RequestAllThreadsToStop( true, false, GUCEF_MT_INFINITE_LOCK_TIMEOUT );
     m_taskManager->UnregisterTaskConsumerFactory( CAsyncFileSystemAccessOperation::TaskType );
+    m_taskManager->UnregisterTaskConsumerFactory( CDataTableScanTask::TaskType );
+    m_taskManager->UnregisterTaskConsumerFactory( CDataTableAsyncOperation::TaskType );
    
     m_uriResourceAccessorFactory->UnregisterAllConcreteFactories();
     m_builtInCodecs->UnregisterCodecs();
     m_codecRegistry->UnregisterAll();
     m_dstoreCodecRegistry->UnregisterAll();
+    m_tableCodecRegistry->UnregisterAll();
     m_dataDrivenDStoreCodecFactory->UnregisterAllConcreteFactories();
     m_pluginControl->UnlistModuleForLinkBack( "gucefCORE" );
     m_pluginControl->UnloadAll();
@@ -473,6 +507,8 @@ CCoreGlobal::~CCoreGlobal()
     m_uriResourceAccessorFactory = GUCEF_NULL;
     GUCEF_DELETE m_dstoreCodecRegistry;
     m_dstoreCodecRegistry = GUCEF_NULL;
+    GUCEF_DELETE m_tableCodecRegistry;
+    m_tableCodecRegistry = GUCEF_NULL;
     GUCEF_DELETE static_cast< CGlobalDataDrivenDStoreCodecFactory* >( m_dataDrivenDStoreCodecFactory );
     m_dataDrivenDStoreCodecFactory = GUCEF_NULL;
     GUCEF_DELETE m_exclusiveActivationManager;
@@ -485,6 +521,8 @@ CCoreGlobal::~CCoreGlobal()
     m_metricsClientManager = GUCEF_NULL;
     GUCEF_DELETE m_dstoreCodecPluginManager;
     m_dstoreCodecPluginManager = GUCEF_NULL;
+    GUCEF_DELETE m_tableCodecPluginManager;
+    m_tableCodecPluginManager = GUCEF_NULL;
     GUCEF_DELETE m_genericPluginManager;
     m_genericPluginManager = GUCEF_NULL;
     GUCEF_DELETE m_stdCodecPluginManager;
@@ -503,6 +541,8 @@ CCoreGlobal::~CCoreGlobal()
     m_codecRegistry = GUCEF_NULL;
     GUCEF_DELETE m_functionRegistry;
     m_functionRegistry = GUCEF_NULL;
+    GUCEF_DELETE m_dataTableBufferPool;
+    m_dataTableBufferPool = GUCEF_NULL;
 
     #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
     
@@ -704,6 +744,33 @@ CCoreGlobal::GetFunctionRegistry( void )
 {GUCEF_TRACE;
 
     return *m_functionRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDataTableBufferPool&
+CCoreGlobal::GetDataTableBufferPool( void )
+{GUCEF_TRACE;
+
+    return *m_dataTableBufferPool;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTableCodecRegistry&
+CCoreGlobal::GetTableCodecRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_tableCodecRegistry;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTableCodecPluginManager&
+CCoreGlobal::GetTableCodecPluginManager( void )
+{GUCEF_TRACE;
+
+    return *m_tableCodecPluginManager;
 }
 
 /*-------------------------------------------------------------------------//

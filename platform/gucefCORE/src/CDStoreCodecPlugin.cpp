@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -284,6 +282,33 @@ NodeIdFromName( const char* nodename )
 {GUCEF_TRACE;
 
     return CVariant( GUCEF_NULL != nodename ? nodename : "" );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The value as handed to a codec plugin through the C API.
+ *  Decimals are passed as their canonical text in a UTF8 string: text formats carry them as strings
+ *  (a number would be read back as a double, losing exactness and scale) and plugins do not need to know the type.
+ *  Dates and microsecond timestamps are passed as their ISO 8601 text (yyyy-mm-dd, yyyy-mm-ddThh:mm:ss.ffffffZ) for
+ *  the same reason: plugins do not know these inline types.
+ *  'textForm' provides the storage of the converted value and has to outlive the use of the returned pointer
+ */
+static const TVariantData*
+ValueForCodecPlugin( const CVariant& value, CVariant& textForm )
+{GUCEF_TRACE;
+
+    const UInt8 typeId = value.GetTypeId();
+    if ( value.IsDecimal()                                                 ||
+         GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH == typeId          ||
+         GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH == typeId          ||
+         GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH == typeId   ||
+         GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH == typeId   )
+    {
+        textForm = value.AsUtf8String();
+        return textForm.CStyleAccess();
+    }
+    return value.CStyleAccess();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -758,18 +783,19 @@ CDStoreCodecPlugin::BeginNodeStore( void** codecData   ,
     /*
      *  Store all node attributes
      */
+    CVariant textForm;
     for ( UInt32 i=0; i<count; ++i )
     {
             att = n.GetAttribute( i );
-            m_api.Store_Node_Att( &m_plugdata                ,
-                                  codecData                  ,
-                                  filedata                   ,
-                                  name                       ,
-                                  count                      ,
-                                  i                          ,
-                                  att->first.C_String()      ,
-                                  att->second.CStyleAccess() ,
-                                  hasChildrenFlag            );
+            m_api.Store_Node_Att( &m_plugdata                                  ,
+                                  codecData                                    ,
+                                  filedata                                     ,
+                                  name                                         ,
+                                  count                                        ,
+                                  i                                            ,
+                                  att->first.C_String()                        ,
+                                  ValueForCodecPlugin( att->second, textForm ) ,
+                                  hasChildrenFlag                              );
     }
 
     /*
@@ -777,15 +803,15 @@ CDStoreCodecPlugin::BeginNodeStore( void** codecData   ,
      */
     if ( n.HasValue() )
     {
-        m_api.Store_Node_Att( &m_plugdata                 ,
-                              codecData                   ,
-                              filedata                    ,
-                              name                        ,
-                              count + valueAsAtt          ,
-                              count                       ,
-                              GUCEF_NULL                  ,
-                              n.GetValue().CStyleAccess() ,
-                              hasChildrenFlag             );
+        m_api.Store_Node_Att( &m_plugdata                                   ,
+                              codecData                                     ,
+                              filedata                                      ,
+                              name                                          ,
+                              count + valueAsAtt                            ,
+                              count                                         ,
+                              GUCEF_NULL                                    ,
+                              ValueForCodecPlugin( n.GetValue(), textForm ) ,
+                              hasChildrenFlag                               );
     }
 
     if ( hasChildren )

@@ -143,6 +143,14 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CCodecParameterInfo.cpp \
   src/gucefCORE_CCoreGlobal.cpp \
   src/gucefCORE_CCronSchedule.cpp \
+  src/gucefCORE_CCsvColumnConverter.cpp \
+  src/gucefCORE_CCsvRecordParser.cpp \
+  src/gucefCORE_CCsvSchemaResolver.cpp \
+  src/gucefCORE_CCsvTableCodec.cpp \
+  src/gucefCORE_CCsvTableOptions.cpp \
+  src/gucefCORE_CCsvTableReader.cpp \
+  src/gucefCORE_CCsvTableText.cpp \
+  src/gucefCORE_CCsvTableWriter.cpp \
   src/gucefCORE_CDStoreBinaryCodec.cpp \
   src/gucefCORE_CDataDrivenDStoreCodec.cpp \
   src/gucefCORE_CDataDrivenDStoreCodecFactory.cpp \
@@ -153,10 +161,36 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CDataNodeSerializableDataNode.cpp \
   src/gucefCORE_CDataNodeSerializableSettings.cpp \
   src/gucefCORE_CDataNodeSubtreeCollector.cpp \
+  src/gucefCORE_CDataTableAsyncOperation.cpp \
+  src/gucefCORE_CDataTableBatch.cpp \
+  src/gucefCORE_CDataTableBatchBuilder.cpp \
+  src/gucefCORE_CDataTableBuffer.cpp \
+  src/gucefCORE_CDataTableBufferPool.cpp \
+  src/gucefCORE_CDataTableColumnBatch.cpp \
+  src/gucefCORE_CDataTableColumnDef.cpp \
+  src/gucefCORE_CDataTableColumnStats.cpp \
+  src/gucefCORE_CDataTableDefinition.cpp \
+  src/gucefCORE_CDataTableFilter.cpp \
+  src/gucefCORE_CDataTableMerge.cpp \
+  src/gucefCORE_CDataTablePartitionInfo.cpp \
+  src/gucefCORE_CDataTablePartitionSpec.cpp \
+  src/gucefCORE_CDataTablePredicate.cpp \
+  src/gucefCORE_CDataTablePruner.cpp \
+  src/gucefCORE_CDataTableQuery.cpp \
+  src/gucefCORE_CDataTableRowCursor.cpp \
+  src/gucefCORE_CDataTableRowGroupInfo.cpp \
+  src/gucefCORE_CDataTableScan.cpp \
+  src/gucefCORE_CDataTableScanStats.cpp \
+  src/gucefCORE_CDataTableSchema.cpp \
+  src/gucefCORE_CDataTableValues.cpp \
+  src/gucefCORE_CDataTableWriteResult.cpp \
+  src/gucefCORE_CDataTableWriterOptions.cpp \
   src/gucefCORE_CDataUriResourceAccessor.cpp \
   src/gucefCORE_CDate.cpp \
   src/gucefCORE_CDateTime.cpp \
   src/gucefCORE_CDateTimeRange.cpp \
+  src/gucefCORE_CDecimal.cpp \
+  src/gucefCORE_CDecimalAccumulator.cpp \
   src/gucefCORE_CDefaultCodecInstance.cpp \
   src/gucefCORE_CDirectoryWatcherEvents.cpp \
   src/gucefCORE_CDocumentStreamWriter.cpp \
@@ -168,6 +202,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CEventAggregateTrigger.cpp \
   src/gucefCORE_CExternalThreadScope.cpp \
   src/gucefCORE_CFaultTolerantConfigScope.cpp \
+  src/gucefCORE_CFileDataTable.cpp \
   src/gucefCORE_CFileSystemDirectoryWatcher.cpp \
   src/gucefCORE_CFileSystemEntryListIterator.cpp \
   src/gucefCORE_CFileSystemUriResourceAccessor.cpp \
@@ -184,11 +219,15 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CGlobalConfigValueList.cpp \
   src/gucefCORE_CGlobalDataDrivenDStoreCodecFactory.cpp \
   src/gucefCORE_CGloballyConfigurable.cpp \
+  src/gucefCORE_CGuardedTableCodec.cpp \
   src/gucefCORE_CICodecInstance.cpp \
   src/gucefCORE_CIConfigurable.cpp \
   src/gucefCORE_CIConsoleLogger.cpp \
   src/gucefCORE_CIDataNodeSerializable.cpp \
   src/gucefCORE_CIDataNodeSerializableTaskData.cpp \
+  src/gucefCORE_CIDataTable.cpp \
+  src/gucefCORE_CIDataTableBatchSource.cpp \
+  src/gucefCORE_CIDataTableScanSource.cpp \
   src/gucefCORE_CIDate.cpp \
   src/gucefCORE_CIDirectoryWatcher.cpp \
   src/gucefCORE_CIDocumentParserCallbacks.cpp \
@@ -203,6 +242,10 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CIPluginLoadLogic.cpp \
   src/gucefCORE_CIPluginMetaData.cpp \
   src/gucefCORE_CIPulseGeneratorDriver.cpp \
+  src/gucefCORE_CITableCodec.cpp \
+  src/gucefCORE_CITableFileMetaData.cpp \
+  src/gucefCORE_CITableReader.cpp \
+  src/gucefCORE_CITableWriter.cpp \
   src/gucefCORE_CITime.cpp \
   src/gucefCORE_CIValueMapParserCallbacks.cpp \
   src/gucefCORE_CIValueToDataNodeSerializer.cpp \
@@ -210,12 +253,16 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CIniParser.cpp \
   src/gucefCORE_CInstanceBasedCodec.cpp \
   src/gucefCORE_CJsonLoggingFormatter.cpp \
+  src/gucefCORE_CJsonSchema.cpp \
+  src/gucefCORE_CJsonSchemaValidator.cpp \
+  src/gucefCORE_CJsonSyntaxValidator.cpp \
   src/gucefCORE_CLinkedTransferBuffer.cpp \
   src/gucefCORE_CLoaderDelegatedPluginLoadLogic.cpp \
   src/gucefCORE_CLogStream.cpp \
   src/gucefCORE_CLogStreamScope.cpp \
   src/gucefCORE_CLoggingGlobal.cpp \
   src/gucefCORE_CLoggingTask.cpp \
+  src/gucefCORE_CMemoryDataTable.cpp \
   src/gucefCORE_CMetricsClientManager.cpp \
   src/gucefCORE_CMultiLogger.cpp \
   src/gucefCORE_CNativeFileSystemAccess.cpp \
@@ -228,6 +275,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CPluginGroup.cpp \
   src/gucefCORE_CPluginMetaData.cpp \
   src/gucefCORE_CProcess.cpp \
+  src/gucefCORE_CProcessPipe.cpp \
   src/gucefCORE_CProgressReportingIOAccess.cpp \
   src/gucefCORE_CProperty.cpp \
   src/gucefCORE_CPropertyDefinition.cpp \
@@ -242,11 +290,16 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CRollingFileAccess.cpp \
   src/gucefCORE_CRsaPkcs1Codecs.cpp \
   src/gucefCORE_CSchedule.cpp \
+  src/gucefCORE_CScheduleTrigger.cpp \
+  src/gucefCORE_CSecureBuffer.cpp \
   src/gucefCORE_CSha256.cpp \
   src/gucefCORE_CSha512.cpp \
   src/gucefCORE_CSimplisticPluginLoadLogic.cpp \
   src/gucefCORE_CSingleTaskDelegator.cpp \
   src/gucefCORE_CSoftwareCryptoCodecs.cpp \
+  src/gucefCORE_CStandardInputReader.cpp \
+  src/gucefCORE_CStandardOutputWriter.cpp \
+  src/gucefCORE_StdoutClaim.cpp \
   src/gucefCORE_CStdDataNodeSerializableTaskData.cpp \
   src/gucefCORE_CStopwatch.cpp \
   src/gucefCORE_CStringLogHelper.cpp \
@@ -260,6 +313,9 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CTIOAccessToStlStream.cpp \
   src/gucefCORE_CTIOAccessToStlStreambuff.cpp \
   src/gucefCORE_CTMultiRegistry.cpp \
+  src/gucefCORE_CTableCodecPlugin.cpp \
+  src/gucefCORE_CTableCodecPluginManager.cpp \
+  src/gucefCORE_CTableCodecRegistry.cpp \
   src/gucefCORE_CTask.cpp \
   src/gucefCORE_CTaskConsumer.cpp \
   src/gucefCORE_CTaskDelegator.cpp \
@@ -271,6 +327,7 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CThreadPoollnfo.cpp \
   src/gucefCORE_CThreadlnfo.cpp \
   src/gucefCORE_CTime.cpp \
+  src/gucefCORE_CTimeZoneRules.cpp \
   src/gucefCORE_CTimestamp.cpp \
   src/gucefCORE_CTokenizer.cpp \
   src/gucefCORE_CUri.cpp \
@@ -295,10 +352,12 @@ LOCAL_SRC_FILES := \
   src/gucefCORE_CVersion.cpp \
   src/gucefCORE_CVersionRange.cpp \
   src/gucefCORE_CoreCodecTypes.cpp \
+  src/gucefCORE_DataTableTypes.cpp \
   src/gucefCORE_EFileSystemAccessResult.cpp \
   src/gucefCORE_IFileSystemAccess.cpp \
   src/gucefCORE_IFileSystemIterator.cpp \
   src/gucefCORE_LogLevels.cpp \
+  src/gucefCORE_SecureMemory.cpp \
   src/gucefCORE_TaskStatus.cpp \
   src/gucefCORE_ThreadStatus.cpp \
   src/gucefCORE_c_api_impl.cpp \
@@ -311,6 +370,7 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := \
   $(MY_MODULE_PATH)/include \
   $(MY_MODULE_PATH)/include/c_api \
+  $(MY_MODULE_PATH)/src \
   $(MY_MODULE_PATH)/../../common/include \
   $(MY_MODULE_PATH)/../gucefMT/include
 

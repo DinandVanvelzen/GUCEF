@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_CPLUGINCONTROL_H
@@ -128,6 +126,18 @@ class GUCEF_CORE_PUBLIC_CPP CPluginControl : public CTSGNotifier          ,
     bool LoadPluginGroup( const CString& groupName );
 
     bool UnloadAll( void );
+
+    /**
+     *  Unloads the modules whose unload was put off because their plugin was still in use (CIPlugin::IsModuleInUse()),
+     *  as far as the plugin is not in use any more. Called by the plugin control itself before it loads or unloads
+     *  anything and when it unloads everything; call it when objects of such a plugin are released to have the module go.
+     *  With force set the modules that are still in use stay loaded, are logged as errors and are forgotten: nothing
+     *  outlives its code. Returns the number of modules that are still waiting.
+     */
+    UInt32 ProcessDeferredModuleUnloads( bool force = false );
+
+    /** The number of modules whose unload is waiting for their plugin to be released */
+    UInt32 GetDeferredModuleUnloadCount( void ) const;
 
     bool UnloadAllPluginsOfTypeInGroup( const CString& pluginTypeToLoad ,
                                         const CString& groupName        );
@@ -297,6 +307,25 @@ class GUCEF_CORE_PUBLIC_CPP CPluginControl : public CTSGNotifier          ,
     typedef GUCEF::map< UInt32, TStringToPluginGroupMap > TPluginGroupMap;
     typedef GUCEF::set< CPluginManager* > TPluginManagerSet;    
 
+    /** A module whose plugin was unregistered but is still in use: the module stays loaded until it is not */
+    struct SDeferredModuleUnload
+    {
+        TPluginPtr plugin;
+        void* modulePtr;
+        CString loaderLogicTypeName;
+        CString groupName;
+        CString moduleFilename;
+        TVersion version;
+    };
+    typedef GUCEF::vector< SDeferredModuleUnload > TDeferredModuleUnloadVector;
+
+    bool UnloadModule( void* modulePtr                    ,
+                       const CString& loaderLogicTypeName ,
+                       const CString& groupName           ,
+                       const CString& moduleFilename      ,
+                       const TVersion& version            ,
+                       CPluginGroup* pluginGroup          );
+
     CPluginControl( const CPluginControl& src );
 
     CPluginControl& operator=( const CPluginControl& src );
@@ -338,6 +367,7 @@ class GUCEF_CORE_PUBLIC_CPP CPluginControl : public CTSGNotifier          ,
     TStringSet m_rootDirs;
     TPluginManagerSet m_pluginManagers;
     TStringSet m_listedLinkBackModules;
+    TDeferredModuleUnloadVector m_deferredModuleUnloads;
 };
 
 /*-------------------------------------------------------------------------//

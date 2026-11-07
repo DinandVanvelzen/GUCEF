@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_CDATE_H
@@ -115,6 +113,56 @@ class GUCEF_CORE_PUBLIC_CPP CDate : public CIDate
     bool operator==( const CDate& src ) const;
 
     bool operator!=( const CDate& src ) const;
+
+    bool operator<( const CDate& src ) const;
+
+    bool operator<=( const CDate& src ) const;
+
+    bool operator>( const CDate& src ) const;
+
+    bool operator>=( const CDate& src ) const;
+
+    /**
+     *  Returns true if the year, month and day describe an existing day of the
+     *  proleptic Gregorian calendar.
+     */
+    bool IsValid( void ) const;
+
+    /**
+     *  Number of days since 1970-01-01 (negative before that date).
+     *  Only meaningful for valid dates, see IsValid().
+     */
+    Int32 ToDaysSinceUnixEpoch( void ) const;
+
+    /**
+     *  Sets this date to the day that is the given number of days since 1970-01-01.
+     *  Returns false and leaves the date unchanged if the result does not fit the year range.
+     */
+    bool FromDaysSinceUnixEpoch( Int32 daysSinceUnixEpoch );
+
+    /**
+     *  Number of days from this date to the given date, positive if the given date is later.
+     *  Only meaningful for valid dates.
+     */
+    Int32 GetDaysTowards( const CDate& other ) const;
+
+    /**
+     *  Calendar arithmetic. Returns false and leaves the date unchanged if this date is not valid
+     *  or the result does not fit the year range.
+     */
+    bool AddDays( Int32 daysToAdd );
+    bool AddWeeks( Int32 weeksToAdd );
+
+    /**
+     *  Adds calendar months. The day of month is clamped to the last day of the resulting month,
+     *  so January 31st plus one month is the last day of February.
+     */
+    bool AddMonths( Int32 monthsToAdd );
+
+    /**
+     *  Adds calendar years. February 29th becomes February 28th in a non leap result year.
+     */
+    bool AddYears( Int32 yearsToAdd );
 
     CDate( void );
     CDate( const time_t& src, bool isUtc );

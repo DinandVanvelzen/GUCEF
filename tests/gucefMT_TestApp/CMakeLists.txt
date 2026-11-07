@@ -16,6 +16,7 @@ set( HEADER_FILES
   include/TestMutex.h
   include/TestReaderWriterLock.h
   include/TestSpscQueue.h
+  include/TestThreadData.h
 )
 
 set( SOURCE_FILES 
@@ -23,6 +24,7 @@ set( SOURCE_FILES
   src/TestMutex.cpp
   src/TestReaderWriterLock.cpp
   src/TestSpscQueue.cpp
+  src/TestThreadData.cpp
   src/gucefMT_TestApp.cpp
 )
 

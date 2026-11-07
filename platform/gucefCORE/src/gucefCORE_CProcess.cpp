@@ -2,19 +2,17 @@
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -44,6 +42,16 @@
 #include "gucefCORE_Logging.h"
 #define GUCEF_CORE_LOGGING_H
 #endif /* GUCEF_CORE_LOGGING_H ? */
+
+#ifndef GUCEF_CORE_STDOUTCLAIM_H
+#include "gucefCORE_StdoutClaim.h"
+#define GUCEF_CORE_STDOUTCLAIM_H
+#endif /* GUCEF_CORE_STDOUTCLAIM_H ? */
+
+#ifndef GUCEF_MT_CSCOPEMUTEX_H
+#include "gucefMT_CScopeMutex.h"
+#define GUCEF_MT_CSCOPEMUTEX_H
+#endif /* GUCEF_MT_CSCOPEMUTEX_H ? */
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
 
@@ -78,6 +86,11 @@
     extern char** environ;
   #endif
 
+  // pipe2() is not part of the C library of macOS: there a pipe is made with pipe() and fcntl()
+  #if defined( __APPLE__ ) && !defined( GUCEF_CORE_CPROCESS_NO_PIPE2 )
+    #define GUCEF_CORE_CPROCESS_NO_PIPE2
+  #endif
+
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -104,6 +117,9 @@ CProcess::CProcess( void )
     , m_exitCode( 0 )
 {GUCEF_TRACE;
 
+    m_pipes[ 0 ] = GUCEF_NULL;
+    m_pipes[ 1 ] = GUCEF_NULL;
+    m_pipes[ 2 ] = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -115,6 +131,7 @@ CProcess::~CProcess()
     if ( 0 != m_processId && !m_isDetached && !m_hasExited )
         Terminate( false );
 
+    ReleasePipes();
     ReleaseHandle();
 }
 
@@ -133,6 +150,85 @@ CProcess::ReleaseHandle( void )
     }
 
     #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProcess::ReleasePipes( void )
+{GUCEF_TRACE;
+
+    for ( int i=0; i<3; ++i )
+    {
+        GUCEF_DELETE m_pipes[ i ];
+        m_pipes[ i ] = GUCEF_NULL;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CProcessPipe*
+CProcess::GetStdinPipe( void ) const
+{GUCEF_TRACE;
+
+    return m_pipes[ 0 ];
+}
+
+/*-------------------------------------------------------------------------*/
+
+CProcessPipe*
+CProcess::GetStdoutPipe( void ) const
+{GUCEF_TRACE;
+
+    return m_pipes[ 1 ];
+}
+
+/*-------------------------------------------------------------------------*/
+
+CProcessPipe*
+CProcess::GetStderrPipe( void ) const
+{GUCEF_TRACE;
+
+    return m_pipes[ 2 ];
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CProcess::CloseStdinPipe( void )
+{GUCEF_TRACE;
+
+    if ( GUCEF_NULL != m_pipes[ 0 ] )
+        m_pipes[ 0 ]->Close();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CProcess::Launch( const CString& exePath          ,
+                  const TStringVector& args       ,
+                  const CString& workingDir       ,
+                  const TStringMap& envOverrides  ,
+                  bool detach                     )
+{GUCEF_TRACE;
+
+    return LaunchImpl( exePath, args, workingDir, envOverrides, detach, 0 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CProcess::LaunchWithPipes( const CString& exePath          ,
+                           const TStringVector& args       ,
+                           bool pipeStdin                  ,
+                           bool pipeStdout                 ,
+                           bool pipeStderr                 ,
+                           const CString& workingDir       ,
+                           const TStringMap& envOverrides  )
+{GUCEF_TRACE;
+
+    UInt32 pipeMask = ( pipeStdin ? 1 : 0 ) | ( pipeStdout ? 2 : 0 ) | ( pipeStderr ? 4 : 0 );
+    return LaunchImpl( exePath, args, workingDir, envOverrides, false, pipeMask );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -263,6 +359,45 @@ ListInheritableDescriptors( GUCEF::vector< int >& descriptors )
 
 /*-------------------------------------------------------------------------*/
 
+#if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) )
+
+/**
+ *  Held from the moment the pipes of a launch are made until the child has them as its standard streams. Where
+ *  pipe2() exists the pipe ends are close-on-exec from the start and the lock only orders the launches. Without it
+ *  (macOS) pipe() and fcntl() are two steps, and the lock keeps a launch of this class on another thread from
+ *  inheriting the ends in between; a fork() by other code in that moment is beyond what a library can prevent.
+ */
+static MT::CMutex g_launchLock;
+
+/**
+ *  Makes a pipe whose two ends are close-on-exec
+ *  @return 0 or the errno of why not
+ */
+static int
+MakeCloseOnExecPipe( int ends[ 2 ] )
+{GUCEF_TRACE;
+
+    #ifdef GUCEF_CORE_CPROCESS_NO_PIPE2
+    if ( 0 != pipe( ends ) )
+        return errno;
+    if ( fcntl( ends[ 0 ], F_SETFD, FD_CLOEXEC ) < 0 || fcntl( ends[ 1 ], F_SETFD, FD_CLOEXEC ) < 0 )
+    {
+        int error = errno;
+        close( ends[ 0 ] );
+        close( ends[ 1 ] );
+        ends[ 0 ] = ends[ 1 ] = -1;
+        return error;
+    }
+    return 0;
+    #else
+    return 0 == pipe2( ends, O_CLOEXEC ) ? 0 : errno;
+    #endif
+}
+
+#endif
+
+/*-------------------------------------------------------------------------*/
+
 #ifndef GUCEF_CORE_CPROCESS_NO_POSIX_SPAWN
 
 /**
@@ -277,6 +412,7 @@ SpawnChildProcess( const CString& exePath       ,
                    bool detach                  ,
                    bool isolate                 ,
                    const GUCEF::vector< int >& descriptorsToClose ,
+                   const int* childFds          ,
                    pid_t& pid                   )
 {GUCEF_TRACE;
 
@@ -290,10 +426,19 @@ SpawnChildProcess( const CString& exePath       ,
 
     if ( isolate )
     {
-        // nothing of the terminal in, nothing of ours out: the three standard streams are /dev/null
-        success = 0 == posix_spawn_file_actions_addopen( &fileActions, 0, "/dev/null", O_RDONLY, 0 ) &&
-                  0 == posix_spawn_file_actions_addopen( &fileActions, 1, "/dev/null", O_WRONLY, 0 ) &&
-                  0 == posix_spawn_file_actions_addopen( &fileActions, 2, "/dev/null", O_WRONLY, 0 );
+        // nothing of the terminal in, nothing of ours out: the three standard streams are /dev/null, unless they are pipes
+        success = ( childFds[ 0 ] >= 0 || 0 == posix_spawn_file_actions_addopen( &fileActions, 0, "/dev/null", O_RDONLY, 0 ) ) &&
+                  ( childFds[ 1 ] >= 0 || 0 == posix_spawn_file_actions_addopen( &fileActions, 1, "/dev/null", O_WRONLY, 0 ) ) &&
+                  ( childFds[ 2 ] >= 0 || 0 == posix_spawn_file_actions_addopen( &fileActions, 2, "/dev/null", O_WRONLY, 0 ) );
+    }
+
+    // the pipes become the standard streams of the child; the descriptors they were made as are closed on exec
+    for ( int standard=0; standard<3 && success; ++standard )
+        if ( childFds[ standard ] >= 0 )
+            success = 0 == posix_spawn_file_actions_adddup2( &fileActions, childFds[ standard ], standard );
+
+    if ( isolate )
+    {
         #ifdef POSIX_SPAWN_CLOEXEC_DEFAULT
         spawnFlags |= POSIX_SPAWN_CLOEXEC_DEFAULT;
         #else
@@ -350,6 +495,7 @@ SpawnChildProcess( const CString& exePath       ,
                    bool detach                  ,
                    bool isolate                 ,
                    const GUCEF::vector< int >& descriptorsToClose ,
+                   const int* childFds          ,
                    pid_t& pid                   )
 {GUCEF_TRACE;
 
@@ -393,8 +539,9 @@ SpawnChildProcess( const CString& exePath       ,
     const size_t closeCount = descriptorsToClose.size();
 
     int errorPipe[ 2 ] = { -1, -1 };
-    if ( 0 != pipe2( errorPipe, O_CLOEXEC ) )
-        return errno;
+    int errorPipeResult = MakeCloseOnExecPipe( errorPipe );
+    if ( 0 != errorPipeResult )
+        return errorPipeResult;
 
     pid = fork();
     if ( pid < 0 )
@@ -425,8 +572,16 @@ SpawnChildProcess( const CString& exePath       ,
                 if ( devNull > 2 )
                     close( devNull );
             }
+        }
+        // the pipes become the standard streams of the child, before the descriptors of this process are closed
+        for ( int standard=0; 0 == childError && standard<3; ++standard )
+            if ( childFds[ standard ] >= 0 && dup2( childFds[ standard ], standard ) < 0 )
+                childError = errno;
+        if ( 0 == childError && isolate )
+        {
             for ( size_t i=0; i<closeCount; ++i )
-                close( closeList[ i ] );
+                if ( closeList[ i ] > 2 )
+                    close( closeList[ i ] );
         }
         if ( 0 == childError && GUCEF_NULL != workingDirPath && 0 != chdir( workingDirPath ) )
             childError = errno;
@@ -479,11 +634,12 @@ SpawnChildProcess( const CString& exePath       ,
 /*-------------------------------------------------------------------------*/
 
 bool
-CProcess::Launch( const CString& exePath          ,
-                  const TStringVector& args       ,
-                  const CString& workingDir       ,
-                  const TStringMap& envOverrides  ,
-                  bool detach                     )
+CProcess::LaunchImpl( const CString& exePath          ,
+                      const TStringVector& args       ,
+                      const CString& workingDir       ,
+                      const TStringMap& envOverrides  ,
+                      bool detach                     ,
+                      UInt32 pipeMask                 )
 {GUCEF_TRACE;
 
     if ( exePath.IsNULLOrEmpty() )
@@ -493,6 +649,7 @@ CProcess::Launch( const CString& exePath          ,
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CProcess: Launch called while a process is still running" );
         return false;
     }
+    ReleasePipes();
 
     // Everything the child needs is prepared before spawning
     std::vector< std::string > argStrings;
@@ -525,15 +682,53 @@ CProcess::Launch( const CString& exePath          ,
     if ( m_isolate )
         ListInheritableDescriptors( descriptorsToClose );
 
+    MT::CScopeMutex launchLock( g_launchLock );
+
+    // The pipes: the child gets one end, we keep the other. Both are close-on-exec, the child's copy is made
+    // the standard stream by the spawn, so no other child inherits either end
+    int childFds[ 3 ] = { -1, -1, -1 };
+    int parentFds[ 3 ] = { -1, -1, -1 };
+    int pipeError = 0;
+    for ( int standard=0; standard<3 && 0 == pipeError; ++standard )
+    {
+        if ( 0 == ( pipeMask & ( 1u << standard ) ) )
+            continue;
+        int ends[ 2 ] = { -1, -1 };
+        pipeError = MakeCloseOnExecPipe( ends );
+        if ( 0 != pipeError )
+            break;
+        // ends[0] reads, ends[1] writes; the child reads its input and writes its output
+        childFds[ standard ] = 0 == standard ? ends[ 0 ] : ends[ 1 ];
+        parentFds[ standard ] = 0 == standard ? ends[ 1 ] : ends[ 0 ];
+    }
+
+    // While stdout carries a protocol (CStandardOutputWriter::ClaimExclusive()) a child must not write into it: an
+    // output that is not piped goes where the standard error of the child goes, its pipe or our standard error
+    const bool stdoutToStderr = 0 == ( pipeMask & 2u ) && IsStdoutClaimed();
+    if ( stdoutToStderr )
+        childFds[ 1 ] = childFds[ 2 ] >= 0 ? childFds[ 2 ] : STDERR_FILENO;
+
     pid_t pid = 0;
-    int spawnResult = SpawnChildProcess( exePath, &argv[ 0 ], &envp[ 0 ], workingDir, detach, m_isolate, descriptorsToClose, pid );
+    int spawnResult = 0 != pipeError ? pipeError : SpawnChildProcess( exePath, &argv[ 0 ], &envp[ 0 ], workingDir, detach, m_isolate, descriptorsToClose, childFds, pid );
     bool success = 0 == spawnResult;
+
+    // our own standard streams are not ours to close, and stdout may share the descriptor of stderr
+    for ( int standard=0; standard<3; ++standard )
+        if ( childFds[ standard ] > STDERR_FILENO && ( 1 != standard || childFds[ 1 ] != childFds[ 2 ] ) )
+            close( childFds[ standard ] );
 
     if ( !success )
     {
+        for ( int standard=0; standard<3; ++standard )
+            if ( parentFds[ standard ] >= 0 )
+                close( parentFds[ standard ] );
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CProcess: Failed to launch \"" + exePath + "\": " + CString( strerror( spawnResult ) ) );
         return false;
     }
+
+    for ( int standard=0; standard<3; ++standard )
+        if ( parentFds[ standard ] >= 0 )
+            m_pipes[ standard ] = GUCEF_NEW CProcessPipe( parentFds[ standard ], 0 == standard ? CProcessPipe::PIPE_WRITE_TO_CHILD : CProcessPipe::PIPE_READ_FROM_CHILD );
 
     m_processId = (UInt32) pid;
     m_isDetached = detach;
@@ -662,11 +857,12 @@ UpperCase( std::wstring str )
 /*-------------------------------------------------------------------------*/
 
 bool
-CProcess::Launch( const CString& exePath          ,
-                  const TStringVector& args       ,
-                  const CString& workingDir       ,
-                  const TStringMap& envOverrides  ,
-                  bool detach                     )
+CProcess::LaunchImpl( const CString& exePath          ,
+                      const TStringVector& args       ,
+                      const CString& workingDir       ,
+                      const TStringMap& envOverrides  ,
+                      bool detach                     ,
+                      UInt32 pipeMask                 )
 {GUCEF_TRACE;
 
     if ( exePath.IsNULLOrEmpty() )
@@ -676,6 +872,7 @@ CProcess::Launch( const CString& exePath          ,
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CProcess: Launch called while a process is still running" );
         return false;
     }
+    ReleasePipes();
 
     std::wstring commandLine = QuoteWindowsArg( ToWString( exePath ) );
     for ( size_t i=0; i<args.size(); ++i )
@@ -708,11 +905,15 @@ CProcess::Launch( const CString& exePath          ,
     }
     envBlock += L'\0';
 
-    STARTUPINFOW si;
+    // STARTUPINFOEXW: the handles the child inherits are named in a list (PROC_THREAD_ATTRIBUTE_HANDLE_LIST), so that
+    // it gets its three standard handles and nothing else, also not the inheritable handles (sockets, files) that
+    // other code of this process made
+    STARTUPINFOEXW siEx;
     PROCESS_INFORMATION pi;
-    memset( &si, 0, sizeof( si ) );
+    memset( &siEx, 0, sizeof( siEx ) );
     memset( &pi, 0, sizeof( pi ) );
-    si.cb = sizeof( si );
+    siEx.StartupInfo.cb = sizeof( siEx );
+    STARTUPINFOW& si = siEx.StartupInfo;
 
     DWORD flags = CREATE_UNICODE_ENVIRONMENT;
     if ( detach )
@@ -723,15 +924,133 @@ CProcess::Launch( const CString& exePath          ,
     std::vector< wchar_t > mutableCommandLine( commandLine.begin(), commandLine.end() );
     mutableCommandLine.push_back( L'\0' );
 
-    BOOL result = ::CreateProcessW( GUCEF_NULL, &mutableCommandLine[ 0 ], GUCEF_NULL, GUCEF_NULL, FALSE, flags,
-                                    (LPVOID) envBlock.c_str(),
-                                    wWorkingDir.empty() ? GUCEF_NULL : wWorkingDir.c_str(),
-                                    &si, &pi );
+    // The pipes: the end for the child is inheritable, ours is not. The child's ends are closed again once the process exists.
+    // The list of inherited handles below names the three standard handles of the child, so that it inherits nothing else
+    HANDLE childHandles[ 3 ] = { GUCEF_NULL, GUCEF_NULL, GUCEF_NULL };
+    HANDLE parentHandles[ 3 ] = { GUCEF_NULL, GUCEF_NULL, GUCEF_NULL };
+    bool pipesCreated = true;
+    if ( 0 != pipeMask )
+    {
+        SECURITY_ATTRIBUTES pipeSecurity;
+        memset( &pipeSecurity, 0, sizeof( pipeSecurity ) );
+        pipeSecurity.nLength = sizeof( pipeSecurity );
+        pipeSecurity.bInheritHandle = TRUE;
+        pipeSecurity.lpSecurityDescriptor = GUCEF_NULL;
+
+        for ( int standard=0; standard<3 && pipesCreated; ++standard )
+        {
+            if ( 0 == ( pipeMask & ( 1u << standard ) ) )
+                continue;
+            HANDLE readEnd = GUCEF_NULL;
+            HANDLE writeEnd = GUCEF_NULL;
+            if ( !::CreatePipe( &readEnd, &writeEnd, &pipeSecurity, 0 ) )
+            {
+                pipesCreated = false;
+                break;
+            }
+            // the child reads its input and writes its output; the end we keep must not be inherited
+            childHandles[ standard ] = 0 == standard ? readEnd : writeEnd;
+            parentHandles[ standard ] = 0 == standard ? writeEnd : readEnd;
+            if ( !::SetHandleInformation( parentHandles[ standard ], HANDLE_FLAG_INHERIT, 0 ) )
+                pipesCreated = false;
+        }
+    }
+
+    // While stdout carries a protocol (CStandardOutputWriter::ClaimExclusive()) a child must not write into it: an
+    // output that is not piped goes to our standard error instead
+    const bool stdoutToStderr = 0 == ( pipeMask & 2u ) && IsStdoutClaimed();
+    const bool setStdHandles = 0 != pipeMask || stdoutToStderr;
+
+    // the standard streams that are not piped are handed on as inheritable duplicates of ours, so that the list of
+    // inherited handles can name them; a handle that cannot be duplicated (no console) is handed on as it is
+    HANDLE inheritedDuplicates[ 3 ] = { GUCEF_NULL, GUCEF_NULL, GUCEF_NULL };
+    HANDLE handleList[ 3 ] = { GUCEF_NULL, GUCEF_NULL, GUCEF_NULL };
+    DWORD handleCount = 0;
+    LPPROC_THREAD_ATTRIBUTE_LIST attributeList = GUCEF_NULL;
+    std::vector< char > attributeStorage;
+    if ( pipesCreated && setStdHandles )
+    {
+        const DWORD stdIds[ 3 ] = { STD_INPUT_HANDLE, stdoutToStderr ? STD_ERROR_HANDLE : STD_OUTPUT_HANDLE, STD_ERROR_HANDLE };
+        if ( stdoutToStderr && GUCEF_NULL != childHandles[ 2 ] )
+        {
+            // the output follows the standard error of the child into its pipe, as a second handle to the same pipe
+            ::DuplicateHandle( ::GetCurrentProcess(), childHandles[ 2 ], ::GetCurrentProcess(), &inheritedDuplicates[ 1 ], 0, TRUE, DUPLICATE_SAME_ACCESS );
+        }
+        HANDLE* targets[ 3 ] = { &si.hStdInput, &si.hStdOutput, &si.hStdError };
+        for ( int standard=0; standard<3; ++standard )
+        {
+            HANDLE handle = GUCEF_NULL != childHandles[ standard ] ? childHandles[ standard ] : inheritedDuplicates[ standard ];
+            if ( GUCEF_NULL == handle )
+            {
+                HANDLE own = ::GetStdHandle( stdIds[ standard ] );
+                if ( GUCEF_NULL != own && INVALID_HANDLE_VALUE != own &&
+                     ::DuplicateHandle( ::GetCurrentProcess(), own, ::GetCurrentProcess(), &inheritedDuplicates[ standard ], 0, TRUE, DUPLICATE_SAME_ACCESS ) )
+                    handle = inheritedDuplicates[ standard ];
+                else
+                    handle = own;
+            }
+            *targets[ standard ] = handle;
+            if ( GUCEF_NULL != childHandles[ standard ] || GUCEF_NULL != inheritedDuplicates[ standard ] )
+                handleList[ handleCount++ ] = handle;
+        }
+        si.dwFlags |= STARTF_USESTDHANDLES;
+
+        if ( handleCount > 0 )
+        {
+            SIZE_T attributeSize = 0;
+            ::InitializeProcThreadAttributeList( GUCEF_NULL, 1, 0, &attributeSize );
+            attributeStorage.resize( attributeSize > 0 ? (size_t) attributeSize : 1 );
+            attributeList = reinterpret_cast< LPPROC_THREAD_ATTRIBUTE_LIST >( &attributeStorage[ 0 ] );
+            if ( 0 == attributeSize || !::InitializeProcThreadAttributeList( attributeList, 1, 0, &attributeSize ) )
+            {
+                attributeList = GUCEF_NULL;
+                pipesCreated = false;
+            }
+            else
+            if ( !::UpdateProcThreadAttribute( attributeList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, handleList, handleCount * sizeof( HANDLE ), GUCEF_NULL, GUCEF_NULL ) )
+            {
+                pipesCreated = false;
+            }
+            siEx.lpAttributeList = attributeList;
+        }
+    }
+
+    BOOL result = FALSE;
+    if ( pipesCreated )
+    {
+        // handles are inherited only when the list names them: without a list nothing is inherited
+        const BOOL inheritHandles = GUCEF_NULL != attributeList ? TRUE : FALSE;
+        const DWORD createFlags = GUCEF_NULL != attributeList ? ( flags | EXTENDED_STARTUPINFO_PRESENT ) : flags;
+        si.cb = GUCEF_NULL != attributeList ? (DWORD) sizeof( STARTUPINFOEXW ) : (DWORD) sizeof( STARTUPINFOW );
+        result = ::CreateProcessW( GUCEF_NULL, &mutableCommandLine[ 0 ], GUCEF_NULL, GUCEF_NULL, inheritHandles, createFlags,
+                                   (LPVOID) envBlock.c_str(),
+                                   wWorkingDir.empty() ? GUCEF_NULL : wWorkingDir.c_str(),
+                                   &si, &pi );
+    }
+    const DWORD launchError = pipesCreated ? ::GetLastError() : ERROR_BROKEN_PIPE;
+
+    if ( GUCEF_NULL != attributeList )
+        ::DeleteProcThreadAttributeList( attributeList );
+    for ( int standard=0; standard<3; ++standard )
+    {
+        if ( GUCEF_NULL != childHandles[ standard ] )
+            ::CloseHandle( childHandles[ standard ] );
+        if ( GUCEF_NULL != inheritedDuplicates[ standard ] )
+            ::CloseHandle( inheritedDuplicates[ standard ] );
+    }
+
     if ( !result )
     {
-        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CProcess: Failed to launch \"" + exePath + "\": error code " + ToString( (UInt32) ::GetLastError() ) );
+        for ( int standard=0; standard<3; ++standard )
+            if ( GUCEF_NULL != parentHandles[ standard ] )
+                ::CloseHandle( parentHandles[ standard ] );
+        GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "CProcess: Failed to launch \"" + exePath + "\": error code " + ToString( (UInt32) launchError ) );
         return false;
     }
+
+    for ( int standard=0; standard<3; ++standard )
+        if ( GUCEF_NULL != parentHandles[ standard ] )
+            m_pipes[ standard ] = GUCEF_NEW CProcessPipe( parentHandles[ standard ], 0 == standard ? CProcessPipe::PIPE_WRITE_TO_CHILD : CProcessPipe::PIPE_READ_FROM_CHILD );
 
     ::CloseHandle( pi.hThread );
     ReleaseHandle();
@@ -811,7 +1130,7 @@ CProcess::Terminate( bool graceful, UInt32 gracePeriodInMs )
 #else
 
 bool
-CProcess::Launch( const CString&, const TStringVector&, const CString&, const TStringMap&, bool )
+CProcess::LaunchImpl( const CString&, const TStringVector&, const CString&, const TStringMap&, bool, UInt32 )
 {GUCEF_TRACE;
 
     GUCEF_WARNING_LOG( LOGLEVEL_NORMAL, "CProcess::Launch: Platform has no supported implementation" );

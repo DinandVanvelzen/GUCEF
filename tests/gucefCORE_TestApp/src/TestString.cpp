@@ -1,20 +1,18 @@
 /*
  *  gucefCORE_TestApp: GUCEF test application for the CORE module
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -1198,6 +1196,27 @@ PerformUtf8ReverseIterationRegressionTests( void )
         CORE::CUtf8String multiByte( "a\xC3\xA9z" );
         ASSERT_TRUE( 2 == multiByte.FindMaxSubstrEquality( CORE::CUtf8String( "b\xC3\xA9z" ), 0, false, true ) );
         ASSERT_TRUE( 1 == multiByte.FindMaxSubstrEquality( CORE::CUtf8String( "\xC3\xA8z" ), 0, false, true ) );
+    }
+    catch( ... ) { ERRORHERE; }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "[CUtf8String] Reverse operations stay inside a string that starts with continuation bytes (not valid UTF-8)" )
+    try
+    {
+        // the reverse walk over continuation bytes must stop at the first byte of the string; found under
+        // AddressSanitizer by fuzzing text taken from files
+        CORE::CUtf8String strayStart( "\x80\x80 ", 3 );
+        CORE::CUtf8String trimmed = strayStart.Trim( false );
+        ASSERT_TRUE( trimmed.ByteSize() <= strayStart.ByteSize() );
+        CORE::CUtf8String onlyStray( "\xBF\xBF\xBF", 3 );
+        trimmed = onlyStray.Trim( false );
+        ASSERT_TRUE( trimmed.ByteSize() <= onlyStray.ByteSize() );
+        ASSERT_TRUE( -1 == onlyStray.HasChar( 'z', false ) );
+        CORE::CUtf8String strayThenText( "\x80" "abc ", 5 );
+        ASSERT_TRUE( strayThenText.HasChar( 'c', false ) >= 0 );
+        // valid text is untouched by the bound
+        CORE::CUtf8String valid( "\xC3\xA9t\xC3\xA9  " );
+        ASSERT_TRUE( valid.Trim( false ) == CORE::CUtf8String( "\xC3\xA9t\xC3\xA9" ) );
     }
     catch( ... ) { ERRORHERE; }
     GUCEF_TESTFW_TESTCASE_END

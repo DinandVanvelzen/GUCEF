@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -84,6 +82,18 @@
   #include <direct.h>             /* dir tools */
   #include "Shlwapi.h"
   #define MAX_DIR_LENGTH MAX_PATH
+#elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+       ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
+  /*
+   *  Most functions of this file have branches for Windows and for Linux, Android and Emscripten only, and stubs that
+   *  report failure (or, as SyncDirectory, success without doing anything) elsewhere: FileExists, DirExists, PathExists,
+   *  CreateDirs, DeleteDir, FileSize, Get/SetFileMetaData, GetFileModificationTime, GetFileCreationTime, SyncDirectory,
+   *  SetOwnerOnlyAccess, TryResolveSpecialDir, ListAvailableSpecialDirs, the storage volume functions and
+   *  CFileSystemIterator among them. MoveFile, MoveFileAtomically, CreateOwnerOnlyFile and ReadOwnerOnlyFile have
+   *  POSIX branches that name the Apple platforms. Until every function has an Apple branch (POSIX, st_mtimespec
+   *  instead of st_mtim, F_FULLFSYNC for durability) built and tested on those platforms, the file refuses them.
+   */
+  #error The Apple platforms are not implemented in dvcppfileutils.cpp
 #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
   #include <dirent.h>             /* needed for dirent strcture */
   #include <unistd.h>             /* POSIX utilities */
@@ -1161,8 +1171,12 @@ MoveFile( const CString& oldPath ,
     }
     return result == TRUE;
 
-    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || \
+           ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+           ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
 
+    // POSIX rename() replaces an existing target atomically: a reader of the path sees the old file or the new one,
+    // never a partial file, and a reader holding the old file open keeps reading the old one
     struct stat originalPermissions;
     if ( 0 != ::stat( actualOldPath.C_String(), &originalPermissions ) )
         return 0;
@@ -1171,23 +1185,94 @@ MoveFile( const CString& oldPath ,
     if ( !overwrite && FileExists( actualNewPath ) )
         return 0;
 
-    ::chmod( actualOldPath.C_String(), 0777 );
+    // rename() works on directory entries: a file needs no permission of its own and keeps its mode. A directory moved
+    // to another parent needs write permission on itself (its ".." entry): its owner gets it for the move only
+    const mode_t originalMode = originalPermissions.st_mode & 07777;
+    const bool grantDirectoryWrite = S_ISDIR( originalPermissions.st_mode ) && 0 == ( originalMode & S_IWUSR );
+    if ( grantDirectoryWrite )
+        ::chmod( actualOldPath.C_String(), originalMode | S_IWUSR );
 
     if ( 0 != ::rename( actualOldPath.C_String(), actualNewPath.C_String() ) )
     {
+        if ( grantDirectoryWrite )
+            ::chmod( actualOldPath.C_String(), originalMode );
         return 0;
     }
 
-    ::chmod( actualNewPath.C_String(), originalPermissions.st_mode );
+    if ( grantDirectoryWrite )
+        ::chmod( actualNewPath.C_String(), originalMode );
     return 1;
 
     #else
 
-    // catch all expensive implementation
-    if ( CopyFile( actualNewPath, actualOldPath, overwrite ) )
+    // catch all expensive implementation, not an atomic replace
+    if ( CopyFile( actualOldPath, actualNewPath, overwrite ) )
+        return DeleteFile( actualOldPath );
+    return false;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+MoveFileAtomically( const CString& oldPath ,
+                    const CString& newPath ,
+                    const bool overwrite   )
+{GUCEF_TRACE;
+
+    CString actualOldPath = RelativePath( oldPath );
+    CString actualNewPath = RelativePath( newPath );
+
+    if ( !CreatePathDirectories( actualNewPath ) )
+        return false;
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    // no MOVEFILE_COPY_ALLOWED: a move that cannot be a rename (another volume) fails instead of becoming a copy. A
+    // target that another handle holds open without FILE_SHARE_DELETE is refused (sharing violation): callers retry
+    std::wstring wActualOldPath = ToWString( actualOldPath );
+    std::wstring wActualNewPath = ToWString( actualNewPath );
+
+    DWORD flags = MOVEFILE_WRITE_THROUGH;
+    if ( overwrite )
+        flags = flags | MOVEFILE_REPLACE_EXISTING;
+
+    BOOL result = ::MoveFileExW( wActualOldPath.c_str(), wActualNewPath.c_str(), flags );
+    if ( TRUE != result )
     {
-    	return DeleteFile( actualOldPath );
+        GUCEF_DEBUG_LOG( LOGLEVEL_BELOW_NORMAL, "MoveFileAtomically: MoveFileExW failed with error code " << (UInt32) ::GetLastError() );
     }
+    return TRUE == result;
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || \
+           ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+           ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
+
+    struct stat source;
+    if ( 0 != ::lstat( actualOldPath.C_String(), &source ) || !S_ISREG( source.st_mode ) )
+        return false;
+
+    struct stat target;
+    if ( 0 == ::lstat( actualNewPath.C_String(), &target ) )
+    {
+        if ( !overwrite || !S_ISREG( target.st_mode ) )
+            return false;
+
+        // the moved file gets the permissions both files have in common, before it takes the place of the target: at no
+        // point wider than the file it replaces, nor than its own
+        const mode_t sourceMode = source.st_mode & 07777;
+        const mode_t commonMode = sourceMode & ( target.st_mode & 07777 );
+        if ( commonMode != sourceMode && 0 != ::chmod( actualOldPath.C_String(), commonMode ) )
+            return false;
+    }
+
+    // one rename(): readers of the path see the old file or the new one, a reader holding the old file keeps it
+    return 0 == ::rename( actualOldPath.C_String(), actualNewPath.C_String() );
+
+    #else
+
+    // no atomic rename is known for this platform
     return false;
 
     #endif
@@ -1245,7 +1330,28 @@ WriteFileAtomically( const CString& path    ,
 
     bool success = false;
     {
-        CFileAccess tempFile( tempPath, "wb" );
+        CFileAccess tempFile;
+        #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
+
+        // the temporary file is made with the permissions of the file it replaces (the umask applies as well), so it is
+        // never wider than that file while the data is written
+        mode_t mode = 0666;
+        struct stat existing;
+        if ( 0 == ::stat( actualPath.C_String(), &existing ) && S_ISREG( existing.st_mode ) )
+            mode = existing.st_mode & 0666;
+        int flags = O_WRONLY | O_CREAT | O_EXCL;
+        #ifdef O_CLOEXEC
+        flags |= O_CLOEXEC;
+        #endif
+        const int fd = ::open( tempPath.C_String(), flags, mode );
+        if ( fd >= 0 )
+            tempFile.OpenFromFileDescriptor( fd, "wb", true );
+
+        #else
+
+        tempFile.Open( tempPath, "wb" );
+
+        #endif
         if ( tempFile.IsValid() )
         {
             success = ( 0 == dataSizeInBytes ) || ( dataSizeInBytes == tempFile.Write( data, 1, dataSizeInBytes ) );
@@ -1253,8 +1359,9 @@ WriteFileAtomically( const CString& path    ,
         }
     }
 
+    // a rename, never a copy: the target is the old file or the new one, whole, with no wider permissions than before
     if ( success )
-        success = MoveFile( tempPath, actualPath, true );
+        success = MoveFileAtomically( tempPath, actualPath, true );
     if ( !success )
     {
         GUCEF_ERROR_LOG( LOGLEVEL_NORMAL, "WriteFileAtomically: Failed to replace \"" + actualPath + "\"" );
@@ -1335,6 +1442,410 @@ SetOwnerOnlyAccess( const CString& path )
 
     #else
 
+    return false;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+#if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+/** The SID of the user of the process token, kept in 'storage'; GUCEF_NULL when it cannot be had */
+static PSID
+GetProcessUserSid( CDynamicBuffer& storage )
+{GUCEF_TRACE;
+
+    HANDLE token = NULL;
+    if ( FALSE == ::OpenProcessToken( ::GetCurrentProcess(), TOKEN_QUERY, &token ) )
+        return GUCEF_NULL;
+    DWORD size = 0;
+    ::GetTokenInformation( token, TokenUser, NULL, 0, &size );
+    if ( 0 == size )
+    {
+        ::CloseHandle( token );
+        return GUCEF_NULL;
+    }
+    storage.SetBufferSize( size, false );
+    BOOL gotUser = ::GetTokenInformation( token, TokenUser, storage.GetBufferPtr(), size, &size );
+    ::CloseHandle( token );
+    if ( FALSE == gotUser )
+        return GUCEF_NULL;
+    return static_cast< PTOKEN_USER >( storage.GetBufferPtr() )->User.Sid;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Whether the SID is the well known one of the local machine */
+static bool
+IsWellKnownSid( PSID sid, WELL_KNOWN_SID_TYPE type )
+{GUCEF_TRACE;
+
+    BYTE storage[ SECURITY_MAX_SID_SIZE ];
+    DWORD size = sizeof( storage );
+    if ( FALSE == ::CreateWellKnownSid( type, NULL, storage, &size ) )
+        return false;
+    return FALSE != ::EqualSid( sid, storage );
+}
+
+#endif
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CreateOwnerOnlyFile( const CString& path      ,
+                     const void* data         ,
+                     UInt32 dataSizeInBytes   ,
+                     CString& problem         )
+{GUCEF_TRACE;
+
+    problem.Clear();
+    if ( path.IsNULLOrEmpty() || ( GUCEF_NULL == data && dataSizeInBytes > 0 ) )
+    {
+        problem = "no path or no data";
+        return false;
+    }
+    const CString actualPath = RelativePath( path );
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    CDynamicBuffer userInfo;
+    PSID userSid = GetProcessUserSid( userInfo );
+    if ( GUCEF_NULL == userSid )
+    {
+        problem = "the user of the process is not known";
+        return false;
+    }
+
+    // a DACL with the one entry of the current user, protected from what the directory would pass on
+    EXPLICIT_ACCESSW access;
+    ::ZeroMemory( &access, sizeof( access ) );
+    access.grfAccessPermissions = FILE_ALL_ACCESS;
+    access.grfAccessMode = SET_ACCESS;
+    access.grfInheritance = NO_INHERITANCE;
+    access.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+    access.Trustee.TrusteeType = TRUSTEE_IS_USER;
+    access.Trustee.ptstrName = (LPWSTR) userSid;
+    PACL acl = NULL;
+    if ( ERROR_SUCCESS != ::SetEntriesInAclW( 1, &access, NULL, &acl ) )
+    {
+        problem = "the access list cannot be made";
+        return false;
+    }
+    SECURITY_DESCRIPTOR descriptor;
+    if ( FALSE == ::InitializeSecurityDescriptor( &descriptor, SECURITY_DESCRIPTOR_REVISION ) ||
+         FALSE == ::SetSecurityDescriptorDacl( &descriptor, TRUE, acl, FALSE ) ||
+         FALSE == ::SetSecurityDescriptorControl( &descriptor, SE_DACL_PROTECTED, SE_DACL_PROTECTED ) )
+    {
+        ::LocalFree( acl );
+        problem = "the security descriptor cannot be made";
+        return false;
+    }
+    SECURITY_ATTRIBUTES attributes;
+    attributes.nLength = sizeof( attributes );
+    attributes.lpSecurityDescriptor = &descriptor;
+    attributes.bInheritHandle = FALSE;
+
+    // CREATE_NEW fails for anything that exists, a symbolic link included
+    std::wstring wPath = ToWString( actualPath );
+    HANDLE file = ::CreateFileW( wPath.c_str(), GENERIC_WRITE, 0, &attributes, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL );
+    const DWORD createError = ::GetLastError();
+    ::LocalFree( acl );
+    if ( INVALID_HANDLE_VALUE == file )
+    {
+        problem = ( ERROR_FILE_EXISTS == createError || ERROR_ALREADY_EXISTS == createError ) ? "something exists at the path already" : "the file cannot be made";
+        return false;
+    }
+    const char* bytes = static_cast< const char* >( data );
+    UInt32 written = 0;
+    bool success = true;
+    while ( written < dataSizeInBytes )
+    {
+        DWORD chunk = 0;
+        if ( FALSE == ::WriteFile( file, bytes + written, dataSizeInBytes - written, &chunk, NULL ) || 0 == chunk )
+        {
+            success = false;
+            break;
+        }
+        written += chunk;
+    }
+    success = ( FALSE != ::FlushFileBuffers( file ) ) && success;
+    ::CloseHandle( file );
+    if ( !success )
+    {
+        ::DeleteFileW( wPath.c_str() );
+        problem = "the file cannot be written";
+        return false;
+    }
+    return true;
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || \
+            ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+            ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
+
+    // the mode is given to open() itself: the umask can only narrow it, and fchmod() sets exactly 0600 afterwards
+    int flags = O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW;
+    #ifdef O_CLOEXEC
+    flags |= O_CLOEXEC;
+    #endif
+    int fd = ::open( actualPath.C_String(), flags, S_IRUSR | S_IWUSR );
+    if ( fd < 0 )
+    {
+        problem = EEXIST == errno ? CString( "something exists at the path already" ) : "the file cannot be made: " + CString( ::strerror( errno ) );
+        return false;
+    }
+    bool success = 0 == ::fchmod( fd, S_IRUSR | S_IWUSR );
+    const char* bytes = static_cast< const char* >( data );
+    UInt32 written = 0;
+    while ( success && written < dataSizeInBytes )
+    {
+        ssize_t chunk = ::write( fd, bytes + written, dataSizeInBytes - written );
+        if ( chunk < 0 && EINTR == errno )
+            continue;
+        if ( chunk <= 0 )
+        {
+            success = false;
+            break;
+        }
+        written += (UInt32) chunk;
+    }
+    success = 0 == ::fsync( fd ) && success;
+    success = 0 == ::close( fd ) && success;
+    if ( !success )
+    {
+        ::unlink( actualPath.C_String() );
+        problem = "the file cannot be written";
+        return false;
+    }
+    return true;
+
+    #else
+
+    problem = "owner-only files are not supported on this platform";
+    return false;
+
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+ReadOwnerOnlyFile( const CString& path      ,
+                   CDynamicBuffer& content  ,
+                   CString& problem         ,
+                   bool* isMissing          )
+{GUCEF_TRACE;
+
+    static const UInt32 maxBytes = 1048576;
+
+    problem.Clear();
+    content.Clear( false );
+    if ( GUCEF_NULL != isMissing )
+        *isMissing = false;
+    if ( path.IsNULLOrEmpty() )
+    {
+        problem = "no path";
+        return false;
+    }
+    const CString actualPath = RelativePath( path );
+
+    #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
+
+    std::wstring wPath = ToWString( actualPath );
+    HANDLE file = ::CreateFileW( wPath.c_str(), GENERIC_READ | READ_CONTROL, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, NULL );
+    if ( INVALID_HANDLE_VALUE == file )
+    {
+        const DWORD openError = ::GetLastError();
+        if ( ERROR_FILE_NOT_FOUND == openError || ERROR_PATH_NOT_FOUND == openError )
+        {
+            if ( GUCEF_NULL != isMissing )
+                *isMissing = true;
+            problem = "the file does not exist";
+        }
+        else
+        {
+            problem = "the file cannot be opened";
+        }
+        return false;
+    }
+
+    bool safe = true;
+    BY_HANDLE_FILE_INFORMATION info;
+    if ( FALSE == ::GetFileInformationByHandle( file, &info ) || FILE_TYPE_DISK != ::GetFileType( file ) ||
+         0 != ( info.dwFileAttributes & ( FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY ) ) )
+    {
+        safe = false;
+        problem = "the path is no regular file";
+    }
+
+    CDynamicBuffer userInfo;
+    PSID userSid = safe ? GetProcessUserSid( userInfo ) : GUCEF_NULL;
+    PSID owner = NULL;
+    PACL dacl = NULL;
+    PSECURITY_DESCRIPTOR descriptor = NULL;
+    if ( safe && ( GUCEF_NULL == userSid ||
+                   ERROR_SUCCESS != ::GetSecurityInfo( file, SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION, &owner, NULL, &dacl, NULL, &descriptor ) ) )
+    {
+        safe = false;
+        problem = "the owner and the access list of the file cannot be read";
+    }
+    if ( safe && ( NULL == owner || ( FALSE == ::EqualSid( owner, userSid ) && !IsWellKnownSid( owner, WinBuiltinAdministratorsSid ) ) ) )
+    {
+        safe = false;
+        problem = "the file is not owned by the user of the process";
+    }
+    if ( safe && NULL == dacl )
+    {
+        // no DACL at all grants everybody everything
+        safe = false;
+        problem = "the file can be accessed by everybody";
+    }
+    for ( DWORD i=0; safe && i<dacl->AceCount; ++i )
+    {
+        LPVOID ace = NULL;
+        if ( FALSE == ::GetAce( dacl, i, &ace ) )
+        {
+            safe = false;
+            problem = "the access list of the file cannot be read";
+            break;
+        }
+        const ACE_HEADER* header = static_cast< const ACE_HEADER* >( ace );
+        if ( ACCESS_DENIED_ACE_TYPE == header->AceType || SYSTEM_AUDIT_ACE_TYPE == header->AceType )
+            continue;
+        if ( ACCESS_ALLOWED_ACE_TYPE != header->AceType )
+        {
+            // object, callback and other kinds of grants are not judged: refused
+            safe = false;
+            problem = "the access list of the file holds entries that are not understood";
+            break;
+        }
+        PSID sid = (PSID) &( static_cast< ACCESS_ALLOWED_ACE* >( ace )->SidStart );
+        if ( FALSE == ::EqualSid( sid, userSid ) && !IsWellKnownSid( sid, WinLocalSystemSid ) && !IsWellKnownSid( sid, WinBuiltinAdministratorsSid ) )
+        {
+            safe = false;
+            problem = "others than the user of the process can access the file";
+        }
+    }
+    if ( NULL != descriptor )
+        ::LocalFree( descriptor );
+
+    if ( safe )
+    {
+        LARGE_INTEGER size;
+        if ( FALSE == ::GetFileSizeEx( file, &size ) || size.QuadPart > (LONGLONG) maxBytes )
+        {
+            safe = false;
+            problem = "the file is too large";
+        }
+        else
+        {
+            const UInt32 total = (UInt32) size.QuadPart;
+            content.SetBufferSize( total > 0 ? total : 1, false );
+            UInt32 got = 0;
+            while ( got < total )
+            {
+                DWORD chunk = 0;
+                if ( FALSE == ::ReadFile( file, static_cast< char* >( content.GetBufferPtr() ) + got, total - got, &chunk, NULL ) || 0 == chunk )
+                    break;
+                got += chunk;
+            }
+            content.SetDataSize( got );
+            if ( got != total )
+            {
+                safe = false;
+                problem = "the file cannot be read";
+            }
+        }
+    }
+    ::CloseHandle( file );
+    if ( !safe )
+        content.Clear( false );
+    return safe;
+
+    #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) || \
+            ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_MACOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPHONEOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_IPADOS ) || \
+            ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_TVOS ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_APPLE_VISIONOS ) )
+
+    // O_NOFOLLOW: a link is refused (ELOOP), not followed; O_NONBLOCK: a FIFO cannot hold the open up
+    int flags = O_RDONLY | O_NOFOLLOW | O_NONBLOCK;
+    #ifdef O_CLOEXEC
+    flags |= O_CLOEXEC;
+    #endif
+    int fd = ::open( actualPath.C_String(), flags );
+    if ( fd < 0 )
+    {
+        if ( ENOENT == errno )
+        {
+            if ( GUCEF_NULL != isMissing )
+                *isMissing = true;
+            problem = "the file does not exist";
+        }
+        else
+        if ( ELOOP == errno )
+            problem = "the path is a symbolic link";
+        else
+            problem = "the file cannot be opened: " + CString( ::strerror( errno ) );
+        return false;
+    }
+
+    struct stat info;
+    bool safe = 0 == ::fstat( fd, &info );
+    if ( !safe )
+        problem = "the file cannot be examined";
+    else
+    if ( !S_ISREG( info.st_mode ) )
+    {
+        safe = false;
+        problem = "the path is no regular file";
+    }
+    else
+    if ( info.st_uid != ::geteuid() )
+    {
+        safe = false;
+        problem = "the file is not owned by the user of the process";
+    }
+    else
+    if ( 0 != ( info.st_mode & ( S_IRWXG | S_IRWXO ) ) )
+    {
+        safe = false;
+        problem = "the group or others have access to the file";
+    }
+    else
+    if ( info.st_size > (off_t) maxBytes )
+    {
+        safe = false;
+        problem = "the file is too large";
+    }
+
+    if ( safe )
+    {
+        const UInt32 total = (UInt32) info.st_size;
+        content.SetBufferSize( total > 0 ? total : 1, false );
+        UInt32 got = 0;
+        while ( got < total )
+        {
+            ssize_t chunk = ::read( fd, static_cast< char* >( content.GetBufferPtr() ) + got, total - got );
+            if ( chunk < 0 && EINTR == errno )
+                continue;
+            if ( chunk <= 0 )
+                break;
+            got += (UInt32) chunk;
+        }
+        content.SetDataSize( got );
+        if ( got != total )
+        {
+            safe = false;
+            problem = "the file cannot be read";
+        }
+    }
+    ::close( fd );
+    if ( !safe )
+        content.Clear( false );
+    return safe;
+
+    #else
+
+    problem = "owner-only files are not supported on this platform";
     return false;
 
     #endif
@@ -2555,6 +3066,8 @@ CStorageVolumeInfoOSData::CStorageVolumeInfoOSData( void )
 CStorageVolumeInfoOSData::~CStorageVolumeInfoOSData()
 {GUCEF_TRACE;
 
+    GUCEF_DELETE m_impl;
+    m_impl = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/

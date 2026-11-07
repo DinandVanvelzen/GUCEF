@@ -697,6 +697,7 @@ class CRedactor::COutput
 
     COutput( UInt32 capacity                ,
              const CString& marker          ,
+             const CString& idMarker        ,
              bool sanitizeControl           ,
              bool sanitizeNonAscii          )
         : m_buffer( m_inline )
@@ -705,6 +706,8 @@ class CRedactor::COutput
         , m_full( false )
         , m_marker( marker.C_String() )
         , m_markerLength( ByteLength( marker ) )
+        , m_idMarker( idMarker.C_String() )
+        , m_idMarkerLength( ByteLength( idMarker ) )
         , m_sanitizeControl( sanitizeControl )
         , m_sanitizeNonAscii( sanitizeNonAscii )
     {
@@ -761,6 +764,13 @@ class CRedactor::COutput
             PutRaw( m_marker[ i ] );
     }
 
+    /** What replaces a path segment that is an identifier */
+    void PutIdMarker( void )
+    {
+        for ( UInt32 i=0; i<m_idMarkerLength && !m_full; ++i )
+            PutRaw( m_idMarker[ i ] );
+    }
+
     /** Ends the result: marks a cut and makes the string of it */
     CString Finish( void )
     {
@@ -793,20 +803,173 @@ class CRedactor::COutput
     bool m_full;
     const char* m_marker;
     UInt32 m_markerLength;
+    const char* m_idMarker;
+    UInt32 m_idMarkerLength;
     bool m_sanitizeControl;
     bool m_sanitizeNonAscii;
 };
 
 /*-------------------------------------------------------------------------*/
 
+/** The marker as it is kept: limited in size, one line */
+static CString
+CleanMarker( const CString& marker )
+{
+    UInt32 length = ByteLength( marker );
+    if ( length > MaxMarkerBytes )
+        length = MaxMarkerBytes;
+
+    GUCEF::vector< char > clean( length + 1, '\0' );
+    for ( UInt32 i=0; i<length; ++i )
+    {
+        unsigned char u = (unsigned char) marker.C_String()[ i ];
+        clean[ i ] = ( u < 0x20 || 0x7F == u ) ? '?' : (char) u;
+    }
+    return CString( &clean[ 0 ] );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Whether the text is a UUID: 8-4-4-4-12 hexadecimal digits */
+static bool
+IsUuidText( const char* text, UInt32 length )
+{
+    if ( 36 != length )
+        return false;
+    for ( UInt32 i=0; i<length; ++i )
+    {
+        if ( 8 == i || 13 == i || 18 == i || 23 == i )
+        {
+            if ( '-' != text[ i ] )
+                return false;
+        }
+        else
+        if ( !IsHexDigit( text[ i ] ) )
+            return false;
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The rules of CRedactor::IsOpaqueIdentifier() */
+static bool
+IsOpaqueIdText( const char* text, UInt32 length )
+{
+    if ( 0 == length )
+        return false;
+
+    // a number of 7 digits or more, or a run of that many in a longer segment
+    UInt32 digits = 0;
+    for ( UInt32 i=0; i<length; ++i )
+    {
+        if ( IsDigit( text[ i ] ) )
+        {
+            if ( ++digits >= 7 )
+                return true;
+        }
+        else
+            digits = 0;
+    }
+
+    if ( IsUuidText( text, length ) )
+        return true;
+
+    // a hash or a token: long, of the characters that such things are written in, and nothing like a word or a slug
+    if ( length < 20 )
+        return false;
+    bool allHex = true;
+    bool hasDigit = false;
+    UInt32 run = 0;
+    UInt32 longestRun = 0;
+    for ( UInt32 i=0; i<length; ++i )
+    {
+        char c = text[ i ];
+        if ( IsAlphaNumeric( c ) )
+        {
+            if ( ++run > longestRun )
+                longestRun = run;
+            if ( IsDigit( c ) )
+                hasDigit = true;
+            if ( !IsHexDigit( c ) )
+                allHex = false;
+        }
+        else
+        if ( '-' == c || '_' == c || '.' == c || '~' == c || '=' == c || '+' == c )
+        {
+            run = 0;
+            allHex = false;
+        }
+        else
+            return false;
+    }
+    return allHex || ( hasDigit && longestRun >= 12 );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** IsOpaqueIdText() of a part of a URL, the escapes of percent encoding undone */
+static bool
+IsOpaqueIdEncoded( const char* text, UInt32 length )
+{
+    CString decoded = DecodeForComparison( text, length );
+    return IsOpaqueIdText( decoded.C_String(), ByteLength( decoded ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The text as it is written in a URL: everything but the unreserved characters is escaped */
+static CString
+PercentEncodeText( const CString& text )
+{
+    static const char hex[] = "0123456789ABCDEF";
+    const UInt32 length = ByteLength( text );
+    GUCEF::vector< char > encoded( (size_t) length * 3 + 1, '\0' );
+    UInt32 written = 0;
+    for ( UInt32 i=0; i<length; ++i )
+    {
+        char c = text.C_String()[ i ];
+        if ( IsAlphaNumeric( c ) || '-' == c || '.' == c || '_' == c || '~' == c )
+            encoded[ written++ ] = c;
+        else
+        {
+            encoded[ written++ ] = '%';
+            encoded[ written++ ] = hex[ ( (unsigned char) c ) >> 4 ];
+            encoded[ written++ ] = hex[ ( (unsigned char) c ) & 0x0F ];
+        }
+    }
+    encoded[ written ] = '\0';
+    return CString( &encoded[ 0 ] );
+}
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+ContainsBytes( const char* text, UInt32 length, const char* part, UInt32 partLength )
+{
+    if ( 0 == partLength || partLength > length )
+        return false;
+    const UInt32 last = length - partLength;
+    for ( UInt32 i=0; i<=last; ++i )
+    {
+        if ( text[ i ] == part[ 0 ] && 0 == memcmp( text + i, part, partLength ) )
+            return true;
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CRedactor::CRedactor( void )
     : m_flags( REDACT_NONE )
     , m_marker( GUCEF_CORE_REDACTION_MARKER )
+    , m_idMarker( GUCEF_CORE_REDACTION_ID_MARKER )
     , m_maxLength( 0 )
     , m_tokenMinLength( 32 )
     , m_sensitiveNames()
     , m_queryNames()
     , m_pathSegments()
+    , m_secrets()
 {GUCEF_TRACE;
 
 }
@@ -816,11 +979,13 @@ CRedactor::CRedactor( void )
 CRedactor::CRedactor( TRedactionFlags flags )
     : m_flags( flags )
     , m_marker( GUCEF_CORE_REDACTION_MARKER )
+    , m_idMarker( GUCEF_CORE_REDACTION_ID_MARKER )
     , m_maxLength( 0 )
     , m_tokenMinLength( 32 )
     , m_sensitiveNames()
     , m_queryNames()
     , m_pathSegments()
+    , m_secrets()
 {GUCEF_TRACE;
 
 }
@@ -830,11 +995,13 @@ CRedactor::CRedactor( TRedactionFlags flags )
 CRedactor::CRedactor( const CRedactor& src )
     : m_flags( src.m_flags )
     , m_marker( src.m_marker )
+    , m_idMarker( src.m_idMarker )
     , m_maxLength( src.m_maxLength )
     , m_tokenMinLength( src.m_tokenMinLength )
     , m_sensitiveNames( src.m_sensitiveNames )
     , m_queryNames( src.m_queryNames )
     , m_pathSegments( src.m_pathSegments )
+    , m_secrets( src.m_secrets )
 {GUCEF_TRACE;
 
 }
@@ -856,11 +1023,13 @@ CRedactor::operator=( const CRedactor& src )
     {
         m_flags = src.m_flags;
         m_marker = src.m_marker;
+        m_idMarker = src.m_idMarker;
         m_maxLength = src.m_maxLength;
         m_tokenMinLength = src.m_tokenMinLength;
         m_sensitiveNames = src.m_sensitiveNames;
         m_queryNames = src.m_queryNames;
         m_pathSegments = src.m_pathSegments;
+        m_secrets = src.m_secrets;
     }
     return *this;
 }
@@ -993,17 +1162,7 @@ CRedactor&
 CRedactor::SetMarker( const CString& marker )
 {GUCEF_TRACE;
 
-    UInt32 length = ByteLength( marker );
-    if ( length > MaxMarkerBytes )
-        length = MaxMarkerBytes;
-
-    GUCEF::vector< char > clean( length + 1, '\0' );
-    for ( UInt32 i=0; i<length; ++i )
-    {
-        unsigned char u = (unsigned char) marker.C_String()[ i ];
-        clean[ i ] = ( u < 0x20 || 0x7F == u ) ? '?' : (char) u;
-    }
-    m_marker = CString( &clean[ 0 ] );
+    m_marker = CleanMarker( marker );
     return *this;
 }
 
@@ -1014,6 +1173,25 @@ CRedactor::GetMarker( void ) const
 {GUCEF_TRACE;
 
     return m_marker;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRedactor&
+CRedactor::SetIdMarker( const CString& marker )
+{GUCEF_TRACE;
+
+    m_idMarker = CleanMarker( marker );
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CString&
+CRedactor::GetIdMarker( void ) const
+{GUCEF_TRACE;
+
+    return m_idMarker;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1107,6 +1285,131 @@ CRedactor::ClearPatterns( void )
 
 /*-------------------------------------------------------------------------*/
 
+static void
+InsertSecret( GUCEF::vector< CString, gucef_allocator< CString > >& secrets, const CString& secret )
+{
+    // longest first, so that of secrets which overlap the longest is replaced
+    size_t position = 0;
+    while ( position < secrets.size() && ByteLength( secrets[ position ] ) >= ByteLength( secret ) )
+    {
+        if ( secrets[ position ] == secret )
+            return;
+        ++position;
+    }
+    secrets.insert( secrets.begin() + position, secret );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRedactor::AddSecret( const CString& secret )
+{GUCEF_TRACE;
+
+    if ( secret.IsNULLOrEmpty() )
+        return false;
+
+    InsertSecret( m_secrets, secret );
+    CString encoded = PercentEncodeText( secret );
+    if ( encoded != secret )
+        InsertSecret( m_secrets, encoded );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+static bool
+EraseSecret( GUCEF::vector< CString, gucef_allocator< CString > >& secrets, const CString& secret )
+{
+    for ( size_t i=0; i<secrets.size(); ++i )
+    {
+        if ( secrets[ i ] == secret )
+        {
+            secrets.erase( secrets.begin() + i );
+            return true;
+        }
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRedactor::RemoveSecret( const CString& secret )
+{GUCEF_TRACE;
+
+    if ( secret.IsNULLOrEmpty() )
+        return false;
+
+    const bool removed = EraseSecret( m_secrets, secret );
+    const CString encoded = PercentEncodeText( secret );
+    if ( encoded != secret )
+        EraseSecret( m_secrets, encoded );
+    return removed;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CRedactor&
+CRedactor::ClearSecrets( void )
+{GUCEF_TRACE;
+
+    m_secrets.clear();
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRedactor::IsOpaqueIdentifier( const CString& segment )
+{GUCEF_TRACE;
+
+    return IsOpaqueIdText( segment.C_String(), ByteLength( segment ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CRedactor::ScrubSecrets( const char* text, UInt32 length, CString& scrubbed ) const
+{GUCEF_TRACE;
+
+    if ( m_secrets.empty() || 0 == length )
+        return false;
+
+    bool any = false;
+    for ( size_t s=0; s<m_secrets.size() && !any; ++s )
+        any = ContainsBytes( text, length, m_secrets[ s ].C_String(), ByteLength( m_secrets[ s ] ) );
+    if ( !any )
+        return false;
+
+    const char* marker = m_marker.C_String();
+    const UInt32 markerLength = ByteLength( m_marker );
+    GUCEF::vector< char > result;
+    result.reserve( length + 1 );
+    UInt32 i = 0;
+    while ( i < length )
+    {
+        bool replaced = false;
+        for ( size_t s=0; s<m_secrets.size(); ++s )
+        {
+            const UInt32 secretLength = ByteLength( m_secrets[ s ] );
+            if ( secretLength <= length - i && text[ i ] == m_secrets[ s ].C_String()[ 0 ] && 0 == memcmp( text + i, m_secrets[ s ].C_String(), secretLength ) )
+            {
+                result.insert( result.end(), marker, marker + markerLength );
+                i += secretLength;
+                replaced = true;
+                break;
+            }
+        }
+        if ( !replaced )
+            result.push_back( text[ i++ ] );
+    }
+    result.push_back( '\0' );
+    scrubbed = CString( &result[ 0 ] );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
 static bool
 MatchesAnyPattern( const GUCEF::vector< CGlobPattern, gucef_allocator< CGlobPattern > >& patterns, const CString& text )
 {
@@ -1191,7 +1494,8 @@ UInt32
 CRedactor::ReserveSize( UInt32 inputLength ) const
 {
     // what the input can give at most: every byte can be replaced by a marker, and a line takes one byte more
-    UInt64 bound = (UInt64) inputLength * ( (UInt64) ByteLength( m_marker ) + 3 ) + 64;
+    const UInt64 markerLength = ByteLength( m_marker ) > ByteLength( m_idMarker ) ? ByteLength( m_marker ) : ByteLength( m_idMarker );
+    UInt64 bound = (UInt64) inputLength * ( markerLength + 3 ) + 64;
     if ( bound > MaxResultBytes )
         bound = MaxResultBytes;
     if ( 0 != m_maxLength && m_maxLength < bound )
@@ -1202,10 +1506,61 @@ CRedactor::ReserveSize( UInt32 inputLength ) const
 /*-------------------------------------------------------------------------*/
 
 void
+CRedactor::WritePathSegment( COutput& out, const char* segment, UInt32 length ) const
+{
+    // The part up to the first ';' is the segment, the parts after it are its parameters (";jsessionid=...")
+    UInt32 end = 0;
+    while ( end < length && ';' != segment[ end ] )
+        ++end;
+    if ( IsOpaqueIdEncoded( segment, end ) )
+        out.PutIdMarker();
+    else
+        out.Put( segment, end );
+
+    UInt32 i = end;
+    while ( i < length && !out.IsFull() )
+    {
+        out.Put( ';' );
+        ++i;
+        UInt32 partEnd = i;
+        UInt32 equals = length;
+        while ( partEnd < length && ';' != segment[ partEnd ] )
+        {
+            if ( '=' == segment[ partEnd ] && length == equals )
+                equals = partEnd;
+            ++partEnd;
+        }
+        if ( equals < partEnd )
+        {
+            out.Put( segment + i, equals - i + 1 );
+            const char* value = segment + equals + 1;
+            const UInt32 valueLength = partEnd - equals - 1;
+            if ( valueLength > 0 && ( IsOpaqueIdEncoded( value, valueLength ) ||
+                                      IsSensitiveNameBytes( segment + i, equals - i ) ) )
+                out.PutIdMarker();
+            else
+                out.Put( value, valueLength );
+        }
+        else
+        {
+            if ( IsOpaqueIdEncoded( segment + i, partEnd - i ) )
+                out.PutIdMarker();
+            else
+                out.Put( segment + i, partEnd - i );
+        }
+        i = partEnd;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CRedactor::WritePath( COutput& out, const char* url, UInt32 length, UInt32& position ) const
 {
     UInt32 i = position;
-    if ( 0 != ( m_flags & REDACT_URL_PATH_SEGMENTS ) && !m_pathSegments.empty() )
+    const bool listed = 0 != ( m_flags & REDACT_URL_PATH_SEGMENTS ) && !m_pathSegments.empty();
+    const bool ids = 0 != ( m_flags & REDACT_URL_PATH_IDS );
+    if ( listed || ids )
     {
         while ( i < length && '?' != url[ i ] && '#' != url[ i ] && !out.IsFull() )
         {
@@ -1218,8 +1573,11 @@ CRedactor::WritePath( COutput& out, const char* url, UInt32 length, UInt32& posi
             UInt32 segmentStart = i;
             while ( i < length && '/' != url[ i ] && '?' != url[ i ] && '#' != url[ i ] )
                 ++i;
-            if ( IsPathSegmentToRedact( url + segmentStart, i - segmentStart ) )
+            if ( listed && IsPathSegmentToRedact( url + segmentStart, i - segmentStart ) )
                 out.PutMarker();
+            else
+            if ( ids )
+                WritePathSegment( out, url + segmentStart, i - segmentStart );
             else
                 out.Put( url + segmentStart, i - segmentStart );
         }
@@ -1807,7 +2165,14 @@ CRedactor::RedactUrlBytes( const char* url, UInt32 length ) const
     if ( GUCEF_NULL == url || 0 == length )
         return CString();
 
-    COutput out( ReserveSize( length ), m_marker, 0 != ( m_flags & REDACT_SANITIZE_CONTROL ), 0 != ( m_flags & REDACT_SANITIZE_NON_ASCII ) );
+    CString scrubbed;
+    if ( ScrubSecrets( url, length, scrubbed ) )
+    {
+        url = scrubbed.C_String();
+        length = ByteLength( scrubbed );
+    }
+
+    COutput out( ReserveSize( length ), m_marker, m_idMarker, 0 != ( m_flags & REDACT_SANITIZE_CONTROL ), 0 != ( m_flags & REDACT_SANITIZE_NON_ASCII ) );
     WriteUrl( out, url, length );
     return out.Finish();
 }
@@ -1831,12 +2196,20 @@ CRedactor::RedactHeaderValue( const CString& name  ,
                               const CString& value ) const
 {GUCEF_TRACE;
 
-    const UInt32 length = ByteLength( value );
+    UInt32 length = ByteLength( value );
     if ( 0 == length && !( 0 != ( m_flags & REDACT_HEADER_VALUES ) && IsSensitiveName( name ) ) )
         return CString();
 
-    COutput out( ReserveSize( length ), m_marker, 0 != ( m_flags & REDACT_SANITIZE_CONTROL ), 0 != ( m_flags & REDACT_SANITIZE_NON_ASCII ) );
-    WriteHeaderValue( out, name, value.C_String(), length );
+    const char* chars = value.C_String();
+    CString scrubbed;
+    if ( ScrubSecrets( chars, length, scrubbed ) )
+    {
+        chars = scrubbed.C_String();
+        length = ByteLength( scrubbed );
+    }
+
+    COutput out( ReserveSize( length ), m_marker, m_idMarker, 0 != ( m_flags & REDACT_SANITIZE_CONTROL ), 0 != ( m_flags & REDACT_SANITIZE_NON_ASCII ) );
+    WriteHeaderValue( out, name, chars, length );
     return out.Finish();
 }
 
@@ -1849,9 +2222,17 @@ CRedactor::RedactHeaders( const CString& block ) const
     if ( block.IsNULLOrEmpty() )
         return CString();
 
-    const UInt32 length = ByteLength( block );
-    COutput out( ReserveSize( length ), m_marker, 0 != ( m_flags & REDACT_SANITIZE_CONTROL ), 0 != ( m_flags & REDACT_SANITIZE_NON_ASCII ) );
-    WriteHeaders( out, block.C_String(), length );
+    const char* chars = block.C_String();
+    UInt32 length = ByteLength( block );
+    CString scrubbed;
+    if ( ScrubSecrets( chars, length, scrubbed ) )
+    {
+        chars = scrubbed.C_String();
+        length = ByteLength( scrubbed );
+    }
+
+    COutput out( ReserveSize( length ), m_marker, m_idMarker, 0 != ( m_flags & REDACT_SANITIZE_CONTROL ), 0 != ( m_flags & REDACT_SANITIZE_NON_ASCII ) );
+    WriteHeaders( out, chars, length );
     return out.Finish();
 }
 
@@ -1864,9 +2245,17 @@ CRedactor::RedactText( const CString& text ) const
     if ( text.IsNULLOrEmpty() )
         return CString();
 
-    const UInt32 length = ByteLength( text );
-    COutput out( ReserveSize( length ), m_marker, 0 != ( m_flags & REDACT_SANITIZE_CONTROL ), 0 != ( m_flags & REDACT_SANITIZE_NON_ASCII ) );
-    WriteText( out, text.C_String(), length );
+    const char* chars = text.C_String();
+    UInt32 length = ByteLength( text );
+    CString scrubbed;
+    if ( ScrubSecrets( chars, length, scrubbed ) )
+    {
+        chars = scrubbed.C_String();
+        length = ByteLength( scrubbed );
+    }
+
+    COutput out( ReserveSize( length ), m_marker, m_idMarker, 0 != ( m_flags & REDACT_SANITIZE_CONTROL ), 0 != ( m_flags & REDACT_SANITIZE_NON_ASCII ) );
+    WriteText( out, chars, length );
     return out.Finish();
 }
 

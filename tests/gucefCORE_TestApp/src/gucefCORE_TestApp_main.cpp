@@ -1,20 +1,18 @@
 /*
  *  gucefCORE_TestApp: GUCEF test application for the CORE module
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -91,6 +89,8 @@
 
 #ifndef GUCEF_CORE_TESTAPP_TESTSCHEDULE_H
 #include "TestSchedule.h"
+#include "TestScheduleTrigger.h"
+#include "TestFloatText.h"
 #define GUCEF_CORE_TESTAPP_TESTSCHEDULE_H
 #endif /* GUCEF_CORE_TESTAPP_TESTSCHEDULE_H ? */
 
@@ -159,6 +159,96 @@
 #define GUCEF_CORE_TESTAPP_TESTFRACTION_H
 #endif /* GUCEF_CORE_TESTAPP_TESTFRACTION_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTUINT128_H
+#include "TestUInt128.h"
+#define GUCEF_CORE_TESTAPP_TESTUINT128_H
+#endif /* GUCEF_CORE_TESTAPP_TESTUINT128_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTDECIMAL_H
+#include "TestDecimal.h"
+#define GUCEF_CORE_TESTAPP_TESTDECIMAL_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDECIMAL_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTDECIMALVARIANT_H
+#include "TestDecimalVariant.h"
+#define GUCEF_CORE_TESTAPP_TESTDECIMALVARIANT_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDECIMALVARIANT_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTDATATABLEVARIANT_H
+#include "TestDataTableVariant.h"
+#define GUCEF_CORE_TESTAPP_TESTDATATABLEVARIANT_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDATATABLEVARIANT_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTDATATABLESCHEMA_H
+#include "TestDataTableSchema.h"
+#define GUCEF_CORE_TESTAPP_TESTDATATABLESCHEMA_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDATATABLESCHEMA_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTDATATABLEBUFFERPOOL_H
+#include "TestDataTableBufferPool.h"
+#define GUCEF_CORE_TESTAPP_TESTDATATABLEBUFFERPOOL_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDATATABLEBUFFERPOOL_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTDATATABLECOLUMNBATCH_H
+#include "TestDataTableColumnBatch.h"
+#define GUCEF_CORE_TESTAPP_TESTDATATABLECOLUMNBATCH_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDATATABLECOLUMNBATCH_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTDATATABLEBATCHBUILDER_H
+#include "TestDataTableBatchBuilder.h"
+#define GUCEF_CORE_TESTAPP_TESTDATATABLEBATCHBUILDER_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDATATABLEBATCHBUILDER_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTDATATABLEPREDICATE_H
+#include "TestDataTablePredicate.h"
+#define GUCEF_CORE_TESTAPP_TESTDATATABLEPREDICATE_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDATATABLEPREDICATE_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTDATATABLESCAN_H
+#include "TestDataTableScan.h"
+#define GUCEF_CORE_TESTAPP_TESTDATATABLESCAN_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDATATABLESCAN_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTMEMORYDATATABLE_H
+#include "TestMemoryDataTable.h"
+#define GUCEF_CORE_TESTAPP_TESTMEMORYDATATABLE_H
+#endif /* GUCEF_CORE_TESTAPP_TESTMEMORYDATATABLE_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTFILEDATATABLE_H
+#include "TestFileDataTable.h"
+#define GUCEF_CORE_TESTAPP_TESTFILEDATATABLE_H
+#endif /* GUCEF_CORE_TESTAPP_TESTFILEDATATABLE_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTDATATABLESCANBENCHMARK_H
+#include "TestDataTableScanBenchmark.h"
+#define GUCEF_CORE_TESTAPP_TESTDATATABLESCANBENCHMARK_H
+#endif /* GUCEF_CORE_TESTAPP_TESTDATATABLESCANBENCHMARK_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTTABLECODECREGISTRY_H
+#include "TestTableCodecRegistry.h"
+#define GUCEF_CORE_TESTAPP_TESTTABLECODECREGISTRY_H
+#endif /* GUCEF_CORE_TESTAPP_TESTTABLECODECREGISTRY_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTCSVTABLECODECROUNDTRIP_H
+#include "TestCsvTableCodecRoundTrip.h"
+#define GUCEF_CORE_TESTAPP_TESTCSVTABLECODECROUNDTRIP_H
+#endif /* GUCEF_CORE_TESTAPP_TESTCSVTABLECODECROUNDTRIP_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTCSVTABLECODECINFERENCE_H
+#include "TestCsvTableCodecInference.h"
+#define GUCEF_CORE_TESTAPP_TESTCSVTABLECODECINFERENCE_H
+#endif /* GUCEF_CORE_TESTAPP_TESTCSVTABLECODECINFERENCE_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTCSVTABLECODECWRITER_H
+#include "TestCsvTableCodecWriter.h"
+#define GUCEF_CORE_TESTAPP_TESTCSVTABLECODECWRITER_H
+#endif /* GUCEF_CORE_TESTAPP_TESTCSVTABLECODECWRITER_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTCSVTABLECODEC_H
+#include "TestCsvTableCodec.h"
+#define GUCEF_CORE_TESTAPP_TESTCSVTABLECODEC_H
+#endif /* GUCEF_CORE_TESTAPP_TESTCSVTABLECODEC_H ? */
+
 #ifndef GUCEF_CORE_TESTAPP_TESTDATADRIVENDSTORECODECS_H
 #include "TestDataDrivenDStoreCodecs.h"
 #define GUCEF_CORE_TESTAPP_TESTDATADRIVENDSTORECODECS_H
@@ -176,6 +266,7 @@
 
 #ifndef GUCEF_CORE_TESTAPP_TESTTHREADPOOLCANCELLATION_H
 #include "TestThreadPoolCancellation.h"
+#include "TestTaskMemoryRetention.h"
 #include "TestFutureResultSource.h"
 #include "TestFileSystemAccess.h"
 #include "TestVariantMapAdapter.h"
@@ -270,6 +361,11 @@
 #define GUCEF_CORE_TESTAPP_TESTRATELIMITING_H
 #endif /* GUCEF_CORE_TESTAPP_TESTRATELIMITING_H ? */
 
+#ifndef GUCEF_CORE_TESTAPP_TESTSECUREBUFFER_H
+#include "TestSecureBuffer.h"
+#define GUCEF_CORE_TESTAPP_TESTSECUREBUFFER_H
+#endif /* GUCEF_CORE_TESTAPP_TESTSECUREBUFFER_H ? */
+
 #ifndef GUCEF_CORE_TESTAPP_TESTFILEACCESS_H
 #include "TestFileAccess.h"
 #define GUCEF_CORE_TESTAPP_TESTFILEACCESS_H
@@ -279,6 +375,31 @@
 #include "TestFrameworkSkip.h"
 #define GUCEF_CORE_TESTAPP_TESTFRAMEWORKSKIP_H
 #endif /* GUCEF_CORE_TESTAPP_TESTFRAMEWORKSKIP_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_JSONDATANODEFIDELITY_H
+#include "TestJsonDataNodeFidelity.h"
+#define GUCEF_CORE_TESTAPP_JSONDATANODEFIDELITY_H
+#endif /* GUCEF_CORE_TESTAPP_JSONDATANODEFIDELITY_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_JSONSCHEMA_H
+#include "TestJsonSchema.h"
+#define GUCEF_CORE_TESTAPP_JSONSCHEMA_H
+#endif /* GUCEF_CORE_TESTAPP_JSONSCHEMA_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_JSONSYNTAXVALIDATOR_H
+#include "TestJsonSyntaxValidator.h"
+#define GUCEF_CORE_TESTAPP_JSONSYNTAXVALIDATOR_H
+#endif /* GUCEF_CORE_TESTAPP_JSONSYNTAXVALIDATOR_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_STANDARDSTREAMS_H
+#include "TestStandardStreams.h"
+#define GUCEF_CORE_TESTAPP_STANDARDSTREAMS_H
+#endif /* GUCEF_CORE_TESTAPP_STANDARDSTREAMS_H ? */
+
+#ifndef GUCEF_CORE_TESTAPP_TESTTIMEZONERULES_H
+#include "TestTimeZoneRules.h"
+#define GUCEF_CORE_TESTAPP_TESTTIMEZONERULES_H
+#endif /* GUCEF_CORE_TESTAPP_TESTTIMEZONERULES_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -322,6 +443,8 @@ GUCEF_OSMAIN_BEGIN
         PerformVarsTests();
         PerformFileUtilsTests();
         PerformFractionTests();
+        PerformUInt128Tests();
+        PerformDecimalTests();
         PerformAbstractFactoryTests();
         PerformTimestampTests();
         PerformStopwatchTests();
@@ -332,6 +455,8 @@ GUCEF_OSMAIN_BEGIN
         PerformVersionRangeTests();
         PerformCronScheduleTests();
         PerformScheduleTests();
+        PerformScheduleTriggerTests();
+        PerformFloatTextTests();
         PerformVariantTests();
         PerformVariantViewTests();
         PerformVariantBinarySerializerTests();
@@ -357,6 +482,7 @@ GUCEF_OSMAIN_BEGIN
         PerformFreeListTests();
         PerformASyncTests();
         PerformThreadPoolCancellationTests();
+        PerformTaskMemoryRetentionTests();
         PerformFutureResultSourceTests();
         PerformFileSystemAccessTests();
         PerformVariantMapAdapterTests();
@@ -367,6 +493,22 @@ GUCEF_OSMAIN_BEGIN
         PerformProcessTests();
         PerformXmlDStoreCodecTests();
         PerformDStoreStreamingTests();
+        PerformDecimalVariantTests();
+        PerformDataTableVariantTests();
+        PerformDataTableSchemaTests();
+        PerformDataTableBufferPoolTests();
+        PerformDataTableColumnBatchTests();
+        PerformDataTableBatchBuilderTests();
+        PerformDataTablePredicateTests();
+        PerformDataTableScanTests();
+        PerformMemoryDataTableTests();
+        PerformFileDataTableTests();
+        PerformDataTableScanBenchmarkTests();
+        PerformTableCodecRegistryTests();
+        PerformCsvTableCodecRoundTripTests();
+        PerformCsvTableCodecInferenceTests();
+        PerformCsvTableCodecWriterTests();
+        PerformCsvTableCodecTests();
         PerformCodecPluginTests();
         PerformCryptoCodecTests();
         PerformBase64UrlTests();
@@ -378,8 +520,14 @@ GUCEF_OSMAIN_BEGIN
         PerformSfinaeUtilsTests();
         PerformRandomTests();
         PerformRateLimitingTests();
+        PerformSecureBufferTests();
         PerformFileAccessTests();
         PerformTestFrameworkSkipTests();
+        PerformJsonDataNodeFidelityTests();
+        PerformJsonSchemaTests();
+        PerformJsonSyntaxValidatorTests();
+        PerformStandardStreamsTests();
+        PerformTimeZoneRulesTests();
 
         GUCEF::CORE::CString xmlPath = GUCEF::CORE::RelativePath( "$CURWORKDIR$" );
         GUCEF::CORE::AppendToPath( xmlPath, "gucefCORE_TestApp_Results.xml" );

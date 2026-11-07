@@ -49,6 +49,12 @@
 /** What replaces everything that is redacted, unless CRedactor::SetMarker() says otherwise */
 #define GUCEF_CORE_REDACTION_MARKER     "***"
 
+/** What replaces a path segment that is an identifier (REDACT_URL_PATH_IDS), unless CRedactor::SetIdMarker() says otherwise */
+#define GUCEF_CORE_REDACTION_ID_MARKER  "<redacted-id>"
+
+/** What replaces the path segments that are identifiers, unless CRedactor::SetIdMarker() says otherwise */
+#define GUCEF_CORE_REDACTION_ID_MARKER  "<redacted-id>"
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -94,6 +100,9 @@ enum ERedactionFlag
     /// URL: a host which is not a valid host name, IPv4 address, [IPv6] address or one of those with ":port", together with the path, since it is then not certain that it holds no credentials. "http://user:pa/ss@host/x" becomes "http://***/***". Non ASCII bytes are accepted in a host name when REDACT_SANITIZE_NON_ASCII is not set.
     REDACT_URL_INVALID_HOST         = 0x00000020,
 
+    /// URL: the path segments that are identifiers or tokens, see CRedactor::IsOpaqueIdentifier(): UUIDs, numbers of 7 digits or more, and hexadecimal or token like strings of 20 characters or more. "/accounts/ABCDEF0123456789ABCDEF0123456789/transactions" becomes "/accounts/<redacted-id>/transactions". Ordinary segments (v1, accounts, orders, index.html, 2024) stay as they are. The value of a path parameter (";jsessionid=...") is judged in the same way. The segments that AddPathSegment() lists are replaced by the marker instead.
+    REDACT_URL_PATH_IDS             = 0x00020000,
+
     /// Headers: the value of a header of which the name is sensitive, see IsSensitiveName(). "Authorization: Bearer abc" becomes "Authorization: ***"
     REDACT_HEADER_VALUES            = 0x00000040,
 
@@ -134,7 +143,7 @@ enum ERedactionFlag
     REDACT_SANITIZE_NON_ASCII       = 0x00200000,
 
     /// The flags that apply to URLs
-    REDACT_URL_ALL                  = REDACT_URL_USERINFO | REDACT_URL_QUERY_VALUES | REDACT_URL_QUERY_LISTED | REDACT_URL_FRAGMENT | REDACT_URL_PATH_SEGMENTS | REDACT_URL_INVALID_HOST,
+    REDACT_URL_ALL                  = REDACT_URL_USERINFO | REDACT_URL_QUERY_VALUES | REDACT_URL_QUERY_LISTED | REDACT_URL_FRAGMENT | REDACT_URL_PATH_SEGMENTS | REDACT_URL_PATH_IDS | REDACT_URL_INVALID_HOST,
 
     /// The flags that apply to header blocks and header values
     REDACT_HEADER_ALL               = REDACT_HEADER_VALUES | REDACT_HEADER_URLS | REDACT_HEADER_UNPARSEABLE_LINES,
@@ -263,6 +272,14 @@ class GUCEF_CORE_PUBLIC_CPP CRedactor
 
     UInt32 GetMaxLength( void ) const;
 
+    /**
+     *  Sets what replaces the path segments that REDACT_URL_PATH_IDS finds, default "<redacted-id>", so that the
+     *  shape of the path stays readable: "/accounts/<redacted-id>/transactions". Same limits as the marker.
+     */
+    CRedactor& SetIdMarker( const CString& marker );
+
+    const CString& GetIdMarker( void ) const;
+
     /** Sets the least length of a run for REDACT_TEXT_TOKEN_RUNS, default 32, at least 8 */
     CRedactor& SetTokenMinLength( UInt32 minLength );
 
@@ -286,6 +303,46 @@ class GUCEF_CORE_PUBLIC_CPP CRedactor
 
     /** Removes the patterns of AddSensitiveName(), AddQueryName() and AddPathSegment() */
     CRedactor& ClearPatterns( void );
+
+    /**
+     *  Adds a secret that the program knows: a literal value, such as an account hash it learned from a server or a
+     *  token it was given, that is replaced by the marker wherever it occurs in what is redacted, by any function and
+     *  also when no flag is set, since it is asked for. Exact and case sensitive. The percent encoded form of the
+     *  secret is replaced as well, since that is how it is written in a URL. The secrets are replaced before the
+     *  rest is looked at, so a secret is never cut in half by the maximum length. Of secrets that overlap the longest
+     *  goes first. Secrets are copied with the redactor, like the patterns, and take a bit of time for every
+     *  secret and every call, so register what is secret and not more.
+     *
+     *  @return false when the secret is empty, in which case it is not added
+     */
+    bool AddSecret( const CString& secret );
+
+    /**
+     *  Removes one secret that AddSecret() added, together with its percent encoded form, for a program that registers a
+     *  secret for as long as it holds it, such as the hashes of the accounts of a login that ends. Of secrets that were
+     *  added more than once it is one secret.
+     *
+     *  @return whether the secret was one of the secrets
+     */
+    bool RemoveSecret( const CString& secret );
+
+    /** Removes the secrets of AddSecret() */
+    CRedactor& ClearSecrets( void );
+
+    /**
+     *  @return whether the segment of a path (not percent encoded) looks like an identifier or a token, and so is not
+     *          meant to be read by a person: that is what REDACT_URL_PATH_IDS replaces. These are:
+     *          - a UUID (8-4-4-4-12 hexadecimal digits)
+     *          - a segment with a run of 7 or more digits (customer and order numbers, time stamps)
+     *          - a segment of 20 characters or more of only hexadecimal digits
+     *          - a segment of 20 characters or more of letters, digits and - _ . ~ = + that has a digit and a run of 12 or
+     *            more letters and digits without a separator: base64url like tokens and hashes. Slugs ("top-10-reasons-to-visit"),
+     *            words, versions, file names and numbers of up to 6 digits are not.
+     *          This is a heuristic: a token of letters only, or of only short parts, is not found. Register such a
+     *          secret with AddSecret() or AddPathSegment().
+     */
+    static bool IsOpaqueIdentifier( const CString& segment );
+
 
     /**
      *  Redacts a URL as the URL flags say; see ERedactionFlag. The URL can be anything that is used as one: with
@@ -340,6 +397,7 @@ class GUCEF_CORE_PUBLIC_CPP CRedactor
     class COutput;
 
     typedef GUCEF::vector< CGlobPattern, gucef_allocator< CGlobPattern > > PatternVector;
+    typedef GUCEF::vector< CString, gucef_allocator< CString > > SecretVector;
 
     void WriteUrl( COutput& out, const char* url, UInt32 length ) const;
 
@@ -363,17 +421,23 @@ class GUCEF_CORE_PUBLIC_CPP CRedactor
 
     bool IsPathSegmentToRedact( const char* segment, UInt32 length ) const;
 
+    void WritePathSegment( COutput& out, const char* segment, UInt32 length ) const;
+
+    bool ScrubSecrets( const char* text, UInt32 length, CString& scrubbed ) const;
+
     UInt32 ReserveSize( UInt32 inputLength ) const;
 
     private:
 
     TRedactionFlags m_flags;
     CString m_marker;
+    CString m_idMarker;
     UInt32 m_maxLength;
     UInt32 m_tokenMinLength;
     PatternVector m_sensitiveNames;
     PatternVector m_queryNames;
     PatternVector m_pathSegments;
+    SecretVector m_secrets;
 };
 
 /*-------------------------------------------------------------------------//

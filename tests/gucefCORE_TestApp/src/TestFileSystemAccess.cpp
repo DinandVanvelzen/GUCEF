@@ -86,6 +86,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #include "TestFileSystemAccess.h"
 
 using namespace GUCEF;
@@ -115,7 +120,9 @@ namespace {
 CORE::CString
 MakeTestDir( const char* name )
 {
-    CORE::CString dir = CORE::CombinePath( CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_FileSystemAccess" ), name );
+    // one root per process (and removed at its end), so that two instances of this application do not share the directories
+    static TESTFW::CScopedTestDir root( "gucefCORE_TestApp_FileSystemAccess" );
+    CORE::CString dir = CORE::CombinePath( root.GetPath(), name );
     CORE::DeleteDir( dir, true );
     CORE::CreateDirs( dir );
     return dir;

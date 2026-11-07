@@ -89,6 +89,9 @@ struct SThreadData
     void* data;
     pid_t threadId;
     pthread_cond_t exitSignal;
+    pthread_mutex_t startMutex;     /* guards 'started', the hand shake between ThreadCreate() and the new thread */
+    pthread_cond_t startSignal;
+    int started;                    /* set by the new thread once threadId and threadStatus are valid */
 
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
 
@@ -171,8 +174,18 @@ ThreadMain( void* tdvptr )
 
     GUCEF_BEGIN;
     TThreadData* td = (TThreadData*) tdvptr;
+
+    /*
+     *  Publish the thread id and status to the thread that is in ThreadCreate(): it waits for this before it returns,
+     *  so ThreadID() is valid for every caller from the moment ThreadCreate() has returned, without a data race.
+     */
+    pthread_mutex_lock( &td->startMutex );
     td->threadStatus = THREADSTATUS_RUNNING;
     td->threadId = gettid();
+    td->started = 1;
+    pthread_cond_signal( &td->startSignal );
+    pthread_mutex_unlock( &td->startMutex );
+
     td->returnValue = td->func( td->data );
     pthread_cond_signal( &td->exitSignal );
     GUCEF_END;
@@ -220,6 +233,8 @@ ThreadDataReserve( void )
     {
         memset( td, 0, sizeof(TThreadData) );
         pthread_cond_init( &td->exitSignal, GUCEF_NULL );
+        pthread_mutex_init( &td->startMutex, GUCEF_NULL );
+        pthread_cond_init( &td->startSignal, GUCEF_NULL );
         td->threadStatus = THREADSTATUS_UNDEFINED;
     }
     return td;
@@ -255,6 +270,10 @@ ThreadDataCleanup( struct SThreadData* td )
         #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN ) )
         pthread_cond_destroy( &td->exitSignal );
         #endif
+        #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+        pthread_cond_destroy( &td->startSignal );
+        pthread_mutex_destroy( &td->startMutex );
+        #endif
 
         free( td );
     }
@@ -278,10 +297,18 @@ ThreadCreate( struct SThreadData* td ,
                                      0                                   ,  /* initial stack size */
                                      (LPTHREAD_START_ROUTINE) ThreadMain ,  /* thread function */
                                      (LPVOID) td                         ,  /* thread argument */
-                                     0                                   ,  /* creation option */
+                                     CREATE_SUSPENDED                    ,  /* creation option: the thread id is stored before the thread runs */
                                      &td->threadid                       ); /* thread identifier */
     if ( td->threadhandle == NULL )
     {
+        td->threadStatus = THREADSTATUS_CREATION_FAILED;
+        return 0;
+    }
+    if ( (DWORD) -1 == ResumeThread( td->threadhandle ) )
+    {
+        TerminateThread( td->threadhandle, 1 );
+        CloseHandle( td->threadhandle );
+        td->threadhandle = NULL;
         td->threadStatus = THREADSTATUS_CREATION_FAILED;
         return 0;
     }
@@ -290,7 +317,14 @@ ThreadCreate( struct SThreadData* td ,
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
 
     int retVal = 0;
+    /* the primitives were initialized by ThreadDataReserve(), the memset resets them so they are made again */
+    pthread_cond_destroy( &td->exitSignal );
+    pthread_cond_destroy( &td->startSignal );
+    pthread_mutex_destroy( &td->startMutex );
     memset( td, 0, sizeof( TThreadData ) );
+    pthread_cond_init( &td->exitSignal, GUCEF_NULL );
+    pthread_mutex_init( &td->startMutex, GUCEF_NULL );
+    pthread_cond_init( &td->startSignal, GUCEF_NULL );
 
     retVal = pthread_attr_init( &td->attr );
     if ( 0 != retVal )
@@ -312,6 +346,16 @@ ThreadCreate( struct SThreadData* td ,
         td->threadStatus = THREADSTATUS_CREATION_FAILED;
         return 0;
     }
+
+    /*
+     *  Wait until the new thread has published its thread id and status, so that they can be used
+     *  right away by whoever has the thread data, from any thread, without a data race.
+     *  The new thread does this before it runs the thread function so this cannot depend on anything the caller holds.
+     */
+    pthread_mutex_lock( &td->startMutex );
+    while ( 0 == td->started )
+        pthread_cond_wait( &td->startSignal, &td->startMutex );
+    pthread_mutex_unlock( &td->startMutex );
     return 1;
 
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
@@ -362,6 +406,7 @@ ThreadID( struct SThreadData* td )
     #elif ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
     return (UInt32) td->threadId;
     #elif ( GUCEF_PLATFORM == GUCEF_PLATFORM_WASM_EMSCRIPTEN )
+    /* the id is the handle that the creating thread got from pthread_create(), the new thread never writes it */
     return (UInt32)(uintptr_t)td->thread;
     #else
     #error unsupported target platform

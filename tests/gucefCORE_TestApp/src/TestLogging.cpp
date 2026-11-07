@@ -1,20 +1,18 @@
 /*
  *  gucefCORE_TestApp: GUCEF test application for the CORE module
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -1170,6 +1168,37 @@ PerformLoggingTests( void )
         ASSERT_TRUE( captureLogger.HasEntryWith( "BootstrapQueueMessage" ) );
 
         logMgr.RemoveLogger( &captureLogger );
+    GUCEF_TESTFW_TESTCASE_END
+
+    // A process that never registers a logger kept every log line in the bootstrap log for as long as it ran
+    GUCEF_TESTFW_TESTCASE( "Test 20b: The bootstrap log is bounded; what is dropped is counted and reported at the flush" )
+        try
+        {
+            PreDrainThreadBuffer();
+            CORE::CLogManager& logMgr = CORE::CCoreGlobal::Instance()->GetLogManager();
+            const UInt32 oldMax = logMgr.GetMaxBootstrapLogEntries();
+            logMgr.SetMaxBootstrapLogEntries( 100 );
+            logMgr.RedirectToBootstrapLogQueue( true );
+            for ( UInt32 i=0; i<1000; ++i )
+                logMgr.Log( CORE::LOG_STANDARD, CORE::LOGLEVEL_NORMAL, "BootstrapBoundMessage" );
+            const UInt32 held = logMgr.GetBootstrapLogEntryCount();
+            const UInt64 dropped = logMgr.GetDroppedBootstrapLogEntryCount();
+
+            CTestCaptureLogger captureLogger;
+            logMgr.AddLogger( &captureLogger );
+            logMgr.RedirectToBootstrapLogQueue( false );
+            logMgr.SetMaxBootstrapLogEntries( oldMax );
+            ASSERT_TRUE( held <= 100 );
+            ASSERT_TRUE( dropped >= 900 );
+            ASSERT_TRUE( 0 == logMgr.GetBootstrapLogEntryCount() && 0 == logMgr.GetDroppedBootstrapLogEntryCount() );
+            ASSERT_TRUE( captureLogger.HasEntryWith( "BootstrapBoundMessage" ) && captureLogger.HasEntryWith( "were dropped" ) );
+            ASSERT_TRUE( CORE::CLogManager::DefaultMaxBootstrapLogEntries == oldMax );
+            logMgr.RemoveLogger( &captureLogger );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
     GUCEF_TESTFW_TESTCASE_END
 
     // Test 21: Single threaded application, all logging from the main thread

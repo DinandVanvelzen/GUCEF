@@ -1,20 +1,18 @@
 /*
  *  gucefVFS: GUCEF module implementing a Virtual File System
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -83,7 +81,8 @@ namespace VFS {
 //-------------------------------------------------------------------------*/
 
 CFileSystemArchive::CFileSystemArchive( void )
-    : m_diskCacheList()            
+    : m_diskCacheLock()
+    , m_diskCacheList()            
     , m_rootDir()         
     , m_archiveName() 
     , m_writable( false )
@@ -98,7 +97,8 @@ CFileSystemArchive::CFileSystemArchive( void )
 CFileSystemArchive::CFileSystemArchive( const CString& archiveName ,
                                         const CString& rootDir     ,
                                         bool writeable             )
-    : m_diskCacheList()            
+    : m_diskCacheLock()
+    , m_diskCacheList()            
     , m_rootDir( rootDir )         
     , m_archiveName( archiveName ) 
     , m_writable( writeable )
@@ -232,6 +232,7 @@ CFileSystemArchive::DeleteFile( const CString& filePath )
     if ( !IsWithinArchive( filePath ) )
         return false;
     CString path = CORE::CombinePath( m_rootDir, filePath.ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR ) );    
+    ForgetCachedFiles( path, false );
     if ( CORE::FileExists( path ) )
     {
         return CORE::DeleteFile( path );
@@ -255,7 +256,30 @@ CFileSystemArchive::MoveFile( const CString& oldFilePath ,
         if ( !CORE::CreateDirs( newPathDir ) )
             return false;
 
+    ForgetCachedFiles( oldPath, false );
+    ForgetCachedFiles( newPath, false );
     return CORE::MoveFile( oldPath, newPath, overwrite );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CFileSystemArchive::MoveFileAtomically( const CString& oldFilePath ,
+                                        const CString& newFilePath ,
+                                        const bool overwrite       )
+{GUCEF_TRACE;
+
+    CString oldPath = CORE::CombinePath( m_rootDir, oldFilePath.ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR ) );
+    CString newPath = CORE::CombinePath( m_rootDir, newFilePath.ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR ) );
+
+    CString newPathDir = CORE::StripFilename( newPath );
+    if ( !CORE::DirExists( newPathDir ) )
+        if ( !CORE::CreateDirs( newPathDir ) )
+            return false;
+
+    ForgetCachedFiles( oldPath, false );
+    ForgetCachedFiles( newPath, false );
+    return CORE::MoveFileAtomically( oldPath, newPath, overwrite );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -270,6 +294,7 @@ CFileSystemArchive::StoreAsFile( const CORE::CString& filePath    ,
     CString path = CORE::CombinePath( m_rootDir, filePath.ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR ) );
     CString dir = CORE::StripFilename( path );
     CORE::CreateDirs( dir );
+    ForgetCachedFiles( path, false );
     return data.WriteContentToFile( path, offset, overwrite );    
 }
 
@@ -560,8 +585,15 @@ CFileSystemArchive::LoadFromDisk( const CString& filePath                 ,
         if ( ( strcmp( mode, "rb" ) == 0 ) ||
              ( strcmp( mode, "r" ) == 0 )   )
         {
-            // Check our cache for this file
+            // Check our cache for this file: it shares the memory of a small file between the handles open at once.
+            // A file whose size on disk differs from the cached copy was changed from outside the archive since
+            MT::CScopeMutex cacheLock( m_diskCacheLock );
             TFileMemCache::iterator n = m_diskCacheList.find( path );
+            if ( n != m_diskCacheList.end() && (*n).second->GetDataSize() != CORE::FileSize( path ) )
+            {
+                m_diskCacheList.erase( n );
+                n = m_diskCacheList.end();
+            }
             if ( n != m_diskCacheList.end() )
             {
                 // We found the file in our cache, we will link to the existing buffer.
@@ -575,6 +607,10 @@ CFileSystemArchive::LoadFromDisk( const CString& filePath                 ,
             }
         }
     }
+
+    // A file opened for writing changes: later reads must not get a cached copy
+    if ( needwriteable )
+        ForgetCachedFiles( path, false );
 
     // Check if we can proceed under these circumstances
     bool exists( CORE::FileExists( path ) );
@@ -640,8 +676,11 @@ CFileSystemArchive::LoadFromDisk( const CString& filePath                 ,
                     // reset the carat so the user can access the file from the beginning
                     bufferAccess->Setpos( 0 );
 
-                    // Add the file to our buffered files list
-                    m_diskCacheList.insert( std::pair< CORE::CString, TDynamicBufferPtr >( path, bufferPtr ) );
+                    // Add the file to our buffered files list, in place of an entry made meanwhile
+                    {
+                        MT::CScopeMutex cacheLock( m_diskCacheLock );
+                        m_diskCacheList[ path ] = bufferPtr;
+                    }
 
                     // return the file handle
                     return TVfsResourcePtr( GUCEF_NEW CVFSHandle( bufferAccess ,
@@ -684,14 +723,16 @@ CFileSystemArchive::DestroyObject( CVFSHandle* vfshandle ) const
             // This operation is logically const as not altering the archive
             // the cache is a transparent bolt-on
             CFileSystemArchive* mutableThis = const_cast< CFileSystemArchive* >( this );
-            
-            TFileMemCache::iterator n = mutableThis->m_diskCacheList.find( vfshandle->GetFilePath() );
+
+            // The cache is keyed by the file system path, which is the file name of the handle
+            MT::CScopeMutex cacheLock( m_diskCacheLock );
+            TFileMemCache::iterator n = mutableThis->m_diskCacheList.find( vfshandle->GetFilename() );
             if ( n != mutableThis->m_diskCacheList.end() )
             {
-                // We found the file in our cache, we will link to the existing buffer.
-                if ( (*n).second.GetReferenceCount() == 1 )
+                // The cache and this handle hold the buffer: nobody else is using it anymore.
+                // Dropping an entry another handle still uses only ends the sharing, it keeps its buffer
+                if ( (*n).second.GetReferenceCount() <= 2 )
                 {
-                    // nobody else is using the memory buffer anymore
                     mutableThis->m_diskCacheList.erase( n );
                 }
             }
@@ -951,6 +992,7 @@ CFileSystemArchive::DeleteDir( const CString& dirPath, bool deleteContents )
     CString path = CORE::CombinePath( m_rootDir, dirPath.ReplaceChar( GUCEF_DIRSEPCHAROPPOSITE, GUCEF_DIRSEPCHAR ) );
     if ( !CORE::DirExists( path ) )
         return false;
+    ForgetCachedFiles( path, true );
     return CORE::DeleteDir( path, deleteContents ) && !CORE::DirExists( path );
 }
 
@@ -968,7 +1010,34 @@ CFileSystemArchive::MoveDir( const CString& oldDirPath, const CString& newDirPat
         return false;
 
     // the rename of MoveFile() also moves a directory
+    ForgetCachedFiles( oldPath, true );
     return CORE::MoveFile( oldPath, newPath, false ) && CORE::DirExists( newPath );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CFileSystemArchive::ForgetCachedFiles( const CString& fsPath, bool asDirectory ) const
+{GUCEF_TRACE;
+
+    CFileSystemArchive* mutableThis = const_cast< CFileSystemArchive* >( this );
+    MT::CScopeMutex cacheLock( m_diskCacheLock );
+    if ( !asDirectory )
+    {
+        mutableThis->m_diskCacheList.erase( fsPath );
+        return;
+    }
+    CString prefix = fsPath;
+    if ( prefix.IsNULLOrEmpty() || prefix.HasChar( GUCEF_DIRSEPCHAR, false ) != (Int32) prefix.Length() - 1 )
+        prefix += GUCEF_DIRSEPCHAR;
+    TFileMemCache::iterator i = mutableThis->m_diskCacheList.begin();
+    while ( i != mutableThis->m_diskCacheList.end() )
+    {
+        if ( (*i).first.HasSubstr( prefix ) == 0 )
+            mutableThis->m_diskCacheList.erase( i++ );
+        else
+            ++i;
+    }
 }
 
 /*-------------------------------------------------------------------------//

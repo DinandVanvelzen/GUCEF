@@ -49,7 +49,8 @@ files( {
   "include/TestAtomic.h",
   "include/TestMutex.h",
   "include/TestReaderWriterLock.h",
-  "include/TestSpscQueue.h"
+  "include/TestSpscQueue.h",
+  "include/TestThreadData.h"
  } )
 
 
@@ -61,6 +62,7 @@ files( {
   "src/TestMutex.cpp",
   "src/TestReaderWriterLock.cpp",
   "src/TestSpscQueue.cpp",
+  "src/TestThreadData.cpp",
   "src/gucefMT_TestApp.cpp"
  } )
 

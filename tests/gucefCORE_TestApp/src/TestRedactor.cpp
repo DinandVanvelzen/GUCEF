@@ -1811,6 +1811,268 @@ PerformThreadTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+static void
+PerformPathIdentifierTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "Test: IsOpaqueIdentifier tells identifiers and tokens from the segments of an ordinary path" )
+        try
+        {
+            // long hex, a UUID, long numbers and base64url like tokens are identifiers
+            ASSERT_TRUE( CRedactor::IsOpaqueIdentifier( "ABCDEF0123456789ABCDEF0123456789" ) );
+            ASSERT_TRUE( CRedactor::IsOpaqueIdentifier( "abcdefabcdefabcdefab" ) );
+            ASSERT_TRUE( CRedactor::IsOpaqueIdentifier( "123e4567-e89b-12d3-a456-426614174000" ) );
+            ASSERT_TRUE( CRedactor::IsOpaqueIdentifier( "123E4567-E89B-12D3-A456-426614174000" ) );
+            ASSERT_TRUE( CRedactor::IsOpaqueIdentifier( "1234567" ) );
+            ASSERT_TRUE( CRedactor::IsOpaqueIdentifier( "1700000000000" ) );
+            ASSERT_TRUE( CRedactor::IsOpaqueIdentifier( "dGhpcy1pcy1ub3QtYS1yZWFsLXRva2Vu9" ) );
+            ASSERT_TRUE( CRedactor::IsOpaqueIdentifier( "k3J9-x_Qm2LpV8sTz0aWbYc4dEfGhIjK" ) );
+            ASSERT_TRUE( CRedactor::IsOpaqueIdentifier( "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dBjftJeZ4CVPmB92K27uhbUJU1p1r" ) );
+
+            // ordinary segments stay readable: words, versions, file names, short numbers and slugs
+            static const char* const ordinary[] =
+            {
+                "v1", "v2.1", "trader", "accounts", "transactions", "orders", "positions", "quotes", "index.html", "report.pdf",
+                "favicon.ico", "app.min.js", "12", "2024", "123456", "1.2.3", "api", "users", "me", "search",
+                "annual-report-2024-final.pdf", "top-10-reasons-to-visit-paris-in-2024", "a-very-long-descriptive-slug-without-digits",
+                "TransactionsAndOrdersOverview", "abcdefabcdefabcdefa", "user_profile_settings_page", "getdata", "x"
+            };
+            for ( UInt32 i=0; i<sizeof( ordinary ) / sizeof( ordinary[ 0 ] ); ++i )
+            {
+                if ( CRedactor::IsOpaqueIdentifier( ordinary[ i ] ) )
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Redactor test: \"" << ordinary[ i ] << "\" is taken for an identifier" );
+                ASSERT_FALSE( CRedactor::IsOpaqueIdentifier( ordinary[ i ] ) );
+            }
+            ASSERT_FALSE( CRedactor::IsOpaqueIdentifier( "" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: REDACT_URL_PATH_IDS replaces the identifiers of the path and keeps the shape of the path" )
+        try
+        {
+            CRedactor redactor( REDACT_URL_PATH_IDS );
+
+            ASSERT_TRUE( UrlRedactsTo( redactor, "http://127.0.0.1:1/trader/v1/accounts/ABCDEF0123456789ABCDEF0123456789/transactions?x=1",
+                                                 "http://127.0.0.1:1/trader/v1/accounts/<redacted-id>/transactions?x=1" ) );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/users/123e4567-e89b-12d3-a456-426614174000/profile", "https://h/users/<redacted-id>/profile" ) );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/orders/12345678/items/7", "https://h/orders/<redacted-id>/items/7" ) );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/orders/123456/items", "https://h/orders/123456/items" ) );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/a/b.html/c.pdf", "https://h/a/b.html/c.pdf" ) );
+
+            // every identifier of the path, also with a trailing slash and next to each other
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/12345678/87654321/", "https://h/<redacted-id>/<redacted-id>/" ) );
+
+            // the identifier is compared as it is after percent decoding, the result keeps the rest as it was
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/a/%41BCDEF0123456789ABCDEF/b%20c", "https://h/a/<redacted-id>/b%20c" ) );
+
+            // a parameter of a path segment is judged as a segment is, and by its name when names are asked for
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/app;jsessionid=0123456789ABCDEF0123456789/x", "https://h/app;jsessionid=<redacted-id>/x" ) );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/app;v=2/x", "https://h/app;v=2/x" ) );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/app;jsessionid=Abc/x", "https://h/app;jsessionid=Abc/x" ) );
+            ASSERT_TRUE( UrlRedactsTo( CRedactor( REDACT_URL_PATH_IDS | REDACT_NAME_WORDS ), "https://h/app;jsessionid=Abc/x", "https://h/app;jsessionid=<redacted-id>/x" ) );
+
+            // a path, a bare path and a URL without a path
+            ASSERT_TRUE( UrlRedactsTo( redactor, "/accounts/12345678", "/accounts/<redacted-id>" ) );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h", "https://h" ) );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h?x=12345678", "https://h?x=12345678" ) );
+
+            // what is redacted is not redacted again
+            CString once = redactor.RedactUrl( "https://h/accounts/ABCDEF0123456789ABCDEF0123456789/t" );
+            ASSERT_TRUE( SameText( redactor.RedactUrl( once ), once ) );
+
+            // without the flag nothing is replaced, and the other URL flags go their own way
+            ASSERT_TRUE( UrlRedactsTo( CRedactor( REDACT_URL_QUERY_VALUES ), "https://h/accounts/12345678/t?a=b", "https://h/accounts/12345678/t?a=***" ) );
+            ASSERT_TRUE( UrlRedactsTo( CRedactor( REDACT_URL_ALL ), "https://u:p@h/accounts/12345678/t?a=b#f", "https://***@h/accounts/<redacted-id>/t?a=***#***" ) );
+            ASSERT_TRUE( ( REDACT_URL_ALL & REDACT_URL_PATH_IDS ) == REDACT_URL_PATH_IDS );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The marker of the identifiers can be set, and the path patterns work next to the identifiers" )
+        try
+        {
+            CRedactor redactor( REDACT_URL_PATH_IDS | REDACT_URL_PATH_SEGMENTS );
+            ASSERT_TRUE( redactor.GetIdMarker() == "<redacted-id>" );
+            ASSERT_TRUE( redactor.AddPathSegment( "reset-*" ) );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/users/reset-abc/12345678", "https://h/users/***/<redacted-id>" ) );
+
+            redactor.SetIdMarker( "{id}" ).SetMarker( "[x]" );
+            ASSERT_TRUE( redactor.GetIdMarker() == "{id}" );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/users/reset-abc/12345678", "https://h/users/[x]/{id}" ) );
+
+            // a marker is one line of plain text, limited in size, as the other marker is
+            redactor.SetIdMarker( "a\r\nb" );
+            ASSERT_TRUE( redactor.GetIdMarker() == "a??b" );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The identifiers of a path are replaced in the URLs of headers and of text as well" )
+        try
+        {
+            CRedactor redactor( REDACT_URL_ALL | REDACT_HEADER_ALL | REDACT_TEXT_URLS | REDACT_NAME_WORDS );
+            ASSERT_TRUE( HeadersRedactTo( redactor, "GET /trader/v1/accounts/ABCDEF0123456789ABCDEF0123456789/transactions?x=1 HTTP/1.1\r\nHost: h\r\nLocation: https://h/a/12345678?t=abc\r\n",
+                                                    "GET /trader/v1/accounts/<redacted-id>/transactions?x=*** HTTP/1.1\r\nHost: h\r\nLocation: https://h/a/<redacted-id>?t=***\r\n" ) );
+            ASSERT_TRUE( TextRedactsTo( redactor, "failed: https://h/a/12345678/b.", "failed: https://h/a/<redacted-id>/b." ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
+static void
+PerformRegisteredSecretTests( void )
+{GUCEF_TRACE;
+
+    GUCEF_TESTFW_TESTCASE( "Test: A registered secret is replaced wherever it is, also by a redactor without flags" )
+        try
+        {
+            CRedactor redactor;
+            ASSERT_TRUE( redactor.AddSecret( "S3cretHashValue" ) );
+
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/accounts/S3cretHashValue/t?x=S3cretHashValue", "https://h/accounts/***/t?x=***" ) );
+            ASSERT_TRUE( TextRedactsTo( redactor, "for S3cretHashValue and again S3cretHashValue", "for *** and again ***" ) );
+            ASSERT_TRUE( HeadersRedactTo( redactor, "GET /a/S3cretHashValue HTTP/1.1\r\nX-Account: S3cretHashValue\r\n", "GET /a/*** HTTP/1.1\r\nX-Account: ***\r\n" ) );
+            ASSERT_TRUE( SameText( redactor.RedactHeaderValue( "X-Account", "id S3cretHashValue" ), "id ***" ) );
+
+            // exact, case sensitive, and what is not it is left
+            ASSERT_TRUE( TextRedactsTo( redactor, "s3cretHashValue S3cretHash", "s3cretHashValue S3cretHash" ) );
+
+            // a redactor that is copied has the secrets of the original, and they can be cleared
+            CRedactor copy( redactor );
+            CRedactor assigned;
+            assigned = redactor;
+            ASSERT_TRUE( TextRedactsTo( copy, "S3cretHashValue", "***" ) && TextRedactsTo( assigned, "S3cretHashValue", "***" ) );
+            redactor.ClearSecrets();
+            ASSERT_TRUE( TextRedactsTo( redactor, "S3cretHashValue", "S3cretHashValue" ) );
+            ASSERT_TRUE( TextRedactsTo( copy, "S3cretHashValue", "***" ) );
+
+            // the patterns and the secrets are cleared apart
+            ASSERT_TRUE( copy.AddSensitiveName( "x-my-*" ) );
+            copy.ClearPatterns();
+            ASSERT_TRUE( TextRedactsTo( copy, "S3cretHashValue", "***" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A secret is replaced as it is written in a URL, in its percent encoded form as well" )
+        try
+        {
+            CRedactor redactor( REDACT_URL_ALL );
+            ASSERT_TRUE( redactor.AddSecret( "ab+c/d=e f" ) );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/x/ab%2Bc%2Fd%3De%20f/y", "https://h/x/***/y" ) );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "https://h/x/ab+c/d=e f/y", "https://h/x/***/y" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: Secrets that are empty are refused, and the longest of overlapping secrets goes first" )
+        try
+        {
+            CRedactor redactor;
+            ASSERT_FALSE( redactor.AddSecret( "" ) );
+            ASSERT_TRUE( TextRedactsTo( redactor, "abc", "abc" ) );
+
+            ASSERT_TRUE( redactor.AddSecret( "secret" ) );
+            ASSERT_TRUE( redactor.AddSecret( "secretvalue" ) );
+            ASSERT_TRUE( redactor.AddSecret( "secret" ) );
+            ASSERT_TRUE( TextRedactsTo( redactor, "a secretvalue b secret c", "a *** b *** c" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A secret that is removed is no longer replaced, with its percent encoded form, and the others stay" )
+        try
+        {
+            CRedactor redactor;
+            ASSERT_FALSE( redactor.RemoveSecret( "secret" ) );
+            ASSERT_FALSE( redactor.RemoveSecret( "" ) );
+
+            ASSERT_TRUE( redactor.AddSecret( "secret" ) );
+            ASSERT_TRUE( redactor.AddSecret( "other one" ) );
+            ASSERT_TRUE( redactor.AddSecret( "secret" ) );
+            ASSERT_TRUE( TextRedactsTo( redactor, "a secret b other one c", "a *** b *** c" ) );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "http://h/p/other%20one", "http://h/p/***" ) );
+
+            ASSERT_TRUE( redactor.RemoveSecret( "other one" ) );
+            ASSERT_TRUE( TextRedactsTo( redactor, "a secret b other one c", "a *** b other one c" ) );
+            ASSERT_TRUE( UrlRedactsTo( redactor, "http://h/p/other%20one", "http://h/p/other%20one" ) );
+
+            // added twice, removed once: one secret
+            ASSERT_TRUE( redactor.RemoveSecret( "secret" ) );
+            ASSERT_TRUE( TextRedactsTo( redactor, "a secret b", "a secret b" ) );
+            ASSERT_FALSE( redactor.RemoveSecret( "secret" ) );
+
+            // a copy has its own secrets
+            ASSERT_TRUE( redactor.AddSecret( "secret" ) );
+            CRedactor copy( redactor );
+            ASSERT_TRUE( redactor.RemoveSecret( "secret" ) );
+            ASSERT_TRUE( TextRedactsTo( copy, "a secret b", "a *** b" ) );
+            ASSERT_TRUE( TextRedactsTo( redactor, "a secret b", "a secret b" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: A secret at the cut of a result that is limited in size does not leak a part of itself" )
+        try
+        {
+            CRedactor redactor;
+            redactor.SetMaxLength( 32 );
+            ASSERT_TRUE( redactor.AddSecret( "TOPSECRETVALUE" ) );
+            CString result = redactor.RedactText( "012345678901234567890123456789TOPSECRETVALUE" );
+            ASSERT_TRUE( result.HasSubstr( "TOPSE", true ) < 0 && result.HasSubstr( "SECRET", true ) < 0 );
+            ASSERT_TRUE( result.Length() <= 32 );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The marker of the secrets is the marker of the redactor, and a secret that holds it is no problem" )
+        try
+        {
+            CRedactor redactor;
+            redactor.SetMarker( "[hidden]" );
+            ASSERT_TRUE( redactor.AddSecret( "[hidden]" ) );
+            ASSERT_TRUE( redactor.AddSecret( "x" ) );
+            ASSERT_TRUE( TextRedactsTo( redactor, "a [hidden] x y", "a [hidden] [hidden] y" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformRedactorTests( void )
 {GUCEF_TRACE;
@@ -1828,6 +2090,8 @@ PerformRedactorTests( void )
     PerformSecretCorpusTests();
     PerformIdempotenceTests();
     PerformHostileInputTests();
+    PerformPathIdentifierTests();
+    PerformRegisteredSecretTests();
     PerformThreadTests();
 }
 

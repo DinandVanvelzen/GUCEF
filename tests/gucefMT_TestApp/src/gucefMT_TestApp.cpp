@@ -74,6 +74,11 @@
 #define GUCEF_MT_TESTAPP_TESTSPSCQUEUE_H
 #endif /* GUCEF_MT_TESTAPP_TESTSPSCQUEUE_H ? */
 
+#ifndef GUCEF_MT_TESTAPP_TESTTHREADDATA_H
+#include "TestThreadData.h"
+#define GUCEF_MT_TESTAPP_TESTTHREADDATA_H
+#endif /* GUCEF_MT_TESTAPP_TESTTHREADDATA_H ? */
+
 #ifndef GUCEF_MT_TESTAPP_TESTATOMIC_H
 #include "TestAtomic.h"
 #define GUCEF_MT_TESTAPP_TESTATOMIC_H
@@ -227,6 +232,7 @@ GUCEF_OSMAIN_BEGIN
         PerformReaderWriterLockTests();
         PerformAtomicTests();
         PerformSpscQueueTests();
+        PerformThreadDataTests();
 
         // Tests finished normally — disarm the watchdog before it fires
         watchdog.Cancel();

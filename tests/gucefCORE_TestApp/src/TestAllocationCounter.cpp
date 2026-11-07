@@ -2,19 +2,17 @@
  *  gucefCORE_TestApp: GUCEF test application for the CORE module
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -26,8 +24,8 @@
 #include <stdlib.h>
 
 /*
- *  An address sanitizer brings its own malloc and does not get to set itself up when the allocation functions
- *  are replaced here, so with a sanitizer allocations are not counted
+ *  The address and thread sanitizers bring their own malloc and do not get to set themselves up when the allocation
+ *  functions are replaced here, so with a sanitizer allocations are not counted
  */
 #if defined( __SANITIZE_ADDRESS__ )
   #define CORETEST_ADDRESS_SANITIZER
@@ -37,10 +35,30 @@
   #endif
 #endif
 
-#if defined( __linux__ ) && defined( __GLIBC__ ) && !defined( CORETEST_ADDRESS_SANITIZER )
+#if defined( __SANITIZE_THREAD__ )
+  #define CORETEST_THREAD_SANITIZER
+#elif defined( __has_feature )
+  #if __has_feature( thread_sanitizer )
+    #define CORETEST_THREAD_SANITIZER
+  #endif
+#endif
+
+#if defined( __linux__ ) && defined( __GLIBC__ ) && !defined( CORETEST_ADDRESS_SANITIZER ) && !defined( CORETEST_THREAD_SANITIZER )
   #include <pthread.h>
   #include <execinfo.h>
   #define CORETEST_COUNT_ALLOCATIONS
+#endif
+
+#if defined( CORETEST_ADDRESS_SANITIZER ) || defined( CORETEST_THREAD_SANITIZER )
+  #include <stddef.h>
+  /* provided by the sanitizer runtime: the bytes of the allocations which are alive */
+  extern "C" size_t __sanitizer_get_current_allocated_bytes( void );
+  #define CORETEST_LIVE_HEAP_FROM_SANITIZER
+#elif defined( __linux__ ) && defined( __GLIBC__ )
+  #include <malloc.h>
+  #if __GLIBC_PREREQ( 2, 33 )
+    #define CORETEST_LIVE_HEAP_FROM_MALLINFO2
+  #endif
 #endif
 
 #include "TestAllocationCounter.h"
@@ -139,6 +157,8 @@ GetAllocationCountingUnavailableReason( void )
     return "";
     #elif defined( CORETEST_ADDRESS_SANITIZER )
     return "Allocations are not counted in an address sanitizer build, the sanitizer owns malloc";
+    #elif defined( CORETEST_THREAD_SANITIZER )
+    return "Allocations are not counted in a thread sanitizer build, the sanitizer owns malloc";
     #else
     return "Allocations are only counted where the C library allows malloc to be replaced (glibc)";
     #endif
@@ -195,6 +215,33 @@ GetCountedAllocationStacks( void )
     }
     #endif
     return stacks;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+IsLiveHeapMeasurementAvailable( void )
+{
+    #if defined( CORETEST_LIVE_HEAP_FROM_SANITIZER ) || defined( CORETEST_LIVE_HEAP_FROM_MALLINFO2 )
+    return true;
+    #else
+    return false;
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+GUCEF::UInt64
+GetLiveHeapBytes( void )
+{
+    #if defined( CORETEST_LIVE_HEAP_FROM_SANITIZER )
+    return (GUCEF::UInt64) __sanitizer_get_current_allocated_bytes();
+    #elif defined( CORETEST_LIVE_HEAP_FROM_MALLINFO2 )
+    struct mallinfo2 info = mallinfo2();
+    return (GUCEF::UInt64) info.uordblks;
+    #else
+    return 0;
+    #endif
 }
 
 /*-------------------------------------------------------------------------*/

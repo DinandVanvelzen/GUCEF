@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -25,6 +23,8 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <locale.h>
+#include <stdlib.h>
 
 #ifndef GUCEF_MT_DVMTOSWRAP_H
 #include "gucefMT_dvmtoswrap.h"
@@ -667,6 +667,11 @@ CString
 ResolveVars( const CString& strWithVars )
 {GUCEF_TRACE;
 
+    // every variable is enclosed in '$': a path without one, the common case of file access, is returned as it is
+    // without looking up the values (the host name, the module and working directories cost system calls)
+    if ( strWithVars.HasChar( '$', true ) < 0 )
+        return strWithVars;
+
     // First resolve any environment variables which in turn could contain other variables
     CString resultStr = strWithVars;
     Int32 idx = 0;
@@ -687,11 +692,17 @@ ResolveVars( const CString& strWithVars )
     }
     while ( idx > -1 );
 
-    resultStr = resultStr.ReplaceSubstr( "$HOSTNAME$", GetHostname() );
-    resultStr = resultStr.ReplaceSubstr( "$PID$", UInt32ToString( MT::GetProcessID() ) );
-    resultStr = resultStr.ReplaceSubstr( "$TEMPDIR$", TempDir() );
-    resultStr = resultStr.ReplaceSubstr( "$MODULEDIR$", ModuleDir() );
-    resultStr = resultStr.ReplaceSubstr( "$CURWORKDIR$", CurrentWorkingDir() );
+    // a value is only looked up when its variable is in the text (by then)
+    if ( resultStr.HasSubstr( "$HOSTNAME$", true ) >= 0 )
+        resultStr = resultStr.ReplaceSubstr( "$HOSTNAME$", GetHostname() );
+    if ( resultStr.HasSubstr( "$PID$", true ) >= 0 )
+        resultStr = resultStr.ReplaceSubstr( "$PID$", UInt32ToString( MT::GetProcessID() ) );
+    if ( resultStr.HasSubstr( "$TEMPDIR$", true ) >= 0 )
+        resultStr = resultStr.ReplaceSubstr( "$TEMPDIR$", TempDir() );
+    if ( resultStr.HasSubstr( "$MODULEDIR$", true ) >= 0 )
+        resultStr = resultStr.ReplaceSubstr( "$MODULEDIR$", ModuleDir() );
+    if ( resultStr.HasSubstr( "$CURWORKDIR$", true ) >= 0 )
+        resultStr = resultStr.ReplaceSubstr( "$CURWORKDIR$", CurrentWorkingDir() );
     if ( resultStr.HasSubstr( "$CACHEDIR$", true ) >= 0 )
     {
         CString cacheDir;
@@ -1403,6 +1414,102 @@ DoubleToString( const double value )
     snprintf( doubleChars, 128, "%lf", value );
 
     return doubleChars;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Replaces the decimal point of the locale of the C library by '.' */
+static void
+ReplaceLocalePointByDot( char* buffer, UInt32 length )
+{
+    const struct lconv* conv = localeconv();
+    if ( GUCEF_NULL != conv && GUCEF_NULL != conv->decimal_point && '\0' != conv->decimal_point[ 0 ] &&
+         '\0' == conv->decimal_point[ 1 ] && '.' != conv->decimal_point[ 0 ] )
+    {
+        for ( UInt32 i=0; i<length; ++i )
+            if ( buffer[ i ] == conv->decimal_point[ 0 ] )
+                buffer[ i ] = '.';
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+Float64ToRoundTripString( const Float64 value )
+{GUCEF_TRACE;
+
+    if ( value != value || value - value != 0.0 )
+        return CString::Empty;
+
+    char buffer[ 64 ];
+    int length = 0;
+    for ( int precision = 15; precision <= 17; ++precision )
+    {
+        length = snprintf( buffer, sizeof( buffer ), "%.*g", precision, value );
+        if ( length <= 0 || length >= (int) sizeof( buffer ) )
+            return CString::Empty;
+        ReplaceLocalePointByDot( buffer, (UInt32) length );
+        if ( 17 == precision )
+            break;
+
+        // read back with the same locale rules: put the locale point back for the C library
+        char readBuffer[ 64 ];
+        memcpy( readBuffer, buffer, (size_t) length + 1 );
+        const struct lconv* conv = localeconv();
+        if ( GUCEF_NULL != conv && GUCEF_NULL != conv->decimal_point && '\0' != conv->decimal_point[ 0 ] && '\0' == conv->decimal_point[ 1 ] )
+            for ( int i=0; i<length; ++i )
+                if ( '.' == readBuffer[ i ] )
+                    readBuffer[ i ] = conv->decimal_point[ 0 ];
+        if ( strtod( readBuffer, GUCEF_NULL ) == value )
+            break;
+    }
+    return CString( buffer );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+TryParseFloat64Invariant( const CString& text, Float64& value )
+{GUCEF_TRACE;
+
+    const char* data = text.C_String();
+    const UInt32 length = text.ByteSize() > 0 ? text.ByteSize() - 1 : 0;
+    if ( GUCEF_NULL == data || 0 == length || length >= 64 )
+        return false;
+
+    // only the characters of a plain decimal number: this rejects whitespace, hexadecimal, "inf" and "nan"
+    bool hasDigit = false;
+    char buffer[ 64 ];
+    for ( UInt32 i=0; i<length; ++i )
+    {
+        const char c = data[ i ];
+        if ( ( c >= '0' && c <= '9' ) )
+            hasDigit = true;
+        else
+        if ( '+' != c && '-' != c && '.' != c && 'e' != c && 'E' != c )
+            return false;
+        buffer[ i ] = c;
+    }
+    buffer[ length ] = '\0';
+    if ( !hasDigit )
+        return false;
+
+    // strtod reads the decimal point of the locale
+    const struct lconv* conv = localeconv();
+    if ( GUCEF_NULL != conv && GUCEF_NULL != conv->decimal_point && '\0' != conv->decimal_point[ 0 ] &&
+         '\0' == conv->decimal_point[ 1 ] && '.' != conv->decimal_point[ 0 ] )
+    {
+        for ( UInt32 i=0; i<length; ++i )
+            if ( '.' == buffer[ i ] )
+                buffer[ i ] = conv->decimal_point[ 0 ];
+    }
+
+    char* end = GUCEF_NULL;
+    const Float64 result = strtod( buffer, &end );
+    if ( GUCEF_NULL == end || end == buffer || '\0' != *end || result != result || result - result != 0.0 )
+        return false;
+    value = result;
+    return true;
 }
 
 /*-------------------------------------------------------------------------*/

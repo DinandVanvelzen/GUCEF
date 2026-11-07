@@ -2,19 +2,17 @@
  *  gucefCORE_TestApp: GUCEF test application for the CORE module
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -65,6 +63,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #include "TestFileAccess.h"
 
 #define ERRORHERE       GUCEF_TESTFW_ERRORHERE
@@ -114,8 +117,8 @@ PerformFileAccessTests( void )
     const char* payload = "0123456789abcdefghijklmnopqrstuvwxyz";
     const UInt32 payloadSize = (UInt32) strlen( payload );
 
-    CORE::CString dir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_FileAccess" );
-    CORE::CreateDirs( dir );
+    TESTFW::CScopedTestDir scopedDir( "gucefCORE_TestApp_FileAccess" );
+    CORE::CString dir = scopedDir.GetPath();
     CORE::CString filePath = CORE::CombinePath( dir, "payload.bin" );
     {
         CORE::CFileAccess writer( filePath, "wb" );
@@ -226,6 +229,43 @@ PerformFileAccessTests( void )
             CORE::CICloneable* clone = access.Clone();
             ASSERT_FALSE( GUCEF_NULL == clone );
             delete clone;
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: GetSize gives the size of the open file, also after its path was given to another file, and counts what was written" )
+        try
+        {
+            CORE::CString heldPath = CORE::CombinePath( dir, "held.bin" );
+            CORE::CString otherPath = CORE::CombinePath( dir, "other.bin" );
+            {
+                CORE::CFileAccess writer( heldPath, "wb" );
+                ASSERT_TRUE( payloadSize == writer.Write( payload, 1, payloadSize ) );
+                ASSERT_TRUE( payloadSize == writer.GetSize() );     // written, not yet flushed
+                ASSERT_TRUE( 1 == writer.Write( payload, 1, 1 ) && payloadSize + 1 == writer.GetSize() );
+            }
+            {
+                CORE::CFileAccess other( otherPath, "wb" );
+                ASSERT_TRUE( 5 == other.Write( payload, 1, 5 ) );
+            }
+
+            CORE::CFileAccess reader( heldPath, "rb" );
+            ASSERT_TRUE( reader.Opened() && payloadSize + 1 == reader.GetSize() );
+            ASSERT_TRUE( 0 == reader.Setpos( 3 ) );
+            #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_MSWIN )
+            // POSIX: the path now names another file of 5 bytes, the open file is the one of payloadSize + 1 bytes
+            ASSERT_TRUE( CORE::MoveFile( otherPath, heldPath, true ) );
+            ASSERT_TRUE( 5 == CORE::FileSize( heldPath ) );
+            ASSERT_TRUE( payloadSize + 1 == reader.GetSize() );
+            ASSERT_TRUE( 3 == reader.Tell() );      // asking the size does not move the position
+            #endif
+            reader.Close();
+            ASSERT_TRUE( 0 == reader.GetSize() );
+            CORE::DeleteFile( heldPath );
+            CORE::DeleteFile( otherPath );
         }
         catch ( ... )
         {

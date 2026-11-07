@@ -32,13 +32,27 @@ LOCAL_SRC_FILES := \
   src/TestConfigStore.cpp \
   src/TestCronSchedule.cpp \
   src/TestCryptoCodecs.cpp \
+  src/TestCsvTableCodec.cpp \
+  src/TestCsvTableCodecInference.cpp \
+  src/TestCsvTableCodecRoundTrip.cpp \
+  src/TestCsvTableCodecWriter.cpp \
   src/TestCyclicDynamicBuffer.cpp \
   src/TestDStoreStreaming.cpp \
   src/TestDataDrivenDStoreCodecs.cpp \
   src/TestDataNode.cpp \
   src/TestDataNodeBinarySerializer.cpp \
+  src/TestDataTableBatchBuilder.cpp \
+  src/TestDataTableBufferPool.cpp \
+  src/TestDataTableColumnBatch.cpp \
+  src/TestDataTablePredicate.cpp \
+  src/TestDataTableScan.cpp \
+  src/TestDataTableScanBenchmark.cpp \
+  src/TestDataTableSchema.cpp \
+  src/TestDataTableVariant.cpp \
   src/TestDateTime.cpp \
   src/TestDateTimeRange.cpp \
+  src/TestDecimal.cpp \
+  src/TestDecimalVariant.cpp \
   src/TestDedicatedTasks.cpp \
   src/TestDesktopTerminalConsoleLogger.cpp \
   src/TestDynamicBuffer.cpp \
@@ -46,6 +60,7 @@ LOCAL_SRC_FILES := \
   src/TestDynamicBufferSwap.cpp \
   src/TestExternalThreads.cpp \
   src/TestFileAccess.cpp \
+  src/TestFileDataTable.cpp \
   src/TestFileSystemAccess.cpp \
   src/TestFileSystemAccessResultC.c \
   src/TestFileUtils.cpp \
@@ -54,7 +69,11 @@ LOCAL_SRC_FILES := \
   src/TestFreeList.cpp \
   src/TestFutureResultSource.cpp \
   src/TestIniParser.cpp \
+  src/TestJsonDataNodeFidelity.cpp \
+  src/TestJsonSchema.cpp \
+  src/TestJsonSyntaxValidator.cpp \
   src/TestLogging.cpp \
+  src/TestMemoryDataTable.cpp \
   src/TestNotifierObserver.cpp \
   src/TestPluginUnload.cpp \
   src/TestProcess.cpp \
@@ -63,14 +82,20 @@ LOCAL_SRC_FILES := \
   src/TestRedactor.cpp \
   src/TestSchedule.cpp \
   src/TestScopedValue.cpp \
+  src/TestSecureBuffer.cpp \
   src/TestSfinaeUtils.cpp \
   src/TestSharedPtr.cpp \
+  src/TestStandardStreams.cpp \
   src/TestStopwatch.cpp \
   src/TestString.cpp \
   src/TestSysConsole.cpp \
+  src/TestTableCodecRegistry.cpp \
+  src/TestTaskMemoryRetention.cpp \
   src/TestThreadPoolCancellation.cpp \
+  src/TestTimeZoneRules.cpp \
   src/TestTimestamp.cpp \
   src/TestTokenizer.cpp \
+  src/TestUInt128.cpp \
   src/TestUri.cpp \
   src/TestUserNames.cpp \
   src/TestVariant.cpp \

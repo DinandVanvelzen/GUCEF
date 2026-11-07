@@ -1,20 +1,18 @@
 /*
  *  gucefVFS: GUCEF module implementing a Virtual File System
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_VFS_CVFS_H
@@ -593,6 +591,16 @@ class GUCEF_VFS_PUBLIC_CPP CVFS : public CORE::CTSGNotifier          ,
     bool MoveFile( const CString& oldFilePath ,
                    const CString& newFilePath ,
                    const bool overwrite       );
+
+    /**
+     *  Moves a file in one atomic step or not at all, through an archive that holds both paths and can rename
+     *  atomically (CArchive::MoveFileAtomically, a file system mount). Unlike MoveFile there is no copy and delete
+     *  across archives or when the archive refuses: a failure leaves the target as it was, so a replace of a file that
+     *  readers use never rewrites it in place. False when no such archive holds both paths or the rename is refused.
+     */
+    bool MoveFileAtomically( const CString& oldFilePath ,
+                             const CString& newFilePath ,
+                             const bool overwrite       );
 
     CORE::CFutureResult MoveFileAsync( const CString& oldFilePath                                 ,
                                        const CString& newFilePath                                 ,

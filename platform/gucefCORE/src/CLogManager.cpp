@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -170,6 +168,8 @@ CLogManager::CLogManager( void )
     , m_loggingTask()
     , m_useLogThread( false )
     , m_bootstrapLog()
+    , m_maxBootstrapLogEntries( DefaultMaxBootstrapLogEntries )
+    , m_droppedBootstrapLogEntries( 0 )
     , m_busyLogging( false )
     , m_redirectToLogQueue( false )
     , m_logFormatterFactory( false, false )
@@ -243,6 +243,46 @@ CLogManager::GetOrCreateThreadBuffers( UInt32 threadId )
 /*-------------------------------------------------------------------------*/
 
 void
+CLogManager::SetMaxBootstrapLogEntries( UInt32 maxEntries )
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    m_maxBootstrapLogEntries = maxEntries;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CLogManager::GetMaxBootstrapLogEntries( void ) const
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    return m_maxBootstrapLogEntries;
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt32
+CLogManager::GetBootstrapLogEntryCount( void ) const
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    return (UInt32) m_bootstrapLog.size();
+}
+
+/*-------------------------------------------------------------------------*/
+
+UInt64
+CLogManager::GetDroppedBootstrapLogEntryCount( void ) const
+{GUCEF_TRACE;
+
+    MT::CObjectScopeLock lock( this );
+    return m_droppedBootstrapLogEntries;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
 CLogManager::RedirectToBootstrapLogQueue( bool redirect )
 {GUCEF_TRACE;
 
@@ -286,8 +326,13 @@ CLogManager::FlushBootstrapLogEntriesToLogs( void )
 
             ++i;
         }
+        if ( m_droppedBootstrapLogEntries > 0 )
+        {
+            Log( LOG_SYSTEM, LOGLEVEL_NORMAL, "LogManager: " + UInt64ToString( m_droppedBootstrapLogEntries ) + " log entries were dropped while no logger took them and the bootstrap log was full" );
+            m_droppedBootstrapLogEntries = 0;
+        }
         FlushLogs();
-        m_bootstrapLog.clear();
+        TBootstrapLogVector().swap( m_bootstrapLog );      // the memory goes too
 
         Log( LOG_SYSTEM, LOGLEVEL_NORMAL, "LogManager: Finished flushing all bootstrap log entries to the currently registered loggers" );
     }
@@ -731,7 +776,10 @@ CLogManager::Log( const TLogMsgType logMsgType ,
             entry.logMessage = logMessage;
             entry.threadId = threadId;
             entry.timestamp = timestamp;
-            m_bootstrapLog.push_back( entry );
+            if ( m_bootstrapLog.size() < m_maxBootstrapLogEntries )
+                m_bootstrapLog.push_back( entry );
+            else
+                ++m_droppedBootstrapLogEntries;
         }
     }
 }
@@ -794,7 +842,10 @@ CLogManager::Log( const TLogMsgType logMsgType     ,
             entry.logMessage = logMessage.ToString();
             entry.threadId = threadId;
             entry.timestamp = timestamp;
-            m_bootstrapLog.push_back( entry );
+            if ( m_bootstrapLog.size() < m_maxBootstrapLogEntries )
+                m_bootstrapLog.push_back( entry );
+            else
+                ++m_droppedBootstrapLogEntries;
         }
     }
 }

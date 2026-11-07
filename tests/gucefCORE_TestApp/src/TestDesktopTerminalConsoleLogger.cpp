@@ -68,6 +68,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #ifdef GUCEF_LINUX_BUILD
 
 #include <stdlib.h>
@@ -215,7 +220,8 @@ PerformDesktopTerminalConsoleLoggerTests( void )
 
     #ifdef GUCEF_LINUX_BUILD
 
-    CORE::CString workDir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_ConsoleLogger" );
+    TESTFW::CScopedTestDir scopedWorkDir( "gucefCORE_TestApp_ConsoleLogger" );
+    CORE::CString workDir = scopedWorkDir.GetPath();
     CORE::CString binDir = CORE::CombinePath( workDir, "bin" );
     CORE::CString emptyDir = CORE::CombinePath( workDir, "empty" );
     CORE::CString outPath = CORE::CombinePath( workDir, "terminal.out" );

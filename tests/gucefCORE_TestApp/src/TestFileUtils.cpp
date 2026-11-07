@@ -1,20 +1,18 @@
 /*
  *  gucefCORE_TestApp: GUCEF test application for the CORE module
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -47,6 +45,7 @@
   #include <sys/stat.h>
   #include <unistd.h>
   #include <dirent.h>
+  #include <string.h>
 #endif
 
 #ifndef GUCEF_CORE_LOGGING_H
@@ -59,11 +58,17 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #ifndef GUCEF_CORE_CDYNAMICBUFFER_H
 #include "CDynamicBuffer.h"
 #define GUCEF_CORE_CDYNAMICBUFFER_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
 
+#include "TestAllocationCounter.h"
 #include "TestFileUtils.h"
 
 using namespace GUCEF;
@@ -163,6 +168,29 @@ PerformFileUtilsTests( void )
     
     GUCEF_TESTFW_SUITE_SCOPE( "FileUtils" );
 
+    GUCEF_TESTFW_TESTCASE( "Test: CStorageVolumeInfoOSData gives back the platform data it made" )
+    if ( !CORETEST::IsLiveHeapMeasurementAvailable() )
+        GUCEF_TESTFW_SKIP( "the live heap cannot be measured in this build" );
+    try
+    {
+        // every object makes its platform data on the heap; 20000 objects that kept it would hold several hundred KiB
+        const UInt32 objects = 20000;
+        const UInt64 before = CORETEST::GetLiveHeapBytes();
+        for ( UInt32 i=0; i<objects; ++i )
+        {
+            CORE::CStorageVolumeInfoOSData* info = GUCEF_NEW CORE::CStorageVolumeInfoOSData();
+            ASSERT_TRUE( GUCEF_NULL != info->GetOsData() );
+            GUCEF_DELETE info;
+        }
+        const UInt64 after = CORETEST::GetLiveHeapBytes();
+        ASSERT_TRUE( after < before + 64 * 1024 );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Test: RelativePath function" )
         TestRelativePathFunction();
     GUCEF_TESTFW_TESTCASE_END
@@ -225,7 +253,8 @@ PerformFileUtilsTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: CreateDirs with absolute and multi segment paths" )
         try
         {
-            CORE::CString nestedDir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_CreateDirs/a/b/c" );
+            TESTFW::CScopedTestDir scoped_CreateDirs( "gucefCORE_TestApp_CreateDirs" );
+            CORE::CString nestedDir = CORE::CombinePath( scoped_CreateDirs.GetPath(), "a/b/c" );
             ASSERT_TRUE( CORE::CreateDirs( nestedDir ) );
             ASSERT_TRUE( CORE::DirExists( nestedDir ) );
             // creating it again must also succeed
@@ -256,7 +285,8 @@ PerformFileUtilsTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: CFileSystemIterator does not depend on the working dir" )
         try
         {
-            CORE::CString rootDir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_FsIterator" );
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_FsIterator( "gucefCORE_TestApp_FsIterator" );
+            CORE::CString rootDir = scoped_gucefCORE_TestApp_FsIterator.GetPath();
             CORE::CString dirA = CORE::CombinePath( rootDir, "A" );
             CORE::CString dirB = CORE::CombinePath( rootDir, "B" );
             ASSERT_TRUE( CORE::CreateDirs( CORE::CombinePath( dirA, "subDirA" ) ) );
@@ -309,7 +339,8 @@ PerformFileUtilsTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: CFileAccess::Sync flushes to storage" )
         try
         {
-            CORE::CString dir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_Durable" );
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_Durable( "gucefCORE_TestApp_Durable" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_Durable.GetPath();
             ASSERT_TRUE( CORE::CreateDirs( dir ) );
             CORE::CString path = CORE::CombinePath( dir, "synced.txt" );
 
@@ -338,7 +369,8 @@ PerformFileUtilsTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: WriteFileAtomically creates and replaces files without leftovers" )
         try
         {
-            CORE::CString dir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_Atomic" );
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_Atomic( "gucefCORE_TestApp_Atomic" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_Atomic.GetPath();
             ASSERT_TRUE( CORE::CreateDirs( dir ) );
             CORE::CString path = CORE::CombinePath( dir, "target.txt" );
             if ( CORE::FileExists( path ) )
@@ -386,7 +418,8 @@ PerformFileUtilsTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: WriteFileAtomically leaves the original intact when the replace fails" )
         try
         {
-            CORE::CString dir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_AtomicFail" );
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_AtomicFail( "gucefCORE_TestApp_AtomicFail" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_AtomicFail.GetPath();
             ASSERT_TRUE( CORE::CreateDirs( dir ) );
 
             // Case 1: the target is a directory so moving the temp file over it fails after the temp file was written
@@ -440,7 +473,8 @@ PerformFileUtilsTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: SetOwnerOnlyAccess restricts a file and a directory to the user" )
         try
         {
-            CORE::CString dir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_OwnerOnly" );
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_OwnerOnly( "gucefCORE_TestApp_OwnerOnly" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_OwnerOnly.GetPath();
             ASSERT_TRUE( CORE::CreateDirs( dir ) );
             CORE::CString path = CORE::CombinePath( dir, "secret.bin" );
             ASSERT_TRUE( CORE::WriteFileAtomically( path, "key material", 12 ) );
@@ -480,7 +514,8 @@ PerformFileUtilsTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: MoveFile honors the overwrite flag" )
         try
         {
-            CORE::CString dir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_MoveFile" );
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_MoveFile( "gucefCORE_TestApp_MoveFile" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_MoveFile.GetPath();
             ASSERT_TRUE( CORE::CreateDirs( dir ) );
             CORE::CString source = CORE::CombinePath( dir, "source.txt" );
             CORE::CString target = CORE::CombinePath( dir, "target.txt" );
@@ -504,11 +539,162 @@ PerformFileUtilsTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    // Copy-on-write table partitions rely on this: a file is replaced as a whole, never seen half written
+    GUCEF_TESTFW_TESTCASE( "Test: MoveFile replaces a file atomically: a reader of the old file keeps it, the path gives the new one" )
+        try
+        {
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_MoveFileAtomic( "gucefCORE_TestApp_MoveFileAtomic" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_MoveFileAtomic.GetPath();
+            ASSERT_TRUE( CORE::CreateDirs( dir ) );
+            CORE::CString target = CORE::CombinePath( dir, "partition.bin" );
+            CORE::CString replacement = CORE::CombinePath( dir, "partition.bin.tmp-1-1" );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( target, "old contents of the partition" ) );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( replacement, "new contents" ) );
+
+            CORE::CFileAccess reader( target, "rb" );
+            ASSERT_TRUE( reader.IsValid() );
+            ASSERT_TRUE( CORE::MoveFile( replacement, target, true ) );
+            ASSERT_FALSE( CORE::FileExists( replacement ) );
+
+            CORE::CString content;
+            ASSERT_TRUE( CORE::LoadTextFileAsString( target, content, false ) );
+            ASSERT_TRUE( content == "new contents" );
+
+            #if ( GUCEF_PLATFORM != GUCEF_PLATFORM_MSWIN )
+            // POSIX: the open file is the old one, whole; Windows refuses to replace a file that is open (sharing violation)
+            char oldBytes[ 64 ];
+            ASSERT_TRUE( 0 == reader.Setpos( 0 ) );
+            UInt32 read = reader.Read( oldBytes, 1, sizeof( oldBytes ) );
+            ASSERT_TRUE( 29 == read && 0 == memcmp( oldBytes, "old contents of the partition", 29 ) );
+            #endif
+            reader.Close();
+
+            // the directories of a target are made, a missing source fails without touching the target
+            CORE::CString nested = CORE::CombinePath( dir, "a/b/partition.bin" );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( replacement, "nested" ) );
+            ASSERT_TRUE( CORE::MoveFile( replacement, nested, true ) );
+            ASSERT_TRUE( CORE::LoadTextFileAsString( nested, content, false ) && content == "nested" );
+            ASSERT_FALSE( CORE::MoveFile( replacement, target, true ) );
+            ASSERT_TRUE( CORE::LoadTextFileAsString( target, content, false ) && content == "new contents" );
+
+            CORE::DeleteFile( nested );
+            CORE::DeleteFile( target );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    #if ( ( GUCEF_PLATFORM == GUCEF_PLATFORM_LINUX ) || ( GUCEF_PLATFORM == GUCEF_PLATFORM_ANDROID ) )
+    GUCEF_TESTFW_TESTCASE( "Test: MoveFile never widens permissions: the moved file keeps its mode, a refused move leaves the source as it was" )
+        try
+        {
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_MoveFileMode( "gucefCORE_TestApp_MoveFileMode" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_MoveFileMode.GetPath();
+            CORE::DeleteDir( dir, true );
+            ASSERT_TRUE( CORE::CreateDirs( dir ) );
+            CORE::CString source = CORE::CombinePath( dir, "secret.bin" );
+            CORE::CString target = CORE::CombinePath( dir, "moved.bin" );
+            struct stat info;
+
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( source, "secret" ) && 0 == ::chmod( source.C_String(), 0600 ) );
+            ASSERT_TRUE( CORE::MoveFile( source, target, true ) );
+            ASSERT_TRUE( 0 == ::stat( target.C_String(), &info ) && 0600 == ( info.st_mode & 07777 ) );
+
+            // the rename is refused: a directory with a file in it is where the file would go
+            CORE::CString blocker = CORE::CombinePath( dir, "blocker" );
+            ASSERT_TRUE( CORE::CreateDirs( blocker ) && CORE::WriteStringAsTextFile( CORE::CombinePath( blocker, "inside.txt" ), "x" ) );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( source, "secret" ) && 0 == ::chmod( source.C_String(), 0600 ) );
+            ASSERT_FALSE( CORE::MoveFile( source, blocker, true ) );
+            ASSERT_TRUE( 0 == ::stat( source.C_String(), &info ) && 0600 == ( info.st_mode & 07777 ) );
+
+            CORE::DeleteDir( dir, true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: MoveFileAtomically renames or refuses: files only, the overwrite flag, the mode both files have in common" )
+        try
+        {
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_MoveFileAtomically( "gucefCORE_TestApp_MoveFileAtomically" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_MoveFileAtomically.GetPath();
+            CORE::DeleteDir( dir, true );
+            ASSERT_TRUE( CORE::CreateDirs( dir ) );
+            CORE::CString source = CORE::CombinePath( dir, "new.bin" );
+            CORE::CString target = CORE::CombinePath( dir, "part.bin" );
+            CORE::CString content;
+            struct stat info;
+
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( source, "new" ) && CORE::WriteStringAsTextFile( target, "old" ) );
+            ASSERT_TRUE( 0 == ::chmod( source.C_String(), 0664 ) && 0 == ::chmod( target.C_String(), 0640 ) );
+            ASSERT_FALSE( CORE::MoveFileAtomically( source, target, false ) );
+            ASSERT_TRUE( CORE::LoadTextFileAsString( target, content, false ) && content == "old" );
+            ASSERT_TRUE( CORE::MoveFileAtomically( source, target, true ) );
+            ASSERT_TRUE( CORE::LoadTextFileAsString( target, content, false ) && content == "new" && !CORE::FileExists( source ) );
+            ASSERT_TRUE( 0 == ::stat( target.C_String(), &info ) && 0640 == ( info.st_mode & 07777 ) );
+
+            // a new target keeps the mode of the file moved; a missing source, a directory as source or target are refused
+            ASSERT_TRUE( CORE::MoveFileAtomically( target, CORE::CombinePath( dir, "a/b/moved.bin" ), false ) );
+            ASSERT_TRUE( 0 == ::stat( CORE::CombinePath( dir, "a/b/moved.bin" ).C_String(), &info ) && 0640 == ( info.st_mode & 07777 ) );
+            ASSERT_FALSE( CORE::MoveFileAtomically( target, CORE::CombinePath( dir, "other.bin" ), true ) );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( source, "x" ) );
+            ASSERT_FALSE( CORE::MoveFileAtomically( source, CORE::CombinePath( dir, "a" ), true ) );
+            ASSERT_FALSE( CORE::MoveFileAtomically( CORE::CombinePath( dir, "a" ), CORE::CombinePath( dir, "c" ), true ) );
+            ASSERT_TRUE( CORE::FileExists( source ) && CORE::DirExists( CORE::CombinePath( dir, "a" ) ) );
+
+            CORE::DeleteDir( dir, true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: WriteFileAtomically keeps the permissions of the file it replaces, also with umask 0, and a new file follows the umask" )
+        try
+        {
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_WriteAtomicallyMode( "gucefCORE_TestApp_WriteAtomicallyMode" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_WriteAtomicallyMode.GetPath();
+            CORE::DeleteDir( dir, true );
+            ASSERT_TRUE( CORE::CreateDirs( dir ) );
+            CORE::CString path = CORE::CombinePath( dir, "owner.bin" );
+            struct stat info;
+
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( path, "first" ) && 0 == ::chmod( path.C_String(), 0600 ) );
+            mode_t previousMask = ::umask( 0 );
+            const bool replaced = CORE::WriteFileAtomically( path, "second", 6 );
+            ::umask( previousMask );
+            ASSERT_TRUE( replaced );
+            CORE::CString content;
+            ASSERT_TRUE( CORE::LoadTextFileAsString( path, content, false ) && content == "second" );
+            ASSERT_TRUE( 0 == ::stat( path.C_String(), &info ) && 0600 == ( info.st_mode & 07777 ) );
+
+            ASSERT_TRUE( CORE::DeleteFile( path ) );
+            previousMask = ::umask( 022 );
+            const bool created = CORE::WriteFileAtomically( path, "third", 5 );
+            ::umask( previousMask );
+            ASSERT_TRUE( created );
+            ASSERT_TRUE( 0 == ::stat( path.C_String(), &info ) && 0644 == ( info.st_mode & 07777 ) );
+
+            CORE::DeleteDir( dir, true );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+    #endif
+
     // Regression: the C style Move_File( dst, src ) moved in the wrong direction
     GUCEF_TESTFW_TESTCASE( "Test: Move_File moves the source to the destination" )
         try
         {
-            CORE::CString dir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_Move_File" );
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_Move_File( "gucefCORE_TestApp_Move_File" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_Move_File.GetPath();
             ASSERT_TRUE( CORE::CreateDirs( dir ) );
             CORE::CString source = CORE::CombinePath( dir, "source.txt" );
             CORE::CString destination = CORE::CombinePath( dir, "destination.txt" );
@@ -531,7 +717,8 @@ PerformFileUtilsTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: FileExists is only true for files and DirExists only for directories" )
         try
         {
-            CORE::CString dir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_FileExists" );
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_FileExists( "gucefCORE_TestApp_FileExists" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_FileExists.GetPath();
             ASSERT_TRUE( CORE::CreateDirs( dir ) );
             CORE::CString file = CORE::CombinePath( dir, "file.txt" );
             ASSERT_TRUE( CORE::WriteStringAsTextFile( file, "content" ) );
@@ -551,7 +738,8 @@ PerformFileUtilsTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: Remove_Directory removes a directory with its files and sub directories" )
         try
         {
-            CORE::CString dir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_RemoveDir" );
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_RemoveDir( "gucefCORE_TestApp_RemoveDir" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_RemoveDir.GetPath();
             CORE::CString sub = CORE::CombinePath( dir, "sub" );
             ASSERT_TRUE( CORE::CreateDirs( sub ) );
             ASSERT_TRUE( CORE::WriteStringAsTextFile( CORE::CombinePath( dir, "a.txt" ), "a" ) );
@@ -697,7 +885,8 @@ PerformFileUtilsTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: CFileSystemIterator releases the directory when a listing ends" )
         try
         {
-            CORE::CString dir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_IteratorRelease" );
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_IteratorRelease( "gucefCORE_TestApp_IteratorRelease" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_IteratorRelease.GetPath();
             ASSERT_TRUE( CORE::CreateDirs( dir ) );
             ASSERT_TRUE( CORE::WriteStringAsTextFile( CORE::CombinePath( dir, "a.txt" ), "a" ) );
             ASSERT_TRUE( CORE::WriteStringAsTextFile( CORE::CombinePath( dir, "b.txt" ), "b" ) );
@@ -728,7 +917,8 @@ PerformFileUtilsTests( void )
         try
         {
             // the target path is over 256 bytes, so the link is read again into a grown buffer
-            CORE::CString base = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_LongLink" );
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_LongLink( "gucefCORE_TestApp_LongLink" );
+            CORE::CString base = scoped_gucefCORE_TestApp_LongLink.GetPath();
             CORE::Remove_Directory( base.C_String(), 1 );
             CORE::CString targetDir = base;
             for ( UInt32 i=0; i<5; ++i )
@@ -757,6 +947,110 @@ PerformFileUtilsTests( void )
             it.FindClose();
             ASSERT_TRUE( foundLink );
             CORE::Remove_Directory( base.C_String(), 1 );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: CreateOwnerOnlyFile makes a new file for the owner only in one step, also with umask 0, and never replaces what is there" )
+        try
+        {
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_OwnerOnlyFile( "gucefCORE_TestApp_OwnerOnlyFile" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_OwnerOnlyFile.GetPath();
+            CORE::Remove_Directory( dir.C_String(), 1 );
+            ASSERT_TRUE( CORE::CreateDirs( dir ) );
+            const CORE::CString secretFile = CORE::CombinePath( dir, "secret.token" );
+            const char* secret = "s3cr3t-token";
+            CORE::CString problem;
+
+            // umask 0 would make a plain create 0666: the mode is given to open() itself, so it is 0600 from the first moment
+            const mode_t oldMask = ::umask( 0 );
+            const bool created = CORE::CreateOwnerOnlyFile( secretFile, secret, (UInt32) strlen( secret ), problem );
+            struct stat info;
+            const bool statted = 0 == ::lstat( secretFile.C_String(), &info );
+            ::umask( oldMask );
+            ASSERT_TRUE( created );
+            ASSERT_TRUE( statted && S_ISREG( info.st_mode ) && 0600 == ( info.st_mode & 07777 ) && info.st_uid == ::geteuid() );
+
+            CORE::CDynamicBuffer content;
+            bool missing = true;
+            ASSERT_TRUE( CORE::ReadOwnerOnlyFile( secretFile, content, problem, &missing ) && !missing );
+            ASSERT_TRUE( CORE::CString( static_cast< const char* >( content.GetConstBufferPtr() ), content.GetDataSize() ) == secret );
+
+            // a file that is there already, made by someone before us (the race), is never written to or trusted by a create
+            ASSERT_FALSE( CORE::CreateOwnerOnlyFile( secretFile, "other", 5, problem ) );
+            ASSERT_TRUE( CORE::ReadOwnerOnlyFile( secretFile, content, problem ) );
+            ASSERT_TRUE( CORE::CString( static_cast< const char* >( content.GetConstBufferPtr() ), content.GetDataSize() ) == secret );
+
+            // a symbolic link at the path, to a file or to nothing, is not followed
+            const CORE::CString target = CORE::CombinePath( dir, "target.txt" );
+            const CORE::CString linkToFile = CORE::CombinePath( dir, "link-to-file" );
+            const CORE::CString linkToNothing = CORE::CombinePath( dir, "link-to-nothing" );
+            const CORE::CString nothing = CORE::CombinePath( dir, "planted-later" );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( target, "not a secret" ) );
+            ASSERT_TRUE( 0 == ::symlink( target.C_String(), linkToFile.C_String() ) );
+            ASSERT_TRUE( 0 == ::symlink( nothing.C_String(), linkToNothing.C_String() ) );
+            ASSERT_FALSE( CORE::CreateOwnerOnlyFile( linkToFile, "x", 1, problem ) );
+            ASSERT_FALSE( CORE::CreateOwnerOnlyFile( linkToNothing, "x", 1, problem ) );
+            ASSERT_FALSE( CORE::FileExists( nothing ) );
+            CORE::CString targetText;
+            ASSERT_TRUE( CORE::LoadTextFileAsString( target, targetText ) && targetText == "not a secret" );
+
+            CORE::Remove_Directory( dir.C_String(), 1 );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: ReadOwnerOnlyFile refuses a link, a file others can read, another kind of file, and tells a missing file apart" )
+        try
+        {
+            TESTFW::CScopedTestDir scoped_gucefCORE_TestApp_OwnerOnlyFileRead( "gucefCORE_TestApp_OwnerOnlyFileRead" );
+            CORE::CString dir = scoped_gucefCORE_TestApp_OwnerOnlyFileRead.GetPath();
+            CORE::Remove_Directory( dir.C_String(), 1 );
+            ASSERT_TRUE( CORE::CreateDirs( dir ) );
+            CORE::CString problem;
+            CORE::CDynamicBuffer content;
+            bool missing = false;
+
+            const CORE::CString good = CORE::CombinePath( dir, "good.token" );
+            ASSERT_TRUE( CORE::CreateOwnerOnlyFile( good, "abc", 3, problem ) );
+            ASSERT_TRUE( CORE::ReadOwnerOnlyFile( good, content, problem, &missing ) && !missing && 3 == content.GetDataSize() );
+
+            // readable by the group or by others: refused, whatever it holds
+            const CORE::CString open = CORE::CombinePath( dir, "open.token" );
+            ASSERT_TRUE( CORE::WriteStringAsTextFile( open, "abc" ) );
+            ASSERT_TRUE( 0 == ::chmod( open.C_String(), 0644 ) );
+            ASSERT_FALSE( CORE::ReadOwnerOnlyFile( open, content, problem, &missing ) );
+            ASSERT_FALSE( missing );
+            ASSERT_TRUE( 0 == ::chmod( open.C_String(), 0620 ) );
+            ASSERT_FALSE( CORE::ReadOwnerOnlyFile( open, content, problem ) );
+            ASSERT_TRUE( 0 == ::chmod( open.C_String(), 0600 ) );
+            ASSERT_TRUE( CORE::ReadOwnerOnlyFile( open, content, problem ) );
+
+            // a link to a good file is not followed
+            const CORE::CString link = CORE::CombinePath( dir, "link.token" );
+            ASSERT_TRUE( 0 == ::symlink( good.C_String(), link.C_String() ) );
+            ASSERT_FALSE( CORE::ReadOwnerOnlyFile( link, content, problem, &missing ) );
+            ASSERT_FALSE( missing );
+
+            // a directory and a FIFO are no files with a secret; the FIFO does not block the read
+            const CORE::CString subDir = CORE::CombinePath( dir, "sub.token" );
+            ASSERT_TRUE( CORE::CreateDirs( subDir ) );
+            ASSERT_FALSE( CORE::ReadOwnerOnlyFile( subDir, content, problem ) );
+            const CORE::CString fifo = CORE::CombinePath( dir, "fifo.token" );
+            ASSERT_TRUE( 0 == ::mkfifo( fifo.C_String(), 0600 ) );
+            ASSERT_FALSE( CORE::ReadOwnerOnlyFile( fifo, content, problem ) );
+
+            const CORE::CString absent = CORE::CombinePath( dir, "absent.token" );
+            ASSERT_FALSE( CORE::ReadOwnerOnlyFile( absent, content, problem, &missing ) );
+            ASSERT_TRUE( missing );
+
+            CORE::Remove_Directory( dir.C_String(), 1 );
         }
         catch( ... )
         {

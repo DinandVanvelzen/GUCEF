@@ -1,0 +1,42 @@
+{
+    "comment": "Fixture of the time zone rules tests of gucefCORE_TestApp. Not a time zone database and not for use by applications: GUCEF ships no zone data. Offsets are minutes east of UTC.",
+    "rules": [
+        { "name": "US", "periods": [
+            { "fromYear": 1987, "toYear": 2006, "saveMinutes": 60, "start": "Apr Sun>=1 2:00", "end": "Oct lastSun 2:00" },
+            { "fromYear": 2007, "toYear": 9999, "saveMinutes": 60, "start": "Mar Sun>=8 2:00", "end": "Nov Sun>=1 2:00" }
+        ] },
+        { "name": "EU", "periods": [
+            { "fromYear": 1996, "toYear": 9999, "saveMinutes": 60, "start": "Mar lastSun 1:00u", "end": "Oct lastSun 1:00u" }
+        ] },
+        { "name": "Mexico", "periods": [
+            { "fromYear": 2002, "toYear": 2022, "saveMinutes": 60, "start": "Apr Sun>=1 2:00", "end": "Oct lastSun 2:00" }
+        ] },
+        { "name": "AU-NSW", "periods": [
+            { "fromYear": 2008, "toYear": 9999, "saveMinutes": 60, "start": "Oct Sun>=1 2:00s", "end": "Apr Sun>=1 2:00s" }
+        ] }
+    ],
+    "zones": [
+        { "name": "America/New_York", "standardOffsetMinutes": -300, "periods": [ { "fromYear": 1987, "toYear": 9999, "rule": "US" } ] },
+        { "name": "America/Chicago", "standardOffsetMinutes": -360, "periods": [ { "fromYear": 1987, "toYear": 9999, "rule": "US" } ] },
+        { "name": "America/Toronto", "standardOffsetMinutes": -300, "periods": [ { "fromYear": 2007, "toYear": 9999, "rule": "US" } ] },
+        { "name": "America/Mexico_City", "standardOffsetMinutes": -360, "periods": [
+            { "fromYear": 2002, "toYear": 2022, "rule": "Mexico" },
+            { "fromYear": 2023, "toYear": 9999, "rule": "NONE" }
+        ] },
+        { "name": "America/Sao_Paulo", "standardOffsetMinutes": -180, "periods": [ { "fromYear": 2020, "toYear": 9999, "rule": "NONE" } ] },
+        { "name": "America/Argentina/Buenos_Aires", "standardOffsetMinutes": -180, "periods": [ { "fromYear": 2010, "toYear": 9999, "rule": "NONE" } ] },
+        { "name": "America/Bogota", "standardOffsetMinutes": -300, "periods": [ { "fromYear": 1994, "toYear": 9999, "rule": "NONE" } ] },
+        { "name": "America/Lima", "standardOffsetMinutes": -300, "periods": [ { "fromYear": 1995, "toYear": 9999, "rule": "NONE" } ] },
+        { "name": "Europe/London", "standardOffsetMinutes": 0, "periods": [ { "fromYear": 1996, "toYear": 9999, "rule": "EU" } ] },
+        { "name": "Europe/Paris", "standardOffsetMinutes": 60, "periods": [ { "fromYear": 1996, "toYear": 9999, "rule": "EU" } ] },
+        { "name": "Europe/Berlin", "standardOffsetMinutes": 60, "periods": [ { "fromYear": 1996, "toYear": 9999, "rule": "EU" } ] },
+        { "name": "Europe/Amsterdam", "standardOffsetMinutes": 60, "periods": [ { "fromYear": 1996, "toYear": 9999, "rule": "EU" } ] },
+        { "name": "Europe/Zurich", "standardOffsetMinutes": 60, "periods": [ { "fromYear": 1996, "toYear": 9999, "rule": "EU" } ] },
+        { "name": "Asia/Tokyo", "standardOffsetMinutes": 540, "periods": [ { "fromYear": 1952, "toYear": 9999, "rule": "NONE" } ] },
+        { "name": "Asia/Hong_Kong", "standardOffsetMinutes": 480, "periods": [ { "fromYear": 1980, "toYear": 9999, "rule": "NONE" } ] },
+        { "name": "Asia/Shanghai", "standardOffsetMinutes": 480, "periods": [ { "fromYear": 1992, "toYear": 9999, "rule": "NONE" } ] },
+        { "name": "Asia/Singapore", "standardOffsetMinutes": 480, "periods": [ { "fromYear": 1982, "toYear": 9999, "rule": "NONE" } ] },
+        { "name": "Asia/Kolkata", "standardOffsetMinutes": 330, "periods": [ { "fromYear": 1946, "toYear": 9999, "rule": "NONE" } ] },
+        { "name": "Australia/Sydney", "standardOffsetMinutes": 600, "periods": [ { "fromYear": 2008, "toYear": 9999, "rule": "AU-NSW" } ] }
+    ]
+}

@@ -2,19 +2,17 @@
  *  gucefCORE_TestApp: GUCEF test application for the CORE module
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -32,6 +30,11 @@
 #include "gucefCORE_CProcess.h"
 #define GUCEF_CORE_CPROCESS_H
 #endif /* GUCEF_CORE_CPROCESS_H ? */
+
+#ifndef GUCEF_CORE_CSTANDARDOUTPUTWRITER_H
+#include "gucefCORE_CStandardOutputWriter.h"
+#define GUCEF_CORE_CSTANDARDOUTPUTWRITER_H
+#endif /* GUCEF_CORE_CSTANDARDOUTPUTWRITER_H ? */
 
 #ifndef GUCEF_CORE_DVFILEUTILS_H
 #include "dvfileutils.h"
@@ -63,6 +66,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #include "TestProcess.h"
 
 #if ( GUCEF_PLATFORM == GUCEF_PLATFORM_MSWIN )
@@ -72,6 +80,7 @@
   #include <sys/wait.h>
   #include <signal.h>
   #include <unistd.h>
+  #include <fcntl.h>
 #endif
 
 /*-------------------------------------------------------------------------//
@@ -140,6 +149,26 @@ GetExitCodeCommand( CORE::CString& exe, CORE::CProcess::TStringVector& args, UIn
     args.push_back( "-c" );
     args.push_back( "exit " + CORE::ToString( exitCode ) );
     #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Reads a pipe until the other end closes. Gives up with what was read so far when nothing comes within the timeout
+ */
+static CORE::CString
+ReadPipeToEnd( CORE::CProcessPipe& pipe, UInt32 timeoutInMs )
+{
+    CORE::CString all;
+    char buffer[ 4096 ];
+    while ( pipe.WaitForData( timeoutInMs ) )
+    {
+        UInt32 got = pipe.ReadSome( buffer, sizeof( buffer ) );
+        if ( 0 == got )
+            break;
+        all.Append( buffer, got );
+    }
+    return all;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -375,7 +404,8 @@ PerformProcessTests( void )
     GUCEF_TESTFW_TESTCASE( "Test: CProcess working dir and environment overrides reach the child" )
         try
         {
-            CORE::CString dir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_ProcessDir" );
+            TESTFW::CScopedTestDir scopedDir( "gucefCORE_TestApp_ProcessDir" );
+            CORE::CString dir = scopedDir.GetPath();
             ASSERT_TRUE( CORE::CreateDirs( dir ) );
 
             // exit 0 only if both the env var and the working dir are as expected
@@ -448,7 +478,8 @@ PerformProcessTests( void )
             ASSERT_TRUE( 0 == CORE::Execute_Program( GUCEF_NULL, GUCEF_NULL ) );
 
             // the program really ran: it creates a file
-            CORE::CString dir = CORE::CombinePath( CORE::TempDir(), "gucefCORE_TestApp_ExecuteProgram" );
+            TESTFW::CScopedTestDir scopedDir( "gucefCORE_TestApp_ExecuteProgram" );
+            CORE::CString dir = scopedDir.GetPath();
             ASSERT_TRUE( CORE::CreateDirs( dir ) );
             CORE::CString marker = CORE::CombinePath( dir, "marker.txt" );
             if ( CORE::FileExists( marker ) )
@@ -463,6 +494,232 @@ PerformProcessTests( void )
                     MT::ThreadDelay( 25 );
             }
             ASSERT_TRUE( markerSeen );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: CProcess pipes: standard output and error of the child, separately" )
+        try
+        {
+            CORE::CProcess::TStringVector args;
+            args.push_back( "-c" );
+            args.push_back( "echo to-out; echo to-err 1>&2; exit 5" );
+
+            CORE::CProcess process;
+            ASSERT_TRUE( process.LaunchWithPipes( "sh", args, false, true, true ) );
+            ASSERT_TRUE( GUCEF_NULL == process.GetStdinPipe() );
+            ASSERT_TRUE( GUCEF_NULL != process.GetStdoutPipe() );
+            ASSERT_TRUE( GUCEF_NULL != process.GetStderrPipe() );
+            ASSERT_TRUE( process.GetStdoutPipe()->IsReadable() );
+            ASSERT_FALSE( process.GetStdoutPipe()->IsWriteable() );
+
+            ASSERT_TRUE( ReadPipeToEnd( *process.GetStdoutPipe(), 10000 ) == "to-out\n" );
+            ASSERT_TRUE( ReadPipeToEnd( *process.GetStderrPipe(), 10000 ) == "to-err\n" );
+            ASSERT_TRUE( process.GetStdoutPipe()->Eof() );
+
+            Int32 exitCode = 0;
+            ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
+            ASSERT_TRUE( 5 == exitCode );
+
+            // the same instance can launch again, without pipes this time, which drops the old ones
+            args.clear();
+            args.push_back( "-c" );
+            args.push_back( "exit 0" );
+            ASSERT_TRUE( process.Launch( "sh", args ) );
+            ASSERT_TRUE( GUCEF_NULL == process.GetStdoutPipe() );
+            ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: CProcess pipes: standard input to a child and its output back" )
+        try
+        {
+            CORE::CProcess::TStringVector args;
+            CORE::CProcess process;
+            ASSERT_TRUE( process.LaunchWithPipes( "cat", args, true, true, false ) );
+            ASSERT_TRUE( GUCEF_NULL != process.GetStdinPipe() );
+            ASSERT_TRUE( GUCEF_NULL == process.GetStderrPipe() );
+            ASSERT_TRUE( process.GetStdinPipe()->IsWriteable() );
+
+            // several rounds of 32 KiB: more than the pipe holds when summed up, so the data has to be read back as it comes
+            CORE::CString block;
+            for ( UInt32 i=0; i<32768; ++i )
+                block += (char) ( 'a' + ( i % 26 ) );
+            for ( UInt32 round=0; round<32; ++round )
+            {
+                ASSERT_TRUE( 1 == process.GetStdinPipe()->Write( block.C_String(), block.Length(), 1 ) );
+                CORE::CString echoed;
+                char buffer[ 4096 ];
+                while ( echoed.Length() < block.Length() )
+                {
+                    ASSERT_TRUE( process.GetStdoutPipe()->WaitForData( 10000 ) );
+                    UInt32 got = process.GetStdoutPipe()->ReadSome( buffer, sizeof( buffer ) );
+                    ASSERT_TRUE( got > 0 );
+                    if ( 0 == got )
+                        break;
+                    echoed.Append( buffer, got );
+                }
+                ASSERT_TRUE( echoed == block );
+            }
+
+            // closing the input is the end of the input: cat ends, and its output ends
+            process.CloseStdinPipe();
+            ASSERT_FALSE( process.GetStdinPipe()->Opened() );
+            ASSERT_TRUE( ReadPipeToEnd( *process.GetStdoutPipe(), 10000 ).IsNULLOrEmpty() );
+            Int32 exitCode = -1;
+            ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
+            ASSERT_TRUE( 0 == exitCode );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: CProcess pipes: waiting for data times out, and the data wakes it" )
+        try
+        {
+            CORE::CProcess::TStringVector args;
+            args.push_back( "-c" );
+            args.push_back( "read line; echo got-$line" );
+
+            CORE::CProcess process;
+            ASSERT_TRUE( process.LaunchWithPipes( "sh", args, true, true, false ) );
+            ASSERT_FALSE( process.GetStdoutPipe()->WaitForData( 150 ) );
+
+            ASSERT_TRUE( 1 == process.GetStdinPipe()->Write( "x\n", 2, 1 ) );
+            ASSERT_TRUE( process.GetStdoutPipe()->WaitForData( 10000 ) );
+            ASSERT_TRUE( ReadPipeToEnd( *process.GetStdoutPipe(), 10000 ) == "got-x\n" );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: CProcess pipes: writing to a child that has gone fails without a signal" )
+        try
+        {
+            CORE::CProcess::TStringVector args;
+            args.push_back( "-c" );
+            args.push_back( "exit 0" );
+
+            CORE::CProcess process;
+            ASSERT_TRUE( process.LaunchWithPipes( "sh", args, true, false, false ) );
+            Int32 exitCode = -1;
+            ASSERT_TRUE( process.WaitForExit( 10000, exitCode ) );
+
+            // SIGPIPE would end this very process, so reaching the next line is the test
+            CORE::CString block;
+            for ( UInt32 i=0; i<1024; ++i )
+                block += "0123456789";
+            ASSERT_TRUE( 0 == process.GetStdinPipe()->Write( block.C_String(), block.Length(), 1 ) );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: CProcess pipes: a failed launch leaves no pipes, and the destructor ends a child with open pipes" )
+        try
+        {
+            CORE::CProcess::TStringVector args;
+            CORE::CProcess process;
+            ASSERT_FALSE( process.LaunchWithPipes( "gucef_this_executable_does_not_exist_anywhere", args, true, true, true ) );
+            ASSERT_TRUE( GUCEF_NULL == process.GetStdinPipe() );
+            ASSERT_TRUE( GUCEF_NULL == process.GetStdoutPipe() );
+            ASSERT_TRUE( GUCEF_NULL == process.GetStderrPipe() );
+
+            UInt32 pid = 0;
+            {
+                CORE::CProcess holder;
+                args.push_back( "60" );
+                ASSERT_TRUE( holder.LaunchWithPipes( "sleep", args, true, true, true ) );
+                pid = holder.GetProcessId();
+            }
+            bool isAlive = true;
+            ASSERT_TRUE( CORE::CheckOnProcessAliveStatus( pid, isAlive ) );
+            ASSERT_FALSE( isAlive );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: CProcess: while stdout is claimed by a protocol, a child whose output is not piped writes it to standard error" )
+        try
+        {
+            // our standard output goes to a pipe of the test for the duration, so that what reaches it can be seen
+            int captured[ 2 ] = { -1, -1 };
+            ASSERT_TRUE( 0 == ::pipe( captured ) );
+            const int savedStdout = ::dup( STDOUT_FILENO );
+            ASSERT_TRUE( savedStdout >= 0 );
+            ::fflush( stdout );
+            ::dup2( captured[ 1 ], STDOUT_FILENO );
+            const bool claimed = CORE::CStandardOutputWriter::ClaimExclusive();
+
+            CORE::CString childError;
+            Int32 exitCode = -1;
+            Int32 plainExitCode = -1;
+            bool launched = false;
+            bool plainLaunched = false;
+            try
+            {
+                CORE::CProcess::TStringVector args;
+                args.push_back( "-c" );
+                args.push_back( "echo leaked-to-stdout; echo to-err 1>&2" );
+                CORE::CProcess process;
+                launched = process.LaunchWithPipes( "sh", args, false, false, true );
+                if ( launched )
+                {
+                    childError = ReadPipeToEnd( *process.GetStderrPipe(), 10000 );
+                    process.WaitForExit( 10000, exitCode );
+                }
+
+                // without any pipe the same holds
+                CORE::CProcess plain;
+                args.clear();
+                args.push_back( "-c" );
+                args.push_back( "echo plain-leaked-to-stdout" );
+                plainLaunched = plain.Launch( "sh", args );
+                if ( plainLaunched )
+                    plain.WaitForExit( 10000, plainExitCode );
+            }
+            catch( ... )
+            {
+            }
+
+            if ( claimed )
+                CORE::CStandardOutputWriter::ReleaseClaim();
+            ::fflush( stdout );
+            ::dup2( savedStdout, STDOUT_FILENO );
+            ::close( savedStdout );
+            ::close( captured[ 1 ] );
+
+            // what reached our standard output while it was claimed
+            CORE::CString reachedStdout;
+            char buffer[ 512 ];
+            ::fcntl( captured[ 0 ], F_SETFL, ::fcntl( captured[ 0 ], F_GETFL ) | O_NONBLOCK );
+            ssize_t got = 0;
+            while ( ( got = ::read( captured[ 0 ], buffer, sizeof( buffer ) ) ) > 0 )
+                reachedStdout.Append( buffer, (UInt32) got );
+            ::close( captured[ 0 ] );
+
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "Process test: the claimed stdout got \"" << reachedStdout << "\", the child's stderr \"" << childError << "\"" );
+            ASSERT_TRUE( claimed );
+            ASSERT_TRUE( launched && 0 == exitCode );
+            ASSERT_TRUE( plainLaunched && 0 == plainExitCode );
+            ASSERT_TRUE( reachedStdout.HasSubstr( "leaked" ) < 0 );
+            ASSERT_TRUE( childError.HasSubstr( "leaked-to-stdout" ) >= 0 && childError.HasSubstr( "to-err" ) >= 0 );
         }
         catch( ... )
         {

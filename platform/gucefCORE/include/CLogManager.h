@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_CLOGMANAGER_H
@@ -278,6 +276,24 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public CORE::CObserver
      */
     void RedirectToBootstrapLogQueue( bool redirect );
 
+    /** The most entries the bootstrap log keeps while no logger takes them; what comes beyond is counted and dropped */
+    static const UInt32 DefaultMaxBootstrapLogEntries = 10000;
+
+    /**
+     *  Bounds the bootstrap log. A process that never registers a logger (GUCEF_CONSOLE_LOGGER=none and no log file)
+     *  would otherwise keep every log line in memory for as long as it runs. The entries beyond the bound are dropped
+     *  and counted; the next flush to loggers says how many
+     */
+    void SetMaxBootstrapLogEntries( UInt32 maxEntries );
+
+    UInt32 GetMaxBootstrapLogEntries( void ) const;
+
+    /** The entries the bootstrap log holds now */
+    UInt32 GetBootstrapLogEntryCount( void ) const;
+
+    /** The entries dropped since the last flush because the bootstrap log was full */
+    UInt64 GetDroppedBootstrapLogEntryCount( void ) const;
+
     static const CString& GetLogMsgTypeString( const TLogMsgType logMsgType );
 
     virtual const MT::CILockable* AsLockable( void ) const GUCEF_VIRTUAL_OVERRIDE;
@@ -338,6 +354,8 @@ class GUCEF_CORE_PUBLIC_CPP CLogManager : public CORE::CObserver
     CLoggingTaskBasePtr m_loggingTask;
     bool m_useLogThread;
     TBootstrapLogVector m_bootstrapLog;
+    UInt32 m_maxBootstrapLogEntries;
+    UInt64 m_droppedBootstrapLogEntries;
     bool m_busyLogging;
     bool m_redirectToLogQueue;
     TAbstractLoggingFormatterFactory m_logFormatterFactory;

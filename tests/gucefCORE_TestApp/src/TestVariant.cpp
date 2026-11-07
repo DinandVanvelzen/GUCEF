@@ -1,20 +1,18 @@
 /*
  *  gucefCORE_TestApp: GUCEF test application for the CORE module
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -57,6 +55,11 @@
 #include "CDynamicBuffer.h"
 #define GUCEF_CORE_CDYNAMICBUFFER_H
 #endif /* GUCEF_CORE_CDYNAMICBUFFER_H ? */
+
+#ifndef GUCEF_CORE_CVALUELIST_H
+#include "CValueList.h"
+#define GUCEF_CORE_CVALUELIST_H
+#endif /* GUCEF_CORE_CVALUELIST_H ? */
 
 #ifndef GUCEF_CORE_LOGGING_H
 #include "gucefCORE_Logging.h"
@@ -546,6 +549,210 @@ PerformVariantTests( void )
             ASSERT_TRUE( a <= b );
             ASSERT_TRUE( b >= a );
             ASSERT_TRUE( a >= c );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Comparison: a string is not equal to a longer string which starts with it, whatever the encoding" )
+        try
+        {
+            // linked from a C string: ASCII without a null terminator, as CValueList makes keys from a const char*
+            CORE::CVariant linkedAscii;
+            linkedAscii.LinkTo( "lossyInference" );
+            CORE::CVariant utf8( CORE::CUtf8String( "lossyInference.id" ) );
+            ASSERT_FALSE( linkedAscii == utf8 );
+            ASSERT_TRUE( linkedAscii != utf8 );
+            ASSERT_TRUE( linkedAscii < utf8 );
+            ASSERT_FALSE( utf8 < linkedAscii );
+            ASSERT_TRUE( linkedAscii <= utf8 );
+            ASSERT_FALSE( utf8 <= linkedAscii );
+            ASSERT_TRUE( utf8 > linkedAscii );
+            ASSERT_TRUE( utf8 >= linkedAscii );
+
+            // owned copies without a terminator, ASCII against UTF-8 with a multi byte code point
+            CORE::CVariant ascii;
+            ascii.Set( "abc", 3, GUCEF_DATATYPE_ASCII_STRING, false );
+            CORE::CVariant accented;
+            accented.Set( "abc\xC3\xA9", 5, GUCEF_DATATYPE_UTF8_STRING, false );
+            ASSERT_FALSE( ascii == accented );
+            ASSERT_TRUE( ascii < accented );
+            ASSERT_FALSE( accented < ascii );
+
+            // the same with a terminated string on the long side and the short side
+            CORE::CVariant longer( CORE::CUtf8String( "abcdef" ) );
+            ASSERT_FALSE( ascii == longer );
+            ASSERT_TRUE( ascii < longer );
+            ASSERT_FALSE( longer < ascii );
+            CORE::CVariant shortTerminated( CORE::CAsciiString( "abc" ) );
+            CORE::CVariant longUnterminated;
+            longUnterminated.Set( "abcdef", 6, GUCEF_DATATYPE_UTF8_STRING, false );
+            ASSERT_FALSE( shortTerminated == longUnterminated );
+            ASSERT_TRUE( shortTerminated < longUnterminated );
+            ASSERT_FALSE( longUnterminated < shortTerminated );
+
+            // an empty string is not equal to a non empty one
+            CORE::CVariant empty;
+            empty.Set( "", 0, GUCEF_DATATYPE_UTF8_STRING, false );
+            ASSERT_FALSE( empty == ascii );
+            ASSERT_TRUE( empty < ascii );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Comparison: the same text is equal in every string encoding and orders by code point" )
+        try
+        {
+            // "abc" as ASCII (terminated and not), UTF-8 (terminated and not), UTF-16 LE, UTF-16 BE and UTF-32
+            const UInt16 abc16le[] = { 'a', 'b', 'c', 0 };
+            const UInt8 abc16be[] = { 0, 'a', 0, 'b', 0, 'c', 0, 0 };
+            const UInt32 abc32[] = { 'a', 'b', 'c', 0 };
+
+            CORE::CVariant forms[ 7 ];
+            forms[ 0 ] = CORE::CAsciiString( "abc" );
+            forms[ 1 ].Set( "abc", 3, GUCEF_DATATYPE_ASCII_STRING, false );
+            forms[ 2 ] = CORE::CUtf8String( "abc" );
+            forms[ 3 ].Set( "abc", 3, GUCEF_DATATYPE_UTF8_STRING, false );
+            forms[ 4 ].Set( abc16le, sizeof( abc16le ), GUCEF_DATATYPE_UTF16_LE_STRING, false );
+            forms[ 5 ].Set( abc16be, sizeof( abc16be ), GUCEF_DATATYPE_UTF16_BE_STRING, false );
+            forms[ 6 ].Set( abc32, sizeof( abc32 ), GUCEF_DATATYPE_UTF32_STRING, false );
+
+            CORE::CVariant bigger( CORE::CUtf8String( "abd" ) );
+            CORE::CVariant smaller( CORE::CUtf8String( "abb" ) );
+            for ( UInt32 i=0; i<7; ++i )
+            {
+                for ( UInt32 n=0; n<7; ++n )
+                {
+                    ASSERT_TRUE( forms[ i ] == forms[ n ] );
+                    ASSERT_FALSE( forms[ i ] != forms[ n ] );
+                    ASSERT_FALSE( forms[ i ] < forms[ n ] );
+                    ASSERT_TRUE( forms[ i ] <= forms[ n ] );
+                }
+                ASSERT_TRUE( forms[ i ] < bigger );
+                ASSERT_FALSE( bigger < forms[ i ] );
+                ASSERT_TRUE( smaller < forms[ i ] );
+                ASSERT_FALSE( forms[ i ] < smaller );
+            }
+
+            // code point order, not code unit order: U+1F600 (a UTF-16 surrogate pair) sorts after U+FFFD
+            const UInt16 emoji16[] = { 0xD83D, 0xDE00, 0 };
+            const UInt16 replacement16[] = { 0xFFFD, 0 };
+            CORE::CVariant emojiUtf16;
+            emojiUtf16.Set( emoji16, sizeof( emoji16 ), GUCEF_DATATYPE_UTF16_LE_STRING, false );
+            CORE::CVariant replacementUtf16;
+            replacementUtf16.Set( replacement16, sizeof( replacement16 ), GUCEF_DATATYPE_UTF16_LE_STRING, false );
+            CORE::CVariant emojiUtf8;
+            emojiUtf8.Set( "\xF0\x9F\x98\x80", 4, GUCEF_DATATYPE_UTF8_STRING, false );
+            CORE::CVariant replacementUtf8;
+            replacementUtf8.Set( "\xEF\xBF\xBD", 3, GUCEF_DATATYPE_UTF8_STRING, false );
+            ASSERT_TRUE( emojiUtf16 == emojiUtf8 );
+            ASSERT_TRUE( replacementUtf16 == replacementUtf8 );
+            ASSERT_TRUE( replacementUtf16 < emojiUtf16 );
+            ASSERT_FALSE( emojiUtf16 < replacementUtf16 );
+            ASSERT_TRUE( replacementUtf8 < emojiUtf16 );
+            ASSERT_TRUE( replacementUtf16 < emojiUtf8 );
+
+            // ISO 8601 date time text: equal to the same text in the other flavour, a longer text is not equal
+            CORE::CVariant isoAscii;
+            isoAscii.Set( "2024-01-02T03:04:05Z", 20, GUCEF_DATATYPE_DATETIME_ISO8601_ASCII_STRING, false );
+            CORE::CVariant isoUtf8;
+            isoUtf8.Set( "2024-01-02T03:04:05Z", 21, GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING, false );
+            CORE::CVariant isoUtf8Millis;
+            isoUtf8Millis.Set( "2024-01-02T03:04:05.123Z", 24, GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING, false );
+            CORE::CVariant isoPrefix;
+            isoPrefix.Set( "2024-01-02T03:04:05", 19, GUCEF_DATATYPE_DATETIME_ISO8601_ASCII_STRING, false );
+            ASSERT_TRUE( isoAscii == isoUtf8 );
+            ASSERT_FALSE( isoAscii == isoUtf8Millis );
+            ASSERT_FALSE( isoPrefix == isoAscii );
+            ASSERT_TRUE( isoPrefix < isoAscii );
+            ASSERT_FALSE( isoAscii < isoPrefix );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Comparison: keys which share a prefix stay apart in a CValueList and a variant set" )
+        try
+        {
+            CORE::CValueList list;
+            list.Set( CORE::CString( "lossyInference.id" ), CORE::CVariant( (UInt64) 2 ) );
+            list.Set( "lossyInference", CORE::CVariant( (UInt64) 1 ) );
+            list.Set( "lineEnding", CORE::CVariant( CORE::CString( "lf" ) ) );
+            ASSERT_TRUE( 3 == list.GetKeyCount() );
+            ASSERT_TRUE( list.HasKey( "lossyInference" ) );
+            ASSERT_TRUE( list.HasKey( CORE::CString( "lossyInference.id" ) ) );
+            ASSERT_TRUE( 1 == list.GetValueAlways( "lossyInference" ).AsUInt64() );
+            ASSERT_TRUE( 2 == list.GetValueAlways( CORE::CString( "lossyInference.id" ) ).AsUInt64() );
+            ASSERT_FALSE( list.HasKey( "lossy" ) );
+
+            // the same text in different encodings is one key
+            const UInt16 key16[] = { 'k', 'e', 'y', 0 };
+            CORE::CVariant key16Variant;
+            key16Variant.Set( key16, sizeof( key16 ), GUCEF_DATATYPE_UTF16_LE_STRING, false );
+            CORE::CVariant keyUnterminated;
+            keyUnterminated.Set( "key", 3, GUCEF_DATATYPE_ASCII_STRING, false );
+            CORE::CVariant::VariantSet keys;
+            keys.insert( CORE::CVariant( CORE::CUtf8String( "key" ) ) );
+            keys.insert( key16Variant );
+            keys.insert( keyUnterminated );
+            keys.insert( CORE::CVariant( CORE::CUtf8String( "key2" ) ) );
+            keys.insert( CORE::CVariant( CORE::CUtf8String( "ke" ) ) );
+            ASSERT_TRUE( 3 == keys.size() );
+        }
+        catch( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Comparison: binary values compare their full content and mixed types are not equal by their raw bytes" )
+        try
+        {
+            CORE::CVariant blobShort;
+            blobShort.Set( "abc", 3, GUCEF_DATATYPE_BINARY_BLOB, false );
+            CORE::CVariant blobLong;
+            blobLong.Set( "abcdef", 6, GUCEF_DATATYPE_BINARY_BLOB, false );
+            CORE::CVariant blobSame;
+            blobSame.Set( "abc", 3, GUCEF_DATATYPE_BINARY_BLOB, false );
+            ASSERT_FALSE( blobShort == blobLong );
+            ASSERT_TRUE( blobShort < blobLong );
+            ASSERT_FALSE( blobLong < blobShort );
+            ASSERT_TRUE( blobShort == blobSame );
+            ASSERT_FALSE( blobShort < blobSame );
+
+            // a byte is not text: 'a' (97) is not equal to "abc", nor is the integer whose bytes spell "abc"
+            CORE::CVariant ascii( CORE::CAsciiString( "abc" ) );
+            CORE::CVariant letter( (UInt8) 'a' );
+            CORE::CVariant spelled( (UInt32) 0x00636261 );
+            ASSERT_FALSE( letter == ascii );
+            ASSERT_FALSE( ascii == letter );
+            ASSERT_FALSE( spelled == ascii );
+            ASSERT_FALSE( ascii == spelled );
+            ASSERT_TRUE( ( letter < ascii ) != ( ascii < letter ) );
+            ASSERT_TRUE( ( spelled < ascii ) != ( ascii < spelled ) );
+
+            // an integer and a float compare by value, not by their bytes
+            ASSERT_TRUE( CORE::CVariant( (Int32) 1 ) == CORE::CVariant( (Float64) 1.0 ) );
+            ASSERT_FALSE( CORE::CVariant( (Int32) 0 ) == CORE::CVariant( (Float64) 1.0 ) );
+            ASSERT_TRUE( CORE::CVariant( (Int32) 0 ) < CORE::CVariant( (Float64) 0.5 ) );
+            ASSERT_FALSE( CORE::CVariant( (Float64) 0.5 ) < CORE::CVariant( (Int32) 0 ) );
+            ASSERT_TRUE( CORE::CVariant( (Float32) 2.5f ) < CORE::CVariant( (UInt64) 3 ) );
+
+            // nothing and an empty string are not equal, nothing equals nothing
+            CORE::CVariant nothing;
+            CORE::CVariant otherNothing;
+            CORE::CVariant emptyText( CORE::CUtf8String( "" ) );
+            ASSERT_TRUE( nothing == otherNothing );
+            ASSERT_FALSE( nothing < otherNothing );
+            ASSERT_FALSE( nothing == emptyText );
+            ASSERT_TRUE( ( nothing < emptyText ) != ( emptyText < nothing ) );
         }
         catch( ... )
         {

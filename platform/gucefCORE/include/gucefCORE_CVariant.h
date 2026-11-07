@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_CVARIANT_H
@@ -55,6 +53,11 @@
 #include "gucefCORE_CTFraction.h"
 #define GUCEF_CORE_CTFRACTION_H
 #endif /* GUCEF_CORE_CTFRACTION_H ? */
+
+#ifndef GUCEF_CORE_CDECIMAL_H
+#include "gucefCORE_CDecimal.h"
+#define GUCEF_CORE_CDECIMAL_H
+#endif /* GUCEF_CORE_CDECIMAL_H ? */
 
 #ifndef GUCEF_CORE_C_VARIANTDATA_H
 #include "gucefCORE_c_variantdata.h"
@@ -147,6 +150,11 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     CVariant( const TUInt64UInt32Fraction& data );
     CVariant( const TInt64Fraction& data );
     CVariant( const TUInt64Fraction& data );
+
+    /**
+     *  Creates a variant holding the decimal inline (no heap) under the native byte order decimal type id
+     */
+    CVariant( const CDecimal& data );
     
     /**
      *  Creates a private copy of the ASCII string data and sets the type as such
@@ -202,6 +210,7 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     bool IsFraction( void ) const;
     bool IsSignedFraction( void ) const;
     bool IsUnsignedFraction( void ) const;
+    bool IsDecimal( void ) const;
     bool IsString( void ) const;
     bool IsBoolean( void ) const;
     bool IsBinary( void ) const;
@@ -308,6 +317,18 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     TInt64Int32Fraction   AsInt64Int32Fraction( const TInt64Int32Fraction& defaultIfNeeded = TInt64Int32Fraction(), bool resolveVarsIfApplicable = false ) const;
     TUInt64UInt32Fraction AsUInt64UInt32Fraction( const TUInt64UInt32Fraction& defaultIfNeeded = TUInt64UInt32Fraction(), bool resolveVarsIfApplicable = false ) const;
 
+    /**
+     *  Exact conversion to a decimal: decimals (either byte order), integers (scale 0), strict decimal text,
+     *  floats via the shortest round trip decimal and fractions whose denominator has only the factors 2 and 5.
+     *  Anything else, or a value that does not convert exactly, gives 'defaultIfNeeded'
+     */
+    CDecimal AsDecimal( const CDecimal& defaultIfNeeded = CDecimal::Zero, bool resolveVarsIfApplicable = false ) const;
+
+    /**
+     *  The same conversion as AsDecimal() with the reason for a failure. 'result' is only written when the status is not an error
+     */
+    TDecimalStatus GetDecimal( CDecimal& result, bool resolveVarsIfApplicable = false ) const;
+
     template < typename TemplateBsobType >
     TemplateBsobType AsBsob( void ) const;
 
@@ -358,6 +379,7 @@ class GUCEF_CORE_PUBLIC_CPP CVariant
     CVariant& operator=( const TUInt64WUInt32Fraction& data );
     CVariant& operator=( const TInt64T2Fraction& data );
     CVariant& operator=( const TUInt64T2Fraction& data );
+    CVariant& operator=( const CDecimal& data );
     CVariant& operator=( const CDynamicBuffer& data );
     CVariant& operator=( const CAsciiString& data );
     CVariant& operator=( const CUtf8String& data );
@@ -511,6 +533,7 @@ template <> inline CUtf8String CVariant::AsTValue( const CUtf8String defaultIfNe
 template <> inline CUtf16String CVariant::AsTValue( const CUtf16String defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsUtf16String( defaultIfNeeded, resolveVarsIfApplicable ); }
 template <> inline CUtf32String CVariant::AsTValue( const CUtf32String defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsUtf32String( defaultIfNeeded, resolveVarsIfApplicable ); }
 template <> inline CDateTime CVariant::AsTValue( const CDateTime defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsDateTime( defaultIfNeeded, resolveVarsIfApplicable ); }
+template <> inline CDecimal CVariant::AsTValue( const CDecimal defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsDecimal( defaultIfNeeded, resolveVarsIfApplicable ); }
 template <> inline std::string CVariant::AsTValue( const std::string defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsString( defaultIfNeeded, resolveVarsIfApplicable ).STL_String(); }
 template <> inline std::wstring CVariant::AsTValue( const std::wstring defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return ToWString( AsString( ToString( defaultIfNeeded ), resolveVarsIfApplicable ) ); }
 //template <> inline void* CVariant::AsTValue( const void* defaultIfNeeded, bool resolveVarsIfApplicable ) const {GUCEF_TRACE; return AsVoidPtr( defaultIfNeeded ), resolveVarsIfApplicable ) ); }
@@ -549,6 +572,7 @@ template <> inline bool CVariant::TTypeUsesDynamicMemory( const CUtf8String* def
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const CUtf16String* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const CUtf32String* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const CDateTime* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
+template <> inline bool CVariant::TTypeUsesDynamicMemory( const CDecimal* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const std::string* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const std::wstring* defaultIfNeeded ) const {GUCEF_TRACE; return true; }
 template <> inline bool CVariant::TTypeUsesDynamicMemory( const void* defaultIfNeeded ) const {GUCEF_TRACE; return false; }
@@ -587,6 +611,7 @@ template <> inline bool CVariant::SetTValue( const CUtf8String& valueToSet, bool
 template <> inline bool CVariant::SetTValue( const CUtf16String& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
 template <> inline bool CVariant::SetTValue( const CUtf32String& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
 template <> inline bool CVariant::SetTValue( const CDateTime& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
+template <> inline bool CVariant::SetTValue( const CDecimal& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }
 template <> inline bool CVariant::SetTValue( const std::string& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
 template <> inline bool CVariant::SetTValue( const std::wstring& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; if GUCEF_PREDICT_TRUE( linkOnlyForDynMem ) { LinkTo( valueToSet ); } else { *this = valueToSet; } return true; }
 //template <> inline bool CVariant::SetTValue( const void*& valueToSet, bool linkOnlyForDynMem ) {GUCEF_TRACE; *this = valueToSet; return true; }

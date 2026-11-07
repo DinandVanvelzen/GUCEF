@@ -149,6 +149,7 @@ set( HEADER_FILES
   include/gucefCORE_CCodecParameterInfo.h
   include/gucefCORE_CCoreGlobal.h
   include/gucefCORE_CCronSchedule.h
+  include/gucefCORE_CCsvTableCodec.h
   include/gucefCORE_CDStoreBinaryCodec.h
   include/gucefCORE_CDataDrivenDStoreCodec.h
   include/gucefCORE_CDataDrivenDStoreCodecFactory.h
@@ -159,10 +160,37 @@ set( HEADER_FILES
   include/gucefCORE_CDataNodeSerializableDataNode.h
   include/gucefCORE_CDataNodeSerializableSettings.h
   include/gucefCORE_CDataNodeSubtreeCollector.h
+  include/gucefCORE_CDataTableAsyncOperation.h
+  include/gucefCORE_CDataTableBatch.h
+  include/gucefCORE_CDataTableBatchBuilder.h
+  include/gucefCORE_CDataTableBatchPtr.h
+  include/gucefCORE_CDataTableBuffer.h
+  include/gucefCORE_CDataTableBufferPool.h
+  include/gucefCORE_CDataTableColumnBatch.h
+  include/gucefCORE_CDataTableColumnDef.h
+  include/gucefCORE_CDataTableColumnStats.h
+  include/gucefCORE_CDataTableDefinition.h
+  include/gucefCORE_CDataTableFilter.h
+  include/gucefCORE_CDataTableMerge.h
+  include/gucefCORE_CDataTablePartitionInfo.h
+  include/gucefCORE_CDataTablePartitionSpec.h
+  include/gucefCORE_CDataTablePredicate.h
+  include/gucefCORE_CDataTablePruner.h
+  include/gucefCORE_CDataTableQuery.h
+  include/gucefCORE_CDataTableRowCursor.h
+  include/gucefCORE_CDataTableRowGroupInfo.h
+  include/gucefCORE_CDataTableScan.h
+  include/gucefCORE_CDataTableScanStats.h
+  include/gucefCORE_CDataTableSchema.h
+  include/gucefCORE_CDataTableValues.h
+  include/gucefCORE_CDataTableWriteResult.h
+  include/gucefCORE_CDataTableWriterOptions.h
   include/gucefCORE_CDataUriResourceAccessor.h
   include/gucefCORE_CDate.h
   include/gucefCORE_CDateTime.h
   include/gucefCORE_CDateTimeRange.h
+  include/gucefCORE_CDecimal.h
+  include/gucefCORE_CDecimalAccumulator.h
   include/gucefCORE_CDefaultCodecInstance.h
   include/gucefCORE_CDeferredTask.h
   include/gucefCORE_CDirectoryWatcherEvents.h
@@ -176,6 +204,7 @@ set( HEADER_FILES
   include/gucefCORE_CEventBasedTaskConsumer.h
   include/gucefCORE_CExternalThreadScope.h
   include/gucefCORE_CFaultTolerantConfigScope.h
+  include/gucefCORE_CFileDataTable.h
   include/gucefCORE_CFileSystemDirectoryWatcher.h
   include/gucefCORE_CFileSystemEntryListIterator.h
   include/gucefCORE_CFileSystemUriResourceAccessor.h
@@ -192,12 +221,16 @@ set( HEADER_FILES
   include/gucefCORE_CGlobalConfigValueList.h
   include/gucefCORE_CGlobalDataDrivenDStoreCodecFactory.h
   include/gucefCORE_CGloballyConfigurable.h
+  include/gucefCORE_CGuardedTableCodec.h
   include/gucefCORE_CICallbackStyleParser.h
   include/gucefCORE_CICodecInstance.h
   include/gucefCORE_CIConfigurable.h
   include/gucefCORE_CIConsoleLogger.h
   include/gucefCORE_CIDataNodeSerializable.h
   include/gucefCORE_CIDataNodeSerializableTaskData.h
+  include/gucefCORE_CIDataTable.h
+  include/gucefCORE_CIDataTableBatchSource.h
+  include/gucefCORE_CIDataTableScanSource.h
   include/gucefCORE_CIDate.h
   include/gucefCORE_CIDirectoryWatcher.h
   include/gucefCORE_CIDocumentParserCallbacks.h
@@ -212,6 +245,10 @@ set( HEADER_FILES
   include/gucefCORE_CIPluginLoadLogic.h
   include/gucefCORE_CIPluginMetaData.h
   include/gucefCORE_CIPulseGeneratorDriver.h
+  include/gucefCORE_CITableCodec.h
+  include/gucefCORE_CITableFileMetaData.h
+  include/gucefCORE_CITableReader.h
+  include/gucefCORE_CITableWriter.h
   include/gucefCORE_CITime.h
   include/gucefCORE_CIValueMapParserCallbacks.h
   include/gucefCORE_CIValueToDataNodeSerializer.h
@@ -219,12 +256,16 @@ set( HEADER_FILES
   include/gucefCORE_CIniParser.h
   include/gucefCORE_CInstanceBasedCodec.h
   include/gucefCORE_CJsonLoggingFormatter.h
+  include/gucefCORE_CJsonSchema.h
+  include/gucefCORE_CJsonSchemaValidator.h
+  include/gucefCORE_CJsonSyntaxValidator.h
   include/gucefCORE_CLinkedTransferBuffer.h
   include/gucefCORE_CLoaderDelegatedPluginLoadLogic.h
   include/gucefCORE_CLogStream.h
   include/gucefCORE_CLogStreamScope.h
   include/gucefCORE_CLoggingGlobal.h
   include/gucefCORE_CLoggingTask.h
+  include/gucefCORE_CMemoryDataTable.h
   include/gucefCORE_CMetricsClientManager.h
   include/gucefCORE_CMultiLogger.h
   include/gucefCORE_CNativeFileSystemAccess.h
@@ -237,6 +278,7 @@ set( HEADER_FILES
   include/gucefCORE_CPluginGroup.h
   include/gucefCORE_CPluginMetaData.h
   include/gucefCORE_CProcess.h
+  include/gucefCORE_CProcessPipe.h
   include/gucefCORE_CProgressReportingIOAccess.h
   include/gucefCORE_CProperty.h
   include/gucefCORE_CPropertyDefinition.h
@@ -251,11 +293,15 @@ set( HEADER_FILES
   include/gucefCORE_CRollingFileAccess.h
   include/gucefCORE_CRsaPkcs1Codecs.h
   include/gucefCORE_CSchedule.h
+  include/gucefCORE_CScheduleTrigger.h
+  include/gucefCORE_CSecureBuffer.h
   include/gucefCORE_CSha256.h
   include/gucefCORE_CSha512.h
   include/gucefCORE_CSimplisticPluginLoadLogic.h
   include/gucefCORE_CSingleTaskDelegator.h
   include/gucefCORE_CSoftwareCryptoCodecs.h
+  include/gucefCORE_CStandardInputReader.h
+  include/gucefCORE_CStandardOutputWriter.h
   include/gucefCORE_CStdDataNodeSerializableTaskData.h
   include/gucefCORE_CStopwatch.h
   include/gucefCORE_CString.h
@@ -275,6 +321,9 @@ set( HEADER_FILES
   include/gucefCORE_CTMultiRegistry.h
   include/gucefCORE_CTScopedValue.h
   include/gucefCORE_CTWeakPtr.h
+  include/gucefCORE_CTableCodecPlugin.h
+  include/gucefCORE_CTableCodecPluginManager.h
+  include/gucefCORE_CTableCodecRegistry.h
   include/gucefCORE_CTask.h
   include/gucefCORE_CTaskConsumer.h
   include/gucefCORE_CTaskDelegator.h
@@ -286,6 +335,7 @@ set( HEADER_FILES
   include/gucefCORE_CThreadPoollnfo.h
   include/gucefCORE_CThreadlnfo.h
   include/gucefCORE_CTime.h
+  include/gucefCORE_CTimeZoneRules.h
   include/gucefCORE_CTimestamp.h
   include/gucefCORE_CTokenizer.h
   include/gucefCORE_CUri.h
@@ -310,6 +360,7 @@ set( HEADER_FILES
   include/gucefCORE_CVersion.h
   include/gucefCORE_CVersionRange.h
   include/gucefCORE_CoreCodecTypes.h
+  include/gucefCORE_DataTableTypes.h
   include/gucefCORE_EFileSystemAccessResult.h
   include/gucefCORE_ETypes.h
   include/gucefCORE_ExecutionOperation.h
@@ -321,8 +372,12 @@ set( HEADER_FILES
   include/gucefCORE_Logging.h
   include/gucefCORE_LoggingMacros.h
   include/gucefCORE_MetricsMacros.h
+  include/gucefCORE_RoundingMode.h
   include/gucefCORE_SFINAE_utils.h
+  include/gucefCORE_SecureMemory.h
+  include/gucefCORE_StdoutClaim.h
   include/gucefCORE_StringLoggingMacros.h
+  include/gucefCORE_TableCodecPluginAPI.h
   include/gucefCORE_TaskStatus.h
   include/gucefCORE_ThreadStatus.h
   include/gucefCORE_TokenTypes.h
@@ -343,6 +398,7 @@ set( HEADER_FILES
   include/c_api/gucefCORE_c_api.h
   include/c_api/gucefCORE_c_codec_plugin_api.h
   include/c_api/gucefCORE_c_datadriven_dstorecodec_meta.h
+  include/c_api/gucefCORE_c_decimaldata.h
   include/c_api/gucefCORE_c_document_parser_callbacks.h
   include/c_api/gucefCORE_c_dstore_plugin_api.h
   include/c_api/gucefCORE_c_fractiondata.h
@@ -357,6 +413,16 @@ set( HEADER_FILES
   include/c_api/gucefCORE_c_variantdata.h
   include/c_api/gucefCORE_c_variantmap.h
   include/c_api/gucefCORE_c_variantvector.h
+  src/gucefCORE_CCsvColumnConverter.h
+  src/gucefCORE_CCsvRecordParser.h
+  src/gucefCORE_CCsvSchemaResolver.h
+  src/gucefCORE_CCsvTableOptions.h
+  src/gucefCORE_CCsvTableReader.h
+  src/gucefCORE_CCsvTableText.h
+  src/gucefCORE_CCsvTableWriter.h
+  src/gucefCORE_CDataTableBufferPoolCore.h
+  src/gucefCORE_CDataTableScanTask.h
+  src/gucefCORE_CUInt128.h
 )
 
 set( SOURCE_FILES 
@@ -481,6 +547,14 @@ set( SOURCE_FILES
   src/gucefCORE_CCodecParameterInfo.cpp
   src/gucefCORE_CCoreGlobal.cpp
   src/gucefCORE_CCronSchedule.cpp
+  src/gucefCORE_CCsvColumnConverter.cpp
+  src/gucefCORE_CCsvRecordParser.cpp
+  src/gucefCORE_CCsvSchemaResolver.cpp
+  src/gucefCORE_CCsvTableCodec.cpp
+  src/gucefCORE_CCsvTableOptions.cpp
+  src/gucefCORE_CCsvTableReader.cpp
+  src/gucefCORE_CCsvTableText.cpp
+  src/gucefCORE_CCsvTableWriter.cpp
   src/gucefCORE_CDStoreBinaryCodec.cpp
   src/gucefCORE_CDataDrivenDStoreCodec.cpp
   src/gucefCORE_CDataDrivenDStoreCodecFactory.cpp
@@ -491,10 +565,36 @@ set( SOURCE_FILES
   src/gucefCORE_CDataNodeSerializableDataNode.cpp
   src/gucefCORE_CDataNodeSerializableSettings.cpp
   src/gucefCORE_CDataNodeSubtreeCollector.cpp
+  src/gucefCORE_CDataTableAsyncOperation.cpp
+  src/gucefCORE_CDataTableBatch.cpp
+  src/gucefCORE_CDataTableBatchBuilder.cpp
+  src/gucefCORE_CDataTableBuffer.cpp
+  src/gucefCORE_CDataTableBufferPool.cpp
+  src/gucefCORE_CDataTableColumnBatch.cpp
+  src/gucefCORE_CDataTableColumnDef.cpp
+  src/gucefCORE_CDataTableColumnStats.cpp
+  src/gucefCORE_CDataTableDefinition.cpp
+  src/gucefCORE_CDataTableFilter.cpp
+  src/gucefCORE_CDataTableMerge.cpp
+  src/gucefCORE_CDataTablePartitionInfo.cpp
+  src/gucefCORE_CDataTablePartitionSpec.cpp
+  src/gucefCORE_CDataTablePredicate.cpp
+  src/gucefCORE_CDataTablePruner.cpp
+  src/gucefCORE_CDataTableQuery.cpp
+  src/gucefCORE_CDataTableRowCursor.cpp
+  src/gucefCORE_CDataTableRowGroupInfo.cpp
+  src/gucefCORE_CDataTableScan.cpp
+  src/gucefCORE_CDataTableScanStats.cpp
+  src/gucefCORE_CDataTableSchema.cpp
+  src/gucefCORE_CDataTableValues.cpp
+  src/gucefCORE_CDataTableWriteResult.cpp
+  src/gucefCORE_CDataTableWriterOptions.cpp
   src/gucefCORE_CDataUriResourceAccessor.cpp
   src/gucefCORE_CDate.cpp
   src/gucefCORE_CDateTime.cpp
   src/gucefCORE_CDateTimeRange.cpp
+  src/gucefCORE_CDecimal.cpp
+  src/gucefCORE_CDecimalAccumulator.cpp
   src/gucefCORE_CDefaultCodecInstance.cpp
   src/gucefCORE_CDirectoryWatcherEvents.cpp
   src/gucefCORE_CDocumentStreamWriter.cpp
@@ -506,6 +606,7 @@ set( SOURCE_FILES
   src/gucefCORE_CEventAggregateTrigger.cpp
   src/gucefCORE_CExternalThreadScope.cpp
   src/gucefCORE_CFaultTolerantConfigScope.cpp
+  src/gucefCORE_CFileDataTable.cpp
   src/gucefCORE_CFileSystemDirectoryWatcher.cpp
   src/gucefCORE_CFileSystemEntryListIterator.cpp
   src/gucefCORE_CFileSystemUriResourceAccessor.cpp
@@ -522,11 +623,15 @@ set( SOURCE_FILES
   src/gucefCORE_CGlobalConfigValueList.cpp
   src/gucefCORE_CGlobalDataDrivenDStoreCodecFactory.cpp
   src/gucefCORE_CGloballyConfigurable.cpp
+  src/gucefCORE_CGuardedTableCodec.cpp
   src/gucefCORE_CICodecInstance.cpp
   src/gucefCORE_CIConfigurable.cpp
   src/gucefCORE_CIConsoleLogger.cpp
   src/gucefCORE_CIDataNodeSerializable.cpp
   src/gucefCORE_CIDataNodeSerializableTaskData.cpp
+  src/gucefCORE_CIDataTable.cpp
+  src/gucefCORE_CIDataTableBatchSource.cpp
+  src/gucefCORE_CIDataTableScanSource.cpp
   src/gucefCORE_CIDate.cpp
   src/gucefCORE_CIDirectoryWatcher.cpp
   src/gucefCORE_CIDocumentParserCallbacks.cpp
@@ -541,6 +646,10 @@ set( SOURCE_FILES
   src/gucefCORE_CIPluginLoadLogic.cpp
   src/gucefCORE_CIPluginMetaData.cpp
   src/gucefCORE_CIPulseGeneratorDriver.cpp
+  src/gucefCORE_CITableCodec.cpp
+  src/gucefCORE_CITableFileMetaData.cpp
+  src/gucefCORE_CITableReader.cpp
+  src/gucefCORE_CITableWriter.cpp
   src/gucefCORE_CITime.cpp
   src/gucefCORE_CIValueMapParserCallbacks.cpp
   src/gucefCORE_CIValueToDataNodeSerializer.cpp
@@ -548,12 +657,16 @@ set( SOURCE_FILES
   src/gucefCORE_CIniParser.cpp
   src/gucefCORE_CInstanceBasedCodec.cpp
   src/gucefCORE_CJsonLoggingFormatter.cpp
+  src/gucefCORE_CJsonSchema.cpp
+  src/gucefCORE_CJsonSchemaValidator.cpp
+  src/gucefCORE_CJsonSyntaxValidator.cpp
   src/gucefCORE_CLinkedTransferBuffer.cpp
   src/gucefCORE_CLoaderDelegatedPluginLoadLogic.cpp
   src/gucefCORE_CLogStream.cpp
   src/gucefCORE_CLogStreamScope.cpp
   src/gucefCORE_CLoggingGlobal.cpp
   src/gucefCORE_CLoggingTask.cpp
+  src/gucefCORE_CMemoryDataTable.cpp
   src/gucefCORE_CMetricsClientManager.cpp
   src/gucefCORE_CMultiLogger.cpp
   src/gucefCORE_CNativeFileSystemAccess.cpp
@@ -566,6 +679,7 @@ set( SOURCE_FILES
   src/gucefCORE_CPluginGroup.cpp
   src/gucefCORE_CPluginMetaData.cpp
   src/gucefCORE_CProcess.cpp
+  src/gucefCORE_CProcessPipe.cpp
   src/gucefCORE_CProgressReportingIOAccess.cpp
   src/gucefCORE_CProperty.cpp
   src/gucefCORE_CPropertyDefinition.cpp
@@ -580,11 +694,15 @@ set( SOURCE_FILES
   src/gucefCORE_CRollingFileAccess.cpp
   src/gucefCORE_CRsaPkcs1Codecs.cpp
   src/gucefCORE_CSchedule.cpp
+  src/gucefCORE_CScheduleTrigger.cpp
+  src/gucefCORE_CSecureBuffer.cpp
   src/gucefCORE_CSha256.cpp
   src/gucefCORE_CSha512.cpp
   src/gucefCORE_CSimplisticPluginLoadLogic.cpp
   src/gucefCORE_CSingleTaskDelegator.cpp
   src/gucefCORE_CSoftwareCryptoCodecs.cpp
+  src/gucefCORE_CStandardInputReader.cpp
+  src/gucefCORE_CStandardOutputWriter.cpp
   src/gucefCORE_CStdDataNodeSerializableTaskData.cpp
   src/gucefCORE_CStopwatch.cpp
   src/gucefCORE_CStringLogHelper.cpp
@@ -598,6 +716,9 @@ set( SOURCE_FILES
   src/gucefCORE_CTIOAccessToStlStream.cpp
   src/gucefCORE_CTIOAccessToStlStreambuff.cpp
   src/gucefCORE_CTMultiRegistry.cpp
+  src/gucefCORE_CTableCodecPlugin.cpp
+  src/gucefCORE_CTableCodecPluginManager.cpp
+  src/gucefCORE_CTableCodecRegistry.cpp
   src/gucefCORE_CTask.cpp
   src/gucefCORE_CTaskConsumer.cpp
   src/gucefCORE_CTaskDelegator.cpp
@@ -609,6 +730,7 @@ set( SOURCE_FILES
   src/gucefCORE_CThreadPoollnfo.cpp
   src/gucefCORE_CThreadlnfo.cpp
   src/gucefCORE_CTime.cpp
+  src/gucefCORE_CTimeZoneRules.cpp
   src/gucefCORE_CTimestamp.cpp
   src/gucefCORE_CTokenizer.cpp
   src/gucefCORE_CUri.cpp
@@ -633,10 +755,13 @@ set( SOURCE_FILES
   src/gucefCORE_CVersion.cpp
   src/gucefCORE_CVersionRange.cpp
   src/gucefCORE_CoreCodecTypes.cpp
+  src/gucefCORE_DataTableTypes.cpp
   src/gucefCORE_EFileSystemAccessResult.cpp
   src/gucefCORE_IFileSystemAccess.cpp
   src/gucefCORE_IFileSystemIterator.cpp
   src/gucefCORE_LogLevels.cpp
+  src/gucefCORE_SecureMemory.cpp
+  src/gucefCORE_StdoutClaim.cpp
   src/gucefCORE_TaskStatus.cpp
   src/gucefCORE_ThreadStatus.cpp
   src/gucefCORE_c_api_impl.cpp
@@ -840,7 +965,7 @@ if ( WIN64 )
   target_link_libraries( ${MODULE_NAME} PRIVATE Bcrypt.lib PowrProf.lib Shlwapi.lib Ws2_32.lib )
 endif( WIN64 )
 
-include_directories( ../../common/include ../gucefMT/include include include/c_api )
+include_directories( ../../common/include ../gucefMT/include include include/c_api src )
 
 if ( ANDROID32 )
   include_directories( include/android )

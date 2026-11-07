@@ -2,19 +2,17 @@
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
  *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 #ifndef GUCEF_CORE_CPROCESS_H
@@ -33,6 +31,11 @@
 #include "gucefCORE_CString.h"
 #define GUCEF_CORE_CSTRING_H
 #endif /* GUCEF_CORE_CSTRING_H ? */
+
+#ifndef GUCEF_CORE_CPROCESSPIPE_H
+#include "gucefCORE_CProcessPipe.h"
+#define GUCEF_CORE_CPROCESSPIPE_H
+#endif /* GUCEF_CORE_CPROCESSPIPE_H ? */
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -82,6 +85,37 @@ class GUCEF_CORE_PUBLIC_CPP CProcess
                  const CString& workingDir = CString()   ,
                  const TStringMap& envOverrides = TStringMap() ,
                  bool detach = false                     );
+
+    /**
+     *  Starts a new process with its standard streams redirected to pipes that this process holds the other end of.
+     *  A stream that is not redirected is inherited from this process, unless SetIsolateFromParent() says otherwise.
+     *  The pipes are available through GetStdinPipe(), GetStdoutPipe() and GetStderrPipe() until the next launch or the
+     *  destruction of this object. A child that fills a pipe nobody reads blocks, so a caller that redirects output has
+     *  to read it. Closing the standard input pipe (CloseStdinPipe()) is how a child is told the input has ended.
+     *  @param pipeStdin    redirect the standard input of the child: its writing end is GetStdinPipe()
+     *  @param pipeStdout   redirect the standard output of the child: its reading end is GetStdoutPipe()
+     *  @param pipeStderr   redirect the standard error of the child: its reading end is GetStderrPipe()
+     *  @return true if the process was started. Failing to find or execute the exe is reported as failure
+     */
+    bool LaunchWithPipes( const CString& exePath                  ,
+                          const TStringVector& args               ,
+                          bool pipeStdin                          ,
+                          bool pipeStdout                         ,
+                          bool pipeStderr                         ,
+                          const CString& workingDir = CString()   ,
+                          const TStringMap& envOverrides = TStringMap() );
+
+    /** The pipe to the standard input of the child, GUCEF_NULL when it was not redirected. Owned by this object */
+    CProcessPipe* GetStdinPipe( void ) const;
+
+    /** The pipe from the standard output of the child, GUCEF_NULL when it was not redirected. Owned by this object */
+    CProcessPipe* GetStdoutPipe( void ) const;
+
+    /** The pipe from the standard error of the child, GUCEF_NULL when it was not redirected. Owned by this object */
+    CProcessPipe* GetStderrPipe( void ) const;
+
+    /** Closes the pipe to the standard input of the child: the child sees the end of its input */
+    void CloseStdinPipe( void );
 
     /**
      *  With this on a process that is launched afterwards (Linux, macOS and other POSIX systems; Windows leaves this alone) is
@@ -137,6 +171,15 @@ class GUCEF_CORE_PUBLIC_CPP CProcess
 
     void ReleaseHandle( void );
 
+    void ReleasePipes( void );
+
+    bool LaunchImpl( const CString& exePath          ,
+                     const TStringVector& args       ,
+                     const CString& workingDir       ,
+                     const TStringMap& envOverrides  ,
+                     bool detach                     ,
+                     UInt32 pipeMask                 );
+
     private:
 
     UInt32 m_processId;
@@ -145,6 +188,7 @@ class GUCEF_CORE_PUBLIC_CPP CProcess
     bool m_isolate;
     bool m_hasExited;
     Int32 m_exitCode;
+    CProcessPipe* m_pipes[ 3 ];     // standard input, output and error
 };
 
 /*-------------------------------------------------------------------------//

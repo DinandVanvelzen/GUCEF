@@ -1,20 +1,18 @@
 /*
  *  gucefCORE: GUCEF module providing O/S abstraction and generic solutions
- *  Copyright (C) 2002 - 2008.  Dinand Vanvelzen
+ *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -63,6 +61,11 @@
 #define GUCEF_CORE_ESSENTIALS_H
 #endif /* GUCEF_CORE_ESSENTIALS_H ? */
 
+#ifndef GUCEF_CORE_CDATATABLEVALUES_H
+#include "gucefCORE_CDataTableValues.h"
+#define GUCEF_CORE_CDATATABLEVALUES_H
+#endif /* GUCEF_CORE_CDATATABLEVALUES_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -95,6 +98,533 @@ static inline UInt8
 WStringVariantType( void )
 {
     return 2 == sizeof( wchar_t ) ? (UInt8) GUCEF_DATATYPE_UTF16_STRING : (UInt8) GUCEF_DATATYPE_UTF32_STRING;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The decimal type id that is not the native byte order */
+#if ( GUCEF_PLATFORM_BYTEORDER_ENDIAN == GUCEF_BYTEORDER_LITTLE_ENDIAN )
+  #define GUCEF_DATATYPE_NON_NATIVE_INT64_UINT8_DECIMAL     GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL
+#else
+  #define GUCEF_DATATYPE_NON_NATIVE_INT64_UINT8_DECIMAL     GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL
+#endif
+
+/*-------------------------------------------------------------------------*/
+
+static inline bool
+IsDecimalTypeId( UInt8 typeId )
+{
+    return GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL == typeId || GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL == typeId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The date and microsecond timestamp type ids that are not the native byte order */
+#if ( GUCEF_PLATFORM_BYTEORDER_ENDIAN == GUCEF_BYTEORDER_LITTLE_ENDIAN )
+  #define GUCEF_DATATYPE_NON_NATIVE_DATE_IN_DAYS_SINCE_UNIX_EPOCH           GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH
+  #define GUCEF_DATATYPE_NON_NATIVE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH    GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH
+  #define GUCEF_DATATYPE_NON_NATIVE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH     GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH
+  #define GUCEF_DATATYPE_NON_NATIVE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH      GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH
+  #define GUCEF_DATATYPE_NON_NATIVE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH        GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH
+#else
+  #define GUCEF_DATATYPE_NON_NATIVE_DATE_IN_DAYS_SINCE_UNIX_EPOCH           GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH
+  #define GUCEF_DATATYPE_NON_NATIVE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH    GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH
+  #define GUCEF_DATATYPE_NON_NATIVE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH     GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH
+  #define GUCEF_DATATYPE_NON_NATIVE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH      GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH
+  #define GUCEF_DATATYPE_NON_NATIVE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH        GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH
+#endif
+
+/*-------------------------------------------------------------------------*/
+
+static inline bool
+IsDateTypeId( UInt8 typeId )
+{
+    return GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH == typeId || GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH == typeId;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The day count of a date variant payload in native byte order */
+static inline Int32
+DaysFromVariantPayload( const TVariantData& data )
+{
+    if ( GUCEF_DATATYPE_NON_NATIVE_DATE_IN_DAYS_SINCE_UNIX_EPOCH == data.containedType )
+        return SwapEndianInt32( data.union_data.int32_data );
+    return data.union_data.int32_data;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The signed tick count of a nanosecond, second or millisecond timestamp variant payload in native byte order */
+static inline Int64
+SignedTicksFromVariantPayload( const TVariantData& data )
+{
+    if ( GUCEF_DATATYPE_NON_NATIVE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH == data.containedType ||
+         GUCEF_DATATYPE_NON_NATIVE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH == data.containedType  ||
+         GUCEF_DATATYPE_NON_NATIVE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH == data.containedType )
+        return SwapEndianInt64( data.union_data.int64_data );
+    return data.union_data.int64_data;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The tick count of a microsecond timestamp variant payload in native byte order */
+static inline Int64
+MicrosFromVariantPayload( const TVariantData& data )
+{
+    if ( GUCEF_DATATYPE_NON_NATIVE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH == data.containedType )
+        return SwapEndianInt64( data.union_data.int64_data );
+    return data.union_data.int64_data;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Validated decimal from the variant payload, swapping the unscaled value when it is not in native byte order
+ *  A corrupt payload (scale byte above the maximum or INT64_MIN) gives DECIMALSTATUS_INVALID_OPERAND
+ */
+static TDecimalStatus
+DecimalFromVariantPayload( const TVariantData& data, CDecimal& result )
+{
+    Int64 unscaled = data.union_data.decimal_data.unscaled;
+    if ( GUCEF_DATATYPE_NON_NATIVE_INT64_UINT8_DECIMAL == data.containedType )
+        unscaled = SwapEndianInt64( unscaled );
+    if ( DecimalStatusIsError( CDecimal::FromUnscaled( unscaled, data.union_data.decimal_data.scale, result ) ) )
+        return DECIMALSTATUS_INVALID_OPERAND;
+    return DECIMALSTATUS_OK;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Integer value of a decimal variant truncated toward zero, the same as the float to integer casts */
+static bool
+DecimalVariantAsTruncatedInt64( const CVariant& var, Int64& result )
+{
+    CDecimal value;
+    if ( DecimalStatusIsError( var.GetDecimal( value ) ) )
+        return false;
+    return !DecimalStatusIsError( value.ToInt64( ROUNDINGMODE_TOWARD_ZERO, result ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Exact decimal for numerator / denominator: only when the reduced denominator has no prime factors other than 2 and 5
+ *  ROUNDING_REQUIRED for any other denominator, INVALID_SCALE when more than MaxScale digits would be needed
+ */
+static TDecimalStatus
+DecimalFromFraction( bool negative, UInt64 numerator, UInt64 denominator, CDecimal& result )
+{
+    if ( 0 == denominator )
+        return DECIMALSTATUS_DIVISION_BY_ZERO;
+
+    // reduce by the greatest common divisor
+    UInt64 a = numerator;
+    UInt64 b = denominator;
+    while ( 0 != b )
+    {
+        UInt64 t = a % b;
+        a = b;
+        b = t;
+    }
+    if ( 0 != a )
+    {
+        numerator /= a;
+        denominator /= a;
+    }
+
+    UInt32 twos = 0;
+    UInt32 fives = 0;
+    UInt64 rest = denominator;
+    while ( 0 == rest % 2 ) { rest /= 2; ++twos; }
+    while ( 0 == rest % 5 ) { rest /= 5; ++fives; }
+    if ( 1 != rest )
+        return DECIMALSTATUS_ROUNDING_REQUIRED;
+
+    UInt32 scale = twos > fives ? twos : fives;
+    if ( scale > CDecimal::MaxScale )
+        return DECIMALSTATUS_INVALID_SCALE;
+
+    // numerator / denominator = numerator * ( 10^scale / denominator ) / 10^scale
+    UInt64 multiplier = 1;
+    for ( UInt32 i=twos; i<scale; ++i )
+        multiplier *= 2;
+    for ( UInt32 i=fives; i<scale; ++i )
+        multiplier *= 5;
+
+    if ( numerator > (UInt64) GUCEF_INT64MAX )
+        return DECIMALSTATUS_OVERFLOW;
+    CDecimal integral;
+    TDecimalStatus status = CDecimal::FromUnscaled( negative ? -(Int64) numerator : (Int64) numerator, 0, integral );
+    if ( DecimalStatusIsError( status ) )
+        return status;
+    CDecimal scaled;
+    if ( multiplier > (UInt64) GUCEF_INT64MAX )
+        return DECIMALSTATUS_OVERFLOW;
+    status = integral.Multiply( (Int64) multiplier, scaled );
+    if ( DecimalStatusIsError( status ) )
+        return status;
+    return scaled.MovePointLeft( (UInt8) scale, result );
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Exact comparison of a decimal variant with another variant, as far as one is defined
+ *  Returns 0 when not applicable, 1 when 'cmp' holds the exact comparison, 2 when the comparison has to use floats
+ */
+static Int32
+CompareWithDecimal( const CVariant& a, const CVariant& b, Int32& cmp )
+{
+    const CVariant* decimalSide = a.IsDecimal() ? &a : &b;
+    const CVariant* otherSide = a.IsDecimal() ? &b : &a;
+    Int32 orientation = a.IsDecimal() ? 1 : -1;
+
+    CDecimal value;
+    if ( DecimalStatusIsError( decimalSide->GetDecimal( value ) ) )
+        return 0;
+
+    CDecimal other;
+    if ( otherSide->IsDecimal() )
+    {
+        if ( DecimalStatusIsError( otherSide->GetDecimal( other ) ) )
+            return 0;
+    }
+    else
+    if ( otherSide->IsInteger() )
+    {
+        if ( otherSide->IsUnsignedInteger() )
+        {
+            UInt64 unsignedValue = otherSide->AsUInt64();
+            if ( unsignedValue > (UInt64) GUCEF_INT64MAX )
+            {
+                // above every decimal
+                cmp = -orientation;
+                return 1;
+            }
+            CDecimal::FromInt64( (Int64) unsignedValue, 0, other );
+        }
+        else
+        {
+            Int64 signedValue = otherSide->AsInt64();
+            if ( GUCEF_INT64MIN == signedValue )
+            {
+                // below every decimal
+                cmp = orientation;
+                return 1;
+            }
+            CDecimal::FromInt64( signedValue, 0, other );
+        }
+    }
+    else
+    if ( otherSide->IsString() )
+    {
+        if ( DecimalStatusIsError( CDecimal::FromString( otherSide->AsString(), other ) ) )
+            return 0;
+    }
+    else
+    if ( otherSide->IsFloat() )
+    {
+        return 2;
+    }
+    else
+    {
+        return 0;
+    }
+
+    cmp = orientation * value.Compare( other );
+    return 1;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  How the content of a text or binary variant is read for a comparison
+ *  'unitSize' is 0 for every other type
+ */
+struct SComparisonContent
+{
+    const UInt8* data;
+    UInt32 size;
+    UInt32 unitSize;
+    bool isText;
+    bool isBigEndian;
+};
+
+/*-------------------------------------------------------------------------*/
+
+static void
+GetComparisonContent( const CVariant& var, SComparisonContent& content )
+{
+    content.data = GUCEF_NULL;
+    content.size = 0;
+    content.unitSize = 0;
+    content.isText = true;
+    content.isBigEndian = false;
+
+    switch ( var.GetTypeId() )
+    {
+        case GUCEF_DATATYPE_ASCII_STRING:
+        case GUCEF_DATATYPE_UTF8_STRING:
+        case GUCEF_DATATYPE_BOOLEAN_ASCII_STRING:
+        case GUCEF_DATATYPE_BOOLEAN_UTF8_STRING:
+        case GUCEF_DATATYPE_DATETIME_ISO8601_ASCII_STRING:
+        case GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING: { content.unitSize = 1; break; }
+        case GUCEF_DATATYPE_UTF16_LE_STRING: { content.unitSize = 2; break; }
+        case GUCEF_DATATYPE_UTF16_BE_STRING: { content.unitSize = 2; content.isBigEndian = true; break; }
+        case GUCEF_DATATYPE_UTF32_LE_STRING: { content.unitSize = 4; break; }
+        case GUCEF_DATATYPE_UTF32_BE_STRING: { content.unitSize = 4; content.isBigEndian = true; break; }
+        case GUCEF_DATATYPE_BINARY_BLOB:
+        case GUCEF_DATATYPE_BINARY_BSOB: { content.unitSize = 1; content.isText = false; break; }
+        default: { return; }
+    }
+
+    content.data = static_cast< const UInt8* >( var.AsVoidPtr() );
+    content.size = GUCEF_NULL != content.data ? var.ByteSize( true ) : 0;
+
+    // Text ends at its first null code unit, if any: a terminator is not part of the text
+    if ( content.isText )
+    {
+        UInt32 units = content.size / content.unitSize;
+        UInt32 length = 0;
+        while ( length < units )
+        {
+            const UInt8* unit = content.data + ( length * content.unitSize );
+            bool isNull = true;
+            for ( UInt32 b=0; b<content.unitSize; ++b )
+            {
+                if ( 0 != unit[ b ] )
+                {
+                    isNull = false;
+                    break;
+                }
+            }
+            if ( isNull )
+                break;
+            ++length;
+        }
+        content.size = length * content.unitSize;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  Reads text or binary content as the bytes it is compared by: binary data as its bytes, text as its UTF-8 encoding.
+ *  The UTF-8 bytes of two texts order the same way as their code points, so text in any of the encodings compares by
+ *  code point. Unpaired surrogates and values which are not code points read as U+FFFD
+ */
+class CComparisonByteReader
+{
+    public:
+
+    explicit CComparisonByteReader( const SComparisonContent& content )
+        : m_content( content )
+        , m_offset( 0 )
+        , m_pendingCount( 0 )
+        , m_pendingOffset( 0 )
+    {
+    }
+
+    bool Next( UInt8& byte )
+    {
+        if ( m_pendingOffset < m_pendingCount )
+        {
+            byte = m_pending[ m_pendingOffset++ ];
+            return true;
+        }
+        if ( 1 == m_content.unitSize )
+        {
+            if ( m_offset >= m_content.size )
+                return false;
+            byte = m_content.data[ m_offset++ ];
+            return true;
+        }
+
+        UInt32 codePoint = 0;
+        if ( !NextCodePoint( codePoint ) )
+            return false;
+        EncodeUtf8( codePoint );
+        byte = m_pending[ m_pendingOffset++ ];
+        return true;
+    }
+
+    private:
+
+    UInt32 ReadUnit( void )
+    {
+        const UInt8* unit = m_content.data + m_offset;
+        m_offset += m_content.unitSize;
+        if ( 2 == m_content.unitSize )
+        {
+            return m_content.isBigEndian ? ( ( (UInt32) unit[ 0 ] << 8 ) | unit[ 1 ] ) : ( ( (UInt32) unit[ 1 ] << 8 ) | unit[ 0 ] );
+        }
+        return m_content.isBigEndian ? ( ( (UInt32) unit[ 0 ] << 24 ) | ( (UInt32) unit[ 1 ] << 16 ) | ( (UInt32) unit[ 2 ] << 8 ) | unit[ 3 ] )
+                                     : ( ( (UInt32) unit[ 3 ] << 24 ) | ( (UInt32) unit[ 2 ] << 16 ) | ( (UInt32) unit[ 1 ] << 8 ) | unit[ 0 ] );
+    }
+
+    bool NextCodePoint( UInt32& codePoint )
+    {
+        if ( m_offset + m_content.unitSize > m_content.size )
+            return false;
+
+        codePoint = ReadUnit();
+        if ( 2 == m_content.unitSize )
+        {
+            if ( codePoint >= 0xD800 && codePoint <= 0xDBFF && m_offset + 2 <= m_content.size )
+            {
+                const UInt8* next = m_content.data + m_offset;
+                UInt32 low = m_content.isBigEndian ? ( ( (UInt32) next[ 0 ] << 8 ) | next[ 1 ] ) : ( ( (UInt32) next[ 1 ] << 8 ) | next[ 0 ] );
+                if ( low >= 0xDC00 && low <= 0xDFFF )
+                {
+                    m_offset += 2;
+                    codePoint = 0x10000 + ( ( codePoint - 0xD800 ) << 10 ) + ( low - 0xDC00 );
+                    return true;
+                }
+            }
+        }
+        if ( ( codePoint >= 0xD800 && codePoint <= 0xDFFF ) || codePoint > 0x10FFFF )
+            codePoint = 0xFFFD;
+        return true;
+    }
+
+    void EncodeUtf8( UInt32 codePoint )
+    {
+        m_pendingOffset = 0;
+        if ( codePoint < 0x80 )
+        {
+            m_pending[ 0 ] = (UInt8) codePoint;
+            m_pendingCount = 1;
+        }
+        else
+        if ( codePoint < 0x800 )
+        {
+            m_pending[ 0 ] = (UInt8) ( 0xC0 | ( codePoint >> 6 ) );
+            m_pending[ 1 ] = (UInt8) ( 0x80 | ( codePoint & 0x3F ) );
+            m_pendingCount = 2;
+        }
+        else
+        if ( codePoint < 0x10000 )
+        {
+            m_pending[ 0 ] = (UInt8) ( 0xE0 | ( codePoint >> 12 ) );
+            m_pending[ 1 ] = (UInt8) ( 0x80 | ( ( codePoint >> 6 ) & 0x3F ) );
+            m_pending[ 2 ] = (UInt8) ( 0x80 | ( codePoint & 0x3F ) );
+            m_pendingCount = 3;
+        }
+        else
+        {
+            m_pending[ 0 ] = (UInt8) ( 0xF0 | ( codePoint >> 18 ) );
+            m_pending[ 1 ] = (UInt8) ( 0x80 | ( ( codePoint >> 12 ) & 0x3F ) );
+            m_pending[ 2 ] = (UInt8) ( 0x80 | ( ( codePoint >> 6 ) & 0x3F ) );
+            m_pending[ 3 ] = (UInt8) ( 0x80 | ( codePoint & 0x3F ) );
+            m_pendingCount = 4;
+        }
+    }
+
+    const SComparisonContent& m_content;
+    UInt32 m_offset;
+    UInt8 m_pending[ 4 ];
+    UInt32 m_pendingCount;
+    UInt32 m_pendingOffset;
+};
+
+/*-------------------------------------------------------------------------*/
+
+/** Compares text and binary content fully: lexicographic, a shorter value which is a prefix of the other sorts first */
+static Int32
+CompareContent( const SComparisonContent& a, const SComparisonContent& b )
+{
+    if ( 1 == a.unitSize && 1 == b.unitSize )
+    {
+        UInt32 smallestSize = GUCEF_SMALLEST( a.size, b.size );
+        int cmp = smallestSize > 0 ? memcmp( a.data, b.data, smallestSize ) : 0;
+        if ( 0 != cmp )
+            return cmp < 0 ? -1 : 1;
+        return a.size == b.size ? 0 : ( a.size < b.size ? -1 : 1 );
+    }
+
+    CComparisonByteReader readerA( a );
+    CComparisonByteReader readerB( b );
+    while ( true )
+    {
+        UInt8 byteA = 0;
+        UInt8 byteB = 0;
+        bool hasA = readerA.Next( byteA );
+        bool hasB = readerB.Next( byteB );
+        if ( !hasA || !hasB )
+            return hasA == hasB ? 0 : ( hasA ? 1 : -1 );
+        if ( byteA != byteB )
+            return byteA < byteB ? -1 : 1;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Whether the value is compared as a number when the other side is a number too */
+static bool
+IsComparedAsNumber( const CVariant& var )
+{
+    return var.IsInteger() || var.IsFloat() || var.IsFraction() || var.IsDecimal();
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The order of the kinds of values which have no comparison in common */
+static Int32
+ComparisonCategory( const CVariant& var, const SComparisonContent& content )
+{
+    if ( 0 != content.unitSize )
+        return 2;
+    if ( IsComparedAsNumber( var ) )
+        return 1;
+    switch ( var.GetTypeId() )
+    {
+        case GUCEF_DATATYPE_UNKNOWN:
+        case GUCEF_DATATYPE_NIL:
+        case GUCEF_DATATYPE_NULL:
+        case GUCEF_DATATYPE_VOID: { return 0; }
+        default: { return 3; }
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The comparison of the values which the comparison operators do not compare as numbers or booleans
+ *  Text compares to text by code point whatever the encoding, binary data compares by its bytes and text compares to
+ *  binary data by its UTF-8 encoding. Other values of the same type compare by their bytes. Values of different
+ *  kinds are never equal: they order by kind, then by type.
+ *  This is a total order, so variants can be the keys of ordered containers
+ */
+static Int32
+CompareRemaining( const CVariant& a, const CVariant& b )
+{
+    SComparisonContent contentA;
+    SComparisonContent contentB;
+    GetComparisonContent( a, contentA );
+    GetComparisonContent( b, contentB );
+
+    if ( 0 != contentA.unitSize && 0 != contentB.unitSize )
+        return CompareContent( contentA, contentB );
+
+    if ( a.GetTypeId() == b.GetTypeId() )
+    {
+        UInt32 sizeA = a.ByteSize();
+        UInt32 sizeB = b.ByteSize();
+        const void* dataA = a.AsVoidPtr();
+        const void* dataB = b.AsVoidPtr();
+        UInt32 smallestSize = GUCEF_SMALLEST( sizeA, sizeB );
+        int cmp = ( smallestSize > 0 && GUCEF_NULL != dataA && GUCEF_NULL != dataB ) ? memcmp( dataA, dataB, smallestSize ) : 0;
+        if ( 0 != cmp )
+            return cmp < 0 ? -1 : 1;
+        return sizeA == sizeB ? 0 : ( sizeA < sizeB ? -1 : 1 );
+    }
+
+    Int32 categoryA = ComparisonCategory( a, contentA );
+    Int32 categoryB = ComparisonCategory( b, contentB );
+    if ( categoryA != categoryB )
+        return categoryA < categoryB ? -1 : 1;
+    return a.GetTypeId() < b.GetTypeId() ? -1 : 1;
 }
 
 /*-------------------------------------------------------------------------//
@@ -478,6 +1008,18 @@ CVariant::CVariant( const TUInt64Fraction& data )
 
 /*-------------------------------------------------------------------------*/
 
+CVariant::CVariant( const CDecimal& data )
+    : m_variantData()
+{GUCEF_TRACE;
+
+    memset( &m_variantData, 0, sizeof( m_variantData ) );
+    m_variantData.union_data.decimal_data.unscaled = data.GetUnscaledValue();
+    m_variantData.union_data.decimal_data.scale = data.GetScale();
+    m_variantData.containedType = GUCEF_DATATYPE_INT64_UINT8_DECIMAL;
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CVariant::Set( const TVariantData* src, bool linkOnlyForDynMem )
 {GUCEF_TRACE;
@@ -554,6 +1096,8 @@ CVariant::IsLittleEndian( void ) const
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_UTF16_LE_STRING:
         case GUCEF_DATATYPE_UTF32_LE_STRING:
         case GUCEF_DATATYPE_BOOLEAN_UTF16_LE_STRING:
@@ -564,6 +1108,7 @@ CVariant::IsLittleEndian( void ) const
         case GUCEF_DATATYPE_UINT64T2_LE_FRACTION:
         case GUCEF_DATATYPE_INT64_INT32_LE_FRACTION:
         case GUCEF_DATATYPE_UINT64_UINT32_LE_FRACTION:
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
         case GUCEF_DATATYPE_LE_FLOAT32:
         case GUCEF_DATATYPE_LE_FLOAT64:
         {
@@ -593,6 +1138,8 @@ CVariant::IsBigEndian( void ) const
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_UTF16_BE_STRING:
         case GUCEF_DATATYPE_UTF32_BE_STRING:
         case GUCEF_DATATYPE_BOOLEAN_UTF16_BE_STRING:
@@ -603,6 +1150,7 @@ CVariant::IsBigEndian( void ) const
         case GUCEF_DATATYPE_UINT64T2_BE_FRACTION:
         case GUCEF_DATATYPE_INT64_INT32_BE_FRACTION:
         case GUCEF_DATATYPE_UINT64_UINT32_BE_FRACTION:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
         case GUCEF_DATATYPE_BE_FLOAT32:
         case GUCEF_DATATYPE_BE_FLOAT64:
         {
@@ -680,6 +1228,10 @@ CVariant::ToLittleEndian( void )
             { m_variantData.union_data.uint64_data = SwapEndianUInt64( m_variantData.union_data.uint64_data ); m_variantData.containedType = GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH; return *this; }
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
             { m_variantData.union_data.uint64_data = SwapEndianUInt64( m_variantData.union_data.uint64_data ); m_variantData.containedType = GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH; return *this; }
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+            { m_variantData.union_data.int64_data = SwapEndianInt64( m_variantData.union_data.int64_data ); m_variantData.containedType = GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH; return *this; }
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+            { m_variantData.union_data.int32_data = SwapEndianInt32( m_variantData.union_data.int32_data ); m_variantData.containedType = GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH; return *this; }
 
 
         case GUCEF_DATATYPE_BOOLEAN_UTF16_BE_STRING:
@@ -752,6 +1304,13 @@ CVariant::ToLittleEndian( void )
                 return *this;
             }
 
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+            {
+                m_variantData.union_data.decimal_data.unscaled = SwapEndianInt64( m_variantData.union_data.decimal_data.unscaled );
+                m_variantData.containedType = GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL;
+                return *this;
+            }
+
         default:
         {
             // No changes needed
@@ -792,6 +1351,10 @@ CVariant::ToBigEndian( void )
             { m_variantData.union_data.uint64_data = SwapEndianUInt64( m_variantData.union_data.uint64_data ); m_variantData.containedType = GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH; return *this; }
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
             { m_variantData.union_data.uint64_data = SwapEndianUInt64( m_variantData.union_data.uint64_data ); m_variantData.containedType = GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH; return *this; }
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+            { m_variantData.union_data.int64_data = SwapEndianInt64( m_variantData.union_data.int64_data ); m_variantData.containedType = GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH; return *this; }
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+            { m_variantData.union_data.int32_data = SwapEndianInt32( m_variantData.union_data.int32_data ); m_variantData.containedType = GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH; return *this; }
 
 
         case GUCEF_DATATYPE_BOOLEAN_UTF16_LE_STRING:
@@ -861,6 +1424,13 @@ CVariant::ToBigEndian( void )
                 m_variantData.union_data.heap_data.union_data.fraction_uint64t2_data->numerator = SwapEndianInt64( m_variantData.union_data.heap_data.union_data.fraction_uint64t2_data->numerator );
                 m_variantData.union_data.heap_data.union_data.fraction_uint64t2_data->denominator = SwapEndianInt64( m_variantData.union_data.heap_data.union_data.fraction_uint64t2_data->denominator );
                 m_variantData.containedType = GUCEF_DATATYPE_UINT64T2_BE_FRACTION;
+                return *this;
+            }
+
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+            {
+                m_variantData.union_data.decimal_data.unscaled = SwapEndianInt64( m_variantData.union_data.decimal_data.unscaled );
+                m_variantData.containedType = GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL;
                 return *this;
             }
 
@@ -961,6 +1531,10 @@ CVariant::IsInteger( void ) const
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
         {
             return true;
         }
@@ -986,6 +1560,16 @@ CVariant::IsSignedInteger( void ) const
         case GUCEF_DATATYPE_BE_INT32:
         case GUCEF_DATATYPE_LE_INT64:
         case GUCEF_DATATYPE_BE_INT64:
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
         {
             return true;
         }
@@ -1011,12 +1595,6 @@ CVariant::IsUnsignedInteger( void ) const
         case GUCEF_DATATYPE_BE_UINT32:
         case GUCEF_DATATYPE_LE_UINT64:
         case GUCEF_DATATYPE_BE_UINT64:
-        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
-        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
-        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
-        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
-        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
-        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
         {
             return true;
         }
@@ -1053,7 +1631,7 @@ bool
 CVariant::IsNumber( void ) const
 {GUCEF_TRACE;
 
-    return IsInteger() || IsFloat() || IsFraction() ||
+    return IsInteger() || IsFloat() || IsFraction() || IsDecimal() ||
         m_variantData.containedType == GUCEF_DATATYPE_NUMERIC;
 }
 
@@ -1133,6 +1711,15 @@ CVariant::IsUnsignedFraction( void ) const
             return false;
         }
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CVariant::IsDecimal( void ) const
+{GUCEF_TRACE;
+
+    return IsDecimalTypeId( m_variantData.containedType );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -1468,6 +2055,15 @@ CVariant::AsBool( bool defaultIfNeeded, bool resolveVarsIfApplicable ) const
             return GUCEF_NULL != m_variantData.union_data.memory_address_data.funcPtr;
         }
 
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            CDecimal value;
+            if ( DecimalStatusIsError( GetDecimal( value ) ) )
+                return defaultIfNeeded;
+            return !value.IsZero();
+        }
+
         default:
         {
             if ( IsInteger() )
@@ -1509,6 +2105,16 @@ CVariant::AsInt8( Int8 defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_UINT64T2_FRACTION: return (Int8) AsFloat64();
         case GUCEF_DATATYPE_INT64_INT32_FRACTION: return (Int8) AsFloat64();
         case GUCEF_DATATYPE_UINT64_UINT32_FRACTION: return (Int8) AsFloat64();
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            Int64 value = 0;
+            if ( DecimalVariantAsTruncatedInt64( *this, value ) )
+            {
+                if ( (Int64) (Int8) value == value ) return (Int8) value;
+            }
+            return defaultIfNeeded;
+        }
         default: return defaultIfNeeded;
     }
 }
@@ -1542,6 +2148,16 @@ CVariant::AsUInt8( UInt8 defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_UINT64T2_FRACTION: return (UInt8) AsFloat64();
         case GUCEF_DATATYPE_INT64_INT32_FRACTION: return (UInt8) AsFloat64();
         case GUCEF_DATATYPE_UINT64_UINT32_FRACTION: return (UInt8) AsFloat64();
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            Int64 value = 0;
+            if ( DecimalVariantAsTruncatedInt64( *this, value ) )
+            {
+                if ( value >= 0 && (Int64) (UInt8) value == value ) return (UInt8) value;
+            }
+            return defaultIfNeeded;
+        }
         default: return defaultIfNeeded;
     }
 }
@@ -1575,6 +2191,16 @@ CVariant::AsInt16( Int16 defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_UINT64T2_FRACTION: return (Int16) AsFloat64();
         case GUCEF_DATATYPE_INT64_INT32_FRACTION: return (Int16) AsFloat64();
         case GUCEF_DATATYPE_UINT64_UINT32_FRACTION: return (Int16) AsFloat64();
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            Int64 value = 0;
+            if ( DecimalVariantAsTruncatedInt64( *this, value ) )
+            {
+                if ( (Int64) (Int16) value == value ) return (Int16) value;
+            }
+            return defaultIfNeeded;
+        }
         default: return defaultIfNeeded;
     }
 }
@@ -1608,6 +2234,16 @@ CVariant::AsUInt16( UInt16 defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_UINT64T2_FRACTION: return (UInt16) AsFloat64();
         case GUCEF_DATATYPE_INT64_INT32_FRACTION: return (UInt16) AsFloat64();
         case GUCEF_DATATYPE_UINT64_UINT32_FRACTION: return (UInt16) AsFloat64();
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            Int64 value = 0;
+            if ( DecimalVariantAsTruncatedInt64( *this, value ) )
+            {
+                if ( value >= 0 && (Int64) (UInt16) value == value ) return (UInt16) value;
+            }
+            return defaultIfNeeded;
+        }
         default: return defaultIfNeeded;
     }
 }
@@ -1631,6 +2267,8 @@ CVariant::AsInt32( Int32 defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_FLOAT32: return (Int32) m_variantData.union_data.float32_data;
         case GUCEF_DATATYPE_FLOAT64: return (Int32) m_variantData.union_data.float64_data;
         case GUCEF_DATATYPE_BOOLEAN_INT32: return (Int32) m_variantData.union_data.int32_data;
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH: return DaysFromVariantPayload( m_variantData );
         case GUCEF_DATATYPE_BOOLEAN_ASCII_STRING: return (Int32) ( resolveVarsIfApplicable ? ( StringToBool( ResolveVars( AsString() ) ) ? 1 : 0 ) : AsBool() ? 1 : 0 );
         case GUCEF_DATATYPE_BOOLEAN_UTF8_STRING: return (Int32) ( resolveVarsIfApplicable ? ( StringToBool( ResolveVars( AsString() ) ) ? 1 : 0 ) : AsBool() ? 1 : 0 );
         case GUCEF_DATATYPE_ASCII_STRING: return (Int32) ( resolveVarsIfApplicable ? StringToInt32( AsString(), defaultIfNeeded ) : StringToInt32( AsString(), defaultIfNeeded ) );
@@ -1641,6 +2279,16 @@ CVariant::AsInt32( Int32 defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_UINT64T2_FRACTION: return (Int32) AsFloat64();
         case GUCEF_DATATYPE_INT64_INT32_FRACTION: return (Int32) AsFloat64();
         case GUCEF_DATATYPE_UINT64_UINT32_FRACTION: return (Int32) AsFloat64();
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            Int64 value = 0;
+            if ( DecimalVariantAsTruncatedInt64( *this, value ) )
+            {
+                if ( (Int64) (Int32) value == value ) return (Int32) value;
+            }
+            return defaultIfNeeded;
+        }
         default: return defaultIfNeeded;
     }
 }
@@ -1674,6 +2322,16 @@ CVariant::AsUInt32( UInt32 defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_UINT64T2_FRACTION: return (UInt32) AsFloat64();
         case GUCEF_DATATYPE_INT64_INT32_FRACTION: return (UInt32) AsFloat64();
         case GUCEF_DATATYPE_UINT64_UINT32_FRACTION: return (UInt32) AsFloat64();
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            Int64 value = 0;
+            if ( DecimalVariantAsTruncatedInt64( *this, value ) )
+            {
+                if ( value >= 0 && (Int64) (UInt32) value == value ) return (UInt32) value;
+            }
+            return defaultIfNeeded;
+        }
 
         #if ( GUCEF_BITNESS == GUCEF_BITNESS_32 )
         case GUCEF_DATATYPE_DATA_MEMORY_ADDRESS: return (UInt32) m_variantData.union_data.memory_address_data.objPtr;
@@ -1703,12 +2361,16 @@ CVariant::AsInt64( Int64 defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_FLOAT32: return (Int64) m_variantData.union_data.float32_data;
         case GUCEF_DATATYPE_FLOAT64: return (Int64) m_variantData.union_data.float64_data;
         case GUCEF_DATATYPE_BOOLEAN_INT32: return (Int64) m_variantData.union_data.int32_data;
-        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return (Int64) m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return (Int64) m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return (Int64) m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return (Int64) m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return (Int64) m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return (Int64) m_variantData.union_data.uint64_data;
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH: return MicrosFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH: return (Int64) DaysFromVariantPayload( m_variantData );
         case GUCEF_DATATYPE_BOOLEAN_ASCII_STRING: return (Int64) ( resolveVarsIfApplicable ? ( StringToBool( ResolveVars( AsString() ) ) ? 1 : 0 ) : AsBool() ? 1 : 0 );
         case GUCEF_DATATYPE_BOOLEAN_UTF8_STRING: return (Int64) ( resolveVarsIfApplicable ? ( StringToBool( ResolveVars( AsString() ) ) ? 1 : 0 ) : AsBool() ? 1 : 0 );
         case GUCEF_DATATYPE_ASCII_STRING: return (Int64) ( resolveVarsIfApplicable ? StringToInt64( AsString(), defaultIfNeeded ) : StringToInt64( AsString(), defaultIfNeeded ) );
@@ -1719,6 +2381,16 @@ CVariant::AsInt64( Int64 defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_UINT64T2_FRACTION: return (Int64) AsFloat64();
         case GUCEF_DATATYPE_INT64_INT32_FRACTION: return (Int64) AsFloat64();
         case GUCEF_DATATYPE_UINT64_UINT32_FRACTION: return (Int64) AsFloat64();
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            Int64 value = 0;
+            if ( DecimalVariantAsTruncatedInt64( *this, value ) )
+            {
+                return value;
+            }
+            return defaultIfNeeded;
+        }
         default: return defaultIfNeeded;
     }
 }
@@ -1742,12 +2414,16 @@ CVariant::AsUInt64( UInt64 defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_FLOAT32: return (UInt64) m_variantData.union_data.float32_data;
         case GUCEF_DATATYPE_FLOAT64: return (UInt64) m_variantData.union_data.float64_data;
         case GUCEF_DATATYPE_BOOLEAN_INT32: return (UInt64) m_variantData.union_data.int32_data;
-        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return m_variantData.union_data.uint64_data;
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return (UInt64) SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return (UInt64) SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return (UInt64) SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return (UInt64) SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return (UInt64) SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return (UInt64) SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH: return (UInt64) MicrosFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH: return (UInt64) (Int64) DaysFromVariantPayload( m_variantData );
         case GUCEF_DATATYPE_BOOLEAN_ASCII_STRING: return (UInt64) ( resolveVarsIfApplicable ? ( StringToBool( ResolveVars( AsString() ) ) ? 1 : 0 ) : AsBool() ? 1 : 0 );
         case GUCEF_DATATYPE_BOOLEAN_UTF8_STRING: return (UInt64) ( resolveVarsIfApplicable ? ( StringToBool( ResolveVars( AsString() ) ) ? 1 : 0 ) : AsBool() ? 1 : 0 );
         case GUCEF_DATATYPE_ASCII_STRING: return (UInt64) ( resolveVarsIfApplicable ? StringToUInt64( AsString(), defaultIfNeeded ) : StringToUInt64( AsString(), defaultIfNeeded ) );
@@ -1758,6 +2434,16 @@ CVariant::AsUInt64( UInt64 defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_UINT64T2_FRACTION: return (UInt64) AsFloat64();
         case GUCEF_DATATYPE_INT64_INT32_FRACTION: return (UInt64) AsFloat64();
         case GUCEF_DATATYPE_UINT64_UINT32_FRACTION: return (UInt64) AsFloat64();
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            Int64 value = 0;
+            if ( DecimalVariantAsTruncatedInt64( *this, value ) )
+            {
+                if ( value >= 0 ) return (UInt64) value;
+            }
+            return defaultIfNeeded;
+        }
 
         #if ( GUCEF_BITNESS == GUCEF_BITNESS_64 )
         case GUCEF_DATATYPE_DATA_MEMORY_ADDRESS: return (UInt64) m_variantData.union_data.memory_address_data.objPtr;
@@ -1787,12 +2473,16 @@ CVariant::AsSizeT( size_t defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_FLOAT32: return (size_t) m_variantData.union_data.float32_data;
         case GUCEF_DATATYPE_FLOAT64: return (size_t) m_variantData.union_data.float64_data;
         case GUCEF_DATATYPE_BOOLEAN_INT32: return (size_t) m_variantData.union_data.int32_data;
-        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return (size_t) m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return (size_t) m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return (size_t) m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return (size_t) m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return (size_t) m_variantData.union_data.uint64_data;
-        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return (size_t) m_variantData.union_data.uint64_data;
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return (size_t) SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH: return (size_t) SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return (size_t) SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return (size_t) SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return (size_t) SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return (size_t) SignedTicksFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH: return (size_t) MicrosFromVariantPayload( m_variantData );
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH: return (size_t) DaysFromVariantPayload( m_variantData );
         case GUCEF_DATATYPE_BOOLEAN_ASCII_STRING: return (size_t) ( resolveVarsIfApplicable ? ( StringToBool( ResolveVars( AsString() ) ) ? 1 : 0 ) : AsBool() ? 1 : 0 );
         case GUCEF_DATATYPE_BOOLEAN_UTF8_STRING: return (size_t) ( resolveVarsIfApplicable ? ( StringToBool( ResolveVars( AsString() ) ) ? 1 : 0 ) : AsBool() ? 1 : 0 );
         case GUCEF_DATATYPE_ASCII_STRING: return (size_t) ( resolveVarsIfApplicable ? StringToUInt64( AsString(), defaultIfNeeded ) : StringToUInt64( AsString(), defaultIfNeeded ) );
@@ -1803,6 +2493,16 @@ CVariant::AsSizeT( size_t defaultIfNeeded, bool resolveVarsIfApplicable ) const
         case GUCEF_DATATYPE_UINT64T2_FRACTION: return (size_t) AsFloat64();
         case GUCEF_DATATYPE_INT64_INT32_FRACTION: return (size_t) AsFloat64();
         case GUCEF_DATATYPE_UINT64_UINT32_FRACTION: return (size_t) AsFloat64();
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            Int64 value = 0;
+            if ( DecimalVariantAsTruncatedInt64( *this, value ) )
+            {
+                if ( value >= 0 && (UInt64) (size_t) value == (UInt64) value ) return (size_t) value;
+            }
+            return defaultIfNeeded;
+        }
         default: return defaultIfNeeded;
     }
 }
@@ -1857,6 +2557,14 @@ CVariant::AsFloat32( Float32 defaultIfNeeded, bool resolveVarsIfApplicable ) con
             {
                 return defaultIfNeeded;
             }
+        }
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            CDecimal value;
+            if ( DecimalStatusIsError( GetDecimal( value ) ) )
+                return defaultIfNeeded;
+            return (Float32) value.ToFloat64();
         }
         default:
         {
@@ -1913,6 +2621,14 @@ CVariant::AsFloat64( Float64 defaultIfNeeded, bool resolveVarsIfApplicable ) con
             {
                 return defaultIfNeeded;
             }
+        }
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            CDecimal value;
+            if ( DecimalStatusIsError( GetDecimal( value ) ) )
+                return defaultIfNeeded;
+            return value.ToFloat64();
         }
         default: return defaultIfNeeded;
     }
@@ -1975,12 +2691,18 @@ CVariant::AsVoidPtr( const void* defaultIfNeeded ) const
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return &m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return &m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return &m_variantData.union_data.uint64_data;
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH: return &m_variantData.union_data.int64_data;
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH: return &m_variantData.union_data.int64_data;
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH: return &m_variantData.union_data.int32_data;
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH: return &m_variantData.union_data.int32_data;
         case GUCEF_DATATYPE_BOOLEAN_INT32: return &m_variantData.union_data.int32_data;
         case GUCEF_DATATYPE_BINARY_BSOB: return m_variantData.union_data.bsob_data;
         case GUCEF_DATATYPE_INT32T2_FRACTION: return &m_variantData.union_data.fraction_data.union_data.int32t2_data;
         case GUCEF_DATATYPE_UINT32T2_FRACTION: return &m_variantData.union_data.fraction_data.union_data.uint32t2_data;
         case GUCEF_DATATYPE_INT64_INT32_FRACTION: return &m_variantData.union_data.fraction_data.union_data.int64_int32_data;
         case GUCEF_DATATYPE_UINT64_UINT32_FRACTION: return &m_variantData.union_data.fraction_data.union_data.uint64_uint32_data;
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL: return &m_variantData.union_data.decimal_data;
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL: return &m_variantData.union_data.decimal_data;
         case GUCEF_DATATYPE_CONST_DATA_MEMORY_ADDRESS: return m_variantData.union_data.memory_address_data.objPtr;
         case GUCEF_DATATYPE_DATA_MEMORY_ADDRESS: return m_variantData.union_data.memory_address_data.objPtr;
         case GUCEF_DATATYPE_FUNCTION_MEMORY_ADDRESS: return sizeof( TDefaultFuncPtr ) == sizeof( void* ) ? reinterpret_cast< const void* >( m_variantData.union_data.memory_address_data.funcPtr ) : defaultIfNeeded;
@@ -1991,7 +2713,8 @@ CVariant::AsVoidPtr( const void* defaultIfNeeded ) const
         case GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING: return m_variantData.union_data.heap_data.union_data.char_heap_data;
         case GUCEF_DATATYPE_ASCII_STRING: return m_variantData.union_data.heap_data.union_data.char_heap_data;
         case GUCEF_DATATYPE_UTF8_STRING: return m_variantData.union_data.heap_data.union_data.char_heap_data;
-        case GUCEF_DATATYPE_UTF16_STRING: return m_variantData.union_data.heap_data.union_data.wchar_heap_data;
+        case GUCEF_DATATYPE_UTF16_LE_STRING: return m_variantData.union_data.heap_data.union_data.void_heap_data;
+        case GUCEF_DATATYPE_UTF16_BE_STRING: return m_variantData.union_data.heap_data.union_data.void_heap_data;
         case GUCEF_DATATYPE_UTF32_STRING: return m_variantData.union_data.heap_data.union_data.void_heap_data;
         case GUCEF_DATATYPE_BINARY_BLOB: return m_variantData.union_data.heap_data.union_data.void_heap_data;
         case GUCEF_DATATYPE_INT64T2_FRACTION: return m_variantData.union_data.heap_data.union_data.fraction_int64t2_data;
@@ -2040,6 +2763,10 @@ CVariant::ByteSize( bool includeNullTerm ) const
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH: return sizeof m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return sizeof m_variantData.union_data.uint64_data;
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH: return sizeof m_variantData.union_data.uint64_data;
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH: return sizeof m_variantData.union_data.int64_data;
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH: return sizeof m_variantData.union_data.int64_data;
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH: return sizeof m_variantData.union_data.int32_data;
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH: return sizeof m_variantData.union_data.int32_data;
 
         case GUCEF_DATATYPE_DATETIME_ISO8601_ASCII_STRING:
         case GUCEF_DATATYPE_DATETIME_ISO8601_UTF8_STRING:
@@ -2084,6 +2811,8 @@ CVariant::ByteSize( bool includeNullTerm ) const
         case GUCEF_DATATYPE_UINT64_UINT32_FRACTION: return sizeof m_variantData.union_data.fraction_data.union_data.uint64_uint32_data;
         case GUCEF_DATATYPE_INT64T2_FRACTION: return m_variantData.union_data.heap_data.heap_data_size;
         case GUCEF_DATATYPE_UINT64T2_FRACTION: return m_variantData.union_data.heap_data.heap_data_size;
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL: return GUCEF_DECIMAL_PAYLOAD_SIZE;
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL: return GUCEF_DECIMAL_PAYLOAD_SIZE;
 
         case GUCEF_DATATYPE_CONST_DATA_MEMORY_ADDRESS: return sizeof m_variantData.union_data.memory_address_data.objPtr;
         case GUCEF_DATATYPE_DATA_MEMORY_ADDRESS: return sizeof m_variantData.union_data.memory_address_data.objPtr;
@@ -2302,6 +3031,19 @@ CVariant::operator=( const TUInt64WUInt32Fraction& data )
     Clear();
     m_variantData.union_data.fraction_data.union_data.uint64_uint32_data = data;
     m_variantData.containedType = GUCEF_DATATYPE_UINT64_UINT32_FRACTION;
+    return *this;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CVariant&
+CVariant::operator=( const CDecimal& data )
+{GUCEF_TRACE;
+
+    Clear();
+    m_variantData.union_data.decimal_data.unscaled = data.GetUnscaledValue();
+    m_variantData.union_data.decimal_data.scale = data.GetScale();
+    m_variantData.containedType = GUCEF_DATATYPE_INT64_UINT8_DECIMAL;
     return *this;
 }
 
@@ -2536,12 +3278,23 @@ CVariant::Set( const void* data, UInt32 dataSize, UInt8 varType, bool linkOnlyFo
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_UINT64:
         case GUCEF_DATATYPE_BE_UINT64:
         {
             if ( GUCEF_NULL == data || dataSize < sizeof(UInt64) )
                 return false;
             memcpy( &m_variantData.union_data.uint64_data, data, sizeof( UInt64 ) );     // the data need not be aligned for the type
+            m_variantData.containedType = varType;
+            return true;
+        }
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        {
+            if ( GUCEF_NULL == data || dataSize < sizeof(Int32) )
+                return false;
+            memcpy( &m_variantData.union_data.int32_data, data, sizeof( Int32 ) );     // the data need not be aligned for the type
             m_variantData.containedType = varType;
             return true;
         }
@@ -2676,6 +3429,26 @@ CVariant::Set( const void* data, UInt32 dataSize, UInt8 varType, bool linkOnlyFo
             return true;
         }
 
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            if ( GUCEF_NULL == data || dataSize < GUCEF_DECIMAL_PAYLOAD_SIZE )
+                return false;
+
+            // the data need not be aligned for the type, the byte order is as named by the type id
+            TVariantData decimalData;
+            memset( &decimalData, 0, sizeof( decimalData ) );
+            memcpy( &decimalData.union_data.decimal_data.unscaled, data, sizeof( Int64 ) );
+            memcpy( &decimalData.union_data.decimal_data.scale, static_cast< const char* >( data ) + sizeof( Int64 ), sizeof( UInt8 ) );
+            decimalData.containedType = varType;
+
+            CDecimal validated;
+            if ( DecimalStatusIsError( DecimalFromVariantPayload( decimalData, validated ) ) )
+                return false;
+
+            memcpy( &m_variantData, &decimalData, sizeof( m_variantData ) );
+            return true;
+        }
         case GUCEF_DATATYPE_CONST_DATA_MEMORY_ADDRESS:
         case GUCEF_DATATYPE_DATA_MEMORY_ADDRESS:
         case GUCEF_DATATYPE_FUNCTION_MEMORY_ADDRESS:
@@ -2962,6 +3735,28 @@ CVariant::SetString( UInt8 varType, const CString& data, const CVariant& default
 
 /*-------------------------------------------------------------------------*/
 
+/**
+ *  Stores native byte order ticks under a 64 bit timestamp type id of either byte order
+ */
+static bool
+SetSignedTicksInByteOrderOfId( CVariant& variant, Int64 ticks, UInt8 varType )
+{
+    bool bigEndianId = GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH == varType  ||
+                       GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH == varType   ||
+                       GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH == varType     ||
+                       GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH == varType;
+    #if ( GUCEF_PLATFORM_BYTEORDER_ENDIAN == GUCEF_BYTEORDER_LITTLE_ENDIAN )
+    if ( bigEndianId )
+        ticks = SwapEndianInt64( ticks );
+    #else
+    if ( !bigEndianId )
+        ticks = SwapEndianInt64( ticks );
+    #endif
+    return variant.Set( &ticks, sizeof( ticks ), varType, false );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CVariant::SetFromString( UInt8 varType, const CString& data, const CVariant& defaultValue )
 {GUCEF_TRACE;
@@ -2979,15 +3774,50 @@ CVariant::SetFromString( UInt8 varType, const CString& data, const CVariant& def
         case GUCEF_DATATYPE_BE_UINT32:
             { *this = StringToUInt32( data, defaultValue.AsUInt32() ); return true; }
 
+        case GUCEF_DATATYPE_LE_UINT64:
+        case GUCEF_DATATYPE_BE_UINT64:
+            { *this = StringToUInt64( data, defaultValue.AsUInt64() ); return true; }
+
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
-        case GUCEF_DATATYPE_LE_UINT64:
-        case GUCEF_DATATYPE_BE_UINT64:
-            { *this = StringToUInt64( data, defaultValue.AsUInt64() ); return true; }
+        {
+            // signed tick counts in text, the type id is kept
+            Int64 ticks = StringToInt64( data, defaultValue.AsInt64() );
+            return SetSignedTicksInByteOrderOfId( *this, ticks, varType );
+        }
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        {
+            // ISO 8601 text, the type id is kept
+            Int64 ticks = 0;
+            CUtf8String utf8 = ToUtf8String( data );
+            const UInt32 length = utf8.ByteSize() > 0 ? utf8.ByteSize() - 1 : 0;
+            if ( !CDataTableValues::ParseTimestamp( utf8.C_String(), length, DATATABLE_TIMEUNIT_MICROSECONDS, ticks ) &&
+                 !CDataTableValues::TicksFromVariant( defaultValue, DATATABLE_TIMEUNIT_MICROSECONDS, ticks ) )
+                return false;
+            return SetSignedTicksInByteOrderOfId( *this, ticks, varType );
+        }
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        {
+            // yyyy-mm-dd, the type id is kept
+            Int32 days = 0;
+            CUtf8String utf8 = ToUtf8String( data );
+            const UInt32 length = utf8.ByteSize() > 0 ? utf8.ByteSize() - 1 : 0;
+            if ( !CDataTableValues::ParseDate( utf8.C_String(), length, days ) )
+            {
+                if ( !IsDateTypeId( defaultValue.GetTypeId() ) )
+                    return false;
+                days = defaultValue.AsInt32();
+            }
+            if ( GUCEF_DATATYPE_NON_NATIVE_DATE_IN_DAYS_SINCE_UNIX_EPOCH == varType )
+                days = SwapEndianInt32( days );
+            return Set( &days, sizeof( days ), varType, false );
+        }
 
         case GUCEF_DATATYPE_INT8:
             { *this = StringToInt8( data, defaultValue.AsInt8() ); return true; }
@@ -3073,6 +3903,24 @@ CVariant::SetFromString( UInt8 varType, const CString& data, const CVariant& def
             }
             return false;
         }
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+        {
+            CDecimal value;
+            if ( DecimalStatusIsError( CDecimal::FromString( data, value ) ) &&
+                 DecimalStatusIsError( defaultValue.GetDecimal( value ) ) )
+                return false;
+
+            *this = value;
+            if ( GUCEF_DATATYPE_NON_NATIVE_INT64_UINT8_DECIMAL == varType )
+            {
+                if ( GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL == varType )
+                    ToBigEndian();
+                else
+                    ToLittleEndian();
+            }
+            return true;
+        }
         case GUCEF_DATATYPE_UNKNOWN:               { return false; }
         default:                                   { return false; }
     }
@@ -3083,6 +3931,16 @@ CVariant::SetFromString( UInt8 varType, const CString& data, const CVariant& def
 bool
 CVariant::operator==( const CVariant& other ) const
 {GUCEF_TRACE;
+
+    if ( IsDecimal() || other.IsDecimal() )
+    {
+        Int32 cmp = 0;
+        Int32 how = CompareWithDecimal( *this, other, cmp );
+        if ( 1 == how )
+            return 0 == cmp;
+        if ( 2 == how )
+            return std::fabs( AsFloat64() - other.AsFloat64() ) < GUCEF_FLOAT64_COMPARISON_EPSILON;
+    }
 
     if ( IsInteger() && other.IsInteger() )
     {
@@ -3120,21 +3978,15 @@ CVariant::operator==( const CVariant& other ) const
         return std::fabs( AsFloat64() - other.AsFloat64() ) < GUCEF_FLOAT64_COMPARISON_EPSILON;
     }
     else
+    if ( IsComparedAsNumber( *this ) && IsComparedAsNumber( other ) )
     {
-        // strings and blobs
-
-        UInt32 byteSize = ByteSize();
-        UInt32 otherByteSize = other.ByteSize();
-
-        if ( byteSize > 0 && otherByteSize > 0 )
-        {
-            // Mostly nonsensical, but can be used for sorting a set
-            UInt32 smallestByteSize = GUCEF_SMALLEST( byteSize, otherByteSize );
-            return 0 == memcmp( AsVoidPtr(), other.AsVoidPtr(), smallestByteSize );
-        }
-
-        // Essentially allowing nill == nill for a variant etc
-        return ( byteSize == otherByteSize && m_variantData.containedType == other.m_variantData.containedType );
+        // an integer and a float
+        return std::fabs( AsFloat64() - other.AsFloat64() ) < GUCEF_FLOAT64_COMPARISON_EPSILON;
+    }
+    else
+    {
+        // text, binary data and the rest, see CompareRemaining()
+        return 0 == CompareRemaining( *this, other );
     }
 }
 
@@ -3152,6 +4004,16 @@ CVariant::operator!=( const CVariant& other ) const
 bool
 CVariant::operator<( const CVariant& other ) const
 {GUCEF_TRACE;
+
+    if ( IsDecimal() || other.IsDecimal() )
+    {
+        Int32 cmp = 0;
+        Int32 how = CompareWithDecimal( *this, other, cmp );
+        if ( 1 == how )
+            return cmp < 0;
+        if ( 2 == how )
+            return AsFloat64() < other.AsFloat64();
+    }
 
     if ( IsInteger() && other.IsInteger() )
     {
@@ -3184,19 +4046,15 @@ CVariant::operator<( const CVariant& other ) const
         return AsBool() < other.AsBool();
     }
     else
+    if ( IsComparedAsNumber( *this ) && IsComparedAsNumber( other ) )
     {
-        // strings and blobs
-
-        UInt32 byteSize = ByteSize();
-        UInt32 otherByteSize = other.ByteSize();
-
-        if ( byteSize > 0 && otherByteSize > 0 )
-        {
-            // Mostly nonsensical, but can be used for sorting a set
-            UInt32 smallestByteSize = GUCEF_SMALLEST( byteSize, otherByteSize );
-            return 0 > memcmp( AsVoidPtr(), other.AsVoidPtr(), smallestByteSize );
-        }
-        return byteSize < otherByteSize;
+        // an integer, a float or a fraction against another kind of number
+        return AsFloat64() < other.AsFloat64();
+    }
+    else
+    {
+        // text, binary data and the rest, see CompareRemaining()
+        return 0 > CompareRemaining( *this, other );
     }
 }
 
@@ -3214,6 +4072,16 @@ CVariant::operator>( const CVariant& other ) const
 bool
 CVariant::operator<=( const CVariant& other ) const
 {GUCEF_TRACE;
+
+    if ( IsDecimal() || other.IsDecimal() )
+    {
+        Int32 cmp = 0;
+        Int32 how = CompareWithDecimal( *this, other, cmp );
+        if ( 1 == how )
+            return cmp <= 0;
+        if ( 2 == how )
+            return AsFloat64() <= other.AsFloat64();
+    }
 
     if ( IsInteger() && other.IsInteger() )
     {
@@ -3246,19 +4114,15 @@ CVariant::operator<=( const CVariant& other ) const
         return AsBool() <= other.AsBool();
     }
     else
+    if ( IsComparedAsNumber( *this ) && IsComparedAsNumber( other ) )
     {
-        // strings and blobs
-
-        UInt32 byteSize = ByteSize();
-        UInt32 otherByteSize = other.ByteSize();
-
-        if ( byteSize > 0 && otherByteSize > 0 )
-        {
-            // Mostly nonsensical, but can be used for sorting a set
-            UInt32 smallestByteSize = GUCEF_SMALLEST( byteSize, otherByteSize );
-            return 0 >= memcmp( AsVoidPtr(), other.AsVoidPtr(), smallestByteSize );
-        }
-        return byteSize <= otherByteSize;
+        // an integer, a float or a fraction against another kind of number
+        return AsFloat64() <= other.AsFloat64();
+    }
+    else
+    {
+        // text, binary data and the rest, see CompareRemaining()
+        return 0 >= CompareRemaining( *this, other );
     }
 }
 
@@ -3414,15 +4278,25 @@ CVariant::AsString( const CString& defaultIfNeeded, bool resolveVarsIfApplicable
             case GUCEF_DATATYPE_BE_UINT32:
                 { return ToString( AsUInt32() ); }
 
+            case GUCEF_DATATYPE_LE_UINT64:
+            case GUCEF_DATATYPE_BE_UINT64:
+                { return ToString( AsUInt64() ); }
+
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
-            case GUCEF_DATATYPE_LE_UINT64:
-            case GUCEF_DATATYPE_BE_UINT64:
-                { return ToString( AsUInt64() ); }
+                { return ToString( AsInt64() ); }
+
+            case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+            case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+                { return CDataTableValues::TimestampToString( MicrosFromVariantPayload( m_variantData ), DATATABLE_TIMEUNIT_MICROSECONDS, true ); }
+
+            case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+            case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+                { return CDataTableValues::DateToString( DaysFromVariantPayload( m_variantData ) ); }
 
             case GUCEF_DATATYPE_INT8:
                 { return ToString( AsInt8() ); }
@@ -3456,6 +4330,15 @@ CVariant::AsString( const CString& defaultIfNeeded, bool resolveVarsIfApplicable
 
             case GUCEF_DATATYPE_INT32T2_FRACTION:      { return ToString( m_variantData.union_data.fraction_data.union_data.int32t2_data.denominator ) + '/' + ToString( m_variantData.union_data.fraction_data.union_data.int32t2_data.numerator ); }
             case GUCEF_DATATYPE_UINT32T2_FRACTION:     { return ToString( m_variantData.union_data.fraction_data.union_data.uint32t2_data.denominator ) + '/' + ToString( m_variantData.union_data.fraction_data.union_data.uint32t2_data.numerator ); }
+
+            case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+            case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+            {
+                CDecimal value;
+                if ( DecimalStatusIsError( GetDecimal( value ) ) )
+                    return ResolveVars( defaultIfNeeded );
+                return value.ToString();
+            }
 
             case GUCEF_DATATYPE_UTF16_LE_STRING:
             case GUCEF_DATATYPE_UTF16_BE_STRING:
@@ -3497,15 +4380,25 @@ CVariant::AsString( const CString& defaultIfNeeded, bool resolveVarsIfApplicable
             case GUCEF_DATATYPE_UINT16:                { return ToString( AsUInt16( StringToUInt16( defaultIfNeeded, 0 ) ) ); }
             case GUCEF_DATATYPE_UINT32:                { return ToString( AsUInt32( StringToUInt32( defaultIfNeeded, 0 ) ) ); }
 
+            case GUCEF_DATATYPE_LE_UINT64:
+            case GUCEF_DATATYPE_BE_UINT64:
+                { return ToString( AsUInt64( StringToUInt64( defaultIfNeeded, 0 ) ) ); }
+
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
             case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
-            case GUCEF_DATATYPE_LE_UINT64:
-            case GUCEF_DATATYPE_BE_UINT64:
-                { return ToString( AsUInt64( StringToUInt64( defaultIfNeeded, 0 ) ) ); }
+                { return ToString( AsInt64( StringToInt64( defaultIfNeeded, 0 ) ) ); }
+
+            case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+            case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+                { return CDataTableValues::TimestampToString( MicrosFromVariantPayload( m_variantData ), DATATABLE_TIMEUNIT_MICROSECONDS, true ); }
+
+            case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+            case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+                { return CDataTableValues::DateToString( DaysFromVariantPayload( m_variantData ) ); }
 
             case GUCEF_DATATYPE_INT8:                  { return ToString( AsInt8( StringToInt8( defaultIfNeeded, 0 ) ) ); }
             case GUCEF_DATATYPE_INT16:                 { return ToString( AsInt16( StringToInt16( defaultIfNeeded, 0 ) ) ); }
@@ -3523,6 +4416,15 @@ CVariant::AsString( const CString& defaultIfNeeded, bool resolveVarsIfApplicable
 
             case GUCEF_DATATYPE_INT32T2_FRACTION:      { return ToString( m_variantData.union_data.fraction_data.union_data.int32t2_data.denominator ) + '/' + ToString( m_variantData.union_data.fraction_data.union_data.int32t2_data.numerator ); }
             case GUCEF_DATATYPE_UINT32T2_FRACTION:     { return ToString( m_variantData.union_data.fraction_data.union_data.uint32t2_data.denominator ) + '/' + ToString( m_variantData.union_data.fraction_data.union_data.uint32t2_data.numerator ); }
+
+            case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+            case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+            {
+                CDecimal value;
+                if ( DecimalStatusIsError( GetDecimal( value ) ) )
+                    return defaultIfNeeded;
+                return value.ToString();
+            }
 
             case GUCEF_DATATYPE_UTF16_LE_STRING:
             case GUCEF_DATATYPE_UTF16_BE_STRING:
@@ -3603,14 +4505,14 @@ CVariant::AsDateTime( const CDateTime& defaultIfNeeded, bool resolveVarsIfApplic
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
         {
             CTimestamp ts;
-            ts.FromNanosecondsSinceEpoch( m_variantData.union_data.uint64_data );
+            ts.FromNanosecondsSinceEpoch( (UInt64) SignedTicksFromVariantPayload( m_variantData ) );
             return ts.ToDateTime();
         }
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         {
             CDateTime dt;
-            dt.FromUnixEpochBasedTicksInMillisecs( m_variantData.union_data.uint64_data * 1000 );
+            dt.FromUnixEpochBasedTicksInMillisecs( (UInt64) SignedTicksFromVariantPayload( m_variantData ) * 1000 );
             return dt;
         }
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
@@ -3619,8 +4521,24 @@ CVariant::AsDateTime( const CDateTime& defaultIfNeeded, bool resolveVarsIfApplic
         case GUCEF_DATATYPE_BE_UINT64:
         {
             CDateTime dt;
-            dt.FromUnixEpochBasedTicksInMillisecs( m_variantData.union_data.uint64_data );
+            dt.FromUnixEpochBasedTicksInMillisecs( (UInt64) SignedTicksFromVariantPayload( m_variantData ) );
             return dt;
+        }
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        {
+            CDateTime dt;
+            if ( CDataTableValues::DateTimeFromTicks( MicrosFromVariantPayload( m_variantData ), DATATABLE_TIMEUNIT_MICROSECONDS, dt ) )
+                return dt;
+            return defaultIfNeeded;
+        }
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        {
+            CDateTime dt;
+            if ( CDataTableValues::DateTimeFromTicks( (Int64) DaysFromVariantPayload( m_variantData ) * CDataTableValues::TicksPerDay( DATATABLE_TIMEUNIT_MILLISECONDS ), DATATABLE_TIMEUNIT_MILLISECONDS, dt ) )
+                return dt;
+            return defaultIfNeeded;
         }
 
         default:
@@ -3655,14 +4573,14 @@ CVariant::AsTimestamp( const CTimestamp& defaultIfNeeded, bool resolveVarsIfAppl
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_NANOS_SINCE_UNIX_EPOCH:
         {
             CTimestamp ts;
-            ts.FromNanosecondsSinceEpoch( m_variantData.union_data.uint64_data );
+            ts.FromNanosecondsSinceEpoch( (UInt64) SignedTicksFromVariantPayload( m_variantData ) );
             return ts;
         }
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         case GUCEF_DATATYPE_BE_TIMESTAMP_IN_SECS_SINCE_UNIX_EPOCH:
         {
             CTimestamp ts;
-            ts.FromMillisecondsSinceEpoch( m_variantData.union_data.uint64_data * 1000 );
+            ts.FromMillisecondsSinceEpoch( (UInt64) SignedTicksFromVariantPayload( m_variantData ) * 1000 );
             return ts;
         }
         case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MS_SINCE_UNIX_EPOCH:
@@ -3671,7 +4589,28 @@ CVariant::AsTimestamp( const CTimestamp& defaultIfNeeded, bool resolveVarsIfAppl
         case GUCEF_DATATYPE_BE_UINT64:
         {
             CTimestamp ts;
-            ts.FromMillisecondsSinceEpoch( m_variantData.union_data.uint64_data );
+            ts.FromMillisecondsSinceEpoch( (UInt64) SignedTicksFromVariantPayload( m_variantData ) );
+            return ts;
+        }
+        case GUCEF_DATATYPE_LE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_TIMESTAMP_IN_MICROS_SINCE_UNIX_EPOCH:
+        {
+            // CTimestamp holds unsigned ticks: no instant before the epoch
+            Int64 micros = MicrosFromVariantPayload( m_variantData );
+            if ( micros < 0 )
+                return defaultIfNeeded;
+            CTimestamp ts;
+            ts.FromMicrosecondsSinceEpoch( (UInt64) micros );
+            return ts;
+        }
+        case GUCEF_DATATYPE_LE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        case GUCEF_DATATYPE_BE_DATE_IN_DAYS_SINCE_UNIX_EPOCH:
+        {
+            Int32 days = DaysFromVariantPayload( m_variantData );
+            if ( days < 0 )
+                return defaultIfNeeded;
+            CTimestamp ts;
+            ts.FromMillisecondsSinceEpoch( (UInt64) days * 86400000ULL );
             return ts;
         }
 
@@ -4328,6 +5267,114 @@ CVariant::AsUInt64UInt32Fraction( const TUInt64UInt32Fraction& defaultIfNeeded, 
             return defaultIfNeeded;
         }
     }
+}
+
+/*-------------------------------------------------------------------------*/
+
+TDecimalStatus
+CVariant::GetDecimal( CDecimal& result, bool resolveVarsIfApplicable ) const
+{GUCEF_TRACE;
+
+    switch ( m_variantData.containedType )
+    {
+        case GUCEF_DATATYPE_INT64_UINT8_LE_DECIMAL:
+        case GUCEF_DATATYPE_INT64_UINT8_BE_DECIMAL:
+            return DecimalFromVariantPayload( m_variantData, result );
+
+        case GUCEF_DATATYPE_INT8:
+        case GUCEF_DATATYPE_UINT8:
+        case GUCEF_DATATYPE_INT16:
+        case GUCEF_DATATYPE_UINT16:
+        case GUCEF_DATATYPE_INT32:
+        case GUCEF_DATATYPE_UINT32:
+        case GUCEF_DATATYPE_INT64:
+            return CDecimal::FromInt64( AsInt64(), 0, result );
+
+        case GUCEF_DATATYPE_UINT64:
+        {
+            UInt64 value = m_variantData.union_data.uint64_data;
+            if ( value > (UInt64) GUCEF_INT64MAX )
+                return DECIMALSTATUS_OVERFLOW;
+            return CDecimal::FromInt64( (Int64) value, 0, result );
+        }
+
+        case GUCEF_DATATYPE_BOOLEAN_INT32:
+            return CDecimal::FromInt64( 0 != m_variantData.union_data.int32_data ? 1 : 0, 0, result );
+
+        case GUCEF_DATATYPE_FLOAT32:
+            return CDecimal::FromFloat32Shortest( m_variantData.union_data.float32_data, result );
+        case GUCEF_DATATYPE_FLOAT64:
+            return CDecimal::FromFloat64Shortest( m_variantData.union_data.float64_data, result );
+
+        case GUCEF_DATATYPE_ASCII_STRING:
+        case GUCEF_DATATYPE_UTF8_STRING:
+        case GUCEF_DATATYPE_UTF16_LE_STRING:
+        case GUCEF_DATATYPE_UTF16_BE_STRING:
+        case GUCEF_DATATYPE_UTF32_LE_STRING:
+        case GUCEF_DATATYPE_UTF32_BE_STRING:
+            return CDecimal::FromString( AsString( CString::Empty, resolveVarsIfApplicable ), result );
+
+        case GUCEF_DATATYPE_INT32T2_FRACTION:
+        {
+            Int64 numerator = m_variantData.union_data.fraction_data.union_data.int32t2_data.numerator;
+            Int64 denominator = m_variantData.union_data.fraction_data.union_data.int32t2_data.denominator;
+            return DecimalFromFraction( 0 != numerator && ( numerator < 0 ) != ( denominator < 0 ),
+                                        numerator < 0 ? (UInt64) -numerator : (UInt64) numerator,
+                                        denominator < 0 ? (UInt64) -denominator : (UInt64) denominator, result );
+        }
+        case GUCEF_DATATYPE_UINT32T2_FRACTION:
+        {
+            return DecimalFromFraction( false, m_variantData.union_data.fraction_data.union_data.uint32t2_data.numerator,
+                                        m_variantData.union_data.fraction_data.union_data.uint32t2_data.denominator, result );
+        }
+        case GUCEF_DATATYPE_INT64_INT32_FRACTION:
+        {
+            Int64 numerator = m_variantData.union_data.fraction_data.union_data.int64_int32_data.numerator;
+            Int64 denominator = m_variantData.union_data.fraction_data.union_data.int64_int32_data.denominator;
+            return DecimalFromFraction( 0 != numerator && ( numerator < 0 ) != ( denominator < 0 ),
+                                        numerator < 0 ? 0 - (UInt64) numerator : (UInt64) numerator,
+                                        denominator < 0 ? (UInt64) -denominator : (UInt64) denominator, result );
+        }
+        case GUCEF_DATATYPE_UINT64_UINT32_FRACTION:
+        {
+            return DecimalFromFraction( false, m_variantData.union_data.fraction_data.union_data.uint64_uint32_data.numerator,
+                                        m_variantData.union_data.fraction_data.union_data.uint64_uint32_data.denominator, result );
+        }
+        case GUCEF_DATATYPE_INT64T2_FRACTION:
+        {
+            if ( GUCEF_NULL == m_variantData.union_data.heap_data.union_data.void_heap_data ||
+                 sizeof( TInt64T2Fraction ) > m_variantData.union_data.heap_data.heap_data_size )
+                return DECIMALSTATUS_INVALID_OPERAND;
+            Int64 numerator = m_variantData.union_data.heap_data.union_data.fraction_int64t2_data->numerator;
+            Int64 denominator = m_variantData.union_data.heap_data.union_data.fraction_int64t2_data->denominator;
+            return DecimalFromFraction( 0 != numerator && ( numerator < 0 ) != ( denominator < 0 ),
+                                        numerator < 0 ? 0 - (UInt64) numerator : (UInt64) numerator,
+                                        denominator < 0 ? 0 - (UInt64) denominator : (UInt64) denominator, result );
+        }
+        case GUCEF_DATATYPE_UINT64T2_FRACTION:
+        {
+            if ( GUCEF_NULL == m_variantData.union_data.heap_data.union_data.void_heap_data ||
+                 sizeof( TUInt64T2Fraction ) > m_variantData.union_data.heap_data.heap_data_size )
+                return DECIMALSTATUS_INVALID_OPERAND;
+            return DecimalFromFraction( false, m_variantData.union_data.heap_data.union_data.fraction_uint64t2_data->numerator,
+                                        m_variantData.union_data.heap_data.union_data.fraction_uint64t2_data->denominator, result );
+        }
+
+        default:
+            return DECIMALSTATUS_INVALID_OPERAND;
+    }
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDecimal
+CVariant::AsDecimal( const CDecimal& defaultIfNeeded, bool resolveVarsIfApplicable ) const
+{GUCEF_TRACE;
+
+    CDecimal result;
+    if ( DecimalStatusIsError( GetDecimal( result, resolveVarsIfApplicable ) ) )
+        return defaultIfNeeded;
+    return result;
 }
 
 /*-------------------------------------------------------------------------*/

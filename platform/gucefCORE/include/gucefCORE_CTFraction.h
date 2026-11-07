@@ -54,6 +54,16 @@
 #define GUCEF_CORE_C_VARIANTDATA_H
 #endif /* GUCEF_CORE_C_VARIANTDATA_H ? */
 
+#ifndef GUCEF_CORE_EXCEPTIONTHROWMACROS_H
+#include "ExceptionThrowMacros.h"
+#define GUCEF_CORE_EXCEPTIONTHROWMACROS_H
+#endif /* GUCEF_CORE_EXCEPTIONTHROWMACROS_H ? */
+
+#ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
+#include "dvcppstringutils.h"
+#define GUCEF_CORE_DVCPPSTRINGUTILS_H
+#endif /* GUCEF_CORE_DVCPPSTRINGUTILS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
