@@ -81,6 +81,15 @@ class GUCEF_GUI_PUBLIC_CPP CWidgetPainter
                            const CColour& colour               ,
                            TCommandVector& commands            );
 
+    /**
+     *  The text as it fits in 'maxWidth' pixels of the font: the whole text when it fits, else the longest start of it
+     *  followed by "..." that fits ('cut' true). A room too small even for "..." gives an empty text (also cut)
+     */
+    static CString FitText( CGUIContext& context, const CString& font, const CString& text, Int32 maxWidth, bool& cut );
+
+    /** The left of a text of 'textWidth' pixels in a cell from 'left' with 'width' pixels for an alignment (Left, Center, Right) and padding */
+    static Int32 AlignText( Int32 left, Int32 width, Int32 textWidth, const CString& hAlign, Int32 padLeft, Int32 padRight );
+
     /** Where an image of the given size goes in 'area' for a ScaleMode */
     static CRect FitImage( Int32 imageWidth, Int32 imageHeight, const CRect& area, const CString& scaleMode );
 

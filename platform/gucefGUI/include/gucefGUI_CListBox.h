@@ -129,6 +129,27 @@ class GUCEF_GUI_PUBLIC_CPP CListbox : public CWidget
     /** Scrolls so the row is visible */
     void ScrollToRow( Int32 index );
 
+    /** The colour of a row (ItemColours); false for a plain row */
+    bool GetItemColour( Int32 index, CColour& colour ) const;
+
+    /** Whether any row has a colour: the rows then make room for the marker at their left */
+    bool HasItemColours( void ) const;
+
+    /** The room of the marker of a coloured row, the padding of the text */
+    enum EItemLayout
+    {
+        ITEM_MARKER_WIDTH = 4,
+        ITEM_MARKER_ROOM = 10,
+        ITEM_PADDING_LEFT = 2,
+        ITEM_PADDING_RIGHT = 4
+    };
+
+    /** The pixels the text of a row has: the width of the list without the padding and the room of a marker */
+    Int32 GetItemTextRoom( void ) const;
+
+    /** Over a row whose text is cut (TextOverflow Ellipsis): the whole text; else the Tooltip property */
+    virtual CString GetTooltipAt( Int32 localX, Int32 localY ) const GUCEF_VIRTUAL_OVERRIDE;
+
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     /** The name this widget type is registered under: what GetType() of the widgets of this class says */

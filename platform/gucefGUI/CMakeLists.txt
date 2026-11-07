@@ -16,6 +16,11 @@ set( HEADER_FILES
   include/gucefGUI_CAudioPlayer.h
   include/gucefGUI_CBitmapFont.h
   include/gucefGUI_CButton.h
+  include/gucefGUI_CChartAxis.h
+  include/gucefGUI_CChartDecimator.h
+  include/gucefGUI_CChartPalette.h
+  include/gucefGUI_CChartSeries.h
+  include/gucefGUI_CChartView.h
   include/gucefGUI_CCheckbox.h
   include/gucefGUI_CCombobox.h
   include/gucefGUI_CDeveloperConsoleForm.h
@@ -57,6 +62,8 @@ set( HEADER_FILES
   include/gucefGUI_CRenderContext.h
   include/gucefGUI_CRoutedEventData.h
   include/gucefGUI_CScrollPanel.h
+  include/gucefGUI_CSecretInput.h
+  include/gucefGUI_CSecretInputSettings.h
   include/gucefGUI_CSettingsForm.h
   include/gucefGUI_CSettingsPageForm.h
   include/gucefGUI_CSlider.h
@@ -97,6 +104,11 @@ set( SOURCE_FILES
   src/gucefGUI_CAudioPlayer.cpp
   src/gucefGUI_CBitmapFont.cpp
   src/gucefGUI_CButton.cpp
+  src/gucefGUI_CChartAxis.cpp
+  src/gucefGUI_CChartDecimator.cpp
+  src/gucefGUI_CChartPalette.cpp
+  src/gucefGUI_CChartSeries.cpp
+  src/gucefGUI_CChartView.cpp
   src/gucefGUI_CCheckbox.cpp
   src/gucefGUI_CCombobox.cpp
   src/gucefGUI_CDeveloperConsoleForm.cpp
@@ -138,6 +150,8 @@ set( SOURCE_FILES
   src/gucefGUI_CRenderContext.cpp
   src/gucefGUI_CRoutedEventData.cpp
   src/gucefGUI_CScrollPanel.cpp
+  src/gucefGUI_CSecretInput.cpp
+  src/gucefGUI_CSecretInputSettings.cpp
   src/gucefGUI_CSettingsForm.cpp
   src/gucefGUI_CSettingsPageForm.cpp
   src/gucefGUI_CSlider.cpp
@@ -187,7 +201,7 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefAUDIO/include ../gucefAUDIO/include/c_api ../gucefCORE/include ../gucefCORE/include/c_api ../gucefIMAGE/include ../gucefINPUT/include ../gucefMT/include ../gucefVFS/include ../gucefVIDEO/include ../gucefVIDEO/include/c_api include )
+include_directories( ../../common/include ../gucefAUDIO/include ../gucefAUDIO/include/c_api ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefIMAGE/include ../gucefINPUT/include ../gucefMT/include ../gucefVFS/include ../gucefVIDEO/include ../gucefVIDEO/include/c_api include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCORE/include/android )

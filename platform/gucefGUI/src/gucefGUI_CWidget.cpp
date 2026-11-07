@@ -1720,6 +1720,15 @@ CWidget::IsActivatable( void ) const
 
 /*-------------------------------------------------------------------------*/
 
+CString
+CWidget::GetTooltipAt( Int32 localX, Int32 localY ) const
+{GUCEF_TRACE;
+
+    return GetPropertyRef( EWidgetProperty_Tooltip );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CWidget::BringToFront( void )
 {GUCEF_TRACE;

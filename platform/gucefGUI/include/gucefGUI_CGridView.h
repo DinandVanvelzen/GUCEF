@@ -1,6 +1,6 @@
 /*
  *  gucefGUI: GUCEF module providing a uniform interface towards GUI backends
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -161,6 +161,16 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
 
     void SetSelectedRows( const TInt32Vector& rows );
 
+    /**
+     *  The rows that stand out (EmphasizedRows, with the colour EmphasisColour): the rows that need the player, such as the games where it is the player's turn. Only rows that
+     *  are there are kept, in ascending order, each once
+     */
+    void SetEmphasizedRows( const TInt32Vector& rows );
+
+    TInt32Vector GetEmphasizedRows( void ) const;
+
+    bool IsRowEmphasized( Int32 row ) const;
+
     bool IsRowSelected( Int32 row ) const;
 
     /** How many rows fit below the header */
@@ -174,6 +184,27 @@ class GUCEF_GUI_PUBLIC_CPP CGridView : public CWidget
      *  The selection stays with its rows. Sets SortColumn and SortAscending
      */
     void SortRows( UInt32 column, bool ascending );
+
+    /** The room around the text of a cell and of a title, the room of the sort arrow in its title, the indent of the first cell of a row that stands out */
+    enum ECellLayout
+    {
+        CELL_PADDING_LEFT = 2,
+        CELL_PADDING_RIGHT = 8,
+        SORT_ARROW_ROOM = 16,
+        EMPHASIS_INDENT = 6
+    };
+
+    /** Where the title and the cells of a column stand (ColumnAlignments): "Left", "Center" or "Right"; Left without an entry */
+    CString GetColumnAlignment( UInt32 column ) const;
+
+    /** The pixels the text of a cell has in its column: the width of the column without the padding (and the indent of a row that stands out) */
+    Int32 GetCellTextRoom( UInt32 column, Int32 row ) const;
+
+    /** Whether the text of a cell is wider than its room: with TextOverflow Ellipsis it is drawn cut with "..." and its tooltip is the whole text */
+    bool IsCellTextCut( UInt32 column, UInt32 row ) const;
+
+    /** Over a cell whose text is cut: the whole text; else the Tooltip property */
+    virtual CString GetTooltipAt( Int32 localX, Int32 localY ) const GUCEF_VIRTUAL_OVERRIDE;
 
     virtual const CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 

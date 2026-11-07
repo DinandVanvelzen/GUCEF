@@ -108,6 +108,14 @@ class GUIDRIVERXWINGL_PUBLIC_CPP CXWinGLWindowContext : public GUI::CWindowConte
     bool Initialize( const GUI::CString& title                ,
                      const GUI::CVideoSettings& videoSettings );
 
+    /**
+     *  As above; 'params' may hold "X" and "Y": where the window (its frame) is placed on the screen, honoured when the point
+     *  is on the screen. The property "POSITION" ("x,y") gives the place to restore a window at
+     */
+    bool Initialize( const GUI::CString& title                ,
+                     const GUI::CVideoSettings& videoSettings ,
+                     const CORE::CValueList* params           );
+
     void Shutdown( void );
 
     virtual const CORE::CString& GetClassTypeName( void ) const;

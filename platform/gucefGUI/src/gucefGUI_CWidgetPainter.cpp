@@ -23,6 +23,7 @@
 //-------------------------------------------------------------------------*/
 
 #include <stdio.h>
+#include <algorithm>
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
@@ -51,6 +52,8 @@
 
 #include "gucefGUI_CButton.h"
 #include "gucefGUI_CEditbox.h"
+#include "gucefGUI_CSecretInput.h"
+#include "gucefCORE_SecureMemory.h"
 #include "gucefGUI_CTextbox.h"
 #include "gucefGUI_CListBox.h"
 #include "gucefGUI_CCombobox.h"
@@ -94,6 +97,8 @@ const CColour BoxBorderColour( 120, 120, 128, 255 );
 const CColour FieldColour( 20, 20, 24, 255 );
 const CColour DisabledTextColour( 128, 128, 128, 255 );
 const CColour FocusColour( 200, 200, 90, 255 );
+const CColour AccentColour( 74, 136, 232, 255 );          /* the accent of the standard theme: focus, selection, and the rows that need the player */
+const CColour AccentTint( 74, 136, 232, 56 );
 
 /** How long the pointer rests on a widget before its tooltip shows */
 const UInt64 TooltipDelayInMs = 600;
@@ -326,6 +331,63 @@ CWidgetPainter::FitImage( Int32 imageWidth, Int32 imageHeight, const CRect& area
 
 /*-------------------------------------------------------------------------*/
 
+Int32
+CWidgetPainter::AlignText( Int32 left, Int32 width, Int32 textWidth, const CString& hAlign, Int32 padLeft, Int32 padRight )
+{GUCEF_TRACE;
+
+    if ( "Right" == hAlign )
+        return left + width - padRight - textWidth;
+    if ( "Center" == hAlign )
+        return left + padLeft + ( width - padLeft - padRight - textWidth ) / 2;
+    return left + padLeft;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CWidgetPainter::FitText( CGUIContext& context, const CString& font, const CString& text, Int32 maxWidth, bool& cut )
+{GUCEF_TRACE;
+
+    cut = false;
+    if ( text.IsNULLOrEmpty() )
+        return text;
+    Int32 width = 0, height = 0;
+    context.MeasureText( font, text, 0, width, height );
+    if ( width <= maxWidth )
+        return text;
+
+    cut = true;
+    static const CString ellipsis( "..." );
+    Int32 ellipsisWidth = 0;
+    context.MeasureText( font, ellipsis, 0, ellipsisWidth, height );
+    if ( ellipsisWidth > maxWidth )
+        return CString::Empty;
+
+    // the longest start that fits beside the dots: a binary search over the length, never ending inside a UTF-8 sequence
+    UInt32 low = 0;
+    UInt32 high = text.Length();
+    while ( low < high )
+    {
+        UInt32 middle = ( low + high + 1 ) / 2;
+        context.MeasureText( font, text.SubstrFromRange( 0, middle ), 0, width, height );
+        if ( width + ellipsisWidth <= maxWidth )
+            low = middle;
+        else
+            high = middle - 1;
+    }
+    if ( 1 == sizeof( text[ 0 ] ) )
+    {
+        while ( low > 0 && low < text.Length() && 0x80 == ( (UInt32)(unsigned char) text[ low ] & 0xC0 ) )
+            --low;
+    }
+    // no space before the dots
+    while ( low > 0 && ' ' == text[ low - 1 ] )
+        --low;
+    return text.SubstrFromRange( 0, low ) + ellipsis;
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CWidgetPainter::PaintText( CGUIContext& context     ,
                            const CString& font      ,
@@ -474,6 +536,13 @@ CWidgetPainter::PaintEditbox( const CWidget& widget, CGUIContext& context, const
 
     CString font = widget.GetPropertyRef( EWidgetProperty_Font );
     CString text = widget.GetPropertyRef( EWidgetProperty_Text );
+
+    // a secret input draws the mask characters its text property holds; only while the value is revealed (or the code point typed last is shown) it says more
+    const CSecretInput* secret = CWidget::As< CSecretInput >( &widget );
+    const bool clearText = GUCEF_NULL != secret && secret->IsDisplayingClearText();
+    if ( clearText )
+        secret->GetDisplayText( text );
+
     Int32 lineHeight = context.GetLineHeight( font );
     Int32 width = 0, height = 0;
     context.MeasureText( font, text, 0, width, height );
@@ -487,6 +556,8 @@ CWidgetPainter::PaintEditbox( const CWidget& widget, CGUIContext& context, const
     if ( widget.GetBoolProperty( EWidgetProperty_CaretVisible ) )
         Fill( commands, CRect( x + width, y, 1, lineHeight ), TextColourOf( widget ) );
     PopClip( commands );
+    if ( clearText )
+        CORE::SecureWipeString( text );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -510,12 +581,27 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
         Int32 rowHeight = list->GetRowHeight();
         CListbox::TStringVector items = list->GetItems();
         Int32 lineHeight = context.GetLineHeight( font );
+
+        // rows with a colour of their own: a marker of it at the left and the text in it; then every row makes room for the marker
+        const bool marked = list->HasItemColours();
+        const Int32 textLeft = area.left + CListbox::ITEM_PADDING_LEFT + ( marked ? (Int32) CListbox::ITEM_MARKER_ROOM : 0 );
+        const bool ellipsis = "Ellipsis" == widget.GetPropertyRef( EWidgetProperty_TextOverflow );
+        const Int32 room = list->GetItemTextRoom();
         for ( Int32 row = scroll, y = area.top; row < (Int32) items.size() && y < area.Bottom(); ++row, y += rowHeight )
         {
             CRect rowRect( area.left, y, area.width, rowHeight );
             if ( list->IsItemSelected( row ) )
                 Fill( commands, rowRect, selectionColour );
-            Text( commands, font, items[ row ], area.left + 2, y + ( rowHeight - lineHeight ) / 2, list->IsItemDisabled( row ) ? disabledColour : textColour );
+            CColour rowColour = textColour;
+            CColour itemColour;
+            if ( marked && list->GetItemColour( row, itemColour ) )
+            {
+                Fill( commands, CRect( area.left + CListbox::ITEM_PADDING_LEFT, y + 3, CListbox::ITEM_MARKER_WIDTH, rowHeight - 6 ), itemColour );
+                rowColour = itemColour;
+            }
+            bool cut = false;
+            const CString text = ellipsis ? FitText( context, font, items[ row ], room, cut ) : items[ row ];
+            Text( commands, font, text, textLeft, y + ( rowHeight - lineHeight ) / 2, list->IsItemDisabled( row ) ? disabledColour : rowColour );
             if ( row == hoverIndex && !list->IsItemDisabled( row ) )
                 Stroke( commands, rowRect, hoverColour, 1 );
         }
@@ -564,21 +650,55 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
         Int32 rowHeight = grid->GetRowHeight();
         GUCEF::vector< Int32 > widths = grid->GetColumnWidths();
         CGridView::TStringVector columns = widget.GetStringListProperty( EWidgetProperty_Columns );
+        const CGridView::TStringVector rows = widget.GetStringListProperty( EWidgetProperty_Rows );
+        const bool ellipsis = "Ellipsis" == widget.GetPropertyRef( EWidgetProperty_TextOverflow );
+        CGridView::TStringVector alignments;
+        for ( UInt32 c=0; c<(UInt32)widths.size(); ++c )
+            alignments.push_back( grid->GetColumnAlignment( c ) );
+        const Int32 padLeft = CGridView::CELL_PADDING_LEFT;
+        const Int32 padRight = CGridView::CELL_PADDING_RIGHT;
+
         Fill( commands, CRect( area.left, area.top, area.width, rowHeight ), ColourOr( widget, EWidgetProperty_HeaderColour, CColour( 50, 50, 50, 255 ) ) );
         Int32 x = area.left;
         Int32 sortColumn = widget.GetIntProperty( EWidgetProperty_SortColumn );
         for ( UInt32 c=0; c<(UInt32)widths.size(); ++c )
         {
-            if ( c < (UInt32) columns.size() )
+            const CRect titleCell( x, area.top, widths[ c ], rowHeight );
+            const bool sorted = (Int32) c == sortColumn && widths[ c ] > (Int32) CGridView::SORT_ARROW_ROOM;
+
+            // the column the rows are sorted by is marked as a whole: a tint of the accent over its title, the arrow right beside the title
+            if ( sorted )
+                Fill( commands, titleCell, AccentTint );
+            CString title = c < (UInt32) columns.size() ? columns[ c ] : CString::Empty;
+            const Int32 room = widths[ c ] - padLeft - padRight - ( sorted ? (Int32) CGridView::SORT_ARROW_ROOM : 0 );
+            Int32 titleWidth = 0, titleHeight = 0;
+            if ( ellipsis )
             {
-                // a title that is wider than its column is cut off at the column
-                CClipScope clipScope( commands, CRect( x, area.top, widths[ c ], rowHeight ) );
-                Text( commands, font, columns[ c ], x + 2, area.top, textColour );
+                bool cut = false;
+                title = FitText( context, font, title, room, cut );
             }
-            if ( (Int32) c == sortColumn && widths[ c ] > 16 )
+            if ( sorted || "Left" != alignments[ c ] )
+                context.MeasureText( font, title, 0, titleWidth, titleHeight );
+
+            // a title that is wider than its column is cut off at the column
+            CClipScope clipScope( commands, titleCell );
+            Int32 titleX = x + padLeft;
+            Int32 arrowX = 0;
+            if ( "Right" == alignments[ c ] )
             {
-                // the arrow of the sort, at the right of the title
-                CRect arrowBox( x + widths[ c ] - 14, area.top, 12, rowHeight );
+                titleX = AlignText( x, widths[ c ], titleWidth, "Right", padLeft, padRight );
+                arrowX = titleX - (Int32) CGridView::SORT_ARROW_ROOM + 2;
+            }
+            else
+            {
+                if ( "Center" == alignments[ c ] )
+                    titleX = AlignText( x, widths[ c ] - ( sorted ? (Int32) CGridView::SORT_ARROW_ROOM : 0 ), titleWidth, "Center", padLeft, padRight );
+                arrowX = titleX + titleWidth + 2;
+            }
+            Text( commands, font, title, titleX, area.top, textColour );
+            if ( sorted )
+            {
+                CRect arrowBox( arrowX, area.top, 12, rowHeight );
                 if ( widget.GetBoolProperty( EWidgetProperty_SortAscending ) )
                     UpArrow( commands, arrowBox, textColour );
                 else
@@ -587,19 +707,43 @@ CWidgetPainter::PaintRows( const CWidget& widget, CGUIContext& context, const CR
             x += widths[ c ];
         }
         Int32 y = area.top + rowHeight;
-        for ( Int32 row = scroll; row < (Int32) grid->GetRowCount() && y < area.Bottom(); ++row, y += rowHeight )
+        const CGridView::TInt32Vector emphasizedRows = grid->GetEmphasizedRows();
+        const CGridView::TInt32Vector selectedRows = grid->GetSelectedRows();
+        const CColour emphasisColour = ColourOr( widget, EWidgetProperty_EmphasisColour, CColour( 150, 198, 255, 255 ) );
+        for ( Int32 row = scroll; row < (Int32) rows.size() && y < area.Bottom(); ++row, y += rowHeight )
         {
             CRect rowRect( area.left, y, area.width, rowHeight );
-            if ( grid->IsRowSelected( row ) )
+            // a row that needs the player stands out: a tint of the accent over the whole row, a bar of the accent at its left edge and the text in the colour of the emphasis
+            const bool emphasized = std::binary_search( emphasizedRows.begin(), emphasizedRows.end(), row );
+            if ( emphasized )
+            {
+                Fill( commands, rowRect, AccentTint );
+                Fill( commands, CRect( area.left, y, 4, rowHeight ), AccentColour );
+            }
+            if ( std::find( selectedRows.begin(), selectedRows.end(), row ) != selectedRows.end() )
                 Fill( commands, rowRect, selectionColour );
-            CGridView::TStringVector cells = grid->GetRowCells( (UInt32) row );
+            const CString::StringVector cells = rows[ row ].ParseElements( '\t', true );
             x = area.left;
             for ( UInt32 c=0; c<(UInt32)widths.size(); ++c )
             {
                 if ( c < (UInt32) cells.size() && !cells[ c ].IsNULLOrEmpty() )
                 {
+                    const Int32 indent = emphasized && 0 == c ? (Int32) CGridView::EMPHASIS_INDENT : 0;
+                    CString text = cells[ c ];
+                    if ( ellipsis )
+                    {
+                        bool cut = false;
+                        text = FitText( context, font, text, widths[ c ] - padLeft - padRight - indent, cut );
+                    }
+                    Int32 textX = x + padLeft + indent;
+                    if ( "Left" != alignments[ c ] )
+                    {
+                        Int32 textWidth = 0, textHeight = 0;
+                        context.MeasureText( font, text, 0, textWidth, textHeight );
+                        textX = AlignText( x + indent, widths[ c ] - indent, textWidth, alignments[ c ], padLeft, padRight );
+                    }
                     CClipScope clipScope( commands, CRect( x, y, widths[ c ], rowHeight ) );
-                    Text( commands, font, cells[ c ], x + 2, y, textColour );
+                    Text( commands, font, text, textX, y, emphasized ? emphasisColour : textColour );
                 }
                 x += widths[ c ];
             }
@@ -666,6 +810,9 @@ CWidgetPainter::Paint( const CWidget& widget, CGUIContext& context, TCommandVect
     {
         Fill( commands, area, ColourOr( widget, EWidgetProperty_BackgroundColour, CColour( 0, 0, 0, 0 ) ) );
         PaintRows( widget, context, area, commands );
+        // the list that takes the keys says so, as a field does
+        if ( widget.HasFocus() && ( IsA( widget, "Listbox" ) || IsA( widget, "Treeview" ) || IsA( widget, "GridView" ) ) )
+            Stroke( commands, area, FocusColour, 1 );
         return;
     }
     if ( IsA( widget, "DrawSurface" ) )
@@ -878,7 +1025,8 @@ CWidgetPainter::PaintOverlay( CGUIContext& context, TCommandVector& commands )
     CWidget* hovered = context.GetHovered();
     if ( GUCEF_NULL != hovered && context.GetHoverDurationInMs() >= TooltipDelayInMs )
     {
-        CString tooltip = hovered->GetPropertyRef( EWidgetProperty_Tooltip );
+        const CRect& hoveredRect = hovered->GetRect();
+        CString tooltip = hovered->GetTooltipAt( context.GetPointerX() - hoveredRect.left, context.GetPointerY() - hoveredRect.top );
         if ( !tooltip.IsNULLOrEmpty() )
         {
             CString font = hovered->GetPropertyRef( EWidgetProperty_Font );

@@ -184,6 +184,7 @@ configuration( { "ANDROID32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestGuiBrowser.cpp",
+      "src/TestGuiChart.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -193,6 +194,7 @@ configuration( { "ANDROID32" } )
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
+      "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
@@ -210,6 +212,7 @@ configuration( { "ANDROID64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestGuiBrowser.cpp",
+      "src/TestGuiChart.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -219,6 +222,7 @@ configuration( { "ANDROID64" } )
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
+      "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
@@ -236,6 +240,7 @@ configuration( { "EMSCRIPTEN32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestGuiBrowser.cpp",
+      "src/TestGuiChart.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -245,6 +250,7 @@ configuration( { "EMSCRIPTEN32" } )
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
+      "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
@@ -262,6 +268,7 @@ configuration( { "EMSCRIPTEN64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestGuiBrowser.cpp",
+      "src/TestGuiChart.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -271,6 +278,7 @@ configuration( { "EMSCRIPTEN64" } )
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
+      "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
@@ -288,6 +296,7 @@ configuration( { "LINUX32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestGuiBrowser.cpp",
+      "src/TestGuiChart.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -297,6 +306,7 @@ configuration( { "LINUX32" } )
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
+      "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
@@ -314,6 +324,7 @@ configuration( { "LINUX64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestGuiBrowser.cpp",
+      "src/TestGuiChart.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -323,6 +334,7 @@ configuration( { "LINUX64" } )
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
+      "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
@@ -340,6 +352,7 @@ configuration( { "WIN32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestGuiBrowser.cpp",
+      "src/TestGuiChart.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -349,6 +362,7 @@ configuration( { "WIN32" } )
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
+      "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",
@@ -366,6 +380,7 @@ configuration( { "WIN64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestGuiBrowser.cpp",
+      "src/TestGuiChart.cpp",
       "src/TestGuiCore.cpp",
       "src/TestGuiFileDialogs.cpp",
       "src/TestGuiFonts.cpp",
@@ -375,6 +390,7 @@ configuration( { "WIN64" } )
       "src/TestGuiProperties.cpp",
       "src/TestGuiRender.cpp",
       "src/TestGuiScrollPanel.cpp",
+      "src/TestGuiSecretInput.cpp",
       "src/TestGuiSettings.cpp",
       "src/TestGuiWidgets.cpp",
       "src/TestGuiWindow.cpp",

@@ -85,7 +85,8 @@ CXWinGLWindowManagerImp::CreateWindowContext( const GUI::CString& title         
 
     TXWinGLWindowContextPtr windowContext( new CXWinGLWindowContext() );
     if ( windowContext->Initialize( title    ,
-                                    settings ) )
+                                    settings ,
+                                    params   ) )
     {
         return windowContext;
     }

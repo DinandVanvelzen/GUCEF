@@ -617,6 +617,45 @@ PerformGuiWidgetTests( void )
     }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Widgets: A grid keeps a set of emphasized rows, only rows that are there, and clears them with the rows" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateNullContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        GUI::CWidget* screen = MakeScreen( context );
+        GUI::CGridView* grid = static_cast< GUI::CGridView* >( context->CreateWidget( "GridView", "Grid", screen ) );
+        grid->SetProperty( "Columns", "Name" );
+        GUI::CGridView::TRowVector rows;
+        for ( int i=0; i<5; ++i )
+        {
+            GUI::CGridView::TStringVector cells;
+            cells.push_back( GUCEF::CORE::CString( "Row" ) + GUCEF::CORE::Int32ToString( i ) );
+            rows.push_back( cells );
+        }
+        grid->SetRows( rows );
+        ASSERT_TRUE( grid->GetEmphasizedRows().empty() && !grid->IsRowEmphasized( 1 ) );
+        GUI::CGridView::TInt32Vector emphasized;
+        emphasized.push_back( 3 );
+        emphasized.push_back( 1 );
+        emphasized.push_back( 1 );
+        emphasized.push_back( 9 );          // no such row
+        emphasized.push_back( -1 );
+        grid->SetEmphasizedRows( emphasized );
+        GUI::CGridView::TInt32Vector kept = grid->GetEmphasizedRows();
+        ASSERT_TRUE( 2 == kept.size() && 1 == kept[ 0 ] && 3 == kept[ 1 ] && grid->IsRowEmphasized( 1 ) && grid->IsRowEmphasized( 3 ) && !grid->IsRowEmphasized( 2 ) );
+        // a colour of its own, by name like any property
+        grid->SetProperty( "EmphasisColour", "10,20,30,255" );
+        ASSERT_TRUE( "10,20,30,255" == grid->GetProperty( "EmphasisColour" ) );
+        grid->Clear();
+        ASSERT_TRUE( grid->GetEmphasizedRows().empty() );
+        context->DestroyWidget( screen );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Widgets: Image frames animate and take pixels, draw surfaces keep a committed drawing" )
     try
     {

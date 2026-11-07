@@ -24,6 +24,8 @@
 //-------------------------------------------------------------------------*/
 
 #include <GL/glx.h>
+#include <X11/Xatom.h>
+#include <X11/Xutil.h>
 #include <limits.h>
 #include <unistd.h>
 
@@ -279,6 +281,36 @@ CXWinGLWindowContext::GetProperty( const GUI::CString& propertyName ) const
     {
         return m_isCoreProfile ? "3.3" : "1.x";
     }
+    if ( propertyName == "POSITION" )
+    {
+        // where the frame of the window is on the screen: what Initialize() takes as X and Y to put it there again
+        ::Display* display = m_window.GetDisplay();
+        if ( NULL == display || 0 == m_window.GetWindow() )
+            return GUI::CString();
+        int x = 0, y = 0;
+        ::Window child = 0;
+        if ( !::XTranslateCoordinates( display, m_window.GetWindow(), DefaultRootWindow( display ), 0, 0, &x, &y, &child ) )
+            return GUI::CString();
+        // the decoration of a window manager that says how large it is (_NET_FRAME_EXTENTS: left, right, top, bottom)
+        ::Atom extentsAtom = ::XInternAtom( display, "_NET_FRAME_EXTENTS", True );
+        if ( None != extentsAtom )
+        {
+            ::Atom type = None;
+            int format = 0;
+            unsigned long count = 0, after = 0;
+            unsigned char* data = NULL;
+            if ( Success == ::XGetWindowProperty( display, m_window.GetWindow(), extentsAtom, 0, 4, False, XA_CARDINAL, &type, &format, &count, &after, &data ) &&
+                 NULL != data && 4 == count && 32 == format )
+            {
+                const long* extents = (const long*) data;
+                x -= (int) extents[ 0 ];
+                y -= (int) extents[ 2 ];
+            }
+            if ( NULL != data )
+                ::XFree( data );
+        }
+        return CORE::Int32ToString( x ) + "," + CORE::Int32ToString( y );
+    }
     return GUI::CString();
 }
 
@@ -287,6 +319,17 @@ CXWinGLWindowContext::GetProperty( const GUI::CString& propertyName ) const
 bool
 CXWinGLWindowContext::Initialize( const GUI::CString& title                ,
                                   const GUI::CVideoSettings& videoSettings )
+{GUCEF_TRACE;
+
+    return Initialize( title, videoSettings, NULL );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CXWinGLWindowContext::Initialize( const GUI::CString& title                ,
+                                  const GUI::CVideoSettings& videoSettings ,
+                                  const CORE::CValueList* params           )
 {GUCEF_TRACE;
 
     // Do not initialize twice
@@ -368,7 +411,23 @@ CXWinGLWindowContext::Initialize( const GUI::CString& title                ,
     swa.colormap = cmap;
     swa.border_pixel = 0;
     swa.event_mask = ExposureMask | EnterWindowMask | StructureNotifyMask | SubstructureNotifyMask;
-    ::Window glwin = ::XCreateWindow(display, RootWindow(display, vi->screen), 0, 0, videoSettings.GetResolutionWidthInPixels(),
+    // a place asked for, when it is on the screen (a screen that changed since the place was kept leaves the window to the window manager)
+    int windowX = 0, windowY = 0;
+    bool placed = false;
+    if ( NULL != params && params->HasKey( "X" ) && params->HasKey( "Y" ) )
+    {
+        windowX = params->GetValueAlways( "X" ).AsInt32( 0 );
+        windowY = params->GetValueAlways( "Y" ).AsInt32( 0 );
+        const int screenWidth = DisplayWidth( display, vi->screen );
+        const int screenHeight = DisplayHeight( display, vi->screen );
+        placed = windowX >= 0 && windowY >= 0 && windowX + 64 <= screenWidth && windowY + 64 <= screenHeight;
+        if ( !placed )
+        {
+            windowX = 0;
+            windowY = 0;
+        }
+    }
+    ::Window glwin = ::XCreateWindow(display, RootWindow(display, vi->screen), windowX, windowY, videoSettings.GetResolutionWidthInPixels(),
                         videoSettings.GetResolutionHeightInPixels(), 0, vi->depth, InputOutput, vi->visual,
                         CWBorderPixel | CWColormap | CWEventMask, &swa);
 
@@ -395,6 +454,22 @@ CXWinGLWindowContext::Initialize( const GUI::CString& title                ,
         glOrtho( 0, videoSettings.GetResolutionWidthInPixels(), videoSettings.GetResolutionHeightInPixels(), 0, -1, 1 );
         glMatrixMode( GL_MODELVIEW );
         glLoadIdentity();
+    }
+
+    if ( placed )
+    {
+        // the window manager is told that the place is the user's choice
+        ::XSizeHints* hints = ::XAllocSizeHints();
+        if ( NULL != hints )
+        {
+            hints->flags = USPosition | USSize;
+            hints->x = windowX;
+            hints->y = windowY;
+            hints->width = (int) videoSettings.GetResolutionWidthInPixels();
+            hints->height = (int) videoSettings.GetResolutionHeightInPixels();
+            ::XSetWMNormalHints( display, glwin, hints );
+            ::XFree( hints );
+        }
     }
 
     // Hook up our window object to re-use its eventing capabilities

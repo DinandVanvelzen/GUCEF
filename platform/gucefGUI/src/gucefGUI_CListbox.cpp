@@ -385,6 +385,65 @@ CListbox::GetRowAt( Int32 localY ) const
 
 /*-------------------------------------------------------------------------*/
 
+bool
+CListbox::GetItemColour( Int32 index, CColour& colour ) const
+{GUCEF_TRACE;
+
+    if ( index < 0 )
+        return false;
+    const TStringVector colours = GetStringListProperty( EWidgetProperty_ItemColours );
+    if ( index >= (Int32) colours.size() || colours[ index ].IsNULLOrEmpty() )
+        return false;
+    return CColour::FromString( colours[ index ], colour );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CListbox::HasItemColours( void ) const
+{GUCEF_TRACE;
+
+    const TStringVector colours = GetStringListProperty( EWidgetProperty_ItemColours );
+    for ( size_t i=0; i<colours.size(); ++i )
+        if ( !colours[ i ].IsNULLOrEmpty() )
+            return true;
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CListbox::GetItemTextRoom( void ) const
+{GUCEF_TRACE;
+
+    Int32 room = GetRect().width - ITEM_PADDING_LEFT - ITEM_PADDING_RIGHT - ( HasItemColours() ? ITEM_MARKER_ROOM : 0 );
+    return room > 0 ? room : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CListbox::GetTooltipAt( Int32 localX, Int32 localY ) const
+{GUCEF_TRACE;
+
+    CGUIContext* context = GetContext();
+    if ( GUCEF_NULL != context && "Ellipsis" == GetPropertyRef( EWidgetProperty_TextOverflow ) )
+    {
+        const Int32 row = GetRowAt( localY );
+        const TStringVector items = GetItems();
+        if ( row >= 0 && row < (Int32) items.size() && !items[ row ].IsNULLOrEmpty() )
+        {
+            Int32 width = 0, height = 0;
+            context->MeasureText( GetPropertyRef( EWidgetProperty_Font ), items[ row ], 0, width, height );
+            if ( width > GetItemTextRoom() )
+                return items[ row ];
+        }
+    }
+    return CWidget::GetTooltipAt( localX, localY );
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 CListbox::ScrollToRow( Int32 index )
 {GUCEF_TRACE;

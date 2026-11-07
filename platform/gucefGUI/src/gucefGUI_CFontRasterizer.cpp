@@ -69,6 +69,17 @@ CFontRasterizer::GetLatin1Ranges( void )
 
 /*-------------------------------------------------------------------------*/
 
+CFontRasterizer::TCodePointRanges
+CFontRasterizer::GetUiRanges( void )
+{GUCEF_TRACE;
+
+    TCodePointRanges ranges = GetLatin1Ranges();
+    ranges.push_back( TCodePointRange( 0x2022, 0x2022 ) );
+    return ranges;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CFontRasterizer::CFontRasterizer( void )
 {GUCEF_TRACE;
 

@@ -895,7 +895,7 @@ bool
 CGUIContext::RegisterFont( const CString& name, const CString& fontPath, UInt32 pixelSize )
 {GUCEF_TRACE;
 
-    TBitmapFontPtr font = CGuiGlobal::Instance()->GetFontRasterizerRegistry().RasterizeFont( fontPath, pixelSize, CFontRasterizer::GetLatin1Ranges() );
+    TBitmapFontPtr font = CGuiGlobal::Instance()->GetFontRasterizerRegistry().RasterizeFont( fontPath, pixelSize, CFontRasterizer::GetUiRanges() );
     return RegisterFont( name, font );
 }
 

@@ -23,6 +23,7 @@ if (ANDROID32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -32,6 +33,7 @@ if (ANDROID32)
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
@@ -51,6 +53,7 @@ elseif (ANDROID64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -60,6 +63,7 @@ elseif (ANDROID64)
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
@@ -79,6 +83,7 @@ elseif (EMSCRIPTEN32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -88,6 +93,7 @@ elseif (EMSCRIPTEN32)
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
@@ -107,6 +113,7 @@ elseif (EMSCRIPTEN64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -116,6 +123,7 @@ elseif (EMSCRIPTEN64)
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
@@ -135,6 +143,7 @@ elseif (LINUX32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -144,6 +153,7 @@ elseif (LINUX32)
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
@@ -163,6 +173,7 @@ elseif (LINUX64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -172,6 +183,7 @@ elseif (LINUX64)
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
@@ -191,6 +203,7 @@ elseif (WIN32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -200,6 +213,7 @@ elseif (WIN32)
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp
@@ -219,6 +233,7 @@ elseif (WIN64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestGuiBrowser.cpp
+    src/TestGuiChart.cpp
     src/TestGuiCore.cpp
     src/TestGuiFileDialogs.cpp
     src/TestGuiFonts.cpp
@@ -228,6 +243,7 @@ elseif (WIN64)
     src/TestGuiProperties.cpp
     src/TestGuiRender.cpp
     src/TestGuiScrollPanel.cpp
+    src/TestGuiSecretInput.cpp
     src/TestGuiSettings.cpp
     src/TestGuiWidgets.cpp
     src/TestGuiWindow.cpp

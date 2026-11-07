@@ -33,6 +33,7 @@
 #include "gucefGUI_CPushButton.h"
 #include "gucefGUI_CCheckbox.h"
 #include "gucefGUI_CEditbox.h"
+#include "gucefGUI_CSecretInput.h"
 #include "gucefGUI_CTextbox.h"
 #include "gucefGUI_CListBox.h"
 #include "gucefGUI_CCombobox.h"
@@ -50,6 +51,8 @@
 #include "gucefGUI_CMenuBar.h"
 #include "gucefGUI_CPopupMenu.h"
 #include "gucefGUI_CGridView.h"
+#include "gucefGUI_CChartView.h"
+#include "gucefGUI_CChartPalette.h"
 
 #include "gucefGUI_StandardWidgetTypes.h"
 
@@ -264,6 +267,10 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     editbox.AddProperty( Prop( EWidgetProperty_Selected, PD::VALUETYPE_BOOL, "false", RUNTIMEFLAGS, "State", "Whether the text is selected" ) );
     registry.RegisterType( editbox );
 
+    CWidgetTypeInfo secretInput = Type( "SecretInput", "Editbox", "Common", &CSecretInput::Create, "One line the user types a secret in: draws mask characters and keeps the value out of the properties" );
+    secretInput.AddProperty( Prop( EWidgetProperty_Text, PD::VALUETYPE_STRING, "", RUNTIMEFLAGS, "State", "What is drawn: mask characters, never the value" ) );
+    registry.RegisterType( secretInput );
+
     CWidgetTypeInfo textbox = Type( "Textbox", "Widget", "Common", &CTextbox::Create, "Several lines of text, with scrolling" );
     textbox.AddProperty( Prop( EWidgetProperty_Text, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Text", "The text, '\\n' breaks a line" ) );
     AddTextProperties( textbox, "255,255,255,255" );
@@ -278,6 +285,8 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     listbox.AddProperty( Prop( EWidgetProperty_MultiSelect, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Items", "Whether several rows can be selected (SelectedIndices)" ) );
     listbox.AddProperty( Prop( EWidgetProperty_SelectedIndices, PD::VALUETYPE_INTLIST, "", DEFAULTFLAGS, "Items", "The selected rows when MultiSelect is on" ) );
     listbox.AddProperty( Prop( EWidgetProperty_DisabledItems, PD::VALUETYPE_INTLIST, "", DEFAULTFLAGS, "Items", "Rows that cannot be chosen" ) );
+    listbox.AddProperty( PD( EWidgetProperty_ItemColours, PD::VALUETYPE_STRINGLIST, "", DEFAULTFLAGS, "Items", "Per row an \"r,g,b,a\" colour: the row gets a marker of that colour at its left and its text in it; an empty entry is a plain row" ) );
+    listbox.AddProperty( EnumProp( EWidgetProperty_TextOverflow, "Clip", "Clip,Ellipsis", DEFAULTFLAGS, "Text", "A row wider than the list: cut at the edge, or cut with \"...\" (the tooltip then shows the whole text)" ) );
     AddTextProperties( listbox, "255,255,255,255" );
     listbox.AddProperty( Prop( EWidgetProperty_DisabledTextColour, PD::VALUETYPE_COLOUR, "128,128,128,255", DEFAULTFLAGS, "Text", "The colour of the text of a disabled row" ) );
     listbox.AddProperty( Prop( EWidgetProperty_Focusable, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Input", "Whether the widget can get the keyboard focus" ) );
@@ -411,20 +420,55 @@ RegisterStandardWidgetTypes( CWidgetTypeRegistry& registry )
     CWidgetTypeInfo gridview = Type( "GridView", "Widget", "Lists", &CGridView::Create, "A table of text cells" );
     gridview.AddProperty( Prop( EWidgetProperty_Columns, PD::VALUETYPE_STRINGLIST, "", DEFAULTFLAGS, "Items", "The column titles" ) );
     gridview.AddProperty( Prop( EWidgetProperty_ColumnWidths, PD::VALUETYPE_INTLIST, "", DEFAULTFLAGS, "Items", "Widths of the columns in pixels; empty for equal widths" ) );
+    gridview.AddProperty( PD( EWidgetProperty_ColumnAlignments, PD::VALUETYPE_STRINGLIST, "", DEFAULTFLAGS, "Items", "Per column where its title and cells stand: Left, Center or Right (numbers right); a column without an entry is Left" ) );
     gridview.AddProperty( Prop( EWidgetProperty_FitColumns, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Items", "The widths of the columns are relative to each other: together they are as wide as the grid" ) );
     gridview.AddProperty( Prop( EWidgetProperty_Rows, PD::VALUETYPE_STRINGLIST, "", DEFAULTFLAGS, "Items", "One entry per row, the cells separated by a tab" ) );
     gridview.AddProperty( Prop( EWidgetProperty_SelectedRow, PD::VALUETYPE_INT, "-1", DEFAULTFLAGS, "Items", "The selected row (the cursor of a multiple selection), -1 for none" ) );
     gridview.AddProperty( Prop( EWidgetProperty_MultiSelect, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Items", "Whether several rows can be selected (Ctrl and Shift with clicks and keys)" ) );
     gridview.AddProperty( Prop( EWidgetProperty_SelectedRows, PD::VALUETYPE_INTLIST, "", DEFAULTFLAGS, "Items", "The selected rows when MultiSelect is on" ) );
+    gridview.AddProperty( Prop( EWidgetProperty_EmphasizedRows, PD::VALUETYPE_INTLIST, "", DEFAULTFLAGS, "Items", "The rows that stand out because they need the player, such as the games where it is the player's turn" ) );
+    gridview.AddProperty( Prop( EWidgetProperty_EmphasisColour, PD::VALUETYPE_COLOUR, "150,198,255,255", DEFAULTFLAGS, "Rows", "Text colour of the rows that stand out" ) );
     gridview.AddProperty( Prop( EWidgetProperty_AnchorRow, PD::VALUETYPE_INT, "-1", RUNTIMEFLAGS, "State", "Where a Shift selection starts" ) );
     gridview.AddProperty( Prop( EWidgetProperty_Sortable, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Items", "Whether a click on a column title sorts the rows by that column" ) );
     gridview.AddProperty( Prop( EWidgetProperty_SortColumn, PD::VALUETYPE_INT, "-1", DEFAULTFLAGS, "Items", "The column the rows are sorted by, -1 for none (shows the arrow in the header)" ) );
     gridview.AddProperty( Prop( EWidgetProperty_SortAscending, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Items", "Whether the sort goes up" ) );
     gridview.AddProperty( Prop( EWidgetProperty_HeaderColour, PD::VALUETYPE_COLOUR, "50,50,50,255", DEFAULTFLAGS, "Look", "Background of the header row" ) );
+    gridview.AddProperty( EnumProp( EWidgetProperty_TextOverflow, "Clip", "Clip,Ellipsis", DEFAULTFLAGS, "Text", "A cell wider than its column: cut at the column, or cut with \"...\" (the tooltip then shows the whole text)" ) );
     AddTextProperties( gridview, "255,255,255,255" );
     gridview.AddProperty( Prop( EWidgetProperty_Focusable, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Input", "Whether the widget can get the keyboard focus" ) );
     AddRowProperties( gridview );
     registry.RegisterType( gridview );
+
+    // the default series colours: the palette for dark surfaces, as the text of the property
+    CString seriesColours;
+    const CChartPalette::TColourVector& palette = CChartPalette::GetDarkPalette();
+    for ( UInt32 i=0; i<(UInt32)palette.size(); ++i )
+    {
+        if ( i > 0 )
+            seriesColours += '\n';
+        seriesColours += palette[ i ].ToString();
+    }
+
+    CWidgetTypeInfo chart = Type( "ChartView", "DrawSurface", "Media", &CChartView::Create, "A chart of series over time or a number: lines, areas and (stacked) bars with axes, a legend and a crosshair" );
+    chart.AddProperty( Prop( EWidgetProperty_Title, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Chart", "A line above the plot" ) );
+    AddTextProperties( chart, "240,239,236,255" );
+    chart.AddProperty( Prop( EWidgetProperty_AxisTextColour, PD::VALUETYPE_COLOUR, "137,135,129,255", DEFAULTFLAGS, "Look", "The colour of the tick labels" ) );
+    chart.AddProperty( Prop( EWidgetProperty_BackgroundColour, PD::VALUETYPE_COLOUR, "26,26,25,255", DEFAULTFLAGS, "Look", "The chart surface" ) );
+    chart.AddProperty( Prop( EWidgetProperty_AxisColour, PD::VALUETYPE_COLOUR, "56,56,53,255", DEFAULTFLAGS, "Look", "The baseline and axis lines, the border of the tooltip" ) );
+    chart.AddProperty( Prop( EWidgetProperty_GridColour, PD::VALUETYPE_COLOUR, "44,44,42,255", DEFAULTFLAGS, "Look", "The grid lines at the value ticks" ) );
+    chart.AddProperty( Prop( EWidgetProperty_CrosshairColour, PD::VALUETYPE_COLOUR, "137,135,129,255", DEFAULTFLAGS, "Look", "The vertical line of the crosshair" ) );
+    chart.AddProperty( Prop( EWidgetProperty_TooltipColour, PD::VALUETYPE_COLOUR, "38,38,36,245", DEFAULTFLAGS, "Look", "The box of the tooltip" ) );
+    chart.AddProperty( PD( EWidgetProperty_SeriesColours, PD::VALUETYPE_STRINGLIST, seriesColours, DEFAULTFLAGS, "Look", "The colours of the series in their order, one \"r,g,b,a\" per entry; a series with a colour of its own keeps it" ) );
+    chart.AddProperty( Prop( EWidgetProperty_CrosshairVisible, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Chart", "The pointer moves a crosshair with a tooltip over the plot" ) );
+    chart.AddProperty( Prop( EWidgetProperty_LegendVisible, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Chart", "The legend, shown when two or more series are visible" ) );
+    chart.AddProperty( EnumProp( EWidgetProperty_LegendPosition, "Top", "Top,Bottom", DEFAULTFLAGS, "Chart", "Where the legend is" ) );
+    chart.AddProperty( EnumProp( EWidgetProperty_XAxisType, "Time", "Time,Numeric", DEFAULTFLAGS, "Chart", "Time: x values are milliseconds since the Unix epoch in UTC; Numeric: plain integers" ) );
+    chart.AddProperty( Prop( EWidgetProperty_LogScale, PD::VALUETYPE_BOOL, "false", DEFAULTFLAGS, "Chart", "A logarithmic value axis (values at or below 0 are not drawn)" ) );
+    chart.AddProperty( Prop( EWidgetProperty_IncludeZero, PD::VALUETYPE_BOOL, "true", DEFAULTFLAGS, "Chart", "The automatic value range includes 0" ) );
+    chart.AddProperty( Prop( EWidgetProperty_ValuePrefix, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Chart", "Text before value labels, for example $" ) );
+    chart.AddProperty( Prop( EWidgetProperty_ValueSuffix, PD::VALUETYPE_STRING, "", DEFAULTFLAGS, "Chart", "Text after value labels, for example %" ) );
+    chart.AddProperty( Prop( EWidgetProperty_Decimals, PD::VALUETYPE_INT, "-1", DEFAULTFLAGS, "Chart", "Digits after the point of the value labels; -1 picks them from the tick step (the tooltip then shows 2)" ) );
+    registry.RegisterType( chart );
 }
 
 /*-------------------------------------------------------------------------//

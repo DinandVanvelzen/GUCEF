@@ -1,6 +1,6 @@
 /*
  *  gucefGUI: GUCEF module providing a uniform interface towards GUI backends
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -22,6 +22,8 @@
 //      INCLUDES                                                           //
 //                                                                         //
 //-------------------------------------------------------------------------*/
+
+#include <algorithm>
 
 #ifndef GUCEF_CORE_DVCPPSTRINGUTILS_H
 #include "dvcppstringutils.h"
@@ -295,6 +297,7 @@ CGridView::Clear( void )
 
     SetIntProperty( EWidgetProperty_SelectedRow, -1 );
     SetProperty( EWidgetProperty_SelectedRows, CString::Empty );
+    SetProperty( EWidgetProperty_EmphasizedRows, CString::Empty );
     SetIntProperty( EWidgetProperty_AnchorRow, -1 );
     SetIntProperty( EWidgetProperty_ScrollPosition, 0 );
     SetProperty( EWidgetProperty_Rows, CString::Empty );
@@ -389,6 +392,34 @@ CGridView::SetSelectedRows( const TInt32Vector& rows )
 
 /*-------------------------------------------------------------------------*/
 
+void
+CGridView::SetEmphasizedRows( const TInt32Vector& rows )
+{GUCEF_TRACE;
+
+    SetIntListProperty( EWidgetProperty_EmphasizedRows, SortedUnique( rows, (Int32) GetRowCount() ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CGridView::TInt32Vector
+CGridView::GetEmphasizedRows( void ) const
+{GUCEF_TRACE;
+
+    return SortedUnique( GetIntListProperty( EWidgetProperty_EmphasizedRows ), (Int32) GetRowCount() );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::IsRowEmphasized( Int32 row ) const
+{GUCEF_TRACE;
+
+    const TInt32Vector rows = GetEmphasizedRows();
+    return std::binary_search( rows.begin(), rows.end(), row );
+}
+
+/*-------------------------------------------------------------------------*/
+
 bool
 CGridView::IsRowSelected( Int32 row ) const
 {GUCEF_TRACE;
@@ -430,6 +461,66 @@ CGridView::ScrollToRow( Int32 row )
         scroll = row - visible + 1;
     if ( scroll != GetIntProperty( EWidgetProperty_ScrollPosition ) )
         SetIntProperty( EWidgetProperty_ScrollPosition, scroll );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CGridView::GetColumnAlignment( UInt32 column ) const
+{GUCEF_TRACE;
+
+    const TStringVector alignments = GetStringListProperty( EWidgetProperty_ColumnAlignments );
+    if ( column < (UInt32) alignments.size() && ( "Right" == alignments[ column ] || "Center" == alignments[ column ] ) )
+        return alignments[ column ];
+    return "Left";
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+CGridView::GetCellTextRoom( UInt32 column, Int32 row ) const
+{GUCEF_TRACE;
+
+    const GUCEF::vector< Int32 > widths = GetColumnWidths();
+    if ( column >= (UInt32) widths.size() )
+        return 0;
+    Int32 room = widths[ column ] - CELL_PADDING_LEFT - CELL_PADDING_RIGHT;
+    if ( 0 == column && row >= 0 && IsRowEmphasized( row ) )
+        room -= EMPHASIS_INDENT;
+    return room > 0 ? room : 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CGridView::IsCellTextCut( UInt32 column, UInt32 row ) const
+{GUCEF_TRACE;
+
+    CGUIContext* context = GetContext();
+    if ( GUCEF_NULL == context )
+        return false;
+    const CString text = GetText( column, row );
+    if ( text.IsNULLOrEmpty() )
+        return false;
+    Int32 width = 0, height = 0;
+    context->MeasureText( GetPropertyRef( EWidgetProperty_Font ), text, 0, width, height );
+    return width > GetCellTextRoom( column, (Int32) row );
+}
+
+/*-------------------------------------------------------------------------*/
+
+CString
+CGridView::GetTooltipAt( Int32 localX, Int32 localY ) const
+{GUCEF_TRACE;
+
+    if ( "Ellipsis" == GetPropertyRef( EWidgetProperty_TextOverflow ) )
+    {
+        const Int32 row = GetRowAt( localY );
+        const Int32 column = GetColumnAt( localX );
+        if ( row >= 0 && column >= 0 && IsCellTextCut( (UInt32) column, (UInt32) row ) )
+            return GetText( (UInt32) column, (UInt32) row );
+    }
+    return CWidget::GetTooltipAt( localX, localY );
 }
 
 /*-------------------------------------------------------------------------*/

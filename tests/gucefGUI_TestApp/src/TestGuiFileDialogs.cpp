@@ -582,6 +582,307 @@ PerformGridViewTests( void )
 
 /*-------------------------------------------------------------------------*/
 
+/** The text commands of a widget as the painter makes them */
+GUI::CDrawSurface::TCommandVector
+PaintedCommands( GUI::CGUIContext* context, GUI::CWidget* widget )
+{
+    GUI::CDrawSurface::TCommandVector commands;
+    context->FlushChanges();
+    GUI::CWidgetPainter::Paint( *widget, *context, commands );
+    return commands;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The first text command with the text, NULL when none */
+const GUI::CDrawSurface::TCommand*
+FindTextCommand( const GUI::CDrawSurface::TCommandVector& commands, const CORE::CString& text )
+{
+    for ( size_t i=0; i<commands.size(); ++i )
+        if ( GUI::CDrawSurface::COMMAND_TEXT == commands[ i ].type && text == commands[ i ].text )
+            return &commands[ i ];
+    return GUCEF_NULL;
+}
+
+/*-------------------------------------------------------------------------*/
+
+Int32
+TextWidth( GUI::CGUIContext* context, const CORE::CString& text )
+{
+    Int32 width = 0, height = 0;
+    context->MeasureText( "Test", text, 0, width, height );
+    return width;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** The smallest and largest x of the line commands in [top, bottom); false when there is none */
+bool
+LineSpan( const GUI::CDrawSurface::TCommandVector& commands, Int32 top, Int32 bottom, Int32& minX, Int32& maxX )
+{
+    bool found = false;
+    for ( size_t i=0; i<commands.size(); ++i )
+    {
+        const GUI::CDrawSurface::TCommand& command = commands[ i ];
+        if ( GUI::CDrawSurface::COMMAND_LINE != command.type || command.y0 < top || command.y0 >= bottom )
+            continue;
+        const Int32 low = command.x0 < command.x1 ? command.x0 : command.x1;
+        const Int32 high = command.x0 < command.x1 ? command.x1 : command.x0;
+        if ( !found || low < minX ) minX = low;
+        if ( !found || high > maxX ) maxX = high;
+        found = true;
+    }
+    return found;
+}
+
+/*-------------------------------------------------------------------------*/
+
+/** Whether a fill of exactly the rectangle is among the commands */
+bool
+HasFill( const GUI::CDrawSurface::TCommandVector& commands, const GUI::CRect& rect, GUI::CColour* colour = GUCEF_NULL )
+{
+    for ( size_t i=0; i<commands.size(); ++i )
+    {
+        const GUI::CDrawSurface::TCommand& command = commands[ i ];
+        if ( GUI::CDrawSurface::COMMAND_FILLRECT == command.type && command.rect.left == rect.left && command.rect.top == rect.top &&
+             command.rect.width == rect.width && command.rect.height == rect.height )
+        {
+            if ( GUCEF_NULL != colour )
+                *colour = command.colour;
+            return true;
+        }
+    }
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+PerformGridViewPresentationTests( void )
+{
+    GUCEF_TESTFW_TESTCASE( "FileDialogs: The grid aligns columns, marks the sorted column as a whole, cuts long cells with an ellipsis and shows them whole as a tooltip" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateDialogContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL == context )
+            return;
+        GUI::CWidget* screen = context->CreateWidget( "Panel", "Screen", GUCEF_NULL );
+        screen->SetProperty( "Size", "1,0 1,0" );
+        context->ShowRoot( screen, false );
+        GUI::CGridView* grid = static_cast< GUI::CGridView* >( context->CreateWidget( "GridView", "Grid", screen ) );
+        grid->SetProperty( "Position", "0,100 0,100" );
+        grid->SetProperty( "Size", "0,400 0,130" );
+        grid->SetProperty( "RowHeight", "20" );
+        grid->SetProperty( "Font", "Test" );
+        grid->SetProperty( "Columns", "Name\nValue\nFlags" );
+        grid->SetProperty( "ColumnWidths", "100,100,200" );
+        grid->SetProperty( "ColumnAlignments", "Left\nRight" );
+        grid->SetProperty( "Tooltip", "The grid" );
+        const CORE::CString longFlags = "not seeded, date unknown, to review, frequency unknown";
+        GUI::CGridView::TRowVector rows;
+        GUI::CGridView::TStringVector cells;
+        cells.push_back( "alpha" ); cells.push_back( "1.50" ); cells.push_back( "short" );
+        rows.push_back( cells );
+        cells.clear();
+        cells.push_back( "bravo" ); cells.push_back( "12,345.00" ); cells.push_back( longFlags );
+        rows.push_back( cells );
+        grid->SetRows( rows );
+        ASSERT_TRUE( "Left" == grid->GetColumnAlignment( 0 ) && "Right" == grid->GetColumnAlignment( 1 ) && "Left" == grid->GetColumnAlignment( 2 ) );
+        ASSERT_TRUE( "Left" == grid->GetColumnAlignment( 7 ) );
+
+        // a right aligned column: the titles and cells end at the padding before the right edge of the column; the others start at the left padding
+        GUI::CDrawSurface::TCommandVector commands = PaintedCommands( context, grid );
+        const Int32 rightEdge = 200 - GUI::CGridView::CELL_PADDING_RIGHT;
+        const GUI::CDrawSurface::TCommand* value = FindTextCommand( commands, "1.50" );
+        const GUI::CDrawSurface::TCommand* bigValue = FindTextCommand( commands, "12,345.00" );
+        const GUI::CDrawSurface::TCommand* valueTitle = FindTextCommand( commands, "Value" );
+        const GUI::CDrawSurface::TCommand* name = FindTextCommand( commands, "alpha" );
+        ASSERT_TRUE( GUCEF_NULL != value && GUCEF_NULL != bigValue && GUCEF_NULL != valueTitle && GUCEF_NULL != name );
+        if ( GUCEF_NULL == value || GUCEF_NULL == bigValue || GUCEF_NULL == valueTitle || GUCEF_NULL == name )
+            return;
+        ASSERT_TRUE( value->x0 + TextWidth( context, "1.50" ) == rightEdge );
+        ASSERT_TRUE( bigValue->x0 + TextWidth( context, "12,345.00" ) == rightEdge );
+        ASSERT_TRUE( valueTitle->x0 + TextWidth( context, "Value" ) == rightEdge );
+        ASSERT_TRUE( GUI::CGridView::CELL_PADDING_LEFT == name->x0 );
+
+        // Clip (the default): the long cell is drawn whole and cut by the clip of its column
+        ASSERT_TRUE( GUCEF_NULL != FindTextCommand( commands, longFlags ) );
+        ASSERT_TRUE( grid->IsCellTextCut( 2, 1 ) && !grid->IsCellTextCut( 2, 0 ) && !grid->IsCellTextCut( 0, 0 ) );
+        ASSERT_TRUE( "The grid" == grid->GetTooltipAt( 250, 45 ) );
+
+        // the sorted column: its whole title cell is tinted and the arrow stands beside its title, inside its column, on the side away from the edge it is aligned to
+        grid->SetIntProperty( "SortColumn", 1 );
+        grid->SetBoolProperty( "SortAscending", false );
+        commands = PaintedCommands( context, grid );
+        ASSERT_TRUE( HasFill( commands, GUI::CRect( 100, 0, 100, 20 ) ) );
+        ASSERT_TRUE( !HasFill( commands, GUI::CRect( 0, 0, 100, 20 ) ) && !HasFill( commands, GUI::CRect( 200, 0, 200, 20 ) ) );
+        valueTitle = FindTextCommand( commands, "Value" );
+        Int32 minX = 0, maxX = 0;
+        ASSERT_TRUE( GUCEF_NULL != valueTitle && LineSpan( commands, 0, 20, minX, maxX ) );
+        if ( GUCEF_NULL == valueTitle )
+            return;
+        ASSERT_TRUE( minX >= 100 && maxX < valueTitle->x0 && valueTitle->x0 - maxX <= GUI::CGridView::SORT_ARROW_ROOM );
+        ASSERT_TRUE( valueTitle->x0 + TextWidth( context, "Value" ) == rightEdge );
+
+        grid->SetIntProperty( "SortColumn", 0 );
+        commands = PaintedCommands( context, grid );
+        ASSERT_TRUE( HasFill( commands, GUI::CRect( 0, 0, 100, 20 ) ) && !HasFill( commands, GUI::CRect( 100, 0, 100, 20 ) ) );
+        const Int32 nameTitleEnd = GUI::CGridView::CELL_PADDING_LEFT + TextWidth( context, "Name" );
+        ASSERT_TRUE( LineSpan( commands, 0, 20, minX, maxX ) );
+        ASSERT_TRUE( minX > nameTitleEnd && minX - nameTitleEnd <= 6 && maxX < 100 );
+        // the cells of the sorted column are not tinted
+        ASSERT_TRUE( !HasFill( commands, GUI::CRect( 0, 20, 100, 20 ) ) );
+
+        // Ellipsis: the long cell is cut with "..." to the room of its column, the short ones are whole; the tooltip over the cut one is its whole text
+        grid->SetProperty( "TextOverflow", "Ellipsis" );
+        commands = PaintedCommands( context, grid );
+        bool found = false;
+        for ( size_t i=0; i<commands.size(); ++i )
+        {
+            const GUI::CDrawSurface::TCommand& command = commands[ i ];
+            if ( GUI::CDrawSurface::COMMAND_TEXT != command.type || command.y0 != 40 || command.x0 < 200 )
+                continue;
+            found = true;
+            ASSERT_TRUE( command.text.Length() > 3 && command.text.Length() < longFlags.Length() );
+            ASSERT_TRUE( "..." == command.text.SubstrFromRange( command.text.Length() - 3, command.text.Length() ) );
+            ASSERT_TRUE( longFlags.StartsWith( command.text.SubstrFromRange( 0, command.text.Length() - 3 ) ) );
+            ASSERT_TRUE( TextWidth( context, command.text ) <= grid->GetCellTextRoom( 2, 1 ) );
+            ASSERT_TRUE( TextWidth( context, command.text ) > grid->GetCellTextRoom( 2, 1 ) - 2 * TextWidth( context, "W" ) );
+        }
+        ASSERT_TRUE( found && GUCEF_NULL != FindTextCommand( commands, "short" ) && GUCEF_NULL != FindTextCommand( commands, "12,345.00" ) );
+        ASSERT_TRUE( longFlags == grid->GetTooltipAt( 250, 45 ) );
+        ASSERT_TRUE( "The grid" == grid->GetTooltipAt( 250, 25 ) && "The grid" == grid->GetTooltipAt( 50, 45 ) && "The grid" == grid->GetTooltipAt( 250, 5 ) );
+
+        // the tooltip shows when the pointer rests on the cut cell
+        const GUI::CRect& rect = grid->GetRect();
+        context->InjectMouseMove( rect.left + 250, rect.top + 45 );
+        context->RenderFrame( 800 );
+        GUI::CDrawSurface::TCommandVector overlay;
+        GUI::CWidgetPainter::PaintOverlay( *context, overlay );
+        ASSERT_TRUE( GUCEF_NULL != FindTextCommand( overlay, longFlags ) );
+
+        // the grid that has the keyboard focus says so with an outline of the colour of the focus, the others not
+        commands = PaintedCommands( context, grid );
+        bool outlined = false;
+        for ( size_t i=0; i<commands.size(); ++i )
+            outlined = outlined || ( GUI::CDrawSurface::COMMAND_STROKERECT == commands[ i ].type && 0 == commands[ i ].rect.left && 400 == commands[ i ].rect.width );
+        ASSERT_TRUE( !outlined );
+        context->SetFocus( grid );
+        commands = PaintedCommands( context, grid );
+        for ( size_t i=0; i<commands.size(); ++i )
+            outlined = outlined || ( GUI::CDrawSurface::COMMAND_STROKERECT == commands[ i ].type && 0 == commands[ i ].rect.left && 400 == commands[ i ].rect.width && 130 == commands[ i ].rect.height );
+        ASSERT_TRUE( outlined );
+        context->SetFocus( GUCEF_NULL );
+
+        // the fitting itself: whole when it fits, nothing when not even the dots fit
+        bool cut = true;
+        ASSERT_TRUE( "short" == GUI::CWidgetPainter::FitText( *context, "Test", "short", 1000, cut ) && !cut );
+        ASSERT_TRUE( GUI::CWidgetPainter::FitText( *context, "Test", "short", 2, cut ).IsNULLOrEmpty() && cut );
+        ASSERT_TRUE( "..." == GUI::CWidgetPainter::FitText( *context, "Test", "short", TextWidth( context, "..." ), cut ) && cut );
+
+        context->DestroyWidget( screen );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "FileDialogs: Rows of a list get a colour of their own with a marker, and long rows an ellipsis with the whole row as tooltip" )
+    try
+    {
+        GUI::TGuiContextPtr contextPtr = CreateDialogContext();
+        GUI::CGUIContext* context = static_cast< GUI::CGUIContext* >( contextPtr.GetPointerAlways() );
+        ASSERT_TRUE( GUCEF_NULL != context );
+        if ( GUCEF_NULL == context )
+            return;
+        GUI::CWidget* screen = context->CreateWidget( "Panel", "Screen", GUCEF_NULL );
+        screen->SetProperty( "Size", "1,0 1,0" );
+        context->ShowRoot( screen, false );
+        GUI::CListbox* list = static_cast< GUI::CListbox* >( context->CreateWidget( "Listbox", "Notes", screen ) );
+        list->SetProperty( "Position", "0,50 0,50" );
+        list->SetProperty( "Size", "0,300 0,100" );
+        list->SetProperty( "RowHeight", "20" );
+        list->SetProperty( "Font", "Test" );
+        list->SetProperty( "TextColour", "200,200,200,255" );
+        const CORE::CString longNote = "77 positions are from the broker's positions export: their opening lots are not in the ledger";
+        list->SetProperty( "Items", "plain\nwarning\n" + longNote );
+
+        // no colours: the rows are as before
+        GUI::CDrawSurface::TCommandVector commands = PaintedCommands( context, list );
+        const GUI::CDrawSurface::TCommand* plain = FindTextCommand( commands, "plain" );
+        ASSERT_TRUE( !list->HasItemColours() && GUCEF_NULL != plain && GUI::CListbox::ITEM_PADDING_LEFT == plain->x0 );
+
+        // a colour for the second row: its marker and its text in the colour; every row makes room for the marker
+        list->SetProperty( "ItemColours", "\n255,170,60,255" );
+        GUI::CColour colour;
+        ASSERT_TRUE( list->HasItemColours() && list->GetItemColour( 1, colour ) && 255 == colour.r && 170 == colour.g && !list->GetItemColour( 0, colour ) && !list->GetItemColour( 2, colour ) );
+        commands = PaintedCommands( context, list );
+        plain = FindTextCommand( commands, "plain" );
+        const GUI::CDrawSurface::TCommand* warning = FindTextCommand( commands, "warning" );
+        ASSERT_TRUE( GUCEF_NULL != plain && GUCEF_NULL != warning );
+        if ( GUCEF_NULL == plain || GUCEF_NULL == warning )
+            return;
+        const Int32 textLeft = GUI::CListbox::ITEM_PADDING_LEFT + GUI::CListbox::ITEM_MARKER_ROOM;
+        ASSERT_TRUE( textLeft == plain->x0 && textLeft == warning->x0 );
+        ASSERT_TRUE( 255 == warning->colour.r && 170 == warning->colour.g && 60 == warning->colour.b );
+        ASSERT_TRUE( 200 == plain->colour.r && 200 == plain->colour.g );
+        GUI::CColour marker;
+        ASSERT_TRUE( HasFill( commands, GUI::CRect( GUI::CListbox::ITEM_PADDING_LEFT, 20 + 3, GUI::CListbox::ITEM_MARKER_WIDTH, 20 - 6 ), &marker ) && 170 == marker.g );
+        ASSERT_TRUE( !HasFill( commands, GUI::CRect( GUI::CListbox::ITEM_PADDING_LEFT, 3, GUI::CListbox::ITEM_MARKER_WIDTH, 20 - 6 ) ) );
+
+        // a row wider than the list: cut with "..." when asked, the tooltip over it is the whole row
+        ASSERT_TRUE( GUCEF_NULL != FindTextCommand( commands, longNote ) );
+        list->SetProperty( "TextOverflow", "Ellipsis" );
+        commands = PaintedCommands( context, list );
+        ASSERT_TRUE( GUCEF_NULL == FindTextCommand( commands, longNote ) );
+        bool found = false;
+        for ( size_t i=0; i<commands.size(); ++i )
+            if ( GUI::CDrawSurface::COMMAND_TEXT == commands[ i ].type && 40 <= commands[ i ].y0 && commands[ i ].y0 < 60 )
+            {
+                found = true;
+                ASSERT_TRUE( "..." == commands[ i ].text.SubstrFromRange( commands[ i ].text.Length() - 3, commands[ i ].text.Length() ) );
+                ASSERT_TRUE( TextWidth( context, commands[ i ].text ) <= list->GetItemTextRoom() );
+            }
+        ASSERT_TRUE( found );
+        ASSERT_TRUE( longNote == list->GetTooltipAt( 100, 45 ) && list->GetTooltipAt( 100, 5 ).IsNULLOrEmpty() );
+
+        context->DestroyWidget( screen );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "FileDialogs: The new standard properties of grids and lists have their names and descriptors" )
+    try
+    {
+        ASSERT_TRUE( GUI::EWidgetProperty_ColumnAlignments == GUI::StringToWidgetProperty( "ColumnAlignments" ) );
+        ASSERT_TRUE( GUI::EWidgetProperty_ItemColours == GUI::StringToWidgetProperty( "ItemColours" ) );
+        ASSERT_TRUE( GUI::EWidgetProperty_TextOverflow == GUI::StringToWidgetProperty( "TextOverflow" ) );
+        ASSERT_TRUE( "TextOverflow" == GUI::WidgetPropertyToString( GUI::EWidgetProperty_TextOverflow ) );
+        // the lookup is a binary search: every name is found again
+        for ( UInt32 i=1; i<(UInt32)GUI::EWidgetProperty_Count; ++i )
+            ASSERT_TRUE( (GUI::EWidgetProperty) i == GUI::StringToWidgetProperty( GUI::WidgetPropertyToString( (GUI::EWidgetProperty) i ) ) );
+        GUI::CWidgetTypeRegistry& registry = GUI::CGuiGlobal::Instance()->GetWidgetTypeRegistry();
+        ASSERT_TRUE( GUCEF_NULL != registry.FindProperty( "GridView", "ColumnAlignments" ) && GUCEF_NULL != registry.FindProperty( "GridView", "TextOverflow" ) );
+        ASSERT_TRUE( GUCEF_NULL != registry.FindProperty( "Listbox", "ItemColours" ) && GUCEF_NULL != registry.FindProperty( "Listbox", "TextOverflow" ) );
+        CORE::CString normalized;
+        ASSERT_TRUE( registry.FindProperty( "GridView", "TextOverflow" )->Validate( "Ellipsis", normalized ) );
+        ASSERT_TRUE( !registry.FindProperty( "GridView", "TextOverflow" )->Validate( "Wrap", normalized ) );
+    }
+    catch ( ... )
+    {
+        ERRORHERE;
+    }
+    GUCEF_TESTFW_TESTCASE_END
+}
+
+/*-------------------------------------------------------------------------*/
+
 void
 PerformMessageBoxTests( void )
 {
@@ -1196,6 +1497,7 @@ PerformGuiFileDialogTests( void )
     GUCEF_TESTFW_SUITE_SCOPE( "gucefGUI.FileDialogs" );
 
     PerformGridViewTests();
+    PerformGridViewPresentationTests();
     PerformMessageBoxTests();
     PerformOpenDialogTests();
     PerformSearchTests();

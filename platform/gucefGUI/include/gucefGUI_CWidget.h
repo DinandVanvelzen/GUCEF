@@ -369,6 +369,12 @@ class GUCEF_GUI_PUBLIC_CPP CWidget : public CORE::CObservingNotifier
     /** Whether a left click or Accept on the focused widget makes an ActivatedEvent */
     virtual bool IsActivatable( void ) const;
 
+    /**
+     *  The tooltip at a point of the widget (relative to its top left): the Tooltip property here; a widget whose parts
+     *  say more (the whole text of a cell that is cut off) answers for the part under the point
+     */
+    virtual CString GetTooltipAt( Int32 localX, Int32 localY ) const;
+
     /** Puts the widget on top of its siblings */
     bool BringToFront( void );
 

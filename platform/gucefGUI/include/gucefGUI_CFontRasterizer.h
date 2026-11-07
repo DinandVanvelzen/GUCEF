@@ -74,6 +74,9 @@ class GUCEF_GUI_PUBLIC_CPP CFontRasterizer
     /** Printable ASCII and Latin-1: what a user interface in a western language needs */
     static TCodePointRanges GetLatin1Ranges( void );
 
+    /** What CGUIContext::RegisterFont() rasterizes: Latin-1 and the bullet (U+2022), the mask character of the secret input */
+    static TCodePointRanges GetUiRanges( void );
+
     CFontRasterizer( void );
     virtual ~CFontRasterizer();
 

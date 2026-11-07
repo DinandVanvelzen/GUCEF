@@ -1,20 +1,18 @@
 /*
  *  gucefGUI: GUCEF module providing a uniform interface towards GUI backends
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*
@@ -118,6 +116,16 @@
 #include "gucefGUI_CEditbox.h"
 #define GUCEF_GUI_CEDITBOX_H
 #endif /* GUCEF_GUI_CEDITBOX_H ? */
+
+#ifndef GUCEF_GUI_CSECRETINPUTSETTINGS_H
+#include "gucefGUI_CSecretInputSettings.h"
+#define GUCEF_GUI_CSECRETINPUTSETTINGS_H
+#endif /* GUCEF_GUI_CSECRETINPUTSETTINGS_H ? */
+
+#ifndef GUCEF_GUI_CSECRETINPUT_H
+#include "gucefGUI_CSecretInput.h"
+#define GUCEF_GUI_CSECRETINPUT_H
+#endif /* GUCEF_GUI_CSECRETINPUT_H ? */
 
 #ifndef GUCEF_GUI_CTEXTBOX_H
 #include "gucefGUI_CTextbox.h"
@@ -378,6 +386,31 @@
 #include "gucefGUI_CDrawSurface.h"
 #define GUCEF_GUI_CDRAWSURFACE_H
 #endif /* GUCEF_GUI_CDRAWSURFACE_H ? */
+
+#ifndef GUCEF_GUI_CCHARTSERIES_H
+#include "gucefGUI_CChartSeries.h"
+#define GUCEF_GUI_CCHARTSERIES_H
+#endif /* GUCEF_GUI_CCHARTSERIES_H ? */
+
+#ifndef GUCEF_GUI_CCHARTAXIS_H
+#include "gucefGUI_CChartAxis.h"
+#define GUCEF_GUI_CCHARTAXIS_H
+#endif /* GUCEF_GUI_CCHARTAXIS_H ? */
+
+#ifndef GUCEF_GUI_CCHARTDECIMATOR_H
+#include "gucefGUI_CChartDecimator.h"
+#define GUCEF_GUI_CCHARTDECIMATOR_H
+#endif /* GUCEF_GUI_CCHARTDECIMATOR_H ? */
+
+#ifndef GUCEF_GUI_CCHARTPALETTE_H
+#include "gucefGUI_CChartPalette.h"
+#define GUCEF_GUI_CCHARTPALETTE_H
+#endif /* GUCEF_GUI_CCHARTPALETTE_H ? */
+
+#ifndef GUCEF_GUI_CCHARTVIEW_H
+#include "gucefGUI_CChartView.h"
+#define GUCEF_GUI_CCHARTVIEW_H
+#endif /* GUCEF_GUI_CCHARTVIEW_H ? */
 
 #ifndef GUCEF_GUI_CVIDEOVIEW_H
 #include "gucefGUI_CVideoView.h"

@@ -26,6 +26,11 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CAudioPlayer.cpp \
   src/gucefGUI_CBitmapFont.cpp \
   src/gucefGUI_CButton.cpp \
+  src/gucefGUI_CChartAxis.cpp \
+  src/gucefGUI_CChartDecimator.cpp \
+  src/gucefGUI_CChartPalette.cpp \
+  src/gucefGUI_CChartSeries.cpp \
+  src/gucefGUI_CChartView.cpp \
   src/gucefGUI_CCheckbox.cpp \
   src/gucefGUI_CCombobox.cpp \
   src/gucefGUI_CDeveloperConsoleForm.cpp \
@@ -67,6 +72,8 @@ LOCAL_SRC_FILES := \
   src/gucefGUI_CRenderContext.cpp \
   src/gucefGUI_CRoutedEventData.cpp \
   src/gucefGUI_CScrollPanel.cpp \
+  src/gucefGUI_CSecretInput.cpp \
+  src/gucefGUI_CSecretInputSettings.cpp \
   src/gucefGUI_CSettingsForm.cpp \
   src/gucefGUI_CSettingsPageForm.cpp \
   src/gucefGUI_CSlider.cpp \
