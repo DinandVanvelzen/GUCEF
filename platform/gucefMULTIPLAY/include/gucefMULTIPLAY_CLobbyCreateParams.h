@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -56,6 +56,28 @@ namespace MULTIPLAY {
 //-------------------------------------------------------------------------*/
 
 /**
+ *  A player the maker of a lobby asks to take part, for a lobby whose members are not reached through a connection (a game by mail):
+ *  who they are, how to reach them and optionally the code that identifies them
+ */
+class GUCEF_MULTIPLAY_EXPORT_CPP CLobbyInvitation
+{
+    public:
+
+    CORE::CString name;
+    CORE::CString contact;                  /**< how to reach the player, for example a mail address */
+    CORE::CString code;                     /**< what identifies the player when the maker knows it already (a public key), empty otherwise */
+
+    CLobbyInvitation( void );
+    CLobbyInvitation( const CORE::CString& invitedName, const CORE::CString& invitedContact, const CORE::CString& invitedCode = CORE::CString::Empty );
+
+    bool operator==( const CLobbyInvitation& other ) const;
+};
+
+typedef GUCEF::vector< CLobbyInvitation > TLobbyInvitationVector;
+
+/*-------------------------------------------------------------------------*/
+
+/**
  *  What a lobby is made with
  */
 class GUCEF_MULTIPLAY_EXPORT_CPP CLobbyCreateParams : public CORE::CIConfigurable
@@ -74,6 +96,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CLobbyCreateParams : public CORE::CIConfigurabl
     CLobbyState::TSlotVector slots;
     TGameTopology topology;
     DRN::CDRNSecurityPolicy securityPolicy;     /**< the game's policy: its nodes, session and tokens; a lobby server refuses one weaker than its minimum */
+    TLobbyInvitationVector invitations;         /**< the players asked to take part, for a lobby service that invites by name; empty for the others */
 
     CLobbyCreateParams( void );
 

@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -191,6 +191,8 @@ CMultiplayGlobal::CMultiplayGlobal( void )
     , m_lobbyServiceFactory( GUCEF_NULL )
     , m_chatServiceFactory( GUCEF_NULL )
     , m_identityProviderFactory( GUCEF_NULL )
+    , m_matchProviderFactory( GUCEF_NULL )
+    , m_matchAlertSinkFactory( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -215,6 +217,7 @@ CMultiplayGlobal::Initialize( void )
     CServerList::RegisterEvents();
     CIGameListingProvider::RegisterEvents();
     CIIdentityProvider::RegisterEvents();
+    CIMatchProvider::RegisterEvents();
     CAuthIdentityProvider::RegisterEvents();
     CILobby::RegisterEvents();
     CILobbyService::RegisterEvents();
@@ -229,6 +232,8 @@ CMultiplayGlobal::Initialize( void )
     m_lobbyServiceFactory = GUCEF_NEW CLobbyServiceFactory();
     m_chatServiceFactory = GUCEF_NEW CChatServiceFactory();
     m_identityProviderFactory = GUCEF_NEW CIdentityProviderFactory();
+    m_matchProviderFactory = GUCEF_NEW CMatchProviderFactory();
+    m_matchAlertSinkFactory = GUCEF_NEW CMatchAlertSinkFactory();
 
     m_listingProviderFactory->RegisterConcreteFactory( CLanListingProvider::ProviderName, &g_lanListingProviderFactory );
     m_listingProviderFactory->RegisterConcreteFactory( CHttpListListingProvider::ProviderName, &g_httpListListingProviderFactory );
@@ -259,6 +264,8 @@ CMultiplayGlobal::~CMultiplayGlobal()
     m_lobbyServiceFactory->UnregisterAllConcreteFactories();
     m_chatServiceFactory->UnregisterAllConcreteFactories();
     m_identityProviderFactory->UnregisterAllConcreteFactories();
+    m_matchProviderFactory->UnregisterAllConcreteFactories();
+    m_matchAlertSinkFactory->UnregisterAllConcreteFactories();
 
     GUCEF_DELETE m_listingProviderFactory;
     m_listingProviderFactory = GUCEF_NULL;
@@ -268,6 +275,10 @@ CMultiplayGlobal::~CMultiplayGlobal()
     m_chatServiceFactory = GUCEF_NULL;
     GUCEF_DELETE m_identityProviderFactory;
     m_identityProviderFactory = GUCEF_NULL;
+    GUCEF_DELETE m_matchProviderFactory;
+    m_matchProviderFactory = GUCEF_NULL;
+    GUCEF_DELETE m_matchAlertSinkFactory;
+    m_matchAlertSinkFactory = GUCEF_NULL;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -337,6 +348,24 @@ CMultiplayGlobal::GetIdentityProviderFactory( void )
 {GUCEF_TRACE;
 
     return *m_identityProviderFactory;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CMatchProviderFactory&
+CMultiplayGlobal::GetMatchProviderFactory( void )
+{GUCEF_TRACE;
+
+    return *m_matchProviderFactory;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CMatchAlertSinkFactory&
+CMultiplayGlobal::GetMatchAlertSinkFactory( void )
+{GUCEF_TRACE;
+
+    return *m_matchAlertSinkFactory;
 }
 
 /*-------------------------------------------------------------------------//

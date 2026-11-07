@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -49,6 +49,11 @@
 #include "gucefMULTIPLAY_CLobbyState.h"
 #define GUCEF_MULTIPLAY_CLOBBYSTATE_H
 #endif /* GUCEF_MULTIPLAY_CLOBBYSTATE_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CLOBBYPRESENTATION_H
+#include "gucefMULTIPLAY_CLobbyPresentation.h"
+#define GUCEF_MULTIPLAY_CLOBBYPRESENTATION_H
+#endif /* GUCEF_MULTIPLAY_CLOBBYPRESENTATION_H ? */
 
 #ifndef GUCEF_MULTIPLAY_CLOBBYSETTINGSSCHEMA_H
 #include "gucefMULTIPLAY_CLobbySettingsSchema.h"
@@ -197,6 +202,25 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CILobby : public CORE::CObservingNotifier
     virtual bool ForceStart( void ) = 0;
 
     virtual bool Leave( void ) = 0;
+
+    /**
+     *  Asks another player to take part, for a lobby whose members are not reached through a connection (a game by mail): 'contact' is
+     *  how to reach the player, 'code' what identifies the player when the local member knows it already. The default implementation:
+     *  the lobby does not invite by name
+     */
+    virtual bool Invite( const CORE::CString& name, const CORE::CString& contact, const CORE::CString& code );
+
+    /**
+     *  Closes the lobby for everybody, or proposes to: the way a lobby is ended that cannot be ended by leaving it (a game by mail, where the members
+     *  decide by vote or a boss decides). The default implementation: a lobby on a live connection is ended when its host leaves it (Leave())
+     */
+    virtual bool Cancel( void );
+
+    /**
+     *  What a screen of the lobby shows and offers the local member now. The default implementation is what a member of a lobby on a
+     *  live connection is offered, from the state of the lobby and the role of the local member; a lobby with other rules overrides it
+     */
+    virtual CLobbyPresentation GetPresentation( void ) const;
 
     private:
 

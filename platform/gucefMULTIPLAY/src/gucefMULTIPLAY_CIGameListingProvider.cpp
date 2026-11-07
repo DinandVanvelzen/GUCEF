@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -53,6 +53,7 @@ const CORE::CEvent CIGameListingProvider::ListingAddedEvent = "GUCEF::MULTIPLAY:
 const CORE::CEvent CIGameListingProvider::ListingUpdatedEvent = "GUCEF::MULTIPLAY::CIGameListingProvider::ListingUpdatedEvent";
 const CORE::CEvent CIGameListingProvider::ListingRemovedEvent = "GUCEF::MULTIPLAY::CIGameListingProvider::ListingRemovedEvent";
 const CORE::CEvent CIGameListingProvider::ProviderErrorEvent = "GUCEF::MULTIPLAY::CIGameListingProvider::ProviderErrorEvent";
+const CORE::CEvent CIGameListingProvider::ListingsBatchEndedEvent = "GUCEF::MULTIPLAY::CIGameListingProvider::ListingsBatchEndedEvent";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -68,6 +69,7 @@ CIGameListingProvider::RegisterEvents( void )
     ListingUpdatedEvent.Initialize();
     ListingRemovedEvent.Initialize();
     ProviderErrorEvent.Initialize();
+    ListingsBatchEndedEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -78,6 +80,8 @@ CIGameListingProvider::CIGameListingProvider( void )
     , m_filter()
     , m_listings()
     , m_dataLock()
+    , m_batchDepth( 0 )
+    , m_batchChanged( false )
 {GUCEF_TRACE;
 
     RegisterEvents();
@@ -188,10 +192,43 @@ CIGameListingProvider::UpsertListing( const CGameListingEntry& listing )
 
     if ( GUCEF_NULL != eventToSend )
     {
+        m_batchChanged = m_batchChanged || m_batchDepth > 0;
         TListingEventData eData( listing );
         return NotifyObservers( *eventToSend, &eData );
     }
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIGameListingProvider::IsBatching( void ) const
+{GUCEF_TRACE;
+
+    return m_batchDepth > 0;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CIGameListingProvider::BeginBatch( void )
+{GUCEF_TRACE;
+
+    ++m_batchDepth;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIGameListingProvider::EndBatch( void )
+{GUCEF_TRACE;
+
+    if ( 0 == m_batchDepth )
+        return true;
+    if ( --m_batchDepth > 0 || !m_batchChanged )
+        return true;
+    m_batchChanged = false;
+    return NotifyObservers( ListingsBatchEndedEvent );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -209,6 +246,7 @@ CIGameListingProvider::RemoveListing( const CORE::CString& listingId )
         removed = (*i).second;
         m_listings.erase( i );
     }
+    m_batchChanged = m_batchChanged || m_batchDepth > 0;
     TListingEventData eData( removed );
     return NotifyObservers( ListingRemovedEvent, &eData );
 }

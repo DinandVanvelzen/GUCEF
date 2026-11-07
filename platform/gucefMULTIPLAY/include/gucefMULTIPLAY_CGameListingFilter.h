@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ namespace MULTIPLAY {
  *  Which listings a player wants to see. Empty or default fields do not filter.
  *  An unknown ping passes the ping limit: nothing is hidden because it could not be measured.
  *
- *  Config: text, kind (any, lobby, game), gameId, gameVersion, notFull, noPassword, maxPingMs
+ *  Config: text, group, kind (any, lobby, game), gameId, gameVersion, notFull, noPassword, maxPingMs
  */
 class GUCEF_MULTIPLAY_EXPORT_CPP CGameListingFilter : public CORE::CIConfigurable
 {
@@ -69,6 +69,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGameListingFilter : public CORE::CIConfigurabl
     typedef enum EKindFilter TKindFilter;
 
     CORE::CString text;             /**< found in the name, map, mode or host name, without regard to case */
+    CORE::CString group;            /**< the group a listing says it is in (CGameListingEntry::ExtraGroup), for a list of games played over time: "turn" is the games where it is the player's turn. Empty: any */
     TKindFilter kind;
     CORE::CString gameId;           /**< compatible games only: the same game id */
     CORE::CString gameVersion;      /**< and the same version */

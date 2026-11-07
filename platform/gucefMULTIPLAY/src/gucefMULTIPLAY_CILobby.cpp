@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -184,6 +184,58 @@ CILobby::ReportPlayer( const CORE::CString& /* memberId */, const CORE::CString&
 {GUCEF_TRACE;
 
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CILobby::Invite( const CORE::CString& /* name */, const CORE::CString& /* contact */, const CORE::CString& /* code */ )
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CILobby::Cancel( void )
+{GUCEF_TRACE;
+
+    return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLobbyPresentation
+CILobby::GetPresentation( void ) const
+{GUCEF_TRACE;
+
+    CLobbyPresentation presentation;
+    const CLobbyState& state = GetState();
+    const CLobbySettingsSchema& schema = GetSchema();
+    const CLobbyMember* me = state.FindMember( GetLocalMemberId() );
+
+    const bool isMember = GUCEF_NULL != me;
+    const bool isPlayer = isMember && !me->IsSpectator();
+    const bool isBoss = isMember && IsBoss();
+    const bool open = LOBBYPHASE_OPEN == state.phase;
+    const bool countingDown = LOBBYPHASE_COUNTDOWN == state.phase;
+    const bool voteRuns = state.activeVote.IsActive();
+
+    presentation.canChooseFaction = isPlayer && open && !schema.factions.empty();
+    presentation.canChooseColour = isPlayer && open && !schema.colours.empty();
+    presentation.canReady = isPlayer && ( open || countingDown );
+    presentation.canSpectate = isMember && open;
+    presentation.canStart = isBoss && open;
+    presentation.canForceStart = isBoss && open;
+    presentation.canVoteStart = isPlayer && !isBoss && open && !voteRuns;
+    presentation.canLeave = true;
+    presentation.canKick = isBoss && open;
+    presentation.canBan = isBoss && open;
+    presentation.canTransferBoss = isBoss && open;
+    presentation.canManageSlots = isBoss && open;
+    presentation.canChooseSlot = isPlayer && open;
+    return presentation;
 }
 
 /*-------------------------------------------------------------------------//

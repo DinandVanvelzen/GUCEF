@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -150,6 +150,7 @@ CLobbyMember::CLobbyMember( void )
     , slot( -1 )
     , latencyMs( -1 )
     , joinOrder( 0 )
+    , statusText()
 {GUCEF_TRACE;
 
 }
@@ -176,6 +177,8 @@ CLobbyMember::Serialize( CORE::CDataNode& node ) const
     node.SetAttribute( "slot", slot );
     node.SetAttribute( "latencyMs", latencyMs );
     node.SetAttribute( "joinOrder", joinOrder );
+    if ( !statusText.IsNULLOrEmpty() )
+        node.SetAttribute( "statusText", statusText );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -191,6 +194,7 @@ CLobbyMember::Deserialize( const CORE::CDataNode& node )
     slot = node.GetAttributeValueOrChildValueByName( "slot" ).AsInt32( -1, true );
     latencyMs = node.GetAttributeValueOrChildValueByName( "latencyMs" ).AsInt32( -1, true );
     joinOrder = node.GetAttributeValueOrChildValueByName( "joinOrder" ).AsUInt32( 0, true );
+    statusText = node.GetAttributeValueOrChildValueByName( "statusText" ).AsString( CORE::CString::Empty, true );
 }
 
 /*-------------------------------------------------------------------------*/

@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -47,6 +47,7 @@ namespace MULTIPLAY {
 CGameListingFilter::CGameListingFilter( void )
     : CORE::CIConfigurable()
     , text()
+    , group()
     , kind( KINDFILTER_ANY )
     , gameId()
     , gameVersion()
@@ -62,6 +63,7 @@ CGameListingFilter::CGameListingFilter( void )
 CGameListingFilter::CGameListingFilter( const CGameListingFilter& src )
     : CORE::CIConfigurable( src )
     , text( src.text )
+    , group( src.group )
     , kind( src.kind )
     , gameId( src.gameId )
     , gameVersion( src.gameVersion )
@@ -88,6 +90,7 @@ CGameListingFilter::operator=( const CGameListingFilter& src )
     if ( &src != this )
     {
         text = src.text;
+        group = src.group;
         kind = src.kind;
         gameId = src.gameId;
         gameVersion = src.gameVersion;
@@ -107,6 +110,8 @@ CGameListingFilter::Matches( const CGameListingEntry& entry ) const
     if ( KINDFILTER_LOBBY == kind && CGameListingEntry::KIND_LOBBY != entry.kind )
         return false;
     if ( KINDFILTER_GAME_IN_PROGRESS == kind && CGameListingEntry::KIND_GAME_IN_PROGRESS != entry.kind )
+        return false;
+    if ( !group.IsNULLOrEmpty() && group != entry.extra.GetValueAlways( CGameListingEntry::ExtraGroup ).AsString() )
         return false;
     if ( !gameId.IsNULLOrEmpty() && gameId != entry.gameId )
         return false;
@@ -138,6 +143,7 @@ CGameListingFilter::SaveConfig( CORE::CDataNode& config ) const
 {GUCEF_TRACE;
 
     config.SetAttribute( "text", text );
+    config.SetAttribute( "group", group );
     config.SetAttribute( "kind", CORE::CString( KINDFILTER_LOBBY == kind ? "lobby" : ( KINDFILTER_GAME_IN_PROGRESS == kind ? "game" : "any" ) ) );
     config.SetAttribute( "gameId", gameId );
     config.SetAttribute( "gameVersion", gameVersion );
@@ -154,6 +160,7 @@ CGameListingFilter::LoadConfig( const CORE::CDataNode& config )
 {GUCEF_TRACE;
 
     text = config.GetAttributeValueOrChildValueByName( "text" ).AsString( text, true );
+    group = config.GetAttributeValueOrChildValueByName( "group" ).AsString( group, true );
     CORE::CString kindStr = config.GetAttributeValueOrChildValueByName( "kind" ).AsString( CORE::CString::Empty, true ).Lowercase();
     if ( "lobby" == kindStr )
         kind = KINDFILTER_LOBBY;

@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -63,7 +63,8 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CLobbySettingDef
         TYPE_INT    = 1 ,
         TYPE_FLOAT  = 2 ,
         TYPE_ENUM   = 3 ,
-        TYPE_STRING = 4
+        TYPE_STRING = 4 ,
+        TYPE_DURATION = 5            /**< a length of time, stored as a whole number of minutes: it is checked like TYPE_INT and shown as hours and minutes */
     };
     typedef enum EType TType;
 

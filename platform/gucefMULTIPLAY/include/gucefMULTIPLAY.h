@@ -1,20 +1,18 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
- *  Copyright (C) 2002 - 2007.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*
@@ -113,6 +111,146 @@
 #define GUCEF_MULTIPLAY_CPINGSERVICE_H
 #endif /* GUCEF_MULTIPLAY_CPINGSERVICE_H ? */
 
+#ifndef GUCEF_MULTIPLAY_MATCHTYPES_H
+#include "gucefMULTIPLAY_MatchTypes.h"
+#define GUCEF_MULTIPLAY_MATCHTYPES_H
+#endif /* GUCEF_MULTIPLAY_MATCHTYPES_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHID_H
+#include "gucefMULTIPLAY_CMatchId.h"
+#define GUCEF_MULTIPLAY_CMATCHID_H
+#endif /* GUCEF_MULTIPLAY_CMATCHID_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHBINARY_H
+#include "gucefMULTIPLAY_CMatchBinary.h"
+#define GUCEF_MULTIPLAY_CMATCHBINARY_H
+#endif /* GUCEF_MULTIPLAY_CMATCHBINARY_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHSIGNING_H
+#include "gucefMULTIPLAY_CMatchSigning.h"
+#define GUCEF_MULTIPLAY_CMATCHSIGNING_H
+#endif /* GUCEF_MULTIPLAY_CMATCHSIGNING_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHPARTICIPANT_H
+#include "gucefMULTIPLAY_CMatchParticipant.h"
+#define GUCEF_MULTIPLAY_CMATCHPARTICIPANT_H
+#endif /* GUCEF_MULTIPLAY_CMATCHPARTICIPANT_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHINFO_H
+#include "gucefMULTIPLAY_CMatchInfo.h"
+#define GUCEF_MULTIPLAY_CMATCHINFO_H
+#endif /* GUCEF_MULTIPLAY_CMATCHINFO_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHRECORD_H
+#include "gucefMULTIPLAY_CMatchRecord.h"
+#define GUCEF_MULTIPLAY_CMATCHRECORD_H
+#endif /* GUCEF_MULTIPLAY_CMATCHRECORD_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHPREVIEW_H
+#include "gucefMULTIPLAY_CMatchPreview.h"
+#define GUCEF_MULTIPLAY_CMATCHPREVIEW_H
+#endif /* GUCEF_MULTIPLAY_CMATCHPREVIEW_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHPACKAGE_H
+#include "gucefMULTIPLAY_CMatchPackage.h"
+#define GUCEF_MULTIPLAY_CMATCHPACKAGE_H
+#endif /* GUCEF_MULTIPLAY_CMATCHPACKAGE_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHENTRY_H
+#include "gucefMULTIPLAY_CMatchEntry.h"
+#define GUCEF_MULTIPLAY_CMATCHENTRY_H
+#endif /* GUCEF_MULTIPLAY_CMATCHENTRY_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHPROPOSAL_H
+#include "gucefMULTIPLAY_CMatchProposal.h"
+#define GUCEF_MULTIPLAY_CMATCHPROPOSAL_H
+#endif /* GUCEF_MULTIPLAY_CMATCHPROPOSAL_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHDECISIONEVIDENCE_H
+#include "gucefMULTIPLAY_CMatchDecisionEvidence.h"
+#define GUCEF_MULTIPLAY_CMATCHDECISIONEVIDENCE_H
+#endif /* GUCEF_MULTIPLAY_CMATCHDECISIONEVIDENCE_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHDECISIONVERIFIER_H
+#include "gucefMULTIPLAY_CMatchDecisionVerifier.h"
+#define GUCEF_MULTIPLAY_CMATCHDECISIONVERIFIER_H
+#endif /* GUCEF_MULTIPLAY_CMATCHDECISIONVERIFIER_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHROSTER_H
+#include "gucefMULTIPLAY_CMatchRoster.h"
+#define GUCEF_MULTIPLAY_CMATCHROSTER_H
+#endif /* GUCEF_MULTIPLAY_CMATCHROSTER_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHDRAFTBOARD_H
+#include "gucefMULTIPLAY_CMatchDraftBoard.h"
+#define GUCEF_MULTIPLAY_CMATCHDRAFTBOARD_H
+#endif /* GUCEF_MULTIPLAY_CMATCHDRAFTBOARD_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHCHAINVERIFIER_H
+#include "gucefMULTIPLAY_CMatchChainVerifier.h"
+#define GUCEF_MULTIPLAY_CMATCHCHAINVERIFIER_H
+#endif /* GUCEF_MULTIPLAY_CMATCHCHAINVERIFIER_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHCONTAINER_H
+#include "gucefMULTIPLAY_CMatchContainer.h"
+#define GUCEF_MULTIPLAY_CMATCHCONTAINER_H
+#endif /* GUCEF_MULTIPLAY_CMATCHCONTAINER_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHTEXTARMOR_H
+#include "gucefMULTIPLAY_CMatchTextArmor.h"
+#define GUCEF_MULTIPLAY_CMATCHTEXTARMOR_H
+#endif /* GUCEF_MULTIPLAY_CMATCHTEXTARMOR_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CIMATCHCLOCK_H
+#include "gucefMULTIPLAY_CIMatchClock.h"
+#define GUCEF_MULTIPLAY_CIMATCHCLOCK_H
+#endif /* GUCEF_MULTIPLAY_CIMATCHCLOCK_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CIMATCHPROVIDER_H
+#include "gucefMULTIPLAY_CIMatchProvider.h"
+#define GUCEF_MULTIPLAY_CIMATCHPROVIDER_H
+#endif /* GUCEF_MULTIPLAY_CIMATCHPROVIDER_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CIMATCHPACKAGEVERIFIER_H
+#include "gucefMULTIPLAY_CIMatchPackageVerifier.h"
+#define GUCEF_MULTIPLAY_CIMATCHPACKAGEVERIFIER_H
+#endif /* GUCEF_MULTIPLAY_CIMATCHPACKAGEVERIFIER_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHSTORE_H
+#include "gucefMULTIPLAY_CMatchStore.h"
+#define GUCEF_MULTIPLAY_CMATCHSTORE_H
+#endif /* GUCEF_MULTIPLAY_CMATCHSTORE_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHBOOK_H
+#include "gucefMULTIPLAY_CMatchBook.h"
+#define GUCEF_MULTIPLAY_CMATCHBOOK_H
+#endif /* GUCEF_MULTIPLAY_CMATCHBOOK_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHALERT_H
+#include "gucefMULTIPLAY_CMatchAlert.h"
+#define GUCEF_MULTIPLAY_CMATCHALERT_H
+#endif /* GUCEF_MULTIPLAY_CMATCHALERT_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CIMATCHALERTSINK_H
+#include "gucefMULTIPLAY_CIMatchAlertSink.h"
+#define GUCEF_MULTIPLAY_CIMATCHALERTSINK_H
+#endif /* GUCEF_MULTIPLAY_CIMATCHALERTSINK_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CINAPPMATCHALERTSINK_H
+#include "gucefMULTIPLAY_CInAppMatchAlertSink.h"
+#define GUCEF_MULTIPLAY_CINAPPMATCHALERTSINK_H
+#endif /* GUCEF_MULTIPLAY_CINAPPMATCHALERTSINK_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHALERTROUTER_H
+#include "gucefMULTIPLAY_CMatchAlertRouter.h"
+#define GUCEF_MULTIPLAY_CMATCHALERTROUTER_H
+#endif /* GUCEF_MULTIPLAY_CMATCHALERTROUTER_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CMATCHLINK_H
+#include "gucefMULTIPLAY_CMatchLink.h"
+#define GUCEF_MULTIPLAY_CMATCHLINK_H
+#endif /* GUCEF_MULTIPLAY_CMATCHLINK_H ? */
+
 #ifndef GUCEF_MULTIPLAY_CPLAYERIDENTITY_H
 #include "gucefMULTIPLAY_CPlayerIdentity.h"
 #define GUCEF_MULTIPLAY_CPLAYERIDENTITY_H
@@ -168,6 +306,11 @@
 #define GUCEF_MULTIPLAY_CLAUNCHDESCRIPTION_H
 #endif /* GUCEF_MULTIPLAY_CLAUNCHDESCRIPTION_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CLOBBYPRESENTATION_H
+#include "gucefMULTIPLAY_CLobbyPresentation.h"
+#define GUCEF_MULTIPLAY_CLOBBYPRESENTATION_H
+#endif /* GUCEF_MULTIPLAY_CLOBBYPRESENTATION_H ? */
+
 #ifndef GUCEF_MULTIPLAY_CILOBBY_H
 #include "gucefMULTIPLAY_CILobby.h"
 #define GUCEF_MULTIPLAY_CILOBBY_H
@@ -177,6 +320,26 @@
 #include "gucefMULTIPLAY_CILobbyService.h"
 #define GUCEF_MULTIPLAY_CILOBBYSERVICE_H
 #endif /* GUCEF_MULTIPLAY_CILOBBYSERVICE_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CIASYNCLOBBYBACKEND_H
+#include "gucefMULTIPLAY_CIAsyncLobbyBackend.h"
+#define GUCEF_MULTIPLAY_CIASYNCLOBBYBACKEND_H
+#endif /* GUCEF_MULTIPLAY_CIASYNCLOBBYBACKEND_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CASYNCLOBBY_H
+#include "gucefMULTIPLAY_CAsyncLobby.h"
+#define GUCEF_MULTIPLAY_CASYNCLOBBY_H
+#endif /* GUCEF_MULTIPLAY_CASYNCLOBBY_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CASYNCLOBBYSERVICE_H
+#include "gucefMULTIPLAY_CAsyncLobbyService.h"
+#define GUCEF_MULTIPLAY_CASYNCLOBBYSERVICE_H
+#endif /* GUCEF_MULTIPLAY_CASYNCLOBBYSERVICE_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CASYNCLOBBYLISTINGPROVIDER_H
+#include "gucefMULTIPLAY_CAsyncLobbyListingProvider.h"
+#define GUCEF_MULTIPLAY_CASYNCLOBBYLISTINGPROVIDER_H
+#endif /* GUCEF_MULTIPLAY_CASYNCLOBBYLISTINGPROVIDER_H ? */
 
 #ifndef GUCEF_MULTIPLAY_CCHATMESSAGE_H
 #include "gucefMULTIPLAY_CChatMessage.h"

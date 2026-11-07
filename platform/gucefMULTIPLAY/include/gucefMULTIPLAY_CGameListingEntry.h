@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -80,6 +80,26 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGameListingEntry : public CORE::CIDataNodeSeri
         KIND_GAME_IN_PROGRESS = 1
     };
     typedef enum EKind TKind;
+
+    /**
+     *  Keys of 'extra' that a list of games reads when the listing has them: what the status of the row says in words instead of
+     *  the kind, a short detail, the text of the join button for this row, and whether the row can be joined or watched at all
+     *  (the listings of a lobby service that has rules of its own: "true" or "false")
+     */
+    static const char* const ExtraStatusText;
+    static const char* const ExtraDetailText;
+    static const char* const ExtraJoinText;
+    static const char* const ExtraCanJoin;
+    static const char* const ExtraCanSpectate;
+
+    /**
+     *  More keys of 'extra', for a list of games that are played over time (a game by mail): the group the row belongs to (a short word, what the filter on the
+     *  group looks for), whether the row needs the player now ("true": it is the player's turn, an answer is waited for) so that the list can put it first and
+     *  make it stand out, and when the player's turn ends (the time in ms since the Unix epoch, a number in text) so that the list puts the nearest end first
+     */
+    static const char* const ExtraGroup;
+    static const char* const ExtraAttention;
+    static const char* const ExtraDeadline;
 
     CORE::CString listingId;
     TKind kind;

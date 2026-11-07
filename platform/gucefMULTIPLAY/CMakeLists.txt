@@ -13,6 +13,9 @@
 
 set( HEADER_FILES 
   include/gucefMULTIPLAY.h
+  include/gucefMULTIPLAY_CAsyncLobby.h
+  include/gucefMULTIPLAY_CAsyncLobbyListingProvider.h
+  include/gucefMULTIPLAY_CAsyncLobbyService.h
   include/gucefMULTIPLAY_CAuthIdentityProvider.h
   include/gucefMULTIPLAY_CChatMessage.h
   include/gucefMULTIPLAY_CFileHashClientIntegrity.h
@@ -28,23 +31,52 @@ set( HEADER_FILES
   include/gucefMULTIPLAY_CGucefLobbyServerApp.h
   include/gucefMULTIPLAY_CGucefLobbyService.h
   include/gucefMULTIPLAY_CHttpListListingProvider.h
+  include/gucefMULTIPLAY_CIAsyncLobbyBackend.h
   include/gucefMULTIPLAY_CIChatService.h
   include/gucefMULTIPLAY_CIClientIntegrity.h
   include/gucefMULTIPLAY_CIGameListingProvider.h
   include/gucefMULTIPLAY_CIIdentityProvider.h
   include/gucefMULTIPLAY_CILobby.h
   include/gucefMULTIPLAY_CILobbyService.h
+  include/gucefMULTIPLAY_CIMatchAlertSink.h
+  include/gucefMULTIPLAY_CIMatchClock.h
+  include/gucefMULTIPLAY_CIMatchPackageVerifier.h
+  include/gucefMULTIPLAY_CIMatchProvider.h
+  include/gucefMULTIPLAY_CInAppMatchAlertSink.h
   include/gucefMULTIPLAY_CIrcChatService.h
   include/gucefMULTIPLAY_CLanListingProvider.h
   include/gucefMULTIPLAY_CLaunchDescription.h
   include/gucefMULTIPLAY_CLinkProof.h
   include/gucefMULTIPLAY_CLobbyChatService.h
   include/gucefMULTIPLAY_CLobbyCreateParams.h
+  include/gucefMULTIPLAY_CLobbyPresentation.h
   include/gucefMULTIPLAY_CLobbyRules.h
   include/gucefMULTIPLAY_CLobbyServiceListingProvider.h
   include/gucefMULTIPLAY_CLobbySettingsSchema.h
   include/gucefMULTIPLAY_CLobbyState.h
   include/gucefMULTIPLAY_CLocalIdentityProvider.h
+  include/gucefMULTIPLAY_CMatchAlert.h
+  include/gucefMULTIPLAY_CMatchAlertRouter.h
+  include/gucefMULTIPLAY_CMatchBinary.h
+  include/gucefMULTIPLAY_CMatchBook.h
+  include/gucefMULTIPLAY_CMatchChainVerifier.h
+  include/gucefMULTIPLAY_CMatchContainer.h
+  include/gucefMULTIPLAY_CMatchDecisionEvidence.h
+  include/gucefMULTIPLAY_CMatchDecisionVerifier.h
+  include/gucefMULTIPLAY_CMatchDraftBoard.h
+  include/gucefMULTIPLAY_CMatchEntry.h
+  include/gucefMULTIPLAY_CMatchId.h
+  include/gucefMULTIPLAY_CMatchInfo.h
+  include/gucefMULTIPLAY_CMatchLink.h
+  include/gucefMULTIPLAY_CMatchPackage.h
+  include/gucefMULTIPLAY_CMatchParticipant.h
+  include/gucefMULTIPLAY_CMatchPreview.h
+  include/gucefMULTIPLAY_CMatchProposal.h
+  include/gucefMULTIPLAY_CMatchRecord.h
+  include/gucefMULTIPLAY_CMatchRoster.h
+  include/gucefMULTIPLAY_CMatchSigning.h
+  include/gucefMULTIPLAY_CMatchStore.h
+  include/gucefMULTIPLAY_CMatchTextArmor.h
   include/gucefMULTIPLAY_CModule.h
   include/gucefMULTIPLAY_CMultiplayGlobal.h
   include/gucefMULTIPLAY_CPassiveURLServerListProvider.h
@@ -56,6 +88,7 @@ set( HEADER_FILES
   include/gucefMULTIPLAY_CServerListProvider.h
   include/gucefMULTIPLAY_CTokenBucket.h
   include/gucefMULTIPLAY_DLLInit.h
+  include/gucefMULTIPLAY_MatchTypes.h
   include/gucefMULTIPLAY_Types.h
   include/gucefMULTIPLAY_config.h
   include/gucefMULTIPLAY_macros.h
@@ -63,6 +96,9 @@ set( HEADER_FILES
 
 set( SOURCE_FILES 
   src/gucefMULTIPLAY.cpp
+  src/gucefMULTIPLAY_CAsyncLobby.cpp
+  src/gucefMULTIPLAY_CAsyncLobbyListingProvider.cpp
+  src/gucefMULTIPLAY_CAsyncLobbyService.cpp
   src/gucefMULTIPLAY_CAuthIdentityProvider.cpp
   src/gucefMULTIPLAY_CChatMessage.cpp
   src/gucefMULTIPLAY_CFileHashClientIntegrity.cpp
@@ -78,23 +114,52 @@ set( SOURCE_FILES
   src/gucefMULTIPLAY_CGucefLobbyServerApp.cpp
   src/gucefMULTIPLAY_CGucefLobbyService.cpp
   src/gucefMULTIPLAY_CHttpListListingProvider.cpp
+  src/gucefMULTIPLAY_CIAsyncLobbyBackend.cpp
   src/gucefMULTIPLAY_CIChatService.cpp
   src/gucefMULTIPLAY_CIClientIntegrity.cpp
   src/gucefMULTIPLAY_CIGameListingProvider.cpp
   src/gucefMULTIPLAY_CIIdentityProvider.cpp
   src/gucefMULTIPLAY_CILobby.cpp
   src/gucefMULTIPLAY_CILobbyService.cpp
+  src/gucefMULTIPLAY_CIMatchAlertSink.cpp
+  src/gucefMULTIPLAY_CIMatchClock.cpp
+  src/gucefMULTIPLAY_CIMatchPackageVerifier.cpp
+  src/gucefMULTIPLAY_CIMatchProvider.cpp
+  src/gucefMULTIPLAY_CInAppMatchAlertSink.cpp
   src/gucefMULTIPLAY_CIrcChatService.cpp
   src/gucefMULTIPLAY_CLanListingProvider.cpp
   src/gucefMULTIPLAY_CLaunchDescription.cpp
   src/gucefMULTIPLAY_CLinkProof.cpp
   src/gucefMULTIPLAY_CLobbyChatService.cpp
   src/gucefMULTIPLAY_CLobbyCreateParams.cpp
+  src/gucefMULTIPLAY_CLobbyPresentation.cpp
   src/gucefMULTIPLAY_CLobbyRules.cpp
   src/gucefMULTIPLAY_CLobbyServiceListingProvider.cpp
   src/gucefMULTIPLAY_CLobbySettingsSchema.cpp
   src/gucefMULTIPLAY_CLobbyState.cpp
   src/gucefMULTIPLAY_CLocalIdentityProvider.cpp
+  src/gucefMULTIPLAY_CMatchAlert.cpp
+  src/gucefMULTIPLAY_CMatchAlertRouter.cpp
+  src/gucefMULTIPLAY_CMatchBinary.cpp
+  src/gucefMULTIPLAY_CMatchBook.cpp
+  src/gucefMULTIPLAY_CMatchChainVerifier.cpp
+  src/gucefMULTIPLAY_CMatchContainer.cpp
+  src/gucefMULTIPLAY_CMatchDecisionEvidence.cpp
+  src/gucefMULTIPLAY_CMatchDecisionVerifier.cpp
+  src/gucefMULTIPLAY_CMatchDraftBoard.cpp
+  src/gucefMULTIPLAY_CMatchEntry.cpp
+  src/gucefMULTIPLAY_CMatchId.cpp
+  src/gucefMULTIPLAY_CMatchInfo.cpp
+  src/gucefMULTIPLAY_CMatchLink.cpp
+  src/gucefMULTIPLAY_CMatchPackage.cpp
+  src/gucefMULTIPLAY_CMatchParticipant.cpp
+  src/gucefMULTIPLAY_CMatchPreview.cpp
+  src/gucefMULTIPLAY_CMatchProposal.cpp
+  src/gucefMULTIPLAY_CMatchRecord.cpp
+  src/gucefMULTIPLAY_CMatchRoster.cpp
+  src/gucefMULTIPLAY_CMatchSigning.cpp
+  src/gucefMULTIPLAY_CMatchStore.cpp
+  src/gucefMULTIPLAY_CMatchTextArmor.cpp
   src/gucefMULTIPLAY_CModule.cpp
   src/gucefMULTIPLAY_CMultiplayGlobal.cpp
   src/gucefMULTIPLAY_CPassiveURLServerListProvider.cpp
@@ -105,6 +170,7 @@ set( SOURCE_FILES
   src/gucefMULTIPLAY_CServerList.cpp
   src/gucefMULTIPLAY_CServerListProvider.cpp
   src/gucefMULTIPLAY_CTokenBucket.cpp
+  src/gucefMULTIPLAY_MatchTypes.cpp
 )
 
 # Make sure the PLATFORM_HEADER_FILES variable is always defined
@@ -124,7 +190,7 @@ set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY COMPILE_DEFINITIONS "
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY VERSION 0.1.0.0 )
 set_property( TARGET ${MODULE_NAME} APPEND_STRING PROPERTY SOVERSION 0.1.0.0 )
 
-include_directories( ../../common/include ../gucefAUTH/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefDRN/include ../gucefMT/include ../gucefVFS/include ../gucefWEB/include include )
+include_directories( ../../common/include ../gucefAUTH/include ../gucefCOM/include ../gucefCOMCORE/include ../gucefCORE/include ../gucefCORE/include/c_api ../gucefCORE/src ../gucefDRN/include ../gucefMT/include ../gucefVFS/include ../gucefWEB/include include )
 
 if ( ANDROID32 )
   include_directories( ../gucefCOMCORE/include/android ../gucefCORE/include/android )

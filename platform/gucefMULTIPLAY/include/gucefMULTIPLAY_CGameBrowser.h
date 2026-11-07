@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -93,7 +93,8 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CGameBrowser : public CORE::CObservingNotifier 
 {
     public:
 
-    static const CORE::CEvent BrowserListChangedEvent;  /**< CBrowserListChange */
+    static const CORE::CEvent BrowserListChangedEvent;  /**< CBrowserListChange: one listing was added, updated or removed, once for every listing of a set of changes */
+    static const CORE::CEvent BrowserListSettledEvent;  /**< no data: a set of changes was told, once after all of its BrowserListChangedEvent. A list that shows the whole browser takes the set at once instead of listing for every change */
 
     typedef CGameListingList::TGameListingEntryVector   TGameListingEntryVector;
     typedef GUCEF::vector< CIGameListingProviderPtr >   TProviderVector;

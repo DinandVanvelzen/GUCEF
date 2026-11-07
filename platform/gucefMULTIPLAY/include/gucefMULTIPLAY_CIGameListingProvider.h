@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -91,6 +91,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CIGameListingProvider : public CORE::CObserving
     static const CORE::CEvent ListingUpdatedEvent;      /**< TListingEventData: the listing as it is now */
     static const CORE::CEvent ListingRemovedEvent;      /**< TListingEventData: the listing as it was */
     static const CORE::CEvent ProviderErrorEvent;       /**< TProviderErrorEventData: a description of the problem */
+    static const CORE::CEvent ListingsBatchEndedEvent;  /**< no data: a batch of changes (BeginBatch()) ended and something in it changed */
 
     typedef CGameListingEntry                               TListingEventData;
     typedef CORE::TCloneableString                          TProviderErrorEventData;
@@ -125,7 +126,17 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CIGameListingProvider : public CORE::CObserving
 
     const CGameListingFilter& GetFilter( void ) const;
 
+    /**
+     *  Whether the provider is in the middle of a batch of changes: the events of the listings that arrive now are part of a set that ends with
+     *  ListingsBatchEndedEvent, and a browser that has to look at the whole list for every change waits for the end
+     */
+    bool IsBatching( void ) const;
+
     protected:
+
+    /** Changes that come together (the rows of a source that was looked at again) are one batch: the events of the listings are sent as before, then ListingsBatchEndedEvent once, when something changed */
+    void BeginBatch( void );
+    bool EndBatch( void );
 
     void SetFilter( const CGameListingFilter& filter );
 
@@ -158,6 +169,8 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CIGameListingProvider : public CORE::CObserving
     CGameListingFilter m_filter;
     TListingMap m_listings;
     mutable MT::CMutex m_dataLock;
+    UInt32 m_batchDepth;
+    bool m_batchChanged;
 };
 
 /*-------------------------------------------------------------------------*/

@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ namespace MULTIPLAY {
 //-------------------------------------------------------------------------*/
 
 const CORE::CEvent CGameBrowser::BrowserListChangedEvent = "GUCEF::MULTIPLAY::CGameBrowser::BrowserListChangedEvent";
+const CORE::CEvent CGameBrowser::BrowserListSettledEvent = "GUCEF::MULTIPLAY::CGameBrowser::BrowserListSettledEvent";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -98,6 +99,7 @@ CGameBrowser::RegisterEvents( void )
 {GUCEF_TRACE;
 
     BrowserListChangedEvent.Initialize();
+    BrowserListSettledEvent.Initialize();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -472,7 +474,7 @@ CGameBrowser::NotifyChanges( const TChangeVector& changes )
         if ( !NotifyObservers( BrowserListChangedEvent, &change ) )
             return false;
     }
-    return true;
+    return changes.empty() || NotifyObservers( BrowserListSettledEvent );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -496,6 +498,16 @@ CGameBrowser::OnNotify( CORE::CNotifier* notifier                 ,
     if ( CIGameListingProvider::ListingAddedEvent == eventId   ||
          CIGameListingProvider::ListingUpdatedEvent == eventId ||
          CIGameListingProvider::ListingRemovedEvent == eventId  )
+    {
+        // a provider that reports a set of changes together says when it is done: the list is built once then
+        for ( size_t p=0; p<m_providers.size(); ++p )
+            if ( m_providers[ p ].GetPointerAlways() == notifier && m_providers[ p ]->IsBatching() )
+                return;
+        if ( m_active )
+            Rebuild();
+    }
+    else
+    if ( CIGameListingProvider::ListingsBatchEndedEvent == eventId )
     {
         if ( m_active )
             Rebuild();

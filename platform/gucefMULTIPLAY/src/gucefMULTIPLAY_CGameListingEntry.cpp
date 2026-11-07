@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -47,6 +47,21 @@
 
 namespace GUCEF {
 namespace MULTIPLAY {
+
+/*-------------------------------------------------------------------------//
+//                                                                         //
+//      GLOBAL VARS                                                        //
+//                                                                         //
+//-------------------------------------------------------------------------*/
+
+const char* const CGameListingEntry::ExtraStatusText = "statusText";
+const char* const CGameListingEntry::ExtraDetailText = "detailText";
+const char* const CGameListingEntry::ExtraJoinText = "joinText";
+const char* const CGameListingEntry::ExtraCanJoin = "canJoin";
+const char* const CGameListingEntry::ExtraCanSpectate = "canSpectate";
+const char* const CGameListingEntry::ExtraGroup = "group";
+const char* const CGameListingEntry::ExtraAttention = "attention";
+const char* const CGameListingEntry::ExtraDeadline = "deadline";
 
 /*-------------------------------------------------------------------------//
 //                                                                         //

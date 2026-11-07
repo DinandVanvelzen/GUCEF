@@ -26,6 +26,7 @@
             <RuntimeDependency Name="dstorepluginPARSIFALXML" />
             <RuntimeDependency Name="dstorepluginJSONPARSER" />
             <RuntimeDependency Name="codecspluginMONOCYPHER" />
+            <RuntimeDependency Name="codecspluginZLIB" />
         </RuntimeDependencies>
     </Module>
 </ModuleInfoEntry>

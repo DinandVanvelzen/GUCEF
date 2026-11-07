@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -49,6 +49,35 @@ namespace MULTIPLAY {
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
+CLobbyInvitation::CLobbyInvitation( void )
+    : name()
+    , contact()
+    , code()
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+CLobbyInvitation::CLobbyInvitation( const CORE::CString& invitedName, const CORE::CString& invitedContact, const CORE::CString& invitedCode )
+    : name( invitedName )
+    , contact( invitedContact )
+    , code( invitedCode )
+{GUCEF_TRACE;
+
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CLobbyInvitation::operator==( const CLobbyInvitation& other ) const
+{GUCEF_TRACE;
+
+    return name == other.name && contact == other.contact && code == other.code;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CLobbyCreateParams::CLobbyCreateParams( void )
     : CORE::CIConfigurable()
     , name()
@@ -63,6 +92,7 @@ CLobbyCreateParams::CLobbyCreateParams( void )
     , slots()
     , topology( GAMETOPOLOGY_CLIENT_SERVER )
     , securityPolicy()
+    , invitations()
 {GUCEF_TRACE;
 
 }
@@ -83,6 +113,7 @@ CLobbyCreateParams::CLobbyCreateParams( const CLobbyCreateParams& src )
     , slots( src.slots )
     , topology( src.topology )
     , securityPolicy( src.securityPolicy )
+    , invitations( src.invitations )
 {GUCEF_TRACE;
 
 }
@@ -114,6 +145,7 @@ CLobbyCreateParams::operator=( const CLobbyCreateParams& src )
         slots = src.slots;
         topology = src.topology;
         securityPolicy = src.securityPolicy;
+        invitations = src.invitations;
     }
     return *this;
 }
@@ -153,6 +185,17 @@ CLobbyCreateParams::SaveConfig( CORE::CDataNode& config ) const
     CORE::CDataNode* slotsNode = config.AddChild( "slots", GUCEF_DATATYPE_ARRAY );
     for ( size_t i=0; i<slots.size(); ++i )
         slots[ i ].Serialize( *slotsNode->AddChild( "slot", GUCEF_DATATYPE_OBJECT ) );
+    if ( !invitations.empty() )
+    {
+        CORE::CDataNode* invitationsNode = config.AddChild( "invitations", GUCEF_DATATYPE_ARRAY );
+        for ( size_t i=0; i<invitations.size(); ++i )
+        {
+            CORE::CDataNode* invitation = invitationsNode->AddChild( "invitation", GUCEF_DATATYPE_OBJECT );
+            invitation->SetAttribute( "name", invitations[ i ].name );
+            invitation->SetAttribute( "contact", invitations[ i ].contact );
+            invitation->SetAttribute( "code", invitations[ i ].code );
+        }
+    }
     return true;
 }
 
@@ -186,6 +229,19 @@ CLobbyCreateParams::LoadConfig( const CORE::CDataNode& config )
         {
             slots.push_back( CLobbySlot() );
             slots.back().Deserialize( *(*i) );
+            ++i;
+        }
+    }
+    const CORE::CDataNode* invitationsNode = config.FindChild( "invitations" );
+    if ( GUCEF_NULL != invitationsNode )
+    {
+        invitations.clear();
+        CORE::CDataNode::const_iterator i = invitationsNode->ConstBegin();
+        while ( i != invitationsNode->ConstEnd() )
+        {
+            invitations.push_back( CLobbyInvitation( (*i)->GetAttributeValueOrChildValueByName( "name" ).AsString( CORE::CString::Empty, true )    ,
+                                                     (*i)->GetAttributeValueOrChildValueByName( "contact" ).AsString( CORE::CString::Empty, true ) ,
+                                                     (*i)->GetAttributeValueOrChildValueByName( "code" ).AsString( CORE::CString::Empty, true )    ) );
             ++i;
         }
     }

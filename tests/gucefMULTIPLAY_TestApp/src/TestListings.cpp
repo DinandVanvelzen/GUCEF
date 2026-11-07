@@ -1,6 +1,6 @@
 /*
  *  gucefMULTIPLAY_TestApp: Application for testing gucefMULTIPLAY
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -99,6 +99,11 @@
 #define GUCEF_TEST_SOCKETS_H
 #endif /* GUCEF_TEST_SOCKETS_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #include "TestPump.h"
 #include "TestLobbyService.h"
 #include "TestListings.h"
@@ -124,12 +129,27 @@ using namespace GUCEF;
 //                                                                         //
 //-------------------------------------------------------------------------*/
 
-/* Ports of the loopback tests, away from the ones of the COM tests */
-static const UInt16 LanPortA = 47910;
-static const UInt16 LanPortB = 47911;
-static const UInt16 EchoPort = 47912;
-static const UInt16 SilentPort = 47913;
-static const UInt16 TcpOnlyPort = 47914;
+/**
+ *  The ports of one loopback test, chosen by the system when the test case starts: a fixed number can be in use
+ *  by another process of the host at any time. A port is 0 when the system had none to give, the test then fails.
+ */
+struct SLoopbackPorts
+{
+    UInt16 lanA;
+    UInt16 lanB;
+    UInt16 echo;
+    UInt16 silent;
+    UInt16 tcpOnly;
+
+    SLoopbackPorts( void )
+        : lanA( GUCEF::TESTFW::FindFreeUdpPort() )
+        , lanB( GUCEF::TESTFW::FindFreeUdpPort() )
+        , echo( GUCEF::TESTFW::FindFreeUdpPort() )
+        , silent( GUCEF::TESTFW::FindFreeTcpPort() )
+        , tcpOnly( GUCEF::TESTFW::FindFreeTcpPort() )
+    {
+    }
+};
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -504,17 +524,54 @@ PerformListingTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test: The filter on the group of a listing, as a list of games by mail shows only the games where it is the player's turn" )
+        try
+        {
+            MULTIPLAY::CGameListingEntry mine = MakeListing( "id-1", "Mine", "udp://127.0.0.1:7777" );
+            mine.extra.Set( MULTIPLAY::CGameListingEntry::ExtraGroup, "turn" );
+            MULTIPLAY::CGameListingEntry theirs = MakeListing( "id-2", "Theirs", "udp://127.0.0.1:7778" );
+            theirs.extra.Set( MULTIPLAY::CGameListingEntry::ExtraGroup, "waiting" );
+            MULTIPLAY::CGameListingEntry none = MakeListing( "id-3", "None", "udp://127.0.0.1:7779" );
+            MULTIPLAY::CGameListingFilter filter;
+            ASSERT_TRUE( filter.Matches( mine ) && filter.Matches( theirs ) && filter.Matches( none ) );
+            filter.group = "turn";
+            ASSERT_TRUE( filter.Matches( mine ) && !filter.Matches( theirs ) && !filter.Matches( none ) );
+            filter.group = "waiting";
+            ASSERT_TRUE( !filter.Matches( mine ) && filter.Matches( theirs ) );
+            // together with the text
+            filter.group = "turn";
+            filter.text = "theirs";
+            ASSERT_FALSE( filter.Matches( mine ) );
+            filter.text = "mine";
+            ASSERT_TRUE( filter.Matches( mine ) );
+
+            CORE::CDataNode config;
+            ASSERT_TRUE( filter.SaveConfig( config ) );
+            MULTIPLAY::CGameListingFilter loaded;
+            ASSERT_TRUE( loaded.LoadConfig( config ) && "turn" == loaded.group );
+            MULTIPLAY::CGameListingFilter copy( loaded );
+            MULTIPLAY::CGameListingFilter assigned;
+            assigned = copy;
+            ASSERT_TRUE( "turn" == copy.group && "turn" == assigned.group );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Test: A game advertised on the LAN is listed by the lan provider on loopback, updated and withdrawn" )
+        const SLoopbackPorts ports;
         try
         {
             CORE::CDataNode advertiserConfig;
-            AddLoopbackClientConfig( advertiserConfig, LanPortA, LanPortB, "advertiser" );
+            AddLoopbackClientConfig( advertiserConfig, ports.lanA, ports.lanB, "advertiser" );
             advertiserConfig.SetAttribute( "ttlInSecs", CORE::CString( "30" ) );
             MULTIPLAY::CGameAdvertiser advertiser;
             ASSERT_TRUE( advertiser.LoadConfig( advertiserConfig ) );
 
             CORE::CDataNode providerConfig;
-            AddLoopbackClientConfig( providerConfig, LanPortB, LanPortA, "browser" );
+            AddLoopbackClientConfig( providerConfig, ports.lanB, ports.lanA, "browser" );
             MULTIPLAY::CIGameListingProviderPtr provider = MULTIPLAY::CMultiplayGlobal::Instance()->GetListingProviderFactory().Create( "lan" );
             REQUIRE_TRUE( !provider.IsNULL() );
             ASSERT_TRUE( provider->LoadConfig( providerConfig ) );
@@ -671,10 +728,11 @@ PerformListingTests( void )
     GUCEF_TESTFW_TESTCASE_END
 
     GUCEF_TESTFW_TESTCASE( "Test: The ping service measures with the first method that answers and falls back to the next" )
+        const SLoopbackPorts ports;
         try
         {
             COM::CUdpEchoResponder responder;
-            REQUIRE_TRUE( responder.Start( EchoPort ) );
+            REQUIRE_TRUE( responder.Start( ports.echo ) );
 
             MULTIPLAY::CPingService pings;
             CORE::CString::StringVector methods;
@@ -687,7 +745,7 @@ PerformListingTests( void )
             CPingRecorder recorder;
             recorder.SubscribeTo( &pings );
 
-            CORE::CString target = "udp://127.0.0.1:" + CORE::ToString( EchoPort );
+            CORE::CString target = "udp://127.0.0.1:" + CORE::ToString( ports.echo );
             ASSERT_TRUE( pings.AddTarget( target ) );
             ASSERT_TRUE( pings.HasTarget( target ) );
             ASSERT_TRUE( "udp-echo" == pings.GetMethod( target ) );
@@ -703,12 +761,12 @@ PerformListingTests( void )
 
             // A TCP listener with no UDP echo: udp-echo gives up, tcp-connect measures
             COMCORE::CTCPServerSocket tcpServer( false );
-            REQUIRE_TRUE( tcpServer.ListenOnPort( TcpOnlyPort ) );
+            REQUIRE_TRUE( tcpServer.ListenOnPort( ports.tcpOnly ) );
             methods.clear();
             methods.push_back( "udp-echo" );
             methods.push_back( "tcp-connect" );
             pings.SetMethods( methods );
-            CORE::CString tcpTarget = "127.0.0.1:" + CORE::ToString( TcpOnlyPort );
+            CORE::CString tcpTarget = "127.0.0.1:" + CORE::ToString( ports.tcpOnly );
             UInt32 knownBefore = recorder.known;
             ASSERT_TRUE( pings.AddTarget( tcpTarget ) );
             ASSERT_TRUE( PumpUntilAtLeast( recorder.known, knownBefore + 1, 10000 ) );
@@ -720,7 +778,7 @@ PerformListingTests( void )
             methods.clear();
             methods.push_back( "udp-echo" );
             pings.SetMethods( methods );
-            CORE::CString silent = "127.0.0.1:" + CORE::ToString( SilentPort );
+            CORE::CString silent = "127.0.0.1:" + CORE::ToString( ports.silent );
             knownBefore = recorder.known;
             ASSERT_TRUE( pings.AddTarget( silent ) );
             PumpFor( 800 );
@@ -741,10 +799,11 @@ PerformListingTests( void )
     GUCEF_TESTFW_TESTCASE_END
 
     GUCEF_TESTFW_TESTCASE( "Test: The browser merges by id and by endpoint, filters, and pings the listings" )
+        const SLoopbackPorts ports;
         try
         {
             COM::CUdpEchoResponder responder;
-            REQUIRE_TRUE( responder.Start( EchoPort ) );
+            REQUIRE_TRUE( responder.Start( ports.echo ) );
 
             MULTIPLAY::CGameBrowser browser;
             CORE::CDataNode browserConfig;
@@ -766,7 +825,7 @@ PerformListingTests( void )
             recorder.SubscribeTo( &browser );
             ASSERT_TRUE( browser.Start() );
 
-            CORE::CString echoEndpoint = "udp://127.0.0.1:" + CORE::ToString( EchoPort );
+            CORE::CString echoEndpoint = "udp://127.0.0.1:" + CORE::ToString( ports.echo );
             lan->Put( MakeListing( "x", "Echo game", echoEndpoint.C_String() ) );
             lan->Put( MakeListing( "y", "Second game", "udp://127.0.0.1:1" ) );
             internet->Put( MakeListing( "x-on-the-internet", "Echo game seen twice", echoEndpoint.C_String() ) );   // the same endpoint
@@ -814,11 +873,12 @@ PerformListingTests( void )
 
     GUCEF_TESTFW_TESTCASE( "Test: A browser with the lan provider holds sockets and timers only while it is started, and nothing is listed or reported after it stopped" )
         GUCEF_TESTFW_SKIP_IF( GUCEF::TESTFW::CountOpenSockets() < 0, "The open sockets of this process cannot be counted on this platform" );
+        const SLoopbackPorts ports;
         try
         {
             // a game on the LAN that keeps announcing itself: this is the world the browser looks at
             CORE::CDataNode advertiserConfig;
-            AddLoopbackClientConfig( advertiserConfig, LanPortA, LanPortB, "advertiser" );
+            AddLoopbackClientConfig( advertiserConfig, ports.lanA, ports.lanB, "advertiser" );
             advertiserConfig.SetAttribute( "ttlInSecs", CORE::CString( "3" ) );
             MULTIPLAY::CGameAdvertiser advertiser;
             ASSERT_TRUE( advertiser.LoadConfig( advertiserConfig ) );
@@ -833,7 +893,7 @@ PerformListingTests( void )
             pingConfig->SetAttribute( "timeoutInMs", CORE::CString( "100" ) );
             CORE::CDataNode* lan = browserConfig.AddChild( "ListingProvider", GUCEF_DATATYPE_OBJECT );
             lan->SetAttribute( "type", CORE::CString( "lan" ) );
-            AddLoopbackClientConfig( *lan, LanPortB, LanPortA, "browser" );
+            AddLoopbackClientConfig( *lan, ports.lanB, ports.lanA, "browser" );
             ASSERT_TRUE( browser.LoadConfig( browserConfig ) );
             ASSERT_TRUE( 1 == browser.GetProviders().size() );
             CBrowserRecorder recorder;
@@ -883,12 +943,13 @@ PerformListingTests( void )
 
     GUCEF_TESTFW_TESTCASE( "Test: The ping service gives back its probes, sockets and timer when its targets are removed" )
         GUCEF_TESTFW_SKIP_IF( GUCEF::TESTFW::CountOpenSockets() < 0, "The open sockets of this process cannot be counted on this platform" );
+        const SLoopbackPorts ports;
         try
         {
             COM::CUdpEchoResponder responder;
-            REQUIRE_TRUE( responder.Start( EchoPort ) );
+            REQUIRE_TRUE( responder.Start( ports.echo ) );
             COMCORE::CTCPServerSocket tcpServer( false );
-            REQUIRE_TRUE( tcpServer.ListenOnPort( TcpOnlyPort ) );
+            REQUIRE_TRUE( tcpServer.ListenOnPort( ports.tcpOnly ) );
 
             MULTIPLAY::CPingService pings;
             pings.SetIntervalInMs( 30 );
@@ -905,9 +966,9 @@ PerformListingTests( void )
             for ( UInt32 round=0; round<20; ++round )
             {
                 const UInt32 knownBefore = recorder.known;
-                ASSERT_TRUE( pings.AddTarget( "udp://127.0.0.1:" + CORE::ToString( EchoPort ) ) );
-                ASSERT_TRUE( pings.AddTarget( "127.0.0.1:" + CORE::ToString( TcpOnlyPort ) ) );
-                ASSERT_TRUE( pings.AddTarget( "127.0.0.1:" + CORE::ToString( SilentPort ) ) );
+                ASSERT_TRUE( pings.AddTarget( "udp://127.0.0.1:" + CORE::ToString( ports.echo ) ) );
+                ASSERT_TRUE( pings.AddTarget( "127.0.0.1:" + CORE::ToString( ports.tcpOnly ) ) );
+                ASSERT_TRUE( pings.AddTarget( "127.0.0.1:" + CORE::ToString( ports.silent ) ) );
                 ASSERT_TRUE( PumpUntilAtLeast( recorder.known, knownBefore + 2, 5000 ) );
                 ASSERT_TRUE( SProcessHold() != none );
 

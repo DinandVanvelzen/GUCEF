@@ -12,7 +12,10 @@
 # Configuration for module: gucefMULTIPLAY_TestApp
 
 set( HEADER_FILES 
+  include/TestAsyncLobby.h
   include/TestAuthIdentity.h
+  include/TestFakeAsyncLobbyBackend.h
+  include/TestFakeMatchProvider.h
   include/TestFakeSsoProvider.h
   include/TestGucefLobby.h
   include/TestIdentity.h
@@ -21,6 +24,14 @@ set( HEADER_FILES
   include/TestLobby.h
   include/TestLobbyRecorder.h
   include/TestLobbyService.h
+  include/TestMatchAlerts.h
+  include/TestMatchBook.h
+  include/TestMatchCommon.h
+  include/TestMatchContainer.h
+  include/TestMatchDecisions.h
+  include/TestMatchDraft.h
+  include/TestMatchModel.h
+  include/TestMatchSupport.h
   include/TestMemoryChannel.h
   include/TestPassiveUrlServerListProvider.h
   include/TestPump.h
@@ -28,6 +39,7 @@ set( HEADER_FILES
 )
 
 set( SOURCE_FILES 
+  src/TestAsyncLobby.cpp
   src/TestAuthIdentity.cpp
   src/TestGucefLobby.cpp
   src/TestIdentity.cpp
@@ -35,6 +47,12 @@ set( SOURCE_FILES
   src/TestListings.cpp
   src/TestLobby.cpp
   src/TestLobbyService.cpp
+  src/TestMatchAlerts.cpp
+  src/TestMatchBook.cpp
+  src/TestMatchContainer.cpp
+  src/TestMatchDecisions.cpp
+  src/TestMatchDraft.cpp
+  src/TestMatchModel.cpp
   src/TestMemoryChannel.cpp
   src/TestPassiveUrlServerListProvider.cpp
   src/TestServerList.cpp

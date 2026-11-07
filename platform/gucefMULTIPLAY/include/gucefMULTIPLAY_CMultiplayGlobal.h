@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -50,6 +50,16 @@
 #define GUCEF_MULTIPLAY_CIIDENTITYPROVIDER_H
 #endif /* GUCEF_MULTIPLAY_CIIDENTITYPROVIDER_H ? */
 
+#ifndef GUCEF_MULTIPLAY_CIMATCHPROVIDER_H
+#include "gucefMULTIPLAY_CIMatchProvider.h"
+#define GUCEF_MULTIPLAY_CIMATCHPROVIDER_H
+#endif /* GUCEF_MULTIPLAY_CIMATCHPROVIDER_H ? */
+
+#ifndef GUCEF_MULTIPLAY_CIMATCHALERTSINK_H
+#include "gucefMULTIPLAY_CIMatchAlertSink.h"
+#define GUCEF_MULTIPLAY_CIMATCHALERTSINK_H
+#endif /* GUCEF_MULTIPLAY_CIMATCHALERTSINK_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -67,7 +77,7 @@ namespace MULTIPLAY {
 
 /**
  *  The global systems of gucefMULTIPLAY, set up when the module loads: the factories of the listing providers,
- *  lobby services, chat services and identity providers, with the built-in ones registered. Plugins register
+ *  lobby services, chat services, identity providers and match providers, with the built-in ones registered. Plugins register
  *  their implementations into these factories.
  */
 class GUCEF_MULTIPLAY_EXPORT_CPP CMultiplayGlobal
@@ -87,6 +97,12 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CMultiplayGlobal
     /** "local" and "sso" built in */
     CIdentityProviderFactory& GetIdentityProviderFactory( void );
 
+    /** Nothing built in: the providers that carry matches (live session, folder, mail, relay) register themselves */
+    CMatchProviderFactory& GetMatchProviderFactory( void );
+
+    /** Nothing built in: the sinks that interrupt the player ("desktop" and others) register themselves */
+    CMatchAlertSinkFactory& GetMatchAlertSinkFactory( void );
+
     private:
     friend class CModule;
 
@@ -105,6 +121,8 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CMultiplayGlobal
     CLobbyServiceFactory* m_lobbyServiceFactory;
     CChatServiceFactory* m_chatServiceFactory;
     CIdentityProviderFactory* m_identityProviderFactory;
+    CMatchProviderFactory* m_matchProviderFactory;
+    CMatchAlertSinkFactory* m_matchAlertSinkFactory;
 
     static MT::CMutex g_dataLock;
     static CMultiplayGlobal* g_instance;

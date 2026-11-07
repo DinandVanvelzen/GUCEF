@@ -68,6 +68,11 @@
 #define GUCEF_TEST_FRAMEWORK_H
 #endif /* GUCEF_TEST_FRAMEWORK_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #include "TestPump.h"
 #include "TestIrcChat.h"
 
@@ -91,9 +96,6 @@ using namespace GUCEF;
 //      GLOBAL VARS                                                        //
 //                                                                         //
 //-------------------------------------------------------------------------*/
-
-static const UInt16 FakeIrcServerPort = 47920;
-static const UInt16 ClosedIrcPort = 47921;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -135,10 +137,17 @@ class CFakeIrcServer : public CORE::CObserver
         m_server.Close();
     }
 
+    /** Listens on a port the system chooses, see GetPort() */
     bool Start( void )
     {GUCEF_TRACE;
 
-        return m_server.ListenOnPort( FakeIrcServerPort );
+        return m_server.ListenOnPort( 0 );
+    }
+
+    UInt16 GetPort( void ) const
+    {GUCEF_TRACE;
+
+        return m_server.GetBoundPort();
     }
 
     void SendLine( const CORE::CString& line )
@@ -431,7 +440,7 @@ PerformIrcChatTests( void )
             MULTIPLAY::CIrcChatService chat;
             COM::CIrcClientSettings settings;
             settings.server = "127.0.0.1";
-            settings.port = FakeIrcServerPort;
+            settings.port = server.GetPort();
             chat.SetIrcSettings( settings );
             CChatRecorder recorder;
             recorder.SubscribeTo( &chat );
@@ -540,7 +549,8 @@ PerformIrcChatTests( void )
             MULTIPLAY::CIrcChatService chat;
             COM::CIrcClientSettings settings;
             settings.server = "127.0.0.1";
-            settings.port = ClosedIrcPort;
+            settings.port = GUCEF::TESTFW::FindFreeTcpPort();     // a port that is free now: nothing listens there
+            REQUIRE_TRUE( 0 != settings.port );
             chat.SetIrcSettings( settings );
 
             MULTIPLAY::CPlayerIdentity identity;

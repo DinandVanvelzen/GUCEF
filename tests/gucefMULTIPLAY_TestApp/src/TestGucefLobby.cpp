@@ -138,6 +138,11 @@
 #define GUCEF_TEST_SOCKETS_H
 #endif /* GUCEF_TEST_SOCKETS_H ? */
 
+#ifndef GUCEF_TEST_UNIQUE_H
+#include "gucef_test_unique.h"
+#define GUCEF_TEST_UNIQUE_H
+#endif /* GUCEF_TEST_UNIQUE_H ? */
+
 #ifndef GUCEF_CORE_CIMONOTONICCLOCK_H
 #include "gucefCORE_CIMonotonicClock.h"
 #define GUCEF_CORE_CIMONOTONICCLOCK_H
@@ -201,9 +206,15 @@ using namespace GUCEF;
 //-------------------------------------------------------------------------*/
 
 static CORE::CString g_testAppExecutable;
-static UInt16 g_nextPort = 47930;
 
-static UInt16 NextPort( void ) { return g_nextPort++; }
+/** A TCP port that is free now, chosen by the system: a fixed number can be in use by another process of the host at any time */
+static UInt16 NextPort( void ) { return GUCEF::TESTFW::FindFreeTcpPort(); }
+
+/** A UDP port that is free now, chosen by the system */
+static UInt16 NextUdpPort( void ) { return GUCEF::TESTFW::FindFreeUdpPort(); }
+
+/** How often a server is started on another port when the one that was found free is taken before the server listens on it */
+static const UInt32 MaxListenAttempts = 8;
 
 static const char* Names[] = { "Alice", "Bob", "Carol", "Dave", "Erin" };
 static MULTIPLAY::CPlayerIdentity Identities[ 5 ];
@@ -575,8 +586,21 @@ class CGucefFixture
 
     bool StartServer( void )
     {
-        server.SetSettings( serverSettings );
-        return server.Start();
+        for ( UInt32 attempt=0; attempt<MaxListenAttempts; ++attempt )
+        {
+            server.SetSettings( serverSettings );
+            if ( server.Start() )
+                return true;
+            server.Stop();
+
+            // the port that was free a moment ago is taken: try other ones
+            serverPort = NextPort();
+            serverSettings.node.listenEndpoints.FromString( channelType + "://127.0.0.1:" + CORE::ToString( serverPort ) );
+            serverSettings.relayListen.FromString( channelType + "://127.0.0.1:" + CORE::ToString( NextPort() ) );
+            GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Test: The lobby server could not listen, attempt " << ( attempt + 1 ) << " of " << MaxListenAttempts
+                << ", trying port " << serverPort );
+        }
+        return false;
     }
 
     bool Connect( UInt32 index, const CORE::CString& password = CORE::CString::Empty )
@@ -1406,8 +1430,8 @@ PerformGucefLobbyTests( void )
             {
                 // The host runs the server in its process and advertises it on the LAN
                 CGucefFixture fixture;
-                UInt16 advertisePort = NextPort();
-                UInt16 browsePort = NextPort();
+                UInt16 advertisePort = NextUdpPort();
+                UInt16 browsePort = NextUdpPort();
                 fixture.serverSettings.rules.closeWhenHostLeaves = true;
                 fixture.serverSettings.advertiseOnLan = true;
                 CORE::CDataNode* client = fixture.serverSettings.advertiserConfig.AddChild( "DiscoveryClient", GUCEF_DATATYPE_OBJECT );
@@ -1492,8 +1516,8 @@ PerformGucefLobbyTests( void )
         {
             const int socketsBefore = GUCEF::TESTFW::CountOpenSockets();
             const UInt32 requestorsBefore = CORE::CCoreGlobal::Instance()->GetPulseGenerator()->GetNrOfPeriodicPulseRequestors();
-            const UInt16 advertisePort = NextPort();
-            const UInt16 browsePort = NextPort();
+            const UInt16 advertisePort = NextUdpPort();
+            const UInt16 browsePort = NextUdpPort();
 
             // the browsing side stays, as the browser of the player does: its discovery client is made once
             CORE::CDataNode providerConfig;
@@ -2014,18 +2038,30 @@ PerformGucefLobbyTests( void )
         GUCEF_TESTFW_SKIP_IF( !JsonCodecAvailable(), "The json codec plugin is not available" );
         try
         {
-            UInt16 port = NextPort();
+            UInt16 port = 0;
             CORE::CString workDir = CORE::CombinePath( CORE::RelativePath( "$CURWORKDIR$" ), "multiplaytemp" );
             CORE::CreateDirs( workDir );
             CORE::CString configPath = CORE::CombinePath( workDir, "gucefLOBBYSERVER.json" );
-            REQUIRE_TRUE( CORE::WriteStringAsTextFile( configPath,
-                "{ \"GucefLobbyServer\": { \"listen\": \"tcp://127.0.0.1:" + CORE::ToString( port ) + "\", \"maxLobbies\": 1, \"secondInMs\": 50,"
-                " \"Rules\": { \"minPlayers\": 1, \"countdownInSecs\": 1 } } }" ) );
 
             MULTIPLAY::CGucefLobbyServerApp app;
-            REQUIRE_TRUE( app.LoadConfigFile( configPath ) );
-            ASSERT_TRUE( 1 == app.GetServer().GetSettings().maxLobbies && 1 == app.GetServer().GetSettings().rules.minPlayers );
-            REQUIRE_TRUE( app.Start() );
+            bool started = false;
+            for ( UInt32 attempt=0; attempt<MaxListenAttempts && !started; ++attempt )
+            {
+                // the port is free now: if it is taken before the server listens on it, another one is tried
+                port = NextPort();
+                REQUIRE_TRUE( CORE::WriteStringAsTextFile( configPath,
+                    "{ \"GucefLobbyServer\": { \"listen\": \"tcp://127.0.0.1:" + CORE::ToString( port ) + "\", \"maxLobbies\": 1, \"secondInMs\": 50,"
+                    " \"Rules\": { \"minPlayers\": 1, \"countdownInSecs\": 1 } } }" ) );
+                REQUIRE_TRUE( app.LoadConfigFile( configPath ) );
+                ASSERT_TRUE( 1 == app.GetServer().GetSettings().maxLobbies && 1 == app.GetServer().GetSettings().rules.minPlayers );
+                started = app.Start();
+                if ( !started )
+                {
+                    app.Stop();
+                    GUCEF_ERROR_LOG( CORE::LOGLEVEL_NORMAL, "Test: The standalone lobby server could not listen on port " << port << ", attempt " << ( attempt + 1 ) << " of " << MaxListenAttempts );
+                }
+            }
+            REQUIRE_TRUE( started );
 
             CGucefFixture client;
             client.services[ 0 ] = MULTIPLAY::CMultiplayGlobal::Instance()->GetLobbyServiceFactory().Create( "gucef" );

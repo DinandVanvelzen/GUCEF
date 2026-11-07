@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -122,6 +122,7 @@ class GUCEF_MULTIPLAY_EXPORT_CPP CLobbyMember
     Int32 slot;                 /**< the index of the slot, -1 for none */
     Int32 latencyMs;            /**< -1 when unknown */
     UInt32 joinOrder;           /**< lower joined earlier: the boss passes to the longest present player */
+    CORE::CString statusText;   /**< a few words about where the member stands, for a lobby whose members answer slowly ("Invited", "Accepted", "Watching: ..."); empty for none */
 
     CLobbyMember( void );
 

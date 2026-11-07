@@ -1,20 +1,18 @@
 /*
  *  gucefMULTIPLAY_TestApp: Application for testing gucefMULTIPLAY
- *  Copyright (C) 2002 - 2026.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
- *  This library is free software; you can redistribute it and/or
- *  modify it under the terms of the GNU Lesser General Public
- *  License as published by the Free Software Foundation; either
- *  version 2.1 of the License, or (at your option) any later version.
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
- *  This library is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  Lesser General Public License for more details.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  You should have received a copy of the GNU Lesser General Public
- *  License along with this library; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 /*-------------------------------------------------------------------------//
@@ -289,6 +287,47 @@ PerformLobbyTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test: A duration setting is a whole number of minutes that is checked like a number, kept in the config and compared as a number" )
+        try
+        {
+            CORE::CString reason;
+            MULTIPLAY::CLobbySettingDef def;
+            def.key = "turnMinutes";
+            def.type = MULTIPLAY::CLobbySettingDef::TYPE_DURATION;
+            def.hasRange = true;
+            def.minValue = 0;
+            def.maxValue = 86400;
+            def.step = 1;
+            def.defaultValue = "720";
+            ASSERT_TRUE( def.IsValidValue( "0", reason ) && def.IsValidValue( "720", reason ) && def.IsValidValue( "7680", reason ) && def.IsValidValue( "86400", reason ) );
+            ASSERT_FALSE( def.IsValidValue( "86401", reason ) );
+            ASSERT_FALSE( def.IsValidValue( "-1", reason ) );
+            ASSERT_FALSE( def.IsValidValue( "12h", reason ) );
+            ASSERT_FALSE( def.IsValidValue( "1.5", reason ) );          // the resolution is one minute
+            ASSERT_FALSE( def.IsValidValue( "", reason ) );
+            ASSERT_TRUE( def.IsSameValue( "90", "90.0" ) && !def.IsSameValue( "90", "91" ) );
+            ASSERT_TRUE( CORE::CString( "duration" ) == MULTIPLAY::CLobbySettingDef::TypeToString( MULTIPLAY::CLobbySettingDef::TYPE_DURATION ) );
+            ASSERT_TRUE( MULTIPLAY::CLobbySettingDef::TYPE_DURATION == MULTIPLAY::CLobbySettingDef::StringToType( "Duration" ) );
+            ASSERT_TRUE( MULTIPLAY::CLobbySettingDef::TYPE_STRING == MULTIPLAY::CLobbySettingDef::StringToType( "durations" ) );
+
+            // the schema keeps the kind through its config
+            MULTIPLAY::CLobbyCreateParams params;
+            params.schema.AddSetting( def );
+            CORE::CDataNode config;
+            ASSERT_TRUE( params.SaveConfig( config ) );
+            MULTIPLAY::CLobbyCreateParams loaded;
+            ASSERT_TRUE( loaded.LoadConfig( config ) );
+            const MULTIPLAY::CLobbySettingDef* copy = loaded.schema.FindSetting( "turnMinutes" );
+            ASSERT_TRUE( GUCEF_NULL != copy );
+            if ( GUCEF_NULL != copy )
+                ASSERT_TRUE( MULTIPLAY::CLobbySettingDef::TYPE_DURATION == copy->type && copy->hasRange && 86400 == copy->maxValue && "720" == copy->defaultValue );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Test: A setting has a unit and can be gated by another setting; both survive the config and the JSON text, and the rules keep checking the value" )
         try
         {
@@ -490,6 +529,54 @@ PerformLobbyTests( void )
             rules.closeWhenHostLeaves = true;
             rules.ApplyLeave( lanState, "h", true, outcome );
             ASSERT_TRUE( outcome.lobbyClosed );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The default presentation of a lobby follows the role of the local member and the phase" )
+        try
+        {
+            CLobbyFixture fixture;
+            ASSERT_TRUE( fixture.Setup() );
+
+            // the boss of an open lobby starts it and manages it; a player votes to start; a spectator only watches and may leave
+            MULTIPLAY::CLobbyPresentation boss = fixture.alice->GetPresentation();
+            ASSERT_TRUE( boss.canStart && boss.canForceStart && !boss.canVoteStart && boss.canKick && boss.canBan && boss.canTransferBoss && boss.canManageSlots );
+            ASSERT_TRUE( boss.canReady && boss.canSpectate && boss.canLeave && boss.canChooseFaction && boss.canChooseColour && boss.canChooseSlot );
+            ASSERT_TRUE( boss.showLatency && boss.showFactionAndColour && boss.showVoteStart && !boss.showInvite && boss.settingsEditable && !boss.showBack );
+            ASSERT_TRUE( "Ready" == boss.readyText && "Leave" == boss.leaveText && "Force start" == boss.forceStartText && "Kick" == boss.kickText && boss.note.IsNULLOrEmpty() );
+
+            MULTIPLAY::CLobbyPresentation player = fixture.bob->GetPresentation();
+            ASSERT_TRUE( !player.canStart && !player.canForceStart && player.canVoteStart && !player.canKick && !player.canManageSlots );
+            ASSERT_TRUE( player.canReady && player.canSpectate && player.canLeave && player.canChooseFaction );
+
+            MULTIPLAY::CLobbyPresentation spectator = fixture.dave->GetPresentation();
+            ASSERT_TRUE( !spectator.canReady && !spectator.canVoteStart && !spectator.canStart && !spectator.canChooseFaction && spectator.canSpectate && spectator.canLeave );
+
+            // a lobby that does not invite by name says no
+            ASSERT_FALSE( fixture.alice->Invite( "Erin", "erin@example.org", CORE::CString::Empty ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
+    GUCEF_TESTFW_TESTCASE( "Test: The status text of a member survives a data tree" )
+        try
+        {
+            MULTIPLAY::CLobbyState state;
+            state.members.push_back( MakeMember( "a", MULTIPLAY::LOBBYMEMBERROLE_PLAYER, 0, 0 ) );
+            state.members[ 0 ].statusText = "Watching: cannot play the first turn";
+            state.members.push_back( MakeMember( "b", MULTIPLAY::LOBBYMEMBERROLE_PLAYER, 1, 1 ) );
+            CORE::CDataNode tree;
+            ASSERT_TRUE( state.Serialize( tree, CORE::CDataNodeSerializableSettings() ) );
+            MULTIPLAY::CLobbyState copy;
+            ASSERT_TRUE( copy.Deserialize( tree, CORE::CDataNodeSerializableSettings() ) );
+            ASSERT_TRUE( 2 == copy.members.size() && "Watching: cannot play the first turn" == copy.members[ 0 ].statusText && copy.members[ 1 ].statusText.IsNULLOrEmpty() );
         }
         catch ( ... )
         {

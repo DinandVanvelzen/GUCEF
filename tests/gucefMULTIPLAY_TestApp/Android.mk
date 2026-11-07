@@ -21,6 +21,7 @@ LOCAL_MODULE := gucefMULTIPLAY_TestApp
 @echo Module name: $(LOCAL_MODULE)
 
 LOCAL_SRC_FILES := \
+  src/TestAsyncLobby.cpp \
   src/TestAuthIdentity.cpp \
   src/TestGucefLobby.cpp \
   src/TestIdentity.cpp \
@@ -28,6 +29,12 @@ LOCAL_SRC_FILES := \
   src/TestListings.cpp \
   src/TestLobby.cpp \
   src/TestLobbyService.cpp \
+  src/TestMatchAlerts.cpp \
+  src/TestMatchBook.cpp \
+  src/TestMatchContainer.cpp \
+  src/TestMatchDecisions.cpp \
+  src/TestMatchDraft.cpp \
+  src/TestMatchModel.cpp \
   src/TestMemoryChannel.cpp \
   src/TestPassiveUrlServerListProvider.cpp \
   src/TestServerList.cpp \

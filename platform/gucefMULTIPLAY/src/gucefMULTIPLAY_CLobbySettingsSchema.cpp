@@ -1,7 +1,7 @@
 /*
  *  gucefMULTIPLAY: GUCEF module providing multiplayer RAD functionality
  *
- *  Copyright (C) 1998 - 2020.  Dinand Vanvelzen
+ *  Copyright (C) 1998 - 2026.  Dinand Vanvelzen
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ namespace MULTIPLAY {
 
 namespace {
 
-const char* TypeNames[] = { "bool", "int", "float", "enum", "string" };
+const char* TypeNames[] = { "bool", "int", "float", "enum", "string", "duration" };
 const char* PolicyNames[] = { "boss", "vote", "any", "owner" };
 
 /** Reads a number, false when there is anything else in the text */
@@ -65,11 +65,10 @@ ParseNumber( const CORE::CString& text, bool integer, Float64& number )
     const char* str = text.C_String();
     if ( text.IsNULLOrEmpty() )
         return false;
+    if ( !integer )
+        return CORE::TryParseFloat64Invariant( text, number );      // a decimal point whatever the locale of the C library is
     char* end = GUCEF_NULL;
-    if ( integer )
-        number = (Float64) strtol( str, &end, 10 );
-    else
-        number = strtod( str, &end );
+    number = (Float64) strtol( str, &end, 10 );
     return GUCEF_NULL != end && '\0' == *end && end != str;
 }
 
@@ -124,7 +123,7 @@ CLobbySettingDef::StringToType( const CORE::CString& type )
 {GUCEF_TRACE;
 
     CORE::CString lower = type.Lowercase();
-    for ( int i=0; i<5; ++i )
+    for ( int i=0; i<6; ++i )
         if ( lower == TypeNames[ i ] )
             return (TType) i;
     return TYPE_STRING;
@@ -158,10 +157,11 @@ CLobbySettingDef::IsValidValue( const CORE::CString& value, CORE::CString& reaso
             return false;
         }
         case TYPE_INT:
+        case TYPE_DURATION:
         case TYPE_FLOAT:
         {
             Float64 number = 0;
-            if ( !ParseNumber( value, TYPE_INT == type, number ) )
+            if ( !ParseNumber( value, TYPE_FLOAT != type, number ) )
             {
                 reason = "\"" + value + "\" is not a number for " + key;
                 return false;
@@ -206,6 +206,7 @@ CLobbySettingDef::IsSameValue( const CORE::CString& a, const CORE::CString& b ) 
         case TYPE_BOOL:
             return CORE::StringToBool( a, false ) == CORE::StringToBool( b, false );
         case TYPE_INT:
+        case TYPE_DURATION:
         case TYPE_FLOAT:
             return fabs( CORE::StringToDouble( a, 0.0 ) - CORE::StringToDouble( b, 0.0 ) ) < 1e-9;
         default:
