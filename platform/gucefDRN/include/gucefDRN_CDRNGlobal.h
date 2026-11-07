@@ -40,6 +40,11 @@
 #define GUCEF_DRN_CIDRNAUTHENTICATOR_H
 #endif /* GUCEF_DRN_CIDRNAUTHENTICATOR_H ? */
 
+#ifndef GUCEF_DRN_CDRNSESSIONREGISTRY_H
+#include "gucefDRN_CDRNSessionRegistry.h"
+#define GUCEF_DRN_CDRNSESSIONREGISTRY_H
+#endif /* GUCEF_DRN_CDRNSESSIONREGISTRY_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -56,9 +61,11 @@ namespace DRN {
 //-------------------------------------------------------------------------*/
 
 /**
- *  Global facilities of DRN: the factories of channels, channel listeners and authenticators, keyed by type name.
+ *  Global facilities of DRN: the factories of channels, channel listeners and authenticators, keyed by type name,
+ *  and the registry of the sessions an application makes known by name.
  *  The built in "tcp", "udp" and "websocket" channels and the "anonymous", "shared-secret" and "token"
- *  authenticators are registered here; plugins register more.
+ *  authenticators are registered here, plugins register more. The "drn" database backend (CDRNDatabaseClient) is
+ *  registered with the database client factory of gucefCOMCORE.
  */
 class GUCEF_DRN_EXPORT_CPP CDRNGlobal
 {
@@ -71,6 +78,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNGlobal
     CDRNChannelListenerFactory& GetChannelListenerFactory( void );
 
     CDRNAuthenticatorFactory& GetAuthenticatorFactory( void );
+
+    CDRNSessionRegistry& GetSessionRegistry( void );
 
     private:
 
@@ -93,6 +102,7 @@ class GUCEF_DRN_EXPORT_CPP CDRNGlobal
     CDRNChannelFactory* m_channelFactory;
     CDRNChannelListenerFactory* m_channelListenerFactory;
     CDRNAuthenticatorFactory* m_authenticatorFactory;
+    CDRNSessionRegistry* m_sessionRegistry;
 };
 
 /*-------------------------------------------------------------------------//

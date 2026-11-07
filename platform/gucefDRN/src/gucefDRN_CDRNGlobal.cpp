@@ -139,6 +139,11 @@
 #define GUCEF_DRN_CDRNBULKTRANSFER_H
 #endif /* GUCEF_DRN_CDRNBULKTRANSFER_H ? */
 
+#ifndef GUCEF_DRN_CDRNDATABASECLIENT_H
+#include "gucefDRN_CDRNDatabaseClient.h"
+#define GUCEF_DRN_CDRNDATABASECLIENT_H
+#endif /* GUCEF_DRN_CDRNDATABASECLIENT_H ? */
+
 #ifndef GUCEF_CORE_CTASKMANAGER_H
 #include "gucefCORE_CTaskManager.h"
 #define GUCEF_CORE_CTASKMANAGER_H
@@ -184,6 +189,7 @@ static TAnonymousAuthenticatorFactory g_anonymousAuthenticatorFactory;
 static TSharedSecretAuthenticatorFactory g_sharedSecretAuthenticatorFactory;
 static TTokenAuthenticatorFactory g_tokenAuthenticatorFactory;
 static CORE::CTFactory< CORE::CTaskConsumer, CDRNHashTaskConsumer, MT::CMutex > g_hashTaskConsumerFactory;
+static TDRNDatabaseClientFactory g_databaseClientFactory;
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -195,6 +201,7 @@ CDRNGlobal::CDRNGlobal( void )
     : m_channelFactory( GUCEF_NULL )
     , m_channelListenerFactory( GUCEF_NULL )
     , m_authenticatorFactory( GUCEF_NULL )
+    , m_sessionRegistry( GUCEF_NULL )
 {GUCEF_TRACE;
 
 }
@@ -242,6 +249,11 @@ CDRNGlobal::Initialize( void )
     m_authenticatorFactory->RegisterConcreteFactory( CDRNSharedSecretAuthenticator::MethodName, &g_sharedSecretAuthenticatorFactory );
     m_authenticatorFactory->RegisterConcreteFactory( CDRNTokenAuthenticator::MethodName, &g_tokenAuthenticatorFactory );
 
+    m_sessionRegistry = GUCEF_NEW CDRNSessionRegistry();
+
+    // the grids of a session as the tables of a database
+    COMCORE::CComCoreGlobal::Instance()->GetDatabaseClientFactory().RegisterConcreteFactory( CDRNDatabaseClient::BackendName, &g_databaseClientFactory );
+
     CORE::CCoreGlobal::Instance()->GetPluginControl().ListModuleForLinkBack( "gucefDRN" );
 }
 
@@ -254,6 +266,13 @@ CDRNGlobal::~CDRNGlobal()
 
     CORE::CCoreGlobal::Instance()->GetPluginControl().UnlistModuleForLinkBack( "gucefDRN" );
     CORE::CCoreGlobal::Instance()->GetTaskManager().UnregisterTaskConsumerFactory( CDRNHashTaskConsumer::TaskType );
+
+    COMCORE::CComCoreGlobal* comCoreGlobal = COMCORE::CComCoreGlobal::Instance();
+    if ( GUCEF_NULL != comCoreGlobal && comCoreGlobal->GetDatabaseClientFactory().IsConstructible( CDRNDatabaseClient::BackendName ) )
+        comCoreGlobal->GetDatabaseClientFactory().UnregisterConcreteFactory( CDRNDatabaseClient::BackendName );
+
+    GUCEF_DELETE m_sessionRegistry;
+    m_sessionRegistry = GUCEF_NULL;
 
     m_channelFactory->UnregisterAllConcreteFactories();
     GUCEF_DELETE m_channelFactory;
@@ -326,6 +345,15 @@ CDRNGlobal::GetAuthenticatorFactory( void )
 {GUCEF_TRACE;
 
     return *m_authenticatorFactory;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CDRNSessionRegistry&
+CDRNGlobal::GetSessionRegistry( void )
+{GUCEF_TRACE;
+
+    return *m_sessionRegistry;
 }
 
 /*-------------------------------------------------------------------------//

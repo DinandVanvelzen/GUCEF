@@ -25,8 +25,8 @@
 #include <stdlib.h>
 
 /*
- *  An address sanitizer brings its own malloc and does not get to set itself up when the allocation functions
- *  are replaced here, so with a sanitizer allocations are not counted
+ *  An address or thread sanitizer brings its own malloc and does not get to set itself up when the allocation
+ *  functions are replaced here, so with a sanitizer allocations are not counted
  */
 #if defined( __SANITIZE_ADDRESS__ )
   #define DRNTEST_ADDRESS_SANITIZER
@@ -36,7 +36,15 @@
   #endif
 #endif
 
-#if defined( __linux__ ) && defined( __GLIBC__ ) && !defined( DRNTEST_ADDRESS_SANITIZER )
+#if defined( __SANITIZE_THREAD__ )
+  #define DRNTEST_THREAD_SANITIZER
+#elif defined( __has_feature )
+  #if __has_feature( thread_sanitizer )
+    #define DRNTEST_THREAD_SANITIZER
+  #endif
+#endif
+
+#if defined( __linux__ ) && defined( __GLIBC__ ) && !defined( DRNTEST_ADDRESS_SANITIZER ) && !defined( DRNTEST_THREAD_SANITIZER )
   #include <pthread.h>
   #include <execinfo.h>
   #define DRNTEST_COUNT_ALLOCATIONS
@@ -120,6 +128,18 @@ namespace DRNTEST {
 /*-------------------------------------------------------------------------*/
 
 bool
+IsSanitizerBuild( void )
+{
+    #if defined( DRNTEST_ADDRESS_SANITIZER ) || defined( DRNTEST_THREAD_SANITIZER )
+    return true;
+    #else
+    return false;
+    #endif
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 IsAllocationCountingAvailable( void )
 {
     #ifdef DRNTEST_COUNT_ALLOCATIONS
@@ -136,8 +156,8 @@ GetAllocationCountingUnavailableReason( void )
 {
     #if defined( DRNTEST_COUNT_ALLOCATIONS )
     return "";
-    #elif defined( DRNTEST_ADDRESS_SANITIZER )
-    return "Allocations are not counted in an address sanitizer build, the sanitizer owns malloc";
+    #elif defined( DRNTEST_ADDRESS_SANITIZER ) || defined( DRNTEST_THREAD_SANITIZER )
+    return "Allocations are not counted in a sanitizer build, the sanitizer owns malloc";
     #else
     return "Allocations are only counted where the C library allows malloc to be replaced (glibc)";
     #endif

@@ -20,10 +20,14 @@ set( HEADER_FILES
   include/gucefDRN_CDRNConnector.h
   include/gucefDRN_CDRNCrypto.h
   include/gucefDRN_CDRNDataGrid.h
+  include/gucefDRN_CDRNDataGridPendingWrite.h
   include/gucefDRN_CDRNDataGridSettings.h
+  include/gucefDRN_CDRNDataGridTable.h
+  include/gucefDRN_CDRNDataGridTableSettings.h
   include/gucefDRN_CDRNDataItem.h
   include/gucefDRN_CDRNDataStream.h
   include/gucefDRN_CDRNDataStreamSettings.h
+  include/gucefDRN_CDRNDatabaseClient.h
   include/gucefDRN_CDRNEndpoint.h
   include/gucefDRN_CDRNEndpointList.h
   include/gucefDRN_CDRNGlobal.h
@@ -43,6 +47,7 @@ set( HEADER_FILES
   include/gucefDRN_CDRNSecurityPolicy.h
   include/gucefDRN_CDRNSession.h
   include/gucefDRN_CDRNSessionRecorder.h
+  include/gucefDRN_CDRNSessionRegistry.h
   include/gucefDRN_CDRNSessionSettings.h
   include/gucefDRN_CDRNSharedSecretAuthenticator.h
   include/gucefDRN_CDRNStreamFramer.h
@@ -81,10 +86,14 @@ set( SOURCE_FILES
   src/gucefDRN_CDRNConnector.cpp
   src/gucefDRN_CDRNCrypto.cpp
   src/gucefDRN_CDRNDataGrid.cpp
+  src/gucefDRN_CDRNDataGridPendingWrite.cpp
   src/gucefDRN_CDRNDataGridSettings.cpp
+  src/gucefDRN_CDRNDataGridTable.cpp
+  src/gucefDRN_CDRNDataGridTableSettings.cpp
   src/gucefDRN_CDRNDataItem.cpp
   src/gucefDRN_CDRNDataStream.cpp
   src/gucefDRN_CDRNDataStreamSettings.cpp
+  src/gucefDRN_CDRNDatabaseClient.cpp
   src/gucefDRN_CDRNEndpoint.cpp
   src/gucefDRN_CDRNEndpointList.cpp
   src/gucefDRN_CDRNGlobal.cpp
@@ -104,6 +113,7 @@ set( SOURCE_FILES
   src/gucefDRN_CDRNSecurityPolicy.cpp
   src/gucefDRN_CDRNSession.cpp
   src/gucefDRN_CDRNSessionRecorder.cpp
+  src/gucefDRN_CDRNSessionRegistry.cpp
   src/gucefDRN_CDRNSessionSettings.cpp
   src/gucefDRN_CDRNSharedSecretAuthenticator.cpp
   src/gucefDRN_CDRNStreamFramer.cpp

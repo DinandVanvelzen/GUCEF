@@ -60,6 +60,8 @@
 #include "TestDRNRelay.h"
 #include "TestDRNSecurity.h"
 #include "TestDRNEncryption.h"
+#include "TestDRNDataTables.h"
+#include "TestDRNDataTablePerformance.h"
 
 /*-------------------------------------------------------------------------//
 //                                                                         //
@@ -115,9 +117,9 @@ GUCEF_OSMAIN_BEGIN
         GUCEF_TESTFW_INIT( "gucefDRN_TestApp" );
         GUCEF_TESTFW_SET_CALLBACK( DRNTestEventCallback, GUCEF_NULL );
 
-        // the suites to run can be named on the command line: wire, links, handshake, sessions, replication, relay, security, encryption (default all)
+        // the suites to run can be named on the command line: wire, links, handshake, sessions, replication, relay, security, encryption, tables, tableperf (default all)
         bool runAll = argc < 2;
-        bool runWire = runAll, runLinks = runAll, runHandshake = runAll, runSessions = runAll, runReplication = runAll, runRelay = runAll, runSecurity = runAll, runEncryption = runAll;
+        bool runWire = runAll, runLinks = runAll, runHandshake = runAll, runSessions = runAll, runReplication = runAll, runRelay = runAll, runSecurity = runAll, runEncryption = runAll, runTables = runAll, runTablePerformance = runAll;
         for ( int i=1; i<argc; ++i )
         {
             CORE::CString arg = argv[ i ];
@@ -129,6 +131,8 @@ GUCEF_OSMAIN_BEGIN
             runRelay = runRelay || arg == "relay";
             runSecurity = runSecurity || arg == "security";
             runEncryption = runEncryption || arg == "encryption";
+            runTables = runTables || arg == "tables";
+            runTablePerformance = runTablePerformance || arg == "tableperf";
         }
 
         if ( runWire )
@@ -147,6 +151,10 @@ GUCEF_OSMAIN_BEGIN
             PerformDRNSecurityTests();
         if ( runEncryption )
             PerformDRNEncryptionTests();
+        if ( runTables )
+            PerformDRNDataTableTests();
+        if ( runTablePerformance )
+            PerformDRNDataTablePerformanceTests();
 
         CORE::CLogStreamScope::FlushLogs();
 

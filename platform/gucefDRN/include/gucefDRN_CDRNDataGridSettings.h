@@ -30,6 +30,11 @@
 #define GUCEF_CORE_CICONFIGURABLE_H
 #endif /* GUCEF_CORE_CICONFIGURABLE_H ? */
 
+#ifndef GUCEF_CORE_DATATABLETYPES_H
+#include "gucefCORE_DataTableTypes.h"
+#define GUCEF_CORE_DATATABLETYPES_H
+#endif /* GUCEF_CORE_DATATABLETYPES_H ? */
+
 #ifndef GUCEF_DRN_CDRNVARIANTCODEC_H
 #include "gucefDRN_CDRNVariantCodec.h"
 #define GUCEF_DRN_CDRNVARIANTCODEC_H
@@ -107,6 +112,8 @@ class GUCEF_DRN_EXPORT_CPP CDRNDataGridSettings : public CORE::CIConfigurable
     Float32 priority;                       /**< share of a short budget, relative to the other items */
     bool snapshotOnSubscribe;
     CDRNVotePolicy votePolicy;
+    CORE::TDataTableLogicalType keyType;    /**< metadata for a table over the grid (CDRNDataGridTable), never used by the grid or sent: DATATABLE_TYPE_UNSUPPORTED = not declared */
+    CORE::TDataTableLogicalType valueType;  /**< same, for the values */
 
     CDRNDataGridSettings( void );
     CDRNDataGridSettings( const CDRNDataGridSettings& src );

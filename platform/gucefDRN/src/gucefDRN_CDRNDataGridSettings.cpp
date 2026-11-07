@@ -69,6 +69,8 @@ CDRNDataGridSettings::CDRNDataGridSettings( void )
     , priority( 1.0f )
     , snapshotOnSubscribe( true )
     , votePolicy()
+    , keyType( CORE::DATATABLE_TYPE_UNSUPPORTED )
+    , valueType( CORE::DATATABLE_TYPE_UNSUPPORTED )
 {GUCEF_TRACE;
 
 }
@@ -91,6 +93,8 @@ CDRNDataGridSettings::CDRNDataGridSettings( const CDRNDataGridSettings& src )
     , priority( src.priority )
     , snapshotOnSubscribe( src.snapshotOnSubscribe )
     , votePolicy( src.votePolicy )
+    , keyType( src.keyType )
+    , valueType( src.valueType )
 {GUCEF_TRACE;
 
 }
@@ -125,6 +129,8 @@ CDRNDataGridSettings::operator=( const CDRNDataGridSettings& src )
         priority = src.priority;
         snapshotOnSubscribe = src.snapshotOnSubscribe;
         votePolicy = src.votePolicy;
+        keyType = src.keyType;
+        valueType = src.valueType;
     }
     return *this;
 }
@@ -252,6 +258,10 @@ CDRNDataGridSettings::SaveConfig( CORE::CDataNode& cfg ) const
     totalSuccess = cfg.SetAttribute( "notify", NotifyModeToString( notify ) ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "priority", priority ) && totalSuccess;
     totalSuccess = cfg.SetAttribute( "snapshotOnSubscribe", snapshotOnSubscribe ) && totalSuccess;
+    if ( CORE::DATATABLE_TYPE_UNSUPPORTED != keyType )
+        totalSuccess = cfg.SetAttribute( "keyType", CORE::CString( CORE::DataTableLogicalTypeToString( keyType ) ) ) && totalSuccess;
+    if ( CORE::DATATABLE_TYPE_UNSUPPORTED != valueType )
+        totalSuccess = cfg.SetAttribute( "valueType", CORE::CString( CORE::DataTableLogicalTypeToString( valueType ) ) ) && totalSuccess;
 
     for ( UInt32 i=0; i<reliableKeys.size(); ++i )
         totalSuccess = GUCEF_NULL != cfg.AddChildWithValue( "ReliableKey", reliableKeys[ i ] ) && totalSuccess;
@@ -291,6 +301,10 @@ CDRNDataGridSettings::LoadConfig( const CORE::CDataNode& cfg )
     notify = StringToNotifyMode( cfg.GetAttributeValueOrChildValueByName( "notify" ).AsString( NotifyModeToString( notify ), true ), notify );
     priority = cfg.GetAttributeValueOrChildValueByName( "priority" ).AsFloat32( priority, true );
     snapshotOnSubscribe = cfg.GetAttributeValueOrChildValueByName( "snapshotOnSubscribe" ).AsBool( snapshotOnSubscribe, true );
+    keyType = CORE::DATATABLE_TYPE_UNSUPPORTED;
+    valueType = CORE::DATATABLE_TYPE_UNSUPPORTED;
+    CORE::DataTableLogicalTypeFromString( cfg.GetAttributeValueOrChildValueByName( "keyType" ).AsString( CORE::CString::Empty, true ), keyType );
+    CORE::DataTableLogicalTypeFromString( cfg.GetAttributeValueOrChildValueByName( "valueType" ).AsString( CORE::CString::Empty, true ), valueType );
 
     reliableKeys.clear();
     quantisation.clear();

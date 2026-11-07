@@ -16,7 +16,11 @@
 if (LINUX32)
   set( PLATFORM_HEADER_FILES 
     include/TestDRNAllocationCounter.h
+    include/TestDRNDataTablePerformance.h
+    include/TestDRNDataTables.h
     include/TestDRNEncryption.h
+    include/TestDRNGridBenchmark.h
+    include/TestDRNGroup.h
     include/TestDRNHandshake.h
     include/TestDRNLinks.h
     include/TestDRNLossyChannel.h
@@ -25,6 +29,7 @@ if (LINUX32)
     include/TestDRNReplication.h
     include/TestDRNSecurity.h
     include/TestDRNSessions.h
+    include/TestDRNTableScanThread.h
     include/TestDRNTestUtils.h
     include/TestDRNWire.h
   )
@@ -34,7 +39,10 @@ if (LINUX32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestDRNAllocationCounter.cpp
+    src/TestDRNDataTablePerformance.cpp
+    src/TestDRNDataTables.cpp
     src/TestDRNEncryption.cpp
+    src/TestDRNGridBenchmark.cpp
     src/TestDRNHandshake.cpp
     src/TestDRNLinks.cpp
     src/TestDRNLossyChannel.cpp
@@ -54,7 +62,11 @@ if (LINUX32)
 elseif (LINUX64)
   set( PLATFORM_HEADER_FILES 
     include/TestDRNAllocationCounter.h
+    include/TestDRNDataTablePerformance.h
+    include/TestDRNDataTables.h
     include/TestDRNEncryption.h
+    include/TestDRNGridBenchmark.h
+    include/TestDRNGroup.h
     include/TestDRNHandshake.h
     include/TestDRNLinks.h
     include/TestDRNLossyChannel.h
@@ -63,6 +75,7 @@ elseif (LINUX64)
     include/TestDRNReplication.h
     include/TestDRNSecurity.h
     include/TestDRNSessions.h
+    include/TestDRNTableScanThread.h
     include/TestDRNTestUtils.h
     include/TestDRNWire.h
   )
@@ -72,7 +85,10 @@ elseif (LINUX64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestDRNAllocationCounter.cpp
+    src/TestDRNDataTablePerformance.cpp
+    src/TestDRNDataTables.cpp
     src/TestDRNEncryption.cpp
+    src/TestDRNGridBenchmark.cpp
     src/TestDRNHandshake.cpp
     src/TestDRNLinks.cpp
     src/TestDRNLossyChannel.cpp
@@ -92,7 +108,11 @@ elseif (LINUX64)
 elseif (WIN32)
   set( PLATFORM_HEADER_FILES 
     include/TestDRNAllocationCounter.h
+    include/TestDRNDataTablePerformance.h
+    include/TestDRNDataTables.h
     include/TestDRNEncryption.h
+    include/TestDRNGridBenchmark.h
+    include/TestDRNGroup.h
     include/TestDRNHandshake.h
     include/TestDRNLinks.h
     include/TestDRNLossyChannel.h
@@ -101,6 +121,7 @@ elseif (WIN32)
     include/TestDRNReplication.h
     include/TestDRNSecurity.h
     include/TestDRNSessions.h
+    include/TestDRNTableScanThread.h
     include/TestDRNTestUtils.h
     include/TestDRNWire.h
   )
@@ -110,7 +131,10 @@ elseif (WIN32)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestDRNAllocationCounter.cpp
+    src/TestDRNDataTablePerformance.cpp
+    src/TestDRNDataTables.cpp
     src/TestDRNEncryption.cpp
+    src/TestDRNGridBenchmark.cpp
     src/TestDRNHandshake.cpp
     src/TestDRNLinks.cpp
     src/TestDRNLossyChannel.cpp
@@ -130,7 +154,11 @@ elseif (WIN32)
 elseif (WIN64)
   set( PLATFORM_HEADER_FILES 
     include/TestDRNAllocationCounter.h
+    include/TestDRNDataTablePerformance.h
+    include/TestDRNDataTables.h
     include/TestDRNEncryption.h
+    include/TestDRNGridBenchmark.h
+    include/TestDRNGroup.h
     include/TestDRNHandshake.h
     include/TestDRNLinks.h
     include/TestDRNLossyChannel.h
@@ -139,6 +167,7 @@ elseif (WIN64)
     include/TestDRNReplication.h
     include/TestDRNSecurity.h
     include/TestDRNSessions.h
+    include/TestDRNTableScanThread.h
     include/TestDRNTestUtils.h
     include/TestDRNWire.h
   )
@@ -148,7 +177,10 @@ elseif (WIN64)
 
   set( PLATFORM_SOURCE_FILES 
     src/TestDRNAllocationCounter.cpp
+    src/TestDRNDataTablePerformance.cpp
+    src/TestDRNDataTables.cpp
     src/TestDRNEncryption.cpp
+    src/TestDRNGridBenchmark.cpp
     src/TestDRNHandshake.cpp
     src/TestDRNLinks.cpp
     src/TestDRNLossyChannel.cpp

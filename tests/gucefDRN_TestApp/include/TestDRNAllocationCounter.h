@@ -44,6 +44,9 @@ namespace DRNTEST {
  */
 bool IsAllocationCountingAvailable( void );
 
+/** True in a build with an address or thread sanitizer, where timings say nothing about the code */
+bool IsSanitizerBuild( void );
+
 /** Why allocations are not counted in this build, empty when they are */
 const char* GetAllocationCountingUnavailableReason( void );
 

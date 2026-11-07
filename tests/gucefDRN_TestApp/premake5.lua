@@ -103,7 +103,11 @@ configuration( { "LINUX32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/TestDRNAllocationCounter.h",
+      "include/TestDRNDataTablePerformance.h",
+      "include/TestDRNDataTables.h",
       "include/TestDRNEncryption.h",
+      "include/TestDRNGridBenchmark.h",
+      "include/TestDRNGroup.h",
       "include/TestDRNHandshake.h",
       "include/TestDRNLinks.h",
       "include/TestDRNLossyChannel.h",
@@ -112,6 +116,7 @@ configuration( { "LINUX32" } )
       "include/TestDRNReplication.h",
       "include/TestDRNSecurity.h",
       "include/TestDRNSessions.h",
+      "include/TestDRNTableScanThread.h",
       "include/TestDRNTestUtils.h",
       "include/TestDRNWire.h"
     } )
@@ -119,7 +124,10 @@ configuration( { "LINUX32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestDRNAllocationCounter.cpp",
+      "src/TestDRNDataTablePerformance.cpp",
+      "src/TestDRNDataTables.cpp",
       "src/TestDRNEncryption.cpp",
+      "src/TestDRNGridBenchmark.cpp",
       "src/TestDRNHandshake.cpp",
       "src/TestDRNLinks.cpp",
       "src/TestDRNLossyChannel.cpp",
@@ -139,7 +147,11 @@ configuration( { "LINUX64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/TestDRNAllocationCounter.h",
+      "include/TestDRNDataTablePerformance.h",
+      "include/TestDRNDataTables.h",
       "include/TestDRNEncryption.h",
+      "include/TestDRNGridBenchmark.h",
+      "include/TestDRNGroup.h",
       "include/TestDRNHandshake.h",
       "include/TestDRNLinks.h",
       "include/TestDRNLossyChannel.h",
@@ -148,6 +160,7 @@ configuration( { "LINUX64" } )
       "include/TestDRNReplication.h",
       "include/TestDRNSecurity.h",
       "include/TestDRNSessions.h",
+      "include/TestDRNTableScanThread.h",
       "include/TestDRNTestUtils.h",
       "include/TestDRNWire.h"
     } )
@@ -155,7 +168,10 @@ configuration( { "LINUX64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestDRNAllocationCounter.cpp",
+      "src/TestDRNDataTablePerformance.cpp",
+      "src/TestDRNDataTables.cpp",
       "src/TestDRNEncryption.cpp",
+      "src/TestDRNGridBenchmark.cpp",
       "src/TestDRNHandshake.cpp",
       "src/TestDRNLinks.cpp",
       "src/TestDRNLossyChannel.cpp",
@@ -175,7 +191,11 @@ configuration( { "WIN32" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/TestDRNAllocationCounter.h",
+      "include/TestDRNDataTablePerformance.h",
+      "include/TestDRNDataTables.h",
       "include/TestDRNEncryption.h",
+      "include/TestDRNGridBenchmark.h",
+      "include/TestDRNGroup.h",
       "include/TestDRNHandshake.h",
       "include/TestDRNLinks.h",
       "include/TestDRNLossyChannel.h",
@@ -184,6 +204,7 @@ configuration( { "WIN32" } )
       "include/TestDRNReplication.h",
       "include/TestDRNSecurity.h",
       "include/TestDRNSessions.h",
+      "include/TestDRNTableScanThread.h",
       "include/TestDRNTestUtils.h",
       "include/TestDRNWire.h"
     } )
@@ -191,7 +212,10 @@ configuration( { "WIN32" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestDRNAllocationCounter.cpp",
+      "src/TestDRNDataTablePerformance.cpp",
+      "src/TestDRNDataTables.cpp",
       "src/TestDRNEncryption.cpp",
+      "src/TestDRNGridBenchmark.cpp",
       "src/TestDRNHandshake.cpp",
       "src/TestDRNLinks.cpp",
       "src/TestDRNLossyChannel.cpp",
@@ -211,7 +235,11 @@ configuration( { "WIN64" } )
     vpaths { ["Platform Headers"] = { "**.h", "**.hpp", "**.hxx" } }
     files( {
       "include/TestDRNAllocationCounter.h",
+      "include/TestDRNDataTablePerformance.h",
+      "include/TestDRNDataTables.h",
       "include/TestDRNEncryption.h",
+      "include/TestDRNGridBenchmark.h",
+      "include/TestDRNGroup.h",
       "include/TestDRNHandshake.h",
       "include/TestDRNLinks.h",
       "include/TestDRNLossyChannel.h",
@@ -220,6 +248,7 @@ configuration( { "WIN64" } )
       "include/TestDRNReplication.h",
       "include/TestDRNSecurity.h",
       "include/TestDRNSessions.h",
+      "include/TestDRNTableScanThread.h",
       "include/TestDRNTestUtils.h",
       "include/TestDRNWire.h"
     } )
@@ -227,7 +256,10 @@ configuration( { "WIN64" } )
     vpaths { ["Platform Source"] = { "**.c", "**.cpp", "**.cs", "**.asm" } }
     files( {
       "src/TestDRNAllocationCounter.cpp",
+      "src/TestDRNDataTablePerformance.cpp",
+      "src/TestDRNDataTables.cpp",
       "src/TestDRNEncryption.cpp",
+      "src/TestDRNGridBenchmark.cpp",
       "src/TestDRNHandshake.cpp",
       "src/TestDRNLinks.cpp",
       "src/TestDRNLossyChannel.cpp",

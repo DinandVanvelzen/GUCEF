@@ -30,10 +30,14 @@ LOCAL_SRC_FILES := \
   src/gucefDRN_CDRNConnector.cpp \
   src/gucefDRN_CDRNCrypto.cpp \
   src/gucefDRN_CDRNDataGrid.cpp \
+  src/gucefDRN_CDRNDataGridPendingWrite.cpp \
   src/gucefDRN_CDRNDataGridSettings.cpp \
+  src/gucefDRN_CDRNDataGridTable.cpp \
+  src/gucefDRN_CDRNDataGridTableSettings.cpp \
   src/gucefDRN_CDRNDataItem.cpp \
   src/gucefDRN_CDRNDataStream.cpp \
   src/gucefDRN_CDRNDataStreamSettings.cpp \
+  src/gucefDRN_CDRNDatabaseClient.cpp \
   src/gucefDRN_CDRNEndpoint.cpp \
   src/gucefDRN_CDRNEndpointList.cpp \
   src/gucefDRN_CDRNGlobal.cpp \
@@ -53,6 +57,7 @@ LOCAL_SRC_FILES := \
   src/gucefDRN_CDRNSecurityPolicy.cpp \
   src/gucefDRN_CDRNSession.cpp \
   src/gucefDRN_CDRNSessionRecorder.cpp \
+  src/gucefDRN_CDRNSessionRegistry.cpp \
   src/gucefDRN_CDRNSessionSettings.cpp \
   src/gucefDRN_CDRNSharedSecretAuthenticator.cpp \
   src/gucefDRN_CDRNStreamFramer.cpp \
