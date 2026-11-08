@@ -152,14 +152,11 @@ CIPv4Info::TrySetFromCIDRNotationString( const CString& cidrIpv4Str )
                 CString cidrBlockStr = cidrIpv4Str.SubstrToIndex( lastCpIndex+1, false );
                 if ( !cidrBlockStr.IsNULLOrEmpty() )
                 {
-                    Int32 cidrBlockSize = CORE::StringToUInt32( cidrBlockStr, -1 );
-                    if ( cidrBlockSize == 0 )
-                        return true;
-                    if ( cidrBlockSize > 0 )
+                    Int32 cidrBlockSize = (Int32) CORE::StringToUInt32( cidrBlockStr, 33 );
+                    if ( cidrBlockSize >= 0 && cidrBlockSize <= 32 )
                     {
-                        UInt32 subnetMask = CIPv4Address::CidrToSubnetMask( cidrBlockSize );
-                        unsigned int subnetAddressInNetworkOrder = ip.GetAddress() & subnetMask;
-                        subnet.SetAddress( subnetAddressInNetworkOrder );
+                        // the mask, which CidrToSubnetMask() gives in host byte order
+                        subnet.SetAddressInHostByteOrder( CIPv4Address::CidrToSubnetMask( cidrBlockSize ) );
                         return true;
                     }
                 }
@@ -169,6 +166,16 @@ CIPv4Info::TrySetFromCIDRNotationString( const CString& cidrIpv4Str )
 
     Clear();
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CIPv4Info::Contains( const CIPv4Address& address ) const
+{GUCEF_TRACE;
+
+    const UInt32 mask = subnet.GetAddressInHostByteOrder();
+    return ( address.GetAddressInHostByteOrder() & mask ) == ( ip.GetAddressInHostByteOrder() & mask );
 }
 
 /*-------------------------------------------------------------------------//

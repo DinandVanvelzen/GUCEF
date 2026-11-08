@@ -65,6 +65,11 @@
 
 #include "CTCPServerSocket.h"           /* this file's header */
 
+#ifndef GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H
+#include "gucefCOMCORE_CTlsProviderRegistry.h"
+#define GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H
+#endif /* GUCEF_COMCORE_CTLSPROVIDERREGISTRY_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -147,6 +152,8 @@ CTCPServerSocket::CTCPServerSocket( const CORE::PulseGeneratorPtr& pulseGenerato
     , m_useReadinessWake( false )
     , m_readinessWaiter()
     , m_readinessId( 0 )
+    , m_tlsSettings()
+    , m_tlsProvider()
 {GUCEF_TRACE;
 
     _data = GUCEF_NEW TTCPServerSockData;
@@ -188,6 +195,8 @@ CTCPServerSocket::CTCPServerSocket( bool blocking         ,
     , m_useReadinessWake( false )
     , m_readinessWaiter()
     , m_readinessId( 0 )
+    , m_tlsSettings()
+    , m_tlsProvider()
 {GUCEF_TRACE;
 
     _data = GUCEF_NEW TTCPServerSockData;
@@ -546,6 +555,25 @@ CTCPServerSocket::AcceptClient( void )
                         return false;
                     }
                     clientcon->_blocking = _blocking;
+
+                    // The TLS of the client: a session that cannot be made ends the connection, the client is never served without it
+                    TTlsSessionPtr tlsSession;
+                    if ( !m_tlsProvider.IsNULL() )
+                    {
+                        CTlsError tlsError;
+                        tlsSession = m_tlsProvider->CreateServerSession( m_tlsSettings, tlsError );
+                        if ( tlsSession.IsNULL() || !tlsSession->Start() )
+                        {
+                            GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CTCPServerSocket: TLS cannot be used for the client " + clientcon->GetRemoteIP().AddressAndPortAsString() +
+                                             ", closing its connection: " + ( tlsSession.IsNULL() ? tlsError.message : tlsSession->GetError().message ) );
+                            int closeError = 0;
+                            dvsocket_closesocket( clientcon->_data->sockid, &closeError );
+                            clientcon->_data->sockid = 0;
+                            return true;
+                        }
+                    }
+                    clientcon->BeginTls( tlsSession, m_tlsSettings.GetHandshakeTimeoutInMs() );
+
                     clientcon->SetUserData( GUCEF_NULL );     // whoever handled the previous client is done with this object
                     if ( !_blocking )
                     {
@@ -590,6 +618,68 @@ CTCPServerSocket::AcceptClient( void )
         }
     }
     return false;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPServerSocket::PrepareTls( void )
+{GUCEF_TRACE;
+
+    m_tlsProvider = TITlsProviderPtr();
+
+    CORE::CString whyNot;
+    TITlsProviderPtr provider = CComCoreGlobal::Instance()->GetTlsProviderRegistry().GetBestAvailable( TLSCAP_SERVER, whyNot );
+    if ( provider.IsNULL() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CTCPServerSocket: No TLS provider with a server side is available: " + whyNot +
+                         ". Install the OpenSSL runtime of the system (for example the package libssl3)" );
+        return false;
+    }
+
+    // Reads the certificate and key: a mistake in them shows now and not at the first client
+    CTlsError error;
+    TTlsSessionPtr probe = provider->CreateServerSession( m_tlsSettings, error );
+    if ( probe.IsNULL() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CTCPServerSocket: The TLS certificate or key cannot be used: " + error.message );
+        return false;
+    }
+
+    m_tlsProvider = provider;
+    GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "CTCPServerSocket: TLS with the certificate \"" + m_tlsSettings.GetCertificateChainPath() + "\" through " + provider->GetProviderName() + " " + provider->GetVersionInfo() );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPServerSocket::SetTlsSettings( const CTlsServerSettings& settings )
+{GUCEF_TRACE;
+
+    m_tlsSettings = settings;
+    m_tlsProvider = TITlsProviderPtr();
+    if ( !m_tlsSettings.IsEnabled() )
+        return true;
+    return PrepareTls();
+}
+
+/*-------------------------------------------------------------------------*/
+
+const CTlsServerSettings&
+CTCPServerSocket::GetTlsSettings( void ) const
+{GUCEF_TRACE;
+
+    return m_tlsSettings;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPServerSocket::IsTlsEnabled( void ) const
+{GUCEF_TRACE;
+
+    return m_tlsSettings.IsEnabled() && !m_tlsProvider.IsNULL();
 }
 
 /*-------------------------------------------------------------------------*/
@@ -651,6 +741,14 @@ CTCPServerSocket::ListenOnPort( UInt16 servport )
     if ( !m_bindAddressValid )
     {
         GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CTCPServerSocket: The bind address is not a dotted IPv4 address, not listening" );
+        NotifyObservers( ServerSocketErrorEvent );
+        return false;
+    }
+
+    // TLS that was asked for and cannot be used is not turned into listening without it
+    if ( m_tlsSettings.IsEnabled() && m_tlsProvider.IsNULL() && !PrepareTls() )
+    {
+        GUCEF_ERROR_LOG( CORE::LOGLEVEL_IMPORTANT, "CTCPServerSocket: TLS was asked for and cannot be used, not listening" );
         NotifyObservers( ServerSocketErrorEvent );
         return false;
     }

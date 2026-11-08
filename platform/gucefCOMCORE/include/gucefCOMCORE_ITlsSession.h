@@ -73,6 +73,7 @@ namespace COMCORE {
  *    Start(); PullCiphertext() -> send;
  *    on data from the socket: PushCiphertext(); PullCiphertext() -> send; PullPlaintext() -> application;
  *    on data from the application, once ESTABLISHED: PushPlaintext(); PullCiphertext() -> send.
+ *  A server does the same, its Start() produces nothing: the client speaks first.
  */
 class GUCEF_COMCORE_EXPORT_CPP ITlsSession
 {
@@ -80,7 +81,7 @@ class GUCEF_COMCORE_EXPORT_CPP ITlsSession
 
     virtual ~ITlsSession();
 
-    /** Client: makes the first handshake message available to PullCiphertext(). @return false if the session cannot start, see GetError() */
+    /** Client: makes the first handshake message available to PullCiphertext(). Server: waits for that of the client. @return false if the session cannot start, see GetError() */
     virtual bool Start( void ) = 0;
 
     /**

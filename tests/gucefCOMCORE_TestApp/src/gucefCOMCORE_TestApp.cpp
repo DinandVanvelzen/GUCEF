@@ -63,6 +63,7 @@
 #include "TestCode_Discovery.h"
 #include "TestCode_TlsLayer.h"
 #include "TestCode_TlsOpenSsl.h"
+#include "TestCode_TlsServer.h"
 #include "TestDatabaseClient.h"
 #include "TestRpcContract.h"
 #include "TestRpcCodec.h"
@@ -139,6 +140,7 @@ GUCEF_OSMAIN_BEGIN
         RUN_SUITE( PerformDiscoveryTests );
         RUN_SUITE( PerformTlsLayerTests );
         RUN_SUITE( PerformTlsOpenSslTests );
+        RUN_SUITE( PerformTlsServerTests );
         RUN_SUITE( PerformNetworkServiceInterfaceTests );
         RUN_SUITE( PerformDatabaseClientTests );
         RUN_SUITE( PerformRpcCodecTests );

@@ -66,6 +66,8 @@ namespace COMCORE {
  *  Policy: TLS 1.2 or newer, security level 2, no compression, no renegotiation, certificate verification against
  *  SSL_CERT_FILE / SSL_CERT_DIR or the system bundle (and the CA of the settings), names matched against the
  *  subject alternative names only, ALPN, SNI and in-memory session resumption.
+ *  The server side (TLSCAP_SERVER) has the same versions and options, presents the certificate and key of its
+ *  settings, selects ALPN and does not ask clients for certificates.
  */
 class GUCEF_COMCORE_EXPORT_CPP COpenSslTlsProvider : public ITlsProvider
 {
@@ -110,6 +112,9 @@ class GUCEF_COMCORE_EXPORT_CPP COpenSslTlsProvider : public ITlsProvider
     virtual TTlsSessionPtr CreateClientSession( const CTlsSettings& settings    ,
                                                 const CORE::CString& serverName ,
                                                 CTlsError& error                ) GUCEF_VIRTUAL_OVERRIDE;
+
+    virtual TTlsSessionPtr CreateServerSession( const CTlsServerSettings& settings ,
+                                                CTlsError& error                   ) GUCEF_VIRTUAL_OVERRIDE;
 
     /** Test hook: the unix time the certificates are checked at, 0 for the clock. Never part of the settings of an application */
     void SetVerificationTimeForTesting( Int64 unixTime );

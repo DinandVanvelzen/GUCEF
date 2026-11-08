@@ -117,6 +117,7 @@ set( HEADER_FILES
   include/gucefCOMCORE_CTRpcMethodHandler.h
   include/gucefCOMCORE_CTlsClientConnection.h
   include/gucefCOMCORE_CTlsProviderRegistry.h
+  include/gucefCOMCORE_CTlsServerSettings.h
   include/gucefCOMCORE_CTlsSettings.h
   include/gucefCOMCORE_ETypes.h
   include/gucefCOMCORE_ITlsProvider.h
@@ -234,6 +235,7 @@ set( SOURCE_FILES
   src/gucefCOMCORE_CSocketReadinessWaiter.cpp
   src/gucefCOMCORE_CTlsClientConnection.cpp
   src/gucefCOMCORE_CTlsProviderRegistry.cpp
+  src/gucefCOMCORE_CTlsServerSettings.cpp
   src/gucefCOMCORE_CTlsSettings.cpp
   src/gucefCOMCORE_ITlsProvider.cpp
   src/gucefCOMCORE_ITlsSession.cpp

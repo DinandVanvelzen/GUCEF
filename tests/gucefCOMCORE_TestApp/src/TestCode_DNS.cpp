@@ -94,6 +94,43 @@ PerformDNSTests( void )
         }
     GUCEF_TESTFW_TESTCASE_END
 
+    GUCEF_TESTFW_TESTCASE( "Test: CIDR notation gives the address and the subnet mask, and tells which addresses are in the network" )
+        try
+        {
+            CIPv4Info lan;
+            ASSERT_TRUE( lan.TrySetFromCIDRNotationString( "172.16.1.0/24" ) );
+            ASSERT_TRUE( lan.ip.AddressAsString() == "172.16.1.0" );
+            ASSERT_TRUE( lan.subnet.AddressAsString() == "255.255.255.0" );
+            ASSERT_TRUE( lan.Contains( CIPv4Address( "172.16.1.125", 0 ) ) );
+            ASSERT_TRUE( lan.Contains( CIPv4Address( "172.16.1.0", 0 ) ) && lan.Contains( CIPv4Address( "172.16.1.255", 0 ) ) );
+            ASSERT_FALSE( lan.Contains( CIPv4Address( "172.16.0.125", 0 ) ) );
+            ASSERT_FALSE( lan.Contains( CIPv4Address( "10.0.0.1", 0 ) ) );
+
+            CIPv4Info wide;
+            ASSERT_TRUE( wide.TrySetFromCIDRNotationString( "172.16.0.0/23" ) );
+            ASSERT_TRUE( wide.subnet.AddressAsString() == "255.255.254.0" );
+            ASSERT_TRUE( wide.Contains( CIPv4Address( "172.16.0.7", 0 ) ) && wide.Contains( CIPv4Address( "172.16.1.7", 0 ) ) );
+            ASSERT_FALSE( wide.Contains( CIPv4Address( "172.16.2.7", 0 ) ) );
+
+            CIPv4Info host;
+            ASSERT_TRUE( host.TrySetFromCIDRNotationString( "192.168.5.9/32" ) );
+            ASSERT_TRUE( host.Contains( CIPv4Address( "192.168.5.9", 0 ) ) && !host.Contains( CIPv4Address( "192.168.5.8", 0 ) ) );
+
+            CIPv4Info all;
+            ASSERT_TRUE( all.TrySetFromCIDRNotationString( "0.0.0.0/0" ) );
+            ASSERT_TRUE( all.Contains( CIPv4Address( "8.8.8.8", 0 ) ) );
+
+            CIPv4Info refused;
+            ASSERT_FALSE( refused.TrySetFromCIDRNotationString( "172.16.1.0" ) );
+            ASSERT_FALSE( refused.TrySetFromCIDRNotationString( "172.16.1.0/33" ) );
+            ASSERT_FALSE( refused.TrySetFromCIDRNotationString( "172.16.1.0/x" ) );
+        }
+        catch ( ... )
+        {
+            ERRORHERE;
+        }
+    GUCEF_TESTFW_TESTCASE_END
+
     GUCEF_TESTFW_TESTCASE( "Test: The DNS cache resolves names" )
         try
         {

@@ -288,7 +288,11 @@ COpenSslTlsProvider::GetCapabilities( void ) const
 
     UInt32 caps = TLSCAP_ALPN | TLSCAP_RESUMPTION | TLSCAP_CUSTOM_TRUST;
     if ( Probe() )
+    {
         caps |= TLSCAP_TLS13;
+        if ( m_shared->api.HasServerSide() )
+            caps |= TLSCAP_SERVER;
+    }
     return caps;
 }
 
@@ -321,6 +325,34 @@ COpenSslTlsProvider::CreateClientSession( const CTlsSettings& settings    ,
     }
 
     COpenSslTlsProviderSession* session = GUCEF_NEW COpenSslTlsProviderSession( m_shared, settings, serverName );
+    TTlsSessionPtr sessionPtr( session );
+    if ( !session->Initialize( error ) )
+        return TTlsSessionPtr();
+    return sessionPtr;
+}
+
+/*-------------------------------------------------------------------------*/
+
+TTlsSessionPtr
+COpenSslTlsProvider::CreateServerSession( const CTlsServerSettings& settings ,
+                                          CTlsError& error                   )
+{GUCEF_TRACE;
+
+    error.Clear();
+    if ( !Probe() )
+    {
+        CORE::CString whyNot;
+        IsAvailable( whyNot );
+        error = CTlsError( TLSERR_NO_PROVIDER, whyNot );
+        return TTlsSessionPtr();
+    }
+    if ( !settings.IsEnabled() )
+    {
+        error = CTlsError( TLSERR_SETTINGS, "a TLS server needs a certificate file and a private key file" );
+        return TTlsSessionPtr();
+    }
+
+    COpenSslTlsProviderSession* session = GUCEF_NEW COpenSslTlsProviderSession( m_shared, settings );
     TTlsSessionPtr sessionPtr( session );
     if ( !session->Initialize( error ) )
         return TTlsSessionPtr();

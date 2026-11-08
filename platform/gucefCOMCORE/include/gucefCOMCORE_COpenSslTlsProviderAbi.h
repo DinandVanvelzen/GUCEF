@@ -94,6 +94,18 @@ static const long OSSL_SSL_SESS_CACHE_NO_INTERNAL_STORE = 0x0200L;
 static const UInt64 OSSL_SSL_OP_NO_COMPRESSION = 0x00020000ULL;
 static const UInt64 OSSL_SSL_OP_NO_RENEGOTIATION = 0x40000000ULL;
 
+/* SSL_CTX_use_PrivateKey_file */
+static const int OSSL_SSL_FILETYPE_PEM = 1;
+
+/* the reason code of an alert of the peer in the error queue is this plus the number of the alert */
+static const int OSSL_SSL_AD_REASON_OFFSET = 1000;
+static const int OSSL_SSL_AD_PROTOCOL_VERSION = 70;
+
+/* results of the ALPN selection callback of a server */
+static const int OSSL_SSL_TLSEXT_ERR_OK = 0;
+static const int OSSL_SSL_TLSEXT_ERR_ALERT_FATAL = 2;
+static const int OSSL_SSL_TLSEXT_ERR_NOACK = 3;
+
 /* SSL_CTX_set_verify */
 static const int OSSL_SSL_VERIFY_NONE = 0;
 static const int OSSL_SSL_VERIFY_PEER = 1;
@@ -223,6 +235,14 @@ struct GUCEF_COMCORE_EXPORT_CPP SOpenSslApi
     // libssl, optional
     int ( *SSL_SESSION_is_resumable )( const void* session );
 
+    // libssl, the server side: optional, HasServerSide() says whether they are all there
+    const void* ( *TLS_server_method )( void );
+    void ( *SSL_set_accept_state )( void* ssl );
+    int ( *SSL_CTX_use_certificate_chain_file )( void* ctx, const char* file );
+    int ( *SSL_CTX_use_PrivateKey_file )( void* ctx, const char* file, int type );
+    int ( *SSL_CTX_check_private_key )( const void* ctx );
+    void ( *SSL_CTX_set_alpn_select_cb )( void* ctx, int ( *callback )( void* ssl, const unsigned char** out, unsigned char* outLength, const unsigned char* in, unsigned int inLength, void* arg ), void* arg );
+
     /**
      *  The peer certificate: SSL_get1_peer_certificate of 3.x, or SSL_get_peer_certificate of 1.1.1 which returns
      *  the same, a certificate the caller has to X509_free()
@@ -240,6 +260,9 @@ struct GUCEF_COMCORE_EXPORT_CPP SOpenSslApi
     void* cryptoHandle;
 
     SOpenSslApi( void );
+
+    /** Whether the entry points of the server side were found */
+    bool HasServerSide( void ) const;
 
     /** Sets the options of a context the way the loaded version declares the function. @return the options now set */
     UInt64 SetOptions( void* ctx, UInt64 options ) const;

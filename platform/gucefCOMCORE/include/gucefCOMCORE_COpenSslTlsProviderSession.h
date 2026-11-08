@@ -35,6 +35,11 @@
 #define GUCEF_COMCORE_CTLSSETTINGS_H
 #endif /* GUCEF_COMCORE_CTLSSETTINGS_H ? */
 
+#ifndef GUCEF_COMCORE_CTLSSERVERSETTINGS_H
+#include "gucefCOMCORE_CTlsServerSettings.h"
+#define GUCEF_COMCORE_CTLSSERVERSETTINGS_H
+#endif /* GUCEF_COMCORE_CTLSSERVERSETTINGS_H ? */
+
 #ifndef GUCEF_COMCORE_COPENSSLTLSPROVIDERABI_H
 #include "gucefCOMCORE_COpenSslTlsProviderAbi.h"
 #define GUCEF_COMCORE_COPENSSLTLSPROVIDERABI_H
@@ -84,6 +89,13 @@ class GUCEF_COMCORE_EXPORT_CPP COpenSslTlsProviderState
      */
     void* AcquireContext( const CTlsSettings& settings, CTlsError& error );
 
+    /**
+     *  The context of a server for the settings: its certificate, key and ALPN. Made when it is first needed and made
+     *  again when the certificate or key file changed; sessions that are open keep the context they were made with.
+     *  @return NULL with the error set when the files cannot be used
+     */
+    void* AcquireServerContext( const CTlsServerSettings& settings, CTlsError& error );
+
     /** What identifies the context for the settings: the key of the settings and what the trust of the system takes from the environment (SSL_CERT_FILE, SSL_CERT_DIR) */
     static CORE::CString GetContextKey( const CTlsSettings& settings );
 
@@ -97,8 +109,11 @@ class GUCEF_COMCORE_EXPORT_CPP COpenSslTlsProviderState
 
     UInt32 GetResumableSessionCount( void );
 
-    /** The text of the error queue of the calling thread (empties it), the entries joined with " | " */
-    CORE::CString CollectErrors( void ) const;
+    /**
+     *  The text of the error queue of the calling thread (empties it), the entries joined with " | ".
+     *  firstReason, when given, gets the reason code of the first entry (ERR_GET_REASON), 0 when there is none
+     */
+    CORE::CString CollectErrors( int* firstReason = GUCEF_NULL ) const;
 
     private:
 
@@ -106,6 +121,8 @@ class GUCEF_COMCORE_EXPORT_CPP COpenSslTlsProviderState
     COpenSslTlsProviderState& operator=( const COpenSslTlsProviderState& src );
 
     void* CreateContext( const CTlsSettings& settings, CTlsError& error );
+    void* CreateServerContext( const CTlsServerSettings& settings, CTlsError& error );
+    static CORE::CString GetFileStamp( const CORE::CString& path );
     bool LoadSystemTrust( void* ctx, CTlsError& error );
 
     private:
@@ -117,6 +134,17 @@ class GUCEF_COMCORE_EXPORT_CPP COpenSslTlsProviderState
     TVoidPtrMap m_contexts;
     TVoidPtrMap m_resumable;
     TStringVector m_resumableOrder;     /**< oldest first */
+
+    struct SServerContext
+    {
+        CORE::CString fileStamp;        /**< modification time and size of the certificate and key files the context was made from */
+        void* ctx;
+    };
+    typedef GUCEF::map< CORE::CString, SServerContext > TServerContextMap;
+    typedef GUCEF::vector< CORE::CDynamicBuffer* > TBufferPtrVector;
+
+    TServerContextMap m_serverContexts;
+    TBufferPtrVector m_alpnLists;       /**< the ALPN lists of the server contexts in wire format, the argument of their selection callback: kept as long as this object */
 };
 
 typedef CORE::CTSharedPtr< COpenSslTlsProviderState, MT::CMutex > TOpenSslStatePtr;
@@ -124,8 +152,8 @@ typedef CORE::CTSharedPtr< COpenSslTlsProviderState, MT::CMutex > TOpenSslStateP
 /*-------------------------------------------------------------------------*/
 
 /**
- *  A client connection of the OpenSSL provider: the SSL object with two memory BIOs, ciphertext in and out
- *  through them, so it works for any segmentation of the stream and never touches a socket.
+ *  A connection of the OpenSSL provider, the client or the server side: the SSL object with two memory BIOs,
+ *  ciphertext in and out through them, so it works for any segmentation of the stream and never touches a socket.
  */
 class GUCEF_COMCORE_EXPORT_CPP COpenSslTlsProviderSession : public ITlsSession
 {
@@ -134,6 +162,10 @@ class GUCEF_COMCORE_EXPORT_CPP COpenSslTlsProviderSession : public ITlsSession
     COpenSslTlsProviderSession( const TOpenSslStatePtr& state       ,
                                 const CTlsSettings& settings        ,
                                 const CORE::CString& serverName     );
+
+    /** The server side of a connection a client made */
+    COpenSslTlsProviderSession( const TOpenSslStatePtr& state       ,
+                                const CTlsServerSettings& settings  );
 
     virtual ~COpenSslTlsProviderSession() GUCEF_VIRTUAL_OVERRIDE;
 
@@ -175,6 +207,8 @@ class GUCEF_COMCORE_EXPORT_CPP COpenSslTlsProviderSession : public ITlsSession
 
     TOpenSslStatePtr m_shared;
     CTlsSettings m_settings;
+    CTlsServerSettings m_serverSettings;
+    bool m_isServer;
     CORE::CString m_serverName;
     CORE::CString m_contextKey;
     bool m_isIpAddress;

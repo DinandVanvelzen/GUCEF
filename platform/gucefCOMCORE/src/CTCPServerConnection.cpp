@@ -26,6 +26,11 @@
 
 #include "CTCPServerSocket.h"           /* parent server socket */
 
+#ifndef GUCEF_MT_DVMTOSWRAP_H
+#include "gucefMT_dvmtoswrap.h"
+#define GUCEF_MT_DVMTOSWRAP_H
+#endif /* GUCEF_MT_DVMTOSWRAP_H ? */
+
 #ifndef GUCEF_COMCORE_SOCKETUTILS_H
 #include "socketutils.h"
 #define GUCEF_COMCORE_SOCKETUTILS_H
@@ -109,6 +114,12 @@ CTCPServerConnection::CTCPServerConnection( CTCPServerSocket *tcp_serversock ,
     , m_closeToCompleteNotify( false )
     , m_closeBeingTold( false )
     , m_lockDepth( 0 )
+    , m_tlsSession()
+    , m_tlsHandshakeDeadline( 0 )
+    , m_tlsEstablished( false )
+    , m_tlsCipherOut()
+    , m_tlsPlainIn()
+    , m_tlsPendingPlain()
 {GUCEF_TRACE;
 
     _data = GUCEF_NEW TTCPServerConData;
@@ -240,6 +251,9 @@ CTCPServerConnection::CloseImp( bool byUser                ,
     bool closed = false;
     if ( _active )
     {
+        // the close notification of TLS goes before the socket is closed
+        SendTlsCloseNotify();
+
         // the waiter must not wait on a descriptor number the system may hand to the next socket
         UnregisterFromReadinessWake();
 
@@ -254,6 +268,11 @@ CTCPServerConnection::CloseImp( bool byUser                ,
 		    m_readbuffer.Clear( false );
 		    m_sendBuffer.Clear( false );
 		    m_sendOpBuffer.Clear( false );
+
+            m_tlsSession = TTlsSessionPtr();
+            m_tlsEstablished = false;
+            m_tlsHandshakeDeadline = 0;
+            m_tlsPendingPlain.Clear( false );
         }
         else
         {
@@ -368,6 +387,68 @@ CTCPServerConnection::Send( const CORE::CDynamicBuffer& content )
 /*-------------------------------------------------------------------------*/
 
 bool
+CTCPServerConnection::SendRawLocked( const void* dataSource ,
+                                     UInt32 length          ,
+                                     int& socketError       )
+{GUCEF_TRACE;
+
+    socketError = 0;
+
+    // Check if we still have data queued to be sent,..
+    // TCP has to be in-order so we will have to queue the new data behind the already queued data
+    if ( m_sendBuffer.HasBufferedData() )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Delaying sending of data because there is still data queued to be send from the previous send" );
+        m_sendBuffer.Write( dataSource, 1, length );
+        ArmReadinessWake();
+        return true;
+    }
+
+    // We will try looping until we have transmitted all the data
+    int error = 0;
+    UInt32 totalBytesSent = 0;
+    Int32 wbytes;
+    while ( totalBytesSent < length )
+    {
+        // perform a send, trying to send as much of the given data as possible
+        Int32 remnant = length - totalBytesSent;
+        wbytes = dvsocket_send( _data->sockid                                    ,
+                                ((const Int8*)dataSource)+totalBytesSent         ,
+                                remnant                                          ,
+                                0                                                ,
+                                &error                                           );
+        if ( wbytes != SOCKET_ERROR )
+        {
+            // we where able to send at least some of the data
+            totalBytesSent += wbytes;
+            m_bytesTransmitted += wbytes;
+
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Succeeded in sending " << wbytes << " bytes of data" );
+        }
+        else
+        {
+            // Socket error,..
+            // Check if we have to delay sending the data
+            if ( DVSOCKET_EWOULDBLOCK == error && !_blocking )
+            {
+                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Delaying sending of data" );
+                m_sendBuffer.Write( ((const Int8*)dataSource)+totalBytesSent, 1, remnant );
+
+                // The remainder is queued, it will be sent when the socket can take more data.
+                // Without leaving the loop the same remainder would be queued again on every iteration
+                ArmReadinessWake();
+                break;
+            }
+            socketError = error;
+            return false;
+        }
+    }
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 CTCPServerConnection::Send( const void* dataSource ,
                             const UInt32 length    )
 {GUCEF_TRACE;
@@ -392,66 +473,46 @@ CTCPServerConnection::Send( const void* dataSource ,
         TDataRecievedEventData cData( &linkedBuffer );
         if ( !NotifyObservers( DataSentEvent, &cData ) ) return false;
 
-        // Check if we still have data queued to be sent,..
-        // TCP has to be in-order so we will have to queue the new data behind the already queued data
-        if ( m_sendBuffer.HasBufferedData() )
+        int error = 0;
+        bool sent = true;
+        if ( m_tlsSession.IsNULL() )
         {
-            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Delaying sending of data because there is still data queued to be send from the previous send" );
-            m_sendBuffer.Write( dataSource, 1, length );
-            ArmReadinessWake();
-            Unlock();
-            return true;
+            sent = SendRawLocked( dataSource, length, error );
         }
-
-        // We will try looping until we have transmitted all the data
-        int error;
-        UInt32 totalBytesSent = 0;
-        Int32 wbytes;
-        while ( totalBytesSent < length )
+        else
+        if ( m_tlsEstablished && TLSSTATE_ESTABLISHED == m_tlsSession->GetState() )
         {
-            // perform a send, trying to send as much of the given data as possible
-            Int32 remnant = length - totalBytesSent;
-            wbytes = dvsocket_send( _data->sockid                      ,
-                                    ((Int8*)dataSource)+totalBytesSent ,
-                                    remnant                            ,
-                                    0                                  ,
-                                    &error                             );
-            if ( wbytes != SOCKET_ERROR )
+            if ( TLSSTATE_ESTABLISHED != m_tlsSession->PushPlaintext( dataSource, length ) )
             {
-                // we where able to send at least some of the data
-                totalBytesSent += wbytes;
-                m_bytesTransmitted += wbytes;
-
-                GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Succeeded in sending " << wbytes << " bytes of data" );
+                GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): TLS cannot encrypt the data for " + GetRemoteIP().AddressAndPortAsString() + ": " + m_tlsSession->GetError().message );
+                Unlock();
+                return false;
             }
-            else
-            {
-                // Socket error,..
-                // Check if we have to delay sending the data
-                if ( DVSOCKET_EWOULDBLOCK == error && !_blocking )
-                {
-                    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Delaying sending of data" );
-                    m_sendBuffer.Write( ((Int8*)dataSource)+totalBytesSent, 1, remnant );
-
-                    // The remainder is queued, it will be sent when the socket can take more data.
-                    // Without leaving the loop the same remainder would be queued again on every iteration
-                    ArmReadinessWake();
-                    break;
-                }
-                else
-                {
-                    Unlock();
-
-                    GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): Socket error occured: " + CORE::Int32ToString( error ) );
-
-                    TSocketErrorEventData eData( error );
-                    NotifyObservers( SocketErrorEvent, &eData );
-                    return false;
-                }
-            }
+            sent = FlushTlsOutputLocked( error );
+        }
+        else
+        if ( !m_tlsEstablished && ( TLSSTATE_HANDSHAKING == m_tlsSession->GetState() || TLSSTATE_IDLE == m_tlsSession->GetState() ) )
+        {
+            // sent once the handshake completed
+            m_tlsPendingPlain.Append( dataSource, length );
+        }
+        else
+        {
+            // the TLS of the connection failed or was closed
+            Unlock();
+            return false;
         }
 
         Unlock();
+
+        if ( !sent )
+        {
+            GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): Socket error occured: " + CORE::Int32ToString( error ) );
+
+            TSocketErrorEventData eData( error );
+            NotifyObservers( SocketErrorEvent, &eData );
+            return false;
+        }
         return true;
     }
 
@@ -539,7 +600,8 @@ CTCPServerConnection::CheckRecieveBuffer( void )
     UInt32 totalrecieved( 0 );
     int errorcode;
     UInt32 readblocksize;
-    m_maxreadbytes ? readblocksize = m_maxreadbytes : readblocksize = 1024;
+    // a TLS record holds up to 16 KiB
+    m_maxreadbytes ? readblocksize = m_maxreadbytes : readblocksize = ( m_tlsSession.IsNULL() ? 1024 : 16384 );
     do
     {
         m_readbuffer.SetDataSize( m_readbuffer.GetDataSize()+readblocksize );
@@ -605,12 +667,167 @@ CTCPServerConnection::CheckRecieveBuffer( void )
         m_bytesReceived += totalrecieved;
 
         GUCEF_DEBUG_LOG( CORE::LOGLEVEL_EVERYTHING, "CTCPServerConnection(" << CORE::PointerToString( this ) << "): Received " << totalrecieved << " bytes of data" );
+
+        if ( !m_tlsSession.IsNULL() )
+            return ProcessTlsInput();
+
         TDataRecievedEventData eData( &m_readbuffer );
 
         // false means this object was deleted by one of the observers, we must not touch it anymore
         return NotifyObservers( DataRecievedEvent, &eData );
     }
     return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTCPServerConnection::BeginTls( const TTlsSessionPtr& session, UInt32 handshakeTimeoutInMs )
+{GUCEF_TRACE;
+
+    Lock();
+    m_tlsSession = session;
+    m_tlsEstablished = false;
+    m_tlsPendingPlain.Clear( false );
+    m_tlsHandshakeDeadline = 0;
+    if ( !session.IsNULL() && 0 != handshakeTimeoutInMs )
+        m_tlsHandshakeDeadline = MT::PrecisionTickCount() + ( (UInt64) handshakeTimeoutInMs * MT::PrecisionTimerResolution() ) / 1000;
+    Unlock();
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPServerConnection::FlushTlsOutputLocked( int& socketError )
+{GUCEF_TRACE;
+
+    socketError = 0;
+    if ( m_tlsSession.IsNULL() )
+        return true;
+
+    m_tlsCipherOut.SetDataSize( 0 );
+    if ( !m_tlsSession->PullCiphertext( m_tlsCipherOut ) || 0 == m_tlsCipherOut.GetDataSize() )
+        return true;
+    return SendRawLocked( m_tlsCipherOut.GetConstBufferPtr(), m_tlsCipherOut.GetDataSize(), socketError );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void
+CTCPServerConnection::SendTlsCloseNotify( void )
+{GUCEF_TRACE;
+
+    if ( m_tlsSession.IsNULL() || !m_tlsEstablished )
+        return;
+
+    m_tlsSession->InitiateClose();
+    int socketError = 0;
+    FlushTlsOutputLocked( socketError );
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPServerConnection::ProcessTlsInput( void )
+{GUCEF_TRACE;
+
+    ETlsState state = m_tlsSession->PushCiphertext( m_readbuffer.GetConstBufferPtr(), m_readbuffer.GetDataSize() );
+
+    // the answer of the session: the handshake, alerts, tickets
+    int socketError = 0;
+    if ( !FlushTlsOutputLocked( socketError ) )
+    {
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): Socket error occured: " + CORE::Int32ToString( socketError ) );
+        TSocketErrorEventData eData( socketError );
+        if ( !NotifyObservers( SocketErrorEvent, &eData ) )
+            return false;
+        CloseImp( true, false, true, false );
+        return true;
+    }
+
+    if ( TLSSTATE_FAILED == state )
+    {
+        // a client that does not speak TLS, or that refused the certificate: nothing it sent is delivered
+        GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): TLS with the client " + GetRemoteIP().AddressAndPortAsString() +
+                   " failed (" + TlsErrorClassToString( m_tlsSession->GetError().errorClass ) + "): " + m_tlsSession->GetError().message );
+        CloseImp( true, false, true, true );
+        return true;
+    }
+
+    // the handshake completed: the session reports what was negotiated from then on
+    if ( !m_tlsEstablished && !m_tlsSession->GetInfo().protocolVersion.IsNULLOrEmpty() )
+    {
+        m_tlsEstablished = true;
+        GUCEF_DEBUG_LOG( CORE::LOGLEVEL_BELOW_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): TLS with the client " + GetRemoteIP().AddressAndPortAsString() + ": " + m_tlsSession->GetInfo().GetSummary() );
+
+        if ( m_tlsPendingPlain.GetDataSize() > 0 && TLSSTATE_ESTABLISHED == state )
+        {
+            m_tlsSession->PushPlaintext( m_tlsPendingPlain.GetConstBufferPtr(), m_tlsPendingPlain.GetDataSize() );
+            m_tlsPendingPlain.Clear( false );
+            if ( !FlushTlsOutputLocked( socketError ) )
+            {
+                TSocketErrorEventData eData( socketError );
+                if ( !NotifyObservers( SocketErrorEvent, &eData ) )
+                    return false;
+                CloseImp( true, false, true, false );
+                return true;
+            }
+        }
+    }
+
+    m_tlsPlainIn.SetDataSize( 0 );
+    if ( m_tlsSession->PullPlaintext( m_tlsPlainIn ) && m_tlsPlainIn.GetDataSize() > 0 )
+    {
+        TDataRecievedEventData eData( &m_tlsPlainIn );
+
+        // false means this object was deleted by one of the observers, we must not touch it anymore
+        if ( !NotifyObservers( DataRecievedEvent, &eData ) )
+            return false;
+    }
+
+    // An observer may have closed the connection, which ends its session. The close notification of the client, or
+    // one during the handshake, is answered and ends the connection
+    if ( _active && !m_tlsSession.IsNULL() && TLSSTATE_CLOSED == m_tlsSession->GetState() )
+        CloseImp( true, false, true, true );
+    return true;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPServerConnection::IsTls( void ) const
+{GUCEF_TRACE;
+
+    Lock();
+    bool isTls = !m_tlsSession.IsNULL();
+    Unlock();
+    return isTls;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
+CTCPServerConnection::IsTlsEstablished( void ) const
+{GUCEF_TRACE;
+
+    Lock();
+    bool established = !m_tlsSession.IsNULL() && m_tlsEstablished;
+    Unlock();
+    return established;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CTlsSessionInfo
+CTCPServerConnection::GetTlsSessionInfo( void ) const
+{GUCEF_TRACE;
+
+    CTlsSessionInfo info;
+    Lock();
+    if ( !m_tlsSession.IsNULL() && m_tlsEstablished )
+        info = m_tlsSession->GetInfo();
+    Unlock();
+    return info;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -707,6 +924,14 @@ CTCPServerConnection::Update( UInt32 maxUpdatesPerCycle )
         FD_ZERO( &exceptfds );
 
         Lock();
+
+        // a client that connected and did not complete the TLS handshake in time
+        if ( !m_tlsSession.IsNULL() && !m_tlsEstablished && 0 != m_tlsHandshakeDeadline && MT::PrecisionTickCount() > m_tlsHandshakeDeadline )
+        {
+            GUCEF_LOG( CORE::LOGLEVEL_NORMAL, "CTCPServerConnection(" + CORE::PointerToString( this ) + "): The client " + GetRemoteIP().AddressAndPortAsString() + " did not complete the TLS handshake in time, closing the connection" );
+            CloseImp( true, false, true, true );
+            return UnlockAndCompleteClose();
+        }
 
         FD_SET( _data->sockid, &readfds );
         FD_SET( _data->sockid, &exceptfds );

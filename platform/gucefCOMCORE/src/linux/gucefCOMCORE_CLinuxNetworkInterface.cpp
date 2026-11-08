@@ -890,6 +890,10 @@ CLinuxNetworkInterface::EnumNetworkAdapters( TINetworkInterfacePtrVector& interf
 
             nic->FillExtraInfoFromConfig( networkConfigDiscoveryCache );
 
+            // the address in use, also when no configuration file lists it (DHCP, addresses set by other tools)
+            if ( 0 != nic->m_curIpAddr.ip.GetAddress() )
+                nic->m_ipv4Addresses.insert( nic->m_curIpAddr );
+
             interfaces.push_back( nic.StaticCast< CINetworkInterface >() );
 
         }

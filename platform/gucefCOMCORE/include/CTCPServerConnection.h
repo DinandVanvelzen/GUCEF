@@ -50,6 +50,11 @@
 #define GUCEF_COMCORE_CSOCKETREADINESSWAITER_H
 #endif /* GUCEF_COMCORE_CSOCKETREADINESSWAITER_H ? */
 
+#ifndef GUCEF_COMCORE_ITLSSESSION_H
+#include "gucefCOMCORE_ITlsSession.h"
+#define GUCEF_COMCORE_ITLSSESSION_H
+#endif /* GUCEF_COMCORE_ITLSSESSION_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -203,6 +208,15 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerConnection : public CTCPConnection
     void SetMaxIdleDurationInMs( UInt32 maxIdleTimeInMs );
 
     UInt32 GetMaxIdleDurationInMs( void ) const;
+
+    /** Whether the connection is protected by TLS: the server socket has TLS settings */
+    bool IsTls( void ) const;
+
+    /** Whether the TLS handshake completed. False for a connection without TLS */
+    bool IsTlsEstablished( void ) const;
+
+    /** What was negotiated, empty without TLS or before the handshake completed */
+    CTlsSessionInfo GetTlsSessionInfo( void ) const;
     
     protected:
     friend class CTCPServerSocket;
@@ -262,6 +276,25 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerConnection : public CTCPConnection
     /** Under the lock, before the descriptor is closed */
     void UnregisterFromReadinessWake( void );
 
+    /** Before the connection is made active: the session of the server side, started. With a NULL session the connection is plain */
+    void BeginTls( const TTlsSessionPtr& session, UInt32 handshakeTimeoutInMs );
+
+    /** Under the lock: sends bytes to the socket as they are, queueing what it cannot take now. @return false on a socket error, its code in socketError */
+    bool SendRawLocked( const void* data, UInt32 length, int& socketError );
+
+    /** Under the lock: sends what the TLS session produced for the peer. @return false on a socket error */
+    bool FlushTlsOutputLocked( int& socketError );
+
+    /**
+     *  Under the lock: gives what was read from the socket to the TLS session, sends its answer, delivers the plaintext
+     *  (DataRecievedEvent) and closes the connection when the session failed or the peer closed it
+     *  @return false if this object was deleted as a result of notifying observers, if so it must not be touched anymore
+     */
+    bool ProcessTlsInput( void );
+
+    /** Under the lock, before the descriptor is closed: the close notification for the peer, best effort */
+    void SendTlsCloseNotify( void );
+
     void
     OnIdleTimerTriggered( CORE::CNotifier* notifier    ,
                           const CORE::CEvent& eventId  ,
@@ -296,6 +329,12 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerConnection : public CTCPConnection
     bool m_closeToCompleteNotify;
     MT::CTAtomic< bool > m_closeBeingTold;  /**< closed, its observers and the server socket are being told: not handed to a later client yet */
     mutable UInt32 m_lockDepth;             /**< how often the thread that holds _datalock holds it, used by that thread only */
+    TTlsSessionPtr m_tlsSession;            /**< the TLS of the client, NULL for a plain connection. Used under the lock */
+    UInt64 m_tlsHandshakeDeadline;          /**< precision ticks by which the handshake has to be complete */
+    bool m_tlsEstablished;
+    CORE::CDynamicBuffer m_tlsCipherOut;    /**< what the session produced for the peer, reused for every flush */
+    CORE::CDynamicBuffer m_tlsPlainIn;      /**< what the session decrypted, reused for every delivery */
+    CORE::CDynamicBuffer m_tlsPendingPlain; /**< what was sent before the handshake completed */
 
     CTCPServerConnection( void ); /* private default constructor because we need data */                             
 };

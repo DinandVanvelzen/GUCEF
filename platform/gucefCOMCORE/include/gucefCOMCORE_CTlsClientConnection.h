@@ -187,6 +187,9 @@ class GUCEF_COMCORE_EXPORT_CPP CTlsClientConnection : public CTCPConnection
 
     void SetMaxUpdatesPerCycle( UInt32 maxUpdates );
 
+    /** See CTCPClientSocket::SetUseReadinessWake(): before ConnectTo() */
+    void SetUseReadinessWake( bool useReadinessWake );
+
     virtual const CORE::CString& GetClassTypeName( void ) const GUCEF_VIRTUAL_OVERRIDE;
 
     private:

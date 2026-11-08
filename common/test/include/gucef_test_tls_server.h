@@ -210,7 +210,41 @@ class CTlsTestCerts
         args.push_back( "-extfile" ); args.push_back( ext );
         for ( size_t i=0; i<validity.size(); ++i )
             args.push_back( validity[ i ] );
+        if ( Run( args ) )
+            return true;
+
+        // x509 of OpenSSL before 3.4 has no -not_before and -not_after: the ca command sets the dates there
+        if ( validity.size() == 4 && validity[ 0 ] == "-not_before" )
+            return SignWithDates( csr, ext, crt, authority, validity[ 1 ], validity[ 3 ] );
+        return false;
+    }
+
+    /** Signs the request with the authority for the given dates, with the ca command and a configuration of its own */
+    bool SignWithDates( const CORE::CString& csr, const CORE::CString& ext, const CORE::CString& crt, const char* authority, const CORE::CString& notBefore, const CORE::CString& notAfter ) const
+    {
+        const CORE::CString caName = CORE::CString( authority );
+        const CORE::CString config = caName + "_ca.cnf", index = caName + "_index.txt", serial = caName + "_serial";
+        const CORE::CString configText = "[ ca ]\ndefault_ca = testca\n[ testca ]\ndatabase = " + index + "\nnew_certs_dir = .\nserial = " + serial +
+                                         "\ndefault_md = sha256\npolicy = anything\nunique_subject = no\n[ anything ]\ncommonName = supplied\n";
+        if ( !WriteFile( config, configText ) || !WriteFile( index, CORE::CString::Empty ) || ( !CORE::FileExists( GetPath( serial.C_String() ) ) && !WriteFile( serial, "1000\n" ) ) )
+            return false;
+
+        CORE::CProcess::TStringVector args;
+        args.push_back( "ca" ); args.push_back( "-batch" ); args.push_back( "-notext" ); args.push_back( "-config" ); args.push_back( config );
+        args.push_back( "-cert" ); args.push_back( caName + ".crt" ); args.push_back( "-keyfile" ); args.push_back( caName + ".key" );
+        args.push_back( "-in" ); args.push_back( csr ); args.push_back( "-out" ); args.push_back( crt ); args.push_back( "-extfile" ); args.push_back( ext );
+        args.push_back( "-startdate" ); args.push_back( notBefore ); args.push_back( "-enddate" ); args.push_back( notAfter );
         return Run( args );
+    }
+
+    bool WriteFile( const CORE::CString& name, const CORE::CString& text ) const
+    {
+        FILE* file = fopen( GetPath( name.C_String() ).C_String(), "wb" );
+        if ( NULL == file )
+            return false;
+        fwrite( text.C_String(), 1, text.Length(), file );
+        fclose( file );
+        return true;
     }
 
     static CORE::CProcess::TStringVector Days( const char* days )

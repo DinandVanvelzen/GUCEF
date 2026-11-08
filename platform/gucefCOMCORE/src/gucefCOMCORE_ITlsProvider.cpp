@@ -51,6 +51,17 @@ ITlsProvider::~ITlsProvider()
 
 }
 
+/*-------------------------------------------------------------------------*/
+
+TTlsSessionPtr
+ITlsProvider::CreateServerSession( const CTlsServerSettings& settings ,
+                                   CTlsError& error                   )
+{GUCEF_TRACE;
+
+    error = CTlsError( TLSERR_NO_PROVIDER, "the TLS provider " + GetProviderName() + " has no server side" );
+    return TTlsSessionPtr();
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //

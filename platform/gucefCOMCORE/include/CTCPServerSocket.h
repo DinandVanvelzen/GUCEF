@@ -40,6 +40,16 @@
 #include "CSocket.h"                    /* socket base class */
 #include "CTCPServerConnection.h"       /* utils class for 1 client connection */
 
+#ifndef GUCEF_COMCORE_CTLSSERVERSETTINGS_H
+#include "gucefCOMCORE_CTlsServerSettings.h"
+#define GUCEF_COMCORE_CTLSSERVERSETTINGS_H
+#endif /* GUCEF_COMCORE_CTLSSERVERSETTINGS_H ? */
+
+#ifndef GUCEF_COMCORE_ITLSPROVIDER_H
+#include "gucefCOMCORE_ITlsProvider.h"
+#define GUCEF_COMCORE_ITLSPROVIDER_H
+#endif /* GUCEF_COMCORE_ITLSPROVIDER_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -82,6 +92,12 @@ struct STCPServerSockData;
  *  a connection whose close was told already, or is being told by another thread, is not told again. A connection
  *  object goes to a later client only once its close was told (DisconnectedEvent, then ClientDisconnectedEvent), also
  *  after a Close() and a new listen.
+ *
+ *  TLS (SetTlsSettings()): every connection is protected by TLS and the users of the socket see plaintext only, the
+ *  events and Send() of the connections are the same as without. ClientConnectedEvent comes when the client
+ *  connected, before the handshake: what is sent before the handshake completed is sent once it did. A client that
+ *  fails the handshake, or does not complete it in the handshake timeout of the settings, is disconnected without
+ *  any data having been delivered (DisconnectedEvent, ClientDisconnectedEvent).
  */
 class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
 {
@@ -244,6 +260,19 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     void SetUseReadinessWake( bool useReadinessWake );
 
     bool GetUseReadinessWake( void ) const;
+
+    /**
+     *  Protects the connections of clients with TLS, with the certificate and key of the settings. Takes effect at
+     *  the next listen, called like SetBindAddress(). Settings without a certificate (CTlsServerSettings::IsEnabled()
+     *  false) turn TLS off.
+     *  @return false when TLS is asked for and cannot be used: no TLS provider with a server side is available, or the
+     *          certificate or key cannot be used. Listening then fails too, rather than serving without TLS
+     */
+    bool SetTlsSettings( const CTlsServerSettings& settings );
+    const CTlsServerSettings& GetTlsSettings( void ) const;
+
+    /** Whether the connections are protected by TLS: the settings ask for it and the certificate and key can be used */
+    bool IsTlsEnabled( void ) const;
     
     virtual ~CTCPServerSocket(); 
     
@@ -279,6 +308,9 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
 
     /** Accepts one waiting connection. @return true when one was accepted */
     bool AcceptClient( void );     
+
+    /** Finds the TLS provider and checks that the certificate and key of the settings can be used */
+    bool PrepareTls( void );
     
     private :
     
@@ -310,6 +342,8 @@ class GUCEF_COMCORE_EXPORT_CPP CTCPServerSocket : public CSocket
     bool m_useReadinessWake;
     CSocketReadinessWaiterPtr m_readinessWaiter;
     CSocketReadinessWaiter::TRegistrationId m_readinessId;  /**< of the listening socket */
+    CTlsServerSettings m_tlsSettings;
+    TITlsProviderPtr m_tlsProvider;            /**< set when the settings ask for TLS and it can be used */
 };
 
 /*-------------------------------------------------------------------------//

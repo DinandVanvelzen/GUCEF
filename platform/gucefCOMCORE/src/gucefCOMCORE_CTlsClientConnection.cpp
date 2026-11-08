@@ -899,6 +899,15 @@ CTlsClientConnection::SetMaxUpdatesPerCycle( UInt32 maxUpdates )
 
 /*-------------------------------------------------------------------------*/
 
+void
+CTlsClientConnection::SetUseReadinessWake( bool useReadinessWake )
+{GUCEF_TRACE;
+
+    m_socket->SetUseReadinessWake( useReadinessWake );
+}
+
+/*-------------------------------------------------------------------------*/
+
 const CORE::CString&
 CTlsClientConnection::GetClassTypeName( void ) const
 {GUCEF_TRACE;

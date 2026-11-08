@@ -64,9 +64,13 @@ class GUCEF_COMCORE_EXPORT_CPP CIPv4Info
     typedef GUCEF::set< CIPv4Info, std::less< CIPv4Info >, gucef_allocator< CIPv4Info > >    TIPv4InfoSet;
 
     CIPv4Address ip;
-    CIPv4Address subnet;
+    CIPv4Address subnet;        /**< the subnet mask, for example 255.255.255.0 */
 
+    /** From "a.b.c.d/n": ip is a.b.c.d, subnet the mask of n bits. @return false for anything else */
     bool TrySetFromCIDRNotationString( const CString& cidrIpv4Str );
+
+    /** Whether the address is in the network of ip and the subnet mask */
+    bool Contains( const CIPv4Address& address ) const;
 
     /**
      *  This operator is only implemented to facilitate ordering

@@ -126,6 +126,55 @@ HasText( const CORE::CString& lowerText, const char* needle )
     return lowerText.HasSubstr( needle ) >= 0;
 }
 
+/*-------------------------------------------------------------------------*/
+
+/**
+ *  The ALPN selection of a server: the first protocol of the list of the server (the argument, in wire format) that
+ *  the client offers. The result points into the list of the server, which lives as long as the provider state.
+ *  A client that offers protocols of which none is spoken here is refused, RFC 7301
+ */
+static int
+ServerAlpnSelect( void* ssl                      ,
+                  const unsigned char** out      ,
+                  unsigned char* outLength       ,
+                  const unsigned char* in        ,
+                  unsigned int inLength          ,
+                  void* arg                      )
+{GUCEF_TRACE;
+
+    const CORE::CDynamicBuffer* serverList = static_cast< const CORE::CDynamicBuffer* >( arg );
+    if ( GUCEF_NULL == serverList || GUCEF_NULL == in || 0 == inLength )
+        return OSSL_SSL_TLSEXT_ERR_NOACK;
+
+    const unsigned char* server = static_cast< const unsigned char* >( serverList->GetConstBufferPtr() );
+    const UInt32 serverLength = serverList->GetDataSize();
+
+    UInt32 s = 0;
+    while ( s < serverLength )
+    {
+        const UInt32 protocolLength = server[ s ];
+        if ( 0 == protocolLength || s + 1 + protocolLength > serverLength )
+            break;
+
+        UInt32 c = 0;
+        while ( c < inLength )
+        {
+            const UInt32 offeredLength = in[ c ];
+            if ( 0 == offeredLength || c + 1 + offeredLength > inLength )
+                return OSSL_SSL_TLSEXT_ERR_ALERT_FATAL;     // a malformed list of the client
+            if ( offeredLength == protocolLength && 0 == memcmp( in + c + 1, server + s + 1, protocolLength ) )
+            {
+                *out = server + s + 1;
+                *outLength = (unsigned char) protocolLength;
+                return OSSL_SSL_TLSEXT_ERR_OK;
+            }
+            c += 1 + offeredLength;
+        }
+        s += 1 + protocolLength;
+    }
+    return OSSL_SSL_TLSEXT_ERR_ALERT_FATAL;
+}
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      COpenSslTlsProviderState                                           //
@@ -141,6 +190,8 @@ COpenSslTlsProviderState::COpenSslTlsProviderState( void )
     , m_contexts()
     , m_resumable()
     , m_resumableOrder()
+    , m_serverContexts()
+    , m_alpnLists()
 {GUCEF_TRACE;
 
 }
@@ -159,13 +210,25 @@ COpenSslTlsProviderState::~COpenSslTlsProviderState()
         if ( GUCEF_NULL != api.SSL_CTX_free )
             api.SSL_CTX_free( (*i).second );     // sessions still alive keep their own reference
     m_contexts.clear();
+
+    for ( TServerContextMap::iterator i = m_serverContexts.begin(); i != m_serverContexts.end(); ++i )
+        if ( GUCEF_NULL != api.SSL_CTX_free )
+            api.SSL_CTX_free( (*i).second.ctx );
+    m_serverContexts.clear();
+
+    for ( TBufferPtrVector::iterator i = m_alpnLists.begin(); i != m_alpnLists.end(); ++i )
+        GUCEF_DELETE (*i);
+    m_alpnLists.clear();
 }
 
 /*-------------------------------------------------------------------------*/
 
 CORE::CString
-COpenSslTlsProviderState::CollectErrors( void ) const
+COpenSslTlsProviderState::CollectErrors( int* firstReason ) const
 {GUCEF_TRACE;
+
+    if ( GUCEF_NULL != firstReason )
+        *firstReason = 0;
 
     CORE::CString errors;
     char buffer[ 256 ];
@@ -174,6 +237,14 @@ COpenSslTlsProviderState::CollectErrors( void ) const
         unsigned long e = api.ERR_get_error();
         if ( 0 == e )
             break;
+        if ( 0 == i && GUCEF_NULL != firstReason )
+        {
+            // ERR_GET_REASON: the low 23 bits in 3.x, where the top bit marks an error of the system, the low 12 bits in 1.1.1
+            if ( api.versionNumber >= OSSL_VERSION_NUMBER_3 )
+                *firstReason = 0 != ( e & 0x80000000UL ) ? 0 : (int) ( e & 0x7FFFFFUL );
+            else
+                *firstReason = (int) ( e & 0xFFFUL );
+        }
         api.ERR_error_string_n( e, buffer, sizeof( buffer ) );
         buffer[ sizeof( buffer ) - 1 ] = '\0';
         if ( !errors.IsNULLOrEmpty() )
@@ -364,6 +435,142 @@ COpenSslTlsProviderState::CreateContext( const CTlsSettings& settings, CTlsError
 
 /*-------------------------------------------------------------------------*/
 
+void*
+COpenSslTlsProviderState::CreateServerContext( const CTlsServerSettings& settings, CTlsError& error )
+{GUCEF_TRACE;
+
+    if ( !api.HasServerSide() )
+    {
+        error = CTlsError( TLSERR_NO_PROVIDER, "the OpenSSL library lacks the entry points of the server side" );
+        return GUCEF_NULL;
+    }
+
+    const CORE::CString& certFile = settings.GetCertificateChainPath();
+    const CORE::CString& keyFile = settings.GetPrivateKeyPath();
+    if ( !CORE::FileExists( certFile ) )
+    {
+        error = CTlsError( TLSERR_SETTINGS, "the certificate file \"" + certFile + "\" does not exist or cannot be read" );
+        return GUCEF_NULL;
+    }
+    if ( !CORE::FileExists( keyFile ) )
+    {
+        error = CTlsError( TLSERR_SETTINGS, "the private key file \"" + keyFile + "\" does not exist or cannot be read" );
+        return GUCEF_NULL;
+    }
+
+    api.ERR_clear_error();
+    void* ctx = api.SSL_CTX_new( api.TLS_server_method() );
+    if ( GUCEF_NULL == ctx )
+    {
+        error = CTlsError( TLSERR_INTERNAL, "SSL_CTX_new failed: " + CollectErrors() );
+        return GUCEF_NULL;
+    }
+
+    // The floor is TLS 1.2, there is no setting below it
+    int minVersion = TLSVERSION_1_3 == settings.GetMinVersion() ? OSSL_TLS1_3_VERSION : OSSL_TLS1_2_VERSION;
+    api.SSL_CTX_ctrl( ctx, OSSL_SSL_CTRL_SET_MIN_PROTO_VERSION, minVersion, GUCEF_NULL );
+    if ( TLSVERSION_ANY != settings.GetMaxVersion() )
+        api.SSL_CTX_ctrl( ctx, OSSL_SSL_CTRL_SET_MAX_PROTO_VERSION, (int) settings.GetMaxVersion(), GUCEF_NULL );
+
+    api.SetOptions( ctx, OSSL_SSL_OP_NO_COMPRESSION | OSSL_SSL_OP_NO_RENEGOTIATION );
+    api.SSL_CTX_set_security_level( ctx, 2 );
+
+    // Certificates of clients are not asked for
+    api.SSL_CTX_set_verify( ctx, OSSL_SSL_VERIFY_NONE, GUCEF_NULL );
+
+    if ( 1 != api.SSL_CTX_use_certificate_chain_file( ctx, certFile.C_String() ) )
+    {
+        error = CTlsError( TLSERR_SETTINGS, "the certificate file \"" + certFile + "\" cannot be used: " + CollectErrors() );
+        api.SSL_CTX_free( ctx );
+        return GUCEF_NULL;
+    }
+    if ( 1 != api.SSL_CTX_use_PrivateKey_file( ctx, keyFile.C_String(), OSSL_SSL_FILETYPE_PEM ) )
+    {
+        error = CTlsError( TLSERR_SETTINGS, "the private key file \"" + keyFile + "\" cannot be used: " + CollectErrors() );
+        api.SSL_CTX_free( ctx );
+        return GUCEF_NULL;
+    }
+    if ( 1 != api.SSL_CTX_check_private_key( ctx ) )
+    {
+        error = CTlsError( TLSERR_SETTINGS, "the private key \"" + keyFile + "\" does not belong to the certificate \"" + certFile + "\"" );
+        api.ERR_clear_error();
+        api.SSL_CTX_free( ctx );
+        return GUCEF_NULL;
+    }
+
+    const CTlsServerSettings::TStringVector& alpn = settings.GetAlpnProtocols();
+    if ( !alpn.empty() )
+    {
+        CORE::CDynamicBuffer* wire = GUCEF_NEW CORE::CDynamicBuffer();
+        for ( size_t i=0; i<alpn.size(); ++i )
+        {
+            UInt8 lengthByte = (UInt8) alpn[ i ].Length();
+            wire->Append( &lengthByte, 1 );
+            wire->Append( alpn[ i ].C_String(), alpn[ i ].Length() );
+        }
+        m_alpnLists.push_back( wire );
+        api.SSL_CTX_set_alpn_select_cb( ctx, &ServerAlpnSelect, wire );
+    }
+
+    api.ERR_clear_error();
+    return ctx;
+}
+
+/*-------------------------------------------------------------------------*/
+
+CORE::CString
+COpenSslTlsProviderState::GetFileStamp( const CORE::CString& path )
+{GUCEF_TRACE;
+
+    return CORE::GetFileModificationTime( path ).ToIso8601DateTimeString( false, true ) + "/" + CORE::ToString( CORE::FileSize( path ) );
+}
+
+/*-------------------------------------------------------------------------*/
+
+void*
+COpenSslTlsProviderState::AcquireServerContext( const CTlsServerSettings& settings, CTlsError& error )
+{GUCEF_TRACE;
+
+    const CORE::CString key = settings.GetContextKey();
+    const CORE::CString fileStamp = GetFileStamp( settings.GetCertificateChainPath() ) + "|" + GetFileStamp( settings.GetPrivateKeyPath() );
+
+    MT::CScopeMutex lock( m_lock );
+    TServerContextMap::iterator i = m_serverContexts.find( key );
+    if ( i != m_serverContexts.end() && (*i).second.fileStamp == fileStamp )
+        return (*i).second.ctx;
+
+    void* ctx = CreateServerContext( settings, error );
+    if ( GUCEF_NULL == ctx )
+    {
+        // A file that is being replaced can be read half written: the context of the previous files serves until the new ones can be used
+        if ( i != m_serverContexts.end() )
+        {
+            GUCEF_WARNING_LOG( CORE::LOGLEVEL_NORMAL, "OpenSslTlsProvider: The changed certificate or key cannot be used, the previous one is kept: " << error.message );
+            error.Clear();
+            return (*i).second.ctx;
+        }
+        return GUCEF_NULL;
+    }
+
+    if ( i != m_serverContexts.end() )
+    {
+        GUCEF_SYSTEM_LOG( CORE::LOGLEVEL_NORMAL, "OpenSslTlsProvider: The certificate \"" << settings.GetCertificateChainPath() << "\" changed, new connections use the new one" );
+        api.SSL_CTX_free( (*i).second.ctx );     // sessions still alive keep their own reference
+        (*i).second.ctx = ctx;
+        (*i).second.fileStamp = fileStamp;
+    }
+    else
+    {
+        SServerContext entry;
+        entry.ctx = ctx;
+        entry.fileStamp = fileStamp;
+        m_serverContexts[ key ] = entry;
+    }
+    return ctx;
+}
+
+/*-------------------------------------------------------------------------*/
+
 CORE::CString
 COpenSslTlsProviderState::GetContextKey( const CTlsSettings& settings )
 {GUCEF_TRACE;
@@ -469,7 +676,7 @@ COpenSslTlsProviderState::GetContextCount( void )
 {GUCEF_TRACE;
 
     MT::CScopeMutex lock( m_lock );
-    return (UInt32) m_contexts.size();
+    return (UInt32) ( m_contexts.size() + m_serverContexts.size() );
 }
 
 /*-------------------------------------------------------------------------*/
@@ -494,9 +701,40 @@ COpenSslTlsProviderSession::COpenSslTlsProviderSession( const TOpenSslStatePtr& 
     : ITlsSession()
     , m_shared( state )
     , m_settings( settings )
+    , m_serverSettings()
+    , m_isServer( false )
     , m_serverName( serverName )
     , m_contextKey()
     , m_isIpAddress( IsIpAddressLiteral( serverName ) )
+    , m_ssl( GUCEF_NULL )
+    , m_readBio( GUCEF_NULL )
+    , m_writeBio( GUCEF_NULL )
+    , m_tlsState( TLSSTATE_IDLE )
+    , m_error()
+    , m_info()
+    , m_plaintextOut()
+    , m_wasEstablished( false )
+    , m_shutdownSent( false )
+    , m_sessionKept( false )
+    , m_startTicks( 0 )
+{GUCEF_TRACE;
+
+    m_info.providerName = m_shared->providerName;
+    m_info.providerVersion = m_shared->versionInfo;
+}
+
+/*-------------------------------------------------------------------------*/
+
+COpenSslTlsProviderSession::COpenSslTlsProviderSession( const TOpenSslStatePtr& state      ,
+                                                        const CTlsServerSettings& settings )
+    : ITlsSession()
+    , m_shared( state )
+    , m_settings()
+    , m_serverSettings( settings )
+    , m_isServer( true )
+    , m_serverName()
+    , m_contextKey()
+    , m_isIpAddress( false )
     , m_ssl( GUCEF_NULL )
     , m_readBio( GUCEF_NULL )
     , m_writeBio( GUCEF_NULL )
@@ -558,7 +796,8 @@ void
 COpenSslTlsProviderSession::KeepSessionForResumption( void )
 {GUCEF_TRACE;
 
-    if ( m_sessionKept || !m_settings.GetAllowResumption() || 0 == m_settings.GetSessionCacheSize() )
+    // A server does not keep sessions itself: the library resumes them from its tickets
+    if ( m_isServer || m_sessionKept || !m_settings.GetAllowResumption() || 0 == m_settings.GetSessionCacheSize() )
         return;
     m_sessionKept = true;
 
@@ -584,8 +823,17 @@ COpenSslTlsProviderSession::Initialize( CTlsError& error )
 
     const SOpenSslApi& api = m_shared->api;
 
-    m_contextKey = COpenSslTlsProviderState::GetContextKey( m_settings );
-    void* ctx = m_shared->AcquireContext( m_settings, error );
+    void* ctx = GUCEF_NULL;
+    if ( m_isServer )
+    {
+        m_contextKey = m_serverSettings.GetContextKey();
+        ctx = m_shared->AcquireServerContext( m_serverSettings, error );
+    }
+    else
+    {
+        m_contextKey = COpenSslTlsProviderState::GetContextKey( m_settings );
+        ctx = m_shared->AcquireContext( m_settings, error );
+    }
     if ( GUCEF_NULL == ctx )
         return false;
 
@@ -603,6 +851,14 @@ COpenSslTlsProviderSession::Initialize( CTlsError& error )
         return false;
     }
     api.SSL_set_bio( m_ssl, m_readBio, m_writeBio );     // the SSL object owns the BIOs from here
+
+    if ( m_isServer )
+    {
+        api.SSL_set_accept_state( m_ssl );
+        api.ERR_clear_error();
+        m_plaintextOut.SetBufferSize( PlaintextReadBlockSize, false );
+        return true;
+    }
     api.SSL_set_connect_state( m_ssl );
 
     if ( m_settings.IsVerificationEnabled() && !m_serverName.IsNULLOrEmpty() )
@@ -834,16 +1090,27 @@ COpenSslTlsProviderSession::Fail( int sslErrorCode, const char* whileDoing )
 
     const SOpenSslApi& api = m_shared->api;
 
-    CORE::CString errors = m_shared->CollectErrors();
+    int reason = 0;
+    CORE::CString errors = m_shared->CollectErrors( &reason );
     m_tlsState = TLSSTATE_FAILED;
     m_error.providerCode = sslErrorCode;
 
     // The verification result says what is wrong with the certificate. It is not read when verification is off: it
     // is then only informational
-    long verifyResult = m_settings.IsVerificationEnabled() ? api.SSL_get_verify_result( m_ssl ) : OSSL_X509_V_OK;
+    long verifyResult = !m_isServer && m_settings.IsVerificationEnabled() ? api.SSL_get_verify_result( m_ssl ) : OSSL_X509_V_OK;
     if ( OSSL_X509_V_OK != verifyResult )
     {
         ClassifyCertificateFailure( verifyResult );
+        return;
+    }
+
+    // An alert of the peer has the reason 1000 + the alert number (SSL_AD_REASON_OFFSET) in every version. Not every
+    // version has a text for every alert
+    if ( reason >= OSSL_SSL_AD_REASON_OFFSET && reason <= OSSL_SSL_AD_REASON_OFFSET + 255 )
+    {
+        const int alert = reason - OSSL_SSL_AD_REASON_OFFSET;
+        m_error.errorClass = OSSL_SSL_AD_PROTOCOL_VERSION == alert ? TLSERR_PROTOCOL_VERSION : TLSERR_PROTOCOL_ALERT;
+        m_error.message = ( errors.IsNULLOrEmpty() ? CORE::CString( "TLS error" ) : errors ) + " (TLS alert " + CORE::ToString( alert ) + " of the peer)";
         return;
     }
 

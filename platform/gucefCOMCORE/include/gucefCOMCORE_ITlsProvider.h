@@ -35,6 +35,11 @@
 #define GUCEF_COMCORE_CTLSSETTINGS_H
 #endif /* GUCEF_COMCORE_CTLSSETTINGS_H ? */
 
+#ifndef GUCEF_COMCORE_CTLSSERVERSETTINGS_H
+#include "gucefCOMCORE_CTlsServerSettings.h"
+#define GUCEF_COMCORE_CTLSSERVERSETTINGS_H
+#endif /* GUCEF_COMCORE_CTLSSERVERSETTINGS_H ? */
+
 /*-------------------------------------------------------------------------//
 //                                                                         //
 //      NAMESPACE                                                          //
@@ -88,6 +93,15 @@ class GUCEF_COMCORE_EXPORT_CPP ITlsProvider
     virtual TTlsSessionPtr CreateClientSession( const CTlsSettings& settings   ,
                                                 const CORE::CString& serverName ,
                                                 CTlsError& error                ) = 0;
+
+    /**
+     *  A session for a connection a client made to this process, with the certificate and key of the settings. Only
+     *  for a provider with TLSCAP_SERVER: the default answers that the provider has no server side.
+     *  @return NULL with the error filled in when the session cannot be made: the provider is unavailable, or the
+     *          certificate or key cannot be used (TLSERR_SETTINGS)
+     */
+    virtual TTlsSessionPtr CreateServerSession( const CTlsServerSettings& settings ,
+                                                CTlsError& error                   );
 
     protected:
 

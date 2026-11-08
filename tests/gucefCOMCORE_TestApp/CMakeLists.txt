@@ -21,6 +21,7 @@ set( HEADER_FILES
   include/TestCode_TlsClient.h
   include/TestCode_TlsLayer.h
   include/TestCode_TlsOpenSsl.h
+  include/TestCode_TlsServer.h
   include/TestDatabaseClient.h
   include/TestDatabaseClientFake.h
   include/TestNoTlsProvider.h
@@ -49,6 +50,7 @@ set( SOURCE_FILES
   src/TestCode_SimpleTCPClient.cpp
   src/TestCode_TlsLayer.cpp
   src/TestCode_TlsOpenSsl.cpp
+  src/TestCode_TlsServer.cpp
   src/TestRpcCodec.cpp
   src/TestRpcContract.cpp
   src/TestRpcEndpoint.cpp

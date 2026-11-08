@@ -96,6 +96,16 @@ SOpenSslApi::SetOptions( void* ctx, UInt64 options ) const
 /*-------------------------------------------------------------------------*/
 
 bool
+SOpenSslApi::HasServerSide( void ) const
+{GUCEF_TRACE;
+
+    return GUCEF_NULL != TLS_server_method && GUCEF_NULL != SSL_set_accept_state && GUCEF_NULL != SSL_CTX_use_certificate_chain_file &&
+           GUCEF_NULL != SSL_CTX_use_PrivateKey_file && GUCEF_NULL != SSL_CTX_check_private_key && GUCEF_NULL != SSL_CTX_set_alpn_select_cb;
+}
+
+/*-------------------------------------------------------------------------*/
+
+bool
 SOpenSslApi::Resolve( void* sslLib, void* cryptoLib, CORE::CString& missing )
 {GUCEF_TRACE;
 
@@ -174,6 +184,14 @@ SOpenSslApi::Resolve( void* sslLib, void* cryptoLib, CORE::CString& missing )
 
     // libssl, optional
     SSL_SESSION_is_resumable = (int ( * )( const void* )) Lookup( sslLib, "SSL_SESSION_is_resumable", false, missing );
+
+    // libssl, the server side
+    TLS_server_method = (const void* ( * )( void )) Lookup( sslLib, "TLS_server_method", false, missing );
+    SSL_set_accept_state = (void ( * )( void* )) Lookup( sslLib, "SSL_set_accept_state", false, missing );
+    SSL_CTX_use_certificate_chain_file = (int ( * )( void*, const char* )) Lookup( sslLib, "SSL_CTX_use_certificate_chain_file", false, missing );
+    SSL_CTX_use_PrivateKey_file = (int ( * )( void*, const char*, int )) Lookup( sslLib, "SSL_CTX_use_PrivateKey_file", false, missing );
+    SSL_CTX_check_private_key = (int ( * )( const void* )) Lookup( sslLib, "SSL_CTX_check_private_key", false, missing );
+    SSL_CTX_set_alpn_select_cb = (void ( * )( void*, int ( * )( void*, const unsigned char**, unsigned char*, const unsigned char*, unsigned int, void* ), void* )) Lookup( sslLib, "SSL_CTX_set_alpn_select_cb", false, missing );
 
     // The one that was renamed: OpenSSL 3.x exports SSL_get1_peer_certificate (SSL_get_peer_certificate is only a macro
     // there), OpenSSL 1.1.1 exports SSL_get_peer_certificate. Both give a reference the caller frees with X509_free
